@@ -11,7 +11,7 @@ use std::ptr;
 
 use layout::flow::{Flow, base, mut_base};
 
-pub type Link = Option<~Flow>;
+pub type Link = Option<~Flow:Share>;
 
 #[deriving(Clone)]
 pub struct Rawlink {
@@ -88,7 +88,7 @@ impl Rawlink {
 }
 
 /// Set the .prev field on `next`, then return `Some(next)`
-fn link_with_prev(mut next: ~Flow, prev: Rawlink) -> Link {
+fn link_with_prev(mut next: ~Flow:Share, prev: Rawlink) -> Link {
     mut_base(next).prev_sibling = prev;
     Some(next)
 }
@@ -146,7 +146,7 @@ impl FlowList {
     /// Add an element first in the list
     ///
     /// O(1)
-    pub fn push_front(&mut self, mut new_head: ~Flow) {
+    pub fn push_front(&mut self, mut new_head: ~Flow:Share) {
         match self.list_head {
             None => {
                 self.list_tail = Rawlink::some(new_head);
@@ -165,7 +165,7 @@ impl FlowList {
     /// Remove the first element and return it, or None if the list is empty
     ///
     /// O(1)
-    pub fn pop_front(&mut self) -> Option<~Flow> {
+    pub fn pop_front(&mut self) -> Option<~Flow:Share> {
         self.list_head.take().map(|mut front_node| {
             self.length -= 1;
             match mut_base(front_node).next_sibling.take() {
@@ -179,7 +179,7 @@ impl FlowList {
     /// Add an element last in the list
     ///
     /// O(1)
-    pub fn push_back(&mut self, mut new_tail: ~Flow) {
+    pub fn push_back(&mut self, mut new_tail: ~Flow:Share) {
         if self.list_tail.is_none() {
             return self.push_front(new_tail);
         } else {
@@ -194,7 +194,7 @@ impl FlowList {
     /// Remove the last element and return it, or None if the list is empty
     ///
     /// O(1)
-    pub fn pop_back(&mut self) -> Option<~Flow> {
+    pub fn pop_back(&mut self) -> Option<~Flow:Share> {
         if self.list_tail.is_none() {
             None
         } else {

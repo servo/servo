@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use css::node_style::StyledNode;
-use layout::box_::{Box, CannotSplit, GenericBox, IframeBox, ImageBox, InlineInfo, ScannedTextBox};
+use layout::box_::{Box, CannotSplit, GenericBox, IframeBox, ImageBox, ScannedTextBox};
 use layout::box_::{SplitDidFit, SplitDidNotFit, TableBox, TableCellBox, TableColumnBox};
 use layout::box_::{TableRowBox, TableWrapperBox, UnscannedTextBox};
 use layout::context::LayoutContext;
@@ -12,18 +12,23 @@ use layout::floats::{FloatLeft, Floats, PlacementInfo};
 use layout::flow::{BaseFlow, FlowClass, Flow, InlineFlowClass};
 use layout::flow;
 use layout::model::IntrinsicWidths;
-use layout::util::ElementMapping;
+use layout::model;
 use layout::wrapper::ThreadSafeLayoutNode;
 
 use collections::{Deque, RingBuf};
-use geom::{Point2D, Rect, Size2D};
+use geom::{Point2D, Rect, SideOffsets2D, Size2D};
 use gfx::display_list::{ContentLevel, StackingContext};
 use servo_util::geometry::Au;
 use servo_util::geometry;
 use servo_util::range::Range;
+use servo_util::smallvec::{SmallVec, SmallVec0};
+use std::iter::Enumerate;
 use std::mem;
+use std::slice::{Items, MutItems};
 use std::u16;
 use style::computed_values::{text_align, vertical_align, white_space};
+use style::ComputedValues;
+use sync::Arc;
 
 /// Lineboxes are represented as offsets into the child list, rather than
 /// as an object that "owns" boxes. Choosing a different set of line
@@ -58,10 +63,10 @@ pub struct LineBox {
 
 struct LineboxScanner {
     pub floats: Floats,
-    pub new_boxes: ~[Box],
+    pub new_boxes: SmallVec0<Box>,
     pub work_list: RingBuf<Box>,
     pub pending_line: LineBox,
-    pub lines: ~[LineBox],
+    pub lines: SmallVec0<LineBox>,
     pub cur_y: Au,
 }
 
@@ -69,14 +74,14 @@ impl LineboxScanner {
     pub fn new(float_ctx: Floats) -> LineboxScanner {
         LineboxScanner {
             floats: float_ctx,
-            new_boxes: ~[],
+            new_boxes: SmallVec0::new(),
             work_list: RingBuf::new(),
             pending_line: LineBox {
                 range: Range::empty(),
                 bounds: Rect(Point2D(Au::new(0), Au::new(0)), Size2D(Au::new(0), Au::new(0))),
                 green_zone: Size2D(Au::new(0), Au::new(0))
             },
-            lines: ~[],
+            lines: SmallVec0::new(),
             cur_y: Au::new(0)
         }
     }
@@ -87,9 +92,9 @@ impl LineboxScanner {
 
     fn reset_scanner(&mut self) {
         debug!("Resetting line box scanner's state for flow.");
-        self.lines = ~[];
-        self.new_boxes = ~[];
-        self.cur_y = Au::new(0);
+        self.lines = SmallVec0::new();
+        self.new_boxes = SmallVec0::new();
+        self.cur_y = Au(0);
         self.reset_linebox();
     }
 
@@ -102,19 +107,29 @@ impl LineboxScanner {
     pub fn scan_for_lines(&mut self, flow: &mut InlineFlow) {
         self.reset_scanner();
 
+        // Swap out temporarily.
+        let InlineBoxes {
+            boxes: old_boxes,
+            map: mut map
+        } = mem::replace(&mut flow.boxes, InlineBoxes::new());
+
+        let mut old_box_iter = old_boxes.iter();
         loop {
             // acquire the next box to lay out from work list or box list
             let cur_box = if self.work_list.is_empty() {
-                if flow.boxes.is_empty() {
-                    break;
+                match old_box_iter.next() {
+                    None => break,
+                    Some(fragment) => {
+                        debug!("LineboxScanner: Working with fragment from flow: b{}",
+                               fragment.debug_id());
+                        (*fragment).clone()
+                    }
                 }
-                let box_ = flow.boxes.remove(0).unwrap(); // FIXME: use a linkedlist
-                debug!("LineboxScanner: Working with box from box list: b{}", box_.debug_id());
-                box_
             } else {
-                let box_ = self.work_list.pop_front().unwrap();
-                debug!("LineboxScanner: Working with box from work list: b{}", box_.debug_id());
-                box_
+                let fragment = self.work_list.pop_front().unwrap();
+                debug!("LineboxScanner: Working with box from work list: b{}",
+                       fragment.debug_id());
+                fragment
             };
 
             let box_was_appended = match cur_box.white_space() {
@@ -137,17 +152,13 @@ impl LineboxScanner {
             self.flush_current_line();
         }
 
-        flow.elems.repair_for_box_changes(flow.boxes, self.new_boxes);
+        map.fixup(old_boxes.as_slice(), self.new_boxes.as_slice());
+        flow.boxes = InlineBoxes {
+            boxes: mem::replace(&mut self.new_boxes, SmallVec0::new()),
+            map: map,
+        };
 
-        self.swap_out_results(flow);
-    }
-
-    fn swap_out_results(&mut self, flow: &mut InlineFlow) {
-        debug!("LineboxScanner: Propagating scanned lines[n={:u}] to inline flow",
-               self.lines.len());
-
-        mem::swap(&mut flow.boxes, &mut self.new_boxes);
-        mem::swap(&mut flow.lines, &mut self.lines);
+        flow.lines = mem::replace(&mut self.lines, SmallVec0::new());
     }
 
     fn flush_current_line(&mut self) {
@@ -179,7 +190,7 @@ impl LineboxScanner {
                               -> (Rect<Au>, Au) {
         debug!("LineboxScanner: Trying to place first box of line {}", self.lines.len());
 
-        let first_box_size = first_box.border_box.borrow().size;
+        let first_box_size = first_box.border_box.size;
         let splittable = first_box.can_split();
         debug!("LineboxScanner: box size: {}, splittable: {}", first_box_size, splittable);
         let line_is_empty: bool = self.pending_line.range.length() == 0;
@@ -233,9 +244,9 @@ impl LineboxScanner {
 
                 debug!("LineboxScanner: case=box split and fit");
                 let actual_box_width = match (left, right) {
-                    (Some(l_box), Some(_))  => l_box.border_box.borrow().size.width,
-                    (Some(l_box), None)     => l_box.border_box.borrow().size.width,
-                    (None, Some(r_box))     => r_box.border_box.borrow().size.width,
+                    (Some(l_box), Some(_))  => l_box.border_box.size.width,
+                    (Some(l_box), None)     => l_box.border_box.size.width,
+                    (None, Some(r_box))     => r_box.border_box.size.width,
                     (None, None)            => fail!("This case makes no sense.")
                 };
                 return (line_bounds, actual_box_width);
@@ -247,9 +258,9 @@ impl LineboxScanner {
 
                 debug!("LineboxScanner: case=box split and fit didn't fit; trying to push it down");
                 let actual_box_width = match (left, right) {
-                    (Some(l_box), Some(_))  => l_box.border_box.borrow().size.width,
-                    (Some(l_box), None)     => l_box.border_box.borrow().size.width,
-                    (None, Some(r_box))     => r_box.border_box.borrow().size.width,
+                    (Some(l_box), Some(_))  => l_box.border_box.size.width,
+                    (Some(l_box), None)     => l_box.border_box.size.width,
+                    (None, Some(r_box))     => r_box.border_box.size.width,
                     (None, None)            => fail!("This case makes no sense.")
                 };
 
@@ -348,7 +359,7 @@ impl LineboxScanner {
         debug!("LineboxScanner: Trying to append box to line {:u} (box size: {}, green zone: \
                 {}): {:s}",
                self.lines.len(),
-               in_box.border_box.borrow().size,
+               in_box.border_box.size,
                self.pending_line.green_zone,
                in_box.debug_str());
 
@@ -368,7 +379,7 @@ impl LineboxScanner {
         // horizontally. We'll try to place the whole box on this line and break somewhere if it
         // doesn't fit.
 
-        let new_width = self.pending_line.bounds.size.width + in_box.border_box.borrow().size.width;
+        let new_width = self.pending_line.bounds.size.width + in_box.border_box.size.width;
         if new_width <= green_zone.width {
             debug!("LineboxScanner: case=box fits without splitting");
             self.push_box_to_line(in_box);
@@ -439,49 +450,148 @@ impl LineboxScanner {
         }
         self.pending_line.range.extend_by(1);
         self.pending_line.bounds.size.width = self.pending_line.bounds.size.width +
-            box_.border_box.borrow().size.width;
+            box_.border_box.size.width;
         self.pending_line.bounds.size.height = Au::max(self.pending_line.bounds.size.height,
-                                                       box_.border_box.borrow().size.height);
+                                                       box_.border_box.size.height);
         self.new_boxes.push(box_);
     }
 }
 
+/// Iterator over boxes.
+pub struct BoxIterator<'a> {
+    iter: Enumerate<Items<'a,Box>>,
+    map: &'a FragmentMap,
+}
+
+impl<'a> Iterator<(&'a Box, InlineFragmentContext<'a>)> for BoxIterator<'a> {
+    #[inline]
+    fn next(&mut self) -> Option<(&'a Box, InlineFragmentContext<'a>)> {
+        match self.iter.next() {
+            None => None,
+            Some((i, fragment)) => Some((fragment, InlineFragmentContext::new(self.map, i))),
+        }
+    }
+}
+
+/// Mutable iterator over boxes.
+pub struct MutBoxIterator<'a> {
+    iter: Enumerate<MutItems<'a,Box>>,
+    map: &'a FragmentMap,
+}
+
+impl<'a> Iterator<(&'a mut Box, InlineFragmentContext<'a>)> for MutBoxIterator<'a> {
+    #[inline]
+    fn next(&mut self) -> Option<(&'a mut Box, InlineFragmentContext<'a>)> {
+        match self.iter.next() {
+            None => None,
+            Some((i, fragment)) => Some((fragment, InlineFragmentContext::new(self.map, i))),
+        }
+    }
+}
+
+/// Represents a list of inline boxes, including element ranges.
+pub struct InlineBoxes {
+    /// The boxes themselves.
+    pub boxes: SmallVec0<Box>,
+    /// Tracks the elements that made up the boxes above.
+    pub map: FragmentMap,
+}
+
+impl InlineBoxes {
+    /// Creates an empty set of inline boxes.
+    pub fn new() -> InlineBoxes {
+        InlineBoxes {
+            boxes: SmallVec0::new(),
+            map: FragmentMap::new(),
+        }
+    }
+
+    /// Returns the number of inline boxes.
+    pub fn len(&self) -> uint {
+        self.boxes.len()
+    }
+
+    /// Returns true if this list contains no boxes and false if it contains at least one box.
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    /// Pushes a new inline box.
+    pub fn push(&mut self, fragment: Box, style: Arc<ComputedValues>) {
+        self.map.push(style, Range::new(self.boxes.len(), 1));
+        self.boxes.push(fragment)
+    }
+
+    /// Merges another set of inline boxes with this one.
+    pub fn push_all(&mut self, other: InlineBoxes) {
+        let InlineBoxes {
+            boxes: other_boxes,
+            map: other_map
+        } = other;
+        let adjustment = self.boxes.len();
+        self.map.push_all(other_map, adjustment);
+        self.boxes.push_all_move(other_boxes);
+    }
+
+    /// Returns an iterator that iterates over all boxes along with the appropriate context.
+    pub fn iter<'a>(&'a self) -> BoxIterator<'a> {
+        BoxIterator {
+            iter: self.boxes.as_slice().iter().enumerate(),
+            map: &self.map,
+        }
+    }
+
+    /// Returns an iterator that iterates over all boxes along with the appropriate context and
+    /// allows those boxes to be mutated.
+    pub fn mut_iter<'a>(&'a mut self) -> MutBoxIterator<'a> {
+        MutBoxIterator {
+            iter: self.boxes.as_mut_slice().mut_iter().enumerate(),
+            map: &self.map,
+        }
+    }
+
+    /// A convenience function to return the box at a given index.
+    pub fn get<'a>(&'a self, index: uint) -> &'a Box {
+        self.boxes.get(index)
+    }
+
+    /// A convenience function to return a mutable reference to the box at a given index.
+    pub fn get_mut<'a>(&'a mut self, index: uint) -> &'a mut Box {
+        self.boxes.get_mut(index)
+    }
+}
+
+/// Flows for inline layout.
 pub struct InlineFlow {
     /// Data common to all flows.
     pub base: BaseFlow,
 
-    /// A vector of all inline render boxes. Several boxes may correspond to one node/element.
-    pub boxes: ~[Box],
+    /// A vector of all inline fragments. Several fragments may correspond to one node/element.
+    pub boxes: InlineBoxes,
 
-    // vec of ranges into boxes that represents line positions.
-    // these ranges are disjoint, and are the result of inline layout.
-    // also some metadata used for positioning lines
-    pub lines: ~[LineBox],
-
-    // vec of ranges into boxes that represent elements. These ranges
-    // must be well-nested, and are only related to the content of
-    // boxes (not lines). Ranges are only kept for non-leaf elements.
-    pub elems: ElementMapping,
+    /// A vector of ranges into boxes that represents line positions. These ranges are disjoint and
+    /// are the result of inline layout. This also includes some metadata used for positioning
+    /// lines.
+    pub lines: SmallVec0<LineBox>,
 }
 
 impl InlineFlow {
-    pub fn from_boxes(node: ThreadSafeLayoutNode, boxes: ~[Box]) -> InlineFlow {
+    pub fn from_boxes(node: ThreadSafeLayoutNode, boxes: InlineBoxes) -> InlineFlow {
         InlineFlow {
             base: BaseFlow::new(node),
             boxes: boxes,
-            lines: ~[],
-            elems: ElementMapping::new(),
+            lines: SmallVec0::new(),
         }
     }
 
     pub fn teardown(&mut self) {
-        for box_ in self.boxes.iter() {
-            box_.teardown();
+        for (fragment, _) in self.boxes.iter() {
+            fragment.teardown();
         }
-        self.boxes = ~[];
+        self.boxes = InlineBoxes::new();
     }
 
-    pub fn build_display_list_inline(&self,
+    pub fn build_display_list_inline(&mut self,
                                      stacking_context: &mut StackingContext,
                                      builder: &DisplayListBuilder,
                                      info: &DisplayListBuildingInfo) {
@@ -494,14 +604,15 @@ impl InlineFlow {
         // not recurse on a line if nothing in it can intersect the dirty region.
         debug!("Flow: building display list for {:u} inline boxes", self.boxes.len());
 
-        for box_ in self.boxes.iter() {
-            let rel_offset = box_.relative_position(&info.relative_containing_block_size);
-            box_.build_display_list(stacking_context,
-                                    builder,
-                                    info,
-                                    self.base.abs_position + rel_offset,
-                                    (&*self) as &Flow,
-                                    ContentLevel);
+        for (fragment, context) in self.boxes.mut_iter() {
+            let rel_offset = fragment.relative_position(&info.relative_containing_block_size,
+                                                        Some(context));
+            fragment.build_display_list(stacking_context,
+                                        builder,
+                                        info,
+                                        self.base.abs_position + rel_offset,
+                                        ContentLevel,
+                                        Some(context));
         }
 
         // TODO(#225): Should `inline-block` elements have flows as children of the inline flow or
@@ -582,7 +693,9 @@ impl InlineFlow {
     }
 
     /// Sets box X positions based on alignment for one line.
-    fn set_horizontal_box_positions(boxes: &[Box], line: &LineBox, linebox_align: text_align::T) {
+    fn set_horizontal_box_positions(boxes: &mut InlineBoxes,
+                                    line: &LineBox,
+                                    linebox_align: text_align::T) {
         // Figure out how much width we have.
         let slack_width = Au::max(Au(0), line.green_zone.width - line.bounds.size.width);
 
@@ -599,10 +712,9 @@ impl InlineFlow {
         };
 
         for i in line.range.eachi() {
-            let box_ = &boxes[i];
-            let mut border_box = box_.border_box.borrow_mut();
-            let size = border_box.size;
-            *border_box = Rect(Point2D(offset_x, border_box.origin.y), size);
+            let box_ = boxes.get_mut(i);
+            let size = box_.border_box.size;
+            box_.border_box = Rect(Point2D(offset_x, box_.border_box.origin.y), size);
             offset_x = offset_x + size.width;
         }
     }
@@ -631,11 +743,10 @@ impl Flow for InlineFlow {
         }
 
         let mut intrinsic_widths = IntrinsicWidths::new();
-        for box_ in self.boxes.iter() {
-            debug!("Flow: measuring {:s}", box_.debug_str());
-            box_.compute_borders(box_.style());
+        for (fragment, context) in self.boxes.mut_iter() {
+            debug!("Flow: measuring {:s}", fragment.debug_str());
 
-            let box_intrinsic_widths = box_.intrinsic_widths();
+            let box_intrinsic_widths = fragment.intrinsic_widths(Some(context));
             intrinsic_widths.minimum_width = geometry::max(intrinsic_widths.minimum_width,
                                                            box_intrinsic_widths.minimum_width);
             intrinsic_widths.preferred_width = geometry::max(intrinsic_widths.preferred_width,
@@ -657,8 +768,9 @@ impl Flow for InlineFlow {
 
         {
             let this = &mut *self;
-            for box_ in this.boxes.iter() {
-                box_.assign_replaced_width_if_necessary(self.base.position.size.width);
+            for (fragment, context) in this.boxes.mut_iter() {
+                fragment.assign_replaced_width_if_necessary(self.base.position.size.width,
+                                                            Some(context))
             }
         }
 
@@ -699,9 +811,10 @@ impl Flow for InlineFlow {
         debug!("assign_height_inline: floats in: {:?}", self.base.floats);
 
         // assign height for inline boxes
-        for box_ in self.boxes.iter() {
-            box_.assign_replaced_height_if_necessary();
+        for (fragment, _) in self.boxes.mut_iter() {
+            fragment.assign_replaced_height_if_necessary();
         }
+
         let scanner_floats = self.base.floats.clone();
         let mut scanner = LineboxScanner::new(scanner_floats);
 
@@ -710,12 +823,12 @@ impl Flow for InlineFlow {
         let mut line_height_offset = Au::new(0);
 
         // All lines use text alignment of the flow.
-        let text_align = self.base.flags_info.flags.text_align();
+        let text_align = self.base.flags.text_align();
 
         // Now, go through each line and lay out the boxes inside.
         for line in self.lines.mut_iter() {
             // Lay out boxes horizontally.
-            InlineFlow::set_horizontal_box_positions(self.boxes, line, text_align);
+            InlineFlow::set_horizontal_box_positions(&mut self.boxes, line, text_align);
 
             // Set the top y position of the current linebox.
             // `line_height_offset` is updated at the end of the previous loop.
@@ -728,8 +841,9 @@ impl Flow for InlineFlow {
             let (mut biggest_top, mut biggest_bottom) = (Au(0), Au(0));
 
             for box_i in line.range.eachi() {
-                let cur_box = &self.boxes[box_i];
-                let top = cur_box.noncontent_top();
+                let cur_box = self.boxes.boxes.get_mut(box_i);
+
+                let top = cur_box.border_padding.top;
 
                 // FIXME(pcwalton): Move into `box.rs` like the rest of box-specific layout code?
                 let (top_from_base, bottom_from_base, ascent) = match cur_box.specific {
@@ -738,7 +852,7 @@ impl Flow for InlineFlow {
 
                         // TODO: margin, border, padding's top and bottom should be calculated in
                         // advance, since baseline of image is bottom margin edge.
-                        let bottom = cur_box.noncontent_bottom();
+                        let bottom = cur_box.border_padding.bottom;
                         let noncontent_height = top + bottom;
                         height = height + noncontent_height;
 
@@ -760,13 +874,13 @@ impl Flow for InlineFlow {
 
                         // Offset from the top of the box is 1/2 of the leading + ascent
                         let text_offset = text_ascent + (line_height - em_size).scale_by(0.5);
-                        text_bounds.translate(&Point2D(cur_box.border_box.borrow().origin.x, Au(0)));
+                        text_bounds.translate(&Point2D(cur_box.border_box.origin.x, Au(0)));
 
                         (text_offset, line_height - text_offset, text_ascent)
                     },
                     GenericBox | IframeBox(_) | TableBox | TableCellBox | TableRowBox |
                     TableWrapperBox => {
-                        let height = cur_box.border_box.borrow().size.height;
+                        let height = cur_box.border_box.size.height;
                         (height, Au::new(0), height)
                     },
                     TableColumnBox(_) => fail!("Table column boxes do not have height"),
@@ -822,7 +936,7 @@ impl Flow for InlineFlow {
                     bottommost = bottom_from_base;
                 }
 
-                cur_box.border_box.borrow_mut().origin.y = line.bounds.origin.y + offset + top;
+                cur_box.border_box.origin.y = line.bounds.origin.y + offset + top;
             }
 
             // Calculate the distance from baseline to the top of the biggest box with 'bottom'
@@ -844,27 +958,14 @@ impl Flow for InlineFlow {
 
             // All boxes' y position is updated following the new baseline offset.
             for box_i in line.range.eachi() {
-                let cur_box = &self.boxes[box_i];
+                let cur_box = self.boxes.get_mut(box_i);
                 let adjust_offset = match cur_box.vertical_align() {
                     vertical_align::top => Au::new(0),
                     vertical_align::bottom => baseline_offset + bottommost,
                     _ => baseline_offset,
                 };
 
-                let mut border_box = cur_box.border_box.borrow_mut();
-                border_box.origin.y = border_box.origin.y + adjust_offset;
-
-                let mut info = cur_box.inline_info.borrow_mut();
-                if info.is_none() {
-                    *info = Some(InlineInfo::new());
-                }
-                match &mut *info {
-                    &Some(ref mut info) => {
-                        // TODO (ksh8281) compute vertical-align, line-height
-                        info.baseline = line.bounds.origin.y + baseline_offset;
-                    },
-                    &None => {}
-                }
+                cur_box.border_box.origin.y = cur_box.border_box.origin.y + adjust_offset;
             }
 
             // This is used to set the top y position of the next linebox in the next loop.
@@ -875,7 +976,8 @@ impl Flow for InlineFlow {
 
         self.base.position.size.height =
             if self.lines.len() > 0 {
-                self.lines.last().get_ref().bounds.origin.y + self.lines.last().get_ref().bounds.size.height
+                self.lines.as_slice().last().get_ref().bounds.origin.y +
+                    self.lines.as_slice().last().get_ref().bounds.size.height
             } else {
                 Au::new(0)
             };
@@ -885,8 +987,253 @@ impl Flow for InlineFlow {
     }
 
     fn debug_str(&self) -> ~str {
-        let val: ~[~str] = self.boxes.iter().map(|s| s.debug_str()).collect();
-        let toprint = val.connect(",");
-        format!("InlineFlow: {}", toprint)
+        let mut string = "InlineFlow: ".to_str();
+        for (i, (fragment, _)) in self.boxes.iter().enumerate() {
+            if i != 0 {
+                string.push_str(", ")
+            }
+            string.push_str(fragment.debug_str())
+        }
+        string
     }
 }
+
+/// Information that inline flows keep about a single nested element. This is used to recover the
+/// DOM structure from the flat box list when it's needed.
+pub struct FragmentRange {
+    /// The style of the DOM node that this range refers to.
+    pub style: Arc<ComputedValues>,
+    /// The range, in indices into the fragment list.
+    pub range: Range,
+}
+
+impl FragmentRange {
+    /// Creates a new fragment range from the given values.
+    fn new(style: Arc<ComputedValues>, range: Range) -> FragmentRange {
+        FragmentRange {
+            style: style,
+            range: range,
+        }
+    }
+
+    /// Returns the dimensions of the border in this fragment range.
+    pub fn border(&self) -> SideOffsets2D<Au> {
+        model::border_from_style(&*self.style)
+    }
+
+    /// Returns the dimensions of the padding in this fragment range.
+    pub fn padding(&self) -> SideOffsets2D<Au> {
+        // FIXME(#2266, pcwalton): Is Au(0) right here for the containing block?
+        model::padding_from_style(&*self.style, Au(0))
+    }
+}
+
+struct FragmentFixupWorkItem {
+    style: Arc<ComputedValues>,
+    new_start_index: uint,
+    old_end_index: uint,
+}
+
+/// The type of an iterator over fragment ranges in the fragment map.
+pub struct RangeIterator<'a> {
+    iter: Items<'a,FragmentRange>,
+    index: uint,
+    seen_first: bool,
+}
+
+impl<'a> Iterator<&'a FragmentRange> for RangeIterator<'a> {
+    fn next(&mut self) -> Option<&'a FragmentRange> {
+        if self.seen_first {
+            match self.iter.next() {
+                Some(fragment_range) if fragment_range.range.contains(self.index) => {
+                    return Some(fragment_range)
+                }
+                Some(_) | None => return None
+            }
+        }
+
+        loop {
+            match self.iter.next() {
+                None => return None,
+                Some(fragment_range) if fragment_range.range.contains(self.index) => {
+                    self.seen_first = true;
+                    return Some(fragment_range)
+                }
+                Some(_) => {}
+            }
+        }
+    }
+}
+
+/// Information that inline flows keep about nested elements. This is used to recover the DOM
+/// structure from the flat box list when it's needed.
+pub struct FragmentMap {
+    list: SmallVec0<FragmentRange>,
+}
+
+impl FragmentMap {
+    /// Creates a new fragment map.
+    pub fn new() -> FragmentMap {
+        FragmentMap {
+            list: SmallVec0::new(),
+        }
+    }
+
+    /// Adds the given node to the fragment map.
+    pub fn push(&mut self, style: Arc<ComputedValues>, range: Range) {
+        self.list.push(FragmentRange::new(style, range))
+    }
+
+    /// Pushes the ranges in another fragment map onto the end of this one, adjusting indices as
+    /// necessary.
+    fn push_all(&mut self, other: FragmentMap, adjustment: uint) {
+        let FragmentMap {
+            list: mut other_list
+        } = other;
+
+        for other_range in other_list.move_iter() {
+            let FragmentRange {
+                style: other_style,
+                range: mut other_range
+            } = other_range;
+
+            other_range.shift_by(adjustment as int);
+            self.push(other_style, other_range)
+        }
+    }
+
+    /// Returns the range with the given index.
+    pub fn get_mut<'a>(&'a mut self, index: uint) -> &'a mut FragmentRange {
+        &mut self.list.as_mut_slice()[index]
+    }
+
+    /// Iterates over all ranges that contain the box with the given index, outermost first.
+    #[inline(always)]
+    fn ranges_for_index<'a>(&'a self, index: uint) -> RangeIterator<'a> {
+        RangeIterator {
+            iter: self.list.as_slice().iter(),
+            index: index,
+            seen_first: false,
+        }
+    }
+
+    /// Rebuilds the list after the fragments have been split or deleted (for example, for line
+    /// breaking). This assumes that the overall structure of the DOM has not changed; if the
+    /// DOM has changed, then the flow constructor will need to do more complicated surgery than
+    /// this function can provide.
+    ///
+    /// FIXME(#2267, pcwalton): It would be more efficient to not have to clone boxes all the time;
+    /// i.e. if `old_boxes` contained less info than the entire range of boxes. See
+    /// `layout::construct::strip_ignorable_whitespace_from_start` for an example of some code that
+    /// needlessly has to clone boxes.
+    pub fn fixup(&mut self, old_fragments: &[Box], new_fragments: &[Box]) {
+        // TODO(pcwalton): Post Rust upgrade, use `with_capacity` here.
+        let mut old_list = mem::replace(&mut self.list, SmallVec0::new());
+        let mut worklist = SmallVec0::new();        // FIXME(#2269, pcwalton): was smallvec4
+        let mut old_list_iter = old_list.move_iter().peekable();
+        let mut new_fragments_iter = new_fragments.iter().enumerate().peekable();
+
+        // FIXME(#2270, pcwalton): I don't think this will work if multiple old fragments
+        // correspond to the same node.
+        for (old_fragment_index, old_fragment) in old_fragments.iter().enumerate() {
+            // Find the start of the corresponding new fragment.
+            let new_fragment_start = match new_fragments_iter.peek() {
+                Some(&(index, new_fragment)) if new_fragment.node == old_fragment.node => {
+                    // We found the start of the corresponding new fragment.
+                    index
+                }
+                Some(_) | None => {
+                    // The old fragment got deleted entirely.
+                    continue
+                }
+            };
+            drop(new_fragments_iter.next());
+
+            // Eat any additional fragments that the old fragment got split into.
+            loop {
+                match new_fragments_iter.peek() {
+                    Some(&(_, new_fragment)) if new_fragment.node == old_fragment.node => {}
+                    Some(_) | None => break,
+                }
+                drop(new_fragments_iter.next());
+            }
+
+            // Find all ranges that started at this old fragment and add them onto the worklist.
+            loop {
+                match old_list_iter.peek() {
+                    None => break,
+                    Some(fragment_range) => {
+                        if fragment_range.range.begin() > old_fragment_index {
+                            // We haven't gotten to the appropriate old fragment yet, so stop.
+                            break
+                        }
+                        // Note that it can be the case that `fragment_range.range.begin() < i`.
+                        // This is OK, as it corresponds to the case in which a fragment got
+                        // deleted entirely (e.g. ignorable whitespace got nuked). In that case we
+                        // want to keep the range, but shorten it.
+                    }
+                };
+
+                let FragmentRange {
+                    style: style,
+                    range: old_range,
+                } = old_list_iter.next().unwrap();
+                worklist.push(FragmentFixupWorkItem {
+                    style: style,
+                    new_start_index: new_fragment_start,
+                    old_end_index: old_range.end(),
+                });
+            }
+
+            // Pop off any ranges that ended at this fragment.
+            loop {
+                match worklist.as_slice().last() {
+                    None => break,
+                    Some(last_work_item) => {
+                        if last_work_item.old_end_index > old_fragment_index + 1 {
+                            // Haven't gotten to it yet.
+                            break
+                        }
+                    }
+                }
+
+                let new_last_index = match new_fragments_iter.peek() {
+                    None => {
+                        // At the end.
+                        new_fragments.len()
+                    }
+                    Some(&(index, _)) => index,
+                };
+
+                let FragmentFixupWorkItem {
+                    style,
+                    new_start_index,
+                    ..
+                } = worklist.pop().unwrap();
+                let range = Range::new(new_start_index, new_last_index - new_start_index);
+                self.list.push(FragmentRange::new(style, range))
+            }
+        }
+    }
+}
+
+/// The context that an inline fragment appears in. This allows the fragment map to be passed in
+/// conveniently to various fragment functions.
+pub struct InlineFragmentContext<'a> {
+    map: &'a FragmentMap,
+    index: uint,
+}
+
+impl<'a> InlineFragmentContext<'a> {
+    pub fn new<'a>(map: &'a FragmentMap, index: uint) -> InlineFragmentContext<'a> {
+        InlineFragmentContext {
+            map: map,
+            index: index,
+        }
+    }
+
+    pub fn ranges(&self) -> RangeIterator<'a> {
+        self.map.ranges_for_index(self.index)
+    }
+}
+

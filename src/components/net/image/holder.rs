@@ -6,14 +6,54 @@ use image::base::Image;
 use image_cache_task::{ImageReady, ImageNotReady, ImageFailed};
 use local_image_cache::LocalImageCache;
 
-use sync::{Arc, Mutex};
 use geom::size::Size2D;
-use std::{cast, mem};
+use std::cast;
+use std::mem;
+use std::ptr;
+use sync::{Arc, Mutex};
 use url::Url;
 
 // FIXME: Nasty coupling here This will be a problem if we want to factor out image handling from
 // the network stack. This should probably be factored out into an interface and use dependency
 // injection.
+
+/// An unfortunate hack to make this `Arc<Mutex>` `Share`.
+pub struct LocalImageCacheHandle {
+    data: *uint,
+}
+
+impl Drop for LocalImageCacheHandle {
+    fn drop(&mut self) {
+        unsafe {
+            let _: ~Arc<Mutex<~LocalImageCache>> =
+                cast::transmute(mem::replace(&mut self.data, ptr::null()));
+        }
+    }
+}
+
+impl Clone for LocalImageCacheHandle {
+    fn clone(&self) -> LocalImageCacheHandle {
+        unsafe {
+            let handle = cast::transmute::<&Arc<Mutex<~LocalImageCache>>,&Arc<*()>>(self.get());
+            let new_handle = (*handle).clone();
+            LocalImageCacheHandle::new(new_handle)
+        }
+    }
+}
+
+impl LocalImageCacheHandle {
+    pub unsafe fn new(cache: Arc<*()>) -> LocalImageCacheHandle {
+        LocalImageCacheHandle {
+            data: cast::transmute(~cache),
+        }
+    }
+
+    pub fn get<'a>(&'a self) -> &'a Arc<Mutex<~LocalImageCache>> {
+        unsafe {
+            cast::transmute::<*uint,&'a Arc<Mutex<~LocalImageCache>>>(self.data)
+        }
+    }
+}
 
 /// A struct to store image data. The image will be loaded once the first time it is requested,
 /// and an Arc will be stored.  Clones of this Arc are given out on demand.
@@ -22,12 +62,11 @@ pub struct ImageHolder {
     url: Url,
     image: Option<Arc<~Image>>,
     cached_size: Size2D<int>,
-    // FIXME(rust#13125): Remove the *() for the real type.
-    local_image_cache: Arc<Mutex<*()>>,
+    local_image_cache: LocalImageCacheHandle,
 }
 
 impl ImageHolder {
-    pub fn new(url: Url, local_image_cache: Arc<Mutex<*()>>) -> ImageHolder {
+    pub fn new(url: Url, local_image_cache: LocalImageCacheHandle) -> ImageHolder {
         debug!("ImageHolder::new() {}", url.to_str());
         let holder = ImageHolder {
             url: url,
@@ -42,10 +81,8 @@ impl ImageHolder {
         // should be done as early as possible and decode only once we
         // are sure that the image will be used.
         {
-            let val = holder.local_image_cache.lock();
-            let mut local_image_cache = unsafe {
-                cast::transmute::<*(), &mut LocalImageCache>(*val)
-            };
+            let val = holder.local_image_cache.get().lock();
+            let mut local_image_cache = val;
             local_image_cache.prefetch(&holder.url);
             local_image_cache.decode(&holder.url);
         }
@@ -79,10 +116,8 @@ impl ImageHolder {
         // the image and store it for the future
         if self.image.is_none() {
             let port = {
-                let val = self.local_image_cache.lock();
-                let mut local_image_cache = unsafe {
-                    cast::transmute::<*(), &mut LocalImageCache>(*val)
-                };
+                let val = self.local_image_cache.get().lock();
+                let mut local_image_cache = val;
                 local_image_cache.get_image(&self.url)
             };
             match port.recv() {

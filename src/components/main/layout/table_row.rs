@@ -98,7 +98,9 @@ impl TableRowFlow {
                 // TODO: Percentage height
                 let child_specified_height = MaybeAuto::from_style(child_box.style().Box.get().height,
                                                                    Au::new(0)).specified_or_zero();
-                max_y = geometry::max(max_y, child_specified_height + child_box.noncontent_height());
+                max_y =
+                    geometry::max(max_y,
+                                  child_specified_height + child_box.border_padding.vertical());
             }
             let child_node = flow::mut_base(kid);
             child_node.position.origin.y = cur_y;
@@ -116,18 +118,18 @@ impl TableRowFlow {
         // Assign the height of own box
         //
         // FIXME(pcwalton): Take `cur_y` into account.
-        let mut position = *self.block_flow.box_.border_box.borrow();
+        let mut position = self.block_flow.box_.border_box;
         position.size.height = height;
-        *self.block_flow.box_.border_box.borrow_mut() = position;
+        self.block_flow.box_.border_box = position;
         self.block_flow.base.position.size.height = height;
 
         // Assign the height of kid boxes, which is the same value as own height.
         for kid in self.block_flow.base.child_iter() {
             {
-                let kid_box_ = kid.as_table_cell().box_();
-                let mut position = *kid_box_.border_box.borrow();
+                let kid_box_ = kid.as_table_cell().mut_box();
+                let mut position = kid_box_.border_box;
                 position.size.height = height;
-                *kid_box_.border_box.borrow_mut() = position;
+                kid_box_.border_box = position;
             }
             let child_node = flow::mut_base(kid);
             child_node.position.size.height = height;

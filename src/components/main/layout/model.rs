@@ -7,7 +7,10 @@
 use layout::box_::Box;
 
 use computed = style::computed_values;
+use geom::SideOffsets2D;
 use style::computed_values::{LPA_Auto, LPA_Length, LPA_Percentage, LP_Length, LP_Percentage};
+use style::computed_values::{border_style};
+use style::ComputedValues;
 use servo_util::geometry::Au;
 use servo_util::geometry;
 
@@ -101,7 +104,7 @@ impl MarginCollapseInfo {
             self.state = AccumulatingMarginIn
         }
 
-        self.top_margin = AdjoiningMargins::from_margin(fragment.margin.borrow().top)
+        self.top_margin = AdjoiningMargins::from_margin(fragment.margin.top)
     }
 
     pub fn finish_and_compute_collapsible_margins(mut self,
@@ -135,7 +138,7 @@ impl MarginCollapseInfo {
 
         // Different logic is needed here depending on whether this flow can collapse its bottom
         // margin with its children.
-        let bottom_margin = fragment.margin.borrow().bottom;
+        let bottom_margin = fragment.margin.bottom;
         if !can_collapse_bottom_margin_with_kids {
             match state {
                 MarginsCollapseThroughFinalMarginState => {
@@ -310,3 +313,32 @@ pub fn specified(length: computed::LengthOrPercentage, containing_length: Au) ->
         computed::LP_Percentage(p) => containing_length.scale_by(p)
     }
 }
+
+#[inline]
+pub fn border_from_style(style: &ComputedValues) -> SideOffsets2D<Au> {
+    #[inline]
+    fn width(width: Au, style: border_style::T) -> Au {
+        if style == border_style::none {
+            Au(0)
+        } else {
+            width
+        }
+    }
+
+    let border_style = style.Border.get();
+    SideOffsets2D::new(width(border_style.border_top_width, border_style.border_top_style),
+                       width(border_style.border_right_width, border_style.border_right_style),
+                       width(border_style.border_bottom_width, border_style.border_bottom_style),
+                       width(border_style.border_left_width, border_style.border_left_style))
+}
+
+#[inline]
+pub fn padding_from_style(style: &ComputedValues, containing_block_width: Au)
+                          -> SideOffsets2D<Au> {
+    let padding_style = style.Padding.get();
+    SideOffsets2D::new(specified(padding_style.padding_top, containing_block_width),
+                       specified(padding_style.padding_right, containing_block_width),
+                       specified(padding_style.padding_bottom, containing_block_width),
+                       specified(padding_style.padding_left, containing_block_width))
+}
+

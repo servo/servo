@@ -8,8 +8,10 @@
 use azure::azure_hl::{BackendType, CairoBackend, CoreGraphicsBackend};
 use azure::azure_hl::{CoreGraphicsAcceleratedBackend, Direct2DBackend, SkiaBackend};
 use getopts;
+use std::cmp;
 use std::io;
 use std::os;
+use std::rt;
 
 /// Global flags for Servo, currently set on the command line.
 #[deriving(Clone)]
@@ -142,9 +144,7 @@ pub fn from_cmdline_args(args: &[~str]) -> Option<Opts> {
 
     let layout_threads: uint = match opt_match.opt_str("y") {
         Some(layout_threads_str) => from_str(layout_threads_str).unwrap(),
-        // FIXME: Re-enable the below computation, once a fix for #1926 lands.
-        // cmp::max(rt::default_sched_threads() * 3 / 4, 1),
-        None => 1,
+        None => cmp::max(rt::default_sched_threads() * 3 / 4, 1),
     };
 
     Some(Opts {

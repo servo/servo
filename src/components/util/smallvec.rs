@@ -110,6 +110,26 @@ pub trait SmallVec<T> : SmallVecPrivate<T> {
         }
     }
 
+    fn pop(&mut self) -> Option<T> {
+        if self.len() == 0 {
+            return None
+        }
+
+        unsafe {
+            let mut value: T = mem::uninit();
+            let last_index = self.len() - 1;
+
+            if (last_index as int) < 0 {
+                fail!("overflow")
+            }
+            let end_ptr = self.begin().offset(last_index as int);
+
+            mem::swap(&mut value, cast::transmute::<*T,&mut T>(end_ptr));
+            self.set_len(last_index);
+            Some(value)
+        }
+    }
+
     fn grow(&mut self, new_cap: uint) {
         unsafe {
             let new_alloc: *mut T = cast::transmute(global_heap::malloc_raw(mem::size_of::<T>() *
@@ -163,6 +183,11 @@ pub trait SmallVec<T> : SmallVecPrivate<T> {
 
     fn as_slice<'a>(&'a self) -> &'a [T] {
         self.slice(0, self.len())
+    }
+
+    fn as_mut_slice<'a>(&'a mut self) -> &'a mut [T] {
+        let len = self.len();
+        self.mut_slice(0, len)
     }
 
     fn mut_slice<'a>(&'a mut self, start: uint, end: uint) -> &'a mut [T] {
