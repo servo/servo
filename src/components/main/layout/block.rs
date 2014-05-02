@@ -36,6 +36,7 @@ use servo_msg::compositor_msg::{FixedPosition, LayerId, Scrollable};
 use servo_util::geometry::Au;
 use servo_util::geometry;
 use servo_util::smallvec::{SmallVec, SmallVec0};
+use std::num::Zero;
 use style::computed_values::{LPA_Auto, LPA_Length, LPA_Percentage, LPN_Length, LPN_None};
 use style::computed_values::{LPN_Percentage, LP_Length, LP_Percentage};
 use sync::Arc;
@@ -1548,7 +1549,7 @@ impl Flow for BlockFlow {
 
         if self.is_root() {
             debug!("Setting root position");
-            self.base.position.origin = Au::zero_point();
+            self.base.position.origin = Zero::zero();
             self.base.position.size.width = ctx.screen_size.width;
             self.base.floats = Floats::new();
             // Root element is not floated

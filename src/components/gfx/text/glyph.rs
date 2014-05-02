@@ -5,10 +5,9 @@
 use servo_util::vec::*;
 use servo_util::range::Range;
 use servo_util::geometry::Au;
-use servo_util::geometry;
 
 use std::cmp::{Ord, Eq};
-use std::num::NumCast;
+use std::num::{NumCast, Zero};
 use std::mem;
 use std::u16;
 use std::slice;
@@ -441,7 +440,7 @@ impl GlyphData {
                ligature_start: bool)
             -> GlyphData {
         let offset = match offset {
-            None => geometry::zero_point(),
+            None => Zero::zero(),
             Some(o) => o
         };
 
@@ -536,7 +535,7 @@ impl<'a> GlyphStore {
         fn glyph_is_compressible(data: &GlyphData) -> bool {
             is_simple_glyph_id(data.index)
                 && is_simple_advance(data.advance)
-                && data.offset == geometry::zero_point()
+                && data.offset.is_zero()
                 && data.cluster_start  // others are stored in detail buffer
         }
 
