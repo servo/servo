@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::InheritTypes::CommentDerived;
-use dom::bindings::codegen::CommentBinding;
+use dom::bindings::codegen::BindingDeclarations::CommentBinding;
 use dom::bindings::js::JS;
 use dom::bindings::error::Fallible;
 use dom::characterdata::CharacterData;

@@ -2,9 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::HTMLImageElementBinding;
-use dom::bindings::codegen::InheritTypes::{NodeCast, HTMLImageElementDerived};
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
+use dom::bindings::codegen::BindingDeclarations::HTMLImageElementBinding;
+use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, HTMLElementCast, HTMLImageElementDerived};
 use dom::bindings::error::ErrorResult;
 use dom::bindings::js::JS;
 use dom::bindings::trace::Untraceable;

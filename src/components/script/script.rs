@@ -45,7 +45,6 @@ pub mod dom {
         pub mod str;
         pub mod trace;
         pub mod codegen {
-            pub use self::BindingDeclarations::*;
             pub mod InterfaceTypes;
             pub mod InheritTypes;
             pub mod PrototypeList;
@@ -55,9 +54,8 @@ pub mod dom {
         }
     }
 
-    pub mod types {
-        pub use super::bindings::codegen::InterfaceTypes::*;
-    }
+    #[path="bindings/codegen/InterfaceTypes.rs"]
+    pub mod types;
 
     pub mod attr;
     pub mod attrlist;
