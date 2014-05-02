@@ -15,7 +15,6 @@
 use layout::box_::{Box, ImageBox, ScannedTextBox};
 use layout::construct::FlowConstructor;
 use layout::context::LayoutContext;
-use layout::display_list_builder::{DisplayListBuilder, DisplayListBuildingInfo};
 use layout::floats::{ClearBoth, ClearLeft, ClearRight, FloatKind, Floats, PlacementInfo};
 use layout::flow::{BaseFlow, BlockFlowClass, FlowClass, Flow, ImmutableFlowUtils};
 use layout::flow::{MutableFlowUtils, PreorderFlowTraversal, PostorderFlowTraversal, mut_base};
@@ -28,18 +27,22 @@ use layout::wrapper::ThreadSafeLayoutNode;
 use style::ComputedValues;
 use style::computed_values::{clear, position};
 
+use collections::Deque;
+use collections::dlist::DList;
 use geom::{Point2D, Rect, Size2D};
 use gfx::color;
-use gfx::display_list::{BackgroundAndBorderLevel, BlockLevel, RootOfStackingContextLevel};
-use gfx::display_list::{StackingContext};
+use gfx::display_list::{BackgroundAndBorderLevel, BlockLevel, ContentStackingLevel, DisplayList};
+use gfx::display_list::{FloatStackingLevel, PositionedDescendantStackingLevel};
+use gfx::display_list::{RootOfStackingContextLevel};
 use gfx::render_task::RenderLayer;
 use servo_msg::compositor_msg::{FixedPosition, LayerId, Scrollable};
 use servo_util::geometry::Au;
 use servo_util::geometry;
 use servo_util::smallvec::{SmallVec, SmallVec0};
+use std::mem;
 use std::num::Zero;
 use style::computed_values::{LPA_Auto, LPA_Length, LPA_Percentage, LPN_Length, LPN_None};
-use style::computed_values::{LPN_Percentage, LP_Length, LP_Percentage};
+use style::computed_values::{LPN_Percentage, LP_Length, LP_Percentage, display, float, overflow};
 use sync::Arc;
 
 /// Information specific to floated blocks.
@@ -52,9 +55,6 @@ pub struct FloatedBlockInfo {
     /// Index into the box list for inline floats
     pub index: Option<uint>,
 
-    /// Number of floated children
-    pub floated_children: uint,
-
     /// Left or right?
     pub float_kind: FloatKind,
 }
@@ -65,7 +65,6 @@ impl FloatedBlockInfo {
             containing_width: Au(0),
             rel_pos: Point2D(Au(0), Au(0)),
             index: None,
-            floated_children: 0,
             float_kind: float_kind,
         }
     }
@@ -377,12 +376,9 @@ enum CandidateHeightIteratorStatus {
 }
 
 // A helper function used in height calculation.
-fn translate_including_floats(cur_y: &mut Au, delta: Au, inorder: bool, floats: &mut Floats) {
+fn translate_including_floats(cur_y: &mut Au, delta: Au, floats: &mut Floats) {
     *cur_y = *cur_y + delta;
-
-    if inorder {
-        floats.translate(Point2D(Au(0), -delta));
-    }
+    floats.translate(Point2D(Au(0), -delta));
 }
 
 /// The real assign-heights traversal for flows with position 'absolute'.
@@ -801,14 +797,13 @@ impl BlockFlow {
     #[inline(always)]
     pub fn assign_height_block_base(&mut self,
                                     layout_context: &mut LayoutContext,
-                                    inorder: bool,
                                     margins_may_collapse: MarginsMayCollapseFlag) {
         // Our current border-box position.
         let mut cur_y = Au(0);
 
         // Absolute positioning establishes a block formatting context. Don't propagate floats
         // in or out. (But do propagate them between kids.)
-        if inorder && self.is_absolutely_positioned() {
+        if self.is_absolutely_positioned() {
             self.base.floats = Floats::new();
         }
         if margins_may_collapse != MarginsMayCollapse {
@@ -820,7 +815,7 @@ impl BlockFlow {
 
         // The sum of our top border and top padding.
         let top_offset = self.box_.border_padding.top;
-        translate_including_floats(&mut cur_y, top_offset, inorder, &mut self.base.floats);
+        translate_including_floats(&mut cur_y, top_offset, &mut self.base.floats);
 
         let can_collapse_top_margin_with_kids =
             margins_may_collapse == MarginsMayCollapse &&
@@ -829,19 +824,15 @@ impl BlockFlow {
         margin_collapse_info.initialize_top_margin(&self.box_,
                                                    can_collapse_top_margin_with_kids);
 
-        // At this point, cur_y is at the content edge of the flow's box.
+        // At this point, `cur_y` is at the content edge of our box. Now iterate over children.
         let mut floats = self.base.floats.clone();
         let mut layers_needed_for_descendants = false;
         for kid in self.base.child_iter() {
             if kid.is_absolutely_positioned() {
                 // Assume that the *hypothetical box* for an absolute flow starts immediately after
                 // the bottom border edge of the previous flow.
-                kid.as_block().base.position.origin.y = cur_y;
-
-                if inorder {
-                    kid.assign_height_inorder(layout_context)
-                }
-
+                flow::mut_base(kid).position.origin.y = cur_y;
+                kid.assign_height_for_inorder_child_if_necessary(layout_context);
                 propagate_layer_flag_from_child(&mut layers_needed_for_descendants, kid);
 
                 // Skip the collapsing and float processing for absolute flow kids and continue
@@ -850,86 +841,82 @@ impl BlockFlow {
             }
 
             // Assign height now for the child if it was impacted by floats and we couldn't before.
-            let mut floats_out = None;
-            if inorder {
-                if !kid.is_float() {
-                    let kid_base = flow::mut_base(kid);
-                    if kid_base.clear != clear::none {
-                        // We have clearance, so assume there are no floats in and perform layout.
-                        //
-                        // FIXME(#2008, pcwalton): This could be wrong if we have `clear: left` or
-                        // `clear: right` and there are still floats to impact, of course. But this
-                        // gets complicated with margin collapse. Possibly the right thing to do is
-                        // to lay out the block again in this rare case. (Note that WebKit can lay
-                        // blocks out twice; this may be related, although I haven't looked into it
-                        // closely.)
-                        kid_base.floats = Floats::new()
-                    } else {
-                        kid_base.floats = floats.clone()
-                    }
-                } else {
-                    let kid_base = flow::mut_base(kid);
-                    kid_base.position.origin.y = margin_collapse_info.current_float_ceiling();
-                    kid_base.floats = floats.clone()
-                }
-
-                kid.assign_height_inorder(layout_context);
-
-                floats_out = Some(flow::mut_base(kid).floats.clone());
-
-                // A horrible hack that has to do with the fact that `origin.y` is used for
-                // something else later (containing block for float).
-                if kid.is_float() {
-                    flow::mut_base(kid).position.origin.y = cur_y;
-                }
-            }
-
-            propagate_layer_flag_from_child(&mut layers_needed_for_descendants, kid);
-
-            // If the child was a float, stop here.
+            flow::mut_base(kid).floats = floats.clone();
             if kid.is_float() {
-                if inorder {
-                    floats = floats_out.take_unwrap();
-                }
+                // FIXME(pcwalton): Using `position.origin.y` to mean the float ceiling is a
+                // bit of a hack.
+                flow::mut_base(kid).position.origin.y =
+                    margin_collapse_info.current_float_ceiling();
+                propagate_layer_flag_from_child(&mut layers_needed_for_descendants, kid);
+
+                let kid_was_impacted_by_floats =
+                    kid.assign_height_for_inorder_child_if_necessary(layout_context);
+                assert!(kid_was_impacted_by_floats);    // As it was a float itself...
+
+                let kid_base = flow::mut_base(kid);
+                kid_base.position.origin.y = cur_y;
+                floats = kid_base.floats.clone();
                 continue
             }
 
-            // Handle any (possibly collapsed) top margin.
-            let kid_base = flow::mut_base(kid);
-            let delta = margin_collapse_info.advance_top_margin(&kid_base.collapsible_margins);
-            translate_including_floats(&mut cur_y, delta, inorder, &mut floats);
 
-            // Clear past floats, if necessary.
-            if inorder {
-                let clearance = match kid_base.clear {
-                    clear::none => Au(0),
-                    clear::left => floats.clearance(ClearLeft),
-                    clear::right => floats.clearance(ClearRight),
-                    clear::both => floats.clearance(ClearBoth),
-                };
-                cur_y = cur_y + clearance
+            // If we have clearance, assume there are no floats in.
+            //
+            // FIXME(#2008, pcwalton): This could be wrong if we have `clear: left` or `clear:
+            // right` and there are still floats to impact, of course. But this gets complicated
+            // with margin collapse. Possibly the right thing to do is to lay out the block again
+            // in this rare case. (Note that WebKit can lay blocks out twice; this may be related,
+            // although I haven't looked into it closely.)
+            if kid.float_clearance() != clear::none {
+                flow::mut_base(kid).floats = Floats::new()
             }
 
-            // At this point, `cur_y` is at the border edge of the child.
-            assert!(kid_base.position.origin.y == Au(0));
-            kid_base.position.origin.y = cur_y;
+            // Lay the child out if this was an in-order traversal.
+            let kid_was_impacted_by_floats =
+                kid.assign_height_for_inorder_child_if_necessary(layout_context);
 
-            // If this was an inorder traversal, grab the child's floats now.
-            if inorder {
-                floats = floats_out.take_unwrap()
+            // Mark flows for layerization if necessary to handle painting order correctly.
+            propagate_layer_flag_from_child(&mut layers_needed_for_descendants, kid);
+
+            // Handle any (possibly collapsed) top margin.
+            let delta =
+                margin_collapse_info.advance_top_margin(&flow::base(kid).collapsible_margins);
+            translate_including_floats(&mut cur_y, delta, &mut floats);
+
+            // Clear past the floats that came in, if necessary.
+            let clearance = match kid.float_clearance() {
+                clear::none => Au(0),
+                clear::left => floats.clearance(ClearLeft),
+                clear::right => floats.clearance(ClearRight),
+                clear::both => floats.clearance(ClearBoth),
+            };
+            cur_y = cur_y + clearance;
+
+            // At this point, `cur_y` is at the border edge of the child.
+            flow::mut_base(kid).position.origin.y = cur_y;
+
+            // Now pull out the child's outgoing floats. We didn't do this immediately after the
+            // `assign_height_for_inorder_child_if_necessary` call because clearance on a block
+            // operates on the floats that come *in*, not the floats that go *out*.
+            if kid_was_impacted_by_floats {
+                floats = flow::mut_base(kid).floats.clone()
             }
 
             // Move past the child's border box. Do not use the `translate_including_floats`
             // function here because the child has already translated floats past its border box.
+            let kid_base = flow::mut_base(kid);
             cur_y = cur_y + kid_base.position.size.height;
 
             // Handle any (possibly collapsed) bottom margin.
             let delta = margin_collapse_info.advance_bottom_margin(&kid_base.collapsible_margins);
-            translate_including_floats(&mut cur_y, delta, inorder, &mut floats);
+            translate_including_floats(&mut cur_y, delta, &mut floats);
         }
 
+        // Mark ourselves for layerization if that will be necessary to paint in the proper order
+        // (CSS 2.1, Appendix E).
         self.base.flags.set_layers_needed_for_descendants(layers_needed_for_descendants);
 
+        // Collect various offsets needed by absolutely positioned descendants.
         self.collect_static_y_offsets_from_kids();
 
         // Add in our bottom margin and compute our collapsible margins.
@@ -942,7 +929,7 @@ impl BlockFlow {
             &self.box_,
             can_collapse_bottom_margin_with_kids);
         self.base.collapsible_margins = collapsible_margins;
-        translate_including_floats(&mut cur_y, delta, inorder, &mut floats);
+        translate_including_floats(&mut cur_y, delta, &mut floats);
 
         // FIXME(#2003, pcwalton): The max is taken here so that you can scroll the page, but this
         // is not correct behavior according to CSS 2.1 § 10.5. Instead I think we should treat the
@@ -981,11 +968,11 @@ impl BlockFlow {
         // Adjust `cur_y` as necessary to account for the explicitly-specified height.
         height = candidate_height_iterator.candidate_value;
         let delta = height - (cur_y - top_offset);
-        translate_including_floats(&mut cur_y, delta, inorder, &mut floats);
+        translate_including_floats(&mut cur_y, delta, &mut floats);
 
         // Compute content height and noncontent height.
         let bottom_offset = self.box_.border_padding.bottom;
-        translate_including_floats(&mut cur_y, bottom_offset, inorder, &mut floats);
+        translate_including_floats(&mut cur_y, bottom_offset, &mut floats);
 
         // Now that `cur_y` is at the bottom of the border box, compute the final border box
         // position.
@@ -1011,17 +998,15 @@ impl BlockFlow {
 
     /// Add placement information about current float flow for use by the parent.
     ///
-    /// Also, use information given by parent about other floats to find out
-    /// our relative position.
+    /// Also, use information given by parent about other floats to find out our relative position.
     ///
-    /// This does not give any information about any float descendants because
-    /// they do not affect elements outside of the subtree rooted at this
-    /// float.
+    /// This does not give any information about any float descendants because they do not affect
+    /// elements outside of the subtree rooted at this float.
     ///
-    /// This function is called on a kid flow by a parent.
-    /// Therefore, assign_height_float was already called on this kid flow by
-    /// the traversal function. So, the values used are well-defined.
-    pub fn assign_height_float_inorder(&mut self) {
+    /// This function is called on a kid flow by a parent. Therefore, `assign_height_float` was
+    /// already called on this kid flow by the traversal function. So, the values used are
+    /// well-defined.
+    pub fn place_float(&mut self) {
         let height = self.box_.border_box.size.height;
         let clearance = match self.box_.clear() {
             None => Au(0),
@@ -1054,19 +1039,15 @@ impl BlockFlow {
     ///
     /// It does not calculate the height of the flow itself.
     pub fn assign_height_float(&mut self, ctx: &mut LayoutContext) {
-        // Now that we've determined our height, propagate that out.
-        let has_inorder_children = self.base.num_floats > 0;
-        if has_inorder_children {
-            let mut floats = Floats::new();
-            for kid in self.base.child_iter() {
-                flow::mut_base(kid).floats = floats;
-                kid.assign_height_inorder(ctx);
-                floats = flow::mut_base(kid).floats.clone();
-            }
-
-            // Floats establish a block formatting context, so we discard the output floats here.
-            drop(floats);
+        let mut floats = Floats::new();
+        for kid in self.base.child_iter() {
+            flow::mut_base(kid).floats = floats.clone();
+            kid.assign_height_for_inorder_child_if_necessary(ctx);
+            floats = flow::mut_base(kid).floats.clone();
         }
+
+        // Floats establish a block formatting context, so we discard the output floats here.
+        drop(floats);
 
         let top_offset = self.box_.margin.top + self.box_.border_padding.top;
         let mut cur_y = top_offset;
@@ -1101,99 +1082,75 @@ impl BlockFlow {
     }
 
     fn build_display_list_block_common(&mut self,
-                                       stacking_context: &mut StackingContext,
-                                       builder: &mut DisplayListBuilder,
-                                       info: &DisplayListBuildingInfo,
+                                       layout_context: &LayoutContext,
                                        offset: Point2D<Au>,
                                        background_border_level: BackgroundAndBorderLevel) {
-        let mut info = *info;
-        let rel_offset = self.box_.relative_position(&info.relative_containing_block_size, None);
+        let rel_offset =
+            self.box_.relative_position(&self.base
+                                             .absolute_position_info
+                                             .relative_containing_block_size,
+                                        None);
 
         // Add the box that starts the block context.
-        self.box_.build_display_list(stacking_context,
-                                     builder,
-                                     &info,
-                                     self.base.abs_position + rel_offset + offset,
-                                     background_border_level,
-                                     None);
+        let mut display_list = DisplayList::new();
+        let mut accumulator =
+            self.box_.build_display_list(&mut display_list,
+                                         layout_context,
+                                         self.base.abs_position + rel_offset + offset,
+                                         background_border_level,
+                                         None);
 
-        // For relatively-positioned descendants, the containing block formed by a block is
-        // just the content box. The containing block for absolutely-positioned descendants,
-        // on the other hand, only established if we are positioned.
-        info.relative_containing_block_size = self.box_.content_box().size;
-        if self.is_positioned() {
-            info.absolute_containing_block_position =
-                self.base.abs_position +
-                self.generated_containing_block_rect().origin +
-                self.box_.relative_position(&info.relative_containing_block_size, None)
-        }
-
-        let this_position = self.base.abs_position;
+        let mut child_layers = DList::new();
         for kid in self.base.child_iter() {
-            {
-                let kid_base = flow::mut_base(kid);
-                kid_base.abs_position = this_position + kid_base.position.origin + rel_offset +
-                    offset;
-            }
-
             if kid.is_absolutely_positioned() {
                 // All absolute flows will be handled by their containing block.
                 continue
             }
 
-            kid.build_display_list(stacking_context, builder, &info);
+            accumulator.push_child(&mut display_list, kid);
+            child_layers.append(mem::replace(&mut flow::mut_base(kid).layers, DList::new()))
         }
 
         // Process absolute descendant links.
-        let mut absolute_info = info;
-        absolute_info.layers_needed_for_positioned_flows =
-            self.base.flags.layers_needed_for_descendants();
         for abs_descendant_link in self.base.abs_descendants.iter() {
             match abs_descendant_link.resolve() {
-                Some(flow) => {
+                Some(kid) => {
                     // TODO(pradeep): Send in our absolute position directly.
-                    flow.build_display_list(stacking_context, builder, &absolute_info)
+                    accumulator.push_child(&mut display_list, kid);
+                    child_layers.append(mem::replace(&mut flow::mut_base(kid).layers,
+                                                     DList::new()));
                 }
                 None => fail!("empty Rawlink to a descendant")
             }
         }
+
+        accumulator.finish(&mut *self, display_list);
+        self.base.layers = child_layers
     }
 
     /// Add display items for current block.
     ///
     /// Set the absolute position for children after doing any offsetting for
     /// position: relative.
-    pub fn build_display_list_block(&mut self,
-                                    stacking_context: &mut StackingContext,
-                                    builder: &mut DisplayListBuilder,
-                                    info: &DisplayListBuildingInfo) {
+    pub fn build_display_list_block(&mut self, layout_context: &LayoutContext) {
         if self.is_float() {
             // TODO(#2009, pcwalton): This is a pseudo-stacking context. We need to merge `z-index:
             // auto` kids into the parent stacking context, when that is supported.
-            self.build_display_list_float(stacking_context, builder, info)
+            self.build_display_list_float(layout_context)
         } else if self.is_absolutely_positioned() {
-            self.build_display_list_abs(stacking_context, builder, info)
+            self.build_display_list_abs(layout_context)
         } else {
-            self.build_display_list_block_common(stacking_context,
-                                                 builder,
-                                                 info,
-                                                 Point2D(Au(0), Au(0)),
-                                                 BlockLevel)
+            self.build_display_list_block_common(layout_context, Zero::zero(), BlockLevel)
         }
     }
 
-    pub fn build_display_list_float(&mut self,
-                                    parent_stacking_context: &mut StackingContext,
-                                    builder: &mut DisplayListBuilder,
-                                    info: &DisplayListBuildingInfo) {
-        let mut stacking_context = StackingContext::new();
+    pub fn build_display_list_float(&mut self, layout_context: &LayoutContext) {
         let float_offset = self.float.get_ref().rel_pos;
-        self.build_display_list_block_common(&mut stacking_context,
-                                             builder,
-                                             info,
+        self.build_display_list_block_common(layout_context,
                                              float_offset,
                                              RootOfStackingContextLevel);
-        parent_stacking_context.floats.push_all_move(stacking_context.flatten())
+        self.base.display_list = mem::replace(&mut self.base.display_list,
+                                              DisplayList::new()).flatten(FloatStackingLevel)
     }
 
     /// Calculate and set the height, offsets, etc. for absolutely positioned flow.
@@ -1283,58 +1240,41 @@ impl BlockFlow {
     }
 
     /// Add display items for Absolutely Positioned flow.
-    pub fn build_display_list_abs(&mut self,
-                                  parent_stacking_context: &mut StackingContext,
-                                  builder: &mut DisplayListBuilder,
-                                  info: &DisplayListBuildingInfo) {
-        let mut stacking_context = StackingContext::new();
-        let mut info = *info;
-
-        info.absolute_containing_block_position = if self.is_fixed() {
-            // The viewport is initially at (0, 0).
-            self.base.position.origin
-        } else {
-            // Absolute position of Containing Block + position of absolute flow
-            // wrt Containing Block
-            info.absolute_containing_block_position + self.base.position.origin
-        };
-
-        // Set the absolute position, which will be passed down later as part
-        // of containing block details for absolute descendants.
-        self.base.abs_position = info.absolute_containing_block_position;
-
-        self.build_display_list_block_common(&mut stacking_context,
-                                             builder,
-                                             &info,
-                                             Point2D(Au(0), Au(0)),
+    fn build_display_list_abs(&mut self, layout_context: &LayoutContext) {
+        self.build_display_list_block_common(layout_context,
+                                             Zero::zero(),
                                              RootOfStackingContextLevel);
 
-        if !info.layers_needed_for_positioned_flows && !self.base.flags.needs_layer() {
+        if !self.base.absolute_position_info.layers_needed_for_positioned_flows &&
+                !self.base.flags.needs_layer() {
             // We didn't need a layer.
             //
             // TODO(#781, pcwalton): `z-index`.
-            parent_stacking_context.positioned_descendants.push((0, stacking_context.flatten()));
+            self.base.display_list =
+                mem::replace(&mut self.base.display_list,
+                             DisplayList::new()).flatten(PositionedDescendantStackingLevel(0));
             return
         }
 
         // If we got here, then we need a new layer.
         let size = Size2D(self.base.position.size.width.to_nearest_px() as uint,
                           self.base.position.size.height.to_nearest_px() as uint);
-        let origin = Point2D(info.absolute_containing_block_position.x.to_nearest_px() as uint,
-                             info.absolute_containing_block_position.y.to_nearest_px() as uint);
+        let origin = Point2D(self.base.abs_position.x.to_nearest_px() as uint,
+                             self.base.abs_position.y.to_nearest_px() as uint);
         let scroll_policy = if self.is_fixed() {
             FixedPosition
         } else {
             Scrollable
         };
+        let display_list = mem::replace(&mut self.base.display_list, DisplayList::new());
         let new_layer = RenderLayer {
             id: self.layer_id(0),
-            display_list: Arc::new(stacking_context.flatten()),
+            display_list: Arc::new(display_list.flatten(ContentStackingLevel)),
             position: Rect(origin, size),
             background_color: color::rgba(255.0, 255.0, 255.0, 0.0),
             scroll_policy: scroll_policy,
         };
-        builder.layers.push(new_layer)
+        self.base.layers.push_back(new_layer)
     }
 
     /// Return the top outer edge of the Hypothetical Box for an absolute flow.
@@ -1348,27 +1288,15 @@ impl BlockFlow {
         self.base.position.origin.y
     }
 
-    /// Initializes the containing width if this block flow is a float. This is done at the start
-    /// of `assign_widths`.
-    fn set_containing_width_if_float(&mut self, containing_block_width: Au) {
-        if self.is_float() {
-            self.float.get_mut_ref().containing_width = containing_block_width;
-
-            // Parent usually sets this, but floats are never inorder
-            self.base.flags.set_inorder(false)
-        }
-    }
-
     /// Assigns the computed left content edge and width to all the children of this block flow.
+    /// Also computes whether each child will be impacted by floats.
     pub fn propagate_assigned_width_to_children(&mut self,
                                                 left_content_edge: Au,
                                                 content_width: Au,
                                                 opt_col_widths: Option<~[Au]>) {
-        let has_inorder_children = if self.is_float() {
-            self.base.num_floats > 0
-        } else {
-            self.base.flags.inorder() || self.base.num_floats > 0
-        };
+        // Keep track of whether floats could impact each child.
+        let mut left_floats_impact_child = self.base.flags.impacted_by_left_floats();
+        let mut right_floats_impact_child = self.base.flags.impacted_by_right_floats();
 
         let kid_abs_cb_x_offset;
         if self.is_positioned() {
@@ -1398,15 +1326,30 @@ impl BlockFlow {
 
             {
                 let child_base = flow::mut_base(kid);
-                // Left margin edge of kid flow is at our left content edge
+                // The left margin edge of the child flow is at our left content edge.
                 child_base.position.origin.x = left_content_edge;
-                // Width of kid flow is our content width
+                // The width of the child flow is our content width.
                 child_base.position.size.width = content_width;
-                child_base.flags.set_inorder(has_inorder_children);
+            }
 
-                if !child_base.flags.inorder() {
-                    child_base.floats = Floats::new();
+            // Determine float impaction.
+            match kid.float_clearance() {
+                clear::none => {}
+                clear::left => left_floats_impact_child = false,
+                clear::right => right_floats_impact_child = false,
+                clear::both => {
+                    left_floats_impact_child = false;
+                    right_floats_impact_child = false;
                 }
+            }
+            {
+                let kid_base = flow::mut_base(kid);
+                left_floats_impact_child = left_floats_impact_child ||
+                    kid_base.flags.has_left_floated_descendants();
+                right_floats_impact_child = right_floats_impact_child ||
+                    kid_base.flags.has_right_floated_descendants();
+                kid_base.flags.set_impacted_by_left_floats(left_floats_impact_child);
+                kid_base.flags.set_impacted_by_right_floats(right_floats_impact_child);
             }
 
             // Handle tables.
@@ -1459,20 +1402,45 @@ impl Flow for BlockFlow {
         self
     }
 
-    /* Recursively (bottom-up) determine the context's preferred and
-    minimum widths.  When called on this context, all child contexts
-    have had their min/pref widths set. This function must decide
-    min/pref widths based on child context widths and dimensions of
-    any boxes it is responsible for flowing.  */
+    /// Returns the direction that this flow clears floats in, if any.
+    fn float_clearance(&self) -> clear::T {
+        self.box_.style().Box.get().clear
+    }
 
-    /* TODO: inline-blocks */
+    /// Returns true if this flow is a block formatting context and false otherwise.
+    fn is_block_formatting_context(&self, only_impactable_by_floats: bool) -> bool {
+        let style = self.box_.style();
+        if style.Box.get().float != float::none {
+            return !only_impactable_by_floats
+        }
+        if style.Box.get().overflow != overflow::visible {
+            return true
+        }
+        match style.Box.get().display {
+            display::table_cell | display::table_caption | display::inline_block => true,
+            _ => false,
+        }
+    }
+
+    /// Pass 1 of reflow: computes minimum and preferred widths.
+    ///
+    /// Recursively (bottom-up) determine the flow's minimum and preferred widths. When called on
+    /// this flow, all child flows have had their minimum and preferred widths set. This function
+    /// must decide minimum/preferred widths based on its children's widths and the dimensions of
+    /// any boxes it is responsible for flowing.
+    ///
+    /// TODO(pcwalton): Inline blocks.
     fn bubble_widths(&mut self, _: &mut LayoutContext) {
-        let mut num_floats = 0;
+        let mut flags = self.base.flags;
+        flags.set_has_left_floated_descendants(false);
+        flags.set_has_right_floated_descendants(false);
 
         // Find the maximum width from children.
         let mut intrinsic_widths = IntrinsicWidths::new();
         for child_ctx in self.base.child_iter() {
-            assert!(child_ctx.is_block_flow() || child_ctx.is_inline_flow() || child_ctx.is_table_kind());
+            assert!(child_ctx.is_block_flow() ||
+                    child_ctx.is_inline_flow() ||
+                    child_ctx.is_table_kind());
 
             let child_base = flow::mut_base(child_ctx);
             intrinsic_widths.minimum_width =
@@ -1481,14 +1449,8 @@ impl Flow for BlockFlow {
             intrinsic_widths.preferred_width =
                 geometry::max(intrinsic_widths.preferred_width,
                               child_base.intrinsic_widths.total_preferred_width());
-            num_floats = num_floats + child_base.num_floats;
-        }
 
-        if self.is_float() {
-            self.base.num_floats = 1;
-            self.float.get_mut_ref().floated_children = num_floats;
-        } else {
-            self.base.num_floats = num_floats;
+            flags.union_floated_descendants_flags(child_base.flags);
         }
 
         let box_intrinsic_widths = self.box_.intrinsic_widths(None);
@@ -1497,8 +1459,14 @@ impl Flow for BlockFlow {
         intrinsic_widths.preferred_width = geometry::max(intrinsic_widths.preferred_width,
                                                          box_intrinsic_widths.preferred_width);
         intrinsic_widths.surround_width = box_intrinsic_widths.surround_width;
+        self.base.intrinsic_widths = intrinsic_widths;
 
-        self.base.intrinsic_widths = intrinsic_widths
+        match self.box_.style().Box.get().float {
+            float::none => {}
+            float::left => flags.set_has_left_floated_descendants(true),
+            float::right => flags.set_has_right_floated_descendants(true),
+        }
+        self.base.flags = flags
     }
 
     /// Recursively (top-down) determines the actual width of child contexts and boxes. When called
@@ -1519,20 +1487,24 @@ impl Flow for BlockFlow {
             self.base.position.origin = Zero::zero();
             self.base.position.size.width = ctx.screen_size.width;
             self.base.floats = Floats::new();
-            // Root element is not floated
-            self.base.flags.set_inorder(false);
+
+            // The root element is never impacted by floats.
+            self.base.flags.set_impacted_by_left_floats(false);
+            self.base.flags.set_impacted_by_right_floats(false);
         }
 
         // The position was set to the containing block by the flow's parent.
         let containing_block_width = self.base.position.size.width;
-
-        self.set_containing_width_if_float(containing_block_width);
-
         self.compute_used_width(ctx, containing_block_width);
+        if self.is_float() {
+            self.float.get_mut_ref().containing_width = containing_block_width;
+        }
 
-        // Assign `clear` now so that the assign-heights pass will have the correct value for
-        // it.
-        self.base.clear = self.box_.style().Box.get().clear;
+        // Block formatting contexts are never impacted by floats.
+        if self.is_block_formatting_context(false) {
+            self.base.flags.set_impacted_by_left_floats(false);
+            self.base.flags.set_impacted_by_right_floats(false);
+        }
 
         // Move in from the left border edge
         let left_content_edge = self.box_.border_box.origin.x + self.box_.border_padding.left;
@@ -1546,18 +1518,24 @@ impl Flow for BlockFlow {
         self.propagate_assigned_width_to_children(left_content_edge, content_width, None);
     }
 
-    /// This is called on kid flows by a parent.
+    /// Assigns heights in-order; or, if this is a float, places the float. The default
+    /// implementation simply assigns heights if this flow is impacted by floats. Returns true if
+    /// this child was impacted by floats or false otherwise.
     ///
-    /// Hence, we can assume that assign_height has already been called on the
-    /// kid (because of the bottom-up traversal).
-    fn assign_height_inorder(&mut self, ctx: &mut LayoutContext) {
+    /// This is called on child flows by the parent. Hence, we can assume that `assign_height` has
+    /// already been called on the child (because of the bottom-up traversal).
+    fn assign_height_for_inorder_child_if_necessary(&mut self, layout_context: &mut LayoutContext)
+                                                    -> bool {
         if self.is_float() {
-            debug!("assign_height_inorder_float: assigning height for float");
-            self.assign_height_float_inorder();
-        } else {
-            debug!("assign_height_inorder: assigning height for block");
-            self.assign_height_block_base(ctx, true, MarginsMayCollapse);
+            self.place_float();
+            return true
         }
+
+        let impacted = self.base.flags.impacted_by_floats();
+        if impacted {
+            self.assign_height(layout_context);
+        }
+        impacted
     }
 
     fn assign_height(&mut self, ctx: &mut LayoutContext) {
@@ -1569,13 +1547,77 @@ impl Flow for BlockFlow {
             self.assign_height_float(ctx);
         } else {
             debug!("assign_height: assigning height for block");
-            // This is the only case in which a block flow can start an inorder
-            // subtraversal.
-            if self.is_root() && self.base.num_floats > 0 {
-                self.assign_height_inorder(ctx);
-                return;
+            self.assign_height_block_base(ctx, MarginsMayCollapse);
+        }
+    }
+
+    fn compute_absolute_position(&mut self) {
+        if self.is_absolutely_positioned() {
+            self.base
+                .absolute_position_info
+                .absolute_containing_block_position = if self.is_fixed() {
+                // The viewport is initially at (0, 0).
+                self.base.position.origin
+            } else {
+                // Absolute position of the containing block + position of absolute flow w/r/t the
+                // containing block.
+                self.base.absolute_position_info.absolute_containing_block_position +
+                    self.base.position.origin
+            };
+
+            // Set the absolute position, which will be passed down later as part
+            // of containing block details for absolute descendants.
+            self.base.abs_position =
+                self.base.absolute_position_info.absolute_containing_block_position;
+        }
+
+        // For relatively-positioned descendants, the containing block formed by a block is just
+        // the content box. The containing block for absolutely-positioned descendants, on the
+        // other hand, is only established if we are positioned.
+        let relative_offset =
+            self.box_.relative_position(&self.base
+                                             .absolute_position_info
+                                             .relative_containing_block_size,
+                                        None);
+        if self.is_positioned() {
+            self.base.absolute_position_info.absolute_containing_block_position =
+                self.base.abs_position +
+                self.generated_containing_block_rect().origin +
+                relative_offset
+        };
+
+        let float_offset = if self.is_float() {
+            self.float.get_ref().rel_pos
+        } else {
+            Zero::zero()
+        };
+
+        // Compute absolute position info for children.
+        let mut absolute_position_info = self.base.absolute_position_info;
+        absolute_position_info.relative_containing_block_size = self.box_.content_box().size;
+        absolute_position_info.layers_needed_for_positioned_flows =
+            self.base.flags.layers_needed_for_descendants();
+
+        // Process children.
+        let this_position = self.base.abs_position;
+        for kid in self.base.child_iter() {
+            if !kid.is_absolutely_positioned() {
+                let kid_base = flow::mut_base(kid);
+                kid_base.abs_position = this_position + kid_base.position.origin +
+                    relative_offset + float_offset;
+                kid_base.absolute_position_info = absolute_position_info
             }
-            self.assign_height_block_base(ctx, false, MarginsMayCollapse);
+        }
+
+        // Process absolute descendant links.
+        for absolute_descendant_link in self.base.abs_descendants.iter() {
+            match absolute_descendant_link.resolve() {
+                Some(absolute_descendant) => {
+                    flow::mut_base(absolute_descendant).absolute_position_info =
+                        absolute_position_info
+                }
+                None => fail!("empty Rawlink to a descendant")
+            }
         }
     }
 

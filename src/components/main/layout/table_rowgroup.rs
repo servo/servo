@@ -9,13 +9,11 @@ use layout::block::BlockFlow;
 use layout::block::WidthAndMarginsComputer;
 use layout::construct::FlowConstructor;
 use layout::context::LayoutContext;
-use layout::display_list_builder::{DisplayListBuilder, DisplayListBuildingInfo};
 use layout::flow::{TableRowGroupFlowClass, FlowClass, Flow, ImmutableFlowUtils};
 use layout::flow;
 use layout::table::{InternalTable, TableFlow};
 use layout::wrapper::ThreadSafeLayoutNode;
 
-use gfx::display_list::StackingContext;
 use servo_util::geometry::Au;
 use servo_util::geometry;
 
@@ -80,12 +78,14 @@ impl TableRowGroupFlow {
     /// inline(always) because this is only ever called by in-order or non-in-order top-level
     /// methods
     #[inline(always)]
-    fn assign_height_table_rowgroup_base(&mut self, _: &mut LayoutContext, _: bool) {
+    fn assign_height_table_rowgroup_base(&mut self, layout_context: &mut LayoutContext) {
         let (top_offset, _, _) = self.initialize_offsets();
 
         let mut cur_y = top_offset;
 
         for kid in self.block_flow.base.child_iter() {
+            kid.assign_height_for_inorder_child_if_necessary(layout_context);
+
             let child_node = flow::mut_base(kid);
             child_node.position.origin.y = cur_y;
             cur_y = cur_y + child_node.position.size.height;
@@ -99,12 +99,9 @@ impl TableRowGroupFlow {
         self.block_flow.base.position.size.height = height;
     }
 
-    pub fn build_display_list_table_rowgroup(&mut self,
-                                             stacking_context: &mut StackingContext,
-                                             builder: &mut DisplayListBuilder,
-                                             info: &DisplayListBuildingInfo) {
+    pub fn build_display_list_table_rowgroup(&mut self, layout_context: &LayoutContext) {
         debug!("build_display_list_table_rowgroup: same process as block flow");
-        self.block_flow.build_display_list_block(stacking_context, builder, info)
+        self.block_flow.build_display_list_block(layout_context)
     }
 }
 
@@ -143,7 +140,6 @@ impl Flow for TableRowGroupFlow {
     fn bubble_widths(&mut self, _: &mut LayoutContext) {
         let mut min_width = Au(0);
         let mut pref_width = Au(0);
-        let mut num_floats = 0;
 
         for kid in self.block_flow.base.child_iter() {
             assert!(kid.is_table_row());
@@ -174,11 +170,8 @@ impl Flow for TableRowGroupFlow {
                     pref_width = pref_width + new_kid_pref;
                 }
             }
-            let child_base = flow::mut_base(kid);
-            num_floats = num_floats + child_base.num_floats;
         }
 
-        self.block_flow.base.num_floats = num_floats;
         self.block_flow.base.intrinsic_widths.minimum_width = min_width;
         self.block_flow.base.intrinsic_widths.preferred_width = geometry::max(min_width,
                                                                               pref_width);
@@ -201,18 +194,13 @@ impl Flow for TableRowGroupFlow {
         self.block_flow.propagate_assigned_width_to_children(left_content_edge, content_width, Some(self.col_widths.clone()));
     }
 
-    /// This is called on kid flows by a parent.
-    ///
-    /// Hence, we can assume that assign_height has already been called on the
-    /// kid (because of the bottom-up traversal).
-    fn assign_height_inorder(&mut self, ctx: &mut LayoutContext) {
-        debug!("assign_height_inorder: assigning height for table_rowgroup");
-        self.assign_height_table_rowgroup_base(ctx, true);
-    }
-
     fn assign_height(&mut self, ctx: &mut LayoutContext) {
         debug!("assign_height: assigning height for table_rowgroup");
-        self.assign_height_table_rowgroup_base(ctx, false);
+        self.assign_height_table_rowgroup_base(ctx);
+    }
+
+    fn compute_absolute_position(&mut self) {
+        self.block_flow.compute_absolute_position()
     }
 
     fn debug_str(&self) -> ~str {

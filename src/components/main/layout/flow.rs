@@ -30,7 +30,6 @@ use layout::block::BlockFlow;
 use layout::box_::{Box, TableRowBox, TableCellBox};
 use layout::construct::OptVector;
 use layout::context::LayoutContext;
-use layout::display_list_builder::{DisplayListBuilder, DisplayListBuildingInfo};
 use layout::floats::Floats;
 use layout::flow_list::{FlowList, Link, Rawlink, FlowListIterator, MutFlowListIterator};
 use layout::incremental::RestyleDamage;
@@ -48,14 +47,18 @@ use layout::table_cell::TableCellFlow;
 use layout::wrapper::ThreadSafeLayoutNode;
 
 use collections::Deque;
+use collections::dlist::DList;
 use geom::point::Point2D;
 use geom::rect::Rect;
-use gfx::display_list::StackingContext;
+use geom::size::Size2D;
+use gfx::display_list::DisplayList;
+use gfx::render_task::RenderLayer;
 use servo_msg::compositor_msg::LayerId;
 use servo_util::geometry::Au;
 use servo_util::smallvec::{SmallVec, SmallVec0};
 use std::cast;
 use std::iter::Zip;
+use std::num::Zero;
 use std::sync::atomics::Relaxed;
 use std::slice::MutItems;
 use style::computed_values::{clear, position, text_align};
@@ -74,6 +77,7 @@ pub trait Flow {
 
     /// If this is a block flow, returns the underlying object. Fails otherwise.
     fn as_block<'a>(&'a mut self) -> &'a mut BlockFlow {
+        debug!("called as_block() on a flow of type {}", self.class());
         fail!("called as_block() on a non-block flow")
     }
 
@@ -144,6 +148,11 @@ pub trait Flow {
     // Main methods
 
     /// Pass 1 of reflow: computes minimum and preferred widths.
+    ///
+    /// Recursively (bottom-up) determine the flow's minimum and preferred widths. When called on
+    /// this flow, all child flows have had their minimum and preferred widths set. This function
+    /// must decide minimum/preferred widths based on its children's widths and the dimensions of
+    /// any boxes it is responsible for flowing.
     fn bubble_widths(&mut self, _ctx: &mut LayoutContext) {
         fail!("bubble_widths not yet implemented")
     }
@@ -158,9 +167,32 @@ pub trait Flow {
         fail!("assign_height not yet implemented")
     }
 
-    /// In-order version of pass 3a of reflow: computes heights with floats present.
-    fn assign_height_inorder(&mut self, _ctx: &mut LayoutContext) {
-        fail!("assign_height_inorder not yet implemented")
+    /// Assigns heights in-order; or, if this is a float, places the float. The default
+    /// implementation simply assigns heights if this flow is impacted by floats. Returns true if
+    /// this child was impacted by floats or false otherwise.
+    fn assign_height_for_inorder_child_if_necessary(&mut self, layout_context: &mut LayoutContext)
+                                                    -> bool {
+        let impacted = base(self).flags.impacted_by_floats();
+        if impacted {
+            self.assign_height(layout_context);
+        }
+        impacted
+    }
+
+    /// Phase 4 of reflow: computes absolute positions.
+    fn compute_absolute_position(&mut self) {
+        // The default implementation is a no-op.
+    }
+
+    /// Returns the direction that this flow clears floats in, if any.
+    fn float_clearance(&self) -> clear::T {
+        clear::none
+    }
+
+    /// Returns true if this float is a block formatting context and false otherwise. The default
+    /// implementation returns false.
+    fn is_block_formatting_context(&self, _only_impactable_by_floats: bool) -> bool {
+        false
     }
 
     fn compute_collapsible_top_margin(&mut self,
@@ -355,11 +387,8 @@ pub trait MutableFlowUtils {
     /// Computes the overflow region for this flow.
     fn store_overflow(self, _: &mut LayoutContext);
 
-    /// Builds the display lists for this flow and its descendants.
-    fn build_display_list(self,
-                          stacking_context: &mut StackingContext,
-                          builder: &mut DisplayListBuilder,
-                          info: &DisplayListBuildingInfo);
+    /// Builds the display lists for this flow.
+    fn build_display_list(self, layout_context: &LayoutContext);
 
     /// Destroys the flow.
     fn destroy(self);
@@ -387,6 +416,7 @@ pub trait MutableOwnedFlowUtils {
     fn destroy(&mut self);
 }
 
+#[deriving(Eq, Show)]
 pub enum FlowClass {
     BlockFlowClass,
     InlineFlowClass,
@@ -436,6 +466,26 @@ pub trait PostorderFlowTraversal {
 #[deriving(Clone)]
 pub struct FlowFlags(pub u8);
 
+/// The bitmask of flags that represent the `has_left_floated_descendants` and
+/// `has_right_floated_descendants` fields.
+///
+/// NB: If you update this field, you must update the bitfields below.
+static HAS_FLOATED_DESCENDANTS_BITMASK: u8 = 0b0000_0011;
+
+// Whether this flow has descendants that float left in the same block formatting context.
+bitfield!(FlowFlags, has_left_floated_descendants, set_has_left_floated_descendants, 0b0000_0001)
+
+// Whether this flow has descendants that float right in the same block formatting context.
+bitfield!(FlowFlags, has_right_floated_descendants, set_has_right_floated_descendants, 0b0000_0010)
+
+// Whether this flow is impacted by floats to the left in the same block formatting context (i.e.
+// its height depends on some prior flows with `float: left`).
+bitfield!(FlowFlags, impacted_by_left_floats, set_impacted_by_left_floats, 0b0000_0100)
+
+// Whether this flow is impacted by floats to the right in the same block formatting context (i.e.
+// its height depends on some prior flows with `float: right`).
+bitfield!(FlowFlags, impacted_by_right_floats, set_impacted_by_right_floats, 0b0000_1000)
+
 /// The bitmask of flags that represent the text alignment field.
 ///
 /// NB: If you update this field, you must update the bitfields below.
@@ -445,9 +495,6 @@ static TEXT_ALIGN_BITMASK: u8 = 0b0011_0000;
 ///
 /// NB: If you update this field, you must update the bitfields below.
 static TEXT_ALIGN_SHIFT: u8 = 4;
-
-// Whether we need an in-order traversal.
-bitfield!(FlowFlags, inorder, set_inorder, 0b0000_0001)
 
 // Whether this flow contains a flow that has its own layer within the same absolute containing
 // block.
@@ -491,6 +538,18 @@ impl FlowFlags {
         let FlowFlags(ff) = *self;
         let FlowFlags(pff) = parent;
         *self = FlowFlags(ff | (pff & TEXT_ALIGN_BITMASK))
+    }
+
+    #[inline]
+    pub fn union_floated_descendants_flags(&mut self, other: FlowFlags) {
+        let FlowFlags(my_flags) = *self;
+        let FlowFlags(other_flags) = other;
+        *self = FlowFlags(my_flags | (other_flags & HAS_FLOATED_DESCENDANTS_BITMASK))
+    }
+
+    #[inline]
+    pub fn impacted_by_floats(&self) -> bool {
+        self.impacted_by_left_floats() || self.impacted_by_right_floats()
     }
 }
 
@@ -548,6 +607,31 @@ pub type DescendantIter<'a> = MutItems<'a, Rawlink>;
 
 pub type DescendantOffsetIter<'a> = Zip<MutItems<'a, Rawlink>, MutItems<'a, Au>>;
 
+/// Information needed to compute absolute (i.e. viewport-relative) flow positions (not to be
+/// confused with absolutely-positioned flows).
+pub struct AbsolutePositionInfo {
+    /// The size of the containing block for relatively-positioned descendants.
+    pub relative_containing_block_size: Size2D<Au>,
+    /// The position of the absolute containing block.
+    pub absolute_containing_block_position: Point2D<Au>,
+    /// Whether the absolute containing block forces positioned descendants to be layerized.
+    ///
+    /// FIXME(pcwalton): Move into `FlowFlags`.
+    pub layers_needed_for_positioned_flows: bool,
+}
+
+impl AbsolutePositionInfo {
+    pub fn new() -> AbsolutePositionInfo {
+        // FIXME(pcwalton): The initial relative containing block size should be equal to the size
+        // of the root layer.
+        AbsolutePositionInfo {
+            relative_containing_block_size: Size2D::zero(),
+            absolute_containing_block_position: Zero::zero(),
+            layers_needed_for_positioned_flows: false,
+        }
+    }
+}
+
 /// Data common to all flows.
 pub struct BaseFlow {
     pub restyle_damage: RestyleDamage,
@@ -584,16 +668,6 @@ pub struct BaseFlow {
     /// The floats next to this flow.
     pub floats: Floats,
 
-    /// The value of this flow's `clear` property, if any.
-    pub clear: clear::T,
-
-    /// For normal flows, this is the number of floated descendants that are
-    /// not contained within any other floated descendant of this flow. For
-    /// floats, it is 1.
-    /// It is used to allocate float data if necessary and to
-    /// decide whether to do an in-order traversal for assign_height.
-    pub num_floats: uint,
-
     /// The collapsible margins for this flow, if any.
     pub collapsible_margins: CollapsibleMargins,
 
@@ -613,6 +687,18 @@ pub struct BaseFlow {
 
     /// Reference to the Containing Block, if this flow is absolutely positioned.
     pub absolute_cb: ContainingBlockLink,
+
+    /// Information needed to compute absolute (i.e. viewport-relative) flow positions (not to be
+    /// confused with absolutely-positioned flows).
+    ///
+    /// FIXME(pcwalton): Merge with `absolute_static_x_offset` and `fixed_static_x_offset` above?
+    pub absolute_position_info: AbsolutePositionInfo,
+
+    /// The unflattened display items for this flow.
+    pub display_list: DisplayList,
+
+    /// Any layers that we're bubbling up, in a linked list.
+    pub layers: DList<RenderLayer>,
 
     /// Whether this flow has been destroyed.
     ///
@@ -650,14 +736,15 @@ impl BaseFlow {
             parallel: FlowParallelInfo::new(),
 
             floats: Floats::new(),
-            num_floats: 0,
             collapsible_margins: CollapsibleMargins::new(),
-            clear: clear::none,
             abs_position: Point2D(Au::new(0), Au::new(0)),
             abs_descendants: Descendants::new(),
             absolute_static_x_offset: Au::new(0),
             fixed_static_x_offset: Au::new(0),
             absolute_cb: ContainingBlockLink::new(),
+            display_list: DisplayList::new(),
+            layers: DList::new(),
+            absolute_position_info: AbsolutePositionInfo::new(),
 
             destroyed: false,
 
@@ -931,48 +1018,28 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
     ///
     /// Arguments:
     ///
-    /// * `stacking_context`: The parent stacking context that this flow belongs to and to which
-    ///   display items will be added.
-    ///
     /// * `builder`: The display list builder, which contains information used during the entire
     ///   display list building pass.
     ///
     /// * `info`: Per-flow display list building information.
-    fn build_display_list(self,
-                          stacking_context: &mut StackingContext,
-                          builder: &mut DisplayListBuilder,
-                          info: &DisplayListBuildingInfo) {
+    fn build_display_list(self, layout_context: &LayoutContext) {
         debug!("Flow: building display list");
         match self.class() {
-            BlockFlowClass => {
-                self.as_block().build_display_list_block(stacking_context, builder, info)
-            }
-            InlineFlowClass => {
-                self.as_inline().build_display_list_inline(stacking_context, builder, info)
-            }
+            BlockFlowClass => self.as_block().build_display_list_block(layout_context),
+            InlineFlowClass => self.as_inline().build_display_list_inline(layout_context),
             TableWrapperFlowClass => {
-                self.as_table_wrapper().build_display_list_table_wrapper(stacking_context,
-                                                                         builder,
-                                                                         info)
+                self.as_table_wrapper().build_display_list_table_wrapper(layout_context)
             }
-            TableFlowClass => {
-                self.as_table().build_display_list_table(stacking_context, builder, info)
-            }
+            TableFlowClass => self.as_table().build_display_list_table(layout_context),
             TableRowGroupFlowClass => {
-                self.as_table_rowgroup().build_display_list_table_rowgroup(stacking_context,
-                                                                           builder,
-                                                                           info)
+                self.as_table_rowgroup().build_display_list_table_rowgroup(layout_context)
             }
-            TableRowFlowClass => {
-                self.as_table_row().build_display_list_table_row(stacking_context, builder, info)
-            }
+            TableRowFlowClass => self.as_table_row().build_display_list_table_row(layout_context),
             TableCaptionFlowClass => {
-                self.as_table_caption().build_display_list_table_caption(stacking_context,
-                                                                         builder,
-                                                                         info)
+                self.as_table_caption().build_display_list_table_caption(layout_context)
             }
             TableCellFlowClass => {
-                self.as_table_cell().build_display_list_table_cell(stacking_context, builder, info)
+                self.as_table_cell().build_display_list_table_cell(layout_context)
             }
             TableColGroupFlowClass => {
                 // Nothing to do here, as column groups don't render.
@@ -1001,6 +1068,7 @@ impl MutableOwnedFlowUtils for ~Flow:Share {
         let base = mut_base(*self);
         base.children.push_back(new_child);
         let _ = base.parallel.children_count.fetch_add(1, Relaxed);
+        let _ = base.parallel.children_and_absolute_descendant_count.fetch_add(1, Relaxed);
     }
 
     /// Finishes a flow. Once a flow is finished, no more child flows or boxes may be added to it.
@@ -1025,6 +1093,10 @@ impl MutableOwnedFlowUtils for ~Flow:Share {
         let self_link = Rawlink::some(*self);
         let block = self.as_block();
         block.base.abs_descendants = abs_descendants;
+        block.base
+             .parallel
+             .children_and_absolute_descendant_count
+             .fetch_add(block.base.abs_descendants.len() as int, Relaxed);
 
         for descendant_link in block.base.abs_descendants.iter() {
             match descendant_link.resolve() {
@@ -1064,6 +1136,10 @@ impl ContainingBlockLink {
 
     fn set(&mut self, link: Rawlink) {
         self.link = link
+    }
+
+    pub unsafe fn resolve(&mut self) -> Option<&mut Flow> {
+        self.link.resolve()
     }
 
     #[inline]

@@ -11,21 +11,21 @@ use css::select::new_stylist;
 use css::node_style::StyledNode;
 use layout::construct::{FlowConstructionResult, NoConstructionResult};
 use layout::context::LayoutContext;
-use layout::display_list_builder::{DisplayListBuilder, DisplayListBuildingInfo, ToGfxColor};
 use layout::flow::{Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
 use layout::flow::{PreorderFlowTraversal, PostorderFlowTraversal};
 use layout::flow;
 use layout::incremental::RestyleDamage;
 use layout::parallel::PaddedUnsafeFlow;
 use layout::parallel;
-use layout::util::{LayoutDataAccess, LayoutDataWrapper, OpaqueNodeMethods};
+use layout::util::{LayoutDataAccess, LayoutDataWrapper, OpaqueNodeMethods, ToGfxColor};
 use layout::wrapper::{LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
 
+use collections::dlist::DList;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
-use gfx::display_list::{ClipDisplayItemClass, DisplayItem, DisplayItemIterator, DisplayList};
-use gfx::display_list::{OpaqueNode, StackingContext};
+use gfx::display_list::{ClipDisplayItemClass, ContentStackingLevel, DisplayItem};
+use gfx::display_list::{DisplayItemIterator, DisplayList, OpaqueNode};
 use gfx::font_context::{FontContext, FontContextInfo};
 use gfx::render_task::{RenderMsg, RenderChan, RenderLayer};
 use gfx::{render_task, color};
@@ -48,7 +48,7 @@ use servo_net::local_image_cache::{ImageResponder, LocalImageCache};
 use servo_util::geometry::Au;
 use servo_util::geometry;
 use servo_util::opts::Opts;
-use servo_util::smallvec::{SmallVec, SmallVec0, SmallVec1};
+use servo_util::smallvec::{SmallVec, SmallVec1};
 use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
 use servo_util::task::send_on_failure;
@@ -107,7 +107,11 @@ pub struct LayoutTask {
     /// The channel on which messages can be sent to the profiler.
     pub profiler_chan: ProfilerChan,
 
-    pub opts: Opts
+    /// The command-line options.
+    pub opts: Opts,
+
+    /// The dirty rect. Used during display list construction.
+    pub dirty: Rect<Au>,
 }
 
 /// The damage computation traversal.
@@ -225,7 +229,31 @@ impl<'a> PostorderFlowTraversal for AssignHeightsAndStoreOverflowTraversal<'a> {
 
     #[inline]
     fn should_process(&mut self, flow: &mut Flow) -> bool {
-        !flow::base(flow).flags.inorder()
+        !flow::base(flow).flags.impacted_by_floats()
+    }
+}
+
+/// The display list construction traversal.
+pub struct BuildDisplayListTraversal<'a> {
+    layout_context: &'a LayoutContext,
+}
+
+impl<'a> BuildDisplayListTraversal<'a> {
+    #[inline]
+    fn process(&mut self, flow: &mut Flow) {
+        flow.compute_absolute_position();
+
+        for kid in flow::mut_base(flow).child_iter() {
+            if !kid.is_absolutely_positioned() {
+                self.process(kid)
+            }
+        }
+
+        for absolute_descendant_link in flow::mut_base(flow).abs_descendants.iter() {
+            self.process(absolute_descendant_link.resolve().unwrap())
+        }
+
+        flow.build_display_list(self.layout_context)
     }
 }
 
@@ -319,7 +347,8 @@ impl LayoutTask {
             initial_css_values: Arc::new(style::initial_values()),
             parallel_traversal: parallel_traversal,
             profiler_chan: profiler_chan,
-            opts: opts.clone()
+            opts: opts.clone(),
+            dirty: Rect::zero(),
         }
     }
 
@@ -349,6 +378,7 @@ impl LayoutTask {
             url: (*url).clone(),
             reflow_root: OpaqueNodeMethods::from_layout_node(reflow_root),
             opts: self.opts.clone(),
+            dirty: Rect::zero(),
         }
     }
 
@@ -634,23 +664,26 @@ impl LayoutTask {
         // Build the display list if necessary, and send it to the renderer.
         if data.goal == ReflowForDisplay {
             profile(time::LayoutDispListBuildCategory, self.profiler_chan.clone(), || {
-                let mut root_stacking_context = StackingContext::new();
-                let mut display_list_builder = DisplayListBuilder {
-                    ctx: &layout_ctx,
-                    layers: SmallVec0::new(),
-                    dirty: flow::base(layout_root).position.clone(),
-                };
-                let display_list_building_info = DisplayListBuildingInfo {
-                    relative_containing_block_size: flow::base(layout_root).position.size,
-                    absolute_containing_block_position: Point2D(Au(0), Au(0)),
-                    layers_needed_for_positioned_flows: false,
-                };
+                layout_ctx.dirty = flow::base(layout_root).position.clone();
 
-                layout_root.build_display_list(&mut root_stacking_context,
-                                               &mut display_list_builder,
-                                               &display_list_building_info);
+                match self.parallel_traversal {
+                    None => {
+                        let mut traversal = BuildDisplayListTraversal {
+                            layout_context: &layout_ctx,
+                        };
+                        traversal.process(layout_root);
+                    }
+                    Some(ref mut traversal) => {
+                        parallel::build_display_list_for_subtree(&mut layout_root,
+                                                                 self.profiler_chan.clone(),
+                                                                 &mut layout_ctx,
+                                                                 traversal);
+                    }
+                }
 
-                let display_list = Arc::new(root_stacking_context.flatten());
+                let root_display_list = mem::replace(&mut flow::mut_base(layout_root).display_list,
+                                                     DisplayList::new());
+                let display_list = Arc::new(root_display_list.flatten(ContentStackingLevel));
 
                 // FIXME(pcwalton): This is really ugly and can't handle overflow: scroll. Refactor
                 // it with extreme prejudice.
@@ -677,12 +710,9 @@ impl LayoutTask {
                     }
                 }
 
-                let root_size = Size2D(display_list_building_info.relative_containing_block_size
-                                                                 .width
-                                                                 .to_nearest_px() as uint,
-                                       display_list_building_info.relative_containing_block_size
-                                                                 .height
-                                                                 .to_nearest_px() as uint);
+                let root_size = flow::base(layout_root).position.size;
+                let root_size = Size2D(root_size.width.to_nearest_px() as uint,
+                                       root_size.height.to_nearest_px() as uint);
                 let render_layer = RenderLayer {
                     id: layout_root.layer_id(0),
                     display_list: display_list.clone(),
@@ -693,13 +723,15 @@ impl LayoutTask {
 
                 self.display_list = Some(display_list.clone());
 
+                // TODO(pcwalton): Eventually, when we have incremental reflow, this will have to
+                // be smarter in order to handle retained layer contents properly from reflow to
+                // reflow.
                 let mut layers = SmallVec1::new();
                 layers.push(render_layer);
-                let DisplayListBuilder {
-                    layers: sublayers,
-                    ..
-                } = display_list_builder;
-                layers.push_all_move(sublayers);
+                for layer in mem::replace(&mut flow::mut_base(layout_root).layers,
+                                          DList::new()).move_iter() {
+                    layers.push(layer)
+                }
 
                 debug!("Layout done!");
 
@@ -726,7 +758,6 @@ impl LayoutTask {
             // need to compare nodes for equality. Thus we can safely work only with `OpaqueNode`.
             ContentBoxQuery(node, reply_chan) => {
                 let node: OpaqueNode = OpaqueNodeMethods::from_script_node(node);
-
                 fn union_boxes_for_node(accumulator: &mut Option<Rect<Au>>,
                                         mut iter: DisplayItemIterator,
                                         node: OpaqueNode) {
@@ -774,28 +805,22 @@ impl LayoutTask {
                 reply_chan.send(ContentBoxesResponse(boxes))
             }
             HitTestQuery(_, point, reply_chan) => {
-                fn hit_test(x: Au, y: Au, list: &[DisplayItem])
+                fn hit_test<'a,I:Iterator<&'a DisplayItem>>(x: Au, y: Au, mut iterator: I)
                             -> Option<HitTestResponse> {
-                    for item in list.rev_iter() {
+                    for item in iterator {
                         match *item {
                             ClipDisplayItemClass(ref cc) => {
-                                if !cc.need_clip || geometry::rect_contains_point(cc.base.bounds,
-                                                                                  Point2D(x, y)) {
-                                    let ret = hit_test(x, y, cc.child_list.as_slice());
+                                if geometry::rect_contains_point(cc.base.bounds, Point2D(x, y)) {
+                                    let ret = hit_test(x, y, cc.children.list.rev_iter());
                                     if !ret.is_none() {
                                         return ret
                                     }
                                 }
+                                continue
                             }
                             _ => {}
                         }
-                    }
 
-                    for item in list.rev_iter() {
-                        match *item {
-                            ClipDisplayItemClass(_) => continue,
-                            _ => {}
-                        }
                         let bounds = item.bounds();
 
                         // TODO(tikue): This check should really be performed by a method of
@@ -816,7 +841,7 @@ impl LayoutTask {
                               Au::from_frac_px(point.y as f64));
                 let resp = match self.display_list {
                     None => fail!("no display list!"),
-                    Some(ref display_list) => hit_test(x, y, display_list.list.as_slice()),
+                    Some(ref display_list) => hit_test(x, y, display_list.list.rev_iter()),
                 };
                 if resp.is_some() {
                     reply_chan.send(Ok(resp.unwrap()));
@@ -826,44 +851,43 @@ impl LayoutTask {
 
             }
             MouseOverQuery(_, point, reply_chan) => {
-                fn mouse_over_test(x: Au,
+                fn mouse_over_test<'a,
+                                   I:Iterator<&'a DisplayItem>>(
+                                   x: Au,
                                    y: Au,
-                                   list: &[DisplayItem],
+                                   mut iterator: I,
                                    result: &mut Vec<UntrustedNodeAddress>) {
-                    for item in list.rev_iter() {
+                    for item in iterator {
                         match *item {
                             ClipDisplayItemClass(ref cc) => {
-                                mouse_over_test(x, y, cc.child_list.as_slice(), result);
+                                mouse_over_test(x, y, cc.children.list.rev_iter(), result);
                             }
-                            _ => {}
-                        }
-                    }
+                            _ => {
+                                let bounds = item.bounds();
 
-                    for item in list.rev_iter() {
-                        let bounds = item.bounds();
-
-                        // TODO(tikue): This check should really be performed by a method of
-                        // DisplayItem.
-                        if x < bounds.origin.x + bounds.size.width &&
-                                bounds.origin.x <= x &&
-                                y < bounds.origin.y + bounds.size.height &&
-                                bounds.origin.y <= y {
-                            result.push(item.base()
-                                            .node
-                                            .to_untrusted_node_address());
+                                // TODO(tikue): This check should really be performed by a method
+                                // of DisplayItem.
+                                if x < bounds.origin.x + bounds.size.width &&
+                                        bounds.origin.x <= x &&
+                                        y < bounds.origin.y + bounds.size.height &&
+                                        bounds.origin.y <= y {
+                                    result.push(item.base()
+                                                    .node
+                                                    .to_untrusted_node_address());
+                                }
+                            }
                         }
                     }
                 }
 
                 let mut mouse_over_list: Vec<UntrustedNodeAddress> = vec!();
-                let (x, y) = (Au::from_frac_px(point.x as f64),
-                              Au::from_frac_px(point.y as f64));
+                let (x, y) = (Au::from_frac_px(point.x as f64), Au::from_frac_px(point.y as f64));
                 match self.display_list {
                     None => fail!("no display list!"),
                     Some(ref display_list) => {
                         mouse_over_test(x,
                                         y,
-                                        display_list.list.as_slice(),
+                                        display_list.list.rev_iter(),
                                         &mut mouse_over_list);
                     }
                 };
