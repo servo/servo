@@ -200,7 +200,7 @@ impl FontContext {
 
         Rc::new(
             RefCell::new(
-                FontGroup::new(&style.families, &used_style, fonts)))
+                FontGroup::new(style.families.clone(), &used_style, fonts)))
     }
 
     fn create_font_instance(&self, desc: &FontDescriptor) -> Result<Rc<RefCell<Font>>, ()> {

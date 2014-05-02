@@ -150,9 +150,9 @@ pub struct FontGroup {
 }
 
 impl FontGroup {
-    pub fn new(families: &Vec<~str>, style: &UsedFontStyle, fonts: Vec<Rc<RefCell<Font>>>) -> FontGroup {
+    pub fn new(families: Vec<~str>, style: &UsedFontStyle, fonts: Vec<Rc<RefCell<Font>>>) -> FontGroup {
         FontGroup {
-            families: families.clone(),
+            families: families,
             style: (*style).clone(),
             fonts: fonts,
         }
