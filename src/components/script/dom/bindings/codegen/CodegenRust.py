@@ -193,22 +193,11 @@ class CGMethodCall(CGThing):
                 # easy case!
                 signature = possibleSignatures[0]
 
-                # (possibly) important optimization: if signature[1] has >
-                # argCount arguments and signature[1][argCount] is optional and
-                # there is only one signature for argCount+1, then the
-                # signature for argCount+1 is just ourselves and we can fall
-                # through.
-                if (len(signature[1]) > argCount and
-                    signature[1][argCount].optional and
-                    (argCount+1) in allowedArgCounts and
-                    len(method.signaturesForArgCount(argCount+1)) == 1):
-                    argCountCases.append(
-                        CGCase(str(argCount), None, True))
-                else:
-                    sigIndex = signatures.index(signature)
-                    argCountCases.append(
-                        CGCase(str(argCount), getPerSignatureCall(signature,
-                                                                  signatureIndex=sigIndex)))
+
+                sigIndex = signatures.index(signature)
+                argCountCases.append(
+                    CGCase(str(argCount), getPerSignatureCall(signature,
+                                                              signatureIndex=sigIndex)))
                 continue
 
             distinguishingIndex = method.distinguishingIndexForArgCount(argCount)
@@ -2677,6 +2666,7 @@ use js::jsapi::JSContext;
 use js::jsval::JSVal;
 
 #[repr(uint)]
+#[deriving(Encodable)]
 pub enum valuelist {
   %s
 }
