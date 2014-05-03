@@ -233,11 +233,6 @@ impl DisplayList {
         }
     }
 
-    fn dump(&self) {
-        for item in self.list.iter() {
-            item.debug_with_level(0);
-        }
-    }
 
     /// Appends the given item to the display list.
     pub fn push(&mut self, item: DisplayItem) {
