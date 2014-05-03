@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLTrackElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTrackElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLTrackElementTypeId;
@@ -28,60 +28,74 @@ impl HTMLTrackElementDerived for EventTarget {
 }
 
 impl HTMLTrackElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLTrackElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLTrackElement {
         HTMLTrackElement {
             htmlelement: HTMLElement::new_inherited(HTMLTrackElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLTrackElement> {
-        let element = HTMLTrackElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLTrackElement> {
+        let element = HTMLTrackElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLTrackElementBinding::Wrap)
     }
 }
 
-impl HTMLTrackElement {
-    pub fn Kind(&self) -> DOMString {
+pub trait HTMLTrackElementMethods {
+    fn Kind(&self) -> DOMString;
+    fn SetKind(&mut self, _kind: DOMString) -> ErrorResult;
+    fn Src(&self) -> DOMString;
+    fn SetSrc(&mut self, _src: DOMString) -> ErrorResult;
+    fn Srclang(&self) -> DOMString;
+    fn SetSrclang(&mut self, _srclang: DOMString) -> ErrorResult;
+    fn Label(&self) -> DOMString;
+    fn SetLabel(&mut self, _label: DOMString) -> ErrorResult;
+    fn Default(&self) -> bool;
+    fn SetDefault(&mut self, _default: bool) -> ErrorResult;
+    fn ReadyState(&self) -> u16;
+}
+
+impl<'a> HTMLTrackElementMethods for JSRef<'a, HTMLTrackElement> {
+    fn Kind(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetKind(&mut self, _kind: DOMString) -> ErrorResult {
+    fn SetKind(&mut self, _kind: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Src(&self) -> DOMString {
+    fn Src(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
+    fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Srclang(&self) -> DOMString {
+    fn Srclang(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetSrclang(&mut self, _srclang: DOMString) -> ErrorResult {
+    fn SetSrclang(&mut self, _srclang: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Label(&self) -> DOMString {
+    fn Label(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetLabel(&mut self, _label: DOMString) -> ErrorResult {
+    fn SetLabel(&mut self, _label: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Default(&self) -> bool {
+    fn Default(&self) -> bool {
         false
     }
 
-    pub fn SetDefault(&mut self, _default: bool) -> ErrorResult {
+    fn SetDefault(&mut self, _default: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn ReadyState(&self) -> u16 {
+    fn ReadyState(&self) -> u16 {
         0
     }
 }

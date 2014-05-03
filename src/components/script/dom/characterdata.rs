@@ -5,7 +5,7 @@
 //! DOM bindings for `CharacterData`.
 
 use dom::bindings::codegen::InheritTypes::CharacterDataDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::JSRef;
 use dom::bindings::error::{Fallible, ErrorResult, IndexSize};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
@@ -31,44 +31,57 @@ impl CharacterDataDerived for EventTarget {
 }
 
 impl CharacterData {
-    pub fn new_inherited(id: NodeTypeId, data: DOMString, document: JS<Document>) -> CharacterData {
+    pub fn new_inherited(id: NodeTypeId, data: DOMString, document: &JSRef<Document>) -> CharacterData {
         CharacterData {
             node: Node::new_inherited(id, document),
             data: data
         }
     }
+}
 
-    pub fn Data(&self) -> DOMString {
+pub trait CharacterDataMethods {
+    fn Data(&self) -> DOMString;
+    fn SetData(&mut self, arg: DOMString) -> ErrorResult;
+    fn Length(&self) -> u32;
+    fn SubstringData(&self, offset: u32, count: u32) -> Fallible<DOMString>;
+    fn AppendData(&mut self, arg: DOMString) -> ErrorResult;
+    fn InsertData(&mut self, _offset: u32, _arg: DOMString) -> ErrorResult;
+    fn DeleteData(&mut self, _offset: u32, _count: u32) -> ErrorResult;
+    fn ReplaceData(&mut self, _offset: u32, _count: u32, _arg: DOMString) -> ErrorResult;
+}
+
+impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
+    fn Data(&self) -> DOMString {
         self.data.clone()
     }
 
-    pub fn SetData(&mut self, arg: DOMString) -> ErrorResult {
+    fn SetData(&mut self, arg: DOMString) -> ErrorResult {
         self.data = arg;
         Ok(())
     }
 
-    pub fn Length(&self) -> u32 {
+    fn Length(&self) -> u32 {
         self.data.len() as u32
     }
 
-    pub fn SubstringData(&self, offset: u32, count: u32) -> Fallible<DOMString> {
+    fn SubstringData(&self, offset: u32, count: u32) -> Fallible<DOMString> {
         Ok(self.data.slice(offset as uint, count as uint).to_str())
     }
 
-    pub fn AppendData(&mut self, arg: DOMString) -> ErrorResult {
+    fn AppendData(&mut self, arg: DOMString) -> ErrorResult {
         self.data.push_str(arg);
         Ok(())
     }
 
-    pub fn InsertData(&mut self, offset: u32, arg: DOMString) -> ErrorResult {
+    fn InsertData(&mut self, offset: u32, arg: DOMString) -> ErrorResult {
         self.ReplaceData(offset, 0, arg)
     }
 
-    pub fn DeleteData(&mut self, offset: u32, count: u32) -> ErrorResult {
+    fn DeleteData(&mut self, offset: u32, count: u32) -> ErrorResult {
         self.ReplaceData(offset, count, ~"")
     }
 
-    pub fn ReplaceData(&mut self, offset: u32, count: u32, arg: DOMString) -> ErrorResult {
+    fn ReplaceData(&mut self, offset: u32, count: u32, arg: DOMString) -> ErrorResult {
         let length = self.data.len() as u32;
         if offset > length {
             return Err(IndexSize);

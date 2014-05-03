@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLTableDataCellElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTableDataCellElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
 use dom::element::HTMLTableDataCellElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -27,14 +27,17 @@ impl HTMLTableDataCellElementDerived for EventTarget {
 }
 
 impl HTMLTableDataCellElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLTableDataCellElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLTableDataCellElement {
         HTMLTableDataCellElement {
             htmltablecellelement: HTMLTableCellElement::new_inherited(HTMLTableDataCellElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLTableDataCellElement> {
-        let element = HTMLTableDataCellElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLTableDataCellElement> {
+        let element = HTMLTableDataCellElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLTableDataCellElementBinding::Wrap)
     }
+}
+
+pub trait HTMLTableDataCellElementMethods {
 }

@@ -2,17 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::attr::AttrMethods;
 use dom::bindings::codegen::InheritTypes::{NodeBase, NodeCast, TextCast, ElementCast};
 use dom::bindings::codegen::InheritTypes::HTMLIFrameElementCast;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable, Root};
 use dom::bindings::utils::Reflectable;
-use dom::document::Document;
+use dom::document::{Document, DocumentHelpers};
 use dom::element::{AttributeHandlers, HTMLLinkElementTypeId, HTMLIFrameElementTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::htmlheadingelement::{Heading1, Heading2, Heading3, Heading4, Heading5, Heading6};
-use dom::htmliframeelement::IFrameSize;
+use dom::htmliframeelement::{IFrameSize, HTMLIFrameElementHelpers};
 use dom::htmlformelement::HTMLFormElement;
-use dom::node::{ElementNodeTypeId, INode, NodeHelpers};
+use dom::node::{ElementNodeTypeId, NodeHelpers, NodeMethods};
 use dom::types::*;
 use html::cssparse::{StylesheetProvenance, UrlProvenance, spawn_css_parser};
 use script_task::Page;
@@ -39,7 +40,7 @@ macro_rules! handle_element(
      $ctor: ident
      $(, $arg:expr )*) => (
         if $string == $localName {
-            return ElementCast::from(&$ctor::new($localName, $document $(, $arg)*));
+            return ElementCast::from_unrooted($ctor::new($localName, $document $(, $arg)*));
         }
     )
 )
@@ -74,18 +75,18 @@ pub struct HtmlParserResult {
     pub discovery_port: Receiver<HtmlDiscoveryMessage>,
 }
 
-trait NodeWrapping {
+trait NodeWrapping<T> {
     unsafe fn to_hubbub_node(&self) -> hubbub::NodeDataPtr;
-    unsafe fn from_hubbub_node(n: hubbub::NodeDataPtr) -> Self;
 }
 
-impl<T: NodeBase+Reflectable> NodeWrapping for JS<T> {
+impl<'a, T: NodeBase+Reflectable> NodeWrapping<T> for JSRef<'a, T> {
     unsafe fn to_hubbub_node(&self) -> hubbub::NodeDataPtr {
-        cast::transmute(self.get())
+        cast::transmute(self.deref())
     }
-    unsafe fn from_hubbub_node(n: hubbub::NodeDataPtr) -> JS<T> {
-        JS::from_raw(cast::transmute(n))
-    }
+}
+
+unsafe fn from_hubbub_node<T: Reflectable>(n: hubbub::NodeDataPtr) -> Temporary<T> {
+    Temporary::new(JS::from_raw(cast::transmute(n)))
 }
 
 /**
@@ -160,7 +161,7 @@ fn js_script_listener(to_parent: Sender<HtmlDiscoveryMessage>,
 // Silly macros to handle constructing      DOM nodes. This produces bad code and should be optimized
 // via atomization (issue #85).
 
-pub fn build_element_from_tag(tag: DOMString, document: &JS<Document>) -> JS<Element> {
+pub fn build_element_from_tag(tag: DOMString, document: &JSRef<Document>) -> Temporary<Element> {
     // TODO (Issue #85): use atoms
     handle_element!(document, tag, "a",         HTMLAnchorElement);
     handle_element!(document, tag, "applet",    HTMLAppletElement);
@@ -242,11 +243,11 @@ pub fn build_element_from_tag(tag: DOMString, document: &JS<Document>) -> JS<Ele
     handle_element!(document, tag, "ul",        HTMLUListElement);
     handle_element!(document, tag, "video",     HTMLVideoElement);
 
-    return ElementCast::from(&HTMLUnknownElement::new(tag, document));
+    return ElementCast::from_unrooted(HTMLUnknownElement::new(tag, document));
 }
 
 pub fn parse_html(page: &Page,
-                  document: &mut JS<Document>,
+                  document: &mut JSRef<Document>,
                   url: Url,
                   resource_task: ResourceTask)
                   -> HtmlParserResult {
@@ -308,8 +309,9 @@ pub fn parse_html(page: &Page,
             // NOTE: tmp vars are workaround for lifetime issues. Both required.
             let tmp_borrow = doc_cell.borrow();
             let tmp = &*tmp_borrow;
-            let comment: JS<Node> = NodeCast::from(&Comment::new(data, *tmp));
-                unsafe { comment.to_hubbub_node() }
+            let comment = Comment::new(data, *tmp).root();
+            let comment: &JSRef<Node> = NodeCast::from_ref(&*comment);
+            unsafe { comment.to_hubbub_node() }
         },
         create_doctype: |doctype: ~hubbub::Doctype| {
             debug!("create doctype");
@@ -320,17 +322,17 @@ pub fn parse_html(page: &Page,
             // NOTE: tmp vars are workaround for lifetime issues. Both required.
             let tmp_borrow = doc_cell.borrow();
             let tmp = &*tmp_borrow;
-            let doctype_node = DocumentType::new(name, public_id, system_id, *tmp);
+            let doctype_node = DocumentType::new(name, public_id, system_id, *tmp).root();
             unsafe {
-                doctype_node.to_hubbub_node()
+                doctype_node.deref().to_hubbub_node()
             }
         },
         create_element: |tag: ~hubbub::Tag| {
-            debug!("create element");
+            debug!("create element {:?}", tag.name.clone());
             // NOTE: tmp vars are workaround for lifetime issues. Both required.
             let tmp_borrow = doc_cell.borrow();
             let tmp = &*tmp_borrow;
-            let mut element = build_element_from_tag(tag.name.clone(), *tmp);
+            let mut element = build_element_from_tag(tag.name.clone(), *tmp).root();
 
             debug!("-- attach attrs");
             for attr in tag.attributes.iter() {
@@ -340,21 +342,36 @@ pub fn parse_html(page: &Page,
                                          attr.value.clone()).is_ok());
             }
 
+            //FIXME: workaround for https://github.com/mozilla/rust/issues/13246;
+            //       we get unrooting order failures if these are inside the match.
+            let rel = {
+                let rel = element.get_attribute(Null, "rel").root();
+                rel.map(|a| a.deref().Value())
+            };
+            let href = {
+                let href= element.get_attribute(Null, "href").root();
+                href.map(|a| a.deref().Value())
+            };
+            let src_opt = {
+                let src_opt = element.get_attribute(Null, "src").root();
+                 src_opt.map(|a| a.deref().Value())
+            };
+
             // Spawn additional parsing, network loads, etc. from tag and attrs
-            match element.get().node.type_id {
+            let type_id = {
+                let node: &JSRef<Node> = NodeCast::from_ref(&*element);
+                node.type_id()
+            };
+            match type_id {
                 // Handle CSS style sheets from <link> elements
                 ElementNodeTypeId(HTMLLinkElementTypeId) => {
-                    match (element.get_attribute(Null, "rel"),
-                           element.get_attribute(Null, "href")) {
-                        (Some(ref rel), Some(ref href)) if rel.get()
-                                                              .value_ref()
-                                                              .split(HTML_SPACE_CHARACTERS.
-                                                                     as_slice())
+                    match (rel, href) {
+                        (Some(ref rel), Some(ref href)) if rel.split(HTML_SPACE_CHARACTERS.as_slice())
                                                               .any(|s| {
                                     s.eq_ignore_ascii_case("stylesheet")
                                 }) => {
-                            debug!("found CSS stylesheet: {:s}", href.get().value_ref());
-                            let url = parse_url(href.get().value_ref(), Some(url2.clone()));
+                            debug!("found CSS stylesheet: {:s}", *href);
+                            let url = parse_url(href.as_slice(), Some(url2.clone()));
                             css_chan2.send(CSSTaskNewFile(UrlProvenance(url, resource_task.clone())));
                         }
                         _ => {}
@@ -363,21 +380,19 @@ pub fn parse_html(page: &Page,
 
                 ElementNodeTypeId(HTMLIFrameElementTypeId) => {
                     let iframe_chan = discovery_chan.clone();
-                    let mut iframe_element: JS<HTMLIFrameElement> =
-                        HTMLIFrameElementCast::to(&element).unwrap();
-                    let sandboxed = iframe_element.get().is_sandboxed();
-                    let elem: JS<Element> = ElementCast::from(&iframe_element);
-                    let src_opt = elem.get_attribute(Null, "src").map(|x| x.get().Value());
+                    let iframe_element: &mut JSRef<HTMLIFrameElement> =
+                        HTMLIFrameElementCast::to_mut_ref(&mut *element).unwrap();
+                    let sandboxed = iframe_element.is_sandboxed();
                     for src in src_opt.iter() {
                         let iframe_url = parse_url(*src, Some(url2.clone()));
-                        iframe_element.get_mut().set_frame(iframe_url.clone());
+                        iframe_element.set_frame(iframe_url.clone());
 
                         // Subpage Id
                         let subpage_id = *next_subpage_id.borrow();
                         let SubpageId(id_num) = subpage_id;
                         *next_subpage_id.borrow_mut() = SubpageId(id_num + 1);
 
-                        iframe_element.get_mut().size = Some(IFrameSize {
+                        iframe_element.deref_mut().size = Some(IFrameSize {
                             pipeline_id: pipeline_id,
                             subpage_id: subpage_id,
                         });
@@ -396,17 +411,17 @@ pub fn parse_html(page: &Page,
             // NOTE: tmp vars are workaround for lifetime issues. Both required.
             let tmp_borrow = doc_cell.borrow();
             let tmp = &*tmp_borrow;
-            let text = Text::new(data, *tmp);
-            unsafe { text.to_hubbub_node() }
+            let text = Text::new(data, *tmp).root();
+            unsafe { text.deref().to_hubbub_node() }
         },
         ref_node: |_| {},
         unref_node: |_| {},
         append_child: |parent: hubbub::NodeDataPtr, child: hubbub::NodeDataPtr| {
             unsafe {
                 debug!("append child {:x} {:x}", parent, child);
-                let mut parent: JS<Node> = NodeWrapping::from_hubbub_node(parent);
-                let mut child: JS<Node> = NodeWrapping::from_hubbub_node(child);
-                assert!(parent.AppendChild(&mut child).is_ok());
+                let mut child = from_hubbub_node(child).root();
+                let mut parent: Root<Node> = from_hubbub_node(parent).root();
+                assert!(parent.AppendChild(&mut *child).is_ok());
             }
             child
         },
@@ -446,32 +461,32 @@ pub fn parse_html(page: &Page,
             // NOTE: tmp vars are workaround for lifetime issues. Both required.
             let mut tmp_borrow = doc_cell.borrow_mut();
             let tmp = &mut *tmp_borrow;
-            tmp.get_mut().set_quirks_mode(mode);
+            tmp.set_quirks_mode(mode);
         },
         encoding_change: |encname| {
             debug!("encoding change");
             // NOTE: tmp vars are workaround for lifetime issues. Both required.
             let mut tmp_borrow = doc_cell.borrow_mut();
             let tmp = &mut *tmp_borrow;
-            tmp.get_mut().set_encoding_name(encname);
+            tmp.set_encoding_name(encname);
         },
         complete_script: |script| {
             unsafe {
-                let script: JS<Element> = NodeWrapping::from_hubbub_node(script);
-                match script.get_attribute(Null, "src") {
+                let script: &JSRef<Element> = &*from_hubbub_node(script).root();
+                match script.get_attribute(Null, "src").root() {
                     Some(src) => {
-                        debug!("found script: {:s}", src.get().Value());
-                        let new_url = parse_url(src.get().value_ref(), Some(url3.clone()));
+                        debug!("found script: {:s}", src.deref().Value());
+                        let new_url = parse_url(src.deref().value_ref(), Some(url3.clone()));
                         js_chan2.send(JSTaskNewFile(new_url));
                     }
                     None => {
                         let mut data = vec!();
-                        let scriptnode: JS<Node> = NodeCast::from(&script);
+                        let scriptnode: &JSRef<Node> = NodeCast::from_ref(script);
                         debug!("iterating over children {:?}", scriptnode.first_child());
                         for child in scriptnode.children() {
                             debug!("child = {:?}", child);
-                            let text: JS<Text> = TextCast::to(&child).unwrap();
-                            data.push(text.get().characterdata.data.to_str());  // FIXME: Bad copy.
+                            let text: &JSRef<Text> = TextCast::to_ref(&child).unwrap();
+                            data.push(text.deref().characterdata.data.to_str());  // FIXME: Bad copy.
                         }
 
                         debug!("script data = {:?}", data);

@@ -697,6 +697,7 @@ do
                 CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-android-ndk=${CFG_ANDROID_NDK_PATH}"
                 CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-android-toolchain=${CFG_ANDROID_CROSS_PATH}"
             fi
+            CONFIGURE_ARGS="${CONFIGURE_ARGS} --enable-gczeal"
             ;;
         support/skia/skia)
             # Right now the skia configure script actually ignores --enable-debug and the

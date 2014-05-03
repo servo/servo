@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLLegendElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLLegendElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLLegendElementTypeId;
@@ -28,24 +28,29 @@ impl HTMLLegendElementDerived for EventTarget {
 }
 
 impl HTMLLegendElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLLegendElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLLegendElement {
         HTMLLegendElement {
             htmlelement: HTMLElement::new_inherited(HTMLLegendElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLLegendElement> {
-        let element = HTMLLegendElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLLegendElement> {
+        let element = HTMLLegendElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLLegendElementBinding::Wrap)
     }
 }
 
-impl HTMLLegendElement {
-    pub fn Align(&self) -> DOMString {
+pub trait HTMLLegendElementMethods {
+    fn Align(&self) -> DOMString;
+    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLLegendElementMethods for JSRef<'a, HTMLLegendElement> {
+    fn Align(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
+    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
         Ok(())
     }
 }

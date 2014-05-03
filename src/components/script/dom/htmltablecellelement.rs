@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::InheritTypes::HTMLTableCellElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::JSRef;
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::{ElementTypeId, HTMLTableDataCellElementTypeId, HTMLTableHeaderCellElementTypeId};
@@ -28,132 +28,164 @@ impl HTMLTableCellElementDerived for EventTarget {
 }
 
 impl HTMLTableCellElement {
-    pub fn new_inherited(type_id: ElementTypeId, tag_name: DOMString, document: JS<Document>) -> HTMLTableCellElement {
+    pub fn new_inherited(type_id: ElementTypeId, tag_name: DOMString, document: &JSRef<Document>) -> HTMLTableCellElement {
         HTMLTableCellElement {
             htmlelement: HTMLElement::new_inherited(type_id, tag_name, document)
         }
     }
 }
 
-impl HTMLTableCellElement {
-    pub fn ColSpan(&self) -> u32 {
+pub trait HTMLTableCellElementMethods {
+    fn ColSpan(&self) -> u32;
+    fn SetColSpan(&self, _col_span: u32) -> ErrorResult;
+    fn RowSpan(&self) -> u32;
+    fn SetRowSpan(&self, _col_span: u32) -> ErrorResult;
+    fn Headers(&self) -> DOMString;
+    fn SetHeaders(&self, _headers: DOMString) -> ErrorResult;
+    fn CellIndex(&self) -> i32;
+    fn GetCellIndex(&self, _cell_index: i32) -> ErrorResult;
+    fn Abbr(&self) -> DOMString;
+    fn SetAbbr(&self, _abbr: DOMString) -> ErrorResult;
+    fn Scope(&self) -> DOMString;
+    fn SetScope(&self, _abbr: DOMString) -> ErrorResult;
+    fn Align(&self) -> DOMString;
+    fn SetAlign(&self, _align: DOMString) -> ErrorResult;
+    fn Axis(&self) -> DOMString;
+    fn SetAxis(&self, _axis: DOMString) -> ErrorResult;
+    fn Height(&self) -> DOMString;
+    fn SetHeight(&self, _height: DOMString) -> ErrorResult;
+    fn Width(&self) -> DOMString;
+    fn SetWidth(&self, _width: DOMString) -> ErrorResult;
+    fn Ch(&self) -> DOMString;
+    fn SetCh(&self, _ch: DOMString) -> ErrorResult;
+    fn ChOff(&self) -> DOMString;
+    fn SetChOff(&self, _ch_off: DOMString) -> ErrorResult;
+    fn NoWrap(&self) -> bool;
+    fn SetNoWrap(&self, _no_wrap: bool) -> ErrorResult;
+    fn VAlign(&self) -> DOMString;
+    fn SetVAlign(&self, _valign: DOMString) -> ErrorResult;
+    fn BgColor(&self) -> DOMString;
+    fn SetBgColor(&self, _bg_color: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLTableCellElementMethods for JSRef<'a, HTMLTableCellElement> {
+    fn ColSpan(&self) -> u32 {
         0
     }
 
-    pub fn SetColSpan(&self, _col_span: u32) -> ErrorResult {
+    fn SetColSpan(&self, _col_span: u32) -> ErrorResult {
         Ok(())
     }
 
-    pub fn RowSpan(&self) -> u32 {
+    fn RowSpan(&self) -> u32 {
         0
     }
 
-    pub fn SetRowSpan(&self, _col_span: u32) -> ErrorResult {
+    fn SetRowSpan(&self, _col_span: u32) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Headers(&self) -> DOMString {
+    fn Headers(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetHeaders(&self, _headers: DOMString) -> ErrorResult {
+    fn SetHeaders(&self, _headers: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn CellIndex(&self) -> i32 {
+    fn CellIndex(&self) -> i32 {
         0
     }
 
-    pub fn GetCellIndex(&self, _cell_index: i32) -> ErrorResult {
+    fn GetCellIndex(&self, _cell_index: i32) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Abbr(&self) -> DOMString {
+    fn Abbr(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetAbbr(&self, _abbr: DOMString) -> ErrorResult {
+    fn SetAbbr(&self, _abbr: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Scope(&self) -> DOMString {
+    fn Scope(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetScope(&self, _abbr: DOMString) -> ErrorResult {
+    fn SetScope(&self, _abbr: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Align(&self) -> DOMString {
+    fn Align(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetAlign(&self, _align: DOMString) -> ErrorResult {
+    fn SetAlign(&self, _align: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Axis(&self) -> DOMString {
+    fn Axis(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetAxis(&self, _axis: DOMString) -> ErrorResult {
+    fn SetAxis(&self, _axis: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Height(&self) -> DOMString {
+    fn Height(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetHeight(&self, _height: DOMString) -> ErrorResult {
+    fn SetHeight(&self, _height: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Width(&self) -> DOMString {
+    fn Width(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetWidth(&self, _width: DOMString) -> ErrorResult {
+    fn SetWidth(&self, _width: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Ch(&self) -> DOMString {
+    fn Ch(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetCh(&self, _ch: DOMString) -> ErrorResult {
+    fn SetCh(&self, _ch: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn ChOff(&self) -> DOMString {
+    fn ChOff(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetChOff(&self, _ch_off: DOMString) -> ErrorResult {
+    fn SetChOff(&self, _ch_off: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn NoWrap(&self) -> bool {
+    fn NoWrap(&self) -> bool {
         false
     }
 
-    pub fn SetNoWrap(&self, _no_wrap: bool) -> ErrorResult {
+    fn SetNoWrap(&self, _no_wrap: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn VAlign(&self) -> DOMString {
+    fn VAlign(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetVAlign(&self, _valign: DOMString) -> ErrorResult {
+    fn SetVAlign(&self, _valign: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn BgColor(&self) -> DOMString {
+    fn BgColor(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetBgColor(&self, _bg_color: DOMString) -> ErrorResult {
+    fn SetBgColor(&self, _bg_color: DOMString) -> ErrorResult {
         Ok(())
     }
 }
-

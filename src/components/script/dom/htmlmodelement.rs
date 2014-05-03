@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLModElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLModElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLModElementTypeId;
@@ -28,32 +28,39 @@ impl HTMLModElementDerived for EventTarget {
 }
 
 impl HTMLModElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLModElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLModElement {
         HTMLModElement {
             htmlelement: HTMLElement::new_inherited(HTMLModElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLModElement> {
-        let element = HTMLModElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLModElement> {
+        let element = HTMLModElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLModElementBinding::Wrap)
     }
 }
 
-impl HTMLModElement {
-    pub fn Cite(&self) -> DOMString {
+pub trait HTMLModElementMethods {
+    fn Cite(&self) -> DOMString;
+    fn SetCite(&mut self, _cite: DOMString) -> ErrorResult;
+    fn DateTime(&self) -> DOMString;
+    fn SetDateTime(&mut self, _datetime: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLModElementMethods for JSRef<'a, HTMLModElement> {
+    fn Cite(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetCite(&mut self, _cite: DOMString) -> ErrorResult {
+    fn SetCite(&mut self, _cite: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn DateTime(&self) -> DOMString {
+    fn DateTime(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetDateTime(&mut self, _datetime: DOMString) -> ErrorResult {
+    fn SetDateTime(&mut self, _datetime: DOMString) -> ErrorResult {
         Ok(())
     }
 }

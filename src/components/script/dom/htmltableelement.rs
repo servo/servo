@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLTableElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTableElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLTableElementTypeId;
@@ -28,111 +28,139 @@ impl HTMLTableElementDerived for EventTarget {
 }
 
 impl HTMLTableElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLTableElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLTableElement {
         HTMLTableElement {
             htmlelement: HTMLElement::new_inherited(HTMLTableElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLTableElement> {
-        let element = HTMLTableElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLTableElement> {
+        let element = HTMLTableElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLTableElementBinding::Wrap)
     }
 }
 
-impl HTMLTableElement {
-    pub fn DeleteCaption(&self) {
+pub trait HTMLTableElementMethods {
+    fn DeleteCaption(&self);
+    fn DeleteTHead(&self);
+    fn DeleteTFoot(&self);
+    fn DeleteRow(&mut self, _index: i32) -> ErrorResult;
+    fn Sortable(&self) -> bool;
+    fn SetSortable(&self, _sortable: bool);
+    fn StopSorting(&self);
+    fn Align(&self) -> DOMString;
+    fn SetAlign(&self, _align: DOMString) -> ErrorResult;
+    fn Border(&self) -> DOMString;
+    fn SetBorder(&self, _border: DOMString) -> ErrorResult;
+    fn Frame(&self) -> DOMString;
+    fn SetFrame(&self, _frame: DOMString) -> ErrorResult;
+    fn Rules(&self) -> DOMString;
+    fn SetRules(&self, _rules: DOMString) -> ErrorResult;
+    fn Summary(&self) -> DOMString;
+    fn SetSummary(&self, _summary: DOMString) -> ErrorResult;
+    fn Width(&self) -> DOMString;
+    fn SetWidth(&self, _width: DOMString) -> ErrorResult;
+    fn BgColor(&self) -> DOMString;
+    fn SetBgColor(&self, _bg_color: DOMString) -> ErrorResult;
+    fn CellPadding(&self) -> DOMString;
+    fn SetCellPadding(&self, _cell_padding: DOMString) -> ErrorResult;
+    fn CellSpacing(&self) -> DOMString;
+    fn SetCellSpacing(&self, _cell_spacing: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLTableElementMethods for JSRef<'a, HTMLTableElement> {
+    fn DeleteCaption(&self) {
     }
 
-    pub fn DeleteTHead(&self) {
+    fn DeleteTHead(&self) {
     }
 
-    pub fn DeleteTFoot(&self) {
+    fn DeleteTFoot(&self) {
     }
 
-    pub fn DeleteRow(&mut self, _index: i32) -> ErrorResult {
+    fn DeleteRow(&mut self, _index: i32) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Sortable(&self) -> bool {
+    fn Sortable(&self) -> bool {
         false
     }
 
-    pub fn SetSortable(&self, _sortable: bool) {
+    fn SetSortable(&self, _sortable: bool) {
     }
 
-    pub fn StopSorting(&self) {
+    fn StopSorting(&self) {
     }
 
-    pub fn Align(&self) -> DOMString {
+    fn Align(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetAlign(&self, _align: DOMString) -> ErrorResult {
+    fn SetAlign(&self, _align: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Border(&self) -> DOMString {
+    fn Border(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetBorder(&self, _border: DOMString) -> ErrorResult {
+    fn SetBorder(&self, _border: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Frame(&self) -> DOMString {
+    fn Frame(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetFrame(&self, _frame: DOMString) -> ErrorResult {
+    fn SetFrame(&self, _frame: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Rules(&self) -> DOMString {
+    fn Rules(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetRules(&self, _rules: DOMString) -> ErrorResult {
+    fn SetRules(&self, _rules: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Summary(&self) -> DOMString {
+    fn Summary(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetSummary(&self, _summary: DOMString) -> ErrorResult {
+    fn SetSummary(&self, _summary: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Width(&self) -> DOMString {
+    fn Width(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetWidth(&self, _width: DOMString) -> ErrorResult {
+    fn SetWidth(&self, _width: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn BgColor(&self) -> DOMString {
+    fn BgColor(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetBgColor(&self, _bg_color: DOMString) -> ErrorResult {
+    fn SetBgColor(&self, _bg_color: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn CellPadding(&self) -> DOMString {
+    fn CellPadding(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetCellPadding(&self, _cell_padding: DOMString) -> ErrorResult {
+    fn SetCellPadding(&self, _cell_padding: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn CellSpacing(&self) -> DOMString {
+    fn CellSpacing(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetCellSpacing(&self, _cell_spacing: DOMString) -> ErrorResult {
+    fn SetCellSpacing(&self, _cell_spacing: DOMString) -> ErrorResult {
         Ok(())
     }
 }

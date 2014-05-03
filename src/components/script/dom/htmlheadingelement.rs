@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLHeadingElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLHeadingElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
 use dom::element::HTMLHeadingElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -38,24 +38,29 @@ impl HTMLHeadingElementDerived for EventTarget {
 }
 
 impl HTMLHeadingElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>, level: HeadingLevel) -> HTMLHeadingElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>, level: HeadingLevel) -> HTMLHeadingElement {
         HTMLHeadingElement {
             htmlelement: HTMLElement::new_inherited(HTMLHeadingElementTypeId, localName, document),
             level: level,
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>, level: HeadingLevel) -> JS<HTMLHeadingElement> {
-        let element = HTMLHeadingElement::new_inherited(localName, document.clone(), level);
+    pub fn new(localName: DOMString, document: &JSRef<Document>, level: HeadingLevel) -> Temporary<HTMLHeadingElement> {
+        let element = HTMLHeadingElement::new_inherited(localName, document, level);
         Node::reflect_node(~element, document, HTMLHeadingElementBinding::Wrap)
     }
 }
 
-impl HTMLHeadingElement {
-    pub fn Align(&self) -> DOMString {
+pub trait HTMLHeadingElementMethods {
+    fn Align(&self) -> DOMString;
+    fn SetAlign(&mut self, _align: DOMString);
+}
+
+impl<'a> HTMLHeadingElementMethods for JSRef<'a, HTMLHeadingElement> {
+    fn Align(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetAlign(&mut self, _align: DOMString) {
+    fn SetAlign(&mut self, _align: DOMString) {
     }
 }

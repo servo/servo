@@ -38,3 +38,6 @@ impl Reflectable for XMLHttpRequestEventTarget {
         self.eventtarget.mut_reflector()
     }
 }
+
+pub trait XMLHttpRequestEventTargetMethods {
+}

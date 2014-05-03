@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLFieldSetElementBinding;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLFieldSetElementDerived, NodeCast};
-use dom::bindings::js::JS;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::{Element, HTMLFieldSetElementTypeId};
@@ -31,77 +31,92 @@ impl HTMLFieldSetElementDerived for EventTarget {
 }
 
 impl HTMLFieldSetElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLFieldSetElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLFieldSetElement {
         HTMLFieldSetElement {
             htmlelement: HTMLElement::new_inherited(HTMLFieldSetElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLFieldSetElement> {
-        let element = HTMLFieldSetElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLFieldSetElement> {
+        let element = HTMLFieldSetElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLFieldSetElementBinding::Wrap)
     }
 }
 
-impl HTMLFieldSetElement {
-    pub fn Disabled(&self) -> bool {
+pub trait HTMLFieldSetElementMethods {
+    fn Disabled(&self) -> bool;
+    fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult;
+    fn GetForm(&self) -> Option<Temporary<HTMLFormElement>>;
+    fn Name(&self) -> DOMString;
+    fn SetName(&mut self, _name: DOMString) -> ErrorResult;
+    fn Type(&self) -> DOMString;
+    fn Elements(&self) -> Temporary<HTMLCollection>;
+    fn WillValidate(&self) -> bool;
+    fn Validity(&self) -> Temporary<ValidityState>;
+    fn ValidationMessage(&self) -> DOMString;
+    fn CheckValidity(&self) -> bool;
+    fn SetCustomValidity(&mut self, _error: DOMString);
+}
+
+impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
+    fn Disabled(&self) -> bool {
         false
     }
 
-    pub fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult {
+    fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn GetForm(&self) -> Option<JS<HTMLFormElement>> {
+    fn GetForm(&self) -> Option<Temporary<HTMLFormElement>> {
         None
     }
 
-    pub fn Name(&self) -> DOMString {
+    fn Name(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetName(&mut self, _name: DOMString) -> ErrorResult {
+    fn SetName(&mut self, _name: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Type(&self) -> DOMString {
+    fn Type(&self) -> DOMString {
         ~""
     }
 
     // http://www.whatwg.org/html/#dom-fieldset-elements
-    pub fn Elements(&self, abstract_self: &JS<HTMLFieldSetElement>) -> JS<HTMLCollection> {
+    fn Elements(&self) -> Temporary<HTMLCollection> {
         struct ElementsFilter;
         impl CollectionFilter for ElementsFilter {
-            fn filter(&self, elem: &JS<Element>, root: &JS<Node>) -> bool {
+            fn filter(&self, elem: &JSRef<Element>, root: &JSRef<Node>) -> bool {
                 static tag_names: StaticStringVec = &["button", "fieldset", "input",
                     "keygen", "object", "output", "select", "textarea"];
-                let root: &JS<Element> = &ElementCast::to(root).unwrap();
-                elem != root && tag_names.iter().any(|&tag_name| tag_name == elem.get().local_name)
+                let root: &JSRef<Element> = ElementCast::to_ref(root).unwrap();
+                elem != root && tag_names.iter().any(|&tag_name| tag_name == elem.deref().local_name)
             }
         }
-        let node: JS<Node> = NodeCast::from(abstract_self);
+        let node: &JSRef<Node> = NodeCast::from_ref(self);
         let filter = ~ElementsFilter;
-        HTMLCollection::create(&window_from_node(&node), &node, filter)
+        let window = window_from_node(node).root();
+        HTMLCollection::create(&*window, node, filter)
     }
 
-    pub fn WillValidate(&self) -> bool {
+    fn WillValidate(&self) -> bool {
         false
     }
 
-    pub fn Validity(&self) -> JS<ValidityState> {
-        let doc = self.htmlelement.element.node.owner_doc();
-        let doc = doc.get();
-        ValidityState::new(&doc.window)
+    fn Validity(&self) -> Temporary<ValidityState> {
+        let window = window_from_node(self).root();
+        ValidityState::new(&*window)
     }
 
-    pub fn ValidationMessage(&self) -> DOMString {
+    fn ValidationMessage(&self) -> DOMString {
         ~""
     }
 
-    pub fn CheckValidity(&self) -> bool {
+    fn CheckValidity(&self) -> bool {
         false
     }
 
-    pub fn SetCustomValidity(&mut self, _error: DOMString) {
+    fn SetCustomValidity(&mut self, _error: DOMString) {
     }
 }

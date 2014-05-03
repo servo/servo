@@ -4,13 +4,13 @@
 
 use dom::bindings::codegen::InheritTypes::CommentDerived;
 use dom::bindings::codegen::BindingDeclarations::CommentBinding;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::Fallible;
 use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::node::{CommentNodeTypeId, Node};
-use dom::window::Window;
+use dom::window::{Window, WindowMethods};
 use servo_util::str::DOMString;
 
 /// An HTML comment.
@@ -29,18 +29,22 @@ impl CommentDerived for EventTarget {
 }
 
 impl Comment {
-    pub fn new_inherited(text: DOMString, document: JS<Document>) -> Comment {
+    pub fn new_inherited(text: DOMString, document: &JSRef<Document>) -> Comment {
         Comment {
             characterdata: CharacterData::new_inherited(CommentNodeTypeId, text, document)
         }
     }
 
-    pub fn new(text: DOMString, document: &JS<Document>) -> JS<Comment> {
-        let node = Comment::new_inherited(text, document.clone());
+    pub fn new(text: DOMString, document: &JSRef<Document>) -> Temporary<Comment> {
+        let node = Comment::new_inherited(text, document);
         Node::reflect_node(~node, document, CommentBinding::Wrap)
     }
 
-    pub fn Constructor(owner: &JS<Window>, data: DOMString) -> Fallible<JS<Comment>> {
-        Ok(Comment::new(data, &owner.get().Document()))
+    pub fn Constructor(owner: &JSRef<Window>, data: DOMString) -> Fallible<Temporary<Comment>> {
+        let document = owner.Document().root();
+        Ok(Comment::new(data, &*document))
     }
+}
+
+pub trait CommentMethods {
 }

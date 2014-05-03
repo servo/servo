@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLInputElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLInputElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::document::Document;
 use dom::element::HTMLInputElementTypeId;
@@ -28,322 +28,403 @@ impl HTMLInputElementDerived for EventTarget {
 }
 
 impl HTMLInputElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLInputElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLInputElement {
         HTMLInputElement {
             htmlelement: HTMLElement::new_inherited(HTMLInputElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLInputElement> {
-        let element = HTMLInputElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLInputElement> {
+        let element = HTMLInputElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLInputElementBinding::Wrap)
     }
 }
 
-impl HTMLInputElement {
-    pub fn Accept(&self) -> DOMString {
+pub trait HTMLInputElementMethods {
+    fn Accept(&self) -> DOMString;
+    fn SetAccept(&mut self, _accept: DOMString) -> ErrorResult;
+    fn Alt(&self) -> DOMString;
+    fn SetAlt(&mut self, _alt: DOMString) -> ErrorResult;
+    fn Autocomplete(&self) -> DOMString;
+    fn SetAutocomplete(&mut self, _autocomple: DOMString) -> ErrorResult;
+    fn Autofocus(&self) -> bool;
+    fn SetAutofocus(&mut self, _autofocus: bool) -> ErrorResult;
+    fn DefaultChecked(&self) -> bool;
+    fn SetDefaultChecked(&mut self, _default_checked: bool) -> ErrorResult;
+    fn Checked(&self) -> bool;
+    fn SetChecked(&mut self, _checked: bool);
+    fn Disabled(&self) -> bool;
+    fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult;
+    fn FormAction(&self) -> DOMString;
+    fn SetFormAction(&mut self, _form_action: DOMString) -> ErrorResult;
+    fn FormEnctype(&self) -> DOMString;
+    fn SetFormEnctype(&mut self, _form_enctype: DOMString) -> ErrorResult;
+    fn FormMethod(&self) -> DOMString;
+    fn SetFormMethod(&mut self, _form_method: DOMString) -> ErrorResult;
+    fn FormNoValidate(&self) -> bool;
+    fn SetFormNoValidate(&mut self, _form_no_validate: bool) -> ErrorResult;
+    fn FormTarget(&self) -> DOMString;
+    fn SetFormTarget(&mut self, _form_target: DOMString) -> ErrorResult;
+    fn Height(&self) -> u32;
+    fn SetHeight(&mut self, _height: u32) -> ErrorResult;
+    fn Indeterminate(&self) -> bool;
+    fn SetIndeterminate(&mut self, _indeterminate: bool);
+    fn InputMode(&self) -> DOMString;
+    fn SetInputMode(&mut self, _input_mode: DOMString) -> ErrorResult;
+    fn Max(&self) -> DOMString;
+    fn SetMax(&mut self, _max: DOMString) -> ErrorResult;
+    fn MaxLength(&self) -> i32;
+    fn SetMaxLength(&mut self, _max_length: i32) -> ErrorResult;
+    fn Min(&self) -> DOMString;
+    fn SetMin(&mut self, _min: DOMString) -> ErrorResult;
+    fn Multiple(&self) -> bool;
+    fn SetMultiple(&mut self, _multiple: bool) -> ErrorResult;
+    fn Name(&self) -> DOMString;
+    fn SetName(&mut self, _name: DOMString) -> ErrorResult;
+    fn Pattern(&self) -> DOMString;
+    fn SetPattern(&mut self, _pattern: DOMString) -> ErrorResult;
+    fn Placeholder(&self) -> DOMString;
+    fn SetPlaceholder(&mut self, _placeholder: DOMString) -> ErrorResult;
+    fn ReadOnly(&self) -> bool;
+    fn SetReadOnly(&mut self, _read_only: bool) -> ErrorResult;
+    fn Required(&self) -> bool;
+    fn SetRequired(&mut self, _required: bool) -> ErrorResult;
+    fn Size(&self) -> u32;
+    fn SetSize(&mut self, _size: u32) -> ErrorResult;
+    fn Src(&self) -> DOMString;
+    fn SetSrc(&mut self, _src: DOMString) -> ErrorResult;
+    fn Step(&self) -> DOMString;
+    fn SetStep(&mut self, _step: DOMString) -> ErrorResult;
+    fn Type(&self) -> DOMString;
+    fn SetType(&mut self, _type: DOMString) -> ErrorResult;
+    fn DefaultValue(&self) -> DOMString;
+    fn SetDefaultValue(&mut self, _default_value: DOMString) -> ErrorResult;
+    fn Value(&self) -> DOMString;
+    fn SetValue(&mut self, _value: DOMString) -> ErrorResult;
+    fn Width(&self) -> u32;
+    fn SetWidth(&mut self, _width: u32);
+    fn WillValidate(&self) -> bool;
+    fn SetWillValidate(&self, _will_validate: bool);
+    fn GetValidationMessage(&self) -> Fallible<DOMString>;
+    fn CheckValidity(&self) -> bool;
+    fn SetCustomValidity(&self, _error: DOMString);
+    fn Select(&self);
+    fn GetSelectionStart(&self) -> Fallible<i32>;
+    fn SetSelectionStart(&mut self, _selection_start: i32) -> ErrorResult;
+    fn GetSelectionEnd(&self) -> Fallible<i32>;
+    fn SetSelectionEnd(&mut self, _selection_end: i32) -> ErrorResult;
+    fn GetSelectionDirection(&self) -> Fallible<DOMString>;
+    fn SetSelectionDirection(&mut self, _selection_direction: DOMString) -> ErrorResult;
+    fn Align(&self) -> DOMString;
+    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult;
+    fn UseMap(&self) -> DOMString;
+    fn SetUseMap(&mut self, _align: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
+    fn Accept(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetAccept(&mut self, _accept: DOMString) -> ErrorResult {
+    fn SetAccept(&mut self, _accept: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Alt(&self) -> DOMString {
+    fn Alt(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetAlt(&mut self, _alt: DOMString) -> ErrorResult {
+    fn SetAlt(&mut self, _alt: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Autocomplete(&self) -> DOMString {
+    fn Autocomplete(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetAutocomplete(&mut self, _autocomple: DOMString) -> ErrorResult {
+    fn SetAutocomplete(&mut self, _autocomple: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Autofocus(&self) -> bool {
+    fn Autofocus(&self) -> bool {
         false
     }
 
-    pub fn SetAutofocus(&mut self, _autofocus: bool) -> ErrorResult {
+    fn SetAutofocus(&mut self, _autofocus: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn DefaultChecked(&self) -> bool {
+    fn DefaultChecked(&self) -> bool {
         false
     }
 
-    pub fn SetDefaultChecked(&mut self, _default_checked: bool) -> ErrorResult {
+    fn SetDefaultChecked(&mut self, _default_checked: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Checked(&self) -> bool {
+    fn Checked(&self) -> bool {
         false
     }
 
-    pub fn SetChecked(&mut self, _checked: bool) {
+    fn SetChecked(&mut self, _checked: bool) {
     }
 
-    pub fn Disabled(&self) -> bool {
+    fn Disabled(&self) -> bool {
         false
     }
 
-    pub fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult {
+    fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn FormAction(&self) -> DOMString {
+    fn FormAction(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetFormAction(&mut self, _form_action: DOMString) -> ErrorResult {
+    fn SetFormAction(&mut self, _form_action: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn FormEnctype(&self) -> DOMString {
+    fn FormEnctype(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetFormEnctype(&mut self, _form_enctype: DOMString) -> ErrorResult {
+    fn SetFormEnctype(&mut self, _form_enctype: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn FormMethod(&self) -> DOMString {
+    fn FormMethod(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetFormMethod(&mut self, _form_method: DOMString) -> ErrorResult {
+    fn SetFormMethod(&mut self, _form_method: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn FormNoValidate(&self) -> bool {
+    fn FormNoValidate(&self) -> bool {
         false
     }
 
-    pub fn SetFormNoValidate(&mut self, _form_no_validate: bool) -> ErrorResult {
+    fn SetFormNoValidate(&mut self, _form_no_validate: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn FormTarget(&self) -> DOMString {
+    fn FormTarget(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetFormTarget(&mut self, _form_target: DOMString) -> ErrorResult {
+    fn SetFormTarget(&mut self, _form_target: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Height(&self) -> u32 {
+    fn Height(&self) -> u32 {
         0
     }
 
-    pub fn SetHeight(&mut self, _height: u32) -> ErrorResult {
+    fn SetHeight(&mut self, _height: u32) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Indeterminate(&self) -> bool {
+    fn Indeterminate(&self) -> bool {
         false
     }
 
-    pub fn SetIndeterminate(&mut self, _indeterminate: bool) {
+    fn SetIndeterminate(&mut self, _indeterminate: bool) {
     }
 
-    pub fn InputMode(&self) -> DOMString {
+    fn InputMode(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetInputMode(&mut self, _input_mode: DOMString) -> ErrorResult {
+    fn SetInputMode(&mut self, _input_mode: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Max(&self) -> DOMString {
+    fn Max(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetMax(&mut self, _max: DOMString) -> ErrorResult {
+    fn SetMax(&mut self, _max: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn MaxLength(&self) -> i32 {
+    fn MaxLength(&self) -> i32 {
         0
     }
 
-    pub fn SetMaxLength(&mut self, _max_length: i32) -> ErrorResult {
+    fn SetMaxLength(&mut self, _max_length: i32) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Min(&self) -> DOMString {
+    fn Min(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetMin(&mut self, _min: DOMString) -> ErrorResult {
+    fn SetMin(&mut self, _min: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Multiple(&self) -> bool {
+    fn Multiple(&self) -> bool {
         false
     }
 
-    pub fn SetMultiple(&mut self, _multiple: bool) -> ErrorResult {
+    fn SetMultiple(&mut self, _multiple: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Name(&self) -> DOMString {
+    fn Name(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetName(&mut self, _name: DOMString) -> ErrorResult {
+    fn SetName(&mut self, _name: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Pattern(&self) -> DOMString {
+    fn Pattern(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetPattern(&mut self, _pattern: DOMString) -> ErrorResult {
+    fn SetPattern(&mut self, _pattern: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Placeholder(&self) -> DOMString {
+    fn Placeholder(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetPlaceholder(&mut self, _placeholder: DOMString) -> ErrorResult {
+    fn SetPlaceholder(&mut self, _placeholder: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn ReadOnly(&self) -> bool {
+    fn ReadOnly(&self) -> bool {
         false
     }
 
-    pub fn SetReadOnly(&mut self, _read_only: bool) -> ErrorResult {
+    fn SetReadOnly(&mut self, _read_only: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Required(&self) -> bool {
+    fn Required(&self) -> bool {
         false
     }
 
-    pub fn SetRequired(&mut self, _required: bool) -> ErrorResult {
+    fn SetRequired(&mut self, _required: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Size(&self) -> u32 {
+    fn Size(&self) -> u32 {
         0
     }
 
-    pub fn SetSize(&mut self, _size: u32) -> ErrorResult {
+    fn SetSize(&mut self, _size: u32) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Src(&self) -> DOMString {
+    fn Src(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
+    fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Step(&self) -> DOMString {
+    fn Step(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetStep(&mut self, _step: DOMString) -> ErrorResult {
+    fn SetStep(&mut self, _step: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Type(&self) -> DOMString {
+    fn Type(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetType(&mut self, _type: DOMString) -> ErrorResult {
+    fn SetType(&mut self, _type: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn DefaultValue(&self) -> DOMString {
+    fn DefaultValue(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetDefaultValue(&mut self, _default_value: DOMString) -> ErrorResult {
+    fn SetDefaultValue(&mut self, _default_value: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Value(&self) -> DOMString {
+    fn Value(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetValue(&mut self, _value: DOMString) -> ErrorResult {
+    fn SetValue(&mut self, _value: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Width(&self) -> u32 {
+    fn Width(&self) -> u32 {
         0
     }
 
-    pub fn SetWidth(&mut self, _width: u32) {
+    fn SetWidth(&mut self, _width: u32) {
     }
 
-    pub fn WillValidate(&self) -> bool {
+    fn WillValidate(&self) -> bool {
         false
     }
 
-    pub fn SetWillValidate(&self, _will_validate: bool) {
+    fn SetWillValidate(&self, _will_validate: bool) {
     }
 
-    pub fn GetValidationMessage(&self) -> Fallible<DOMString> {
+    fn GetValidationMessage(&self) -> Fallible<DOMString> {
         Ok(~"")
     }
 
-    pub fn CheckValidity(&self) -> bool {
+    fn CheckValidity(&self) -> bool {
         false
     }
 
-    pub fn SetCustomValidity(&self, _error: DOMString) {
+    fn SetCustomValidity(&self, _error: DOMString) {
     }
 
-    pub fn Select(&self) {
+    fn Select(&self) {
     }
 
-    pub fn GetSelectionStart(&self) -> Fallible<i32> {
+    fn GetSelectionStart(&self) -> Fallible<i32> {
         Ok(0)
     }
 
-    pub fn SetSelectionStart(&mut self, _selection_start: i32) -> ErrorResult {
+    fn SetSelectionStart(&mut self, _selection_start: i32) -> ErrorResult {
         Ok(())
     }
 
-    pub fn GetSelectionEnd(&self) -> Fallible<i32> {
+    fn GetSelectionEnd(&self) -> Fallible<i32> {
         Ok(0)
     }
 
-    pub fn SetSelectionEnd(&mut self, _selection_end: i32) -> ErrorResult {
+    fn SetSelectionEnd(&mut self, _selection_end: i32) -> ErrorResult {
         Ok(())
     }
 
-    pub fn GetSelectionDirection(&self) -> Fallible<DOMString> {
+    fn GetSelectionDirection(&self) -> Fallible<DOMString> {
         Ok(~"")
     }
 
-    pub fn SetSelectionDirection(&mut self, _selection_direction: DOMString) -> ErrorResult {
+    fn SetSelectionDirection(&mut self, _selection_direction: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Align(&self) -> DOMString {
+    fn Align(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
+    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn UseMap(&self) -> DOMString {
+    fn UseMap(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetUseMap(&mut self, _align: DOMString) -> ErrorResult {
+    fn SetUseMap(&mut self, _align: DOMString) -> ErrorResult {
         Ok(())
     }
 }

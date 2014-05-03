@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::InheritTypes::DocumentTypeDerived;
 use dom::bindings::codegen::BindingDeclarations::DocumentTypeBinding;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::node::{Node, DoctypeNodeTypeId};
@@ -32,7 +32,7 @@ impl DocumentType {
     pub fn new_inherited(name: DOMString,
                          public_id: Option<DOMString>,
                          system_id: Option<DOMString>,
-                         document: JS<Document>)
+                         document: &JSRef<Document>)
             -> DocumentType {
         DocumentType {
             node: Node::new_inherited(DoctypeNodeTypeId, document),
@@ -45,26 +45,32 @@ impl DocumentType {
     pub fn new(name: DOMString,
                public_id: Option<DOMString>,
                system_id: Option<DOMString>,
-               document: &JS<Document>)
-               -> JS<DocumentType> {
+               document: &JSRef<Document>)
+               -> Temporary<DocumentType> {
         let documenttype = DocumentType::new_inherited(name,
                                                        public_id,
                                                        system_id,
-                                                       document.clone());
+                                                       document);
         Node::reflect_node(~documenttype, document, DocumentTypeBinding::Wrap)
     }
 }
 
-impl DocumentType {
-    pub fn Name(&self) -> DOMString {
+pub trait DocumentTypeMethods {
+    fn Name(&self) -> DOMString;
+    fn PublicId(&self) -> DOMString;
+    fn SystemId(&self) -> DOMString;
+}
+
+impl<'a> DocumentTypeMethods for JSRef<'a, DocumentType> {
+    fn Name(&self) -> DOMString {
         self.name.clone()
     }
 
-    pub fn PublicId(&self) -> DOMString {
+    fn PublicId(&self) -> DOMString {
         self.public_id.clone()
     }
 
-    pub fn SystemId(&self) -> DOMString {
+    fn SystemId(&self) -> DOMString {
         self.system_id.clone()
     }
 }

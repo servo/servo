@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::BindingDeclarations::WindowBinding;
-use dom::bindings::js::JS;
-use dom::bindings::trace::Untraceable;
+use dom::bindings::js::{JS, JSRef, Temporary, OptionalSettable};
+use dom::bindings::trace::{Traceable, Untraceable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::browsercontext::BrowserContext;
 use dom::document::Document;
@@ -35,33 +35,25 @@ use std::rc::Rc;
 use serialize::{Encoder, Encodable};
 use url::Url;
 
+#[deriving(Eq, Encodable, TotalEq)]
+pub struct TimerId(i32);
+
+#[deriving(Encodable)]
 pub struct TimerHandle {
-    pub handle: i32,
-    pub cancel_chan: Option<Sender<()>>,
+    pub handle: TimerId,
+    pub data: TimerData,
+    pub cancel_chan: Untraceable<Option<Sender<()>>>,
 }
 
-impl<S: Encoder<E>, E> Encodable<S, E> for TimerHandle {
-    fn encode(&self, _s: &mut S) -> Result<(), E> {
-        Ok(())
-    }
-}
-
-impl Hash for TimerHandle {
+impl Hash for TimerId {
     fn hash(&self, state: &mut sip::SipState) {
-        self.handle.hash(state);
+        let TimerId(id) = *self;
+        id.hash(state);
     }
 }
-
-impl Eq for TimerHandle {
-    fn eq(&self, other: &TimerHandle) -> bool {
-        self.handle == other.handle
-    }
-}
-
-impl TotalEq for TimerHandle { }
 
 impl TimerHandle {
-    fn cancel(&self) {
+    fn cancel(&mut self) {
         self.cancel_chan.as_ref().map(|chan| chan.send(()));
     }
 }
@@ -74,7 +66,7 @@ pub struct Window {
     pub location: Option<JS<Location>>,
     pub navigator: Option<JS<Navigator>>,
     pub image_cache_task: ImageCacheTask,
-    pub active_timers: ~HashMap<i32, TimerHandle>,
+    pub active_timers: ~HashMap<TimerId, TimerHandle>,
     pub next_timer_handle: i32,
     pub compositor: Untraceable<~ScriptListener>,
     pub browser_context: Option<BrowserContext>,
@@ -98,7 +90,7 @@ impl Window {
 #[unsafe_destructor]
 impl Drop for Window {
     fn drop(&mut self) {
-        for timer_handle in self.active_timers.values() {
+        for (_, timer_handle) in self.active_timers.mut_iter() {
             timer_handle.cancel();
         }
     }
@@ -107,93 +99,154 @@ impl Drop for Window {
 // Holder for the various JS values associated with setTimeout
 // (ie. function value to invoke and all arguments to pass
 //      to the function when calling it)
+#[deriving(Encodable)]
 pub struct TimerData {
-    pub handle: i32,
     pub is_interval: bool,
-    pub funval: JSVal,
+    pub funval: Traceable<JSVal>,
 }
 
-impl Window {
-    pub fn Alert(&self, s: DOMString) {
+pub trait WindowMethods {
+    fn Alert(&self, s: DOMString);
+    fn Close(&self);
+    fn Document(&self) -> Temporary<Document>;
+    fn Name(&self) -> DOMString;
+    fn SetName(&self, _name: DOMString);
+    fn Status(&self) -> DOMString;
+    fn SetStatus(&self, _status: DOMString);
+    fn Closed(&self) -> bool;
+    fn Stop(&self);
+    fn Focus(&self);
+    fn Blur(&self);
+    fn GetFrameElement(&self) -> Option<Temporary<Element>>;
+    fn Location(&mut self) -> Temporary<Location>;
+    fn Console(&mut self) -> Temporary<Console>;
+    fn Navigator(&mut self) -> Temporary<Navigator>;
+    fn Confirm(&self, _message: DOMString) -> bool;
+    fn Prompt(&self, _message: DOMString, _default: DOMString) -> Option<DOMString>;
+    fn Print(&self);
+    fn ShowModalDialog(&self, _cx: *JSContext, _url: DOMString, _argument: Option<JSVal>) -> JSVal;
+    fn SetTimeout(&mut self, _cx: *JSContext, callback: JSVal, timeout: i32) -> i32;
+    fn ClearTimeout(&mut self, handle: i32);
+    fn SetInterval(&mut self, _cx: *JSContext, callback: JSVal, timeout: i32) -> i32;
+    fn ClearInterval(&mut self, handle: i32);
+    fn Window(&self) -> Temporary<Window>;
+    fn Self(&self) -> Temporary<Window>;
+}
+
+impl<'a> WindowMethods for JSRef<'a, Window> {
+    fn Alert(&self, s: DOMString) {
         // Right now, just print to the console
         println!("ALERT: {:s}", s);
     }
 
-    pub fn Close(&self) {
+    fn Close(&self) {
         let ScriptChan(ref chan) = self.script_chan;
         chan.send(ExitWindowMsg(self.page.id.clone()));
     }
 
-    pub fn Document(&self) -> JS<Document> {
+    fn Document(&self) -> Temporary<Document> {
         let frame = self.page().frame();
-        frame.get_ref().document.clone()
+        Temporary::new(frame.get_ref().document.clone())
     }
 
-    pub fn Name(&self) -> DOMString {
+    fn Name(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetName(&self, _name: DOMString) {
+    fn SetName(&self, _name: DOMString) {
     }
 
-    pub fn Status(&self) -> DOMString {
+    fn Status(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetStatus(&self, _status: DOMString) {
+    fn SetStatus(&self, _status: DOMString) {
     }
 
-    pub fn Closed(&self) -> bool {
+    fn Closed(&self) -> bool {
         false
     }
 
-    pub fn Stop(&self) {
+    fn Stop(&self) {
     }
 
-    pub fn Focus(&self) {
+    fn Focus(&self) {
     }
 
-    pub fn Blur(&self) {
+    fn Blur(&self) {
     }
 
-    pub fn GetFrameElement(&self) -> Option<JS<Element>> {
+    fn GetFrameElement(&self) -> Option<Temporary<Element>> {
         None
     }
 
-    pub fn Location(&mut self, abstract_self: &JS<Window>) -> JS<Location> {
+    fn Location(&mut self) -> Temporary<Location> {
         if self.location.is_none() {
-            self.location = Some(Location::new(abstract_self, self.page.clone()));
+            let page = self.deref().page.clone();
+            let location = Location::new(self, page);
+            self.location.assign(Some(location));
         }
-        self.location.get_ref().clone()
+        Temporary::new(self.location.get_ref().clone())
     }
 
-    pub fn Console(&mut self, abstract_self: &JS<Window>) -> JS<Console> {
+    fn Console(&mut self) -> Temporary<Console> {
         if self.console.is_none() {
-            self.console = Some(Console::new(abstract_self));
+            let console = Console::new(self);
+            self.console.assign(Some(console));
         }
-        self.console.get_ref().clone()
+        Temporary::new(self.console.get_ref().clone())
     }
 
-    pub fn Navigator(&mut self, abstract_self: &JS<Window>) -> JS<Navigator> {
+    fn Navigator(&mut self) -> Temporary<Navigator> {
         if self.navigator.is_none() {
-            self.navigator = Some(Navigator::new(abstract_self));
+            let navigator = Navigator::new(self);
+            self.navigator.assign(Some(navigator));
         }
-        self.navigator.get_ref().clone()
+        Temporary::new(self.navigator.get_ref().clone())
     }
 
-    pub fn Confirm(&self, _message: DOMString) -> bool {
+    fn Confirm(&self, _message: DOMString) -> bool {
         false
     }
 
-    pub fn Prompt(&self, _message: DOMString, _default: DOMString) -> Option<DOMString> {
+    fn Prompt(&self, _message: DOMString, _default: DOMString) -> Option<DOMString> {
         None
     }
 
-    pub fn Print(&self) {
+    fn Print(&self) {
     }
 
-    pub fn ShowModalDialog(&self, _cx: *JSContext, _url: DOMString, _argument: Option<JSVal>) -> JSVal {
+    fn ShowModalDialog(&self, _cx: *JSContext, _url: DOMString, _argument: Option<JSVal>) -> JSVal {
         NullValue()
+    }
+
+    fn SetTimeout(&mut self, _cx: *JSContext, callback: JSVal, timeout: i32) -> i32 {
+        self.set_timeout_or_interval(callback, timeout, false)
+    }
+
+    fn ClearTimeout(&mut self, handle: i32) {
+        let mut timer_handle = self.active_timers.pop(&TimerId(handle));
+        match timer_handle {
+            Some(ref mut handle) => handle.cancel(),
+            None => { }
+        }
+        self.active_timers.remove(&TimerId(handle));
+    }
+
+    fn SetInterval(&mut self, _cx: *JSContext, callback: JSVal, timeout: i32) -> i32 {
+        self.set_timeout_or_interval(callback, timeout, true)
+    }
+
+    fn ClearInterval(&mut self, handle: i32) {
+        self.ClearTimeout(handle);
+    }
+
+    fn Window(&self) -> Temporary<Window> {
+        Temporary::from_rooted(self)
+    }
+
+    fn Self(&self) -> Temporary<Window> {
+        self.Window()
     }
 }
 
@@ -243,13 +296,8 @@ impl Window {
                 let id = select.wait();
                 if id == timeout_handle.id() {
                     timeout_port.recv();
-                    let data = ~TimerData {
-                        handle: handle,
-                        is_interval: is_interval,
-                        funval: callback,
-                    };
                     let ScriptChan(ref chan) = chan;
-                    chan.send(FireTimerMsg(page_id, data));
+                    chan.send(FireTimerMsg(page_id, TimerId(handle)));
                     if !is_interval {
                         break;
                     }
@@ -258,36 +306,17 @@ impl Window {
                 }
             }
         });
-        self.active_timers.insert(handle, TimerHandle { handle: handle, cancel_chan: Some(cancel_chan) });
+        let timer_id = TimerId(handle);
+        let timer = TimerHandle {
+            handle: timer_id,
+            cancel_chan: Untraceable::new(Some(cancel_chan)),
+            data: TimerData {
+                is_interval: is_interval,
+                funval: Traceable::new(callback),
+            }
+        };
+        self.active_timers.insert(timer_id, timer);
         handle
-    }
-
-    pub fn SetTimeout(&mut self, _cx: *JSContext, callback: JSVal, timeout: i32) -> i32 {
-        self.set_timeout_or_interval(callback, timeout, false)
-    }
-
-    pub fn ClearTimeout(&mut self, handle: i32) {
-        let timer_handle = self.active_timers.pop(&handle);
-        match timer_handle {
-            Some(handle) => handle.cancel(),
-            None => { }
-        }
-    }
-
-    pub fn SetInterval(&mut self, _cx: *JSContext, callback: JSVal, timeout: i32) -> i32 {
-        self.set_timeout_or_interval(callback, timeout, true)
-    }
-
-    pub fn ClearInterval(&mut self, handle: i32) {
-        self.ClearTimeout(handle);
-    }
-
-    pub fn Window(&self, abstract_self: &JS<Window>) -> JS<Window> {
-        abstract_self.clone()
-    }
-
-    pub fn Self(&self, abstract_self: &JS<Window>) -> JS<Window> {
-        self.Window(abstract_self)
     }
 
     pub fn damage_and_reflow(&self, damage: DocumentDamageLevel) {
@@ -304,7 +333,7 @@ impl Window {
         self.page().join_layout();
     }
 
-    pub fn init_browser_context(&mut self, doc: &JS<Document>) {
+    pub fn init_browser_context(&mut self, doc: &JSRef<Document>) {
         self.browser_context = Some(BrowserContext::new(doc));
     }
 

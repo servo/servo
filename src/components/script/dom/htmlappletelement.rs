@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLAppletElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLAppletElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLAppletElementTypeId;
@@ -28,104 +28,129 @@ impl HTMLAppletElementDerived for EventTarget {
 }
 
 impl HTMLAppletElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLAppletElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLAppletElement {
         HTMLAppletElement {
             htmlelement: HTMLElement::new_inherited(HTMLAppletElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLAppletElement> {
-        let element = HTMLAppletElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLAppletElement> {
+        let element = HTMLAppletElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLAppletElementBinding::Wrap)
     }
 }
 
-impl HTMLAppletElement {
-    pub fn Align(&self) -> DOMString {
+pub trait HTMLAppletElementMethods {
+    fn Align(&self) -> DOMString;
+    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult;
+    fn Alt(&self) -> DOMString;
+    fn SetAlt(&self, _alt: DOMString) -> ErrorResult;
+    fn Archive(&self) -> DOMString;
+    fn SetArchive(&self, _archive: DOMString) -> ErrorResult;
+    fn Code(&self) -> DOMString;
+    fn SetCode(&self, _code: DOMString) -> ErrorResult;
+    fn CodeBase(&self) -> DOMString;
+    fn SetCodeBase(&self, _code_base: DOMString) -> ErrorResult;
+    fn Height(&self) -> DOMString;
+    fn SetHeight(&self, _height: DOMString) -> ErrorResult;
+    fn Hspace(&self) -> u32;
+    fn SetHspace(&mut self, _hspace: u32) -> ErrorResult;
+    fn Name(&self) -> DOMString;
+    fn SetName(&mut self, _name: DOMString) -> ErrorResult;
+    fn Object(&self) -> DOMString;
+    fn SetObject(&mut self, _object: DOMString) -> ErrorResult;
+    fn Vspace(&self) -> u32;
+    fn SetVspace(&mut self, _vspace: u32) -> ErrorResult;
+    fn Width(&self) -> DOMString;
+    fn SetWidth(&mut self, _width: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLAppletElementMethods for JSRef<'a, HTMLAppletElement> {
+    fn Align(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
+    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Alt(&self) -> DOMString {
+    fn Alt(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetAlt(&self, _alt: DOMString) -> ErrorResult {
+    fn SetAlt(&self, _alt: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Archive(&self) -> DOMString {
+    fn Archive(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetArchive(&self, _archive: DOMString) -> ErrorResult {
+    fn SetArchive(&self, _archive: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Code(&self) -> DOMString {
+    fn Code(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetCode(&self, _code: DOMString) -> ErrorResult {
+    fn SetCode(&self, _code: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn CodeBase(&self) -> DOMString {
+    fn CodeBase(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetCodeBase(&self, _code_base: DOMString) -> ErrorResult {
+    fn SetCodeBase(&self, _code_base: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Height(&self) -> DOMString {
+    fn Height(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetHeight(&self, _height: DOMString) -> ErrorResult {
+    fn SetHeight(&self, _height: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Hspace(&self) -> u32 {
+    fn Hspace(&self) -> u32 {
         0
     }
 
-    pub fn SetHspace(&mut self, _hspace: u32) -> ErrorResult {
+    fn SetHspace(&mut self, _hspace: u32) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Name(&self) -> DOMString {
+    fn Name(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetName(&mut self, _name: DOMString) -> ErrorResult {
+    fn SetName(&mut self, _name: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Object(&self) -> DOMString {
+    fn Object(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetObject(&mut self, _object: DOMString) -> ErrorResult {
+    fn SetObject(&mut self, _object: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Vspace(&self) -> u32 {
+    fn Vspace(&self) -> u32 {
         0
     }
 
-    pub fn SetVspace(&mut self, _vspace: u32) -> ErrorResult {
+    fn SetVspace(&mut self, _vspace: u32) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Width(&self) -> DOMString {
+    fn Width(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetWidth(&mut self, _width: DOMString) -> ErrorResult {
+    fn SetWidth(&mut self, _width: DOMString) -> ErrorResult {
         Ok(())
     }
 }

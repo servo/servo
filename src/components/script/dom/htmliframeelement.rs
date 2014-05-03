@@ -5,7 +5,7 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLIFrameElementBinding;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLIFrameElementDerived, HTMLElementCast};
 use dom::bindings::error::ErrorResult;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::trace::Untraceable;
 use dom::document::Document;
 use dom::element::{HTMLIFrameElementTypeId, Element};
@@ -54,18 +54,23 @@ pub struct IFrameSize {
     pub subpage_id: SubpageId,
 }
 
-impl HTMLIFrameElement {
-    pub fn is_sandboxed(&self) -> bool {
+pub trait HTMLIFrameElementHelpers {
+    fn is_sandboxed(&self) -> bool;
+    fn set_frame(&mut self, frame: Url);
+}
+
+impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
+    fn is_sandboxed(&self) -> bool {
         self.sandbox.is_some()
     }
 
-    pub fn set_frame(&mut self, frame: Url) {
+    fn set_frame(&mut self, frame: Url) {
         *self.frame = Some(frame);
     }
 }
 
 impl HTMLIFrameElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLIFrameElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLIFrameElement {
         HTMLIFrameElement {
             htmlelement: HTMLElement::new_inherited(HTMLIFrameElementTypeId, localName, document),
             frame: Untraceable::new(None),
@@ -74,136 +79,168 @@ impl HTMLIFrameElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLIFrameElement> {
-        let element = HTMLIFrameElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLIFrameElement> {
+        let element = HTMLIFrameElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLIFrameElementBinding::Wrap)
     }
 }
 
-impl HTMLIFrameElement {
-    pub fn Src(&self) -> DOMString {
+pub trait HTMLIFrameElementMethods {
+    fn Src(&self) -> DOMString;
+    fn SetSrc(&mut self, _src: DOMString) -> ErrorResult;
+    fn Srcdoc(&self) -> DOMString;
+    fn SetSrcdoc(&mut self, _srcdoc: DOMString) -> ErrorResult;
+    fn Name(&self) -> DOMString;
+    fn SetName(&mut self, _name: DOMString) -> ErrorResult;
+    fn Sandbox(&self) -> DOMString;
+    fn SetSandbox(&mut self, sandbox: DOMString);
+    fn AllowFullscreen(&self) -> bool;
+    fn SetAllowFullscreen(&mut self, _allow: bool) -> ErrorResult;
+    fn Width(&self) -> DOMString;
+    fn SetWidth(&mut self, _width: DOMString) -> ErrorResult;
+    fn Height(&self) -> DOMString;
+    fn SetHeight(&mut self, _height: DOMString) -> ErrorResult;
+    fn GetContentDocument(&self) -> Option<Temporary<Document>>;
+    fn GetContentWindow(&self) -> Option<Temporary<Window>>;
+    fn Align(&self) -> DOMString;
+    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult;
+    fn Scrolling(&self) -> DOMString;
+    fn SetScrolling(&mut self, _scrolling: DOMString) -> ErrorResult;
+    fn FrameBorder(&self) -> DOMString;
+    fn SetFrameBorder(&mut self, _frameborder: DOMString) -> ErrorResult;
+    fn LongDesc(&self) -> DOMString;
+    fn SetLongDesc(&mut self, _longdesc: DOMString) -> ErrorResult;
+    fn MarginHeight(&self) -> DOMString;
+    fn SetMarginHeight(&mut self, _marginheight: DOMString) -> ErrorResult;
+    fn MarginWidth(&self) -> DOMString;
+    fn SetMarginWidth(&mut self, _marginwidth: DOMString) -> ErrorResult;
+    fn GetSVGDocument(&self) -> Option<Temporary<Document>>;
+}
+
+impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
+    fn Src(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
+    fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Srcdoc(&self) -> DOMString {
+    fn Srcdoc(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetSrcdoc(&mut self, _srcdoc: DOMString) -> ErrorResult {
+    fn SetSrcdoc(&mut self, _srcdoc: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Name(&self) -> DOMString {
+    fn Name(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetName(&mut self, _name: DOMString) -> ErrorResult {
+    fn SetName(&mut self, _name: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Sandbox(&self, abstract_self: &JS<HTMLIFrameElement>) -> DOMString {
-        let element: JS<Element> = ElementCast::from(abstract_self);
+    fn Sandbox(&self) -> DOMString {
+        let element: &JSRef<Element> = ElementCast::from_ref(self);
         element.get_string_attribute("sandbox")
     }
 
-    pub fn SetSandbox(&mut self, abstract_self: &mut JS<HTMLIFrameElement>, sandbox: DOMString) {
-        let mut element: JS<Element> = ElementCast::from(abstract_self);
+    fn SetSandbox(&mut self, sandbox: DOMString) {
+        let element: &mut JSRef<Element> = ElementCast::from_mut_ref(self);
         element.set_string_attribute("sandbox", sandbox);
     }
 
-    pub fn AllowFullscreen(&self) -> bool {
+    fn AllowFullscreen(&self) -> bool {
         false
     }
 
-    pub fn SetAllowFullscreen(&mut self, _allow: bool) -> ErrorResult {
+    fn SetAllowFullscreen(&mut self, _allow: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Width(&self) -> DOMString {
+    fn Width(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetWidth(&mut self, _width: DOMString) -> ErrorResult {
+    fn SetWidth(&mut self, _width: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Height(&self) -> DOMString {
+    fn Height(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetHeight(&mut self, _height: DOMString) -> ErrorResult {
+    fn SetHeight(&mut self, _height: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn GetContentDocument(&self) -> Option<JS<Document>> {
+    fn GetContentDocument(&self) -> Option<Temporary<Document>> {
         None
     }
 
-    pub fn GetContentWindow(&self) -> Option<JS<Window>> {
+    fn GetContentWindow(&self) -> Option<Temporary<Window>> {
         None
     }
 
-    pub fn Align(&self) -> DOMString {
+    fn Align(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
+    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Scrolling(&self) -> DOMString {
+    fn Scrolling(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetScrolling(&mut self, _scrolling: DOMString) -> ErrorResult {
+    fn SetScrolling(&mut self, _scrolling: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn FrameBorder(&self) -> DOMString {
+    fn FrameBorder(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetFrameBorder(&mut self, _frameborder: DOMString) -> ErrorResult {
+    fn SetFrameBorder(&mut self, _frameborder: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn LongDesc(&self) -> DOMString {
+    fn LongDesc(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetLongDesc(&mut self, _longdesc: DOMString) -> ErrorResult {
+    fn SetLongDesc(&mut self, _longdesc: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn MarginHeight(&self) -> DOMString {
+    fn MarginHeight(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetMarginHeight(&mut self, _marginheight: DOMString) -> ErrorResult {
+    fn SetMarginHeight(&mut self, _marginheight: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn MarginWidth(&self) -> DOMString {
+    fn MarginWidth(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetMarginWidth(&mut self, _marginwidth: DOMString) -> ErrorResult {
+    fn SetMarginWidth(&mut self, _marginwidth: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn GetSVGDocument(&self) -> Option<JS<Document>> {
+    fn GetSVGDocument(&self) -> Option<Temporary<Document>> {
         None
     }
 }
 
-impl VirtualMethods for JS<HTMLIFrameElement> {
-    fn super_type(&self) -> Option<~VirtualMethods:> {
-        let htmlelement: JS<HTMLElement> = HTMLElementCast::from(self);
-        Some(~htmlelement as ~VirtualMethods:)
+impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
+    fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods:> {
+        let htmlelement: &mut JSRef<HTMLElement> = HTMLElementCast::from_mut_ref(self);
+        Some(htmlelement as &mut VirtualMethods:)
     }
 
     fn after_set_attr(&mut self, name: DOMString, value: DOMString) {
@@ -227,7 +264,7 @@ impl VirtualMethods for JS<HTMLIFrameElement> {
                     _ => AllowNothing
                 } as u8;
             }
-            self.get_mut().sandbox = Some(modes);
+            self.deref_mut().sandbox = Some(modes);
         }
     }
 
@@ -238,7 +275,7 @@ impl VirtualMethods for JS<HTMLIFrameElement> {
         }
 
         if "sandbox" == name {
-            self.get_mut().sandbox = None;
+            self.deref_mut().sandbox = None;
         }
     }
 }

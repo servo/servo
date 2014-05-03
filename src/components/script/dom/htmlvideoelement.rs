@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLVideoElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLVideoElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLVideoElementTypeId;
@@ -28,48 +28,59 @@ impl HTMLVideoElementDerived for EventTarget {
 }
 
 impl HTMLVideoElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLVideoElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLVideoElement {
         HTMLVideoElement {
             htmlmediaelement: HTMLMediaElement::new_inherited(HTMLVideoElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLVideoElement> {
-        let element = HTMLVideoElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLVideoElement> {
+        let element = HTMLVideoElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLVideoElementBinding::Wrap)
     }
 }
 
-impl HTMLVideoElement {
-    pub fn Width(&self) -> u32 {
+pub trait HTMLVideoElementMethods {
+    fn Width(&self) -> u32;
+    fn SetWidth(&mut self, _width: u32) -> ErrorResult;
+    fn Height(&self) -> u32;
+    fn SetHeight(&mut self, _height: u32) -> ErrorResult;
+    fn VideoWidth(&self) -> u32;
+    fn VideoHeight(&self) -> u32;
+    fn Poster(&self) -> DOMString;
+    fn SetPoster(&mut self, _poster: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLVideoElementMethods for JSRef<'a, HTMLVideoElement> {
+    fn Width(&self) -> u32 {
         0
     }
 
-    pub fn SetWidth(&mut self, _width: u32) -> ErrorResult {
+    fn SetWidth(&mut self, _width: u32) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Height(&self) -> u32 {
+    fn Height(&self) -> u32 {
         0
     }
 
-    pub fn SetHeight(&mut self, _height: u32) -> ErrorResult {
+    fn SetHeight(&mut self, _height: u32) -> ErrorResult {
         Ok(())
     }
 
-    pub fn VideoWidth(&self) -> u32 {
+    fn VideoWidth(&self) -> u32 {
         0
     }
 
-    pub fn VideoHeight(&self) -> u32 {
+    fn VideoHeight(&self) -> u32 {
         0
     }
 
-    pub fn Poster(&self) -> DOMString {
+    fn Poster(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetPoster(&mut self, _poster: DOMString) -> ErrorResult {
+    fn SetPoster(&mut self, _poster: DOMString) -> ErrorResult {
         Ok(())
     }
 }

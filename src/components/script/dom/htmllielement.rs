@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLLIElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLLIElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLLIElementTypeId;
@@ -28,32 +28,39 @@ impl HTMLLIElementDerived for EventTarget {
 }
 
 impl HTMLLIElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLLIElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLLIElement {
         HTMLLIElement {
             htmlelement: HTMLElement::new_inherited(HTMLLIElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLLIElement> {
-        let element = HTMLLIElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLLIElement> {
+        let element = HTMLLIElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLLIElementBinding::Wrap)
     }
 }
 
-impl HTMLLIElement {
-    pub fn Value(&self) -> i32 {
+pub trait HTMLLIElementMethods {
+    fn Value(&self) -> i32;
+    fn SetValue(&mut self, _value: i32) -> ErrorResult;
+    fn Type(&self) -> DOMString;
+    fn SetType(&mut self, _type: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLLIElementMethods for JSRef<'a, HTMLLIElement> {
+    fn Value(&self) -> i32 {
         0
     }
 
-    pub fn SetValue(&mut self, _value: i32) -> ErrorResult {
+    fn SetValue(&mut self, _value: i32) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Type(&self) -> DOMString {
+    fn Type(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetType(&mut self, _type: DOMString) -> ErrorResult {
+    fn SetType(&mut self, _type: DOMString) -> ErrorResult {
         Ok(())
     }
 }

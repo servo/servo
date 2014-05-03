@@ -5,7 +5,7 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLBRElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLBRElementDerived;
 use dom::bindings::error::ErrorResult;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
 use dom::element::HTMLBRElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -28,24 +28,29 @@ impl HTMLBRElementDerived for EventTarget {
 }
 
 impl HTMLBRElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLBRElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLBRElement {
         HTMLBRElement {
             htmlelement: HTMLElement::new_inherited(HTMLBRElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLBRElement> {
-        let element = HTMLBRElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLBRElement> {
+        let element = HTMLBRElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLBRElementBinding::Wrap)
     }
 }
 
-impl HTMLBRElement {
-    pub fn Clear(&self) -> DOMString {
+pub trait HTMLBRElementMethods {
+    fn Clear(&self) -> DOMString;
+    fn SetClear(&mut self, _text: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLBRElementMethods for JSRef<'a, HTMLBRElement> {
+    fn Clear(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetClear(&mut self, _text: DOMString) -> ErrorResult {
+    fn SetClear(&mut self, _text: DOMString) -> ErrorResult {
         Ok(())
     }
 }

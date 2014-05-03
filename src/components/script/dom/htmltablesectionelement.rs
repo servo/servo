@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLTableSectionElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTableSectionElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLTableSectionElementTypeId;
@@ -28,52 +28,64 @@ impl HTMLTableSectionElementDerived for EventTarget {
 }
 
 impl HTMLTableSectionElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLTableSectionElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLTableSectionElement {
         HTMLTableSectionElement {
             htmlelement: HTMLElement::new_inherited(HTMLTableSectionElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLTableSectionElement> {
-        let element = HTMLTableSectionElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLTableSectionElement> {
+        let element = HTMLTableSectionElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLTableSectionElementBinding::Wrap)
     }
 }
 
-impl HTMLTableSectionElement {
-    pub fn DeleteRow(&mut self, _index: i32) -> ErrorResult {
+pub trait HTMLTableSectionElementMethods {
+    fn DeleteRow(&mut self, _index: i32) -> ErrorResult;
+    fn Align(&self) -> DOMString;
+    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult;
+    fn Ch(&self) -> DOMString;
+    fn SetCh(&mut self, _ch: DOMString) -> ErrorResult;
+    fn ChOff(&self) -> DOMString;
+    fn SetChOff(&mut self, _ch_off: DOMString) -> ErrorResult;
+    fn VAlign(&self) -> DOMString;
+    fn SetVAlign(&mut self, _v_align: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLTableSectionElementMethods for JSRef<'a, HTMLTableSectionElement> {
+    fn DeleteRow(&mut self, _index: i32) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Align(&self) -> DOMString {
+    fn Align(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
+    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Ch(&self) -> DOMString {
+    fn Ch(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetCh(&mut self, _ch: DOMString) -> ErrorResult {
+    fn SetCh(&mut self, _ch: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn ChOff(&self) -> DOMString {
+    fn ChOff(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetChOff(&mut self, _ch_off: DOMString) -> ErrorResult {
+    fn SetChOff(&mut self, _ch_off: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn VAlign(&self) -> DOMString {
+    fn VAlign(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetVAlign(&mut self, _v_align: DOMString) -> ErrorResult {
+    fn SetVAlign(&mut self, _v_align: DOMString) -> ErrorResult {
         Ok(())
     }
 }

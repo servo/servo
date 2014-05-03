@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLHRElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLHRElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLHRElementTypeId;
@@ -28,56 +28,69 @@ impl HTMLHRElementDerived for EventTarget {
 }
 
 impl HTMLHRElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLHRElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLHRElement {
         HTMLHRElement {
             htmlelement: HTMLElement::new_inherited(HTMLHRElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLHRElement> {
-        let element = HTMLHRElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLHRElement> {
+        let element = HTMLHRElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLHRElementBinding::Wrap)
     }
 }
 
-impl HTMLHRElement {
-    pub fn Align(&self) -> DOMString {
+pub trait HTMLHRElementMethods {
+    fn Align(&self) -> DOMString;
+    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult;
+    fn Color(&self) -> DOMString;
+    fn SetColor(&mut self, _color: DOMString) -> ErrorResult;
+    fn NoShade(&self) -> bool;
+    fn SetNoShade(&self, _no_shade: bool) -> ErrorResult;
+    fn Size(&self) -> DOMString;
+    fn SetSize(&mut self, _size: DOMString) -> ErrorResult;
+    fn Width(&self) -> DOMString;
+    fn SetWidth(&mut self, _width: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLHRElementMethods for JSRef<'a, HTMLHRElement> {
+    fn Align(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
+    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Color(&self) -> DOMString {
+    fn Color(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetColor(&mut self, _color: DOMString) -> ErrorResult {
+    fn SetColor(&mut self, _color: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn NoShade(&self) -> bool {
+    fn NoShade(&self) -> bool {
         false
     }
 
-    pub fn SetNoShade(&self, _no_shade: bool) -> ErrorResult {
+    fn SetNoShade(&self, _no_shade: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Size(&self) -> DOMString {
+    fn Size(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetSize(&mut self, _size: DOMString) -> ErrorResult {
+    fn SetSize(&mut self, _size: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Width(&self) -> DOMString {
+    fn Width(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetWidth(&mut self, _width: DOMString) -> ErrorResult {
+    fn SetWidth(&mut self, _width: DOMString) -> ErrorResult {
         Ok(())
     }
 }

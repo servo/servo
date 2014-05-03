@@ -5,7 +5,7 @@
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
 use dom::bindings::conversions::{FromJSValConvertible, IDLInterface};
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef, Temporary, Root};
 use dom::bindings::trace::Untraceable;
 use dom::browsercontext;
 use dom::window;
@@ -37,7 +37,6 @@ use js::jsapi::{JSContext, JSObject, JSBool, jsid, JSClass, JSNative};
 use js::jsapi::{JSFunctionSpec, JSPropertySpec};
 use js::jsapi::{JS_NewGlobalObject, JS_InitStandardClasses};
 use js::jsapi::{JSString};
-use js::jsapi::{JS_AllowGC, JS_InhibitGC};
 use js::jsfriendapi::bindgen::JS_NewObjectWithUniqueType;
 use js::jsval::JSVal;
 use js::jsval::{PrivateValue, ObjectValue, NullValue, ObjectOrNullValue};
@@ -390,10 +389,10 @@ pub trait Reflectable {
 
 pub fn reflect_dom_object<T: Reflectable>
         (obj:     ~T,
-         window:  &JS<window::Window>,
-         wrap_fn: extern "Rust" fn(*JSContext, &JS<window::Window>, ~T) -> JS<T>)
-         ->       JS<T> {
-    JS::new(obj, window, wrap_fn)
+         window:  &JSRef<window::Window>,
+         wrap_fn: extern "Rust" fn(*JSContext, &JSRef<window::Window>, ~T) -> JS<T>)
+         -> Temporary<T> {
+    Temporary::new(wrap_fn(window.deref().get_cx(), window, obj))
 }
 
 #[deriving(Eq)]
@@ -411,6 +410,13 @@ impl Reflector {
         assert!(self.object.is_null());
         assert!(object.is_not_null());
         self.object = object;
+    }
+
+    /// Return a pointer to the memory location at which the JS reflector object is stored.
+    /// Used by Temporary values to root the reflector, as required by the JSAPI rooting
+    /// APIs.
+    pub fn rootable<'a>(&'a self) -> &'a *JSObject {
+        &self.object
     }
 
     pub fn new() -> Reflector {
@@ -605,11 +611,13 @@ pub extern fn outerize_global(_cx: *JSContext, obj: JSHandleObject) -> *JSObject
     unsafe {
         debug!("outerizing");
         let obj = *obj.unnamed;
-        let win: JS<window::Window> =
+        let win: Root<window::Window> =
             unwrap_jsmanaged(obj,
                              IDLInterface::get_prototype_id(None::<window::Window>),
-                             IDLInterface::get_prototype_depth(None::<window::Window>)).unwrap();
-        win.get().browser_context.get_ref().window_proxy()
+                             IDLInterface::get_prototype_depth(None::<window::Window>))
+            .unwrap()
+            .root();
+        win.deref().browser_context.get_ref().window_proxy()
     }
 }
 
@@ -625,8 +633,8 @@ pub fn global_object_for_js_object(obj: *JSObject) -> JS<window::Window> {
 }
 
 fn cx_for_dom_reflector(obj: *JSObject) -> *JSContext {
-    let win = global_object_for_js_object(obj);
-    let js_info = win.get().page().js_info();
+    let win = global_object_for_js_object(obj).root();
+    let js_info = win.deref().page().js_info();
     match *js_info {
         Some(ref info) => info.js_context.deref().deref().ptr,
         None => fail!("no JS context for DOM global")
@@ -635,26 +643,6 @@ fn cx_for_dom_reflector(obj: *JSObject) -> *JSContext {
 
 pub fn cx_for_dom_object<T: Reflectable>(obj: &T) -> *JSContext {
     cx_for_dom_reflector(obj.reflector().get_jsobject())
-}
-
-/// Execute arbitrary code with the JS GC enabled, then disable it afterwards.
-pub fn with_gc_enabled<R>(cx: *JSContext, f: || -> R) -> R {
-    unsafe {
-        JS_AllowGC(cx);
-        let rv = f();
-        JS_InhibitGC(cx);
-        rv
-    }
-}
-
-/// Execute arbitrary code with the JS GC disabled, then enable it afterwards.
-pub fn with_gc_disabled<R>(cx: *JSContext, f: || -> R) -> R {
-    unsafe {
-        JS_InhibitGC(cx);
-        let rv = f();
-        JS_AllowGC(cx);
-        rv
-    }
 }
 
 /// Check if an element name is valid. See http://www.w3.org/TR/xml/#NT-Name

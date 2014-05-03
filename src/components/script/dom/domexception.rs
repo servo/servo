@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::DOMExceptionBinding;
 use dom::bindings::codegen::BindingDeclarations::DOMExceptionBinding::DOMExceptionConstants;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::window::Window;
 use servo_util::str::DOMString;
@@ -49,7 +49,7 @@ impl DOMException {
         }
     }
 
-    pub fn new(window: &JS<Window>, code: DOMErrorName) -> JS<DOMException> {
+    pub fn new(window: &JSRef<Window>, code: DOMErrorName) -> Temporary<DOMException> {
         reflect_dom_object(~DOMException::new_inherited(code), window, DOMExceptionBinding::Wrap)
     }
 }
@@ -64,9 +64,15 @@ impl Reflectable for DOMException {
     }
 }
 
-impl DOMException {
+pub trait DOMExceptionMethods {
+    fn Code(&self) -> u16;
+    fn Name(&self) -> DOMString;
+    fn Message(&self) -> DOMString;
+}
+
+impl<'a> DOMExceptionMethods for JSRef<'a, DOMException> {
     // http://dom.spec.whatwg.org/#dom-domexception-code
-    pub fn Code(&self) -> u16 {
+    fn Code(&self) -> u16 {
         match self.code {
             // http://dom.spec.whatwg.org/#concept-throw
             EncodingError => 0,
@@ -75,12 +81,12 @@ impl DOMException {
     }
 
     // http://dom.spec.whatwg.org/#error-names-0
-    pub fn Name(&self) -> DOMString {
+    fn Name(&self) -> DOMString {
         self.code.to_str()
     }
 
     // http://dom.spec.whatwg.org/#error-names-0
-    pub fn Message(&self) -> DOMString {
+    fn Message(&self) -> DOMString {
         match self.code {
             IndexSizeError => ~"The index is not in the allowed range.",
             HierarchyRequestError => ~"The operation would yield an incorrect node tree.",

@@ -5,7 +5,7 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLBaseElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLBaseElementDerived;
 use dom::bindings::error::ErrorResult;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
 use dom::element::HTMLBaseElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -28,32 +28,39 @@ impl HTMLBaseElementDerived for EventTarget {
 }
 
 impl HTMLBaseElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLBaseElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLBaseElement {
         HTMLBaseElement {
             htmlelement: HTMLElement::new_inherited(HTMLBaseElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLBaseElement> {
-        let element = HTMLBaseElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLBaseElement> {
+        let element = HTMLBaseElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLBaseElementBinding::Wrap)
     }
 }
 
-impl HTMLBaseElement {
-    pub fn Href(&self) -> DOMString {
+pub trait HTMLBaseElementMethods {
+    fn Href(&self) -> DOMString;
+    fn SetHref(&self, _href: DOMString) -> ErrorResult;
+    fn Target(&self) -> DOMString;
+    fn SetTarget(&self, _target: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLBaseElementMethods for JSRef<'a, HTMLBaseElement> {
+    fn Href(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetHref(&self, _href: DOMString) -> ErrorResult {
+    fn SetHref(&self, _href: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Target(&self) -> DOMString {
+    fn Target(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetTarget(&self, _target: DOMString) -> ErrorResult {
+    fn SetTarget(&self, _target: DOMString) -> ErrorResult {
         Ok(())
     }
 }
