@@ -452,6 +452,13 @@ pub enum MarginsMayCollapseFlag {
     MarginsMayNotCollapse,
 }
 
+#[deriving(Eq)]
+enum FormattingContextType {
+    NonformattingContext,
+    BlockFormattingContext,
+    OtherFormattingContext,
+}
+
 // Propagates the `layers_needed_for_descendants` flag appropriately from a child. This is called
 // as part of height assignment.
 //
@@ -491,6 +498,10 @@ pub struct BlockFlow {
     /// Static y offset of an absolute flow from its CB.
     pub static_y_offset: Au,
 
+    /// The width of the last float prior to this block. This is used to speculatively lay out
+    /// block formatting contexts.
+    previous_float_width: Option<Au>,
+
     /// Additional floating flow members.
     pub float: Option<~FloatedBlockInfo>
 }
@@ -502,6 +513,7 @@ impl BlockFlow {
             box_: Box::new(constructor, node),
             is_root: false,
             static_y_offset: Au::new(0),
+            previous_float_width: None,
             float: None
         }
     }
@@ -512,6 +524,7 @@ impl BlockFlow {
             box_: box_,
             is_root: false,
             static_y_offset: Au::new(0),
+            previous_float_width: None,
             float: None
         }
     }
@@ -525,6 +538,7 @@ impl BlockFlow {
             box_: Box::new(constructor, node),
             is_root: false,
             static_y_offset: Au::new(0),
+            previous_float_width: None,
             float: Some(~FloatedBlockInfo::new(float_kind))
         }
     }
@@ -1290,6 +1304,10 @@ impl BlockFlow {
 
     /// Assigns the computed left content edge and width to all the children of this block flow.
     /// Also computes whether each child will be impacted by floats.
+    ///
+    /// `#[inline(always)]` because this is called only from block or table width assignment and
+    /// the code for block layout is significantly simpler.
+    #[inline(always)]
     pub fn propagate_assigned_width_to_children(&mut self,
                                                 left_content_edge: Au,
                                                 content_width: Au,
@@ -1298,39 +1316,45 @@ impl BlockFlow {
         let mut left_floats_impact_child = self.base.flags.impacted_by_left_floats();
         let mut right_floats_impact_child = self.base.flags.impacted_by_right_floats();
 
-        let kid_abs_cb_x_offset;
-        if self.is_positioned() {
-            // Pass yourself as a new Containing Block
-            // The static x offset for any immediate kid flows will be the
-            // left padding
-            kid_abs_cb_x_offset = self.box_.border_padding.left -
-                model::border_from_style(self.box_.style()).left;
+        let absolute_static_x_offset = if self.is_positioned() {
+            // This flow is the containing block. The static X offset will be the left padding
+            // edge.
+            self.box_.border_padding.left - model::border_from_style(self.box_.style()).left
         } else {
-            // For kids, the left margin edge will be at our left content edge.
-            // The current static offset is at our left margin
-            // edge. So move in to the left content edge.
-            kid_abs_cb_x_offset = self.base.absolute_static_x_offset + left_content_edge;
-        }
-        let kid_fixed_cb_x_offset = self.base.fixed_static_x_offset + left_content_edge;
+            // For kids, the left margin edge will be at our left content edge. The current static
+            // offset is at our left margin edge. So move in to the left content edge.
+            self.base.absolute_static_x_offset + left_content_edge
+        };
+
+        let fixed_static_x_offset = self.base.fixed_static_x_offset + left_content_edge;
+        let flags = self.base.flags.clone();
 
         // This value is used only for table cells.
-        let mut kid_left_margin_edge = left_content_edge;
+        let mut left_margin_edge = left_content_edge;
 
-        let flags = self.base.flags.clone();
+        // The width of the last float, if there was one. This is used for estimating the widths of
+        // block formatting contexts. (We estimate that the width of any block formatting context
+        // that we see will be based on the width of the containing block as well as the last float
+        // seen before it.)
+        let mut last_float_width = None;
+
         for (i, kid) in self.base.child_iter().enumerate() {
             if kid.is_block_flow() {
                 let kid_block = kid.as_block();
-                kid_block.base.absolute_static_x_offset = kid_abs_cb_x_offset;
-                kid_block.base.fixed_static_x_offset = kid_fixed_cb_x_offset;
+                kid_block.base.absolute_static_x_offset = absolute_static_x_offset;
+                kid_block.base.fixed_static_x_offset = fixed_static_x_offset;
+
+                if kid_block.is_float() {
+                    last_float_width = Some(kid_block.base.intrinsic_widths.preferred_width)
+                } else {
+                    kid_block.previous_float_width = last_float_width
+                }
             }
 
-            {
-                let child_base = flow::mut_base(kid);
-                // The left margin edge of the child flow is at our left content edge.
-                child_base.position.origin.x = left_content_edge;
-                // The width of the child flow is our content width.
-                child_base.position.size.width = content_width;
-            }
+            // The left margin edge of the child flow is at our left content edge, and its width
+            // is our content width.
+            flow::mut_base(kid).position.origin.x = left_content_edge;
+            flow::mut_base(kid).position.size.width = content_width;
 
             // Determine float impaction.
             match kid.float_clearance() {
@@ -1355,32 +1379,11 @@ impl BlockFlow {
             // Handle tables.
             match opt_col_widths {
                 Some(ref col_widths) => {
-                    // If kid is table_rowgroup or table_row, the column widths info should be
-                    // copied from its parent.
-                    let kid_width;
-                    if kid.is_table() || kid.is_table_rowgroup() || kid.is_table_row() {
-                        *kid.col_widths() = col_widths.clone();
-
-                        // Width of kid flow is our content width.
-                        kid_width = content_width
-                    } else if kid.is_table_cell() {
-                        // If kid is table_cell, the x offset and width for each cell should be
-                        // calculated from parent's column widths info.
-                        kid_left_margin_edge = if i == 0 {
-                            Au(0)
-                        } else {
-                            kid_left_margin_edge + col_widths[i-1]
-                        };
-
-                        kid_width = col_widths[i]
-                    } else {
-                        // Width of kid flow is our content width.
-                        kid_width = content_width
-                    }
-
-                    let kid_base = flow::mut_base(kid);
-                    kid_base.position.origin.x = kid_left_margin_edge;
-                    kid_base.position.size.width = kid_width;
+                    propagate_column_widths_to_child(kid,
+                                                     i,
+                                                     content_width,
+                                                     *col_widths,
+                                                     &mut left_margin_edge)
                 }
                 None => {}
             }
@@ -1389,6 +1392,25 @@ impl BlockFlow {
             //
             // TODO(#2018, pcwalton): Do this in the cascade instead.
             flow::mut_base(kid).flags.propagate_text_alignment_from_parent(flags.clone())
+        }
+    }
+
+    /// Determines the type of formatting context this is. See the definition of
+    /// `FormattingContextType`.
+    fn formatting_context_type(&self) -> FormattingContextType {
+        let style = self.box_.style();
+        if style.Box.get().float != float::none {
+            return OtherFormattingContext
+        }
+        match style.Box.get().display {
+            display::table_cell | display::table_caption | display::inline_block => {
+                OtherFormattingContext
+            }
+            _ if style.Box.get().position == position::static_ && 
+                    style.Box.get().overflow != overflow::visible => {
+                BlockFormattingContext
+            }
+            _ => NonformattingContext,
         }
     }
 }
@@ -1405,21 +1427,6 @@ impl Flow for BlockFlow {
     /// Returns the direction that this flow clears floats in, if any.
     fn float_clearance(&self) -> clear::T {
         self.box_.style().Box.get().clear
-    }
-
-    /// Returns true if this flow is a block formatting context and false otherwise.
-    fn is_block_formatting_context(&self, only_impactable_by_floats: bool) -> bool {
-        let style = self.box_.style();
-        if style.Box.get().float != float::none {
-            return !only_impactable_by_floats
-        }
-        if style.Box.get().overflow != overflow::visible {
-            return true
-        }
-        match style.Box.get().display {
-            display::table_cell | display::table_caption | display::inline_block => true,
-            _ => false,
-        }
     }
 
     /// Pass 1 of reflow: computes minimum and preferred widths.
@@ -1474,7 +1481,7 @@ impl Flow for BlockFlow {
     ///
     /// Dual boxes consume some width first, and the remainder is assigned to all child (block)
     /// contexts.
-    fn assign_widths(&mut self, ctx: &mut LayoutContext) {
+    fn assign_widths(&mut self, layout_context: &mut LayoutContext) {
         debug!("assign_widths({}): assigning width for flow",
                if self.is_float() {
                    "float"
@@ -1485,7 +1492,7 @@ impl Flow for BlockFlow {
         if self.is_root() {
             debug!("Setting root position");
             self.base.position.origin = Zero::zero();
-            self.base.position.size.width = ctx.screen_size.width;
+            self.base.position.size.width = layout_context.screen_size.width;
             self.base.floats = Floats::new();
 
             // The root element is never impacted by floats.
@@ -1493,17 +1500,36 @@ impl Flow for BlockFlow {
             self.base.flags.set_impacted_by_right_floats(false);
         }
 
-        // The position was set to the containing block by the flow's parent.
+        // Our width was set to the width of the containing block by the flow's parent. Now compute
+        // the real value.
         let containing_block_width = self.base.position.size.width;
-        self.compute_used_width(ctx, containing_block_width);
+        self.compute_used_width(layout_context, containing_block_width);
         if self.is_float() {
             self.float.get_mut_ref().containing_width = containing_block_width;
         }
 
-        // Block formatting contexts are never impacted by floats.
-        if self.is_block_formatting_context(false) {
-            self.base.flags.set_impacted_by_left_floats(false);
-            self.base.flags.set_impacted_by_right_floats(false);
+        // Formatting contexts are never impacted by floats.
+        match self.formatting_context_type() {
+            NonformattingContext => {}
+            BlockFormattingContext => {
+                self.base.flags.set_impacted_by_left_floats(false);
+                self.base.flags.set_impacted_by_right_floats(false);
+
+                // We can't actually compute the width of this block now, because floats might
+                // affect it. Speculate that its width is equal to the width computed above minus
+                // the width of the previous float.
+                match self.previous_float_width {
+                    None => {}
+                    Some(previous_float_width) => {
+                        self.box_.border_box.size.width =
+                            self.box_.border_box.size.width - previous_float_width
+                    }
+                }
+            }
+            OtherFormattingContext => {
+                self.base.flags.set_impacted_by_left_floats(false);
+                self.base.flags.set_impacted_by_right_floats(false);
+            }
         }
 
         // Move in from the left border edge
@@ -1584,7 +1610,7 @@ impl Flow for BlockFlow {
                 self.base.abs_position +
                 self.generated_containing_block_rect().origin +
                 relative_offset
-        };
+        }
 
         let float_offset = if self.is_float() {
             self.float.get_ref().rel_pos
@@ -2097,7 +2123,9 @@ impl WidthAndMarginsComputer for AbsoluteNonReplaced {
         block.containing_block_size(ctx.screen_size).width
     }
 
-    fn set_flow_x_coord_if_necessary(&self, block: &mut BlockFlow, solution: WidthConstraintSolution) {
+    fn set_flow_x_coord_if_necessary(&self,
+                                     block: &mut BlockFlow,
+                                     solution: WidthConstraintSolution) {
         // Set the x-coordinate of the absolute flow wrt to its containing block.
         block.base.position.origin.x = solution.left;
     }
@@ -2319,3 +2347,38 @@ impl WidthAndMarginsComputer for FloatReplaced {
         Specified(box_.content_width())
     }
 }
+
+fn propagate_column_widths_to_child(kid: &mut Flow,
+                                    child_index: uint,
+                                    content_width: Au,
+                                    column_widths: &[Au],
+                                    left_margin_edge: &mut Au) {
+    // If kid is table_rowgroup or table_row, the column widths info should be copied from its
+    // parent.
+    //
+    // FIXME(pcwalton): This seems inefficient. Reference count it instead?
+    let width = if kid.is_table() || kid.is_table_rowgroup() || kid.is_table_row() {
+        *kid.col_widths() = column_widths.to_owned();
+
+        // Width of kid flow is our content width.
+        content_width
+    } else if kid.is_table_cell() {
+        // If kid is table_cell, the x offset and width for each cell should be
+        // calculated from parent's column widths info.
+        *left_margin_edge = if child_index == 0 {
+            Au(0)
+        } else {
+            *left_margin_edge + column_widths[child_index - 1]
+        };
+
+        column_widths[child_index]
+    } else {
+        // Width of kid flow is our content width.
+        content_width
+    };
+
+    let kid_base = flow::mut_base(kid);
+    kid_base.position.origin.x = *left_margin_edge;
+    kid_base.position.size.width = width;
+}
+
