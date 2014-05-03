@@ -421,7 +421,7 @@ pub fn parse_html(page: &Page,
         clone_node: |_node, deep| {
             debug!("clone node");
             if deep { error!("-- deep clone unimplemented"); }
-            fail!(~"clone node unimplemented")
+            fail!("clone node unimplemented")
         },
         reparent_children: |_node, _new_parent| {
             debug!("reparent children");

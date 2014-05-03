@@ -64,7 +64,7 @@ impl Eq for ImageResponseMsg {
     fn eq(&self, other: &ImageResponseMsg) -> bool {
         // FIXME: Bad copies
         match (self.clone(), other.clone()) {
-            (ImageReady(..), ImageReady(..)) => fail!(~"unimplemented comparison"),
+            (ImageReady(..), ImageReady(..)) => fail!("unimplemented comparison"),
             (ImageNotReady, ImageNotReady) => true,
             (ImageFailed, ImageFailed) => true,
 
@@ -304,14 +304,14 @@ impl ImageCache {
           | Decoding
           | Decoded(..)
           | Failed => {
-            fail!(~"wrong state for storing prefetched image")
+            fail!("wrong state for storing prefetched image")
           }
         }
     }
 
     fn decode(&mut self, url: Url) {
         match self.get_state(url.clone()) {
-            Init => fail!(~"decoding image before prefetch"),
+            Init => fail!("decoding image before prefetch"),
 
             Prefetching(DoNotDecode) => {
                 // We don't have the data yet, queue up the decode
@@ -369,7 +369,7 @@ impl ImageCache {
           | Prefetched(..)
           | Decoded(..)
           | Failed => {
-            fail!(~"incorrect state in store_image")
+            fail!("incorrect state in store_image")
           }
         }
 
@@ -396,9 +396,9 @@ impl ImageCache {
 
     fn get_image(&self, url: Url, response: Sender<ImageResponseMsg>) {
         match self.get_state(url.clone()) {
-            Init => fail!(~"request for image before prefetch"),
+            Init => fail!("request for image before prefetch"),
             Prefetching(DoDecode) => response.send(ImageNotReady),
-            Prefetching(DoNotDecode) | Prefetched(..) => fail!(~"request for image before decode"),
+            Prefetching(DoNotDecode) | Prefetched(..) => fail!("request for image before decode"),
             Decoding => response.send(ImageNotReady),
             Decoded(image) => response.send(ImageReady(image.clone())),
             Failed => response.send(ImageFailed),
@@ -407,9 +407,9 @@ impl ImageCache {
 
     fn wait_for_image(&mut self, url: Url, response: Sender<ImageResponseMsg>) {
         match self.get_state(url.clone()) {
-            Init => fail!(~"request for image before prefetch"),
+            Init => fail!("request for image before prefetch"),
 
-            Prefetching(DoNotDecode) | Prefetched(..) => fail!(~"request for image before decode"),
+            Prefetching(DoNotDecode) | Prefetched(..) => fail!("request for image before decode"),
 
             Prefetching(DoDecode) | Decoding => {
                 // We don't have this image yet

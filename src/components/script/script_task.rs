@@ -324,7 +324,7 @@ impl Page {
 
                     debug!("script: layout joined")
                 }
-                None => fail!(~"reader forked but no join port?"),
+                None => fail!("reader forked but no join port?"),
             }
         }
     }

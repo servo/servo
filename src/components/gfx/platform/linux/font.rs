@@ -65,7 +65,7 @@ impl Drop for FontHandle {
         assert!(self.face.is_not_null());
         unsafe {
             if !FT_Done_Face(self.face).succeeded() {
-                fail!(~"FT_Done_Face failed");
+                fail!("FT_Done_Face failed");
             }
         }
     }

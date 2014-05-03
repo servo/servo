@@ -760,7 +760,7 @@ impl CompositorLayer {
                         common.next_sibling.clone()
                     })
                 }
-                Some(_) => fail!(~"found unexpected layer kind"),
+                Some(_) => fail!("found unexpected layer kind"),
             };
 
             // Set the layer's transform.

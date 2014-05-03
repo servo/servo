@@ -99,7 +99,7 @@ impl<'a> RenderContext<'a>  {
             RGBA8 => 4,
             K8    => 1,
             KA8   => 2,
-            _     => fail!(~"color type not supported"),
+            _     => fail!("color type not supported"),
         };
         let stride = image.width * pixel_width;
 

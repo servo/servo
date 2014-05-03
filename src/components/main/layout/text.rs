@@ -114,7 +114,7 @@ impl TextRunScanner {
         let mut new_whitespace = last_whitespace;
         match (is_singleton, is_text_clump) {
             (false, false) => {
-                fail!(~"WAT: can't coalesce non-text nodes in flush_clump_to_list()!")
+                fail!("WAT: can't coalesce non-text nodes in flush_clump_to_list()!")
             }
             (true, false) => {
                 // FIXME(pcwalton): Stop cloning boxes, as above.
