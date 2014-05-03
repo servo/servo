@@ -1444,7 +1444,7 @@ class CGDOMJSClass(CGThing):
     def define(self):
         traceHook = "Some(%s)" % TRACE_HOOK_NAME
         if self.descriptor.createGlobal:
-            flags = "JSCLASS_IS_GLOBAL"
+            flags = "JSCLASS_IS_GLOBAL | JSCLASS_DOM_GLOBAL"
             slots = "JSCLASS_GLOBAL_SLOT_COUNT + 1"
         else:
             flags = "0"
@@ -2024,10 +2024,8 @@ class CGGetPerInterfaceObject(CGAbstractMethod):
      wrapper and aGlobal is the sandbox's global.
    */
 
-  /* Make sure our global is sane.  Hopefully we can remove this sometime */
-  /*if ((*JS_GetClass(aGlobal)).flags & JSCLASS_DOM_GLOBAL) == 0 {
-    return ptr::null();
-  }*/
+  assert!(((*JS_GetClass(aGlobal)).flags & JSCLASS_DOM_GLOBAL) != 0);
+
   /* Check to see whether the interface objects are already installed */
   let protoOrIfaceArray: *mut *JSObject = GetProtoOrIfaceArray(aGlobal) as *mut *JSObject;
   let cachedObject: *JSObject = *protoOrIfaceArray.offset(%s as int);
@@ -4272,7 +4270,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::utils::{CreateDOMGlobal, CreateInterfaceObjects2}',
             'dom::bindings::utils::{ConstantSpec, cx_for_dom_object, Default}',
             'dom::bindings::utils::{dom_object_slot, DOM_OBJECT_SLOT, DOMClass}',
-            'dom::bindings::utils::{DOMJSClass}',
+            'dom::bindings::utils::{DOMJSClass, JSCLASS_DOM_GLOBAL}',
             'dom::bindings::utils::{FindEnumStringIndex, GetArrayIndexFromId}',
             'dom::bindings::utils::{GetPropertyOnPrototype, GetProtoOrIfaceArray}',
             'dom::bindings::utils::{HasPropertyOnPrototype, IntVal}',

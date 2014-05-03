@@ -207,7 +207,7 @@ pub struct DOMJSClass {
 
 pub fn GetProtoOrIfaceArray(global: *JSObject) -> **JSObject {
     unsafe {
-        /*assert ((*JS_GetClass(global)).flags & JSCLASS_DOM_GLOBAL) != 0;*/
+        assert!(((*JS_GetClass(global)).flags & JSCLASS_DOM_GLOBAL) != 0);
         JS_GetReservedSlot(global, DOM_PROTOTYPE_SLOT).to_private() as **JSObject
     }
 }
