@@ -189,9 +189,9 @@ impl<'a,QUD,WUD:Send> WorkerProxy<'a,QUD,WUD> {
 /// A work queue on which units of work can be submitted.
 pub struct WorkQueue<QUD,WUD> {
     /// Information about each of the workers.
-    pub workers: ~[WorkerInfo<QUD,WUD>],
+    workers: ~[WorkerInfo<QUD,WUD>],
     /// A port on which deques can be received from the workers.
-    pub port: Receiver<SupervisorMsg<QUD,WUD>>,
+    port: Receiver<SupervisorMsg<QUD,WUD>>,
     /// The amount of work that has been enqueued.
     pub work_count: uint,
     /// Arbitrary user data.
