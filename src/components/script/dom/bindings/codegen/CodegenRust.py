@@ -479,16 +479,13 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         if isOptional:
             template = "Some(%s)" % template
             declType = CGWrapper(declType, pre="Option<", post=">")
-            initialValue = "None"
-        else:
-            initialValue = None
 
         if default is not None:
             template = CGIfElseWrapper("${haveValue}",
                                        CGGeneric(template),
                                        CGGeneric(default)).define()
 
-        return (template, declType, isOptional, initialValue, needsRooting)
+        return (template, declType, isOptional, needsRooting)
 
     # Unfortunately, .capitalize() on a string will lowercase things inside the
     # string, which we do not want.
@@ -762,7 +759,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         assert not isOptional
         # This one only happens for return values, and its easy: Just
         # ignore the jsval.
-        return ("", None, False, None, False)
+        return ("", None, False, False)
 
     if not type.isPrimitive():
         raise TypeError("Need conversion for argument type '%s'" % str(type))
@@ -813,7 +810,7 @@ def instantiateJSToNativeConversionTemplate(templateTuple, replacements,
     replace ${argc} and ${index}, where ${index} is the index of this
     argument (0-based) and ${argc} is the total number of arguments.
     """
-    (templateBody, declType, dealWithOptional, initialValue, needsRooting) = templateTuple
+    (templateBody, declType, dealWithOptional, needsRooting) = templateTuple
 
     if dealWithOptional and argcAndIndex is None:
         raise TypeError("Have to deal with optional things, but don't know how")
@@ -832,8 +829,8 @@ def instantiateJSToNativeConversionTemplate(templateTuple, replacements,
                    CGGeneric(replacements["declName"]),
                    CGGeneric(": "),
                    declType]
-        if initialValue:
-            newDecl.append(CGGeneric(" = " + initialValue))
+        if dealWithOptional:
+            newDecl.append(CGGeneric(" = None"))
         newDecl.append(CGGeneric(";"))
         result.append(CGList(newDecl))
         conversion = CGWrapper(conversion,
@@ -2702,7 +2699,7 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
         name = type.name
         typeName = "/*" + type.name + "*/"
 
-    (template, _, _, _, _) = getJSToNativeConversionTemplate(
+    (template, _, _, _) = getJSToNativeConversionTemplate(
         type, descriptorProvider, failureCode="return Ok(None);",
         exceptionCode='return Err(());',
         isDefinitelyObject=True, isOptional=False)
@@ -4083,15 +4080,13 @@ class CGDictionary(CGThing):
         return "/* uh oh */ %s" % name
 
     def getMemberType(self, memberInfo):
-        (member, (templateBody, declType,
-                  dealWithOptional, initialValue, _)) = memberInfo
+        (member, (templateBody, declType, dealWithOptional, _)) = memberInfo
         if dealWithOptional:
             declType = CGWrapper(declType, pre="Optional< ", post=" >")
         return declType.define()
 
     def getMemberConversion(self, memberInfo):
-        (member, (templateBody, declType,
-                  dealWithOptional, initialValue, _)) = memberInfo
+        (member, (templateBody, declType, dealWithOptional, _)) = memberInfo
         replacements = { "val": "value.unwrap()" }
         if member.defaultValue:
             replacements["haveValue"] = "value.is_some()"
