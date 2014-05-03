@@ -119,7 +119,7 @@ pub fn from_cmdline_args(args: &[~str]) -> Option<Opts> {
             } else if backend_str == ~"skia" {
                 SkiaBackend
             } else {
-                fail!(~"unknown backend type")
+                fail!("unknown backend type")
             }
         }
         None => SkiaBackend
