@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::InheritTypes::ElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLAnchorElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLIFrameElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLImageElementCast;
@@ -11,7 +12,9 @@ use dom::bindings::codegen::InheritTypes::HTMLStyleElementCast;
 use dom::bindings::js::JS;
 use dom::element::Element;
 use dom::element::{ElementTypeId, HTMLImageElementTypeId};
-use dom::element::{HTMLIFrameElementTypeId, HTMLObjectElementTypeId, HTMLStyleElementTypeId};
+use dom::element::{HTMLAnchorElementTypeId, HTMLIFrameElementTypeId, HTMLObjectElementTypeId, HTMLStyleElementTypeId};
+use dom::event::Event;
+use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlelement::HTMLElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
@@ -68,6 +71,14 @@ pub trait VirtualMethods {
             _ => (),
         }
     }
+
+    /// Called during event dispatch after the bubbling phase completes.
+    fn handle_event(&mut self, abstract_self: &JS<Node>, event: &JS<Event>) {
+        let s = self.super_type();
+        if s.is_some() {
+            s.unwrap().handle_event(abstract_self, event);
+        }
+    }
 }
 
 /// Obtain a VirtualMethods instance for a given Node-derived object. Any
@@ -76,6 +87,10 @@ pub trait VirtualMethods {
 /// interrupted.
 pub fn vtable_for<'a>(node: &JS<Node>) -> ~VirtualMethods: {
     match node.get().type_id {
+        ElementNodeTypeId(HTMLAnchorElementTypeId) => {
+            let element: JS<HTMLAnchorElement> = HTMLAnchorElementCast::to(node).unwrap();
+            ~element as ~VirtualMethods:
+        }
         ElementNodeTypeId(HTMLImageElementTypeId) => {
             let element: JS<HTMLImageElement> = HTMLImageElementCast::to(node).unwrap();
             ~element as ~VirtualMethods:

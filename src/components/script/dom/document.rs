@@ -693,4 +693,9 @@ impl Document {
         }
         self.idmap.insert(id, vec!(element.clone()));
     }
+
+    /// Commence a new URL load which could replace this document.
+    pub fn load_anchor_href(&self, href: DOMString) {
+        self.window.get().load_url(href);
+    }
 }

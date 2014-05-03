@@ -8,6 +8,7 @@ use dom::bindings::js::JS;
 use dom::eventtarget::{Capturing, Bubbling, EventTarget};
 use dom::event::{Event, PhaseAtTarget, PhaseNone, PhaseBubbling, PhaseCapturing};
 use dom::node::{Node, NodeHelpers};
+use dom::virtualmethods::vtable_for;
 
 // See http://dom.spec.whatwg.org/#concept-event-dispatch for the full dispatch algorithm
 pub fn dispatch_event(target: &JS<EventTarget>,
@@ -112,6 +113,18 @@ pub fn dispatch_event(target: &JS<EventTarget>,
                 break;
             }
         }
+    }
+
+    /* default action */
+    let target = event.get().GetTarget();
+    match target {
+        Some(ref target) if target.get().is_node() => {
+            let nodetarget: JS<Node> = NodeCast::to(target).unwrap();
+            let mut mut_nodetarget = nodetarget.clone();
+            let mut vtable = vtable_for(&mut mut_nodetarget);
+            vtable.handle_event(&nodetarget, event);
+        },
+        _ => (),
     }
 
     let event = event.get_mut();
