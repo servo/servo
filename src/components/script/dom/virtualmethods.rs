@@ -8,7 +8,7 @@ use dom::bindings::codegen::InheritTypes::HTMLIFrameElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLImageElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLObjectElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLStyleElementCast;
-use dom::bindings::js::JS;
+use dom::bindings::js::JSRef;
 use dom::element::Element;
 use dom::element::{ElementTypeId, HTMLImageElementTypeId};
 use dom::element::{HTMLIFrameElementTypeId, HTMLObjectElementTypeId, HTMLStyleElementTypeId};
@@ -17,7 +17,7 @@ use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlobjectelement::HTMLObjectElement;
 use dom::htmlstyleelement::HTMLStyleElement;
-use dom::node::{Node, ElementNodeTypeId};
+use dom::node::{Node, NodeHelpers, ElementNodeTypeId};
 use servo_util::str::DOMString;
 
 /// Trait to allow DOM nodes to opt-in to overriding (or adding to) common
@@ -25,7 +25,7 @@ use servo_util::str::DOMString;
 pub trait VirtualMethods {
     /// Returns self as the superclass of the implementation for this trait,
     /// if any.
-    fn super_type(&self) -> Option<~VirtualMethods:>;
+    fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods:>;
 
     /// Called when changing or adding attributes, after the attribute's value
     /// has been updated.
@@ -62,7 +62,7 @@ pub trait VirtualMethods {
     }
 
     /// Called on the parent when a node is added to its child list.
-    fn child_inserted(&mut self, child: &JS<Node>) {
+    fn child_inserted(&mut self, child: &JSRef<Node>) {
         match self.super_type() {
             Some(ref mut s) => s.child_inserted(child),
             _ => (),
@@ -74,34 +74,34 @@ pub trait VirtualMethods {
 /// method call on the trait object will invoke the corresponding method on the
 /// concrete type, propagating up the parent hierarchy unless otherwise
 /// interrupted.
-pub fn vtable_for<'a>(node: &JS<Node>) -> ~VirtualMethods: {
-    match node.get().type_id {
+pub fn vtable_for<'a>(node: &'a mut JSRef<Node>) -> &'a mut VirtualMethods: {
+    match node.type_id() {
         ElementNodeTypeId(HTMLImageElementTypeId) => {
-            let element: JS<HTMLImageElement> = HTMLImageElementCast::to(node).unwrap();
-            ~element as ~VirtualMethods:
+            let element: &mut JSRef<HTMLImageElement> = HTMLImageElementCast::to_mut_ref(node).unwrap();
+            element as &mut VirtualMethods:
         }
         ElementNodeTypeId(HTMLIFrameElementTypeId) => {
-            let element: JS<HTMLIFrameElement> = HTMLIFrameElementCast::to(node).unwrap();
-            ~element as ~VirtualMethods:
+            let element: &mut JSRef<HTMLIFrameElement> = HTMLIFrameElementCast::to_mut_ref(node).unwrap();
+            element as &mut VirtualMethods:
         }
         ElementNodeTypeId(HTMLObjectElementTypeId) => {
-            let element: JS<HTMLObjectElement> = HTMLObjectElementCast::to(node).unwrap();
-            ~element as ~VirtualMethods:
+            let element: &mut JSRef<HTMLObjectElement> = HTMLObjectElementCast::to_mut_ref(node).unwrap();
+            element as &mut VirtualMethods:
         }
         ElementNodeTypeId(HTMLStyleElementTypeId) => {
-            let element: JS<HTMLStyleElement> = HTMLStyleElementCast::to(node).unwrap();
-            ~element as ~VirtualMethods:
+            let element: &mut JSRef<HTMLStyleElement> = HTMLStyleElementCast::to_mut_ref(node).unwrap();
+            element as &mut VirtualMethods:
         }
         ElementNodeTypeId(ElementTypeId) => {
-            let element: JS<Element> = ElementCast::to(node).unwrap();
-            ~element as ~VirtualMethods:
+            let element: &mut JSRef<Element> = ElementCast::to_mut_ref(node).unwrap();
+            element as &mut VirtualMethods:
         }
         ElementNodeTypeId(_) => {
-            let element: JS<HTMLElement> = HTMLElementCast::to(node).unwrap();
-            ~element as ~VirtualMethods:
+            let element: &mut JSRef<HTMLElement> = HTMLElementCast::to_mut_ref(node).unwrap();
+            element as &mut VirtualMethods:
         }
         _ => {
-            ~node.clone() as ~VirtualMethods:
+            node as &mut VirtualMethods:
         }
     }
 }

@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLTableCaptionElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTableCaptionElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLTableCaptionElementTypeId;
@@ -28,24 +28,29 @@ impl HTMLTableCaptionElementDerived for EventTarget {
 }
 
 impl HTMLTableCaptionElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLTableCaptionElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLTableCaptionElement {
         HTMLTableCaptionElement {
             htmlelement: HTMLElement::new_inherited(HTMLTableCaptionElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLTableCaptionElement> {
-        let element = HTMLTableCaptionElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLTableCaptionElement> {
+        let element = HTMLTableCaptionElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLTableCaptionElementBinding::Wrap)
     }
 }
 
-impl HTMLTableCaptionElement {
-    pub fn Align(&self) -> DOMString {
+pub trait HTMLTableCaptionElementMethods {
+    fn Align(&self) -> DOMString;
+    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLTableCaptionElementMethods for JSRef<'a, HTMLTableCaptionElement> {
+    fn Align(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
+    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
         Ok(())
     }
 }

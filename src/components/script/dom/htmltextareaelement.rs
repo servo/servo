@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLTextAreaElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTextAreaElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::document::Document;
 use dom::element::HTMLTextAreaElementTypeId;
@@ -28,175 +28,219 @@ impl HTMLTextAreaElementDerived for EventTarget {
 }
 
 impl HTMLTextAreaElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLTextAreaElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLTextAreaElement {
         HTMLTextAreaElement {
             htmlelement: HTMLElement::new_inherited(HTMLTextAreaElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLTextAreaElement> {
-        let element = HTMLTextAreaElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLTextAreaElement> {
+        let element = HTMLTextAreaElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLTextAreaElementBinding::Wrap)
     }
 }
 
-impl HTMLTextAreaElement {
-    pub fn Autofocus(&self) -> bool {
+pub trait HTMLTextAreaElementMethods {
+    fn Autofocus(&self) -> bool;
+    fn SetAutofocus(&mut self, _autofocus: bool) -> ErrorResult;
+    fn Cols(&self) -> u32;
+    fn SetCols(&self, _cols: u32) -> ErrorResult;
+    fn Disabled(&self) -> bool;
+    fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult;
+    fn MaxLength(&self) -> i32;
+    fn SetMaxLength(&self, _max_length: i32) -> ErrorResult;
+    fn Name(&self) -> DOMString;
+    fn SetName(&mut self, _name: DOMString) -> ErrorResult;
+    fn Placeholder(&self) -> DOMString;
+    fn SetPlaceholder(&mut self, _placeholder: DOMString) -> ErrorResult;
+    fn ReadOnly(&self) -> bool;
+    fn SetReadOnly(&mut self, _read_only: bool) -> ErrorResult;
+    fn Required(&self) -> bool;
+    fn SetRequired(&mut self, _required: bool) -> ErrorResult;
+    fn Rows(&self) -> u32;
+    fn SetRows(&self, _rows: u32) -> ErrorResult;
+    fn Wrap(&self) -> DOMString;
+    fn SetWrap(&mut self, _wrap: DOMString) -> ErrorResult;
+    fn Type(&self) -> DOMString;
+    fn SetType(&mut self, _type: DOMString);
+    fn DefaultValue(&self) -> DOMString;
+    fn SetDefaultValue(&mut self, _default_value: DOMString) -> ErrorResult;
+    fn Value(&self) -> DOMString;
+    fn SetValue(&mut self, _value: DOMString);
+    fn TextLength(&self) -> u32;
+    fn SetTextLength(&self, _text_length: u32) -> ErrorResult;
+    fn WillValidate(&self) -> bool;
+    fn SetWillValidate(&mut self, _will_validate: bool) -> ErrorResult;
+    fn ValidationMessage(&self) -> DOMString;
+    fn CheckValidity(&self) -> bool;
+    fn SetCustomValidity(&self, _error: DOMString);
+    fn Select(&self);
+    fn GetSelectionStart(&self) -> Fallible<u32>;
+    fn SetSelectionStart(&self, _selection_start: u32) -> ErrorResult;
+    fn GetSelectionEnd(&self) -> Fallible<u32>;
+    fn SetSelectionEnd(&self, _selection_end: u32) -> ErrorResult;
+    fn GetSelectionDirection(&self) -> Fallible<DOMString>;
+    fn SetSelectionDirection(&self, _selection_direction: DOMString) -> ErrorResult;
+    fn SetRangeText(&self, _replacement: DOMString);
+}
+
+impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
+    fn Autofocus(&self) -> bool {
         false
     }
 
-    pub fn SetAutofocus(&mut self, _autofocus: bool) -> ErrorResult {
+    fn SetAutofocus(&mut self, _autofocus: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Cols(&self) -> u32 {
+    fn Cols(&self) -> u32 {
         0
     }
 
-    pub fn SetCols(&self, _cols: u32) -> ErrorResult {
+    fn SetCols(&self, _cols: u32) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Disabled(&self) -> bool {
+    fn Disabled(&self) -> bool {
         false
     }
 
-    pub fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult {
+    fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn MaxLength(&self) -> i32 {
+    fn MaxLength(&self) -> i32 {
         0
     }
 
-    pub fn SetMaxLength(&self, _max_length: i32) -> ErrorResult {
+    fn SetMaxLength(&self, _max_length: i32) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Name(&self) -> DOMString {
+    fn Name(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetName(&mut self, _name: DOMString) -> ErrorResult {
+    fn SetName(&mut self, _name: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Placeholder(&self) -> DOMString {
+    fn Placeholder(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetPlaceholder(&mut self, _placeholder: DOMString) -> ErrorResult {
+    fn SetPlaceholder(&mut self, _placeholder: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn ReadOnly(&self) -> bool {
+    fn ReadOnly(&self) -> bool {
         false
     }
 
-    pub fn SetReadOnly(&mut self, _read_only: bool) -> ErrorResult {
+    fn SetReadOnly(&mut self, _read_only: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Required(&self) -> bool {
+    fn Required(&self) -> bool {
         false
     }
 
-    pub fn SetRequired(&mut self, _required: bool) -> ErrorResult {
+    fn SetRequired(&mut self, _required: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Rows(&self) -> u32 {
+    fn Rows(&self) -> u32 {
         0
     }
 
-    pub fn SetRows(&self, _rows: u32) -> ErrorResult {
+    fn SetRows(&self, _rows: u32) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Wrap(&self) -> DOMString {
+    fn Wrap(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetWrap(&mut self, _wrap: DOMString) -> ErrorResult {
+    fn SetWrap(&mut self, _wrap: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Type(&self) -> DOMString {
+    fn Type(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetType(&mut self, _type: DOMString) {
+    fn SetType(&mut self, _type: DOMString) {
     }
 
-    pub fn DefaultValue(&self) -> DOMString {
+    fn DefaultValue(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetDefaultValue(&mut self, _default_value: DOMString) -> ErrorResult {
+    fn SetDefaultValue(&mut self, _default_value: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Value(&self) -> DOMString {
+    fn Value(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetValue(&mut self, _value: DOMString) {
+    fn SetValue(&mut self, _value: DOMString) {
     }
 
-    pub fn TextLength(&self) -> u32 {
+    fn TextLength(&self) -> u32 {
         0
     }
 
-    pub fn SetTextLength(&self, _text_length: u32) -> ErrorResult {
+    fn SetTextLength(&self, _text_length: u32) -> ErrorResult {
         Ok(())
     }
 
-    pub fn WillValidate(&self) -> bool {
+    fn WillValidate(&self) -> bool {
         false
     }
 
-    pub fn SetWillValidate(&mut self, _will_validate: bool) -> ErrorResult {
+    fn SetWillValidate(&mut self, _will_validate: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn ValidationMessage(&self) -> DOMString {
+    fn ValidationMessage(&self) -> DOMString {
         ~""
     }
 
-    pub fn CheckValidity(&self) -> bool {
+    fn CheckValidity(&self) -> bool {
         false
     }
 
-    pub fn SetCustomValidity(&self, _error: DOMString) {
+    fn SetCustomValidity(&self, _error: DOMString) {
     }
 
-    pub fn Select(&self) {
+    fn Select(&self) {
     }
 
-    pub fn GetSelectionStart(&self) -> Fallible<u32> {
+    fn GetSelectionStart(&self) -> Fallible<u32> {
         Ok(0)
     }
 
-    pub fn SetSelectionStart(&self, _selection_start: u32) -> ErrorResult {
+    fn SetSelectionStart(&self, _selection_start: u32) -> ErrorResult {
         Ok(())
     }
 
-    pub fn GetSelectionEnd(&self) -> Fallible<u32> {
+    fn GetSelectionEnd(&self) -> Fallible<u32> {
         Ok(0)
     }
 
-    pub fn SetSelectionEnd(&self, _selection_end: u32) -> ErrorResult {
+    fn SetSelectionEnd(&self, _selection_end: u32) -> ErrorResult {
         Ok(())
     }
 
-    pub fn GetSelectionDirection(&self) -> Fallible<DOMString> {
+    fn GetSelectionDirection(&self) -> Fallible<DOMString> {
         Ok(~"")
     }
 
-    pub fn SetSelectionDirection(&self, _selection_direction: DOMString) -> ErrorResult {
+    fn SetSelectionDirection(&self, _selection_direction: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn SetRangeText(&self, _replacement: DOMString) {
+    fn SetRangeText(&self, _replacement: DOMString) {
     }
 }

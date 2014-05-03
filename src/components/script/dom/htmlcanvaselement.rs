@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLCanvasElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLCanvasElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::{ErrorResult};
 use dom::document::Document;
 use dom::element::HTMLCanvasElementTypeId;
@@ -28,32 +28,39 @@ impl HTMLCanvasElementDerived for EventTarget {
 }
 
 impl HTMLCanvasElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLCanvasElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLCanvasElement {
         HTMLCanvasElement {
             htmlelement: HTMLElement::new_inherited(HTMLCanvasElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLCanvasElement> {
-        let element = HTMLCanvasElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLCanvasElement> {
+        let element = HTMLCanvasElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLCanvasElementBinding::Wrap)
     }
 }
 
-impl HTMLCanvasElement {
-    pub fn Width(&self) -> u32 {
+pub trait HTMLCanvasElementMethods {
+    fn Width(&self) -> u32;
+    fn SetWidth(&mut self, _width: u32) -> ErrorResult;
+    fn Height(&self) -> u32;
+    fn SetHeight(&mut self, _height: u32) -> ErrorResult;
+}
+
+impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
+    fn Width(&self) -> u32 {
         0
     }
 
-    pub fn SetWidth(&mut self, _width: u32) -> ErrorResult {
+    fn SetWidth(&mut self, _width: u32) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Height(&self) -> u32 {
+    fn Height(&self) -> u32 {
         0
     }
 
-    pub fn SetHeight(&mut self, _height: u32) -> ErrorResult {
+    fn SetHeight(&mut self, _height: u32) -> ErrorResult {
         Ok(())
     }
 }

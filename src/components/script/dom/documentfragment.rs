@@ -4,13 +4,13 @@
 
 use dom::bindings::codegen::InheritTypes::{DocumentFragmentDerived, NodeCast};
 use dom::bindings::codegen::BindingDeclarations::DocumentFragmentBinding;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::Fallible;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlcollection::HTMLCollection;
-use dom::node::{DocumentFragmentNodeTypeId, Node};
-use dom::window::Window;
+use dom::node::{DocumentFragmentNodeTypeId, Node, window_from_node};
+use dom::window::{Window, WindowMethods};
 
 #[deriving(Encodable)]
 pub struct DocumentFragment {
@@ -28,28 +28,32 @@ impl DocumentFragmentDerived for EventTarget {
 
 impl DocumentFragment {
     /// Creates a new DocumentFragment.
-    pub fn new_inherited(document: JS<Document>) -> DocumentFragment {
+    pub fn new_inherited(document: &JSRef<Document>) -> DocumentFragment {
         DocumentFragment {
             node: Node::new_inherited(DocumentFragmentNodeTypeId, document),
         }
     }
 
-    pub fn new(document: &JS<Document>) -> JS<DocumentFragment> {
-        let node = DocumentFragment::new_inherited(document.clone());
+    pub fn new(document: &JSRef<Document>) -> Temporary<DocumentFragment> {
+        let node = DocumentFragment::new_inherited(document);
         Node::reflect_node(~node, document, DocumentFragmentBinding::Wrap)
     }
-}
 
-impl DocumentFragment {
-    pub fn Constructor(owner: &JS<Window>) -> Fallible<JS<DocumentFragment>> {
-        Ok(DocumentFragment::new(&owner.get().Document()))
+    pub fn Constructor(owner: &JSRef<Window>) -> Fallible<Temporary<DocumentFragment>> {
+        let document = owner.Document();
+        let document = document.root();
+
+        Ok(DocumentFragment::new(&document.root_ref()))
     }
 }
 
-impl DocumentFragment {
-    pub fn Children(&self, abstract_self: &JS<DocumentFragment>) -> JS<HTMLCollection> {
-        let doc = self.node.owner_doc();
-        let doc = doc.get();
-        HTMLCollection::children(&doc.window, &NodeCast::from(abstract_self))
+pub trait DocumentFragmentMethods {
+    fn Children(&self) -> Temporary<HTMLCollection>;
+}
+
+impl<'a> DocumentFragmentMethods for JSRef<'a, DocumentFragment> {
+    fn Children(&self) -> Temporary<HTMLCollection> {
+        let window = window_from_node(self).root();
+        HTMLCollection::children(&window.root_ref(), NodeCast::from_ref(self))
     }
 }

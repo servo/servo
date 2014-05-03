@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLDListElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLDListElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLDListElementTypeId;
@@ -28,32 +28,40 @@ impl HTMLDListElementDerived for EventTarget {
 }
 
 impl HTMLDListElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLDListElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLDListElement {
         HTMLDListElement {
             htmlelement: HTMLElement::new_inherited(HTMLDListElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLDListElement> {
-        let element = HTMLDListElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLDListElement> {
+        let element = HTMLDListElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLDListElementBinding::Wrap)
     }
 }
 
-impl HTMLDListElement {
-    pub fn Compact(&self) -> bool {
+pub trait HTMLDListElementMethods {
+    fn Compact(&self) -> bool;
+    fn SetCompact(&mut self, _compact: bool) -> ErrorResult;
+    fn Type(&self) -> DOMString;
+    fn SetType(&mut self, _type: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLDListElementMethods for JSRef<'a, HTMLDListElement> {
+    fn Compact(&self) -> bool {
         false
     }
 
-    pub fn SetCompact(&mut self, _compact: bool) -> ErrorResult {
+    fn SetCompact(&mut self, _compact: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Type(&self) -> DOMString {
+    fn Type(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetType(&mut self, _type: DOMString) -> ErrorResult {
+    fn SetType(&mut self, _type: DOMString) -> ErrorResult {
         Ok(())
     }
 }
+

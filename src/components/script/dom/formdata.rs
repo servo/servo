@@ -5,7 +5,7 @@
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::error::{Fallible};
 use dom::bindings::codegen::BindingDeclarations::FormDataBinding;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef, Temporary, OptionalUnrootable};
 use dom::blob::Blob;
 use dom::htmlformelement::HTMLFormElement;
 use dom::window::Window;
@@ -28,33 +28,39 @@ pub struct FormData {
 }
 
 impl FormData {
-    pub fn new_inherited(form: Option<JS<HTMLFormElement>>, window: JS<Window>) -> FormData {
+    pub fn new_inherited(form: Option<JSRef<HTMLFormElement>>, window: &JSRef<Window>) -> FormData {
         FormData {
             data: HashMap::new(),
             reflector_: Reflector::new(),
-            window: window,
-            form: form
+            window: window.unrooted(),
+            form: form.unrooted(),
         }
     }
 
-    pub fn new(form: Option<JS<HTMLFormElement>>, window: &JS<Window>) -> JS<FormData> {
-        reflect_dom_object(~FormData::new_inherited(form, window.clone()), window, FormDataBinding::Wrap)
+    pub fn new(form: Option<JSRef<HTMLFormElement>>, window: &JSRef<Window>) -> Temporary<FormData> {
+        reflect_dom_object(~FormData::new_inherited(form, window), window, FormDataBinding::Wrap)
     }
 
-    pub fn Constructor(window: &JS<Window>, form: Option<JS<HTMLFormElement>>)
-                       -> Fallible<JS<FormData>> {
+    pub fn Constructor(window: &JSRef<Window>, form: Option<JSRef<HTMLFormElement>>) -> Fallible<Temporary<FormData>> {
         Ok(FormData::new(form, window))
     }
+}
 
-    pub fn Append(&mut self, name: DOMString, value: &JS<Blob>, filename: Option<DOMString>) {
+pub trait FormDataMethods {
+    fn Append(&mut self, name: DOMString, value: &JSRef<Blob>, filename: Option<DOMString>);
+    fn Append_(&mut self, name: DOMString, value: DOMString);
+}
+
+impl<'a> FormDataMethods for JSRef<'a, FormData> {
+    fn Append(&mut self, name: DOMString, value: &JSRef<Blob>, filename: Option<DOMString>) {
         let blob = BlobData {
-            blob: value.clone(),
+            blob: value.unrooted(),
             name: filename.unwrap_or(~"default")
         };
         self.data.insert(name.clone(), blob);
     }
 
-    pub fn Append_(&mut self, name: DOMString, value: DOMString) {
+    fn Append_(&mut self, name: DOMString, value: DOMString) {
         self.data.insert(name, StringData(value));
     }
 }

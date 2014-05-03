@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::js::JS;
+use dom::bindings::js::{JSRef};
 use dom::bindings::codegen::InheritTypes::HTMLMediaElementDerived;
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
@@ -28,146 +28,182 @@ impl HTMLMediaElementDerived for EventTarget {
 }
 
 impl HTMLMediaElement {
-    pub fn new_inherited(type_id: ElementTypeId, tag_name: DOMString, document: JS<Document>) -> HTMLMediaElement {
+    pub fn new_inherited(type_id: ElementTypeId, tag_name: DOMString, document: &JSRef<Document>) -> HTMLMediaElement {
         HTMLMediaElement {
             htmlelement: HTMLElement::new_inherited(type_id, tag_name, document)
         }
     }
 }
 
-impl HTMLMediaElement {
-    pub fn Src(&self) -> DOMString {
+pub trait HTMLMediaElementMethods {
+    fn Src(&self) -> DOMString;
+    fn SetSrc(&mut self, _src: DOMString) -> ErrorResult;
+    fn CurrentSrc(&self) -> DOMString;
+    fn CrossOrigin(&self) -> DOMString;
+    fn SetCrossOrigin(&mut self, _cross_origin: DOMString) -> ErrorResult;
+    fn Preload(&self) -> DOMString;
+    fn SetPreload(&mut self, _preload: DOMString) -> ErrorResult;
+    fn Load(&self);
+    fn CanPlayType(&self, _type: DOMString) -> DOMString;
+    fn ReadyState(&self) -> u16;
+    fn Seeking(&self) -> bool;
+    fn CurrentTime(&self) -> f64;
+    fn SetCurrentTime(&mut self, _current_time: f64) -> ErrorResult;
+    fn GetDuration(&self) -> f64;
+    fn Paused(&self) -> bool;
+    fn DefaultPlaybackRate(&self) -> f64;
+    fn SetDefaultPlaybackRate(&mut self, _default_playback_rate: f64) -> ErrorResult;
+    fn PlaybackRate(&self) -> f64;
+    fn SetPlaybackRate(&mut self, _playback_rate: f64) -> ErrorResult;
+    fn Ended(&self) -> bool;
+    fn Autoplay(&self) -> bool;
+    fn SetAutoplay(&mut self, _autoplay: bool) -> ErrorResult;
+    fn Loop(&self) -> bool;
+    fn SetLoop(&mut self, _loop: bool) -> ErrorResult;
+    fn Play(&self) -> ErrorResult;
+    fn Pause(&self) -> ErrorResult;
+    fn Controls(&self) -> bool;
+    fn SetControls(&mut self, _controls: bool) -> ErrorResult;
+    fn Volume(&self) -> f64;
+    fn SetVolume(&mut self, _volume: f64) -> ErrorResult;
+    fn Muted(&self) -> bool;
+    fn SetMuted(&mut self, _muted: bool);
+    fn DefaultMuted(&self) -> bool;
+    fn SetDefaultMuted(&mut self, _default_muted: bool) -> ErrorResult;
+}
+
+impl<'a> HTMLMediaElementMethods for JSRef<'a, HTMLMediaElement> {
+    fn Src(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
+    fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn CurrentSrc(&self) -> DOMString {
+    fn CurrentSrc(&self) -> DOMString {
         ~""
     }
 
-    pub fn CrossOrigin(&self) -> DOMString {
+    fn CrossOrigin(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetCrossOrigin(&mut self, _cross_origin: DOMString) -> ErrorResult {
+    fn SetCrossOrigin(&mut self, _cross_origin: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Preload(&self) -> DOMString {
+    fn Preload(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetPreload(&mut self, _preload: DOMString) -> ErrorResult {
+    fn SetPreload(&mut self, _preload: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Load(&self) {
+    fn Load(&self) {
     }
 
-    pub fn CanPlayType(&self, _type: DOMString) -> DOMString {
+    fn CanPlayType(&self, _type: DOMString) -> DOMString {
         ~""
     }
 
-    pub fn ReadyState(&self) -> u16 {
+    fn ReadyState(&self) -> u16 {
         0
     }
 
-    pub fn Seeking(&self) -> bool {
+    fn Seeking(&self) -> bool {
         false
     }
 
-    pub fn CurrentTime(&self) -> f64 {
+    fn CurrentTime(&self) -> f64 {
         0f64
     }
 
-    pub fn SetCurrentTime(&mut self, _current_time: f64) -> ErrorResult {
+    fn SetCurrentTime(&mut self, _current_time: f64) -> ErrorResult {
         Ok(())
     }
 
-    pub fn GetDuration(&self) -> f64 {
+    fn GetDuration(&self) -> f64 {
         0f64
     }
 
-    pub fn Paused(&self) -> bool {
+    fn Paused(&self) -> bool {
         false
     }
 
-    pub fn DefaultPlaybackRate(&self) -> f64 {
+    fn DefaultPlaybackRate(&self) -> f64 {
         0f64
     }
 
-    pub fn SetDefaultPlaybackRate(&mut self, _default_playback_rate: f64) -> ErrorResult {
+    fn SetDefaultPlaybackRate(&mut self, _default_playback_rate: f64) -> ErrorResult {
         Ok(())
     }
 
-    pub fn PlaybackRate(&self) -> f64 {
+    fn PlaybackRate(&self) -> f64 {
         0f64
     }
 
-    pub fn SetPlaybackRate(&mut self, _playback_rate: f64) -> ErrorResult {
+    fn SetPlaybackRate(&mut self, _playback_rate: f64) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Ended(&self) -> bool {
+    fn Ended(&self) -> bool {
         false
     }
 
-    pub fn Autoplay(&self) -> bool {
+    fn Autoplay(&self) -> bool {
         false
     }
 
-    pub fn SetAutoplay(&mut self, _autoplay: bool) -> ErrorResult {
+    fn SetAutoplay(&mut self, _autoplay: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Loop(&self) -> bool {
+    fn Loop(&self) -> bool {
         false
     }
 
-    pub fn SetLoop(&mut self, _loop: bool) -> ErrorResult {
+    fn SetLoop(&mut self, _loop: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Play(&self) -> ErrorResult {
+    fn Play(&self) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Pause(&self) -> ErrorResult {
+    fn Pause(&self) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Controls(&self) -> bool {
+    fn Controls(&self) -> bool {
         false
     }
 
-    pub fn SetControls(&mut self, _controls: bool) -> ErrorResult {
+    fn SetControls(&mut self, _controls: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Volume(&self) -> f64 {
+    fn Volume(&self) -> f64 {
         0f64
     }
 
-    pub fn SetVolume(&mut self, _volume: f64) -> ErrorResult {
+    fn SetVolume(&mut self, _volume: f64) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Muted(&self) -> bool {
+    fn Muted(&self) -> bool {
         false
     }
 
-    pub fn SetMuted(&mut self, _muted: bool) {
+    fn SetMuted(&mut self, _muted: bool) {
     }
 
-    pub fn DefaultMuted(&self) -> bool {
+    fn DefaultMuted(&self) -> bool {
         false
     }
 
-    pub fn SetDefaultMuted(&mut self, _default_muted: bool) -> ErrorResult {
+    fn SetDefaultMuted(&mut self, _default_muted: bool) -> ErrorResult {
         Ok(())
     }
 }
-

@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLMainElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLMainElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
 use dom::element::HTMLMainElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -27,14 +27,17 @@ impl HTMLMainElementDerived for EventTarget {
 }
 
 impl HTMLMainElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLMainElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLMainElement {
         HTMLMainElement {
             htmlelement: HTMLElement::new_inherited(HTMLMainElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLMainElement> {
-        let element = HTMLMainElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLMainElement> {
+        let element = HTMLMainElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLMainElementBinding::Wrap)
     }
+}
+
+pub trait HTMLMainElementMethods {
 }

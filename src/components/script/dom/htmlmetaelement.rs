@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLMetaElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLMetaElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLMetaElementTypeId;
@@ -28,48 +28,59 @@ impl HTMLMetaElementDerived for EventTarget {
 }
 
 impl HTMLMetaElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLMetaElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLMetaElement {
         HTMLMetaElement {
             htmlelement: HTMLElement::new_inherited(HTMLMetaElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLMetaElement> {
-        let element = HTMLMetaElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLMetaElement> {
+        let element = HTMLMetaElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLMetaElementBinding::Wrap)
     }
 }
 
-impl HTMLMetaElement {
-    pub fn Name(&self) -> DOMString {
+pub trait HTMLMetaElementMethods {
+    fn Name(&self) -> DOMString;
+    fn SetName(&mut self, _name: DOMString) -> ErrorResult;
+    fn HttpEquiv(&self) -> DOMString;
+    fn SetHttpEquiv(&mut self, _http_equiv: DOMString) -> ErrorResult;
+    fn Content(&self) -> DOMString;
+    fn SetContent(&mut self, _content: DOMString) -> ErrorResult;
+    fn Scheme(&self) -> DOMString;
+    fn SetScheme(&mut self, _scheme: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLMetaElementMethods for JSRef<'a, HTMLMetaElement> {
+    fn Name(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetName(&mut self, _name: DOMString) -> ErrorResult {
+    fn SetName(&mut self, _name: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn HttpEquiv(&self) -> DOMString {
+    fn HttpEquiv(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetHttpEquiv(&mut self, _http_equiv: DOMString) -> ErrorResult {
+    fn SetHttpEquiv(&mut self, _http_equiv: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Content(&self) -> DOMString {
+    fn Content(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetContent(&mut self, _content: DOMString) -> ErrorResult {
+    fn SetContent(&mut self, _content: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Scheme(&self) -> DOMString {
+    fn Scheme(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetScheme(&mut self, _scheme: DOMString) -> ErrorResult {
+    fn SetScheme(&mut self, _scheme: DOMString) -> ErrorResult {
         Ok(())
     }
 }

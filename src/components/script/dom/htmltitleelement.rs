@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLTitleElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTitleElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLTitleElementTypeId;
@@ -28,24 +28,29 @@ impl HTMLTitleElementDerived for EventTarget {
 }
 
 impl HTMLTitleElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLTitleElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLTitleElement {
         HTMLTitleElement {
             htmlelement: HTMLElement::new_inherited(HTMLTitleElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLTitleElement> {
-        let element = HTMLTitleElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLTitleElement> {
+        let element = HTMLTitleElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLTitleElementBinding::Wrap)
     }
 }
 
-impl HTMLTitleElement {
-    pub fn Text(&self) -> DOMString {
+pub trait HTMLTitleElementMethods {
+    fn Text(&self) -> DOMString;
+    fn SetText(&mut self, _text: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLTitleElementMethods for JSRef<'a, HTMLTitleElement> {
+    fn Text(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetText(&mut self, _text: DOMString) -> ErrorResult {
+    fn SetText(&mut self, _text: DOMString) -> ErrorResult {
         Ok(())
     }
 }

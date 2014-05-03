@@ -3,11 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::BindingDeclarations::UIEventBinding;
-use dom::bindings::codegen::InheritTypes::UIEventDerived;
-use dom::bindings::js::JS;
+use dom::bindings::codegen::InheritTypes::{EventCast, UIEventDerived};
+use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, OptionalSettable};
 use dom::bindings::error::Fallible;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::event::{Event, EventTypeId, UIEventTypeId};
+use dom::event::{Event, EventMethods, EventTypeId, UIEventTypeId};
 use dom::node::Node;
 use dom::window::Window;
 use servo_util::str::DOMString;
@@ -36,85 +36,111 @@ impl UIEvent {
         }
     }
 
-    pub fn new(window: &JS<Window>) -> JS<UIEvent> {
+    pub fn new(window: &JSRef<Window>) -> Temporary<UIEvent> {
         reflect_dom_object(~UIEvent::new_inherited(UIEventTypeId),
                            window,
                            UIEventBinding::Wrap)
     }
 
-    pub fn Constructor(owner: &JS<Window>,
+    pub fn Constructor(owner: &JSRef<Window>,
                        type_: DOMString,
-                       init: &UIEventBinding::UIEventInit) -> Fallible<JS<UIEvent>> {
-        let mut ev = UIEvent::new(owner);
-        ev.get_mut().InitUIEvent(type_, init.parent.bubbles, init.parent.cancelable,
-                                   init.view.clone(), init.detail);
-        Ok(ev)
+                       init: &UIEventBinding::UIEventInit) -> Fallible<Temporary<UIEvent>> {
+        let mut ev = UIEvent::new(owner).root();
+        ev.InitUIEvent(type_, init.parent.bubbles, init.parent.cancelable,
+                       init.view.root_ref(), init.detail);
+        Ok(Temporary::from_rooted(&*ev))
+    }
+}
+
+pub trait UIEventMethods {
+    fn GetView(&self) -> Option<Temporary<Window>>;
+    fn Detail(&self) -> i32;
+    fn LayerX(&self) -> i32;
+    fn LayerY(&self) -> i32;
+    fn PageX(&self) -> i32;
+    fn PageY(&self) -> i32;
+    fn Which(&self) -> u32;
+    fn GetRangeParent(&self) -> Option<Temporary<Node>>;
+    fn RangeOffset(&self) -> i32;
+    fn CancelBubble(&self) -> bool;
+    fn SetCancelBubble(&mut self, _val: bool);
+    fn IsChar(&self) -> bool;
+    fn InitUIEvent(&mut self,
+                   type_: DOMString,
+                   can_bubble: bool,
+                   cancelable: bool,
+                   view: Option<JSRef<Window>>,
+                   detail: i32);
+}
+
+impl<'a> UIEventMethods for JSRef<'a, UIEvent> {
+    fn GetView(&self) -> Option<Temporary<Window>> {
+        self.view.clone().map(|view| Temporary::new(view))
     }
 
-    pub fn GetView(&self) -> Option<JS<Window>> {
-        self.view.clone()
-    }
-
-    pub fn Detail(&self) -> i32 {
+    fn Detail(&self) -> i32 {
         self.detail
     }
 
-    pub fn InitUIEvent(&mut self,
-                       type_: DOMString,
-                       can_bubble: bool,
-                       cancelable: bool,
-                       view: Option<JS<Window>>,
-                       detail: i32) {
-        self.event.InitEvent(type_, can_bubble, cancelable);
-        self.view = view;
+    fn InitUIEvent(&mut self,
+                   type_: DOMString,
+                   can_bubble: bool,
+                   cancelable: bool,
+                   view: Option<JSRef<Window>>,
+                   detail: i32) {
+        {
+            let event: &mut JSRef<Event> = EventCast::from_mut_ref(self);
+            event.InitEvent(type_, can_bubble, cancelable);
+        }
+        self.view.assign(view);
         self.detail = detail;
     }
 
-    pub fn LayerX(&self) -> i32 {
+    fn LayerX(&self) -> i32 {
         //TODO
         0
     }
 
-    pub fn LayerY(&self) -> i32 {
+    fn LayerY(&self) -> i32 {
         //TODO
         0
     }
 
-    pub fn PageX(&self) -> i32 {
+    fn PageX(&self) -> i32 {
         //TODO
         0
     }
 
-    pub fn PageY(&self) -> i32 {
+    fn PageY(&self) -> i32 {
         //TODO
         0
     }
 
-    pub fn Which(&self) -> u32 {
+    fn Which(&self) -> u32 {
         //TODO
         0
     }
 
-    pub fn GetRangeParent(&self) -> Option<JS<Node>> {
+    fn GetRangeParent(&self) -> Option<Temporary<Node>> {
         //TODO
         None
     }
 
-    pub fn RangeOffset(&self) -> i32 {
+    fn RangeOffset(&self) -> i32 {
         //TODO
         0
     }
 
-    pub fn CancelBubble(&self) -> bool {
+    fn CancelBubble(&self) -> bool {
         //TODO
         false
     }
 
-    pub fn SetCancelBubble(&mut self, _val: bool) {
+    fn SetCancelBubble(&mut self, _val: bool) {
         //TODO
     }
 
-    pub fn IsChar(&self) -> bool {
+    fn IsChar(&self) -> bool {
         //TODO
         false
     }

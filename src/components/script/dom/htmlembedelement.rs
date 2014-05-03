@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLEmbedElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLEmbedElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLEmbedElementTypeId;
@@ -28,68 +28,84 @@ impl HTMLEmbedElementDerived for EventTarget {
 }
 
 impl HTMLEmbedElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLEmbedElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLEmbedElement {
         HTMLEmbedElement {
             htmlelement: HTMLElement::new_inherited(HTMLEmbedElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLEmbedElement> {
-        let element = HTMLEmbedElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLEmbedElement> {
+        let element = HTMLEmbedElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLEmbedElementBinding::Wrap)
     }
 }
 
-impl HTMLEmbedElement {
-    pub fn Src(&self) -> DOMString {
+pub trait HTMLEmbedElementMethods {
+    fn Src(&self) -> DOMString;
+    fn SetSrc(&mut self, _src: DOMString) -> ErrorResult;
+    fn Type(&self) -> DOMString;
+    fn SetType(&mut self, _type: DOMString) -> ErrorResult;
+    fn Width(&self) -> DOMString;
+    fn SetWidth(&mut self, _width: DOMString) -> ErrorResult;
+    fn Height(&self) -> DOMString;
+    fn SetHeight(&mut self, _height: DOMString) -> ErrorResult;
+    fn Align(&self) -> DOMString;
+    fn SetAlign(&mut self, _type: DOMString) -> ErrorResult;
+    fn Name(&self) -> DOMString;
+    fn SetName(&mut self, _type: DOMString) -> ErrorResult;
+    fn GetSVGDocument(&self) -> Option<Temporary<Document>>;
+}
+
+impl<'a> HTMLEmbedElementMethods for JSRef<'a, HTMLEmbedElement> {
+    fn Src(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
+    fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Type(&self) -> DOMString {
+    fn Type(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetType(&mut self, _type: DOMString) -> ErrorResult {
+    fn SetType(&mut self, _type: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Width(&self) -> DOMString {
+    fn Width(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetWidth(&mut self, _width: DOMString) -> ErrorResult {
+    fn SetWidth(&mut self, _width: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Height(&self) -> DOMString {
+    fn Height(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetHeight(&mut self, _height: DOMString) -> ErrorResult {
+    fn SetHeight(&mut self, _height: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Align(&self) -> DOMString {
+    fn Align(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetAlign(&mut self, _type: DOMString) -> ErrorResult {
+    fn SetAlign(&mut self, _type: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Name(&self) -> DOMString {
+    fn Name(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetName(&mut self, _type: DOMString) -> ErrorResult {
+    fn SetName(&mut self, _type: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn GetSVGDocument(&self) -> Option<JS<Document>> {
+    fn GetSVGDocument(&self) -> Option<Temporary<Document>> {
         None
     }
 }

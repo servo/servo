@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::ProcessingInstructionBinding;
 use dom::bindings::codegen::InheritTypes::ProcessingInstructionDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -28,21 +28,25 @@ impl ProcessingInstructionDerived for EventTarget {
 }
 
 impl ProcessingInstruction {
-    pub fn new_inherited(target: DOMString, data: DOMString, document: JS<Document>) -> ProcessingInstruction {
+    pub fn new_inherited(target: DOMString, data: DOMString, document: &JSRef<Document>) -> ProcessingInstruction {
         ProcessingInstruction {
             characterdata: CharacterData::new_inherited(ProcessingInstructionNodeTypeId, data, document),
             target: target
         }
     }
 
-    pub fn new(target: DOMString, data: DOMString, document: &JS<Document>) -> JS<ProcessingInstruction> {
-        let node = ProcessingInstruction::new_inherited(target, data, document.clone());
+    pub fn new(target: DOMString, data: DOMString, document: &JSRef<Document>) -> Temporary<ProcessingInstruction> {
+        let node = ProcessingInstruction::new_inherited(target, data, document);
         Node::reflect_node(~node, document, ProcessingInstructionBinding::Wrap)
     }
 }
 
-impl ProcessingInstruction {
-    pub fn Target(&self) -> DOMString {
+pub trait ProcessingInstructionMethods {
+    fn Target(&self) -> DOMString;
+}
+
+impl<'a> ProcessingInstructionMethods for JSRef<'a, ProcessingInstruction> {
+    fn Target(&self) -> DOMString {
         self.target.clone()
     }
 }

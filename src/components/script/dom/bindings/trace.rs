@@ -6,6 +6,7 @@ use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector};
 
 use js::jsapi::{JSObject, JSTracer, JS_CallTracer, JSTRACE_OBJECT};
+use js::jsval::JSVal;
 
 use libc;
 use std::cast;
@@ -40,6 +41,22 @@ impl<S: Encoder<E>, E> Encodable<S, E> for Reflector {
 
 pub trait JSTraceable {
     fn trace(&self, trc: *mut JSTracer);
+}
+
+pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: JSVal) {
+    if !val.is_gcthing() {
+        return;
+    }
+
+    unsafe {
+        description.to_c_str().with_ref(|name| {
+            (*tracer).debugPrinter = ptr::null();
+            (*tracer).debugPrintIndex = -1;
+            (*tracer).debugPrintArg = name as *libc::c_void;
+            debug!("tracing value {:s}", description);
+            JS_CallTracer(tracer as *JSTracer, val.to_gcthing(), val.trace_kind());
+        });
+    }
 }
 
 pub fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Reflector) {
@@ -129,6 +146,13 @@ impl<S: Encoder<E>, E, T: Encodable<S, E>> Encodable<S, E> for Traceable<RefCell
 impl<S: Encoder<E>, E> Encodable<S, E> for Traceable<*JSObject> {
     fn encode(&self, s: &mut S) -> Result<(), E> {
         trace_object(get_jstracer(s), "object", **self);
+        Ok(())
+    }
+}
+
+impl<S: Encoder<E>, E> Encodable<S, E> for Traceable<JSVal> {
+    fn encode(&self, s: &mut S) -> Result<(), E> {
+        trace_jsval(get_jstracer(s), "val", **self);
         Ok(())
     }
 }

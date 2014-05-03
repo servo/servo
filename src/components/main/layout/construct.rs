@@ -45,7 +45,6 @@ use layout::wrapper::{Before, BeforeBlock, After, AfterBlock, Normal};
 
 use gfx::display_list::OpaqueNode;
 use gfx::font_context::FontContext;
-use script::dom::bindings::codegen::InheritTypes::TextCast;
 use script::dom::bindings::js::JS;
 use script::dom::element::{HTMLIFrameElementTypeId, HTMLImageElementTypeId};
 use script::dom::element::{HTMLObjectElementTypeId};
@@ -1064,8 +1063,8 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
         match self.type_id() {
             Some(TextNodeTypeId) => {
                 unsafe {
-                    let text: JS<Text> = TextCast::to(self.get_jsmanaged()).unwrap();
-                    if !is_whitespace(text.get().characterdata.data) {
+                    let text: JS<Text> = self.get_jsmanaged().transmute_copy();
+                    if !is_whitespace((*text.unsafe_get()).characterdata.data) {
                         return false
                     }
 

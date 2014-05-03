@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::BindingDeclarations::ConsoleBinding;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::window::Window;
 use servo_util::str::DOMString;
@@ -20,27 +20,37 @@ impl Console {
         }
     }
 
-    pub fn new(window: &JS<Window>) -> JS<Console> {
+    pub fn new(window: &JSRef<Window>) -> Temporary<Console> {
         reflect_dom_object(~Console::new_inherited(), window, ConsoleBinding::Wrap)
     }
+}
 
-    pub fn Log(&self, message: DOMString) {
+pub trait ConsoleMethods {
+    fn Log(&self, message: DOMString);
+    fn Debug(&self, message: DOMString);
+    fn Info(&self, message: DOMString);
+    fn Warn(&self, message: DOMString);
+    fn Error(&self, message: DOMString);
+}
+
+impl<'a> ConsoleMethods for JSRef<'a, Console> {
+    fn Log(&self, message: DOMString) {
         println!("{:s}", message);
     }
 
-    pub fn Debug(&self, message: DOMString) {
+    fn Debug(&self, message: DOMString) {
         println!("{:s}", message);
     }
 
-    pub fn Info(&self, message: DOMString) {
+    fn Info(&self, message: DOMString) {
         println!("{:s}", message);
     }
 
-    pub fn Warn(&self, message: DOMString) {
+    fn Warn(&self, message: DOMString) {
         println!("{:s}", message);
     }
 
-    pub fn Error(&self, message: DOMString) {
+    fn Error(&self, message: DOMString) {
         println!("{:s}", message);
     }
 }

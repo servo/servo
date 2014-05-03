@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLQuoteElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLQuoteElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLQuoteElementTypeId;
@@ -28,24 +28,29 @@ impl HTMLQuoteElementDerived for EventTarget {
 }
 
 impl HTMLQuoteElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLQuoteElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLQuoteElement {
         HTMLQuoteElement {
             htmlelement: HTMLElement::new_inherited(HTMLQuoteElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLQuoteElement> {
-        let element = HTMLQuoteElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLQuoteElement> {
+        let element = HTMLQuoteElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLQuoteElementBinding::Wrap)
     }
 }
 
-impl HTMLQuoteElement {
-    pub fn Cite(&self) -> DOMString {
+pub trait HTMLQuoteElementMethods {
+    fn Cite(&self) -> DOMString;
+    fn SetCite(&self, _cite: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLQuoteElementMethods for JSRef<'a, HTMLQuoteElement> {
+    fn Cite(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetCite(&self, _cite: DOMString) -> ErrorResult {
+    fn SetCite(&self, _cite: DOMString) -> ErrorResult {
         Ok(())
     }
 }

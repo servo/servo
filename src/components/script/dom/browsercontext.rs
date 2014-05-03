@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::trace::Traceable;
 use dom::bindings::utils::Reflectable;
 use dom::document::Document;
@@ -22,7 +22,7 @@ pub struct BrowserContext {
 }
 
 impl BrowserContext {
-    pub fn new(document: &JS<Document>) -> BrowserContext {
+    pub fn new(document: &JSRef<Document>) -> BrowserContext {
         let mut context = BrowserContext {
             history: vec!(SessionHistoryEntry::new(document)),
             active_index: 0,
@@ -32,13 +32,13 @@ impl BrowserContext {
         context
     }
 
-    pub fn active_document(&self) -> JS<Document> {
-        self.history.get(self.active_index).document.clone()
+    pub fn active_document(&self) -> Temporary<Document> {
+        Temporary::new(self.history.get(self.active_index).document.clone())
     }
 
-    pub fn active_window(&self) -> JS<Window> {
-        let doc = self.active_document();
-        doc.get().window.clone()
+    pub fn active_window(&self) -> Temporary<Window> {
+        let doc = self.active_document().root();
+        Temporary::new(doc.deref().window.clone())
     }
 
     pub fn window_proxy(&self) -> *JSObject {
@@ -47,14 +47,14 @@ impl BrowserContext {
     }
 
     pub fn create_window_proxy(&self) -> *JSObject {
-        let win = self.active_window();
-        let page = win.get().page();
+        let win = self.active_window().root();
+        let page = win.deref().page();
         let js_info = page.js_info();
 
         let handler = js_info.get_ref().dom_static.windowproxy_handler;
         assert!(handler.deref().is_not_null());
 
-        let parent = win.get().reflector().get_jsobject();
+        let parent = win.deref().reflector().get_jsobject();
         let cx = js_info.get_ref().js_context.deref().deref().ptr;
         let wrapper = unsafe {
             WrapperNew(cx, parent, *handler.deref())
@@ -71,9 +71,9 @@ pub struct SessionHistoryEntry {
 }
 
 impl SessionHistoryEntry {
-    fn new(document: &JS<Document>) -> SessionHistoryEntry {
+    fn new(document: &JSRef<Document>) -> SessionHistoryEntry {
         SessionHistoryEntry {
-            document: document.clone(),
+            document: document.unrooted(),
             children: vec!()
         }
     }

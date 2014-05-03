@@ -5,7 +5,7 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLBodyElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLBodyElementDerived;
 use dom::bindings::error::ErrorResult;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
 use dom::element::HTMLBodyElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -28,64 +28,79 @@ impl HTMLBodyElementDerived for EventTarget {
 }
 
 impl HTMLBodyElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLBodyElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLBodyElement {
         HTMLBodyElement {
             htmlelement: HTMLElement::new_inherited(HTMLBodyElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLBodyElement> {
-        let element = HTMLBodyElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLBodyElement> {
+        let element = HTMLBodyElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLBodyElementBinding::Wrap)
     }
 }
 
-impl HTMLBodyElement {
-    pub fn Text(&self) -> DOMString {
+pub trait HTMLBodyElementMethods {
+    fn Text(&self) -> DOMString;
+    fn SetText(&mut self, _text: DOMString) -> ErrorResult;
+    fn Link(&self) -> DOMString;
+    fn SetLink(&self, _link: DOMString) -> ErrorResult;
+    fn VLink(&self) -> DOMString;
+    fn SetVLink(&self, _v_link: DOMString) -> ErrorResult;
+    fn ALink(&self) -> DOMString;
+    fn SetALink(&self, _a_link: DOMString) -> ErrorResult;
+    fn BgColor(&self) -> DOMString;
+    fn SetBgColor(&self, _bg_color: DOMString) -> ErrorResult;
+    fn Background(&self) -> DOMString;
+    fn SetBackground(&self, _background: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLBodyElementMethods for JSRef<'a, HTMLBodyElement> {
+    fn Text(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetText(&mut self, _text: DOMString) -> ErrorResult {
+    fn SetText(&mut self, _text: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Link(&self) -> DOMString {
+    fn Link(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetLink(&self, _link: DOMString) -> ErrorResult {
+    fn SetLink(&self, _link: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn VLink(&self) -> DOMString {
+    fn VLink(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetVLink(&self, _v_link: DOMString) -> ErrorResult {
+    fn SetVLink(&self, _v_link: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn ALink(&self) -> DOMString {
+    fn ALink(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetALink(&self, _a_link: DOMString) -> ErrorResult {
+    fn SetALink(&self, _a_link: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn BgColor(&self) -> DOMString {
+    fn BgColor(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetBgColor(&self, _bg_color: DOMString) -> ErrorResult {
+    fn SetBgColor(&self, _bg_color: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Background(&self) -> DOMString {
+    fn Background(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetBackground(&self, _background: DOMString) -> ErrorResult {
+    fn SetBackground(&self, _background: DOMString) -> ErrorResult {
         Ok(())
     }
 }

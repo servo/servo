@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLSourceElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLSourceElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLSourceElementTypeId;
@@ -28,40 +28,49 @@ impl HTMLSourceElementDerived for EventTarget {
 }
 
 impl HTMLSourceElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLSourceElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLSourceElement {
         HTMLSourceElement {
             htmlelement: HTMLElement::new_inherited(HTMLSourceElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLSourceElement> {
-        let element = HTMLSourceElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLSourceElement> {
+        let element = HTMLSourceElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLSourceElementBinding::Wrap)
     }
 }
 
-impl HTMLSourceElement {
-    pub fn Src(&self) -> DOMString {
+pub trait HTMLSourceElementMethods {
+    fn Src(&self) -> DOMString;
+    fn SetSrc(&mut self, _src: DOMString) -> ErrorResult;
+    fn Type(&self) -> DOMString;
+    fn SetType(&mut self, _type: DOMString) -> ErrorResult;
+    fn Media(&self) -> DOMString;
+    fn SetMedia(&mut self, _media: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLSourceElementMethods for JSRef<'a, HTMLSourceElement> {
+    fn Src(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
+    fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Type(&self) -> DOMString {
+    fn Type(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetType(&mut self, _type: DOMString) -> ErrorResult {
+    fn SetType(&mut self, _type: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Media(&self) -> DOMString {
+    fn Media(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetMedia(&mut self, _media: DOMString) -> ErrorResult {
+    fn SetMedia(&mut self, _media: DOMString) -> ErrorResult {
         Ok(())
     }
 }

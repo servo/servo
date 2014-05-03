@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::BindingDeclarations::ClientRectListBinding;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::clientrect::ClientRect;
 use dom::window::Window;
@@ -16,34 +16,42 @@ pub struct ClientRectList {
 }
 
 impl ClientRectList {
-    pub fn new_inherited(window: JS<Window>,
-                         rects: Vec<JS<ClientRect>>) -> ClientRectList {
+    pub fn new_inherited(window: &JSRef<Window>,
+                         rects: Vec<JSRef<ClientRect>>) -> ClientRectList {
         ClientRectList {
             reflector_: Reflector::new(),
-            rects: rects,
-            window: window,
+            rects: rects.iter().map(|rect| rect.unrooted()).collect(),
+            window: window.unrooted(),
         }
     }
 
-    pub fn new(window: &JS<Window>,
-               rects: Vec<JS<ClientRect>>) -> JS<ClientRectList> {
-        reflect_dom_object(~ClientRectList::new_inherited(window.clone(), rects),
+    pub fn new(window: &JSRef<Window>,
+               rects: Vec<JSRef<ClientRect>>) -> Temporary<ClientRectList> {
+        reflect_dom_object(~ClientRectList::new_inherited(window, rects),
                            window, ClientRectListBinding::Wrap)
     }
+}
 
-    pub fn Length(&self) -> u32 {
+pub trait ClientRectListMethods {
+    fn Length(&self) -> u32;
+    fn Item(&self, index: u32) -> Option<Temporary<ClientRect>>;
+    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Temporary<ClientRect>>;
+}
+
+impl<'a> ClientRectListMethods for JSRef<'a, ClientRectList> {
+    fn Length(&self) -> u32 {
         self.rects.len() as u32
     }
 
-    pub fn Item(&self, index: u32) -> Option<JS<ClientRect>> {
+    fn Item(&self, index: u32) -> Option<Temporary<ClientRect>> {
         if index < self.rects.len() as u32 {
-            Some(self.rects.get(index as uint).clone())
+            Some(Temporary::new(self.rects.get(index as uint).clone()))
         } else {
             None
         }
     }
 
-    pub fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<JS<ClientRect>> {
+    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Temporary<ClientRect>> {
         *found = index < self.rects.len() as u32;
         self.Item(index)
     }

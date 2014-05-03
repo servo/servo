@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLProgressElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLProgressElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::document::Document;
 use dom::element::HTMLProgressElementTypeId;
@@ -28,40 +28,49 @@ impl HTMLProgressElementDerived for EventTarget {
 }
 
 impl HTMLProgressElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLProgressElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLProgressElement {
         HTMLProgressElement {
             htmlelement: HTMLElement::new_inherited(HTMLProgressElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLProgressElement> {
-        let element = HTMLProgressElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLProgressElement> {
+        let element = HTMLProgressElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLProgressElementBinding::Wrap)
     }
 }
 
-impl HTMLProgressElement {
-    pub fn Value(&self) -> f64 {
+pub trait HTMLProgressElementMethods {
+    fn Value(&self) -> f64;
+    fn SetValue(&mut self, _value: f64) -> ErrorResult;
+    fn Max(&self) -> f64;
+    fn SetMax(&mut self, _max: f64) -> ErrorResult;
+    fn Position(&self) -> f64;
+    fn GetPositiom(&self) -> Fallible<f64>;
+}
+
+impl<'a> HTMLProgressElementMethods for JSRef<'a, HTMLProgressElement> {
+    fn Value(&self) -> f64 {
         0f64
     }
 
-    pub fn SetValue(&mut self, _value: f64) -> ErrorResult {
+    fn SetValue(&mut self, _value: f64) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Max(&self) -> f64 {
+    fn Max(&self) -> f64 {
         0f64
     }
 
-    pub fn SetMax(&mut self, _max: f64) -> ErrorResult {
+    fn SetMax(&mut self, _max: f64) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Position(&self) -> f64 {
+    fn Position(&self) -> f64 {
         0f64
     }
 
-    pub fn GetPositiom(&self) -> Fallible<f64> {
+    fn GetPositiom(&self) -> Fallible<f64> {
         Ok(0f64)
     }
 }

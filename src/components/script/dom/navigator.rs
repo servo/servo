@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::BindingDeclarations::NavigatorBinding;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::error::Fallible;
 use dom::window::Window;
@@ -21,73 +21,94 @@ impl Navigator {
         }
     }
 
-    pub fn new(window: &JS<Window>) -> JS<Navigator> {
+    pub fn new(window: &JSRef<Window>) -> Temporary<Navigator> {
         reflect_dom_object(~Navigator::new_inherited(),
                            window,
                            NavigatorBinding::Wrap)
     }
+}
 
-    pub fn DoNotTrack(&self) -> DOMString {
+pub trait NavigatorMethods {
+    fn DoNotTrack(&self) -> DOMString;
+    fn Vendor(&self) -> DOMString;
+    fn VendorSub(&self) -> DOMString;
+    fn Product(&self) -> DOMString;
+    fn ProductSub(&self) -> DOMString;
+    fn CookieEnabled(&self) -> bool;
+    fn GetBuildID(&self) -> Fallible<DOMString>;
+    fn JavaEnabled(&self) -> Fallible<bool>;
+    fn TaintEnabled(&self) -> bool;
+    fn AppName(&self) -> DOMString;
+    fn GetAppCodeName(&self) -> Fallible<DOMString>;
+    fn GetAppVersion(&self) -> Fallible<DOMString>;
+    fn GetPlatform(&self) -> Fallible<DOMString>;
+    fn GetUserAgent(&self) -> Fallible<DOMString>;
+    fn GetLanguage(&self) -> Option<DOMString>;
+    fn OnLine(&self) -> bool;
+}
+
+impl<'a> NavigatorMethods for JSRef<'a, Navigator> {
+    fn DoNotTrack(&self) -> DOMString {
         ~"unspecified"
     }
 
-    pub fn Vendor(&self) -> DOMString {
+    fn Vendor(&self) -> DOMString {
         ~"" // Like Gecko
     }
 
-    pub fn VendorSub(&self) -> DOMString {
+    fn VendorSub(&self) -> DOMString {
         ~"" // Like Gecko
     }
 
-    pub fn Product(&self) -> DOMString {
+    fn Product(&self) -> DOMString {
         ~"Gecko"
     }
 
-    pub fn ProductSub(&self) -> DOMString {
+    fn ProductSub(&self) -> DOMString {
         ~""
     }
 
-    pub fn CookieEnabled(&self) -> bool {
+    fn CookieEnabled(&self) -> bool {
         false
     }
 
-    pub fn GetBuildID(&self) -> Fallible<DOMString> {
+    fn GetBuildID(&self) -> Fallible<DOMString> {
         Ok(~"")
     }
 
-    pub fn JavaEnabled(&self) -> Fallible<bool> {
+    fn JavaEnabled(&self) -> Fallible<bool> {
         Ok(false)
     }
 
-    pub fn TaintEnabled(&self) -> bool {
+    fn TaintEnabled(&self) -> bool {
         false
     }
 
-    pub fn AppName(&self) -> DOMString {
+    fn AppName(&self) -> DOMString {
         ~"Netscape" // Like Gecko/Webkit
     }
 
-    pub fn GetAppCodeName(&self) -> Fallible<DOMString> {
+    fn GetAppCodeName(&self) -> Fallible<DOMString> {
         Ok(~"Mozilla") // Like Gecko/Webkit
     }
 
-    pub fn GetAppVersion(&self) -> Fallible<DOMString> {
+    fn GetAppVersion(&self) -> Fallible<DOMString> {
         Ok(~"")
     }
 
-    pub fn GetPlatform(&self) -> Fallible<DOMString> {
+    fn GetPlatform(&self) -> Fallible<DOMString> {
         Ok(~"")
     }
 
-    pub fn GetUserAgent(&self) -> Fallible<DOMString> {
+    fn GetUserAgent(&self) -> Fallible<DOMString> {
         Ok(~"")
     }
 
-    pub fn GetLanguage(&self) -> Option<DOMString> {
+    fn GetLanguage(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn OnLine(&self) -> bool {
+    fn OnLine(&self) -> bool {
         true
     }
 }

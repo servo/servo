@@ -37,10 +37,11 @@ use script::dom::bindings::codegen::InheritTypes::{HTMLIFrameElementDerived};
 use script::dom::bindings::codegen::InheritTypes::{HTMLImageElementDerived, TextDerived};
 use script::dom::bindings::js::JS;
 use script::dom::element::{Element, HTMLAreaElementTypeId, HTMLAnchorElementTypeId};
-use script::dom::element::{HTMLLinkElementTypeId};
+use script::dom::element::{HTMLLinkElementTypeId, LayoutElementHelpers, RawLayoutElementHelpers};
 use script::dom::htmliframeelement::HTMLIFrameElement;
-use script::dom::htmlimageelement::HTMLImageElement;
-use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, Node, NodeTypeId, NodeHelpers};
+use script::dom::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
+use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, Node, NodeTypeId};
+use script::dom::node::{LayoutNodeHelpers, RawLayoutNodeHelpers};
 use script::dom::text::Text;
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use servo_util::namespace;
@@ -95,7 +96,7 @@ pub trait TLayoutNode {
                 fail!("not an image!")
             }
             let image_element: JS<HTMLImageElement> = self.get_jsmanaged().transmute_copy();
-            (*image_element.unsafe_get()).image().as_ref().map(|url| (*url).clone())
+            image_element.image().as_ref().map(|url| (*url).clone())
         }
     }
 
@@ -163,7 +164,9 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
     }
 
     fn type_id(&self) -> Option<NodeTypeId> {
-        Some(self.node.type_id())
+        unsafe {
+            Some(self.node.type_id_for_layout())
+        }
     }
 
     unsafe fn get_jsmanaged<'a>(&'a self) -> &'a JS<Node> {
@@ -172,7 +175,7 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
 
     fn first_child(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
-            self.get().first_child_ref().map(|node| self.new_with_this_lifetime(node))
+            self.get_jsmanaged().first_child_ref().map(|node| self.new_with_this_lifetime(node))
         }
     }
 
@@ -221,19 +224,19 @@ impl<'ln> LayoutNode<'ln> {
 impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
     fn parent_node(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
-            self.get().parent_node_ref().map(|node| self.new_with_this_lifetime(node))
+            self.node.parent_node_ref().map(|node| self.new_with_this_lifetime(node))
         }
     }
 
     fn prev_sibling(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
-            self.get().prev_sibling_ref().map(|node| self.new_with_this_lifetime(node))
+            self.node.prev_sibling_ref().map(|node| self.new_with_this_lifetime(node))
         }
     }
 
     fn next_sibling(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
-            self.get().next_sibling_ref().map(|node| self.new_with_this_lifetime(node))
+            self.node.next_sibling_ref().map(|node| self.new_with_this_lifetime(node))
         }
     }
 
@@ -241,8 +244,9 @@ impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
     #[inline]
     fn as_element(&self) -> LayoutElement<'ln> {
         unsafe {
+            assert!(self.node.is_element_for_layout());
             let elem: JS<Element> = self.node.transmute_copy();
-            let element = elem.get();
+            let element = &*elem.unsafe_get();
             LayoutElement {
                 element: cast::transmute_region(element),
             }
@@ -258,9 +262,9 @@ impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
     }
 
     fn match_attr(&self, attr: &AttrSelector, test: |&str| -> bool) -> bool {
-        let element = self.as_element();
         let name = unsafe {
-            if element.element.html_element_in_html_document_for_layout() {
+            let element: JS<Element> = self.node.transmute_copy();
+            if element.html_element_in_html_document_for_layout() {
                 attr.lower_name.as_slice()
             } else {
                 attr.name.as_slice()
@@ -268,6 +272,7 @@ impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
         };
         match attr.namespace {
             SpecificNamespace(ref ns) => {
+                let element = self.as_element();
                 element.get_attr(ns, name)
                         .map_or(false, |attr| test(attr))
             },
@@ -459,7 +464,7 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
         }
 
         unsafe {
-            self.get().first_child_ref().map(|node| self.new_with_this_lifetime(node))
+            self.get_jsmanaged().first_child_ref().map(|node| self.new_with_this_lifetime(node))
         }
     }
 
@@ -509,10 +514,10 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     /// Returns the next sibling of this node. Unsafe and private because this can lead to races.
     unsafe fn next_sibling(&self) -> Option<ThreadSafeLayoutNode<'ln>> {
         if self.pseudo == Before || self.pseudo == BeforeBlock {
-            return self.get().first_child_ref().map(|node| self.new_with_this_lifetime(node))
+            return self.get_jsmanaged().first_child_ref().map(|node| self.new_with_this_lifetime(node))
         }
 
-        self.node.get().next_sibling_ref().map(|node| self.new_with_this_lifetime(node))
+        self.get_jsmanaged().next_sibling_ref().map(|node| self.new_with_this_lifetime(node))
     }
 
     /// Returns an iterator over this node's children.
@@ -527,7 +532,8 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     #[inline]
     pub fn as_element(&self) -> ThreadSafeLayoutElement {
         unsafe {
-            let elem: JS<Element> = self.node.get_jsmanaged().transmute_copy();
+            assert!(self.get_jsmanaged().is_element_for_layout());
+            let elem: JS<Element> = self.get_jsmanaged().transmute_copy();
             let element = elem.unsafe_get();
             // FIXME(pcwalton): Workaround until Rust gets multiple lifetime parameters on
             // implementations.

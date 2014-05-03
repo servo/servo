@@ -394,6 +394,9 @@ def typeIsSequenceOrHasSequenceMember(type):
                    type.flatMemberTypes)
     return False
 
+def typeNeedsRooting(type, descriptorProvider):
+    return type.isGeckoInterface() and descriptorProvider.getDescriptor(type.name).needsRooting
+
 def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                                     isDefinitelyObject=False,
                                     isMember=False,
@@ -481,6 +484,8 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
     if exceptionCode is None:
         exceptionCode = "return 0;"
 
+    needsRooting = typeNeedsRooting(type, descriptorProvider)
+
     def handleOptional(template, declType, isOptional):
         if isOptional:
             template = "Some(%s)" % template
@@ -489,7 +494,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         else:
             initialValue = None
 
-        return (template, declType, isOptional, initialValue)
+        return (template, declType, isOptional, initialValue, needsRooting)
 
     # Unfortunately, .capitalize() on a string will lowercase things inside the
     # string, which we do not want.
@@ -551,7 +556,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             templateBody += (
                 "} else {\n" +
                 CGIndenter(onFailureNotAnObject(failureCode)).define() +
-                "}")
+                "}\n")
             if type.nullable():
                 templateBody = handleDefaultNull(templateBody, "None")
             else:
@@ -601,6 +606,8 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                                           failureCode)
             return handleOptional(template, declType, isOptional)
 
+        descriptorType = descriptor.memberType if isMember else descriptor.nativeType
+
         templateBody = ""
         if descriptor.interface.isConsequential():
             raise TypeError("Consequential interface %s being used as an "
@@ -616,10 +623,13 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                     descriptor,
                     "(${val}).to_object()"))
 
-        declType = CGGeneric(descriptor.nativeType)
+        declType = CGGeneric(descriptorType)
         if type.nullable():
             templateBody = "Some(%s)" % templateBody
             declType = CGWrapper(declType, pre="Option<", post=">")
+
+        if isMember:
+            templateBody += ".root()"
 
         templateBody = wrapObjectTemplate(templateBody, isDefinitelyObject,
                                           type, failureCode)
@@ -745,7 +755,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             "} else {\n"
             "  ${declName} = NULL;\n"
             "}" % haveCallable,
-            CGGeneric("JSObject*"), isOptional, None)
+            CGGeneric("JSObject*"), isOptional, None, needsRooting)
 
     if type.isAny():
         assert not isEnforceRange and not isClamp
@@ -789,7 +799,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         assert not isOptional
         # This one only happens for return values, and its easy: Just
         # ignore the jsval.
-        return ("", None, False, None)
+        return ("", None, False, None, False)
 
     if not type.isPrimitive():
         raise TypeError("Need conversion for argument type '%s'" % str(type))
@@ -842,7 +852,7 @@ def instantiateJSToNativeConversionTemplate(templateTuple, replacements,
     replace ${argc} and ${index}, where ${index} is the index of this
     argument (0-based) and ${argc} is the total number of arguments.
     """
-    (templateBody, declType, dealWithOptional, initialValue) = templateTuple
+    (templateBody, declType, dealWithOptional, initialValue, needsRooting) = templateTuple
 
     if dealWithOptional and argcAndIndex is None:
         raise TypeError("Have to deal with optional things, but don't know how")
@@ -888,6 +898,12 @@ def instantiateJSToNativeConversionTemplate(templateTuple, replacements,
     # Add an empty CGGeneric to get an extra newline after the argument
     # conversion.
     result.append(CGGeneric(""))
+
+    if needsRooting:
+        rootBody = "let ${declName} = ${declName}.root();"
+        result.append(CGGeneric(string.Template(rootBody).substitute(replacements)))
+        result.append(CGGeneric(""))
+
     return result;
 
 def convertConstIDLValueToJSVal(value):
@@ -985,6 +1001,13 @@ def typeNeedsCx(type, retVal=False):
         return True
     return type.isCallback() or type.isAny() or type.isObject()
 
+def typeRetValNeedsRooting(type):
+    if type is None:
+        return False
+    if type.nullable():
+        type = type.inner
+    return type.isGeckoInterface() and not type.isCallback()
+
 def memberIsCreator(member):
     return member.getExtendedAttribute("Creator") is not None
 
@@ -1016,7 +1039,7 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
     if returnType.isGeckoInterface():
         descriptor = descriptorProvider.getDescriptor(
             returnType.unroll().inner.identifier.name)
-        result = CGGeneric(descriptor.nativeType)
+        result = CGGeneric(descriptor.returnType)
         if returnType.nullable():
             result = CGWrapper(result, pre="Option<", post=">")
         return result
@@ -1365,7 +1388,7 @@ class CGImports(CGWrapper):
     """
     Generates the appropriate import/use statements.
     """
-    def __init__(self, child, imports):
+    def __init__(self, child, descriptors, imports):
         """
         Adds a set of imports.
         """
@@ -1384,6 +1407,10 @@ class CGImports(CGWrapper):
             'dead_assignment',
             'dead_code',
         ]
+
+        for d in descriptors:
+            name = d.interface.identifier.name
+            imports.append('dom::%s::%sMethods' % (name.lower(), name))
 
         statements = ['#![allow(%s)]' % ','.join(ignored_warnings)]
         statements.extend('use %s;' % i for i in sorted(imports))
@@ -1763,7 +1790,7 @@ class CGAbstractMethod(CGThing):
     def _returnType(self):
         return (" -> %s" % self.returnType) if self.returnType != "void" else ""
     def _unsafe_open(self):
-        return "\n  unsafe {" if self.unsafe else ""
+        return "\n  unsafe {\n" if self.unsafe else ""
     def _unsafe_close(self):
         return "\n  }\n" if self.unsafe else ""
 
@@ -1783,7 +1810,7 @@ def CreateBindingJSObject(descriptor, parent=None):
     if descriptor.proxy:
         assert not descriptor.createGlobal
         handler = """
-  let js_info = aScope.get().page().js_info();
+  let js_info = aScope.deref().page().js_info();
   let handler = js_info.get_ref().dom_static.proxy_handlers.deref().get(&(PrototypeList::id::%s as uint));
 """ % descriptor.name
         create += handler + """  let obj = NewProxyObject(aCx, *handler,
@@ -1809,7 +1836,7 @@ class CGWrapMethod(CGAbstractMethod):
     def __init__(self, descriptor):
         assert descriptor.interface.hasInterfacePrototypeObject()
         if not descriptor.createGlobal:
-            args = [Argument('*JSContext', 'aCx'), Argument('&JS<Window>', 'aScope'),
+            args = [Argument('*JSContext', 'aCx'), Argument('&JSRef<Window>', 'aScope'),
                     Argument("~" + descriptor.concreteType, 'aObject', mutable=True)]
         else:
             args = [Argument('*JSContext', 'aCx'),
@@ -2210,6 +2237,9 @@ class CGCallGenerator(CGThing):
             self.cgRoot.append(CGGeneric("}"))
             self.cgRoot.append(CGGeneric("result = result_fallible.unwrap();"))
 
+        if typeRetValNeedsRooting(returnType):
+            self.cgRoot.append(CGGeneric("let result = result.root();"))
+
     def define(self):
         return self.cgRoot.define()
 
@@ -2277,7 +2307,12 @@ class CGPerSignatureCall(CGThing):
     def getArgc(self):
         return "argc"
     def getArguments(self):
-        return [(a, "arg" + str(i)) for (i, a) in enumerate(self.arguments)]
+        def process(arg, i):
+            argVal = "arg" + str(i)
+            if arg.type.isGeckoInterface() and not arg.type.unroll().inner.isCallback():
+                argVal += ".root_ref()"
+            return argVal
+        return [(a, process(a, i)) for (i, a) in enumerate(self.arguments)]
 
     def isFallible(self):
         return not 'infallible' in self.extendedAttributes
@@ -2447,17 +2482,10 @@ class CGSpecializedMethod(CGAbstractExternMethod):
 
     def definition_body(self):
         name = self.method.identifier.name
-        nativeName = MakeNativeName(name)
-        extraPre = ''
-        argsPre = []
-        if name in self.descriptor.needsAbstract:
-            abstractName = re.sub(r'<\w+>', '', self.descriptor.nativeType)
-            extraPre = '  let mut abstract_this = %s::from_raw(this);\n' % abstractName
-            argsPre = ['&mut abstract_this']
-        return CGWrapper(CGMethodCall(argsPre, nativeName, self.method.isStatic(),
+        return CGWrapper(CGMethodCall([], MakeNativeName(name), self.method.isStatic(),
                                       self.descriptor, self.method),
-                         pre=extraPre +
-                             "  let this = &mut *this;\n").define()
+                         pre="  let this = JS::from_raw(this);\n" +
+                             "  let mut this = this.root();\n").define()
 
 class CGGenericGetter(CGAbstractBindingMethod):
     """
@@ -2480,10 +2508,8 @@ class CGGenericGetter(CGAbstractBindingMethod):
 
     def generate_code(self):
         return CGIndenter(CGGeneric(
-            "return with_gc_disabled(cx, || {\n"
-            "  let info: *JSJitInfo = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, &*vp));\n"
-            "  CallJitPropertyOp(info, cx, obj, this.unsafe_get() as *libc::c_void, &*vp)\n"
-            "});\n"))
+            "let info: *JSJitInfo = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, &*vp));\n"
+            "return CallJitPropertyOp(info, cx, obj, this.unsafe_get() as *libc::c_void, &*vp);\n"))
 
 class CGSpecializedGetter(CGAbstractExternMethod):
     """
@@ -2502,21 +2528,15 @@ class CGSpecializedGetter(CGAbstractExternMethod):
     def definition_body(self):
         name = self.attr.identifier.name
         nativeName = MakeNativeName(name)
-        extraPre = ''
-        argsPre = []
         infallible = ('infallible' in
                       self.descriptor.getExtendedAttributes(self.attr,
                                                             getter=True))
-        if name in self.descriptor.needsAbstract:
-            abstractName = re.sub(r'<\w+>', '', self.descriptor.nativeType)
-            extraPre = '  let mut abstract_this = %s::from_raw(this);\n' % abstractName
-            argsPre = ['&mut abstract_this']
         if self.attr.type.nullable() or not infallible:
             nativeName = "Get" + nativeName
-        return CGWrapper(CGIndenter(CGGetterCall(argsPre, self.attr.type, nativeName,
+        return CGWrapper(CGIndenter(CGGetterCall([], self.attr.type, nativeName,
                                                  self.descriptor, self.attr)),
-                         pre=extraPre +
-                             "  let this = &mut *this;\n").define()
+                         pre="  let this = JS::from_raw(this);\n" +
+                             "  let mut this = this.root();\n").define()
 
 class CGGenericSetter(CGAbstractBindingMethod):
     """
@@ -2541,10 +2561,7 @@ class CGGenericSetter(CGAbstractBindingMethod):
                 "let undef = UndefinedValue();\n"
                 "let argv: *JSVal = if argc != 0 { JS_ARGV(cx, vp as *JSVal) } else { &undef as *JSVal };\n"
                 "let info: *JSJitInfo = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp as *JSVal));\n"
-                "let ok = with_gc_disabled(cx, || {\n"
-                "  CallJitPropertyOp(info, cx, obj, this.unsafe_get() as *libc::c_void, argv)\n"
-                "});\n"
-                "if ok == 0 {\n"
+                "if CallJitPropertyOp(info, cx, obj, this.unsafe_get() as *libc::c_void, argv) == 0 {\n"
                 "  return 0;\n"
                 "}\n"
                 "*vp = UndefinedValue();\n"
@@ -2566,17 +2583,11 @@ class CGSpecializedSetter(CGAbstractExternMethod):
 
     def definition_body(self):
         name = self.attr.identifier.name
-        nativeName = "Set" + MakeNativeName(name)
-        argsPre = []
-        extraPre = ''
-        if name in self.descriptor.needsAbstract:
-            abstractName = re.sub(r'<\w+>', '', self.descriptor.nativeType)
-            extraPre = '  let mut abstract_this = %s::from_raw(this);\n' % abstractName
-            argsPre = ['&mut abstract_this']
-        return CGWrapper(CGIndenter(CGSetterCall(argsPre, self.attr.type, nativeName,
+        return CGWrapper(CGIndenter(CGSetterCall([], self.attr.type,
+                                                 "Set" + MakeNativeName(name),
                                                  self.descriptor, self.attr)),
-                         pre=extraPre +
-                             "  let this = &mut *this;\n").define()
+                         pre="  let this = JS::from_raw(this);\n" +
+                             "  let mut this = this.root();\n").define()
 
 
 class CGMemberJITInfo(CGThing):
@@ -2744,7 +2755,7 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
         name = type.name
         typeName = "/*" + type.name + "*/"
 
-    (template, _, _, _) = getJSToNativeConversionTemplate(
+    (template, _, _, _, _) = getJSToNativeConversionTemplate(
         type, descriptorProvider, failureCode="return Ok(None);",
         exceptionCode='return Err(());',
         isDefinitelyObject=True, isOptional=False)
@@ -3411,7 +3422,12 @@ class CGProxySpecialOperation(CGPerSignatureCall):
             self.cgRoot.prepend(CGGeneric("let mut found = false;"))
 
     def getArguments(self):
-        args = [(a, a.identifier.name) for a in self.arguments]
+        def process(arg):
+            argVal = arg.identifier.name
+            if arg.type.isGeckoInterface() and not arg.type.unroll().inner.isCallback():
+                argVal += ".root_ref()"
+            return argVal
+        args = [(a, process(a)) for a in self.arguments]
         if self.idlNode.isGetter():
             args.append((FakeArgument(BuiltinTypes[IDLBuiltinType.Types.boolean],
                                       self.idlNode),
@@ -3461,14 +3477,14 @@ class CGProxyNamedSetter(CGProxySpecialOperation):
 class CGProxyUnwrap(CGAbstractMethod):
     def __init__(self, descriptor):
         args = [Argument('*JSObject', 'obj')]
-        CGAbstractMethod.__init__(self, descriptor, "UnwrapProxy", '*' + descriptor.concreteType, args, alwaysInline=True)
+        CGAbstractMethod.__init__(self, descriptor, "UnwrapProxy", '*mut ' + descriptor.concreteType, args, alwaysInline=True)
 
     def definition_body(self):
         return """  /*if (xpc::WrapperFactory::IsXrayWrapper(obj)) {
     obj = js::UnwrapObject(obj);
   }*/
   //MOZ_ASSERT(IsProxy(obj));
-  let box_: *%s = cast::transmute(GetProxyPrivate(obj).to_private());
+  let box_: *mut %s = cast::transmute(GetProxyPrivate(obj).to_private());
   return box_;""" % (self.descriptor.concreteType)
 
 class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
@@ -3493,9 +3509,11 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
             templateValues = {'jsvalRef': '(*desc).value', 'successCode': fillDescriptor}
             get = ("if index.is_some() {\n" +
                    "  let index = index.unwrap();\n" +
-                   "  let this: *%s = UnwrapProxy(proxy);\n" +
+                   "  let this = UnwrapProxy(proxy);\n" +
+                   "  let this = JS::from_raw(this);\n" +
+                   "  let mut this = this.root();\n" +
                    CGIndenter(CGProxyIndexedGetter(self.descriptor, templateValues)).define() + "\n" +
-                   "}\n") % (self.descriptor.concreteType)
+                   "}\n")
 
         if indexedSetter or self.descriptor.operations['NamedSetter']:
             setOrIndexedGet += "if set != 0 {\n"
@@ -3538,9 +3556,11 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
             namedGet = ("\n" +
                         "if set == 0 && RUST_JSID_IS_STRING(id) != 0 && !HasPropertyOnPrototype(cx, proxy, id) {\n" +
                         "  let name = Some(jsid_to_str(cx, id));\n" +
-                        "  let this: *%s = UnwrapProxy(proxy);\n" +
+                        "  let this = UnwrapProxy(proxy);\n" +
+                        "  let this = JS::from_raw(this);\n" +
+                        "  let mut this = this.root();\n" +
                         CGIndenter(CGProxyNamedGetter(self.descriptor, templateValues)).define() + "\n" +
-                        "}\n") % (self.descriptor.concreteType)
+                        "}\n")
         else:
             namedGet = ""
 
@@ -3581,10 +3601,12 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
             set += ("let index = GetArrayIndexFromId(cx, id);\n" +
                     "if index.is_some() {\n" +
                     "  let index = index.unwrap();\n" +
-                    "  let this: *mut %s = UnwrapProxy(proxy) as *mut %s;\n" +
+                    "  let this = UnwrapProxy(proxy);\n" +
+                    "  let this = JS::from_raw(this);\n" +
+                    "  let mut this = this.root();\n" +
                     CGIndenter(CGProxyIndexedSetter(self.descriptor)).define() +
                     "  return 1;\n" +
-                    "}\n") % (self.descriptor.concreteType, self.descriptor.concreteType)
+                    "}\n")
         elif self.descriptor.operations['IndexedGetter']:
             set += ("if GetArrayIndexFromId(cx, id).is_some() {\n" +
                     "  return 0;\n" +
@@ -3597,20 +3619,24 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                 raise TypeError("Can't handle creator that's different from the setter")
             set += ("if RUST_JSID_IS_STRING(id) != 0 {\n" +
                     "  let name = Some(jsid_to_str(cx, id));\n" +
-                    "  let this: *%s = UnwrapProxy(proxy);\n" +
+                    "  let this = UnwrapProxy(proxy);\n" +
+                    "  let this = JS::from_raw(this);\n" +
+                    "  let mut this = this.root();\n" +
                     CGIndenter(CGProxyNamedSetter(self.descriptor)).define() + "\n" +
-                    "}\n") % (self.descriptor.concreteType)
+                    "}\n")
         elif self.descriptor.operations['NamedGetter']:
             set += ("if RUST_JSID_IS_STRING(id) {\n" +
                     "  let name = Some(jsid_to_str(cx, id));\n" +
-                    "  let this: %%s = UnwrapProxy(proxy);\n" +
+                    "  let this = UnwrapProxy(proxy);\n" +
+                    "  let this = JS::from_raw(this);\n" +
+                    "  let mut this = this.root();\n" +
                     CGIndenter(CGProxyNamedGetter(self.descriptor)).define() +
                     "  if (found) {\n"
                     "    return 0;\n" +
                     "    //return ThrowErrorMessage(cx, MSG_NO_PROPERTY_SETTER, \"%s\");\n" +
                     "  }\n" +
                     "  return 1;\n"
-                    "}\n") % (self.descriptor.concreteType, self.descriptor.name)
+                    "}\n") % (self.descriptor.name)
         return set + """return proxyhandler::defineProperty_(%s);""" % ", ".join(a.name for a in self.args)
 
     def definition_body(self):
@@ -3628,11 +3654,13 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
             indexed = ("let index = GetArrayIndexFromId(cx, id);\n" +
                        "if index.is_some() {\n" +
                        "  let index = index.unwrap();\n" +
-                       "  let this: *%s = UnwrapProxy(proxy);\n" +
+                       "  let this = UnwrapProxy(proxy);\n" +
+                       "  let this = JS::from_raw(this);\n" +
+                       "  let mut this = this.root();\n" +
                        CGIndenter(CGProxyIndexedGetter(self.descriptor)).define() + "\n" +
                        "  *bp = found as JSBool;\n" +
                        "  return 1;\n" +
-                       "}\n\n") % (self.descriptor.concreteType)
+                       "}\n\n")
         else:
             indexed = ""
 
@@ -3640,12 +3668,14 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
         if namedGetter:
             named = ("if RUST_JSID_IS_STRING(id) != 0 && !HasPropertyOnPrototype(cx, proxy, id) {\n" +
                      "  let name = Some(jsid_to_str(cx, id));\n" +
-                     "  let this: *%s = UnwrapProxy(proxy);\n" +
+                     "  let this = UnwrapProxy(proxy);\n" +
+                     "  let this = JS::from_raw(this);\n" +
+                     "  let mut this = this.root();\n" +
                      CGIndenter(CGProxyNamedGetter(self.descriptor)).define() + "\n" +
                      "  *bp = found as JSBool;\n"
                      "  return 1;\n"
                      "}\n" +
-                     "\n") % (self.descriptor.concreteType)
+                     "\n")
         else:
             named = ""
 
@@ -3693,6 +3723,8 @@ if expando.is_not_null() {
                                    "if index.is_some() {\n" +
                                    "  let index = index.unwrap();\n" +
                                    "  let this = UnwrapProxy(proxy);\n" +
+                                   "  let this = JS::from_raw(this);\n" +
+                                   "  let mut this = this.root();\n" +
                                    CGIndenter(CGProxyIndexedGetter(self.descriptor, templateValues)).define())
             getIndexedOrExpando += """
   // Even if we don't have this index, we don't forward the
@@ -3709,6 +3741,8 @@ if expando.is_not_null() {
             getNamed = ("if (JSID_IS_STRING(id)) {\n" +
                         "  let name = Some(jsid_to_str(cx, id));\n" +
                         "  let this = UnwrapProxy(proxy);\n" +
+                        "  let this = JS::from_raw(this);\n" +
+                        "  let mut this = this.root();\n" +
                         CGIndenter(CGProxyNamedGetter(self.descriptor, templateValues)).define() +
                         "}\n") % (self.descriptor.concreteType)
         else:
@@ -3825,11 +3859,11 @@ class CGClassConstructHook(CGAbstractExternMethod):
 
     def generate_code(self):
         preamble = """
-  let global = global_object_for_js_object(JS_CALLEE(cx, &*vp).to_object());
-  let obj = global.reflector().get_jsobject();
+  let global = global_object_for_js_object(JS_CALLEE(cx, &*vp).to_object()).root();
+  let obj = global.deref().reflector().get_jsobject();
 """
         nativeName = MakeNativeName(self._ctor.identifier.name)
-        callGenerator = CGMethodCall(["&global"], nativeName, True,
+        callGenerator = CGMethodCall(["&global.root_ref()"], nativeName, True,
                                      self.descriptor, self._ctor)
         return preamble + callGenerator.define();
 
@@ -4030,7 +4064,7 @@ class CGDictionary(CGThing):
     def struct(self):
         d = self.dictionary
         if d.parent:
-            inheritance = "  pub parent: %s::%s,\n" % (self.makeModuleName(d.parent),
+            inheritance = "  pub parent: %s::%s<'a, 'b>,\n" % (self.makeModuleName(d.parent),
                                                    self.makeClassName(d.parent))
         else:
             inheritance = ""
@@ -4039,7 +4073,7 @@ class CGDictionary(CGThing):
                        for m in self.memberInfo]
 
         return (string.Template(
-                "pub struct ${selfName} {\n" +
+                "pub struct ${selfName}<'a, 'b> {\n" +
                 "${inheritance}" +
                 "\n".join(memberDecls) + "\n" +
                 "}").substitute( { "selfName": self.makeClassName(d),
@@ -4065,7 +4099,7 @@ class CGDictionary(CGThing):
         memberInits = CGList([memberInit(m) for m in self.memberInfo])
 
         return string.Template(
-            "impl ${selfName} {\n"
+            "impl<'a, 'b> ${selfName}<'a, 'b> {\n"
             "  pub fn new(cx: *JSContext, val: JSVal) -> Result<${selfName}, ()> {\n"
             "    let object = if val.is_null_or_undefined() {\n"
             "        ptr::null()\n"
@@ -4104,14 +4138,14 @@ class CGDictionary(CGThing):
 
     def getMemberType(self, memberInfo):
         (member, (templateBody, declType,
-                  dealWithOptional, initialValue)) = memberInfo
+                  dealWithOptional, initialValue, _)) = memberInfo
         if dealWithOptional:
             declType = CGWrapper(declType, pre="Optional< ", post=" >")
         return declType.define()
 
     def getMemberConversion(self, memberInfo):
         (member, (templateBody, declType,
-                  dealWithOptional, initialValue)) = memberInfo
+                  dealWithOptional, initialValue, _)) = memberInfo
         replacements = { "val": "value.unwrap()" }
         if member.defaultValue:
             replacements["haveValue"] = "value.is_some()"
@@ -4238,7 +4272,7 @@ class CGBindingRoot(CGThing):
         # Add imports
         #XXXjdm This should only import the namespace for the current binding,
         #       not every binding ever.
-        curr = CGImports(curr, [
+        curr = CGImports(curr, descriptors, [
             'js',
             'js::{JS_ARGV, JS_CALLEE, JS_THIS_OBJECT}',
             'js::{JSCLASS_GLOBAL_SLOT_COUNT, JSCLASS_IS_DOMJSCLASS}',
@@ -4266,7 +4300,9 @@ class CGBindingRoot(CGThing):
             'js::glue::{RUST_JS_NumberValue, RUST_JSID_IS_STRING}',
             'dom::types::*',
             'dom::bindings',
-            'dom::bindings::js::JS',
+            'dom::bindings::js::{JS, JSRef, Root, RootedReference, Temporary}',
+            'dom::bindings::js::{OptionalRootable, OptionalRootedRootable, ResultRootable}',
+            'dom::bindings::js::{OptionalRootedReference, OptionalOptionalRootedRootable}',
             'dom::bindings::utils::{CreateDOMGlobal, CreateInterfaceObjects2}',
             'dom::bindings::utils::{ConstantSpec, cx_for_dom_object, Default}',
             'dom::bindings::utils::{dom_object_slot, DOM_OBJECT_SLOT, DOMClass}',
@@ -4279,8 +4315,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::utils::{Reflectable}',
             'dom::bindings::utils::{squirrel_away_unique}',
             'dom::bindings::utils::{ThrowingConstructor,  unwrap, unwrap_jsmanaged}',
-            'dom::bindings::utils::{VoidVal, with_gc_disabled}',
-            'dom::bindings::utils::{with_gc_enabled}',
+            'dom::bindings::utils::VoidVal',
             'dom::bindings::utils::get_dictionary_property',
             'dom::bindings::trace::JSTraceable',
             'dom::bindings::callback::{CallbackContainer,CallbackInterface}',
@@ -4549,7 +4584,7 @@ class CGNativeMember(ClassMethod):
                 else:
                     typeDecl = "%s"
             descriptor = self.descriptorProvider.getDescriptor(iface.identifier.name)
-            return (typeDecl % descriptor.nativeType,
+            return (typeDecl % descriptor.argumentType,
                     False, False)
 
         if type.isSpiderMonkeyInterface():
@@ -5057,11 +5092,8 @@ class CallbackMethod(CallbackMember):
             replacements["argc"] = "0"
         return string.Template("${getCallable}"
                 "let ok = unsafe {\n"
-                "  //JS_AllowGC(cx); // It's unsafe to enable GC at arbitrary points during Rust execution; leave it disabled\n"
-                "  let ok = JS_CallFunctionValue(cx, ${thisObj}, callable,\n"
-                "                                ${argc}, ${argv}, &rval);\n"
-                "  //JS_InhibitGC(cx);\n"
-                "  ok\n"
+                "  JS_CallFunctionValue(cx, ${thisObj}, callable,\n"
+                "                       ${argc}, ${argv}, &rval)\n"
                 "};\n"
                 "if ok == 0 {\n"
                 "  return${errorReturn};\n"
@@ -5207,9 +5239,9 @@ class GlobalGenRoots():
     @staticmethod
     def RegisterBindings(config):
         # TODO - Generate the methods we want
-        return CGImports(CGRegisterProtos(config), [
+        return CGImports(CGRegisterProtos(config), [], [
             'dom::bindings::codegen',
-            'dom::bindings::js::JS',
+            'dom::bindings::js::{JS, JSRef}',
             'dom::window::Window',
             'script_task::JSPageInfo',
         ])
@@ -5241,8 +5273,9 @@ class GlobalGenRoots():
         descriptors = config.getDescriptors(register=True, hasInterfaceObject=True)
         allprotos = [CGGeneric("#![allow(unused_imports)]\n"),
                      CGGeneric("use dom::types::*;\n"),
-                     CGGeneric("use dom::bindings::js::JS;\n"),
+                     CGGeneric("use dom::bindings::js::{JS, JSRef, Temporary};\n"),
                      CGGeneric("use dom::bindings::trace::JSTraceable;\n"),
+                     CGGeneric("use dom::bindings::utils::Reflectable;\n"),
                      CGGeneric("use serialize::{Encodable, Encoder};\n"),
                      CGGeneric("use js::jsapi::JSTracer;\n\n")]
         for descriptor in descriptors:
@@ -5269,22 +5302,34 @@ class GlobalGenRoots():
 
             cast = [CGGeneric(string.Template('''pub trait ${castTraitName} {
   #[inline(always)]
-  fn from<T: ${fromBound}>(derived: &JS<T>) -> JS<Self> {
-    unsafe { derived.clone().transmute() }
-  }
-
-  #[inline(always)]
-  fn to<T: ${toBound}>(base: &JS<T>) -> Option<JS<Self>> {
-    match base.get().${checkFn}() {
-        true => unsafe { Some(base.clone().transmute()) },
+  fn to_ref<'a, 'b, T: ${toBound}+Reflectable>(base: &'a JSRef<'b, T>) -> Option<&'a JSRef<'b, Self>> {
+    match base.deref().${checkFn}() {
+        true => unsafe { Some(base.transmute()) },
         false => None
     }
   }
 
   #[inline(always)]
-  unsafe fn to_unchecked<T: ${toBound}>(base: &JS<T>) -> JS<Self> {
-    assert!(base.get().${checkFn}());
-    base.clone().transmute()
+  fn to_mut_ref<'a, 'b, T: ${toBound}+Reflectable>(base: &'a mut JSRef<'b, T>) -> Option<&'a mut JSRef<'b, Self>> {
+    match base.deref().${checkFn}() {
+        true => unsafe { Some(base.transmute_mut()) },
+        false => None
+    }
+  }
+
+  #[inline(always)]
+  fn from_ref<'a, 'b, T: ${fromBound}>(derived: &'a JSRef<'b, T>) -> &'a JSRef<'b, Self> {
+    unsafe { derived.transmute() }
+  }
+
+  #[inline(always)]
+  fn from_mut_ref<'a, 'b, T: ${fromBound}>(derived: &'a mut JSRef<'b, T>) -> &'a mut JSRef<'b, Self> {
+    unsafe { derived.transmute_mut() }
+  }
+
+  #[inline(always)]
+  fn from_unrooted<T: ${fromBound}+Reflectable>(derived: Temporary<T>) -> Temporary<Self> {
+    unsafe { derived.transmute() }
   }
 }
 ''').substitute({'checkFn': 'is_' + name.lower(),
@@ -5313,7 +5358,7 @@ class GlobalGenRoots():
 
         curr = UnionTypes(config.getDescriptors())
 
-        curr = CGImports(curr, [
+        curr = CGImports(curr, [], [
             'dom::bindings::utils::unwrap_jsmanaged',
             'dom::bindings::codegen::PrototypeList',
             'dom::bindings::conversions::{FromJSValConvertible, ToJSValConvertible}',

@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::EventBinding;
 use dom::bindings::codegen::BindingDeclarations::EventBinding::EventConstants;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::error::Fallible;
 use dom::eventtarget::EventTarget;
@@ -80,63 +80,89 @@ impl Event {
         }
     }
 
-    pub fn new(window: &JS<Window>) -> JS<Event> {
+    pub fn new(window: &JSRef<Window>) -> Temporary<Event> {
         reflect_dom_object(~Event::new_inherited(HTMLEventTypeId),
                            window,
                            EventBinding::Wrap)
     }
 
-    pub fn EventPhase(&self) -> u16 {
+    pub fn Constructor(global: &JSRef<Window>,
+                       type_: DOMString,
+                       init: &EventBinding::EventInit) -> Fallible<Temporary<Event>> {
+        let mut ev = Event::new(global).root();
+        ev.InitEvent(type_, init.bubbles, init.cancelable);
+        Ok(Temporary::from_rooted(&*ev))
+    }
+}
+
+pub trait EventMethods {
+    fn EventPhase(&self) -> u16;
+    fn Type(&self) -> DOMString;
+    fn GetTarget(&self) -> Option<Temporary<EventTarget>>;
+    fn GetCurrentTarget(&self) -> Option<Temporary<EventTarget>>;
+    fn DefaultPrevented(&self) -> bool;
+    fn PreventDefault(&mut self);
+    fn StopPropagation(&mut self);
+    fn StopImmediatePropagation(&mut self);
+    fn Bubbles(&self) -> bool;
+    fn Cancelable(&self) -> bool;
+    fn TimeStamp(&self) -> u64;
+    fn InitEvent(&mut self, type_: DOMString, bubbles: bool, cancelable: bool);
+    fn IsTrusted(&self) -> bool;
+}
+
+impl<'a> EventMethods for JSRef<'a, Event> {
+    fn EventPhase(&self) -> u16 {
         self.phase as u16
     }
 
-    pub fn Type(&self) -> DOMString {
+    fn Type(&self) -> DOMString {
         self.type_.clone()
     }
 
-    pub fn GetTarget(&self) -> Option<JS<EventTarget>> {
-        self.target.clone()
+    fn GetTarget(&self) -> Option<Temporary<EventTarget>> {
+        self.target.as_ref().map(|target| Temporary::new(target.clone()))
     }
 
-    pub fn GetCurrentTarget(&self) -> Option<JS<EventTarget>> {
-        self.current_target.clone()
+    fn GetCurrentTarget(&self) -> Option<Temporary<EventTarget>> {
+        self.current_target.as_ref().map(|target| Temporary::new(target.clone()))
     }
 
-    pub fn DefaultPrevented(&self) -> bool {
+    fn DefaultPrevented(&self) -> bool {
         self.canceled
     }
 
-    pub fn PreventDefault(&mut self) {
+    fn PreventDefault(&mut self) {
         if self.cancelable {
             self.canceled = true
         }
     }
 
-    pub fn StopPropagation(&mut self) {
+    fn StopPropagation(&mut self) {
         self.stop_propagation = true;
     }
 
-    pub fn StopImmediatePropagation(&mut self) {
+    fn StopImmediatePropagation(&mut self) {
         self.stop_immediate = true;
         self.stop_propagation = true;
     }
 
-    pub fn Bubbles(&self) -> bool {
+    fn Bubbles(&self) -> bool {
         self.bubbles
     }
 
-    pub fn Cancelable(&self) -> bool {
+    fn Cancelable(&self) -> bool {
         self.cancelable
     }
 
-    pub fn TimeStamp(&self) -> u64 {
+    fn TimeStamp(&self) -> u64 {
         self.timestamp
     }
 
-    pub fn InitEvent(&mut self,
-                     type_: DOMString,
-                     bubbles: bool,
-                     cancelable: bool) {
+    fn InitEvent(&mut self,
+                 type_: DOMString,
+                 bubbles: bool,
+                 cancelable: bool) {
         self.initialized = true;
         if self.dispatching {
             return;
@@ -151,16 +177,8 @@ impl Event {
         self.cancelable = cancelable;
     }
 
-    pub fn IsTrusted(&self) -> bool {
+    fn IsTrusted(&self) -> bool {
         self.trusted
-    }
-
-    pub fn Constructor(global: &JS<Window>,
-                       type_: DOMString,
-                       init: &EventBinding::EventInit) -> Fallible<JS<Event>> {
-        let mut ev = Event::new(global);
-        ev.get_mut().InitEvent(type_, init.bubbles, init.cancelable);
-        Ok(ev)
     }
 }
 

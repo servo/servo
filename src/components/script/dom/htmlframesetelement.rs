@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLFrameSetElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLFrameSetElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLFrameSetElementTypeId;
@@ -28,32 +28,39 @@ impl HTMLFrameSetElementDerived for EventTarget {
 }
 
 impl HTMLFrameSetElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLFrameSetElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLFrameSetElement {
         HTMLFrameSetElement {
             htmlelement: HTMLElement::new_inherited(HTMLFrameSetElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLFrameSetElement> {
-        let element = HTMLFrameSetElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLFrameSetElement> {
+        let element = HTMLFrameSetElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLFrameSetElementBinding::Wrap)
     }
 }
 
-impl HTMLFrameSetElement {
-    pub fn Cols(&self) -> DOMString {
+pub trait HTMLFrameSetElementMethods {
+    fn Cols(&self) -> DOMString;
+    fn SetCols(&mut self, _cols: DOMString) -> ErrorResult;
+    fn Rows(&self) -> DOMString;
+    fn SetRows(&mut self, _rows: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLFrameSetElementMethods for JSRef<'a, HTMLFrameSetElement> {
+    fn Cols(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetCols(&mut self, _cols: DOMString) -> ErrorResult {
+    fn SetCols(&mut self, _cols: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Rows(&self) -> DOMString {
+    fn Rows(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetRows(&mut self, _rows: DOMString) -> ErrorResult {
+    fn SetRows(&mut self, _rows: DOMString) -> ErrorResult {
         Ok(())
     }
 }

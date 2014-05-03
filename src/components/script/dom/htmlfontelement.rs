@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLFontElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLFontElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLFontElementTypeId;
@@ -28,40 +28,49 @@ impl HTMLFontElementDerived for EventTarget {
 }
 
 impl HTMLFontElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLFontElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLFontElement {
         HTMLFontElement {
             htmlelement: HTMLElement::new_inherited(HTMLFontElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLFontElement> {
-        let element = HTMLFontElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLFontElement> {
+        let element = HTMLFontElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLFontElementBinding::Wrap)
     }
 }
 
-impl HTMLFontElement {
-    pub fn Color(&self) -> DOMString {
+pub trait HTMLFontElementMethods {
+    fn Color(&self) -> DOMString;
+    fn SetColor(&mut self, _color: DOMString) -> ErrorResult;
+    fn Face(&self) -> DOMString;
+    fn SetFace(&mut self, _face: DOMString) -> ErrorResult;
+    fn Size(&self) -> DOMString;
+    fn SetSize(&mut self, _size: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLFontElementMethods for JSRef<'a, HTMLFontElement> {
+    fn Color(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetColor(&mut self, _color: DOMString) -> ErrorResult {
+    fn SetColor(&mut self, _color: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Face(&self) -> DOMString {
+    fn Face(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetFace(&mut self, _face: DOMString) -> ErrorResult {
+    fn SetFace(&mut self, _face: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Size(&self) -> DOMString {
+    fn Size(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetSize(&mut self, _size: DOMString) -> ErrorResult {
+    fn SetSize(&mut self, _size: DOMString) -> ErrorResult {
         Ok(())
     }
 }
