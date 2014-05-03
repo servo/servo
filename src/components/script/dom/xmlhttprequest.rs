@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::BindingDeclarations::XMLHttpRequestBinding;
+use dom::bindings::str::ByteString;
 use self::XMLHttpRequestBinding::XMLHttpRequestResponseType;
 use self::XMLHttpRequestBinding::XMLHttpRequestResponseTypeValues::_empty;
 use dom::bindings::codegen::InheritTypes::XMLHttpRequestDerived;
@@ -33,7 +34,7 @@ pub struct XMLHttpRequest {
     upload: JS<XMLHttpRequestUpload>,
     response_url: DOMString,
     status: u16,
-    status_text: DOMString,
+    status_text: ByteString,
     response_type: XMLHttpRequestResponseType,
     response_text: DOMString,
     response_xml: Option<JS<Document>>
@@ -49,7 +50,7 @@ impl XMLHttpRequest {
             upload: XMLHttpRequestUpload::new(owner),
             response_url: ~"",
             status: 0,
-            status_text: ~"",
+            status_text: ByteString::new(vec!()),
             response_type: _empty,
             response_text: ~"",
             response_xml: None
@@ -66,14 +67,14 @@ impl XMLHttpRequest {
     pub fn ReadyState(&self) -> u16 {
         self.ready_state
     }
-    pub fn Open(&self, _method: DOMString, _url: DOMString) {
+    pub fn Open(&self, _method: ByteString, _url: DOMString) {
 
     }
-    pub fn Open_(&self, _method: DOMString, _url: DOMString, _async: bool,
+    pub fn Open_(&self, _method: ByteString, _url: DOMString, _async: bool,
                  _username: Option<DOMString>, _password: Option<DOMString>) {
 
     }
-    pub fn SetRequestHeader(&self, _name: DOMString, _value: DOMString) {
+    pub fn SetRequestHeader(&self, _name: ByteString, _value: ByteString) {
 
     }
     pub fn Timeout(&self) -> u32 {
@@ -103,14 +104,14 @@ impl XMLHttpRequest {
     pub fn Status(&self) -> u16 {
         self.status
     }
-    pub fn StatusText(&self) -> DOMString {
+    pub fn StatusText(&self) -> ByteString {
         self.status_text.clone()
     }
-    pub fn GetResponseHeader(&self, _name: DOMString) -> Option<DOMString> {
+    pub fn GetResponseHeader(&self, _name: ByteString) -> Option<ByteString> {
         None
     }
-    pub fn GetAllResponseHeaders(&self) -> DOMString {
-        ~""
+    pub fn GetAllResponseHeaders(&self) -> ByteString {
+        ByteString::new(vec!())
     }
     pub fn OverrideMimeType(&self, _mime: DOMString) {
 
