@@ -34,10 +34,11 @@ pub enum EventPhase {
 
 #[deriving(Eq, Encodable)]
 pub enum EventTypeId {
+    CustomEventTypeId,
     HTMLEventTypeId,
-    UIEventTypeId,
+    KeyEventTypeId,
     MouseEventTypeId,
-    KeyEventTypeId
+    UIEventTypeId
 }
 
 #[deriving(Encodable)]
