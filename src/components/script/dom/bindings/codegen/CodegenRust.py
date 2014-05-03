@@ -281,7 +281,6 @@ class CGMethodCall(CGThing):
                                                         isDefinitelyObject=True),
                         {
                             "declName" : "arg%d" % distinguishingIndex,
-                            "holderName" : ("arg%d" % distinguishingIndex) + "_holder",
                             "val" : distinguishingArg
                             })
 
@@ -449,9 +448,6 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         substitution performed on it as follows:
 
           ${val} replaced by an expression for the JS::Value in question
-          ${valPtr} is a pointer to the JS::Value in question
-          ${holderName} replaced by the holder's name, if any
-          ${declName} replaced by the declaration's name
           ${haveValue} replaced by an expression that evaluates to a boolean
                        for whether we have a JS::Value.  Only used when
                        defaultValue is not None.
@@ -460,15 +456,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         (declType).  This is allowed to be None if the conversion code is
         supposed to be used as-is.
     3)  A boolean indicating whether the caller has to do optional-argument handling.
-        This will only be true if isOptional is true and if the returned template
-        expects both declType and holderType to be wrapped in Optional<>, with
-        ${declName} and ${holderName} adjusted to point to the Value() of the
-        Optional, and Construct() calls to be made on the Optional<>s as needed.
 
-    ${declName} must be in scope before the generated code is entered.
-
-    If holderType is not None then ${holderName} must be in scope
-    before the generated code is entered.
     """
     # If we have a defaultValue then we're not actually optional for
     # purposes of what we need to be declared as.
@@ -945,13 +933,10 @@ class CGArgumentConverter(CGThing):
             }
         self.replacementVariables = {
             "declName" : "arg%d" % index,
-            "holderName" : ("arg%d" % index) + "_holder"
             }
         self.replacementVariables["val"] = string.Template(
             "(*${argv}.offset(${index}))"
             ).substitute(replacer)
-        self.replacementVariables["valPtr"] = (
-            "&" + self.replacementVariables["val"])
         if argument.defaultValue:
             self.replacementVariables["haveValue"] = string.Template(
                 "${index} < ${argc}").substitute(replacer)
@@ -2763,8 +2748,6 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
     assert not type.isObject()
     jsConversion = string.Template(template).substitute({
         "val": "value",
-        "valPtr": None,
-        "holderName": None,
     })
     jsConversion = CGWrapper(CGGeneric(jsConversion), pre="Ok(Some(", post="))")
 
@@ -3413,9 +3396,7 @@ class CGProxySpecialOperation(CGPerSignatureCall):
                                                        treatNullAs=argument.treatNullAs)
             templateValues = {
                 "declName": argument.identifier.name,
-                "holderName": argument.identifier.name + "_holder",
                 "val": "(*desc).value",
-                "valPtr": "&(*desc).value"
             }
             self.cgRoot.prepend(instantiateJSToNativeConversionTemplate(template, templateValues))
         elif operation.isGetter():
@@ -4400,7 +4381,7 @@ class CGNativeMember(ClassMethod):
         None if isMember is true.
 
         The third element is a template for actually returning a value stored in
-        "${declName}" and "${holderName}".  This means actually returning it if
+        "${declName}".  This means actually returning it if
         we're not outparam, else assigning to the "retval" outparam.  If
         isMember is true, this can be None, since in that case the caller will
         never examine this value.
@@ -4922,13 +4903,7 @@ class CallbackMember(CGNativeMember):
     def getResultConversion(self):
         replacements = {
             "val": "rval",
-            "mutableVal": "&rval",
-            "holderName" : "rvalHolder",
             "declName" : "rvalDecl",
-            # We actually want to pass in a null scope object here, because
-            # wrapping things into our current compartment (that of mCallback)
-            # is what we want.
-            "obj": "nullptr"
             }
 
         if isJSImplementedDescriptor(self.descriptorProvider):
