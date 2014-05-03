@@ -38,11 +38,11 @@ interface XMLHttpRequest : XMLHttpRequestEventTarget {
   readonly attribute unsigned short readyState;
 
   // request
-  // void open(/* ByteString */ DOMString method, /* [EnsureUTF16] */ DOMString url);
+  // void open(ByteString method, /* [EnsureUTF16] */ DOMString url);
 
-  // void open(/* ByteString */ DOMString method, /* [EnsureUTF16] */ DOMString url, boolean async, optional /* [EnsureUTF16] */ DOMString? username = null, optional /* [EnsureUTF16] */ DOMString? password = null);
+  // void open(ByteString method, /* [EnsureUTF16] */ DOMString url, boolean async, optional /* [EnsureUTF16] */ DOMString? username = null, optional /* [EnsureUTF16] */ DOMString? password = null);
 
-  // void setRequestHeader(/* ByteString */ DOMString name, /* ByteString */ DOMString value);
+  // void setRequestHeader(ByteString name, ByteString value);
            attribute unsigned long timeout;
            attribute boolean withCredentials;
   readonly attribute XMLHttpRequestUpload upload;
@@ -52,9 +52,9 @@ interface XMLHttpRequest : XMLHttpRequestEventTarget {
   // response
   readonly attribute DOMString responseURL;
   readonly attribute unsigned short status;
-  readonly attribute /* ByteString*/ DOMString statusText;
-  // DOMString? /*ByteString?*/ getResponseHeader(/*ByteString*/ DOMString name);
-  // DOMString /*ByteString*/ getAllResponseHeaders();
+  readonly attribute ByteString statusText;
+  // ByteString? getResponseHeader(ByteString name);
+  // ByteString getAllResponseHeaders();
   // void overrideMimeType(DOMString mime);
            attribute XMLHttpRequestResponseType responseType;
   // readonly attribute any response;
