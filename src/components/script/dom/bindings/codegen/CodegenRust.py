@@ -829,8 +829,6 @@ def instantiateJSToNativeConversionTemplate(templateTuple, replacements,
                    CGGeneric(replacements["declName"]),
                    CGGeneric(": "),
                    declType]
-        if dealWithOptional:
-            newDecl.append(CGGeneric(" = None"))
         newDecl.append(CGGeneric(";"))
         result.append(CGList(newDecl))
         conversion = CGWrapper(conversion,
@@ -839,7 +837,9 @@ def instantiateJSToNativeConversionTemplate(templateTuple, replacements,
 
     if argcAndIndex is not None:
         condition = string.Template("${index} < ${argc}").substitute(argcAndIndex)
-        conversion = CGIfWrapper(conversion, condition)
+        conversion = CGIfElseWrapper(condition,
+                                     conversion,
+                                     CGGeneric("%s = None" % replacements["declName"]))
 
     result.append(conversion)
     # Add an empty CGGeneric to get an extra newline after the argument
