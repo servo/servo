@@ -150,14 +150,14 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     }
 
     fn Name(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetName(&self, _name: DOMString) {
     }
 
     fn Status(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetStatus(&self, _status: DOMString) {

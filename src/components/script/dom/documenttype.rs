@@ -37,8 +37,8 @@ impl DocumentType {
         DocumentType {
             node: Node::new_inherited(DoctypeNodeTypeId, document),
             name: name,
-            public_id: public_id.unwrap_or(~""),
-            system_id: system_id.unwrap_or(~"")
+            public_id: public_id.unwrap_or("".to_owned()),
+            system_id: system_id.unwrap_or("".to_owned())
         }
     }
 

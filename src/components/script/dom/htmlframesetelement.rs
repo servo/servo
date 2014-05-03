@@ -49,7 +49,7 @@ pub trait HTMLFrameSetElementMethods {
 
 impl<'a> HTMLFrameSetElementMethods for JSRef<'a, HTMLFrameSetElement> {
     fn Cols(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetCols(&mut self, _cols: DOMString) -> ErrorResult {
@@ -57,7 +57,7 @@ impl<'a> HTMLFrameSetElementMethods for JSRef<'a, HTMLFrameSetElement> {
     }
 
     fn Rows(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetRows(&mut self, _rows: DOMString) -> ErrorResult {

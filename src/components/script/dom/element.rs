@@ -350,7 +350,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
                 let x = x.root();
                 x.deref().Value()
             }
-            None => ~""
+            None => "".to_owned()
         }
     }
     fn set_string_attribute(&mut self, name: &str, value: DOMString) {

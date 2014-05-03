@@ -93,7 +93,7 @@ impl<'a> HTMLTableElementMethods for JSRef<'a, HTMLTableElement> {
     }
 
     fn Align(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetAlign(&self, _align: DOMString) -> ErrorResult {
@@ -101,7 +101,7 @@ impl<'a> HTMLTableElementMethods for JSRef<'a, HTMLTableElement> {
     }
 
     fn Border(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetBorder(&self, _border: DOMString) -> ErrorResult {
@@ -109,7 +109,7 @@ impl<'a> HTMLTableElementMethods for JSRef<'a, HTMLTableElement> {
     }
 
     fn Frame(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetFrame(&self, _frame: DOMString) -> ErrorResult {
@@ -117,7 +117,7 @@ impl<'a> HTMLTableElementMethods for JSRef<'a, HTMLTableElement> {
     }
 
     fn Rules(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetRules(&self, _rules: DOMString) -> ErrorResult {
@@ -125,7 +125,7 @@ impl<'a> HTMLTableElementMethods for JSRef<'a, HTMLTableElement> {
     }
 
     fn Summary(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetSummary(&self, _summary: DOMString) -> ErrorResult {
@@ -133,7 +133,7 @@ impl<'a> HTMLTableElementMethods for JSRef<'a, HTMLTableElement> {
     }
 
     fn Width(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetWidth(&self, _width: DOMString) -> ErrorResult {
@@ -141,7 +141,7 @@ impl<'a> HTMLTableElementMethods for JSRef<'a, HTMLTableElement> {
     }
 
     fn BgColor(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetBgColor(&self, _bg_color: DOMString) -> ErrorResult {
@@ -149,7 +149,7 @@ impl<'a> HTMLTableElementMethods for JSRef<'a, HTMLTableElement> {
     }
 
     fn CellPadding(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetCellPadding(&self, _cell_padding: DOMString) -> ErrorResult {
@@ -157,7 +157,7 @@ impl<'a> HTMLTableElementMethods for JSRef<'a, HTMLTableElement> {
     }
 
     fn CellSpacing(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetCellSpacing(&self, _cell_spacing: DOMString) -> ErrorResult {

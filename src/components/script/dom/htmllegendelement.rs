@@ -47,7 +47,7 @@ pub trait HTMLLegendElementMethods {
 
 impl<'a> HTMLLegendElementMethods for JSRef<'a, HTMLLegendElement> {
     fn Align(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {

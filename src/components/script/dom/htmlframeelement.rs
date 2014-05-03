@@ -64,7 +64,7 @@ pub trait HTMLFrameElementMethods {
 
 impl<'a> HTMLFrameElementMethods for JSRef<'a, HTMLFrameElement> {
     fn Name(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetName(&mut self, _name: DOMString) -> ErrorResult {
@@ -72,7 +72,7 @@ impl<'a> HTMLFrameElementMethods for JSRef<'a, HTMLFrameElement> {
     }
 
     fn Scrolling(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetScrolling(&mut self, _scrolling: DOMString) -> ErrorResult {
@@ -80,7 +80,7 @@ impl<'a> HTMLFrameElementMethods for JSRef<'a, HTMLFrameElement> {
     }
 
     fn Src(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
@@ -88,7 +88,7 @@ impl<'a> HTMLFrameElementMethods for JSRef<'a, HTMLFrameElement> {
     }
 
     fn FrameBorder(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetFrameBorder(&mut self, _frameborder: DOMString) -> ErrorResult {
@@ -96,7 +96,7 @@ impl<'a> HTMLFrameElementMethods for JSRef<'a, HTMLFrameElement> {
     }
 
     fn LongDesc(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetLongDesc(&mut self, _longdesc: DOMString) -> ErrorResult {
@@ -120,7 +120,7 @@ impl<'a> HTMLFrameElementMethods for JSRef<'a, HTMLFrameElement> {
     }
 
     fn MarginHeight(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetMarginHeight(&mut self, _height: DOMString) -> ErrorResult {
@@ -128,7 +128,7 @@ impl<'a> HTMLFrameElementMethods for JSRef<'a, HTMLFrameElement> {
     }
 
     fn MarginWidth(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetMarginWidth(&mut self, _height: DOMString) -> ErrorResult {

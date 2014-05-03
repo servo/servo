@@ -69,7 +69,7 @@ impl<'a> HTMLOListElementMethods for JSRef<'a, HTMLOListElement> {
     }
 
     fn Type(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetType(&mut self, _type: DOMString) -> ErrorResult {

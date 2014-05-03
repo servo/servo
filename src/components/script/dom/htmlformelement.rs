@@ -70,7 +70,7 @@ pub trait HTMLFormElementMethods {
 
 impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
     fn AcceptCharset(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetAcceptCharset(&mut self, _accept_charset: DOMString) -> ErrorResult {
@@ -78,7 +78,7 @@ impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
     }
 
     fn Action(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetAction(&mut self, _action: DOMString) -> ErrorResult {
@@ -86,7 +86,7 @@ impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
     }
 
     fn Autocomplete(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetAutocomplete(&mut self, _autocomplete: DOMString) -> ErrorResult {
@@ -94,7 +94,7 @@ impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
     }
 
     fn Enctype(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetEnctype(&mut self, _enctype: DOMString) -> ErrorResult {
@@ -102,7 +102,7 @@ impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
     }
 
     fn Encoding(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetEncoding(&mut self, _encoding: DOMString) -> ErrorResult {
@@ -110,7 +110,7 @@ impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
     }
 
     fn Method(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetMethod(&mut self, _method: DOMString) -> ErrorResult {
@@ -118,7 +118,7 @@ impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
     }
 
     fn Name(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetName(&mut self, _name: DOMString) -> ErrorResult {
@@ -134,7 +134,7 @@ impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
     }
 
     fn Target(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetTarget(&mut self, _target: DOMString) -> ErrorResult {

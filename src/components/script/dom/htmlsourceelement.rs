@@ -51,7 +51,7 @@ pub trait HTMLSourceElementMethods {
 
 impl<'a> HTMLSourceElementMethods for JSRef<'a, HTMLSourceElement> {
     fn Src(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
@@ -59,7 +59,7 @@ impl<'a> HTMLSourceElementMethods for JSRef<'a, HTMLSourceElement> {
     }
 
     fn Type(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetType(&mut self, _type: DOMString) -> ErrorResult {
@@ -67,7 +67,7 @@ impl<'a> HTMLSourceElementMethods for JSRef<'a, HTMLSourceElement> {
     }
 
     fn Media(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetMedia(&mut self, _media: DOMString) -> ErrorResult {

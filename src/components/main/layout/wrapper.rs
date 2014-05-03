@@ -393,10 +393,10 @@ fn get_content(content_list: &content::T) -> ~str {
             let iter = &mut value.clone().move_iter().peekable();
             match iter.next() {
                 Some(content::StringContent(content)) => content,
-                _ => ~"",
+                _ => "".to_owned(),
             }
         }
-        _ => ~"",
+        _ => "".to_owned(),
     }
 }
 

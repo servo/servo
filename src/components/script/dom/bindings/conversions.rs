@@ -243,7 +243,7 @@ impl Default for StringificationBehavior {
 impl FromJSValConvertible<StringificationBehavior> for DOMString {
     fn from_jsval(cx: *JSContext, value: JSVal, nullBehavior: StringificationBehavior) -> Result<DOMString, ()> {
         if nullBehavior == Empty && value.is_null() {
-            Ok(~"")
+            Ok("".to_owned())
         } else {
             let jsstr = unsafe { JS_ValueToString(cx, value) };
             if jsstr.is_null() {

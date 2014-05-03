@@ -66,7 +66,7 @@ impl<'a> HTMLOutputElementMethods for JSRef<'a, HTMLOutputElement> {
     }
 
     fn Name(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetName(&mut self, _name: DOMString) -> ErrorResult {
@@ -74,11 +74,11 @@ impl<'a> HTMLOutputElementMethods for JSRef<'a, HTMLOutputElement> {
     }
 
     fn Type(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn DefaultValue(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetDefaultValue(&mut self, _value: DOMString) -> ErrorResult {
@@ -86,7 +86,7 @@ impl<'a> HTMLOutputElementMethods for JSRef<'a, HTMLOutputElement> {
     }
 
     fn Value(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetValue(&mut self, _value: DOMString) -> ErrorResult {
@@ -106,7 +106,7 @@ impl<'a> HTMLOutputElementMethods for JSRef<'a, HTMLOutputElement> {
     }
 
     fn ValidationMessage(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetValidationMessage(&mut self, _message: DOMString) -> ErrorResult {

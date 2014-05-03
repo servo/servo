@@ -95,7 +95,7 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
     }
 
     fn FormAction(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetFormAction(&mut self, _formaction: DOMString) -> ErrorResult {
@@ -103,7 +103,7 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
     }
 
     fn FormEnctype(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetFormEnctype(&mut self, _formenctype: DOMString) -> ErrorResult {
@@ -111,7 +111,7 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
     }
 
     fn FormMethod(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetFormMethod(&mut self, _formmethod: DOMString) -> ErrorResult {
@@ -127,7 +127,7 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
     }
 
     fn FormTarget(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetFormTarget(&mut self, _formtarget: DOMString) -> ErrorResult {
@@ -135,7 +135,7 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
     }
 
     fn Name(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetName(&mut self, _name: DOMString) -> ErrorResult {
@@ -143,7 +143,7 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
     }
 
     fn Type(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetType(&mut self, _type: DOMString) -> ErrorResult {
@@ -151,7 +151,7 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
     }
 
     fn Value(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetValue(&mut self, _value: DOMString) -> ErrorResult {
@@ -171,7 +171,7 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
     }
 
     fn ValidationMessage(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetValidationMessage(&mut self, _message: DOMString) -> ErrorResult {

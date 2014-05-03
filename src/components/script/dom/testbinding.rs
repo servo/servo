@@ -225,7 +225,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn SetFloatAttribute(&self, _: f32) {}
     fn DoubleAttribute(&self) -> f64 { 0. }
     fn SetDoubleAttribute(&self, _: f64) {}
-    fn StringAttribute(&self) -> DOMString { ~"" }
+    fn StringAttribute(&self) -> DOMString { "".to_owned() }
     fn SetStringAttribute(&self, _: DOMString) {}
     fn ByteStringAttribute(&self) -> ByteString { ByteString::new(vec!()) }
     fn SetByteStringAttribute(&self, _: ByteString) {}
@@ -263,7 +263,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn SetDoubleAttributeNullable(&self, _: Option<f64>) {}
     fn GetByteStringAttributeNullable(&self) -> Option<ByteString> { Some(ByteString::new(vec!())) }
     fn SetByteStringAttributeNullable(&self, _: Option<ByteString>) {}
-    fn GetStringAttributeNullable(&self) -> Option<DOMString> { Some(~"") }
+    fn GetStringAttributeNullable(&self) -> Option<DOMString> { Some("".to_owned()) }
     fn SetStringAttributeNullable(&self, _: Option<DOMString>) {}
     fn GetEnumAttributeNullable(&self) -> Option<TestEnum> { Some(_empty) }
     fn GetInterfaceAttributeNullable(&self) -> Option<Temporary<Blob>> {

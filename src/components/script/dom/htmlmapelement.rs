@@ -49,7 +49,7 @@ pub trait HTMLMapElementMethods {
 
 impl<'a> HTMLMapElementMethods for JSRef<'a, HTMLMapElement> {
     fn Name(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetName(&mut self, _name: DOMString) -> ErrorResult {

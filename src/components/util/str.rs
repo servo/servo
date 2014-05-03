@@ -10,10 +10,10 @@ pub type StaticCharVec = &'static [char];
 pub type StaticStringVec = &'static [&'static str];
 
 pub fn null_str_as_empty(s: &Option<DOMString>) -> DOMString {
-    // We don't use map_default because it would allocate ~"" even for Some.
+    // We don't use map_default because it would allocate "".to_owned() even for Some.
     match *s {
         Some(ref s) => s.clone(),
-        None => ~""
+        None => "".to_owned()
     }
 }
 

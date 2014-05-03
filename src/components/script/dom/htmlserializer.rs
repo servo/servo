@@ -20,7 +20,7 @@ use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
 
 pub fn serialize(iterator: &mut NodeIterator) -> ~str {
-    let mut html = ~"";
+    let mut html = "".to_owned();
     let mut open_elements: Vec<~str> = vec!();
 
     for node in *iterator {
@@ -51,7 +51,7 @@ pub fn serialize(iterator: &mut NodeIterator) -> ~str {
                     serialize_processing_instruction(processing_instruction)
                 }
                 DocumentFragmentNodeTypeId => {
-                    ~""
+                    "".to_owned()
                 }
                 DocumentNodeTypeId => {
                     fail!("It shouldn't be possible to serialize a document node")

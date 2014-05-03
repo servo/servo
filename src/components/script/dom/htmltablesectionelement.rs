@@ -58,7 +58,7 @@ impl<'a> HTMLTableSectionElementMethods for JSRef<'a, HTMLTableSectionElement> {
     }
 
     fn Align(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
@@ -66,7 +66,7 @@ impl<'a> HTMLTableSectionElementMethods for JSRef<'a, HTMLTableSectionElement> {
     }
 
     fn Ch(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetCh(&mut self, _ch: DOMString) -> ErrorResult {
@@ -74,7 +74,7 @@ impl<'a> HTMLTableSectionElementMethods for JSRef<'a, HTMLTableSectionElement> {
     }
 
     fn ChOff(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetChOff(&mut self, _ch_off: DOMString) -> ErrorResult {
@@ -82,7 +82,7 @@ impl<'a> HTMLTableSectionElementMethods for JSRef<'a, HTMLTableSectionElement> {
     }
 
     fn VAlign(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetVAlign(&mut self, _v_align: DOMString) -> ErrorResult {

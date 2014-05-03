@@ -47,7 +47,7 @@ pub trait HTMLDivElementMethods {
 
 impl<'a> HTMLDivElementMethods for JSRef<'a, HTMLDivElement> {
     fn Align(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
