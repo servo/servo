@@ -831,17 +831,19 @@ def instantiateJSToNativeConversionTemplate(templateTuple, replacements,
                                      CGGeneric("None"))
 
     if declType is not None:
-        newDecl = [CGGeneric("let mut "),
-                   CGGeneric(replacements["declName"]),
-                   CGGeneric(": "),
-                   declType]
-        newDecl.append(CGGeneric(";"))
+        newDecl = [
+            CGGeneric("let mut "),
+            CGGeneric(replacements["declName"]),
+            CGGeneric(": "),
+            declType,
+            CGGeneric(" = "),
+            conversion,
+            CGGeneric(";"),
+        ]
         result.append(CGList(newDecl))
-        conversion = CGWrapper(conversion,
-                               pre="%s = " % replacements["declName"],
-                               post=";")
+    else:
+        result.append(conversion)
 
-    result.append(conversion)
     # Add an empty CGGeneric to get an extra newline after the argument
     # conversion.
     result.append(CGGeneric(""))
