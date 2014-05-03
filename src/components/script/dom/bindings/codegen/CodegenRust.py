@@ -275,14 +275,15 @@ class CGMethodCall(CGThing):
                     # The argument at index distinguishingIndex can't possibly
                     # be unset here, because we've already checked that argc is
                     # large enough that we can examine this argument.
+                    template, declType, _, needsRooting = getJSToNativeConversionTemplate(
+                        type, descriptor, failureCode="break;", isDefinitelyObject=True)
+
                     testCode = instantiateJSToNativeConversionTemplate(
-                        getJSToNativeConversionTemplate(type, descriptor,
-                                                        failureCode="break;",
-                                                        isDefinitelyObject=True),
-                        {
-                            "declName" : "arg%d" % distinguishingIndex,
-                            "val" : distinguishingArg
-                            })
+                        template,
+                        {"val": distinguishingArg},
+                        declType,
+                        "arg%d" % distinguishingIndex,
+                        needsRooting)
 
                     # Indent by 4, since we need to indent further than our "do" statement
                     caseBody.append(CGIndenter(testCode, 4));
@@ -799,41 +800,24 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
 
     return handleOptional(template, declType, isOptional, defaultStr)
 
-def instantiateJSToNativeConversionTemplate(templateTuple, replacements,
-                                            argcAndIndex=None):
+def instantiateJSToNativeConversionTemplate(templateBody, replacements,
+                                            declType, declName, needsRooting):
     """
-    Take a tuple as returned by getJSToNativeConversionTemplate and a set of
-    replacements as required by the strings in such a tuple, and generate code
-    to convert into stack C++ types.
-
-    If argcAndIndex is not None it must be a dict that can be used to
-    replace ${argc} and ${index}, where ${index} is the index of this
-    argument (0-based) and ${argc} is the total number of arguments.
+    Take the templateBody and declType as returned by
+    getJSToNativeConversionTemplate, a set of replacements as required by the
+    strings in such a templateBody, and a declName, and generate code to
+    convert into a stack Rust binding with that name.
     """
-    (templateBody, declType, dealWithOptional, needsRooting) = templateTuple
-
-    if dealWithOptional and argcAndIndex is None:
-        raise TypeError("Have to deal with optional things, but don't know how")
-    if argcAndIndex is not None and declType is None:
-        raise TypeError("Need to predeclare optional things, so they will be "
-                        "outside the check for big enough arg count!");
-
     result = CGList([], "\n")
 
     conversion = CGGeneric(
             string.Template(templateBody).substitute(replacements)
             )
 
-    if argcAndIndex is not None:
-        condition = string.Template("${index} < ${argc}").substitute(argcAndIndex)
-        conversion = CGIfElseWrapper(condition,
-                                     conversion,
-                                     CGGeneric("None"))
-
     if declType is not None:
         newDecl = [
             CGGeneric("let mut "),
-            CGGeneric(replacements["declName"]),
+            CGGeneric(declName),
             CGGeneric(": "),
             declType,
             CGGeneric(" = "),
@@ -849,8 +833,8 @@ def instantiateJSToNativeConversionTemplate(templateTuple, replacements,
     result.append(CGGeneric(""))
 
     if needsRooting:
-        rootBody = "let ${declName} = ${declName}.root();"
-        result.append(CGGeneric(string.Template(rootBody).substitute(replacements)))
+        rootBody = "let %s = %s.root();" % (declName, declName)
+        result.append(CGGeneric(rootBody))
         result.append(CGGeneric(""))
 
     return result;
@@ -881,45 +865,45 @@ class CGArgumentConverter(CGThing):
     def __init__(self, argument, index, argv, argc, descriptorProvider,
                  invalidEnumValueFatal=True):
         CGThing.__init__(self)
-        self.argument = argument
         if argument.variadic:
             raise TypeError("We don't support variadic arguments yet " +
                             str(argument.location))
         assert(not argument.defaultValue or argument.optional)
 
         replacer = {
-            "index" : index,
-            "argc" : argc,
-            "argv" : argv
-            }
-        self.replacementVariables = {
-            "declName" : "arg%d" % index,
-            }
-        self.replacementVariables["val"] = string.Template(
-            "(*${argv}.offset(${index}))"
-            ).substitute(replacer)
+            "index": index,
+            "argc": argc,
+            "argv": argv
+        }
+        condition = string.Template("${index} < ${argc}").substitute(replacer)
+
+        replacementVariables = {
+            "val": string.Template("(*${argv}.offset(${index}))").substitute(replacer),
+        }
         if argument.defaultValue:
-            self.replacementVariables["haveValue"] = string.Template(
-                "${index} < ${argc}").substitute(replacer)
-        self.descriptorProvider = descriptorProvider
-        if self.argument.optional and not self.argument.defaultValue:
-            self.argcAndIndex = replacer
-        else:
-            self.argcAndIndex = None
-        self.invalidEnumValueFatal = invalidEnumValueFatal
+            replacementVariables["haveValue"] = condition
+
+        template, declType, dealWithOptional, needsRooting = getJSToNativeConversionTemplate(
+            argument.type,
+            descriptorProvider,
+            isOptional=argument.optional and not argument.defaultValue,
+            invalidEnumValueFatal=invalidEnumValueFatal,
+            defaultValue=argument.defaultValue,
+            treatNullAs=argument.treatNullAs,
+            isEnforceRange=argument.enforceRange,
+            isClamp=argument.clamp)
+
+        if dealWithOptional:
+            template = CGIfElseWrapper(condition,
+                                       CGGeneric(template),
+                                       CGGeneric("None")).define()
+
+        self.converter = instantiateJSToNativeConversionTemplate(
+            template, replacementVariables, declType, "arg%d" % index,
+            needsRooting)
 
     def define(self):
-        return instantiateJSToNativeConversionTemplate(
-            getJSToNativeConversionTemplate(self.argument.type,
-                                            self.descriptorProvider,
-                                            isOptional=(self.argcAndIndex is not None),
-                                            invalidEnumValueFatal=self.invalidEnumValueFatal,
-                                            defaultValue=self.argument.defaultValue,
-                                            treatNullAs=self.argument.treatNullAs,
-                                            isEnforceRange=self.argument.enforceRange,
-                                            isClamp=self.argument.clamp),
-            self.replacementVariables,
-            self.argcAndIndex).define()
+        return self.converter.define()
 
 
 def wrapForType(jsvalRef, result='result', successCode='return 1;'):
@@ -2709,7 +2693,7 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
         name = type.name
         typeName = "/*" + type.name + "*/"
 
-    (template, _, _, _) = getJSToNativeConversionTemplate(
+    template, _, _, _ = getJSToNativeConversionTemplate(
         type, descriptorProvider, failureCode="return Ok(None);",
         exceptionCode='return Err(());',
         isDefinitelyObject=True, isOptional=False)
@@ -3360,13 +3344,14 @@ class CGProxySpecialOperation(CGPerSignatureCall):
         if operation.isSetter() or operation.isCreator():
             # arguments[0] is the index or name of the item that we're setting.
             argument = arguments[1]
-            template = getJSToNativeConversionTemplate(argument.type, descriptor,
-                                                       treatNullAs=argument.treatNullAs)
+            template, declType, _, needsRooting = getJSToNativeConversionTemplate(
+                argument.type, descriptor, treatNullAs=argument.treatNullAs)
             templateValues = {
-                "declName": argument.identifier.name,
                 "val": "(*desc).value",
             }
-            self.cgRoot.prepend(instantiateJSToNativeConversionTemplate(template, templateValues))
+            self.cgRoot.prepend(instantiateJSToNativeConversionTemplate(
+                  template, templateValues, declType, argument.identifier.name,
+                  needsRooting))
         elif operation.isGetter():
             self.cgRoot.prepend(CGGeneric("let mut found = false;"))
 
@@ -4879,21 +4864,23 @@ class CallbackMember(CGNativeMember):
     def getResultConversion(self):
         replacements = {
             "val": "rval",
-            "declName" : "rvalDecl",
-            }
+        }
 
         if isJSImplementedDescriptor(self.descriptorProvider):
             isCallbackReturnValue = "JSImpl"
         else:
             isCallbackReturnValue = "Callback"
+        template, declType, _, needsRooting = getJSToNativeConversionTemplate(
+            self.retvalType,
+            self.descriptorProvider,
+            exceptionCode=self.exceptionCode,
+            isCallbackReturnValue=isCallbackReturnValue,
+            # XXXbz we should try to do better here
+            sourceDescription="return value")
+
         convertType = instantiateJSToNativeConversionTemplate(
-            getJSToNativeConversionTemplate(self.retvalType,
-                                            self.descriptorProvider,
-                                            exceptionCode=self.exceptionCode,
-                                            isCallbackReturnValue=isCallbackReturnValue,
-                                            # XXXbz we should try to do better here
-                                            sourceDescription="return value"),
-            replacements)
+            template, replacements, declType, "rvalDecl", needsRooting)
+
         assignRetval = string.Template(
             self.getRetvalInfo(self.retvalType,
                                False)[2]).substitute(replacements)
