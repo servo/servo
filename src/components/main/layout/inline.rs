@@ -975,12 +975,6 @@ impl Flow for InlineFlow {
     }
 }
 
-struct FragmentFixupWorkItem {
-    style: Arc<ComputedValues>,
-    new_start_index: uint,
-    old_end_index: uint,
-}
-
 /// Information that inline flows keep about a single nested element. This is used to recover the
 /// DOM structure from the flat box list when it's needed.
 pub struct FragmentRange {
@@ -1009,6 +1003,12 @@ impl FragmentRange {
         // FIXME(#2266, pcwalton): Is Au(0) right here for the containing block?
         model::padding_from_style(&*self.style, Au(0))
     }
+}
+
+struct FragmentFixupWorkItem {
+    style: Arc<ComputedValues>,
+    new_start_index: uint,
+    old_end_index: uint,
 }
 
 /// The type of an iterator over fragment ranges in the fragment map.
