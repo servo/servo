@@ -868,19 +868,8 @@ def instantiateJSToNativeConversionTemplate(templateTuple, replacements,
                                post=";")
 
     if argcAndIndex is not None:
-        declConstruct = None
-        holderConstruct = None
-
-        conversion = CGList(
-            [CGGeneric(
-                    string.Template("if ${index} < ${argc} {").substitute(
-                        argcAndIndex
-                        )),
-             declConstruct,
-             holderConstruct,
-             CGIndenter(conversion),
-             CGGeneric("}")],
-            "\n")
+        condition = string.Template("${index} < ${argc}").substitute(argcAndIndex)
+        conversion = CGIfWrapper(conversion, condition)
 
     result.append(conversion)
     # Add an empty CGGeneric to get an extra newline after the argument
