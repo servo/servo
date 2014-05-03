@@ -47,7 +47,7 @@ impl<'a> BlobMethods for JSRef<'a, Blob> {
     }
 
     fn Type(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn Slice(&self, _start: Option<i64>, _end: Option<i64>, _contentType: Option<DOMString>) -> Temporary<Blob> {

@@ -63,7 +63,7 @@ impl<'a> HTMLStyleElementMethods for JSRef<'a, HTMLStyleElement> {
     }
 
     fn Media(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetMedia(&mut self, _media: DOMString) -> ErrorResult {
@@ -71,7 +71,7 @@ impl<'a> HTMLStyleElementMethods for JSRef<'a, HTMLStyleElement> {
     }
 
     fn Type(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetType(&mut self, _type: DOMString) -> ErrorResult {

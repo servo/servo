@@ -111,7 +111,7 @@ impl<'a> HTMLSelectElementMethods for JSRef<'a, HTMLSelectElement> {
     }
 
     fn Name(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetName(&mut self, _name: DOMString) -> ErrorResult {
@@ -135,7 +135,7 @@ impl<'a> HTMLSelectElementMethods for JSRef<'a, HTMLSelectElement> {
     }
 
     fn Type(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn Length(&self) -> u32 {
@@ -177,7 +177,7 @@ impl<'a> HTMLSelectElementMethods for JSRef<'a, HTMLSelectElement> {
     }
 
     fn Value(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetValue(&mut self, _value: DOMString) {
@@ -196,7 +196,7 @@ impl<'a> HTMLSelectElementMethods for JSRef<'a, HTMLSelectElement> {
     }
 
     fn ValidationMessage(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetValidationMessage(&mut self, _message: DOMString) -> ErrorResult {

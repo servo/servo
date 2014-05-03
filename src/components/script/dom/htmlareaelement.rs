@@ -61,7 +61,7 @@ pub trait HTMLAreaElementMethods {
 
 impl<'a> HTMLAreaElementMethods for JSRef<'a, HTMLAreaElement> {
     fn Alt(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetAlt(&self, _alt: DOMString) -> ErrorResult {
@@ -69,7 +69,7 @@ impl<'a> HTMLAreaElementMethods for JSRef<'a, HTMLAreaElement> {
     }
 
     fn Coords(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetCoords(&self, _coords: DOMString) -> ErrorResult {
@@ -77,7 +77,7 @@ impl<'a> HTMLAreaElementMethods for JSRef<'a, HTMLAreaElement> {
     }
 
     fn Shape(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetShape(&self, _shape: DOMString) -> ErrorResult {
@@ -85,7 +85,7 @@ impl<'a> HTMLAreaElementMethods for JSRef<'a, HTMLAreaElement> {
     }
 
     fn Href(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetHref(&self, _href: DOMString) -> ErrorResult {
@@ -93,7 +93,7 @@ impl<'a> HTMLAreaElementMethods for JSRef<'a, HTMLAreaElement> {
     }
 
     fn Target(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetTarget(&self, _target: DOMString) -> ErrorResult {
@@ -101,7 +101,7 @@ impl<'a> HTMLAreaElementMethods for JSRef<'a, HTMLAreaElement> {
     }
 
     fn Download(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetDownload(&self, _download: DOMString) -> ErrorResult {
@@ -109,7 +109,7 @@ impl<'a> HTMLAreaElementMethods for JSRef<'a, HTMLAreaElement> {
     }
 
     fn Ping(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetPing(&self, _ping: DOMString) -> ErrorResult {

@@ -145,7 +145,7 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
     }
 
     fn CrossOrigin(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetCrossOrigin(&mut self, _cross_origin: DOMString) -> ErrorResult {

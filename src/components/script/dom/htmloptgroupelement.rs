@@ -57,7 +57,7 @@ impl<'a> HTMLOptGroupElementMethods for JSRef<'a, HTMLOptGroupElement> {
     }
 
     fn Label(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetLabel(&mut self, _label: DOMString) -> ErrorResult {

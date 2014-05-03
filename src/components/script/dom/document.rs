@@ -544,7 +544,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     // http://www.whatwg.org/specs/web-apps/current-work/#document.title
     fn Title(&self) -> DOMString {
-        let mut title = ~"";
+        let mut title = "".to_owned();
         self.GetDocumentElement().root().map(|root| {
             let root: &JSRef<Node> = NodeCast::from_ref(&*root);
             root.traverse_preorder()

@@ -72,7 +72,7 @@ impl<'a> HTMLOptionElementMethods for JSRef<'a, HTMLOptionElement> {
     }
 
     fn Label(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetLabel(&mut self, _label: DOMString) -> ErrorResult {
@@ -96,7 +96,7 @@ impl<'a> HTMLOptionElementMethods for JSRef<'a, HTMLOptionElement> {
     }
 
     fn Value(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetValue(&mut self, _value: DOMString) -> ErrorResult {
@@ -104,7 +104,7 @@ impl<'a> HTMLOptionElementMethods for JSRef<'a, HTMLOptionElement> {
     }
 
     fn Text(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetText(&mut self, _text: DOMString) -> ErrorResult {

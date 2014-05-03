@@ -67,7 +67,7 @@ impl Event {
             current_target: None,
             target: None,
             phase: PhaseNone,
-            type_: ~"",
+            type_: "".to_owned(),
             canceled: false,
             cancelable: true,
             bubbles: false,

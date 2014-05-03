@@ -56,7 +56,7 @@ pub trait HTMLTrackElementMethods {
 
 impl<'a> HTMLTrackElementMethods for JSRef<'a, HTMLTrackElement> {
     fn Kind(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetKind(&mut self, _kind: DOMString) -> ErrorResult {
@@ -64,7 +64,7 @@ impl<'a> HTMLTrackElementMethods for JSRef<'a, HTMLTrackElement> {
     }
 
     fn Src(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
@@ -72,7 +72,7 @@ impl<'a> HTMLTrackElementMethods for JSRef<'a, HTMLTrackElement> {
     }
 
     fn Srclang(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetSrclang(&mut self, _srclang: DOMString) -> ErrorResult {
@@ -80,7 +80,7 @@ impl<'a> HTMLTrackElementMethods for JSRef<'a, HTMLTrackElement> {
     }
 
     fn Label(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetLabel(&mut self, _label: DOMString) -> ErrorResult {

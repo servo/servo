@@ -125,7 +125,7 @@ pub trait HTMLObjectElementMethods {
 
 impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
     fn Data(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetData(&mut self, _data: DOMString) -> ErrorResult {
@@ -133,7 +133,7 @@ impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
     }
 
     fn Type(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetType(&mut self, _type: DOMString) -> ErrorResult {
@@ -141,7 +141,7 @@ impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
     }
 
     fn Name(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetName(&mut self, _name: DOMString) -> ErrorResult {
@@ -149,7 +149,7 @@ impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
     }
 
     fn UseMap(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetUseMap(&mut self, _use_map: DOMString) -> ErrorResult {
@@ -161,7 +161,7 @@ impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
     }
 
     fn Width(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetWidth(&mut self, _width: DOMString) -> ErrorResult {
@@ -169,7 +169,7 @@ impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
     }
 
     fn Height(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetHeight(&mut self, _height: DOMString) -> ErrorResult {
@@ -194,7 +194,7 @@ impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
     }
 
     fn ValidationMessage(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn CheckValidity(&self) -> bool {
@@ -205,7 +205,7 @@ impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
     }
 
     fn Align(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
@@ -213,7 +213,7 @@ impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
     }
 
     fn Archive(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetArchive(&mut self, _archive: DOMString) -> ErrorResult {
@@ -221,7 +221,7 @@ impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
     }
 
     fn Code(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetCode(&mut self, _code: DOMString) -> ErrorResult {
@@ -245,7 +245,7 @@ impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
     }
 
     fn Standby(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetStandby(&mut self, _standby: DOMString) -> ErrorResult {
@@ -261,7 +261,7 @@ impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
     }
 
     fn CodeBase(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetCodeBase(&mut self, _codebase: DOMString) -> ErrorResult {
@@ -269,7 +269,7 @@ impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
     }
 
     fn CodeType(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetCodeType(&mut self, _codetype: DOMString) -> ErrorResult {
@@ -277,7 +277,7 @@ impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
     }
 
     fn Border(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetBorder(&mut self, _border: DOMString) -> ErrorResult {

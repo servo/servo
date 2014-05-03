@@ -71,7 +71,7 @@ pub trait HTMLAnchorElementMethods {
 
 impl<'a> HTMLAnchorElementMethods for JSRef<'a, HTMLAnchorElement> {
     fn Href(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetHref(&mut self, _href: DOMString) -> ErrorResult {
@@ -79,7 +79,7 @@ impl<'a> HTMLAnchorElementMethods for JSRef<'a, HTMLAnchorElement> {
     }
 
     fn Target(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetTarget(&self, _target: DOMString) -> ErrorResult {
@@ -87,7 +87,7 @@ impl<'a> HTMLAnchorElementMethods for JSRef<'a, HTMLAnchorElement> {
     }
 
     fn Download(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetDownload(&self, _download: DOMString) -> ErrorResult {
@@ -95,7 +95,7 @@ impl<'a> HTMLAnchorElementMethods for JSRef<'a, HTMLAnchorElement> {
     }
 
     fn Ping(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetPing(&self, _ping: DOMString) -> ErrorResult {
@@ -103,7 +103,7 @@ impl<'a> HTMLAnchorElementMethods for JSRef<'a, HTMLAnchorElement> {
     }
 
     fn Rel(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetRel(&self, _rel: DOMString) -> ErrorResult {
@@ -111,7 +111,7 @@ impl<'a> HTMLAnchorElementMethods for JSRef<'a, HTMLAnchorElement> {
     }
 
     fn Hreflang(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetHreflang(&self, _href_lang: DOMString) -> ErrorResult {
@@ -119,7 +119,7 @@ impl<'a> HTMLAnchorElementMethods for JSRef<'a, HTMLAnchorElement> {
     }
 
     fn Type(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetType(&mut self, _type: DOMString) -> ErrorResult {
@@ -127,7 +127,7 @@ impl<'a> HTMLAnchorElementMethods for JSRef<'a, HTMLAnchorElement> {
     }
 
     fn Text(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetText(&mut self, _text: DOMString) -> ErrorResult {
@@ -135,7 +135,7 @@ impl<'a> HTMLAnchorElementMethods for JSRef<'a, HTMLAnchorElement> {
     }
 
     fn Coords(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetCoords(&mut self, _coords: DOMString) -> ErrorResult {
@@ -143,7 +143,7 @@ impl<'a> HTMLAnchorElementMethods for JSRef<'a, HTMLAnchorElement> {
     }
 
     fn Charset(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetCharset(&mut self, _charset: DOMString) -> ErrorResult {
@@ -151,7 +151,7 @@ impl<'a> HTMLAnchorElementMethods for JSRef<'a, HTMLAnchorElement> {
     }
 
     fn Name(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetName(&mut self, _name: DOMString) -> ErrorResult {
@@ -159,7 +159,7 @@ impl<'a> HTMLAnchorElementMethods for JSRef<'a, HTMLAnchorElement> {
     }
 
     fn Rev(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetRev(&mut self, _rev: DOMString) -> ErrorResult {
@@ -167,7 +167,7 @@ impl<'a> HTMLAnchorElementMethods for JSRef<'a, HTMLAnchorElement> {
     }
 
     fn Shape(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetShape(&mut self, _shape: DOMString) -> ErrorResult {

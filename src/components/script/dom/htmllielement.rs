@@ -57,7 +57,7 @@ impl<'a> HTMLLIElementMethods for JSRef<'a, HTMLLIElement> {
     }
 
     fn Type(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetType(&mut self, _type: DOMString) -> ErrorResult {

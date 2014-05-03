@@ -57,7 +57,7 @@ impl<'a> HTMLUListElementMethods for JSRef<'a, HTMLUListElement> {
     }
 
     fn Type(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetType(&mut self, _type: DOMString) -> ErrorResult {

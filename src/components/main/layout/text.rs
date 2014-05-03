@@ -210,7 +210,7 @@ impl TextRunScanner {
 
                 // Next, concatenate all of the transformed strings together, saving the new
                 // character indices.
-                let mut run_str: ~str = ~"";
+                let mut run_str: ~str = "".to_owned();
                 let mut new_ranges: ~[Range] = ~[];
                 let mut char_total = 0;
                 for i in range(0, transformed_strs.len()) {

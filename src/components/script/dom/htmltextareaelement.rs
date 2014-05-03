@@ -118,7 +118,7 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
     }
 
     fn Name(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetName(&mut self, _name: DOMString) -> ErrorResult {
@@ -126,7 +126,7 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
     }
 
     fn Placeholder(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetPlaceholder(&mut self, _placeholder: DOMString) -> ErrorResult {
@@ -158,7 +158,7 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
     }
 
     fn Wrap(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetWrap(&mut self, _wrap: DOMString) -> ErrorResult {
@@ -166,14 +166,14 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
     }
 
     fn Type(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetType(&mut self, _type: DOMString) {
     }
 
     fn DefaultValue(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetDefaultValue(&mut self, _default_value: DOMString) -> ErrorResult {
@@ -181,7 +181,7 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
     }
 
     fn Value(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetValue(&mut self, _value: DOMString) {
@@ -204,7 +204,7 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
     }
 
     fn ValidationMessage(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn CheckValidity(&self) -> bool {
@@ -234,7 +234,7 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
     }
 
     fn GetSelectionDirection(&self) -> Fallible<DOMString> {
-        Ok(~"")
+        Ok("".to_owned())
     }
 
     fn SetSelectionDirection(&self, _selection_direction: DOMString) -> ErrorResult {

@@ -21,7 +21,7 @@ pub enum CompressionMode {
 //
 // * Untracked: various edge cases for bidi, CJK, etc.
 pub fn transform_text(text: &str, mode: CompressionMode, incoming_whitespace: bool, new_line_pos: &mut ~[uint]) -> (~str, bool) {
-    let mut out_str: ~str = ~"";
+    let mut out_str: ~str = "".to_owned();
     let out_whitespace = match mode {
         CompressNone | DiscardNewline => {
             let mut new_line_index = 0;

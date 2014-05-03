@@ -72,7 +72,7 @@ impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
     }
 
     fn Name(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetName(&mut self, _name: DOMString) -> ErrorResult {
@@ -80,7 +80,7 @@ impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
     }
 
     fn Type(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     // http://www.whatwg.org/html/#dom-fieldset-elements
@@ -110,7 +110,7 @@ impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
     }
 
     fn ValidationMessage(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn CheckValidity(&self) -> bool {

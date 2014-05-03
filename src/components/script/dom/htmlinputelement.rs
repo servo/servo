@@ -123,7 +123,7 @@ pub trait HTMLInputElementMethods {
 
 impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     fn Accept(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetAccept(&mut self, _accept: DOMString) -> ErrorResult {
@@ -131,7 +131,7 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     }
 
     fn Alt(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetAlt(&mut self, _alt: DOMString) -> ErrorResult {
@@ -139,7 +139,7 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     }
 
     fn Autocomplete(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetAutocomplete(&mut self, _autocomple: DOMString) -> ErrorResult {
@@ -178,7 +178,7 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     }
 
     fn FormAction(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetFormAction(&mut self, _form_action: DOMString) -> ErrorResult {
@@ -186,7 +186,7 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     }
 
     fn FormEnctype(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetFormEnctype(&mut self, _form_enctype: DOMString) -> ErrorResult {
@@ -194,7 +194,7 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     }
 
     fn FormMethod(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetFormMethod(&mut self, _form_method: DOMString) -> ErrorResult {
@@ -210,7 +210,7 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     }
 
     fn FormTarget(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetFormTarget(&mut self, _form_target: DOMString) -> ErrorResult {
@@ -233,7 +233,7 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     }
 
     fn InputMode(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetInputMode(&mut self, _input_mode: DOMString) -> ErrorResult {
@@ -241,7 +241,7 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     }
 
     fn Max(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetMax(&mut self, _max: DOMString) -> ErrorResult {
@@ -257,7 +257,7 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     }
 
     fn Min(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetMin(&mut self, _min: DOMString) -> ErrorResult {
@@ -273,7 +273,7 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     }
 
     fn Name(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetName(&mut self, _name: DOMString) -> ErrorResult {
@@ -281,7 +281,7 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     }
 
     fn Pattern(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetPattern(&mut self, _pattern: DOMString) -> ErrorResult {
@@ -289,7 +289,7 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     }
 
     fn Placeholder(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetPlaceholder(&mut self, _placeholder: DOMString) -> ErrorResult {
@@ -321,7 +321,7 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     }
 
     fn Src(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
@@ -329,7 +329,7 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     }
 
     fn Step(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetStep(&mut self, _step: DOMString) -> ErrorResult {
@@ -337,7 +337,7 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     }
 
     fn Type(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetType(&mut self, _type: DOMString) -> ErrorResult {
@@ -345,7 +345,7 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     }
 
     fn DefaultValue(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetDefaultValue(&mut self, _default_value: DOMString) -> ErrorResult {
@@ -353,7 +353,7 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     }
 
     fn Value(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetValue(&mut self, _value: DOMString) -> ErrorResult {
@@ -375,7 +375,7 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     }
 
     fn GetValidationMessage(&self) -> Fallible<DOMString> {
-        Ok(~"")
+        Ok("".to_owned())
     }
 
     fn CheckValidity(&self) -> bool {
@@ -405,7 +405,7 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     }
 
     fn GetSelectionDirection(&self) -> Fallible<DOMString> {
-        Ok(~"")
+        Ok("".to_owned())
     }
 
     fn SetSelectionDirection(&mut self, _selection_direction: DOMString) -> ErrorResult {
@@ -413,7 +413,7 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     }
 
     fn Align(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
@@ -421,7 +421,7 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     }
 
     fn UseMap(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetUseMap(&mut self, _align: DOMString) -> ErrorResult {

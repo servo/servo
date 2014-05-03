@@ -74,7 +74,7 @@ pub trait HTMLMediaElementMethods {
 
 impl<'a> HTMLMediaElementMethods for JSRef<'a, HTMLMediaElement> {
     fn Src(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
@@ -82,11 +82,11 @@ impl<'a> HTMLMediaElementMethods for JSRef<'a, HTMLMediaElement> {
     }
 
     fn CurrentSrc(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn CrossOrigin(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetCrossOrigin(&mut self, _cross_origin: DOMString) -> ErrorResult {
@@ -94,7 +94,7 @@ impl<'a> HTMLMediaElementMethods for JSRef<'a, HTMLMediaElement> {
     }
 
     fn Preload(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetPreload(&mut self, _preload: DOMString) -> ErrorResult {
@@ -105,7 +105,7 @@ impl<'a> HTMLMediaElementMethods for JSRef<'a, HTMLMediaElement> {
     }
 
     fn CanPlayType(&self, _type: DOMString) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn ReadyState(&self) -> u16 {

@@ -86,7 +86,7 @@ impl Flow for TableColGroupFlow {
         let txt = ~"TableColGroupFlow: ";
         txt.append(match self.box_ {
             Some(ref rb) => rb.debug_str(),
-            None => ~"",
+            None => "".to_owned(),
         })
     }
 }

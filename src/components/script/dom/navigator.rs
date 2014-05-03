@@ -53,11 +53,11 @@ impl<'a> NavigatorMethods for JSRef<'a, Navigator> {
     }
 
     fn Vendor(&self) -> DOMString {
-        ~"" // Like Gecko
+        "".to_owned() // Like Gecko
     }
 
     fn VendorSub(&self) -> DOMString {
-        ~"" // Like Gecko
+        "".to_owned() // Like Gecko
     }
 
     fn Product(&self) -> DOMString {
@@ -65,7 +65,7 @@ impl<'a> NavigatorMethods for JSRef<'a, Navigator> {
     }
 
     fn ProductSub(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn CookieEnabled(&self) -> bool {
@@ -73,7 +73,7 @@ impl<'a> NavigatorMethods for JSRef<'a, Navigator> {
     }
 
     fn GetBuildID(&self) -> Fallible<DOMString> {
-        Ok(~"")
+        Ok("".to_owned())
     }
 
     fn JavaEnabled(&self) -> Fallible<bool> {
@@ -93,15 +93,15 @@ impl<'a> NavigatorMethods for JSRef<'a, Navigator> {
     }
 
     fn GetAppVersion(&self) -> Fallible<DOMString> {
-        Ok(~"")
+        Ok("".to_owned())
     }
 
     fn GetPlatform(&self) -> Fallible<DOMString> {
-        Ok(~"")
+        Ok("".to_owned())
     }
 
     fn GetUserAgent(&self) -> Fallible<DOMString> {
-        Ok(~"")
+        Ok("".to_owned())
     }
 
     fn GetLanguage(&self) -> Option<DOMString> {

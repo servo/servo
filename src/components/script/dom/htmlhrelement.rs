@@ -55,7 +55,7 @@ pub trait HTMLHRElementMethods {
 
 impl<'a> HTMLHRElementMethods for JSRef<'a, HTMLHRElement> {
     fn Align(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
@@ -63,7 +63,7 @@ impl<'a> HTMLHRElementMethods for JSRef<'a, HTMLHRElement> {
     }
 
     fn Color(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetColor(&mut self, _color: DOMString) -> ErrorResult {
@@ -79,7 +79,7 @@ impl<'a> HTMLHRElementMethods for JSRef<'a, HTMLHRElement> {
     }
 
     fn Size(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetSize(&mut self, _size: DOMString) -> ErrorResult {
@@ -87,7 +87,7 @@ impl<'a> HTMLHRElementMethods for JSRef<'a, HTMLHRElement> {
     }
 
     fn Width(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetWidth(&mut self, _width: DOMString) -> ErrorResult {
