@@ -10,6 +10,7 @@ use self::EventListenerBinding::EventListener;
 use dom::event::Event;
 use dom::eventdispatcher::dispatch_event;
 use dom::node::NodeTypeId;
+use dom::xmlhttprequest::XMLHttpRequestId;
 use dom::virtualmethods::VirtualMethods;
 use servo_util::str::DOMString;
 
@@ -23,8 +24,9 @@ pub enum ListenerPhase {
 
 #[deriving(Eq,Encodable)]
 pub enum EventTargetTypeId {
+    NodeTargetTypeId(NodeTypeId),
     WindowTypeId,
-    NodeTargetTypeId(NodeTypeId)
+    XMLHttpRequestTargetTypeId(XMLHttpRequestId)
 }
 
 #[deriving(Eq,Encodable)]
