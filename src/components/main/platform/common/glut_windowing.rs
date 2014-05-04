@@ -64,7 +64,7 @@ impl WindowMethods<Application> for Window {
     fn new(_: &Application) -> Rc<Window> {
         // Create the GLUT window.
         glut::init_window_size(800, 600);
-        let glut_window = glut::create_window(~"Servo");
+        let glut_window = glut::create_window("Servo".to_owned());
 
         // Create our window object.
         let window = Window {
@@ -268,7 +268,7 @@ impl Window {
         alert.run();
         let value = alert.prompt_value();
         if "" == value {    // To avoid crashing on Linux.
-            self.event_queue.borrow_mut().push(LoadUrlWindowEvent(~"http://purple.com/"))
+            self.event_queue.borrow_mut().push(LoadUrlWindowEvent("http://purple.com/".to_owned()))
         } else {
             self.event_queue.borrow_mut().push(LoadUrlWindowEvent(value.clone()))
         }

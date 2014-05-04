@@ -1002,7 +1002,7 @@ impl ScriptTask {
         // "load" event as soon as we've finished executing all scripts parsed during
         // the initial load.
         let mut event = Event::new(&*window).root();
-        event.InitEvent(~"load", false, false);
+        event.InitEvent("load".to_owned(), false, false);
         let doctarget: &JSRef<EventTarget> = EventTargetCast::from_ref(&*document);
         let wintarget: &JSRef<EventTarget> = EventTargetCast::from_ref(&*window);
         let _ = wintarget.dispatch_event_with_target(Some((*doctarget).clone()),
@@ -1069,7 +1069,7 @@ impl ScriptTask {
                         // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
                         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#event-type-resize
                         let mut uievent = UIEvent::new(&*window).root();
-                        uievent.InitUIEvent(~"resize", false, false,
+                        uievent.InitUIEvent("resize".to_owned(), false, false,
                                             Some((*window).clone()), 0i32);
                         let event: &mut JSRef<Event> = EventCast::from_mut_ref(&mut *uievent);
 

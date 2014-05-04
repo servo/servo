@@ -296,7 +296,7 @@ impl Flow for TableFlow {
     }
 
     fn debug_str(&self) -> ~str {
-        let txt = ~"TableFlow: ";
+        let txt = "TableFlow: ".to_owned();
         txt.append(self.block_flow.box_.debug_str())
     }
 }

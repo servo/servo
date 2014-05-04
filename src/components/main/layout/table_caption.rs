@@ -66,7 +66,7 @@ impl Flow for TableCaptionFlow {
     }
 
     fn debug_str(&self) -> ~str {
-        let txt = ~"TableCaptionFlow: ";
+        let txt = "TableCaptionFlow: ".to_owned();
         txt.append(self.block_flow.box_.debug_str())
     }
 }

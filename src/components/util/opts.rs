@@ -108,15 +108,15 @@ pub fn from_cmdline_args(args: &[~str]) -> Option<Opts> {
 
     let render_backend = match opt_match.opt_str("r") {
         Some(backend_str) => {
-            if backend_str == ~"direct2d" {
+            if "direct2d" == backend_str {
                 Direct2DBackend
-            } else if backend_str == ~"core-graphics" {
+            } else if "core-graphics" == backend_str {
                 CoreGraphicsBackend
-            } else if backend_str == ~"core-graphics-accelerated" {
+            } else if "core-graphics-accelerated" == backend_str {
                 CoreGraphicsAcceleratedBackend
-            } else if backend_str == ~"cairo" {
+            } else if "cairo" == backend_str {
                 CairoBackend
-            } else if backend_str == ~"skia" {
+            } else if "skia" == backend_str {
                 SkiaBackend
             } else {
                 fail!("unknown backend type")

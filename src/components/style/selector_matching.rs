@@ -980,23 +980,23 @@ mod tests {
     fn test_get_id_name(){
         let rules_list = get_mock_rules([".intro", "#top"]);
         assert_eq!(SelectorMap::get_id_name(&rules_list[0][0]), None);
-        assert_eq!(SelectorMap::get_id_name(&rules_list[1][0]), Some(~"top"));
+        assert_eq!(SelectorMap::get_id_name(&rules_list[1][0]), Some("top".to_owned()));
     }
 
     #[test]
     fn test_get_class_name(){
         let rules_list = get_mock_rules([".intro.foo", "#top"]);
-        assert_eq!(SelectorMap::get_class_name(&rules_list[0][0]), Some(~"intro"));
+        assert_eq!(SelectorMap::get_class_name(&rules_list[0][0]), Some("intro".to_owned()));
         assert_eq!(SelectorMap::get_class_name(&rules_list[1][0]), None);
     }
 
     #[test]
     fn test_get_element_name(){
         let rules_list = get_mock_rules(["img.foo", "#top", "IMG", "ImG"]);
-        assert_eq!(SelectorMap::get_element_name(&rules_list[0][0]), Some(~"img"));
+        assert_eq!(SelectorMap::get_element_name(&rules_list[0][0]), Some("img".to_owned()));
         assert_eq!(SelectorMap::get_element_name(&rules_list[1][0]), None);
-        assert_eq!(SelectorMap::get_element_name(&rules_list[2][0]), Some(~"img"));
-        assert_eq!(SelectorMap::get_element_name(&rules_list[3][0]), Some(~"img"));
+        assert_eq!(SelectorMap::get_element_name(&rules_list[2][0]), Some("img".to_owned()));
+        assert_eq!(SelectorMap::get_element_name(&rules_list[3][0]), Some("img".to_owned()));
     }
 
     #[test]
@@ -1004,9 +1004,9 @@ mod tests {
         let rules_list = get_mock_rules([".intro.foo", "#top"]);
         let mut selector_map = SelectorMap::new();
         selector_map.insert(rules_list[1][0].clone());
-        assert_eq!(1, selector_map.id_hash.find(&~"top").unwrap()[0].property.source_order);
+        assert_eq!(1, selector_map.id_hash.find_equiv(& &"top").unwrap()[0].property.source_order);
         selector_map.insert(rules_list[0][0].clone());
-        assert_eq!(0, selector_map.class_hash.find(&~"intro").unwrap()[0].property.source_order);
-        assert!(selector_map.class_hash.find(&~"foo").is_none());
+        assert_eq!(0, selector_map.class_hash.find_equiv(& &"intro").unwrap()[0].property.source_order);
+        assert!(selector_map.class_hash.find_equiv(& &"foo").is_none());
     }
 }

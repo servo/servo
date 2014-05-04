@@ -83,7 +83,7 @@ impl Flow for TableColGroupFlow {
     }
 
     fn debug_str(&self) -> ~str {
-        let txt = ~"TableColGroupFlow: ";
+        let txt = "TableColGroupFlow: ".to_owned();
         txt.append(match self.box_ {
             Some(ref rb) => rb.debug_str(),
             None => "".to_owned(),

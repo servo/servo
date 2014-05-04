@@ -59,6 +59,6 @@ impl FontListHandle {
     }
 
     pub fn get_last_resort_font_families() -> ~[~str] {
-        ~[~"Arial Unicode MS",~"Arial"]
+        ~["Arial Unicode MS".to_owned(),"Arial".to_owned()]
     }
 }
