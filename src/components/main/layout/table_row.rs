@@ -222,7 +222,7 @@ impl Flow for TableRowFlow {
     }
 
     fn debug_str(&self) -> ~str {
-        let txt = ~"TableRowFlow: ";
+        let txt = "TableRowFlow: ".to_owned();
         txt.append(self.block_flow.box_.debug_str())
     }
 }

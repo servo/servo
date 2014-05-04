@@ -980,23 +980,23 @@ mod tests {
     fn test_get_id_name(){
         let rules_list = get_mock_rules([".intro", "#top"]);
         assert_eq!(SelectorMap::get_id_name(&rules_list[0][0]), None);
-        assert_eq!(SelectorMap::get_id_name(&rules_list[1][0]), Some(~"top"));
+        assert_eq!(SelectorMap::get_id_name(&rules_list[1][0]), Some("top".to_owned()));
     }
 
     #[test]
     fn test_get_class_name(){
         let rules_list = get_mock_rules([".intro.foo", "#top"]);
-        assert_eq!(SelectorMap::get_class_name(&rules_list[0][0]), Some(~"intro"));
+        assert_eq!(SelectorMap::get_class_name(&rules_list[0][0]), Some("intro".to_owned()));
         assert_eq!(SelectorMap::get_class_name(&rules_list[1][0]), None);
     }
 
     #[test]
     fn test_get_element_name(){
         let rules_list = get_mock_rules(["img.foo", "#top", "IMG", "ImG"]);
-        assert_eq!(SelectorMap::get_element_name(&rules_list[0][0]), Some(~"img"));
+        assert_eq!(SelectorMap::get_element_name(&rules_list[0][0]), Some("img".to_owned()));
         assert_eq!(SelectorMap::get_element_name(&rules_list[1][0]), None);
-        assert_eq!(SelectorMap::get_element_name(&rules_list[2][0]), Some(~"img"));
-        assert_eq!(SelectorMap::get_element_name(&rules_list[3][0]), Some(~"img"));
+        assert_eq!(SelectorMap::get_element_name(&rules_list[2][0]), Some("img".to_owned()));
+        assert_eq!(SelectorMap::get_element_name(&rules_list[3][0]), Some("img".to_owned()));
     }
 
     #[test]

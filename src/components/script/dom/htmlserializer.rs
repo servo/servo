@@ -25,7 +25,7 @@ pub fn serialize(iterator: &mut NodeIterator) -> ~str {
 
     for node in *iterator {
         while open_elements.len() > iterator.depth {
-            html.push_str(~"</" + open_elements.pop().unwrap().as_slice() + ">");
+            html.push_str("</".to_owned() + open_elements.pop().unwrap().as_slice() + ">");
         }
         html.push_str(
             match node.type_id() {
@@ -60,13 +60,13 @@ pub fn serialize(iterator: &mut NodeIterator) -> ~str {
         );
     }
     while open_elements.len() > 0 {
-        html.push_str(~"</" + open_elements.pop().unwrap().as_slice() + ">");
+        html.push_str("</".to_owned() + open_elements.pop().unwrap().as_slice() + ">");
     }
     html
 }
 
 fn serialize_comment(comment: &JSRef<Comment>) -> ~str {
-    ~"<!--" + comment.deref().characterdata.data + "-->"
+    "<!--".to_owned() + comment.deref().characterdata.data + "-->"
 }
 
 fn serialize_text(text: &JSRef<Text>) -> ~str {
@@ -88,15 +88,15 @@ fn serialize_text(text: &JSRef<Text>) -> ~str {
 }
 
 fn serialize_processing_instruction(processing_instruction: &JSRef<ProcessingInstruction>) -> ~str {
-    ~"<?" + processing_instruction.deref().target + " " + processing_instruction.deref().characterdata.data + "?>"
+    "<?".to_owned() + processing_instruction.deref().target + " " + processing_instruction.deref().characterdata.data + "?>"
 }
 
 fn serialize_doctype(doctype: &JSRef<DocumentType>) -> ~str {
-    ~"<!DOCTYPE" + doctype.deref().name + ">"
+    "<!DOCTYPE".to_owned() + doctype.deref().name + ">"
 }
 
 fn serialize_elem(elem: &JSRef<Element>, open_elements: &mut Vec<~str>) -> ~str {
-    let mut rv = ~"<" + elem.deref().local_name;
+    let mut rv = "<".to_owned() + elem.deref().local_name;
     for attr in elem.deref().attrs.iter() {
         let attr = attr.root();
         rv.push_str(serialize_attr(&*attr));
@@ -125,18 +125,18 @@ fn serialize_elem(elem: &JSRef<Element>, open_elements: &mut Vec<~str>) -> ~str 
 
 fn serialize_attr(attr: &JSRef<Attr>) -> ~str {
     let attr_name = if attr.deref().namespace == namespace::XML {
-        ~"xml:" + attr.deref().local_name.clone()
+        "xml:".to_owned() + attr.deref().local_name.clone()
     } else if attr.deref().namespace == namespace::XMLNS &&
         attr.deref().local_name.as_slice() == "xmlns" {
-        ~"xmlns"
+        "xmlns".to_owned()
     } else if attr.deref().namespace == namespace::XMLNS {
-        ~"xmlns:" + attr.deref().local_name.clone()
+        "xmlns:".to_owned() + attr.deref().local_name.clone()
     } else if attr.deref().namespace == namespace::XLink {
-        ~"xlink:" + attr.deref().local_name.clone()
+        "xlink:".to_owned() + attr.deref().local_name.clone()
     } else {
         attr.deref().name.clone()
     };
-    ~" " + attr_name + "=\"" + escape(attr.deref().value, true) + "\""
+    " ".to_owned() + attr_name + "=\"" + escape(attr.deref().value, true) + "\""
 }
 
 fn escape(string: &str, attr_mode: bool) -> ~str {

@@ -603,7 +603,7 @@ mod tests {
         assert!(parse("") == None)
         assert!(parse("e") == Some(~[Selector{
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: ~[LocalNameSelector(~"e")],
+                simple_selectors: ~[LocalNameSelector("e".to_owned())],
                 next: None,
             }),
             pseudo_element: None,
@@ -611,7 +611,7 @@ mod tests {
         }]))
         assert!(parse(".foo") == Some(~[Selector{
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: ~[ClassSelector(~"foo")],
+                simple_selectors: ~[ClassSelector("foo".to_owned())],
                 next: None,
             }),
             pseudo_element: None,
@@ -619,7 +619,7 @@ mod tests {
         }]))
         assert!(parse("#bar") == Some(~[Selector{
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: ~[IDSelector(~"bar")],
+                simple_selectors: ~[IDSelector("bar".to_owned())],
                 next: None,
             }),
             pseudo_element: None,
@@ -627,9 +627,9 @@ mod tests {
         }]))
         assert!(parse("e.foo#bar") == Some(~[Selector{
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: ~[LocalNameSelector(~"e"),
-                                    ClassSelector(~"foo"),
-                                    IDSelector(~"bar")],
+                simple_selectors: ~[LocalNameSelector("e".to_owned()),
+                                    ClassSelector("foo".to_owned()),
+                                    IDSelector("bar".to_owned())],
                 next: None,
             }),
             pseudo_element: None,
@@ -637,10 +637,10 @@ mod tests {
         }]))
         assert!(parse("e.foo #bar") == Some(~[Selector{
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: ~[IDSelector(~"bar")],
+                simple_selectors: ~[IDSelector("bar".to_owned())],
                 next: Some((~CompoundSelector {
-                    simple_selectors: ~[LocalNameSelector(~"e"),
-                                        ClassSelector(~"foo")],
+                    simple_selectors: ~[LocalNameSelector("e".to_owned()),
+                                        ClassSelector("foo".to_owned())],
                     next: None,
                 }, Descendant)),
             }),
@@ -653,8 +653,8 @@ mod tests {
         assert!(parse_ns("[Foo]", &namespaces) == Some(~[Selector{
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: ~[AttrExists(AttrSelector {
-                    name: ~"Foo",
-                    lower_name: ~"foo",
+                    name: "Foo".to_owned(),
+                    lower_name: "foo".to_owned(),
                     namespace: SpecificNamespace(namespace::Null),
                 })],
                 next: None,
@@ -668,8 +668,8 @@ mod tests {
         assert!(parse_ns("[Foo]", &namespaces) == Some(~[Selector{
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: ~[AttrExists(AttrSelector {
-                    name: ~"Foo",
-                    lower_name: ~"foo",
+                    name: "Foo".to_owned(),
+                    lower_name: "foo".to_owned(),
                     namespace: SpecificNamespace(namespace::Null),
                 })],
                 next: None,
@@ -682,7 +682,7 @@ mod tests {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: ~[
                     NamespaceSelector(namespace::MathML),
-                    LocalNameSelector(~"e"),
+                    LocalNameSelector("e".to_owned()),
                 ],
                 next: None,
             }),
@@ -702,7 +702,7 @@ mod tests {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: ~[],
                 next: Some((~CompoundSelector {
-                    simple_selectors: ~[LocalNameSelector(~"div")],
+                    simple_selectors: ~[LocalNameSelector("div".to_owned())],
                     next: None,
                 }, Descendant)),
             }),

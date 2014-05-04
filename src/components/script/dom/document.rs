@@ -212,16 +212,16 @@ impl Document {
                 Some(string) => string.clone(),
                 None => match is_html_document {
                     // http://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
-                    HTMLDocument => ~"text/html",
+                    HTMLDocument => "text/html".to_owned(),
                     // http://dom.spec.whatwg.org/#concept-document-content-type
-                    NonHTMLDocument => ~"application/xml"
+                    NonHTMLDocument => "application/xml".to_owned()
                 }
             },
             url: Untraceable::new(url),
             // http://dom.spec.whatwg.org/#concept-document-quirks
             quirks_mode: Untraceable::new(NoQuirks),
             // http://dom.spec.whatwg.org/#concept-document-encoding
-            encoding_name: ~"utf-8",
+            encoding_name: "utf-8".to_owned(),
             is_html_document: is_html_document == HTMLDocument,
         }
     }
@@ -346,8 +346,8 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     // http://dom.spec.whatwg.org/#dom-document-compatmode
     fn CompatMode(&self) -> DOMString {
         match *self.quirks_mode {
-            NoQuirks => ~"CSS1Compat",
-            LimitedQuirks | FullQuirks => ~"BackCompat"
+            NoQuirks => "CSS1Compat".to_owned(),
+            LimitedQuirks | FullQuirks => "BackCompat".to_owned()
         }
     }
 
@@ -585,7 +585,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                         assert!(title_node.AppendChild(NodeCast::from_mut_ref(&mut *new_text)).is_ok());
                     },
                     None => {
-                        let mut new_title = HTMLTitleElement::new(~"title", self).root();
+                        let mut new_title = HTMLTitleElement::new("title".to_owned(), self).root();
                         let new_title: &mut JSRef<Node> = NodeCast::from_mut_ref(&mut *new_title);
 
                         let mut new_text = self.CreateTextNode(title.clone()).root();

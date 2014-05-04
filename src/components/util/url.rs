@@ -27,12 +27,12 @@ pub fn parse_url(str_url: &str, base_url: Option<std_url::Url>) -> std_url::Url 
                 // Assume we've been given a file path. If it's absolute just return
                 // it, otherwise make it absolute with the cwd.
                 if str_url.starts_with("/") {
-                    ~"file://" + str_url
+                    "file://".to_owned() + str_url
                 } else {
                     let mut path = os::getcwd();
                     path.push(str_url);
                     // FIXME (#1094): not the right way to transform a path
-                    ~"file://" + path.display().to_str()
+                    "file://".to_owned() + path.display().to_str()
                 }
             } else {
                 let base_url = base_url.unwrap();
@@ -45,7 +45,7 @@ pub fn parse_url(str_url: &str, base_url: Option<std_url::Url>) -> std_url::Url 
                 if str_url.starts_with("//") {
                     new_url.scheme + ":" + str_url
                 } else if base_url.path.is_empty() || str_url.starts_with("/") {
-                    new_url.path = ~"/";
+                    new_url.path = "/".to_owned();
                     new_url.to_str() + str_url.trim_left_chars(&'/')
                 } else if str_url.starts_with("#") {
                     new_url.to_str() + str_url
@@ -67,7 +67,7 @@ pub fn parse_url(str_url: &str, base_url: Option<std_url::Url>) -> std_url::Url 
                             let mut path = os::self_exe_path().expect("can't get exe path");
                             path.push("../src/test/html/failure.html");
                             // FIXME (#1094): not the right way to transform a path
-                            ~"file://" + path.display().to_str()
+                            "file://".to_owned() + path.display().to_str()
                         }
                         // TODO: handle the rest of the about: pages
                         _ => str_url

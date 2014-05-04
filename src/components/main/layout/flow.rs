@@ -272,7 +272,7 @@ pub trait Flow {
 
     /// Returns a debugging string describing this flow.
     fn debug_str(&self) -> ~str {
-        ~"???"
+        "???".to_owned()
     }
 }
 

@@ -108,13 +108,13 @@ fn plain() {
 #[test]
 fn plain_ct() {
     assert_parse("data:text/plain,hello",
-        Some((~"text", ~"plain")), None, Some(bytes!("hello").iter().map(|&x| x).collect()));
+        Some(("text".to_owned(), "plain".to_owned())), None, Some(bytes!("hello").iter().map(|&x| x).collect()));
 }
 
 #[test]
 fn plain_charset() {
     assert_parse("data:text/plain;charset=latin1,hello",
-        Some((~"text", ~"plain")), Some(~"latin1"), Some(bytes!("hello").iter().map(|&x| x).collect()));
+        Some(("text".to_owned(), "plain".to_owned())), Some("latin1".to_owned()), Some(bytes!("hello").iter().map(|&x| x).collect()));
 }
 
 #[test]
@@ -125,12 +125,12 @@ fn base64() {
 #[test]
 fn base64_ct() {
     assert_parse("data:application/octet-stream;base64,C62+7w==",
-        Some((~"application", ~"octet-stream")), None, Some(vec!(0x0B, 0xAD, 0xBE, 0xEF)));
+        Some(("application".to_owned(), "octet-stream".to_owned())), None, Some(vec!(0x0B, 0xAD, 0xBE, 0xEF)));
 }
 
 #[test]
 fn base64_charset() {
     assert_parse("data:text/plain;charset=koi8-r;base64,8PLl9+XkIO3l5Pfl5A==",
-        Some((~"text", ~"plain")), Some(~"koi8-r"),
+        Some(("text".to_owned(), "plain".to_owned())), Some("koi8-r".to_owned()),
         Some(vec!(0xF0, 0xF2, 0xE5, 0xF7, 0xE5, 0xE4, 0x20, 0xED, 0xE5, 0xE4, 0xF7, 0xE5, 0xE4)));
 }

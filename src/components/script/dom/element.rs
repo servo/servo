@@ -571,7 +571,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         }
 
         // Step 8.
-        if namespace == namespace::XMLNS && "xmlns" != name && Some(~"xmlns") != prefix {
+        if namespace == namespace::XMLNS && "xmlns" != name && Some("xmlns".to_owned()) != prefix {
             return Err(NamespaceError);
         }
 

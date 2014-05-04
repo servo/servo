@@ -48,10 +48,10 @@ impl<'a> DOMParserMethods for JSRef<'a, DOMParser> {
         let owner = self.owner.root();
         match ty {
             Text_html => {
-                Ok(Document::new(&owner.root_ref(), None, HTMLDocument, Some(~"text/html")))
+                Ok(Document::new(&owner.root_ref(), None, HTMLDocument, Some("text/html".to_owned())))
             }
             Text_xml => {
-                Ok(Document::new(&owner.root_ref(), None, NonHTMLDocument, Some(~"text/xml")))
+                Ok(Document::new(&owner.root_ref(), None, NonHTMLDocument, Some("text/xml".to_owned())))
             }
             _ => {
                 Err(FailureUnknown)

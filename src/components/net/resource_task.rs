@@ -127,9 +127,9 @@ type LoaderTaskFactory = extern "Rust" fn() -> LoaderTask;
 /// Create a ResourceTask with the default loaders
 pub fn ResourceTask() -> ResourceTask {
     let loaders = ~[
-        (~"file", file_loader::factory),
-        (~"http", http_loader::factory),
-        (~"data", data_loader::factory),
+        ("file".to_owned(), file_loader::factory),
+        ("http".to_owned(), http_loader::factory),
+        ("data".to_owned(), data_loader::factory),
     ];
     create_resource_task_with_loaders(loaders)
 }
@@ -236,7 +236,7 @@ fn snicklefritz_loader_factory() -> LoaderTask {
 
 #[test]
 fn should_delegate_to_scheme_loader() {
-    let loader_factories = ~[(~"snicklefritz", snicklefritz_loader_factory)];
+    let loader_factories = ~[("snicklefritz".to_owned(), snicklefritz_loader_factory)];
     let resource_task = create_resource_task_with_loaders(loader_factories);
     let (start_chan, start) = channel();
     resource_task.send(Load(FromStr::from_str("snicklefritz://heya").unwrap(), start_chan));
