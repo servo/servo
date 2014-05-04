@@ -77,7 +77,7 @@ impl<'a> HTMLVideoElementMethods for JSRef<'a, HTMLVideoElement> {
     }
 
     fn Poster(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetPoster(&mut self, _poster: DOMString) -> ErrorResult {

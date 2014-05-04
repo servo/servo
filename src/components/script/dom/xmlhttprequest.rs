@@ -48,11 +48,11 @@ impl XMLHttpRequest {
             timeout: 0u32,
             with_credentials: false,
             upload: None,
-            response_url: ~"",
+            response_url: "".to_owned(),
             status: 0,
             status_text: ByteString::new(vec!()),
             response_type: _empty,
-            response_text: ~"",
+            response_text: "".to_owned(),
             response_xml: None
         };
         xhr.upload.assign(Some(XMLHttpRequestUpload::new(owner)));

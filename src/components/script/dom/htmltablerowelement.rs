@@ -80,7 +80,7 @@ impl<'a> HTMLTableRowElementMethods for JSRef<'a, HTMLTableRowElement> {
     }
 
     fn Align(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetAlign(&self, _align: DOMString) -> ErrorResult {
@@ -88,7 +88,7 @@ impl<'a> HTMLTableRowElementMethods for JSRef<'a, HTMLTableRowElement> {
     }
 
     fn Ch(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetCh(&self, _ch: DOMString) -> ErrorResult {
@@ -96,7 +96,7 @@ impl<'a> HTMLTableRowElementMethods for JSRef<'a, HTMLTableRowElement> {
     }
 
     fn ChOff(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetChOff(&self, _ch_off: DOMString) -> ErrorResult {
@@ -104,7 +104,7 @@ impl<'a> HTMLTableRowElementMethods for JSRef<'a, HTMLTableRowElement> {
     }
 
     fn VAlign(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetVAlign(&self, _v_align: DOMString) -> ErrorResult {
@@ -112,7 +112,7 @@ impl<'a> HTMLTableRowElementMethods for JSRef<'a, HTMLTableRowElement> {
     }
 
     fn BgColor(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetBgColor(&self, _bg_color: DOMString) -> ErrorResult {

@@ -57,7 +57,7 @@ pub trait HTMLBodyElementMethods {
 
 impl<'a> HTMLBodyElementMethods for JSRef<'a, HTMLBodyElement> {
     fn Text(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetText(&mut self, _text: DOMString) -> ErrorResult {
@@ -65,7 +65,7 @@ impl<'a> HTMLBodyElementMethods for JSRef<'a, HTMLBodyElement> {
     }
 
     fn Link(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetLink(&self, _link: DOMString) -> ErrorResult {
@@ -73,7 +73,7 @@ impl<'a> HTMLBodyElementMethods for JSRef<'a, HTMLBodyElement> {
     }
 
     fn VLink(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetVLink(&self, _v_link: DOMString) -> ErrorResult {
@@ -81,7 +81,7 @@ impl<'a> HTMLBodyElementMethods for JSRef<'a, HTMLBodyElement> {
     }
 
     fn ALink(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetALink(&self, _a_link: DOMString) -> ErrorResult {
@@ -89,7 +89,7 @@ impl<'a> HTMLBodyElementMethods for JSRef<'a, HTMLBodyElement> {
     }
 
     fn BgColor(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetBgColor(&self, _bg_color: DOMString) -> ErrorResult {
@@ -97,7 +97,7 @@ impl<'a> HTMLBodyElementMethods for JSRef<'a, HTMLBodyElement> {
     }
 
     fn Background(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetBackground(&self, _background: DOMString) -> ErrorResult {

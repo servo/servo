@@ -49,7 +49,7 @@ pub trait HTMLModElementMethods {
 
 impl<'a> HTMLModElementMethods for JSRef<'a, HTMLModElement> {
     fn Cite(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetCite(&mut self, _cite: DOMString) -> ErrorResult {
@@ -57,7 +57,7 @@ impl<'a> HTMLModElementMethods for JSRef<'a, HTMLModElement> {
     }
 
     fn DateTime(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetDateTime(&mut self, _datetime: DOMString) -> ErrorResult {

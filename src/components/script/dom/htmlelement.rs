@@ -80,21 +80,21 @@ pub trait HTMLElementMethods {
 
 impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
     fn Title(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetTitle(&mut self, _title: DOMString) {
     }
 
     fn Lang(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetLang(&mut self, _lang: DOMString) {
     }
 
     fn Dir(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetDir(&mut self, _dir: DOMString) -> ErrorResult {
@@ -137,7 +137,7 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
     }
 
     fn AccessKey(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetAccessKey(&self, _key: DOMString) -> ErrorResult {
@@ -145,7 +145,7 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
     }
 
     fn AccessKeyLabel(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn Draggable(&self) -> bool {
@@ -157,7 +157,7 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
     }
 
     fn ContentEditable(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetContentEditable(&mut self, _val: DOMString) -> ErrorResult {

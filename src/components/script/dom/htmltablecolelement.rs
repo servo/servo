@@ -65,7 +65,7 @@ impl<'a> HTMLTableColElementMethods for JSRef<'a, HTMLTableColElement> {
     }
 
     fn Align(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
@@ -73,7 +73,7 @@ impl<'a> HTMLTableColElementMethods for JSRef<'a, HTMLTableColElement> {
     }
 
     fn Ch(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetCh(&mut self, _ch: DOMString) -> ErrorResult {
@@ -81,7 +81,7 @@ impl<'a> HTMLTableColElementMethods for JSRef<'a, HTMLTableColElement> {
     }
 
     fn ChOff(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetChOff(&mut self, _ch_off: DOMString) -> ErrorResult {
@@ -89,7 +89,7 @@ impl<'a> HTMLTableColElementMethods for JSRef<'a, HTMLTableColElement> {
     }
 
     fn VAlign(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetVAlign(&mut self, _v_align: DOMString) -> ErrorResult {
@@ -97,7 +97,7 @@ impl<'a> HTMLTableColElementMethods for JSRef<'a, HTMLTableColElement> {
     }
 
     fn Width(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetWidth(&mut self, _width: DOMString) -> ErrorResult {

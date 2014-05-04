@@ -47,7 +47,7 @@ pub trait HTMLBRElementMethods {
 
 impl<'a> HTMLBRElementMethods for JSRef<'a, HTMLBRElement> {
     fn Clear(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetClear(&mut self, _text: DOMString) -> ErrorResult {

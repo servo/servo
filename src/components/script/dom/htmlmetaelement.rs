@@ -53,7 +53,7 @@ pub trait HTMLMetaElementMethods {
 
 impl<'a> HTMLMetaElementMethods for JSRef<'a, HTMLMetaElement> {
     fn Name(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetName(&mut self, _name: DOMString) -> ErrorResult {
@@ -61,7 +61,7 @@ impl<'a> HTMLMetaElementMethods for JSRef<'a, HTMLMetaElement> {
     }
 
     fn HttpEquiv(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetHttpEquiv(&mut self, _http_equiv: DOMString) -> ErrorResult {
@@ -69,7 +69,7 @@ impl<'a> HTMLMetaElementMethods for JSRef<'a, HTMLMetaElement> {
     }
 
     fn Content(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetContent(&mut self, _content: DOMString) -> ErrorResult {
@@ -77,7 +77,7 @@ impl<'a> HTMLMetaElementMethods for JSRef<'a, HTMLMetaElement> {
     }
 
     fn Scheme(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetScheme(&mut self, _scheme: DOMString) -> ErrorResult {

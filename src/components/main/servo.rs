@@ -192,7 +192,7 @@ fn run(opts: opts::Opts) {
             let url = if filename.starts_with("data:") {
                 // As a hack for easier command-line testing,
                 // assume that data URLs are not URL-encoded.
-                Url::new(~"data", None, ~"", None,
+                Url::new(~"data", None, "".to_owned(), None,
                     filename.slice_from(5).to_owned(), Vec::new(), None)
             } else {
                 parse_url(*filename, None)

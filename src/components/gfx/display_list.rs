@@ -635,7 +635,7 @@ impl DisplayItem {
     }
 
     pub fn debug_with_level(&self, level: uint) {
-            let mut indent = ~"";
+            let mut indent = "".to_owned();
             for _ in range(0, level) {
                 indent.push_str("| ")
             }

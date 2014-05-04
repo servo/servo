@@ -49,7 +49,7 @@ pub trait HTMLBaseElementMethods {
 
 impl<'a> HTMLBaseElementMethods for JSRef<'a, HTMLBaseElement> {
     fn Href(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetHref(&self, _href: DOMString) -> ErrorResult {
@@ -57,7 +57,7 @@ impl<'a> HTMLBaseElementMethods for JSRef<'a, HTMLBaseElement> {
     }
 
     fn Target(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetTarget(&self, _target: DOMString) -> ErrorResult {

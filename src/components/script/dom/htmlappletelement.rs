@@ -67,7 +67,7 @@ pub trait HTMLAppletElementMethods {
 
 impl<'a> HTMLAppletElementMethods for JSRef<'a, HTMLAppletElement> {
     fn Align(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
@@ -75,7 +75,7 @@ impl<'a> HTMLAppletElementMethods for JSRef<'a, HTMLAppletElement> {
     }
 
     fn Alt(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetAlt(&self, _alt: DOMString) -> ErrorResult {
@@ -83,7 +83,7 @@ impl<'a> HTMLAppletElementMethods for JSRef<'a, HTMLAppletElement> {
     }
 
     fn Archive(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetArchive(&self, _archive: DOMString) -> ErrorResult {
@@ -91,7 +91,7 @@ impl<'a> HTMLAppletElementMethods for JSRef<'a, HTMLAppletElement> {
     }
 
     fn Code(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetCode(&self, _code: DOMString) -> ErrorResult {
@@ -99,7 +99,7 @@ impl<'a> HTMLAppletElementMethods for JSRef<'a, HTMLAppletElement> {
     }
 
     fn CodeBase(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetCodeBase(&self, _code_base: DOMString) -> ErrorResult {
@@ -107,7 +107,7 @@ impl<'a> HTMLAppletElementMethods for JSRef<'a, HTMLAppletElement> {
     }
 
     fn Height(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetHeight(&self, _height: DOMString) -> ErrorResult {
@@ -123,7 +123,7 @@ impl<'a> HTMLAppletElementMethods for JSRef<'a, HTMLAppletElement> {
     }
 
     fn Name(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetName(&mut self, _name: DOMString) -> ErrorResult {
@@ -131,7 +131,7 @@ impl<'a> HTMLAppletElementMethods for JSRef<'a, HTMLAppletElement> {
     }
 
     fn Object(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetObject(&mut self, _object: DOMString) -> ErrorResult {
@@ -147,7 +147,7 @@ impl<'a> HTMLAppletElementMethods for JSRef<'a, HTMLAppletElement> {
     }
 
     fn Width(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetWidth(&mut self, _width: DOMString) -> ErrorResult {

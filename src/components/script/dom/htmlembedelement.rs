@@ -58,7 +58,7 @@ pub trait HTMLEmbedElementMethods {
 
 impl<'a> HTMLEmbedElementMethods for JSRef<'a, HTMLEmbedElement> {
     fn Src(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
@@ -66,7 +66,7 @@ impl<'a> HTMLEmbedElementMethods for JSRef<'a, HTMLEmbedElement> {
     }
 
     fn Type(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetType(&mut self, _type: DOMString) -> ErrorResult {
@@ -74,7 +74,7 @@ impl<'a> HTMLEmbedElementMethods for JSRef<'a, HTMLEmbedElement> {
     }
 
     fn Width(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetWidth(&mut self, _width: DOMString) -> ErrorResult {
@@ -82,7 +82,7 @@ impl<'a> HTMLEmbedElementMethods for JSRef<'a, HTMLEmbedElement> {
     }
 
     fn Height(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetHeight(&mut self, _height: DOMString) -> ErrorResult {
@@ -90,7 +90,7 @@ impl<'a> HTMLEmbedElementMethods for JSRef<'a, HTMLEmbedElement> {
     }
 
     fn Align(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetAlign(&mut self, _type: DOMString) -> ErrorResult {
@@ -98,7 +98,7 @@ impl<'a> HTMLEmbedElementMethods for JSRef<'a, HTMLEmbedElement> {
     }
 
     fn Name(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetName(&mut self, _type: DOMString) -> ErrorResult {

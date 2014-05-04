@@ -435,7 +435,7 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
 
     /// Dumps the node tree, for debugging, with indentation.
     fn dump_indent(&self, indent: uint) {
-        let mut s = ~"";
+        let mut s = "".to_owned();
         for _ in range(0, indent) {
             s.push_str("    ");
         }
@@ -1510,7 +1510,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         match self.type_id {
             DocumentFragmentNodeTypeId |
             ElementNodeTypeId(..) => {
-                let mut content = ~"";
+                let mut content = "".to_owned();
                 for node in self.traverse_preorder() {
                     if node.is_text() {
                         let text: &JSRef<Text> = TextCast::to_ref(&node).unwrap();

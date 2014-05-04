@@ -47,7 +47,7 @@ pub trait HTMLTimeElementMethods {
 
 impl<'a> HTMLTimeElementMethods for JSRef<'a, HTMLTimeElement> {
     fn DateTime(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetDateTime(&mut self, _dateTime: DOMString) -> ErrorResult {

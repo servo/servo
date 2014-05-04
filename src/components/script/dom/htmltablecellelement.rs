@@ -86,7 +86,7 @@ impl<'a> HTMLTableCellElementMethods for JSRef<'a, HTMLTableCellElement> {
     }
 
     fn Headers(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetHeaders(&self, _headers: DOMString) -> ErrorResult {
@@ -102,7 +102,7 @@ impl<'a> HTMLTableCellElementMethods for JSRef<'a, HTMLTableCellElement> {
     }
 
     fn Abbr(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetAbbr(&self, _abbr: DOMString) -> ErrorResult {
@@ -110,7 +110,7 @@ impl<'a> HTMLTableCellElementMethods for JSRef<'a, HTMLTableCellElement> {
     }
 
     fn Scope(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetScope(&self, _abbr: DOMString) -> ErrorResult {
@@ -118,7 +118,7 @@ impl<'a> HTMLTableCellElementMethods for JSRef<'a, HTMLTableCellElement> {
     }
 
     fn Align(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetAlign(&self, _align: DOMString) -> ErrorResult {
@@ -126,7 +126,7 @@ impl<'a> HTMLTableCellElementMethods for JSRef<'a, HTMLTableCellElement> {
     }
 
     fn Axis(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetAxis(&self, _axis: DOMString) -> ErrorResult {
@@ -134,7 +134,7 @@ impl<'a> HTMLTableCellElementMethods for JSRef<'a, HTMLTableCellElement> {
     }
 
     fn Height(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetHeight(&self, _height: DOMString) -> ErrorResult {
@@ -142,7 +142,7 @@ impl<'a> HTMLTableCellElementMethods for JSRef<'a, HTMLTableCellElement> {
     }
 
     fn Width(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetWidth(&self, _width: DOMString) -> ErrorResult {
@@ -150,7 +150,7 @@ impl<'a> HTMLTableCellElementMethods for JSRef<'a, HTMLTableCellElement> {
     }
 
     fn Ch(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetCh(&self, _ch: DOMString) -> ErrorResult {
@@ -158,7 +158,7 @@ impl<'a> HTMLTableCellElementMethods for JSRef<'a, HTMLTableCellElement> {
     }
 
     fn ChOff(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetChOff(&self, _ch_off: DOMString) -> ErrorResult {
@@ -174,7 +174,7 @@ impl<'a> HTMLTableCellElementMethods for JSRef<'a, HTMLTableCellElement> {
     }
 
     fn VAlign(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetVAlign(&self, _valign: DOMString) -> ErrorResult {
@@ -182,7 +182,7 @@ impl<'a> HTMLTableCellElementMethods for JSRef<'a, HTMLTableCellElement> {
     }
 
     fn BgColor(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetBgColor(&self, _bg_color: DOMString) -> ErrorResult {

@@ -78,7 +78,7 @@ impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
     }
 
     fn DeleteData(&mut self, offset: u32, count: u32) -> ErrorResult {
-        self.ReplaceData(offset, count, ~"")
+        self.ReplaceData(offset, count, "".to_owned())
     }
 
     fn ReplaceData(&mut self, offset: u32, count: u32, arg: DOMString) -> ErrorResult {

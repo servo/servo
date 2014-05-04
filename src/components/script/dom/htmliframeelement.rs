@@ -119,7 +119,7 @@ pub trait HTMLIFrameElementMethods {
 
 impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
     fn Src(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
@@ -127,7 +127,7 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
     }
 
     fn Srcdoc(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetSrcdoc(&mut self, _srcdoc: DOMString) -> ErrorResult {
@@ -135,7 +135,7 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
     }
 
     fn Name(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetName(&mut self, _name: DOMString) -> ErrorResult {
@@ -161,7 +161,7 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
     }
 
     fn Width(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetWidth(&mut self, _width: DOMString) -> ErrorResult {
@@ -169,7 +169,7 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
     }
 
     fn Height(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetHeight(&mut self, _height: DOMString) -> ErrorResult {
@@ -185,7 +185,7 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
     }
 
     fn Align(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
@@ -193,7 +193,7 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
     }
 
     fn Scrolling(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetScrolling(&mut self, _scrolling: DOMString) -> ErrorResult {
@@ -201,7 +201,7 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
     }
 
     fn FrameBorder(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetFrameBorder(&mut self, _frameborder: DOMString) -> ErrorResult {
@@ -209,7 +209,7 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
     }
 
     fn LongDesc(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetLongDesc(&mut self, _longdesc: DOMString) -> ErrorResult {
@@ -217,7 +217,7 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
     }
 
     fn MarginHeight(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetMarginHeight(&mut self, _marginheight: DOMString) -> ErrorResult {
@@ -225,7 +225,7 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
     }
 
     fn MarginWidth(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetMarginWidth(&mut self, _marginwidth: DOMString) -> ErrorResult {

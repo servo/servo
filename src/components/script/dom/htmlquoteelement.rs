@@ -47,7 +47,7 @@ pub trait HTMLQuoteElementMethods {
 
 impl<'a> HTMLQuoteElementMethods for JSRef<'a, HTMLQuoteElement> {
     fn Cite(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetCite(&self, _cite: DOMString) -> ErrorResult {

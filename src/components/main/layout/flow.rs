@@ -913,7 +913,7 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
 
     /// Dumps the flow tree for debugging, with a prefix to indicate that we're at the given level.
     fn dump_with_level(self, level: uint) {
-        let mut indent = ~"";
+        let mut indent = "".to_owned();
         for _ in range(0, level) {
             indent.push_str("| ")
         }

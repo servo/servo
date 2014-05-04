@@ -85,11 +85,11 @@ impl<'a> LocationMethods for JSRef<'a, Location> {
     }
 
     fn Origin(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn Protocol(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetProtocol(&self, _protocol: DOMString) {
@@ -97,7 +97,7 @@ impl<'a> LocationMethods for JSRef<'a, Location> {
     }
 
     fn Username(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetUsername(&self, _username: DOMString) {
@@ -105,7 +105,7 @@ impl<'a> LocationMethods for JSRef<'a, Location> {
     }
 
     fn Password(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetPassword(&self, _password: DOMString) {
@@ -113,7 +113,7 @@ impl<'a> LocationMethods for JSRef<'a, Location> {
     }
 
     fn Host(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetHost(&self, _host: DOMString) {
@@ -121,7 +121,7 @@ impl<'a> LocationMethods for JSRef<'a, Location> {
     }
 
     fn Hostname(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetHostname(&self, _hostname: DOMString) {
@@ -129,7 +129,7 @@ impl<'a> LocationMethods for JSRef<'a, Location> {
     }
 
     fn Port(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetPort(&self, _port: DOMString) {
@@ -137,7 +137,7 @@ impl<'a> LocationMethods for JSRef<'a, Location> {
     }
 
     fn Pathname(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetPathname(&self, _pathname: DOMString) {
@@ -145,7 +145,7 @@ impl<'a> LocationMethods for JSRef<'a, Location> {
     }
 
     fn Search(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetSearch(&self, _search: DOMString) {
@@ -153,7 +153,7 @@ impl<'a> LocationMethods for JSRef<'a, Location> {
     }
 
     fn Hash(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetHash(&self, _hash: DOMString) {

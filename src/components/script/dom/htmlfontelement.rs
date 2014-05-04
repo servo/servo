@@ -51,7 +51,7 @@ pub trait HTMLFontElementMethods {
 
 impl<'a> HTMLFontElementMethods for JSRef<'a, HTMLFontElement> {
     fn Color(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetColor(&mut self, _color: DOMString) -> ErrorResult {
@@ -59,7 +59,7 @@ impl<'a> HTMLFontElementMethods for JSRef<'a, HTMLFontElement> {
     }
 
     fn Face(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetFace(&mut self, _face: DOMString) -> ErrorResult {
@@ -67,7 +67,7 @@ impl<'a> HTMLFontElementMethods for JSRef<'a, HTMLFontElement> {
     }
 
     fn Size(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetSize(&mut self, _size: DOMString) -> ErrorResult {

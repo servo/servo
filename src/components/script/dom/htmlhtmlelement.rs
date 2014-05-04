@@ -47,7 +47,7 @@ pub trait HTMLHtmlElementMethods {
 
 impl<'a> HTMLHtmlElementMethods for JSRef<'a, HTMLHtmlElement> {
     fn Version(&self) -> DOMString {
-        ~""
+        "".to_owned()
     }
 
     fn SetVersion(&mut self, _version: DOMString) -> ErrorResult {

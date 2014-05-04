@@ -57,6 +57,6 @@ impl<'a> TextMethods for JSRef<'a, Text> {
     }
 
     fn GetWholeText(&self) -> Fallible<DOMString> {
-        Ok(~"")
+        Ok("".to_owned())
     }
 }
