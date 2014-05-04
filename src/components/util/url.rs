@@ -98,7 +98,7 @@ mod parse_url_tests {
         let file = "local.html";
         let url = parse_url(file, None);
         debug!("url: {:?}", url);
-        assert!(url.scheme == ~"file");
+        assert!("file" == url.scheme);
         let path = os::getcwd();
         // FIXME (#1094): not the right way to transform a path
         assert!(url.path.contains(path.display().to_str()));
@@ -110,9 +110,9 @@ mod parse_url_tests {
         let old_url = parse_url(old_str, None);
         let new_str = "index.html";
         let new_url = parse_url(new_str, Some(old_url));
-        assert!(new_url.scheme == ~"http");
-        assert!(new_url.host == ~"example.com");
-        assert!(new_url.path == ~"/index.html");
+        assert!("http" == new_url.scheme);
+        assert!("example.com" == new_url.host);
+        assert!("/index.html" == new_url.path);
     }
 
     #[test]
@@ -121,9 +121,9 @@ mod parse_url_tests {
         let old_url = parse_url(old_str, None);
         let new_str = "index.html";
         let new_url = parse_url(new_str, Some(old_url));
-        assert!(new_url.scheme == ~"http");
-        assert!(new_url.host == ~"example.com");
-        assert!(new_url.path == ~"/index.html");
+        assert!("http" == new_url.scheme);
+        assert!("example.com" == new_url.host);
+        assert!("/index.html" == new_url.path);
     }
 
     #[test]
@@ -132,9 +132,9 @@ mod parse_url_tests {
         let old_url = parse_url(old_str, None);
         let new_str = "crumpet.html";
         let new_url = parse_url(new_str, Some(old_url));
-        assert!(new_url.scheme == ~"http");
-        assert!(new_url.host == ~"example.com");
-        assert!(new_url.path == ~"/crumpet.html");
+        assert!("http" == new_url.scheme);
+        assert!("example.com" == new_url.host);
+        assert!("/crumpet.html" == new_url.path);
     }
 
     #[test]
@@ -143,9 +143,9 @@ mod parse_url_tests {
         let old_url = parse_url(old_str, None);
         let new_str = "crumpet.html";
         let new_url = parse_url(new_str, Some(old_url));
-        assert!(new_url.scheme == ~"http");
-        assert!(new_url.host == ~"example.com");
-        assert!(new_url.path == ~"/snarf/crumpet.html");
+        assert!("http" == new_url.scheme);
+        assert!("example.com" == new_url.host);
+        assert!("/snarf/crumpet.html" == new_url.path);
     }
 
     #[test]
@@ -155,10 +155,10 @@ mod parse_url_tests {
         let new_str = "#top";
         let new_url = parse_url(new_str, Some(old_url));
 
-        assert!(new_url.scheme == ~"http");
-        assert!(new_url.host == ~"example.com");
-        assert!(new_url.path == ~"/index.html");
-        assert!(new_url.fragment == Some(~"top"));
+        assert!("http" == new_url.scheme);
+        assert!("example.com" == new_url.host);
+        assert!("/index.html" == new_url.path);
+        assert!(new_url.fragment == Some("top".to_owned()));
     }
 
     #[test]
@@ -170,12 +170,12 @@ mod parse_url_tests {
         let new_str = "#top";
         let new_url = parse_url(new_str, Some(old_url));
 
-        assert!(new_url.scheme == ~"http");
-        assert!(new_url.user == Some(UserInfo { user: ~"foo", pass: Some(~"bar") }));
-        assert!(new_url.host == ~"example.com");
-        assert!(new_url.port == Some(~"8080"));
-        assert!(new_url.path == ~"/index.html");
-        assert!(new_url.fragment == Some(~"top"));
+        assert!("http" == new_url.scheme);
+        assert!(new_url.user == Some(UserInfo { user: "foo".to_owned(), pass: Some("bar".to_owned()) }));
+        assert!("example.com" == new_url.host);
+        assert!(new_url.port == Some("8080".to_owned()));
+        assert!("/index.html" == new_url.path);
+        assert!(new_url.fragment == Some("top".to_owned()));
     }
 
     #[test]
@@ -184,9 +184,9 @@ mod parse_url_tests {
         let old_url = parse_url(old_str, None);
         let new_str = "//example.com/crumpet.html";
         let new_url = parse_url(new_str, Some(old_url));
-        assert!(new_url.scheme == ~"https");
-        assert!(new_url.host == ~"example.com");
-        assert!(new_url.path == ~"/crumpet.html");
+        assert!("https" == new_url.scheme);
+        assert!("example.com" == new_url.host);
+        assert!("/crumpet.html" == new_url.path);
     }
 
 }

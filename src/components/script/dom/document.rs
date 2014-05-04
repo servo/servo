@@ -693,7 +693,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         struct ImagesFilter;
         impl CollectionFilter for ImagesFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                elem.deref().local_name == ~"img"
+                "img" == elem.deref().local_name
             }
         }
         let filter = ~ImagesFilter;
@@ -707,7 +707,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         struct EmbedsFilter;
         impl CollectionFilter for EmbedsFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                elem.deref().local_name == ~"embed"
+                "embed" == elem.deref().local_name
             }
         }
         let filter = ~EmbedsFilter;
@@ -726,7 +726,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         struct LinksFilter;
         impl CollectionFilter for LinksFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                (elem.deref().local_name == ~"a" || elem.deref().local_name == ~"area") &&
+                ("a" == elem.deref().local_name || "area" == elem.deref().local_name) &&
                 elem.get_attribute(Null, "href").is_some()
             }
         }
@@ -741,7 +741,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         struct FormsFilter;
         impl CollectionFilter for FormsFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                elem.deref().local_name == ~"form"
+                "form" == elem.deref().local_name
             }
         }
         let filter = ~FormsFilter;
@@ -755,7 +755,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         struct ScriptsFilter;
         impl CollectionFilter for ScriptsFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                elem.deref().local_name == ~"script"
+                "script" == elem.deref().local_name
             }
         }
         let filter = ~ScriptsFilter;
@@ -769,7 +769,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         struct AnchorsFilter;
         impl CollectionFilter for AnchorsFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                elem.deref().local_name == ~"a" && elem.get_attribute(Null, "name").is_some()
+                "a" == elem.deref().local_name && elem.get_attribute(Null, "name").is_some()
             }
         }
         let filter = ~AnchorsFilter;
@@ -783,7 +783,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         struct AppletsFilter;
         impl CollectionFilter for AppletsFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                elem.deref().local_name == ~"applet"
+                "applet" == elem.deref().local_name
             }
         }
         let filter = ~AppletsFilter;
