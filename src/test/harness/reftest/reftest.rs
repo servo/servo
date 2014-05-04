@@ -133,7 +133,7 @@ fn make_test(reftest: Reftest) -> TestDescAndFn {
 fn capture(reftest: &Reftest, side: uint) -> png::Image {
     let filename = format!("/tmp/servo-reftest-{:06u}-{:u}.png", reftest.id, side);
     let mut args = reftest.servo_args.clone();
-    args.push_all_move(~[~"-f", ~"-o", filename.clone(), reftest.files[side].clone()]);
+    args.push_all_move(~["-f".to_owned(), "-o".to_owned(), filename.clone(), reftest.files[side].clone()]);
 
     let retval = match Process::status("./servo", args) {
         Ok(status) => status,
