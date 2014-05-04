@@ -130,7 +130,7 @@ impl FontListHandle {
     }
 
     pub fn get_last_resort_font_families() -> ~[~str] {
-        ~[~"Roboto"]
+        ~["Roboto".to_owned()]
     }
 }
 

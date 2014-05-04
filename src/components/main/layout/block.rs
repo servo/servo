@@ -1696,11 +1696,11 @@ impl Flow for BlockFlow {
 
     fn debug_str(&self) -> ~str {
         let txt = if self.is_float() {
-            ~"FloatFlow: "
+            "FloatFlow: ".to_owned()
         } else if self.is_root() {
-            ~"RootFlow: "
+            "RootFlow: ".to_owned()
         } else {
-            ~"BlockFlow: "
+            "BlockFlow: ".to_owned()
         };
         txt.append(self.box_.debug_str())
     }

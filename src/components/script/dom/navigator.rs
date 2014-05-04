@@ -49,7 +49,7 @@ pub trait NavigatorMethods {
 
 impl<'a> NavigatorMethods for JSRef<'a, Navigator> {
     fn DoNotTrack(&self) -> DOMString {
-        ~"unspecified"
+        "unspecified".to_owned()
     }
 
     fn Vendor(&self) -> DOMString {
@@ -61,7 +61,7 @@ impl<'a> NavigatorMethods for JSRef<'a, Navigator> {
     }
 
     fn Product(&self) -> DOMString {
-        ~"Gecko"
+        "Gecko".to_owned()
     }
 
     fn ProductSub(&self) -> DOMString {
@@ -85,11 +85,11 @@ impl<'a> NavigatorMethods for JSRef<'a, Navigator> {
     }
 
     fn AppName(&self) -> DOMString {
-        ~"Netscape" // Like Gecko/Webkit
+        "Netscape".to_owned() // Like Gecko/Webkit
     }
 
     fn GetAppCodeName(&self) -> Fallible<DOMString> {
-        Ok(~"Mozilla") // Like Gecko/Webkit
+        Ok("Mozilla".to_owned()) // Like Gecko/Webkit
     }
 
     fn GetAppVersion(&self) -> Fallible<DOMString> {

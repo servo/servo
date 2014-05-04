@@ -1387,19 +1387,19 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                 let elem: &JSRef<Element> = ElementCast::to_ref(self).unwrap();
                 elem.TagName()
             }
-            TextNodeTypeId => ~"#text",
+            TextNodeTypeId => "#text".to_owned(),
             ProcessingInstructionNodeTypeId => {
                 let processing_instruction: &JSRef<ProcessingInstruction> =
                     ProcessingInstructionCast::to_ref(self).unwrap();
                 processing_instruction.Target()
             }
-            CommentNodeTypeId => ~"#comment",
+            CommentNodeTypeId => "#comment".to_owned(),
             DoctypeNodeTypeId => {
                 let doctype: &JSRef<DocumentType> = DocumentTypeCast::to_ref(self).unwrap();
                 doctype.deref().name.clone()
             },
-            DocumentFragmentNodeTypeId => ~"#document-fragment",
-            DocumentNodeTypeId => ~"#document"
+            DocumentFragmentNodeTypeId => "#document-fragment".to_owned(),
+            DocumentNodeTypeId => "#document".to_owned()
         }
     }
 

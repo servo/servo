@@ -667,7 +667,7 @@ impl<'a> FlowConstructor<'a> {
                                                                               whitespace_style))
                         => {
                     // Instantiate the whitespace box.
-                    let box_info = UnscannedTextBox(UnscannedTextBoxInfo::from_text(~" "));
+                    let box_info = UnscannedTextBox(UnscannedTextBoxInfo::from_text(" ".to_owned()));
                     let fragment = Box::from_opaque_node_and_style(whitespace_node,
                                                                    whitespace_style.clone(),
                                                                    box_info);

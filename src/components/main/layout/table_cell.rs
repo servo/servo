@@ -115,7 +115,7 @@ impl Flow for TableCellFlow {
     }
 
     fn debug_str(&self) -> ~str {
-        let txt = ~"TableCellFlow: ";
+        let txt = "TableCellFlow: ".to_owned();
         txt.append(self.block_flow.box_.debug_str())
     }
 }

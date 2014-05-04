@@ -196,9 +196,9 @@ impl Flow for TableWrapperFlow {
 
     fn debug_str(&self) -> ~str {
         let txt = if self.is_float() {
-            ~"TableWrapperFlow(Float): "
+            "TableWrapperFlow(Float): ".to_owned()
         } else {
-            ~"TableWrapperFlow: "
+            "TableWrapperFlow: ".to_owned()
         };
         txt.append(self.block_flow.box_.debug_str())
     }

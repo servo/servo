@@ -55,7 +55,7 @@ impl<'a> FormDataMethods for JSRef<'a, FormData> {
     fn Append(&mut self, name: DOMString, value: &JSRef<Blob>, filename: Option<DOMString>) {
         let blob = BlobData {
             blob: value.unrooted(),
-            name: filename.unwrap_or(~"default")
+            name: filename.unwrap_or("default".to_owned())
         };
         self.data.insert(name.clone(), blob);
     }

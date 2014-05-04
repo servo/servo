@@ -88,27 +88,27 @@ impl<'a> DOMExceptionMethods for JSRef<'a, DOMException> {
     // http://dom.spec.whatwg.org/#error-names-0
     fn Message(&self) -> DOMString {
         match self.code {
-            IndexSizeError => ~"The index is not in the allowed range.",
-            HierarchyRequestError => ~"The operation would yield an incorrect node tree.",
-            WrongDocumentError => ~"The object is in the wrong document.",
-            InvalidCharacterError => ~"The string contains invalid characters.",
-            NoModificationAllowedError => ~"The object can not be modified.",
-            NotFoundError => ~"The object can not be found here.",
-            NotSupportedError => ~"The operation is not supported.",
-            InvalidStateError => ~"The object is in an invalid state.",
-            SyntaxError => ~"The string did not match the expected pattern.",
-            InvalidModificationError => ~"The object can not be modified in this way.",
-            NamespaceError => ~"The operation is not allowed by Namespaces in XML.",
-            InvalidAccessError => ~"The object does not support the operation or argument.",
-            SecurityError => ~"The operation is insecure.",
-            NetworkError => ~"A network error occurred.",
-            AbortError => ~"The operation was aborted.",
-            URLMismatchError => ~"The given URL does not match another URL.",
-            QuotaExceededError => ~"The quota has been exceeded.",
-            TimeoutError => ~"The operation timed out.",
-            InvalidNodeTypeError => ~"The supplied node is incorrect or has an incorrect ancestor for this operation.",
-            DataCloneError => ~"The object can not be cloned.",
-            EncodingError => ~"The encoding operation (either encoded or decoding) failed."
+            IndexSizeError => "The index is not in the allowed range.".to_owned(),
+            HierarchyRequestError => "The operation would yield an incorrect node tree.".to_owned(),
+            WrongDocumentError => "The object is in the wrong document.".to_owned(),
+            InvalidCharacterError => "The string contains invalid characters.".to_owned(),
+            NoModificationAllowedError => "The object can not be modified.".to_owned(),
+            NotFoundError => "The object can not be found here.".to_owned(),
+            NotSupportedError => "The operation is not supported.".to_owned(),
+            InvalidStateError => "The object is in an invalid state.".to_owned(),
+            SyntaxError => "The string did not match the expected pattern.".to_owned(),
+            InvalidModificationError => "The object can not be modified in this way.".to_owned(),
+            NamespaceError => "The operation is not allowed by Namespaces in XML.".to_owned(),
+            InvalidAccessError => "The object does not support the operation or argument.".to_owned(),
+            SecurityError => "The operation is insecure.".to_owned(),
+            NetworkError => "A network error occurred.".to_owned(),
+            AbortError => "The operation was aborted.".to_owned(),
+            URLMismatchError => "The given URL does not match another URL.".to_owned(),
+            QuotaExceededError => "The quota has been exceeded.".to_owned(),
+            TimeoutError => "The operation timed out.".to_owned(),
+            InvalidNodeTypeError => "The supplied node is incorrect or has an incorrect ancestor for this operation.".to_owned(),
+            DataCloneError => "The object can not be cloned.".to_owned(),
+            EncodingError => "The encoding operation (either encoded or decoding) failed.".to_owned()
         }
     }
 }

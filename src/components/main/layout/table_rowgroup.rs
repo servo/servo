@@ -204,7 +204,7 @@ impl Flow for TableRowGroupFlow {
     }
 
     fn debug_str(&self) -> ~str {
-        let txt = ~"TableRowGroupFlow: ";
+        let txt = "TableRowGroupFlow: ".to_owned();
         txt.append(self.block_flow.box_.debug_str())
     }
 }
