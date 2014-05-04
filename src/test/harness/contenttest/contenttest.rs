@@ -92,13 +92,13 @@ fn make_test(file: ~str) -> TestDescAndFn {
 fn run_test(file: ~str) {
     let path = os::make_absolute(&Path::new(file));
     // FIXME (#1094): not the right way to transform a path
-    let infile = ~"file://" + path.display().to_str();
+    let infile = "file://".to_owned() + path.display().to_str();
     let stdout = CreatePipe(false, true);
     let stderr = InheritFd(2);
 
     let config = ProcessConfig {
         program: "./servo",
-        args: &[~"-z", ~"-f", infile.clone()],
+        args: &["-z".to_owned(), "-f".to_owned(), infile.clone()],
         stdin: Ignored,
         stdout: stdout,
         stderr: stderr,
