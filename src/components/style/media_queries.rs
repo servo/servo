@@ -14,14 +14,14 @@ use url::Url;
 
 pub struct MediaRule {
     pub media_queries: MediaQueryList,
-    pub rules: ~[CSSRule],
+    pub rules: Vec<CSSRule>,
 }
 
 
 pub struct MediaQueryList {
     // "not all" is omitted from the list.
     // An empty list never matches.
-    media_queries: ~[MediaQuery]
+    media_queries: Vec<MediaQuery>
 }
 
 // For now, this is a "Level 2 MQ", ie. a media type.
@@ -48,7 +48,7 @@ pub struct Device {
 }
 
 
-pub fn parse_media_rule(rule: AtRule, parent_rules: &mut ~[CSSRule],
+pub fn parse_media_rule(rule: AtRule, parent_rules: &mut Vec<CSSRule>,
                         namespaces: &NamespaceMap, base_url: &Url) {
     let media_queries = parse_media_query_list(rule.prelude);
     let block = match rule.block {
@@ -58,7 +58,7 @@ pub fn parse_media_rule(rule: AtRule, parent_rules: &mut ~[CSSRule],
             return
         }
     };
-    let mut rules = ~[];
+    let mut rules = vec!();
     for rule in ErrorLoggerIterator(parse_rule_list(block.move_iter())) {
         match rule {
             QualifiedRule(rule) => parse_style_rule(rule, &mut rules, namespaces, base_url),
@@ -77,9 +77,9 @@ pub fn parse_media_query_list(input: &[ComponentValue]) -> MediaQueryList {
     let iter = &mut input.skip_whitespace();
     let mut next = iter.next();
     if next.is_none() {
-        return MediaQueryList{ media_queries: ~[MediaQuery{media_type: All}] }
+        return MediaQueryList{ media_queries: vec!(MediaQuery{media_type: All}) }
     }
-    let mut queries = ~[];
+    let mut queries = vec!();
     loop {
         let mq = match next {
             Some(&Ident(ref value)) => {

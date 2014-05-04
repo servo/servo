@@ -28,7 +28,7 @@ pub struct TableWrapperFlow {
     pub block_flow: BlockFlow,
 
     /// Column widths
-    pub col_widths: ~[Au],
+    pub col_widths: Vec<Au>,
 
     /// Table-layout property
     pub table_layout: TableLayout,
@@ -47,7 +47,7 @@ impl TableWrapperFlow {
         };
         TableWrapperFlow {
             block_flow: block_flow,
-            col_widths: ~[],
+            col_widths: vec!(),
             table_layout: table_layout
         }
     }
@@ -64,7 +64,7 @@ impl TableWrapperFlow {
         };
         TableWrapperFlow {
             block_flow: block_flow,
-            col_widths: ~[],
+            col_widths: vec!(),
             table_layout: table_layout
         }
     }
@@ -82,7 +82,7 @@ impl TableWrapperFlow {
         };
         TableWrapperFlow {
             block_flow: block_flow,
-            col_widths: ~[],
+            col_widths: vec!(),
             table_layout: table_layout
         }
     }
@@ -93,7 +93,7 @@ impl TableWrapperFlow {
 
     pub fn teardown(&mut self) {
         self.block_flow.teardown();
-        self.col_widths = ~[];
+        self.col_widths = vec!();
     }
 
     /// Assign height for table-wrapper flow.
@@ -137,7 +137,7 @@ impl Flow for TableWrapperFlow {
             assert!(kid.is_table_caption() || kid.is_table());
 
             if kid.is_table() {
-                self.col_widths.push_all(kid.as_table().col_widths);
+                self.col_widths.push_all(kid.as_table().col_widths.as_slice());
             }
         }
 
@@ -257,8 +257,8 @@ impl TableWrapper {
                 let mut cap_min = Au(0);
                 let mut cols_min = Au(0);
                 let mut cols_max = Au(0);
-                let mut col_min_widths = &~[];
-                let mut col_pref_widths = &~[];
+                let mut col_min_widths = &vec!();
+                let mut col_pref_widths = &vec!();
                 for kid in table_wrapper.block_flow.base.child_iter() {
                     if kid.is_table_caption() {
                         cap_min = kid.as_block().base.intrinsic_widths.minimum_width;

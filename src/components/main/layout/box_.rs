@@ -94,7 +94,7 @@ pub struct Box {
     /// New-line chracter(\n)'s positions(relative, not absolute)
     ///
     /// FIXME(#2260, pcwalton): This is very inefficient; remove.
-    pub new_line_pos: ~[uint],
+    pub new_line_pos: Vec<uint>,
 }
 
 /// Info specific to the kind of box. Keep this enum small.
@@ -313,7 +313,7 @@ impl Box {
             border_padding: Zero::zero(),
             margin: Zero::zero(),
             specific: constructor.build_specific_box_info_for_node(node),
-            new_line_pos: ~[],
+            new_line_pos: vec!(),
         }
     }
 
@@ -326,7 +326,7 @@ impl Box {
             border_padding: Zero::zero(),
             margin: Zero::zero(),
             specific: specific,
-            new_line_pos: ~[],
+            new_line_pos: vec!(),
         }
     }
 
@@ -350,7 +350,7 @@ impl Box {
             border_padding: Zero::zero(),
             margin: Zero::zero(),
             specific: specific,
-            new_line_pos: ~[],
+            new_line_pos: vec!(),
         }
     }
 
@@ -366,7 +366,7 @@ impl Box {
             border_padding: Zero::zero(),
             margin: Zero::zero(),
             specific: specific,
-            new_line_pos: ~[],
+            new_line_pos: vec!(),
         }
     }
 
@@ -1114,7 +1114,7 @@ impl Box {
                     let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run.clone(), left_range);
                     let new_metrics = new_text_box_info.run.metrics_for_range(&left_range);
                     let mut new_box = self.transform(new_metrics.bounding_box.size, ScannedTextBox(new_text_box_info));
-                    new_box.new_line_pos = ~[];
+                    new_box.new_line_pos = vec!();
                     Some(new_box)
                 };
 

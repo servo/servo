@@ -204,7 +204,7 @@ impl<'ln> LayoutNode<'ln> {
     ///
     /// FIXME(pcwalton): Terribly inefficient. We should use parallelism.
     pub fn traverse_preorder(&self) -> LayoutTreeIterator<'ln> {
-        let mut nodes = ~[];
+        let mut nodes = vec!();
         gather_layout_nodes(self, &mut nodes, false);
         LayoutTreeIterator::new(nodes)
     }
@@ -301,12 +301,12 @@ impl<'a> Iterator<LayoutNode<'a>> for LayoutNodeChildrenIterator<'a> {
 //
 // FIXME(pcwalton): Parallelism! Eventually this should just be nuked.
 pub struct LayoutTreeIterator<'a> {
-    nodes: ~[LayoutNode<'a>],
+    nodes: Vec<LayoutNode<'a>>,
     index: uint,
 }
 
 impl<'a> LayoutTreeIterator<'a> {
-    fn new(nodes: ~[LayoutNode<'a>]) -> LayoutTreeIterator<'a> {
+    fn new(nodes: Vec<LayoutNode<'a>>) -> LayoutTreeIterator<'a> {
         LayoutTreeIterator {
             nodes: nodes,
             index: 0,
@@ -319,7 +319,7 @@ impl<'a> Iterator<LayoutNode<'a>> for LayoutTreeIterator<'a> {
         if self.index >= self.nodes.len() {
             None
         } else {
-            let v = self.nodes[self.index].clone();
+            let v = self.nodes.get(self.index).clone();
             self.index += 1;
             Some(v)
         }
@@ -327,7 +327,7 @@ impl<'a> Iterator<LayoutNode<'a>> for LayoutTreeIterator<'a> {
 }
 
 /// FIXME(pcwalton): This is super inefficient.
-fn gather_layout_nodes<'a>(cur: &LayoutNode<'a>, refs: &mut ~[LayoutNode<'a>], postorder: bool) {
+fn gather_layout_nodes<'a>(cur: &LayoutNode<'a>, refs: &mut Vec<LayoutNode<'a>>, postorder: bool) {
     if !postorder {
         refs.push(cur.clone());
     }

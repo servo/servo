@@ -481,14 +481,14 @@ struct Rule {
 /// we can sort them.
 #[deriving(Clone)]
 pub struct MatchedProperty {
-    pub declarations: Arc<~[PropertyDeclaration]>,
+    pub declarations: Arc<Vec<PropertyDeclaration>>,
     source_order: uint,
     specificity: u32,
 }
 
 impl MatchedProperty {
     #[inline]
-    pub fn from_declarations(declarations: Arc<~[PropertyDeclaration]>) -> MatchedProperty {
+    pub fn from_declarations(declarations: Arc<Vec<PropertyDeclaration>>) -> MatchedProperty {
         MatchedProperty {
             declarations: declarations,
             source_order: 0,
@@ -960,7 +960,7 @@ mod tests {
                     selector: s.compound_selectors.clone(),
                     property: MatchedProperty {
                         specificity: s.specificity,
-                        declarations: Arc::new(~[]),
+                        declarations: Arc::new(vec!()),
                         source_order: i,
                     }
                 }

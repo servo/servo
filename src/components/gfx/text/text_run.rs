@@ -18,7 +18,7 @@ pub struct TextRun {
     pub font_metrics: FontMetrics,
     pub font_style: FontStyle,
     pub decoration: text_decoration::T,
-    pub glyphs: Arc<~[Arc<GlyphStore>]>,
+    pub glyphs: Arc<Vec<Arc<GlyphStore>>>,
 }
 
 pub struct SliceIterator<'a> {
@@ -113,10 +113,10 @@ impl<'a> TextRun {
     pub fn teardown(&self) {
     }
 
-    pub fn break_and_shape(font: &mut Font, text: &str) -> ~[Arc<GlyphStore>] {
+    pub fn break_and_shape(font: &mut Font, text: &str) -> Vec<Arc<GlyphStore>> {
         // TODO(Issue #230): do a better job. See Gecko's LineBreaker.
 
-        let mut glyphs = ~[];
+        let mut glyphs = vec!();
         let mut byte_i = 0u;
         let mut cur_slice_is_whitespace = false;
         let mut byte_last_boundary = 0;
@@ -174,7 +174,7 @@ impl<'a> TextRun {
         })
     }
 
-    pub fn glyphs(&'a self) -> &'a ~[Arc<GlyphStore>] {
+    pub fn glyphs(&'a self) -> &'a Vec<Arc<GlyphStore>> {
         &*self.glyphs
     }
 

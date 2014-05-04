@@ -25,13 +25,13 @@ pub struct TableFlow {
     pub block_flow: BlockFlow,
 
     /// Column widths
-    pub col_widths: ~[Au],
+    pub col_widths: Vec<Au>,
 
     /// Column min widths.
-    pub col_min_widths: ~[Au],
+    pub col_min_widths: Vec<Au>,
 
     /// Column pref widths.
-    pub col_pref_widths: ~[Au],
+    pub col_pref_widths: Vec<Au>,
 
     /// Table-layout property
     pub table_layout: TableLayout,
@@ -50,9 +50,9 @@ impl TableFlow {
         };
         TableFlow {
             block_flow: block_flow,
-            col_widths: ~[],
-            col_min_widths: ~[],
-            col_pref_widths: ~[],
+            col_widths: vec!(),
+            col_min_widths: vec!(),
+            col_pref_widths: vec!(),
             table_layout: table_layout
         }
     }
@@ -69,9 +69,9 @@ impl TableFlow {
         };
         TableFlow {
             block_flow: block_flow,
-            col_widths: ~[],
-            col_min_widths: ~[],
-            col_pref_widths: ~[],
+            col_widths: vec!(),
+            col_min_widths: vec!(),
+            col_pref_widths: vec!(),
             table_layout: table_layout
         }
     }
@@ -89,23 +89,23 @@ impl TableFlow {
         };
         TableFlow {
             block_flow: block_flow,
-            col_widths: ~[],
-            col_min_widths: ~[],
-            col_pref_widths: ~[],
+            col_widths: vec!(),
+            col_min_widths: vec!(),
+            col_pref_widths: vec!(),
             table_layout: table_layout
         }
     }
 
     pub fn teardown(&mut self) {
         self.block_flow.teardown();
-        self.col_widths = ~[];
-        self.col_min_widths = ~[];
-        self.col_pref_widths = ~[];
+        self.col_widths = vec!();
+        self.col_min_widths = vec!();
+        self.col_pref_widths = vec!();
     }
 
     /// Update the corresponding value of self_widths if a value of kid_widths has larger value
     /// than one of self_widths.
-    pub fn update_col_widths(self_widths: &mut ~[Au], kid_widths: &~[Au]) -> Au {
+    pub fn update_col_widths(self_widths: &mut Vec<Au>, kid_widths: &Vec<Au>) -> Au {
         let mut sum_widths = Au(0);
         let mut kid_widths_it = kid_widths.iter();
         for self_width in self_widths.mut_iter() {
@@ -152,15 +152,15 @@ impl Flow for TableFlow {
         &mut self.block_flow
     }
 
-    fn col_widths<'a>(&'a mut self) -> &'a mut ~[Au] {
+    fn col_widths<'a>(&'a mut self) -> &'a mut Vec<Au> {
         &mut self.col_widths
     }
 
-    fn col_min_widths<'a>(&'a self) -> &'a ~[Au] {
+    fn col_min_widths<'a>(&'a self) -> &'a Vec<Au> {
         &self.col_min_widths
     }
 
-    fn col_pref_widths<'a>(&'a self) -> &'a ~[Au] {
+    fn col_pref_widths<'a>(&'a self) -> &'a Vec<Au> {
         &self.col_pref_widths
     }
 
@@ -177,7 +177,7 @@ impl Flow for TableFlow {
             assert!(kid.is_proper_table_child());
 
             if kid.is_table_colgroup() {
-                self.col_widths.push_all(kid.as_table_colgroup().widths);
+                self.col_widths.push_all(kid.as_table_colgroup().widths.as_slice());
                 self.col_min_widths = self.col_widths.clone();
                 self.col_pref_widths = self.col_widths.clone();
             } else if kid.is_table_rowgroup() || kid.is_table_row() {
@@ -207,7 +207,7 @@ impl Flow for TableFlow {
                         debug!("table until the previous row has {} column(s) and this row has {} column(s)",
                                num_cols, num_child_cols);
                         for i in range(num_cols, num_child_cols) {
-                            self.col_widths.push( kid_col_widths[i] );
+                            self.col_widths.push( *kid_col_widths.get(i) );
                         }
                     },
                     AutoLayout => {
@@ -221,9 +221,9 @@ impl Flow for TableFlow {
                                num_cols, num_child_cols);
                         for i in range(num_cols, num_child_cols) {
                             self.col_widths.push(Au::new(0));
-                            let new_kid_min = kid.col_min_widths()[i];
+                            let new_kid_min = *kid.col_min_widths().get(i);
                             self.col_min_widths.push( new_kid_min );
-                            let new_kid_pref = kid.col_pref_widths()[i];
+                            let new_kid_pref = *kid.col_pref_widths().get(i);
                             self.col_pref_widths.push( new_kid_pref );
                             min_width = min_width + new_kid_min;
                             pref_width = pref_width + new_kid_pref;

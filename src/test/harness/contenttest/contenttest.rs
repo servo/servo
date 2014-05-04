@@ -108,7 +108,7 @@ fn run_test(file: ~str) {
         Ok(p) => p,
         _ => fail!("Unable to configure process."),
     };
-    let mut output = ~[];
+    let mut output = Vec::new();
     loop {
         let byte = prc.stdout.get_mut_ref().read_byte();
         match byte {
@@ -120,7 +120,7 @@ fn run_test(file: ~str) {
         }
     }
 
-    let out = str::from_utf8(output);
+    let out = str::from_utf8(output.as_slice());
     let lines: ~[&str] = out.unwrap().split('\n').collect();
     for &line in lines.iter() {
         if line.contains("TEST-UNEXPECTED-FAIL") {

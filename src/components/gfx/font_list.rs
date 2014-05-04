@@ -84,14 +84,14 @@ impl FontList {
 // Holds a specific font family, and the various
 pub struct FontFamily {
     pub family_name: ~str,
-    pub entries: ~[FontEntry],
+    pub entries: Vec<FontEntry>,
 }
 
 impl FontFamily {
     pub fn new(family_name: &str) -> FontFamily {
         FontFamily {
             family_name: family_name.to_str(),
-            entries: ~[],
+            entries: vec!(),
         }
     }
 

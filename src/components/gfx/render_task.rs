@@ -49,8 +49,8 @@ pub struct RenderLayer {
 
 pub enum Msg {
     RenderMsg(SmallVec1<RenderLayer>),
-    ReRenderMsg(~[BufferRequest], f32, LayerId, Epoch),
-    UnusedBufferMsg(~[~LayerBuffer]),
+    ReRenderMsg(Vec<BufferRequest>, f32, LayerId, Epoch),
+    UnusedBufferMsg(Vec<~LayerBuffer>),
     PaintPermissionGranted,
     PaintPermissionRevoked,
     ExitMsg(Option<Sender<()>>),
@@ -256,8 +256,7 @@ impl<C: RenderListener + Send> RenderTask<C> {
                     }
                 }
                 UnusedBufferMsg(unused_buffers) => {
-                    // move_rev_iter is more efficient
-                    for buffer in unused_buffers.move_rev_iter() {
+                    for buffer in unused_buffers.move_iter().rev() {
                         self.buffer_map.insert(native_graphics_context!(self), buffer);
                     }
                 }
@@ -291,10 +290,10 @@ impl<C: RenderListener + Send> RenderTask<C> {
     ///
     /// FIXME(pcwalton): We will probably want to eventually send all layers belonging to a page in
     /// one transaction, to avoid the user seeing inconsistent states.
-    fn render(&mut self, tiles: ~[BufferRequest], scale: f32, layer_id: LayerId) {
+    fn render(&mut self, tiles: Vec<BufferRequest>, scale: f32, layer_id: LayerId) {
         time::profile(time::RenderingCategory, self.profiler_chan.clone(), || {
             // FIXME: Try not to create a new array here.
-            let mut new_buffers = ~[];
+            let mut new_buffers = vec!();
 
             // Find the appropriate render layer.
             let render_layer = match self.render_layers.iter().find(|layer| layer.id == layer_id) {

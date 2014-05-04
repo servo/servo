@@ -96,12 +96,12 @@ pub fn start_sending(start_chan: Sender<LoadResponse>,
 
 /// Convenience function for synchronously loading a whole resource.
 pub fn load_whole_resource(resource_task: &ResourceTask, url: Url)
-        -> Result<(Metadata, ~[u8]), ()> {
+        -> Result<(Metadata, Vec<u8>), ()> {
     let (start_chan, start_port) = channel();
     resource_task.send(Load(url, start_chan));
     let response = start_port.recv();
 
-    let mut buf = ~[];
+    let mut buf = vec!();
     loop {
         match response.progress_port.recv() {
             Payload(data) => buf.push_all(data.as_slice()),

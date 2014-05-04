@@ -101,7 +101,7 @@ pub struct FontStyle {
     pub pt_size: f64,
     pub weight: font_weight::T,
     pub style: font_style::T,
-    pub families: ~[~str],
+    pub families: Vec<~str>,
     // TODO(Issue #198): font-stretch, text-decoration, font-variant, size-adjust
 }
 
@@ -143,15 +143,15 @@ pub enum FontSelector {
 // The ordering of font instances is mainly decided by the CSS
 // 'font-family' property. The last font is a system fallback font.
 pub struct FontGroup {
-    pub families: ~[~str],
+    pub families: Vec<~str>,
     // style of the first western font in group, which is
     // used for purposes of calculating text run metrics.
     pub style: UsedFontStyle,
-    pub fonts: ~[Rc<RefCell<Font>>]
+    pub fonts: Vec<Rc<RefCell<Font>>>
 }
 
 impl FontGroup {
-    pub fn new(families: ~[~str], style: &UsedFontStyle, fonts: ~[Rc<RefCell<Font>>]) -> FontGroup {
+    pub fn new(families: Vec<~str>, style: &UsedFontStyle, fonts: Vec<Rc<RefCell<Font>>>) -> FontGroup {
         FontGroup {
             families: families,
             style: (*style).clone(),
@@ -160,14 +160,14 @@ impl FontGroup {
     }
 
     pub fn teardown(&mut self) {
-        self.fonts = ~[];
+        self.fonts = vec!();
     }
 
     pub fn create_textrun(&self, text: ~str, decoration: text_decoration::T) -> TextRun {
         assert!(self.fonts.len() > 0);
 
         // TODO(Issue #177): Actually fall back through the FontGroup when a font is unsuitable.
-        TextRun::new(&mut *self.fonts[0].borrow_mut(), text.clone(), decoration)
+        TextRun::new(&mut *self.fonts.get(0).borrow_mut(), text.clone(), decoration)
     }
 }
 
@@ -361,7 +361,7 @@ impl Font {
         };
 
         let mut origin = baseline_origin.clone();
-        let mut azglyphs = ~[];
+        let mut azglyphs = vec!();
         azglyphs.reserve(range.length());
 
         for (glyphs, _offset, slice_range) in run.iter_slices_for_range(range) {

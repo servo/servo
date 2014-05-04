@@ -28,7 +28,6 @@
 use css::node_style::StyledNode;
 use layout::block::BlockFlow;
 use layout::box_::{Box, TableRowBox, TableCellBox};
-use layout::construct::OptVector;
 use layout::context::LayoutContext;
 use layout::floats::Floats;
 use layout::flow_list::{FlowList, Link, Rawlink, FlowListIterator, MutFlowListIterator};
@@ -129,19 +128,19 @@ pub trait Flow {
 
     /// If this is a table row or table rowgroup or table flow, returns column widths.
     /// Fails otherwise.
-    fn col_widths<'a>(&'a mut self) -> &'a mut ~[Au] {
+    fn col_widths<'a>(&'a mut self) -> &'a mut Vec<Au> {
         fail!("called col_widths() on an other flow than table-row/table-rowgroup/table")
     }
 
     /// If this is a table row flow or table rowgroup flow or table flow, returns column min widths.
     /// Fails otherwise.
-    fn col_min_widths<'a>(&'a self) -> &'a ~[Au] {
+    fn col_min_widths<'a>(&'a self) -> &'a Vec<Au> {
         fail!("called col_min_widths() on an other flow than table-row/table-rowgroup/table")
     }
 
     /// If this is a table row flow or table rowgroup flow or table flow, returns column min widths.
     /// Fails otherwise.
-    fn col_pref_widths<'a>(&'a self) -> &'a ~[Au] {
+    fn col_pref_widths<'a>(&'a self) -> &'a Vec<Au> {
         fail!("called col_pref_widths() on an other flow than table-row/table-rowgroup/table")
     }
 
