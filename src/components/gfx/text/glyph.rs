@@ -300,18 +300,18 @@ impl Ord for DetailedGlyphRecord {
 struct DetailedGlyphStore {
     // TODO(pcwalton): Allocation of this buffer is expensive. Consider a small-vector
     // optimization.
-    detail_buffer: ~[DetailedGlyph],
+    detail_buffer: Vec<DetailedGlyph>,
     // TODO(pcwalton): Allocation of this buffer is expensive. Consider a small-vector
     // optimization.
-    detail_lookup: ~[DetailedGlyphRecord],
+    detail_lookup: Vec<DetailedGlyphRecord>,
     lookup_is_sorted: bool,
 }
 
 impl<'a> DetailedGlyphStore {
     fn new() -> DetailedGlyphStore {
         DetailedGlyphStore {
-            detail_buffer: ~[], // TODO: default size?
-            detail_lookup: ~[],
+            detail_buffer: vec!(), // TODO: default size?
+            detail_lookup: vec!(),
             lookup_is_sorted: false
         }
     }
@@ -359,7 +359,7 @@ impl<'a> DetailedGlyphStore {
         };
 
         // FIXME: This is a workaround for borrow of self.detail_lookup not getting inferred.
-        let records : &[DetailedGlyphRecord] = self.detail_lookup;
+        let records : &[DetailedGlyphRecord] = self.detail_lookup.as_slice();
         match records.binary_search_index(&key) {
             None => fail!("Invalid index not found in detailed glyph lookup table!"),
             Some(i) => {
@@ -383,12 +383,12 @@ impl<'a> DetailedGlyphStore {
         };
 
         // FIXME: This is a workaround for borrow of self.detail_lookup not getting inferred.
-        let records: &[DetailedGlyphRecord] = self.detail_lookup;
+        let records: &[DetailedGlyphRecord] = self.detail_lookup.as_slice();
         match records.binary_search_index(&key) {
             None => fail!("Invalid index not found in detailed glyph lookup table!"),
             Some(i) => {
                 assert!(i + (detail_offset as uint)  < self.detail_buffer.len());
-                &self.detail_buffer[i+(detail_offset as uint)]
+                self.detail_buffer.get(i+(detail_offset as uint))
             }
         }
     }
@@ -403,9 +403,9 @@ impl<'a> DetailedGlyphStore {
         // immutable locations thus don't play well with freezing.
 
         // Thar be dragons here. You have been warned. (Tips accepted.)
-        let mut unsorted_records: ~[DetailedGlyphRecord] = ~[];
+        let mut unsorted_records: Vec<DetailedGlyphRecord> = vec!();
         mem::swap(&mut self.detail_lookup, &mut unsorted_records);
-        let mut mut_records : ~[DetailedGlyphRecord] = unsorted_records;
+        let mut mut_records : Vec<DetailedGlyphRecord> = unsorted_records;
         mut_records.sort_by(|a, b| {
             if a < b {
                 Less

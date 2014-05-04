@@ -50,7 +50,7 @@ struct Float {
 #[deriving(Clone)]
 struct FloatList {
     /// Information about each of the floats here.
-    floats: ~[Float],
+    floats: Vec<Float>,
     /// Cached copy of the maximum top offset of the float.
     max_top: Au,
 }
@@ -58,7 +58,7 @@ struct FloatList {
 impl FloatList {
     fn new() -> FloatList {
         FloatList {
-            floats: ~[],
+            floats: vec!(),
             max_top: Au(0),
         }
     }

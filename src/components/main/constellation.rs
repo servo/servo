@@ -44,7 +44,7 @@ pub struct Constellation {
     pub pipelines: HashMap<PipelineId, Rc<Pipeline>>,
     navigation_context: NavigationContext,
     next_pipeline_id: PipelineId,
-    pending_frames: ~[FrameChange],
+    pending_frames: Vec<FrameChange>,
     pending_sizes: HashMap<(PipelineId, SubpageId), Rect<f32>>,
     pub profiler_chan: ProfilerChan,
     pub window_size: Size2D<uint>,
@@ -55,7 +55,7 @@ pub struct Constellation {
 struct FrameTree {
     pub pipeline: Rc<Pipeline>,
     pub parent: RefCell<Option<Rc<Pipeline>>>,
-    pub children: RefCell<~[ChildFrameTree]>,
+    pub children: RefCell<Vec<ChildFrameTree>>,
 }
 
 struct ChildFrameTree {
@@ -158,7 +158,7 @@ impl Iterator<Rc<FrameTree>> for FrameTreeIterator {
     fn next(&mut self) -> Option<Rc<FrameTree>> {
         if !self.stack.is_empty() {
             let next = self.stack.pop();
-            for cft in next.get_ref().children.borrow().rev_iter() {
+            for cft in next.get_ref().children.borrow().iter() {
                 self.stack.push(cft.frame_tree.clone());
             }
             Some(next.unwrap())
@@ -177,16 +177,16 @@ struct FrameChange {
 
 /// Stores the Id's of the pipelines previous and next in the browser's history
 struct NavigationContext {
-    pub previous: ~[Rc<FrameTree>],
-    pub next: ~[Rc<FrameTree>],
+    pub previous: Vec<Rc<FrameTree>>,
+    pub next: Vec<Rc<FrameTree>>,
     pub current: Option<Rc<FrameTree>>,
 }
 
 impl NavigationContext {
     fn new() -> NavigationContext {
         NavigationContext {
-            previous: ~[],
-            next: ~[],
+            previous: vec!(),
+            next: vec!(),
             current: None,
         }
     }
@@ -209,9 +209,9 @@ impl NavigationContext {
     }
 
     /// Loads a new set of page frames, returning all evicted frame trees
-    fn load(&mut self, frame_tree: Rc<FrameTree>) -> ~[Rc<FrameTree>] {
+    fn load(&mut self, frame_tree: Rc<FrameTree>) -> Vec<Rc<FrameTree>> {
         debug!("navigating to {:?}", frame_tree.pipeline.id);
-        let evicted = replace(&mut self.next, ~[]);
+        let evicted = replace(&mut self.next, vec!());
         if self.current.is_some() {
             self.previous.push(self.current.take_unwrap());
         }
@@ -265,7 +265,7 @@ impl Constellation {
                 pipelines: HashMap::new(),
                 navigation_context: NavigationContext::new(),
                 next_pipeline_id: PipelineId(0),
-                pending_frames: ~[],
+                pending_frames: vec!(),
                 pending_sizes: HashMap::new(),
                 profiler_chan: profiler_chan,
                 window_size: Size2D(800u, 600u),
@@ -410,7 +410,7 @@ impl Constellation {
             });
             idx.map(|idx| {
                 debug!("removing pending frame change for failed pipeline");
-                force_pipeline_exit(&self.pending_frames[idx].after.pipeline);
+                force_pipeline_exit(&self.pending_frames.get(idx).after.pipeline);
                 self.pending_frames.remove(idx)
             });
             if idx.is_none() {
@@ -438,7 +438,7 @@ impl Constellation {
             after: Rc::new(FrameTree {
                 pipeline: pipeline_wrapped.clone(),
                 parent: RefCell::new(None),
-                children: RefCell::new(~[]),
+                children: RefCell::new(vec!()),
             }),
             navigation_type: constellation_msg::Load,
         });
@@ -464,7 +464,7 @@ impl Constellation {
             after: Rc::new(FrameTree {
                 pipeline: pipeline_wrapped.clone(),
                 parent: RefCell::new(None),
-                children: RefCell::new(~[]),
+                children: RefCell::new(vec!()),
             }),
             navigation_type: constellation_msg::Load,
         });
@@ -611,7 +611,7 @@ impl Constellation {
                 frame_tree: Rc::new(FrameTree {
                     pipeline: pipeline_wrapped.clone(),
                     parent: RefCell::new(Some(source_pipeline.clone())),
-                    children: RefCell::new(~[]),
+                    children: RefCell::new(vec!()),
                 }),
                 rect: rect,
             });
@@ -664,7 +664,7 @@ impl Constellation {
             after: Rc::new(FrameTree {
                 pipeline: pipeline_wrapped.clone(),
                 parent: parent,
-                children: RefCell::new(~[]),
+                children: RefCell::new(vec!()),
             }),
             navigation_type: constellation_msg::Load,
         });
@@ -848,7 +848,7 @@ impl Constellation {
         }
     }
 
-    fn handle_evicted_frames(&mut self, evicted: ~[Rc<FrameTree>]) {
+    fn handle_evicted_frames(&mut self, evicted: Vec<Rc<FrameTree>>) {
         for frame_tree in evicted.iter() {
             if !self.navigation_context.contains(frame_tree.pipeline.id) {
                 self.close_pipelines(frame_tree.clone());

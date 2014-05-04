@@ -20,7 +20,7 @@ pub enum CompressionMode {
 // * Issue #114: record skipped and kept chars for mapping original to new text
 //
 // * Untracked: various edge cases for bidi, CJK, etc.
-pub fn transform_text(text: &str, mode: CompressionMode, incoming_whitespace: bool, new_line_pos: &mut ~[uint]) -> (~str, bool) {
+pub fn transform_text(text: &str, mode: CompressionMode, incoming_whitespace: bool, new_line_pos: &mut Vec<uint>) -> (~str, bool) {
     let mut out_str: ~str = "".to_owned();
     let out_whitespace = match mode {
         CompressNone | DiscardNewline => {
@@ -149,7 +149,7 @@ fn test_transform_compress_none() {
     let mode = CompressNone;
 
     for i in range(0, test_strs.len()) {
-        let mut new_line_pos = ~[];
+        let mut new_line_pos = vec!();
         let (trimmed_str, _out) = transform_text(test_strs[i], mode, true, &mut new_line_pos);
         assert_eq!(&trimmed_str, &test_strs[i])
     }
@@ -178,7 +178,7 @@ fn test_transform_discard_newline() {
     let mode = DiscardNewline;
 
     for i in range(0, test_strs.len()) {
-        let mut new_line_pos = ~[];
+        let mut new_line_pos = vec!();
         let (trimmed_str, _out) = transform_text(test_strs[i], mode, true, &mut new_line_pos);
         assert_eq!(&trimmed_str, &oracle_strs[i])
     }
@@ -266,7 +266,7 @@ fn test_transform_compress_whitespace_newline_no_incoming() {
     let mode = CompressWhitespaceNewline;
 
     for i in range(0, test_strs.len()) {
-        let mut new_line_pos = ~[];
+        let mut new_line_pos = vec!();
         let (trimmed_str, _out) = transform_text(test_strs[i], mode, false, &mut new_line_pos);
         assert_eq!(&trimmed_str, &oracle_strs[i])
     }

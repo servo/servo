@@ -63,21 +63,21 @@ impl ProfilerCategory {
     // enumeration of all ProfilerCategory types
     fn empty_buckets() -> ProfilerBuckets {
         let mut buckets = TreeMap::new();
-        buckets.insert(CompositingCategory, ~[]);
-        buckets.insert(LayoutQueryCategory, ~[]);
-        buckets.insert(LayoutPerformCategory, ~[]);
-        buckets.insert(LayoutStyleRecalcCategory, ~[]);
-        buckets.insert(LayoutSelectorMatchCategory, ~[]);
-        buckets.insert(LayoutTreeBuilderCategory, ~[]);
-        buckets.insert(LayoutMainCategory, ~[]);
-        buckets.insert(LayoutParallelWarmupCategory, ~[]);
-        buckets.insert(LayoutShapingCategory, ~[]);
-        buckets.insert(LayoutDamagePropagateCategory, ~[]);
-        buckets.insert(LayoutDispListBuildCategory, ~[]);
-        buckets.insert(GfxRegenAvailableFontsCategory, ~[]);
-        buckets.insert(RenderingDrawingCategory, ~[]);
-        buckets.insert(RenderingPrepBuffCategory, ~[]);
-        buckets.insert(RenderingCategory, ~[]);
+        buckets.insert(CompositingCategory, vec!());
+        buckets.insert(LayoutQueryCategory, vec!());
+        buckets.insert(LayoutPerformCategory, vec!());
+        buckets.insert(LayoutStyleRecalcCategory, vec!());
+        buckets.insert(LayoutSelectorMatchCategory, vec!());
+        buckets.insert(LayoutTreeBuilderCategory, vec!());
+        buckets.insert(LayoutMainCategory, vec!());
+        buckets.insert(LayoutParallelWarmupCategory, vec!());
+        buckets.insert(LayoutShapingCategory, vec!());
+        buckets.insert(LayoutDamagePropagateCategory, vec!());
+        buckets.insert(LayoutDispListBuildCategory, vec!());
+        buckets.insert(GfxRegenAvailableFontsCategory, vec!());
+        buckets.insert(RenderingDrawingCategory, vec!());
+        buckets.insert(RenderingPrepBuffCategory, vec!());
+        buckets.insert(RenderingCategory, vec!());
 
         buckets
     }
@@ -100,7 +100,7 @@ impl ProfilerCategory {
     }
 }
 
-type ProfilerBuckets = TreeMap<ProfilerCategory, ~[f64]>;
+type ProfilerBuckets = TreeMap<ProfilerCategory, Vec<f64>>;
 
 // back end of the profiler that handles data aggregation and performance metrics
 pub struct Profiler {
@@ -200,7 +200,7 @@ impl Profiler {
             if data_len > 0 {
                 let (mean, median, min, max) =
                     (data.iter().map(|&x|x).sum() / (data_len as f64),
-                     data[data_len / 2],
+                     *data.get(data_len / 2),
                      data.iter().fold(f64::INFINITY, |a, &b| a.min(b)),
                      data.iter().fold(-f64::INFINITY, |a, &b| a.max(b)));
                 println!("{:-35s}: {:15.4f} {:15.4f} {:15.4f} {:15.4f} {:15u}",

@@ -125,7 +125,7 @@ pub struct InlineBoxesConstructionResult {
     /// Any {ib} splits that we're bubbling up.
     ///
     /// TODO(pcwalton): Small vector optimization.
-    pub splits: Option<~[InlineBlockSplit]>,
+    pub splits: Option<Vec<InlineBlockSplit>>,
 
     /// Any boxes that succeed the {ib} splits.
     pub boxes: InlineBoxes,
@@ -280,6 +280,58 @@ enum WhitespaceStrippingMode {
     StripWhitespaceFromEnd,
 }
 
+/// Methods on optional vectors.
+///
+/// TODO: This is no longer necessary. This should be removed.
+pub trait OptNewVector<T> {
+    /// Turns this optional vector into an owned one. If the optional vector is `None`, then this
+    /// simply returns an empty owned vector.
+    fn to_vec(self) -> Vec<T>;
+
+    /// Pushes a value onto this vector.
+    fn push(&mut self, value: T);
+
+    /// Pushes a vector onto this vector, consuming the original.
+    fn push_all_move(&mut self, values: Vec<T>);
+
+    /// Returns the length of this optional vector.
+    fn len(&self) -> uint;
+}
+
+impl<T> OptNewVector<T> for Option<Vec<T>> {
+    #[inline]
+    fn to_vec(self) -> Vec<T> {
+        match self {
+            None => Vec::new(),
+            Some(vector) => vector,
+        }
+    }
+
+    #[inline]
+    fn push(&mut self, value: T) {
+        match *self {
+            None => *self = Some(vec!(value)),
+            Some(ref mut vector) => vector.push(value),
+        }
+    }
+
+    #[inline]
+    fn push_all_move(&mut self, values: Vec<T>) {
+        match *self {
+            None => *self = Some(values),
+            Some(ref mut vector) => vector.push_all_move(values),
+        }
+    }
+
+    #[inline]
+    fn len(&self) -> uint {
+        match *self {
+            None => 0,
+            Some(ref vector) => vector.len(),
+        }
+    }
+}
+
 /// An object that knows how to create flows.
 pub struct FlowConstructor<'a> {
     /// The layout context.
@@ -371,7 +423,7 @@ impl<'a> FlowConstructor<'a> {
     fn flush_inline_boxes_to_flow_or_list(&mut self,
                                           box_accumulator: InlineBoxAccumulator,
                                           flow: &mut ~Flow:Share,
-                                          flow_list: &mut ~[~Flow:Share],
+                                          flow_list: &mut Vec<~Flow:Share>,
                                           whitespace_stripping: WhitespaceStrippingMode,
                                           node: &ThreadSafeLayoutNode) {
         let mut boxes = box_accumulator.finish();
@@ -411,7 +463,7 @@ impl<'a> FlowConstructor<'a> {
     fn build_block_flow_using_children_construction_result(&mut self,
                                                            flow: &mut ~Flow:Share,
                                                            consecutive_siblings:
-                                                                &mut ~[~Flow:Share],
+                                                                &mut Vec<~Flow:Share>,
                                                            node: &ThreadSafeLayoutNode,
                                                            kid: ThreadSafeLayoutNode,
                                                            inline_box_accumulator:
@@ -450,7 +502,7 @@ impl<'a> FlowConstructor<'a> {
                         whitespace_stripping,
                         node);
                     if !consecutive_siblings.is_empty() {
-                        let consecutive_siblings = mem::replace(consecutive_siblings, ~[]);
+                        let consecutive_siblings = mem::replace(consecutive_siblings, vec!());
                         self.generate_anonymous_missing_child(consecutive_siblings,
                                                               flow,
                                                               node);
@@ -536,7 +588,7 @@ impl<'a> FlowConstructor<'a> {
                                  -> ConstructionResult {
         // Gather up boxes for the inline flows we might need to create.
         let mut inline_box_accumulator = InlineBoxAccumulator::new();
-        let mut consecutive_siblings = ~[];
+        let mut consecutive_siblings = vec!();
         let mut first_box = true;
 
         // List of absolute descendants, in tree order.
@@ -606,7 +658,7 @@ impl<'a> FlowConstructor<'a> {
     /// `InlineBoxesConstructionResult` if this node consisted entirely of ignorable whitespace.
     fn build_boxes_for_nonreplaced_inline_content(&mut self, node: &ThreadSafeLayoutNode)
                                                   -> ConstructionResult {
-        let mut opt_inline_block_splits = None;
+        let mut opt_inline_block_splits: Option<Vec<InlineBlockSplit>> = None;
         let mut box_accumulator = InlineBoxAccumulator::from_inline_node(node);
         let mut abs_descendants = Descendants::new();
 
@@ -755,11 +807,11 @@ impl<'a> FlowConstructor<'a> {
     /// Generates an anonymous table flow according to CSS 2.1 § 17.2.1, step 2.
     /// If necessary, generate recursively another anonymous table flow.
     fn generate_anonymous_missing_child(&mut self,
-                                        child_flows: ~[~Flow:Share],
+                                        child_flows: Vec<~Flow:Share>,
                                         flow: &mut ~Flow:Share,
                                         node: &ThreadSafeLayoutNode) {
         let mut anonymous_flow = flow.generate_missing_child_flow(node);
-        let mut consecutive_siblings = ~[];
+        let mut consecutive_siblings = vec!();
         for kid_flow in child_flows.move_iter() {
             if anonymous_flow.need_anonymous_flow(kid_flow) {
                 consecutive_siblings.push(kid_flow);
@@ -767,7 +819,7 @@ impl<'a> FlowConstructor<'a> {
             }
             if !consecutive_siblings.is_empty() {
                 self.generate_anonymous_missing_child(consecutive_siblings, &mut anonymous_flow, node);
-                consecutive_siblings = ~[];
+                consecutive_siblings = vec!();
             }
             anonymous_flow.add_new_child(kid_flow);
         }
@@ -879,7 +931,7 @@ impl<'a> FlowConstructor<'a> {
     fn build_flow_for_table_colgroup(&mut self, node: &ThreadSafeLayoutNode) -> ConstructionResult {
         let box_ = Box::new_from_specific_info(node,
                                                TableColumnBox(TableColumnBoxInfo::new(node)));
-        let mut col_boxes = ~[];
+        let mut col_boxes = vec!();
         for kid in node.children() {
             // CSS 2.1 § 17.2.1. Treat all non-column child boxes of `table-column-group`
             // as `display: none`.

@@ -23,13 +23,13 @@ pub struct TableRowFlow {
     pub block_flow: BlockFlow,
 
     /// Column widths.
-    pub col_widths: ~[Au],
+    pub col_widths: Vec<Au>,
 
     /// Column min widths.
-    pub col_min_widths: ~[Au],
+    pub col_min_widths: Vec<Au>,
 
     /// Column pref widths.
-    pub col_pref_widths: ~[Au],
+    pub col_pref_widths: Vec<Au>,
 }
 
 impl TableRowFlow {
@@ -38,9 +38,9 @@ impl TableRowFlow {
                              -> TableRowFlow {
         TableRowFlow {
             block_flow: BlockFlow::from_node_and_box(node, box_),
-            col_widths: ~[],
-            col_min_widths: ~[],
-            col_pref_widths: ~[],
+            col_widths: vec!(),
+            col_min_widths: vec!(),
+            col_pref_widths: vec!(),
         }
     }
 
@@ -49,17 +49,17 @@ impl TableRowFlow {
                      -> TableRowFlow {
         TableRowFlow {
             block_flow: BlockFlow::from_node(constructor, node),
-            col_widths: ~[],
-            col_min_widths: ~[],
-            col_pref_widths: ~[],
+            col_widths: vec!(),
+            col_min_widths: vec!(),
+            col_pref_widths: vec!(),
         }
     }
 
     pub fn teardown(&mut self) {
         self.block_flow.teardown();
-        self.col_widths = ~[];
-        self.col_min_widths = ~[];
-        self.col_pref_widths = ~[];
+        self.col_widths = vec!();
+        self.col_min_widths = vec!();
+        self.col_pref_widths = vec!();
     }
 
     pub fn box_<'a>(&'a mut self) -> &'a Box {
@@ -151,15 +151,15 @@ impl Flow for TableRowFlow {
         &mut self.block_flow
     }
 
-    fn col_widths<'a>(&'a mut self) -> &'a mut ~[Au] {
+    fn col_widths<'a>(&'a mut self) -> &'a mut Vec<Au> {
         &mut self.col_widths
     }
 
-    fn col_min_widths<'a>(&'a self) -> &'a ~[Au] {
+    fn col_min_widths<'a>(&'a self) -> &'a Vec<Au> {
         &self.col_min_widths
     }
 
-    fn col_pref_widths<'a>(&'a self) -> &'a ~[Au] {
+    fn col_pref_widths<'a>(&'a self) -> &'a Vec<Au> {
         &self.col_pref_widths
     }
 

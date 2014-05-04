@@ -140,7 +140,7 @@ fn js_script_listener(to_parent: Sender<HtmlDiscoveryMessage>,
                     }
                     Ok((metadata, bytes)) => {
                         result_vec.push(JSFile {
-                            data: str::from_utf8(bytes).unwrap().to_owned(),
+                            data: str::from_utf8(bytes.as_slice()).unwrap().to_owned(),
                             url: metadata.final_url,
                         });
                     }

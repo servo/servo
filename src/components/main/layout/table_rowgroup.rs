@@ -22,13 +22,13 @@ pub struct TableRowGroupFlow {
     pub block_flow: BlockFlow,
 
     /// Column widths
-    pub col_widths: ~[Au],
+    pub col_widths: Vec<Au>,
 
     /// Column min widths.
-    pub col_min_widths: ~[Au],
+    pub col_min_widths: Vec<Au>,
 
     /// Column pref widths.
-    pub col_pref_widths: ~[Au],
+    pub col_pref_widths: Vec<Au>,
 }
 
 impl TableRowGroupFlow {
@@ -37,9 +37,9 @@ impl TableRowGroupFlow {
                              -> TableRowGroupFlow {
         TableRowGroupFlow {
             block_flow: BlockFlow::from_node_and_box(node, box_),
-            col_widths: ~[],
-            col_min_widths: ~[],
-            col_pref_widths: ~[],
+            col_widths: vec!(),
+            col_min_widths: vec!(),
+            col_pref_widths: vec!(),
         }
     }
 
@@ -48,17 +48,17 @@ impl TableRowGroupFlow {
                      -> TableRowGroupFlow {
         TableRowGroupFlow {
             block_flow: BlockFlow::from_node(constructor, node),
-            col_widths: ~[],
-            col_min_widths: ~[],
-            col_pref_widths: ~[],
+            col_widths: vec!(),
+            col_min_widths: vec!(),
+            col_pref_widths: vec!(),
         }
     }
 
     pub fn teardown(&mut self) {
         self.block_flow.teardown();
-        self.col_widths = ~[];
-        self.col_min_widths = ~[];
-        self.col_pref_widths = ~[];
+        self.col_widths = vec!();
+        self.col_min_widths = vec!();
+        self.col_pref_widths = vec!();
     }
 
     pub fn box_<'a>(&'a mut self) -> &'a Box {
@@ -118,15 +118,15 @@ impl Flow for TableRowGroupFlow {
         &mut self.block_flow
     }
 
-    fn col_widths<'a>(&'a mut self) -> &'a mut ~[Au] {
+    fn col_widths<'a>(&'a mut self) -> &'a mut Vec<Au> {
         &mut self.col_widths
     }
 
-    fn col_min_widths<'a>(&'a self) -> &'a ~[Au] {
+    fn col_min_widths<'a>(&'a self) -> &'a Vec<Au> {
         &self.col_min_widths
     }
 
-    fn col_pref_widths<'a>(&'a self) -> &'a ~[Au] {
+    fn col_pref_widths<'a>(&'a self) -> &'a Vec<Au> {
         &self.col_pref_widths
     }
 
@@ -162,10 +162,10 @@ impl Flow for TableRowGroupFlow {
                 let num_child_cols = kid.col_min_widths().len();
                 for i in range(num_cols, num_child_cols) {
                     self.col_widths.push(Au::new(0));
-                    let new_kid_min = kid.col_min_widths()[i];
-                    self.col_min_widths.push(kid.col_min_widths()[i]);
-                    let new_kid_pref = kid.col_pref_widths()[i];
-                    self.col_pref_widths.push(kid.col_pref_widths()[i]);
+                    let new_kid_min = *kid.col_min_widths().get(i);
+                    self.col_min_widths.push(*kid.col_min_widths().get(i));
+                    let new_kid_pref = *kid.col_pref_widths().get(i);
+                    self.col_pref_widths.push(*kid.col_pref_widths().get(i));
                     min_width = min_width + new_kid_min;
                     pref_width = pref_width + new_kid_pref;
                 }

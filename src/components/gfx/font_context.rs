@@ -116,7 +116,7 @@ impl FontContext {
     }
 
     fn create_font_group(&mut self, style: &SpecifiedFontStyle) -> Rc<RefCell<FontGroup>> {
-        let mut fonts = ~[];
+        let mut fonts = vec!();
 
         debug!("(create font group) --- starting ---");
 
@@ -200,7 +200,7 @@ impl FontContext {
 
         Rc::new(
             RefCell::new(
-                FontGroup::new(style.families.to_owned(), &used_style, fonts)))
+                FontGroup::new(style.families.clone(), &used_style, fonts)))
     }
 
     fn create_font_instance(&self, desc: &FontDescriptor) -> Result<Rc<RefCell<Font>>, ()> {

@@ -88,7 +88,7 @@ pub struct Window {
     pub glfw_window: glfw::Window,
     pub events: Receiver<(f64, glfw::WindowEvent)>,
 
-    pub event_queue: RefCell<~[WindowEvent]>,
+    pub event_queue: RefCell<Vec<WindowEvent>>,
 
     pub drag_origin: Point2D<c_int>,
 
@@ -116,7 +116,7 @@ impl WindowMethods<Application> for Window {
             glfw_window: glfw_window,
             events: events,
 
-            event_queue: RefCell::new(~[]),
+            event_queue: RefCell::new(vec!()),
 
             drag_origin: Point2D(0 as c_int, 0),
 

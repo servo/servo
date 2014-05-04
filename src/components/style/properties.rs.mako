@@ -527,7 +527,7 @@ pub mod longhands {
                 pub enum T {
                     normal,
                     none,
-                    Content(~[Content]),
+                    Content(Vec<Content>),
                 }
             }
             pub type SpecifiedValue = computed_value::T;
@@ -549,7 +549,7 @@ pub mod longhands {
                     },
                     _ => ()
                 }
-                let mut content = ~[];
+                let mut content = vec!();
                 for component_value in input.skip_whitespace() {
                     match component_value {
                         &String(ref value)
@@ -705,10 +705,10 @@ pub mod longhands {
 //                Fantasy,
 //                Monospace,
             }
-            pub type T = ~[FontFamily];
+            pub type T = Vec<FontFamily>;
         }
         pub type SpecifiedValue = computed_value::T;
-        #[inline] pub fn get_initial_value() -> computed_value::T { ~[FamilyName(~"serif")] }
+        #[inline] pub fn get_initial_value() -> computed_value::T { vec!(FamilyName(~"serif")) }
         /// <familiy-name>#
         /// <familiy-name> = <string> | [ <ident>+ ]
         /// TODO: <generic-familiy>
@@ -716,7 +716,7 @@ pub mod longhands {
             from_iter(input.skip_whitespace())
         }
         pub fn from_iter<'a>(mut iter: SkipWhitespaceIterator<'a>) -> Option<SpecifiedValue> {
-            let mut result = ~[];
+            let mut result = vec!();
             macro_rules! add(
                 ($value: expr, $b: expr) => {
                     {
@@ -743,7 +743,7 @@ pub mod longhands {
 //                            "fantasy" => add!(Fantasy, break 'outer),
 //                            "monospace" => add!(Monospace, break 'outer),
                             _ => {
-                                let mut idents = ~[value.as_slice()];
+                                let mut idents = vec!(value.as_slice());
                                 loop {
                                     match iter.next() {
                                         Some(&Ident(ref value)) => idents.push(value.as_slice()),
@@ -1332,8 +1332,8 @@ pub mod shorthands {
 
 
 pub struct PropertyDeclarationBlock {
-    pub important: Arc<~[PropertyDeclaration]>,
-    pub normal: Arc<~[PropertyDeclaration]>,
+    pub important: Arc<Vec<PropertyDeclaration>>,
+    pub normal: Arc<Vec<PropertyDeclaration>>,
 }
 
 impl<E, S: Encoder<E>> Encodable<S, E> for PropertyDeclarationBlock {
@@ -1349,8 +1349,8 @@ pub fn parse_style_attribute(input: &str, base_url: &Url) -> PropertyDeclaration
 
 
 pub fn parse_property_declaration_list<I: Iterator<Node>>(input: I, base_url: &Url) -> PropertyDeclarationBlock {
-    let mut important = ~[];
-    let mut normal = ~[];
+    let mut important = vec!();
+    let mut normal = vec!();
     for item in ErrorLoggerIterator(parse_declaration_list(input)) {
         match item {
             DeclAtRule(rule) => log_css_error(
@@ -1418,7 +1418,7 @@ pub enum PropertyDeclarationParseResult {
 
 impl PropertyDeclaration {
     pub fn parse(name: &str, value: &[ComponentValue],
-                 result_list: &mut ~[PropertyDeclaration],
+                 result_list: &mut Vec<PropertyDeclaration>,
                  base_url: &Url) -> PropertyDeclarationParseResult {
         // FIXME: local variable to work around Rust #10683
         let name_lower = name.to_ascii_lower();

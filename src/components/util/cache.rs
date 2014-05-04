@@ -120,14 +120,14 @@ fn test_hashcache() {
 }
 
 pub struct LRUCache<K, V> {
-    entries: ~[(K, V)],
+    entries: Vec<(K, V)>,
     cache_size: uint,
 }
 
 impl<K: Clone + Eq, V: Clone> LRUCache<K,V> {
     pub fn new(size: uint) -> LRUCache<K, V> {
         LRUCache {
-          entries: ~[],
+          entries: vec!(),
           cache_size: size,
         }
     }
@@ -139,7 +139,7 @@ impl<K: Clone + Eq, V: Clone> LRUCache<K,V> {
             let entry = self.entries.remove(pos);
             self.entries.push(entry.unwrap());
         }
-        self.entries[last_index].ref1().clone()
+        self.entries.get(last_index).ref1().clone()
     }
 
     pub fn iter<'a>(&'a self) -> Items<'a,(K,V)> {
