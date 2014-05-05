@@ -38,6 +38,7 @@ use servo_util::namespace;
 use servo_util::smallvec::SmallVec;
 use servo_util::str::is_whitespace;
 use std::cast;
+use std::fmt;
 use std::from_str::FromStr;
 use std::iter::AdditiveIterator;
 use std::mem;
@@ -838,10 +839,10 @@ impl Box {
         // Box position wrt to the owning flow.
         let box_bounds = self.border_box;
         let absolute_box_bounds = box_bounds.translate(&flow_origin);
-        debug!("Box::build_display_list at rel={}, abs={}: {:s}",
+        debug!("Box::build_display_list at rel={}, abs={}: {}",
                box_bounds,
                absolute_box_bounds,
-               self.debug_str());
+               self);
         debug!("Box::build_display_list: dirty={}, flow_origin={}",
                layout_context.dirty,
                flow_origin);
@@ -1396,40 +1397,21 @@ impl Box {
         self.style().Box.get().overflow == overflow::hidden
     }
 
-    /// Returns a debugging string describing this box.
-    pub fn debug_str(&self) -> ~str {
-        let class_name = match self.specific {
-            GenericBox => "GenericBox",
-            IframeBox(_) => "IframeBox",
-            ImageBox(_) => "ImageBox",
-            ScannedTextBox(_) => "ScannedTextBox",
-            TableBox => "TableBox",
-            TableCellBox => "TableCellBox",
-            TableColumnBox(_) => "TableColumnBox",
-            TableRowBox => "TableRowBox",
-            TableWrapperBox => "TableWrapperBox",
-            UnscannedTextBox(_) => "UnscannedTextBox",
-        };
-
-        format!("({}{}{})",
-                class_name,
-                self.side_offsets_debug_string("bp", self.border_padding),
-                self.side_offsets_debug_string("m", self.margin))
-    }
-
     /// A helper function to return a debug string describing the side offsets for one of the rect
     /// box model properties (border, padding, or margin).
-    fn side_offsets_debug_string(&self, name: &str, value: SideOffsets2D<Au>) -> ~str {
-        let zero: SideOffsets2D<Au> = Zero::zero();
-        if value == zero {
-            return "".to_str()
-        }
-        format!(" {}{},{},{},{}",
+    fn side_offsets_debug_fmt(&self, name: &str,
+                              value: SideOffsets2D<Au>,
+                              f: &mut fmt::Formatter) -> fmt::Result {
+        if value.is_zero() {
+            Ok(())
+        } else {
+            write!(f.buf, "{}{},{},{},{}",
                 name,
                 value.top,
                 value.right,
                 value.bottom,
                 value.left)
+        }
     }
 
     /// Sends the size and position of this iframe box to the constellation. This is out of line to
@@ -1453,6 +1435,29 @@ impl Box {
         let msg = FrameRectMsg(iframe_box.pipeline_id, iframe_box.subpage_id, rect);
         let ConstellationChan(ref chan) = layout_context.constellation_chan;
         chan.send(msg)
+    }
+}
+
+impl fmt::Show for Box {
+    /// Outputs a debugging string describing this box.
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        try!(write!(f.buf, "({} ",
+            match self.specific {
+                GenericBox => "GenericBox",
+                IframeBox(_) => "IframeBox",
+                ImageBox(_) => "ImageBox",
+                ScannedTextBox(_) => "ScannedTextBox",
+                TableBox => "TableBox",
+                TableCellBox => "TableCellBox",
+                TableColumnBox(_) => "TableColumnBox",
+                TableRowBox => "TableRowBox",
+                TableWrapperBox => "TableWrapperBox",
+                UnscannedTextBox(_) => "UnscannedTextBox",
+        }));
+        try!(self.side_offsets_debug_fmt("bp", self.border_padding, f));
+        try!(write!(f.buf, " "));
+        try!(self.side_offsets_debug_fmt("m", self.margin, f));
+        write!(f.buf, ")")
     }
 }
 

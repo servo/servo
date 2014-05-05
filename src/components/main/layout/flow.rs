@@ -55,6 +55,7 @@ use gfx::render_task::RenderLayer;
 use servo_msg::compositor_msg::LayerId;
 use servo_util::geometry::Au;
 use std::cast;
+use std::fmt;
 use std::iter::Zip;
 use std::num::Zero;
 use std::sync::atomics::Relaxed;
@@ -65,7 +66,7 @@ use style::computed_values::{clear, position, text_align};
 ///
 /// Note that virtual methods have a cost; we should not overuse them in Servo. Consider adding
 /// methods to `ImmutableFlowUtils` or `MutableFlowUtils` before adding more methods here.
-pub trait Flow {
+pub trait Flow: fmt::Show + ToStr {
     // RTTI
     //
     // TODO(pcwalton): Use Rust's RTTI, once that works.
@@ -266,11 +267,6 @@ pub trait Flow {
             let pointer: uint = cast::transmute(self);
             LayerId(pointer, fragment_id)
         }
-    }
-
-    /// Returns a debugging string describing this flow.
-    fn debug_str(&self) -> ~str {
-        "???".to_owned()
     }
 }
 
@@ -915,7 +911,7 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
         for _ in range(0, level) {
             indent.push_str("| ")
         }
-        debug!("{}+ {}", indent, self.debug_str());
+        debug!("{}+ {}", indent, self.to_str());
         for kid in imm_child_iter(self) {
             kid.dump_with_level(level + 1)
         }
