@@ -21,7 +21,6 @@ use gfx::font_context::FontContext;
 use servo_util::geometry::Au;
 use servo_util::geometry;
 use servo_util::range::Range;
-use servo_util::smallvec::{SmallVec, SmallVec0};
 use std::iter::Enumerate;
 use std::mem;
 use std::slice::{Items, MutItems};
@@ -63,10 +62,10 @@ pub struct LineBox {
 
 struct LineboxScanner {
     pub floats: Floats,
-    pub new_boxes: SmallVec0<Box>,
+    pub new_boxes: Vec<Box>,
     pub work_list: RingBuf<Box>,
     pub pending_line: LineBox,
-    pub lines: SmallVec0<LineBox>,
+    pub lines: Vec<LineBox>,
     pub cur_y: Au,
 }
 
@@ -74,14 +73,14 @@ impl LineboxScanner {
     pub fn new(float_ctx: Floats) -> LineboxScanner {
         LineboxScanner {
             floats: float_ctx,
-            new_boxes: SmallVec0::new(),
+            new_boxes: Vec::new(),
             work_list: RingBuf::new(),
             pending_line: LineBox {
                 range: Range::empty(),
                 bounds: Rect(Point2D(Au::new(0), Au::new(0)), Size2D(Au::new(0), Au::new(0))),
                 green_zone: Size2D(Au::new(0), Au::new(0))
             },
-            lines: SmallVec0::new(),
+            lines: Vec::new(),
             cur_y: Au::new(0)
         }
     }
@@ -92,8 +91,8 @@ impl LineboxScanner {
 
     fn reset_scanner(&mut self) {
         debug!("Resetting line box scanner's state for flow.");
-        self.lines = SmallVec0::new();
-        self.new_boxes = SmallVec0::new();
+        self.lines = Vec::new();
+        self.new_boxes = Vec::new();
         self.cur_y = Au(0);
         self.reset_linebox();
     }
@@ -154,11 +153,11 @@ impl LineboxScanner {
 
         map.fixup(old_boxes.as_slice(), self.new_boxes.as_slice());
         flow.boxes = InlineBoxes {
-            boxes: mem::replace(&mut self.new_boxes, SmallVec0::new()),
+            boxes: mem::replace(&mut self.new_boxes, Vec::new()),
             map: map,
         };
 
-        flow.lines = mem::replace(&mut self.lines, SmallVec0::new());
+        flow.lines = mem::replace(&mut self.lines, Vec::new());
     }
 
     fn flush_current_line(&mut self) {
@@ -492,7 +491,7 @@ impl<'a> Iterator<(&'a mut Box, InlineFragmentContext<'a>)> for MutBoxIterator<'
 /// Represents a list of inline boxes, including element ranges.
 pub struct InlineBoxes {
     /// The boxes themselves.
-    pub boxes: SmallVec0<Box>,
+    pub boxes: Vec<Box>,
     /// Tracks the elements that made up the boxes above.
     pub map: FragmentMap,
 }
@@ -501,7 +500,7 @@ impl InlineBoxes {
     /// Creates an empty set of inline boxes.
     pub fn new() -> InlineBoxes {
         InlineBoxes {
-            boxes: SmallVec0::new(),
+            boxes: Vec::new(),
             map: FragmentMap::new(),
         }
     }
@@ -572,7 +571,7 @@ pub struct InlineFlow {
     /// A vector of ranges into boxes that represents line positions. These ranges are disjoint and
     /// are the result of inline layout. This also includes some metadata used for positioning
     /// lines.
-    pub lines: SmallVec0<LineBox>,
+    pub lines: Vec<LineBox>,
 
     /// The minimum height above the baseline for each line, as specified by the line height and
     /// font style.
@@ -588,7 +587,7 @@ impl InlineFlow {
         InlineFlow {
             base: BaseFlow::new(node),
             boxes: boxes,
-            lines: SmallVec0::new(),
+            lines: Vec::new(),
             minimum_height_above_baseline: Au(0),
             minimum_depth_below_baseline: Au(0),
         }
@@ -1045,14 +1044,14 @@ impl<'a> Iterator<&'a FragmentRange> for RangeIterator<'a> {
 /// Information that inline flows keep about nested elements. This is used to recover the DOM
 /// structure from the flat box list when it's needed.
 pub struct FragmentMap {
-    list: SmallVec0<FragmentRange>,
+    list: Vec<FragmentRange>,
 }
 
 impl FragmentMap {
     /// Creates a new fragment map.
     pub fn new() -> FragmentMap {
         FragmentMap {
-            list: SmallVec0::new(),
+            list: Vec::new(),
         }
     }
 
@@ -1105,8 +1104,8 @@ impl FragmentMap {
     /// needlessly has to clone boxes.
     pub fn fixup(&mut self, old_fragments: &[Box], new_fragments: &[Box]) {
         // TODO(pcwalton): Post Rust upgrade, use `with_capacity` here.
-        let mut old_list = mem::replace(&mut self.list, SmallVec0::new());
-        let mut worklist = SmallVec0::new();        // FIXME(#2269, pcwalton): was smallvec4
+        let mut old_list = mem::replace(&mut self.list, Vec::new());
+        let mut worklist = Vec::new();        // FIXME(#2269, pcwalton): was smallvec4
         let mut old_list_iter = old_list.move_iter().peekable();
         let mut new_fragments_iter = new_fragments.iter().enumerate().peekable();
 

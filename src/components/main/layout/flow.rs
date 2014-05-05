@@ -54,7 +54,6 @@ use gfx::display_list::DisplayList;
 use gfx::render_task::RenderLayer;
 use servo_msg::compositor_msg::LayerId;
 use servo_util::geometry::Au;
-use servo_util::smallvec::{SmallVec, SmallVec0};
 use std::cast;
 use std::iter::Zip;
 use std::num::Zero;
@@ -558,16 +557,16 @@ impl FlowFlags {
 /// FIXME: This should use @pcwalton's reference counting scheme (Coming Soon).
 pub struct Descendants {
     /// Links to every Descendant.
-    pub descendant_links: SmallVec0<Rawlink>,
+    pub descendant_links: Vec<Rawlink>,
     /// Static y offsets of all descendants from the start of this flow box.
-    pub static_y_offsets: SmallVec0<Au>,
+    pub static_y_offsets: Vec<Au>,
 }
 
 impl Descendants {
     pub fn new() -> Descendants {
         Descendants {
-            descendant_links: SmallVec0::new(),
-            static_y_offsets: SmallVec0::new(),
+            descendant_links: Vec::new(),
+            static_y_offsets: Vec::new(),
         }
     }
 
