@@ -138,8 +138,7 @@ impl<T> DerefMut<T> for Traceable<T> {
 
 impl<S: Encoder<E>, E, T: Encodable<S, E>> Encodable<S, E> for Traceable<RefCell<T>> {
     fn encode(&self, s: &mut S) -> Result<(), E> {
-        self.borrow().encode(s);
-        Ok(())
+        self.borrow().encode(s)
     }
 }
 

@@ -82,7 +82,7 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
         // Step 1.
         let mut doc = Document::new(&win.root_ref(), None, NonHTMLDocument, None).root();
         // Step 2-3.
-        let mut maybe_elem = if qname.is_empty() {
+        let maybe_elem = if qname.is_empty() {
             None
         } else {
             match doc.CreateElementNS(namespace, qname) {

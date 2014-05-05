@@ -73,8 +73,7 @@ impl<S: Encoder<E>, E> Encodable<S, E> for TrustedNodeAddress {
         let node = addr as *Node as *mut Node;
         unsafe {
             JS::from_raw(node).encode(s)
-        };
-        Ok(())
+        }
     }
 }
 
