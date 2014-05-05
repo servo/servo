@@ -77,9 +77,9 @@ impl FontHandle {
 }
 
 impl FontHandleMethods for FontHandle {
-    fn new_from_buffer(_: &FontContextHandle, buf: ~[u8], style: &SpecifiedFontStyle)
+    fn new_from_buffer(_: &FontContextHandle, buf: Vec<u8>, style: &SpecifiedFontStyle)
                     -> Result<FontHandle, ()> {
-        let fontprov = CGDataProvider::from_buffer(buf);
+        let fontprov = CGDataProvider::from_buffer(buf.as_slice());
         let cgfont = CGFont::from_data_provider(fontprov);
         let ctfont = core_text::font::new_from_CGFont(&cgfont, style.pt_size);
 
