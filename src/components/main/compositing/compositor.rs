@@ -757,7 +757,7 @@ impl IOCompositor {
                 width: width as u32,
                 height: height as u32,
                 color_type: png::RGB8,
-                pixels: pixels.move_iter().collect(),
+                pixels: pixels,
             };
             let res = png::store_png(&img, &path);
             assert!(res.is_ok());
