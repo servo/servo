@@ -16,4 +16,4 @@ interface DocumentType : Node {
   readonly attribute DOMString systemId;
 };
 
-//DocumentType implements ChildNode;
+DocumentType implements ChildNode;
