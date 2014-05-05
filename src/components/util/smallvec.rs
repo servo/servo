@@ -312,11 +312,7 @@ macro_rules! def_small_vector(
             ptr: *T,
             data: [T, ..$size],
         }
-    )
-)
 
-macro_rules! def_small_vector_private_trait_impl(
-    ($name:ident, $size:expr) => (
         impl<T> SmallVecPrivate<T> for $name<T> {
             unsafe fn set_len(&mut self, new_len: uint) {
                 self.len = new_len
@@ -342,11 +338,7 @@ macro_rules! def_small_vector_private_trait_impl(
                 self.ptr = cast::transmute(new_ptr)
             }
         }
-    )
-)
 
-macro_rules! def_small_vector_trait_impl(
-    ($name:ident, $size:expr) => (
         impl<T> SmallVec<T> for $name<T> {
             fn inline_size(&self) -> uint {
                 $size
@@ -358,51 +350,7 @@ macro_rules! def_small_vector_trait_impl(
                 self.cap
             }
         }
-    )
-)
 
-macro_rules! def_small_vector_drop_impl(
-    ($name:ident, $size:expr) => (
-        #[unsafe_destructor]
-        impl<T> Drop for $name<T> {
-            fn drop(&mut self) {
-                if !self.spilled() {
-                    return
-                }
-
-                unsafe {
-                    let ptr = self.mut_ptr();
-                    for i in range(0, self.len()) {
-                        *ptr.offset(i as int) = mem::uninit();
-                    }
-
-                    if intrinsics::owns_managed::<T>() {
-                        local_heap::local_free(self.ptr() as *u8)
-                    } else {
-                        global_heap::exchange_free(self.ptr() as *u8)
-                    }
-                }
-            }
-        }
-    )
-)
-
-macro_rules! def_small_vector_clone_impl(
-    ($name:ident) => (
-        impl<T:Clone> Clone for $name<T> {
-            fn clone(&self) -> $name<T> {
-                let mut new_vector = $name::new();
-                for element in self.iter() {
-                    new_vector.push((*element).clone())
-                }
-                new_vector
-            }
-        }
-    )
-)
-
-macro_rules! def_small_vector_impl(
-    ($name:ident, $size:expr) => (
         impl<T> $name<T> {
             #[inline]
             pub fn new() -> $name<T> {
@@ -418,6 +366,14 @@ macro_rules! def_small_vector_impl(
         }
     )
 )
+
+def_small_vector!(SmallVec1, 1)
+def_small_vector!(SmallVec2, 2)
+def_small_vector!(SmallVec4, 4)
+def_small_vector!(SmallVec8, 8)
+def_small_vector!(SmallVec16, 16)
+def_small_vector!(SmallVec24, 24)
+def_small_vector!(SmallVec32, 32)
 
 /// TODO(pcwalton): Remove in favor of `vec_ng` after a Rust upgrade.
 pub struct SmallVec0<T> {
@@ -472,57 +428,63 @@ impl<T> SmallVec0<T> {
     }
 }
 
+macro_rules! def_small_vector_drop_impl(
+    ($name:ident, $size:expr) => (
+        #[unsafe_destructor]
+        impl<T> Drop for $name<T> {
+            fn drop(&mut self) {
+                if !self.spilled() {
+                    return
+                }
+
+                unsafe {
+                    let ptr = self.mut_ptr();
+                    for i in range(0, self.len()) {
+                        *ptr.offset(i as int) = mem::uninit();
+                    }
+
+                    if intrinsics::owns_managed::<T>() {
+                        local_heap::local_free(self.ptr() as *u8)
+                    } else {
+                        global_heap::exchange_free(self.ptr() as *u8)
+                    }
+                }
+            }
+        }
+    )
+)
+
 def_small_vector_drop_impl!(SmallVec0, 0)
-def_small_vector_clone_impl!(SmallVec0)
-
-def_small_vector!(SmallVec1, 1)
-def_small_vector_private_trait_impl!(SmallVec1, 1)
-def_small_vector_trait_impl!(SmallVec1, 1)
 def_small_vector_drop_impl!(SmallVec1, 1)
-def_small_vector_clone_impl!(SmallVec1)
-def_small_vector_impl!(SmallVec1, 1)
-
-def_small_vector!(SmallVec2, 2)
-def_small_vector_private_trait_impl!(SmallVec2, 2)
-def_small_vector_trait_impl!(SmallVec2, 2)
 def_small_vector_drop_impl!(SmallVec2, 2)
-def_small_vector_clone_impl!(SmallVec2)
-def_small_vector_impl!(SmallVec2, 2)
-
-def_small_vector!(SmallVec4, 4)
-def_small_vector_private_trait_impl!(SmallVec4, 4)
-def_small_vector_trait_impl!(SmallVec4, 4)
 def_small_vector_drop_impl!(SmallVec4, 4)
-def_small_vector_clone_impl!(SmallVec4)
-def_small_vector_impl!(SmallVec4, 4)
-
-def_small_vector!(SmallVec8, 8)
-def_small_vector_private_trait_impl!(SmallVec8, 8)
-def_small_vector_trait_impl!(SmallVec8, 8)
 def_small_vector_drop_impl!(SmallVec8, 8)
-def_small_vector_clone_impl!(SmallVec8)
-def_small_vector_impl!(SmallVec8, 8)
-
-def_small_vector!(SmallVec16, 16)
-def_small_vector_private_trait_impl!(SmallVec16, 16)
-def_small_vector_trait_impl!(SmallVec16, 16)
 def_small_vector_drop_impl!(SmallVec16, 16)
-def_small_vector_clone_impl!(SmallVec16)
-def_small_vector_impl!(SmallVec16, 16)
-
-def_small_vector!(SmallVec24, 24)
-def_small_vector_private_trait_impl!(SmallVec24, 24)
-def_small_vector_trait_impl!(SmallVec24, 24)
 def_small_vector_drop_impl!(SmallVec24, 24)
-def_small_vector_clone_impl!(SmallVec24)
-def_small_vector_impl!(SmallVec24, 24)
-
-def_small_vector!(SmallVec32, 32)
-def_small_vector_private_trait_impl!(SmallVec32, 32)
-def_small_vector_trait_impl!(SmallVec32, 32)
 def_small_vector_drop_impl!(SmallVec32, 32)
+
+macro_rules! def_small_vector_clone_impl(
+    ($name:ident) => (
+        impl<T:Clone> Clone for $name<T> {
+            fn clone(&self) -> $name<T> {
+                let mut new_vector = $name::new();
+                for element in self.iter() {
+                    new_vector.push((*element).clone())
+                }
+                new_vector
+            }
+        }
+    )
+)
+
+def_small_vector_clone_impl!(SmallVec0)
+def_small_vector_clone_impl!(SmallVec1)
+def_small_vector_clone_impl!(SmallVec2)
+def_small_vector_clone_impl!(SmallVec4)
+def_small_vector_clone_impl!(SmallVec8)
+def_small_vector_clone_impl!(SmallVec16)
+def_small_vector_clone_impl!(SmallVec24)
 def_small_vector_clone_impl!(SmallVec32)
-def_small_vector_impl!(SmallVec32, 32)
 
 #[cfg(test)]
 pub mod tests {
