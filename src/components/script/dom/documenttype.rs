@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::InheritTypes::DocumentTypeDerived;
+use dom::bindings::codegen::InheritTypes::{DocumentTypeDerived, NodeCast};
 use dom::bindings::codegen::BindingDeclarations::DocumentTypeBinding;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
-use dom::node::{Node, DoctypeNodeTypeId};
+use dom::node::{Node, DoctypeNodeTypeId, NodeHelpers};
 use servo_util::str::DOMString;
 
 /// The `DOCTYPE` tag.
@@ -59,6 +59,7 @@ pub trait DocumentTypeMethods {
     fn Name(&self) -> DOMString;
     fn PublicId(&self) -> DOMString;
     fn SystemId(&self) -> DOMString;
+    fn Remove(&mut self);
 }
 
 impl<'a> DocumentTypeMethods for JSRef<'a, DocumentType> {
@@ -72,5 +73,11 @@ impl<'a> DocumentTypeMethods for JSRef<'a, DocumentType> {
 
     fn SystemId(&self) -> DOMString {
         self.system_id.clone()
+    }
+
+    // http://dom.spec.whatwg.org/#dom-childnode-remove
+    fn Remove(&mut self) {
+        let node: &mut JSRef<Node> = NodeCast::from_mut_ref(self);
+        node.remove_self();
     }
 }

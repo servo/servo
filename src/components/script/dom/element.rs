@@ -406,6 +406,7 @@ pub trait ElementMethods {
     fn GetInnerHTML(&self) -> Fallible<DOMString>;
     fn GetOuterHTML(&self) -> Fallible<DOMString>;
     fn Children(&self) -> Temporary<HTMLCollection>;
+    fn Remove(&mut self);
 }
 
 impl<'a> ElementMethods for JSRef<'a, Element> {
@@ -677,6 +678,12 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     fn Children(&self) -> Temporary<HTMLCollection> {
         let window = window_from_node(self).root();
         HTMLCollection::children(&*window, NodeCast::from_ref(self))
+    }
+
+    // http://dom.spec.whatwg.org/#dom-childnode-remove
+    fn Remove(&mut self) {
+        let node: &mut JSRef<Node> = NodeCast::from_mut_ref(self);
+        node.remove_self();
     }
 }
 

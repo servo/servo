@@ -25,4 +25,4 @@ interface CharacterData : Node {
   void replaceData(unsigned long offset, unsigned long count, DOMString data);
 };
 
-//CharacterData implements ChildNode;
+CharacterData implements ChildNode;
