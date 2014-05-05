@@ -170,69 +170,6 @@ impl InlineBlockSplit {
     }
 }
 
-/// Methods on optional vectors.
-///
-/// TODO(pcwalton): I think this will no longer be necessary once Rust #8981 lands.
-pub trait OptVector<T> {
-    /// Turns this optional vector into an owned one. If the optional vector is `None`, then this
-    /// simply returns an empty owned vector.
-    fn to_vec(self) -> ~[T];
-
-    /// Pushes a value onto this vector.
-    fn push(&mut self, value: T);
-
-    /// Pushes a vector onto this vector, consuming the original.
-    fn push_all_move(&mut self, values: ~[T]);
-
-    /// Pushes an optional vector onto this vector, consuming the original.
-    fn push_opt_vec_move(&mut self, values: Self);
-
-    /// Returns the length of this optional vector.
-    fn len(&self) -> uint;
-}
-
-impl<T> OptVector<T> for Option<~[T]> {
-    #[inline]
-    fn to_vec(self) -> ~[T] {
-        match self {
-            None => ~[],
-            Some(vector) => vector,
-        }
-    }
-
-    #[inline]
-    fn push(&mut self, value: T) {
-        match *self {
-            None => *self = Some(~[value]),
-            Some(ref mut vector) => vector.push(value),
-        }
-    }
-
-    #[inline]
-    fn push_all_move(&mut self, values: ~[T]) {
-        match *self {
-            None => *self = Some(values),
-            Some(ref mut vector) => vector.push_all_move(values),
-        }
-    }
-
-    #[inline]
-    fn push_opt_vec_move(&mut self, values: Option<~[T]>) {
-        match values {
-            None => {}
-            Some(values) => self.push_all_move(values),
-        }
-    }
-
-    #[inline]
-    fn len(&self) -> uint {
-        match *self {
-            None => 0,
-            Some(ref vector) => vector.len(),
-        }
-    }
-}
-
 /// Holds inline boxes that we're gathering for children of an inline node.
 struct InlineBoxAccumulator {
     /// The list of boxes.
