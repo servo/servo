@@ -76,7 +76,7 @@ impl Clone for ChildFrameTree {
 
 pub struct SendableFrameTree {
     pub pipeline: CompositionPipeline,
-    pub children: ~[SendableChildFrameTree],
+    pub children: Vec<SendableChildFrameTree>,
 }
 
 pub struct SendableChildFrameTree {
@@ -133,7 +133,7 @@ impl FrameTreeTraversal for Rc<FrameTree> {
 
     fn iter(&self) -> FrameTreeIterator {
         FrameTreeIterator {
-            stack: ~[self.clone()],
+            stack: vec!(self.clone()),
         }
     }
 }
@@ -151,7 +151,7 @@ impl ChildFrameTree {
 /// Note that this iterator should _not_ be used to mutate nodes _during_
 /// iteration. Mutating nodes once the iterator is out of scope is OK.
 struct FrameTreeIterator {
-    stack: ~[Rc<FrameTree>],
+    stack: Vec<Rc<FrameTree>>,
 }
 
 impl Iterator<Rc<FrameTree>> for FrameTreeIterator {
@@ -220,7 +220,7 @@ impl NavigationContext {
     }
 
     /// Returns the frame trees whose keys are pipeline_id.
-    fn find_all(&mut self, pipeline_id: PipelineId) -> ~[Rc<FrameTree>] {
+    fn find_all(&mut self, pipeline_id: PipelineId) -> Vec<Rc<FrameTree>> {
         let from_current = self.current.iter().filter_map(|frame_tree| {
             frame_tree.find(pipeline_id)
         });
@@ -300,7 +300,7 @@ impl Constellation {
     }
 
     /// Returns both the navigation context and pending frame trees whose keys are pipeline_id.
-    fn find_all(&mut self, pipeline_id: PipelineId) -> ~[Rc<FrameTree>] {
+    fn find_all(&mut self, pipeline_id: PipelineId) -> Vec<Rc<FrameTree>> {
         let matching_navi_frames = self.navigation_context.find_all(pipeline_id);
         let matching_pending_frames = self.pending_frames.iter().filter_map(|frame_change| {
             frame_change.after.find(pipeline_id)
@@ -548,7 +548,7 @@ impl Constellation {
         // or a new url entered.
         //     Start by finding the frame trees matching the pipeline id,
         // and add the new pipeline to their sub frames.
-        let frame_trees: ~[Rc<FrameTree>] = {
+        let frame_trees: Vec<Rc<FrameTree>> = {
             let matching_navi_frames = self.navigation_context.find_all(source_pipeline_id);
             let matching_pending_frames = self.pending_frames.iter().filter_map(|frame_change| {
                 frame_change.after.find(source_pipeline_id)

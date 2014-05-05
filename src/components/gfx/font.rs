@@ -33,7 +33,7 @@ use text::{Shaper, TextRun};
 // resources needed by the graphics layer to draw glyphs.
 
 pub trait FontHandleMethods {
-    fn new_from_buffer(fctx: &FontContextHandle, buf: ~[u8], style: &SpecifiedFontStyle)
+    fn new_from_buffer(fctx: &FontContextHandle, buf: Vec<u8>, style: &SpecifiedFontStyle)
                     -> Result<Self,()>;
 
     // an identifier usable by FontContextHandle to recreate this FontHandle.
@@ -216,9 +216,9 @@ pub struct Font {
 
 impl<'a> Font {
     pub fn new_from_buffer(ctx: &FontContext,
-                       buffer: ~[u8],
-                       style: &SpecifiedFontStyle,
-                       backend: BackendType)
+                           buffer: Vec<u8>,
+                           style: &SpecifiedFontStyle,
+                           backend: BackendType)
             -> Result<Rc<RefCell<Font>>, ()> {
         let handle = FontHandleMethods::new_from_buffer(&ctx.handle, buffer, style);
         let handle: FontHandle = if handle.is_ok() {

@@ -80,11 +80,11 @@ impl<'a> Hash for LowercaseAsciiString<'a> {
 struct SelectorMap {
     // TODO: Tune the initial capacity of the HashMap
     // FIXME: Use interned strings
-    id_hash: HashMap<DOMString, ~[Rule]>,
-    class_hash: HashMap<DOMString, ~[Rule]>,
-    element_hash: HashMap<DOMString, ~[Rule]>,
+    id_hash: HashMap<DOMString, Vec<Rule>>,
+    class_hash: HashMap<DOMString, Vec<Rule>>,
+    element_hash: HashMap<DOMString, Vec<Rule>>,
     // For Rules that don't have ID, class, or element selectors.
-    universal_rules: ~[Rule],
+    universal_rules: Vec<Rule>,
     /// Whether this hash is empty.
     empty: bool,
 }
@@ -95,7 +95,7 @@ impl SelectorMap {
             id_hash: HashMap::new(),
             class_hash: HashMap::new(),
             element_hash: HashMap::new(),
-            universal_rules: ~[],
+            universal_rules: vec!(),
             empty: true,
         }
     }
@@ -151,7 +151,7 @@ impl SelectorMap {
                                                                 shareable);
 
         SelectorMap::get_matching_rules(node,
-                                        self.universal_rules,
+                                        self.universal_rules.as_slice(),
                                         matching_rules_list,
                                         shareable);
 
@@ -163,13 +163,13 @@ impl SelectorMap {
                                     N:TNode<E>,
                                     V:SmallVec<MatchedProperty>>(
                                     node: &N,
-                                    hash: &HashMap<DOMString,~[Rule]>,
+                                    hash: &HashMap<DOMString, Vec<Rule>>,
                                     key: &str,
                                     matching_rules: &mut V,
                                     shareable: &mut bool) {
         match hash.find_equiv(&key) {
             Some(rules) => {
-                SelectorMap::get_matching_rules(node, *rules, matching_rules, shareable)
+                SelectorMap::get_matching_rules(node, rules.as_slice(), matching_rules, shareable)
             }
             None => {}
         }
@@ -179,13 +179,13 @@ impl SelectorMap {
                                                   N:TNode<E>,
                                                   V:SmallVec<MatchedProperty>>(
                                                   node: &N,
-                                                  hash: &HashMap<DOMString,~[Rule]>,
+                                                  hash: &HashMap<DOMString, Vec<Rule>>,
                                                   key: &str,
                                                   matching_rules: &mut V,
                                                   shareable: &mut bool) {
         match hash.find_equiv(&LowercaseAsciiString(key)) {
             Some(rules) => {
-                SelectorMap::get_matching_rules(node, *rules, matching_rules, shareable)
+                SelectorMap::get_matching_rules(node, rules.as_slice(), matching_rules, shareable)
             }
             None => {}
         }
@@ -221,7 +221,7 @@ impl SelectorMap {
                     }
                     None => {}
                 }
-                self.id_hash.insert(id_name, ~[rule]);
+                self.id_hash.insert(id_name, vec!(rule));
                 return;
             }
             None => {}
@@ -235,7 +235,7 @@ impl SelectorMap {
                     }
                     None => {}
                 }
-                self.class_hash.insert(class_name, ~[rule]);
+                self.class_hash.insert(class_name, vec!(rule));
                 return;
             }
             None => {}
@@ -250,7 +250,7 @@ impl SelectorMap {
                     }
                     None => {}
                 }
-                self.element_hash.insert(element_name, ~[rule]);
+                self.element_hash.insert(element_name, vec!(rule));
                 return;
             }
             None => {}
@@ -947,7 +947,7 @@ mod tests {
 
     /// Helper method to get some Rules from selector strings.
     /// Each sublist of the result contains the Rules for one StyleRule.
-    fn get_mock_rules(css_selectors: &[&str]) -> ~[~[Rule]] {
+    fn get_mock_rules(css_selectors: &[&str]) -> Vec<Vec<Rule>> {
         use namespaces::NamespaceMap;
         use selectors::parse_selector_list;
         use cssparser::tokenize;
@@ -971,42 +971,42 @@ mod tests {
     #[test]
     fn test_rule_ordering_same_specificity(){
         let rules_list = get_mock_rules(["a.intro", "img.sidebar"]);
-        let rule1 = rules_list[0][0].clone();
-        let rule2 = rules_list[1][0].clone();
+        let rule1 = rules_list.get(0).get(0).clone();
+        let rule2 = rules_list.get(1).get(0).clone();
         assert!(rule1.property < rule2.property, "The rule that comes later should win.");
     }
 
     #[test]
     fn test_get_id_name(){
         let rules_list = get_mock_rules([".intro", "#top"]);
-        assert_eq!(SelectorMap::get_id_name(&rules_list[0][0]), None);
-        assert_eq!(SelectorMap::get_id_name(&rules_list[1][0]), Some("top".to_owned()));
+        assert_eq!(SelectorMap::get_id_name(rules_list.get(0).get(0)), None);
+        assert_eq!(SelectorMap::get_id_name(rules_list.get(1).get(0)), Some("top".to_owned()));
     }
 
     #[test]
     fn test_get_class_name(){
         let rules_list = get_mock_rules([".intro.foo", "#top"]);
-        assert_eq!(SelectorMap::get_class_name(&rules_list[0][0]), Some("intro".to_owned()));
-        assert_eq!(SelectorMap::get_class_name(&rules_list[1][0]), None);
+        assert_eq!(SelectorMap::get_class_name(rules_list.get(0).get(0)), Some("intro".to_owned()));
+        assert_eq!(SelectorMap::get_class_name(rules_list.get(1).get(0)), None);
     }
 
     #[test]
     fn test_get_element_name(){
         let rules_list = get_mock_rules(["img.foo", "#top", "IMG", "ImG"]);
-        assert_eq!(SelectorMap::get_element_name(&rules_list[0][0]), Some("img".to_owned()));
-        assert_eq!(SelectorMap::get_element_name(&rules_list[1][0]), None);
-        assert_eq!(SelectorMap::get_element_name(&rules_list[2][0]), Some("img".to_owned()));
-        assert_eq!(SelectorMap::get_element_name(&rules_list[3][0]), Some("img".to_owned()));
+        assert_eq!(SelectorMap::get_element_name(rules_list.get(0).get(0)), Some("img".to_owned()));
+        assert_eq!(SelectorMap::get_element_name(rules_list.get(1).get(0)), None);
+        assert_eq!(SelectorMap::get_element_name(rules_list.get(2).get(0)), Some("img".to_owned()));
+        assert_eq!(SelectorMap::get_element_name(rules_list.get(3).get(0)), Some("img".to_owned()));
     }
 
     #[test]
     fn test_insert(){
         let rules_list = get_mock_rules([".intro.foo", "#top"]);
         let mut selector_map = SelectorMap::new();
-        selector_map.insert(rules_list[1][0].clone());
-        assert_eq!(1, selector_map.id_hash.find_equiv(& &"top").unwrap()[0].property.source_order);
-        selector_map.insert(rules_list[0][0].clone());
-        assert_eq!(0, selector_map.class_hash.find_equiv(& &"intro").unwrap()[0].property.source_order);
+        selector_map.insert(rules_list.get(1).get(0).clone());
+        assert_eq!(1, selector_map.id_hash.find_equiv(& &"top").unwrap().get(0).property.source_order);
+        selector_map.insert(rules_list.get(0).get(0).clone());
+        assert_eq!(0, selector_map.class_hash.find_equiv(& &"intro").unwrap().get(0).property.source_order);
         assert!(selector_map.class_hash.find_equiv(& &"foo").is_none());
     }
 }

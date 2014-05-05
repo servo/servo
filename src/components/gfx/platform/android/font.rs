@@ -47,7 +47,7 @@ impl FontTableMethods for FontTable {
 }
 
 enum FontSource {
-    FontSourceMem(~[u8]),
+    FontSourceMem(Vec<u8>),
     FontSourceFile(~str)
 }
 
@@ -73,8 +73,8 @@ impl Drop for FontHandle {
 
 impl FontHandleMethods for FontHandle {
     fn new_from_buffer(fctx: &FontContextHandle,
-                           buf: ~[u8],
-                           style: &SpecifiedFontStyle)
+                       buf: Vec<u8>,
+                       style: &SpecifiedFontStyle)
                         -> Result<FontHandle, ()> {
         let ft_ctx: FT_Library = fctx.ctx.ctx;
         if ft_ctx.is_null() { return Err(()); }
