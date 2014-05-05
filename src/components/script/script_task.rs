@@ -787,12 +787,15 @@ impl ScriptTask {
             None => return,
             Some(timer_handle) => {
                 // TODO: Support extra arguments. This requires passing a `*JSVal` array as `argv`.
-                let rval = NullValue();
-                unsafe {
-                    JS_CallFunctionValue(self.get_cx(), this_value,
-                                         *timer_handle.data.funval,
-                                         0, ptr::null(), &rval);
-                }
+                let cx = self.get_cx();
+                with_compartment(cx, this_value, || {
+                    let rval = NullValue();
+                    unsafe {
+                        JS_CallFunctionValue(cx, this_value,
+                                             *timer_handle.data.funval,
+                                             0, ptr::null(), &rval);
+                    }
+                });
 
                 is_interval = timer_handle.data.is_interval;
             }
