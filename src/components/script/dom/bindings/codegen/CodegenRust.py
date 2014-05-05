@@ -5341,7 +5341,7 @@ class GlobalGenRoots():
             trace = [CGGeneric(string.Template('''impl JSTraceable for ${name} {
     fn trace(&self, tracer: *mut JSTracer) {
         unsafe {
-            self.encode(&mut *tracer);
+            self.encode(&mut *tracer).ok().expect("failed to encode");
         }
     }
 }
