@@ -76,7 +76,7 @@ impl Clone for ChildFrameTree {
 
 pub struct SendableFrameTree {
     pub pipeline: CompositionPipeline,
-    pub children: ~[SendableChildFrameTree],
+    pub children: Vec<SendableChildFrameTree>,
 }
 
 pub struct SendableChildFrameTree {
