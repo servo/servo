@@ -18,7 +18,7 @@ pub type FontFamilyMap = HashMap<~str, FontFamily>;
 trait FontListHandleMethods {
     fn get_available_families(&self, fctx: &FontContextHandle) -> FontFamilyMap;
     fn load_variations_for_family(&self, family: &mut FontFamily);
-    fn get_last_resort_font_families() -> ~[~str];
+    fn get_last_resort_font_families() -> Vec<~str>;
 }
 
 /// The platform-independent font list abstraction.
@@ -75,9 +75,8 @@ impl FontList {
         }
     }
 
-    pub fn get_last_resort_font_families() -> ~[~str] {
-        let last_resort = FontListHandle::get_last_resort_font_families();
-        last_resort
+    pub fn get_last_resort_font_families() -> Vec<~str> {
+        FontListHandle::get_last_resort_font_families()
     }
 }
 

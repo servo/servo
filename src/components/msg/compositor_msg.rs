@@ -126,7 +126,7 @@ pub trait RenderListener {
     /// creating and/or destroying render layers as necessary.
     fn initialize_layers_for_pipeline(&self,
                                       pipeline_id: PipelineId,
-                                      metadata: ~[LayerMetadata],
+                                      metadata: Vec<LayerMetadata>,
                                       epoch: Epoch);
 
     fn set_layer_clip_rect(&self,
