@@ -7,6 +7,7 @@
 #![allow(non_camel_case_types, uppercase_variables)]
 
 pub use std::ascii::StrAsciiExt;
+use serialize::{Encodable, Encoder};
 
 pub use servo_util::url::parse_url;
 use sync::Arc;
@@ -21,9 +22,10 @@ pub use parsing_utils::*;
 pub use self::common_types::*;
 use selector_matching::MatchedProperty;
 
-use serialize::{Encodable, Encoder};
 
+pub use self::property_bit_field::PropertyBitField;
 pub mod common_types;
+
 
 <%!
 
@@ -1331,6 +1333,52 @@ pub mod shorthands {
 }
 
 
+// TODO(SimonSapin): Convert this to a syntax extension rather than a Mako template.
+// Maybe submit for inclusion in libstd?
+mod property_bit_field {
+    use std::uint;
+    use std::mem;
+
+    pub struct PropertyBitField {
+        storage: [uint, ..(${len(LONGHANDS)} - 1 + uint::BITS) / uint::BITS]
+    }
+
+    impl PropertyBitField {
+        #[inline]
+        pub fn new() -> PropertyBitField {
+            PropertyBitField { storage: unsafe { mem::init() } }
+        }
+
+        #[inline]
+        fn get(&self, bit: uint) -> bool {
+            (self.storage[bit / uint::BITS] & (1 << (bit % uint::BITS))) != 0
+        }
+        #[inline]
+        fn set(&mut self, bit: uint) {
+            self.storage[bit / uint::BITS] |= 1 << (bit % uint::BITS)
+        }
+        #[inline]
+        fn clear(&mut self, bit: uint) {
+            self.storage[bit / uint::BITS] &= !(1 << (bit % uint::BITS))
+        }
+        % for i, property in enumerate(LONGHANDS):
+            #[inline]
+            pub fn get_${property.ident}(&self) -> bool {
+                self.get(${i})
+            }
+            #[inline]
+            pub fn set_${property.ident}(&mut self) {
+                self.set(${i})
+            }
+            #[inline]
+            pub fn clear_${property.ident}(&mut self) {
+                self.clear(${i})
+            }
+        % endfor
+    }
+}
+
+
 pub struct PropertyDeclarationBlock {
     pub important: Arc<Vec<PropertyDeclaration>>,
     pub normal: Arc<Vec<PropertyDeclaration>>,
@@ -1539,14 +1587,19 @@ fn cascade_with_cached_declarations(applicable_declarations: &[MatchedProperty],
         % endif
     % endfor
 
-    for sub_list in applicable_declarations.iter() {
-        for declaration in sub_list.declarations.iter() {
+    let mut seen = PropertyBitField::new();
+    for sub_list in applicable_declarations.iter().rev() {
+        for declaration in sub_list.declarations.iter().rev() {
             match *declaration {
                 % for style_struct in STYLE_STRUCTS:
                     % if style_struct.inherited:
                         % for property in style_struct.longhands:
                             % if property.derived_from is None:
                                 ${property.ident}_declaration(ref declared_value) => {
+                                    if seen.get_${property.ident}() {
+                                        continue
+                                    }
+                                    seen.set_${property.ident}();
                                     let computed_value = match *declared_value {
                                         SpecifiedValue(ref specified_value)
                                         => longhands::${property.ident}::to_computed_value(
@@ -1734,13 +1787,18 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
             .${style_struct.name}.clone();
     % endfor
     let mut cacheable = true;
-    for sub_list in applicable_declarations.iter() {
-        for declaration in sub_list.declarations.iter() {
+    let mut seen = PropertyBitField::new();
+    for sub_list in applicable_declarations.iter().rev() {
+        for declaration in sub_list.declarations.iter().rev() {
             match *declaration {
                 % for style_struct in STYLE_STRUCTS:
                     % for property in style_struct.longhands:
                         % if property.derived_from is None:
                             ${property.ident}_declaration(ref declared_value) => {
+                                if seen.get_${property.ident}() {
+                                    continue
+                                }
+                                seen.set_${property.ident}();
                                 let computed_value = match *declared_value {
                                     SpecifiedValue(ref specified_value)
                                     => longhands::${property.ident}::to_computed_value(
