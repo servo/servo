@@ -126,15 +126,15 @@ type LoaderTaskFactory = extern "Rust" fn() -> LoaderTask;
 
 /// Create a ResourceTask with the default loaders
 pub fn ResourceTask() -> ResourceTask {
-    let loaders = ~[
+    let loaders = vec!(
         ("file".to_owned(), file_loader::factory),
         ("http".to_owned(), http_loader::factory),
         ("data".to_owned(), data_loader::factory),
-    ];
+    );
     create_resource_task_with_loaders(loaders)
 }
 
-fn create_resource_task_with_loaders(loaders: ~[(~str, LoaderTaskFactory)]) -> ResourceTask {
+fn create_resource_task_with_loaders(loaders: Vec<(~str, LoaderTaskFactory)>) -> ResourceTask {
     let (setup_chan, setup_port) = channel();
     let builder = task::task().named("ResourceManager");
     builder.spawn(proc() {
@@ -148,12 +148,12 @@ fn create_resource_task_with_loaders(loaders: ~[(~str, LoaderTaskFactory)]) -> R
 struct ResourceManager {
     from_client: Receiver<ControlMsg>,
     /// Per-scheme resource loaders
-    loaders: ~[(~str, LoaderTaskFactory)],
+    loaders: Vec<(~str, LoaderTaskFactory)>,
 }
 
 
 fn ResourceManager(from_client: Receiver<ControlMsg>,
-                   loaders: ~[(~str, LoaderTaskFactory)]) -> ResourceManager {
+                   loaders: Vec<(~str, LoaderTaskFactory)>) -> ResourceManager {
     ResourceManager {
         from_client : from_client,
         loaders : loaders,
@@ -236,7 +236,7 @@ fn snicklefritz_loader_factory() -> LoaderTask {
 
 #[test]
 fn should_delegate_to_scheme_loader() {
-    let loader_factories = ~[("snicklefritz".to_owned(), snicklefritz_loader_factory)];
+    let loader_factories = vec!(("snicklefritz".to_owned(), snicklefritz_loader_factory));
     let resource_task = create_resource_task_with_loaders(loader_factories);
     let (start_chan, start) = channel();
     resource_task.send(Load(FromStr::from_str("snicklefritz://heya").unwrap(), start_chan));
