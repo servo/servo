@@ -4859,14 +4859,21 @@ class CallbackMember(CGNativeMember):
             # Avoid weird 0-sized arrays
             replacements["argvDecl"] = ""
 
-        return string.Template(
-            # Newlines and semicolons are in the values
+        # Newlines and semicolons are in the values
+        pre = string.Template(
             "${setupCall}"
             "${declRval}"
-            "${argvDecl}"
+            "${argvDecl}").substitute(replacements)
+        body = string.Template(
             "${convertArgs}"
             "${doCall}"
             "${returnResult}").substitute(replacements)
+        return CGList([
+            CGGeneric(pre),
+            CGWrapper(CGIndenter(CGGeneric(body)),
+                      pre="with_compartment(cx, self.parent.callback, || {\n",
+                      post="})")
+        ], "\n").define()
 
     def getResultConversion(self):
         replacements = {
@@ -4889,7 +4896,7 @@ class CallbackMember(CGNativeMember):
         assignRetval = string.Template(
             self.getRetvalInfo(self.retvalType,
                                False)[2]).substitute(replacements)
-        return convertType.define() + "\n" + assignRetval
+        return convertType.define() + "\n" + assignRetval + "\n"
 
     def getArgConversions(self):
         # Just reget the arglist from self.originalSig, because our superclasses
