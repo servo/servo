@@ -37,15 +37,6 @@ impl TableColGroupFlow {
             widths: vec!(),
         }
     }
-
-    pub fn teardown(&mut self) {
-        for box_ in self.box_.iter() {
-            box_.teardown();
-        }
-        self.box_ = None;
-        self.cols = vec!();
-        self.widths = vec!();
-    }
 }
 
 impl Flow for TableColGroupFlow {

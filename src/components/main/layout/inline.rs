@@ -593,13 +593,6 @@ impl InlineFlow {
         }
     }
 
-    pub fn teardown(&mut self) {
-        for (fragment, _) in self.boxes.iter() {
-            fragment.teardown();
-        }
-        self.boxes = InlineBoxes::new();
-    }
-
     pub fn build_display_list_inline(&mut self, layout_context: &LayoutContext) {
         let abs_rect = Rect(self.base.abs_position, self.base.position.size);
         if !abs_rect.intersects(&layout_context.dirty) {

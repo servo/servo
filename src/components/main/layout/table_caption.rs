@@ -24,10 +24,6 @@ impl TableCaptionFlow {
         }
     }
 
-    pub fn teardown(&mut self) {
-        self.block_flow.teardown();
-    }
-
     pub fn build_display_list_table_caption(&mut self, layout_context: &LayoutContext) {
         debug!("build_display_list_table_caption: same process as block flow");
         self.block_flow.build_display_list_block(layout_context)

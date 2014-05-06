@@ -55,13 +55,6 @@ impl TableRowFlow {
         }
     }
 
-    pub fn teardown(&mut self) {
-        self.block_flow.teardown();
-        self.col_widths = vec!();
-        self.col_min_widths = vec!();
-        self.col_pref_widths = vec!();
-    }
-
     pub fn box_<'a>(&'a mut self) -> &'a Box {
         &self.block_flow.box_
     }
