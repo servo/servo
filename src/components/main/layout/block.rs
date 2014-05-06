@@ -38,7 +38,6 @@ use gfx::render_task::RenderLayer;
 use servo_msg::compositor_msg::{FixedPosition, LayerId, Scrollable};
 use servo_util::geometry::Au;
 use servo_util::geometry;
-use servo_util::smallvec::{SmallVec, SmallVec0};
 use std::mem;
 use std::num::Zero;
 use style::computed_values::{LPA_Auto, LPA_Length, LPA_Percentage, LPN_Length, LPN_None};
@@ -733,7 +732,7 @@ impl BlockFlow {
     /// In the case of absolute flow kids, they have their hypothetical box
     /// position already set.
     fn collect_static_y_offsets_from_kids(&mut self) {
-        let mut abs_descendant_y_offsets = SmallVec0::new();
+        let mut abs_descendant_y_offsets = Vec::new();
         for kid in self.base.child_iter() {
             let mut gives_abs_offsets = true;
             if kid.is_block_like() {
@@ -753,8 +752,10 @@ impl BlockFlow {
 
             if gives_abs_offsets {
                 let kid_base = flow::mut_base(kid);
+                // Avoid copying the offset vector.
+                let offsets = mem::replace(&mut kid_base.abs_descendants.static_y_offsets, Vec::new());
                 // Consume all the static y-offsets bubbled up by kid.
-                for y_offset in kid_base.abs_descendants.static_y_offsets.move_iter() {
+                for y_offset in offsets.move_iter() {
                     // The offsets are wrt the kid flow box. Translate them to current flow.
                     abs_descendant_y_offsets.push(y_offset + kid_base.position.origin.y);
                 }

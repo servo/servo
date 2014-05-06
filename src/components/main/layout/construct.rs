@@ -57,7 +57,6 @@ use script::dom::node::{TextNodeTypeId};
 use script::dom::text::Text;
 use servo_util::namespace;
 use servo_util::range::Range;
-use servo_util::smallvec::{SmallVec, SmallVec0};
 use servo_util::str::is_whitespace;
 use servo_util::url::{is_image_data, parse_url};
 use std::mem;
@@ -1163,7 +1162,7 @@ fn strip_ignorable_whitespace_from_start(boxes: &mut InlineBoxes) {
 
     // FIXME(#2264, pcwalton): This is slow because vector shift is broken. :(
     let mut found_nonwhitespace = false;
-    let mut new_boxes = SmallVec0::new();
+    let mut new_boxes = Vec::new();
     for fragment in old_boxes.iter() {
         if !found_nonwhitespace && fragment.is_whitespace_only() {
             debug!("stripping ignorable whitespace from start");
