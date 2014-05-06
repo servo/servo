@@ -1379,6 +1379,8 @@ mod property_bit_field {
 }
 
 
+/// Declarations are stored in reverse order.
+/// Overridden declarations are skipped.
 pub struct PropertyDeclarationBlock {
     pub important: Arc<Vec<PropertyDeclaration>>,
     pub normal: Arc<Vec<PropertyDeclaration>>,
@@ -1397,28 +1399,36 @@ pub fn parse_style_attribute(input: &str, base_url: &Url) -> PropertyDeclaration
 
 
 pub fn parse_property_declaration_list<I: Iterator<Node>>(input: I, base_url: &Url) -> PropertyDeclarationBlock {
-    let mut important = vec!();
-    let mut normal = vec!();
-    for item in ErrorLoggerIterator(parse_declaration_list(input)) {
+    let mut important_declarations = vec!();
+    let mut normal_declarations = vec!();
+    let mut important_seen = PropertyBitField::new();
+    let mut normal_seen = PropertyBitField::new();
+    let items: Vec<DeclarationListItem> =
+        ErrorLoggerIterator(parse_declaration_list(input)).collect();
+    for item in items.move_iter().rev() {
         match item {
             DeclAtRule(rule) => log_css_error(
                 rule.location, format!("Unsupported at-rule in declaration list: @{:s}", rule.name)),
             Declaration(Declaration{ location: l, name: n, value: v, important: i}) => {
                 // TODO: only keep the last valid declaration for a given name.
-                let list = if i { &mut important } else { &mut normal };
-                match PropertyDeclaration::parse(n, v, list, base_url) {
+                let (list, seen) = if i {
+                    (&mut important_declarations, &mut important_seen)
+                } else {
+                    (&mut normal_declarations, &mut normal_seen)
+                };
+                match PropertyDeclaration::parse(n, v, list, base_url, seen) {
                     UnknownProperty => log_css_error(l, format!(
                         "Unsupported property: {}:{}", n, v.iter().to_css())),
                     InvalidValue => log_css_error(l, format!(
                         "Invalid value: {}:{}", n, v.iter().to_css())),
-                    ValidDeclaration => (),
+                    ValidOrIgnoredDeclaration => (),
                 }
             }
         }
     }
     PropertyDeclarationBlock {
-        important: Arc::new(important),
-        normal: Arc::new(normal),
+        important: Arc::new(important_declarations),
+        normal: Arc::new(normal_declarations),
     }
 }
 
@@ -1460,64 +1470,88 @@ pub enum PropertyDeclaration {
 pub enum PropertyDeclarationParseResult {
     UnknownProperty,
     InvalidValue,
-    ValidDeclaration,
+    ValidOrIgnoredDeclaration,
 }
 
 
 impl PropertyDeclaration {
     pub fn parse(name: &str, value: &[ComponentValue],
                  result_list: &mut Vec<PropertyDeclaration>,
-                 base_url: &Url) -> PropertyDeclarationParseResult {
+                 base_url: &Url,
+                 seen: &mut PropertyBitField) -> PropertyDeclarationParseResult {
         // FIXME: local variable to work around Rust #10683
         let name_lower = name.to_ascii_lower();
         match name_lower.as_slice() {
             % for property in LONGHANDS:
                 % if property.derived_from is None:
-                    "${property.name}" => result_list.push(${property.ident}_declaration(
-                        match longhands::${property.ident}::parse_declared(value, base_url) {
-                            Some(value) => value,
-                            None => return InvalidValue,
+                    "${property.name}" => {
+                        if seen.get_${property.ident}() {
+                            return ValidOrIgnoredDeclaration
                         }
-                    )),
+                        match longhands::${property.ident}::parse_declared(value, base_url) {
+                            Some(value) => {
+                                seen.set_${property.ident}();
+                                result_list.push(${property.ident}_declaration(value));
+                                ValidOrIgnoredDeclaration
+                            },
+                            None => InvalidValue,
+                        }
+                    },
                 % else:
-                    "${property.name}" => {}
+                    "${property.name}" => UnknownProperty,
                 % endif
             % endfor
             % for shorthand in SHORTHANDS:
-                "${shorthand.name}" => match CSSWideKeyword::parse(value) {
-                    Some(Some(keyword)) => {
-                        % for sub_property in shorthand.sub_properties:
-                            result_list.push(${sub_property.ident}_declaration(
-                                CSSWideKeyword(keyword)
-                            ));
-                        % endfor
-                    },
-                    Some(None) => {
-                        % for sub_property in shorthand.sub_properties:
-                            result_list.push(${sub_property.ident}_declaration(
-                                CSSWideKeyword(${
-                                    "Inherit" if sub_property.style_struct.inherited else "Initial"})
-                            ));
-                        % endfor
-                    },
-                    None => match shorthands::${shorthand.ident}::parse(value, base_url) {
-                        Some(result) => {
+                "${shorthand.name}" => {
+                    if ${" && ".join("seen.get_%s()" % sub_property.ident
+                                     for sub_property in shorthand.sub_properties)} {
+                        return ValidOrIgnoredDeclaration
+                    }
+                    match CSSWideKeyword::parse(value) {
+                        Some(Some(keyword)) => {
                             % for sub_property in shorthand.sub_properties:
-                                result_list.push(${sub_property.ident}_declaration(
-                                    match result.${sub_property.ident} {
-                                        Some(value) => SpecifiedValue(value),
-                                        None => CSSWideKeyword(Initial),
-                                    }
-                                ));
+                                if !seen.get_${sub_property.ident}() {
+                                    seen.set_${sub_property.ident}();
+                                    result_list.push(${sub_property.ident}_declaration(
+                                        CSSWideKeyword(keyword)));
+                                }
                             % endfor
+                            ValidOrIgnoredDeclaration
                         },
-                        None => return InvalidValue,
+                        Some(None) => {
+                            % for sub_property in shorthand.sub_properties:
+                                if !seen.get_${sub_property.ident}() {
+                                    seen.set_${sub_property.ident}();
+                                    result_list.push(${sub_property.ident}_declaration(
+                                        CSSWideKeyword(${
+                                            "Inherit" if sub_property.style_struct.inherited else "Initial"
+                                        })));
+                                }
+                            % endfor
+                            ValidOrIgnoredDeclaration
+                        },
+                        None => match shorthands::${shorthand.ident}::parse(value, base_url) {
+                            Some(result) => {
+                                % for sub_property in shorthand.sub_properties:
+                                    if !seen.get_${sub_property.ident}() {
+                                        seen.set_${sub_property.ident}();
+                                        result_list.push(${sub_property.ident}_declaration(
+                                            match result.${sub_property.ident} {
+                                                Some(value) => SpecifiedValue(value),
+                                                None => CSSWideKeyword(Initial),
+                                            }
+                                        ));
+                                    }
+                                % endfor
+                                ValidOrIgnoredDeclaration
+                            },
+                            None => InvalidValue,
+                        }
                     }
                 },
             % endfor
-            _ => return UnknownProperty,
+            _ => UnknownProperty,
         }
-        ValidDeclaration
     }
 }
 
@@ -1589,7 +1623,7 @@ fn cascade_with_cached_declarations(applicable_declarations: &[MatchedProperty],
 
     let mut seen = PropertyBitField::new();
     for sub_list in applicable_declarations.iter().rev() {
-        for declaration in sub_list.declarations.iter().rev() {
+        for declaration in sub_list.declarations.iter() {
             match *declaration {
                 % for style_struct in STYLE_STRUCTS:
                     % if style_struct.inherited:
@@ -1789,7 +1823,7 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
     let mut cacheable = true;
     let mut seen = PropertyBitField::new();
     for sub_list in applicable_declarations.iter().rev() {
-        for declaration in sub_list.declarations.iter().rev() {
+        for declaration in sub_list.declarations.iter() {
             match *declaration {
                 % for style_struct in STYLE_STRUCTS:
                     % for property in style_struct.longhands:
