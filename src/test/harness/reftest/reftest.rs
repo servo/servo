@@ -15,7 +15,6 @@ use std::io;
 use std::io::{File, Reader, Process};
 use std::io::process::ExitStatus;
 use std::os;
-use std::str;
 use test::{DynTestName, DynTestFn, TestDesc, TestOpts, TestDescAndFn};
 use test::run_tests_console;
 
