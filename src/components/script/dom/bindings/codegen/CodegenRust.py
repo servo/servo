@@ -1755,22 +1755,26 @@ def CreateBindingJSObject(descriptor, parent=None):
     create = "  let mut raw: JS<%s> = JS::from_raw(&mut *aObject);\n" % descriptor.concreteType
     if descriptor.proxy:
         assert not descriptor.createGlobal
-        handler = """
+        create += """
   let js_info = aScope.deref().page().js_info();
   let handler = js_info.get_ref().dom_static.proxy_handlers.deref().get(&(PrototypeList::id::%s as uint));
-""" % descriptor.name
-        create += handler + """  let obj = NewProxyObject(aCx, *handler,
-                           &PrivateValue(squirrel_away_unique(aObject) as *libc::c_void),
-                           proto, %s,
-                           ptr::null(), ptr::null());
+  let private = PrivateValue(squirrel_away_unique(aObject) as *libc::c_void);
+  let obj = with_compartment(aCx, proto, || {
+    NewProxyObject(aCx, *handler,
+                   &private,
+                   proto, %s,
+                   ptr::null(), ptr::null())
+  });
   assert!(obj.is_not_null());
 
-""" % (parent)
+""" % (descriptor.name, parent)
     else:
         if descriptor.createGlobal:
             create += "  let obj = CreateDOMGlobal(aCx, &Class.base as *js::Class as *JSClass);\n"
         else:
-            create += "  let obj = JS_NewObject(aCx, &Class.base as *js::Class as *JSClass, proto, %s);\n" % parent
+            create += ("  let obj = with_compartment(aCx, proto, || {\n"
+                       "    JS_NewObject(aCx, &Class.base as *js::Class as *JSClass, proto, %s)\n"
+                       "  });\n" % parent)
         create += """  assert!(obj.is_not_null());
 
   JS_SetReservedSlot(obj, DOM_OBJECT_SLOT as u32,
@@ -1797,8 +1801,7 @@ class CGWrapMethod(CGAbstractMethod):
   assert!(scope.is_not_null());
   assert!(((*JS_GetClass(scope)).flags & JSCLASS_IS_GLOBAL) != 0);
 
-  //JSAutoCompartment ac(aCx, scope);
-  let proto = GetProtoObject(aCx, scope, scope);
+  let proto = with_compartment(aCx, scope, || GetProtoObject(aCx, scope, scope));
   assert!(proto.is_not_null());
 
 %s
@@ -1809,8 +1812,10 @@ class CGWrapMethod(CGAbstractMethod):
         else:
             return """
 %s
-  let proto = GetProtoObject(aCx, obj, obj);
-  JS_SetPrototype(aCx, obj, proto);
+  with_compartment(aCx, obj, || {
+    let proto = GetProtoObject(aCx, obj, obj);
+    JS_SetPrototype(aCx, obj, proto);
+  });
   raw.mut_reflector().set_jsobject(obj);
   return raw;""" % CreateBindingJSObject(self.descriptor)
 
@@ -4241,6 +4246,7 @@ class CGBindingRoot(CGThing):
             'js::glue::{GetProxyPrivate, NewProxyObject, ProxyTraps}',
             'js::glue::{RUST_FUNCTION_VALUE_TO_JITINFO}',
             'js::glue::{RUST_JS_NumberValue, RUST_JSID_IS_STRING}',
+            'js::rust::with_compartment',
             'dom::types::*',
             'dom::bindings',
             'dom::bindings::js::{JS, JSRef, Root, RootedReference, Temporary}',
@@ -4853,14 +4859,21 @@ class CallbackMember(CGNativeMember):
             # Avoid weird 0-sized arrays
             replacements["argvDecl"] = ""
 
-        return string.Template(
-            # Newlines and semicolons are in the values
+        # Newlines and semicolons are in the values
+        pre = string.Template(
             "${setupCall}"
             "${declRval}"
-            "${argvDecl}"
+            "${argvDecl}").substitute(replacements)
+        body = string.Template(
             "${convertArgs}"
             "${doCall}"
             "${returnResult}").substitute(replacements)
+        return CGList([
+            CGGeneric(pre),
+            CGWrapper(CGIndenter(CGGeneric(body)),
+                      pre="with_compartment(cx, self.parent.callback, || {\n",
+                      post="})")
+        ], "\n").define()
 
     def getResultConversion(self):
         replacements = {
@@ -4883,7 +4896,7 @@ class CallbackMember(CGNativeMember):
         assignRetval = string.Template(
             self.getRetvalInfo(self.retvalType,
                                False)[2]).substitute(replacements)
-        return convertType.define() + "\n" + assignRetval
+        return convertType.define() + "\n" + assignRetval + "\n"
 
     def getArgConversions(self):
         # Just reget the arglist from self.originalSig, because our superclasses
