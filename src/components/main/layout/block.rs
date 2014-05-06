@@ -708,11 +708,6 @@ impl BlockFlow {
         }
     }
 
-    pub fn teardown(&mut self) {
-        self.box_.teardown();
-        self.float = None;
-    }
-
     /// Return shrink-to-fit width.
     ///
     /// This is where we use the preferred widths and minimum widths

@@ -110,9 +110,6 @@ impl<'a> TextRun {
         return run;
     }
 
-    pub fn teardown(&self) {
-    }
-
     pub fn break_and_shape(font: &mut Font, text: &str) -> Vec<Arc<GlyphStore>> {
         // TODO(Issue #230): do a better job. See Gecko's LineBreaker.
 

@@ -1391,14 +1391,6 @@ impl Box {
         }
     }
 
-    /// Cleans up all the memory associated with this box.
-    pub fn teardown(&self) {
-        match self.specific {
-            ScannedTextBox(ref text_box_info) => text_box_info.run.teardown(),
-            _ => {}
-        }
-    }
-
     /// Returns true if the contents should be clipped (i.e. if `overflow` is `hidden`).
     pub fn needs_clip(&self) -> bool {
         self.style().Box.get().overflow == overflow::hidden

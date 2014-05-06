@@ -27,10 +27,6 @@ impl TableCellFlow {
         }
     }
 
-    pub fn teardown(&mut self) {
-        self.block_flow.teardown()
-    }
-
     pub fn box_<'a>(&'a mut self) -> &'a Box {
         &self.block_flow.box_
     }
