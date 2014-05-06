@@ -91,11 +91,6 @@ impl TableWrapperFlow {
         self.block_flow.float.is_some()
     }
 
-    pub fn teardown(&mut self) {
-        self.block_flow.teardown();
-        self.col_widths = vec!();
-    }
-
     /// Assign height for table-wrapper flow.
     /// `Assign height` of table-wrapper flow follows a similar process to that of block flow.
     ///
