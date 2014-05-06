@@ -1582,7 +1582,7 @@ fn cascade_with_cached_declarations(applicable_declarations: &[MatchedProperty],
                                 }
                             % else:
                                 ${property.ident}_declaration(_) => {
-                                    // Ignore derived properties; they cannot be set by content.
+                                    // Do not allow stylesheets to set derived properties.
                                 }
                             % endif
                         % endfor
@@ -1777,7 +1777,7 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
                             }
                         % else:
                             ${property.ident}_declaration(_) => {
-                                // Ignore derived properties; they cannot be set by content.
+                                // Do not allow stylesheets to set derived properties.
                             }
                         % endif
                     % endfor
