@@ -616,8 +616,16 @@ impl ScriptTask {
             ptr.is_not_null()
         });
         unsafe {
+            // JS_SetWrapObjectCallbacks clobbers the existing wrap callback,
+            // and JSCompartment::wrap crashes if that happens. The only way
+            // to retrieve the default callback is as the result of
+            // JS_SetWrapObjectCallbacks, which is why we call it twice.
+            let callback = JS_SetWrapObjectCallbacks((*js_runtime).ptr,
+                                                     ptr::null(),
+                                                     wrap_for_same_compartment,
+                                                     ptr::null());
             JS_SetWrapObjectCallbacks((*js_runtime).ptr,
-                                      ptr::null(),
+                                      callback,
                                       wrap_for_same_compartment,
                                       ptr::null());
         }
