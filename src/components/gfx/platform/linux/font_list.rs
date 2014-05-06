@@ -131,8 +131,8 @@ impl FontListHandle {
         }
     }
 
-    pub fn get_last_resort_font_families() -> ~[~str] {
-        ~["Arial".to_owned()]
+    pub fn get_last_resort_font_families() -> Vec<~str> {
+        vec!("Arial".to_owned())
     }
 }
 
