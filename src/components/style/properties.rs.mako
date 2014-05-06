@@ -1878,6 +1878,16 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
         }
     }
 
+    {
+        let border = style_Border.get_mut();
+        % for side in ["top", "right", "bottom", "left"]:
+            // Like calling to_computed_value, which wouldn't type check.
+            if !(seen.get_border_${side}_width() || context.border_${side}_present) {
+                border.border_${side}_width = Au(0);
+            }
+        % endfor
+    }
+
     (ComputedValues {
         % for style_struct in STYLE_STRUCTS:
             ${style_struct.name}: style_${style_struct.name},

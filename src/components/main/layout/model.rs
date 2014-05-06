@@ -9,7 +9,6 @@ use layout::box_::Box;
 use computed = style::computed_values;
 use geom::SideOffsets2D;
 use style::computed_values::{LPA_Auto, LPA_Length, LPA_Percentage, LP_Length, LP_Percentage};
-use style::computed_values::{border_style};
 use style::ComputedValues;
 use servo_util::geometry::Au;
 use servo_util::geometry;
@@ -316,20 +315,11 @@ pub fn specified(length: computed::LengthOrPercentage, containing_length: Au) ->
 
 #[inline]
 pub fn border_from_style(style: &ComputedValues) -> SideOffsets2D<Au> {
-    #[inline]
-    fn width(width: Au, style: border_style::T) -> Au {
-        if style == border_style::none {
-            Au(0)
-        } else {
-            width
-        }
-    }
-
     let border_style = style.Border.get();
-    SideOffsets2D::new(width(border_style.border_top_width, border_style.border_top_style),
-                       width(border_style.border_right_width, border_style.border_right_style),
-                       width(border_style.border_bottom_width, border_style.border_bottom_style),
-                       width(border_style.border_left_width, border_style.border_left_style))
+    SideOffsets2D::new(border_style.border_top_width,
+                       border_style.border_right_width,
+                       border_style.border_bottom_width,
+                       border_style.border_left_width)
 }
 
 #[inline]
