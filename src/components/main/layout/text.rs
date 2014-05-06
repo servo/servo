@@ -14,7 +14,6 @@ use gfx::text::text_run::TextRun;
 use gfx::text::util::{CompressWhitespaceNewline, transform_text, CompressNone};
 use servo_util::geometry::Au;
 use servo_util::range::Range;
-use servo_util::smallvec::{SmallVec, SmallVec0};
 use std::mem;
 use style::ComputedValues;
 use style::computed_values::{font_family, line_height, white_space};
@@ -54,7 +53,7 @@ impl TextRunScanner {
         } = mem::replace(&mut flow.as_inline().boxes, InlineBoxes::new());
 
         let mut last_whitespace = true;
-        let mut new_boxes = SmallVec0::new();
+        let mut new_boxes = Vec::new();
         for box_i in range(0, old_boxes.len()) {
             debug!("TextRunScanner: considering box: {:u}", box_i);
             if box_i > 0 && !can_coalesce_text_nodes(old_boxes.as_slice(), box_i - 1, box_i) {
@@ -97,7 +96,7 @@ impl TextRunScanner {
     pub fn flush_clump_to_list(&mut self,
                                font_context: &mut FontContext,
                                in_boxes: &[Box],
-                               out_boxes: &mut SmallVec0<Box>,
+                               out_boxes: &mut Vec<Box>,
                                last_whitespace: bool)
                                -> bool {
         assert!(self.clump.length() > 0);

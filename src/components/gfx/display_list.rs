@@ -26,7 +26,6 @@ use libc::uintptr_t;
 use servo_net::image::base::Image;
 use servo_util::geometry::Au;
 use servo_util::range::Range;
-use servo_util::smallvec::{SmallVec, SmallVec0};
 use std::mem;
 use std::slice::Items;
 use style::computed_values::border_style;
@@ -90,7 +89,7 @@ struct StackingContext {
     ///
     /// TODO(pcwalton): `z-index` should be the actual CSS property value in order to handle
     /// `auto`, not just an integer.
-    pub positioned_descendants: SmallVec0<(i32, DisplayList)>,
+    pub positioned_descendants: Vec<(i32, DisplayList)>,
 }
 
 impl StackingContext {
@@ -105,7 +104,7 @@ impl StackingContext {
             block_backgrounds_and_borders: DisplayList::new(),
             floats: DisplayList::new(),
             content: DisplayList::new(),
-            positioned_descendants: SmallVec0::new(),
+            positioned_descendants: Vec::new(),
         };
 
         for item in list.move_iter() {
