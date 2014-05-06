@@ -138,49 +138,53 @@ fn test_true_type_tag() {
 
 #[test]
 fn test_transform_compress_none() {
-
-    let  test_strs : ~[~str] = ~["  foo bar".to_owned(),
-                                 "foo bar  ".to_owned(),
-                                 "foo\n bar".to_owned(),
-                                 "foo \nbar".to_owned(),
-                                 "  foo  bar  \nbaz".to_owned(),
-                                 "foo bar baz".to_owned(),
-                                 "foobarbaz\n\n".to_owned()];
+    let test_strs = vec!(
+        "  foo bar",
+        "foo bar  ",
+        "foo\n bar",
+        "foo \nbar",
+        "  foo  bar  \nbaz",
+        "foo bar baz",
+        "foobarbaz\n\n"
+    );
     let mode = CompressNone;
 
-    for i in range(0, test_strs.len()) {
+    for test in test_strs.iter() {
         let mut new_line_pos = vec!();
-        let (trimmed_str, _out) = transform_text(test_strs[i], mode, true, &mut new_line_pos);
-        assert_eq!(&trimmed_str, &test_strs[i])
+        let (trimmed_str, _out) = transform_text(*test, mode, true, &mut new_line_pos);
+        assert_eq!(trimmed_str.as_slice(), *test)
     }
 }
 
 #[test]
 fn test_transform_discard_newline() {
+    let test_strs = vec!(
+        "  foo bar",
+        "foo bar  ",
+        "foo\n bar",
+        "foo \nbar",
+        "  foo  bar  \nbaz",
+        "foo bar baz",
+        "foobarbaz\n\n"
+    );
 
-    let  test_strs : ~[~str] = ~["  foo bar".to_owned(),
-                                 "foo bar  ".to_owned(),
-                                 "foo\n bar".to_owned(),
-                                 "foo \nbar".to_owned(),
-                                 "  foo  bar  \nbaz".to_owned(),
-                                 "foo bar baz".to_owned(),
-                                 "foobarbaz\n\n".to_owned()];
-
-    let  oracle_strs : ~[~str] = ~["  foo bar".to_owned(),
-                                   "foo bar  ".to_owned(),
-                                   "foo bar".to_owned(),
-                                   "foo bar".to_owned(),
-                                   "  foo  bar  baz".to_owned(),
-                                   "foo bar baz".to_owned(),
-                                   "foobarbaz".to_owned()];
+    let oracle_strs = vec!(
+        "  foo bar",
+        "foo bar  ",
+        "foo bar",
+        "foo bar",
+        "  foo  bar  baz",
+        "foo bar baz",
+        "foobarbaz"
+    );
 
     assert_eq!(test_strs.len(), oracle_strs.len());
     let mode = DiscardNewline;
 
-    for i in range(0, test_strs.len()) {
+    for (test, oracle) in test_strs.iter().zip(oracle_strs.iter()) {
         let mut new_line_pos = vec!();
-        let (trimmed_str, _out) = transform_text(test_strs[i], mode, true, &mut new_line_pos);
-        assert_eq!(&trimmed_str, &oracle_strs[i])
+        let (trimmed_str, _out) = transform_text(*test, mode, true, &mut new_line_pos);
+        assert_eq!(trimmed_str.as_slice(), *oracle)
     }
 }
 
@@ -244,30 +248,34 @@ fn test_transform_compress_whitespace_newline() {
 
 #[test]
 fn test_transform_compress_whitespace_newline_no_incoming() {
-    let  test_strs : ~[~str] = ~["  foo bar".to_owned(),
-                                 "\nfoo bar".to_owned(),
-                                 "foo bar  ".to_owned(),
-                                 "foo\n bar".to_owned(),
-                                 "foo \nbar".to_owned(),
-                                 "  foo  bar  \nbaz".to_owned(),
-                                 "foo bar baz".to_owned(),
-                                 "foobarbaz\n\n".to_owned()];
+    let test_strs = vec!(
+        "  foo bar",
+        "\nfoo bar",
+        "foo bar  ",
+        "foo\n bar",
+        "foo \nbar",
+        "  foo  bar  \nbaz",
+        "foo bar baz",
+        "foobarbaz\n\n"
+    );
 
-    let oracle_strs : ~[~str] = ~[" foo bar".to_owned(),
-                                 " foo bar".to_owned(),
-                                 "foo bar ".to_owned(),
-                                 "foo bar".to_owned(),
-                                 "foo bar".to_owned(),
-                                 " foo bar baz".to_owned(),
-                                 "foo bar baz".to_owned(),
-                                 "foobarbaz ".to_owned()];
+    let oracle_strs = vec!(
+        " foo bar",
+        " foo bar",
+        "foo bar ",
+        "foo bar",
+        "foo bar",
+        " foo bar baz",
+        "foo bar baz",
+        "foobarbaz "
+    );
 
     assert_eq!(test_strs.len(), oracle_strs.len());
     let mode = CompressWhitespaceNewline;
 
-    for i in range(0, test_strs.len()) {
+    for (test, oracle) in test_strs.iter().zip(oracle_strs.iter()) {
         let mut new_line_pos = vec!();
-        let (trimmed_str, _out) = transform_text(test_strs[i], mode, false, &mut new_line_pos);
-        assert_eq!(&trimmed_str, &oracle_strs[i])
+        let (trimmed_str, _out) = transform_text(*test, mode, false, &mut new_line_pos);
+        assert_eq!(trimmed_str.as_slice(), *oracle)
     }
 }
