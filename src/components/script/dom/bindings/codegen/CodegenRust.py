@@ -2699,6 +2699,9 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
         name = str(type)
         #XXXjdm dunno about typeName here
         typeName = "/*" + type.name + "*/"
+    elif type.isDOMString():
+        name = type.name
+        typeName = "DOMString"
     elif type.isPrimitive():
         name = type.name
         typeName = builtinNames[type.tag()]
@@ -5312,6 +5315,7 @@ class GlobalGenRoots():
             'dom::bindings::utils::unwrap_jsmanaged',
             'dom::bindings::codegen::PrototypeList',
             'dom::bindings::conversions::{FromJSValConvertible, ToJSValConvertible}',
+            'dom::bindings::conversions::{Default, Empty}',
             'dom::bindings::error::throw_not_in_union',
             'dom::bindings::js::JS',
             'dom::types::*',
@@ -5337,6 +5341,7 @@ class GlobalGenRoots():
             'js::glue::{GetProxyPrivate, NewProxyObject, ProxyTraps}',
             'js::glue::{RUST_FUNCTION_VALUE_TO_JITINFO}',
             'js::glue::{RUST_JS_NumberValue, RUST_JSID_IS_STRING}',
+            'servo_util::str::DOMString',
         ])
 
         # Add the auto-generated comment.
