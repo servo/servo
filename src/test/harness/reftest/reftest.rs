@@ -162,7 +162,8 @@ fn check_reftest(reftest: Reftest) {
         }).collect();
 
     if pixels.iter().any(|&a| a < 255) {
-        let output = from_str::<Path>(format!("/tmp/servo-reftest-{:06u}-diff.png", reftest.id)).unwrap();
+        let output_str = format!("/tmp/servo-reftest-{:06u}-diff.png", reftest.id);
+        let output = from_str::<Path>(output_str).unwrap();
 
         let img = png::Image {
             width: left.width,
@@ -173,7 +174,7 @@ fn check_reftest(reftest: Reftest) {
         let res = png::store_png(&img, &output);
         assert!(res.is_ok());
 
-        assert!(reftest.kind == Different);
+        assert!(reftest.kind == Different, "rendering difference: {}", output_str);
     } else {
         assert!(reftest.kind == Same);
     }
