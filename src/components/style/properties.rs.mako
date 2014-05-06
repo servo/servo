@@ -1888,6 +1888,11 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
         % endfor
     }
 
+    if !seen.get_display() {
+        let box_ = style_Box.get_mut();
+        box_.display = longhands::display::to_computed_value(box_.display, &context);
+    }
+
     (ComputedValues {
         % for style_struct in STYLE_STRUCTS:
             ${style_struct.name}: style_${style_struct.name},
