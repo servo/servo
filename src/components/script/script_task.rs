@@ -36,7 +36,7 @@ use geom::point::Point2D;
 use geom::size::Size2D;
 use js::global::DEBUG_FNS;
 use js::jsapi::{JS_CallFunctionValue, JS_DefineFunctions};
-use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ};
+use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ, JS_GC};
 use js::jsapi::{JSContext, JSRuntime};
 use js::jsval::NullValue;
 use js::rust::{Cx, RtUtils};
@@ -872,14 +872,14 @@ impl ScriptTask {
         if page_tree.page().id == id {
             debug!("shutting down layout for root page {:?}", id);
             *self.js_context.borrow_mut() = None;
-            shut_down_layout(&mut *page_tree);
+            shut_down_layout(&mut *page_tree, (*self.js_runtime).ptr);
             return true
         }
 
         // otherwise find just the matching page and exit all sub-pages
         match page_tree.remove(id) {
             Some(ref mut page_tree) => {
-                shut_down_layout(&mut *page_tree);
+                shut_down_layout(&mut *page_tree, (*self.js_runtime).ptr);
                 false
             }
             // TODO(tkuehn): pipeline closing is currently duplicated across
@@ -1247,7 +1247,7 @@ impl ScriptTask {
 }
 
 /// Shuts down layout for the given page tree.
-fn shut_down_layout(page_tree: &mut PageTree) {
+fn shut_down_layout(page_tree: &mut PageTree, rt: *JSRuntime) {
     for page in page_tree.iter() {
         page.join_layout();
 
@@ -1267,6 +1267,12 @@ fn shut_down_layout(page_tree: &mut PageTree) {
     // Drop our references to the JSContext, potentially triggering a GC.
     for page in page_tree.iter() {
         *page.mut_js_info() = None;
+    }
+
+    // Force a GC to make sure that our DOM reflectors are released before we tell
+    // layout to exit.
+    unsafe {
+        JS_GC(rt);
     }
 
     // Destroy the layout task. If there were node leaks, layout will now crash safely.
