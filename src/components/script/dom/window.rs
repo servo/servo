@@ -13,6 +13,7 @@ use dom::eventtarget::{EventTarget, WindowTypeId};
 use dom::console::Console;
 use dom::location::Location;
 use dom::navigator::Navigator;
+use dom::performance::Performance;
 
 use layout_interface::{ReflowForDisplay, DocumentDamageLevel};
 use script_task::{ExitWindowMsg, FireTimerMsg, Page, ScriptChan};
@@ -31,6 +32,8 @@ use std::comm::Select;
 use std::hash::{Hash, sip};
 use std::io::timer::Timer;
 use std::rc::Rc;
+
+use time;
 
 use serialize::{Encoder, Encodable};
 use url::Url;
@@ -71,6 +74,9 @@ pub struct Window {
     pub compositor: Untraceable<~ScriptListener>,
     pub browser_context: Option<BrowserContext>,
     pub page: Rc<Page>,
+    pub performance: Option<JS<Performance>>,
+    pub navigationStart: u64,
+    pub navigationStartPrecise: f64,
 }
 
 impl Window {
@@ -131,6 +137,7 @@ pub trait WindowMethods {
     fn ClearInterval(&mut self, handle: i32);
     fn Window(&self) -> Temporary<Window>;
     fn Self(&self) -> Temporary<Window>;
+    fn Performance(&mut self) -> Temporary<Performance>;
 }
 
 impl<'a> WindowMethods for JSRef<'a, Window> {
@@ -248,6 +255,14 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     fn Self(&self) -> Temporary<Window> {
         self.Window()
     }
+
+    fn Performance(&mut self) -> Temporary<Performance> {
+        if self.performance.is_none() {
+            let performance = Performance::new(self);
+            self.performance.assign(Some(performance));
+        }
+        Temporary::new(self.performance.get_ref().clone())
+    }
 }
 
 impl Reflectable for Window {
@@ -355,6 +370,9 @@ impl Window {
             active_timers: ~HashMap::new(),
             next_timer_handle: 0,
             browser_context: None,
+            performance: None,
+            navigationStart: time::get_time().sec as u64,
+            navigationStartPrecise: time::precise_time_s(),
         };
 
         WindowBinding::Wrap(cx, win)

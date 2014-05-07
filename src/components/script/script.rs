@@ -154,6 +154,8 @@ pub mod dom {
     pub mod node;
     pub mod nodelist;
     pub mod processinginstruction;
+    pub mod performance;
+    pub mod performancetiming;
     pub mod uievent;
     pub mod text;
     pub mod validitystate;

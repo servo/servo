@@ -13,7 +13,7 @@
   [Unforgeable] readonly attribute Window window;
   [Replaceable] readonly attribute Window self;
   [Unforgeable] readonly attribute Document document;
-           attribute DOMString name; 
+           attribute DOMString name;
   /* [PutForwards=href, Unforgeable] */ readonly attribute Location location;
   /* readonly attribute History history;
   [Replaceable] readonly attribute BarProp locationbar;
@@ -54,6 +54,11 @@
   any showModalDialog(DOMString url, optional any argument);
 
 
+};
+
+// https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/HighResolutionTime/Overview.html
+partial interface Window {
+  [Replaceable] readonly attribute Performance performance;
 };
 
 // Not part of any spec
