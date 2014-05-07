@@ -56,7 +56,7 @@ use sync::Arc;
 /// left corner of the green zone is the same as that of the line, but
 /// the green zone can be taller and wider than the line itself.
 pub struct LineBox {
-    pub range: Range,
+    pub range: Range<int>,
     pub bounds: Rect<Au>,
     pub green_zone: Size2D<Au>
 }
@@ -446,7 +446,7 @@ impl LineboxScanner {
 
         if self.pending_line.range.length() == 0 {
             assert!(self.new_boxes.len() <= (u16::MAX as uint));
-            self.pending_line.range.reset(self.new_boxes.len(), 0);
+            self.pending_line.range.reset(self.new_boxes.len() as int, 0);
         }
         self.pending_line.range.extend_by(1);
         self.pending_line.bounds.size.width = self.pending_line.bounds.size.width +
@@ -468,7 +468,7 @@ impl<'a> Iterator<(&'a Box, InlineFragmentContext<'a>)> for BoxIterator<'a> {
     fn next(&mut self) -> Option<(&'a Box, InlineFragmentContext<'a>)> {
         match self.iter.next() {
             None => None,
-            Some((i, fragment)) => Some((fragment, InlineFragmentContext::new(self.map, i))),
+            Some((i, fragment)) => Some((fragment, InlineFragmentContext::new(self.map, i as int))),
         }
     }
 }
@@ -484,7 +484,7 @@ impl<'a> Iterator<(&'a mut Box, InlineFragmentContext<'a>)> for MutBoxIterator<'
     fn next(&mut self) -> Option<(&'a mut Box, InlineFragmentContext<'a>)> {
         match self.iter.next() {
             None => None,
-            Some((i, fragment)) => Some((fragment, InlineFragmentContext::new(self.map, i))),
+            Some((i, fragment)) => Some((fragment, InlineFragmentContext::new(self.map, i as int))),
         }
     }
 }
@@ -518,7 +518,7 @@ impl InlineBoxes {
 
     /// Pushes a new inline box.
     pub fn push(&mut self, fragment: Box, style: Arc<ComputedValues>) {
-        self.map.push(style, Range::new(self.boxes.len(), 1));
+        self.map.push(style, Range::new(self.boxes.len() as int, 1));
         self.boxes.push(fragment)
     }
 
@@ -714,7 +714,7 @@ impl InlineFlow {
         };
 
         for i in line.range.eachi() {
-            let box_ = boxes.get_mut(i);
+            let box_ = boxes.get_mut(i as uint);
             let size = box_.border_box.size;
             box_.border_box = Rect(Point2D(offset_x, box_.border_box.origin.y), size);
             offset_x = offset_x + size.width;
@@ -845,7 +845,7 @@ impl Flow for InlineFlow {
                 (Au(0), Au(0));
 
             for box_i in line.range.eachi() {
-                let fragment = self.boxes.boxes.get_mut(box_i);
+                let fragment = self.boxes.boxes.get_mut(box_i as uint);
 
                 let InlineMetrics {
                     height_above_baseline: mut height_above_baseline,
@@ -921,7 +921,7 @@ impl Flow for InlineFlow {
             // Compute the final positions in the block direction of each fragment. Recall that
             // `fragment.border_box.origin.y` was set to the distance from the baseline above.
             for box_i in line.range.eachi() {
-                let fragment = self.boxes.get_mut(box_i);
+                let fragment = self.boxes.get_mut(box_i as uint);
                 match fragment.vertical_align() {
                     vertical_align::top => {
                         fragment.border_box.origin.y = fragment.border_box.origin.y +
@@ -977,12 +977,12 @@ pub struct FragmentRange {
     /// The style of the DOM node that this range refers to.
     pub style: Arc<ComputedValues>,
     /// The range, in indices into the fragment list.
-    pub range: Range,
+    pub range: Range<int>,
 }
 
 impl FragmentRange {
     /// Creates a new fragment range from the given values.
-    fn new(style: Arc<ComputedValues>, range: Range) -> FragmentRange {
+    fn new(style: Arc<ComputedValues>, range: Range<int>) -> FragmentRange {
         FragmentRange {
             style: style,
             range: range,
@@ -1003,14 +1003,14 @@ impl FragmentRange {
 
 struct FragmentFixupWorkItem {
     style: Arc<ComputedValues>,
-    new_start_index: uint,
-    old_end_index: uint,
+    new_start_index: int,
+    old_end_index: int,
 }
 
 /// The type of an iterator over fragment ranges in the fragment map.
 pub struct RangeIterator<'a> {
     iter: Items<'a,FragmentRange>,
-    index: uint,
+    index: int,
     seen_first: bool,
 }
 
@@ -1053,7 +1053,7 @@ impl FragmentMap {
     }
 
     /// Adds the given node to the fragment map.
-    pub fn push(&mut self, style: Arc<ComputedValues>, range: Range) {
+    pub fn push(&mut self, style: Arc<ComputedValues>, range: Range<int>) {
         self.list.push(FragmentRange::new(style, range))
     }
 
@@ -1076,13 +1076,13 @@ impl FragmentMap {
     }
 
     /// Returns the range with the given index.
-    pub fn get_mut<'a>(&'a mut self, index: uint) -> &'a mut FragmentRange {
-        &mut self.list.as_mut_slice()[index]
+    pub fn get_mut<'a>(&'a mut self, index: int) -> &'a mut FragmentRange {
+        &mut self.list.as_mut_slice()[index as uint]
     }
 
     /// Iterates over all ranges that contain the box with the given index, outermost first.
     #[inline(always)]
-    fn ranges_for_index<'a>(&'a self, index: uint) -> RangeIterator<'a> {
+    fn ranges_for_index<'a>(&'a self, index: int) -> RangeIterator<'a> {
         RangeIterator {
             iter: self.list.as_slice().iter(),
             index: index,
@@ -1113,7 +1113,7 @@ impl FragmentMap {
             let new_fragment_start = match new_fragments_iter.peek() {
                 Some(&(index, new_fragment)) if new_fragment.node == old_fragment.node => {
                     // We found the start of the corresponding new fragment.
-                    index
+                    index as int
                 }
                 Some(_) | None => {
                     // The old fragment got deleted entirely.
@@ -1136,7 +1136,7 @@ impl FragmentMap {
                 match old_list_iter.peek() {
                     None => break,
                     Some(fragment_range) => {
-                        if fragment_range.range.begin() > old_fragment_index {
+                        if fragment_range.range.begin() > old_fragment_index as int {
                             // We haven't gotten to the appropriate old fragment yet, so stop.
                             break
                         }
@@ -1163,7 +1163,7 @@ impl FragmentMap {
                 match worklist.as_slice().last() {
                     None => break,
                     Some(last_work_item) => {
-                        if last_work_item.old_end_index > old_fragment_index + 1 {
+                        if last_work_item.old_end_index > old_fragment_index as int + 1 {
                             // Haven't gotten to it yet.
                             break
                         }
@@ -1176,7 +1176,7 @@ impl FragmentMap {
                         new_fragments.len()
                     }
                     Some(&(index, _)) => index,
-                };
+                } as int;
 
                 let FragmentFixupWorkItem {
                     style,
@@ -1194,11 +1194,11 @@ impl FragmentMap {
 /// conveniently to various fragment functions.
 pub struct InlineFragmentContext<'a> {
     map: &'a FragmentMap,
-    index: uint,
+    index: int,
 }
 
 impl<'a> InlineFragmentContext<'a> {
-    pub fn new<'a>(map: &'a FragmentMap, index: uint) -> InlineFragmentContext<'a> {
+    pub fn new<'a>(map: &'a FragmentMap, index: int) -> InlineFragmentContext<'a> {
         InlineFragmentContext {
             map: map,
             index: index,

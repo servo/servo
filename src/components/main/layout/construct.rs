@@ -203,7 +203,7 @@ impl InlineBoxAccumulator {
         } = self;
 
         if has_enclosing_range {
-            let len = boxes.len();
+            let len = boxes.len() as int;
             boxes.map.get_mut(0).range.extend_to(len);
         }
         boxes

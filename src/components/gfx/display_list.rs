@@ -395,7 +395,7 @@ pub struct TextDisplayItem {
     pub text_run: Arc<~TextRun>,
 
     /// The range of text within the text run.
-    pub range: Range,
+    pub range: Range<int>,
 
     /// The color of the text.
     pub text_color: Color,
