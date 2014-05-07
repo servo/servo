@@ -67,12 +67,6 @@ fn test_match<T: Eq>(b: &T, a: Option<&T>) -> bool {
     }
 }
 
-pub fn zip_copies<A: Clone, B: Clone>(avec: &[A], bvec: &[B]) -> ~[(A,B)] {
-    avec.iter().map(|x| x.clone())
-        .zip(bvec.iter().map(|x| x.clone()))
-        .collect()
-}
-
 #[test]
 fn should_find_all_elements() {
     let arr_odd = [1, 2, 4, 6, 7, 8, 9];

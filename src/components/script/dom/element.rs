@@ -641,7 +641,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         let win = window_from_node(self).root();
         let node: &JSRef<Node> = NodeCast::from_ref(self);
         let rects = node.get_content_boxes();
-        let rects: ~[Root<ClientRect>] = rects.iter().map(|r| {
+        let rects: Vec<Root<ClientRect>> = rects.iter().map(|r| {
             ClientRect::new(
                 &*win,
                 r.origin.y,

@@ -60,7 +60,7 @@ struct Reftest {
     kind: ReftestKind,
     files: [~str, ..2],
     id: uint,
-    servo_args: ~[~str],
+    servo_args: Vec<~str>,
 }
 
 fn parse_lists(filenames: &[~str], servo_args: &[~str]) -> Vec<TestDescAndFn> {
@@ -82,29 +82,29 @@ fn parse_lists(filenames: &[~str], servo_args: &[~str]) -> Vec<TestDescAndFn> {
                 continue;
             }
 
-            let parts: ~[&str] = line.split(' ').filter(|p| !p.is_empty()).collect();
+            let parts: Vec<&str> = line.split(' ').filter(|p| !p.is_empty()).collect();
 
             if parts.len() != 3 {
                 fail!("reftest line: '{:s}' doesn't match 'KIND LEFT RIGHT'", line);
             }
 
-            let kind = match parts[0] {
-                "==" => Same,
-                "!=" => Different,
-                _ => fail!("reftest line: '{:s}' has invalid kind '{:s}'",
-                           line, parts[0])
+            let kind = match parts.get(0) {
+                & &"==" => Same,
+                & &"!=" => Different,
+                &part => fail!("reftest line: '{:s}' has invalid kind '{:s}'",
+                               line, part)
             };
             let src_path = file_path.dir_path();
             let src_dir = src_path.display().to_str();
-            let file_left =  src_dir + "/" + parts[1];
-            let file_right = src_dir + "/" + parts[2];
+            let file_left =  src_dir + "/" + *parts.get(1);
+            let file_right = src_dir + "/" + *parts.get(2);
 
             let reftest = Reftest {
-                name: parts[1] + " / " + parts[2],
+                name: parts.get(1) + " / " + *parts.get(2),
                 kind: kind,
                 files: [file_left, file_right],
                 id: next_id,
-                servo_args: servo_args.to_owned(),
+                servo_args: servo_args.iter().map(|x| x.clone()).collect(),
             };
 
             next_id += 1;
@@ -132,9 +132,9 @@ fn make_test(reftest: Reftest) -> TestDescAndFn {
 fn capture(reftest: &Reftest, side: uint) -> png::Image {
     let filename = format!("/tmp/servo-reftest-{:06u}-{:u}.png", reftest.id, side);
     let mut args = reftest.servo_args.clone();
-    args.push_all_move(~["-f".to_owned(), "-o".to_owned(), filename.clone(), reftest.files[side].clone()]);
+    args.push_all_move(vec!("-f".to_owned(), "-o".to_owned(), filename.clone(), reftest.files[side].clone()));
 
-    let retval = match Process::status("./servo", args) {
+    let retval = match Process::status("./servo", args.as_slice()) {
         Ok(status) => status,
         Err(e) => fail!("failed to execute process: {}", e),
     };
@@ -147,7 +147,7 @@ fn check_reftest(reftest: Reftest) {
     let left  = capture(&reftest, 0);
     let right = capture(&reftest, 1);
 
-    let pixels: ~[u8] = left.pixels.iter().zip(right.pixels.iter()).map(|(&a, &b)| {
+    let pixels: Vec<u8> = left.pixels.iter().zip(right.pixels.iter()).map(|(&a, &b)| {
             if a as i8 - b as i8 == 0 {
                 // White for correct
                 0xFF
@@ -168,7 +168,7 @@ fn check_reftest(reftest: Reftest) {
             width: left.width,
             height: left.height,
             color_type: png::RGBA8,
-            pixels: pixels,
+            pixels: pixels.move_iter().collect(),
         };
         let res = png::store_png(&img, &output);
         assert!(res.is_ok());

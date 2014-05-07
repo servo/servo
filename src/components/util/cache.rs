@@ -6,7 +6,6 @@ use collections::HashMap;
 use rand;
 use rand::Rng;
 use std::hash::{Hash, sip};
-use std::slice;
 use std::slice::Items;
 
 #[cfg(test)]
@@ -179,7 +178,7 @@ impl<K: Clone + Eq, V: Clone> Cache<K,V> for LRUCache<K,V> {
 }
 
 pub struct SimpleHashCache<K,V> {
-    entries: ~[Option<(K,V)>],
+    entries: Vec<Option<(K,V)>>,
     k0: u64,
     k1: u64,
 }
@@ -188,7 +187,7 @@ impl<K:Clone+Eq+Hash,V:Clone> SimpleHashCache<K,V> {
     pub fn new(cache_size: uint) -> SimpleHashCache<K,V> {
         let mut r = rand::task_rng();
         SimpleHashCache {
-            entries: slice::from_elem(cache_size, None),
+            entries: Vec::from_elem(cache_size, None),
             k0: r.gen(),
             k1: r.gen(),
         }
@@ -207,8 +206,8 @@ impl<K:Clone+Eq+Hash,V:Clone> SimpleHashCache<K,V> {
     #[inline]
     pub fn find_equiv<'a,Q:Hash+Equiv<K>>(&'a self, key: &Q) -> Option<&'a V> {
         let bucket_index = self.bucket_for_key(key);
-        match self.entries[bucket_index] {
-            Some((ref existing_key, ref value)) if key.equiv(existing_key) => Some(value),
+        match self.entries.get(bucket_index) {
+            &Some((ref existing_key, ref value)) if key.equiv(existing_key) => Some(value),
             _ => None,
         }
     }
@@ -217,13 +216,13 @@ impl<K:Clone+Eq+Hash,V:Clone> SimpleHashCache<K,V> {
 impl<K:Clone+Eq+Hash,V:Clone> Cache<K,V> for SimpleHashCache<K,V> {
     fn insert(&mut self, key: K, value: V) {
         let bucket_index = self.bucket_for_key(&key);
-        self.entries[bucket_index] = Some((key, value))
+        *self.entries.get_mut(bucket_index) = Some((key, value))
     }
 
     fn find(&mut self, key: &K) -> Option<V> {
         let bucket_index = self.bucket_for_key(key);
-        match self.entries[bucket_index] {
-            Some((ref existing_key, ref value)) if existing_key == key => Some((*value).clone()),
+        match self.entries.get(bucket_index) {
+            &Some((ref existing_key, ref value)) if existing_key == key => Some((*value).clone()),
             _ => None,
         }
     }

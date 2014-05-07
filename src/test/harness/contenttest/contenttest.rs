@@ -26,7 +26,7 @@ struct Config {
 
 fn main() {
     let args = os::args();
-    let config = parse_config(args);
+    let config = parse_config(args.move_iter().collect());
     let opts = test_options(config.clone());
     let tests = find_tests(config);
     match run_tests_console(&opts, tests) {
@@ -36,10 +36,10 @@ fn main() {
     }
 }
 
-fn parse_config(args: ~[~str]) -> Config {
+fn parse_config(args: Vec<~str>) -> Config {
     let args = args.tail();
-    let opts = ~[reqopt("s", "source-dir", "source-dir", "source-dir")];
-    let matches = match getopts(args, opts) {
+    let opts = vec!(reqopt("s", "source-dir", "source-dir", "source-dir"));
+    let matches = match getopts(args, opts.as_slice()) {
       Ok(m) => m,
       Err(f) => fail!(f.to_err_msg())
     };
@@ -121,7 +121,7 @@ fn run_test(file: ~str) {
     }
 
     let out = str::from_utf8(output.as_slice());
-    let lines: ~[&str] = out.unwrap().split('\n').collect();
+    let lines: Vec<&str> = out.unwrap().split('\n').collect();
     for &line in lines.iter() {
         if line.contains("TEST-UNEXPECTED-FAIL") {
             fail!(line.to_owned());
