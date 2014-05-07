@@ -8,6 +8,7 @@ use std::fmt;
 use std::num;
 use std::num::Bounded;
 
+#[deriving(Show)]
 pub enum RangeRelation<T> {
     OverlapsBegin(/* overlap */ T),
     OverlapsEnd(/* overlap */ T),
@@ -69,8 +70,8 @@ impl<T: Int + TotalOrd> Range<T> {
                 self.begin() < len && self.end() <= len && self.length() <= len
             },
             None => {
-                debug!("Range<T>::is_valid_for_string: string length ({}) is longer than the max \
-                        value for T ({})", s_len, { let val: T = Bounded::max_value(); val });
+                debug!("Range<T>::is_valid_for_string: string length (len={}) is longer than the max \
+                        value for T (max={})", s_len, { let val: T = Bounded::max_value(); val });
                 false
             },
         }
@@ -148,16 +149,16 @@ impl<T: Int + TotalOrd> Range<T> {
             let overlap = other.end() - self.begin();
             return OverlapsEnd(overlap);
         }
-        fail!("relation_to_range(): didn't classify self={:?}, other={:?}",
+        fail!("relation_to_range(): didn't classify self={}, other={}",
               self, other);
     }
 
     #[inline]
     pub fn repair_after_coalesced_range(&mut self, other: &Range<T>) {
         let relation = self.relation_to_range(other);
-        debug!("repair_after_coalesced_range: possibly repairing range {:?}", self);
-        debug!("repair_after_coalesced_range: relation of original range and coalesced range({:?}): {:?}",
-               other, relation);
+        debug!("repair_after_coalesced_range: possibly repairing range {}", *self);
+        debug!("repair_after_coalesced_range: relation of original range and coalesced range {}: {}",
+               *other, relation);
         match relation {
             EntirelyBefore => { },
             EntirelyAfter =>  { self.shift_by(-other.length().to_int().unwrap()); },
@@ -169,6 +170,6 @@ impl<T: Int + TotalOrd> Range<T> {
                 self.reset(other.begin(), len);
             }
         };
-        debug!("repair_after_coalesced_range: new range: ---- {:?}", self);
+        debug!("repair_after_coalesced_range: new range: ---- {}", *self);
     }
 }
