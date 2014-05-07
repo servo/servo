@@ -1067,9 +1067,7 @@ impl ScriptTask {
                 let window = {
                     let mut page_tree = self.page_tree.borrow_mut();
                     let page = get_page(&mut *page_tree, pipeline_id);
-                    {
-                        page.window_size.deref().set(Size2D(new_width, new_height));
-                    }
+                    page.window_size.deref().set(Size2D(new_width, new_height));
 
                     let frame = page.frame();
                     if frame.is_some() {
