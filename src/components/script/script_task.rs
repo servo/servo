@@ -1167,30 +1167,27 @@ impl ScriptTask {
                         }
 
                         for node_address in node_address.iter() {
-                            let mut node =
+
+                            let temp_node =
                                 node::from_untrusted_node_address(
-                                    self.js_runtime.deref().ptr, *node_address).root();
-                            // Traverse node generations until a node that is an element is
-                            // found.
-                            while !node.is_element() {
-                                match node.parent_node() {
-                                    Some(parent) => node = parent.root(),
-                                    None => break,
-                                }
-                            }
+                                    self.js_runtime.deref().ptr, *node_address);
 
-                            if node.is_element() {
-                                node.set_hover_state(true);
+                            let maybe_node = temp_node.root().ancestors().find(|node| node.is_element());
+                            match maybe_node {
+                                Some(mut node) => {
+                                    node.set_hover_state(true);
 
-                                match *mouse_over_targets {
-                                    Some(ref mouse_over_targets) => {
-                                        if !target_compare {
-                                            target_compare = !mouse_over_targets.contains(&node.unrooted());
+                                    match *mouse_over_targets {
+                                        Some(ref mouse_over_targets) => {
+                                            if !target_compare {
+                                                target_compare = !mouse_over_targets.contains(&node.unrooted());
+                                            }
                                         }
+                                        None => {}
                                     }
-                                    None => {}
+                                    target_list.push(node.unrooted());
                                 }
-                                target_list.push(node.unrooted());
+                                None => {}
                             }
                         }
                         match *mouse_over_targets {
