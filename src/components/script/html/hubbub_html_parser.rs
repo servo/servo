@@ -510,8 +510,8 @@ pub fn parse_html(page: &Page,
                 debug!("received data");
                 parser.parse_chunk(data.as_slice());
             }
-            Done(Err(..)) => {
-                fail!("Failed to load page URL {:s}", url.to_str());
+            Done(Err(err)) => {
+                fail!("Failed to load page URL {:s}, error: {:s}", url.to_str(), err);
             }
             Done(..) => {
                 break;
