@@ -4290,7 +4290,6 @@ class CGBindingRoot(CGThing):
             'script_task::JSPageInfo',
             'libc',
             'servo_util::str::DOMString',
-            'servo_util::vec::zip_copies',
             'std::cast',
             'std::cmp',
             'std::ptr',
