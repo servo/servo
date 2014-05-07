@@ -117,7 +117,7 @@ impl IOCompositor {
                port: Receiver<Msg>,
                constellation_chan: ConstellationChan,
                profiler_chan: ProfilerChan) -> IOCompositor {
-        let window: Rc<Window> = WindowMethods::new(app);
+        let window: Rc<Window> = WindowMethods::new(app, opts.output_file.is_none());
 
         // Create an initial layer tree.
         //
