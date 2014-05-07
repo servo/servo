@@ -10,6 +10,8 @@ use layout::context::LayoutContext;
 use layout::flow::{TableCaptionFlowClass, FlowClass, Flow};
 use layout::wrapper::ThreadSafeLayoutNode;
 
+use std::fmt;
+
 /// A table formatting context.
 pub struct TableCaptionFlow {
     pub block_flow: BlockFlow,
@@ -60,9 +62,10 @@ impl Flow for TableCaptionFlow {
     fn compute_absolute_position(&mut self) {
         self.block_flow.compute_absolute_position()
     }
+}
 
-    fn debug_str(&self) -> ~str {
-        let txt = "TableCaptionFlow: ".to_owned();
-        txt.append(self.block_flow.box_.debug_str())
+impl fmt::Show for TableCaptionFlow {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f.buf, "TableCaptionFlow: {}", self.block_flow)
     }
 }

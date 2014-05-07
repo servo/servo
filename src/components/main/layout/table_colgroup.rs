@@ -9,7 +9,9 @@ use layout::context::LayoutContext;
 use layout::flow::{BaseFlow, TableColGroupFlowClass, FlowClass, Flow};
 use layout::model::{MaybeAuto};
 use layout::wrapper::ThreadSafeLayoutNode;
+
 use servo_util::geometry::Au;
+use std::fmt;
 
 /// A table formatting context.
 pub struct TableColGroupFlow {
@@ -72,12 +74,13 @@ impl Flow for TableColGroupFlow {
     /// Table column do not have height.
     fn assign_height(&mut self, _ctx: &mut LayoutContext) {
     }
+}
 
-    fn debug_str(&self) -> ~str {
-        let txt = "TableColGroupFlow: ".to_owned();
-        txt.append(match self.box_ {
-            Some(ref rb) => rb.debug_str(),
-            None => "".to_owned(),
-        })
+impl fmt::Show for TableColGroupFlow {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self.box_ {
+            Some(ref rb) => write!(f.buf, "TableColGroupFlow: {}", rb),
+            None => write!(f.buf, "TableColGroupFlow"),
+        }
     }
 }

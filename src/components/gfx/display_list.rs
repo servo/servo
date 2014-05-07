@@ -26,6 +26,7 @@ use libc::uintptr_t;
 use servo_net::image::base::Image;
 use servo_util::geometry::Au;
 use servo_util::range::Range;
+use std::fmt;
 use std::mem;
 use std::slice::Items;
 use style::computed_values::border_style;
@@ -633,23 +634,27 @@ impl DisplayItem {
             for _ in range(0, level) {
                 indent.push_str("| ")
             }
-            debug!("{}+ {}", indent, self.debug_str());
+            debug!("{}+ {}", indent, self);
             for child in self.children() {
                 child.debug_with_level(level + 1);
             }
     }
-
-    pub fn debug_str(&self) -> ~str {
-        let class = match *self {
-            SolidColorDisplayItemClass(_) => "SolidColor",
-            TextDisplayItemClass(_) => "Text",
-            ImageDisplayItemClass(_) => "Image",
-            BorderDisplayItemClass(_) => "Border",
-            LineDisplayItemClass(_) => "Line",
-            ClipDisplayItemClass(_) => "Clip",
-            PseudoDisplayItemClass(_) => "Pseudo",
-        };
-        format!("{} @ {} ({:x})", class, self.base().bounds, self.base().node.id())
-    }
 }
 
+impl fmt::Show for DisplayItem {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f.buf, "{} @ {} ({:x})",
+            match *self {
+                SolidColorDisplayItemClass(_) => "SolidColor",
+                TextDisplayItemClass(_) => "Text",
+                ImageDisplayItemClass(_) => "Image",
+                BorderDisplayItemClass(_) => "Border",
+                LineDisplayItemClass(_) => "Line",
+                ClipDisplayItemClass(_) => "Clip",
+                PseudoDisplayItemClass(_) => "Pseudo",
+            },
+            self.base().bounds,
+            self.base().node.id(),
+        )
+    }
+}

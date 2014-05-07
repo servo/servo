@@ -16,6 +16,7 @@ use layout::wrapper::ThreadSafeLayoutNode;
 
 use servo_util::geometry::Au;
 use servo_util::geometry;
+use std::fmt;
 
 /// A table formatting context.
 pub struct TableRowGroupFlow {
@@ -195,10 +196,10 @@ impl Flow for TableRowGroupFlow {
     fn compute_absolute_position(&mut self) {
         self.block_flow.compute_absolute_position()
     }
-
-    fn debug_str(&self) -> ~str {
-        let txt = "TableRowGroupFlow: ".to_owned();
-        txt.append(self.block_flow.box_.debug_str())
-    }
 }
 
+impl fmt::Show for TableRowGroupFlow {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f.buf, "TableRowGroupFlow: {}", self.block_flow.box_)
+    }
+}

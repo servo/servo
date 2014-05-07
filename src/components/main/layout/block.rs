@@ -38,6 +38,7 @@ use gfx::render_task::RenderLayer;
 use servo_msg::compositor_msg::{FixedPosition, LayerId, Scrollable};
 use servo_util::geometry::Au;
 use servo_util::geometry;
+use std::fmt;
 use std::mem;
 use std::num::Zero;
 use style::computed_values::{LPA_Auto, LPA_Length, LPA_Percentage, LPN_Length, LPN_None};
@@ -1690,19 +1691,20 @@ impl Flow for BlockFlow {
         LayerId(self.box_.node.id(), fragment_index)
     }
 
-    fn debug_str(&self) -> ~str {
-        let txt = if self.is_float() {
-            "FloatFlow: ".to_owned()
-        } else if self.is_root() {
-            "RootFlow: ".to_owned()
-        } else {
-            "BlockFlow: ".to_owned()
-        };
-        txt.append(self.box_.debug_str())
-    }
-
     fn is_absolute_containing_block(&self) -> bool {
         self.is_positioned()
+    }
+}
+
+impl fmt::Show for BlockFlow {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if self.is_float() {
+            write!(f.buf, "FloatFlow: {}", self.box_)
+        } else if self.is_root() {
+            write!(f.buf, "RootFlow: {}", self.box_)
+        } else {
+            write!(f.buf, "BlockFlow: {}", self.box_)
+        }
     }
 }
 

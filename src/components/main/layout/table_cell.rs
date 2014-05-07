@@ -13,6 +13,7 @@ use layout::table::InternalTable;
 use layout::wrapper::ThreadSafeLayoutNode;
 
 use servo_util::geometry::Au;
+use std::fmt;
 
 /// A table formatting context.
 pub struct TableCellFlow {
@@ -109,10 +110,10 @@ impl Flow for TableCellFlow {
     fn compute_absolute_position(&mut self) {
         self.block_flow.compute_absolute_position()
     }
-
-    fn debug_str(&self) -> ~str {
-        let txt = "TableCellFlow: ".to_owned();
-        txt.append(self.block_flow.box_.debug_str())
-    }
 }
 
+impl fmt::Show for TableCellFlow {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f.buf, "TableCellFlow: {}", self.block_flow)
+    }
+}

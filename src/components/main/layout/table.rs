@@ -16,6 +16,7 @@ use layout::wrapper::ThreadSafeLayoutNode;
 
 use servo_util::geometry::Au;
 use servo_util::geometry;
+use std::fmt;
 use style::computed_values::table_layout;
 
 /// A table flow corresponded to the table's internal table box under a table wrapper flow.
@@ -287,10 +288,12 @@ impl Flow for TableFlow {
     fn compute_absolute_position(&mut self) {
         self.block_flow.compute_absolute_position()
     }
+}
 
-    fn debug_str(&self) -> ~str {
-        let txt = "TableFlow: ".to_owned();
-        txt.append(self.block_flow.box_.debug_str())
+impl fmt::Show for TableFlow {
+    /// Outputs a debugging string describing this table flow.
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f.buf, "TableFlow: {}", self.block_flow)
     }
 }
 

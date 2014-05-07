@@ -237,8 +237,7 @@ impl TextRunScanner {
                     let range = new_ranges.get(logical_offset);
                     if range.length() == 0 {
                         debug!("Elided an `UnscannedTextbox` because it was zero-length after \
-                                compression; {:s}",
-                               in_boxes[i].debug_str());
+                                compression; {}", in_boxes[i]);
                         continue
                     }
 
