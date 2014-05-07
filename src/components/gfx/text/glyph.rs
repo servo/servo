@@ -52,8 +52,8 @@ impl GlyphEntry {
 
     // Create a GlyphEntry for uncommon case; should be accompanied by
     // initialization of the actual DetailedGlyph data in DetailedGlyphStore
-    fn complex(starts_cluster: bool, starts_ligature: bool, glyph_count: uint) -> GlyphEntry {
-        assert!(glyph_count <= u16::MAX as uint);
+    fn complex(starts_cluster: bool, starts_ligature: bool, glyph_count: int) -> GlyphEntry {
+        assert!(glyph_count <= u16::MAX as int);
 
         debug!("creating complex glyph entry: starts_cluster={}, starts_ligature={}, \
                 glyph_count={}",
@@ -76,8 +76,8 @@ impl GlyphEntry {
 
     /// Create a GlyphEntry for the case where glyphs couldn't be found for the specified
     /// character.
-    fn missing(glyph_count: uint) -> GlyphEntry {
-        assert!(glyph_count <= u16::MAX as uint);
+    fn missing(glyph_count: int) -> GlyphEntry {
+        assert!(glyph_count <= u16::MAX as int);
 
         GlyphEntry::new((glyph_count as u32) << GLYPH_COUNT_SHIFT)
     }
@@ -273,9 +273,9 @@ impl DetailedGlyph {
 #[deriving(Eq, Clone)]
 struct DetailedGlyphRecord {
     // source string offset/GlyphEntry offset in the TextRun
-    entry_offset: uint,
+    entry_offset: int,
     // offset into the detailed glyphs buffer
-    detail_offset: uint
+    detail_offset: int
 }
 
 impl Ord for DetailedGlyphRecord {
@@ -316,13 +316,13 @@ impl<'a> DetailedGlyphStore {
         }
     }
 
-    fn add_detailed_glyphs_for_entry(&mut self, entry_offset: uint, glyphs: &[DetailedGlyph]) {
+    fn add_detailed_glyphs_for_entry(&mut self, entry_offset: int, glyphs: &[DetailedGlyph]) {
         let entry = DetailedGlyphRecord {
             entry_offset: entry_offset,
-            detail_offset: self.detail_buffer.len()
+            detail_offset: self.detail_buffer.len() as int
         };
 
-        debug!("Adding entry[off={:u}] for detailed glyphs: {:?}", entry_offset, glyphs);
+        debug!("Adding entry[off={}] for detailed glyphs: {:?}", entry_offset, glyphs);
 
         /* TODO: don't actually assert this until asserts are compiled
         in/out based on severity, debug/release, etc. This assertion
@@ -340,9 +340,9 @@ impl<'a> DetailedGlyphStore {
         self.lookup_is_sorted = false;
     }
 
-    fn get_detailed_glyphs_for_entry(&'a self, entry_offset: uint, count: u16)
+    fn get_detailed_glyphs_for_entry(&'a self, entry_offset: int, count: u16)
                                   -> &'a [DetailedGlyph] {
-        debug!("Requesting detailed glyphs[n={:u}] for entry[off={:u}]", count as uint, entry_offset);
+        debug!("Requesting detailed glyphs[n={}] for entry[off={}]", count, entry_offset);
 
         // FIXME: Is this right? --pcwalton
         // TODO: should fix this somewhere else
@@ -371,7 +371,7 @@ impl<'a> DetailedGlyphStore {
     }
 
     fn get_detailed_glyph_with_index(&'a self,
-                                     entry_offset: uint,
+                                     entry_offset: int,
                                      detail_offset: u16)
             -> &'a DetailedGlyph {
         assert!((detail_offset as uint) <= self.detail_buffer.len());
@@ -460,14 +460,14 @@ impl GlyphData {
 // Rather than eagerly assembling and copying glyph data, it only retrieves
 // values as they are needed from the GlyphStore, using provided offsets.
 pub enum GlyphInfo<'a> {
-    SimpleGlyphInfo(&'a GlyphStore, uint),
-    DetailGlyphInfo(&'a GlyphStore, uint, u16)
+    SimpleGlyphInfo(&'a GlyphStore, int),
+    DetailGlyphInfo(&'a GlyphStore, int, u16)
 }
 
 impl<'a> GlyphInfo<'a> {
     pub fn index(self) -> GlyphIndex {
         match self {
-            SimpleGlyphInfo(store, entry_i) => store.entry_buffer.get(entry_i).index(),
+            SimpleGlyphInfo(store, entry_i) => store.entry_buffer.get(entry_i as uint).index(),
             DetailGlyphInfo(store, entry_i, detail_j) => {
                 store.detail_store.get_detailed_glyph_with_index(entry_i, detail_j).index
             }
@@ -478,7 +478,7 @@ impl<'a> GlyphInfo<'a> {
     // FIXME: Resolution conflicts with IteratorUtil trait so adding trailing _
     pub fn advance(self) -> Au {
         match self {
-            SimpleGlyphInfo(store, entry_i) => store.entry_buffer.get(entry_i).advance(),
+            SimpleGlyphInfo(store, entry_i) => store.entry_buffer.get(entry_i as uint).advance(),
             DetailGlyphInfo(store, entry_i, detail_j) => {
                 store.detail_store.get_detailed_glyph_with_index(entry_i, detail_j).advance
             }
@@ -509,18 +509,18 @@ pub struct GlyphStore {
 impl<'a> GlyphStore {
     // Initializes the glyph store, but doesn't actually shape anything.
     // Use the set_glyph, set_glyphs() methods to store glyph data.
-    pub fn new(length: uint, is_whitespace: bool) -> GlyphStore {
+    pub fn new(length: int, is_whitespace: bool) -> GlyphStore {
         assert!(length > 0);
 
         GlyphStore {
-            entry_buffer: Vec::from_elem(length, GlyphEntry::initial()),
+            entry_buffer: Vec::from_elem(length as uint, GlyphEntry::initial()),
             detail_store: DetailedGlyphStore::new(),
             is_whitespace: is_whitespace,
         }
     }
 
-    pub fn char_len(&self) -> uint {
-        self.entry_buffer.len()
+    pub fn char_len(&self) -> int {
+        self.entry_buffer.len() as int
     }
 
     pub fn is_whitespace(&self) -> bool {
@@ -531,7 +531,7 @@ impl<'a> GlyphStore {
         self.detail_store.ensure_sorted();
     }
 
-    pub fn add_glyph_for_char_index(&mut self, i: uint, data: &GlyphData) {
+    pub fn add_glyph_for_char_index(&mut self, i: int, data: &GlyphData) {
         fn glyph_is_compressible(data: &GlyphData) -> bool {
             is_simple_glyph_id(data.index)
                 && is_simple_advance(data.advance)
@@ -540,7 +540,7 @@ impl<'a> GlyphStore {
         }
 
         assert!(data.ligature_start); // can't compress ligature continuation glyphs.
-        assert!(i < self.entry_buffer.len());
+        assert!(i < self.entry_buffer.len() as int);
 
         let entry = match (data.is_missing, glyph_is_compressible(data)) {
             (true, _) => GlyphEntry::missing(1),
@@ -550,22 +550,22 @@ impl<'a> GlyphStore {
                 self.detail_store.add_detailed_glyphs_for_entry(i, glyph);
                 GlyphEntry::complex(data.cluster_start, data.ligature_start, 1)
             }
-        }.adapt_character_flags_of_entry(*self.entry_buffer.get(i));
+        }.adapt_character_flags_of_entry(*self.entry_buffer.get(i as uint));
 
-        *self.entry_buffer.get_mut(i) = entry;
+        *self.entry_buffer.get_mut(i as uint) = entry;
     }
 
-    pub fn add_glyphs_for_char_index(&mut self, i: uint, data_for_glyphs: &[GlyphData]) {
-        assert!(i < self.entry_buffer.len());
+    pub fn add_glyphs_for_char_index(&mut self, i: int, data_for_glyphs: &[GlyphData]) {
+        assert!(i < self.entry_buffer.len() as int);
         assert!(data_for_glyphs.len() > 0);
 
-        let glyph_count = data_for_glyphs.len();
+        let glyph_count = data_for_glyphs.len() as int;
 
         let first_glyph_data = data_for_glyphs[0];
         let entry = match first_glyph_data.is_missing {
             true  => GlyphEntry::missing(glyph_count),
             false => {
-                let glyphs_vec = slice::from_fn(glyph_count, |i| {
+                let glyphs_vec = slice::from_fn(glyph_count as uint, |i| {
                     DetailedGlyph::new(data_for_glyphs[i].index,
                                        data_for_glyphs[i].advance,
                                        data_for_glyphs[i].offset)
@@ -576,33 +576,33 @@ impl<'a> GlyphStore {
                                     first_glyph_data.ligature_start,
                                     glyph_count)
             }
-        }.adapt_character_flags_of_entry(*self.entry_buffer.get(i));
+        }.adapt_character_flags_of_entry(*self.entry_buffer.get(i as uint));
 
-        debug!("Adding multiple glyphs[idx={:u}, count={:u}]: {:?}", i, glyph_count, entry);
+        debug!("Adding multiple glyphs[idx={}, count={}]: {:?}", i, glyph_count, entry);
 
-        *self.entry_buffer.get_mut(i) = entry;
+        *self.entry_buffer.get_mut(i as uint) = entry;
     }
 
     // used when a character index has no associated glyph---for example, a ligature continuation.
-    pub fn add_nonglyph_for_char_index(&mut self, i: uint, cluster_start: bool, ligature_start: bool) {
-        assert!(i < self.entry_buffer.len());
+    pub fn add_nonglyph_for_char_index(&mut self, i: int, cluster_start: bool, ligature_start: bool) {
+        assert!(i < self.entry_buffer.len() as int);
 
         let entry = GlyphEntry::complex(cluster_start, ligature_start, 0);
-        debug!("adding spacer for chracter without associated glyph[idx={:u}]", i);
+        debug!("adding spacer for chracter without associated glyph[idx={}]", i);
 
-        *self.entry_buffer.get_mut(i) = entry;
+        *self.entry_buffer.get_mut(i as uint) = entry;
     }
 
-    pub fn iter_glyphs_for_char_index(&'a self, i: uint) -> GlyphIterator<'a> {
-        self.iter_glyphs_for_char_range(&Range::new(i, 1))
+    pub fn iter_glyphs_for_char_index(&'a self, i: int) -> GlyphIterator<'a> {
+        self.iter_glyphs_for_char_range(&Range::new(i as int, 1))
     }
 
     #[inline]
-    pub fn iter_glyphs_for_char_range(&'a self, rang: &Range) -> GlyphIterator<'a> {
-        if rang.begin() >= self.entry_buffer.len() {
+    pub fn iter_glyphs_for_char_range(&'a self, rang: &Range<int>) -> GlyphIterator<'a> {
+        if rang.begin() >= self.entry_buffer.len() as int {
             fail!("iter_glyphs_for_range: range.begin beyond length!");
         }
-        if rang.end() > self.entry_buffer.len() {
+        if rang.end() > self.entry_buffer.len() as int {
             fail!("iter_glyphs_for_range: range.end beyond length!");
         }
 
@@ -615,73 +615,73 @@ impl<'a> GlyphStore {
     }
 
     // getter methods
-    pub fn char_is_space(&self, i: uint) -> bool {
-        assert!(i < self.entry_buffer.len());
-        self.entry_buffer.get(i).char_is_space()
+    pub fn char_is_space(&self, i: int) -> bool {
+        assert!(i < self.entry_buffer.len() as int);
+        self.entry_buffer.get(i as uint).char_is_space()
     }
 
-    pub fn char_is_tab(&self, i: uint) -> bool {
-        assert!(i < self.entry_buffer.len());
-        self.entry_buffer.get(i).char_is_tab()
+    pub fn char_is_tab(&self, i: int) -> bool {
+        assert!(i < self.entry_buffer.len() as int);
+        self.entry_buffer.get(i as uint).char_is_tab()
     }
 
-    pub fn char_is_newline(&self, i: uint) -> bool {
-        assert!(i < self.entry_buffer.len());
-        self.entry_buffer.get(i).char_is_newline()
+    pub fn char_is_newline(&self, i: int) -> bool {
+        assert!(i < self.entry_buffer.len() as int);
+        self.entry_buffer.get(i as uint).char_is_newline()
     }
 
-    pub fn is_ligature_start(&self, i: uint) -> bool {
-        assert!(i < self.entry_buffer.len());
-        self.entry_buffer.get(i).is_ligature_start()
+    pub fn is_ligature_start(&self, i: int) -> bool {
+        assert!(i < self.entry_buffer.len() as int);
+        self.entry_buffer.get(i as uint).is_ligature_start()
     }
 
-    pub fn is_cluster_start(&self, i: uint) -> bool {
-        assert!(i < self.entry_buffer.len());
-        self.entry_buffer.get(i).is_cluster_start()
+    pub fn is_cluster_start(&self, i: int) -> bool {
+        assert!(i < self.entry_buffer.len() as int);
+        self.entry_buffer.get(i as uint).is_cluster_start()
     }
 
-    pub fn can_break_before(&self, i: uint) -> BreakType {
-        assert!(i < self.entry_buffer.len());
-        self.entry_buffer.get(i).can_break_before()
+    pub fn can_break_before(&self, i: int) -> BreakType {
+        assert!(i < self.entry_buffer.len() as int);
+        self.entry_buffer.get(i as uint).can_break_before()
     }
 
     // setter methods
-    pub fn set_char_is_space(&mut self, i: uint) {
-        assert!(i < self.entry_buffer.len());
-        let entry = *self.entry_buffer.get(i);
-        *self.entry_buffer.get_mut(i) = entry.set_char_is_space();
+    pub fn set_char_is_space(&mut self, i: int) {
+        assert!(i < self.entry_buffer.len() as int);
+        let entry = *self.entry_buffer.get(i as uint);
+        *self.entry_buffer.get_mut(i as uint) = entry.set_char_is_space();
     }
 
-    pub fn set_char_is_tab(&mut self, i: uint) {
-        assert!(i < self.entry_buffer.len());
-        let entry = *self.entry_buffer.get(i);
-        *self.entry_buffer.get_mut(i) = entry.set_char_is_tab();
+    pub fn set_char_is_tab(&mut self, i: int) {
+        assert!(i < self.entry_buffer.len() as int);
+        let entry = *self.entry_buffer.get(i as uint);
+        *self.entry_buffer.get_mut(i as uint) = entry.set_char_is_tab();
     }
 
-    pub fn set_char_is_newline(&mut self, i: uint) {
-        assert!(i < self.entry_buffer.len());
-        let entry = *self.entry_buffer.get(i);
-        *self.entry_buffer.get_mut(i) = entry.set_char_is_newline();
+    pub fn set_char_is_newline(&mut self, i: int) {
+        assert!(i < self.entry_buffer.len() as int);
+        let entry = *self.entry_buffer.get(i as uint);
+        *self.entry_buffer.get_mut(i as uint) = entry.set_char_is_newline();
     }
 
-    pub fn set_can_break_before(&mut self, i: uint, t: BreakType) {
-        assert!(i < self.entry_buffer.len());
-        let entry = *self.entry_buffer.get(i);
-        *self.entry_buffer.get_mut(i) = entry.set_can_break_before(t);
+    pub fn set_can_break_before(&mut self, i: int, t: BreakType) {
+        assert!(i < self.entry_buffer.len() as int);
+        let entry = *self.entry_buffer.get(i as uint);
+        *self.entry_buffer.get_mut(i as uint) = entry.set_can_break_before(t);
     }
 }
 
 pub struct GlyphIterator<'a> {
     store:       &'a GlyphStore,
-    char_index:  uint,
-    char_range:  iter::Range<uint>,
-    glyph_range: Option<iter::Range<uint>>,
+    char_index:  int,
+    char_range:  iter::Range<int>,
+    glyph_range: Option<iter::Range<int>>,
 }
 
 impl<'a> GlyphIterator<'a> {
     // Slow path when there is a glyph range.
     #[inline(never)]
-    fn next_glyph_range(&mut self) -> Option<(uint, GlyphInfo<'a>)> {
+    fn next_glyph_range(&mut self) -> Option<(int, GlyphInfo<'a>)> {
         match self.glyph_range.get_mut_ref().next() {
             Some(j) => Some((self.char_index,
                 DetailGlyphInfo(self.store, self.char_index, j as u16))),
@@ -695,15 +695,15 @@ impl<'a> GlyphIterator<'a> {
 
     // Slow path when there is a complex glyph.
     #[inline(never)]
-    fn next_complex_glyph(&mut self, entry: &GlyphEntry, i: uint)
-                          -> Option<(uint, GlyphInfo<'a>)> {
+    fn next_complex_glyph(&mut self, entry: &GlyphEntry, i: int)
+                          -> Option<(int, GlyphInfo<'a>)> {
         let glyphs = self.store.detail_store.get_detailed_glyphs_for_entry(i, entry.glyph_count());
-        self.glyph_range = Some(range(0, glyphs.len()));
+        self.glyph_range = Some(range(0, glyphs.len() as int));
         self.next()
     }
 }
 
-impl<'a> Iterator<(uint, GlyphInfo<'a>)> for GlyphIterator<'a> {
+impl<'a> Iterator<(int, GlyphInfo<'a>)> for GlyphIterator<'a> {
     // I tried to start with something simpler and apply FlatMap, but the
     // inability to store free variables in the FlatMap struct was problematic.
     //
@@ -711,7 +711,7 @@ impl<'a> Iterator<(uint, GlyphInfo<'a>)> for GlyphIterator<'a> {
     // slow paths, which should not be inlined, are `next_glyph_range()` and
     // `next_complex_glyph()`.
     #[inline(always)]
-    fn next(&mut self) -> Option<(uint, GlyphInfo<'a>)> {
+    fn next(&mut self) -> Option<(int, GlyphInfo<'a>)> {
         // Would use 'match' here but it borrows contents in a way that
         // interferes with mutation.
         if self.glyph_range.is_some() {
@@ -721,8 +721,8 @@ impl<'a> Iterator<(uint, GlyphInfo<'a>)> for GlyphIterator<'a> {
             match self.char_range.next() {
                 Some(i) => {
                     self.char_index = i;
-                    assert!(i < self.store.entry_buffer.len());
-                    let entry = self.store.entry_buffer.get(i);
+                    assert!(i < self.store.entry_buffer.len() as int);
+                    let entry = self.store.entry_buffer.get(i as uint);
                     if entry.is_simple() {
                         Some((self.char_index, SimpleGlyphInfo(self.store, i)))
                     } else {

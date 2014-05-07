@@ -330,7 +330,7 @@ impl Font {
     pub fn draw_text_into_context(&mut self,
                               rctx: &RenderContext,
                               run: &~TextRun,
-                              range: &Range,
+                              range: &Range<int>,
                               baseline_origin: Point2D<Au>,
                               color: Color) {
         use libc::types::common::c99::{uint16_t, uint32_t};
@@ -353,7 +353,7 @@ impl Font {
 
         let mut origin = baseline_origin.clone();
         let mut azglyphs = vec!();
-        azglyphs.reserve(range.length());
+        azglyphs.reserve(range.length() as uint);
 
         for (glyphs, _offset, slice_range) in run.iter_slices_for_range(range) {
             for (_i, glyph) in glyphs.iter_glyphs_for_char_range(&slice_range) {
@@ -391,7 +391,7 @@ impl Font {
         }
     }
 
-    pub fn measure_text(&self, run: &TextRun, range: &Range) -> RunMetrics {
+    pub fn measure_text(&self, run: &TextRun, range: &Range<int>) -> RunMetrics {
         // TODO(Issue #199): alter advance direction for RTL
         // TODO(Issue #98): using inter-char and inter-word spacing settings  when measuring text
         let mut advance = Au(0);
@@ -405,7 +405,7 @@ impl Font {
 
     pub fn measure_text_for_slice(&self,
                                   glyphs: &GlyphStore,
-                                  slice_range: &Range)
+                                  slice_range: &Range<int>)
                                   -> RunMetrics {
         let mut advance = Au(0);
         for (_i, glyph) in glyphs.iter_glyphs_for_char_range(slice_range) {
@@ -420,7 +420,7 @@ impl Font {
         self.make_shaper();
         let shaper = &self.shaper;
         self.shape_cache.find_or_create(&text, |txt| {
-            let mut glyphs = GlyphStore::new(text.char_len(), is_whitespace);
+            let mut glyphs = GlyphStore::new(text.char_len() as int, is_whitespace);
             shaper.get_ref().shape_text(*txt, &mut glyphs);
             Arc::new(glyphs)
         })
