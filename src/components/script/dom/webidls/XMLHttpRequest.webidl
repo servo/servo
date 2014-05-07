@@ -38,7 +38,8 @@ interface XMLHttpRequest : XMLHttpRequestEventTarget {
   readonly attribute unsigned short readyState;
 
   // request
-  // void open(ByteString method, /* [EnsureUTF16] */ DOMString url);
+  [Throws]
+  void open(ByteString method, /* [EnsureUTF16] */ DOMString url);
 
   // void open(ByteString method, /* [EnsureUTF16] */ DOMString url, boolean async, optional /* [EnsureUTF16] */ DOMString? username = null, optional /* [EnsureUTF16] */ DOMString? password = null);
 
@@ -46,7 +47,8 @@ interface XMLHttpRequest : XMLHttpRequestEventTarget {
            attribute unsigned long timeout;
            attribute boolean withCredentials;
   readonly attribute XMLHttpRequestUpload upload;
-  // void send(optional /*(ArrayBufferView or Blob or Document or [EnsureUTF16] */ DOMString/* or FormData or URLSearchParams)*/? data = null);
+  [Throws]
+  void send(optional /*(ArrayBufferView or Blob or Document or [EnsureUTF16] */ DOMString/* or FormData or URLSearchParams)*/? data = null);
   // void abort();
 
   // response
@@ -57,7 +59,7 @@ interface XMLHttpRequest : XMLHttpRequestEventTarget {
   // ByteString getAllResponseHeaders();
   // void overrideMimeType(DOMString mime);
            attribute XMLHttpRequestResponseType responseType;
-  // readonly attribute any response;
+  readonly attribute any response;
   readonly attribute DOMString responseText;
   [Exposed=Window] readonly attribute Document? responseXML;
 };
