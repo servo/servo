@@ -39,15 +39,15 @@ impl GlyphEntry {
     }
 
     // Creates a GlyphEntry for the common case
-    fn simple(index: GlyphIndex, advance: Au) -> GlyphEntry {
-        assert!(is_simple_glyph_id(index));
+    fn simple(id: GlyphId, advance: Au) -> GlyphEntry {
+        assert!(is_simple_glyph_id(id));
         assert!(is_simple_advance(advance));
 
-        let index_mask = index as u32;
+        let id_mask = id as u32;
         let Au(advance) = advance;
         let advance_mask = (advance as u32) << GLYPH_ADVANCE_SHIFT;
 
-        GlyphEntry::new(index_mask | advance_mask | FLAG_IS_SIMPLE_GLYPH)
+        GlyphEntry::new(id_mask | advance_mask | FLAG_IS_SIMPLE_GLYPH)
     }
 
     // Create a GlyphEntry for uncommon case; should be accompanied by
@@ -83,8 +83,8 @@ impl GlyphEntry {
     }
 }
 
-/// The index of a particular glyph within a font
-pub type GlyphIndex = u32;
+/// The id of a particular glyph within a font
+pub type GlyphId = u32;
 
 // TODO: unify with bit flags?
 #[deriving(Eq)]
@@ -100,12 +100,12 @@ static BREAK_TYPE_HYPHEN: u8 = 0x2;
 
 fn break_flag_to_enum(flag: u8) -> BreakType {
     if (flag & BREAK_TYPE_NORMAL) != 0 {
-        return BreakTypeNormal;
+        BreakTypeNormal
+    } else if (flag & BREAK_TYPE_HYPHEN) != 0 {
+        BreakTypeHyphen
+    } else {
+        BreakTypeNone
     }
-    if (flag & BREAK_TYPE_HYPHEN) != 0 {
-        return BreakTypeHyphen;
-    }
-    BreakTypeNone
 }
 
 fn break_enum_to_flag(e: BreakType) -> u8 {
@@ -151,8 +151,8 @@ static FLAG_CHAR_IS_NEWLINE:          u32 = 0x00000010;
 //static FLAG_CHAR_IS_LOW_SURROGATE:    u32 = 0x00000020;
 //static CHAR_IDENTITY_FLAGS_MASK:      u32 = 0x00000038;
 
-fn is_simple_glyph_id(glyphId: GlyphIndex) -> bool {
-    ((glyphId as u32) & GLYPH_ID_MASK) == glyphId
+fn is_simple_glyph_id(id: GlyphId) -> bool {
+    ((id as u32) & GLYPH_ID_MASK) == id
 }
 
 fn is_simple_advance(advance: Au) -> bool {
@@ -171,7 +171,7 @@ impl GlyphEntry {
         NumCast::from((self.value & GLYPH_ADVANCE_MASK) >> GLYPH_ADVANCE_SHIFT).unwrap()
     }
 
-    fn index(&self) -> GlyphIndex {
+    fn id(&self) -> GlyphId {
         self.value & GLYPH_ID_MASK
     }
 
@@ -253,7 +253,7 @@ impl GlyphEntry {
 // correspond to one character, or the glyph's data couldn't be packed.
 #[deriving(Clone)]
 struct DetailedGlyph {
-    index: GlyphIndex,
+    id: GlyphId,
     // glyph's advance, in the text's direction (RTL or RTL)
     advance: Au,
     // glyph's offset from the font's em-box (from top-left)
@@ -261,9 +261,9 @@ struct DetailedGlyph {
 }
 
 impl DetailedGlyph {
-    fn new(index: GlyphIndex, advance: Au, offset: Point2D<Au>) -> DetailedGlyph {
+    fn new(id: GlyphId, advance: Au, offset: Point2D<Au>) -> DetailedGlyph {
         DetailedGlyph {
-            index: index,
+            id: id,
             advance: advance,
             offset: offset
         }
@@ -423,7 +423,7 @@ impl<'a> DetailedGlyphStore {
 // This struct is used by GlyphStore clients to provide new glyph data.
 // It should be allocated on the stack and passed by reference to GlyphStore.
 pub struct GlyphData {
-    index: GlyphIndex,
+    id: GlyphId,
     advance: Au,
     offset: Point2D<Au>,
     is_missing: bool,
@@ -432,7 +432,7 @@ pub struct GlyphData {
 }
 
 impl GlyphData {
-    pub fn new(index: GlyphIndex,
+    pub fn new(id: GlyphId,
                advance: Au,
                offset: Option<Point2D<Au>>,
                is_missing: bool,
@@ -445,7 +445,7 @@ impl GlyphData {
         };
 
         GlyphData {
-            index: index,
+            id: id,
             advance: advance,
             offset: offset,
             is_missing: is_missing,
@@ -465,11 +465,11 @@ pub enum GlyphInfo<'a> {
 }
 
 impl<'a> GlyphInfo<'a> {
-    pub fn index(self) -> GlyphIndex {
+    pub fn id(self) -> GlyphId {
         match self {
-            SimpleGlyphInfo(store, entry_i) => store.entry_buffer.get(entry_i as uint).index(),
+            SimpleGlyphInfo(store, entry_i) => store.entry_buffer.get(entry_i as uint).id(),
             DetailGlyphInfo(store, entry_i, detail_j) => {
-                store.detail_store.get_detailed_glyph_with_index(entry_i, detail_j).index
+                store.detail_store.get_detailed_glyph_with_index(entry_i, detail_j).id
             }
         }
     }
@@ -533,7 +533,7 @@ impl<'a> GlyphStore {
 
     pub fn add_glyph_for_char_index(&mut self, i: int, data: &GlyphData) {
         fn glyph_is_compressible(data: &GlyphData) -> bool {
-            is_simple_glyph_id(data.index)
+            is_simple_glyph_id(data.id)
                 && is_simple_advance(data.advance)
                 && data.offset.is_zero()
                 && data.cluster_start  // others are stored in detail buffer
@@ -544,9 +544,9 @@ impl<'a> GlyphStore {
 
         let entry = match (data.is_missing, glyph_is_compressible(data)) {
             (true, _) => GlyphEntry::missing(1),
-            (false, true) => GlyphEntry::simple(data.index, data.advance),
+            (false, true) => GlyphEntry::simple(data.id, data.advance),
             (false, false) => {
-                let glyph = [DetailedGlyph::new(data.index, data.advance, data.offset)];
+                let glyph = [DetailedGlyph::new(data.id, data.advance, data.offset)];
                 self.detail_store.add_detailed_glyphs_for_entry(i, glyph);
                 GlyphEntry::complex(data.cluster_start, data.ligature_start, 1)
             }
@@ -566,7 +566,7 @@ impl<'a> GlyphStore {
             true  => GlyphEntry::missing(glyph_count),
             false => {
                 let glyphs_vec = slice::from_fn(glyph_count as uint, |i| {
-                    DetailedGlyph::new(data_for_glyphs[i].index,
+                    DetailedGlyph::new(data_for_glyphs[i].id,
                                        data_for_glyphs[i].advance,
                                        data_for_glyphs[i].offset)
                 });

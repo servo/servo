@@ -23,7 +23,7 @@ use servo_util::geometry::Au;
 use platform::font_context::FontContextHandle;
 use platform::font::{FontHandle, FontTable};
 use render_context::RenderContext;
-use text::glyph::{GlyphStore, GlyphIndex};
+use text::glyph::{GlyphStore, GlyphId};
 use text::shaping::ShaperMethods;
 use text::{Shaper, TextRun};
 
@@ -45,8 +45,8 @@ pub trait FontHandleMethods {
 
     fn clone_with_style(&self, fctx: &FontContextHandle, style: &UsedFontStyle)
                      -> Result<FontHandle, ()>;
-    fn glyph_index(&self, codepoint: char) -> Option<GlyphIndex>;
-    fn glyph_h_advance(&self, GlyphIndex) -> Option<FractionalPixel>;
+    fn glyph_index(&self, codepoint: char) -> Option<GlyphId>;
+    fn glyph_h_advance(&self, GlyphId) -> Option<FractionalPixel>;
     fn get_metrics(&self) -> FontMetrics;
     fn get_table_for_tag(&self, FontTableTag) -> Option<FontTable>;
 }
@@ -361,7 +361,7 @@ impl Font {
                 let glyph_offset = glyph.offset().unwrap_or(Zero::zero());
 
                 let azglyph = struct__AzGlyph {
-                    mIndex: glyph.index() as uint32_t,
+                    mIndex: glyph.id() as uint32_t,
                     mPosition: struct__AzPoint {
                         x: (origin.x + glyph_offset.x).to_nearest_px() as AzFloat,
                         y: (origin.y + glyph_offset.y).to_nearest_px() as AzFloat
@@ -430,11 +430,11 @@ impl Font {
         FontDescriptor::new(self.style.clone(), SelectorPlatformIdentifier(self.handle.face_identifier()))
     }
 
-    pub fn glyph_index(&self, codepoint: char) -> Option<GlyphIndex> {
+    pub fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {
         self.handle.glyph_index(codepoint)
     }
 
-    pub fn glyph_h_advance(&mut self, glyph: GlyphIndex) -> FractionalPixel {
+    pub fn glyph_h_advance(&mut self, glyph: GlyphId) -> FractionalPixel {
         let handle = &self.handle;
         self.glyph_advance_cache.find_or_create(&glyph, |glyph| {
             match handle.glyph_h_advance(*glyph) {

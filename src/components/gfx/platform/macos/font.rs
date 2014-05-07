@@ -14,7 +14,7 @@ use font::{FractionalPixel, SpecifiedFontStyle};
 use servo_util::geometry::{Au, px_to_pt};
 use servo_util::geometry;
 use platform::macos::font_context::FontContextHandle;
-use text::glyph::GlyphIndex;
+use text::glyph::GlyphId;
 use style::computed_values::font_weight;
 
 use core_foundation::base::CFIndex;
@@ -125,7 +125,7 @@ impl FontHandleMethods for FontHandle {
         return FontHandle::new_from_CTFont(fctx, new_font);
     }
 
-    fn glyph_index(&self, codepoint: char) -> Option<GlyphIndex> {
+    fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {
         let characters: [UniChar,  ..1] = [codepoint as UniChar];
         let glyphs: [CGGlyph, ..1] = [0 as CGGlyph];
         let count: CFIndex = 1;
@@ -140,10 +140,10 @@ impl FontHandleMethods for FontHandle {
         }
 
         assert!(glyphs[0] != 0); // FIXME: error handling
-        return Some(glyphs[0] as GlyphIndex);
+        return Some(glyphs[0] as GlyphId);
     }
 
-    fn glyph_h_advance(&self, glyph: GlyphIndex) -> Option<FractionalPixel> {
+    fn glyph_h_advance(&self, glyph: GlyphId) -> Option<FractionalPixel> {
         let glyphs = [glyph as CGGlyph];
         let advance = self.ctfont.get_advances_for_glyphs(kCTFontDefaultOrientation,
                                                           &glyphs[0],

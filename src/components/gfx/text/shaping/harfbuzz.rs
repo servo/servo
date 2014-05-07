@@ -6,7 +6,7 @@ extern crate harfbuzz;
 
 use font::{Font, FontHandleMethods, FontTableMethods, FontTableTag};
 use platform::font::FontTable;
-use text::glyph::{GlyphStore, GlyphIndex, GlyphData};
+use text::glyph::{GlyphStore, GlyphId, GlyphData};
 use text::shaping::ShaperMethods;
 use text::util::{float_to_fixed, fixed_to_float};
 
@@ -55,7 +55,7 @@ pub struct ShapedGlyphData {
 
 pub struct ShapedGlyphEntry {
     cluster: int,
-    codepoint: GlyphIndex,
+    codepoint: GlyphId,
     advance: Au,
     offset: Option<Point2D<Au>>,
 }
@@ -125,7 +125,7 @@ impl ShapedGlyphData {
 
             ShapedGlyphEntry {
                 cluster: (*glyph_info_i).cluster as int,
-                codepoint: (*glyph_info_i).codepoint as GlyphIndex,
+                codepoint: (*glyph_info_i).codepoint as GlyphId,
                 advance: x_advance,
                 offset: offset,
             }
@@ -485,7 +485,7 @@ extern fn glyph_h_advance_func(_: *hb_font_t,
     assert!(font.is_not_null());
 
     unsafe {
-        let advance = (*font).glyph_h_advance(glyph as GlyphIndex);
+        let advance = (*font).glyph_h_advance(glyph as GlyphId);
         Shaper::float_to_fixed(advance)
     }
 }
