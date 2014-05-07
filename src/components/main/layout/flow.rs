@@ -577,7 +577,7 @@ impl Descendants {
     /// Push the given descendants on to the existing descendants.
     ///
     /// Ignore any static y offsets, because they are None before layout.
-    pub fn push_descendants(&mut self, mut given_descendants: Descendants) {
+    pub fn push_descendants(&mut self, given_descendants: Descendants) {
         for elem in given_descendants.descendant_links.move_iter() {
             self.descendant_links.push(elem);
         }

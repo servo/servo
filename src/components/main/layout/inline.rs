@@ -1061,7 +1061,7 @@ impl FragmentMap {
     /// necessary.
     fn push_all(&mut self, other: FragmentMap, adjustment: uint) {
         let FragmentMap {
-            list: mut other_list
+            list: other_list
         } = other;
 
         for other_range in other_list.move_iter() {
@@ -1101,7 +1101,7 @@ impl FragmentMap {
     /// needlessly has to clone boxes.
     pub fn fixup(&mut self, old_fragments: &[Box], new_fragments: &[Box]) {
         // TODO(pcwalton): Post Rust upgrade, use `with_capacity` here.
-        let mut old_list = mem::replace(&mut self.list, Vec::new());
+        let old_list = mem::replace(&mut self.list, Vec::new());
         let mut worklist = Vec::new();        // FIXME(#2269, pcwalton): was smallvec4
         let mut old_list_iter = old_list.move_iter().peekable();
         let mut new_fragments_iter = new_fragments.iter().enumerate().peekable();
