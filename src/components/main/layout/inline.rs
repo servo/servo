@@ -22,6 +22,7 @@ use servo_util::geometry::Au;
 use servo_util::geometry;
 use servo_util::range::Range;
 use std::iter::Enumerate;
+use std::fmt;
 use std::mem;
 use std::slice::{Items, MutItems};
 use std::u16;
@@ -235,8 +236,8 @@ impl LineboxScanner {
         // try_append_to_line.
         match first_box.split_to_width(line_bounds.size.width, line_is_empty) {
             CannotSplit => {
-                error!("LineboxScanner: Tried to split unsplittable render box! {:s}",
-                        first_box.debug_str());
+                error!("LineboxScanner: Tried to split unsplittable render box! {}",
+                        first_box);
                 return (line_bounds, first_box_size.width);
             }
             SplitDidFit(left, right) => {
@@ -356,11 +357,11 @@ impl LineboxScanner {
         }
 
         debug!("LineboxScanner: Trying to append box to line {:u} (box size: {}, green zone: \
-                {}): {:s}",
+                {}): {}",
                self.lines.len(),
                in_box.border_box.size,
                self.pending_line.green_zone,
-               in_box.debug_str());
+               in_box);
 
         let green_zone = self.pending_line.green_zone;
 
@@ -400,8 +401,8 @@ impl LineboxScanner {
         let split = in_box.split_to_width(available_width, line_is_empty);
         let (left, right) = match (split, line_is_empty) {
             (CannotSplit, _) => {
-                debug!("LineboxScanner: Tried to split unsplittable render box! {:s}",
-                        in_box.debug_str());
+                debug!("LineboxScanner: Tried to split unsplittable render box! {}",
+                        in_box);
                 self.work_list.push_front(in_box);
                 return false
             }
@@ -756,7 +757,7 @@ impl Flow for InlineFlow {
 
         let mut intrinsic_widths = IntrinsicWidths::new();
         for (fragment, context) in self.boxes.mut_iter() {
-            debug!("Flow: measuring {:s}", fragment.debug_str());
+            debug!("Flow: measuring {}", *fragment);
 
             let box_intrinsic_widths = fragment.intrinsic_widths(Some(context));
             intrinsic_widths.minimum_width = geometry::max(intrinsic_widths.minimum_width,
@@ -954,16 +955,19 @@ impl Flow for InlineFlow {
         self.base.floats = scanner.floats();
         self.base.floats.translate(Point2D(Au::new(0), -self.base.position.size.height));
     }
+}
 
-    fn debug_str(&self) -> ~str {
-        let mut string = "InlineFlow: ".to_str();
+impl fmt::Show for InlineFlow {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        try!(write!(f.buf, "InlineFlow"));
         for (i, (fragment, _)) in self.boxes.iter().enumerate() {
-            if i != 0 {
-                string.push_str(", ")
+            if i == 0 {
+                try!(write!(f.buf, ": {}", fragment))
+            } else {
+                try!(write!(f.buf, ", {}", fragment))
             }
-            string.push_str(fragment.debug_str())
         }
-        string
+        Ok(())
     }
 }
 

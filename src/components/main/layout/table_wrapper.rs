@@ -16,6 +16,7 @@ use layout::wrapper::ThreadSafeLayoutNode;
 
 use servo_util::geometry::Au;
 use servo_util::geometry;
+use std::fmt;
 use style::computed_values::table_layout;
 
 pub enum TableLayout {
@@ -188,14 +189,15 @@ impl Flow for TableWrapperFlow {
     fn compute_absolute_position(&mut self) {
         self.block_flow.compute_absolute_position()
     }
+}
 
-    fn debug_str(&self) -> ~str {
-        let txt = if self.is_float() {
-            "TableWrapperFlow(Float): ".to_owned()
+impl fmt::Show for TableWrapperFlow {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if self.is_float() {
+            write!(f.buf, "TableWrapperFlow(Float): {}", self.block_flow.box_)
         } else {
-            "TableWrapperFlow: ".to_owned()
-        };
-        txt.append(self.block_flow.box_.debug_str())
+            write!(f.buf, "TableWrapperFlow: {}", self.block_flow.box_)
+        }
     }
 }
 
