@@ -5281,7 +5281,7 @@ class GlobalGenRoots():
   }
 
   #[inline(always)]
-  fn from_unrooted<T: ${fromBound}+Reflectable>(derived: Temporary<T>) -> Temporary<Self> {
+  fn from_temporary<T: ${fromBound}+Reflectable>(derived: Temporary<T>) -> Temporary<Self> {
     unsafe { derived.transmute() }
   }
 }

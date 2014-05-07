@@ -40,7 +40,7 @@ macro_rules! handle_element(
      $ctor: ident
      $(, $arg:expr )*) => (
         if $string == $localName {
-            return ElementCast::from_unrooted($ctor::new($localName, $document $(, $arg)*));
+            return ElementCast::from_temporary($ctor::new($localName, $document $(, $arg)*));
         }
     )
 )
@@ -243,7 +243,7 @@ pub fn build_element_from_tag(tag: DOMString, document: &JSRef<Document>) -> Tem
     handle_element!(document, tag, "ul",        HTMLUListElement);
     handle_element!(document, tag, "video",     HTMLVideoElement);
 
-    return ElementCast::from_unrooted(HTMLUnknownElement::new(tag, document));
+    return ElementCast::from_temporary(HTMLUnknownElement::new(tag, document));
 }
 
 pub fn parse_html(page: &Page,

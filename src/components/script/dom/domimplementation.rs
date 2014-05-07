@@ -135,12 +135,12 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
 
         {
             // Step 4.
-            let mut doc_html = NodeCast::from_unrooted(HTMLHtmlElement::new("html".to_owned(), &*doc)).root();
+            let mut doc_html = NodeCast::from_temporary(HTMLHtmlElement::new("html".to_owned(), &*doc)).root();
             assert!(doc_node.AppendChild(&mut *doc_html).is_ok());
 
             {
                 // Step 5.
-                let mut doc_head = NodeCast::from_unrooted(HTMLHeadElement::new("head".to_owned(), &*doc)).root();
+                let mut doc_head = NodeCast::from_temporary(HTMLHeadElement::new("head".to_owned(), &*doc)).root();
                 assert!(doc_html.AppendChild(&mut *doc_head).is_ok());
 
                 // Step 6.
@@ -148,7 +148,7 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
                     None => (),
                     Some(title_str) => {
                         // Step 6.1.
-                        let mut doc_title = NodeCast::from_unrooted(HTMLTitleElement::new("title".to_owned(), &*doc)).root();
+                        let mut doc_title = NodeCast::from_temporary(HTMLTitleElement::new("title".to_owned(), &*doc)).root();
                         assert!(doc_head.AppendChild(&mut *doc_title).is_ok());
 
                         // Step 6.2.
