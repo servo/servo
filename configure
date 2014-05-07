@@ -318,7 +318,7 @@ fi
 
 OPTIONS=""
 HELP=0
-if [ "$1" = "--help" ]
+if [ "$1" = "-h" ] || [ "$1" = "--help" ]
 then
     HELP=1
     shift
