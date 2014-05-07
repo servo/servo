@@ -189,7 +189,7 @@ impl InlineBoxAccumulator {
 
     fn from_inline_node(node: &ThreadSafeLayoutNode) -> InlineBoxAccumulator {
         let mut boxes = InlineBoxes::new();
-        boxes.map.push(node.style().clone(), Range::new(0u, 0));
+        boxes.map.push(node.style().clone(), Range::new(0, 0));
         InlineBoxAccumulator {
             boxes: boxes,
             has_enclosing_range: true,
@@ -203,7 +203,7 @@ impl InlineBoxAccumulator {
         } = self;
 
         if has_enclosing_range {
-            let len = boxes.len();
+            let len = boxes.len() as int;
             boxes.map.get_mut(0).range.extend_to(len);
         }
         boxes

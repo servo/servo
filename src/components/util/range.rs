@@ -25,13 +25,13 @@ pub struct Range<T> {
     len: T,
 }
 
-impl<T: Int + TotalOrd> fmt::Show for Range<T> {
+impl<T: Int + TotalOrd + Signed> fmt::Show for Range<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f.buf, "[{} .. {})", self.begin(), self.end())
     }
 }
 
-impl<T: Int + TotalOrd> Range<T> {
+impl<T: Int + TotalOrd + Signed> Range<T> {
     #[inline]
     pub fn new(off: T, len: T) -> Range<T> {
         Range {
@@ -83,13 +83,13 @@ impl<T: Int + TotalOrd> Range<T> {
     }
 
     #[inline]
-    pub fn shift_by(&mut self, i: int) {
-        self.off = num::cast(self.off.to_int().unwrap() + i).unwrap();
+    pub fn shift_by(&mut self, i: T) {
+        self.off = self.off + i;
     }
 
     #[inline]
-    pub fn extend_by(&mut self, i: int) {
-        self.len = num::cast(self.len.to_int().unwrap() + i).unwrap();
+    pub fn extend_by(&mut self, i: T) {
+        self.len = self.len + i;
     }
 
     #[inline]
@@ -98,9 +98,9 @@ impl<T: Int + TotalOrd> Range<T> {
     }
 
     #[inline]
-    pub fn adjust_by(&mut self, off_i: int, len_i: int) {
-        self.off = num::cast(self.off.to_int().unwrap() + off_i).unwrap();
-        self.len = num::cast(self.len.to_int().unwrap() + len_i).unwrap();
+    pub fn adjust_by(&mut self, off_i: T, len_i: T) {
+        self.off = self.off + off_i;
+        self.len = self.len + len_i;
     }
 
     #[inline]
@@ -160,11 +160,11 @@ impl<T: Int + TotalOrd> Range<T> {
         debug!("repair_after_coalesced_range: relation of original range and coalesced range {}: {}",
                *other, relation);
         match relation {
-            EntirelyBefore => { },
-            EntirelyAfter =>  { self.shift_by(-other.length().to_int().unwrap()); },
-            Coincides | ContainedBy =>   { self.reset(other.begin(), num::one()); },
-            Contains =>      { self.extend_by(-other.length().to_int().unwrap()); },
-            OverlapsBegin(overlap) => { self.extend_by(1 - overlap.to_int().unwrap()); },
+            EntirelyBefore => {},
+            EntirelyAfter => { self.shift_by(-other.length()); },
+            Coincides | ContainedBy => { self.reset(other.begin(), num::one()); },
+            Contains => { self.extend_by(-other.length()); },
+            OverlapsBegin(overlap) => { self.extend_by(num::one::<T>() - overlap); },
             OverlapsEnd(overlap) => {
                 let len = self.length() - overlap + num::one();
                 self.reset(other.begin(), len);
