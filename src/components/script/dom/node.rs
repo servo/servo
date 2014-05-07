@@ -1229,17 +1229,17 @@ impl Node {
                 let doctype = DocumentType::new(doctype.name.clone(),
                                                 Some(doctype.public_id.clone()),
                                                 Some(doctype.system_id.clone()), &*document);
-                NodeCast::from_unrooted(doctype)
+                NodeCast::from_temporary(doctype)
             },
             DocumentFragmentNodeTypeId => {
                 let doc_fragment = DocumentFragment::new(&*document);
-                NodeCast::from_unrooted(doc_fragment)
+                NodeCast::from_temporary(doc_fragment)
             },
             CommentNodeTypeId => {
                 let comment: &JSRef<Comment> = CommentCast::to_ref(node).unwrap();
                 let comment = comment.deref();
                 let comment = Comment::new(comment.characterdata.data.clone(), &*document);
-                NodeCast::from_unrooted(comment)
+                NodeCast::from_temporary(comment)
             },
             DocumentNodeTypeId => {
                 let document: &JSRef<Document> = DocumentCast::to_ref(node).unwrap();
@@ -1250,26 +1250,26 @@ impl Node {
                 let window = document.window.root();
                 let document = Document::new(&*window, Some(document.url().clone()),
                                              is_html_doc, None);
-                NodeCast::from_unrooted(document)
+                NodeCast::from_temporary(document)
             },
             ElementNodeTypeId(..) => {
                 let element: &JSRef<Element> = ElementCast::to_ref(node).unwrap();
                 let element = element.deref();
                 let element = build_element_from_tag(element.local_name.clone(), &*document);
-                NodeCast::from_unrooted(element)
+                NodeCast::from_temporary(element)
             },
             TextNodeTypeId => {
                 let text: &JSRef<Text> = TextCast::to_ref(node).unwrap();
                 let text = text.deref();
                 let text = Text::new(text.characterdata.data.clone(), &*document);
-                NodeCast::from_unrooted(text)
+                NodeCast::from_temporary(text)
             },
             ProcessingInstructionNodeTypeId => {
                 let pi: &JSRef<ProcessingInstruction> = ProcessingInstructionCast::to_ref(node).unwrap();
                 let pi = pi.deref();
                 let pi = ProcessingInstruction::new(pi.target.clone(),
                                                     pi.characterdata.data.clone(), &*document);
-                NodeCast::from_unrooted(pi)
+                NodeCast::from_temporary(pi)
             },
         }.root();
 
@@ -1552,7 +1552,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                     None
                 } else {
                     let document = self.owner_doc().root();
-                    Some(NodeCast::from_unrooted(document.deref().CreateTextNode(value)))
+                    Some(NodeCast::from_temporary(document.deref().CreateTextNode(value)))
                 }.root();
 
                 // Step 3.
