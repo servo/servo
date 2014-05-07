@@ -89,10 +89,10 @@ pub mod test {
         let mut rng = rand::task_rng();
         for _ in range(0, 50000) {
             let len: uint = rng.gen();
-            let mut v: ~[int] = rng.gen_vec((len % 32) + 1).iter().map(|&x| x).collect();
-            sort::quicksort(v);
+            let mut v: Vec<int> = rng.gen_vec((len % 32) + 1).iter().map(|&x| x).collect();
+            sort::quicksort(v.as_mut_slice());
             for i in range(0, v.len() - 1) {
-                assert!(v[i] <= v[i + 1])
+                assert!(v.get(i) <= v.get(i + 1))
             }
         }
     }
