@@ -1125,25 +1125,19 @@ impl ScriptTask {
                 match page.hit_test(&point) {
                     Some(node_address) => {
                         debug!("node address is {:?}", node_address);
-                        let mut node =
-                            node::from_untrusted_node_address(self.js_runtime.deref().ptr,
-                                                              node_address).root();
-                        debug!("clicked on {:s}", node.deref().debug_str());
 
-                        // Traverse node generations until a node that is an element is
-                        // found.
-                        while !node.deref().is_element() {
-                            match node.deref().parent_node() {
-                                Some(parent) => node = parent.root(),
-                                None => break,
-                            }
-                        }
+                        let temp_node =
+                                node::from_untrusted_node_address(
+                                    self.js_runtime.deref().ptr, node_address);
 
-                        if node.deref().is_element() {
-                            let element: &JSRef<Element> = ElementCast::to_ref(&*node).unwrap();
-                            if "a" == element.deref().local_name {
-                                self.load_url_from_element(page, element)
+                        let maybe_node = temp_node.root().ancestors().find(|node| node.is_anchor_element());
+                        match maybe_node {
+                            Some(node) => {
+                                debug!("clicked on {:s}", node.debug_str());
+                                let element: &JSRef<Element> = ElementCast::to_ref(&node).unwrap();
+                                self.load_url_from_element(page, element);
                             }
+                            None => {}
                         }
                     }
 
