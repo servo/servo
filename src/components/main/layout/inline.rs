@@ -56,7 +56,7 @@ use sync::Arc;
 /// left corner of the green zone is the same as that of the line, but
 /// the green zone can be taller and wider than the line itself.
 pub struct LineBox {
-    pub range: Range,
+    pub range: Range<uint>,
     pub bounds: Rect<Au>,
     pub green_zone: Size2D<Au>
 }
@@ -977,12 +977,12 @@ pub struct FragmentRange {
     /// The style of the DOM node that this range refers to.
     pub style: Arc<ComputedValues>,
     /// The range, in indices into the fragment list.
-    pub range: Range,
+    pub range: Range<uint>,
 }
 
 impl FragmentRange {
     /// Creates a new fragment range from the given values.
-    fn new(style: Arc<ComputedValues>, range: Range) -> FragmentRange {
+    fn new(style: Arc<ComputedValues>, range: Range<uint>) -> FragmentRange {
         FragmentRange {
             style: style,
             range: range,
@@ -1053,7 +1053,7 @@ impl FragmentMap {
     }
 
     /// Adds the given node to the fragment map.
-    pub fn push(&mut self, style: Arc<ComputedValues>, range: Range) {
+    pub fn push(&mut self, style: Arc<ComputedValues>, range: Range<uint>) {
         self.list.push(FragmentRange::new(style, range))
     }
 

@@ -598,7 +598,7 @@ impl<'a> GlyphStore {
     }
 
     #[inline]
-    pub fn iter_glyphs_for_char_range(&'a self, rang: &Range) -> GlyphIterator<'a> {
+    pub fn iter_glyphs_for_char_range(&'a self, rang: &Range<uint>) -> GlyphIterator<'a> {
         if rang.begin() >= self.entry_buffer.len() {
             fail!("iter_glyphs_for_range: range.begin beyond length!");
         }

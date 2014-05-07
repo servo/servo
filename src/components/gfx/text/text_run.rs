@@ -23,14 +23,14 @@ pub struct TextRun {
 
 pub struct SliceIterator<'a> {
     glyph_iter: Items<'a, Arc<GlyphStore>>,
-    range:      Range,
+    range:      Range<uint>,
     offset:     uint,
 }
 
-impl<'a> Iterator<(&'a GlyphStore, uint, Range)> for SliceIterator<'a> {
+impl<'a> Iterator<(&'a GlyphStore, uint, Range<uint>)> for SliceIterator<'a> {
     // inline(always) due to the inefficient rt failures messing up inline heuristics, I think.
     #[inline(always)]
-    fn next(&mut self) -> Option<(&'a GlyphStore, uint, Range)> {
+    fn next(&mut self) -> Option<(&'a GlyphStore, uint, Range<uint>)> {
         loop {
             let slice_glyphs = self.glyph_iter.next();
             if slice_glyphs.is_none() {
@@ -52,13 +52,13 @@ impl<'a> Iterator<(&'a GlyphStore, uint, Range)> for SliceIterator<'a> {
 }
 
 pub struct LineIterator<'a> {
-    range:  Range,
-    clump:  Option<Range>,
+    range:  Range<uint>,
+    clump:  Option<Range<uint>>,
     slices: SliceIterator<'a>,
 }
 
-impl<'a> Iterator<Range> for LineIterator<'a> {
-    fn next(&mut self) -> Option<Range> {
+impl<'a> Iterator<Range<uint>> for LineIterator<'a> {
+    fn next(&mut self) -> Option<Range<uint>> {
         // Loop until we hit whitespace and are in a clump.
         loop {
             match self.slices.next() {
@@ -175,14 +175,14 @@ impl<'a> TextRun {
         &*self.glyphs
     }
 
-    pub fn range_is_trimmable_whitespace(&self, range: &Range) -> bool {
+    pub fn range_is_trimmable_whitespace(&self, range: &Range<uint>) -> bool {
         for (slice_glyphs, _, _) in self.iter_slices_for_range(range) {
             if !slice_glyphs.is_whitespace() { return false; }
         }
         true
     }
 
-    pub fn metrics_for_range(&self, range: &Range) -> RunMetrics {
+    pub fn metrics_for_range(&self, range: &Range<uint>) -> RunMetrics {
         // TODO(Issue #199): alter advance direction for RTL
         // TODO(Issue #98): using inter-char and inter-word spacing settings  when measuring text
         let mut advance = Au(0);
@@ -194,14 +194,14 @@ impl<'a> TextRun {
         RunMetrics::new(advance, self.font_metrics.ascent, self.font_metrics.descent)
     }
 
-    pub fn metrics_for_slice(&self, glyphs: &GlyphStore, slice_range: &Range) -> RunMetrics {
+    pub fn metrics_for_slice(&self, glyphs: &GlyphStore, slice_range: &Range<uint>) -> RunMetrics {
         let mut advance = Au(0);
         for (_i, glyph) in glyphs.iter_glyphs_for_char_range(slice_range) {
             advance = advance + glyph.advance();
         }
         RunMetrics::new(advance, self.font_metrics.ascent, self.font_metrics.descent)
     }
-    pub fn min_width_for_range(&self, range: &Range) -> Au {
+    pub fn min_width_for_range(&self, range: &Range<uint>) -> Au {
         let mut max_piece_width = Au(0);
         debug!("iterating outer range {:?}", range);
         for (_, offset, slice_range) in self.iter_slices_for_range(range) {
@@ -212,7 +212,7 @@ impl<'a> TextRun {
         max_piece_width
     }
 
-    pub fn iter_slices_for_range(&'a self, range: &Range) -> SliceIterator<'a> {
+    pub fn iter_slices_for_range(&'a self, range: &Range<uint>) -> SliceIterator<'a> {
         SliceIterator {
             glyph_iter: self.glyphs.iter(),
             range:      *range,
@@ -220,7 +220,7 @@ impl<'a> TextRun {
         }
     }
 
-    pub fn iter_natural_lines_for_range(&'a self, range: &Range) -> LineIterator<'a> {
+    pub fn iter_natural_lines_for_range(&'a self, range: &Range<uint>) -> LineIterator<'a> {
         LineIterator {
             range:  *range,
             clump:  None,

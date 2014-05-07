@@ -31,7 +31,7 @@ fn can_coalesce_text_nodes(boxes: &[Box], left_i: uint, right_i: uint) -> bool {
 
 /// A stack-allocated object for scanning an inline flow into `TextRun`-containing `TextBox`es.
 pub struct TextRunScanner {
-    pub clump: Range,
+    pub clump: Range<uint>,
 }
 
 impl TextRunScanner {
@@ -210,7 +210,7 @@ impl TextRunScanner {
                 // Next, concatenate all of the transformed strings together, saving the new
                 // character indices.
                 let mut run_str: ~str = "".to_owned();
-                let mut new_ranges: Vec<Range> = vec!();
+                let mut new_ranges: Vec<Range<uint>> = vec!();
                 let mut char_total = 0;
                 for i in range(0, transformed_strs.len()) {
                     let added_chars = transformed_strs.get(i).char_len();

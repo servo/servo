@@ -276,10 +276,10 @@ impl Shaper {
         }
 
         // some helpers
-        let mut glyph_span: Range = Range::empty();
+        let mut glyph_span: Range<uint> = Range::empty();
         // this span contains first byte of first char, to last byte of last char in range.
         // so, end() points to first byte of last+1 char, if it's less than byte_max.
-        let mut char_byte_span: Range = Range::empty();
+        let mut char_byte_span: Range<uint> = Range::empty();
         let mut y_pos = Au(0);
 
         // main loop over each glyph. each iteration usually processes 1 glyph and 1+ chars.

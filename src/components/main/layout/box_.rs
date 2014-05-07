@@ -226,12 +226,12 @@ pub struct ScannedTextBoxInfo {
     pub run: Arc<~TextRun>,
 
     /// The range within the above text run that this represents.
-    pub range: Range,
+    pub range: Range<uint>,
 }
 
 impl ScannedTextBoxInfo {
     /// Creates the information specific to a scanned text box from a range and a text run.
-    pub fn new(run: Arc<~TextRun>, range: Range) -> ScannedTextBoxInfo {
+    pub fn new(run: Arc<~TextRun>, range: Range<uint>) -> ScannedTextBoxInfo {
         ScannedTextBoxInfo {
             run: run,
             range: range,
@@ -1146,7 +1146,7 @@ impl Box {
                 let mut pieces_processed_count: uint = 0;
                 let mut remaining_width: Au = max_width;
                 let mut left_range = Range::new(text_box_info.range.begin(), 0);
-                let mut right_range: Option<Range> = None;
+                let mut right_range: Option<Range<uint>> = None;
 
                 debug!("split_to_width: splitting text box (strlen={:u}, range={}, \
                                                             avail_width={})",
@@ -1222,7 +1222,7 @@ impl Box {
                     None
                 };
 
-                let right_box = right_range.map_or(None, |range: Range| {
+                let right_box = right_range.map_or(None, |range: Range<uint>| {
                     let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run.clone(),
                                                                     range);
                     let mut new_metrics = new_text_box_info.run.metrics_for_range(&range);
