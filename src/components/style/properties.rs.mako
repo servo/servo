@@ -1523,9 +1523,10 @@ impl PropertyDeclaration {
                                 if !seen.get_${sub_property.ident}() {
                                     seen.set_${sub_property.ident}();
                                     result_list.push(${sub_property.ident}_declaration(
-                                        CSSWideKeyword(${
-                                            "Inherit" if sub_property.style_struct.inherited else "Initial"
-                                        })));
+                                        CSSWideKeyword(
+                                            ${"Inherit" if sub_property.style_struct.inherited else "Initial"}
+                                        )
+                                    ));
                                 }
                             % endfor
                             ValidOrIgnoredDeclaration
