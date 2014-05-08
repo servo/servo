@@ -1887,16 +1887,18 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
         }
     }
 
+    // The initial value of border-*-width may be changed at computed value time.
     {
         let border = style_Border.get_mut();
         % for side in ["top", "right", "bottom", "left"]:
             // Like calling to_computed_value, which wouldn't type check.
-            if !(seen.get_border_${side}_width() || context.border_${side}_present) {
+            if !context.border_${side}_present {
                 border.border_${side}_width = Au(0);
             }
         % endfor
     }
 
+    // The initial value of display may be changed at computed value time.
     if !seen.get_display() {
         let box_ = style_Box.get_mut();
         box_.display = longhands::display::to_computed_value(box_.display, &context);
