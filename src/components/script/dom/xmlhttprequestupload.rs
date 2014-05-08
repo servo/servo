@@ -23,7 +23,7 @@ impl XMLHttpRequestUpload {
         }
     }
     pub fn new(window: &JSRef<Window>) -> Temporary<XMLHttpRequestUpload> {
-        reflect_dom_object(~XMLHttpRequestUpload::new_inherited(),
+        reflect_dom_object(box XMLHttpRequestUpload::new_inherited(),
                            window,
                            XMLHttpRequestUploadBinding::Wrap)
     }

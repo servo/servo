@@ -41,6 +41,7 @@ use servo_util::geometry;
 use std::fmt;
 use std::mem;
 use std::num::Zero;
+use std::owned;
 use style::computed_values::{LPA_Auto, LPA_Length, LPA_Percentage, LPN_Length, LPN_None};
 use style::computed_values::{LPN_Percentage, LP_Length, LP_Percentage, display, float, overflow};
 use sync::Arc;
@@ -503,7 +504,7 @@ pub struct BlockFlow {
     previous_float_width: Option<Au>,
 
     /// Additional floating flow members.
-    pub float: Option<~FloatedBlockInfo>
+    pub float: Option<owned::Box<FloatedBlockInfo>>
 }
 
 impl BlockFlow {
@@ -539,7 +540,7 @@ impl BlockFlow {
             is_root: false,
             static_y_offset: Au::new(0),
             previous_float_width: None,
-            float: Some(~FloatedBlockInfo::new(float_kind))
+            float: Some(box FloatedBlockInfo::new(float_kind))
         }
     }
 

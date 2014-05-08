@@ -33,7 +33,7 @@ impl HTMLDivElement {
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLDivElement> {
         let element = HTMLDivElement::new_inherited(localName, document);
-        Node::reflect_node(~element, document, HTMLDivElementBinding::Wrap)
+        Node::reflect_node(box element, document, HTMLDivElementBinding::Wrap)
     }
 }
 

@@ -151,8 +151,8 @@ impl TextRunScanner {
                     // font group fonts. This is probably achieved by creating the font group above
                     // and then letting `FontGroup` decide which `Font` to stick into the text run.
                     let fontgroup = font_context.get_resolved_font_for_style(&font_style);
-                    let run = ~fontgroup.borrow().create_textrun(transformed_text.clone(),
-                                                                 decoration);
+                    let run = box fontgroup.borrow().create_textrun(
+                        transformed_text.clone(), decoration);
 
                     debug!("TextRunScanner: pushing single text box in range: {} ({})",
                            self.clump,
@@ -210,7 +210,7 @@ impl TextRunScanner {
 
                 // Next, concatenate all of the transformed strings together, saving the new
                 // character indices.
-                let mut run_str: ~str = "".to_owned();
+                let mut run_str = StrBuf::new();
                 let mut new_ranges: Vec<Range<CharIndex>> = vec![];
                 let mut char_total = CharIndex(0);
                 for i in range(0, transformed_strs.len() as int) {
@@ -225,8 +225,9 @@ impl TextRunScanner {
                 // sequence. If no clump takes ownership, however, it will leak.
                 let clump = self.clump;
                 let run = if clump.length() != CharIndex(0) && run_str.len() > 0 {
-                    Some(Arc::new(~TextRun::new(&mut *fontgroup.borrow().fonts.get(0).borrow_mut(),
-                                                run_str.clone(), decoration)))
+                    Some(Arc::new(box TextRun::new(
+                        &mut *fontgroup.borrow().fonts.get(0).borrow_mut(),
+                        run_str.into_owned(), decoration)))
                 } else {
                     None
                 };

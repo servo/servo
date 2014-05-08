@@ -32,7 +32,7 @@ impl HTMLHeadElement {
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLHeadElement> {
         let element = HTMLHeadElement::new_inherited(localName, document);
-        Node::reflect_node(~element, document, HTMLHeadElementBinding::Wrap)
+        Node::reflect_node(box element, document, HTMLHeadElementBinding::Wrap)
     }
 }
 

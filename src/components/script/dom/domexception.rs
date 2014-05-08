@@ -50,7 +50,7 @@ impl DOMException {
     }
 
     pub fn new(window: &JSRef<Window>, code: DOMErrorName) -> Temporary<DOMException> {
-        reflect_dom_object(~DOMException::new_inherited(code), window, DOMExceptionBinding::Wrap)
+        reflect_dom_object(box DOMException::new_inherited(code), window, DOMExceptionBinding::Wrap)
     }
 }
 

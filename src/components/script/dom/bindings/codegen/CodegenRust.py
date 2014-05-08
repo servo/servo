@@ -1755,10 +1755,10 @@ class CGWrapMethod(CGAbstractMethod):
         assert descriptor.interface.hasInterfacePrototypeObject()
         if not descriptor.createGlobal:
             args = [Argument('*JSContext', 'aCx'), Argument('&JSRef<Window>', 'aScope'),
-                    Argument("~" + descriptor.concreteType, 'aObject', mutable=True)]
+                    Argument("Box<%s>" % descriptor.concreteType, 'aObject', mutable=True)]
         else:
             args = [Argument('*JSContext', 'aCx'),
-                    Argument("~" + descriptor.concreteType, 'aObject', mutable=True)]
+                    Argument("Box<%s>" % descriptor.concreteType, 'aObject', mutable=True)]
         retval = 'JS<%s>' % descriptor.concreteType
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', retval, args, pub=True)
 
@@ -2609,7 +2609,7 @@ impl ToJSValConvertible for valuelist {
   }
 }
 """ % (",\n  ".join(map(getEnumValueName, enum.values())),
-       ",\n  ".join(['&"%s"' % val for val in enum.values()]))
+       ",\n  ".join(['"%s"' % val for val in enum.values()]))
 
         self.cgRoot = CGList([
             CGNamespace.build([enum.identifier.name + "Values"],
@@ -3740,7 +3740,7 @@ class CGAbstractClassHook(CGAbstractExternMethod):
 
 def finalizeHook(descriptor, hookName, context):
     release = """let val = JS_GetReservedSlot(obj, dom_object_slot(obj));
-let _: ~%s = cast::transmute(val.to_private());
+let _: Box<%s> = cast::transmute(val.to_private());
 debug!("%s finalize: {:p}", this);
 """ % (descriptor.concreteType, descriptor.concreteType)
     return release
@@ -4221,7 +4221,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::js::{OptionalRootable, OptionalRootedRootable, ResultRootable}',
             'dom::bindings::js::{OptionalRootedReference, OptionalOptionalRootedRootable}',
             'dom::bindings::utils::{CreateDOMGlobal, CreateInterfaceObjects2}',
-            'dom::bindings::utils::{ConstantSpec, cx_for_dom_object, Default}',
+            'dom::bindings::utils::{ConstantSpec, cx_for_dom_object}',
             'dom::bindings::utils::{dom_object_slot, DOM_OBJECT_SLOT, DOMClass}',
             'dom::bindings::utils::{DOMJSClass, JSCLASS_DOM_GLOBAL}',
             'dom::bindings::utils::{FindEnumStringIndex, GetArrayIndexFromId}',
@@ -4258,7 +4258,6 @@ class CGBindingRoot(CGThing):
             'std::cast',
             'std::cmp',
             'std::ptr',
-            'std::slice',
             'std::str',
             'std::num',
         ])
@@ -4649,7 +4648,7 @@ class CGCallback(CGClass):
 
         # And now insert our template argument.
         argsWithoutThis = list(args)
-        args.insert(0, Argument("~T",  "thisObj"))
+        args.insert(0, Argument("Box<T>",  "thisObj"))
 
         # And the self argument
         method.args.insert(0, Argument(None, "&self"))
@@ -4799,7 +4798,7 @@ class CallbackMember(CGNativeMember):
         if self.argCount > 0:
             replacements["argCount"] = self.argCountStr
             replacements["argvDecl"] = string.Template(
-                "let mut argv = slice::from_elem(${argCount}, UndefinedValue());\n"
+                "let mut argv = Vec::from_elem(${argCount}, UndefinedValue());\n"
                 ).substitute(replacements)
         else:
             # Avoid weird 0-sized arrays
@@ -4886,7 +4885,7 @@ class CallbackMember(CGNativeMember):
             result = argval
             prepend = ""
 
-        conversion = prepend + wrapForType("argv[%s]" % jsvalIndex,
+        conversion = prepend + wrapForType("*argv.get_mut(%s)" % jsvalIndex,
                 result=result,
                 successCode="continue;" if arg.variadic else "break;")
         if arg.variadic:
@@ -4975,7 +4974,7 @@ class CallbackMethod(CallbackMember):
             "getCallable": self.getCallableDecl()
             }
         if self.argCount > 0:
-            replacements["argv"] = "&argv[0]"
+            replacements["argv"] = "argv.as_ptr()"
             replacements["argc"] = "argc"
         else:
             replacements["argv"] = "nullptr"

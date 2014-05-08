@@ -36,7 +36,7 @@ impl HTMLFieldSetElement {
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLFieldSetElement> {
         let element = HTMLFieldSetElement::new_inherited(localName, document);
-        Node::reflect_node(~element, document, HTMLFieldSetElementBinding::Wrap)
+        Node::reflect_node(box element, document, HTMLFieldSetElementBinding::Wrap)
     }
 }
 
@@ -92,7 +92,7 @@ impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
             }
         }
         let node: &JSRef<Node> = NodeCast::from_ref(self);
-        let filter = ~ElementsFilter;
+        let filter = box ElementsFilter;
         let window = window_from_node(node).root();
         HTMLCollection::create(&*window, node, filter)
     }

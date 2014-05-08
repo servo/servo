@@ -20,7 +20,7 @@ use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
 
 pub fn serialize(iterator: &mut NodeIterator) -> ~str {
-    let mut html = "".to_owned();
+    let mut html = StrBuf::new();
     let mut open_elements: Vec<~str> = vec!();
 
     for node in *iterator {
@@ -62,7 +62,7 @@ pub fn serialize(iterator: &mut NodeIterator) -> ~str {
     while open_elements.len() > 0 {
         html.push_str("</".to_owned() + open_elements.pop().unwrap().as_slice() + ">");
     }
-    html
+    html.into_owned()
 }
 
 fn serialize_comment(comment: &JSRef<Comment>) -> ~str {
@@ -96,7 +96,9 @@ fn serialize_doctype(doctype: &JSRef<DocumentType>) -> ~str {
 }
 
 fn serialize_elem(elem: &JSRef<Element>, open_elements: &mut Vec<~str>) -> ~str {
-    let mut rv = "<".to_owned() + elem.deref().local_name;
+    let mut rv = StrBuf::new();
+    rv.push_str("<");
+    rv.push_str(elem.deref().local_name);
     for attr in elem.deref().attrs.iter() {
         let attr = attr.root();
         rv.push_str(serialize_attr(&*attr));
@@ -120,7 +122,7 @@ fn serialize_elem(elem: &JSRef<Element>, open_elements: &mut Vec<~str>) -> ~str 
     if !elem.deref().is_void() {
         open_elements.push(elem.deref().local_name.clone());
     }
-    rv
+    rv.into_owned()
 }
 
 fn serialize_attr(attr: &JSRef<Attr>) -> ~str {

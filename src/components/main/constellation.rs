@@ -396,10 +396,10 @@ impl Constellation {
 
         fn force_pipeline_exit(old_pipeline: &Rc<Pipeline>) {
             let ScriptChan(ref old_script) = old_pipeline.script_chan;
-            old_script.try_send(ExitPipelineMsg(old_pipeline.id));
-            old_pipeline.render_chan.chan.try_send(render_task::ExitMsg(None));
+            old_script.send_opt(ExitPipelineMsg(old_pipeline.id));
+            old_pipeline.render_chan.chan.send_opt(render_task::ExitMsg(None));
             let LayoutChan(ref old_layout) = old_pipeline.layout_chan;
-            old_layout.try_send(layout_interface::ExitNowMsg);
+            old_layout.send_opt(layout_interface::ExitNowMsg);
         }
         force_pipeline_exit(&old_pipeline);
         self.pipelines.remove(&pipeline_id);
@@ -804,7 +804,7 @@ impl Constellation {
             debug!("constellation sending resize message to active frame");
             let pipeline = &frame_tree.pipeline;
             let ScriptChan(ref chan) = pipeline.script_chan;
-            chan.try_send(ResizeMsg(pipeline.id, new_size));
+            chan.send_opt(ResizeMsg(pipeline.id, new_size));
             already_seen.insert(pipeline.id);
         }
         for frame_tree in self.navigation_context.previous.iter()
@@ -813,7 +813,7 @@ impl Constellation {
             if !already_seen.contains(&pipeline.id) {
                 debug!("constellation sending resize message to inactive frame");
                 let ScriptChan(ref chan) = pipeline.script_chan;
-                chan.try_send(ResizeInactiveMsg(pipeline.id, new_size));
+                chan.send_opt(ResizeInactiveMsg(pipeline.id, new_size));
                 already_seen.insert(pipeline.id);
             }
         }
@@ -826,7 +826,7 @@ impl Constellation {
                 debug!("constellation sending resize message to pending outer frame ({:?})",
                        frame_tree.pipeline.id);
                 let ScriptChan(ref chan) = frame_tree.pipeline.script_chan;
-                chan.try_send(ResizeMsg(frame_tree.pipeline.id, new_size));
+                chan.send_opt(ResizeMsg(frame_tree.pipeline.id, new_size));
             }
         }
 
@@ -879,13 +879,13 @@ impl Constellation {
         debug!("Constellation sending SetIds");
         self.compositor_chan.send(SetIds(frame_tree.to_sendable(), chan, self.chan.clone()));
         match port.recv_opt() {
-            Some(()) => {
+            Ok(()) => {
                 let mut iter = frame_tree.iter();
                 for frame in iter {
                     frame.pipeline.grant_paint_permission();
                 }
             }
-            None => {} // message has been discarded, probably shutting down
+            Err(()) => {} // message has been discarded, probably shutting down
         }
     }
 }

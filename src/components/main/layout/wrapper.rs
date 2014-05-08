@@ -247,7 +247,7 @@ impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
             let elem: JS<Element> = self.node.transmute_copy();
             let element = &*elem.unsafe_get();
             LayoutElement {
-                element: cast::transmute_region(element),
+                element: cast::transmute_lifetime(element),
             }
         }
     }

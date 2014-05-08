@@ -85,7 +85,7 @@ impl HTMLIFrameElement {
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLIFrameElement> {
         let element = HTMLIFrameElement::new_inherited(localName, document);
-        Node::reflect_node(~element, document, HTMLIFrameElementBinding::Wrap)
+        Node::reflect_node(box element, document, HTMLIFrameElementBinding::Wrap)
     }
 }
 

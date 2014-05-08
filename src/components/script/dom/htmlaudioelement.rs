@@ -32,7 +32,7 @@ impl HTMLAudioElement {
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLAudioElement> {
         let element = HTMLAudioElement::new_inherited(localName, document);
-        Node::reflect_node(~element, document, HTMLAudioElementBinding::Wrap)
+        Node::reflect_node(box element, document, HTMLAudioElementBinding::Wrap)
     }
 }
 

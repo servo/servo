@@ -5,8 +5,7 @@
 use dom::bindings::js::JSRef;
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::bindings::error::{Fallible, InvalidState};
-use dom::bindings::codegen::BindingDeclarations::EventListenerBinding;
-use self::EventListenerBinding::EventListener;
+use dom::bindings::codegen::BindingDeclarations::EventListenerBinding::EventListener;
 use dom::event::Event;
 use dom::eventdispatcher::dispatch_event;
 use dom::node::NodeTypeId;

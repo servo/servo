@@ -60,7 +60,7 @@ impl PrivateLayoutData {
 pub struct LayoutDataWrapper {
     pub chan: Option<LayoutChan>,
     pub shared_data: SharedLayoutData,
-    pub data: ~PrivateLayoutData,
+    pub data: Box<PrivateLayoutData>,
 }
 
 /// A trait that allows access to the layout data of a DOM node.

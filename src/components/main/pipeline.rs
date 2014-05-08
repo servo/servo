@@ -136,7 +136,7 @@ impl Pipeline {
         };
 
         ScriptTask::create(id,
-                           ~compositor_chan.clone(),
+                           box compositor_chan.clone(),
                            layout_chan.clone(),
                            script_port,
                            script_chan.clone(),
@@ -197,12 +197,12 @@ impl Pipeline {
     }
 
     pub fn grant_paint_permission(&self) {
-        self.render_chan.chan.try_send(PaintPermissionGranted);
+        self.render_chan.chan.send_opt(PaintPermissionGranted);
     }
 
     pub fn revoke_paint_permission(&self) {
         debug!("pipeline revoking render channel paint permission");
-        self.render_chan.chan.try_send(PaintPermissionRevoked);
+        self.render_chan.chan.send_opt(PaintPermissionRevoked);
     }
 
     pub fn exit(&self) {
@@ -211,7 +211,7 @@ impl Pipeline {
         // Script task handles shutting down layout, and layout handles shutting down the renderer.
         // For now, if the script task has failed, we give up on clean shutdown.
         let ScriptChan(ref chan) = self.script_chan;
-        if chan.try_send(script_task::ExitPipelineMsg(self.id)) {
+        if chan.send_opt(script_task::ExitPipelineMsg(self.id)).is_ok() {
             // Wait until all slave tasks have terminated and run destructors
             // NOTE: We don't wait for script task as we don't always own it
             self.render_shutdown_port.recv_opt();

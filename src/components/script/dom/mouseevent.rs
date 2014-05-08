@@ -52,7 +52,7 @@ impl MouseEvent {
     }
 
     pub fn new_uninitialized(window: &JSRef<Window>) -> Temporary<MouseEvent> {
-        reflect_dom_object(~MouseEvent::new_inherited(),
+        reflect_dom_object(box MouseEvent::new_inherited(),
                            window,
                            MouseEventBinding::Wrap)
     }

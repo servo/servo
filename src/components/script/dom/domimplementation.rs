@@ -34,7 +34,7 @@ impl DOMImplementation {
     }
 
     pub fn new(owner: &JSRef<Window>) -> Temporary<DOMImplementation> {
-        reflect_dom_object(~DOMImplementation::new_inherited(owner), owner,
+        reflect_dom_object(box DOMImplementation::new_inherited(owner), owner,
                            DOMImplementationBinding::Wrap)
     }
 }

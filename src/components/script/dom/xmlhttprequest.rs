@@ -4,8 +4,8 @@
 
 use dom::bindings::codegen::BindingDeclarations::XMLHttpRequestBinding;
 use dom::bindings::str::ByteString;
-use self::XMLHttpRequestBinding::XMLHttpRequestResponseType;
-use self::XMLHttpRequestBinding::XMLHttpRequestResponseTypeValues::{_empty, Text};
+use dom::bindings::codegen::BindingDeclarations::XMLHttpRequestBinding::XMLHttpRequestResponseType;
+use dom::bindings::codegen::BindingDeclarations::XMLHttpRequestBinding::XMLHttpRequestResponseTypeValues::{_empty, Text};
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, XMLHttpRequestDerived};
 use dom::bindings::error::{ErrorResult, InvalidState, Network, Syntax, Security};
 use dom::document::Document;
@@ -33,7 +33,7 @@ use libc::c_void;
 use std::comm::channel;
 use std::io::MemWriter;
 
-use std::task;
+use std::task::TaskBuilder;
 
 use ResponseHeaderCollection = http::headers::response::HeaderCollection;
 use RequestHeaderCollection = http::headers::request::HeaderCollection;
@@ -148,7 +148,7 @@ impl XMLHttpRequest {
         xhr
     }
     pub fn new(window: &JSRef<Window>) -> Temporary<XMLHttpRequest> {
-        reflect_dom_object(~XMLHttpRequest::new_inherited(window),
+        reflect_dom_object(box XMLHttpRequest::new_inherited(window),
                            window,
                            XMLHttpRequestBinding::Wrap)
     }
@@ -328,7 +328,7 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
         if self.sync {
             return XMLHttpRequest::fetch(&mut Sync(self), resource_task, url);
         } else {
-            let builder = task::task().named("XHRTask");
+            let builder = TaskBuilder::new().named("XHRTask");
             unsafe {
                 let addr = self.to_trusted();
                 let script_chan = global.script_chan.clone();

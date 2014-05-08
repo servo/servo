@@ -11,7 +11,6 @@ use native;
 use rand;
 use rand::{Rng, XorShiftRng};
 use std::cast;
-use std::comm;
 use std::mem;
 use std::sync::atomics::{AtomicUint, SeqCst};
 use std::sync::deque::{Abort, BufferPool, Data, Empty, Stealer, Worker};
@@ -116,12 +115,12 @@ impl<QUD:Send,WUD:Send> WorkerThread<QUD,WUD> {
 
                             if i == SPIN_COUNT {
                                 match self.port.try_recv() {
-                                    comm::Data(StopMsg) => {
+                                    Ok(StopMsg) => {
                                         should_continue = false;
                                         break
                                     }
-                                    comm::Data(ExitMsg) => return,
-                                    comm::Data(_) => fail!("unexpected message"),
+                                    Ok(ExitMsg) => return,
+                                    Ok(_) => fail!("unexpected message"),
                                     _ => {}
                                 }
 

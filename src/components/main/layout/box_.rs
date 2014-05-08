@@ -44,6 +44,7 @@ use std::from_str::FromStr;
 use std::iter::AdditiveIterator;
 use std::mem;
 use std::num::Zero;
+use std::owned;
 use style::{ComputedValues, TElement, TNode, cascade_anonymous};
 use style::computed_values::{LengthOrPercentageOrAuto, overflow, LPA_Auto, background_attachment};
 use style::computed_values::{background_repeat, border_style, clear, position, text_align};
@@ -224,7 +225,7 @@ impl IframeBoxInfo {
 #[deriving(Clone)]
 pub struct ScannedTextBoxInfo {
     /// The text run that this represents.
-    pub run: Arc<~TextRun>,
+    pub run: Arc<owned::Box<TextRun>>,
 
     /// The range within the above text run that this represents.
     pub range: Range<CharIndex>,
@@ -232,7 +233,7 @@ pub struct ScannedTextBoxInfo {
 
 impl ScannedTextBoxInfo {
     /// Creates the information specific to a scanned text box from a range and a text run.
-    pub fn new(run: Arc<~TextRun>, range: Range<CharIndex>) -> ScannedTextBoxInfo {
+    pub fn new(run: Arc<owned::Box<TextRun>>, range: Range<CharIndex>) -> ScannedTextBoxInfo {
         ScannedTextBoxInfo {
             run: run,
             range: range,
@@ -642,7 +643,7 @@ impl Box {
         let style = self.style();
         let background_color = style.resolve_color(style.Background.get().background_color);
         if !background_color.alpha.approx_eq(&0.0) {
-            let display_item = ~SolidColorDisplayItem {
+            let display_item = box SolidColorDisplayItem {
                 base: BaseDisplayItem::new(*absolute_bounds, self.node, level),
                 color: background_color.to_gfx_color(),
             };
@@ -689,7 +690,7 @@ impl Box {
                 bounds.size.height = bounds.size.height - vertical_position;
             }
             background_attachment::fixed => {
-                clip_display_item = Some(~ClipDisplayItem {
+                clip_display_item = Some(box ClipDisplayItem {
                     base: BaseDisplayItem::new(bounds, self.node, level),
                     children: DisplayList::new(),
                 });
@@ -718,7 +719,7 @@ impl Box {
         };
 
         // Create the image display item.
-        let image_display_item = ImageDisplayItemClass(~ImageDisplayItem {
+        let image_display_item = ImageDisplayItemClass(box ImageDisplayItem {
             base: BaseDisplayItem::new(bounds, self.node, level),
             image: image.clone(),
             stretch_size: Size2D(Au::from_px(image.width as int),
@@ -755,7 +756,7 @@ impl Box {
         let left_color = style.resolve_color(style.Border.get().border_left_color);
 
         // Append the border to the display list.
-        let border_display_item = ~BorderDisplayItem {
+        let border_display_item = box BorderDisplayItem {
             base: BaseDisplayItem::new(*abs_bounds, self.node, level),
             border: border,
             color: SideOffsets2D::new(top_color.to_gfx_color(),
@@ -781,7 +782,7 @@ impl Box {
         // Compute the text box bounds and draw a border surrounding them.
         let debug_border = SideOffsets2D::new_all_same(Au::from_px(1));
 
-        let border_display_item = ~BorderDisplayItem {
+        let border_display_item = box BorderDisplayItem {
             base: BaseDisplayItem::new(absolute_box_bounds, self.node, ContentStackingLevel),
             border: debug_border,
             color: SideOffsets2D::new_all_same(rgb(0, 0, 200)),
@@ -794,7 +795,7 @@ impl Box {
         let baseline = Rect(absolute_box_bounds.origin + Point2D(Au(0), ascent),
                             Size2D(absolute_box_bounds.size.width, Au(0)));
 
-        let line_display_item = ~LineDisplayItem {
+        let line_display_item = box LineDisplayItem {
             base: BaseDisplayItem::new(baseline, self.node, ContentStackingLevel),
             color: rgb(0, 200, 0),
             style: border_style::dashed,
@@ -811,7 +812,7 @@ impl Box {
         // This prints a debug border around the border of this box.
         let debug_border = SideOffsets2D::new_all_same(Au::from_px(1));
 
-        let border_display_item = ~BorderDisplayItem {
+        let border_display_item = box BorderDisplayItem {
             base: BaseDisplayItem::new(absolute_box_bounds, self.node, ContentStackingLevel),
             border: debug_border,
             color: SideOffsets2D::new_all_same(rgb(0, 0, 200)),
@@ -867,7 +868,7 @@ impl Box {
                 StackingLevel::from_background_and_border_level(background_and_border_level);
 
             // Add a pseudo-display item for content box queries. This is a very bogus thing to do.
-            let base_display_item = ~BaseDisplayItem::new(absolute_box_bounds, self.node, level);
+            let base_display_item = box BaseDisplayItem::new(absolute_box_bounds, self.node, level);
             display_list.push(PseudoDisplayItemClass(base_display_item));
 
             // Add the background to the list, if applicable.
@@ -910,7 +911,7 @@ impl Box {
                 bounds.size.width = bounds.size.width - self.border_padding.horizontal();
 
                 // Create the text box.
-                let text_display_item = ~TextDisplayItem {
+                let text_display_item = box TextDisplayItem {
                     base: BaseDisplayItem::new(bounds, self.node, ContentStackingLevel),
                     text_run: text_box.run.clone(),
                     range: text_box.range,
@@ -948,7 +949,7 @@ impl Box {
                                 debug!("(building display list) building image box");
 
                                 // Place the image into the display list.
-                                let image_display_item = ~ImageDisplayItem {
+                                let image_display_item = box ImageDisplayItem {
                                     base: BaseDisplayItem::new(bounds,
                                                                self.node,
                                                                ContentStackingLevel),
@@ -1463,7 +1464,7 @@ impl fmt::Show for Box {
 
 /// An object that accumulates display lists of child flows, applying a clipping rect if necessary.
 pub struct ChildDisplayListAccumulator {
-    clip_display_item: Option<~ClipDisplayItem>,
+    clip_display_item: Option<owned::Box<ClipDisplayItem>>,
 }
 
 impl ChildDisplayListAccumulator {
@@ -1473,7 +1474,7 @@ impl ChildDisplayListAccumulator {
         ChildDisplayListAccumulator {
             clip_display_item: match style.Box.get().overflow {
                 overflow::hidden => {
-                    Some(~ClipDisplayItem {
+                    Some(box ClipDisplayItem {
                         base: BaseDisplayItem::new(bounds, node, level),
                         children: DisplayList::new(),
                     })

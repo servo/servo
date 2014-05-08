@@ -34,7 +34,6 @@ use servo_msg::constellation_msg;
 use servo_util::opts::Opts;
 use servo_util::time::{profile, ProfilerChan};
 use servo_util::{time, url};
-use std::comm::{Empty, Disconnected, Data, Sender, Receiver};
 use std::io::timer::sleep;
 use std::path::Path;
 use std::rc::Rc;
@@ -219,8 +218,8 @@ impl IOCompositor {
         // another task from finishing (i.e. SetIds)
         loop {
             match self.port.try_recv() {
-                Empty | Disconnected => break,
-                Data(_) => {},
+                Err(_) => break,
+                Ok(_) => {},
             }
         }
 
@@ -232,11 +231,9 @@ impl IOCompositor {
     fn handle_message(&mut self) {
         loop {
             match (self.port.try_recv(), self.shutting_down) {
-                (Empty, _) => break,
+                (Err(_), _) => break,
 
-                (Disconnected, _) => break,
-
-                (Data(Exit(chan)), _) => {
+                (Ok(Exit(chan)), _) => {
                     debug!("shutting down the constellation");
                     let ConstellationChan(ref con_chan) = self.constellation_chan;
                     con_chan.send(ExitMsg);
@@ -244,38 +241,38 @@ impl IOCompositor {
                     self.shutting_down = true;
                 }
 
-                (Data(ShutdownComplete), _) => {
+                (Ok(ShutdownComplete), _) => {
                     debug!("constellation completed shutdown");
                     self.done = true;
                 }
 
-                (Data(ChangeReadyState(ready_state)), false) => {
+                (Ok(ChangeReadyState(ready_state)), false) => {
                     self.window.set_ready_state(ready_state);
                     self.ready_state = ready_state;
                 }
 
-                (Data(ChangeRenderState(render_state)), false) => {
+                (Ok(ChangeRenderState(render_state)), false) => {
                     self.change_render_state(render_state);
                 }
 
-                (Data(SetUnRenderedColor(pipeline_id, layer_id, color)), false) => {
+                (Ok(SetUnRenderedColor(pipeline_id, layer_id, color)), false) => {
                     self.set_unrendered_color(pipeline_id, layer_id, color);
                 }
 
-                (Data(SetIds(frame_tree, response_chan, new_constellation_chan)), _) => {
+                (Ok(SetIds(frame_tree, response_chan, new_constellation_chan)), _) => {
                     self.set_ids(frame_tree, response_chan, new_constellation_chan);
                 }
 
-                (Data(GetGraphicsMetadata(chan)), false) => {
+                (Ok(GetGraphicsMetadata(chan)), false) => {
                     chan.send(Some(azure_hl::current_graphics_metadata()));
                 }
 
-                (Data(CreateRootCompositorLayerIfNecessary(pipeline_id, layer_id, size)),
+                (Ok(CreateRootCompositorLayerIfNecessary(pipeline_id, layer_id, size)),
                  false) => {
                     self.create_root_compositor_layer_if_necessary(pipeline_id, layer_id, size);
                 }
 
-                (Data(CreateDescendantCompositorLayerIfNecessary(pipeline_id,
+                (Ok(CreateDescendantCompositorLayerIfNecessary(pipeline_id,
                                                                  layer_id,
                                                                  rect,
                                                                  scroll_behavior)),
@@ -286,27 +283,27 @@ impl IOCompositor {
                                                                          scroll_behavior);
                 }
 
-                (Data(SetLayerPageSize(pipeline_id, layer_id, new_size, epoch)), false) => {
+                (Ok(SetLayerPageSize(pipeline_id, layer_id, new_size, epoch)), false) => {
                     self.set_layer_page_size(pipeline_id, layer_id, new_size, epoch);
                 }
 
-                (Data(SetLayerClipRect(pipeline_id, layer_id, new_rect)), false) => {
+                (Ok(SetLayerClipRect(pipeline_id, layer_id, new_rect)), false) => {
                     self.set_layer_clip_rect(pipeline_id, layer_id, new_rect);
                 }
 
-                (Data(DeleteLayerGroup(id)), _) => {
+                (Ok(DeleteLayerGroup(id)), _) => {
                     self.delete_layer(id);
                 }
 
-                (Data(Paint(pipeline_id, layer_id, new_layer_buffer_set, epoch)), false) => {
+                (Ok(Paint(pipeline_id, layer_id, new_layer_buffer_set, epoch)), false) => {
                     self.paint(pipeline_id, layer_id, new_layer_buffer_set, epoch);
                 }
 
-                (Data(ScrollFragmentPoint(pipeline_id, layer_id, point)), false) => {
+                (Ok(ScrollFragmentPoint(pipeline_id, layer_id, point)), false) => {
                     self.scroll_fragment_to_point(pipeline_id, layer_id, point);
                 }
 
-                (Data(LoadComplete(..)), false) => {
+                (Ok(LoadComplete(..)), false) => {
                     self.load_complete = true;
                 }
 
@@ -492,7 +489,7 @@ impl IOCompositor {
     fn paint(&mut self,
              pipeline_id: PipelineId,
              layer_id: LayerId,
-             new_layer_buffer_set: ~LayerBufferSet,
+             new_layer_buffer_set: Box<LayerBufferSet>,
              epoch: Epoch) {
         debug!("compositor received new frame");
 

@@ -25,7 +25,7 @@ pub struct LocalImageCacheHandle {
 impl Drop for LocalImageCacheHandle {
     fn drop(&mut self) {
         unsafe {
-            let _: ~Arc<Mutex<~LocalImageCache>> =
+            let _: Box<Arc<Mutex<Box<LocalImageCache>>>> =
                 cast::transmute(mem::replace(&mut self.data, ptr::null()));
         }
     }
@@ -34,7 +34,7 @@ impl Drop for LocalImageCacheHandle {
 impl Clone for LocalImageCacheHandle {
     fn clone(&self) -> LocalImageCacheHandle {
         unsafe {
-            let handle = cast::transmute::<&Arc<Mutex<~LocalImageCache>>,&Arc<*()>>(self.get());
+            let handle = cast::transmute::<&Arc<Mutex<Box<LocalImageCache>>>,&Arc<*()>>(self.get());
             let new_handle = (*handle).clone();
             LocalImageCacheHandle::new(new_handle)
         }
@@ -44,13 +44,13 @@ impl Clone for LocalImageCacheHandle {
 impl LocalImageCacheHandle {
     pub unsafe fn new(cache: Arc<*()>) -> LocalImageCacheHandle {
         LocalImageCacheHandle {
-            data: cast::transmute(~cache),
+            data: cast::transmute(box cache),
         }
     }
 
-    pub fn get<'a>(&'a self) -> &'a Arc<Mutex<~LocalImageCache>> {
+    pub fn get<'a>(&'a self) -> &'a Arc<Mutex<Box<LocalImageCache>>> {
         unsafe {
-            cast::transmute::<*uint,&'a Arc<Mutex<~LocalImageCache>>>(self.data)
+            cast::transmute::<*uint,&'a Arc<Mutex<Box<LocalImageCache>>>>(self.data)
         }
     }
 }
@@ -60,7 +60,7 @@ impl LocalImageCacheHandle {
 #[deriving(Clone)]
 pub struct ImageHolder {
     url: Url,
-    image: Option<Arc<~Image>>,
+    image: Option<Arc<Box<Image>>>,
     cached_size: Size2D<int>,
     local_image_cache: LocalImageCacheHandle,
 }
@@ -109,12 +109,12 @@ impl ImageHolder {
         })
     }
 
-    pub fn get_image_if_present(&self) -> Option<Arc<~Image>> {
+    pub fn get_image_if_present(&self) -> Option<Arc<Box<Image>>> {
         debug!("get_image_if_present() {}", self.url.to_str());
         self.image.clone()
     }
 
-    pub fn get_image(&mut self) -> Option<Arc<~Image>> {
+    pub fn get_image(&mut self) -> Option<Arc<Box<Image>>> {
         debug!("get_image() {}", self.url.to_str());
 
         // If this is the first time we've called this function, load

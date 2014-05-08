@@ -117,7 +117,7 @@ pub mod specified {
                 &ast::Percentage(ref value) if negative_ok || value.value >= 0.
                 => Some(LPA_Percentage(value.value / 100.)),
                 &Number(ref value) if value.value == 0. => Some(LPA_Length(Au_(Au(0)))),
-                &Ident(ref value) if value.eq_ignore_ascii_case("auto") => Some(LPA_Auto),
+                &Ident(ref value) if value.to_owned().eq_ignore_ascii_case("auto") => Some(LPA_Auto),
                 _ => None
             }
         }
@@ -146,7 +146,7 @@ pub mod specified {
                 &ast::Percentage(ref value) if negative_ok || value.value >= 0.
                 => Some(LPN_Percentage(value.value / 100.)),
                 &Number(ref value) if value.value == 0. => Some(LPN_Length(Au_(Au(0)))),
-                &Ident(ref value) if value.eq_ignore_ascii_case("none") => Some(LPN_None),
+                &Ident(ref value) if value.to_owned().eq_ignore_ascii_case("none") => Some(LPN_None),
                 _ => None
             }
         }

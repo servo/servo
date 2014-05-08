@@ -33,7 +33,7 @@ impl HTMLMetaElement {
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLMetaElement> {
         let element = HTMLMetaElement::new_inherited(localName, document);
-        Node::reflect_node(~element, document, HTMLMetaElementBinding::Wrap)
+        Node::reflect_node(box element, document, HTMLMetaElementBinding::Wrap)
     }
 }
 

@@ -169,7 +169,7 @@ impl LayoutDataRef {
         }
     }
 
-    pub unsafe fn from_data<T>(data: ~T) -> LayoutDataRef {
+    pub unsafe fn from_data<T>(data: Box<T>) -> LayoutDataRef {
         LayoutDataRef {
             data_cell: RefCell::new(Some(cast::transmute(data))),
         }
@@ -446,7 +446,7 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
 
     /// Dumps the node tree, for debugging, with indentation.
     fn dump_indent(&self, indent: uint) {
-        let mut s = "".to_owned();
+        let mut s = StrBuf::new();
         for _ in range(0, indent) {
             s.push_str("    ");
         }
@@ -887,9 +887,9 @@ fn as_uintptr<T>(t: &T) -> uintptr_t { t as *T as uintptr_t }
 
 impl Node {
     pub fn reflect_node<N: Reflectable+NodeBase>
-            (node:      ~N,
+            (node:      Box<N>,
              document:  &JSRef<Document>,
-             wrap_fn:   extern "Rust" fn(*JSContext, &JSRef<Window>, ~N) -> JS<N>)
+             wrap_fn:   extern "Rust" fn(*JSContext, &JSRef<Window>, Box<N>) -> JS<N>)
              -> Temporary<N> {
         assert!(node.reflector().get_jsobject().is_null());
         let window = document.deref().window.root();
@@ -1513,14 +1513,14 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         match self.type_id {
             DocumentFragmentNodeTypeId |
             ElementNodeTypeId(..) => {
-                let mut content = "".to_owned();
+                let mut content = StrBuf::new();
                 for node in self.traverse_preorder() {
                     if node.is_text() {
                         let text: &JSRef<Text> = TextCast::to_ref(&node).unwrap();
                         content.push_str(text.deref().characterdata.data.as_slice());
                     }
                 }
-                Some(content)
+                Some(content.into_owned())
             }
             CommentNodeTypeId |
             TextNodeTypeId |
@@ -1560,7 +1560,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 
                 {
                     let characterdata: &mut JSRef<CharacterData> = CharacterDataCast::to_mut_ref(self).unwrap();
-                    characterdata.deref_mut().data = value.clone();
+                    characterdata.deref_mut().data = value;
                 }
 
                 // Notify the document that the content of this node is different

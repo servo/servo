@@ -24,7 +24,7 @@ impl<T> Drop for CowArc<T> {
     fn drop(&mut self) {
         unsafe {
             if self.ptr != ptr::mut_null() && (*self.ptr).ref_count.fetch_sub(1, SeqCst) == 1 {
-                let _kill_it: ~CowArcAlloc<T> = cast::transmute(self.ptr);
+                let _kill_it: Box<CowArcAlloc<T>> = cast::transmute(self.ptr);
                 self.ptr = ptr::mut_null()
             }
         }
@@ -52,7 +52,7 @@ impl<T:Clone> Clone for CowArc<T> {
 impl<T:Clone> CowArc<T> {
     #[inline]
     pub fn new(value: T) -> CowArc<T> {
-        let alloc = ~CowArcAlloc {
+        let alloc = box CowArcAlloc {
             ref_count: AtomicUint::new(1),
             data: value,
         };
@@ -84,7 +84,7 @@ impl<T:Clone> CowArc<T> {
                 return cast::transmute(&mut (*self.ptr).data)
             }
 
-            let copy = ~CowArcAlloc {
+            let copy = box CowArcAlloc {
                 ref_count: AtomicUint::new(1),
                 data: (*self.ptr).data.clone(),
             };

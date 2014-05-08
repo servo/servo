@@ -140,7 +140,7 @@ pub fn unwrap_jsmanaged<T: Reflectable>(mut obj: *JSObject,
     }
 }
 
-pub unsafe fn squirrel_away_unique<T>(x: ~T) -> *T {
+pub unsafe fn squirrel_away_unique<T>(x: Box<T>) -> *T {
     cast::transmute(x)
 }
 
@@ -375,7 +375,7 @@ pub extern fn ThrowingConstructor(_cx: *JSContext, _argc: c_uint, _vp: *mut JSVa
 }
 
 pub fn initialize_global(global: *JSObject) {
-    let protoArray = ~([0 as *JSObject, ..PrototypeList::id::IDCount as uint]);
+    let protoArray = box () ([0 as *JSObject, ..PrototypeList::id::IDCount as uint]);
     unsafe {
         let box_ = squirrel_away_unique(protoArray);
         JS_SetReservedSlot(global,
@@ -390,9 +390,9 @@ pub trait Reflectable {
 }
 
 pub fn reflect_dom_object<T: Reflectable>
-        (obj:     ~T,
+        (obj:     Box<T>,
          window:  &JSRef<window::Window>,
-         wrap_fn: extern "Rust" fn(*JSContext, &JSRef<window::Window>, ~T) -> JS<T>)
+         wrap_fn: extern "Rust" fn(*JSContext, &JSRef<window::Window>, Box<T>) -> JS<T>)
          -> Temporary<T> {
     Temporary::new(wrap_fn(window.deref().get_cx(), window, obj))
 }

@@ -33,7 +33,7 @@ impl HTMLBodyElement {
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLBodyElement> {
         let element = HTMLBodyElement::new_inherited(localName, document);
-        Node::reflect_node(~element, document, HTMLBodyElementBinding::Wrap)
+        Node::reflect_node(box element, document, HTMLBodyElementBinding::Wrap)
     }
 }
 

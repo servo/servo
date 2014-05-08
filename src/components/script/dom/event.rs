@@ -82,7 +82,7 @@ impl Event {
     }
 
     pub fn new(window: &JSRef<Window>) -> Temporary<Event> {
-        reflect_dom_object(~Event::new_inherited(HTMLEventTypeId),
+        reflect_dom_object(box Event::new_inherited(HTMLEventTypeId),
                            window,
                            EventBinding::Wrap)
     }

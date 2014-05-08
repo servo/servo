@@ -286,12 +286,12 @@ pub trait MatchMethods {
     fn recalc_style_for_subtree(&self,
                                 stylist: &Stylist,
                                 layout_context: &mut LayoutContext,
-                                mut font_context: ~FontContext,
+                                mut font_context: Box<FontContext>,
                                 applicable_declarations: &mut ApplicableDeclarations,
                                 applicable_declarations_cache: &mut ApplicableDeclarationsCache,
                                 style_sharing_candidate_cache: &mut StyleSharingCandidateCache,
                                 parent: Option<LayoutNode>)
-                                -> ~FontContext;
+                                -> Box<FontContext>;
 
     fn match_node(&self,
                   stylist: &Stylist,
@@ -466,12 +466,12 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
     fn recalc_style_for_subtree(&self,
                                 stylist: &Stylist,
                                 layout_context: &mut LayoutContext,
-                                mut font_context: ~FontContext,
+                                mut font_context: Box<FontContext>,
                                 applicable_declarations: &mut ApplicableDeclarations,
                                 applicable_declarations_cache: &mut ApplicableDeclarationsCache,
                                 style_sharing_candidate_cache: &mut StyleSharingCandidateCache,
                                 parent: Option<LayoutNode>)
-                                -> ~FontContext {
+                                -> Box<FontContext> {
         self.initialize_layout_data(layout_context.layout_chan.clone());
 
         // First, check to see whether we can share a style with someone.

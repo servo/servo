@@ -35,7 +35,7 @@ impl HTMLOutputElement {
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLOutputElement> {
         let element = HTMLOutputElement::new_inherited(localName, document);
-        Node::reflect_node(~element, document, HTMLOutputElementBinding::Wrap)
+        Node::reflect_node(box element, document, HTMLOutputElementBinding::Wrap)
     }
 }
 

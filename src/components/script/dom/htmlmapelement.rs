@@ -34,7 +34,7 @@ impl HTMLMapElement {
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLMapElement> {
         let element = HTMLMapElement::new_inherited(localName, document);
-        Node::reflect_node(~element, document, HTMLMapElementBinding::Wrap)
+        Node::reflect_node(box element, document, HTMLMapElementBinding::Wrap)
     }
 }
 

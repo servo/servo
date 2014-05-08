@@ -33,7 +33,7 @@ impl HTMLTableElement {
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLTableElement> {
         let element = HTMLTableElement::new_inherited(localName, document);
-        Node::reflect_node(~element, document, HTMLTableElementBinding::Wrap)
+        Node::reflect_node(box element, document, HTMLTableElementBinding::Wrap)
     }
 }
 

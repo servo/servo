@@ -33,7 +33,7 @@ impl HTMLLinkElement {
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLLinkElement> {
         let element = HTMLLinkElement::new_inherited(localName, document);
-        Node::reflect_node(~element, document, HTMLLinkElementBinding::Wrap)
+        Node::reflect_node(box element, document, HTMLLinkElementBinding::Wrap)
     }
 }
 

@@ -58,8 +58,8 @@ impl ScriptListener for CompositorChan {
         port.recv();
     }
 
-    fn dup(&self) -> ~ScriptListener {
-        ~self.clone() as ~ScriptListener
+    fn dup(&self) -> Box<ScriptListener> {
+        box self.clone() as Box<ScriptListener>
     }
 }
 
@@ -74,7 +74,7 @@ impl RenderListener for CompositorChan {
     fn paint(&self,
              pipeline_id: PipelineId,
              layer_id: LayerId,
-             layer_buffer_set: ~LayerBufferSet,
+             layer_buffer_set: Box<LayerBufferSet>,
              epoch: Epoch) {
         self.chan.send(Paint(pipeline_id, layer_id, layer_buffer_set, epoch))
     }
@@ -179,7 +179,7 @@ pub enum Msg {
     /// Scroll a page in a window
     ScrollFragmentPoint(PipelineId, LayerId, Point2D<f32>),
     /// Requests that the compositor paint the given layer buffer set for the given page size.
-    Paint(PipelineId, LayerId, ~LayerBufferSet, Epoch),
+    Paint(PipelineId, LayerId, Box<LayerBufferSet>, Epoch),
     /// Alerts the compositor to the current status of page loading.
     ChangeReadyState(ReadyState),
     /// Alerts the compositor to the current status of rendering.

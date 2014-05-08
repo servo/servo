@@ -98,7 +98,7 @@ pub struct CompositorLayer {
 /// Helper struct for keeping CompositorLayer children organized.
 pub struct CompositorLayerChild {
     /// The child itself.
-    pub child: ~CompositorLayer,
+    pub child: Box<CompositorLayer>,
     /// A ContainerLayer managed by the parent node. This deals with clipping and
     /// positioning, and is added above the child's layer tree.
     pub container: Rc<ContainerLayer>,
@@ -107,7 +107,7 @@ pub struct CompositorLayerChild {
 /// Helper enum for storing quadtrees. Either contains a quadtree, or contains
 /// information from which a quadtree can be built.
 enum MaybeQuadtree {
-    Tree(Quadtree<~LayerBuffer>),
+    Tree(Quadtree<Box<LayerBuffer>>),
     NoTree(uint, Option<uint>),
 }
 
@@ -253,14 +253,14 @@ impl CompositorLayer {
             return true
         }
 
-        let mut kid = ~CompositorLayer::new(self.pipeline.clone(),
-                                            child_layer_id,
-                                            rect,
-                                            Some(page_size),
-                                            self.quadtree.tile_size(),
-                                            self.cpu_painting,
-                                            DoesntWantScrollEvents,
-                                            scroll_policy);
+        let mut kid = box CompositorLayer::new(self.pipeline.clone(),
+                                               child_layer_id,
+                                               rect,
+                                               Some(page_size),
+                                               self.quadtree.tile_size(),
+                                               self.cpu_painting,
+                                               DoesntWantScrollEvents,
+                                               scroll_policy);
 
         kid.hidden = false;
 
@@ -406,13 +406,13 @@ impl CompositorLayer {
             MouseWindowMouseUpEvent(button, _) => MouseUpEvent(button, cursor),
         };
         let ScriptChan(ref chan) = self.pipeline.script_chan;
-        chan.try_send(SendEventMsg(self.pipeline.id.clone(), message));
+        chan.send_opt(SendEventMsg(self.pipeline.id.clone(), message));
     }
 
     pub fn send_mouse_move_event(&self, cursor: Point2D<f32>) {
         let message = MouseMoveEvent(cursor);
         let ScriptChan(ref chan) = self.pipeline.script_chan;
-        chan.try_send(SendEventMsg(self.pipeline.id.clone(), message));
+        chan.send_opt(SendEventMsg(self.pipeline.id.clone(), message));
     }
 
     // Given the current window size, determine which tiles need to be (re-)rendered and sends them
@@ -432,7 +432,7 @@ impl CompositorLayer {
                 redisplay = !unused.is_empty();
                 if redisplay {
                     // Send back unused tiles.
-                    self.pipeline.render_chan.try_send(UnusedBufferMsg(unused));
+                    self.pipeline.render_chan.send_opt(UnusedBufferMsg(unused));
                 }
                 if !request.is_empty() {
                     // Ask for tiles.
@@ -440,7 +440,7 @@ impl CompositorLayer {
                     // FIXME(#2003, pcwalton): We may want to batch these up in the case in which
                     // one page has multiple layers, to avoid the user seeing inconsistent states.
                     let msg = ReRenderMsg(request, scale, self.id, self.epoch);
-                    self.pipeline.render_chan.try_send(msg);
+                    self.pipeline.render_chan.send_opt(msg);
                 }
             }
         };
@@ -550,7 +550,7 @@ impl CompositorLayer {
             Tree(ref mut quadtree) => {
                 self.pipeline
                     .render_chan
-                    .try_send(UnusedBufferMsg(quadtree.resize(new_size.width as uint,
+                    .send_opt(UnusedBufferMsg(quadtree.resize(new_size.width as uint,
                                                               new_size.height as uint)));
             }
             NoTree(tile_size, max_mem) => {
@@ -655,7 +655,7 @@ impl CompositorLayer {
                 child.page_size = Some(new_size);
                 match child.quadtree {
                     Tree(ref mut quadtree) => {
-                        child.pipeline.render_chan.try_send(UnusedBufferMsg(quadtree.resize(new_size.width as uint,
+                        child.pipeline.render_chan.send_opt(UnusedBufferMsg(quadtree.resize(new_size.width as uint,
                                                                                             new_size.height as uint)));
                     }
                     NoTree(tile_size, max_mem) => {
@@ -801,9 +801,9 @@ impl CompositorLayer {
                        graphics_context: &NativeCompositingGraphicsContext,
                        pipeline_id: PipelineId,
                        layer_id: LayerId,
-                       mut new_buffers: ~LayerBufferSet,
+                       mut new_buffers: Box<LayerBufferSet>,
                        epoch: Epoch)
-                       -> Option<~LayerBufferSet> {
+                       -> Option<Box<LayerBufferSet>> {
         debug!("compositor_layer: starting add_buffers()");
         if self.pipeline.id != pipeline_id || self.id != layer_id {
             // ID does not match ours, so recurse on descendents (including hidden children).
@@ -829,7 +829,7 @@ impl CompositorLayer {
                    self.epoch,
                    epoch,
                    self.pipeline.id);
-            self.pipeline.render_chan.try_send(UnusedBufferMsg(new_buffers.buffers));
+            self.pipeline.render_chan.send_opt(UnusedBufferMsg(new_buffers.buffers));
             return None
         }
 
@@ -849,7 +849,7 @@ impl CompositorLayer {
                                                                    buffer));
             }
             if !unused_tiles.is_empty() { // send back unused buffers
-                self.pipeline.render_chan.try_send(UnusedBufferMsg(unused_tiles));
+                self.pipeline.render_chan.send_opt(UnusedBufferMsg(unused_tiles));
             }
         }
 
@@ -926,7 +926,7 @@ impl CompositorLayer {
                     tile.mark_wont_leak()
                 }
 
-                self.pipeline.render_chan.try_send(UnusedBufferMsg(tiles));
+                self.pipeline.render_chan.send_opt(UnusedBufferMsg(tiles));
             }
         }
     }

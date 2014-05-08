@@ -33,7 +33,7 @@ impl HTMLTableCaptionElement {
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLTableCaptionElement> {
         let element = HTMLTableCaptionElement::new_inherited(localName, document);
-        Node::reflect_node(~element, document, HTMLTableCaptionElementBinding::Wrap)
+        Node::reflect_node(box element, document, HTMLTableCaptionElementBinding::Wrap)
     }
 }
 

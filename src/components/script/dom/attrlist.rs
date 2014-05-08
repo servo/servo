@@ -26,7 +26,7 @@ impl AttrList {
     }
 
     pub fn new(window: &JSRef<Window>, elem: &JSRef<Element>) -> Temporary<AttrList> {
-        reflect_dom_object(~AttrList::new_inherited(window, elem),
+        reflect_dom_object(box AttrList::new_inherited(window, elem),
                            window, AttrListBinding::Wrap)
     }
 }

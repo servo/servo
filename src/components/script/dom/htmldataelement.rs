@@ -33,7 +33,7 @@ impl HTMLDataElement {
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLDataElement> {
         let element = HTMLDataElement::new_inherited(localName, document);
-        Node::reflect_node(~element, document, HTMLDataElementBinding::Wrap)
+        Node::reflect_node(box element, document, HTMLDataElementBinding::Wrap)
     }
 }
 

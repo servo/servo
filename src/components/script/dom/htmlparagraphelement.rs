@@ -33,7 +33,7 @@ impl HTMLParagraphElement {
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLParagraphElement> {
         let element = HTMLParagraphElement::new_inherited(localName, document);
-        Node::reflect_node(~element, document, HTMLParagraphElementBinding::Wrap)
+        Node::reflect_node(box element, document, HTMLParagraphElementBinding::Wrap)
     }
 }
 

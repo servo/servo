@@ -35,7 +35,7 @@ pub struct LayerBuffer {
 /// A set of layer buffers. This is an atomic unit used to switch between the front and back
 /// buffers.
 pub struct LayerBufferSet {
-    pub buffers: Vec<~LayerBuffer>
+    pub buffers: Vec<Box<LayerBuffer>>
 }
 
 impl LayerBufferSet {
@@ -140,7 +140,7 @@ pub trait RenderListener {
     fn paint(&self,
              pipeline_id: PipelineId,
              layer_id: LayerId,
-             layer_buffer_set: ~LayerBufferSet,
+             layer_buffer_set: Box<LayerBufferSet>,
              epoch: Epoch);
 
     fn set_render_state(&self, render_state: RenderState);
@@ -155,10 +155,10 @@ pub trait ScriptListener : Clone {
                              layer_id: LayerId,
                              point: Point2D<f32>);
     fn close(&self);
-    fn dup(&self) -> ~ScriptListener;
+    fn dup(&self) -> Box<ScriptListener>;
 }
 
-impl<E, S: Encoder<E>> Encodable<S, E> for ~ScriptListener {
+impl<E, S: Encoder<E>> Encodable<S, E> for Box<ScriptListener> {
     fn encode(&self, _s: &mut S) -> Result<(), E> {
         Ok(())
     }
@@ -181,7 +181,7 @@ pub trait Tile {
     fn destroy(self, graphics_context: &NativePaintingGraphicsContext);
 }
 
-impl Tile for ~LayerBuffer {
+impl Tile for Box<LayerBuffer> {
     fn get_mem(&self) -> uint {
         // This works for now, but in the future we may want a better heuristic
         self.screen_pos.size.width * self.screen_pos.size.height
