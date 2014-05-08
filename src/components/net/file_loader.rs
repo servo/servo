@@ -12,14 +12,14 @@ use servo_util::task::spawn_named;
 static READ_SIZE: uint = 1;
 
 fn read_all(reader: &mut io::Stream, progress_chan: &Sender<ProgressMsg>)
-        -> Result<(), ()> {
+        -> Result<(), ~str> {
     loop {
         let mut buf = vec!();
         match reader.push_exact(&mut buf, READ_SIZE) {
             Ok(_) => progress_chan.send(Payload(buf)),
             Err(e) => match e.kind {
                 io::EndOfFile => return Ok(()),
-                _ => return Err(()),
+                _ => return Err(e.desc.to_owned()),
             }
         }
     }
@@ -35,8 +35,8 @@ pub fn factory() -> LoaderTask {
                     let res = read_all(reader as &mut io::Stream, &progress_chan);
                     progress_chan.send(Done(res));
                 }
-                Err(_) => {
-                    progress_chan.send(Done(Err(())));
+                Err(e) => {
+                    progress_chan.send(Done(Err(e.desc.to_owned())));
                 }
             };
         });

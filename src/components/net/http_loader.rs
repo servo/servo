@@ -20,8 +20,8 @@ pub fn factory() -> LoaderTask {
     f
 }
 
-fn send_error(url: Url, start_chan: Sender<LoadResponse>) {
-    start_sending(start_chan, Metadata::default(url)).send(Done(Err(())));
+fn send_error(url: Url, err: ~str, start_chan: Sender<LoadResponse>) {
+    start_sending(start_chan, Metadata::default(url)).send(Done(Err(err)));
 }
 
 fn load(mut url: Url, start_chan: Sender<LoadResponse>) {
@@ -38,22 +38,20 @@ fn load(mut url: Url, start_chan: Sender<LoadResponse>) {
         iters = iters + 1;
 
         if iters > max_redirects {
-            info!("too many redirects");
-            send_error(url, start_chan);
+            send_error(url, "too many redirects".to_owned(), start_chan);
             return;
         }
 
         if redirected_to.contains(&url) {
-            info!("redirect loop");
-            send_error(url, start_chan);
+            send_error(url, "redirect loop".to_owned(), start_chan);
             return;
         }
 
         redirected_to.insert(url.clone());
 
         if "http" != url.scheme {
-            info!("{:s} request, but we don't support that scheme", url.scheme);
-            send_error(url, start_chan);
+            let s = format!("{:s} request, but we don't support that scheme", url.scheme);
+            send_error(url, s, start_chan);
             return;
         }
 
@@ -62,15 +60,15 @@ fn load(mut url: Url, start_chan: Sender<LoadResponse>) {
         let request = RequestWriter::<NetworkStream>::new(Get, url.clone());
         let writer = match request {
             Ok(w) => ~w,
-            Err(_) => {
-                send_error(url, start_chan);
+            Err(e) => {
+                send_error(url, e.desc.to_owned(), start_chan);
                 return;
             }
         };
         let mut response = match writer.read_response() {
             Ok(r) => r,
-            Err(_) => {
-                send_error(url, start_chan);
+            Err((_, e)) => {
+                send_error(url, e.desc.to_owned(), start_chan);
                 return;
             }
         };
