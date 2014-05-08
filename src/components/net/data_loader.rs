@@ -27,7 +27,7 @@ fn load(url: Url, start_chan: Sender<LoadResponse>) {
     // Split out content type and data.
     let parts: ~[&str] = url.path.splitn(',', 1).collect();
     if parts.len() != 2 {
-        start_sending(start_chan, metadata).send(Done(Err(())));
+        start_sending(start_chan, metadata).send(Done(Err("invalid data uri".to_owned())));
         return;
     }
 
@@ -50,7 +50,7 @@ fn load(url: Url, start_chan: Sender<LoadResponse>) {
     if is_base64 {
         match parts[1].from_base64() {
             Err(..) => {
-                progress_chan.send(Done(Err(())));
+                progress_chan.send(Done(Err("non-base64 data uri".to_owned())));
             }
             Ok(data) => {
                 let data: ~[u8] = data;
@@ -86,7 +86,7 @@ fn assert_parse(url:          &'static str,
 
     match data {
         None => {
-            assert_eq!(progress, Done(Err(())));
+            assert_eq!(progress, Done(Err("invalid data uri".to_owned())));
         }
         Some(dat) => {
             assert_eq!(progress, Payload(dat));

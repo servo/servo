@@ -80,7 +80,7 @@ pub enum ProgressMsg {
     /// Binary data - there may be multiple of these
     Payload(Vec<u8>),
     /// Indicates loading is complete, either successfully or not
-    Done(Result<(), ()>)
+    Done(Result<(), ~str>)
 }
 
 /// For use by loaders in responding to a Load message.
@@ -96,7 +96,7 @@ pub fn start_sending(start_chan: Sender<LoadResponse>,
 
 /// Convenience function for synchronously loading a whole resource.
 pub fn load_whole_resource(resource_task: &ResourceTask, url: Url)
-        -> Result<(Metadata, Vec<u8>), ()> {
+        -> Result<(Metadata, Vec<u8>), ~str> {
     let (start_chan, start_port) = channel();
     resource_task.send(Load(url, start_chan));
     let response = start_port.recv();
@@ -183,7 +183,7 @@ impl ResourceManager {
             }
             None => {
                 debug!("resource_task: no loader for scheme {:s}", url.scheme);
-                start_sending(start_chan, Metadata::default(url)).send(Done(Err(())));
+                start_sending(start_chan, Metadata::default(url)).send(Done(Err("no loader for scheme".to_owned())));
             }
         }
     }
