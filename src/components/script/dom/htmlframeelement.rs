@@ -21,10 +21,7 @@ pub struct HTMLFrameElement {
 
 impl HTMLFrameElementDerived for EventTarget {
     fn is_htmlframeelement(&self) -> bool {
-        match self.type_id {
-            NodeTargetTypeId(ElementNodeTypeId(HTMLFrameElementTypeId)) => true,
-            _ => false
-        }
+        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLFrameElementTypeId))
     }
 }
 

@@ -20,10 +20,7 @@ pub struct HTMLModElement {
 
 impl HTMLModElementDerived for EventTarget {
     fn is_htmlmodelement(&self) -> bool {
-        match self.type_id {
-            NodeTargetTypeId(ElementNodeTypeId(HTMLModElementTypeId)) => true,
-            _ => false
-        }
+        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLModElementTypeId))
     }
 }
 

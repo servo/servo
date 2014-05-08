@@ -20,10 +20,7 @@ pub struct HTMLVideoElement {
 
 impl HTMLVideoElementDerived for EventTarget {
     fn is_htmlvideoelement(&self) -> bool {
-        match self.type_id {
-            NodeTargetTypeId(ElementNodeTypeId(HTMLVideoElementTypeId)) => true,
-            _ => false
-        }
+        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLVideoElementTypeId))
     }
 }
 

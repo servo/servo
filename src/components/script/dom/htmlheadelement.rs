@@ -19,10 +19,7 @@ pub struct HTMLHeadElement {
 
 impl HTMLHeadElementDerived for EventTarget {
     fn is_htmlheadelement(&self) -> bool {
-        match self.type_id {
-            NodeTargetTypeId(ElementNodeTypeId(HTMLHeadElementTypeId)) => true,
-            _ => false
-        }
+        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLHeadElementTypeId))
     }
 }
 

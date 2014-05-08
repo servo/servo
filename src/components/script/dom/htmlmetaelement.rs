@@ -20,10 +20,7 @@ pub struct HTMLMetaElement {
 
 impl HTMLMetaElementDerived for EventTarget {
     fn is_htmlmetaelement(&self) -> bool {
-        match self.type_id {
-            NodeTargetTypeId(ElementNodeTypeId(HTMLMetaElementTypeId)) => true,
-            _ => false
-        }
+        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLMetaElementTypeId))
     }
 }
 

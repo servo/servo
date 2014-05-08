@@ -19,10 +19,7 @@ pub struct DocumentFragment {
 
 impl DocumentFragmentDerived for EventTarget {
     fn is_documentfragment(&self) -> bool {
-        match self.type_id {
-            NodeTargetTypeId(DocumentFragmentNodeTypeId) => true,
-            _ => false
-        }
+        self.type_id == NodeTargetTypeId(DocumentFragmentNodeTypeId)
     }
 }
 

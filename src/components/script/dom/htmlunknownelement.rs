@@ -19,10 +19,7 @@ pub struct HTMLUnknownElement {
 
 impl HTMLUnknownElementDerived for EventTarget {
     fn is_htmlunknownelement(&self) -> bool {
-        match self.type_id {
-            NodeTargetTypeId(ElementNodeTypeId(HTMLUnknownElementTypeId)) => true,
-            _ => false
-        }
+        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLUnknownElementTypeId))
     }
 }
 
