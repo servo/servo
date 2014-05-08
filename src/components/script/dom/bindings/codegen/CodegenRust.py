@@ -3250,7 +3250,6 @@ class CGClass(CGThing):
         self.isStruct = isStruct
         self.disallowCopyConstruction = disallowCopyConstruction
         self.indent = indent
-        self.defaultVisibility ='pub' if isStruct else 'priv'
         self.decorators = decorators
         self.extradeclarations = extradeclarations
         self.extradefinitions = extradefinitions
