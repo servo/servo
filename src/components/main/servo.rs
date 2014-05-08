@@ -127,6 +127,7 @@ pub mod platform;
 #[cfg(not(test), target_os="linux")]
 #[cfg(not(test), target_os="macos")]
 #[start]
+#[allow(dead_code)]
 fn start(argc: int, argv: **u8) -> int {
     native::start(argc, argv, proc() {
         opts::from_cmdline_args(os::args()).map(run);
@@ -135,6 +136,7 @@ fn start(argc: int, argv: **u8) -> int {
 
 #[cfg(not(test), target_os="android")]
 #[no_mangle]
+#[allow(dead_code)]
 pub extern "C" fn android_start(argc: int, argv: **u8) -> int {
     native::start(argc, argv, proc() {
         let mut args: Vec<~str> = vec!();
