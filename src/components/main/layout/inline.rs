@@ -713,7 +713,7 @@ impl InlineFlow {
             text_align::right => slack_width,
         };
 
-        for i in line.range.eachi() {
+        for i in line.range.each_index() {
             let box_ = boxes.get_mut(i as uint);
             let size = box_.border_box.size;
             box_.border_box = Rect(Point2D(offset_x, box_.border_box.origin.y), size);
@@ -844,7 +844,7 @@ impl Flow for InlineFlow {
             let (mut largest_height_for_top_fragments, mut largest_height_for_bottom_fragments) =
                 (Au(0), Au(0));
 
-            for box_i in line.range.eachi() {
+            for box_i in line.range.each_index() {
                 let fragment = self.boxes.boxes.get_mut(box_i as uint);
 
                 let InlineMetrics {
@@ -920,7 +920,7 @@ impl Flow for InlineFlow {
 
             // Compute the final positions in the block direction of each fragment. Recall that
             // `fragment.border_box.origin.y` was set to the distance from the baseline above.
-            for box_i in line.range.eachi() {
+            for box_i in line.range.each_index() {
                 let fragment = self.boxes.get_mut(box_i as uint);
                 match fragment.vertical_align() {
                     vertical_align::top => {

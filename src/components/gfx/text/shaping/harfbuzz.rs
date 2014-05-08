@@ -316,7 +316,7 @@ impl Shaper {
                 // extend glyph range to max glyph index covered by char_span,
                 // in cases where one char made several glyphs and left some unassociated chars.
                 let mut max_glyph_idx = glyph_span.end();
-                for i in char_byte_span.eachi() {
+                for i in char_byte_span.each_index() {
                     if byteToGlyph[i as uint] > NO_GLYPH {
                         max_glyph_idx = cmp::max(byteToGlyph[i as uint] as int + 1, max_glyph_idx);
                     }
@@ -340,7 +340,7 @@ impl Shaper {
                         probably doesn't work.");
 
                 let mut all_glyphs_are_within_cluster: bool = true;
-                for j in glyph_span.eachi() {
+                for j in glyph_span.each_index() {
                     let loc = glyph_data.byte_offset_of_glyph(j);
                     if !char_byte_span.contains(loc) {
                         all_glyphs_are_within_cluster = false;
@@ -414,7 +414,7 @@ impl Shaper {
                 // collect all glyphs to be assigned to the first character.
                 let mut datas = vec!();
 
-                for glyph_i in glyph_span.eachi() {
+                for glyph_i in glyph_span.each_index() {
                     let shape = glyph_data.get_entry_for_glyph(glyph_i, &mut y_pos);
                     datas.push(GlyphData::new(shape.codepoint,
                                               shape.advance,

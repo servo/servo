@@ -3,7 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use servo_util::vec::*;
-use servo_util::range::Range;
+use servo_util::range;
+use servo_util::range::{Range, EachIndex};
 use servo_util::geometry::Au;
 
 use std::cmp::{Ord, Eq};
@@ -11,7 +12,6 @@ use std::num::{NumCast, Zero};
 use std::mem;
 use std::u16;
 use std::slice;
-use std::iter;
 use geom::point::Point2D;
 
 /// GlyphEntry is a port of Gecko's CompressedGlyph scheme for storing glyph data compactly.
@@ -609,7 +609,7 @@ impl<'a> GlyphStore {
         GlyphIterator {
             store:       self,
             char_index:  rang.begin(),
-            char_range:  rang.eachi(),
+            char_range:  rang.each_index(),
             glyph_range: None
         }
     }
@@ -674,8 +674,8 @@ impl<'a> GlyphStore {
 pub struct GlyphIterator<'a> {
     store:       &'a GlyphStore,
     char_index:  int,
-    char_range:  iter::Range<int>,
-    glyph_range: Option<iter::Range<int>>,
+    char_range:  EachIndex<int, int>,
+    glyph_range: Option<EachIndex<int, int>>,
 }
 
 impl<'a> GlyphIterator<'a> {
@@ -698,7 +698,7 @@ impl<'a> GlyphIterator<'a> {
     fn next_complex_glyph(&mut self, entry: &GlyphEntry, i: int)
                           -> Option<(int, GlyphInfo<'a>)> {
         let glyphs = self.store.detail_store.get_detailed_glyphs_for_entry(i, entry.glyph_count());
-        self.glyph_range = Some(range(0, glyphs.len() as int));
+        self.glyph_range = Some(range::each_index(0, glyphs.len() as int));
         self.next()
     }
 }

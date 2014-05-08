@@ -232,7 +232,7 @@ impl TextRunScanner {
 
                 // Make new boxes with the run and adjusted text indices.
                 debug!("TextRunScanner: pushing box(es) in range: {}", self.clump);
-                for i in clump.eachi() {
+                for i in clump.each_index() {
                     let logical_offset = i - self.clump.begin();
                     let range = new_ranges.get(logical_offset as uint);
                     if range.length() == 0 {
