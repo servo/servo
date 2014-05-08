@@ -1623,7 +1623,10 @@ fn cascade_with_cached_declarations(applicable_declarations: &[MatchedProperty],
     % endfor
 
     let mut seen = PropertyBitField::new();
+    // Declaration blocks are stored in increasing precedence order,
+    // we want them in decreasing order here.
     for sub_list in applicable_declarations.iter().rev() {
+        // Declarations are already stored in reverse order.
         for declaration in sub_list.declarations.iter() {
             match *declaration {
                 % for style_struct in STYLE_STRUCTS:
@@ -1756,8 +1759,10 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
     )
 
     // Initialize `context`
+    // Declarations blocks are already stored in increasing precedence order.
     for sub_list in applicable_declarations.iter() {
-        for declaration in sub_list.declarations.iter() {
+        // Declarations are stored in reverse source order, we want them in forward order here.
+        for declaration in sub_list.declarations.iter().rev() {
             match *declaration {
                 font_size_declaration(ref value) => {
                     context.font_size = match *value {
@@ -1823,7 +1828,10 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
     % endfor
     let mut cacheable = true;
     let mut seen = PropertyBitField::new();
+    // Declaration blocks are stored in increasing precedence order,
+    // we want them in decreasing order here.
     for sub_list in applicable_declarations.iter().rev() {
+        // Declarations are already stored in reverse order.
         for declaration in sub_list.declarations.iter() {
             match *declaration {
                 % for style_struct in STYLE_STRUCTS:
