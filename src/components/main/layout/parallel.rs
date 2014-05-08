@@ -299,7 +299,15 @@ fn recalc_style_for_node(unsafe_layout_node: UnsafeLayoutNode,
                 }
                 &None => fail!("no layout data"),
             }
+        }
 
+        // It's *very* important that this block is in a separate scope to the block above,
+        // to avoid a data race that can occur (github issue #2308). The block above issues
+        // a borrow on the node layout data. That borrow must be dropped before the child
+        // nodes are actually pushed into the work queue. Otherwise, it's possible for a child
+        // node to get into construct_flows() and move up it's parent hierarchy, which can call
+        // borrow on the layout data before it is dropped from the block above.
+        if child_count != 0 {
             // Enqueue kids.
             for kid in node.children() {
                 proxy.push(WorkUnit {
