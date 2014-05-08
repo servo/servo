@@ -528,7 +528,7 @@ mod tests {
     use std::comm::{Empty, Data, Disconnected};
 
     trait Closure {
-        fn invoke(&self, response: Sender<resource_task::ProgressMsg>) { }
+        fn invoke(&self, _response: Sender<resource_task::ProgressMsg>) { }
     }
     struct DoesNothing;
     impl Closure for DoesNothing { }
