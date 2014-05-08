@@ -156,6 +156,7 @@ pub mod dom {
     pub mod processinginstruction;
     pub mod performance;
     pub mod performancetiming;
+    pub mod progressevent;
     pub mod uievent;
     pub mod text;
     pub mod validitystate;
