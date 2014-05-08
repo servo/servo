@@ -37,7 +37,8 @@ pub enum EventTypeId {
     HTMLEventTypeId,
     UIEventTypeId,
     MouseEventTypeId,
-    KeyEventTypeId
+    KeyEventTypeId,
+    ProgressEventTypeId
 }
 
 #[deriving(Encodable)]
