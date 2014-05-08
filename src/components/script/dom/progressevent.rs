@@ -41,7 +41,7 @@ impl ProgressEvent {
                            ProgressEventBinding::Wrap)
     }
     pub fn Constructor(owner: &JSRef<Window>,
-                       type_: DOMString,
+                       _type: DOMString,
                        init: &ProgressEventBinding::ProgressEventInit)
                        -> Fallible<Temporary<ProgressEvent>> {
         let ev = ProgressEvent::new(owner, init.lengthComputable, init.loaded, init.total);
