@@ -23,6 +23,7 @@ use servo_util::str::DOMString;
 use servo_util::task::{spawn_named};
 
 use js::jsapi::JSContext;
+use js::jsapi::{JS_GC, JS_GetRuntime};
 use js::jsval::{NullValue, JSVal};
 
 use collections::hashmap::HashMap;
@@ -138,6 +139,8 @@ pub trait WindowMethods {
     fn Window(&self) -> Temporary<Window>;
     fn Self(&self) -> Temporary<Window>;
     fn Performance(&mut self) -> Temporary<Performance>;
+    fn Debug(&self, message: DOMString);
+    fn Gc(&self);
 }
 
 impl<'a> WindowMethods for JSRef<'a, Window> {
@@ -262,6 +265,16 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
             self.performance.assign(Some(performance));
         }
         Temporary::new(self.performance.get_ref().clone())
+    }
+
+    fn Debug(&self, message: DOMString) {
+        debug!("{:s}", message);
+    }
+
+    fn Gc(&self) {
+        unsafe {
+            JS_GC(JS_GetRuntime(self.get_cx()));
+        }
     }
 }
 

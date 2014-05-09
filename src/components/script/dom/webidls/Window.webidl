@@ -84,3 +84,9 @@ interface WindowTimers {
   void clearInterval(optional long handle = 0);*/
 };
 Window implements WindowTimers;
+
+// Proprietary extensions.
+partial interface Window {
+  void debug(DOMString arg);
+  void gc();
+};

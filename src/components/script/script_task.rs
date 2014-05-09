@@ -34,8 +34,7 @@ use layout_interface;
 
 use geom::point::Point2D;
 use geom::size::Size2D;
-use js::global::DEBUG_FNS;
-use js::jsapi::{JS_CallFunctionValue, JS_DefineFunctions};
+use js::jsapi::JS_CallFunctionValue;
 use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ, JS_GC};
 use js::jsapi::{JSContext, JSRuntime};
 use js::jsval::NullValue;
@@ -1004,13 +1003,6 @@ impl ScriptTask {
         debug!("js_scripts: {:?}", js_scripts);
 
         with_compartment((**cx).ptr, window.reflector().get_jsobject(), || {
-            // Define debug functions.
-            unsafe {
-                assert!(JS_DefineFunctions((**cx).ptr,
-                                           window.reflector().get_jsobject(),
-                                           DEBUG_FNS.as_ptr()) != 0);
-            }
-
             // Evaluate every script in the document.
             for file in js_scripts.iter() {
                 let global_obj = window.reflector().get_jsobject();
