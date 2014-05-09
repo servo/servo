@@ -52,8 +52,8 @@ pub trait HTMLElementMethods {
     fn SetLang(&mut self, _lang: DOMString);
     fn Dir(&self) -> DOMString;
     fn SetDir(&mut self, _dir: DOMString) -> ErrorResult;
-    fn GetItemValue(&self, _cx: *JSContext) -> Fallible<JSVal>;
-    fn SetItemValue(&mut self, _cx: *JSContext, _val: JSVal) -> ErrorResult;
+    fn GetItemValue(&self, _cx: *mut JSContext) -> Fallible<JSVal>;
+    fn SetItemValue(&mut self, _cx: *mut JSContext, _val: JSVal) -> ErrorResult;
     fn Hidden(&self) -> bool;
     fn SetHidden(&mut self, _hidden: bool) -> ErrorResult;
     fn Click(&self);
@@ -101,11 +101,11 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
         Ok(())
     }
 
-    fn GetItemValue(&self, _cx: *JSContext) -> Fallible<JSVal> {
+    fn GetItemValue(&self, _cx: *mut JSContext) -> Fallible<JSVal> {
         Ok(NullValue())
     }
 
-    fn SetItemValue(&mut self, _cx: *JSContext, _val: JSVal) -> ErrorResult {
+    fn SetItemValue(&mut self, _cx: *mut JSContext, _val: JSVal) -> ErrorResult {
         Ok(())
     }
 

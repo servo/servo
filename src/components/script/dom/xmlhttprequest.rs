@@ -138,7 +138,7 @@ pub trait XMLHttpRequestMethods {
     fn OverrideMimeType(&self, _mime: DOMString);
     fn ResponseType(&self) -> XMLHttpRequestResponseType;
     fn SetResponseType(&mut self, response_type: XMLHttpRequestResponseType);
-    fn Response(&self, _cx: *JSContext) -> JSVal;
+    fn Response(&self, _cx: *mut JSContext) -> JSVal;
     fn ResponseText(&self) -> DOMString;
     fn GetResponseXML(&self) -> Option<Temporary<Document>>;
 }
@@ -283,7 +283,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
     fn SetResponseType(&mut self, response_type: XMLHttpRequestResponseType) {
         self.response_type = response_type
     }
-    fn Response(&self, cx: *JSContext) -> JSVal {
+    fn Response(&self, cx: *mut JSContext) -> JSVal {
         self.response.to_jsval(cx)
     }
     fn ResponseText(&self) -> DOMString {

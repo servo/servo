@@ -4,7 +4,7 @@
 
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::trace::Traceable;
-use dom::bindings::utils::Reflectable;
+use dom::bindings::utils::{Reflectable, object_handle};
 use dom::document::Document;
 use dom::window::Window;
 
@@ -19,7 +19,7 @@ use std::ptr;
 pub struct BrowserContext {
     history: Vec<SessionHistoryEntry>,
     active_index: uint,
-    window_proxy: Traceable<*JSObject>,
+    window_proxy: Traceable<*mut JSObject>,
 }
 
 impl BrowserContext {
@@ -27,7 +27,7 @@ impl BrowserContext {
         let mut context = BrowserContext {
             history: vec!(SessionHistoryEntry::new(document)),
             active_index: 0,
-            window_proxy: Traceable::new(ptr::null()),
+            window_proxy: Traceable::new(ptr::mut_null()),
         };
         context.window_proxy = Traceable::new(context.create_window_proxy());
         context
@@ -42,12 +42,12 @@ impl BrowserContext {
         Temporary::new(doc.deref().window.clone())
     }
 
-    pub fn window_proxy(&self) -> *JSObject {
+    pub fn window_proxy(&self) -> *mut JSObject {
         assert!(self.window_proxy.deref().is_not_null());
         *self.window_proxy
     }
 
-    pub fn create_window_proxy(&self) -> *JSObject {
+    pub fn create_window_proxy(&self) -> *mut JSObject {
         let win = self.active_window().root();
         let page = win.deref().page();
         let js_info = page.js_info();
@@ -55,10 +55,10 @@ impl BrowserContext {
         let handler = js_info.get_ref().dom_static.windowproxy_handler;
         assert!(handler.deref().is_not_null());
 
-        let parent = win.deref().reflector().get_jsobject();
+        let obj = win.deref().reflector().get_jsobject();
         let cx = js_info.get_ref().js_context.deref().deref().ptr;
-        let wrapper = with_compartment(cx, parent, || unsafe {
-            WrapperNew(cx, parent, *handler.deref())
+        let wrapper = with_compartment(cx, obj, || unsafe {
+            WrapperNew(cx, object_handle(&obj), object_handle(&ptr::mut_null()), *handler.deref())
         });
         assert!(wrapper.is_not_null());
         wrapper
@@ -81,6 +81,7 @@ impl SessionHistoryEntry {
 }
 
 static proxy_handler: ProxyTraps = ProxyTraps {
+    preventExtensions: None,
     getPropertyDescriptor: None,
     getOwnPropertyDescriptor: None,
     defineProperty: None,
@@ -95,19 +96,16 @@ static proxy_handler: ProxyTraps = ProxyTraps {
     keys: 0 as *u8,
     iterate: None,
 
+    isExtensible: None,
     call: None,
     construct: None,
     nativeCall: 0 as *u8,
     hasInstance: None,
-    typeOf: None,
     objectClassIs: None,
-    obj_toString: None,
     fun_toString: None,
     //regexp_toShared: 0 as *u8,
     defaultValue: None,
-    iteratorNext: None,
     finalize: None,
-    getElementIfPresent: None,
     getPrototypeOf: None,
     trace: None
 };

@@ -137,6 +137,7 @@ endif
 # their name already, while others don't.
 DONE_$(1) = $$(B)src/$$(PATH_$(1))/lib*.dummy
 DEPS_SUBMODULES += $$(PATH_$(1))
+DEPS_SUBMODULES += $$(PATH_$(1))/dist/lib
 DEPS_SUBMODULES += $$(PATH_$(1))/.libs
 DEPS_SUBMODULES += $$(PATH_$(1))/src/.libs
 endef
@@ -156,7 +157,7 @@ include $(S)mk/sub.mk
 # Define how to compute approximate submodule dependencies.
 # TODO: this may be a bit brutish, but is there a better way?
 define DEF_SUBMODULE_DEPS
-ROUGH_DEPS_$(1)=$$(call rwildcard,$$(S)src/$$(PATH_$(1)),*h *c *cpp *rs *rc)
+ROUGH_DEPS_$(1)=$$(call rwildcard,$$(S)src/$$(PATH_$(1)),*.h *.c *.cpp *.rs *.rc)
 DONE_DEPS_$(1)=$$(foreach dep,$$(DEPS_$(1)),$$(DONE_$$(dep)))
 # the main target for a submodule
 endef
@@ -165,7 +166,7 @@ endef
 define DEF_SUBMODULE_RULES
 
 ENV_RLDFLAGS_$(1) = -L $$(CFG_BUILD_HOME)workspace/lib/$$(CFG_TARGET)
-ENV_RLDFLAGS_$(1) += $$(foreach dep,$$(DEPS_$(1)),-L $$(B)src/$$(PATH_$$(dep)) -L $$(B)src/$$(PATH_$$(dep))/.libs -L $$(B)src/$$(PATH_$$(dep))/src/.libs)
+ENV_RLDFLAGS_$(1) += $$(foreach dep,$$(DEPS_$(1)),-L $$(B)src/$$(PATH_$$(dep)) -L $$(B)src/$$(PATH_$$(dep))/.libs -L $$(B)src/$$(PATH_$$(dep))/src/.libs -L $$(B)src/$$(PATH_$$(dep))/dist/lib)
 
 # variables that depend on dependency definitions from sub.mk!
 ENV_CFLAGS_$(1) = CFLAGS="$$(CFLAGS_$(1))"
@@ -246,7 +247,7 @@ DONE_gfx = $(B)src/components/gfx/libgfx.dummy
 
 DEPS_gfx = $(CRATE_gfx) $(SRC_gfx) $(DONE_SUBMODULES) $(DONE_util) $(DONE_style) $(DONE_net) $(DONE_msg) $(DONE_macros)
 
-RFLAGS_script = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/util -L $(B)src/components/style -L $(B)src/components/net -L $(B)src/components/msg -L$(B)src/components/macros
+RFLAGS_script = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/supprt/spidermonkey/mozjs/dist/lib -L $(B)src/components/util -L $(B)src/components/style -L $(B)src/components/net -L $(B)src/components/msg -L$(B)src/components/macros
 
 BINDINGS_SRC = $(S)src/components/script/dom/bindings/codegen
 WEBIDLS_SRC = $(S)src/components/script/dom/webidls

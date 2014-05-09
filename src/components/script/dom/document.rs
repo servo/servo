@@ -181,7 +181,7 @@ impl<'a> DocumentHelpers for JSRef<'a, Document> {
 impl Document {
     pub fn reflect_document(document: ~Document,
                             window: &JSRef<Window>,
-                            wrap_fn: extern "Rust" fn(*JSContext, &JSRef<Window>, ~Document) -> JS<Document>)
+                            wrap_fn: extern "Rust" fn(*mut JSContext, &JSRef<Window>, ~Document) -> JS<Document>)
              -> Temporary<Document> {
         assert!(document.reflector().get_jsobject().is_null());
         let mut raw_doc = reflect_dom_object(document, window, wrap_fn).root();

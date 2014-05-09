@@ -3,12 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::utils::Reflectable;
-use js::jsapi::{JSContext, JSObject, JS_WrapObject, JS_ObjectIsCallable};
-use js::jsapi::{JS_GetProperty, JSTracer, JS_CallTracer};
+use js::jsapi::{JSContext, JSObject, JS_WrapObject, JS_ObjectIsCallable, JSHandleObject};
+use js::jsapi::{JS_GetProperty, JSTracer, JS_CallObjectTracer, JSMutableHandleObject};
+use js::jsapi::JSMutableHandleValue;
 use js::jsval::{JSVal, UndefinedValue};
-use js::JSTRACE_OBJECT;
 
-use libc;
 use std::cast;
 use std::ptr;
 
@@ -27,7 +26,7 @@ pub enum ExceptionHandling {
 
 #[deriving(Clone,Eq)]
 pub struct CallbackInterface {
-    pub callback: *JSObject
+    pub callback: *mut JSObject
 }
 
 impl<S: Encoder<E>, E> Encodable<S, E> for CallbackInterface {
@@ -35,10 +34,9 @@ impl<S: Encoder<E>, E> Encodable<S, E> for CallbackInterface {
         unsafe {
             let tracer: *mut JSTracer = cast::transmute(s);
             "callback".to_c_str().with_ref(|name| {
-                (*tracer).debugPrinter = ptr::null();
-                (*tracer).debugPrintIndex = -1;
-                (*tracer).debugPrintArg = name as *libc::c_void;
-                JS_CallTracer(tracer as *JSTracer, self.callback, JSTRACE_OBJECT as u32);
+                //XXXjdm the arg can be moved
+                let mut cb = self.callback;
+                JS_CallObjectTracer(tracer, &mut cb, name);
             });
         };
         Ok(())
@@ -46,26 +44,32 @@ impl<S: Encoder<E>, E> Encodable<S, E> for CallbackInterface {
 }
 
 pub trait CallbackContainer {
-    fn callback(&self) -> *JSObject;
+    fn callback(&self) -> *mut JSObject;
 }
 
 impl CallbackContainer for CallbackInterface {
-    fn callback(&self) -> *JSObject {
+    fn callback(&self) -> *mut JSObject {
         self.callback
     }
 }
 
 impl CallbackInterface {
-    pub fn new(callback: *JSObject) -> CallbackInterface {
+    pub fn new(callback: *mut JSObject) -> CallbackInterface {
         CallbackInterface {
             callback: callback
         }
     }
 
-    pub fn GetCallableProperty(&self, cx: *JSContext, name: &str) -> Result<JSVal, ()> {
+    pub fn GetCallableProperty(&self, cx: *mut JSContext, name: &str) -> Result<JSVal, ()> {
         let mut callable = UndefinedValue();
         unsafe {
-            if name.to_c_str().with_ref(|name| JS_GetProperty(cx, self.callback, name, &mut callable as *mut JSVal as *JSVal)) == 0 {
+            let callback = JSHandleObject {
+                unnamed_field1: &self.callback,
+            };
+            let callablehandle = JSMutableHandleValue {
+                unnamed_field1: &mut callable,
+            };
+            if name.to_c_str().with_ref(|name| JS_GetProperty(cx, callback, name, callablehandle)) == 0 {
                 return Err(());
             }
 
@@ -79,39 +83,41 @@ impl CallbackInterface {
     }
 }
 
-pub fn GetJSObjectFromCallback<T: CallbackContainer>(callback: &T) -> *JSObject {
+pub fn GetJSObjectFromCallback<T: CallbackContainer>(callback: &T) -> *mut JSObject {
     callback.callback()
 }
 
-pub fn WrapCallThisObject<T: 'static + CallbackContainer + Reflectable>(cx: *JSContext,
-                                                                        _scope: *JSObject,
-                                                                        p: ~T) -> *JSObject {
-    let obj = GetJSObjectFromCallback(p);
+pub fn WrapCallThisObject<T: 'static + CallbackContainer + Reflectable>(cx: *mut JSContext,
+                                                                        _scope: *mut JSObject,
+                                                                        p: ~T) -> *mut JSObject {
+    let mut obj = GetJSObjectFromCallback(p);
     assert!(obj.is_not_null());
 
+    let obj = JSMutableHandleObject {
+        unnamed_field1: &mut obj,
+    };
     unsafe {
-        if JS_WrapObject(cx, &obj) == 0 {
-            return ptr::null();
+        if JS_WrapObject(cx, obj) == 0 {
+            return ptr::mut_null();
         }
+        return *obj.unnamed_field1;
     }
-
-    return obj;
 }
 
 pub struct CallSetup {
-    pub cx: *JSContext,
+    pub cx: *mut JSContext,
     pub handling: ExceptionHandling
 }
 
 impl CallSetup {
-    pub fn new(cx: *JSContext, handling: ExceptionHandling) -> CallSetup {
+    pub fn new(cx: *mut JSContext, handling: ExceptionHandling) -> CallSetup {
         CallSetup {
             cx: cx,
             handling: handling
         }
     }
 
-    pub fn GetContext(&self) -> *JSContext {
+    pub fn GetContext(&self) -> *mut JSContext {
         self.cx
     }
 }

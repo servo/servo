@@ -11,7 +11,8 @@ use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, ElementCas
 use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, OptionalSettable};
 use dom::bindings::js::OptionalRootable;
 use dom::bindings::trace::{Traceable, Untraceable};
-use dom::bindings::utils::{Reflectable, GlobalStaticData, wrap_for_same_compartment};
+use dom::bindings::utils::{Reflectable, GlobalStaticData, /*wrap_for_same_compartment*/};
+use dom::bindings::utils::{object_handle, value_handle};
 use dom::document::{Document, HTMLDocument, DocumentMethods, DocumentHelpers};
 use dom::element::{Element, AttributeHandlers};
 use dom::event::{Event_, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent};
@@ -34,9 +35,9 @@ use layout_interface;
 
 use geom::point::Point2D;
 use geom::size::Size2D;
-use js::jsapi::JS_CallFunctionValue;
-use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ, JS_GC};
-use js::jsapi::{JSContext, JSRuntime};
+use js::glue::CallFunctionValue;
+use js::jsapi::{/*JS_SetWrapObjectCallbacks,*/ JS_SetGCZeal, JS_GC};
+use js::jsapi::{JSContext, JSRuntime, JSMutableHandleValue};
 use js::jsval::NullValue;
 use js::rust::{Cx, RtUtils};
 use js::rust::with_compartment;
@@ -57,7 +58,6 @@ use std::cell::{Cell, RefCell, Ref, RefMut};
 use std::comm::{channel, Sender, Receiver, Empty, Disconnected, Data};
 use std::local_data;
 use std::mem::replace;
-use std::ptr;
 use std::rc::Rc;
 use std::task;
 use url::Url;
@@ -629,39 +629,43 @@ impl ScriptTask {
     fn new_rt_and_cx() -> (js::rust::rt, Rc<Cx>) {
         let js_runtime = js::rust::rt();
         assert!({
-            let ptr: *JSRuntime = (*js_runtime).ptr;
+            let ptr: *mut JSRuntime = (*js_runtime).ptr;
             ptr.is_not_null()
         });
-        unsafe {
+        /*unsafe {
             // JS_SetWrapObjectCallbacks clobbers the existing wrap callback,
             // and JSCompartment::wrap crashes if that happens. The only way
             // to retrieve the default callback is as the result of
             // JS_SetWrapObjectCallbacks, which is why we call it twice.
+            let callbacks = Struct_JSWrapObjectCallbacks {
+                wrap: None,
+                preWrap: Some(wrap_for_same_compartment),
+            };
             let callback = JS_SetWrapObjectCallbacks((*js_runtime).ptr,
-                                                     ptr::null(),
+                                                     ptr::mut_null(),
                                                      wrap_for_same_compartment,
-                                                     ptr::null());
+                                                     ptr::mut_null());
             JS_SetWrapObjectCallbacks((*js_runtime).ptr,
                                       callback,
                                       wrap_for_same_compartment,
-                                      ptr::null());
-        }
+                                      ptr::mut_null());
+        }*/
 
         let js_context = js_runtime.cx();
         assert!({
-            let ptr: *JSContext = (*js_context).ptr;
+            let ptr: *mut JSContext = (*js_context).ptr;
             ptr.is_not_null()
         });
         js_context.set_default_options_and_version();
         js_context.set_logging_error_reporter();
         unsafe {
-            JS_SetGCZeal((*js_context).ptr, 0, JS_DEFAULT_ZEAL_FREQ);
+            JS_SetGCZeal((*js_context).ptr, 0, js::JS_DEFAULT_ZEAL_FREQ);
         }
 
         (js_runtime, js_context)
     }
 
-    pub fn get_cx(&self) -> *JSContext {
+    pub fn get_cx(&self) -> *mut JSContext {
         (**self.js_context.borrow().get_ref()).ptr
     }
 
@@ -817,11 +821,14 @@ impl ScriptTask {
                 // TODO: Support extra arguments. This requires passing a `*JSVal` array as `argv`.
                 let cx = self.get_cx();
                 with_compartment(cx, this_value, || {
-                    let rval = NullValue();
+                    let mut rval = NullValue();
+                    let rval = JSMutableHandleValue {
+                        unnamed_field1: &mut rval,
+                    };
                     unsafe {
-                        JS_CallFunctionValue(cx, this_value,
-                                             *timer_handle.data.funval,
-                                             0, ptr::null(), &rval);
+                        CallFunctionValue(cx, object_handle(&this_value),
+                                          value_handle(&*timer_handle.data.funval),
+                                          rval);
                     }
                 });
 
@@ -1231,7 +1238,7 @@ impl ScriptTask {
 }
 
 /// Shuts down layout for the given page tree.
-fn shut_down_layout(page_tree: &mut PageTree, rt: *JSRuntime) {
+fn shut_down_layout(page_tree: &mut PageTree, rt: *mut JSRuntime) {
     for page in page_tree.iter() {
         page.join_layout();
 

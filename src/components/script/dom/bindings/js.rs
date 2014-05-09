@@ -41,7 +41,8 @@
 
 use dom::bindings::utils::{Reflector, Reflectable, cx_for_dom_object};
 use dom::node::Node;
-use js::jsapi::{JSObject, JS_AddObjectRoot, JS_RemoveObjectRoot};
+use js::glue::{AddObjectRoot, RemoveObjectRoot};
+use js::jsapi::JSObject;
 use layout_interface::TrustedNodeAddress;
 use script_task::StackRoots;
 
@@ -68,17 +69,17 @@ impl<T: Reflectable> Drop for Temporary<T> {
     fn drop(&mut self) {
         let cx = cx_for_dom_object(&self.inner);
         unsafe {
-            JS_RemoveObjectRoot(cx, self.inner.reflector().rootable());
+            RemoveObjectRoot(cx, self.inner.mut_reflector().rootable());
         }
     }
 }
 
 impl<T: Reflectable> Temporary<T> {
     /// Create a new Temporary value from a JS-owned value.
-    pub fn new(inner: JS<T>) -> Temporary<T> {
+    pub fn new(mut inner: JS<T>) -> Temporary<T> {
         let cx = cx_for_dom_object(&inner);
         unsafe {
-            JS_AddObjectRoot(cx, inner.reflector().rootable());
+            AddObjectRoot(cx, inner.mut_reflector().rootable());
         }
         Temporary {
             inner: inner,
@@ -345,7 +346,7 @@ impl<T: Assignable<U>, U: Reflectable> TemporaryPushable<T> for Vec<JS<U>> {
 
 /// An opaque, LIFO rooting mechanism.
 pub struct RootCollection {
-    roots: RefCell<Vec<*JSObject>>,
+    roots: RefCell<Vec<*mut JSObject>>,
 }
 
 impl RootCollection {
@@ -390,7 +391,7 @@ pub struct Root<'a, 'b, T> {
     /// Pointer to underlying Rust data
     ptr: RefCell<*mut T>,
     /// On-stack JS pointer to assuage conservative stack scanner
-    js_ptr: *JSObject,
+    js_ptr: *mut JSObject,
 }
 
 impl<'a, 'b, T: Reflectable> Root<'a, 'b, T> {
