@@ -168,7 +168,7 @@ fn check_reftest(reftest: Reftest) {
             width: left.width,
             height: left.height,
             color_type: png::RGBA8,
-            pixels: pixels.move_iter().collect(),
+            pixels: pixels,
         };
         let res = png::store_png(&img, &output);
         assert!(res.is_ok());
