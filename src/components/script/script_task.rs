@@ -1004,13 +1004,6 @@ impl ScriptTask {
         debug!("js_scripts: {:?}", js_scripts);
 
         with_compartment((**cx).ptr, window.reflector().get_jsobject(), || {
-            // Define debug functions.
-            unsafe {
-                assert!(JS_DefineFunctions((**cx).ptr,
-                                           window.reflector().get_jsobject(),
-                                           DEBUG_FNS.as_ptr()) != 0);
-            }
-
             // Evaluate every script in the document.
             for file in js_scripts.iter() {
                 let global_obj = window.reflector().get_jsobject();
