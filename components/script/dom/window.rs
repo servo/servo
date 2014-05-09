@@ -8,9 +8,10 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::error::{Fallible, InvalidCharacter};
 use dom::bindings::global;
-use dom::bindings::js::{JS, JSRef, Temporary, OptionalSettable};
+use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, OptionalSettable};
 use dom::bindings::trace::{Traceable, Untraceable};
 use dom::bindings::utils::{Reflectable, Reflector};
+use dom::bindings::utils::{object_handle, value_handle, mut_value_handle};
 use dom::browsercontext::BrowserContext;
 use dom::console::Console;
 use dom::document::Document;
@@ -29,7 +30,8 @@ use servo_net::image_cache_task::ImageCacheTask;
 use servo_util::str::{DOMString,HTML_SPACE_CHARACTERS};
 use servo_util::task::{spawn_named};
 
-use js::jsapi::{JS_CallFunctionValue, JS_EvaluateUCScript};
+use js::glue::CallFunctionValue;
+use js::jsapi::JS_EvaluateUCScript;
 use js::jsapi::JSContext;
 use js::jsapi::{JS_GC, JS_GetRuntime};
 use js::jsval::JSVal;
@@ -44,6 +46,7 @@ use std::cell::{Cell, RefCell};
 use std::cmp;
 use std::comm::{channel, Sender};
 use std::comm::Select;
+use std::default::Default;
 use std::hash::{Hash, sip};
 use std::io::timer::Timer;
 use std::ptr;
@@ -79,16 +82,16 @@ pub struct Window {
     eventtarget: EventTarget,
     pub script_chan: ScriptChan,
     pub control_chan: ScriptControlChan,
-    console: Cell<Option<JS<Console>>>,
-    location: Cell<Option<JS<Location>>>,
-    navigator: Cell<Option<JS<Navigator>>>,
+    console: MutNullableJS<Console>,
+    location: MutNullableJS<Location>,
+    navigator: MutNullableJS<Navigator>,
     pub image_cache_task: ImageCacheTask,
     pub active_timers: Traceable<RefCell<HashMap<TimerId, TimerHandle>>>,
     next_timer_handle: Traceable<Cell<i32>>,
     pub compositor: Untraceable<Box<ScriptListener>>,
     pub browser_context: Traceable<RefCell<Option<BrowserContext>>>,
     pub page: Rc<Page>,
-    performance: Cell<Option<JS<Performance>>>,
+    performance: MutNullableJS<Performance>,
     pub navigationStart: u64,
     pub navigationStartPrecise: f64,
     screen: Cell<Option<JS<Screen>>>,
@@ -223,7 +226,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
             let location = Location::new(self, page);
             self.location.assign(Some(location));
         }
-        Temporary::new(self.location.get().get_ref().clone())
+        self.location.get().unwrap()
     }
 
     fn Console(&self) -> Temporary<Console> {
@@ -231,7 +234,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
             let console = Console::new(&global::Window(*self));
             self.console.assign(Some(console));
         }
-        Temporary::new(self.console.get().get_ref().clone())
+        self.console.get().unwrap()
     }
 
     fn Navigator(&self) -> Temporary<Navigator> {
@@ -239,7 +242,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
             let navigator = Navigator::new(self);
             self.navigator.assign(Some(navigator));
         }
-        Temporary::new(self.navigator.get().get_ref().clone())
+        self.navigator.get().unwrap()
     }
 
     fn SetTimeout(&self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32 {
@@ -287,7 +290,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
             let performance = Performance::new(self);
             self.performance.assign(Some(performance));
         }
-        Temporary::new(self.performance.get().get_ref().clone())
+        self.performance.get().unwrap()
     }
 
     fn GetOnclick(&self) -> Option<EventHandlerNonNull> {
@@ -387,9 +390,9 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
 
         with_compartment(cx, global, || {
             unsafe {
-                if JS_EvaluateUCScript(cx, global, code.as_ptr(),
-                                       code.len() as libc::c_uint,
-                                       filename.as_ptr(), 1, &mut rval) == 0 {
+                if !JS_EvaluateUCScript(cx, object_handle(&global), code.as_ptr(),
+                                        code.len() as libc::c_uint,
+                                        filename.as_ptr(), 1, mut_value_handle(&mut rval)) {
                     debug!("error evaluating JS string");
                 }
                 rval
@@ -443,8 +446,9 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         with_compartment(cx, this_value, || {
             let mut rval = NullValue();
             unsafe {
-                JS_CallFunctionValue(cx, this_value, *data.funval,
-                                     0, ptr::mut_null(), &mut rval);
+                CallFunctionValue(cx, object_handle(&this_value),
+                                  value_handle(&*data.funval),
+                                  0, ptr::null(), mut_value_handle(&mut rval));
             }
         });
 
@@ -526,16 +530,16 @@ impl Window {
             eventtarget: EventTarget::new_inherited(WindowTypeId),
             script_chan: script_chan,
             control_chan: control_chan,
-            console: Cell::new(None),
+            console: Default::default(),
             compositor: Untraceable::new(compositor),
             page: page,
-            location: Cell::new(None),
-            navigator: Cell::new(None),
+            location: Default::default(),
+            navigator: Default::default(),
             image_cache_task: image_cache_task,
             active_timers: Traceable::new(RefCell::new(HashMap::new())),
             next_timer_handle: Traceable::new(Cell::new(0)),
             browser_context: Traceable::new(RefCell::new(None)),
-            performance: Cell::new(None),
+            performance: Default::default(),
             navigationStart: time::get_time().sec as u64,
             navigationStartPrecise: time::precise_time_s(),
             screen: Cell::new(None),

@@ -12,10 +12,10 @@ use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult, Fallible, InvalidState, InvalidAccess};
 use dom::bindings::error::{Network, Syntax, Security, Abort, Timeout};
 use dom::bindings::global::{GlobalField, GlobalRef, WorkerField};
-use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootedRootable};
+use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, OptionalRootedRootable};
 use dom::bindings::str::ByteString;
 use dom::bindings::trace::{Traceable, Untraceable};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object, mut_value_handle};
 use dom::document::Document;
 use dom::event::Event;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, XMLHttpRequestTargetTypeId};
@@ -36,8 +36,7 @@ use http::headers::request::Header;
 use http::method::{Method, Get, Head, Connect, Trace, ExtensionMethod};
 use http::status::Status;
 
-use js::jsapi::{JS_AddObjectRoot, JS_ParseJSON, JS_RemoveObjectRoot, JSContext};
-use js::jsapi::JS_ClearPendingException;
+use js::jsapi::{JS_ParseJSON, JS_ClearPendingException, JSContext};
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 
 use libc;
@@ -52,6 +51,7 @@ use servo_util::task::spawn_named;
 use std::ascii::StrAsciiExt;
 use std::cell::{Cell, RefCell};
 use std::comm::{Sender, Receiver, channel};
+use std::default::Default;
 use std::io::{BufReader, MemWriter, Timer};
 use std::from_str::FromStr;
 use std::path::BytesContainer;
@@ -110,7 +110,7 @@ pub struct XMLHttpRequest {
     status_text: Traceable<RefCell<ByteString>>,
     response: Traceable<RefCell<ByteString>>,
     response_type: Traceable<Cell<XMLHttpRequestResponseType>>,
-    response_xml: Cell<Option<JS<Document>>>,
+    response_xml: MutNullableJS<Document>,
     response_headers: Untraceable<RefCell<ResponseHeaderCollection>>,
 
     // Associated concepts
@@ -144,7 +144,7 @@ impl XMLHttpRequest {
             status_text: Traceable::new(RefCell::new(ByteString::new(vec!()))),
             response: Traceable::new(RefCell::new(ByteString::new(vec!()))),
             response_type: Traceable::new(Cell::new(_empty)),
-            response_xml: Cell::new(None),
+            response_xml: Default::default(),
             response_headers: Untraceable::new(RefCell::new(ResponseHeaderCollection::new())),
 
             request_method: Untraceable::new(RefCell::new(Get)),
@@ -636,7 +636,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
                 let decoded: Vec<u16> = decoded.as_slice().utf16_units().collect();
                 let mut vp = UndefinedValue();
                 unsafe {
-                    if JS_ParseJSON(cx, decoded.as_ptr(), decoded.len() as u32, &mut vp) == 0 {
+                    if !JS_ParseJSON(cx, decoded.as_ptr(), decoded.len() as u32, mut_value_handle(&mut vp)) {
                         JS_ClearPendingException(cx);
                         return NullValue();
                     }
@@ -661,7 +661,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         }
     }
     fn GetResponseXML(&self) -> Option<Temporary<Document>> {
-        self.response_xml.get().map(|response| Temporary::new(response))
+        self.response_xml.get()
     }
 }
 
@@ -710,7 +710,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
     // Creates a trusted address to the object, and roots it. Always pair this with a release()
     unsafe fn to_trusted(&self) -> TrustedXHRAddress {
         if self.pinned_count.deref().get() == 0 {
-            JS_AddObjectRoot(self.global.root().root_ref().get_cx(), self.reflector().rootable());
+            //XXX JS_AddObjectRoot(self.global.root().root_ref().get_cx(), self.reflector().rootable());
         }
         let pinned_count = self.pinned_count.deref().get();
         self.pinned_count.deref().set(pinned_count + 1);
@@ -729,7 +729,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         self.pinned_count.deref().set(pinned_count - 1);
         if self.pinned_count.deref().get() == 0 {
             unsafe {
-                JS_RemoveObjectRoot(self.global.root().root_ref().get_cx(), self.reflector().rootable());
+                //XXX JS_RemoveObjectRoot(self.global.root().root_ref().get_cx(), self.reflector().rootable());
             }
         }
     }

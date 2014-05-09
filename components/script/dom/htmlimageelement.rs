@@ -92,7 +92,7 @@ pub trait LayoutHTMLImageElementHelpers {
 
 impl LayoutHTMLImageElementHelpers for JS<HTMLImageElement> {
     unsafe fn image(&self) -> Option<Url> {
-        (*self.unsafe_get()).image.borrow().clone()
+        (*self.unsafe_get()).image.deref().borrow().clone()
     }
 }
 

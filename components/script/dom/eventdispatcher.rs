@@ -5,7 +5,8 @@
 use dom::bindings::callback::ReportExceptions;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, NodeDerived};
-use dom::bindings::js::{JS, JSRef, OptionalSettable, OptionalRootable, Root};
+use dom::bindings::js::{JS, JSRef, OptionalSettable, OptionalRootable};
+use dom::bindings::trace::RootedVec;
 use dom::eventtarget::{Capturing, Bubbling, EventTarget};
 use dom::event::{Event, PhaseAtTarget, PhaseNone, PhaseBubbling, PhaseCapturing};
 use dom::node::{Node, NodeHelpers};
@@ -26,28 +27,29 @@ pub fn dispatch_event<'a, 'b>(target: &JSRef<'a, EventTarget>,
     let type_ = event.Type();
 
     //TODO: no chain if not participating in a tree
-    let mut chain: Vec<Root<EventTarget>> = if target.deref().is_node() {
+    let mut chain: RootedVec<EventTarget> = RootedVec::new();
+    chain.init();
+
+    if target.deref().is_node() {
         let target_node: &JSRef<Node> = NodeCast::to_ref(target).unwrap();
-        target_node.ancestors().map(|ancestor| {
+        for ancestor in target_node.ancestors() {
             let ancestor_target: &JSRef<EventTarget> = EventTargetCast::from_ref(&ancestor);
-            JS::from_rooted(ancestor_target).root()
-        }).collect()
-    } else {
-        vec!()
-    };
+            chain.push(JS::from_rooted(ancestor_target));
+        }
+    }
 
     event.deref().phase.deref().set(PhaseCapturing);
 
     //FIXME: The "callback this value" should be currentTarget
 
     /* capturing */
-    for cur_target in chain.as_slice().iter().rev() {
+    for cur_target in chain.as_slice().iter().rev().map(|node| node.root()) {
         let stopped = match cur_target.get_listeners_for(type_.as_slice(), Capturing) {
             Some(listeners) => {
                 event.current_target.assign(Some(cur_target.deref().clone()));
                 for listener in listeners.iter() {
                     // Explicitly drop any exception on the floor.
-                    let _ = listener.HandleEvent_(&**cur_target, event, ReportExceptions);
+                    let _ = listener.HandleEvent_(&*cur_target, event, ReportExceptions);
 
                     if event.deref().stop_immediate.deref().get() {
                         break;
@@ -86,13 +88,13 @@ pub fn dispatch_event<'a, 'b>(target: &JSRef<'a, EventTarget>,
     if event.deref().bubbles.deref().get() && !event.deref().stop_propagation.deref().get() {
         event.deref().phase.deref().set(PhaseBubbling);
 
-        for cur_target in chain.iter() {
+        for cur_target in chain.as_slice().iter().map(|node| node.root()) {
             let stopped = match cur_target.deref().get_listeners_for(type_.as_slice(), Bubbling) {
                 Some(listeners) => {
                     event.deref().current_target.assign(Some(cur_target.deref().clone()));
                     for listener in listeners.iter() {
                         // Explicitly drop any exception on the floor.
-                        let _ = listener.HandleEvent_(&**cur_target, event, ReportExceptions);
+                        let _ = listener.HandleEvent_(&*cur_target, event, ReportExceptions);
 
                         if event.deref().stop_immediate.deref().get() {
                             break;
@@ -125,15 +127,9 @@ pub fn dispatch_event<'a, 'b>(target: &JSRef<'a, EventTarget>,
         None => {}
     }
 
-    // Root ordering restrictions mean we need to unroot the chain entries
-    // in the same order they were rooted.
-    while chain.len() > 0 {
-        let _ = chain.pop();
-    }
-
     event.dispatching.deref().set(false);
     event.phase.deref().set(PhaseNone);
-    event.current_target.set(None);
+    event.current_target.clear();
 
     !event.DefaultPrevented()
 }

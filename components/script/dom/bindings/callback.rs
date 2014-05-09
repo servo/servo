@@ -6,7 +6,8 @@
 
 use dom::bindings::js::JSRef;
 use dom::bindings::trace::Traceable;
-use dom::bindings::utils::{Reflectable, global_object_for_js_object};
+use dom::bindings::utils::{Reflectable, global_object_for_js_object, object_handle};
+use dom::bindings::utils::{mut_value_handle, mut_object_handle};
 use js::jsapi::{JSContext, JSObject, JS_WrapObject, JS_ObjectIsCallable};
 use js::jsapi::JS_GetProperty;
 use js::jsval::{JSVal, UndefinedValue};
@@ -98,12 +99,13 @@ impl CallbackInterface {
         let mut callable = UndefinedValue();
         unsafe {
             let name = name.to_c_str();
-            if JS_GetProperty(cx, self.callback(), name.as_ptr(), &mut callable) == 0 {
+            let callback = self.callback(); // XXX unrooted
+            if !JS_GetProperty(cx, object_handle(&callback), name.as_ptr(), mut_value_handle(&mut callable)) {
                 return Err(());
             }
 
             if !callable.is_object() ||
-               JS_ObjectIsCallable(cx, callable.to_object()) == 0 {
+               !JS_ObjectIsCallable(cx, callable.to_object()) {
                 // FIXME(#347)
                 //ThrowErrorMessage(cx, MSG_NOT_CALLABLE, description.get());
                 return Err(());
@@ -120,12 +122,11 @@ pub fn WrapCallThisObject<T: Reflectable>(cx: *mut JSContext,
     assert!(obj.is_not_null());
 
     unsafe {
-        if JS_WrapObject(cx, &mut obj) == 0 {
+        if !JS_WrapObject(cx, mut_object_handle(&mut obj)) {
             return ptr::mut_null();
         }
+        return obj;
     }
-
-    return obj;
 }
 
 /// A class that performs whatever setup we need to safely make a call while

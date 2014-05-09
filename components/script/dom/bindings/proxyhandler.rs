@@ -5,12 +5,13 @@
 ///! Utilities for the implementation of JSAPI proxy handlers.
 
 use dom::bindings::utils::delete_property_by_id;
-use dom::bindings::utils::is_dom_proxy;
-use js::jsapi::{JSContext, jsid, JSPropertyDescriptor, JSObject, JSString, jschar};
+use dom::bindings::utils::{object_handle, mut_object_handle, mut_handle};
+use js::jsapi::{JSContext, JSPropertyDescriptor, JSObject, JSString, jschar};
 use js::jsapi::{JS_GetPropertyDescriptorById, JS_NewUCString, JS_malloc, JS_free};
-use js::jsapi::{JS_DefinePropertyById, JS_NewObjectWithGivenProto};
-use js::jsapi::{JS_ReportErrorFlagsAndNumber, JS_StrictPropertyStub};
+use js::jsapi::{JS_DefinePropertyById, JS_NewObjectWithGivenProto, MutableHandle};
+use js::jsapi::{JS_StrictPropertyStub, JSHandleObject, JSHandleId};
 use js::jsapi::{JSREPORT_WARNING, JSREPORT_STRICT, JSREPORT_STRICT_MODE_ERROR};
+use js::jsapi::{JS_ReportErrorFlagsAndNumber};
 use js::jsval::ObjectValue;
 use js::glue::GetProxyExtra;
 use js::glue::{GetObjectProto, GetObjectParent, SetProxyExtra, GetProxyHandler};
@@ -26,70 +27,72 @@ use std::mem::size_of;
 
 static JSPROXYSLOT_EXPANDO: u32 = 0;
 
-pub extern fn getPropertyDescriptor(cx: *mut JSContext, proxy: *mut JSObject,
-                                    id: jsid, set: bool,
-                                    desc: *mut JSPropertyDescriptor)
-                                    -> bool {
+pub extern fn getPropertyDescriptor(cx: *mut JSContext, proxy: JSHandleObject, id: JSHandleId,
+                                    mut desc: MutableHandle<JSPropertyDescriptor>, flags: u32) -> bool {
   unsafe {
     let handler = GetProxyHandler(proxy);
-    if !InvokeGetOwnPropertyDescriptor(handler, cx, proxy, id, set, desc) {
-        return false;
+    {
+        let desc2 = mut_handle(&mut *desc);
+        if !InvokeGetOwnPropertyDescriptor(handler, cx, proxy, id, desc2, flags) {
+            return false;
+        }
     }
-    if (*desc).obj.is_not_null() {
+    if desc.obj.is_not_null() {
         return true;
     }
 
     //let proto = JS_GetPrototype(proxy);
-    let proto = GetObjectProto(proxy);
+    let mut proto = ptr::mut_null();
+    assert!(GetObjectProto(cx, proxy, mut_object_handle(&mut proto)));
     if proto.is_null() {
-        (*desc).obj = ptr::mut_null();
+        desc.obj = ptr::mut_null();
         return true;
     }
 
-    JS_GetPropertyDescriptorById(cx, proto, id, JSRESOLVE_QUALIFIED, desc) != 0
+    JS_GetPropertyDescriptorById(cx, object_handle(&proto), id, JSRESOLVE_QUALIFIED, desc)
   }
 }
 
-pub fn defineProperty_(cx: *mut JSContext, proxy: *mut JSObject, id: jsid,
-                       desc: *mut JSPropertyDescriptor) -> bool {
+pub fn defineProperty_(cx: *mut JSContext, proxy: JSHandleObject, id: JSHandleId,
+                       desc: MutableHandle<JSPropertyDescriptor>) -> bool {
     static JSMSG_GETTER_ONLY: libc::c_uint = 160;
 
     unsafe {
         //FIXME: Workaround for https://github.com/mozilla/rust/issues/13385
-        let setter: *const libc::c_void = mem::transmute((*desc).setter);
+        let setter: *const libc::c_void = mem::transmute(desc.setter);
         let setter_stub: *const libc::c_void = mem::transmute(JS_StrictPropertyStub);
-        if ((*desc).attrs & JSPROP_GETTER) != 0 && setter == setter_stub {
+        if (desc.attrs & JSPROP_GETTER) != 0 && setter == setter_stub {
             return JS_ReportErrorFlagsAndNumber(cx,
                                                 JSREPORT_WARNING | JSREPORT_STRICT |
                                                 JSREPORT_STRICT_MODE_ERROR,
                                                 Some(RUST_js_GetErrorMessage), ptr::mut_null(),
-                                                JSMSG_GETTER_ONLY) != 0;
+                                                JSMSG_GETTER_ONLY);
         }
 
-        let expando = EnsureExpandoObject(cx, proxy);
+        let expando = EnsureExpandoObject(cx, *proxy);
         if expando.is_null() {
             return false;
         }
 
-        return JS_DefinePropertyById(cx, expando, id, (*desc).value, (*desc).getter,
-                                     (*desc).setter, (*desc).attrs) != 0;
+        return JS_DefinePropertyById(cx, expando, *id, desc.value,
+                                     desc.getter, desc.setter, desc.attrs);
     }
 }
 
-pub extern fn defineProperty(cx: *mut JSContext, proxy: *mut JSObject, id: jsid,
-                             desc: *mut JSPropertyDescriptor) -> bool {
+pub extern fn defineProperty(cx: *mut JSContext, proxy: JSHandleObject, id: JSHandleId,
+                             desc: MutableHandle<JSPropertyDescriptor>) -> bool {
     defineProperty_(cx, proxy, id, desc)
 }
 
-pub extern fn delete_(cx: *mut JSContext, proxy: *mut JSObject, id: jsid,
+pub extern fn delete_(cx: *mut JSContext, proxy: JSHandleObject, id: JSHandleId,
                       bp: *mut bool) -> bool {
     unsafe {
-        let expando = EnsureExpandoObject(cx, proxy);
+        let expando = EnsureExpandoObject(cx, *proxy);
         if expando.is_null() {
             return false;
         }
 
-        return delete_property_by_id(cx, expando, id, &mut *bp);
+        return delete_property_by_id(cx, object_handle(&expando), id, &mut *bp);
     }
 }
 
@@ -97,7 +100,7 @@ pub fn _obj_toString(cx: *mut JSContext, className: *const libc::c_char) -> *mut
   unsafe {
     let name = string::raw::from_buf(className as *const i8 as *const u8);
     let nchars = "[object ]".len() + name.len();
-    let chars: *mut jschar = JS_malloc(cx, (nchars + 1) as libc::size_t * (size_of::<jschar>() as libc::size_t)) as *mut jschar;
+    let chars = JS_malloc(cx, (nchars + 1) as libc::size_t * (size_of::<jschar>() as libc::size_t)) as *mut jschar;
     if chars.is_null() {
         return ptr::mut_null();
     }
@@ -118,7 +121,7 @@ pub fn _obj_toString(cx: *mut JSContext, className: *const libc::c_char) -> *mut
 
 pub fn GetExpandoObject(obj: *mut JSObject) -> *mut JSObject {
     unsafe {
-        assert!(is_dom_proxy(obj));
+        //XXXjdm it would be nice to assert that obj's class is a proxy class
         let val = GetProxyExtra(obj, JSPROXYSLOT_EXPANDO);
         if val.is_undefined() {
             ptr::mut_null()
@@ -130,12 +133,12 @@ pub fn GetExpandoObject(obj: *mut JSObject) -> *mut JSObject {
 
 pub fn EnsureExpandoObject(cx: *mut JSContext, obj: *mut JSObject) -> *mut JSObject {
     unsafe {
-        assert!(is_dom_proxy(obj));
+        //XXXjdm it would be nice to assert that obj's class is a proxy class
         let mut expando = GetExpandoObject(obj);
         if expando.is_null() {
-            expando = JS_NewObjectWithGivenProto(cx, ptr::mut_null(),
-                                                 ptr::mut_null(),
-                                                 GetObjectParent(obj));
+            expando = JS_NewObjectWithGivenProto(cx, ptr::null(),
+                                                 object_handle(&ptr::mut_null()),
+                                                 object_handle(&GetObjectParent(obj)));
             if expando.is_null() {
                 return ptr::mut_null();
             }
@@ -151,5 +154,4 @@ pub fn FillPropertyDescriptor(desc: &mut JSPropertyDescriptor, obj: *mut JSObjec
     desc.attrs = if readonly { JSPROP_READONLY } else { 0 } | JSPROP_ENUMERATE;
     desc.getter = None;
     desc.setter = None;
-    desc.shortid = 0;
 }

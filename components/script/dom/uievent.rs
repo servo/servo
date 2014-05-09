@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, UIEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::{GlobalRef, Window};
-use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, OptionalSettable};
+use dom::bindings::js::{MutNullableJS, JSRef, RootedReference, Temporary, OptionalSettable};
 use dom::bindings::trace::Traceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{Event, EventTypeId, UIEventTypeId};
@@ -16,12 +16,13 @@ use dom::window::Window;
 use servo_util::str::DOMString;
 
 use std::cell::Cell;
+use std::default::Default;
 
 #[deriving(Encodable)]
 #[must_root]
 pub struct UIEvent {
     pub event: Event,
-    view: Cell<Option<JS<Window>>>,
+    view: MutNullableJS<Window>,
     detail: Traceable<Cell<i32>>
 }
 
@@ -35,7 +36,7 @@ impl UIEvent {
     pub fn new_inherited(type_id: EventTypeId) -> UIEvent {
         UIEvent {
             event: Event::new_inherited(type_id),
-            view: Cell::new(None),
+            view: Default::default(),
             detail: Traceable::new(Cell::new(0)),
         }
     }
@@ -69,7 +70,7 @@ impl UIEvent {
 
 impl<'a> UIEventMethods for JSRef<'a, UIEvent> {
     fn GetView(&self) -> Option<Temporary<Window>> {
-        self.view.get().map(|view| Temporary::new(view))
+        self.view.get()
     }
 
     fn Detail(&self) -> i32 {

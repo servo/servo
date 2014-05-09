@@ -21,9 +21,9 @@ use dom::bindings::codegen::InheritTypes::{HTMLLegendElementDerived, HTMLFieldSe
 use dom::bindings::codegen::InheritTypes::HTMLOptGroupElementDerived;
 use dom::bindings::error::{Fallible, NotFound, HierarchyRequest, Syntax};
 use dom::bindings::global::{GlobalRef, Window};
-use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, Root, OptionalUnrootable};
+use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, Root};
 use dom::bindings::js::{OptionalSettable, TemporaryPushable, OptionalRootedRootable};
-use dom::bindings::js::{ResultRootable, OptionalRootable};
+use dom::bindings::js::{ResultRootable, OptionalRootable, MutNullableJS};
 use dom::bindings::trace::Traceable;
 use dom::bindings::utils;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
@@ -56,7 +56,8 @@ use js::jsapi::{JSContext, JSObject, JSRuntime};
 use js::jsfriendapi;
 use libc;
 use libc::uintptr_t;
-use std::cell::{Cell, RefCell, Ref, RefMut};
+use std::cell::{RefCell, Ref, RefMut};
+use std::default::Default;
 use std::iter::{Map, Filter};
 use std::mem;
 use style;
@@ -81,25 +82,25 @@ pub struct Node {
     type_id: NodeTypeId,
 
     /// The parent of this node.
-    parent_node: Cell<Option<JS<Node>>>,
+    parent_node: MutNullableJS<Node>,
 
     /// The first child of this node.
-    first_child: Cell<Option<JS<Node>>>,
+    first_child: MutNullableJS<Node>,
 
     /// The last child of this node.
-    last_child: Cell<Option<JS<Node>>>,
+    last_child: MutNullableJS<Node>,
 
     /// The next sibling of this node.
-    next_sibling: Cell<Option<JS<Node>>>,
+    next_sibling: MutNullableJS<Node>,
 
     /// The previous sibling of this node.
-    prev_sibling: Cell<Option<JS<Node>>>,
+    prev_sibling: MutNullableJS<Node>,
 
     /// The document that this node belongs to.
-    owner_doc: Cell<Option<JS<Document>>>,
+    owner_doc: MutNullableJS<Document>,
 
     /// The live list of children return by .childNodes.
-    child_list: Cell<Option<JS<NodeList>>>,
+    child_list: MutNullableJS<NodeList>,
 
     /// A bitfield of flags for node items.
     flags: Traceable<RefCell<NodeFlags>>,
@@ -364,9 +365,9 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
             }
         }
 
-        child.prev_sibling.set(None);
-        child.next_sibling.set(None);
-        child.parent_node.set(None);
+        child.prev_sibling.clear();
+        child.next_sibling.clear();
+        child.parent_node.clear();
     }
 }
 
@@ -467,25 +468,25 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
     }
 
     fn parent_node(&self) -> Option<Temporary<Node>> {
-        self.deref().parent_node.get().map(|node| Temporary::new(node))
+        self.deref().parent_node.get()
     }
 
     fn first_child(&self) -> Option<Temporary<Node>> {
-        self.deref().first_child.get().map(|node| Temporary::new(node))
+        self.deref().first_child.get()
     }
 
     fn last_child(&self) -> Option<Temporary<Node>> {
-        self.deref().last_child.get().map(|node| Temporary::new(node))
+        self.deref().last_child.get()
     }
 
     /// Returns the previous sibling of this node. Fails if this node is borrowed mutably.
     fn prev_sibling(&self) -> Option<Temporary<Node>> {
-        self.deref().prev_sibling.get().map(|node| Temporary::new(node))
+        self.deref().prev_sibling.get()
     }
 
     /// Returns the next sibling of this node. Fails if this node is borrowed mutably.
     fn next_sibling(&self) -> Option<Temporary<Node>> {
-        self.deref().next_sibling.get().map(|node| Temporary::new(node))
+        self.deref().next_sibling.get()
     }
 
     #[inline]
@@ -657,7 +658,7 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
     }
 
     fn owner_doc(&self) -> Temporary<Document> {
-        Temporary::new(self.owner_doc.get().get_ref().clone())
+        self.owner_doc.get().unwrap()
     }
 
     fn set_owner_doc(&self, document: &JSRef<Document>) {
@@ -783,32 +784,32 @@ impl LayoutNodeHelpers for JS<Node> {
 
     #[inline]
     unsafe fn parent_node_ref(&self) -> Option<JS<Node>> {
-        (*self.unsafe_get()).parent_node.get()
+        (*self.unsafe_get()).parent_node.get_inner()
     }
 
     #[inline]
     unsafe fn first_child_ref(&self) -> Option<JS<Node>> {
-        (*self.unsafe_get()).first_child.get()
+        (*self.unsafe_get()).first_child.get_inner()
     }
 
     #[inline]
     unsafe fn last_child_ref(&self) -> Option<JS<Node>> {
-        (*self.unsafe_get()).last_child.get()
+        (*self.unsafe_get()).last_child.get_inner()
     }
 
     #[inline]
     unsafe fn prev_sibling_ref(&self) -> Option<JS<Node>> {
-        (*self.unsafe_get()).prev_sibling.get()
+        (*self.unsafe_get()).prev_sibling.get_inner()
     }
 
     #[inline]
     unsafe fn next_sibling_ref(&self) -> Option<JS<Node>> {
-        (*self.unsafe_get()).next_sibling.get()
+        (*self.unsafe_get()).next_sibling.get_inner()
     }
 
     #[inline]
     unsafe fn owner_doc_for_layout(&self) -> JS<Document> {
-        (*self.unsafe_get()).owner_doc.get().unwrap()
+        (*self.unsafe_get()).owner_doc.get_inner().unwrap()
     }
 }
 
@@ -1031,13 +1032,13 @@ impl Node {
             eventtarget: EventTarget::new_inherited(NodeTargetTypeId(type_id)),
             type_id: type_id,
 
-            parent_node: Cell::new(None),
-            first_child: Cell::new(None),
-            last_child: Cell::new(None),
-            next_sibling: Cell::new(None),
-            prev_sibling: Cell::new(None),
-            owner_doc: Cell::new(doc.unrooted()),
-            child_list: Cell::new(None),
+            parent_node: Default::default(),
+            first_child: Default::default(),
+            last_child: Default::default(),
+            next_sibling: Default::default(),
+            prev_sibling: Default::default(),
+            owner_doc: MutNullableJS::new(doc),
+            child_list: Default::default(),
 
             flags: Traceable::new(RefCell::new(NodeFlags::new(type_id))),
 
@@ -1348,6 +1349,7 @@ impl Node {
             Some(doc) => JS::from_rooted(doc).root(),
             None => node.owner_doc().root()
         };
+        document.init();
 
         // Step 2.
         // XXXabinader: clone() for each node as trait?
@@ -1402,6 +1404,7 @@ impl Node {
                 NodeCast::from_temporary(pi)
             },
         }.root();
+        copy.init();
 
         // Step 3.
         let document = if copy.is_document() {
@@ -1410,6 +1413,7 @@ impl Node {
         } else {
             JS::from_rooted(&*document).root()
         };
+        document.init();
         assert!(&*copy.owner_doc().root() == &*document);
 
         // Step 4 (some data already copied in step 2).
@@ -1426,6 +1430,7 @@ impl Node {
 
                 // FIXME: https://github.com/mozilla/servo/issues/1737
                 let window = document.deref().window.root();
+                window.init();
                 for attr in node_elem.deref().attrs.borrow().iter().map(|attr| attr.root()) {
                     copy_elem.deref().attrs.borrow_mut().push_unrooted(
                         &Attr::new(&*window,
@@ -1541,7 +1546,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 
     // http://dom.spec.whatwg.org/#dom-node-parentnode
     fn GetParentNode(&self) -> Option<Temporary<Node>> {
-        self.parent_node.get().map(|node| Temporary::new(node))
+        self.parent_node.get()
     }
 
     // http://dom.spec.whatwg.org/#dom-node-parentelement
@@ -1564,34 +1569,34 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     fn ChildNodes(&self) -> Temporary<NodeList> {
         match self.child_list.get() {
             None => (),
-            Some(ref list) => return Temporary::new(list.clone()),
+            Some(list) => return list,
         }
 
         let doc = self.owner_doc().root();
         let window = doc.deref().window.root();
         let child_list = NodeList::new_child_list(&*window, self);
         self.child_list.assign(Some(child_list));
-        Temporary::new(self.child_list.get().get_ref().clone())
+        self.child_list.get().unwrap()
     }
 
     // http://dom.spec.whatwg.org/#dom-node-firstchild
     fn GetFirstChild(&self) -> Option<Temporary<Node>> {
-        self.first_child.get().map(|node| Temporary::new(node))
+        self.first_child.get()
     }
 
     // http://dom.spec.whatwg.org/#dom-node-lastchild
     fn GetLastChild(&self) -> Option<Temporary<Node>> {
-        self.last_child.get().map(|node| Temporary::new(node))
+        self.last_child.get()
     }
 
     // http://dom.spec.whatwg.org/#dom-node-previoussibling
     fn GetPreviousSibling(&self) -> Option<Temporary<Node>> {
-        self.prev_sibling.get().map(|node| Temporary::new(node))
+        self.prev_sibling.get()
     }
 
     // http://dom.spec.whatwg.org/#dom-node-nextsibling
     fn GetNextSibling(&self) -> Option<Temporary<Node>> {
-        self.next_sibling.get().map(|node| Temporary::new(node))
+        self.next_sibling.get()
     }
 
     // http://dom.spec.whatwg.org/#dom-node-nodevalue

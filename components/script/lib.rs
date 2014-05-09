@@ -208,3 +208,18 @@ pub mod html {
 pub mod layout_interface;
 pub mod page;
 pub mod script_task;
+
+pub fn init() {
+    unsafe {
+        unsafe {
+            js::jsapi::JS_Init();
+        }
+    }
+}
+
+pub fn shutdown() {
+    // Not strictly necessary, and hard to synchronize with native script tasks
+    /*unsafe {
+        js::jsapi::JS_ShutDown();
+    }*/
+}

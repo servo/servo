@@ -49,13 +49,19 @@ use dom::bindings::utils::{Reflector, Reflectable};
 use dom::node::Node;
 use dom::xmlhttprequest::{XMLHttpRequest, TrustedXHRAddress};
 use dom::worker::{Worker, TrustedWorkerAddress};
-use js::jsapi::JSObject;
+use js::{ContextFriendFields, THING_ROOT_OBJECT};
+use js::glue::{insertObjectLinkedListElement, getPersistentRootedObjectList};
+use js::glue::{objectIsPoisoned, objectRelocate, objectNeedsPostBarrier, objectPostBarrier};
+use js::jsapi::{JSContext, JSObject, JS_IsInRequest, JS_GetRuntime};
 use layout_interface::TrustedNodeAddress;
 use script_task::StackRoots;
 
+use libc;
 use std::cell::{Cell, RefCell};
+use std::default::Default;
 use std::kinds::marker::ContravariantLifetime;
 use std::mem;
+use std::ptr;
 
 /// A type that represents a JS-owned value that is rooted for the lifetime of this value.
 /// Importantly, it requires explicit rooting in order to interact with the inner value.
@@ -64,8 +70,53 @@ use std::mem;
 #[allow(unrooted_must_root)]
 pub struct Temporary<T> {
     inner: JS<T>,
-    /// On-stack JS pointer to assuage conservative stack scanner
-    _js_ptr: *mut JSObject,
+    js_ptr: Box<PersistentRootedObjectElement>,
+}
+
+struct PersistentRootedObjectElement {
+    next: *mut PersistentRootedObjectElement,
+    prev: *mut PersistentRootedObjectElement,
+    isSentinel: bool,
+    ptr: *mut JSObject,
+}
+
+impl PersistentRootedObjectElement {
+    fn new(ptr: *mut JSObject) -> PersistentRootedObjectElement {
+        PersistentRootedObjectElement {
+            next: ptr::mut_null(),
+            prev: ptr::mut_null(),
+            isSentinel: false,
+            ptr: ptr,
+        }
+    }
+
+    fn init(&mut self) {
+        assert!(self.next.is_null());
+        assert!(self.prev.is_null());
+        let roots = StackRoots.get().unwrap();
+        let rt = unsafe { JS_GetRuntime((**roots).cx) };
+        self.next = self as *mut _;
+        self.prev = self as *mut _;
+        unsafe {
+            let list = getPersistentRootedObjectList(rt);
+            insertObjectLinkedListElement(list, self as *mut _ as *mut _);
+        }
+    }
+}
+
+impl Drop for PersistentRootedObjectElement {
+    fn drop(&mut self) {
+        assert!(!self.next.is_null());
+        assert!(!self.prev.is_null());
+        if self.next != self as *mut _ {
+            unsafe {
+                (*self.prev).next = self.next;
+                (*self.next).prev = self.prev;
+                self.next = self as *mut _;
+                self.prev = self as *mut _;
+            }
+        }
+    }
 }
 
 impl<T> PartialEq for Temporary<T> {
@@ -77,9 +128,12 @@ impl<T> PartialEq for Temporary<T> {
 impl<T: Reflectable> Temporary<T> {
     /// Create a new `Temporary` value from a JS-owned value.
     pub fn new(inner: JS<T>) -> Temporary<T> {
+        let mut js_ptr =
+            box PersistentRootedObjectElement::new(inner.reflector().get_jsobject());
+        js_ptr.init();
         Temporary {
             inner: inner,
-            _js_ptr: inner.reflector().get_jsobject(),
+            js_ptr: js_ptr,
         }
     }
 
@@ -187,7 +241,7 @@ impl<T: Assignable<U>, U: Reflectable> JS<U> {
 impl<T: Reflectable> Reflectable for JS<T> {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         unsafe {
-            (*self.unsafe_get()).reflector()
+            (*self.ptr).reflector()
         }
     }
 }
@@ -196,29 +250,93 @@ impl<T: Reflectable> JS<T> {
     /// Returns an unsafe pointer to the interior of this JS object without touching the borrow
     /// flags. This is the only method that be safely accessed from layout. (The fact that this
     /// is unsafe is what necessitates the layout wrappers.)
-    pub unsafe fn unsafe_get(&self) -> *mut T {
-        mem::transmute_copy(&self.ptr)
-    }
-
-    /// Store an unrooted value in this field. This is safe under the assumption that JS<T>
-    /// values are only used as fields in DOM types that are reachable in the GC graph,
-    /// so this unrooted value becomes transitively rooted for the lifetime of its new owner.
-    pub fn assign(&mut self, val: Temporary<T>) {
-        *self = unsafe { val.inner() };
+    pub unsafe fn unsafe_get(&self) -> *const T {
+        self.ptr
     }
 }
 
 impl<From, To> JS<From> {
     //XXXjdm It would be lovely if this could be private.
-    pub unsafe fn transmute(self) -> JS<To> {
-        mem::transmute(self)
-    }
-
     pub unsafe fn transmute_copy(&self) -> JS<To> {
         mem::transmute_copy(self)
     }
 }
 
+/// A mutable JS&lt;T&gt; value, with nullability represented by an enclosing
+/// Option wrapper. Must be used in place of traditional internal mutability
+/// to ensure that the proper GC barriers are enforced.
+pub struct MutNullableJS<T> {
+    ptr: Cell<Option<JS<T>>>
+}
+
+impl<T: Assignable<U>, U: Reflectable> MutNullableJS<U> {
+    pub fn new(initial: Option<T>) -> MutNullableJS<U> {
+        MutNullableJS {
+            ptr: Cell::new(initial.map(|initial| unsafe { initial.get_js() }))
+        }
+    }
+}
+
+impl<T> Default for MutNullableJS<T> {
+    fn default() -> MutNullableJS<T> {
+        MutNullableJS {
+            ptr: Cell::new(None::<JS<T>>)
+        }
+    }
+}
+
+impl<T: Reflectable> MutNullableJS<T> {
+    /// Store an unrooted value in this field. This is safe under the assumption that JS<T>
+    /// values are only used as fields in DOM types that are reachable in the GC graph,
+    /// so this unrooted value becomes transitively rooted for the lifetime of its new owner.
+    pub fn assign<U: Assignable<T>>(&self, val: Option<U>) {
+        let reflector = val.as_ref()
+                           .map(|val| unsafe { val.get_js() }.reflector().get_jsobject())
+                           .unwrap_or(ptr::mut_null());
+        unsafe {
+            assert!(!objectIsPoisoned(reflector));
+        }
+        if unsafe { objectNeedsPostBarrier(reflector) } {
+            self.ptr.set(val.as_ref().map(|val| unsafe { val.get_js() }));
+            let raw_ptr = self.ptr.get()
+                                  .map(|val| val.reflector().rootable())
+                                  .unwrap_or(ptr::mut_null());
+            unsafe {
+                objectPostBarrier(raw_ptr);
+            }
+        } else if unsafe { objectNeedsPostBarrier(self.ptr
+                                                      .get()
+                                                      .map(|val| val.reflector().get_jsobject())
+                                                      .unwrap_or(ptr::mut_null())) } {
+            let raw_ptr = self.ptr.get()
+                                  .map(|val| val.reflector().rootable())
+                                  .unwrap_or(ptr::mut_null());
+            unsafe {
+                objectRelocate(raw_ptr);
+                self.ptr.set(val.map(|val| unsafe { val.get_js() }));
+            }
+        } else {
+            self.ptr.set(val.map(|val| unsafe { val.get_js() }));
+        }
+    }
+
+    /// Set the inner value to null, without making API users jump through useless
+    /// type-ascription hoops.
+    pub fn clear(&self) {
+        self.assign(None::<JS<T>>);
+    }
+
+    /// Retrieve a copy of the current optional inner value.
+    pub fn get(&self) -> Option<Temporary<T>> {
+        self.ptr.get().map(|inner| Temporary::new(inner))
+    }
+
+    /// Retrieve a copy of the inner optional JS&lt;T&gt;. For use by layout, which
+    /// can't use safe types like Temporary.
+    pub unsafe fn get_inner(&self) -> Option<JS<T>> {
+        self.ptr.get()
+    }
+}
 
 /// Get an `Option<JSRef<T>>` out of an `Option<Root<T>>`
 pub trait RootedReference<T> {
@@ -363,13 +481,15 @@ impl<T: Assignable<U>, U: Reflectable> TemporaryPushable<T> for Vec<JS<U>> {
 /// An opaque, LIFO rooting mechanism.
 pub struct RootCollection {
     roots: RefCell<Vec<*mut JSObject>>,
+    cx: *mut JSContext,
 }
 
 impl RootCollection {
     /// Create an empty collection of roots
-    pub fn new() -> RootCollection {
+    pub fn new(cx: *mut JSContext) -> RootCollection {
         RootCollection {
             roots: RefCell::new(vec!()),
+            cx: cx,
         }
     }
 
@@ -401,12 +521,15 @@ impl RootCollection {
 /// Attempts to transfer ownership of a `Root` via moving will trigger dynamic unrooting
 /// failures due to incorrect ordering.
 pub struct Root<'a, 'b, T> {
+    stack: Cell<*mut *const *const libc::c_void>,
+    prev: Cell<*const *const libc::c_void>,
+    js_ptr: *mut JSObject,
+    /// Pointer to underlying Rust data
+    ptr: *const T,
     /// List that ensures correct dynamic root ordering
     root_list: &'a RootCollection,
     /// Reference to rooted value that must not outlive this container
     jsref: JSRef<'b, T>,
-    /// On-stack JS pointer to assuage conservative stack scanner
-    js_ptr: *mut JSObject,
 }
 
 impl<'a, 'b, T: Reflectable> Root<'a, 'b, T> {
@@ -415,20 +538,36 @@ impl<'a, 'b, T: Reflectable> Root<'a, 'b, T> {
     /// which cannot outlive this new `Root`.
     fn new(roots: &'a RootCollection, unrooted: &JS<T>) -> Root<'a, 'b, T> {
         let root = Root {
+            stack: Cell::new(ptr::mut_null()),
+            prev: Cell::new(ptr::null()),
             root_list: roots,
             jsref: JSRef {
                 ptr: unrooted.ptr.clone(),
                 chain: ContravariantLifetime,
             },
+            ptr: unrooted.ptr,
             js_ptr: unrooted.reflector().get_jsobject(),
         };
         roots.root(&root);
         root
     }
 
+    pub fn init(&self) {
+        unsafe {
+            assert!(JS_IsInRequest(JS_GetRuntime(self.root_list.cx)));
+            let cxfields: *mut ContextFriendFields = mem::transmute(self.root_list.cx);
+            self.stack.set(&mut (*cxfields).thingGCRooters[THING_ROOT_OBJECT as uint]);
+            self.prev.set(*self.stack.get());
+            *self.stack.get() = self as *const Root<T> as *const *const libc::c_void;
+        }
+    }
+
     /// Obtain a safe reference to the wrapped JS owned-value that cannot outlive
     /// the lifetime of this root.
     pub fn root_ref<'b>(&'b self) -> JSRef<'b,T> {
+        if self.stack.get() == ptr::mut_null() {
+            self.init();
+        }
         self.jsref.clone()
     }
 }
@@ -436,12 +575,20 @@ impl<'a, 'b, T: Reflectable> Root<'a, 'b, T> {
 #[unsafe_destructor]
 impl<'a, 'b, T: Reflectable> Drop for Root<'a, 'b, T> {
     fn drop(&mut self) {
+        unsafe {
+            assert!(self.stack.get() != ptr::mut_null(), "Uninitialized root encountered");
+            assert!(*self.stack.get() == self as *mut Root<T> as *const *const libc::c_void);
+            *self.stack.get() = self.prev.get();
+        }
         self.root_list.unroot(self);
     }
 }
 
 impl<'a, 'b, T: Reflectable> Deref<JSRef<'b, T>> for Root<'a, 'b, T> {
     fn deref<'c>(&'c self) -> &'c JSRef<'b, T> {
+        if self.stack.get() == ptr::mut_null() {
+            self.init();
+        }
         &self.jsref
     }
 }

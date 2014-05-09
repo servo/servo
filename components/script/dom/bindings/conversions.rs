@@ -6,22 +6,20 @@
 
 use dom::bindings::js::{JS, JSRef, Root};
 use dom::bindings::str::ByteString;
-use dom::bindings::utils::{Reflectable, Reflector};
+use dom::bindings::utils::{Reflectable, Reflector, value_handle, mut_value_handle};
 use dom::bindings::utils::jsstring_to_str;
 use dom::bindings::utils::unwrap_jsmanaged;
 use servo_util::str::DOMString;
 
-use js::jsapi::{JSBool, JSContext, JSObject};
-use js::jsapi::{JS_ValueToUint64, JS_ValueToInt64};
-use js::jsapi::{JS_ValueToECMAUint32, JS_ValueToECMAInt32};
-use js::jsapi::{JS_ValueToUint16, JS_ValueToNumber, JS_ValueToBoolean};
-use js::jsapi::{JS_ValueToString, JS_GetStringCharsAndLength};
+use js::jsapi::{JSContext, JSObject, JSHandleValue};
+use js::jsapi::{JS_GetStringCharsAndLength};
 use js::jsapi::{JS_NewUCStringCopyN, JS_NewStringCopyN};
 use js::jsapi::{JS_WrapValue};
 use js::jsval::JSVal;
 use js::jsval::{UndefinedValue, NullValue, BooleanValue, Int32Value, UInt32Value};
 use js::jsval::{StringValue, ObjectValue, ObjectOrNullValue};
-use js::glue::RUST_JS_NumberValue;
+use js::glue::{RUST_JS_NumberValue, ToString, ToBoolean, ToNumber, ToUint16, ToInt32};
+use js::glue::{ToUint32, ToInt64, ToUint64};
 use libc;
 use std::default::Default;
 use std::slice;
@@ -60,7 +58,7 @@ impl ToJSValConvertible for () {
 impl ToJSValConvertible for JSVal {
     fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
         let mut value = *self;
-        if unsafe { JS_WrapValue(cx, &mut value) } == 0 {
+        if unsafe { !JS_WrapValue(cx, mut_value_handle(&mut value)) } {
             fail!("JS_WrapValue failed.");
         }
         value
@@ -69,9 +67,10 @@ impl ToJSValConvertible for JSVal {
 
 unsafe fn convert_from_jsval<T: Default>(
     cx: *mut JSContext, value: JSVal,
-    convert_fn: unsafe extern "C" fn(*mut JSContext, JSVal, *mut T) -> JSBool) -> Result<T, ()> {
+    convert_fn: unsafe extern "C" fn(*mut JSContext, JSHandleValue, *mut T) -> bool) -> Result<T, ()> {
     let mut ret = Default::default();
-    if convert_fn(cx, value, &mut ret) == 0 {
+    let value = value_handle(&value);
+    if !convert_fn(cx, value, &mut ret) {
         Err(())
     } else {
         Ok(ret)
@@ -86,9 +85,9 @@ impl ToJSValConvertible for bool {
 }
 
 impl FromJSValConvertible<()> for bool {
-    fn from_jsval(cx: *mut JSContext, val: JSVal, _option: ()) -> Result<bool, ()> {
-        let result = unsafe { convert_from_jsval(cx, val, JS_ValueToBoolean) };
-        result.map(|b| b != 0)
+    fn from_jsval(_cx: *mut JSContext, val: JSVal, _option: ()) -> Result<bool, ()> {
+        let val = value_handle(&val);
+        Ok(unsafe { ToBoolean(val) })
     }
 }
 
@@ -100,7 +99,7 @@ impl ToJSValConvertible for i8 {
 
 impl FromJSValConvertible<()> for i8 {
     fn from_jsval(cx: *mut JSContext, val: JSVal, _option: ()) -> Result<i8, ()> {
-        let result = unsafe { convert_from_jsval(cx, val, JS_ValueToECMAInt32) };
+        let result = unsafe { convert_from_jsval(cx, val, ToInt32) };
         result.map(|v| v as i8)
     }
 }
@@ -113,7 +112,7 @@ impl ToJSValConvertible for u8 {
 
 impl FromJSValConvertible<()> for u8 {
     fn from_jsval(cx: *mut JSContext, val: JSVal, _option: ()) -> Result<u8, ()> {
-        let result = unsafe { convert_from_jsval(cx, val, JS_ValueToECMAInt32) };
+        let result = unsafe { convert_from_jsval(cx, val, ToInt32) };
         result.map(|v| v as u8)
     }
 }
@@ -126,7 +125,7 @@ impl ToJSValConvertible for i16 {
 
 impl FromJSValConvertible<()> for i16 {
     fn from_jsval(cx: *mut JSContext, val: JSVal, _option: ()) -> Result<i16, ()> {
-        let result = unsafe { convert_from_jsval(cx, val, JS_ValueToECMAInt32) };
+        let result = unsafe { convert_from_jsval(cx, val, ToInt32) };
         result.map(|v| v as i16)
     }
 }
@@ -139,7 +138,7 @@ impl ToJSValConvertible for u16 {
 
 impl FromJSValConvertible<()> for u16 {
     fn from_jsval(cx: *mut JSContext, val: JSVal, _option: ()) -> Result<u16, ()> {
-        unsafe { convert_from_jsval(cx, val, JS_ValueToUint16) }
+        unsafe { convert_from_jsval(cx, val, ToUint16) }
     }
 }
 
@@ -151,7 +150,7 @@ impl ToJSValConvertible for i32 {
 
 impl FromJSValConvertible<()> for i32 {
     fn from_jsval(cx: *mut JSContext, val: JSVal, _option: ()) -> Result<i32, ()> {
-        unsafe { convert_from_jsval(cx, val, JS_ValueToECMAInt32) }
+        unsafe { convert_from_jsval(cx, val, ToInt32) }
     }
 }
 
@@ -163,7 +162,7 @@ impl ToJSValConvertible for u32 {
 
 impl FromJSValConvertible<()> for u32 {
     fn from_jsval(cx: *mut JSContext, val: JSVal, _option: ()) -> Result<u32, ()> {
-        unsafe { convert_from_jsval(cx, val, JS_ValueToECMAUint32) }
+        unsafe { convert_from_jsval(cx, val, ToUint32) }
     }
 }
 
@@ -177,7 +176,7 @@ impl ToJSValConvertible for i64 {
 
 impl FromJSValConvertible<()> for i64 {
     fn from_jsval(cx: *mut JSContext, val: JSVal, _option: ()) -> Result<i64, ()> {
-        unsafe { convert_from_jsval(cx, val, JS_ValueToInt64) }
+        unsafe { convert_from_jsval(cx, val, ToInt64) }
     }
 }
 
@@ -191,7 +190,7 @@ impl ToJSValConvertible for u64 {
 
 impl FromJSValConvertible<()> for u64 {
     fn from_jsval(cx: *mut JSContext, val: JSVal, _option: ()) -> Result<u64, ()> {
-        unsafe { convert_from_jsval(cx, val, JS_ValueToUint64) }
+        unsafe { convert_from_jsval(cx, val, ToUint64) }
     }
 }
 
@@ -205,7 +204,7 @@ impl ToJSValConvertible for f32 {
 
 impl FromJSValConvertible<()> for f32 {
     fn from_jsval(cx: *mut JSContext, val: JSVal, _option: ()) -> Result<f32, ()> {
-        let result = unsafe { convert_from_jsval(cx, val, JS_ValueToNumber) };
+        let result = unsafe { convert_from_jsval(cx, val, ToNumber) };
         result.map(|f| f as f32)
     }
 }
@@ -220,7 +219,7 @@ impl ToJSValConvertible for f64 {
 
 impl FromJSValConvertible<()> for f64 {
     fn from_jsval(cx: *mut JSContext, val: JSVal, _option: ()) -> Result<f64, ()> {
-        unsafe { convert_from_jsval(cx, val, JS_ValueToNumber) }
+        unsafe { convert_from_jsval(cx, val, ToNumber) }
     }
 }
 
@@ -257,7 +256,8 @@ impl FromJSValConvertible<StringificationBehavior> for DOMString {
         if nullBehavior == Empty && value.is_null() {
             Ok("".to_string())
         } else {
-            let jsstr = unsafe { JS_ValueToString(cx, value) };
+            let valhandle = value_handle(&value);
+            let jsstr = unsafe { ToString(cx, valhandle) };
             if jsstr.is_null() {
                 debug!("JS_ValueToString failed");
                 Err(())
@@ -285,7 +285,8 @@ impl ToJSValConvertible for ByteString {
 impl FromJSValConvertible<()> for ByteString {
     fn from_jsval(cx: *mut JSContext, value: JSVal, _option: ()) -> Result<ByteString, ()> {
         unsafe {
-            let string = JS_ValueToString(cx, value);
+            let valhandle = value_handle(&value);
+            let string = ToString(cx, valhandle);
             if string.is_null() {
                 debug!("JS_ValueToString failed");
                 return Err(());
@@ -310,7 +311,7 @@ impl ToJSValConvertible for Reflector {
         let obj = self.get_jsobject();
         assert!(obj.is_not_null());
         let mut value = ObjectValue(unsafe { &*obj });
-        if unsafe { JS_WrapValue(cx, &mut value) } == 0 {
+        if unsafe { !JS_WrapValue(cx, mut_value_handle(&mut value)) } {
             fail!("JS_WrapValue failed.");
         }
         value
@@ -369,10 +370,6 @@ impl<X: Default, T: FromJSValConvertible<X>> FromJSValConvertible<()> for Option
 
 impl ToJSValConvertible for *mut JSObject {
     fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
-        let mut wrapped = ObjectOrNullValue(*self);
-        unsafe {
-            assert!(JS_WrapValue(cx, &mut wrapped) != 0);
-        }
-        wrapped
+        ObjectOrNullValue(*self).to_jsval(cx)
     }
 }
