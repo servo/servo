@@ -43,14 +43,10 @@ sudo yum install $HOME/rpmbuild/RPMS/noarch/msttcorefonts-2.5-1.noarch.rpm
 popd
 ```
 
-On Debian-based Linuxes (cross-compilation for Android):
+Cross-compilation for Android:
 
-``` sh
-sudo apt-get install autoconf2.13 curl libtool ia32-libs
-```
-And it needs pre-installed Android tools.
+Basically, pre-installed Android tools are needed.
 See wiki for [details](https://github.com/mozilla/servo/wiki/Building-for-Android)
-
 
 Servo builds its own copy of Rust, so there is no need to provide a Rust
 compiler.
@@ -75,8 +71,10 @@ make && make check
 git clone https://github.com/mozilla/servo.git
 cd servo
 mkdir -p build && cd build
-../configure --target-triples=arm-linux-androideabi --android-cross-path=<Android toolchain path> --android-ndk-path=<Android NDK path> --android-sdk-path=<Android SDK path>
+../configure --target=arm-linux-androideabi --android-cross-path=<Android toolchain path> --android-ndk-path=<Android NDK path> --android-sdk-path=<Android SDK path>
 make
+(or make package)
+
 ```
 
 ## Running
@@ -103,10 +101,11 @@ There are lots of make targets you can use:
 
 - `make clean` - cleans Servo and its dependencies, but not Rust
 - `make clean-rust` - cleans Rust
-- `make clean-servo` - only cleans Servo itself (code in `src/components`
+- `make clean-servo` - only cleans Servo itself (code in `src/components`)
 - `make clean-DEP` - cleans the dependency `DEP`. e.g. `make clean-rust-opengles`
 - `make bindings` - generate the Rust WebIDL bindings
 - `make DEP` - builds only the specified dependency. e.g. `make rust-opengles`
 - `make check-DEP` - build and run tests for specified dependency
+- `make package` - build and make app package for specific OS. e.g. apk file of Android
 
 The `make check-*` targets for running tests are listed [here](https://github.com/mozilla/servo/wiki/Testing)
