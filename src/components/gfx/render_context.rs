@@ -105,7 +105,7 @@ impl<'a> RenderContext<'a>  {
 
         self.draw_target.make_current();
         let draw_target_ref = &self.draw_target;
-        let azure_surface = draw_target_ref.create_source_surface_from_data(image.pixels, size,
+        let azure_surface = draw_target_ref.create_source_surface_from_data(image.pixels.as_slice(), size,
                                                                             stride as i32, B8G8R8A8);
         let source_rect = Rect(Point2D(0 as AzFloat, 0 as AzFloat),
                                Size2D(image.width as AzFloat, image.height as AzFloat));
