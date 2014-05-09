@@ -51,22 +51,46 @@ impl MouseEvent {
         }
     }
 
-    pub fn new(window: &JSRef<Window>) -> Temporary<MouseEvent> {
+    pub fn new_uninitialized(window: &JSRef<Window>) -> Temporary<MouseEvent> {
         reflect_dom_object(~MouseEvent::new_inherited(),
                            window,
                            MouseEventBinding::Wrap)
     }
 
+    pub fn new(window: &JSRef<Window>,
+               type_: DOMString,
+               canBubble: bool,
+               cancelable: bool,
+               view: Option<JSRef<Window>>,
+               detail: i32,
+               screenX: i32,
+               screenY: i32,
+               clientX: i32,
+               clientY: i32,
+               ctrlKey: bool,
+               altKey: bool,
+               shiftKey: bool,
+               metaKey: bool,
+               button: u16,
+               relatedTarget: Option<JSRef<EventTarget>>) -> Temporary<MouseEvent> {
+        let mut ev = MouseEvent::new_uninitialized(window).root();
+        ev.InitMouseEvent(type_, canBubble, cancelable, view, detail,
+                          screenX, screenY, clientX, clientY,
+                          ctrlKey, altKey, shiftKey, metaKey,
+                          button, relatedTarget);
+        Temporary::from_rooted(&*ev)
+    }
+
     pub fn Constructor(owner: &JSRef<Window>,
                        type_: DOMString,
                        init: &MouseEventBinding::MouseEventInit) -> Fallible<Temporary<MouseEvent>> {
-        let mut ev = MouseEvent::new(owner).root();
-        ev.InitMouseEvent(type_, init.bubbles, init.cancelable, init.view.root_ref(),
-                          init.detail, init.screenX, init.screenY,
-                          init.clientX, init.clientY, init.ctrlKey,
-                          init.altKey, init.shiftKey, init.metaKey,
-                          init.button, init.relatedTarget.root_ref());
-        Ok(Temporary::from_rooted(&*ev))
+        let event = MouseEvent::new(owner, type_, init.bubbles, init.cancelable,
+                                    init.view.root_ref(),
+                                    init.detail, init.screenX, init.screenY,
+                                    init.clientX, init.clientY, init.ctrlKey,
+                                    init.altKey, init.shiftKey, init.metaKey,
+                                    init.button, init.relatedTarget.root_ref());
+        Ok(event)
     }
 }
 
