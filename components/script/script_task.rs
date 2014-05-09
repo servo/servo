@@ -14,9 +14,8 @@ use dom::bindings::conversions::{FromJSValConvertible, Empty};
 use dom::bindings::global;
 use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, OptionalSettable};
 use dom::bindings::js::OptionalRootable;
-use dom::bindings::trace::JSTraceable;
+use dom::bindings::trace::{JSTraceable, RootedCollections, trace_collections};
 use dom::bindings::utils::Reflectable;
-use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
 use dom::document::{Document, HTMLDocument, DocumentHelpers};
 use dom::element::{Element, HTMLButtonElementTypeId, HTMLInputElementTypeId};
 use dom::element::{HTMLSelectElementTypeId, HTMLTextAreaElementTypeId, HTMLOptionElementTypeId};
@@ -56,10 +55,11 @@ use servo_util::geometry::to_frac_px;
 use servo_util::task::spawn_named_with_send_on_failure;
 
 use geom::point::Point2D;
-use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ, JS_GC};
-use js::jsapi::{JSContext, JSRuntime, JSTracer};
+use js::JS_DEFAULT_ZEAL_FREQ;
+use js::jsapi::{/*JS_SetWrapObjectCallbacks,*/ JS_SetGCZeal, JS_GC};
+use js::jsapi::{JSContext, JSRuntime, JSTracer, JS_AddExtraGCRootsTracer};
 use js::jsapi::{JS_SetGCParameter, JSGC_MAX_BYTES};
-use js::rust::{Cx, RtUtils};
+use js::rust::{Cx, RtUtils, JSAutoRequest};
 use js::rust::with_compartment;
 use js;
 use url::Url;
@@ -67,6 +67,7 @@ use url::Url;
 use libc::size_t;
 use std::any::{Any, AnyRefExt};
 use std::cell::RefCell;
+use std::collections::HashSet;
 use std::comm::{channel, Sender, Receiver, Select};
 use std::mem::replace;
 use std::rc::Rc;
@@ -273,7 +274,7 @@ impl ScriptTaskFactory for ScriptTask {
 
             // This must always be the very last operation performed before the task completes
             failsafe.neuter();
-        }, FailureMsg(failure_msg), const_chan, false);
+        }, FailureMsg(failure_msg), const_chan, true);
     }
 }
 
@@ -292,8 +293,9 @@ impl ScriptTask {
                devtools_chan: Option<DevtoolsControlChan>,
                window_size: WindowSizeData)
                -> Rc<ScriptTask> {
+        RootedCollections.replace(Some(RefCell::new(HashSet::new())));
         let (js_runtime, js_context) = ScriptTask::new_rt_and_cx();
-        unsafe {
+        /*unsafe {
             // JS_SetWrapObjectCallbacks clobbers the existing wrap callback,
             // and JSCompartment::wrap crashes if that happens. The only way
             // to retrieve the default callback is as the result of
@@ -306,7 +308,7 @@ impl ScriptTask {
                                       callback,
                                       Some(wrap_for_same_compartment),
                                       Some(pre_wrap));
-        }
+        }*/
 
         let page = Page::new(id, None, layout_chan, window_size,
                              resource_task.clone(),
@@ -347,6 +349,10 @@ impl ScriptTask {
             let ptr: *mut JSRuntime = (*js_runtime).ptr;
             ptr.is_not_null()
         });
+        unsafe {
+            JS_AddExtraGCRootsTracer((*js_runtime).ptr, Some(trace_collections),
+                                     RootedCollections.get().get_ref().deref() as *const _ as *mut _);
+        }
 
         // Unconstrain the runtime's threshold on nominal heap size, to avoid
         // triggering GC too often if operating continuously near an arbitrary
@@ -365,7 +371,7 @@ impl ScriptTask {
         js_context.set_default_options_and_version();
         js_context.set_logging_error_reporter();
         unsafe {
-            JS_SetGCZeal((*js_context).ptr, 0, JS_DEFAULT_ZEAL_FREQ);
+            JS_SetGCZeal((*js_context).ptr, 0, js::JS_DEFAULT_ZEAL_FREQ);
         }
 
         (js_runtime, js_context)
@@ -385,7 +391,10 @@ impl ScriptTask {
 
     /// Handle incoming control messages.
     fn handle_msgs(&self) -> bool {
-        let roots = RootCollection::new();
+        let cx = self.js_context.borrow().get_ref().deref().ptr;
+        let mut _ar = Some(JSAutoRequest::new(cx));
+
+        let roots = RootCollection::new(self.get_cx());
         let _stack_roots_tls = StackRootTLS::new(&roots);
 
         // Handle pending resize events.
@@ -493,8 +502,14 @@ impl ScriptTask {
                 FromScript(NavigateMsg(direction)) => self.handle_navigate_msg(direction),
                 FromConstellation(ReflowCompleteMsg(id, reflow_id)) => self.handle_reflow_complete_msg(id, reflow_id),
                 FromConstellation(ResizeInactiveMsg(id, new_size)) => self.handle_resize_inactive_msg(id, new_size),
-                FromConstellation(ExitPipelineMsg(id)) => if self.handle_exit_pipeline_msg(id) { return false },
-                FromScript(ExitWindowMsg(id)) => self.handle_exit_window_msg(id),
+                FromConstellation(ExitPipelineMsg(id)) => {
+                    _ar = None;
+                    if self.handle_exit_pipeline_msg(id) { return false }
+                }
+                FromScript(ExitWindowMsg(id)) => {
+                    _ar = None;
+                    self.handle_exit_window_msg(id)
+                }
                 FromConstellation(ResizeMsg(..)) => fail!("should have handled ResizeMsg already"),
                 FromScript(XHRProgressMsg(addr, progress)) => XMLHttpRequest::handle_xhr_progress(addr, progress),
                 FromScript(DOMMessage(..)) => fail!("unexpected message"),
@@ -725,6 +740,9 @@ impl ScriptTask {
 
         let cx = self.js_context.borrow();
         let cx = cx.as_ref().unwrap();
+
+        let _ar = JSAutoRequest::new(cx.deref().ptr);
+
         // Create the window and document objects.
         let window = Window::new(cx.deref().ptr,
                                  page.clone(),
@@ -877,8 +895,9 @@ impl ScriptTask {
                         page.reflow(ReflowForDisplay, self.control_chan.clone(), &*self.compositor)
                     }
 
-                    let mut fragment_node = page.fragment_node.get();
-                    match fragment_node.take().map(|node| node.root()) {
+                    let fragment_node = page.fragment_node.get();
+                    page.fragment_node.clear();
+                    match fragment_node.map(|node| node.root()) {
                         Some(node) => self.scroll_fragment_point(pipeline_id, *node),
                         None => {}
                     }

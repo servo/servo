@@ -9,7 +9,8 @@ use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::error::{Fallible, Syntax};
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JS, JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object, mut_value_handle};
+use dom::bindings::utils::value_handle;
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, WorkerTypeId};
 use dom::messageevent::MessageEvent;
@@ -18,8 +19,8 @@ use script_task::{ScriptChan, DOMMessage};
 use servo_util::str::DOMString;
 
 use js::glue::JS_STRUCTURED_CLONE_VERSION;
-use js::jsapi::{JSContext, JS_AddObjectRoot, JS_RemoveObjectRoot};
-use js::jsapi::{JS_ReadStructuredClone, JS_WriteStructuredClone};
+use js::jsapi::{JSContext/*, JS_AddObjectRoot, JS_RemoveObjectRoot*/};
+use js::jsfriendapi::{JS_ReadStructuredClone, JS_WriteStructuredClone};
 use js::jsval::{JSVal, UndefinedValue};
 use url::UrlParser;
 
@@ -88,8 +89,8 @@ impl Worker {
         unsafe {
             assert!(JS_ReadStructuredClone(
                 global.root_ref().get_cx(), data as *const u64, nbytes,
-                JS_STRUCTURED_CLONE_VERSION, &mut message,
-                ptr::null(), ptr::null_mut()) != 0);
+                JS_STRUCTURED_CLONE_VERSION, mut_value_handle(&mut message),
+                ptr::null(), ptr::null_mut()));
         }
 
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(*worker);
@@ -102,9 +103,9 @@ impl Worker {
     pub fn addref(&self) -> TrustedWorkerAddress {
         let refcount = self.refcount.get();
         if refcount == 0 {
-            let cx = self.global.root().root_ref().get_cx();
+            let _cx = self.global.root().root_ref().get_cx();
             unsafe {
-                JS_AddObjectRoot(cx, self.reflector().rootable());
+                //JS_AddObjectRoot(cx, self.reflector().rootable()); //XXXjdm
             }
         }
         self.refcount.set(refcount + 1);
@@ -116,9 +117,9 @@ impl Worker {
         assert!(refcount > 0)
         self.refcount.set(refcount - 1);
         if refcount == 1 {
-            let cx = self.global.root().root_ref().get_cx();
+            let _cx = self.global.root().root_ref().get_cx();
             unsafe {
-                JS_RemoveObjectRoot(cx, self.reflector().rootable());
+                //JS_RemoveObjectRoot(cx, self.reflector().rootable()); //XXXjdm
             }
         }
     }
@@ -133,9 +134,11 @@ impl<'a> WorkerMethods for JSRef<'a, Worker> {
     fn PostMessage(self, cx: *mut JSContext, message: JSVal) {
         let mut data = ptr::null_mut();
         let mut nbytes = 0;
+        let transferable = UndefinedValue();
         unsafe {
-            assert!(JS_WriteStructuredClone(cx, message, &mut data, &mut nbytes,
-                                            ptr::null(), ptr::null_mut()) != 0);
+            assert!(JS_WriteStructuredClone(cx, value_handle(&message), &mut data, &mut nbytes,
+                                            ptr::null(), ptr::null_mut(),
+                                            value_handle(&transferable)));
         }
 
         self.addref();
