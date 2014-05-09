@@ -23,6 +23,7 @@ extern crate encoding;
 extern crate js;
 extern crate libc;
 extern crate native;
+extern crate net;
 extern crate serialize;
 extern crate time;
 #[phase(syntax)]

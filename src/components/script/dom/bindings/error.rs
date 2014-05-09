@@ -19,7 +19,10 @@ pub enum Error {
     InvalidCharacter,
     NotSupported,
     InvalidState,
-    NamespaceError
+    Syntax,
+    NamespaceError,
+    Security,
+    Network
 }
 
 pub type Fallible<T> = Result<T, Error>;
