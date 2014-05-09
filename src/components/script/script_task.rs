@@ -153,7 +153,10 @@ pub struct Page {
     pub resize_event: Untraceable<RefCell<Option<Size2D<uint>>>>,
 
     /// Pending scroll to fragment event, if any
-    pub fragment_node: Traceable<RefCell<Option<JS<Element>>>>
+    pub fragment_node: Traceable<RefCell<Option<JS<Element>>>>,
+
+    /// Associated resource task for use by DOM objects like XMLHttpRequest
+    pub resource_task: Untraceable<ResourceTask>,
 }
 
 pub struct PageTree {
@@ -166,7 +169,8 @@ pub struct PageTreeIterator<'a> {
 }
 
 impl PageTree {
-    fn new(id: PipelineId, layout_chan: LayoutChan, window_size: Size2D<uint>) -> PageTree {
+    fn new(id: PipelineId, layout_chan: LayoutChan,
+           window_size: Size2D<uint>, resource_task: ResourceTask) -> PageTree {
         PageTree {
             page: Rc::new(Page {
                 id: id,
@@ -181,6 +185,7 @@ impl PageTree {
                 resize_event: Untraceable::new(RefCell::new(None)),
                 fragment_node: Traceable::new(RefCell::new(None)),
                 last_reflow_id: Traceable::new(RefCell::new(0)),
+                resource_task: Untraceable::new(resource_task)
             }),
             inner: vec!(),
         }
@@ -592,7 +597,8 @@ impl ScriptTask {
                -> Rc<ScriptTask> {
         let (js_runtime, js_context) = ScriptTask::new_rt_and_cx();
         Rc::new(ScriptTask {
-            page_tree: RefCell::new(PageTree::new(id, layout_chan, window_size)),
+            page_tree: RefCell::new(PageTree::new(id, layout_chan,
+                                                  window_size, resource_task.clone())),
 
             image_cache_task: img_cache_task,
             resource_task: resource_task,
@@ -774,7 +780,8 @@ impl ScriptTask {
             task's page tree. This is a bug.");
         let new_page_tree = {
             let window_size = parent_page_tree.page().window_size.deref().borrow();
-            PageTree::new(new_id, layout_chan, *window_size)
+            PageTree::new(new_id, layout_chan, *window_size,
+                          parent_page_tree.page().resource_task.deref().clone())
         };
         parent_page_tree.inner.push(new_page_tree);
     }
