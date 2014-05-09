@@ -19,10 +19,7 @@ pub struct HTMLMainElement {
 
 impl HTMLMainElementDerived for EventTarget {
     fn is_htmlmainelement(&self) -> bool {
-        match self.type_id {
-            NodeTargetTypeId(ElementNodeTypeId(HTMLMainElementTypeId)) => true,
-            _ => false
-        }
+        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLMainElementTypeId))
     }
 }
 

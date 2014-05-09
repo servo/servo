@@ -19,10 +19,7 @@ pub struct HTMLSpanElement {
 
 impl HTMLSpanElementDerived for EventTarget {
     fn is_htmlspanelement(&self) -> bool {
-        match self.type_id {
-            NodeTargetTypeId(ElementNodeTypeId(HTMLSpanElementTypeId)) => true,
-            _ => false
-        }
+        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLSpanElementTypeId))
     }
 }
 

@@ -20,10 +20,7 @@ pub struct HTMLLegendElement {
 
 impl HTMLLegendElementDerived for EventTarget {
     fn is_htmllegendelement(&self) -> bool {
-        match self.type_id {
-            NodeTargetTypeId(ElementNodeTypeId(HTMLLegendElementTypeId)) => true,
-            _ => false
-        }
+        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLLegendElementTypeId))
     }
 }
 

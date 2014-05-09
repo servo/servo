@@ -20,10 +20,7 @@ pub struct HTMLBRElement {
 
 impl HTMLBRElementDerived for EventTarget {
     fn is_htmlbrelement(&self) -> bool {
-        match self.type_id {
-            NodeTargetTypeId(ElementNodeTypeId(HTMLBRElementTypeId)) => true,
-            _ => false
-        }
+        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLBRElementTypeId))
     }
 }
 

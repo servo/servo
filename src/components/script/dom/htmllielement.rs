@@ -20,10 +20,7 @@ pub struct HTMLLIElement {
 
 impl HTMLLIElementDerived for EventTarget {
     fn is_htmllielement(&self) -> bool {
-        match self.type_id {
-            NodeTargetTypeId(ElementNodeTypeId(HTMLLIElementTypeId)) => true,
-            _ => false
-        }
+        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLLIElementTypeId))
     }
 }
 

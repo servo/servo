@@ -20,10 +20,7 @@ pub struct HTMLTimeElement {
 
 impl HTMLTimeElementDerived for EventTarget {
     fn is_htmltimeelement(&self) -> bool {
-        match self.type_id {
-            NodeTargetTypeId(ElementNodeTypeId(HTMLTimeElementTypeId)) => true,
-            _ => false
-        }
+        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLTimeElementTypeId))
     }
 }
 

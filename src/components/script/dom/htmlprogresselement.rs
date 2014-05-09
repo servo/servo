@@ -20,10 +20,7 @@ pub struct HTMLProgressElement {
 
 impl HTMLProgressElementDerived for EventTarget {
     fn is_htmlprogresselement(&self) -> bool {
-        match self.type_id {
-            NodeTargetTypeId(ElementNodeTypeId(HTMLProgressElementTypeId)) => true,
-            _ => false
-        }
+        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLProgressElementTypeId))
     }
 }
 
