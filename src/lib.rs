@@ -5,7 +5,7 @@
 #![comment = "The Servo Parallel Browser Project"]
 #![license = "MPL"]
 
-#![feature(globs, macro_rules, phase, thread_local)]
+#![feature(globs, macro_rules, phase, thread_local, unsafe_destructor)]
 
 #![deny(unused_imports, unused_variable)]
 
@@ -92,6 +92,8 @@ pub fn run(opts: opts::Opts) {
     pool_config.event_loop_factory = rustuv::event_loop;
     let mut pool = green::SchedPool::new(pool_config);
 
+    script::init();
+
     let (compositor_port, compositor_chan) = CompositorChan::new();
     let time_profiler_chan = TimeProfiler::create(opts.time_profiler_period);
     let memory_profiler_chan = MemoryProfiler::create(opts.memory_profiler_period);
@@ -158,5 +160,7 @@ pub fn run(opts: opts::Opts) {
                            memory_profiler_chan);
 
     pool.shutdown();
+
+    script::shutdown();
 }
 

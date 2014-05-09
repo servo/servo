@@ -10,7 +10,7 @@ use dom::bindings::codegen::InheritTypes::{EventTargetCast, WorkerGlobalScopeCas
 use dom::bindings::global;
 use dom::bindings::js::{JSRef, Temporary, RootCollection};
 use dom::bindings::trace::Untraceable;
-use dom::bindings::utils::{Reflectable, Reflector};
+use dom::bindings::utils::{Reflectable, Reflector, mut_value_handle, value_handle};
 use dom::eventtarget::{EventTarget, EventTargetHelpers};
 use dom::eventtarget::WorkerGlobalScopeTypeId;
 use dom::messageevent::MessageEvent;
@@ -26,7 +26,8 @@ use script_task::StackRootTLS;
 use servo_net::resource_task::{ResourceTask, load_whole_resource};
 
 use js::glue::JS_STRUCTURED_CLONE_VERSION;
-use js::jsapi::{JSContext, JS_ReadStructuredClone, JS_WriteStructuredClone};
+use js::jsapi::JSContext;
+use js::jsfriendapi::{JS_ReadStructuredClone, JS_WriteStructuredClone};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::Cx;
 
@@ -91,8 +92,6 @@ impl DedicatedWorkerGlobalScope {
             .native()
             .named(format!("Web Worker at {}", worker_url.serialize()))
             .spawn(proc() {
-            let roots = RootCollection::new();
-            let _stack_roots_tls = StackRootTLS::new(&roots);
 
             let (url, source) = match load_whole_resource(&resource_task, worker_url.clone()) {
                 Err(_) => {
@@ -105,6 +104,9 @@ impl DedicatedWorkerGlobalScope {
             };
 
             let (_js_runtime, js_context) = ScriptTask::new_rt_and_cx();
+            let roots = RootCollection::new(js_context.ptr);
+            let _stack_roots_tls = StackRootTLS::new(&roots);
+
             let global = DedicatedWorkerGlobalScope::new(
                 worker_url, worker, js_context.clone(), resource_task,
                 parent_sender, own_sender, receiver).root();
@@ -126,8 +128,8 @@ impl DedicatedWorkerGlobalScope {
                         unsafe {
                             assert!(JS_ReadStructuredClone(
                                 js_context.ptr, data as *const u64, nbytes,
-                                JS_STRUCTURED_CLONE_VERSION, &mut message,
-                                ptr::null(), ptr::null_mut()) != 0);
+                                JS_STRUCTURED_CLONE_VERSION, mut_value_handle(&mut message),
+                                ptr::null(), ptr::null_mut()));
                         }
 
                         MessageEvent::dispatch_jsval(target, &global::Worker(scope), message);
@@ -154,9 +156,11 @@ impl<'a> DedicatedWorkerGlobalScopeMethods for JSRef<'a, DedicatedWorkerGlobalSc
     fn PostMessage(self, cx: *mut JSContext, message: JSVal) {
         let mut data = ptr::null_mut();
         let mut nbytes = 0;
+        let transferable = UndefinedValue();
         unsafe {
-            assert!(JS_WriteStructuredClone(cx, message, &mut data, &mut nbytes,
-                                            ptr::null(), ptr::null_mut()) != 0);
+            assert!(JS_WriteStructuredClone(cx, value_handle(&message), &mut data, &mut nbytes,
+                                            ptr::null(), ptr::null_mut(),
+                                            value_handle(&transferable)));
         }
 
         let ScriptChan(ref sender) = self.parent_sender;
