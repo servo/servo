@@ -561,7 +561,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
                 after_style.Box.get().display
             }
             Normal => {
-                let after_style = node_layout_data_wrapper.data.style.get_ref();
+                let after_style = node_layout_data_wrapper.shared_data.style.get_ref();
                 after_style.Box.get().display
             }
         };
