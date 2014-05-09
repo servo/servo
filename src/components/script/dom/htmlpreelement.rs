@@ -20,10 +20,7 @@ pub struct HTMLPreElement {
 
 impl HTMLPreElementDerived for EventTarget {
     fn is_htmlpreelement(&self) -> bool {
-        match self.type_id {
-            NodeTargetTypeId(ElementNodeTypeId(HTMLPreElementTypeId)) => true,
-            _ => false
-        }
+        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLPreElementTypeId)) 
     }
 }
 

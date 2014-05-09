@@ -20,10 +20,7 @@ pub struct HTMLParamElement {
 
 impl HTMLParamElementDerived for EventTarget {
     fn is_htmlparamelement(&self) -> bool {
-        match self.type_id {
-            NodeTargetTypeId(ElementNodeTypeId(HTMLParamElementTypeId)) => true,
-            _ => false
-        }
+        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLParamElementTypeId))
     }
 }
 

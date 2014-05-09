@@ -176,9 +176,6 @@ impl Reflectable for XMLHttpRequest {
 
 impl XMLHttpRequestDerived for EventTarget {
     fn is_xmlhttprequest(&self) -> bool {
-        match self.type_id {
-            XMLHttpRequestTargetTypeId(XMLHttpRequestTypeId) => true,
-            _ => false
-        }
+        self.type_id == XMLHttpRequestTargetTypeId(XMLHttpRequestTypeId)
     }
 }

@@ -20,10 +20,7 @@ pub struct HTMLTableSectionElement {
 
 impl HTMLTableSectionElementDerived for EventTarget {
     fn is_htmltablesectionelement(&self) -> bool {
-        match self.type_id {
-            NodeTargetTypeId(ElementNodeTypeId(HTMLTableSectionElementTypeId)) => true,
-            _ => false
-        }
+        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLTableSectionElementTypeId))
     }
 }
 

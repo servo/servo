@@ -20,10 +20,7 @@ pub struct HTMLTrackElement {
 
 impl HTMLTrackElementDerived for EventTarget {
     fn is_htmltrackelement(&self) -> bool {
-        match self.type_id {
-            NodeTargetTypeId(ElementNodeTypeId(HTMLTrackElementTypeId)) => true,
-            _ => false
-        }
+        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLTrackElementTypeId))
     }
 }
 

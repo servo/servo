@@ -21,10 +21,7 @@ pub struct Comment {
 
 impl CommentDerived for EventTarget {
     fn is_comment(&self) -> bool {
-        match self.type_id {
-            NodeTargetTypeId(CommentNodeTypeId) => true,
-            _ => false
-        }
+        self.type_id == NodeTargetTypeId(CommentNodeTypeId)
     }
 }
 

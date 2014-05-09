@@ -20,10 +20,7 @@ pub struct HTMLDataElement {
 
 impl HTMLDataElementDerived for EventTarget {
     fn is_htmldataelement(&self) -> bool {
-        match self.type_id {
-            NodeTargetTypeId(ElementNodeTypeId(HTMLDataElementTypeId)) => true,
-            _ => false
-        }
+        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLDataElementTypeId))
     }
 }
 

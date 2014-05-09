@@ -19,10 +19,7 @@ pub struct HTMLTableDataCellElement {
 
 impl HTMLTableDataCellElementDerived for EventTarget {
     fn is_htmltabledatacellelement(&self) -> bool {
-        match self.type_id {
-            NodeTargetTypeId(ElementNodeTypeId(HTMLTableDataCellElementTypeId)) => true,
-            _ => false
-        }
+        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLTableDataCellElementTypeId))
     }
 }
 
