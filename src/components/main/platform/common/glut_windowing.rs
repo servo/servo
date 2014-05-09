@@ -182,7 +182,7 @@ impl WindowMethods<Application> for Window {
 
     fn hidpi_factor(&self) -> f32 {
         //FIXME: Do nothing in GLUT now.
-    0f32
+    1f32
     }
 }
 
