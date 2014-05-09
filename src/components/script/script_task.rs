@@ -54,7 +54,7 @@ use servo_util::url::parse_url;
 use servo_util::task::send_on_failure;
 use servo_util::namespace::Null;
 use std::cast;
-use std::cell::{RefCell, Ref, RefMut};
+use std::cell::{Cell, RefCell, Ref, RefMut};
 use std::comm::{channel, Sender, Receiver, Empty, Disconnected, Data};
 use std::local_data;
 use std::mem::replace;
@@ -122,7 +122,7 @@ pub struct Page {
     pub id: PipelineId,
 
     /// Unique id for last reflow request; used for confirming completion reply.
-    pub last_reflow_id: Traceable<RefCell<uint>>,
+    pub last_reflow_id: Traceable<Cell<uint>>,
 
     /// The outermost frame containing the document, window, and page URL.
     pub frame: Traceable<RefCell<Option<Frame>>>,
@@ -137,7 +137,7 @@ pub struct Page {
     pub damage: Traceable<RefCell<Option<DocumentDamage>>>,
 
     /// The current size of the window, in pixels.
-    pub window_size: Untraceable<RefCell<Size2D<uint>>>,
+    pub window_size: Untraceable<Cell<Size2D<uint>>>,
 
     pub js_info: Traceable<RefCell<Option<JSPageInfo>>>,
 
@@ -147,10 +147,10 @@ pub struct Page {
     /// when reloading.
     pub url: Untraceable<RefCell<Option<(Url, bool)>>>,
 
-    pub next_subpage_id: Untraceable<RefCell<SubpageId>>,
+    pub next_subpage_id: Untraceable<Cell<SubpageId>>,
 
     /// Pending resize event, if any.
-    pub resize_event: Untraceable<RefCell<Option<Size2D<uint>>>>,
+    pub resize_event: Untraceable<Cell<Option<Size2D<uint>>>>,
 
     /// Pending scroll to fragment event, if any
     pub fragment_node: Traceable<RefCell<Option<JS<Element>>>>,
@@ -178,13 +178,13 @@ impl PageTree {
                 layout_chan: Untraceable::new(layout_chan),
                 layout_join_port: Untraceable::new(RefCell::new(None)),
                 damage: Traceable::new(RefCell::new(None)),
-                window_size: Untraceable::new(RefCell::new(window_size)),
+                window_size: Untraceable::new(Cell::new(window_size)),
                 js_info: Traceable::new(RefCell::new(None)),
                 url: Untraceable::new(RefCell::new(None)),
-                next_subpage_id: Untraceable::new(RefCell::new(SubpageId(0))),
-                resize_event: Untraceable::new(RefCell::new(None)),
+                next_subpage_id: Untraceable::new(Cell::new(SubpageId(0))),
+                resize_event: Untraceable::new(Cell::new(None)),
                 fragment_node: Traceable::new(RefCell::new(None)),
-                last_reflow_id: Traceable::new(RefCell::new(0)),
+                last_reflow_id: Traceable::new(Cell::new(0)),
                 resource_task: Untraceable::new(resource_task)
             }),
             inner: vec!(),
@@ -387,23 +387,23 @@ impl Page {
                 let mut layout_join_port = self.layout_join_port.deref().borrow_mut();
                 *layout_join_port = Some(join_port);
 
-                let mut last_reflow_id = self.last_reflow_id.deref().borrow_mut();
-                *last_reflow_id += 1;
+                let last_reflow_id = self.last_reflow_id.deref();
+                last_reflow_id.set(last_reflow_id.get() + 1);
 
                 let root: &JSRef<Node> = NodeCast::from_ref(&*root);
                 let mut damage = self.damage.deref().borrow_mut();
-                let window_size = self.window_size.deref().borrow();
+                let window_size = self.window_size.deref().get();
 
                 // Send new document and relevant styles to layout.
                 let reflow = ~Reflow {
                     document_root: root.to_trusted_node_address(),
                     url: self.get_url(),
                     goal: goal,
-                    window_size: *window_size,
+                    window_size: window_size,
                     script_chan: script_chan,
                     script_join_chan: join_chan,
                     damage: replace(&mut *damage, None).unwrap(),
-                    id: *last_reflow_id,
+                    id: last_reflow_id.get(),
                 };
 
                 let LayoutChan(ref chan) = *self.layout_chan;
@@ -708,11 +708,12 @@ impl ScriptTask {
                 // Only process a resize if layout is idle.
                 let layout_join_port = page.layout_join_port.deref().borrow();
                 if layout_join_port.is_none() {
-                    let mut resize_event = page.resize_event.deref().borrow_mut();
+                    let mut resize_event = page.resize_event.deref().get();
                     match resize_event.take() {
                         Some(size) => resizes.push((page.id, size)),
                         None => ()
                     }
+                    page.resize_event.deref().set(None);
                 }
             }
         }
@@ -732,8 +733,7 @@ impl ScriptTask {
                 ResizeMsg(id, size) => {
                     let mut page_tree = self.page_tree.borrow_mut();
                     let page = page_tree.find(id).expect("resize sent to nonexistent pipeline").page();
-                    let mut resize_event = page.resize_event.deref().borrow_mut();
-                    *resize_event = Some(size);
+                    page.resize_event.deref().set(Some(size));
                 }
                 _ => {
                     sequential.push(event);
@@ -779,8 +779,8 @@ impl ScriptTask {
             whose parent has a PipelineId which does not correspond to a pipeline in the script
             task's page tree. This is a bug.");
         let new_page_tree = {
-            let window_size = parent_page_tree.page().window_size.deref().borrow();
-            PageTree::new(new_id, layout_chan, *window_size,
+            let window_size = parent_page_tree.page().window_size.deref().get();
+            PageTree::new(new_id, layout_chan, window_size,
                           parent_page_tree.page().resource_task.deref().clone())
         };
         parent_page_tree.inner.push(new_page_tree);
@@ -827,8 +827,8 @@ impl ScriptTask {
         let page = page_tree.find(pipeline_id).expect(
             "ScriptTask: received a load message for a layout channel that is not associated \
              with this script task. This is a bug.").page();
-        let last_reflow_id = page.last_reflow_id.deref().borrow();
-        if *last_reflow_id == reflow_id {
+        let last_reflow_id = page.last_reflow_id.deref().get();
+        if last_reflow_id == reflow_id {
             let mut layout_join_port = page.layout_join_port.deref().borrow_mut();
             *layout_join_port = None;
         }
@@ -847,8 +847,7 @@ impl ScriptTask {
         let mut page_tree = self.page_tree.borrow_mut();
         let page = page_tree.find(id).expect("Received resize message for PipelineId not associated
             with a page in the page tree. This is a bug.").page();
-        let mut window_size = page.window_size.deref().borrow_mut();
-        *window_size = new_size;
+        page.window_size.deref().set(new_size);
         let mut page_url = page.mut_url();
         let last_loaded_url = replace(&mut *page_url, None);
         for url in last_loaded_url.iter() {
@@ -977,7 +976,7 @@ impl ScriptTask {
                 }
                 Some(HtmlDiscoveredIFrame((iframe_url, subpage_id, sandboxed))) => {
                     let SubpageId(num) = subpage_id;
-                    *page.next_subpage_id.deref().borrow_mut() = SubpageId(num + 1);
+                    page.next_subpage_id.deref().set(SubpageId(num + 1));
                     let sandboxed = if sandboxed {
                         IFrameSandboxed
                     } else {
@@ -1068,10 +1067,7 @@ impl ScriptTask {
                 let window = {
                     let mut page_tree = self.page_tree.borrow_mut();
                     let page = get_page(&mut *page_tree, pipeline_id);
-                    {
-                        let mut window_size = page.window_size.deref().borrow_mut();
-                        *window_size = Size2D(new_width, new_height);
-                    }
+                    page.window_size.deref().set(Size2D(new_width, new_height));
 
                     let frame = page.frame();
                     if frame.is_some() {
