@@ -36,19 +36,30 @@ impl UIEvent {
         }
     }
 
-    pub fn new(window: &JSRef<Window>) -> Temporary<UIEvent> {
+    pub fn new_uninitialized(window: &JSRef<Window>) -> Temporary<UIEvent> {
         reflect_dom_object(~UIEvent::new_inherited(UIEventTypeId),
                            window,
                            UIEventBinding::Wrap)
     }
 
+    pub fn new(window: &JSRef<Window>,
+               type_: DOMString,
+               can_bubble: bool,
+               cancelable: bool,
+               view: Option<JSRef<Window>>,
+               detail: i32) -> Temporary<UIEvent> {
+        let mut ev = UIEvent::new_uninitialized(window).root();
+        ev.InitUIEvent(type_, can_bubble, cancelable, view, detail);
+        Temporary::from_rooted(&*ev)
+    }
+
     pub fn Constructor(owner: &JSRef<Window>,
                        type_: DOMString,
                        init: &UIEventBinding::UIEventInit) -> Fallible<Temporary<UIEvent>> {
-        let mut ev = UIEvent::new(owner).root();
-        ev.InitUIEvent(type_, init.parent.bubbles, init.parent.cancelable,
-                       init.view.root_ref(), init.detail);
-        Ok(Temporary::from_rooted(&*ev))
+        let event = UIEvent::new(owner, type_,
+                                 init.parent.bubbles, init.parent.cancelable,
+                                 init.view.root_ref(), init.detail);
+        Ok(event)
     }
 }
 

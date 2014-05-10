@@ -532,8 +532,8 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
         match interface.to_ascii_lower().as_slice() {
             // FIXME: Implement CustomEvent (http://dom.spec.whatwg.org/#customevent)
-            "uievents" | "uievent" => Ok(EventCast::from_temporary(UIEvent::new(&*window))),
-            "mouseevents" | "mouseevent" => Ok(EventCast::from_temporary(MouseEvent::new(&*window))),
+            "uievents" | "uievent" => Ok(EventCast::from_temporary(UIEvent::new_uninitialized(&*window))),
+            "mouseevents" | "mouseevent" => Ok(EventCast::from_temporary(MouseEvent::new_uninitialized(&*window))),
             "htmlevents" | "events" | "event" => Ok(Event::new(&*window)),
             _ => Err(NotSupported)
         }
