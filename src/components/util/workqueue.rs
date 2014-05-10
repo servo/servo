@@ -11,7 +11,6 @@ use native;
 use rand;
 use rand::{Rng, XorShiftRng};
 use std::cast;
-use std::comm;
 use std::mem;
 use std::sync::atomics::{AtomicUint, SeqCst};
 use std::sync::deque::{Abort, BufferPool, Data, Empty, Stealer, Worker};
