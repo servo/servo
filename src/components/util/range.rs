@@ -25,13 +25,13 @@ pub struct Range<T> {
     len: T,
 }
 
-impl<T: Int + TotalOrd + Signed> fmt::Show for Range<T> {
+impl<T: Int + TotalOrd + Signed + fmt::Show> fmt::Show for Range<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f.buf, "[{} .. {})", self.begin(), self.end())
     }
 }
 
-impl<T: Int + TotalOrd + Signed> Range<T> {
+impl<T: Int + TotalOrd + Signed + fmt::Show> Range<T> {
     #[inline]
     pub fn new(off: T, len: T) -> Range<T> {
         Range {
