@@ -170,7 +170,12 @@ pub struct PageTreeIterator<'a> {
 
 impl PageTree {
     fn new(id: PipelineId, layout_chan: LayoutChan,
-           window_size: Size2D<uint>, resource_task: ResourceTask) -> PageTree {
+           window_size: Size2D<uint>, resource_task: ResourceTask,
+           js_context: Rc<Cx>) -> PageTree {
+        let js_info = JSPageInfo {
+            dom_static: GlobalStaticData(),
+            js_context: Untraceable::new(js_context),
+        };
         PageTree {
             page: Rc::new(Page {
                 id: id,
@@ -179,7 +184,7 @@ impl PageTree {
                 layout_join_port: Untraceable::new(RefCell::new(None)),
                 damage: Traceable::new(RefCell::new(None)),
                 window_size: Untraceable::new(Cell::new(window_size)),
-                js_info: Traceable::new(RefCell::new(None)),
+                js_info: Traceable::new(RefCell::new(Some(js_info))),
                 url: Untraceable::new(RefCell::new(None)),
                 next_subpage_id: Untraceable::new(Cell::new(SubpageId(0))),
                 resize_event: Untraceable::new(Cell::new(None)),
@@ -432,13 +437,6 @@ impl Page {
         }
     }
 
-    pub fn initialize_js_info(&self, js_context: Rc<Cx>) {
-        *self.mut_js_info() = Some(JSPageInfo {
-            dom_static: GlobalStaticData(),
-            js_context: Untraceable::new(js_context),
-        });
-    }
-
     pub fn hit_test(&self, point: &Point2D<f32>) -> Option<UntrustedNodeAddress> {
         let frame = self.frame();
         let document = frame.get_ref().document.root();
@@ -596,9 +594,10 @@ impl ScriptTask {
                window_size: Size2D<uint>)
                -> Rc<ScriptTask> {
         let (js_runtime, js_context) = ScriptTask::new_rt_and_cx();
+        let page_tree = PageTree::new(id, layout_chan, window_size,
+                                      resource_task.clone(), js_context.clone());
         Rc::new(ScriptTask {
-            page_tree: RefCell::new(PageTree::new(id, layout_chan,
-                                                  window_size, resource_task.clone())),
+            page_tree: RefCell::new(page_tree),
 
             image_cache_task: img_cache_task,
             resource_task: resource_task,
@@ -781,7 +780,8 @@ impl ScriptTask {
         let new_page_tree = {
             let window_size = parent_page_tree.page().window_size.deref().get();
             PageTree::new(new_id, layout_chan, window_size,
-                          parent_page_tree.page().resource_task.deref().clone())
+                          parent_page_tree.page().resource_task.deref().clone(),
+                          self.js_context.borrow().get_ref().clone())
         };
         parent_page_tree.inner.push(new_page_tree);
     }
@@ -927,7 +927,6 @@ impl ScriptTask {
                                      self.chan.clone(),
                                      self.compositor.dup(),
                                      self.image_cache_task.clone()).root();
-        page.initialize_js_info(cx.clone());
         let mut document = Document::new(&*window, Some(url.clone()), HTMLDocument, None).root();
         window.deref_mut().init_browser_context(&*document);
 
