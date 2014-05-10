@@ -347,7 +347,7 @@ impl<K:Hash + Eq,V> ConcurrentHashMap<K,V> {
     #[inline]
     fn bucket_and_lock_indices(&self, key: &K) -> (uint, uint) {
         let this: &mut ConcurrentHashMap<K,V> = unsafe {
-            cast::transmute_mut(cast::transmute_region(self))
+            cast::transmute_mut(cast::transmute_lifetime(self))
         };
 
         let hash = sip::hash_with_keys(self.k0, self.k1, key);
