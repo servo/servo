@@ -1,4 +1,4 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
+    /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -20,7 +20,7 @@ pub fn null_str_as_empty(s: &Option<DOMString>) -> DOMString {
 pub fn null_str_as_empty_ref<'a>(s: &'a Option<DOMString>) -> &'a str {
     match *s {
         Some(ref s) => s.as_slice(),
-        None => &'a ""
+        None => ""
     }
 }
 
