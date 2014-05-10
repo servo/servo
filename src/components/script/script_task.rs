@@ -16,7 +16,7 @@ use dom::document::{Document, HTMLDocument, DocumentMethods, DocumentHelpers};
 use dom::element::{Element, AttributeHandlers};
 use dom::event::{Event_, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent};
 use dom::event::{Event, EventMethods};
-use dom::uievent::{UIEvent, UIEventMethods};
+use dom::uievent::UIEvent;
 use dom::eventtarget::{EventTarget, EventTargetHelpers};
 use dom::node;
 use dom::node::{Node, NodeHelpers};
@@ -1088,9 +1088,8 @@ impl ScriptTask {
                     Some(mut window) => {
                         // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
                         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#event-type-resize
-                        let mut uievent = UIEvent::new(&*window).root();
-                        uievent.InitUIEvent("resize".to_owned(), false, false,
-                                            Some((*window).clone()), 0i32);
+                        let mut uievent = UIEvent::new(&window.clone(), "resize".to_owned(), false, false,
+                                                       Some((*window).clone()), 0i32).root();
                         let event: &mut JSRef<Event> = EventCast::from_mut_ref(&mut *uievent);
 
                         let wintarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(&mut *window);
