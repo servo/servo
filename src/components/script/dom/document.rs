@@ -69,10 +69,7 @@ pub struct Document {
 
 impl DocumentDerived for EventTarget {
     fn is_document(&self) -> bool {
-        match self.type_id {
-            NodeTargetTypeId(DocumentNodeTypeId) => true,
-            _ => false
-        }
+        self.type_id == NodeTargetTypeId(DocumentNodeTypeId)
     }
 }
 

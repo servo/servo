@@ -21,10 +21,7 @@ pub struct HTMLMapElement {
 
 impl HTMLMapElementDerived for EventTarget {
     fn is_htmlmapelement(&self) -> bool {
-        match self.type_id {
-            NodeTargetTypeId(ElementNodeTypeId(HTMLMapElementTypeId)) => true,
-            _ => false
-        }
+        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLMapElementTypeId))
     }
 }
 

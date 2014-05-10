@@ -20,10 +20,7 @@ pub struct HTMLAppletElement {
 
 impl HTMLAppletElementDerived for EventTarget {
     fn is_htmlappletelement(&self) -> bool {
-        match self.type_id {
-            NodeTargetTypeId(ElementNodeTypeId(HTMLAppletElementTypeId)) => true,
-            _ => false
-        }
+        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLAppletElementTypeId))
     }
 }
 

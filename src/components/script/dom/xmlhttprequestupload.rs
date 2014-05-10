@@ -40,10 +40,7 @@ impl Reflectable for XMLHttpRequestUpload {
 
 impl XMLHttpRequestUploadDerived for EventTarget {
     fn is_xmlhttprequestupload(&self) -> bool {
-        match self.type_id {
-            XMLHttpRequestTargetTypeId(XMLHttpRequestUploadTypeId) => true,
-            _ => false
-        }
+        self.type_id == XMLHttpRequestTargetTypeId(XMLHttpRequestUploadTypeId)
     }
 }
 

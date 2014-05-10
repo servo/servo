@@ -20,10 +20,7 @@ pub struct HTMLMeterElement {
 
 impl HTMLMeterElementDerived for EventTarget {
     fn is_htmlmeterelement(&self) -> bool {
-        match self.type_id {
-            NodeTargetTypeId(ElementNodeTypeId(HTMLMeterElementTypeId)) => true,
-            _ => false
-        }
+        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLMeterElementTypeId))
     }
 }
 

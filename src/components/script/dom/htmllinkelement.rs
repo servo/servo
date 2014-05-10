@@ -20,10 +20,7 @@ pub struct HTMLLinkElement {
 
 impl HTMLLinkElementDerived for EventTarget {
     fn is_htmllinkelement(&self) -> bool {
-        match self.type_id {
-            NodeTargetTypeId(ElementNodeTypeId(HTMLLinkElementTypeId)) => true,
-            _ => false
-        }
+        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLLinkElementTypeId))
     }
 }
 

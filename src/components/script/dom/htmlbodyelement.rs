@@ -20,10 +20,7 @@ pub struct HTMLBodyElement {
 
 impl HTMLBodyElementDerived for EventTarget {
     fn is_htmlbodyelement(&self) -> bool {
-        match self.type_id {
-            NodeTargetTypeId(ElementNodeTypeId(HTMLBodyElementTypeId)) => true,
-            _ => false
-        }
+        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLBodyElementTypeId))
     }
 }
 

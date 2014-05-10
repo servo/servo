@@ -20,10 +20,7 @@ pub struct HTMLTitleElement {
 
 impl HTMLTitleElementDerived for EventTarget {
     fn is_htmltitleelement(&self) -> bool {
-        match self.type_id {
-            NodeTargetTypeId(ElementNodeTypeId(HTMLTitleElementTypeId)) => true,
-            _ => false
-        }
+        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLTitleElementTypeId))
     }
 }
 

@@ -20,10 +20,7 @@ pub struct ProcessingInstruction {
 
 impl ProcessingInstructionDerived for EventTarget {
     fn is_processinginstruction(&self) -> bool {
-        match self.type_id {
-            NodeTargetTypeId(ProcessingInstructionNodeTypeId) => true,
-            _ => false
-        }
+        self.type_id == NodeTargetTypeId(ProcessingInstructionNodeTypeId)
     }
 }
 

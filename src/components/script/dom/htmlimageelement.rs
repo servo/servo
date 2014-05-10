@@ -28,10 +28,7 @@ pub struct HTMLImageElement {
 
 impl HTMLImageElementDerived for EventTarget {
     fn is_htmlimageelement(&self) -> bool {
-        match self.type_id {
-            NodeTargetTypeId(ElementNodeTypeId(HTMLImageElementTypeId)) => true,
-            _ => false
-        }
+        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLImageElementTypeId))
     }
 }
 

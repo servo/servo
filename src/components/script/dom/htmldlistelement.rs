@@ -20,10 +20,7 @@ pub struct HTMLDListElement {
 
 impl HTMLDListElementDerived for EventTarget {
     fn is_htmldlistelement(&self) -> bool {
-        match self.type_id {
-            NodeTargetTypeId(ElementNodeTypeId(HTMLDListElementTypeId)) => true,
-            _ => false
-        }
+        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLDListElementTypeId))
     }
 }
 
