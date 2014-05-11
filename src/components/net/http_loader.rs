@@ -59,7 +59,7 @@ fn load(mut url: Url, start_chan: Sender<LoadResponse>) {
 
         let request = RequestWriter::<NetworkStream>::new(Get, url.clone());
         let writer = match request {
-            Ok(w) => ~w,
+            Ok(w) => box w,
             Err(e) => {
                 send_error(url, e.desc.to_owned(), start_chan);
                 return;
@@ -96,10 +96,10 @@ fn load(mut url: Url, start_chan: Sender<LoadResponse>) {
 
         let progress_chan = start_sending(start_chan, metadata);
         loop {
-            let mut buf = slice::with_capacity(1024);
+            let mut buf = Vec::with_capacity(1024);
 
             unsafe { buf.set_len(1024); }
-            match response.read(buf) {
+            match response.read(buf.as_mut_slice()) {
                 Ok(len) => {
                     unsafe { buf.set_len(len); }
                     let buf: ~[u8] = buf;

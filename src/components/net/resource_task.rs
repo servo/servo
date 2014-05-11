@@ -9,7 +9,7 @@ use http_loader;
 use data_loader;
 
 use std::comm::{channel, Receiver, Sender};
-use std::task;
+use std::task::TaskBuilder;
 use http::headers::content_type::MediaType;
 use url::Url;
 
@@ -136,7 +136,7 @@ pub fn ResourceTask() -> ResourceTask {
 
 fn create_resource_task_with_loaders(loaders: Vec<(~str, LoaderTaskFactory)>) -> ResourceTask {
     let (setup_chan, setup_port) = channel();
-    let builder = task::task().named("ResourceManager");
+    let builder = TaskBuilder::new().named("ResourceManager");
     builder.spawn(proc() {
         let (chan, port) = channel();
         setup_chan.send(chan);
