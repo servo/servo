@@ -1004,9 +1004,9 @@ mod tests {
         let rules_list = get_mock_rules([".intro.foo", "#top"]);
         let mut selector_map = SelectorMap::new();
         selector_map.insert(rules_list.get(1).get(0).clone());
-        assert_eq!(1, selector_map.id_hash.find_equiv(& &"top").unwrap().get(0).property.source_order);
+        assert_eq!(1, selector_map.id_hash.find_equiv(&("top")).unwrap().get(0).property.source_order);
         selector_map.insert(rules_list.get(0).get(0).clone());
-        assert_eq!(0, selector_map.class_hash.find_equiv(& &"intro").unwrap().get(0).property.source_order);
-        assert!(selector_map.class_hash.find_equiv(& &"foo").is_none());
+        assert_eq!(0, selector_map.class_hash.find_equiv(&("intro")).unwrap().get(0).property.source_order);
+        assert!(selector_map.class_hash.find_equiv(&("foo")).is_none());
     }
 }
