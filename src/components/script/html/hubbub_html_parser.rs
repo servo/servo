@@ -385,7 +385,6 @@ pub fn parse_html(page: &Page,
                     let sandboxed = iframe_element.is_sandboxed();
                     for src in src_opt.iter() {
                         let iframe_url = parse_url(*src, Some(url2.clone()));
-                        iframe_element.set_frame(iframe_url.clone());
 
                         // Subpage Id
                         let subpage_id = *next_subpage_id.borrow();

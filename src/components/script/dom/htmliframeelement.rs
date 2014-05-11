@@ -6,7 +6,6 @@ use dom::bindings::codegen::BindingDeclarations::HTMLIFrameElementBinding;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLIFrameElementDerived, HTMLElementCast};
 use dom::bindings::error::ErrorResult;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::trace::Untraceable;
 use dom::document::Document;
 use dom::element::{HTMLIFrameElementTypeId, Element};
 use dom::element::AttributeHandlers;
@@ -19,7 +18,6 @@ use servo_util::str::DOMString;
 
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use std::ascii::StrAsciiExt;
-use url::Url;
 
 enum SandboxAllowance {
     AllowNothing = 0x00,
@@ -34,7 +32,6 @@ enum SandboxAllowance {
 #[deriving(Encodable)]
 pub struct HTMLIFrameElement {
     pub htmlelement: HTMLElement,
-    frame: Untraceable<Option<Url>>,
     pub size: Option<IFrameSize>,
     pub sandbox: Option<u8>
 }
@@ -53,16 +50,11 @@ pub struct IFrameSize {
 
 pub trait HTMLIFrameElementHelpers {
     fn is_sandboxed(&self) -> bool;
-    fn set_frame(&mut self, frame: Url);
 }
 
 impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
     fn is_sandboxed(&self) -> bool {
         self.sandbox.is_some()
-    }
-
-    fn set_frame(&mut self, frame: Url) {
-        *self.frame = Some(frame);
     }
 }
 
@@ -70,7 +62,6 @@ impl HTMLIFrameElement {
     pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLIFrameElement {
         HTMLIFrameElement {
             htmlelement: HTMLElement::new_inherited(HTMLIFrameElementTypeId, localName, document),
-            frame: Untraceable::new(None),
             size: None,
             sandbox: None,
         }
