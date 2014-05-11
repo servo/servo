@@ -4,7 +4,7 @@
 
 use std::{cmp, iter};
 use std::ascii::StrAsciiExt;
-use std::slice;
+use std::vec;
 use sync::Arc;
 
 use cssparser::ast::*;
@@ -104,7 +104,7 @@ pub enum NamespaceConstraint {
 }
 
 
-type Iter = iter::Peekable<ComponentValue, slice::MoveItems<ComponentValue>>;
+type Iter = iter::Peekable<ComponentValue, vec::MoveItems<ComponentValue>>;
 
 
 /// Parse a comma-separated list of Selectors.
@@ -306,13 +306,13 @@ fn parse_one_simple_selector(iter: &mut Iter, namespaces: &NamespaceMap, inside_
                          -> SimpleSelectorParseResult {
     match iter.peek() {
         Some(&IDHash(_)) => match iter.next() {
-            Some(IDHash(id)) => SimpleSelectorResult(IDSelector(id)),
+            Some(IDHash(id)) => SimpleSelectorResult(IDSelector(id.into_owned())),
             _ => fail!("Implementation error, this should not happen."),
         },
         Some(&Delim('.')) => {
             iter.next();
             match iter.next() {
-                Some(Ident(class)) => SimpleSelectorResult(ClassSelector(class)),
+                Some(Ident(class)) => SimpleSelectorResult(ClassSelector(class.into_owned())),
                 _ => InvalidSimpleSelector,
             }
         }
@@ -327,10 +327,10 @@ fn parse_one_simple_selector(iter: &mut Iter, namespaces: &NamespaceMap, inside_
         Some(&Colon) => {
             iter.next();
             match iter.next() {
-                Some(Ident(name)) => match parse_simple_pseudo_class(name) {
+                Some(Ident(name)) => match parse_simple_pseudo_class(name.as_slice()) {
                     None => {
                         // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
-                        let name_lower = name.to_ascii_lower();
+                        let name_lower = name.as_slice().to_ascii_lower();
                         match name_lower.as_slice() {
                             // Supported CSS 2.1 pseudo-elements only.
                             // ** Do not add to this list! **
@@ -434,7 +434,7 @@ fn parse_qualified_name(iter: &mut Iter, in_attr_selector: bool, namespaces: &Na
 }
 
 
-fn parse_attribute_selector(content: ~[ComponentValue], namespaces: &NamespaceMap)
+fn parse_attribute_selector(content: Vec<ComponentValue>, namespaces: &NamespaceMap)
                             -> Option<SimpleSelector> {
     let iter = &mut content.move_iter().peekable();
     let attr = match parse_qualified_name(iter, /* in_attr_selector = */ true, namespaces) {
@@ -457,16 +457,16 @@ fn parse_attribute_selector(content: ~[ComponentValue], namespaces: &NamespaceMa
     }};)
     let result = match iter.next() {
         None => AttrExists(attr),  // [foo]
-        Some(Delim('=')) => AttrEqual(attr, get_value!()),  // [foo=bar]
-        Some(IncludeMatch) => AttrIncludes(attr, get_value!()),  // [foo~=bar]
+        Some(Delim('=')) => AttrEqual(attr, (get_value!()).into_owned()),  // [foo=bar]
+        Some(IncludeMatch) => AttrIncludes(attr, (get_value!()).into_owned()),  // [foo~=bar]
         Some(DashMatch) => {
             let value = get_value!();
-            let dashing_value = value + "-";
-            AttrDashMatch(attr, value, dashing_value)  // [foo|=bar]
+            let dashing_value = value.as_slice() + "-";
+            AttrDashMatch(attr, value.into_owned(), dashing_value)  // [foo|=bar]
         },
-        Some(PrefixMatch) => AttrPrefixMatch(attr, get_value!()),  // [foo^=bar]
-        Some(SubstringMatch) => AttrSubstringMatch(attr, get_value!()),  // [foo*=bar]
-        Some(SuffixMatch) => AttrSuffixMatch(attr, get_value!()),  // [foo$=bar]
+        Some(PrefixMatch) => AttrPrefixMatch(attr, (get_value!()).into_owned()),  // [foo^=bar]
+        Some(SubstringMatch) => AttrSubstringMatch(attr, (get_value!()).into_owned()),  // [foo*=bar]
+        Some(SuffixMatch) => AttrSuffixMatch(attr, (get_value!()).into_owned()),  // [foo$=bar]
         _ => return None
     };
     skip_whitespace(iter);
@@ -495,26 +495,26 @@ fn parse_simple_pseudo_class(name: &str) -> Option<SimpleSelector> {
 }
 
 
-fn parse_functional_pseudo_class(name: ~str, arguments: ~[ComponentValue],
+fn parse_functional_pseudo_class(name: StrBuf, arguments: Vec<ComponentValue>,
                                  namespaces: &NamespaceMap, inside_negation: bool)
                                  -> Option<SimpleSelector> {
     // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
-    let name_lower = name.to_ascii_lower();
+    let name_lower = name.as_slice().to_ascii_lower();
     match name_lower.as_slice() {
 //        "lang" => parse_lang(arguments),
-        "nth-child"        => parse_nth(arguments).map(|(a, b)| NthChild(a, b)),
-        "nth-last-child"   => parse_nth(arguments).map(|(a, b)| NthLastChild(a, b)),
-        "nth-of-type"      => parse_nth(arguments).map(|(a, b)| NthOfType(a, b)),
-        "nth-last-of-type" => parse_nth(arguments).map(|(a, b)| NthLastOfType(a, b)),
+        "nth-child"        => parse_nth(arguments.as_slice()).map(|(a, b)| NthChild(a, b)),
+        "nth-last-child"   => parse_nth(arguments.as_slice()).map(|(a, b)| NthLastChild(a, b)),
+        "nth-of-type"      => parse_nth(arguments.as_slice()).map(|(a, b)| NthOfType(a, b)),
+        "nth-last-of-type" => parse_nth(arguments.as_slice()).map(|(a, b)| NthLastOfType(a, b)),
         "not" => if inside_negation { None } else { parse_negation(arguments, namespaces) },
         _ => None
     }
 }
 
 
-fn parse_pseudo_element(name: ~str) -> Option<PseudoElement> {
+fn parse_pseudo_element(name: StrBuf) -> Option<PseudoElement> {
     // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
-    let name_lower = name.to_ascii_lower();
+    let name_lower = name.as_slice().to_ascii_lower();
     match name_lower.as_slice() {
         // All supported pseudo-elements
         "before" => Some(Before),
@@ -539,7 +539,7 @@ fn parse_pseudo_element(name: ~str) -> Option<PseudoElement> {
 
 
 // Level 3: Parse ONE simple_selector
-fn parse_negation(arguments: ~[ComponentValue], namespaces: &NamespaceMap)
+fn parse_negation(arguments: Vec<ComponentValue>, namespaces: &NamespaceMap)
                   -> Option<SimpleSelector> {
     let iter = &mut arguments.move_iter().peekable();
     Some(Negation(match parse_type_selector(iter, namespaces) {
@@ -559,7 +559,7 @@ fn parse_negation(arguments: ~[ComponentValue], namespaces: &NamespaceMap)
 #[inline]
 fn get_next_ident(iter: &mut Iter) -> ~str {
     match iter.next() {
-        Some(Ident(value)) => value,
+        Some(Ident(value)) => value.into_owned(),
         _ => fail!("Implementation error, this should not happen."),
     }
 }
