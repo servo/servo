@@ -111,7 +111,7 @@ type Iter = iter::Peekable<ComponentValue, slice::MoveItems<ComponentValue>>;
 /// aka Selector Group in http://www.w3.org/TR/css3-selectors/#grouping
 ///
 /// Return the Selectors or None if there is an invalid selector.
-pub fn parse_selector_list(input: ~[ComponentValue], namespaces: &NamespaceMap)
+pub fn parse_selector_list(input: Vec<ComponentValue>, namespaces: &NamespaceMap)
                            -> Option<Vec<Selector>> {
     let iter = &mut input.move_iter().peekable();
     let first = match parse_selector(iter, namespaces) {
@@ -638,7 +638,7 @@ mod tests {
         assert!(parse("e.foo #bar") == Some(vec!(Selector{
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(IDSelector("bar".to_owned())),
-                next: Some((~CompoundSelector {
+                next: Some((box CompoundSelector {
                     simple_selectors: vec!(LocalNameSelector("e".to_owned()),
                                            ClassSelector("foo".to_owned())),
                     next: None,
@@ -701,7 +701,7 @@ mod tests {
         assert!(parse("div :after") == Some(vec!(Selector{
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(),
-                next: Some((~CompoundSelector {
+                next: Some((box CompoundSelector {
                     simple_selectors: vec!(LocalNameSelector("div".to_owned())),
                     next: None,
                 }, Descendant)),

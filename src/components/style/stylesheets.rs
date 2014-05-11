@@ -58,7 +58,7 @@ impl Stylesheet {
         // TODO: bytes.as_slice could be bytes.container_as_bytes()
         let (string, used_encoding) = decode_stylesheet_bytes(
             bytes.as_slice(), protocol_encoding_label, environment_encoding);
-        Stylesheet::from_str(string, base_url, used_encoding)
+        Stylesheet::from_str(string.as_slice(), base_url, used_encoding)
     }
 
     pub fn from_str(css: &str, base_url: Url, encoding: EncodingRef) -> Stylesheet {
@@ -79,7 +79,7 @@ impl Stylesheet {
                     parse_style_rule(rule, &mut rules, &namespaces, &base_url)
                 },
                 AtRule(rule) => {
-                    let lower_name = rule.name.to_ascii_lower();
+                    let lower_name = rule.name.as_slice().to_ascii_lower();
                     match lower_name.as_slice() {
                         "charset" => {
                             if state > STATE_CHARSET {
