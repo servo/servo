@@ -8,7 +8,6 @@ use rand;
 use rand::Rng;
 use std::cast;
 use std::hash::{Hash, sip};
-use std::owned;
 use std::ptr;
 use std::sync::atomics::{AtomicUint, Relaxed, SeqCst};
 use std::unstable::mutex::StaticNativeMutex;

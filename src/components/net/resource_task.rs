@@ -51,10 +51,10 @@ impl Metadata {
             Some(MediaType { type_:      ref type_,
                              subtype:    ref subtype,
                              parameters: ref parameters }) => {
-                self.content_type = Some((type_.clone(), subtype.clone()));
+                self.content_type = Some((type_.as_slice().to_owned(), subtype.as_slice().to_owned()));
                 for &(ref k, ref v) in parameters.iter() {
                     if "charset" == k.as_slice() {
-                        self.charset = Some(v.clone());
+                        self.charset = Some(v.as_slice().to_owned());
                     }
                 }
             }

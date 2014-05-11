@@ -380,14 +380,14 @@ impl ImageCache {
             Some(waiters) => {
                 let val = waiters.lock();
                 let items = unsafe {
-                    cast::transmute::<*(), ~[Sender<ImageResponseMsg>]>(*val)
+                    cast::transmute::<*(), Box<Vec<Sender<ImageResponseMsg>>>>(*val)
                 };
                 for response in items.iter() {
                     response.send(f());
                 }
                 let _ = unsafe {
                     // Cast back to avoid the drop at the end.
-                    cast::transmute::<~[Sender<ImageResponseMsg>], *()>(items)
+                    cast::transmute::<Box<Vec<Sender<ImageResponseMsg>>>, *()>(items)
                 };
             }
             None => ()
@@ -418,18 +418,18 @@ impl ImageCache {
                     let mut response = Some(response);
                     let val = waiters.lock();
                     let mut items = unsafe {
-                        cast::transmute::<*(), ~[Sender<ImageResponseMsg>]>(*val)
+                        cast::transmute::<*(), Box<Vec<Sender<ImageResponseMsg>>>>(*val)
                     };
                     items.push(response.take().unwrap());
                     let _ = unsafe {
                         // Cast back to avoid the drop at the end.
-                        cast::transmute::<~[Sender<ImageResponseMsg>], *()>(items)
+                        cast::transmute::<Box<Vec<Sender<ImageResponseMsg>>>, *()>(items)
                     };
                 } else {
-                    let response = ~[response];
+                    let response = box vec!(response);
                     let wrapped = unsafe {
                         Arc::new(Mutex::new(
-                            cast::transmute::<~[Sender<ImageResponseMsg>], *()>(response)))
+                            cast::transmute::<Box<Vec<Sender<ImageResponseMsg>>>, *()>(response)))
                     };
 
                     self.wait_map.insert(url, wrapped);
@@ -485,7 +485,7 @@ fn load_image_data(url: Url, resource_task: ResourceTask) -> Result<~[u8], ()> {
     let (response_chan, response_port) = channel();
     resource_task.send(resource_task::Load(url, response_chan));
 
-    let mut image_data = ~[];
+    let mut image_data = vec!();
 
     let progress_port = response_port.recv().progress_port;
     loop {
@@ -494,7 +494,8 @@ fn load_image_data(url: Url, resource_task: ResourceTask) -> Result<~[u8], ()> {
                 image_data.push_all(data.as_slice());
             }
             resource_task::Done(result::Ok(..)) => {
-                return Ok(image_data);
+                // XXX
+                return Ok(image_data.move_iter().collect());
             }
             resource_task::Done(result::Err(..)) => {
                 return Err(());
@@ -525,7 +526,6 @@ mod tests {
     use image::base::test_image_bin;
     use servo_util::url::parse_url;
     use std::comm;
-    use std::comm::{Empty, Disconnected};
 
     trait Closure {
         fn invoke(&self, _response: Sender<resource_task::ProgressMsg>) { }

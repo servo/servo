@@ -9,7 +9,6 @@ use http::client::{RequestWriter, NetworkStream};
 use http::method::Get;
 use http::headers::HeaderEnum;
 use std::io::Reader;
-use std::slice;
 use servo_util::task::spawn_named;
 use url::Url;
 
@@ -102,8 +101,7 @@ fn load(mut url: Url, start_chan: Sender<LoadResponse>) {
             match response.read(buf.as_mut_slice()) {
                 Ok(len) => {
                     unsafe { buf.set_len(len); }
-                    let buf: ~[u8] = buf;
-                    progress_chan.send(Payload(buf.move_iter().collect()));
+                    progress_chan.send(Payload(buf));
                 }
                 Err(_) => {
                     progress_chan.send(Done(Ok(())));
