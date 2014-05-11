@@ -43,7 +43,7 @@ pub enum PseudoElement {
 #[deriving(Eq, Clone)]
 pub struct CompoundSelector {
     pub simple_selectors: Vec<SimpleSelector>,
-    pub next: Option<(~CompoundSelector, Combinator)>,  // c.next is left of c
+    pub next: Option<(Box<CompoundSelector>, Combinator)>,  // c.next is left of c
 }
 
 #[deriving(Eq, Clone)]
@@ -169,7 +169,7 @@ fn parse_selector(iter: &mut Iter, namespaces: &NamespaceMap)
             Some((simple_selectors, pseudo)) => {
                 compound = CompoundSelector {
                     simple_selectors: simple_selectors,
-                    next: Some((~compound, combinator))
+                    next: Some((box compound, combinator))
                 };
                 pseudo_element = pseudo;
             }

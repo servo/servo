@@ -710,7 +710,7 @@ pub mod longhands {
             pub type T = Vec<FontFamily>;
         }
         pub type SpecifiedValue = computed_value::T;
-        #[inline] pub fn get_initial_value() -> computed_value::T { vec!(FamilyName(~"serif")) }
+        #[inline] pub fn get_initial_value() -> computed_value::T { vec!(FamilyName("serif".to_owned())) }
         /// <familiy-name>#
         /// <familiy-name> = <string> | [ <ident>+ ]
         /// TODO: <generic-familiy>
