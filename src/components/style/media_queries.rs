@@ -50,7 +50,7 @@ pub struct Device {
 
 pub fn parse_media_rule(rule: AtRule, parent_rules: &mut Vec<CSSRule>,
                         namespaces: &NamespaceMap, base_url: &Url) {
-    let media_queries = parse_media_query_list(rule.prelude);
+    let media_queries = parse_media_query_list(rule.prelude.as_slice());
     let block = match rule.block {
         Some(block) => block,
         None => {
@@ -63,7 +63,7 @@ pub fn parse_media_rule(rule: AtRule, parent_rules: &mut Vec<CSSRule>,
         match rule {
             QualifiedRule(rule) => parse_style_rule(rule, &mut rules, namespaces, base_url),
             AtRule(rule) => parse_nested_at_rule(
-                rule.name.to_ascii_lower(), rule, &mut rules, namespaces, base_url),
+                rule.name.as_slice().to_ascii_lower(), rule, &mut rules, namespaces, base_url),
         }
     }
     parent_rules.push(CSSMediaRule(MediaRule {
@@ -84,7 +84,7 @@ pub fn parse_media_query_list(input: &[ComponentValue]) -> MediaQueryList {
         let mq = match next {
             Some(&Ident(ref value)) => {
                 // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
-                let value_lower = value.to_ascii_lower();
+                let value_lower = value.as_slice().to_ascii_lower();
                 match value_lower.as_slice() {
                     "screen" => Some(MediaQuery{ media_type: MediaType(Screen) }),
                     "print" => Some(MediaQuery{ media_type: MediaType(Print) }),
