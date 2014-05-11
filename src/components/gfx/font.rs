@@ -329,7 +329,7 @@ impl<'a> Font {
 impl Font {
     pub fn draw_text_into_context(&mut self,
                               rctx: &RenderContext,
-                              run: &~TextRun,
+                              run: &Box<TextRun>,
                               range: &Range<int>,
                               baseline_origin: Point2D<Au>,
                               color: Color) {
