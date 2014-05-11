@@ -179,9 +179,9 @@ impl<'a> DocumentHelpers for JSRef<'a, Document> {
 }
 
 impl Document {
-    pub fn reflect_document(document: ~Document,
+    pub fn reflect_document(document: Box<Document>,
                             window: &JSRef<Window>,
-                            wrap_fn: extern "Rust" fn(*JSContext, &JSRef<Window>, ~Document) -> JS<Document>)
+                            wrap_fn: extern "Rust" fn(*JSContext, &JSRef<Window>, Box<Document>) -> JS<Document>)
              -> Temporary<Document> {
         assert!(document.reflector().get_jsobject().is_null());
         let mut raw_doc = reflect_dom_object(document, window, wrap_fn).root();
@@ -230,7 +230,7 @@ impl Document {
 
     pub fn new(window: &JSRef<Window>, url: Option<Url>, doctype: IsHTMLDocument, content_type: Option<DOMString>) -> Temporary<Document> {
         let document = Document::new_inherited(window, url, doctype, content_type);
-        Document::reflect_document(~document, window, DocumentBinding::Wrap)
+        Document::reflect_document(box document, window, DocumentBinding::Wrap)
     }
 }
 
@@ -541,7 +541,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     // http://www.whatwg.org/specs/web-apps/current-work/#document.title
     fn Title(&self) -> DOMString {
-        let mut title = "".to_owned();
+        let mut title = StrBuf::new();
         self.GetDocumentElement().root().map(|root| {
             let root: &JSRef<Node> = NodeCast::from_ref(&*root);
             root.traverse_preorder()
@@ -555,7 +555,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                     }
                 });
         });
-        let v: Vec<&str> = title.words().collect();
+        let v: Vec<&str> = title.as_slice().words().collect();
         let title = v.connect(" ");
         title.trim().to_owned()
     }
@@ -693,7 +693,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                 "img" == elem.deref().local_name
             }
         }
-        let filter = ~ImagesFilter;
+        let filter = box ImagesFilter;
         HTMLCollection::create(&*window, NodeCast::from_ref(self), filter)
     }
 
@@ -707,7 +707,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                 "embed" == elem.deref().local_name
             }
         }
-        let filter = ~EmbedsFilter;
+        let filter = box EmbedsFilter;
         HTMLCollection::create(&*window, NodeCast::from_ref(self), filter)
     }
 
@@ -727,7 +727,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                 elem.get_attribute(Null, "href").is_some()
             }
         }
-        let filter = ~LinksFilter;
+        let filter = box LinksFilter;
         HTMLCollection::create(&*window, NodeCast::from_ref(self), filter)
     }
 
@@ -741,7 +741,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                 "form" == elem.deref().local_name
             }
         }
-        let filter = ~FormsFilter;
+        let filter = box FormsFilter;
         HTMLCollection::create(&*window, NodeCast::from_ref(self), filter)
     }
 
@@ -755,7 +755,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                 "script" == elem.deref().local_name
             }
         }
-        let filter = ~ScriptsFilter;
+        let filter = box ScriptsFilter;
         HTMLCollection::create(&*window, NodeCast::from_ref(self), filter)
     }
 
@@ -769,7 +769,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                 "a" == elem.deref().local_name && elem.get_attribute(Null, "name").is_some()
             }
         }
-        let filter = ~AnchorsFilter;
+        let filter = box AnchorsFilter;
         HTMLCollection::create(&*window, NodeCast::from_ref(self), filter)
     }
 
@@ -783,7 +783,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                 "applet" == elem.deref().local_name
             }
         }
-        let filter = ~AppletsFilter;
+        let filter = box AppletsFilter;
         HTMLCollection::create(&*window, NodeCast::from_ref(self), filter)
     }
 

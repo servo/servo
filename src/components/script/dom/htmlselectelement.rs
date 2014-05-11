@@ -37,7 +37,7 @@ impl HTMLSelectElement {
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLSelectElement> {
         let element = HTMLSelectElement::new_inherited(localName, document);
-        Node::reflect_node(~element, document, HTMLSelectElementBinding::Wrap)
+        Node::reflect_node(box element, document, HTMLSelectElementBinding::Wrap)
     }
 }
 

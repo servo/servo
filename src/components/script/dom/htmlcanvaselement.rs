@@ -33,7 +33,7 @@ impl HTMLCanvasElement {
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLCanvasElement> {
         let element = HTMLCanvasElement::new_inherited(localName, document);
-        Node::reflect_node(~element, document, HTMLCanvasElementBinding::Wrap)
+        Node::reflect_node(box element, document, HTMLCanvasElementBinding::Wrap)
     }
 }
 

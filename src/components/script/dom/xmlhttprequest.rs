@@ -5,8 +5,8 @@
 use collections::hashmap::HashMap;
 use dom::bindings::codegen::BindingDeclarations::XMLHttpRequestBinding;
 use dom::bindings::str::ByteString;
-use self::XMLHttpRequestBinding::XMLHttpRequestResponseType;
-use self::XMLHttpRequestBinding::XMLHttpRequestResponseTypeValues::_empty;
+use dom::bindings::codegen::BindingDeclarations::XMLHttpRequestBinding::XMLHttpRequestResponseType;
+use dom::bindings::codegen::BindingDeclarations::XMLHttpRequestBinding::XMLHttpRequestResponseTypeValues::_empty;
 use dom::bindings::codegen::InheritTypes::XMLHttpRequestDerived;
 use dom::bindings::error::{ErrorResult, InvalidState, Network, Syntax, Security};
 use dom::document::Document;
@@ -108,7 +108,7 @@ impl XMLHttpRequest {
         xhr
     }
     pub fn new(window: &JSRef<Window>) -> Temporary<XMLHttpRequest> {
-        reflect_dom_object(~XMLHttpRequest::new_inherited(window),
+        reflect_dom_object(box XMLHttpRequest::new_inherited(window),
                            window,
                            XMLHttpRequestBinding::Wrap)
     }

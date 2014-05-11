@@ -33,7 +33,7 @@ impl HTMLFontElement {
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLFontElement> {
         let element = HTMLFontElement::new_inherited(localName, document);
-        Node::reflect_node(~element, document, HTMLFontElementBinding::Wrap)
+        Node::reflect_node(box element, document, HTMLFontElementBinding::Wrap)
     }
 }
 

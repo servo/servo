@@ -38,7 +38,7 @@ impl FormData {
     }
 
     pub fn new(form: Option<JSRef<HTMLFormElement>>, window: &JSRef<Window>) -> Temporary<FormData> {
-        reflect_dom_object(~FormData::new_inherited(form, window), window, FormDataBinding::Wrap)
+        reflect_dom_object(box FormData::new_inherited(form, window), window, FormDataBinding::Wrap)
     }
 
     pub fn Constructor(window: &JSRef<Window>, form: Option<JSRef<HTMLFormElement>>) -> Fallible<Temporary<FormData>> {

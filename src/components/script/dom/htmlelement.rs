@@ -41,7 +41,7 @@ impl HTMLElement {
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLElement> {
         let element = HTMLElement::new_inherited(HTMLElementTypeId, localName, document);
-        Node::reflect_node(~element, document, HTMLElementBinding::Wrap)
+        Node::reflect_node(box element, document, HTMLElementBinding::Wrap)
     }
 }
 

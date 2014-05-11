@@ -70,7 +70,7 @@ impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
     }
 
     fn AppendData(&mut self, arg: DOMString) -> ErrorResult {
-        self.data.push_str(arg);
+        self.data = self.data + arg;
         Ok(())
     }
 
@@ -92,10 +92,10 @@ impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
         } else {
             count
         };
-        let mut data = self.data.slice(0, offset as uint).to_owned();
+        let mut data = self.data.slice(0, offset as uint).to_strbuf();
         data.push_str(arg);
         data.push_str(self.data.slice((offset + count) as uint, length as uint));
-        self.data = data;
+        self.data = data.into_owned();
         // FIXME: Once we have `Range`, we should implement step7 to step11
         Ok(())
     }

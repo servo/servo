@@ -33,7 +33,7 @@ impl HTMLLegendElement {
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLLegendElement> {
         let element = HTMLLegendElement::new_inherited(localName, document);
-        Node::reflect_node(~element, document, HTMLLegendElementBinding::Wrap)
+        Node::reflect_node(box element, document, HTMLLegendElementBinding::Wrap)
     }
 }
 

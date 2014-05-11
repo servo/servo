@@ -155,7 +155,7 @@ impl Element {
 
     pub fn new(local_name: DOMString, namespace: Namespace, prefix: Option<DOMString>, document: &JSRef<Document>) -> Temporary<Element> {
         let element = Element::new_inherited(ElementTypeId, local_name, namespace, prefix, document);
-        Node::reflect_node(~element, document, ElementBinding::Wrap)
+        Node::reflect_node(box element, document, ElementBinding::Wrap)
     }
 }
 

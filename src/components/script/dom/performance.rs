@@ -28,7 +28,7 @@ impl Performance {
 
     pub fn new(window: &JSRef<Window>) -> Temporary<Performance> {
         let performance = Performance::new_inherited(window);
-        reflect_dom_object(~performance, window, PerformanceBinding::Wrap)
+        reflect_dom_object(box performance, window, PerformanceBinding::Wrap)
     }
 }
 

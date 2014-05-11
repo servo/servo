@@ -33,7 +33,7 @@ impl HTMLFrameSetElement {
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLFrameSetElement> {
         let element = HTMLFrameSetElement::new_inherited(localName, document);
-        Node::reflect_node(~element, document, HTMLFrameSetElementBinding::Wrap)
+        Node::reflect_node(box element, document, HTMLFrameSetElementBinding::Wrap)
     }
 }
 

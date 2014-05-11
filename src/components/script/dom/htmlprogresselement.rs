@@ -33,7 +33,7 @@ impl HTMLProgressElement {
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLProgressElement> {
         let element = HTMLProgressElement::new_inherited(localName, document);
-        Node::reflect_node(~element, document, HTMLProgressElementBinding::Wrap)
+        Node::reflect_node(box element, document, HTMLProgressElementBinding::Wrap)
     }
 }
 

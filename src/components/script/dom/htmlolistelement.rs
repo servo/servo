@@ -33,7 +33,7 @@ impl HTMLOListElement {
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLOListElement> {
         let element = HTMLOListElement::new_inherited(localName, document);
-        Node::reflect_node(~element, document, HTMLOListElementBinding::Wrap)
+        Node::reflect_node(box element, document, HTMLOListElementBinding::Wrap)
     }
 }
 

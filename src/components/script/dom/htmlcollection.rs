@@ -18,7 +18,7 @@ pub trait CollectionFilter {
     fn filter(&self, elem: &JSRef<Element>, root: &JSRef<Node>) -> bool;
 }
 
-impl<S: Encoder<E>, E> Encodable<S, E> for ~CollectionFilter {
+impl<S: Encoder<E>, E> Encodable<S, E> for Box<CollectionFilter> {
     fn encode(&self, _s: &mut S) -> Result<(), E> {
         Ok(())
     }
@@ -27,7 +27,7 @@ impl<S: Encoder<E>, E> Encodable<S, E> for ~CollectionFilter {
 #[deriving(Encodable)]
 pub enum CollectionTypeId {
     Static(Vec<JS<Element>>),
-    Live(JS<Node>, ~CollectionFilter)
+    Live(JS<Node>, Box<CollectionFilter>)
 }
 
 #[deriving(Encodable)]
@@ -47,13 +47,14 @@ impl HTMLCollection {
     }
 
     pub fn new(window: &JSRef<Window>, collection: CollectionTypeId) -> Temporary<HTMLCollection> {
-        reflect_dom_object(~HTMLCollection::new_inherited(window, collection),
+        reflect_dom_object(box HTMLCollection::new_inherited(window, collection),
                            window, HTMLCollectionBinding::Wrap)
     }
 }
 
 impl HTMLCollection {
-    pub fn create(window: &JSRef<Window>, root: &JSRef<Node>, filter: ~CollectionFilter) -> Temporary<HTMLCollection> {
+    pub fn create(window: &JSRef<Window>, root: &JSRef<Node>,
+                  filter: Box<CollectionFilter>) -> Temporary<HTMLCollection> {
         HTMLCollection::new(window, Live(root.unrooted(), filter))
     }
 
@@ -70,7 +71,7 @@ impl HTMLCollection {
         let filter = TagNameFilter {
             tag: tag
         };
-        HTMLCollection::create(window, root, ~filter)
+        HTMLCollection::create(window, root, box filter)
     }
 
     pub fn by_tag_name_ns(window: &JSRef<Window>, root: &JSRef<Node>, tag: DOMString,
@@ -88,7 +89,7 @@ impl HTMLCollection {
             tag: tag,
             namespace: namespace
         };
-        HTMLCollection::create(window, root, ~filter)
+        HTMLCollection::create(window, root, box filter)
     }
 
     pub fn by_class_name(window: &JSRef<Window>, root: &JSRef<Node>, classes: DOMString)
@@ -104,7 +105,7 @@ impl HTMLCollection {
         let filter = ClassNameFilter {
             classes: split_html_space_chars(classes).map(|class| class.into_owned()).collect()
         };
-        HTMLCollection::create(window, root, ~filter)
+        HTMLCollection::create(window, root, box filter)
     }
 
     pub fn children(window: &JSRef<Window>, root: &JSRef<Node>) -> Temporary<HTMLCollection> {
@@ -114,7 +115,7 @@ impl HTMLCollection {
                 root.is_parent_of(NodeCast::from_ref(elem))
             }
         }
-        HTMLCollection::create(window, root, ~ElementChildFilter)
+        HTMLCollection::create(window, root, box ElementChildFilter)
     }
 }
 

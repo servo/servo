@@ -30,7 +30,7 @@ pub enum Msg {
     AddStylesheetMsg(Stylesheet),
 
     /// Requests a reflow.
-    ReflowMsg(~Reflow),
+    ReflowMsg(Box<Reflow>),
 
     /// Performs a synchronous layout request.
     ///

@@ -32,7 +32,7 @@ impl HTMLTemplateElement {
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLTemplateElement> {
         let element = HTMLTemplateElement::new_inherited(localName, document);
-        Node::reflect_node(~element, document, HTMLTemplateElementBinding::Wrap)
+        Node::reflect_node(box element, document, HTMLTemplateElementBinding::Wrap)
     }
 }
 

@@ -85,7 +85,7 @@ pub fn GetJSObjectFromCallback<T: CallbackContainer>(callback: &T) -> *JSObject 
 
 pub fn WrapCallThisObject<T: 'static + CallbackContainer + Reflectable>(cx: *JSContext,
                                                                         _scope: *JSObject,
-                                                                        p: ~T) -> *JSObject {
+                                                                        p: Box<T>) -> *JSObject {
     let obj = GetJSObjectFromCallback(p);
     assert!(obj.is_not_null());
 

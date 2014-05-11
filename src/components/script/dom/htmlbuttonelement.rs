@@ -35,7 +35,7 @@ impl HTMLButtonElement {
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLButtonElement> {
         let element = HTMLButtonElement::new_inherited(localName, document);
-        Node::reflect_node(~element, document, HTMLButtonElementBinding::Wrap)
+        Node::reflect_node(box element, document, HTMLButtonElementBinding::Wrap)
     }
 }
 

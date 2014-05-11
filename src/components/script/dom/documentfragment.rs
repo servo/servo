@@ -33,7 +33,7 @@ impl DocumentFragment {
 
     pub fn new(document: &JSRef<Document>) -> Temporary<DocumentFragment> {
         let node = DocumentFragment::new_inherited(document);
-        Node::reflect_node(~node, document, DocumentFragmentBinding::Wrap)
+        Node::reflect_node(box node, document, DocumentFragmentBinding::Wrap)
     }
 
     pub fn Constructor(owner: &JSRef<Window>) -> Fallible<Temporary<DocumentFragment>> {

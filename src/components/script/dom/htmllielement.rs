@@ -33,7 +33,7 @@ impl HTMLLIElement {
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLLIElement> {
         let element = HTMLLIElement::new_inherited(localName, document);
-        Node::reflect_node(~element, document, HTMLLIElementBinding::Wrap)
+        Node::reflect_node(box element, document, HTMLLIElementBinding::Wrap)
     }
 }
 

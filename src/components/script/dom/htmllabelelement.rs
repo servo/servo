@@ -32,7 +32,7 @@ impl HTMLLabelElement {
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLLabelElement> {
         let element = HTMLLabelElement::new_inherited(localName, document);
-        Node::reflect_node(~element, document, HTMLLabelElementBinding::Wrap)
+        Node::reflect_node(box element, document, HTMLLabelElementBinding::Wrap)
     }
 }
 

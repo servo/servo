@@ -32,7 +32,7 @@ impl HTMLUnknownElement {
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLUnknownElement> {
         let element = HTMLUnknownElement::new_inherited(localName, document);
-        Node::reflect_node(~element, document, HTMLUnknownElementBinding::Wrap)
+        Node::reflect_node(box element, document, HTMLUnknownElementBinding::Wrap)
     }
 }
 

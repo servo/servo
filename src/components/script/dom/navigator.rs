@@ -22,7 +22,7 @@ impl Navigator {
     }
 
     pub fn new(window: &JSRef<Window>) -> Temporary<Navigator> {
-        reflect_dom_object(~Navigator::new_inherited(),
+        reflect_dom_object(box Navigator::new_inherited(),
                            window,
                            NavigatorBinding::Wrap)
     }

@@ -33,7 +33,7 @@ impl HTMLModElement {
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLModElement> {
         let element = HTMLModElement::new_inherited(localName, document);
-        Node::reflect_node(~element, document, HTMLModElementBinding::Wrap)
+        Node::reflect_node(box element, document, HTMLModElementBinding::Wrap)
     }
 }
 

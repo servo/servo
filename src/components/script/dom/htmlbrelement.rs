@@ -33,7 +33,7 @@ impl HTMLBRElement {
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLBRElement> {
         let element = HTMLBRElement::new_inherited(localName, document);
-        Node::reflect_node(~element, document, HTMLBRElementBinding::Wrap)
+        Node::reflect_node(box element, document, HTMLBRElementBinding::Wrap)
     }
 }
 

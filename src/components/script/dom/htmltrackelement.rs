@@ -33,7 +33,7 @@ impl HTMLTrackElement {
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLTrackElement> {
         let element = HTMLTrackElement::new_inherited(localName, document);
-        Node::reflect_node(~element, document, HTMLTrackElementBinding::Wrap)
+        Node::reflect_node(box element, document, HTMLTrackElementBinding::Wrap)
     }
 }
 

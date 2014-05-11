@@ -34,7 +34,7 @@ impl Text {
 
     pub fn new(text: DOMString, document: &JSRef<Document>) -> Temporary<Text> {
         let node = Text::new_inherited(text, document);
-        Node::reflect_node(~node, document, TextBinding::Wrap)
+        Node::reflect_node(box node, document, TextBinding::Wrap)
     }
 
     pub fn Constructor(owner: &JSRef<Window>, text: DOMString) -> Fallible<Temporary<Text>> {

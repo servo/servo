@@ -36,7 +36,7 @@ impl ProgressEvent {
     }
     pub fn new(window: &JSRef<Window>, length_computable: bool,
                 loaded: u64, total: u64) -> Temporary<ProgressEvent> {
-        reflect_dom_object(~ProgressEvent::new_inherited(length_computable, loaded, total),
+        reflect_dom_object(box ProgressEvent::new_inherited(length_computable, loaded, total),
                            window,
                            ProgressEventBinding::Wrap)
     }

@@ -33,7 +33,7 @@ impl HTMLTitleElement {
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLTitleElement> {
         let element = HTMLTitleElement::new_inherited(localName, document);
-        Node::reflect_node(~element, document, HTMLTitleElementBinding::Wrap)
+        Node::reflect_node(box element, document, HTMLTitleElementBinding::Wrap)
     }
 }
 

@@ -34,7 +34,7 @@ impl Comment {
 
     pub fn new(text: DOMString, document: &JSRef<Document>) -> Temporary<Comment> {
         let node = Comment::new_inherited(text, document);
-        Node::reflect_node(~node, document, CommentBinding::Wrap)
+        Node::reflect_node(box node, document, CommentBinding::Wrap)
     }
 
     pub fn Constructor(owner: &JSRef<Window>, data: DOMString) -> Fallible<Temporary<Comment>> {

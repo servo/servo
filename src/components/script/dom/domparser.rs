@@ -26,7 +26,7 @@ impl DOMParser {
     }
 
     pub fn new(owner: &JSRef<Window>) -> Temporary<DOMParser> {
-        reflect_dom_object(~DOMParser::new_inherited(owner), owner,
+        reflect_dom_object(box DOMParser::new_inherited(owner), owner,
                            DOMParserBinding::Wrap)
     }
 
