@@ -29,7 +29,7 @@ local_data_key!(silence_errors: bool)
 
 pub fn log_css_error(location: SourceLocation, message: &str) {
     // TODO eventually this will got into a "web console" or something.
-    if silence_errors.get(|silenced| silenced.is_none()) {
+    if silence_errors.get().is_none() {
         error!("{:u}:{:u} {:s}", location.line, location.column, message)
     }
 }
