@@ -20,7 +20,7 @@ use gfx::font::FontMetrics;
 use gfx::font_context::FontContext;
 use servo_util::geometry::Au;
 use servo_util::geometry;
-use servo_util::range::Range;
+use servo_util::range::{Range, RangeIndex};
 use std::iter::Enumerate;
 use std::fmt;
 use std::mem;
@@ -56,9 +56,13 @@ use sync::Arc;
 /// left corner of the green zone is the same as that of the line, but
 /// the green zone can be taller and wider than the line itself.
 pub struct LineBox {
-    pub range: Range<int>,
+    pub range: Range<BoxIndex>,
     pub bounds: Rect<Au>,
     pub green_zone: Size2D<Au>
+}
+
+range_index! {
+    struct BoxIndex(int)
 }
 
 struct LineboxScanner {
@@ -99,7 +103,7 @@ impl LineboxScanner {
     }
 
     fn reset_linebox(&mut self) {
-        self.pending_line.range.reset(0,0);
+        self.pending_line.range.reset(BoxIndex(0), BoxIndex(0));
         self.pending_line.bounds = Rect(Point2D(Au::new(0), self.cur_y), Size2D(Au::new(0), Au::new(0)));
         self.pending_line.green_zone = Size2D(Au::new(0), Au::new(0))
     }
@@ -146,7 +150,7 @@ impl LineboxScanner {
             }
         }
 
-        if self.pending_line.range.length() > 0 {
+        if self.pending_line.range.length() > BoxIndex(0) {
             debug!("LineboxScanner: Partially full linebox {:u} left at end of scanning.",
                     self.lines.len());
             self.flush_current_line();
@@ -193,7 +197,7 @@ impl LineboxScanner {
         let first_box_size = first_box.border_box.size;
         let splittable = first_box.can_split();
         debug!("LineboxScanner: box size: {}, splittable: {}", first_box_size, splittable);
-        let line_is_empty: bool = self.pending_line.range.length() == 0;
+        let line_is_empty: bool = self.pending_line.range.length() == BoxIndex(0);
 
         // Initally, pretend a splittable box has 0 width.
         // We will move it later if it has nonzero width
@@ -349,7 +353,7 @@ impl LineboxScanner {
     /// Tries to append the given box to the line, splitting it if necessary. Returns false only if
     /// we should break the line.
     fn try_append_to_line(&mut self, in_box: Box, flow: &mut InlineFlow) -> bool {
-        let line_is_empty = self.pending_line.range.length() == 0;
+        let line_is_empty = self.pending_line.range.length() == BoxIndex(0);
         if line_is_empty {
             let (line_bounds, _) = self.initial_line_placement(&in_box, self.cur_y, flow);
             self.pending_line.bounds.origin = line_bounds.origin;
@@ -444,11 +448,11 @@ impl LineboxScanner {
     fn push_box_to_line(&mut self, box_: Box) {
         debug!("LineboxScanner: Pushing box {} to line {:u}", box_.debug_id(), self.lines.len());
 
-        if self.pending_line.range.length() == 0 {
+        if self.pending_line.range.length() == BoxIndex(0) {
             assert!(self.new_boxes.len() <= (u16::MAX as uint));
-            self.pending_line.range.reset(self.new_boxes.len() as int, 0);
+            self.pending_line.range.reset(BoxIndex(self.new_boxes.len() as int), BoxIndex(0));
         }
-        self.pending_line.range.extend_by(1);
+        self.pending_line.range.extend_by(BoxIndex(1));
         self.pending_line.bounds.size.width = self.pending_line.bounds.size.width +
             box_.border_box.size.width;
         self.pending_line.bounds.size.height = Au::max(self.pending_line.bounds.size.height,
@@ -714,7 +718,7 @@ impl InlineFlow {
         };
 
         for i in line.range.each_index() {
-            let box_ = boxes.get_mut(i as uint);
+            let box_ = boxes.get_mut(i.to_uint());
             let size = box_.border_box.size;
             box_.border_box = Rect(Point2D(offset_x, box_.border_box.origin.y), size);
             offset_x = offset_x + size.width;
@@ -845,7 +849,7 @@ impl Flow for InlineFlow {
                 (Au(0), Au(0));
 
             for box_i in line.range.each_index() {
-                let fragment = self.boxes.boxes.get_mut(box_i as uint);
+                let fragment = self.boxes.boxes.get_mut(box_i.to_uint());
 
                 let InlineMetrics {
                     height_above_baseline: mut height_above_baseline,
@@ -921,7 +925,7 @@ impl Flow for InlineFlow {
             // Compute the final positions in the block direction of each fragment. Recall that
             // `fragment.border_box.origin.y` was set to the distance from the baseline above.
             for box_i in line.range.each_index() {
-                let fragment = self.boxes.get_mut(box_i as uint);
+                let fragment = self.boxes.get_mut(box_i.to_uint());
                 match fragment.vertical_align() {
                     vertical_align::top => {
                         fragment.border_box.origin.y = fragment.border_box.origin.y +

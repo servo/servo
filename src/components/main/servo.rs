@@ -8,7 +8,6 @@
 
 #![feature(globs, macro_rules, phase, thread_local)]
 
-#![feature(phase)]
 #[phase(syntax, link)]
 extern crate log;
 
@@ -30,6 +29,7 @@ extern crate script;
 extern crate servo_macros = "macros";
 extern crate servo_net = "net";
 extern crate servo_msg = "msg";
+#[phase(syntax, link)]
 extern crate servo_util = "util";
 extern crate style;
 extern crate sharegl;
