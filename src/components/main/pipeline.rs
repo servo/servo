@@ -17,7 +17,6 @@ use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_util::opts::Opts;
 use servo_util::time::ProfilerChan;
-use std::cell::RefCell;
 use std::rc::Rc;
 use url::Url;
 
@@ -31,7 +30,7 @@ pub struct Pipeline {
     pub layout_shutdown_port: Receiver<()>,
     pub render_shutdown_port: Receiver<()>,
     /// The most recently loaded url
-    pub url: RefCell<Option<Url>>,
+    pub url: Url,
 }
 
 /// The subset of the pipeline that is needed for layer composition.
@@ -52,7 +51,8 @@ impl Pipeline {
                        image_cache_task: ImageCacheTask,
                        profiler_chan: ProfilerChan,
                        opts: Opts,
-                       script_pipeline: Rc<Pipeline>)
+                       script_pipeline: Rc<Pipeline>,
+                       url: Url)
                        -> Pipeline {
         let (layout_port, layout_chan) = LayoutChan::new();
         let (render_port, render_chan) = RenderChan::new();
@@ -100,7 +100,8 @@ impl Pipeline {
                       layout_chan,
                       render_chan,
                       layout_shutdown_port,
-                      render_shutdown_port)
+                      render_shutdown_port,
+                      url)
     }
 
     pub fn create(id: PipelineId,
@@ -111,7 +112,8 @@ impl Pipeline {
                   resource_task: ResourceTask,
                   profiler_chan: ProfilerChan,
                   window_size: Size2D<uint>,
-                  opts: Opts)
+                  opts: Opts,
+                  url: Url)
                   -> Pipeline {
         let (script_port, script_chan) = ScriptChan::new();
         let (layout_port, layout_chan) = LayoutChan::new();
@@ -124,7 +126,8 @@ impl Pipeline {
                                      layout_chan.clone(),
                                      render_chan.clone(),
                                      layout_shutdown_port,
-                                     render_shutdown_port);
+                                     render_shutdown_port,
+                                     url);
 
         let failure = Failure {
             pipeline_id: id,
@@ -172,7 +175,8 @@ impl Pipeline {
                layout_chan: LayoutChan,
                render_chan: RenderChan,
                layout_shutdown_port: Receiver<()>,
-               render_shutdown_port: Receiver<()>)
+               render_shutdown_port: Receiver<()>,
+               url: Url)
                -> Pipeline {
         Pipeline {
             id: id,
@@ -182,14 +186,13 @@ impl Pipeline {
             render_chan: render_chan,
             layout_shutdown_port: layout_shutdown_port,
             render_shutdown_port: render_shutdown_port,
-            url: RefCell::new(None),
+            url: url,
         }
     }
 
-    pub fn load(&self, url: Url) {
-        *self.url.borrow_mut() = Some(url.clone());
+    pub fn load(&self) {
         let ScriptChan(ref chan) = self.script_chan;
-        chan.send(LoadMsg(self.id, url));
+        chan.send(LoadMsg(self.id, self.url.clone()));
     }
 
     pub fn grant_paint_permission(&self) {
@@ -199,13 +202,6 @@ impl Pipeline {
     pub fn revoke_paint_permission(&self) {
         debug!("pipeline revoking render channel paint permission");
         self.render_chan.chan.try_send(PaintPermissionRevoked);
-    }
-
-    pub fn reload(&self) {
-        let url = self.url.borrow().clone();
-        url.map(|url| {
-            self.load(url);
-        });
     }
 
     pub fn exit(&self) {

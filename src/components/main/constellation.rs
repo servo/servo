@@ -428,9 +428,9 @@ impl Constellation {
                                         self.resource_task.clone(),
                                         self.profiler_chan.clone(),
                                         self.window_size,
-                                        self.opts.clone());
-        let url = parse_url("about:failure", None);
-        pipeline.load(url);
+                                        self.opts.clone(),
+                                        parse_url("about:failure", None));
+        pipeline.load();
 
         let pipeline_wrapped = Rc::new(pipeline);
         self.pending_frames.push(FrameChange{
@@ -455,8 +455,9 @@ impl Constellation {
                                         self.resource_task.clone(),
                                         self.profiler_chan.clone(),
                                         self.window_size,
-                                        self.opts.clone());
-        pipeline.load(url);
+                                        self.opts.clone(),
+                                        url);
+        pipeline.load();
         let pipeline_wrapped = Rc::new(pipeline);
 
         self.pending_frames.push(FrameChange {
@@ -570,9 +571,7 @@ impl Constellation {
             source Id of LoadIframeUrlMsg does have an associated pipeline in
             constellation. This should be impossible.").clone();
 
-        let source_url = source_pipeline.url.borrow().clone().expect("Constellation: LoadUrlIframeMsg's
-        source's Url is None. There should never be a LoadUrlIframeMsg from a pipeline
-        that was never given a url to load.");
+        let source_url = source_pipeline.url.clone();
 
         let same_script = (source_url.host == url.host &&
                            source_url.port == url.port) && sandbox == IFrameUnsandboxed;
@@ -587,7 +586,8 @@ impl Constellation {
                                   self.image_cache_task.clone(),
                                   self.profiler_chan.clone(),
                                   self.opts.clone(),
-                                  source_pipeline.clone())
+                                  source_pipeline.clone(),
+                                  url)
         } else {
             debug!("Constellation: loading cross-origin iframe at {:?}", url);
             // Create a new script task if not same-origin url's
@@ -599,11 +599,12 @@ impl Constellation {
                              self.resource_task.clone(),
                              self.profiler_chan.clone(),
                              self.window_size,
-                             self.opts.clone())
+                             self.opts.clone(),
+                             url)
         };
 
         debug!("Constellation: sending load msg to pipeline {:?}", pipeline.id);
-        pipeline.load(url);
+        pipeline.load();
         let pipeline_wrapped = Rc::new(pipeline);
         let rect = self.pending_sizes.pop(&(source_pipeline_id, subpage_id));
         for frame_tree in frame_trees.iter() {
@@ -654,9 +655,10 @@ impl Constellation {
                                         self.resource_task.clone(),
                                         self.profiler_chan.clone(),
                                         self.window_size,
-                                        self.opts.clone());
+                                        self.opts.clone(),
+                                        url);
 
-        pipeline.load(url);
+        pipeline.load();
         let pipeline_wrapped = Rc::new(pipeline);
 
         self.pending_frames.push(FrameChange{
@@ -706,7 +708,7 @@ impl Constellation {
         };
 
         for frame in destination_frame.iter() {
-            frame.pipeline.reload();
+            frame.pipeline.load();
         }
         self.grant_paint_permission(destination_frame, constellation_msg::Navigate);
 
