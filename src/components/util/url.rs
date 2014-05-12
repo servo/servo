@@ -18,7 +18,7 @@ Create a URL object from a string. Does various helpful browsery things like
 */
 // TODO: about:failure->
 pub fn try_parse_url(str_url: &str, base_url: Option<std_url::Url>) -> Result<std_url::Url, ~str> {
-    let str_url = str_url.trim_chars(& &[' ', '\t', '\n', '\r', '\x0C']).to_owned();
+    let str_url = str_url.trim_chars(& &[' ', '\t', '\n', '\r', '\x0C']);
     let schm = std_url::get_scheme(str_url);
     let str_url = match schm {
         Err(_) => {
@@ -69,7 +69,7 @@ pub fn try_parse_url(str_url: &str, base_url: Option<std_url::Url>) -> Result<st
                             "file://".to_owned() + path.display().to_str()
                         }
                         // TODO: handle the rest of the about: pages
-                        _ => str_url
+                        _ => str_url.to_owned()
                     }
                 },
                 "data" => {
@@ -78,7 +78,7 @@ pub fn try_parse_url(str_url: &str, base_url: Option<std_url::Url>) -> Result<st
                     // %-encoded or base64'd.
                     str_url.chars().filter(|&c| !c.is_whitespace()).collect()
                 },
-                _ => str_url
+                _ => str_url.to_owned()
             }
         }
     };
