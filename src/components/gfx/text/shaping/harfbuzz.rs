@@ -6,7 +6,7 @@ extern crate harfbuzz;
 
 use font::{Font, FontHandleMethods, FontTableMethods, FontTableTag};
 use platform::font::FontTable;
-use text::glyph::{GlyphStore, GlyphId, GlyphData};
+use text::glyph::{CharIndex, GlyphStore, GlyphId, GlyphData};
 use text::shaping::ShaperMethods;
 use text::util::{float_to_fixed, fixed_to_float};
 
@@ -229,7 +229,7 @@ impl Shaper {
 
         // GlyphStore records are indexed by character, not byte offset.
         // so, we must be careful to increment this when saving glyph entries.
-        let mut char_idx = 0;
+        let mut char_idx = CharIndex(0);
 
         assert!(glyph_count <= char_max);
 
@@ -435,7 +435,7 @@ impl Shaper {
                     drop(range.ch);
                     i = range.next as int;
                     if i >= covered_byte_span.end() { break; }
-                    char_idx += 1;
+                    char_idx = char_idx + CharIndex(1);
                     glyphs.add_nonglyph_for_char_index(char_idx, false, false);
                 }
             }
@@ -445,7 +445,7 @@ impl Shaper {
             glyph_span.reset(end, 0);
             let end = char_byte_span.end();; // FIXME: borrow checker workaround
             char_byte_span.reset(end, 0);
-            char_idx += 1;
+            char_idx = char_idx + CharIndex(1);
         }
 
         // this must be called after adding all glyph data; it sorts the

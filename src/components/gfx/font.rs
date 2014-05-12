@@ -23,7 +23,7 @@ use servo_util::geometry::Au;
 use platform::font_context::FontContextHandle;
 use platform::font::{FontHandle, FontTable};
 use render_context::RenderContext;
-use text::glyph::{GlyphStore, GlyphId};
+use text::glyph::{CharIndex, GlyphStore, GlyphId};
 use text::shaping::ShaperMethods;
 use text::{Shaper, TextRun};
 
@@ -330,7 +330,7 @@ impl Font {
     pub fn draw_text_into_context(&mut self,
                               rctx: &RenderContext,
                               run: &~TextRun,
-                              range: &Range<int>,
+                              range: &Range<CharIndex>,
                               baseline_origin: Point2D<Au>,
                               color: Color) {
         use libc::types::common::c99::{uint16_t, uint32_t};
@@ -353,7 +353,7 @@ impl Font {
 
         let mut origin = baseline_origin.clone();
         let mut azglyphs = vec!();
-        azglyphs.reserve(range.length() as uint);
+        azglyphs.reserve(range.length().to_uint());
 
         for (glyphs, _offset, slice_range) in run.iter_slices_for_range(range) {
             for (_i, glyph) in glyphs.iter_glyphs_for_char_range(&slice_range) {
@@ -391,7 +391,7 @@ impl Font {
         }
     }
 
-    pub fn measure_text(&self, run: &TextRun, range: &Range<int>) -> RunMetrics {
+    pub fn measure_text(&self, run: &TextRun, range: &Range<CharIndex>) -> RunMetrics {
         // TODO(Issue #199): alter advance direction for RTL
         // TODO(Issue #98): using inter-char and inter-word spacing settings  when measuring text
         let mut advance = Au(0);
@@ -405,7 +405,7 @@ impl Font {
 
     pub fn measure_text_for_slice(&self,
                                   glyphs: &GlyphStore,
-                                  slice_range: &Range<int>)
+                                  slice_range: &Range<CharIndex>)
                                   -> RunMetrics {
         let mut advance = Au(0);
         for (_i, glyph) in glyphs.iter_glyphs_for_char_range(slice_range) {
