@@ -5,19 +5,24 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLIFrameElementBinding;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLIFrameElementDerived, HTMLElementCast};
 use dom::bindings::error::ErrorResult;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
 use dom::document::Document;
 use dom::element::{HTMLIFrameElementTypeId, Element};
 use dom::element::AttributeHandlers;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, ElementNodeTypeId};
+use dom::node::{Node, ElementNodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
-use servo_util::str::DOMString;
-
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
+use servo_msg::constellation_msg::{IFrameSandboxed, IFrameUnsandboxed};
+use servo_msg::constellation_msg::{ConstellationChan, LoadIframeUrlMsg};
+use servo_util::namespace::Null;
+use servo_util::str::DOMString;
+use servo_util::url::try_parse_url;
+
 use std::ascii::StrAsciiExt;
+use url::Url;
 
 enum SandboxAllowance {
     AllowNothing = 0x00,
@@ -50,11 +55,21 @@ pub struct IFrameSize {
 
 pub trait HTMLIFrameElementHelpers {
     fn is_sandboxed(&self) -> bool;
+    fn get_url(&self) -> Option<Url>;
 }
 
 impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
     fn is_sandboxed(&self) -> bool {
         self.sandbox.is_some()
+    }
+
+    fn get_url(&self) -> Option<Url> {
+        let element: &JSRef<Element> = ElementCast::from_ref(self);
+        element.get_attribute(Null, "src").root().and_then(|src| {
+            let window = window_from_node(self).root();
+            try_parse_url(src.deref().value_ref(),
+                          Some(window.deref().page().get_url())).ok()
+        })
     }
 }
 
@@ -264,6 +279,37 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
 
         if "sandbox" == name {
             self.deref_mut().sandbox = None;
+        }
+    }
+
+    fn bind_to_tree(&mut self) {
+        match self.super_type() {
+            Some(ref mut s) => s.bind_to_tree(),
+            _ => (),
+        }
+
+        match self.get_url() {
+            Some(url) => {
+                let sandboxed = if self.is_sandboxed() {
+                    IFrameSandboxed
+                } else {
+                    IFrameUnsandboxed
+                };
+
+                // Subpage Id
+                let window = window_from_node(self).root();
+                let page = window.deref().page();
+                let subpage_id = page.get_next_subpage_id();
+
+                self.deref_mut().size = Some(IFrameSize {
+                    pipeline_id: page.id,
+                    subpage_id: subpage_id,
+                });
+
+                let ConstellationChan(ref chan) = *page.constellation_chan.deref();
+                chan.send(LoadIframeUrlMsg(url, page.id, subpage_id, sandboxed));
+            }
+            _ => ()
         }
     }
 }
