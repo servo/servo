@@ -195,7 +195,7 @@ impl StyleSharingCandidate {
             match *node.borrow_layout_data_unchecked() {
                 None => return None,
                 Some(ref layout_data_ref) => {
-                    match layout_data_ref.data.style {
+                    match layout_data_ref.shared_data.style {
                         None => return None,
                         Some(ref data) => (*data).clone(),
                     }
@@ -206,7 +206,7 @@ impl StyleSharingCandidate {
             match *parent_node.borrow_layout_data_unchecked() {
                 None => return None,
                 Some(ref parent_layout_data_ref) => {
-                    match parent_layout_data_ref.data.style {
+                    match parent_layout_data_ref.shared_data.style {
                         None => return None,
                         Some(ref data) => (*data).clone(),
                     }
@@ -394,7 +394,7 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
         match parent_layout_data {
             &Some(ref parent_layout_data_ref) => {
                 // Check parent style.
-                let parent_style = parent_layout_data_ref.data.style.as_ref().unwrap();
+                let parent_style = parent_layout_data_ref.shared_data.style.as_ref().unwrap();
                 if !arc_ptr_eq(parent_style, &candidate.parent_style) {
                     return None
                 }
@@ -458,7 +458,7 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
                 Some(shared_style) => {
                     // Yay, cache hit. Share the style.
                     let mut layout_data_ref = self.mutate_layout_data();
-                    layout_data_ref.get_mut_ref().data.style = Some(shared_style);
+                    layout_data_ref.get_mut_ref().shared_data.style = Some(shared_style);
                     return StyleWasShared(i)
                 }
                 None => {}
@@ -543,7 +543,7 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
                 match *parent_layout_data {
                     None => fail!("no parent data?!"),
                     Some(ref parent_layout_data) => {
-                        match parent_layout_data.data.style {
+                        match parent_layout_data.shared_data.style {
                             None => fail!("parent hasn't been styled yet?!"),
                             Some(ref style) => Some(style),
                         }
@@ -558,7 +558,7 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
             &Some(ref mut layout_data) => {
                 self.cascade_node_pseudo_element(parent_style,
                                                  applicable_declarations.normal.as_slice(),
-                                                 &mut layout_data.data.style,
+                                                 &mut layout_data.shared_data.style,
                                                  initial_values,
                                                  applicable_declarations_cache,
                                                  applicable_declarations.normal_shareable);
