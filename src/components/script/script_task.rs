@@ -22,7 +22,7 @@ use dom::node;
 use dom::node::{Node, NodeHelpers};
 use dom::window::{TimerId, Window};
 use html::hubbub_html_parser::HtmlParserResult;
-use html::hubbub_html_parser::{HtmlDiscoveredStyle, HtmlDiscoveredIFrame, HtmlDiscoveredScript};
+use html::hubbub_html_parser::{HtmlDiscoveredStyle, HtmlDiscoveredScript};
 use html::hubbub_html_parser;
 use layout_interface::{AddStylesheetMsg, DocumentDamage};
 use layout_interface::{DocumentDamageLevel, HitTestQuery, HitTestResponse, LayoutQuery, MouseOverQuery, MouseOverResponse};
@@ -43,8 +43,7 @@ use js::rust::with_compartment;
 use js;
 use servo_msg::compositor_msg::{FinishedLoading, LayerId, Loading, PerformingLayout};
 use servo_msg::compositor_msg::{ScriptListener};
-use servo_msg::constellation_msg::{ConstellationChan, IFrameSandboxed, IFrameUnsandboxed};
-use servo_msg::constellation_msg::{LoadIframeUrlMsg, LoadCompleteMsg, LoadUrlMsg, NavigationDirection};
+use servo_msg::constellation_msg::{ConstellationChan, LoadCompleteMsg, LoadUrlMsg, NavigationDirection};
 use servo_msg::constellation_msg::{PipelineId, SubpageId, Failure, FailureMsg};
 use servo_msg::constellation_msg;
 use servo_net::image_cache_task::ImageCacheTask;
@@ -157,6 +156,9 @@ pub struct Page {
 
     /// Associated resource task for use by DOM objects like XMLHttpRequest
     pub resource_task: Untraceable<ResourceTask>,
+
+    /// A handle for communicating messages to the constellation task.
+    pub constellation_chan: Untraceable<ConstellationChan>,
 }
 
 pub struct PageTree {
@@ -171,6 +173,7 @@ pub struct PageTreeIterator<'a> {
 impl PageTree {
     fn new(id: PipelineId, layout_chan: LayoutChan,
            window_size: Size2D<uint>, resource_task: ResourceTask,
+           constellation_chan: ConstellationChan,
            js_context: Rc<Cx>) -> PageTree {
         let js_info = JSPageInfo {
             dom_static: GlobalStaticData(),
@@ -190,7 +193,8 @@ impl PageTree {
                 resize_event: Untraceable::new(Cell::new(None)),
                 fragment_node: Traceable::new(RefCell::new(None)),
                 last_reflow_id: Traceable::new(Cell::new(0)),
-                resource_task: Untraceable::new(resource_task)
+                resource_task: Untraceable::new(resource_task),
+                constellation_chan: Untraceable::new(constellation_chan),
             }),
             inner: vec!(),
         }
@@ -285,6 +289,13 @@ impl Page {
 
     pub fn mut_frame<'a>(&'a self) -> RefMut<'a, Option<Frame>> {
         self.frame.deref().borrow_mut()
+    }
+
+    pub fn get_next_subpage_id(&self) -> SubpageId {
+        let subpage_id = self.next_subpage_id.deref().get();
+        let SubpageId(id_num) = subpage_id;
+        self.next_subpage_id.deref().set(SubpageId(id_num + 1));
+        subpage_id
     }
 
     /// Adds the given damage.
@@ -595,7 +606,9 @@ impl ScriptTask {
                -> Rc<ScriptTask> {
         let (js_runtime, js_context) = ScriptTask::new_rt_and_cx();
         let page_tree = PageTree::new(id, layout_chan, window_size,
-                                      resource_task.clone(), js_context.clone());
+                                      resource_task.clone(),
+                                      constellation_chan.clone(),
+                                      js_context.clone());
         Rc::new(ScriptTask {
             page_tree: RefCell::new(page_tree),
 
@@ -781,6 +794,7 @@ impl ScriptTask {
             let window_size = parent_page_tree.page().window_size.deref().get();
             PageTree::new(new_id, layout_chan, window_size,
                           parent_page_tree.page().resource_task.deref().clone(),
+                          self.constellation_chan.clone(),
                           self.js_context.borrow().get_ref().clone())
         };
         parent_page_tree.inner.push(new_page_tree);
@@ -972,20 +986,6 @@ impl ScriptTask {
                 Some(HtmlDiscoveredStyle(sheet)) => {
                     let LayoutChan(ref chan) = *page.layout_chan;
                     chan.send(AddStylesheetMsg(sheet));
-                }
-                Some(HtmlDiscoveredIFrame((iframe_url, subpage_id, sandboxed))) => {
-                    let SubpageId(num) = subpage_id;
-                    page.next_subpage_id.deref().set(SubpageId(num + 1));
-                    let sandboxed = if sandboxed {
-                        IFrameSandboxed
-                    } else {
-                        IFrameUnsandboxed
-                    };
-                    let ConstellationChan(ref chan) = self.constellation_chan;
-                    chan.send(LoadIframeUrlMsg(iframe_url,
-                                               pipeline_id,
-                                               subpage_id,
-                                               sandboxed));
                 }
                 None => break
             }
