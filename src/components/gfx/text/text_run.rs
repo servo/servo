@@ -18,6 +18,7 @@ pub struct TextRun {
     pub font_metrics: FontMetrics,
     pub font_style: FontStyle,
     pub decoration: text_decoration::T,
+    // An Arc pointing to a Vec of Arcs?! Wat.
     pub glyphs: Arc<Vec<Arc<GlyphStore>>>,
 }
 

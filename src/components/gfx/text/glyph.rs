@@ -495,12 +495,32 @@ impl<'a> GlyphInfo<'a> {
     }
 }
 
-// Public data structure and API for storing and retrieving glyph data
+/// Stores the glyph data belonging to a text run.
+///
+/// Simple glyphs are stored inline in the `entry_buffer`, detailed glyphs are
+/// stored as pointers into the `detail_store`.
+///
+/// ~~~
+/// +- GlyphStore --------------------------------+
+/// |               +---+---+---+---+---+---+---+ |
+/// | entry_buffer: |   | s |   | s |   | s | s | |  d = detailed
+/// |               +-|-+---+-|-+---+-|-+---+---+ |  s = simple
+/// |                 |       |       |           |
+/// |                 |   +---+-------+           |
+/// |                 |   |                       |
+/// |               +-V-+-V-+                     |
+/// | detail_store: | d | d |                     |
+/// |               +---+---+                     |
+/// +---------------------------------------------+
+/// ~~~
 pub struct GlyphStore {
     // TODO(pcwalton): Allocation of this buffer is expensive. Consider a small-vector
     // optimization.
+    /// A buffer of glyphs within the text run, in the order in which they
+    /// appear in the input text
     entry_buffer: Vec<GlyphEntry>,
-
+    /// A store of the detailed glyph data. Detailed glyphs contained in the
+    /// `entry_buffer` point to locations in this data structure.
     detail_store: DetailedGlyphStore,
 
     is_whitespace: bool,
@@ -677,6 +697,7 @@ impl<'a> GlyphStore {
     }
 }
 
+/// An iterator over the glyphs in a character range in a `GlyphStore`.
 pub struct GlyphIterator<'a> {
     store:       &'a GlyphStore,
     char_index:  CharIndex,
