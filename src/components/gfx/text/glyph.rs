@@ -24,13 +24,13 @@ use geom::point::Point2D;
 /// in DetailedGlyphStore.
 #[deriving(Clone)]
 struct GlyphEntry {
-    value: u32
+    value: u32,
 }
 
 impl GlyphEntry {
     fn new(value: u32) -> GlyphEntry {
         GlyphEntry {
-            value: value
+            value: value,
         }
     }
 
@@ -91,7 +91,7 @@ pub type GlyphId = u32;
 pub enum BreakType {
     BreakTypeNone,
     BreakTypeNormal,
-    BreakTypeHyphen
+    BreakTypeHyphen,
 }
 
 static BREAK_TYPE_NONE:   u8 = 0x0;
@@ -257,7 +257,7 @@ struct DetailedGlyph {
     // glyph's advance, in the text's direction (RTL or RTL)
     advance: Au,
     // glyph's offset from the font's em-box (from top-left)
-    offset: Point2D<Au>
+    offset: Point2D<Au>,
 }
 
 impl DetailedGlyph {
@@ -265,7 +265,7 @@ impl DetailedGlyph {
         DetailedGlyph {
             id: id,
             advance: advance,
-            offset: offset
+            offset: offset,
         }
     }
 }
@@ -275,7 +275,7 @@ struct DetailedGlyphRecord {
     // source string offset/GlyphEntry offset in the TextRun
     entry_offset: int,
     // offset into the detailed glyphs buffer
-    detail_offset: int
+    detail_offset: int,
 }
 
 impl Ord for DetailedGlyphRecord {
@@ -312,14 +312,14 @@ impl<'a> DetailedGlyphStore {
         DetailedGlyphStore {
             detail_buffer: vec!(), // TODO: default size?
             detail_lookup: vec!(),
-            lookup_is_sorted: false
+            lookup_is_sorted: false,
         }
     }
 
     fn add_detailed_glyphs_for_entry(&mut self, entry_offset: int, glyphs: &[DetailedGlyph]) {
         let entry = DetailedGlyphRecord {
             entry_offset: entry_offset,
-            detail_offset: self.detail_buffer.len() as int
+            detail_offset: self.detail_buffer.len() as int,
         };
 
         debug!("Adding entry[off={}] for detailed glyphs: {:?}", entry_offset, glyphs);
@@ -355,7 +355,7 @@ impl<'a> DetailedGlyphStore {
 
         let key = DetailedGlyphRecord {
             entry_offset: entry_offset,
-            detail_offset: 0 // unused
+            detail_offset: 0, // unused
         };
 
         // FIXME: This is a workaround for borrow of self.detail_lookup not getting inferred.
@@ -379,7 +379,7 @@ impl<'a> DetailedGlyphStore {
 
         let key = DetailedGlyphRecord {
             entry_offset: entry_offset,
-            detail_offset: 0 // unused
+            detail_offset: 0, // unused
         };
 
         // FIXME: This is a workaround for borrow of self.detail_lookup not getting inferred.
@@ -441,7 +441,7 @@ impl GlyphData {
             -> GlyphData {
         let offset = match offset {
             None => Zero::zero(),
-            Some(o) => o
+            Some(o) => o,
         };
 
         GlyphData {
@@ -461,7 +461,7 @@ impl GlyphData {
 // values as they are needed from the GlyphStore, using provided offsets.
 pub enum GlyphInfo<'a> {
     SimpleGlyphInfo(&'a GlyphStore, int),
-    DetailGlyphInfo(&'a GlyphStore, int, u16)
+    DetailGlyphInfo(&'a GlyphStore, int, u16),
 }
 
 impl<'a> GlyphInfo<'a> {
@@ -610,7 +610,7 @@ impl<'a> GlyphStore {
             store:       self,
             char_index:  rang.begin(),
             char_range:  rang.each_index(),
-            glyph_range: None
+            glyph_range: None,
         }
     }
 
