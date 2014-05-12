@@ -11,7 +11,7 @@ use gfx;
 use libc::uintptr_t;
 use script::dom::bindings::js::JS;
 use script::dom::bindings::utils::Reflectable;
-use script::dom::node::Node;
+use script::dom::node::{Node, SharedLayoutData};
 use script::layout_interface::{LayoutChan, UntrustedNodeAddress, TrustedNodeAddress};
 use std::cast;
 use std::cell::{Ref, RefMut};
@@ -21,9 +21,6 @@ use sync::Arc;
 
 /// Data that layout associates with a node.
 pub struct PrivateLayoutData {
-    /// The results of CSS styling for this node.
-    pub style: Option<Arc<ComputedValues>>,
-
     /// The results of CSS styling for this node's `before` pseudo-element, if any.
     pub before_style: Option<Arc<ComputedValues>>,
 
@@ -50,7 +47,6 @@ impl PrivateLayoutData {
     pub fn new() -> PrivateLayoutData {
         PrivateLayoutData {
             before_style: None,
-            style: None,
             after_style: None,
             restyle_damage: None,
             flow_construction_result: NoConstructionResult,
@@ -63,6 +59,7 @@ impl PrivateLayoutData {
 
 pub struct LayoutDataWrapper {
     pub chan: Option<LayoutChan>,
+    pub shared_data: SharedLayoutData,
     pub data: ~PrivateLayoutData,
 }
 

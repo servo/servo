@@ -31,6 +31,7 @@ extern crate servo_macros = "macros";
 extern crate servo_net = "net";
 extern crate servo_util = "util";
 extern crate style;
+extern crate sync;
 extern crate servo_msg = "msg";
 extern crate url;
 

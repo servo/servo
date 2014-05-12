@@ -44,6 +44,8 @@ use std::cast;
 use std::cell::{RefCell, Ref, RefMut};
 use std::iter::{Map, Filter};
 use std::mem;
+use style::ComputedValues;
+use sync::Arc;
 
 use serialize::{Encoder, Encodable};
 
@@ -143,9 +145,16 @@ enum SuppressObserver {
     Unsuppressed
 }
 
+/// Layout data that is shared between the script and layout tasks.
+pub struct SharedLayoutData {
+    /// The results of CSS styling for this node.
+    pub style: Option<Arc<ComputedValues>>,
+}
+
 /// Encapsulates the abstract layout data.
 pub struct LayoutData {
     chan: Option<LayoutChan>,
+    shared_data: SharedLayoutData,
     data: *(),
 }
 

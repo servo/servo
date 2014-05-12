@@ -6,6 +6,7 @@
 
 use layout::util::{PrivateLayoutData, LayoutDataAccess, LayoutDataWrapper};
 use layout::wrapper::LayoutNode;
+use script::dom::node::SharedLayoutData;
 use script::layout_interface::LayoutChan;
 
 /// Functionality useful for querying the layout-specific data on DOM nodes.
@@ -24,6 +25,7 @@ impl<'ln> LayoutAuxMethods for LayoutNode<'ln> {
             None => {
                 *layout_data_ref = Some(LayoutDataWrapper {
                     chan: Some(chan),
+                    shared_data: SharedLayoutData { style: None },
                     data: ~PrivateLayoutData::new(),
                 });
             }
