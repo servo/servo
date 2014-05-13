@@ -83,6 +83,7 @@ pub trait DocumentHelpers {
     fn wait_until_safe_to_modify_dom(&self);
     fn unregister_named_element(&mut self, to_unregister: &JSRef<Element>, id: DOMString);
     fn register_named_element(&mut self, element: &JSRef<Element>, id: DOMString);
+    fn load_anchor_href(&self, href: DOMString);
 }
 
 impl<'a> DocumentHelpers for JSRef<'a, Document> {
@@ -175,6 +176,11 @@ impl<'a> DocumentHelpers for JSRef<'a, Document> {
         let mut elements = vec!();
         elements.push_unrooted(element);
         self.idmap.insert(id, elements);
+    }
+
+    fn load_anchor_href(&self, href: DOMString) {
+        let mut window = self.window.root();
+        window.load_url(href);
     }
 }
 
