@@ -88,6 +88,7 @@ pub mod dom {
     pub mod browsercontext;
     pub mod canvasrenderingcontext2d;
     pub mod characterdata;
+    pub mod cssstyledeclaration;
     pub mod domrect;
     pub mod domrectlist;
     pub mod domstringmap;
