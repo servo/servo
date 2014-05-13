@@ -159,74 +159,75 @@ pub struct Page {
 
     /// A handle for communicating messages to the constellation task.
     pub constellation_chan: Untraceable<ConstellationChan>,
+
+    // Child Pages.
+    pub children: Traceable<RefCell<Vec<Rc<Page>>>>,
 }
 
-pub struct PageTree {
-    pub page: Rc<Page>,
-    pub inner: Vec<PageTree>,
+pub struct PageIterator {
+    stack: Vec<Rc<Page>>,
 }
 
-pub struct PageTreeIterator<'a> {
-    stack: Vec<&'a mut PageTree>,
+trait IterablePage {
+    fn iter(&self) -> PageIterator;
+    fn find(&self, id: PipelineId) -> Option<Rc<Page>>;
 }
-
-impl PageTree {
-    fn new(id: PipelineId, layout_chan: LayoutChan,
-           window_size: Size2D<uint>, resource_task: ResourceTask,
-           constellation_chan: ConstellationChan,
-           js_context: Rc<Cx>) -> PageTree {
-        let js_info = JSPageInfo {
-            dom_static: GlobalStaticData(),
-            js_context: Untraceable::new(js_context),
-        };
-        PageTree {
-            page: Rc::new(Page {
-                id: id,
-                frame: Traceable::new(RefCell::new(None)),
-                layout_chan: Untraceable::new(layout_chan),
-                layout_join_port: Untraceable::new(RefCell::new(None)),
-                damage: Traceable::new(RefCell::new(None)),
-                window_size: Untraceable::new(Cell::new(window_size)),
-                js_info: Traceable::new(RefCell::new(Some(js_info))),
-                url: Untraceable::new(RefCell::new(None)),
-                next_subpage_id: Untraceable::new(Cell::new(SubpageId(0))),
-                resize_event: Untraceable::new(Cell::new(None)),
-                fragment_node: Traceable::new(RefCell::new(None)),
-                last_reflow_id: Traceable::new(Cell::new(0)),
-                resource_task: Untraceable::new(resource_task),
-                constellation_chan: Untraceable::new(constellation_chan),
-            }),
-            inner: vec!(),
+impl IterablePage for Rc<Page> {
+    fn iter(&self) -> PageIterator {
+        PageIterator {
+            stack: vec!(self.clone()),
         }
     }
-
-    fn id(&self) -> PipelineId {
-        self.page().id
-    }
-
-    fn page<'a>(&'a self) -> &'a Page {
-        &*self.page
-    }
-
-    pub fn find<'a> (&'a mut self, id: PipelineId) -> Option<&'a mut PageTree> {
-        if self.page().id == id { return Some(self); }
-        for page_tree in self.inner.mut_iter() {
-            let found = page_tree.find(id);
+    fn find(&self, id: PipelineId) -> Option<Rc<Page>> {
+        if self.id == id { return Some(self.clone()); }
+        for page in self.children.deref().borrow().iter() {
+            let found = page.find(id);
             if found.is_some() { return found; }
         }
         None
     }
 
-    pub fn iter<'a>(&'a mut self) -> PageTreeIterator<'a> {
-        PageTreeIterator {
-            stack: vec!(self),
+}
+
+impl Page {
+    fn new(id: PipelineId, layout_chan: LayoutChan,
+           window_size: Size2D<uint>, resource_task: ResourceTask,
+           constellation_chan: ConstellationChan,
+           js_context: Rc<Cx>) -> Page {
+        let js_info = JSPageInfo {
+            dom_static: GlobalStaticData(),
+            js_context: Untraceable::new(js_context),
+        };
+        Page {
+            id: id,
+            frame: Traceable::new(RefCell::new(None)),
+            layout_chan: Untraceable::new(layout_chan),
+            layout_join_port: Untraceable::new(RefCell::new(None)),
+            damage: Traceable::new(RefCell::new(None)),
+            window_size: Untraceable::new(Cell::new(window_size)),
+            js_info: Traceable::new(RefCell::new(Some(js_info))),
+            url: Untraceable::new(RefCell::new(None)),
+            next_subpage_id: Untraceable::new(Cell::new(SubpageId(0))),
+            resize_event: Untraceable::new(Cell::new(None)),
+            fragment_node: Traceable::new(RefCell::new(None)),
+            last_reflow_id: Traceable::new(Cell::new(0)),
+            resource_task: Untraceable::new(resource_task),
+            constellation_chan: Untraceable::new(constellation_chan),
+            children: Traceable::new(RefCell::new(vec!())),
         }
     }
 
+    fn id(&self) -> PipelineId {
+        self.id
+    }
+
     // must handle root case separately
-    pub fn remove(&mut self, id: PipelineId) -> Option<PageTree> {
+    pub fn remove(&self, id: PipelineId) -> Option<Rc<Page>> {
         let remove_idx = {
-            self.inner.mut_iter()
+            self.children
+                .deref()
+                .borrow_mut()
+                .mut_iter()
                 .enumerate()
                 .find(|&(_idx, ref page_tree)| {
                     // FIXME: page_tree has a lifetime such that it's unusable for anything.
@@ -238,9 +239,9 @@ impl PageTree {
                 .map(|(idx, _)| idx)
         };
         match remove_idx {
-            Some(idx) => return Some(self.inner.remove(idx).unwrap()),
+            Some(idx) => return Some(self.children.deref().borrow_mut().remove(idx).unwrap()),
             None => {
-                for page_tree in self.inner.mut_iter() {
+                for page_tree in self.children.deref().borrow_mut().mut_iter() {
                     match page_tree.remove(id) {
                         found @ Some(_) => return found,
                         None => (), // keep going...
@@ -252,14 +253,14 @@ impl PageTree {
     }
 }
 
-impl<'a> Iterator<Rc<Page>> for PageTreeIterator<'a> {
+impl Iterator<Rc<Page>> for PageIterator {
     fn next(&mut self) -> Option<Rc<Page>> {
         if !self.stack.is_empty() {
             let next = self.stack.pop().unwrap();
-            for child in next.inner.mut_iter() {
-                self.stack.push(child);
+            for child in next.children.deref().borrow().iter() {
+                self.stack.push(child.clone());
             }
-            Some(next.page.clone())
+            Some(next.clone())
         } else {
             None
         }
@@ -531,7 +532,7 @@ impl Drop for StackRootTLS {
 /// FIXME: Rename to `Page`, following WebKit?
 pub struct ScriptTask {
     /// A handle to the information pertaining to page layout
-    pub page_tree: RefCell<PageTree>,
+    pub page: RefCell<Rc<Page>>,
     /// A handle to the image cache task.
     pub image_cache_task: ImageCacheTask,
     /// A handle to the resource task.
@@ -581,8 +582,8 @@ impl<'a> Drop for ScriptMemoryFailsafe<'a> {
     fn drop(&mut self) {
         match self.owner {
             Some(owner) => {
-                let mut page_tree = owner.page_tree.borrow_mut();
-                for page in page_tree.iter() {
+                let mut page = owner.page.borrow_mut();
+                for page in page.iter() {
                     *page.mut_js_info() = None;
                 }
                 *owner.js_context.borrow_mut() = None;
@@ -605,12 +606,12 @@ impl ScriptTask {
                window_size: Size2D<uint>)
                -> Rc<ScriptTask> {
         let (js_runtime, js_context) = ScriptTask::new_rt_and_cx();
-        let page_tree = PageTree::new(id, layout_chan, window_size,
-                                      resource_task.clone(),
-                                      constellation_chan.clone(),
-                                      js_context.clone());
+        let page = Page::new(id, layout_chan, window_size,
+                             resource_task.clone(),
+                             constellation_chan.clone(),
+                             js_context.clone());
         Rc::new(ScriptTask {
-            page_tree: RefCell::new(page_tree),
+            page: RefCell::new(Rc::new(page)),
 
             image_cache_task: img_cache_task,
             resource_task: resource_task,
@@ -715,8 +716,8 @@ impl ScriptTask {
         let mut resizes = vec!();
 
         {
-            let mut page_tree = self.page_tree.borrow_mut();
-            for page in page_tree.iter() {
+            let mut page = self.page.borrow_mut();
+            for page in page.iter() {
                 // Only process a resize if layout is idle.
                 let layout_join_port = page.layout_join_port.deref().borrow();
                 if layout_join_port.is_none() {
@@ -743,8 +744,8 @@ impl ScriptTask {
         loop {
             match event {
                 ResizeMsg(id, size) => {
-                    let mut page_tree = self.page_tree.borrow_mut();
-                    let page = page_tree.find(id).expect("resize sent to nonexistent pipeline").page();
+                    let mut page = self.page.borrow_mut();
+                    let page = page.find(id).expect("resize sent to nonexistent pipeline");
                     page.resize_event.deref().set(Some(size));
                 }
                 _ => {
@@ -786,25 +787,25 @@ impl ScriptTask {
             layout_chan
         } = new_layout_info;
 
-        let mut page_tree = self.page_tree.borrow_mut();
-        let parent_page_tree = page_tree.find(old_id).expect("ScriptTask: received a layout
+        let mut page = self.page.borrow_mut();
+        let parent_page = page.find(old_id).expect("ScriptTask: received a layout
             whose parent has a PipelineId which does not correspond to a pipeline in the script
             task's page tree. This is a bug.");
-        let new_page_tree = {
-            let window_size = parent_page_tree.page().window_size.deref().get();
-            PageTree::new(new_id, layout_chan, window_size,
-                          parent_page_tree.page().resource_task.deref().clone(),
-                          self.constellation_chan.clone(),
-                          self.js_context.borrow().get_ref().clone())
+        let new_page = {
+            let window_size = parent_page.window_size.deref().get();
+            Page::new(new_id, layout_chan, window_size,
+                      parent_page.resource_task.deref().clone(),
+                      self.constellation_chan.clone(),
+                      self.js_context.borrow().get_ref().clone())
         };
-        parent_page_tree.inner.push(new_page_tree);
+        parent_page.children.deref().borrow_mut().push(Rc::new(new_page));
     }
 
     /// Handles a timer that fired.
     fn handle_fire_timer_msg(&self, id: PipelineId, timer_id: TimerId) {
-        let mut page_tree = self.page_tree.borrow_mut();
-        let page = page_tree.find(id).expect("ScriptTask: received fire timer msg for a
-            pipeline ID not associated with this script task. This is a bug.").page();
+        let mut page = self.page.borrow_mut();
+        let page = page.find(id).expect("ScriptTask: received fire timer msg for a
+            pipeline ID not associated with this script task. This is a bug.");
         let frame = page.frame();
         let mut window = frame.get_ref().window.root();
 
@@ -837,10 +838,10 @@ impl ScriptTask {
     /// Handles a notification that reflow completed.
     fn handle_reflow_complete_msg(&self, pipeline_id: PipelineId, reflow_id: uint) {
         debug!("Script: Reflow {:?} complete for {:?}", reflow_id, pipeline_id);
-        let mut page_tree = self.page_tree.borrow_mut();
-        let page = page_tree.find(pipeline_id).expect(
+        let mut page = self.page.borrow_mut();
+        let page = page.find(pipeline_id).expect(
             "ScriptTask: received a load message for a layout channel that is not associated \
-             with this script task. This is a bug.").page();
+             with this script task. This is a bug.");
         let last_reflow_id = page.last_reflow_id.deref().get();
         if last_reflow_id == reflow_id {
             let mut layout_join_port = page.layout_join_port.deref().borrow_mut();
@@ -858,9 +859,9 @@ impl ScriptTask {
 
     /// Window was resized, but this script was not active, so don't reflow yet
     fn handle_resize_inactive_msg(&self, id: PipelineId, new_size: Size2D<uint>) {
-        let mut page_tree = self.page_tree.borrow_mut();
-        let page = page_tree.find(id).expect("Received resize message for PipelineId not associated
-            with a page in the page tree. This is a bug.").page();
+        let mut page = self.page.borrow_mut();
+        let page = page.find(id).expect("Received resize message for PipelineId not associated
+            with a page in the page tree. This is a bug.");
         page.window_size.deref().set(new_size);
         let mut page_url = page.mut_url();
         let last_loaded_url = replace(&mut *page_url, None);
@@ -887,18 +888,18 @@ impl ScriptTask {
     /// Returns true if the script task should shut down and false otherwise.
     fn handle_exit_pipeline_msg(&self, id: PipelineId) -> bool {
         // If root is being exited, shut down all pages
-        let mut page_tree = self.page_tree.borrow_mut();
-        if page_tree.page().id == id {
+        let mut page = self.page.borrow_mut();
+        if page.id == id {
             debug!("shutting down layout for root page {:?}", id);
             *self.js_context.borrow_mut() = None;
-            shut_down_layout(&mut *page_tree, (*self.js_runtime).ptr);
+            shut_down_layout(&*page, (*self.js_runtime).ptr);
             return true
         }
 
         // otherwise find just the matching page and exit all sub-pages
-        match page_tree.remove(id) {
-            Some(ref mut page_tree) => {
-                shut_down_layout(&mut *page_tree, (*self.js_runtime).ptr);
+        match page.remove(id) {
+            Some(ref mut page) => {
+                shut_down_layout(&*page, (*self.js_runtime).ptr);
                 false
             }
             // TODO(tkuehn): pipeline closing is currently duplicated across
@@ -914,11 +915,10 @@ impl ScriptTask {
     fn load(&self, pipeline_id: PipelineId, url: Url) {
         debug!("ScriptTask: loading {:?} on page {:?}", url, pipeline_id);
 
-        let mut page_tree = self.page_tree.borrow_mut();
-        let page_tree = page_tree.find(pipeline_id).expect("ScriptTask: received a load
+        let mut page = self.page.borrow_mut();
+        let page = page.find(pipeline_id).expect("ScriptTask: received a load
             message for a layout channel that is not associated with this script task. This
             is a bug.");
-        let page = page_tree.page();
 
         let last_loaded_url = replace(&mut *page.mut_url(), None);
         match last_loaded_url {
@@ -937,7 +937,7 @@ impl ScriptTask {
         let cx = cx.get_ref();
         // Create the window and document objects.
         let mut window = Window::new(cx.deref().ptr,
-                                     page_tree.page.clone(),
+                                     page.clone(),
                                      self.chan.clone(),
                                      self.compositor.dup(),
                                      self.image_cache_task.clone()).root();
@@ -953,7 +953,7 @@ impl ScriptTask {
         // Parse HTML.
         //
         // Note: We can parse the next document in parallel with any previous documents.
-        let html_parsing_result = hubbub_html_parser::parse_html(page,
+        let html_parsing_result = hubbub_html_parser::parse_html(&*page,
                                                                  &mut *document,
                                                                  url.clone(),
                                                                  self.resource_task.clone());
@@ -1053,10 +1053,10 @@ impl ScriptTask {
     ///
     /// TODO: Actually perform DOM event dispatch.
     fn handle_event(&self, pipeline_id: PipelineId, event: Event_) {
-        fn get_page<'a>(page_tree: &'a mut PageTree, pipeline_id: PipelineId) -> &'a Page {
-            page_tree.find(pipeline_id).expect("ScriptTask: received an event \
+        fn get_page(page: &Rc<Page>, pipeline_id: PipelineId) -> Rc<Page> {
+            page.find(pipeline_id).expect("ScriptTask: received an event \
                 message for a layout channel that is not associated with this script task.\
-                This is a bug.").page()
+                This is a bug.")
         }
 
         match event {
@@ -1064,8 +1064,7 @@ impl ScriptTask {
                 debug!("script got resize event: {:u}, {:u}", new_width, new_height);
 
                 let window = {
-                    let mut page_tree = self.page_tree.borrow_mut();
-                    let page = get_page(&mut *page_tree, pipeline_id);
+                    let page = get_page(&*self.page.borrow(), pipeline_id);
                     page.window_size.deref().set(Size2D(new_width, new_height));
 
                     let frame = page.frame();
@@ -1101,9 +1100,7 @@ impl ScriptTask {
             // FIXME(pcwalton): This reflows the entire document and is not incremental-y.
             ReflowEvent => {
                 debug!("script got reflow event");
-
-                let mut page_tree = self.page_tree.borrow_mut();
-                let page = get_page(&mut *page_tree, pipeline_id);
+                let page = get_page(&*self.page.borrow(), pipeline_id);
                 let frame = page.frame();
                 if frame.is_some() {
                     page.damage(MatchSelectorsDocumentDamage);
@@ -1113,8 +1110,7 @@ impl ScriptTask {
 
             ClickEvent(_button, point) => {
                 debug!("ClickEvent: clicked at {:?}", point);
-                let mut page_tree = self.page_tree.borrow_mut();
-                let page = get_page(&mut *page_tree, pipeline_id);
+                let page = get_page(&*self.page.borrow(), pipeline_id);
                 match page.hit_test(&point) {
                     Some(node_address) => {
                         debug!("node address is {:?}", node_address);
@@ -1128,7 +1124,7 @@ impl ScriptTask {
                             Some(node) => {
                                 debug!("clicked on {:s}", node.debug_str());
                                 let element: &JSRef<Element> = ElementCast::to_ref(&node).unwrap();
-                                self.load_url_from_element(page, element);
+                                self.load_url_from_element(&*page, element);
                             }
                             None => {}
                         }
@@ -1140,8 +1136,7 @@ impl ScriptTask {
             MouseDownEvent(..) => {}
             MouseUpEvent(..) => {}
             MouseMoveEvent(point) => {
-                let mut page_tree = self.page_tree.borrow_mut();
-                let page = get_page(&mut *page_tree, pipeline_id);
+                let page = get_page(&*self.page.borrow(), pipeline_id);
                 match page.get_nodes_under_mouse(&point) {
                     Some(node_address) => {
 
@@ -1231,7 +1226,7 @@ impl ScriptTask {
 }
 
 /// Shuts down layout for the given page tree.
-fn shut_down_layout(page_tree: &mut PageTree, rt: *JSRuntime) {
+fn shut_down_layout(page_tree: &Rc<Page>, rt: *JSRuntime) {
     for page in page_tree.iter() {
         page.join_layout();
 
