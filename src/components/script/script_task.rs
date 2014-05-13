@@ -920,7 +920,8 @@ impl ScriptTask {
             is a bug.");
         let page = page_tree.page();
 
-        match replace(&mut *page.mut_url(), None) {
+        let last_loaded_url = replace(&mut *page.mut_url(), None);
+        match last_loaded_url {
             Some((ref loaded, needs_reflow)) if *loaded == url => {
                 *page.mut_url() = Some((loaded.clone(), false));
                 if needs_reflow {
