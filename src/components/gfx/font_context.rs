@@ -192,7 +192,7 @@ impl FontContext {
                 };
             }
         }
-        assert!(fonts.len() > 0);
+        assert!(fonts.len() > 0, "No matching font(s), are the appropriate fonts installed?");
         // TODO(Issue #179): Split FontStyle into specified and used styles
         let used_style = (*style).clone();
 
