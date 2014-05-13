@@ -921,16 +921,16 @@ impl ScriptTask {
         let page = page_tree.page();
 
         let last_loaded_url = replace(&mut *page.mut_url(), None);
-        for loaded in last_loaded_url.iter() {
-            let (ref loaded, needs_reflow) = *loaded;
-            if *loaded == url {
+        match last_loaded_url {
+            Some((ref loaded, needs_reflow)) if *loaded == url => {
                 *page.mut_url() = Some((loaded.clone(), false));
                 if needs_reflow {
                     page.damage(ContentChangedDocumentDamage);
                     page.reflow(ReflowForDisplay, self.chan.clone(), self.compositor);
                 }
                 return;
-            }
+            },
+            _ => (),
         }
 
         let cx = self.js_context.borrow();
