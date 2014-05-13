@@ -6,7 +6,7 @@ extern crate harfbuzz;
 
 use font::{Font, FontHandleMethods, FontTableMethods, FontTableTag};
 use platform::font::FontTable;
-use text::glyph::{GlyphStore, GlyphIndex, GlyphData};
+use text::glyph::{CharIndex, GlyphStore, GlyphId, GlyphData};
 use text::shaping::ShaperMethods;
 use text::util::{float_to_fixed, fixed_to_float};
 
@@ -55,7 +55,7 @@ pub struct ShapedGlyphData {
 
 pub struct ShapedGlyphEntry {
     cluster: int,
-    codepoint: GlyphIndex,
+    codepoint: GlyphId,
     advance: Au,
     offset: Option<Point2D<Au>>,
 }
@@ -125,7 +125,7 @@ impl ShapedGlyphData {
 
             ShapedGlyphEntry {
                 cluster: (*glyph_info_i).cluster as int,
-                codepoint: (*glyph_info_i).codepoint as GlyphIndex,
+                codepoint: (*glyph_info_i).codepoint as GlyphId,
                 advance: x_advance,
                 offset: offset,
             }
@@ -229,7 +229,7 @@ impl Shaper {
 
         // GlyphStore records are indexed by character, not byte offset.
         // so, we must be careful to increment this when saving glyph entries.
-        let mut char_idx = 0;
+        let mut char_idx = CharIndex(0);
 
         assert!(glyph_count <= char_max);
 
@@ -316,7 +316,7 @@ impl Shaper {
                 // extend glyph range to max glyph index covered by char_span,
                 // in cases where one char made several glyphs and left some unassociated chars.
                 let mut max_glyph_idx = glyph_span.end();
-                for i in char_byte_span.eachi() {
+                for i in char_byte_span.each_index() {
                     if byteToGlyph[i as uint] > NO_GLYPH {
                         max_glyph_idx = cmp::max(byteToGlyph[i as uint] as int + 1, max_glyph_idx);
                     }
@@ -340,7 +340,7 @@ impl Shaper {
                         probably doesn't work.");
 
                 let mut all_glyphs_are_within_cluster: bool = true;
-                for j in glyph_span.eachi() {
+                for j in glyph_span.each_index() {
                     let loc = glyph_data.byte_offset_of_glyph(j);
                     if !char_byte_span.contains(loc) {
                         all_glyphs_are_within_cluster = false;
@@ -414,7 +414,7 @@ impl Shaper {
                 // collect all glyphs to be assigned to the first character.
                 let mut datas = vec!();
 
-                for glyph_i in glyph_span.eachi() {
+                for glyph_i in glyph_span.each_index() {
                     let shape = glyph_data.get_entry_for_glyph(glyph_i, &mut y_pos);
                     datas.push(GlyphData::new(shape.codepoint,
                                               shape.advance,
@@ -435,7 +435,7 @@ impl Shaper {
                     drop(range.ch);
                     i = range.next as int;
                     if i >= covered_byte_span.end() { break; }
-                    char_idx += 1;
+                    char_idx = char_idx + CharIndex(1);
                     glyphs.add_nonglyph_for_char_index(char_idx, false, false);
                 }
             }
@@ -445,7 +445,7 @@ impl Shaper {
             glyph_span.reset(end, 0);
             let end = char_byte_span.end();; // FIXME: borrow checker workaround
             char_byte_span.reset(end, 0);
-            char_idx += 1;
+            char_idx = char_idx + CharIndex(1);
         }
 
         // this must be called after adding all glyph data; it sorts the
@@ -485,7 +485,7 @@ extern fn glyph_h_advance_func(_: *hb_font_t,
     assert!(font.is_not_null());
 
     unsafe {
-        let advance = (*font).glyph_h_advance(glyph as GlyphIndex);
+        let advance = (*font).glyph_h_advance(glyph as GlyphId);
         Shaper::float_to_fixed(advance)
     }
 }

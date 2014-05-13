@@ -9,7 +9,7 @@ use font::{FontTableTag, FractionalPixel, SpecifiedFontStyle, UsedFontStyle};
 use servo_util::geometry::Au;
 use servo_util::geometry;
 use platform::font_context::FontContextHandle;
-use text::glyph::GlyphIndex;
+use text::glyph::GlyphId;
 use text::util::{float_to_fixed, fixed_to_float};
 use style::computed_values::font_weight;
 
@@ -174,12 +174,12 @@ impl FontHandleMethods for FontHandle {
     }
 
     fn glyph_index(&self,
-                       codepoint: char) -> Option<GlyphIndex> {
+                       codepoint: char) -> Option<GlyphId> {
         assert!(self.face.is_not_null());
         unsafe {
             let idx = FT_Get_Char_Index(self.face, codepoint as FT_ULong);
             return if idx != 0 as FT_UInt {
-                Some(idx as GlyphIndex)
+                Some(idx as GlyphId)
             } else {
                 debug!("Invalid codepoint: {}", codepoint);
                 None
@@ -188,7 +188,7 @@ impl FontHandleMethods for FontHandle {
     }
 
     fn glyph_h_advance(&self,
-                           glyph: GlyphIndex) -> Option<FractionalPixel> {
+                           glyph: GlyphId) -> Option<FractionalPixel> {
         assert!(self.face.is_not_null());
         unsafe {
             let res =  FT_Load_Glyph(self.face, glyph as FT_UInt, 0);

@@ -23,7 +23,7 @@ use servo_util::geometry::Au;
 use platform::font_context::FontContextHandle;
 use platform::font::{FontHandle, FontTable};
 use render_context::RenderContext;
-use text::glyph::{GlyphStore, GlyphIndex};
+use text::glyph::{CharIndex, GlyphStore, GlyphId};
 use text::shaping::ShaperMethods;
 use text::{Shaper, TextRun};
 
@@ -45,8 +45,8 @@ pub trait FontHandleMethods {
 
     fn clone_with_style(&self, fctx: &FontContextHandle, style: &UsedFontStyle)
                      -> Result<FontHandle, ()>;
-    fn glyph_index(&self, codepoint: char) -> Option<GlyphIndex>;
-    fn glyph_h_advance(&self, GlyphIndex) -> Option<FractionalPixel>;
+    fn glyph_index(&self, codepoint: char) -> Option<GlyphId>;
+    fn glyph_h_advance(&self, GlyphId) -> Option<FractionalPixel>;
     fn get_metrics(&self) -> FontMetrics;
     fn get_table_for_tag(&self, FontTableTag) -> Option<FontTable>;
 }
@@ -330,7 +330,7 @@ impl Font {
     pub fn draw_text_into_context(&mut self,
                               rctx: &RenderContext,
                               run: &~TextRun,
-                              range: &Range<int>,
+                              range: &Range<CharIndex>,
                               baseline_origin: Point2D<Au>,
                               color: Color) {
         use libc::types::common::c99::{uint16_t, uint32_t};
@@ -353,7 +353,7 @@ impl Font {
 
         let mut origin = baseline_origin.clone();
         let mut azglyphs = vec!();
-        azglyphs.reserve(range.length() as uint);
+        azglyphs.reserve(range.length().to_uint());
 
         for (glyphs, _offset, slice_range) in run.iter_slices_for_range(range) {
             for (_i, glyph) in glyphs.iter_glyphs_for_char_range(&slice_range) {
@@ -361,7 +361,7 @@ impl Font {
                 let glyph_offset = glyph.offset().unwrap_or(Zero::zero());
 
                 let azglyph = struct__AzGlyph {
-                    mIndex: glyph.index() as uint32_t,
+                    mIndex: glyph.id() as uint32_t,
                     mPosition: struct__AzPoint {
                         x: (origin.x + glyph_offset.x).to_nearest_px() as AzFloat,
                         y: (origin.y + glyph_offset.y).to_nearest_px() as AzFloat
@@ -391,7 +391,7 @@ impl Font {
         }
     }
 
-    pub fn measure_text(&self, run: &TextRun, range: &Range<int>) -> RunMetrics {
+    pub fn measure_text(&self, run: &TextRun, range: &Range<CharIndex>) -> RunMetrics {
         // TODO(Issue #199): alter advance direction for RTL
         // TODO(Issue #98): using inter-char and inter-word spacing settings  when measuring text
         let mut advance = Au(0);
@@ -405,7 +405,7 @@ impl Font {
 
     pub fn measure_text_for_slice(&self,
                                   glyphs: &GlyphStore,
-                                  slice_range: &Range<int>)
+                                  slice_range: &Range<CharIndex>)
                                   -> RunMetrics {
         let mut advance = Au(0);
         for (_i, glyph) in glyphs.iter_glyphs_for_char_range(slice_range) {
@@ -430,11 +430,11 @@ impl Font {
         FontDescriptor::new(self.style.clone(), SelectorPlatformIdentifier(self.handle.face_identifier()))
     }
 
-    pub fn glyph_index(&self, codepoint: char) -> Option<GlyphIndex> {
+    pub fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {
         self.handle.glyph_index(codepoint)
     }
 
-    pub fn glyph_h_advance(&mut self, glyph: GlyphIndex) -> FractionalPixel {
+    pub fn glyph_h_advance(&mut self, glyph: GlyphId) -> FractionalPixel {
         let handle = &self.handle;
         self.glyph_advance_cache.find_or_create(&glyph, |glyph| {
             match handle.glyph_h_advance(*glyph) {

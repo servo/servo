@@ -28,6 +28,7 @@ use gfx::display_list::{LineDisplayItemClass, OpaqueNode, PseudoDisplayItemClass
 use gfx::display_list::{SolidColorDisplayItem, SolidColorDisplayItemClass, StackingLevel};
 use gfx::display_list::{TextDecorations, TextDisplayItem, TextDisplayItemClass};
 use gfx::font::FontStyle;
+use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::TextRun;
 use servo_msg::constellation_msg::{ConstellationChan, FrameRectMsg, PipelineId, SubpageId};
 use servo_net::image::holder::{ImageHolder, LocalImageCacheHandle};
@@ -95,7 +96,7 @@ pub struct Box {
     /// New-line chracter(\n)'s positions(relative, not absolute)
     ///
     /// FIXME(#2260, pcwalton): This is very inefficient; remove.
-    pub new_line_pos: Vec<int>,
+    pub new_line_pos: Vec<CharIndex>,
 }
 
 /// Info specific to the kind of box. Keep this enum small.
@@ -226,12 +227,12 @@ pub struct ScannedTextBoxInfo {
     pub run: Arc<~TextRun>,
 
     /// The range within the above text run that this represents.
-    pub range: Range<int>,
+    pub range: Range<CharIndex>,
 }
 
 impl ScannedTextBoxInfo {
     /// Creates the information specific to a scanned text box from a range and a text run.
-    pub fn new(run: Arc<~TextRun>, range: Range<int>) -> ScannedTextBoxInfo {
+    pub fn new(run: Arc<~TextRun>, range: Range<CharIndex>) -> ScannedTextBoxInfo {
         ScannedTextBoxInfo {
             run: run,
             range: range,
@@ -1108,7 +1109,8 @@ impl Box {
                 let cur_new_line_pos = new_line_pos.shift().unwrap();
 
                 let left_range = Range::new(text_box_info.range.begin(), cur_new_line_pos);
-                let right_range = Range::new(text_box_info.range.begin() + cur_new_line_pos + 1, text_box_info.range.length() - (cur_new_line_pos + 1));
+                let right_range = Range::new(text_box_info.range.begin() + cur_new_line_pos + CharIndex(1),
+                                             text_box_info.range.length() - (cur_new_line_pos + CharIndex(1)));
 
                 // Left box is for left text of first founded new-line character.
                 let left_box = {
@@ -1120,7 +1122,7 @@ impl Box {
                 };
 
                 // Right box is for right text of first founded new-line character.
-                let right_box = if right_range.length() > 0 {
+                let right_box = if right_range.length() > CharIndex(0) {
                     let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run.clone(), right_range);
                     let new_metrics = new_text_box_info.run.metrics_for_range(&right_range);
                     let mut new_box = self.transform(new_metrics.bounding_box.size, ScannedTextBox(new_text_box_info));
@@ -1145,8 +1147,8 @@ impl Box {
             ScannedTextBox(ref text_box_info) => {
                 let mut pieces_processed_count: uint = 0;
                 let mut remaining_width: Au = max_width;
-                let mut left_range = Range::new(text_box_info.range.begin(), 0);
-                let mut right_range: Option<Range<int>> = None;
+                let mut left_range = Range::new(text_box_info.range.begin(), CharIndex(0));
+                let mut right_range: Option<Range<CharIndex>> = None;
 
                 debug!("split_to_width: splitting text box (strlen={:u}, range={}, \
                                                             avail_width={})",
@@ -1171,11 +1173,11 @@ impl Box {
 
                         if starts_line && pieces_processed_count == 0 && glyphs.is_whitespace() {
                             debug!("split_to_width: case=skipping leading trimmable whitespace");
-                            left_range.shift_by(slice_range.length() as int);
+                            left_range.shift_by(slice_range.length());
                         } else {
                             debug!("split_to_width: case=enlarging span");
                             remaining_width = remaining_width - advance;
-                            left_range.extend_by(slice_range.length() as int);
+                            left_range.extend_by(slice_range.length());
                         }
                     } else {
                         // The advance is more than the remaining width.
@@ -1212,7 +1214,7 @@ impl Box {
                     }
                 }
 
-                let left_box = if left_range.length() > 0 {
+                let left_box = if left_range.length() > CharIndex(0) {
                     let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run.clone(), left_range);
                     let mut new_metrics = new_text_box_info.run.metrics_for_range(&left_range);
                     new_metrics.bounding_box.size.height = self.border_box.size.height;
@@ -1222,7 +1224,7 @@ impl Box {
                     None
                 };
 
-                let right_box = right_range.map_or(None, |range: Range<int>| {
+                let right_box = right_range.map_or(None, |range: Range<CharIndex>| {
                     let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run.clone(),
                                                                     range);
                     let mut new_metrics = new_text_box_info.run.metrics_for_range(&range);

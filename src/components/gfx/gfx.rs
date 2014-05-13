@@ -23,6 +23,7 @@ extern crate png;
 #[phase(syntax)]
 extern crate servo_macros = "macros";
 extern crate servo_net = "net";
+#[phase(syntax, link)]
 extern crate servo_util = "util";
 extern crate servo_msg = "msg";
 extern crate style;
