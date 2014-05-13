@@ -206,7 +206,9 @@ impl<'a> ElementHelpers for JSRef<'a, Element> {
 
 pub trait AttributeHandlers {
     fn get_attribute(&self, namespace: Namespace, name: &str) -> Option<Temporary<Attr>>;
-    fn set_attr(&mut self, name: DOMString, value: DOMString) -> ErrorResult;
+    fn set_attribute_from_parser(&mut self, local_name: DOMString,
+                                 value: DOMString, namespace: Namespace,
+                                 prefix: Option<DOMString>);
     fn set_attribute(&mut self, namespace: Namespace, name: DOMString,
                      value: DOMString) -> ErrorResult;
     fn do_set_attribute(&mut self, local_name: DOMString, value: DOMString,
@@ -238,8 +240,14 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         }
     }
 
-    fn set_attr(&mut self, name: DOMString, value: DOMString) -> ErrorResult {
-        self.set_attribute(namespace::Null, name, value)
+    fn set_attribute_from_parser(&mut self, local_name: DOMString,
+                                 value: DOMString, namespace: Namespace,
+                                 prefix: Option<DOMString>) {
+        let name = match prefix {
+            None => local_name.clone(),
+            Some(ref prefix) => format!("{:s}:{:s}", *prefix, local_name),
+        };
+        self.do_set_attribute(local_name, value, name, namespace, prefix, |_| false)
     }
 
     fn set_attribute(&mut self, namespace: Namespace, name: DOMString,

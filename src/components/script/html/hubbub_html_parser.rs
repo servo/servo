@@ -17,7 +17,9 @@ use html::cssparse::{StylesheetProvenance, UrlProvenance, spawn_css_parser};
 use script_task::Page;
 
 use hubbub::hubbub;
+use hubbub::hubbub::{NullNs, XLinkNs, XmlNs, XmlNsNs};
 use servo_net::resource_task::{Load, Payload, Done, ResourceTask, load_whole_resource};
+use servo_util::namespace;
 use servo_util::namespace::Null;
 use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS};
 use servo_util::task::spawn_named;
@@ -327,10 +329,17 @@ pub fn parse_html(page: &Page,
 
             debug!("-- attach attrs");
             for attr in tag.attributes.iter() {
-                //FIXME: this should have proper error handling or explicitly drop
-                //       exceptions on the ground
-                assert!(element.set_attr(attr.name.clone(),
-                                         attr.value.clone()).is_ok());
+                let (namespace, prefix) = match attr.ns {
+                    NullNs => (namespace::Null, None),
+                    XLinkNs => (namespace::XLink, Some("xlink")),
+                    XmlNs => (namespace::XML, Some("xml")),
+                    XmlNsNs => (namespace::XMLNS, Some("xmlns")),
+                    ns => fail!("Not expecting namespace {:?}", ns),
+                };
+                element.set_attribute_from_parser(attr.name.clone(),
+                                                  attr.value.clone(),
+                                                  namespace,
+                                                  prefix.map(|p| p.to_owned()));
             }
 
             //FIXME: workaround for https://github.com/mozilla/rust/issues/13246;
