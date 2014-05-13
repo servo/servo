@@ -472,7 +472,10 @@ impl<'a> Iterator<(&'a Box, InlineFragmentContext<'a>)> for BoxIterator<'a> {
     fn next(&mut self) -> Option<(&'a Box, InlineFragmentContext<'a>)> {
         match self.iter.next() {
             None => None,
-            Some((i, fragment)) => Some((fragment, InlineFragmentContext::new(self.map, i as int))),
+            Some((i, fragment)) => Some((
+                fragment,
+                InlineFragmentContext::new(self.map, FragmentIndex(i as int)),
+            )),
         }
     }
 }
@@ -488,7 +491,10 @@ impl<'a> Iterator<(&'a mut Box, InlineFragmentContext<'a>)> for MutBoxIterator<'
     fn next(&mut self) -> Option<(&'a mut Box, InlineFragmentContext<'a>)> {
         match self.iter.next() {
             None => None,
-            Some((i, fragment)) => Some((fragment, InlineFragmentContext::new(self.map, i as int))),
+            Some((i, fragment)) => Some((
+                fragment,
+                InlineFragmentContext::new(self.map, FragmentIndex(i as int)),
+            )),
         }
     }
 }
@@ -522,7 +528,7 @@ impl InlineBoxes {
 
     /// Pushes a new inline box.
     pub fn push(&mut self, fragment: Box, style: Arc<ComputedValues>) {
-        self.map.push(style, Range::new(self.boxes.len() as int, 1));
+        self.map.push(style, Range::new(FragmentIndex(self.boxes.len() as int), FragmentIndex(1)));
         self.boxes.push(fragment)
     }
 
@@ -532,7 +538,7 @@ impl InlineBoxes {
             boxes: other_boxes,
             map: other_map
         } = other;
-        let adjustment = self.boxes.len();
+        let adjustment = FragmentIndex(self.boxes.len() as int);
         self.map.push_all(other_map, adjustment);
         self.boxes.push_all_move(other_boxes);
     }
@@ -975,18 +981,23 @@ impl fmt::Show for InlineFlow {
     }
 }
 
+range_index! {
+    #[doc = "The index of a DOM element into the flat list of fragments."]
+    struct FragmentIndex(int)
+}
+
 /// Information that inline flows keep about a single nested element. This is used to recover the
 /// DOM structure from the flat box list when it's needed.
 pub struct FragmentRange {
     /// The style of the DOM node that this range refers to.
     pub style: Arc<ComputedValues>,
     /// The range, in indices into the fragment list.
-    pub range: Range<int>,
+    pub range: Range<FragmentIndex>,
 }
 
 impl FragmentRange {
     /// Creates a new fragment range from the given values.
-    fn new(style: Arc<ComputedValues>, range: Range<int>) -> FragmentRange {
+    fn new(style: Arc<ComputedValues>, range: Range<FragmentIndex>) -> FragmentRange {
         FragmentRange {
             style: style,
             range: range,
@@ -1007,14 +1018,14 @@ impl FragmentRange {
 
 struct FragmentFixupWorkItem {
     style: Arc<ComputedValues>,
-    new_start_index: int,
-    old_end_index: int,
+    new_start_index: FragmentIndex,
+    old_end_index: FragmentIndex,
 }
 
 /// The type of an iterator over fragment ranges in the fragment map.
 pub struct RangeIterator<'a> {
     iter: Items<'a,FragmentRange>,
-    index: int,
+    index: FragmentIndex,
     seen_first: bool,
 }
 
@@ -1057,13 +1068,13 @@ impl FragmentMap {
     }
 
     /// Adds the given node to the fragment map.
-    pub fn push(&mut self, style: Arc<ComputedValues>, range: Range<int>) {
+    pub fn push(&mut self, style: Arc<ComputedValues>, range: Range<FragmentIndex>) {
         self.list.push(FragmentRange::new(style, range))
     }
 
     /// Pushes the ranges in another fragment map onto the end of this one, adjusting indices as
     /// necessary.
-    fn push_all(&mut self, other: FragmentMap, adjustment: uint) {
+    fn push_all(&mut self, other: FragmentMap, adjustment: FragmentIndex) {
         let FragmentMap {
             list: other_list
         } = other;
@@ -1074,19 +1085,19 @@ impl FragmentMap {
                 range: mut other_range
             } = other_range;
 
-            other_range.shift_by(adjustment as int);
+            other_range.shift_by(adjustment);
             self.push(other_style, other_range)
         }
     }
 
     /// Returns the range with the given index.
-    pub fn get_mut<'a>(&'a mut self, index: int) -> &'a mut FragmentRange {
-        &mut self.list.as_mut_slice()[index as uint]
+    pub fn get_mut<'a>(&'a mut self, index: FragmentIndex) -> &'a mut FragmentRange {
+        &mut self.list.as_mut_slice()[index.to_uint()]
     }
 
     /// Iterates over all ranges that contain the box with the given index, outermost first.
     #[inline(always)]
-    fn ranges_for_index<'a>(&'a self, index: int) -> RangeIterator<'a> {
+    fn ranges_for_index<'a>(&'a self, index: FragmentIndex) -> RangeIterator<'a> {
         RangeIterator {
             iter: self.list.as_slice().iter(),
             index: index,
@@ -1112,12 +1123,13 @@ impl FragmentMap {
 
         // FIXME(#2270, pcwalton): I don't think this will work if multiple old fragments
         // correspond to the same node.
-        for (old_fragment_index, old_fragment) in old_fragments.iter().enumerate() {
+        for (i, old_fragment) in old_fragments.iter().enumerate() {
+            let old_fragment_index = FragmentIndex(i as int);
             // Find the start of the corresponding new fragment.
             let new_fragment_start = match new_fragments_iter.peek() {
                 Some(&(index, new_fragment)) if new_fragment.node == old_fragment.node => {
                     // We found the start of the corresponding new fragment.
-                    index as int
+                    FragmentIndex(index as int)
                 }
                 Some(_) | None => {
                     // The old fragment got deleted entirely.
@@ -1140,7 +1152,7 @@ impl FragmentMap {
                 match old_list_iter.peek() {
                     None => break,
                     Some(fragment_range) => {
-                        if fragment_range.range.begin() > old_fragment_index as int {
+                        if fragment_range.range.begin() > old_fragment_index {
                             // We haven't gotten to the appropriate old fragment yet, so stop.
                             break
                         }
@@ -1167,7 +1179,7 @@ impl FragmentMap {
                 match worklist.as_slice().last() {
                     None => break,
                     Some(last_work_item) => {
-                        if last_work_item.old_end_index > old_fragment_index as int + 1 {
+                        if last_work_item.old_end_index > old_fragment_index + FragmentIndex(1) {
                             // Haven't gotten to it yet.
                             break
                         }
@@ -1177,10 +1189,12 @@ impl FragmentMap {
                 let new_last_index = match new_fragments_iter.peek() {
                     None => {
                         // At the end.
-                        new_fragments.len()
+                        FragmentIndex(new_fragments.len() as int)
                     }
-                    Some(&(index, _)) => index,
-                } as int;
+                    Some(&(index, _)) => {
+                        FragmentIndex(index as int)
+                    },
+                };
 
                 let FragmentFixupWorkItem {
                     style,
@@ -1198,11 +1212,11 @@ impl FragmentMap {
 /// conveniently to various fragment functions.
 pub struct InlineFragmentContext<'a> {
     map: &'a FragmentMap,
-    index: int,
+    index: FragmentIndex,
 }
 
 impl<'a> InlineFragmentContext<'a> {
-    pub fn new<'a>(map: &'a FragmentMap, index: int) -> InlineFragmentContext<'a> {
+    pub fn new<'a>(map: &'a FragmentMap, index: FragmentIndex) -> InlineFragmentContext<'a> {
         InlineFragmentContext {
             map: map,
             index: index,
