@@ -30,7 +30,7 @@ use layout::floats::FloatKind;
 use layout::flow::{Flow, ImmutableFlowUtils, MutableOwnedFlowUtils};
 use layout::flow::{Descendants, AbsDescendants};
 use layout::flow_list::{Rawlink};
-use layout::inline::{InlineBoxes, InlineFlow};
+use layout::inline::{FragmentIndex, InlineBoxes, InlineFlow};
 use layout::table_wrapper::TableWrapperFlow;
 use layout::table::TableFlow;
 use layout::table_caption::TableCaptionFlow;
@@ -189,7 +189,7 @@ impl InlineBoxAccumulator {
 
     fn from_inline_node(node: &ThreadSafeLayoutNode) -> InlineBoxAccumulator {
         let mut boxes = InlineBoxes::new();
-        boxes.map.push(node.style().clone(), Range::new(0, 0));
+        boxes.map.push(node.style().clone(), Range::empty());
         InlineBoxAccumulator {
             boxes: boxes,
             has_enclosing_range: true,
@@ -203,8 +203,8 @@ impl InlineBoxAccumulator {
         } = self;
 
         if has_enclosing_range {
-            let len = boxes.len() as int;
-            boxes.map.get_mut(0).range.extend_to(len);
+            let len = FragmentIndex(boxes.len() as int);
+            boxes.map.get_mut(FragmentIndex(0)).range.extend_to(len);
         }
         boxes
     }

@@ -16,6 +16,7 @@
 
 use color::Color;
 use render_context::RenderContext;
+use text::glyph::CharIndex;
 use text::TextRun;
 
 use collections::deque::Deque;
@@ -395,7 +396,7 @@ pub struct TextDisplayItem {
     pub text_run: Arc<~TextRun>,
 
     /// The range of text within the text run.
-    pub range: Range<int>,
+    pub range: Range<CharIndex>,
 
     /// The color of the text.
     pub text_color: Color,

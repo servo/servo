@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use text::glyph::CharIndex;
+
 #[deriving(Eq)]
 pub enum CompressionMode {
     CompressNone,
@@ -20,11 +22,13 @@ pub enum CompressionMode {
 // * Issue #114: record skipped and kept chars for mapping original to new text
 //
 // * Untracked: various edge cases for bidi, CJK, etc.
-pub fn transform_text(text: &str, mode: CompressionMode, incoming_whitespace: bool, new_line_pos: &mut Vec<int>) -> (~str, bool) {
+pub fn transform_text(text: &str, mode: CompressionMode,
+                      incoming_whitespace: bool,
+                      new_line_pos: &mut Vec<CharIndex>) -> (~str, bool) {
     let mut out_str: ~str = "".to_owned();
     let out_whitespace = match mode {
         CompressNone | DiscardNewline => {
-            let mut new_line_index = 0;
+            let mut new_line_index = CharIndex(0);
             for ch in text.chars() {
                 if is_discardable_char(ch, mode) {
                     // TODO: record skipped char
@@ -36,11 +40,11 @@ pub fn transform_text(text: &str, mode: CompressionMode, incoming_whitespace: bo
                         // Save new-line's position for line-break
                         // This value is relative(not absolute)
                         new_line_pos.push(new_line_index);
-                        new_line_index = 0;
+                        new_line_index = CharIndex(0);
                     }
 
                     if ch != '\n' {
-                        new_line_index += 1;
+                        new_line_index = new_line_index + CharIndex(1);
                     }
                     out_str.push_char(ch);
                 }
