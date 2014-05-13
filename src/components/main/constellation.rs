@@ -549,14 +549,7 @@ impl Constellation {
         // or a new url entered.
         //     Start by finding the frame trees matching the pipeline id,
         // and add the new pipeline to their sub frames.
-        let frame_trees: Vec<Rc<FrameTree>> = {
-            let matching_navi_frames = self.navigation_context.find_all(source_pipeline_id);
-            let matching_pending_frames = self.pending_frames.iter().filter_map(|frame_change| {
-                frame_change.after.find(source_pipeline_id)
-            });
-            matching_navi_frames.move_iter().chain(matching_pending_frames).collect()
-        };
-
+        let frame_trees = self.find_all(source_pipeline_id);
         if frame_trees.is_empty() {
             fail!("Constellation: source pipeline id of LoadIframeUrlMsg is not in
                    navigation context, nor is it in a pending frame. This should be
