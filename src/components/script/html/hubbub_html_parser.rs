@@ -327,10 +327,10 @@ pub fn parse_html(page: &Page,
 
             debug!("-- attach attrs");
             for attr in tag.attributes.iter() {
-                //FIXME: this should have proper error handling or explicitly drop
-                //       exceptions on the ground
-                assert!(element.set_attr(attr.name.clone(),
-                                         attr.value.clone()).is_ok());
+                match element.set_attr(attr.name.clone(), attr.value.clone()) {
+                    Err(e) => { error!("Unable to set attribute {:s}={:s} [{:?}]", attr.name, attr.value, e); }
+                    Ok(_) => {}
+                }
             }
 
             //FIXME: workaround for https://github.com/mozilla/rust/issues/13246;
