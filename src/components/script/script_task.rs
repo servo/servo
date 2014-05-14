@@ -93,6 +93,7 @@ pub enum ScriptMsg {
 pub struct NewLayoutInfo {
     pub old_pipeline_id: PipelineId,
     pub new_pipeline_id: PipelineId,
+    pub subpage_id: SubpageId,
     pub layout_chan: LayoutChan,
 }
 
@@ -784,6 +785,7 @@ impl ScriptTask {
         let NewLayoutInfo {
             old_pipeline_id,
             new_pipeline_id,
+            subpage_id,
             layout_chan
         } = new_layout_info;
 

@@ -88,6 +88,7 @@ impl Pipeline {
         let new_layout_info = NewLayoutInfo {
             old_pipeline_id: script_pipeline.id.clone(),
             new_pipeline_id: id,
+            subpage_id: subpage_id,
             layout_chan: layout_chan.clone(),
         };
 
