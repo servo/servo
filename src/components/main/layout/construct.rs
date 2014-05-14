@@ -107,10 +107,8 @@ impl ConstructionItem {
     fn destroy(&mut self) {
         match *self {
             InlineBoxesConstructionItem(ref mut result) => {
-                for splits in result.splits.mut_iter() {
-                    for split in splits.mut_iter() {
-                        split.destroy()
-                    }
+                for split in result.splits.mut_iter() {
+                    split.destroy()
                 }
             }
             WhitespaceConstructionItem(..) => {}
@@ -122,9 +120,7 @@ impl ConstructionItem {
 /// Represents inline boxes and {ib} splits that are bubbling up from an inline.
 pub struct InlineBoxesConstructionResult {
     /// Any {ib} splits that we're bubbling up.
-    ///
-    /// TODO(pcwalton): Small vector optimization.
-    pub splits: Option<Vec<InlineBlockSplit>>,
+    pub splits: Vec<InlineBlockSplit>,
 
     /// Any boxes that succeed the {ib} splits.
     pub boxes: InlineBoxes,
@@ -214,58 +210,6 @@ enum WhitespaceStrippingMode {
     NoWhitespaceStripping,
     StripWhitespaceFromStart,
     StripWhitespaceFromEnd,
-}
-
-/// Methods on optional vectors.
-///
-/// TODO: This is no longer necessary. This should be removed.
-pub trait OptNewVector<T> {
-    /// Turns this optional vector into an owned one. If the optional vector is `None`, then this
-    /// simply returns an empty owned vector.
-    fn to_vec(self) -> Vec<T>;
-
-    /// Pushes a value onto this vector.
-    fn push(&mut self, value: T);
-
-    /// Pushes a vector onto this vector, consuming the original.
-    fn push_all_move(&mut self, values: Vec<T>);
-
-    /// Returns the length of this optional vector.
-    fn len(&self) -> uint;
-}
-
-impl<T> OptNewVector<T> for Option<Vec<T>> {
-    #[inline]
-    fn to_vec(self) -> Vec<T> {
-        match self {
-            None => Vec::new(),
-            Some(vector) => vector,
-        }
-    }
-
-    #[inline]
-    fn push(&mut self, value: T) {
-        match *self {
-            None => *self = Some(vec!(value)),
-            Some(ref mut vector) => vector.push(value),
-        }
-    }
-
-    #[inline]
-    fn push_all_move(&mut self, values: Vec<T>) {
-        match *self {
-            None => *self = Some(values),
-            Some(ref mut vector) => vector.push_all_move(values),
-        }
-    }
-
-    #[inline]
-    fn len(&self) -> uint {
-        match *self {
-            None => 0,
-            Some(ref vector) => vector.len(),
-        }
-    }
 }
 
 /// An object that knows how to create flows.
@@ -449,51 +393,46 @@ impl<'a> FlowConstructor<'a> {
             }
             ConstructionItemConstructionResult(InlineBoxesConstructionItem(
                     InlineBoxesConstructionResult {
-                        splits: opt_splits,
+                        splits: splits,
                         boxes: successor_boxes,
                         abs_descendants: kid_abs_descendants,
                     })) => {
                 // Add any {ib} splits.
-                match opt_splits {
-                    None => {}
-                    Some(splits) => {
-                        for split in splits.move_iter() {
-                            // Pull apart the {ib} split object and push its predecessor boxes
-                            // onto the list.
-                            let InlineBlockSplit {
-                                predecessors: predecessors,
-                                flow: kid_flow
-                            } = split;
-                            inline_box_accumulator.boxes.push_all(predecessors);
+                for split in splits.move_iter() {
+                    // Pull apart the {ib} split object and push its predecessor boxes
+                    // onto the list.
+                    let InlineBlockSplit {
+                        predecessors: predecessors,
+                        flow: kid_flow
+                    } = split;
+                    inline_box_accumulator.boxes.push_all(predecessors);
 
-                            // If this is the first box in flow, then strip ignorable
-                            // whitespace per CSS 2.1 § 9.2.1.1.
-                            let whitespace_stripping = if *first_box {
-                                *first_box = false;
-                                StripWhitespaceFromStart
-                            } else {
-                                NoWhitespaceStripping
-                            };
+                    // If this is the first box in flow, then strip ignorable
+                    // whitespace per CSS 2.1 § 9.2.1.1.
+                    let whitespace_stripping = if *first_box {
+                        *first_box = false;
+                        StripWhitespaceFromStart
+                    } else {
+                        NoWhitespaceStripping
+                    };
 
-                            // Flush any inline boxes that we were gathering up.
-                            debug!("flushing {} inline box(es) to flow A",
-                                   inline_box_accumulator.boxes.len());
-                            self.flush_inline_boxes_to_flow_or_list(
-                                    mem::replace(inline_box_accumulator,
-                                                 InlineBoxAccumulator::new()),
-                                    flow,
-                                    consecutive_siblings,
-                                    whitespace_stripping,
-                                    node);
+                    // Flush any inline boxes that we were gathering up.
+                    debug!("flushing {} inline box(es) to flow A",
+                           inline_box_accumulator.boxes.len());
+                    self.flush_inline_boxes_to_flow_or_list(
+                            mem::replace(inline_box_accumulator,
+                                         InlineBoxAccumulator::new()),
+                            flow,
+                            consecutive_siblings,
+                            whitespace_stripping,
+                            node);
 
-                            // Push the flow generated by the {ib} split onto our list of
-                            // flows.
-                            if flow.need_anonymous_flow(kid_flow) {
-                                consecutive_siblings.push(kid_flow)
-                            } else {
-                                flow.add_new_child(kid_flow)
-                            }
-                        }
+                    // Push the flow generated by the {ib} split onto our list of
+                    // flows.
+                    if flow.need_anonymous_flow(kid_flow) {
+                        consecutive_siblings.push(kid_flow)
+                    } else {
+                        flow.add_new_child(kid_flow)
                     }
                 }
 
@@ -594,7 +533,7 @@ impl<'a> FlowConstructor<'a> {
     /// `InlineBoxesConstructionResult` if this node consisted entirely of ignorable whitespace.
     fn build_boxes_for_nonreplaced_inline_content(&mut self, node: &ThreadSafeLayoutNode)
                                                   -> ConstructionResult {
-        let mut opt_inline_block_splits: Option<Vec<InlineBlockSplit>> = None;
+        let mut opt_inline_block_splits: Vec<InlineBlockSplit> = Vec::new();
         let mut box_accumulator = InlineBoxAccumulator::from_inline_node(node);
         let mut abs_descendants = Descendants::new();
 
@@ -619,32 +558,27 @@ impl<'a> FlowConstructor<'a> {
                 }
                 ConstructionItemConstructionResult(InlineBoxesConstructionItem(
                         InlineBoxesConstructionResult {
-                            splits: opt_splits,
+                            splits: splits,
                             boxes: successors,
                             abs_descendants: kid_abs_descendants,
                         })) => {
 
                     // Bubble up {ib} splits.
-                    match opt_splits {
-                        None => {}
-                        Some(splits) => {
-                            for split in splits.move_iter() {
-                                let InlineBlockSplit {
-                                    predecessors: predecessors,
-                                    flow: kid_flow
-                                } = split;
-                                box_accumulator.boxes.push_all(predecessors);
+                    for split in splits.move_iter() {
+                        let InlineBlockSplit {
+                            predecessors: predecessors,
+                            flow: kid_flow
+                        } = split;
+                        box_accumulator.boxes.push_all(predecessors);
 
-                                let split = InlineBlockSplit {
-                                    predecessors:
-                                        mem::replace(&mut box_accumulator,
-                                                     InlineBoxAccumulator::from_inline_node(node))
-                                            .finish(),
-                                    flow: kid_flow,
-                                };
-                                opt_inline_block_splits.push(split)
-                            }
-                        }
+                        let split = InlineBlockSplit {
+                            predecessors:
+                                mem::replace(&mut box_accumulator,
+                                             InlineBoxAccumulator::from_inline_node(node))
+                                    .finish(),
+                            flow: kid_flow,
+                        };
+                        opt_inline_block_splits.push(split)
                     }
 
                     // Push residual boxes.
@@ -704,7 +638,7 @@ impl<'a> FlowConstructor<'a> {
         boxes.push(Box::new(self, node), node.style().clone());
 
         let construction_item = InlineBoxesConstructionItem(InlineBoxesConstructionResult {
-            splits: None,
+            splits: Vec::new(),
             boxes: boxes,
             abs_descendants: Descendants::new(),
         });
