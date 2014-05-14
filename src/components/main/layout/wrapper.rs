@@ -149,8 +149,7 @@ impl<'ln> Clone for LayoutNode<'ln> {
 impl<'a> Eq for LayoutNode<'a> {
     #[inline]
     fn eq(&self, other: &LayoutNode) -> bool {
-        self.node == other.node &&
-        self.chain == other.chain
+        self.node == other.node
     }
 }
 
