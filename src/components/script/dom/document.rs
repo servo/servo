@@ -33,7 +33,7 @@ use dom::nodelist::NodeList;
 use dom::text::Text;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::uievent::UIEvent;
-use dom::window::{Window, WindowMethods};
+use dom::window::{Window, WindowMethods, WindowHelpers};
 use dom::location::Location;
 use html::hubbub_html_parser::build_element_from_tag;
 use hubbub::hubbub::{QuirksMode, NoQuirks, LimitedQuirks, FullQuirks};

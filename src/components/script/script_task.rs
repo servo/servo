@@ -20,7 +20,7 @@ use dom::uievent::UIEvent;
 use dom::eventtarget::{EventTarget, EventTargetHelpers};
 use dom::node;
 use dom::node::{Node, NodeHelpers};
-use dom::window::{TimerId, Window};
+use dom::window::{TimerId, Window, WindowHelpers};
 use html::hubbub_html_parser::HtmlParserResult;
 use html::hubbub_html_parser::{HtmlDiscoveredStyle, HtmlDiscoveredScript};
 use html::hubbub_html_parser;

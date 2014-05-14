@@ -288,7 +288,37 @@ impl Reflectable for Window {
     }
 }
 
-impl Window {
+pub trait WindowHelpers {
+    fn damage_and_reflow(&self, damage: DocumentDamageLevel);
+    fn wait_until_safe_to_modify_dom(&self);
+    fn init_browser_context(&mut self, doc: &JSRef<Document>);
+}
+
+trait PrivateWindowHelpers {
+    fn set_timeout_or_interval(&mut self, callback: JSVal, timeout: i32, is_interval: bool) -> i32;
+}
+
+impl<'a> WindowHelpers for JSRef<'a, Window> {
+    fn damage_and_reflow(&self, damage: DocumentDamageLevel) {
+        // FIXME This should probably be ReflowForQuery, not Display. All queries currently
+        // currently rely on the display list, which means we can't destroy it by
+        // doing a query reflow.
+        self.page().damage(damage);
+        self.page().reflow(ReflowForDisplay, self.script_chan.clone(), *self.compositor);
+    }
+
+    fn wait_until_safe_to_modify_dom(&self) {
+        // FIXME: This disables concurrent layout while we are modifying the DOM, since
+        //        our current architecture is entirely unsafe in the presence of races.
+        self.page().join_layout();
+    }
+
+    fn init_browser_context(&mut self, doc: &JSRef<Document>) {
+        self.browser_context = Some(BrowserContext::new(doc));
+    }
+}
+
+impl<'a> PrivateWindowHelpers for JSRef<'a, Window> {
     fn set_timeout_or_interval(&mut self, callback: JSVal, timeout: i32, is_interval: bool) -> i32 {
         let timeout = cmp::max(0, timeout) as u64;
         let handle = self.next_timer_handle;
@@ -346,25 +376,9 @@ impl Window {
         self.active_timers.insert(timer_id, timer);
         handle
     }
+}
 
-    pub fn damage_and_reflow(&self, damage: DocumentDamageLevel) {
-        // FIXME This should probably be ReflowForQuery, not Display. All queries currently
-        // currently rely on the display list, which means we can't destroy it by
-        // doing a query reflow.
-        self.page().damage(damage);
-        self.page().reflow(ReflowForDisplay, self.script_chan.clone(), *self.compositor);
-    }
-
-    pub fn wait_until_safe_to_modify_dom(&self) {
-        // FIXME: This disables concurrent layout while we are modifying the DOM, since
-        //        our current architecture is entirely unsafe in the presence of races.
-        self.page().join_layout();
-    }
-
-    pub fn init_browser_context(&mut self, doc: &JSRef<Document>) {
-        self.browser_context = Some(BrowserContext::new(doc));
-    }
-
+impl Window {
     pub fn new(cx: *JSContext,
                page: Rc<Page>,
                script_chan: ScriptChan,
