@@ -20,7 +20,7 @@ use gfx::font::FontMetrics;
 use gfx::font_context::FontContext;
 use servo_util::geometry::Au;
 use servo_util::geometry;
-use servo_util::range::{Range, RangeIndex};
+use servo_util::range::{Range, RangeIndex, IntRangeIndex};
 use std::iter::Enumerate;
 use std::fmt;
 use std::mem;
@@ -61,7 +61,7 @@ pub struct LineBox {
     pub green_zone: Size2D<Au>
 }
 
-range_index! {
+int_range_index! {
     struct BoxIndex(int)
 }
 
@@ -981,7 +981,7 @@ impl fmt::Show for InlineFlow {
     }
 }
 
-range_index! {
+int_range_index! {
     #[doc = "The index of a DOM element into the flat list of fragments."]
     struct FragmentIndex(int)
 }
