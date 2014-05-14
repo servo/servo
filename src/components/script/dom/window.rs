@@ -390,7 +390,7 @@ impl Window {
             script_chan: script_chan,
             console: None,
             compositor: Untraceable::new(compositor),
-            page: page.clone(),
+            page: page,
             location: None,
             navigator: None,
             image_cache_task: image_cache_task,
