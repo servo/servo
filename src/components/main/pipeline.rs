@@ -86,8 +86,8 @@ impl Pipeline {
                            layout_shutdown_chan);
 
         let new_layout_info = NewLayoutInfo {
-            old_id: script_pipeline.id.clone(),
-            new_id: id,
+            old_pipeline_id: script_pipeline.id.clone(),
+            new_pipeline_id: id,
             layout_chan: layout_chan.clone(),
         };
 

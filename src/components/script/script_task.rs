@@ -91,8 +91,8 @@ pub enum ScriptMsg {
 }
 
 pub struct NewLayoutInfo {
-    pub old_id: PipelineId,
-    pub new_id: PipelineId,
+    pub old_pipeline_id: PipelineId,
+    pub new_pipeline_id: PipelineId,
     pub layout_chan: LayoutChan,
 }
 
@@ -782,18 +782,18 @@ impl ScriptTask {
     fn handle_new_layout(&self, new_layout_info: NewLayoutInfo) {
         debug!("Script: new layout: {:?}", new_layout_info);
         let NewLayoutInfo {
-            old_id,
-            new_id,
+            old_pipeline_id,
+            new_pipeline_id,
             layout_chan
         } = new_layout_info;
 
         let mut page = self.page.borrow_mut();
-        let parent_page = page.find(old_id).expect("ScriptTask: received a layout
+        let parent_page = page.find(old_pipeline_id).expect("ScriptTask: received a layout
             whose parent has a PipelineId which does not correspond to a pipeline in the script
             task's page tree. This is a bug.");
         let new_page = {
             let window_size = parent_page.window_size.deref().get();
-            Page::new(new_id, layout_chan, window_size,
+            Page::new(new_pipeline_id, layout_chan, window_size,
                       parent_page.resource_task.deref().clone(),
                       self.constellation_chan.clone(),
                       self.js_context.borrow().get_ref().clone())
