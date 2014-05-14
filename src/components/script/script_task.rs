@@ -173,7 +173,7 @@ pub struct PageIterator {
     stack: Vec<Rc<Page>>,
 }
 
-trait IterablePage {
+pub trait IterablePage {
     fn iter(&self) -> PageIterator;
     fn find(&self, id: PipelineId) -> Option<Rc<Page>>;
 }
