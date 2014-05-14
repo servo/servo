@@ -47,6 +47,7 @@ use script_task::StackRoots;
 
 use std::cast;
 use std::cell::RefCell;
+use std::kinds::marker::ContravariantLifetime;
 use std::local_data;
 
 /// A type that represents a JS-owned value that is rooted for the lifetime of this value.
@@ -402,7 +403,7 @@ impl<'a, 'b, T: Reflectable> Root<'a, 'b, T> {
             root_list: roots,
             jsref: JSRef {
                 ptr: unrooted.ptr.clone(),
-                chain: unsafe { cast::transmute_region(&()) },
+                chain: ContravariantLifetime,
             },
             ptr: unrooted.ptr.clone(),
             js_ptr: unrooted.reflector().get_jsobject(),
@@ -458,14 +459,14 @@ impl<'a, T: Reflectable> DerefMut<T> for JSRef<'a, T> {
 /// Encapsulates a reference to something that is guaranteed to be alive. This is freely copyable.
 pub struct JSRef<'a, T> {
     ptr: RefCell<*mut T>,
-    chain: &'a (),
+    chain: ContravariantLifetime<'a>,
 }
 
 impl<'a, T> Clone for JSRef<'a, T> {
     fn clone(&self) -> JSRef<'a, T> {
         JSRef {
             ptr: self.ptr.clone(),
-            chain: self.chain
+            chain: self.chain,
         }
     }
 }
