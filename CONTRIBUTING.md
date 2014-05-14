@@ -12,6 +12,7 @@ pull requests. Each pull request will be reviewed by a core contributor
 given feedback for changes that would be required. All contributions should
 follow this format, even those from core contributors.
 
+If you're looking for easy bugs, have a look at the [E-Easy issue tag](https://github.com/mozilla/servo/issues?labels=E-easy&page=1&state=open) on GitHub.
 
 ## Pull Request Checklist
 
