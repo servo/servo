@@ -33,7 +33,8 @@ extern crate servo_util = "util";
 pub use stylesheets::{Stylesheet, CSSRule, StyleRule};
 pub use selector_matching::{Stylist, StylesheetOrigin, UserAgentOrigin, AuthorOrigin, UserOrigin};
 pub use selector_matching::{MatchedProperty};
-pub use properties::{cascade, PropertyDeclaration, ComputedValues, computed_values, style_structs};
+pub use properties::{cascade, cascade_anonymous};
+pub use properties::{PropertyDeclaration, ComputedValues, computed_values, style_structs};
 pub use properties::{PropertyDeclarationBlock, parse_style_attribute};  // Style attributes
 pub use properties::{CSSFloat, DeclaredValue, PropertyDeclarationParseResult};
 pub use properties::longhands;

@@ -1911,6 +1911,36 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
 }
 
 
+/// Equivalent to `cascade()` with an empty `applicable_declarations`
+/// Performs the CSS cascade for an anonymous box.
+///
+///   * `parent_style`: Computed style of the element this anonymous box inherits from.
+pub fn cascade_anonymous(parent_style: &ComputedValues) -> ComputedValues {
+    let initial_values = &*INITIAL_VALUES;
+    let mut result = ComputedValues {
+        % for style_struct in STYLE_STRUCTS:
+            ${style_struct.name}:
+                % if style_struct.inherited:
+                    parent_style
+                % else:
+                    initial_values
+                % endif
+                .${style_struct.name}.clone(),
+        % endfor
+        shareable: false,
+    };
+    {
+        let border = result.Border.get_mut();
+        % for side in ["top", "right", "bottom", "left"]:
+            // Like calling to_computed_value, which wouldn't type check.
+            border.border_${side}_width = Au(0);
+        % endfor
+    }
+    // None of the teaks on 'display' apply here.
+    result
+}
+
+
 // Only re-export the types for computed values.
 pub mod computed_values {
     % for property in LONGHANDS:
