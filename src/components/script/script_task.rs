@@ -11,7 +11,8 @@ use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, ElementCas
 use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, OptionalSettable};
 use dom::bindings::js::OptionalRootable;
 use dom::bindings::trace::{Traceable, Untraceable};
-use dom::bindings::utils::{Reflectable, GlobalStaticData, wrap_for_same_compartment};
+use dom::bindings::utils::{Reflectable, GlobalStaticData};
+use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
 use dom::document::{Document, HTMLDocument, DocumentMethods, DocumentHelpers};
 use dom::element::{Element, AttributeHandlers};
 use dom::event::{Event_, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent};
@@ -647,11 +648,11 @@ impl ScriptTask {
             let callback = JS_SetWrapObjectCallbacks((*js_runtime).ptr,
                                                      ptr::null(),
                                                      wrap_for_same_compartment,
-                                                     ptr::null());
+                                                     None);
             JS_SetWrapObjectCallbacks((*js_runtime).ptr,
                                       callback,
                                       wrap_for_same_compartment,
-                                      ptr::null());
+                                      Some(pre_wrap));
         }
 
         let js_context = js_runtime.cx();

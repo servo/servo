@@ -610,6 +610,25 @@ pub extern fn wrap_for_same_compartment(cx: *JSContext, obj: *JSObject) -> *JSOb
     }
 }
 
+pub extern fn pre_wrap(cx: *mut JSContext, _scope: *mut JSObject,
+                       obj: *mut JSObject, flags: c_uint) -> *mut JSObject {
+    unsafe {
+        let clasp = JS_GetClass(obj as *_);
+        let clasp = clasp as *js::Class;
+        match (*clasp).ext.outerObject {
+            Some(outerize) => {
+                debug!("found an outerize hook");
+                let obj = JSHandleObject { unnamed: &(obj as *_) };
+                outerize(cx as *_, obj) as *mut _
+            }
+            None => {
+                debug!("no outerize hook found");
+                obj
+            }
+        }
+    }
+}
+
 pub extern fn outerize_global(_cx: *JSContext, obj: JSHandleObject) -> *JSObject {
     unsafe {
         debug!("outerizing");
