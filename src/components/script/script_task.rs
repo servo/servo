@@ -121,6 +121,9 @@ pub struct Page {
     /// Pipeline id associated with this page.
     pub id: PipelineId,
 
+    /// Subpage id associated with this page, if any.
+    pub subpage_id: Option<SubpageId>,
+
     /// Unique id for last reflow request; used for confirming completion reply.
     pub last_reflow_id: Traceable<Cell<uint>>,
 
@@ -191,7 +194,8 @@ impl IterablePage for Rc<Page> {
 }
 
 impl Page {
-    fn new(id: PipelineId, layout_chan: LayoutChan,
+    fn new(id: PipelineId, subpage_id: Option<SubpageId>,
+           layout_chan: LayoutChan,
            window_size: Size2D<uint>, resource_task: ResourceTask,
            constellation_chan: ConstellationChan,
            js_context: Rc<Cx>) -> Page {
@@ -201,6 +205,7 @@ impl Page {
         };
         Page {
             id: id,
+            subpage_id: subpage_id,
             frame: Traceable::new(RefCell::new(None)),
             layout_chan: Untraceable::new(layout_chan),
             layout_join_port: Untraceable::new(RefCell::new(None)),
@@ -607,7 +612,7 @@ impl ScriptTask {
                window_size: Size2D<uint>)
                -> Rc<ScriptTask> {
         let (js_runtime, js_context) = ScriptTask::new_rt_and_cx();
-        let page = Page::new(id, layout_chan, window_size,
+        let page = Page::new(id, None, layout_chan, window_size,
                              resource_task.clone(),
                              constellation_chan.clone(),
                              js_context.clone());
@@ -795,7 +800,7 @@ impl ScriptTask {
             task's page tree. This is a bug.");
         let new_page = {
             let window_size = parent_page.window_size.deref().get();
-            Page::new(new_pipeline_id, layout_chan, window_size,
+            Page::new(new_pipeline_id, Some(subpage_id), layout_chan, window_size,
                       parent_page.resource_task.deref().clone(),
                       self.constellation_chan.clone(),
                       self.js_context.borrow().get_ref().clone())
