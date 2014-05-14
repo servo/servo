@@ -37,7 +37,7 @@ fn static_assertion(node: UnsafeLayoutNode) {
 /// Memory representation that is at least as large as UnsafeLayoutNode, as it must be
 /// safely transmutable to and from that type to accommodate the type-unsafe parallel work
 /// queue usage that stores both flows and nodes.
-pub type PaddedUnsafeFlow = (uint, uint, uint);
+pub type PaddedUnsafeFlow = (uint, uint);
 
 trait UnsafeFlowConversions {
     fn to_flow(&self) -> UnsafeFlow;
@@ -46,13 +46,13 @@ trait UnsafeFlowConversions {
 
 impl UnsafeFlowConversions for PaddedUnsafeFlow {
     fn to_flow(&self) -> UnsafeFlow {
-        let (vtable, ptr, _padding) = *self;
+        let (vtable, ptr) = *self;
         (vtable, ptr)
     }
 
     fn from_flow(flow: &UnsafeFlow) -> PaddedUnsafeFlow {
         let &(vtable, ptr) = flow;
-        (vtable, ptr, 0)
+        (vtable, ptr)
     }
 }
 

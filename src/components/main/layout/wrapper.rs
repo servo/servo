@@ -48,6 +48,7 @@ use servo_util::namespace;
 use servo_util::namespace::Namespace;
 use std::cast;
 use std::cell::{Ref, RefMut};
+use std::kinds::marker::ContravariantLifetime;
 use style::{PropertyDeclarationBlock, TElement, TNode, AttrSelector, SpecificNamespace};
 use style::{AnyNamespace};
 use style::computed_values::{content, display};
@@ -133,8 +134,8 @@ pub struct LayoutNode<'a> {
     /// The wrapped node.
     node: JS<Node>,
 
-    /// Being chained to a value prevents `LayoutNode`s from escaping.
-    pub chain: &'a (),
+    /// Being chained to a ContravariantLifetime prevents `LayoutNode`s from escaping.
+    pub chain: ContravariantLifetime<'a>,
 }
 
 impl<'ln> Clone for LayoutNode<'ln> {
@@ -149,8 +150,7 @@ impl<'ln> Clone for LayoutNode<'ln> {
 impl<'a> Eq for LayoutNode<'a> {
     #[inline]
     fn eq(&self, other: &LayoutNode) -> bool {
-        self.node == other.node &&
-        self.chain == other.chain
+        self.node == other.node
     }
 }
 
@@ -193,10 +193,9 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
 impl<'ln> LayoutNode<'ln> {
     /// Creates a new layout node, scoped to the given closure.
     pub unsafe fn with_layout_node<R>(node: JS<Node>, f: <'a> |LayoutNode<'a>| -> R) -> R {
-        let heavy_iron_ball = ();
         f(LayoutNode {
             node: node,
-            chain: &heavy_iron_ball,
+            chain: ContravariantLifetime,
         })
     }
 
@@ -709,7 +708,7 @@ pub trait PostorderNodeMutTraversal {
 
 /// Opaque type stored in type-unsafe work queues for parallel layout.
 /// Must be transmutable to and from LayoutNode/ThreadsafeLayoutNode/PaddedUnsafeFlow.
-pub type UnsafeLayoutNode = (uint, uint, uint);
+pub type UnsafeLayoutNode = (uint, uint);
 
 pub fn layout_node_to_unsafe_layout_node(node: &LayoutNode) -> UnsafeLayoutNode {
     unsafe {
