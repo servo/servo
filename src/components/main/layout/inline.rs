@@ -331,7 +331,6 @@ impl LineboxScanner {
         let first_box_size = first_box.border_box.size;
         let splittable = first_box.can_split();
         debug!("LineboxScanner: box size: {}, splittable: {}", first_box_size, splittable);
-        let line_is_empty: bool = self.pending_line.range.length() == num::zero();
 
         // Initally, pretend a splittable box has 0 width.
         // We will move it later if it has nonzero width
@@ -342,7 +341,7 @@ impl LineboxScanner {
             first_box_size.width
         };
 
-        let mut info = PlacementInfo {
+        let info = PlacementInfo {
             size: Size2D(placement_width, first_box_size.height),
             ceiling: ceiling,
             max_width: flow.base.position.size.width,
@@ -368,48 +367,8 @@ impl LineboxScanner {
             return (line_bounds, first_box_size.width);
         }
 
-        // Otherwise, try and split the box
-        // FIXME(eatkinson): calling split_to_width here seems excessive and expensive.
-        // We should find a better abstraction or merge it with the call in
-        // try_append_to_line.
-        match first_box.split_to_width(line_bounds.size.width, line_is_empty) {
-            CannotSplit => {
-                error!("LineboxScanner: Tried to split unsplittable render box! {}",
-                        first_box);
-                return (line_bounds, first_box_size.width);
-            }
-            SplitDidFit(left, right) => {
-
-                debug!("LineboxScanner: case=box split and fit");
-                let actual_box_width = match (left, right) {
-                    (Some(l_box), Some(_))  => l_box.border_box.size.width,
-                    (Some(l_box), None)     => l_box.border_box.size.width,
-                    (None, Some(r_box))     => r_box.border_box.size.width,
-                    (None, None)            => fail!("This case makes no sense.")
-                };
-                return (line_bounds, actual_box_width);
-            }
-            SplitDidNotFit(left, right) => {
-                // The split didn't fit, but we might be able to
-                // push it down past floats.
-
-
-                debug!("LineboxScanner: case=box split and fit didn't fit; trying to push it down");
-                let actual_box_width = match (left, right) {
-                    (Some(l_box), Some(_))  => l_box.border_box.size.width,
-                    (Some(l_box), None)     => l_box.border_box.size.width,
-                    (None, Some(r_box))     => r_box.border_box.size.width,
-                    (None, None)            => fail!("This case makes no sense.")
-                };
-
-                info.size.width = actual_box_width;
-                let new_bounds = self.floats.place_between_floats(&info);
-
-                debug!("LineboxScanner: case=new line position: {}", new_bounds);
-                return (new_bounds, actual_box_width);
-            }
-        }
-
+        debug!("LineboxScanner: used to call split_to_width here");
+        return (line_bounds, first_box_size.width);
     }
 
     /// Performs float collision avoidance. This is called when adding a box is going to increase
