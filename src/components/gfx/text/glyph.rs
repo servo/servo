@@ -4,7 +4,7 @@
 
 use servo_util::vec::*;
 use servo_util::range;
-use servo_util::range::{Range, RangeIndex, EachIndex};
+use servo_util::range::{Range, RangeIndex, IntRangeIndex, EachIndex};
 use servo_util::geometry::Au;
 
 use std::cmp::{Ord, Eq};
@@ -526,7 +526,7 @@ pub struct GlyphStore {
     is_whitespace: bool,
 }
 
-range_index! {
+int_range_index! {
     #[doc = "An index that refers to a character in a text run. This could \
              point to the middle of a glyph."]
     struct CharIndex(int)

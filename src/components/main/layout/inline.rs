@@ -20,10 +20,12 @@ use gfx::font::FontMetrics;
 use gfx::font_context::FontContext;
 use servo_util::geometry::Au;
 use servo_util::geometry;
-use servo_util::range::{Range, RangeIndex};
+use servo_util::range;
+use servo_util::range::{EachIndex, Range, RangeIndex, IntRangeIndex};
 use std::iter::Enumerate;
 use std::fmt;
 use std::mem;
+use std::num;
 use std::slice::{Items, MutItems};
 use std::u16;
 use style::computed_values::{text_align, vertical_align, white_space};
@@ -56,13 +58,145 @@ use sync::Arc;
 /// left corner of the green zone is the same as that of the line, but
 /// the green zone can be taller and wider than the line itself.
 pub struct LineBox {
-    pub range: Range<BoxIndex>,
+    /// Consider the following HTML and rendered element with linebreaks:
+    ///
+    /// ~~~html
+    /// <span>I <span>like truffles,</span> yes I do.</span>
+    /// ~~~
+    ///
+    /// ~~~
+    /// +-----------+
+    /// | I like    |
+    /// | truffles, |
+    /// | yes I do. |
+    /// +-----------+
+    /// ~~~
+    ///
+    /// The ranges that describe these lines would be:
+    ///
+    /// ~~~
+    /// | [0.0, 1.4) | [1.5, 2.0)  | [2.1, 3.0)  |
+    /// |------------|-------------|-------------|
+    /// | 'I like'   | 'truffles,' | 'yes I do.' |
+    /// ~~~
+    pub range: Range<LineIndices>,
     pub bounds: Rect<Au>,
     pub green_zone: Size2D<Au>
 }
 
-range_index! {
-    struct BoxIndex(int)
+int_range_index! {
+    #[doc = "The index of a box fragment into the flattened vector of DOM"]
+    #[doc = "elements."]
+    #[doc = ""]
+    #[doc = "For example, given the HTML below:"]
+    #[doc = ""]
+    #[doc = "~~~"]
+    #[doc = "<span>I <span>like      truffles,</span> yes I do.</span>"]
+    #[doc = "~~~"]
+    #[doc = ""]
+    #[doc = "The fragments would be indexed as follows:"]
+    #[doc = ""]
+    #[doc = "~~~"]
+    #[doc = "|  0   |        1         |       2      |"]
+    #[doc = "|------|------------------|--------------|"]
+    #[doc = "| 'I ' | 'like truffles,' | ' yes I do.' |"]
+    #[doc = "~~~"]
+    struct FragmentIndex(int)
+}
+
+int_range_index! {
+    #[doc = "The index of a glyph in a single DOM fragment. Ligatures and"]
+    #[doc = "continuous runs of whitespace are treated as single glyphs."]
+    #[doc = "Non-breakable DOM fragments such as images are treated as"]
+    #[doc = "having a range length of `1`."]
+    #[doc = ""]
+    #[doc = "For example, given the HTML below:"]
+    #[doc = ""]
+    #[doc = "~~~"]
+    #[doc = "<span>like      truffles,</span>"]
+    #[doc = "~~~"]
+    #[doc = ""]
+    #[doc = "The glyphs would be indexed as follows:"]
+    #[doc = ""]
+    #[doc = "~~~"]
+    #[doc = "| 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 |  8  | 9 | 10 | 11 |"]
+    #[doc = "|---|---|---|---|---|---|---|---|-----|---|----|----|"]
+    #[doc = "| l | i | k | e |   | t | r | u | ffl | e | s  | ,  |"]
+    #[doc = "~~~"]
+    struct GlyphIndex(int)
+}
+
+/// A line index consists of two indices: a fragment index that refers to the
+/// index of a DOM fragment within a flattened inline element; and a glyph index
+/// where the 0th glyph refers to the first glyph of that fragment.
+#[deriving(Clone, Eq, Ord, TotalEq, TotalOrd, Zero)]
+pub struct LineIndices {
+    pub fragment_index: FragmentIndex,
+    pub glyph_index: GlyphIndex,
+}
+
+impl RangeIndex for LineIndices {}
+
+impl Add<LineIndices, LineIndices> for LineIndices {
+    fn add(&self, other: &LineIndices) -> LineIndices {
+        // TODO: use debug_assert! after rustc upgrade
+        if cfg!(not(ndebug)) {
+            assert!(other.fragment_index == num::zero() || other.glyph_index == num::zero(),
+                    "Attempted to add {} to {}. Both the fragment_index and \
+                     glyph_index of the RHS are non-zero. This probably \
+                     was a mistake!", self, other);
+        }
+        LineIndices {
+            fragment_index: self.fragment_index + other.fragment_index,
+            glyph_index: self.glyph_index + other.glyph_index,
+        }
+    }
+}
+
+impl Sub<LineIndices, LineIndices> for LineIndices {
+    fn sub(&self, other: &LineIndices) -> LineIndices {
+        // TODO: use debug_assert! after rustc upgrade
+        if cfg!(not(ndebug)) {
+            assert!(other.fragment_index == num::zero() || other.glyph_index == num::zero(),
+                    "Attempted to subtract {} from {}. Both the \
+                     fragment_index and glyph_index of the RHS are non-zero. \
+                     This probably was a mistake!", self, other);
+        }
+        LineIndices {
+            fragment_index: self.fragment_index - other.fragment_index,
+            glyph_index: self.glyph_index - other.glyph_index,
+        }
+    }
+}
+
+impl Neg<LineIndices> for LineIndices {
+    fn neg(&self) -> LineIndices {
+        // TODO: use debug_assert! after rustc upgrade
+        if cfg!(not(ndebug)) {
+            assert!(self.fragment_index == num::zero() || self.glyph_index == num::zero(),
+                    "Attempted to negate {}. Both the fragment_index and \
+                     glyph_index are non-zero. This probably was a mistake!",
+                     self);
+        }
+        LineIndices {
+            fragment_index: -self.fragment_index,
+            glyph_index: -self.glyph_index,
+        }
+    }
+}
+
+impl fmt::Show for LineIndices {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f.buf, "{}.{}", self.fragment_index, self.glyph_index)
+    }
+}
+
+pub fn each_fragment_index(range: &Range<LineIndices>) -> EachIndex<int, FragmentIndex> {
+    range::each_index(range.begin().fragment_index, range.length().fragment_index)
+}
+
+pub fn each_glyph_index(range: &Range<LineIndices>) -> EachIndex<int, GlyphIndex> {
+    range::each_index(range.begin().glyph_index, range.length().glyph_index)
 }
 
 struct LineboxScanner {
@@ -103,7 +237,7 @@ impl LineboxScanner {
     }
 
     fn reset_linebox(&mut self) {
-        self.pending_line.range.reset(BoxIndex(0), BoxIndex(0));
+        self.pending_line.range.reset(num::zero(), num::zero());
         self.pending_line.bounds = Rect(Point2D(Au::new(0), self.cur_y), Size2D(Au::new(0), Au::new(0)));
         self.pending_line.green_zone = Size2D(Au::new(0), Au::new(0))
     }
@@ -150,7 +284,7 @@ impl LineboxScanner {
             }
         }
 
-        if self.pending_line.range.length() > BoxIndex(0) {
+        if self.pending_line.range.length() > num::zero() {
             debug!("LineboxScanner: Partially full linebox {:u} left at end of scanning.",
                     self.lines.len());
             self.flush_current_line();
@@ -197,7 +331,7 @@ impl LineboxScanner {
         let first_box_size = first_box.border_box.size;
         let splittable = first_box.can_split();
         debug!("LineboxScanner: box size: {}, splittable: {}", first_box_size, splittable);
-        let line_is_empty: bool = self.pending_line.range.length() == BoxIndex(0);
+        let line_is_empty: bool = self.pending_line.range.length() == num::zero();
 
         // Initally, pretend a splittable box has 0 width.
         // We will move it later if it has nonzero width
@@ -353,7 +487,7 @@ impl LineboxScanner {
     /// Tries to append the given box to the line, splitting it if necessary. Returns false only if
     /// we should break the line.
     fn try_append_to_line(&mut self, in_box: Box, flow: &mut InlineFlow) -> bool {
-        let line_is_empty = self.pending_line.range.length() == BoxIndex(0);
+        let line_is_empty = self.pending_line.range.length() == num::zero();
         if line_is_empty {
             let (line_bounds, _) = self.initial_line_placement(&in_box, self.cur_y, flow);
             self.pending_line.bounds.origin = line_bounds.origin;
@@ -448,11 +582,20 @@ impl LineboxScanner {
     fn push_box_to_line(&mut self, box_: Box) {
         debug!("LineboxScanner: Pushing box {} to line {:u}", box_.debug_id(), self.lines.len());
 
-        if self.pending_line.range.length() == BoxIndex(0) {
+        if self.pending_line.range.length() == num::zero() {
             assert!(self.new_boxes.len() <= (u16::MAX as uint));
-            self.pending_line.range.reset(BoxIndex(self.new_boxes.len() as int), BoxIndex(0));
+            self.pending_line.range.reset(
+                LineIndices {
+                    fragment_index: FragmentIndex(self.new_boxes.len() as int),
+                    glyph_index: GlyphIndex(0) /* unused for now */,
+                },
+                num::zero()
+            );
         }
-        self.pending_line.range.extend_by(BoxIndex(1));
+        self.pending_line.range.extend_by(LineIndices {
+            fragment_index: FragmentIndex(1),
+            glyph_index: GlyphIndex(0) /* unused for now */ ,
+        });
         self.pending_line.bounds.size.width = self.pending_line.bounds.size.width +
             box_.border_box.size.width;
         self.pending_line.bounds.size.height = Au::max(self.pending_line.bounds.size.height,
@@ -723,7 +866,7 @@ impl InlineFlow {
             text_align::right => slack_width,
         };
 
-        for i in line.range.each_index() {
+        for i in each_fragment_index(&line.range) {
             let box_ = boxes.get_mut(i.to_uint());
             let size = box_.border_box.size;
             box_.border_box = Rect(Point2D(offset_x, box_.border_box.origin.y), size);
@@ -854,7 +997,7 @@ impl Flow for InlineFlow {
             let (mut largest_height_for_top_fragments, mut largest_height_for_bottom_fragments) =
                 (Au(0), Au(0));
 
-            for box_i in line.range.each_index() {
+            for box_i in each_fragment_index(&line.range) {
                 let fragment = self.boxes.boxes.get_mut(box_i.to_uint());
 
                 let InlineMetrics {
@@ -930,7 +1073,7 @@ impl Flow for InlineFlow {
 
             // Compute the final positions in the block direction of each fragment. Recall that
             // `fragment.border_box.origin.y` was set to the distance from the baseline above.
-            for box_i in line.range.each_index() {
+            for box_i in each_fragment_index(&line.range) {
                 let fragment = self.boxes.get_mut(box_i.to_uint());
                 match fragment.vertical_align() {
                     vertical_align::top => {
@@ -979,11 +1122,6 @@ impl fmt::Show for InlineFlow {
         }
         Ok(())
     }
-}
-
-range_index! {
-    #[doc = "The index of a DOM element into the flat list of fragments."]
-    struct FragmentIndex(int)
 }
 
 /// Information that inline flows keep about a single nested element. This is used to recover the
