@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+
 use cssparser::ast::{SyntaxError, SourceLocation};
 
 
@@ -25,9 +26,12 @@ impl<T, I: Iterator<Result<T, SyntaxError>>> Iterator<T> for ErrorLoggerIterator
 /// Set a `RUST_LOG=style::errors` environment variable
 /// to log CSS parse errors to stderr.
 pub fn log_css_error(location: SourceLocation, message: &str) {
-    // TODO eventually this will got into a "web console" or something.
-    if silence_errors.get().is_none() {
-        info!("{:u}:{:u} {:s}", location.line, location.column, message)
+    // Check this first as it’s cheaper than local_data.
+    if log_enabled!(::log::INFO) {
+        if silence_errors.get().is_none() {
+            // TODO eventually this will got into a "web console" or something.
+            info!("{:u}:{:u} {:s}", location.line, location.column, message)
+        }
     }
 }
 
