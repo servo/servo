@@ -223,8 +223,9 @@ fn run(opts: opts::Opts) {
 
     pool.shutdown();
 
-    unsafe {
+    // Not strictly necessary, and hard to synchronize with native script tasks
+    /*unsafe {
         js::jsapi::JS_ShutDown();
-    }
+    }*/
 }
 

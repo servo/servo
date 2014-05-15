@@ -8,10 +8,20 @@ use dom::bindings::utils::{Reflectable, object_handle};
 use dom::document::Document;
 use dom::window::Window;
 
-use js::jsapi::JSObject;
+use js;
+use js::jsapi::{JSObject, JS_PropertyStub, JS_DeletePropertyStub, JS_StrictPropertyStub};
+use js::jsapi::{JS_EnumerateStub, JS_ResolveStub, JSFunctionSpec};
 use js::glue::{WrapperNew, CreateWrapperProxyHandler, ProxyTraps};
+use js::glue::{proxy_LookupGeneric, proxy_LookupProperty, proxy_LookupElement};
+use js::glue::{proxy_DefineGeneric, proxy_DefineProperty, proxy_DefineElement};
+use js::glue::{proxy_GetGeneric, proxy_SetGeneric, proxy_SetProperty, proxy_SetElement};
+use js::glue::{proxy_GetGenericAttributes, proxy_SetGenericAttributes, proxy_DeleteProperty};
+use js::glue::{proxy_DeleteElement, proxy_Trace, proxy_WeakmapKeyDelegate, proxy_Finalize};
+use js::glue::{proxy_HasInstance, proxy_innerObject, proxy_Watch};
+use js::glue::{proxy_Unwatch, proxy_Slice, proxy_Convert, proxy_GetProperty, proxy_GetElement};
 use js::rust::with_compartment;
 
+use libc;
 use libc::c_void;
 use std::ptr;
 
@@ -58,12 +68,73 @@ impl BrowserContext {
         let obj = win.deref().reflector().get_jsobject();
         let cx = js_info.get_ref().js_context.deref().deref().ptr;
         let wrapper = with_compartment(cx, obj, || unsafe {
-            WrapperNew(cx, object_handle(&obj), object_handle(&ptr::mut_null()), *handler.deref())
+            WrapperNew(cx, object_handle(&obj), object_handle(&obj), *handler.deref(),
+                       &ProxyClass, true)
         });
         assert!(wrapper.is_not_null());
         wrapper
     }
 }
+
+static proxy_name: [u8, ..6] = ['P' as u8, 'r' as u8, 'o' as u8, 'x' as u8, 'y' as u8, 0];
+static mut ProxyClass: js::Class = js::Class {
+    name: &proxy_name as *u8 as *libc::c_char,
+    flags: js::NON_NATIVE | js::JSCLASS_IS_PROXY | js::JSCLASS_IMPLEMENTS_BARRIERS |
+           ((js::PROXY_MINIMUM_SLOTS & js::JSCLASS_RESERVED_SLOTS_MASK) << js::JSCLASS_RESERVED_SLOTS_SHIFT),
+    addProperty: Some(JS_PropertyStub),
+    delProperty: Some(JS_DeletePropertyStub),
+    getProperty: Some(JS_PropertyStub),
+    setProperty: Some(JS_StrictPropertyStub),
+    enumerate: Some(JS_EnumerateStub),
+    resolve: Some(JS_ResolveStub),
+    convert: Some(proxy_Convert),
+    finalize: Some(proxy_Finalize),
+    call: None,
+    hasInstance: Some(proxy_HasInstance),
+    construct: None,
+    trace: Some(proxy_Trace),
+
+    spec: js::ClassSpec {
+        createConstructor: None,
+        createPrototype: None,
+        constructorFunctions: 0 as *JSFunctionSpec,
+        prototypeFunctions: 0 as *JSFunctionSpec,
+        finishInit: None,
+    },
+
+    ext: js::ClassExtension {
+        outerObject: None,
+        innerObject: Some(proxy_innerObject),
+        iteratorObject: 0 as *u8,
+        isWrappedNative: 0,
+        weakmapKeyDelegateOp: Some(proxy_WeakmapKeyDelegate),
+    },
+
+    ops: js::ObjectOps {
+        lookupGeneric: Some(proxy_LookupGeneric),
+        lookupProperty: Some(proxy_LookupProperty),
+        lookupElement: Some(proxy_LookupElement),
+        defineGeneric: Some(proxy_DefineGeneric),
+        defineProperty: Some(proxy_DefineProperty),
+        defineElement: Some(proxy_DefineElement),
+        getGeneric: Some(proxy_GetGeneric),
+        getProperty: Some(proxy_GetProperty),
+        getElement: Some(proxy_GetElement),
+        setGeneric: Some(proxy_SetGeneric),
+        setProperty: Some(proxy_SetProperty),
+        setElement: Some(proxy_SetElement),
+        getGenericAttributes: Some(proxy_GetGenericAttributes),
+        setGenericAttributes: Some(proxy_SetGenericAttributes),
+        deleteProperty: Some(proxy_DeleteProperty),
+        deleteElement: Some(proxy_DeleteElement),
+        watch: Some(proxy_Watch),
+        unwatch: Some(proxy_Unwatch),
+        slice: Some(proxy_Slice),
+
+        enumerate: 0 as *u8,
+        thisObject: None,
+    },
+};
 
 #[deriving(Encodable)]
 pub struct SessionHistoryEntry {

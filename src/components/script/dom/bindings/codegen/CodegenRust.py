@@ -1411,11 +1411,12 @@ class CGDOMJSClass(CGThing):
         self.descriptor = descriptor
 
     def define(self):
-        traceHook = "Some(%s)" % TRACE_HOOK_NAME
         if self.descriptor.createGlobal:
+            traceHook = "JS_GlobalObjectTraceHook"
             flags = "JSCLASS_IS_GLOBAL | JSCLASS_DOM_GLOBAL"
             slots = "JSCLASS_GLOBAL_SLOT_COUNT + 1"
         else:
+            traceHook = TRACE_HOOK_NAME
             flags = "0"
             slots = "1"
         return """
@@ -1435,12 +1436,13 @@ static Class: DOMJSClass = DOMJSClass {
     call: None,
     hasInstance: None,
     construct: None,
-    trace: %s,
+    trace: Some(%s),
 
     spec: js::ClassSpec {
       createConstructor: None,
       createPrototype: None,
       constructorFunctions: 0 as *JSFunctionSpec,
+      prototypeFunctions: 0 as *JSFunctionSpec,
       finishInit: None,
     },
 
@@ -1453,25 +1455,25 @@ static Class: DOMJSClass = DOMJSClass {
     },
 
     ops: js::ObjectOps {
-      lookupGeneric: 0 as *u8,
-      lookupProperty: 0 as *u8,
-      lookupElement: 0 as *u8,
-      defineGeneric: 0 as *u8,
-      defineProperty: 0 as *u8,
-      defineElement: 0 as *u8,
-      getGeneric: 0 as *u8,
-      getProperty: 0 as *u8,
-      getElement: 0 as *u8,
-      setGeneric: 0 as *u8,
-      setProperty: 0 as *u8,
-      setElement: 0 as *u8,
-      getGenericAttributes: 0 as *u8,
-      setGenericAttributes: 0 as *u8,
-      deleteProperty: 0 as *u8,
-      deleteElement: 0 as *u8,
-      watch: 0 as *u8,
-      unwatch: 0 as *u8,
-      slice: 0 as *u8,
+      lookupGeneric: None,
+      lookupProperty: None,
+      lookupElement: None,
+      defineGeneric: None,
+      defineProperty: None,
+      defineElement: None,
+      getGeneric: None,
+      getProperty: None,
+      getElement: None,
+      setGeneric: None,
+      setProperty: None,
+      setElement: None,
+      getGenericAttributes: None,
+      setGenericAttributes: None,
+      deleteProperty: None,
+      deleteElement: None,
+      watch: None,
+      unwatch: None,
+      slice: None,
 
       enumerate: 0 as *u8,
       thisObject: %s,
@@ -1711,11 +1713,11 @@ class CGAbstractMethod(CGThing):
         if self.alwaysInline:
             decorators.append('#[inline(always)]')
 
-        if self.extern:
-            decorators.append('extern')
-
         if self.pub:
             decorators.append('pub')
+
+        if self.extern:
+            decorators.append('extern')
 
         if not decorators:
             return ''
@@ -1785,6 +1787,7 @@ class CGWrapMethod(CGAbstractMethod):
     def definition_body(self):
         if not self.descriptor.createGlobal:
             return """
+  let _ar = JSAutoRequest::new(aCx);
   let mut scope = aScope.reflector().get_jsobject();
   assert!(scope.is_not_null());
   assert!(((*JS_GetClass(scope)).flags & JSCLASS_IS_GLOBAL) != 0);
@@ -1799,6 +1802,7 @@ class CGWrapMethod(CGAbstractMethod):
   return raw;""" % CreateBindingJSObject(self.descriptor, "scope")
         else:
             return """
+  let _ar = JSAutoRequest::new(aCx);
 %s
   with_compartment(aCx, obj, || {
     let proto = GetProtoObject(aCx, obj, obj);
@@ -1838,9 +1842,9 @@ class CGAbstractExternMethod(CGAbstractMethod):
     Abstract base class for codegen of implementation-only (no
     declaration) static methods.
     """
-    def __init__(self, descriptor, name, returnType, args):
+    def __init__(self, descriptor, name, returnType, args, pub=False):
         CGAbstractMethod.__init__(self, descriptor, name, returnType, args,
-                                  inline=False, extern=True)
+                                  inline=False, extern=True, pub=pub)
 
 class PropertyArrays():
     def __init__(self, descriptor):
@@ -2446,7 +2450,7 @@ class CGGenericGetter(CGAbstractBindingMethod):
     def generate_code(self):
         return CGIndenter(CGGeneric(
             "let info = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));\n"
-            "return CallJitGetterOp(info, cx, object_handle(&obj), this.unsafe_get() as *libc::c_void, vp);\n"))
+            "return CallJitGetterOp(info, cx, object_handle(&obj), this.unsafe_get() as *libc::c_void, argc, vp);\n"))
 
 class CGSpecializedGetter(CGAbstractExternMethod):
     """
@@ -2498,7 +2502,7 @@ class CGGenericSetter(CGAbstractBindingMethod):
                 "let mut undef = UndefinedValue();\n"
                 "let argv: *mut JSVal = if argc != 0 { JS_ARGV(cx, vp) } else { (&mut undef) as *mut JSVal };\n"
                 "let info = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));\n"
-                "if CallJitSetterOp(info, cx, object_handle(&obj), this.unsafe_get() as *libc::c_void, argv) == 0 {\n"
+                "if CallJitSetterOp(info, cx, object_handle(&obj), this.unsafe_get() as *libc::c_void, argc, argv) == 0 {\n"
                 "  return 0;\n"
                 "}\n"
                 "*vp = UndefinedValue();\n"
@@ -2536,30 +2540,34 @@ class CGMemberJITInfo(CGThing):
         self.member = member
         self.descriptor = descriptor
 
-    def defineJitInfo(self, infoName, opName, infallible):
-        protoID =  "PrototypeList::id::%s as u32" % self.descriptor.name
+    def defineJitInfo(self, infoName, opName, opType, infallible, returnTypes):
+        protoID =  "PrototypeList::id::%s as u16" % self.descriptor.name
         depth = self.descriptor.interface.inheritanceDepth()
-        failstr = "true" if infallible else "false"
+        failstr = "1" if infallible else "0"
+        retType = reduce(CGMemberJITInfo.getSingleReturnType, returnTypes, "")
         return ("\n"
                 "static %s: JSJitInfo = JSJitInfo {\n"
                 "  op: %s as *u8,\n"
                 "  protoID: %s,\n"
                 "  depth: %s,\n"
-                "  isInfallible: %s,  /* False in setters. */\n"
-                "  isConstant: false  /* Only relevant for getters. */\n"
-                "};\n" % (infoName, opName, protoID, depth, failstr))
+                "  type_and_aliasSet: %s as u8 | (2 /*AliasEverything*/ << 4),\n"
+                "  returnType: %s as u8,\n"
+                "  infallible_and_isMovable_and_isInSlot_and_isTypedMethod_and_slotIndex: 0,\n"
+                "};\n" % (infoName, opName, protoID, depth, opType, retType))
 
     def define(self):
         if self.member.isAttr():
             getterinfo = ("%s_getterinfo" % self.member.identifier.name)
             getter = ("get_%s" % self.member.identifier.name)
             getterinfal = "infallible" in self.descriptor.getExtendedAttributes(self.member, getter=True)
-            result = self.defineJitInfo(getterinfo, getter, getterinfal)
+            result = self.defineJitInfo(getterinfo, getter, "Getter", getterinfal,
+                                        [self.member.type])
             if not self.member.readonly:
                 setterinfo = ("%s_setterinfo" % self.member.identifier.name)
                 setter = ("set_%s" % self.member.identifier.name)
                 # Setters are always fallible, since they have to do a typed unwrap.
-                result += self.defineJitInfo(setterinfo, setter, False)
+                result += self.defineJitInfo(setterinfo, setter, "Setter", False,
+                                             [BuiltinTypes[IDLBuiltinType.Types.void]])
             return result
         if self.member.isMethod():
             methodinfo = ("%s_methodinfo" % self.member.identifier.name)
@@ -2579,9 +2587,88 @@ class CGMemberJITInfo(CGThing):
                     # No arguments and infallible return boxing
                     methodInfal = True
 
-            result = self.defineJitInfo(methodinfo, method, methodInfal)
+            result = self.defineJitInfo(methodinfo, method, "Method", methodInfal,
+                                        [s[0] for s in sigs])
             return result
         raise TypeError("Illegal member type to CGPropertyJITInfo")
+
+    @staticmethod
+    def getJSReturnTypeTag(t):
+        if t.nullable():
+            # Sometimes it might return null, sometimes not
+            return "JSVAL_TYPE_UNKNOWN"
+        if t.isVoid():
+            # No return, every time
+            return "JSVAL_TYPE_UNDEFINED"
+        if t.isArray():
+            # No idea yet
+            assert False
+        if t.isSequence():
+            return "JSVAL_TYPE_OBJECT"
+        if t.isGeckoInterface():
+            return "JSVAL_TYPE_OBJECT"
+        if t.isString():
+            return "JSVAL_TYPE_STRING"
+        if t.isEnum():
+            return "JSVAL_TYPE_STRING"
+        if t.isCallback():
+            return "JSVAL_TYPE_OBJECT"
+        if t.isAny():
+            # The whole point is to return various stuff
+            return "JSVAL_TYPE_UNKNOWN"
+        if t.isObject():
+            return "JSVAL_TYPE_OBJECT"
+        if t.isSpiderMonkeyInterface():
+            return "JSVAL_TYPE_OBJECT"
+        if t.isUnion():
+            u = t.unroll()
+            if u.hasNullableType:
+                # Might be null or not
+                return "JSVAL_TYPE_UNKNOWN"
+            return reduce(CGMemberJITInfo.getSingleReturnType,
+                          u.flatMemberTypes, "")
+        if t.isDictionary():
+            return "JSVAL_TYPE_OBJECT"
+        if t.isDate():
+            return "JSVAL_TYPE_OBJECT"
+        if not t.isPrimitive():
+            raise TypeError("No idea what type " + str(t) + " is.")
+        tag = t.tag()
+        if tag == IDLType.Tags.bool:
+            return "JSVAL_TYPE_BOOLEAN"
+        if tag in [IDLType.Tags.int8, IDLType.Tags.uint8,
+                   IDLType.Tags.int16, IDLType.Tags.uint16,
+                   IDLType.Tags.int32]:
+            return "JSVAL_TYPE_INT32"
+        if tag in [IDLType.Tags.int64, IDLType.Tags.uint64,
+                   IDLType.Tags.float,
+                   IDLType.Tags.double]:
+            # These all use JS_NumberValue, which can return int or double.
+            # But TI treats "double" as meaning "int or double", so we're
+            # good to return JSVAL_TYPE_DOUBLE here.
+            return "JSVAL_TYPE_DOUBLE"
+        if tag != IDLType.Tags.uint32:
+            raise TypeError("No idea what type " + str(t) + " is.")
+        # uint32 is sometimes int and sometimes double.
+        return "JSVAL_TYPE_DOUBLE"
+
+    @staticmethod
+    def getSingleReturnType(existingType, t):
+        type = CGMemberJITInfo.getJSReturnTypeTag(t)
+        if existingType == "":
+            # First element of the list; just return its type
+            return type
+
+        if type == existingType:
+            return existingType
+        if ((type == "JSVAL_TYPE_DOUBLE" and
+             existingType == "JSVAL_TYPE_INT32") or
+            (existingType == "JSVAL_TYPE_DOUBLE" and
+             type == "JSVAL_TYPE_INT32")):
+            # Promote INT32 to DOUBLE as needed
+            return "JSVAL_TYPE_DOUBLE"
+        # Different types
+        return "JSVAL_TYPE_UNKNOWN"
 
 def getEnumValueName(value):
     # Some enum values can be empty strings.  Others might have weird
@@ -3740,9 +3827,9 @@ class CGAbstractClassHook(CGAbstractExternMethod):
     Meant for implementing JSClass hooks, like Finalize or Trace. Does very raw
     'this' unwrapping as it assumes that the unwrapped type is always known.
     """
-    def __init__(self, descriptor, name, returnType, args):
+    def __init__(self, descriptor, name, returnType, args, pub=False):
         CGAbstractExternMethod.__init__(self, descriptor, name, returnType,
-                                        args)
+                                        args, pub=pub)
 
     def definition_body_prologue(self):
         return """
@@ -3770,7 +3857,7 @@ class CGClassTraceHook(CGAbstractClassHook):
     def __init__(self, descriptor):
         args = [Argument('*mut JSTracer', 'trc'), Argument('*mut JSObject', 'obj')]
         CGAbstractClassHook.__init__(self, descriptor, TRACE_HOOK_NAME, 'void',
-                                     args)
+                                     args, pub=True)
 
     def generate_code(self):
         return "  (*this).trace(%s);" % self.args[0].name
@@ -4230,15 +4317,18 @@ class CGBindingRoot(CGThing):
             'js::jsapi::{Struct_JSStrictPropertyOpWrapper, Struct_JSPropertyOpWrapper}',
             'js::jsapi::{JSStrictPropertyOpWrapper, JSString, JSTracer, JS_ConvertStub}',
             'js::jsapi::{JS_StrictPropertyStub, JS_EnumerateStub, JS_ResolveStub}',
-            'js::jsapi::{JSMutableHandleValue, JS_DeletePropertyStub}',
-            'js::jsval::JSVal',
+            'js::jsapi::{JSMutableHandleValue, JS_DeletePropertyStub, JS_GlobalObjectTraceHook}',
+            'js::jsfriendapi::{Getter,Setter,Method}',
+            'js::jsval::{JSVal, JSVAL_TYPE_DOUBLE, JSVAL_TYPE_INT32, JSVAL_TYPE_UNDEFINED}',
+            'js::jsval::{JSVAL_TYPE_BOOLEAN, JSVAL_TYPE_MAGIC, JSVAL_TYPE_STRING}',
+            'js::jsval::{JSVAL_TYPE_NULL, JSVAL_TYPE_OBJECT, JSVAL_TYPE_UNKNOWN}',
             'js::jsval::{ObjectValue, ObjectOrNullValue, PrivateValue}',
             'js::jsval::{NullValue, UndefinedValue}',
             'js::glue::{CallJitMethodOp, CallJitGetterOp, CreateProxyHandler}',
             'js::glue::{GetProxyPrivate, NewProxyObject, ProxyTraps, JSMutableHandle}',
             'js::glue::{RUST_FUNCTION_VALUE_TO_JITINFO, CallJitSetterOp}',
             'js::glue::{RUST_JS_NumberValue, RUST_JSID_IS_STRING, CallFunctionValue}',
-            'js::rust::with_compartment',
+            'js::rust::{with_compartment, JSAutoRequest}',
             'dom::types::*',
             'dom::bindings',
             'dom::bindings::js::{JS, JSRef, Root, RootedReference, Temporary}',

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::BindingDeclarations::WindowBinding;
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
 use dom::bindings::conversions::{FromJSValConvertible, IDLInterface};
@@ -19,10 +20,11 @@ use std::cmp::Eq;
 use std::ptr;
 use std::slice;
 use std::str;
+use js::glue::{CompartmentOptions_SetVersion, CompartmentOptions_SetTraceGlobal};
 use js::glue::{GetGlobalForObjectCrossCompartment, UnwrapObject};
 use js::glue::{IsWrapper, RUST_JSID_TO_STRING, RUST_JSID_IS_INT};
 use js::glue::{RUST_JSID_IS_STRING, RUST_JSID_TO_INT, ToString, NewGlobalObject};
-use js::jsapi::{JS_AlreadyHasOwnProperty, JS_NewFunction};
+use js::jsapi::{JS_AlreadyHasOwnProperty, JS_NewFunction, JSVERSION_LATEST};
 use js::jsapi::{JS_DefineProperties, JS_ForwardGetPropertyTo, JSHandleValue};
 use js::jsapi::{JS_GetClass, JS_LinkConstructorAndPrototype, JS_GetStringCharsAndLength};
 use js::jsapi::{JS_ObjectIsRegExp, JS_ObjectIsDate, JSHandleObject, JSMutableHandleValue};
@@ -295,8 +297,9 @@ fn CreateInterfaceObject(cx: *mut JSContext, global: *mut JSObject, receiver: *m
             return ptr::mut_null();
         }
 
+        let objval = ObjectValue(&**constructor.unnamed_field1);
         let constructorhandle = JSHandleValue {
-            unnamed_field1: ObjectValue(&**constructor.unnamed_field1),
+            unnamed_field1: &objval,
         };
         if alreadyDefined == 0 &&
             JS_DefineProperty(cx, receiver, name, constructorhandle, 0, None, None) == 0 {
@@ -324,7 +327,7 @@ fn DefineConstants(cx: *mut JSContext, obj: JSHandleObject, constants: *Constant
                 VoidVal => UndefinedValue(),
             };
             let jsval = JSHandleValue {
-                unnamed_field1: jsval,
+                unnamed_field1: &jsval,
             };
             if JS_DefineProperty(cx, obj, spec.name, jsval,
                                  JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT,
@@ -521,7 +524,7 @@ pub fn FindEnumStringIndex(cx: *mut JSContext,
                            values: &[&'static str]) -> Result<Option<uint>, ()> {
     unsafe {
         let v = JSHandleValue {
-            unnamed_field1: v,
+            unnamed_field1: &v,
         };
         let jsstr = ToString(cx, v);
         if jsstr.is_null() {
@@ -594,8 +597,9 @@ pub fn get_dictionary_property(cx: *mut JSContext,
 pub fn HasPropertyOnPrototype(cx: *mut JSContext, proxy: JSHandleObject, id: JSHandleId) -> bool {
     //  MOZ_ASSERT(js::IsProxy(proxy) && js::GetProxyHandler(proxy) == handler);
     let mut found = false;
+    let mut val = NullValue();
     let handle = JSMutableHandleValue {
-        unnamed_field1: ptr::mut_null()
+        unnamed_field1: &mut val,
     };
     return !GetPropertyOnPrototype(cx, proxy, id, &mut found, handle) || found;
 }
@@ -611,11 +615,13 @@ pub fn IsConvertibleToCallbackInterface(cx: *mut JSContext, obj: *mut JSObject) 
 
 pub fn CreateDOMGlobal(cx: *mut JSContext, class: *JSClass) -> *mut JSObject {
     unsafe {
-        let obj = NewGlobalObject(cx, class, ptr::mut_null(), 1 /*DontFireOnNewGlobalHook*/);
+        let obj = NewGlobalObject(cx, class, ptr::mut_null(), 0 /*FireOnNewGlobalHook*/);
         if obj.is_null() {
             return ptr::mut_null();
         }
         with_compartment(cx, obj, || {
+            CompartmentOptions_SetVersion(cx, JSVERSION_LATEST);
+            CompartmentOptions_SetTraceGlobal(cx, Some(WindowBinding::_trace));
             let globhandle = JSHandleObject {
                 unnamed_field1: &obj,
             };
@@ -660,9 +666,6 @@ pub extern fn outerize_global(_cx: *mut JSContext, obj: JSHandleObject) -> *mut 
 
 /// Returns the global object of the realm that the given JS object was created in.
 pub fn global_object_for_js_object(obj: *mut JSObject) -> JS<window::Window> {
-    let obj = JSHandleObject {
-        unnamed_field1: &obj
-    };
     unsafe {
         let global = GetGlobalForObjectCrossCompartment(obj);
         let clasp = JS_GetClass(global);
@@ -774,8 +777,8 @@ pub fn id_handle(id: &jsid) -> JSHandleId {
     }
 }
 
-pub fn value_handle(val: *JSVal) -> JSHandleValue {
+pub fn value_handle(val: &JSVal) -> JSHandleValue {
     JSHandleValue {
-        unnamed_field1: unsafe { *val }
+        unnamed_field1: val
     }
 }
