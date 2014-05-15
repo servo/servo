@@ -38,6 +38,11 @@ enum Direction {
     Bottom
 }
 
+enum DashSize {
+    DottedBorder = 1,
+    DashedBorder = 3
+}
+
 impl<'a> RenderContext<'a>  {
     pub fn get_draw_target(&self) -> &'a DrawTarget {
         self.draw_target
@@ -146,9 +151,10 @@ impl<'a> RenderContext<'a>  {
             }
             //FIXME(sammykim): This doesn't work with dash_pattern and cap_style well. I referred firefox code.
             border_style::dotted => {
+                self.draw_dashed_border_segment(direction, bounds, border, color_select, DottedBorder);
             }
             border_style::dashed => {
-                self.draw_dashed_border_segment(direction,bounds,border,color_select);
+                self.draw_dashed_border_segment(direction, bounds, border, color_select, DashedBorder);
             }
             border_style::solid => {
                 self.draw_solid_border_segment(direction,bounds,border,color_select);
@@ -164,10 +170,10 @@ impl<'a> RenderContext<'a>  {
         match style{
             border_style::none | border_style::hidden => {}
             border_style::dotted => {
-                //FIXME(sankha93): Dotted style should be implemented.
+                self.draw_dashed_border_segment(Right, bounds, border, color, DottedBorder);
             }
             border_style::dashed => {
-                self.draw_dashed_border_segment(Right,bounds,border,color);
+                self.draw_dashed_border_segment(Right, bounds, border, color, DashedBorder);
             }
             border_style::solid => {
                 self.draw_solid_border_segment(Right,bounds,border,color);
@@ -177,7 +183,12 @@ impl<'a> RenderContext<'a>  {
         }
     }
 
-    fn draw_dashed_border_segment(&self, direction: Direction, bounds: &Rect<Au>, border: SideOffsets2D<f32>, color: Color) {
+    fn draw_dashed_border_segment(&self, 
+                                  direction: Direction, 
+                                  bounds:    &Rect<Au>, 
+                                  border:    SideOffsets2D<f32>, 
+                                  color:     Color, 
+                                  dash_size: DashSize) {
         let rect = bounds.to_azure_rect();
         let draw_opts = DrawOptions(1 as AzFloat, 0 as uint16_t);
         let mut stroke_opts = StrokeOptions(0 as AzFloat, 10 as AzFloat);
@@ -193,8 +204,8 @@ impl<'a> RenderContext<'a>  {
         };
 
         stroke_opts.line_width = border_width;
-        dash[0] = border_width * 3 as AzFloat;
-        dash[1] = border_width * 3 as AzFloat;
+        dash[0] = border_width * (dash_size as int) as AzFloat;
+        dash[1] = border_width * (dash_size as int) as AzFloat;
         stroke_opts.mDashPattern = dash.as_ptr();
         stroke_opts.mDashLength = dash.len() as size_t;
 
