@@ -26,10 +26,13 @@ impl<T, I: Iterator<Result<T, SyntaxError>>> Iterator<T> for ErrorLoggerIterator
 // Using bool is a work-around for https://github.com/mozilla/rust/issues/13322
 local_data_key!(silence_errors: bool)
 
+/// Defaults to a no-op.
+/// Set a `RUST_LOG=style::errors` environment variable
+/// to log CSS parse errors to stderr.
 pub fn log_css_error(location: SourceLocation, message: &str) {
     // TODO eventually this will got into a "web console" or something.
     if silence_errors.get().is_none() {
-        error!("{:u}:{:u} {:s}", location.line, location.column, message)
+        info!("{:u}:{:u} {:s}", location.line, location.column, message)
     }
 }
 
