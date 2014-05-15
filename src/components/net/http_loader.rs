@@ -92,6 +92,7 @@ fn load(mut url: Url, start_chan: Sender<LoadResponse>) {
 
         let mut metadata = Metadata::default(url);
         metadata.set_content_type(&response.headers.content_type);
+        metadata.headers = Some(*response.headers.clone());
 
         let progress_chan = start_sending(start_chan, metadata);
         loop {

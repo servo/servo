@@ -11,6 +11,7 @@ use data_loader;
 use std::comm::{channel, Receiver, Sender};
 use std::task;
 use http::headers::content_type::MediaType;
+use http::headers::response::HeaderCollection;
 use url::Url;
 
 #[cfg(test)]
@@ -32,6 +33,9 @@ pub struct Metadata {
 
     /// Character set.
     pub charset: Option<~str>,
+
+    /// Headers
+    pub headers: Option<HeaderCollection>,
 }
 
 impl Metadata {
@@ -41,6 +45,7 @@ impl Metadata {
             final_url:    url,
             content_type: None,
             charset:      None,
+            headers: None
         }
     }
 
@@ -84,8 +89,7 @@ pub enum ProgressMsg {
 }
 
 /// For use by loaders in responding to a Load message.
-pub fn start_sending(start_chan: Sender<LoadResponse>,
-                     metadata:   Metadata) -> Sender<ProgressMsg> {
+pub fn start_sending(start_chan: Sender<LoadResponse>, metadata: Metadata) -> Sender<ProgressMsg> {
     let (progress_chan, progress_port) = channel();
     start_chan.send(LoadResponse {
         metadata:      metadata,
