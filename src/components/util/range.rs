@@ -102,8 +102,8 @@ pub enum RangeRelation<I> {
 /// A range of indices
 #[deriving(Clone)]
 pub struct Range<I> {
-    off: I,
-    len: I,
+    begin: I,
+    length: I,
 }
 
 impl<I: RangeIndex> fmt::Show for Range<I> {
@@ -134,9 +134,17 @@ impl<T: Int, I: IntRangeIndex<T>> Iterator<I> for EachIndex<T, I> {
 }
 
 impl<I: RangeIndex> Range<I> {
+    /// Create a new range from beginning and length offsets. This could be
+    /// denoted as `[begin, begin + length)`.
+    ///
+    /// ~~~
+    ///    |-- begin ->|-- length ->|
+    ///    |           |            |
+    /// <- o - - - - - +============+ - - - ->
+    /// ~~~
     #[inline]
-    pub fn new(off: I, len: I) -> Range<I> {
-        Range { off: off, len: len }
+    pub fn new(begin: I, length: I) -> Range<I> {
+        Range { begin: begin, length: length }
     }
 
     #[inline]
@@ -144,48 +152,108 @@ impl<I: RangeIndex> Range<I> {
         Range::new(num::zero(), num::zero())
     }
 
+    /// The index offset to the beginning of the range.
+    ///
+    /// ~~~
+    ///    |-- begin ->|
+    ///    |           |
+    /// <- o - - - - - +============+ - - - ->
+    /// ~~~
     #[inline]
-    pub fn begin(&self) -> I { self.off  }
-    #[inline]
-    pub fn length(&self) -> I { self.len }
-    #[inline]
-    pub fn end(&self) -> I { self.off + self.len }
+    pub fn begin(&self) -> I { self.begin  }
 
+    /// The index offset from the beginning to the end of the range.
+    ///
+    /// ~~~
+    ///                |-- length ->|
+    ///                |            |
+    /// <- o - - - - - +============+ - - - ->
+    /// ~~~
+    #[inline]
+    pub fn length(&self) -> I { self.length }
+
+    /// The index offset to the end of the range.
+    ///
+    /// ~~~
+    ///    |--------- end --------->|
+    ///    |                        |
+    /// <- o - - - - - +============+ - - - ->
+    /// ~~~
+    #[inline]
+    pub fn end(&self) -> I { self.begin + self.length }
+
+    /// `true` if the index is between the beginning and the end of the range.
+    ///
+    /// ~~~
+    ///        false        true      false
+    ///          |           |          |
+    /// <- o - - + - - +=====+======+ - + - ->
+    /// ~~~
     #[inline]
     pub fn contains(&self, i: I) -> bool {
         i >= self.begin() && i < self.end()
     }
 
+    /// `true` if the offset from the beginning to the end of the range is zero.
     #[inline]
     pub fn is_empty(&self) -> bool {
-        self.len.is_zero()
+        self.length().is_zero()
     }
 
+    /// Shift the entire range by the supplied index delta.
+    ///
+    /// ~~~
+    ///                     |-- delta ->|
+    ///                     |           |
+    /// <- o - +============+ - - - - - | - - - ->
+    ///                                 |
+    /// <- o - - - - - - - +============+ - - - ->
+    /// ~~~
     #[inline]
-    pub fn shift_by(&mut self, i: I) {
-        self.off = self.off + i;
+    pub fn shift_by(&mut self, delta: I) {
+        self.begin = self.begin + delta;
     }
 
+    /// Extend the end of the range by the supplied index delta.
+    ///
+    /// ~~~
+    ///                     |-- delta ->|
+    ///                     |           |
+    /// <- o - - - - - +====+ - - - - - | - - - ->
+    ///                                 |
+    /// <- o - - - - - +================+ - - - ->
+    /// ~~~
     #[inline]
-    pub fn extend_by(&mut self, i: I) {
-        self.len = self.len + i;
+    pub fn extend_by(&mut self, delta: I) {
+        self.length = self.length + delta;
     }
 
+    /// Move the end of the range to the target index.
+    ///
+    /// ~~~
+    ///                               target
+    ///                                 |
+    /// <- o - - - - - +====+ - - - - - | - - - ->
+    ///                                 |
+    /// <- o - - - - - +================+ - - - ->
+    /// ~~~
     #[inline]
-    pub fn extend_to(&mut self, i: I) {
-        self.len = i - self.off;
+    pub fn extend_to(&mut self, target: I) {
+        self.length = target - self.begin;
     }
 
+    /// Adjust the beginning offset and the length by the supplied deltas.
     #[inline]
-    pub fn adjust_by(&mut self, off_i: I, len_i: I) {
-        self.off = self.off + off_i;
-        self.len = self.len + len_i;
+    pub fn adjust_by(&mut self, begin_delta: I, length_delta: I) {
+        self.begin = self.begin + begin_delta;
+        self.length = self.length + length_delta;
     }
 
+    /// Set the begin and length values.
     #[inline]
-    pub fn reset(&mut self, off_i: I, len_i: I) {
-        self.off = off_i;
-        self.len = len_i;
+    pub fn reset(&mut self, begin: I, length: I) {
+        self.begin = begin;
+        self.length = length;
     }
 
     #[inline]
@@ -235,9 +303,10 @@ impl<I: RangeIndex> Range<I> {
 
 /// Methods for `Range`s with indices based on integer values
 impl<T: Int, I: IntRangeIndex<T>> Range<I> {
+    /// Returns an iterater that increments over `[begin, end)`.
     #[inline]
     pub fn each_index(&self) -> EachIndex<T, I> {
-        each_index(self.off, self.off + self.len)
+        each_index(self.begin(), self.end())
     }
 
     #[inline]
