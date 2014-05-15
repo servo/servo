@@ -139,6 +139,13 @@ impl RangeIndex for LineIndices {}
 
 impl Add<LineIndices, LineIndices> for LineIndices {
     fn add(&self, other: &LineIndices) -> LineIndices {
+        // TODO: use debug_assert! after rustc upgrade
+        if cfg!(not(ndebug)) {
+            assert!(other.fragment_index == num::zero() || other.glyph_index == num::zero(),
+                    "Attempted to add {} to {}. Both the fragment_index and \
+                     glyph_index of the RHS are non-zero. This probably \
+                     was a mistake!", self, other);
+        }
         LineIndices {
             fragment_index: self.fragment_index + other.fragment_index,
             glyph_index: self.glyph_index + other.glyph_index,
@@ -148,6 +155,13 @@ impl Add<LineIndices, LineIndices> for LineIndices {
 
 impl Sub<LineIndices, LineIndices> for LineIndices {
     fn sub(&self, other: &LineIndices) -> LineIndices {
+        // TODO: use debug_assert! after rustc upgrade
+        if cfg!(not(ndebug)) {
+            assert!(other.fragment_index == num::zero() || other.glyph_index == num::zero(),
+                    "Attempted to subtract {} from {}. Both the \
+                     fragment_index and glyph_index of the RHS are non-zero. \
+                     This probably was a mistake!", self, other);
+        }
         LineIndices {
             fragment_index: self.fragment_index - other.fragment_index,
             glyph_index: self.glyph_index - other.glyph_index,
@@ -157,6 +171,13 @@ impl Sub<LineIndices, LineIndices> for LineIndices {
 
 impl Neg<LineIndices> for LineIndices {
     fn neg(&self) -> LineIndices {
+        // TODO: use debug_assert! after rustc upgrade
+        if cfg!(not(ndebug)) {
+            assert!(self.fragment_index == num::zero() || self.glyph_index == num::zero(),
+                    "Attempted to negate {}. Both the fragment_index and \
+                     glyph_index are non-zero. This probably was a mistake!",
+                     self);
+        }
         LineIndices {
             fragment_index: -self.fragment_index,
             glyph_index: -self.glyph_index,
