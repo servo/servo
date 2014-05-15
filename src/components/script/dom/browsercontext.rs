@@ -11,7 +11,8 @@ use dom::window::Window;
 use js;
 use js::jsapi::{JSObject, JS_PropertyStub, JS_DeletePropertyStub, JS_StrictPropertyStub};
 use js::jsapi::{JS_EnumerateStub, JS_ResolveStub, JSFunctionSpec};
-use js::glue::{WrapperNew, CreateWrapperProxyHandler, ProxyTraps};
+use js::jsval::PrivateValue;
+use js::glue::{WrapperNew, CreateWrapperProxyHandler, ProxyTraps, SetProxyExtra};
 use js::glue::{proxy_LookupGeneric, proxy_LookupProperty, proxy_LookupElement};
 use js::glue::{proxy_DefineGeneric, proxy_DefineProperty, proxy_DefineElement};
 use js::glue::{proxy_GetGeneric, proxy_SetGeneric, proxy_SetProperty, proxy_SetElement};
@@ -72,6 +73,9 @@ impl BrowserContext {
                        &ProxyClass, true)
         });
         assert!(wrapper.is_not_null());
+        unsafe {
+            SetProxyExtra(wrapper, 0, PrivateValue(obj as *libc::c_void));
+        }
         wrapper
     }
 }

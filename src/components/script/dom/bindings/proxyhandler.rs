@@ -24,11 +24,11 @@ static JSPROXYSLOT_EXPANDO: u32 = 0;
 pub extern fn getPropertyDescriptor(cx: *mut JSContext, proxy: JSHandleObject, id: JSHandleId,
                                     desc: JSMutableHandle<JSPropertyDescriptor>, flags: u32) -> libc::c_int {
   unsafe {
-    let handler = GetProxyHandler(proxy);
+    let handler = GetProxyHandler(*proxy.unnamed_field1);
     if InvokeGetOwnPropertyDescriptor(handler, cx, proxy, id, desc, flags) == 0 {
         return 0;
     }
-    if (*desc.unnamed_field1).is_not_null() {
+    if desc.unnamed_field1.is_not_null() {
         return 1;
     }
 
@@ -38,7 +38,7 @@ pub extern fn getPropertyDescriptor(cx: *mut JSContext, proxy: JSHandleObject, i
     };
     assert!(GetObjectProto(cx, proxy, proto) != 0);
     if (*proto.unnamed_field1).is_null() {
-        *desc.unnamed_field1 = ptr::mut_null();
+        (*desc.unnamed_field1).obj = ptr::mut_null();
         return 1;
     }
 
@@ -50,9 +50,9 @@ pub fn defineProperty_(cx: *mut JSContext, proxy: JSHandleObject, id: JSHandleId
                        desc: JSMutableHandle<JSPropertyDescriptor>) -> JSBool {
     unsafe {
         //FIXME: Workaround for https://github.com/mozilla/rust/issues/13385
-        let setter: *libc::c_void = cast::transmute((**desc.unnamed_field1).setter);
+        let setter: *libc::c_void = cast::transmute((*desc.unnamed_field1).setter);
         let setter_stub: *libc::c_void = cast::transmute(JS_StrictPropertyStub);
-        if ((**desc.unnamed_field1).attrs & JSPROP_GETTER) != 0 && setter == setter_stub {
+        if ((*desc.unnamed_field1).attrs & JSPROP_GETTER) != 0 && setter == setter_stub {
             /*return JS_ReportErrorFlagsAndNumber(cx,
             JSREPORT_WARNING | JSREPORT_STRICT |
             JSREPORT_STRICT_MODE_ERROR,
@@ -61,16 +61,16 @@ pub fn defineProperty_(cx: *mut JSContext, proxy: JSHandleObject, id: JSHandleId
             return 0;
         }
 
-        let expando = EnsureExpandoObject(cx, proxy);
+        let expando = EnsureExpandoObject(cx, *proxy.unnamed_field1);
         if expando.is_null() {
             return 0;
         }
 
         return JS_DefinePropertyById(cx, expando, *id.unnamed_field1,
-                                     (**desc.unnamed_field1).value,
-                                     (**desc.unnamed_field1).getter,
-                                     (**desc.unnamed_field1).setter,
-                                     (**desc.unnamed_field1).attrs);
+                                     (*desc.unnamed_field1).value,
+                                     (*desc.unnamed_field1).getter,
+                                     (*desc.unnamed_field1).setter,
+                                     (*desc.unnamed_field1).attrs);
     }
 }
 
@@ -101,7 +101,7 @@ pub fn _obj_toString(cx: *mut JSContext, className: *libc::c_char) -> *mut JSStr
   }
 }
 
-pub fn GetExpandoObject(obj: JSHandleObject) -> *mut JSObject {
+pub fn GetExpandoObject(obj: *mut JSObject) -> *mut JSObject {
     unsafe {
         //XXXjdm it would be nice to assert that obj's class is a proxy class
         let val = GetProxyExtra(obj, JSPROXYSLOT_EXPANDO);
@@ -113,13 +113,13 @@ pub fn GetExpandoObject(obj: JSHandleObject) -> *mut JSObject {
     }
 }
 
-pub fn EnsureExpandoObject(cx: *mut JSContext, obj: JSHandleObject) -> *mut JSObject {
+pub fn EnsureExpandoObject(cx: *mut JSContext, obj: *mut JSObject) -> *mut JSObject {
     unsafe {
         //XXXjdm it would be nice to assert that obj's class is a proxy class
         let mut expando = GetExpandoObject(obj);
         if expando.is_null() {
             expando = JS_NewObjectWithGivenProto(cx, ptr::null(), object_handle(&ptr::mut_null()),
-                                                 object_handle(&GetObjectParent(*obj.unnamed_field1)));
+                                                 object_handle(&GetObjectParent(obj)));
             if expando.is_null() {
                 return ptr::mut_null();
             }

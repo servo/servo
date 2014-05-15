@@ -144,7 +144,7 @@ pub fn jsstring_to_str(cx: *mut JSContext, s: *mut JSString) -> DOMString {
     }
 }
 
-pub fn jsid_to_str(cx: *mut JSContext, id: JSHandleId) -> DOMString {
+pub fn jsid_to_str(cx: *mut JSContext, id: jsid) -> DOMString {
     unsafe {
         assert!(RUST_JSID_IS_STRING(id) != 0);
         jsstring_to_str(cx, RUST_JSID_TO_STRING(id))
@@ -233,7 +233,7 @@ pub fn CreateInterfaceObjects2(cx: *mut JSContext, global: JSHandleObject, recei
     let mut interface = ptr::mut_null();
     if constructor.is_some() {
         interface = name.to_c_str().with_ref(|s| {
-            CreateInterfaceObject(cx, unsafe { *global.unnamed_field1 }, receiver,
+            CreateInterfaceObject(cx, global, receiver,
                                   constructor, ctorNargs, proto,
                                   staticMethods, constants, s)
         });
@@ -249,18 +249,15 @@ pub fn CreateInterfaceObjects2(cx: *mut JSContext, global: JSHandleObject, recei
     }
 }
 
-fn CreateInterfaceObject(cx: *mut JSContext, global: *mut JSObject, receiver: *mut JSObject,
+fn CreateInterfaceObject(cx: *mut JSContext, global: JSHandleObject, receiver: *mut JSObject,
                          constructorNative: JSNative,
                          ctorNargs: u32, proto: *mut JSObject,
                          staticMethods: *JSFunctionSpec,
                          constants: *ConstantSpec,
                          name: *libc::c_char) -> *mut JSObject {
     unsafe {
-        let globalhandle = JSHandleObject {
-            unnamed_field1: &global,
-        };
         let fun = JS_NewFunction(cx, constructorNative, ctorNargs,
-                                 JSFUN_CONSTRUCTOR, globalhandle, name);
+                                 JSFUN_CONSTRUCTOR, global, name);
         if fun.is_null() {
             return ptr::mut_null();
         }
@@ -470,7 +467,7 @@ pub fn GetPropertyOnPrototype(cx: *mut JSContext, proxy: JSHandleObject, id: JSH
   }
 }
 
-pub fn GetArrayIndexFromId(_cx: *mut JSContext, id: JSHandleId) -> Option<u32> {
+pub fn GetArrayIndexFromId(_cx: *mut JSContext, id: jsid) -> Option<u32> {
     unsafe {
         if RUST_JSID_IS_INT(id) != 0 {
             return Some(RUST_JSID_TO_INT(id) as u32);
