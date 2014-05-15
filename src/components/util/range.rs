@@ -9,21 +9,26 @@ use std::num;
 use std::num::{Bounded, Zero};
 
 /// An index type to be used by a `Range`
-pub trait RangeIndex<T>: Eq + Ord
-                       + Clone
-                       + Copy
-                       + Zero
-                       + TotalEq
-                       + TotalOrd
-                       + Add<Self, Self> 
-                       + Sub<Self, Self>
-                       + Neg<Self>
-                       + fmt::Show {
+pub trait RangeIndex: Copy
+                    + Clone
+                    + fmt::Show
+                    + Eq
+                    + Ord
+                    + TotalEq
+                    + TotalOrd
+                    + Add<Self, Self>
+                    + Sub<Self, Self>
+                    + Neg<Self>
+                    + Zero {}
+
+pub trait IntRangeIndex<T>: RangeIndex + Copy {
     fn new(x: T) -> Self;
     fn get(self) -> T;
 }
 
-impl RangeIndex<int> for int {
+impl RangeIndex for int {}
+
+impl IntRangeIndex<int> for int {
     #[inline]
     fn new(x: int) -> int { x }
 
@@ -33,7 +38,7 @@ impl RangeIndex<int> for int {
 
 /// Implements a range index type with operator overloads
 #[macro_export]
-macro_rules! range_index {
+macro_rules! int_range_index {
     ($(#[$attr:meta])* struct $Self:ident($T:ty)) => (
         #[deriving(Clone, Eq, Ord, TotalEq, TotalOrd, Show, Zero)]
         $(#[$attr])*
@@ -46,7 +51,9 @@ macro_rules! range_index {
             }
         }
 
-        impl RangeIndex<$T> for $Self  {
+        impl RangeIndex for $Self {}
+
+        impl IntRangeIndex<$T> for $Self  {
             #[inline]
             fn new(x: $T) -> $Self {
                 $Self(x)
@@ -95,11 +102,11 @@ pub enum RangeRelation<I> {
 /// A range of indices
 #[deriving(Clone)]
 pub struct Range<I> {
-    off: I,
-    len: I,
+    begin: I,
+    length: I,
 }
 
-impl<T: Int, I: fmt::Show + RangeIndex<T>> fmt::Show for Range<I> {
+impl<I: RangeIndex> fmt::Show for Range<I> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f.buf, "[{} .. {})", self.begin(), self.end())
     }
@@ -110,16 +117,14 @@ pub struct EachIndex<T, I> {
     it: iter::Range<T>,
 }
 
-pub fn each_index<T: Int, I: RangeIndex<T>>(start: I, stop: I) -> EachIndex<T, I> {
-    EachIndex {
-        it: iter::range(start.get(), stop.get())
-    }
+pub fn each_index<T: Int, I: IntRangeIndex<T>>(start: I, stop: I) -> EachIndex<T, I> {
+    EachIndex { it: iter::range(start.get(), stop.get()) }
 }
 
-impl<T: Int, I: RangeIndex<T>> Iterator<I> for EachIndex<T, I> {
+impl<T: Int, I: IntRangeIndex<T>> Iterator<I> for EachIndex<T, I> {
     #[inline]
     fn next(&mut self) -> Option<I> {
-        self.it.next().map(|i| RangeIndex::new(i))
+        self.it.next().map(|i| IntRangeIndex::new(i))
     }
 
     #[inline]
@@ -128,10 +133,18 @@ impl<T: Int, I: RangeIndex<T>> Iterator<I> for EachIndex<T, I> {
     }
 }
 
-impl<T: Int, I: RangeIndex<T>> Range<I> {
+impl<I: RangeIndex> Range<I> {
+    /// Create a new range from beginning and length offsets. This could be
+    /// denoted as `[begin, begin + length)`.
+    ///
+    /// ~~~
+    ///    |-- begin ->|-- length ->|
+    ///    |           |            |
+    /// <- o - - - - - +============+ - - - ->
+    /// ~~~
     #[inline]
-    pub fn new(off: I, len: I) -> Range<I> {
-        Range { off: off, len: len }
+    pub fn new(begin: I, length: I) -> Range<I> {
+        Range { begin: begin, length: length }
     }
 
     #[inline]
@@ -139,76 +152,108 @@ impl<T: Int, I: RangeIndex<T>> Range<I> {
         Range::new(num::zero(), num::zero())
     }
 
+    /// The index offset to the beginning of the range.
+    ///
+    /// ~~~
+    ///    |-- begin ->|
+    ///    |           |
+    /// <- o - - - - - +============+ - - - ->
+    /// ~~~
     #[inline]
-    pub fn begin(&self) -> I { self.off  }
-    #[inline]
-    pub fn length(&self) -> I { self.len }
-    #[inline]
-    pub fn end(&self) -> I { self.off + self.len }
+    pub fn begin(&self) -> I { self.begin  }
 
+    /// The index offset from the beginning to the end of the range.
+    ///
+    /// ~~~
+    ///                |-- length ->|
+    ///                |            |
+    /// <- o - - - - - +============+ - - - ->
+    /// ~~~
     #[inline]
-    pub fn each_index(&self) -> EachIndex<T, I> {
-        each_index(self.off, self.off + self.len)
-    }
+    pub fn length(&self) -> I { self.length }
 
+    /// The index offset to the end of the range.
+    ///
+    /// ~~~
+    ///    |--------- end --------->|
+    ///    |                        |
+    /// <- o - - - - - +============+ - - - ->
+    /// ~~~
+    #[inline]
+    pub fn end(&self) -> I { self.begin + self.length }
+
+    /// `true` if the index is between the beginning and the end of the range.
+    ///
+    /// ~~~
+    ///        false        true      false
+    ///          |           |          |
+    /// <- o - - + - - +=====+======+ - + - ->
+    /// ~~~
     #[inline]
     pub fn contains(&self, i: I) -> bool {
         i >= self.begin() && i < self.end()
     }
 
-    #[inline]
-    pub fn is_valid_for_string(&self, s: &str) -> bool {
-        let s_len = s.len();
-        match num::cast::<uint, T>(s_len) {
-            Some(len) => {
-                let len = RangeIndex::new(len);
-                self.begin() < len
-                && self.end() <= len
-                && self.length() <= len
-            },
-            None => {
-                debug!("Range<T>::is_valid_for_string: string length (len={}) is longer than the \
-                        max value for the range index (max={})", s_len,
-                        {
-                            let max: T = Bounded::max_value();
-                            let val: I = RangeIndex::new(max);
-                            val
-                        });
-                false
-            },
-        }
-    }
-
+    /// `true` if the offset from the beginning to the end of the range is zero.
     #[inline]
     pub fn is_empty(&self) -> bool {
-        self.len.is_zero()
+        self.length().is_zero()
     }
 
+    /// Shift the entire range by the supplied index delta.
+    ///
+    /// ~~~
+    ///                     |-- delta ->|
+    ///                     |           |
+    /// <- o - +============+ - - - - - | - - - ->
+    ///                                 |
+    /// <- o - - - - - - - +============+ - - - ->
+    /// ~~~
     #[inline]
-    pub fn shift_by(&mut self, i: I) {
-        self.off = self.off + i;
+    pub fn shift_by(&mut self, delta: I) {
+        self.begin = self.begin + delta;
     }
 
+    /// Extend the end of the range by the supplied index delta.
+    ///
+    /// ~~~
+    ///                     |-- delta ->|
+    ///                     |           |
+    /// <- o - - - - - +====+ - - - - - | - - - ->
+    ///                                 |
+    /// <- o - - - - - +================+ - - - ->
+    /// ~~~
     #[inline]
-    pub fn extend_by(&mut self, i: I) {
-        self.len = self.len + i;
+    pub fn extend_by(&mut self, delta: I) {
+        self.length = self.length + delta;
     }
 
+    /// Move the end of the range to the target index.
+    ///
+    /// ~~~
+    ///                               target
+    ///                                 |
+    /// <- o - - - - - +====+ - - - - - | - - - ->
+    ///                                 |
+    /// <- o - - - - - +================+ - - - ->
+    /// ~~~
     #[inline]
-    pub fn extend_to(&mut self, i: I) {
-        self.len = i - self.off;
+    pub fn extend_to(&mut self, target: I) {
+        self.length = target - self.begin;
     }
 
+    /// Adjust the beginning offset and the length by the supplied deltas.
     #[inline]
-    pub fn adjust_by(&mut self, off_i: I, len_i: I) {
-        self.off = self.off + off_i;
-        self.len = self.len + len_i;
+    pub fn adjust_by(&mut self, begin_delta: I, length_delta: I) {
+        self.begin = self.begin + begin_delta;
+        self.length = self.length + length_delta;
     }
 
+    /// Set the begin and length values.
     #[inline]
-    pub fn reset(&mut self, off_i: I, len_i: I) {
-        self.off = off_i;
-        self.len = len_i;
+    pub fn reset(&mut self, begin: I, length: I) {
+        self.begin = begin;
+        self.length = length;
     }
 
     #[inline]
@@ -254,6 +299,38 @@ impl<T: Int, I: RangeIndex<T>> Range<I> {
         fail!("relation_to_range(): didn't classify self={}, other={}",
               self, other);
     }
+}
+
+/// Methods for `Range`s with indices based on integer values
+impl<T: Int, I: IntRangeIndex<T>> Range<I> {
+    /// Returns an iterater that increments over `[begin, end)`.
+    #[inline]
+    pub fn each_index(&self) -> EachIndex<T, I> {
+        each_index(self.begin(), self.end())
+    }
+
+    #[inline]
+    pub fn is_valid_for_string(&self, s: &str) -> bool {
+        let s_len = s.len();
+        match num::cast::<uint, T>(s_len) {
+            Some(len) => {
+                let len = IntRangeIndex::new(len);
+                self.begin() < len
+                && self.end() <= len
+                && self.length() <= len
+            },
+            None => {
+                debug!("Range<T>::is_valid_for_string: string length (len={}) is longer than the \
+                        max value for the range index (max={})", s_len,
+                        {
+                            let max: T = Bounded::max_value();
+                            let val: I = IntRangeIndex::new(max);
+                            val
+                        });
+                false
+            },
+        }
+    }
 
     #[inline]
     pub fn repair_after_coalesced_range(&mut self, other: &Range<I>) {
@@ -261,7 +338,7 @@ impl<T: Int, I: RangeIndex<T>> Range<I> {
         debug!("repair_after_coalesced_range: possibly repairing range {}", *self);
         debug!("repair_after_coalesced_range: relation of original range and coalesced range {}: {}",
                *other, relation);
-        let _1: I = RangeIndex::new(num::one::<T>());
+        let _1: I = IntRangeIndex::new(num::one::<T>());
         match relation {
             EntirelyBefore => {},
             EntirelyAfter => { self.shift_by(-other.length()); },
