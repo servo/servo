@@ -4676,17 +4676,16 @@ class CGCallback(CGClass):
 
         setupCall = ("let s = CallSetup::new(cx_for_dom_object(${cxProvider}), aExceptionHandling);\n"
                      "if s.GetContext().is_null() {\n"
-                     "  return${errorReturn};\n"
+                     "  return Err(FailureUnknown);\n"
                      "}\n")
 
         bodyWithThis = string.Template(
             setupCall+
             "let thisObjJS = WrapCallThisObject(s.GetContext(), ptr::null() /*XXXjdm proper scope*/, thisObj);\n"
             "if thisObjJS.is_null() {\n"
-            "  return${errorReturn};\n"
+            "  return Err(FailureUnknown);\n"
             "}\n"
             "return ${methodName}(${callArgs});").substitute({
-                "errorReturn" : method.getDefaultRetval(),
                 "callArgs" : ", ".join(argnamesWithThis),
                 "methodName": 'self.' + method.name,
                 "cxProvider": 'thisObj'
@@ -4694,7 +4693,6 @@ class CGCallback(CGClass):
         bodyWithoutThis = string.Template(
             setupCall +
             "return ${methodName}(${callArgs});").substitute({
-                "errorReturn" : method.getDefaultRetval(),
                 "callArgs" : ", ".join(argnamesWithoutThis),
                 "methodName": 'self.' + method.name,
                 "cxProvider": args[2].name #XXXjdm There's no guarantee that this is a DOM object
@@ -4811,7 +4809,6 @@ class CallbackMember(CGNativeMember):
     def getImpl(self):
         replacements = {
             "declRval": self.getRvalDecl(),
-            "errorReturn" : self.getDefaultRetval(),
             "returnResult": self.getResultConversion(),
             "convertArgs": self.getArgConversions(),
             "doCall": self.getCall(),
@@ -4928,12 +4925,6 @@ class CallbackMember(CGNativeMember):
                 "}" % (i+1, i))
         return conversion
 
-    def getDefaultRetval(self):
-        default = self.getRetvalInfo(self.retvalType, False)[1]
-        if len(default) != 0:
-            default = " " + default
-        return default
-
     def getArgs(self, returnType, argList):
         args = CGNativeMember.getArgs(self, returnType, argList)
         if not self.needThisHandling:
@@ -4966,11 +4957,10 @@ class CallbackMember(CGNativeMember):
             "${callSetup}\n"
             "JSContext* cx = s.GetContext();\n"
             "if (!cx) {\n"
-            "  return${errorReturn};\n"
+            "  return Err(FailureUnknown);\n"
             "}\n").substitute({
                 "callSetup": callSetup,
-                "errorReturn" : self.getDefaultRetval(),
-                })
+            })
 
     def getArgcDecl(self):
         return CGGeneric("let argc = %su32;" % self.argCountStr);
@@ -4999,7 +4989,6 @@ class CallbackMethod(CallbackMember):
 
     def getCall(self):
         replacements = {
-            "errorReturn" : self.getDefaultRetval(),
             "thisObj": self.getThisObj(),
             "getCallable": self.getCallableDecl()
             }
@@ -5015,7 +5004,7 @@ class CallbackMethod(CallbackMember):
                 "                       ${argc}, ${argv}, &rval)\n"
                 "};\n"
                 "if ok == 0 {\n"
-                "  return${errorReturn};\n"
+                "  return Err(FailureUnknown);\n"
                 "}\n").substitute(replacements)
 
 class CallCallback(CallbackMethod):
@@ -5048,12 +5037,11 @@ class CallbackOperationBase(CallbackMethod):
 
     def getCallableDecl(self):
         replacements = {
-            "errorReturn" : self.getDefaultRetval(),
             "methodName": self.methodName
-            }
+        }
         getCallableFromProp = string.Template(
                 'match self.parent.GetCallableProperty(cx, "${methodName}") {\n'
-                '  Err(_) => return${errorReturn},\n'
+                '  Err(_) => return Err(FailureUnknown),\n'
                 '  Ok(callable) => callable,\n'
                 '}').substitute(replacements)
         if not self.singleOperation:
@@ -5094,13 +5082,11 @@ class CallbackGetter(CallbackMember):
 
     def getCall(self):
         replacements = {
-            "errorReturn" : self.getDefaultRetval(),
             "attrName": self.attrName
-            }
+        }
         return string.Template(
             'if (!JS_GetProperty(cx, mCallback, "${attrName}", &rval)) {\n'
-            '  aRv.Throw(NS_ERROR_UNEXPECTED);\n'
-            '  return${errorReturn};\n'
+            '  return Err(FailureUnknown);\n'
             '}\n').substitute(replacements);
 
 class CallbackSetter(CallbackMember):
@@ -5121,15 +5107,13 @@ class CallbackSetter(CallbackMember):
 
     def getCall(self):
         replacements = {
-            "errorReturn" : self.getDefaultRetval(),
             "attrName": self.attrName,
             "argv": "argv.handleAt(0)",
             }
         return string.Template(
             'MOZ_ASSERT(argv.length() == 1);\n'
             'if (!JS_SetProperty(cx, mCallback, "${attrName}", ${argv})) {\n'
-            '  aRv.Throw(NS_ERROR_UNEXPECTED);\n'
-            '  return${errorReturn};\n'
+            '  return Err(FailureUnknown);\n'
             '}\n').substitute(replacements)
 
     def getArgcDecl(self):
