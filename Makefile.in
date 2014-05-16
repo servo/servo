@@ -261,7 +261,7 @@ DONE_script = $(B)src/components/script/libscript.dummy
 
 DEPS_script = $(CRATE_script) $(SRC_script) $(DONE_SUBMODULES) $(DONE_util) $(DONE_style) $(DONE_net) $(DONE_msg) $(DONE_macros)
 
-RFLAGS_style = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/util
+RFLAGS_style = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/util -L$(B)src/components/macros
 MAKO_ZIP = $(S)src/components/style/Mako-0.9.1.zip
 MAKO_style = $(S)src/components/style/properties.rs
 MAKO_SRC_style = $(MAKO_style).mako
@@ -269,7 +269,7 @@ SRC_style = $(call rwildcard,$(S)src/components/style/,*.rs) $(MAKO_style)
 CRATE_style = $(S)src/components/style/style.rs
 DONE_style = $(B)src/components/style/libstyle.dummy
 
-DEPS_style = $(CRATE_style) $(SRC_style) $(DONE_SUBMODULES) $(DONE_util)
+DEPS_style = $(CRATE_style) $(SRC_style) $(DONE_SUBMODULES) $(DONE_util) $(DONE_macros)
 
 RFLAGS_servo = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/gfx -L $(B)src/components/util -L $(B)src/components/net -L $(B)src/components/script -L $(B)src/components/style -L $(B)src/components/msg -L$(B)src/components/macros
 

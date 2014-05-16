@@ -59,8 +59,7 @@ use std::comm::{channel, Sender, Receiver};
 use std::mem;
 use std::ptr;
 use std::task;
-use style::{AuthorOrigin, ComputedValues, Stylesheet, Stylist};
-use style;
+use style::{AuthorOrigin, Stylesheet, Stylist};
 use sync::{Arc, Mutex};
 use url::Url;
 
@@ -97,9 +96,6 @@ pub struct LayoutTask {
     pub display_list: Option<Arc<DisplayList>>,
 
     pub stylist: ~Stylist,
-
-    /// The initial set of CSS values.
-    pub initial_css_values: Arc<ComputedValues>,
 
     /// The workers that we use for parallel operation.
     pub parallel_traversal: Option<WorkQueue<*mut LayoutContext,PaddedUnsafeFlow>>,
@@ -344,7 +340,6 @@ impl LayoutTask {
 
             display_list: None,
             stylist: ~new_stylist(),
-            initial_css_values: Arc::new(style::initial_values()),
             parallel_traversal: parallel_traversal,
             profiler_chan: profiler_chan,
             opts: opts.clone(),
@@ -374,7 +369,6 @@ impl LayoutTask {
             layout_chan: self.chan.clone(),
             font_context_info: font_context_info,
             stylist: &*self.stylist,
-            initial_css_values: self.initial_css_values.clone(),
             url: (*url).clone(),
             reflow_root: OpaqueNodeMethods::from_layout_node(reflow_root),
             opts: self.opts.clone(),

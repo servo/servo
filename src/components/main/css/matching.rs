@@ -309,7 +309,6 @@ pub trait MatchMethods {
 
     unsafe fn cascade_node(&self,
                            parent: Option<LayoutNode>,
-                           initial_values: &ComputedValues,
                            applicable_declarations: &ApplicableDeclarations,
                            applicable_declarations_cache: &mut ApplicableDeclarationsCache);
 }
@@ -319,7 +318,6 @@ trait PrivateMatchMethods {
                                    parent_style: Option<&Arc<ComputedValues>>,
                                    applicable_declarations: &[MatchedProperty],
                                    style: &mut Option<Arc<ComputedValues>>,
-                                   initial_values: &ComputedValues,
                                    applicable_declarations_cache: &mut
                                    ApplicableDeclarationsCache,
                                    shareable: bool);
@@ -335,7 +333,6 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
                                    parent_style: Option<&Arc<ComputedValues>>,
                                    applicable_declarations: &[MatchedProperty],
                                    style: &mut Option<Arc<ComputedValues>>,
-                                   initial_values: &ComputedValues,
                                    applicable_declarations_cache: &mut
                                    ApplicableDeclarationsCache,
                                    shareable: bool) {
@@ -352,7 +349,6 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
                 let (the_style, is_cacheable) = cascade(applicable_declarations,
                                                         shareable,
                                                         Some(&***parent_style),
-                                                        initial_values,
                                                         cached_computed_values);
                 cacheable = is_cacheable;
                 this_style = Arc::new(the_style);
@@ -361,7 +357,6 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
                 let (the_style, is_cacheable) = cascade(applicable_declarations,
                                                         shareable,
                                                         None,
-                                                        initial_values,
                                                         None);
                 cacheable = is_cacheable;
                 this_style = Arc::new(the_style);
@@ -492,9 +487,7 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
                 }
 
                 unsafe {
-                    let initial_values = &*layout_context.initial_css_values;
                     self.cascade_node(parent,
-                                      initial_values,
                                       applicable_declarations,
                                       applicable_declarations_cache)
                 }
@@ -528,7 +521,6 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
 
     unsafe fn cascade_node(&self,
                            parent: Option<LayoutNode>,
-                           initial_values: &ComputedValues,
                            applicable_declarations: &ApplicableDeclarations,
                            applicable_declarations_cache: &mut ApplicableDeclarationsCache) {
         // Get our parent's style. This must be unsafe so that we don't touch the parent's
@@ -559,14 +551,12 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
                 self.cascade_node_pseudo_element(parent_style,
                                                  applicable_declarations.normal.as_slice(),
                                                  &mut layout_data.shared_data.style,
-                                                 initial_values,
                                                  applicable_declarations_cache,
                                                  applicable_declarations.normal_shareable);
                 if applicable_declarations.before.len() > 0 {
                     self.cascade_node_pseudo_element(parent_style,
                                                      applicable_declarations.before.as_slice(),
                                                      &mut layout_data.data.before_style,
-                                                     initial_values,
                                                      applicable_declarations_cache,
                                                      false);
                 }
@@ -574,7 +564,6 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
                     self.cascade_node_pseudo_element(parent_style,
                                                      applicable_declarations.after.as_slice(),
                                                      &mut layout_data.data.after_style,
-                                                     initial_values,
                                                      applicable_declarations_cache,
                                                      false);
                 }
