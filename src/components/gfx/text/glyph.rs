@@ -640,6 +640,12 @@ impl<'a> GlyphStore {
         }
     }
 
+    #[inline]
+    pub fn advance_for_char_range(&self, rang: &Range<CharIndex>) -> Au {
+        self.iter_glyphs_for_char_range(rang)
+            .fold(Au(0), |advance, (_, glyph)| advance + glyph.advance())
+    }
+
     // getter methods
     pub fn char_is_space(&self, i: CharIndex) -> bool {
         assert!(i < CharIndex(self.entry_buffer.len() as int));
