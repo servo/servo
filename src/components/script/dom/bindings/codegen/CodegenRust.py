@@ -4311,50 +4311,38 @@ class CGNativeMember(ClassMethod):
 
         The first element is the type declaration for the retval
 
-        The second element is a default value that can be used on error returns.
-        For cases whose behavior depends on isMember, the second element will be
-        None if isMember is true.
-
-        The third element is a template for actually returning a value stored in
+        The second element is a template for actually returning a value stored in
         "${declName}".  This means actually returning it if
         we're not outparam, else assigning to the "retval" outparam.  If
         isMember is true, this can be None, since in that case the caller will
         never examine this value.
         """
         if type.isVoid():
-            typeDecl, errorDefault, template = "", "", ""
+            typeDecl, template = "", ""
         elif type.isPrimitive() and type.tag() in builtinNames:
             result = CGGeneric(builtinNames[type.tag()])
-            defaultReturnArg = "0"
             if type.nullable():
                 result = CGTemplatedType("Nullable", result)
-                defaultReturnArg = ""
-            typeDecl, errorDefault, template = \
-                (result.define(),
-                 "%s(%s)" % (result.define(), defaultReturnArg),
-                 "return ${declName};")
+            typeDecl, template = result.define(), "return ${declName};"
         elif type.isDOMString():
             if isMember:
                 # No need for a third element in the isMember case
-                typeDecl, errorDefault, template = "nsString", None, None
+                typeDecl, template = "nsString", None
             # Outparam
             else:
-                typeDecl, errorDefault, template = "void", "", "retval = ${declName};"
+                typeDecl, template = "void", "retval = ${declName};"
         elif type.isByteString():
             if isMember:
                 # No need for a third element in the isMember case
-                typeDecl, errorDefault, template = "nsCString", None, None
+                typeDecl, template = "nsCString", None
             # Outparam
-            typeDecl, errorDefault, template = "void", "", "retval = ${declName};"
+            typeDecl, template = "void", "retval = ${declName};"
         elif type.isEnum():
             enumName = type.unroll().inner.identifier.name
             if type.nullable():
                 enumName = CGTemplatedType("Nullable",
                                            CGGeneric(enumName)).define()
-                defaultValue = "%s()" % enumName
-            else:
-                defaultValue = "%s(0)" % enumName
-            typeDecl, errorDefault, template = enumName, defaultValue, "return ${declName};"
+            typeDecl, template = enumName, "return ${declName};"
         elif type.isGeckoInterface():
             iface = type.unroll().inner;
             nativeType = self.descriptorProvider.getDescriptor(
@@ -4369,24 +4357,21 @@ class CGNativeMember(ClassMethod):
             # Since we always force an owning type for callback return values,
             # our ${declName} is an OwningNonNull or nsRefPtr.  So we can just
             # .forget() to get our already_AddRefed.
-            typeDecl, errorDefault, template = \
-                result.define(), "nullptr", "return ${declName}.forget();"
+            typeDecl, template = result.define(), "return ${declName}.forget();"
         elif type.isCallback():
-            typeDecl, errorDefault, template = \
+            typeDecl, template = \
                 ("already_AddRefed<%s>" % type.unroll().identifier.name,
-                 "nullptr", "return ${declName}.forget();")
+                 "return ${declName}.forget();")
         elif type.isAny():
-            typeDecl, errorDefault, template = \
-                "JS::Value", "JS::UndefinedValue()", "return ${declName};"
+            typeDecl, template = "JS::Value", "return ${declName};"
         elif type.isObject():
-            typeDecl, errorDefault, template = \
-                "JSObject*", "nullptr", "return ${declName};"
+            typeDecl, template = "JSObject*", "return ${declName};"
         elif type.isSpiderMonkeyInterface():
             if type.nullable():
                 returnCode = "return ${declName}.IsNull() ? nullptr : ${declName}.Value().Obj();"
             else:
                 returnCode = "return ${declName}.Obj();"
-            typeDecl, errorDefault, template = "JSObject*", "nullptr", returnCode
+            typeDecl, template = "JSObject*", returnCode
         elif type.isSequence():
             # If we want to handle sequence-of-sequences return values, we're
             # going to need to fix example codegen to not produce nsTArray<void>
@@ -4401,13 +4386,12 @@ class CGNativeMember(ClassMethod):
                               "}")
             else:
                 returnCode = "retval.SwapElements(${declName});"
-            typeDecl, errorDefault, template = "void", "", returnCode
+            typeDecl, template = "void", returnCode
         elif type.isDate():
             result = CGGeneric("Date")
             if type.nullable():
                 result = CGTemplatedType("Nullable", result)
-            typeDecl, errorDefault, template = \
-                (result.define(), "%s()" % result.define(), "return ${declName};")
+            typeDecl, template = result.define(), "return ${declName};"
         else:
             raise TypeError("Don't know how to declare return value for %s" % type)
 
@@ -4416,11 +4400,9 @@ class CGNativeMember(ClassMethod):
                 typeDecl = "Fallible<%s>" % typeDecl
             else:
                 typeDecl = "ErrorResult"
-            if not errorDefault:
-                errorDefault = "Err(FailureUnknown)"
             if not template:
                 template = "return Ok(());"
-        return typeDecl, errorDefault, template
+        return typeDecl, template
 
     def getArgs(self, returnType, argList):
         args = [self.getArg(arg) for arg in argList]
@@ -4676,17 +4658,16 @@ class CGCallback(CGClass):
 
         setupCall = ("let s = CallSetup::new(cx_for_dom_object(${cxProvider}), aExceptionHandling);\n"
                      "if s.GetContext().is_null() {\n"
-                     "  return${errorReturn};\n"
+                     "  return Err(FailureUnknown);\n"
                      "}\n")
 
         bodyWithThis = string.Template(
             setupCall+
             "let thisObjJS = WrapCallThisObject(s.GetContext(), ptr::null() /*XXXjdm proper scope*/, thisObj);\n"
             "if thisObjJS.is_null() {\n"
-            "  return${errorReturn};\n"
+            "  return Err(FailureUnknown);\n"
             "}\n"
             "return ${methodName}(${callArgs});").substitute({
-                "errorReturn" : method.getDefaultRetval(),
                 "callArgs" : ", ".join(argnamesWithThis),
                 "methodName": 'self.' + method.name,
                 "cxProvider": 'thisObj'
@@ -4694,7 +4675,6 @@ class CGCallback(CGClass):
         bodyWithoutThis = string.Template(
             setupCall +
             "return ${methodName}(${callArgs});").substitute({
-                "errorReturn" : method.getDefaultRetval(),
                 "callArgs" : ", ".join(argnamesWithoutThis),
                 "methodName": 'self.' + method.name,
                 "cxProvider": args[2].name #XXXjdm There's no guarantee that this is a DOM object
@@ -4811,7 +4791,6 @@ class CallbackMember(CGNativeMember):
     def getImpl(self):
         replacements = {
             "declRval": self.getRvalDecl(),
-            "errorReturn" : self.getDefaultRetval(),
             "returnResult": self.getResultConversion(),
             "convertArgs": self.getArgConversions(),
             "doCall": self.getCall(),
@@ -4864,7 +4843,7 @@ class CallbackMember(CGNativeMember):
 
         assignRetval = string.Template(
             self.getRetvalInfo(self.retvalType,
-                               False)[2]).substitute(replacements)
+                               False)[1]).substitute(replacements)
         return convertType.define() + "\n" + assignRetval + "\n"
 
     def getArgConversions(self):
@@ -4928,12 +4907,6 @@ class CallbackMember(CGNativeMember):
                 "}" % (i+1, i))
         return conversion
 
-    def getDefaultRetval(self):
-        default = self.getRetvalInfo(self.retvalType, False)[1]
-        if len(default) != 0:
-            default = " " + default
-        return default
-
     def getArgs(self, returnType, argList):
         args = CGNativeMember.getArgs(self, returnType, argList)
         if not self.needThisHandling:
@@ -4966,11 +4939,10 @@ class CallbackMember(CGNativeMember):
             "${callSetup}\n"
             "JSContext* cx = s.GetContext();\n"
             "if (!cx) {\n"
-            "  return${errorReturn};\n"
+            "  return Err(FailureUnknown);\n"
             "}\n").substitute({
                 "callSetup": callSetup,
-                "errorReturn" : self.getDefaultRetval(),
-                })
+            })
 
     def getArgcDecl(self):
         return CGGeneric("let argc = %su32;" % self.argCountStr);
@@ -4999,7 +4971,6 @@ class CallbackMethod(CallbackMember):
 
     def getCall(self):
         replacements = {
-            "errorReturn" : self.getDefaultRetval(),
             "thisObj": self.getThisObj(),
             "getCallable": self.getCallableDecl()
             }
@@ -5015,7 +4986,7 @@ class CallbackMethod(CallbackMember):
                 "                       ${argc}, ${argv}, &rval)\n"
                 "};\n"
                 "if ok == 0 {\n"
-                "  return${errorReturn};\n"
+                "  return Err(FailureUnknown);\n"
                 "}\n").substitute(replacements)
 
 class CallCallback(CallbackMethod):
@@ -5048,12 +5019,11 @@ class CallbackOperationBase(CallbackMethod):
 
     def getCallableDecl(self):
         replacements = {
-            "errorReturn" : self.getDefaultRetval(),
             "methodName": self.methodName
-            }
+        }
         getCallableFromProp = string.Template(
                 'match self.parent.GetCallableProperty(cx, "${methodName}") {\n'
-                '  Err(_) => return${errorReturn},\n'
+                '  Err(_) => return Err(FailureUnknown),\n'
                 '  Ok(callable) => callable,\n'
                 '}').substitute(replacements)
         if not self.singleOperation:
@@ -5094,13 +5064,11 @@ class CallbackGetter(CallbackMember):
 
     def getCall(self):
         replacements = {
-            "errorReturn" : self.getDefaultRetval(),
             "attrName": self.attrName
-            }
+        }
         return string.Template(
             'if (!JS_GetProperty(cx, mCallback, "${attrName}", &rval)) {\n'
-            '  aRv.Throw(NS_ERROR_UNEXPECTED);\n'
-            '  return${errorReturn};\n'
+            '  return Err(FailureUnknown);\n'
             '}\n').substitute(replacements);
 
 class CallbackSetter(CallbackMember):
@@ -5121,15 +5089,13 @@ class CallbackSetter(CallbackMember):
 
     def getCall(self):
         replacements = {
-            "errorReturn" : self.getDefaultRetval(),
             "attrName": self.attrName,
             "argv": "argv.handleAt(0)",
             }
         return string.Template(
             'MOZ_ASSERT(argv.length() == 1);\n'
             'if (!JS_SetProperty(cx, mCallback, "${attrName}", ${argv})) {\n'
-            '  aRv.Throw(NS_ERROR_UNEXPECTED);\n'
-            '  return${errorReturn};\n'
+            '  return Err(FailureUnknown);\n'
             '}\n').substitute(replacements)
 
     def getArgcDecl(self):
