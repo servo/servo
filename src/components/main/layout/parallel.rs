@@ -274,7 +274,6 @@ fn recalc_style_for_node(unsafe_layout_node: UnsafeLayoutNode,
 
                 // Perform the CSS cascade.
                 node.cascade_node(parent_opt,
-                                  &*layout_context.initial_css_values,
                                   &applicable_declarations,
                                   layout_context.applicable_declarations_cache());
 

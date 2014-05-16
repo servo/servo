@@ -44,7 +44,7 @@ use std::from_str::FromStr;
 use std::iter::AdditiveIterator;
 use std::mem;
 use std::num::Zero;
-use style::{ComputedValues, TElement, TNode, cascade, initial_values};
+use style::{ComputedValues, TElement, TNode, cascade_anonymous};
 use style::computed_values::{LengthOrPercentageOrAuto, overflow, LPA_Auto, background_attachment};
 use style::computed_values::{background_repeat, border_style, clear, position, text_align};
 use style::computed_values::{text_decoration, vertical_align, visibility, white_space};
@@ -343,8 +343,7 @@ impl Box {
         //
         // Anonymous table boxes, TableRowBox and TableCellBox, are generated around `Foo`, but it shouldn't inherit the border.
 
-        let (node_style, _) = cascade(&[], false, Some(&**node.style()),
-                                      &initial_values(), None);
+        let node_style = cascade_anonymous(&**node.style());
         Box {
             node: OpaqueNodeMethods::from_thread_safe_layout_node(node),
             style: Arc::new(node_style),

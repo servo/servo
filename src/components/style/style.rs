@@ -15,23 +15,28 @@
 #![feature(phase)]
 #[phase(syntax, link)] extern crate log;
 
-extern crate cssparser;
 extern crate collections;
-extern crate encoding;
 extern crate num;
 extern crate serialize;
-extern crate servo_util = "util";
 extern crate sync;
 extern crate url;
+
+extern crate cssparser;
+extern crate encoding;
+
+#[phase(syntax)]
+extern crate servo_macros = "macros";
+extern crate servo_util = "util";
 
 
 // Public API
 pub use stylesheets::{Stylesheet, CSSRule, StyleRule};
 pub use selector_matching::{Stylist, StylesheetOrigin, UserAgentOrigin, AuthorOrigin, UserOrigin};
 pub use selector_matching::{MatchedProperty};
-pub use properties::{cascade, PropertyDeclaration, ComputedValues, computed_values, style_structs};
+pub use properties::{cascade, cascade_anonymous};
+pub use properties::{PropertyDeclaration, ComputedValues, computed_values, style_structs};
 pub use properties::{PropertyDeclarationBlock, parse_style_attribute};  // Style attributes
-pub use properties::{initial_values, CSSFloat, DeclaredValue, PropertyDeclarationParseResult};
+pub use properties::{CSSFloat, DeclaredValue, PropertyDeclarationParseResult};
 pub use properties::longhands;
 pub use errors::with_errors_silenced;
 pub use node::{TElement, TNode};

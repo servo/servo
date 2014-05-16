@@ -1593,9 +1593,9 @@ impl ComputedValues {
     }
 }
 
-/// Returns the initial values for all style structs as defined by the specification.
-pub fn initial_values() -> ComputedValues {
-    ComputedValues {
+/// The initial values for all style structs as defined by the specification.
+lazy_init! {
+    static ref INITIAL_VALUES: ComputedValues = ComputedValues {
         % for style_struct in STYLE_STRUCTS:
             ${style_struct.name}: CowArc::new(style_structs::${style_struct.name} {
                 % for longhand in style_struct.longhands:
@@ -1604,7 +1604,7 @@ pub fn initial_values() -> ComputedValues {
             }),
         % endfor
         shareable: true,
-    }
+    };
 }
 
 /// Fast path for the function below. Only computes new inherited styles.
@@ -1702,8 +1702,6 @@ fn cascade_with_cached_declarations(applicable_declarations: &[MatchedProperty],
 ///
 ///   * `parent_style`: The parent style, if applicable; if `None`, this is the root node.
 ///
-///   * `initial_values`: The initial set of CSS values as defined by the specification.
-///
 ///   * `cached_style`: If present, cascading is short-circuited for everything but inherited
 ///     values and these values are used instead. Obviously, you must be careful when supplying
 ///     this that it is safe to only provide inherited declarations. If `parent_style` is `None`,
@@ -1713,9 +1711,9 @@ fn cascade_with_cached_declarations(applicable_declarations: &[MatchedProperty],
 pub fn cascade(applicable_declarations: &[MatchedProperty],
                shareable: bool,
                parent_style: Option< &ComputedValues >,
-               initial_values: &ComputedValues,
                cached_style: Option< &ComputedValues >)
                -> (ComputedValues, bool) {
+    let initial_values = &*INITIAL_VALUES;
     let (is_root_element, inherited_style) = match parent_style {
         Some(parent_style) => (false, parent_style),
         None => (true, initial_values),
@@ -1910,6 +1908,36 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
         % endfor
         shareable: shareable,
     }, cacheable)
+}
+
+
+/// Equivalent to `cascade()` with an empty `applicable_declarations`
+/// Performs the CSS cascade for an anonymous box.
+///
+///   * `parent_style`: Computed style of the element this anonymous box inherits from.
+pub fn cascade_anonymous(parent_style: &ComputedValues) -> ComputedValues {
+    let initial_values = &*INITIAL_VALUES;
+    let mut result = ComputedValues {
+        % for style_struct in STYLE_STRUCTS:
+            ${style_struct.name}:
+                % if style_struct.inherited:
+                    parent_style
+                % else:
+                    initial_values
+                % endif
+                .${style_struct.name}.clone(),
+        % endfor
+        shareable: false,
+    };
+    {
+        let border = result.Border.get_mut();
+        % for side in ["top", "right", "bottom", "left"]:
+            // Like calling to_computed_value, which wouldn't type check.
+            border.border_${side}_width = Au(0);
+        % endfor
+    }
+    // None of the teaks on 'display' apply here.
+    result
 }
 
 
