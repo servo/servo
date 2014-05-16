@@ -91,6 +91,36 @@ interface TestBinding {
   //         attribute (HTMLElement or long)? unionAttributeNullable;
   //         attribute (DOMString or FormData)? union2AttributeNullable;
 
+  void receiveVoid();
+  boolean receiveBoolean();
+  byte receiveByte();
+  octet receiveOctet();
+  short receiveShort();
+  unsigned short receiveUnsignedShort();
+  long receiveLong();
+  unsigned long receiveUnsignedLong();
+  long long receiveLongLong();
+  unsigned long long receiveUnsignedLongLong();
+  DOMString receiveString();
+  ByteString receiveByteString();
+  TestEnum receiveEnum();
+  Blob receiveInterface();
+  any receiveAny();
+
+  byte? receiveNullableByte();
+  boolean? receiveNullableBoolean();
+  octet? receiveNullableOctet();
+  short? receiveNullableShort();
+  unsigned short? receiveNullableUnsignedShort();
+  long? receiveNullableLong();
+  unsigned long? receiveNullableUnsignedLong();
+  long long? receiveNullableLongLong();
+  unsigned long long? receiveNullableUnsignedLongLong();
+  DOMString? receiveNullableString();
+  ByteString? receiveNullableByteString();
+  TestEnum? receiveNullableEnum();
+  Blob? receiveNullableInterface();
+
   void passBoolean(boolean arg);
   void passByte(byte arg);
   void passOctet(octet arg);

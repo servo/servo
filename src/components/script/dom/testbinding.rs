@@ -86,6 +86,41 @@ pub trait TestBindingMethods {
     fn GetInterfaceAttributeNullable(&self) -> Option<Temporary<Blob>>;
     fn SetInterfaceAttributeNullable(&self, _: Option<JSRef<Blob>>) {}
 
+    fn ReceiveVoid(&self) -> () {}
+    fn ReceiveBoolean(&self) -> bool { false }
+    fn ReceiveByte(&self) -> i8 { 0 }
+    fn ReceiveOctet(&self) -> u8 { 0 }
+    fn ReceiveShort(&self) -> i16 { 0 }
+    fn ReceiveUnsignedShort(&self) -> u16 { 0 }
+    fn ReceiveLong(&self) -> i32 { 0 }
+    fn ReceiveUnsignedLong(&self) -> u32 { 0 }
+    fn ReceiveLongLong(&self) -> i64 { 0 }
+    fn ReceiveUnsignedLongLong(&self) -> u64 { 0 }
+    fn ReceiveFloat(&self) -> f32 { 0. }
+    fn ReceiveDouble(&self) -> f64 { 0. }
+    fn ReceiveString(&self) -> DOMString { "".to_owned() }
+    fn ReceiveByteString(&self) -> ByteString { ByteString::new(vec!()) }
+    fn ReceiveEnum(&self) -> TestEnum { _empty }
+    fn ReceiveInterface(&self) -> Temporary<Blob>;
+    fn ReceiveAny(&self, _: *JSContext) -> JSVal { NullValue() }
+
+    fn ReceiveNullableBoolean(&self) -> Option<bool> { Some(false) }
+    fn ReceiveNullableByte(&self) -> Option<i8> { Some(0) }
+    fn ReceiveNullableOctet(&self) -> Option<u8> { Some(0) }
+    fn ReceiveNullableShort(&self) -> Option<i16> { Some(0) }
+    fn ReceiveNullableUnsignedShort(&self) -> Option<u16> { Some(0) }
+    fn ReceiveNullableLong(&self) -> Option<i32> { Some(0) }
+    fn ReceiveNullableUnsignedLong(&self) -> Option<u32> { Some(0) }
+    fn ReceiveNullableLongLong(&self) -> Option<i64> { Some(0) }
+    fn ReceiveNullableUnsignedLongLong(&self) -> Option<u64> { Some(0) }
+    fn ReceiveNullableFloat(&self) -> Option<f32> { Some(0.) }
+    fn ReceiveNullableDouble(&self) -> Option<f64> { Some(0.) }
+    fn ReceiveNullableString(&self) -> Option<DOMString> { Some("".to_owned()) }
+    fn ReceiveNullableByteString(&self) -> Option<ByteString> { Some(ByteString::new(vec!())) }
+    fn ReceiveNullableEnum(&self) -> Option<TestEnum> { Some(_empty) }
+    fn ReceiveNullableInterface(&self) -> Option<Temporary<Blob>>;
+    fn ReceiveNullableAny(&self, _: *JSContext) -> Option<JSVal> { Some(NullValue()) }
+
     fn PassBoolean(&self, _: bool) {}
     fn PassByte(&self, _: i8) {}
     fn PassOctet(&self, _: u8) {}
@@ -213,6 +248,14 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
         Blob::new(&*window)
     }
     fn GetInterfaceAttributeNullable(&self) -> Option<Temporary<Blob>> {
+        let window = self.window.root();
+        Some(Blob::new(&*window))
+    }
+    fn ReceiveInterface(&self) -> Temporary<Blob> {
+        let window = self.window.root();
+        Blob::new(&*window)
+    }
+    fn ReceiveNullableInterface(&self) -> Option<Temporary<Blob>> {
         let window = self.window.root();
         Some(Blob::new(&*window))
     }
