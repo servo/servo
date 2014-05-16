@@ -183,6 +183,14 @@ impl<'a> TextRun {
         true
     }
 
+    pub fn ascent(&self) -> Au {
+        self.font_metrics.ascent
+    }
+
+    pub fn descent(&self) -> Au {
+        self.font_metrics.descent
+    }
+
     pub fn advance_for_range(&self, range: &Range<CharIndex>) -> Au {
         // TODO(Issue #199): alter advance direction for RTL
         // TODO(Issue #98): using inter-char and inter-word spacing settings  when measuring text
@@ -209,8 +217,7 @@ impl<'a> TextRun {
         debug!("iterating outer range {:?}", range);
         for (_, offset, slice_range) in self.iter_slices_for_range(range) {
             debug!("iterated on {:?}[{:?}]", offset, slice_range);
-            let metrics = self.metrics_for_range(&slice_range);
-            max_piece_width = Au::max(max_piece_width, metrics.advance_width);
+            max_piece_width = Au::max(max_piece_width, self.advance_for_range(&slice_range));
         }
         max_piece_width
     }
