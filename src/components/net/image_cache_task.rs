@@ -22,17 +22,8 @@ pub enum Msg {
     /// before Decode
     Prefetch(Url),
 
-    // FIXME: We can probably get rid of this Cell now
-    // FIXME: make this priv after visibility rules change
-    /// Used be the prefetch tasks to post back image binaries
-    StorePrefetchedImageData(Url, Result<~[u8], ()>),
-
     /// Tell the cache to decode an image. Must be posted before GetImage/WaitForImage
     Decode(Url),
-
-    /// Used by the decoder tasks to post decoded images back to the cache
-    // FIXME: make this priv after visibility rules change
-    StoreImage(Url, Option<Arc<~Image>>),
 
     /// Request an Image object for a URL. If the image is not is not immediately
     /// available then ImageNotReady is returned.
@@ -44,13 +35,18 @@ pub enum Msg {
     /// Clients must wait for a response before shutting down the ResourceTask
     Exit(Sender<()>),
 
-    /// For testing
-    // FIXME: make this priv after visibility rules change
-    WaitForStore(Sender<()>),
+    // FIXME: We can probably get rid of this Cell now
+    /// Used be the prefetch tasks to post back image binaries
+    priv StorePrefetchedImageData(Url, Result<~[u8], ()>),
+
+    /// Used by the decoder tasks to post decoded images back to the cache
+    priv StoreImage(Url, Option<Arc<~Image>>),
 
     /// For testing
-    // FIXME: make this priv after visibility rules change
-    WaitForStorePrefetched(Sender<()>),
+    priv WaitForStore(Sender<()>),
+
+    /// For testing
+    priv WaitForStorePrefetched(Sender<()>),
 }
 
 #[deriving(Clone)]
