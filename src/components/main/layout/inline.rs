@@ -18,6 +18,7 @@ use geom::{Point2D, Rect, SideOffsets2D, Size2D};
 use gfx::display_list::ContentLevel;
 use gfx::font::FontMetrics;
 use gfx::font_context::FontContext;
+use gfx::text::glyph::CharIndex;
 use servo_util::geometry::Au;
 use servo_util::geometry;
 use servo_util::range;
@@ -104,35 +105,31 @@ int_range_index! {
     struct FragmentIndex(int)
 }
 
-int_range_index! {
-    #[doc = "The index of a glyph in a single DOM fragment. Ligatures and"]
-    #[doc = "continuous runs of whitespace are treated as single glyphs."]
-    #[doc = "Non-breakable DOM fragments such as images are treated as"]
-    #[doc = "having a range length of `1`."]
-    #[doc = ""]
-    #[doc = "For example, given the HTML below:"]
-    #[doc = ""]
-    #[doc = "~~~"]
-    #[doc = "<span>like      truffles,</span>"]
-    #[doc = "~~~"]
-    #[doc = ""]
-    #[doc = "The glyphs would be indexed as follows:"]
-    #[doc = ""]
-    #[doc = "~~~"]
-    #[doc = "| 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 |  8  | 9 | 10 | 11 |"]
-    #[doc = "|---|---|---|---|---|---|---|---|-----|---|----|----|"]
-    #[doc = "| l | i | k | e |   | t | r | u | ffl | e | s  | ,  |"]
-    #[doc = "~~~"]
-    struct GlyphIndex(int)
-}
-
 /// A line index consists of two indices: a fragment index that refers to the
 /// index of a DOM fragment within a flattened inline element; and a glyph index
 /// where the 0th glyph refers to the first glyph of that fragment.
 #[deriving(Clone, Eq, Ord, TotalEq, TotalOrd, Zero)]
 pub struct LineIndices {
     pub fragment_index: FragmentIndex,
-    pub glyph_index: GlyphIndex,
+    /// The index of a character in a single DOM fragment. Ligatures and
+    /// continuous runs of whitespace are treated as single characters.
+    /// Non-breakable DOM fragments such as images are treated as
+    /// having a range length of `1`.
+    ///
+    /// For example, given the HTML below:
+    ///
+    /// ~~~
+    /// <span>like      truffles,</span>
+    /// ~~~
+    ///
+    /// The characters would be indexed as follows:
+    ///
+    /// ~~~
+    /// | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 |
+    /// |---|---|---|---|---|---|---|---|---|---|----|----|----|----|
+    /// | l | i | k | e |   | t | r | u | f | f | l  | e  | s  | ,  |
+    /// ~~~
+    pub char_index: CharIndex,
 }
 
 impl RangeIndex for LineIndices {}
@@ -141,14 +138,14 @@ impl Add<LineIndices, LineIndices> for LineIndices {
     fn add(&self, other: &LineIndices) -> LineIndices {
         // TODO: use debug_assert! after rustc upgrade
         if cfg!(not(ndebug)) {
-            assert!(other.fragment_index == num::zero() || other.glyph_index == num::zero(),
+            assert!(other.fragment_index == num::zero() || other.char_index == num::zero(),
                     "Attempted to add {} to {}. Both the fragment_index and \
-                     glyph_index of the RHS are non-zero. This probably \
-                     was a mistake!", self, other);
+                     char_index of the RHS are non-zero. This probably was a \
+                     mistake!", self, other);
         }
         LineIndices {
             fragment_index: self.fragment_index + other.fragment_index,
-            glyph_index: self.glyph_index + other.glyph_index,
+            char_index: self.char_index + other.char_index,
         }
     }
 }
@@ -157,14 +154,14 @@ impl Sub<LineIndices, LineIndices> for LineIndices {
     fn sub(&self, other: &LineIndices) -> LineIndices {
         // TODO: use debug_assert! after rustc upgrade
         if cfg!(not(ndebug)) {
-            assert!(other.fragment_index == num::zero() || other.glyph_index == num::zero(),
-                    "Attempted to subtract {} from {}. Both the \
-                     fragment_index and glyph_index of the RHS are non-zero. \
-                     This probably was a mistake!", self, other);
+            assert!(other.fragment_index == num::zero() || other.char_index == num::zero(),
+                    "Attempted to subtract {} from {}. Both the fragment_index \
+                     and char_index of the RHS are non-zero. This probably was \
+                     a mistake!", self, other);
         }
         LineIndices {
             fragment_index: self.fragment_index - other.fragment_index,
-            glyph_index: self.glyph_index - other.glyph_index,
+            char_index: self.char_index - other.char_index,
         }
     }
 }
@@ -173,21 +170,21 @@ impl Neg<LineIndices> for LineIndices {
     fn neg(&self) -> LineIndices {
         // TODO: use debug_assert! after rustc upgrade
         if cfg!(not(ndebug)) {
-            assert!(self.fragment_index == num::zero() || self.glyph_index == num::zero(),
+            assert!(self.fragment_index == num::zero() || self.char_index == num::zero(),
                     "Attempted to negate {}. Both the fragment_index and \
-                     glyph_index are non-zero. This probably was a mistake!",
+                     char_index are non-zero. This probably was a mistake!",
                      self);
         }
         LineIndices {
             fragment_index: -self.fragment_index,
-            glyph_index: -self.glyph_index,
+            char_index: -self.char_index,
         }
     }
 }
 
 impl fmt::Show for LineIndices {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f.buf, "{}.{}", self.fragment_index, self.glyph_index)
+        write!(f.buf, "{}.{}", self.fragment_index, self.char_index)
     }
 }
 
@@ -195,8 +192,8 @@ pub fn each_fragment_index(range: &Range<LineIndices>) -> EachIndex<int, Fragmen
     range::each_index(range.begin().fragment_index, range.length().fragment_index)
 }
 
-pub fn each_glyph_index(range: &Range<LineIndices>) -> EachIndex<int, GlyphIndex> {
-    range::each_index(range.begin().glyph_index, range.length().glyph_index)
+pub fn each_char_index(range: &Range<LineIndices>) -> EachIndex<int, CharIndex> {
+    range::each_index(range.begin().char_index, range.length().char_index)
 }
 
 struct LineboxScanner {
@@ -587,14 +584,14 @@ impl LineboxScanner {
             self.pending_line.range.reset(
                 LineIndices {
                     fragment_index: FragmentIndex(self.new_boxes.len() as int),
-                    glyph_index: GlyphIndex(0) /* unused for now */,
+                    char_index: CharIndex(0) /* unused for now */,
                 },
                 num::zero()
             );
         }
         self.pending_line.range.extend_by(LineIndices {
             fragment_index: FragmentIndex(1),
-            glyph_index: GlyphIndex(0) /* unused for now */ ,
+            char_index: CharIndex(0) /* unused for now */ ,
         });
         self.pending_line.bounds.size.width = self.pending_line.bounds.size.width +
             box_.border_box.size.width;
