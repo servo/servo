@@ -59,62 +59,65 @@ use sync::Arc;
 /// left corner of the green zone is the same as that of the line, but
 /// the green zone can be taller and wider than the line itself.
 pub struct LineBox {
-    /// Consider the following HTML and rendered element with linebreaks:
-    ///
-    /// ~~~html
-    /// <span>I <span>like truffles,</span> yes I do.</span>
-    /// ~~~
-    ///
-    /// ~~~
-    /// +-----------+
-    /// | I like    |
-    /// | truffles, |
-    /// | yes I do. |
-    /// +-----------+
-    /// ~~~
-    ///
-    /// The ranges that describe these lines would be:
-    ///
-    /// ~~~
-    /// | [0.0, 1.4) | [1.5, 2.0)  | [2.1, 3.0)  |
-    /// |------------|-------------|-------------|
-    /// | 'I like'   | 'truffles,' | 'yes I do.' |
-    /// ~~~
     pub range: Range<LineIndices>,
     pub bounds: Rect<Au>,
     pub green_zone: Size2D<Au>
 }
 
 int_range_index! {
-    #[doc = "The index of a box fragment into the flattened vector of DOM"]
-    #[doc = "elements."]
-    #[doc = ""]
-    #[doc = "For example, given the HTML below:"]
-    #[doc = ""]
-    #[doc = "~~~"]
-    #[doc = "<span>I <span>like      truffles,</span> yes I do.</span>"]
-    #[doc = "~~~"]
-    #[doc = ""]
-    #[doc = "The fragments would be indexed as follows:"]
-    #[doc = ""]
-    #[doc = "~~~"]
-    #[doc = "|  0   |        1         |       2      |"]
-    #[doc = "|------|------------------|--------------|"]
-    #[doc = "| 'I ' | 'like truffles,' | ' yes I do.' |"]
-    #[doc = "~~~"]
+    #[doc = "The index of a box fragment in a flattened vector of DOM elements."]
     struct FragmentIndex(int)
 }
 
 /// A line index consists of two indices: a fragment index that refers to the
 /// index of a DOM fragment within a flattened inline element; and a glyph index
 /// where the 0th glyph refers to the first glyph of that fragment.
+///
+/// For example, consider the following HTML and rendered element with
+/// linebreaks:
+///
+/// ~~~html
+/// <span>I <span>like truffles,</span> yes I do.</span>
+/// ~~~
+///
+/// ~~~
+/// +-----------+
+/// | I like    |
+/// | truffles, |
+/// | yes I do. |
+/// +-----------+
+/// ~~~
+///
+/// The ranges that describe these lines would be:
+///
+/// ~~~
+/// | [0.0, 1.4) | [1.5, 2.0)  | [2.1, 3.0)  |
+/// |------------|-------------|-------------|
+/// | 'I like'   | 'truffles,' | 'yes I do.' |
+/// ~~~
 #[deriving(Clone, Eq, Ord, TotalEq, TotalOrd, Zero)]
 pub struct LineIndices {
+    /// The index of a box fragment into the flattened vector of DOM
+    /// elements.
+    ///
+    /// For example, given the HTML below:
+    ///
+    /// ~~~
+    /// <span>I <span>like      truffles,</span> yes I do.</span>
+    /// ~~~
+    ///
+    /// The fragments would be indexed as follows:
+    ///
+    /// ~~~
+    /// |  0   |        1         |       2      |
+    /// |------|------------------|--------------|
+    /// | 'I ' | 'like truffles,' | ' yes I do.' |
+    /// ~~~
     pub fragment_index: FragmentIndex,
-    /// The index of a character in a single DOM fragment. Ligatures and
-    /// continuous runs of whitespace are treated as single characters.
-    /// Non-breakable DOM fragments such as images are treated as
-    /// having a range length of `1`.
+
+    /// The index of a character in a DOM fragment. Ligatures and continuous
+    /// runs of whitespace are treated as single characters. Non-breakable DOM
+    /// fragments such as images are treated as having a range length of `1`.
     ///
     /// For example, given the HTML below:
     ///
