@@ -183,32 +183,41 @@ impl<'a> TextRun {
         true
     }
 
-    pub fn metrics_for_range(&self, range: &Range<CharIndex>) -> RunMetrics {
+    pub fn ascent(&self) -> Au {
+        self.font_metrics.ascent
+    }
+
+    pub fn descent(&self) -> Au {
+        self.font_metrics.descent
+    }
+
+    pub fn advance_for_range(&self, range: &Range<CharIndex>) -> Au {
         // TODO(Issue #199): alter advance direction for RTL
         // TODO(Issue #98): using inter-char and inter-word spacing settings  when measuring text
-        let mut advance = Au(0);
-        for (glyphs, _offset, slice_range) in self.iter_slices_for_range(range) {
-            for (_i, glyph) in glyphs.iter_glyphs_for_char_range(&slice_range) {
-                advance = advance + glyph.advance();
-            }
-        }
-        RunMetrics::new(advance, self.font_metrics.ascent, self.font_metrics.descent)
+        self.iter_slices_for_range(range)
+            .fold(Au(0), |advance, (glyphs, _, slice_range)| {
+                advance + glyphs.advance_for_char_range(&slice_range)
+            })
+    }
+
+    pub fn metrics_for_range(&self, range: &Range<CharIndex>) -> RunMetrics {
+        RunMetrics::new(self.advance_for_range(range),
+                        self.font_metrics.ascent,
+                        self.font_metrics.descent)
     }
 
     pub fn metrics_for_slice(&self, glyphs: &GlyphStore, slice_range: &Range<CharIndex>) -> RunMetrics {
-        let mut advance = Au(0);
-        for (_i, glyph) in glyphs.iter_glyphs_for_char_range(slice_range) {
-            advance = advance + glyph.advance();
-        }
-        RunMetrics::new(advance, self.font_metrics.ascent, self.font_metrics.descent)
+        RunMetrics::new(glyphs.advance_for_char_range(slice_range),
+                        self.font_metrics.ascent,
+                        self.font_metrics.descent)
     }
+
     pub fn min_width_for_range(&self, range: &Range<CharIndex>) -> Au {
         let mut max_piece_width = Au(0);
         debug!("iterating outer range {:?}", range);
         for (_, offset, slice_range) in self.iter_slices_for_range(range) {
             debug!("iterated on {:?}[{:?}]", offset, slice_range);
-            let metrics = self.metrics_for_range(&slice_range);
-            max_piece_width = Au::max(max_piece_width, metrics.advance_width);
+            max_piece_width = Au::max(max_piece_width, self.advance_for_range(&slice_range));
         }
         max_piece_width
     }

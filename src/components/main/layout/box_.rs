@@ -790,7 +790,7 @@ impl Box {
         display_list.push(BorderDisplayItemClass(border_display_item));
 
         // Draw a rectangle representing the baselines.
-        let ascent = text_box.run.metrics_for_range(&text_box.range).ascent;
+        let ascent = text_box.run.ascent();
         let baseline = Rect(absolute_box_bounds.origin + Point2D(Au(0), ascent),
                             Size2D(absolute_box_bounds.size.width, Au(0)));
 
@@ -1215,21 +1215,20 @@ impl Box {
 
                 let left_box = if left_range.length() > CharIndex(0) {
                     let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run.clone(), left_range);
-                    let mut new_metrics = new_text_box_info.run.metrics_for_range(&left_range);
-                    new_metrics.bounding_box.size.height = self.border_box.size.height;
-                    Some(self.transform(new_metrics.bounding_box.size,
-                                        ScannedTextBox(new_text_box_info)))
+                    let width = new_text_box_info.run.advance_for_range(&left_range);
+                    let height = self.border_box.size.height;
+                    let size = Size2D(width, height);
+                    Some(self.transform(size, ScannedTextBox(new_text_box_info)))
                 } else {
                     None
                 };
 
-                let right_box = right_range.map_or(None, |range: Range<CharIndex>| {
-                    let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run.clone(),
-                                                                    range);
-                    let mut new_metrics = new_text_box_info.run.metrics_for_range(&range);
-                    new_metrics.bounding_box.size.height = self.border_box.size.height;
-                    Some(self.transform(new_metrics.bounding_box.size,
-                                        ScannedTextBox(new_text_box_info)))
+                let right_box = right_range.map_or(None, |right_range: Range<CharIndex>| {
+                    let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run.clone(), right_range);
+                    let width = new_text_box_info.run.advance_for_range(&right_range);
+                    let height = self.border_box.size.height;
+                    let size = Size2D(width, height);
+                    Some(self.transform(size, ScannedTextBox(new_text_box_info)))
                 });
 
                 if pieces_processed_count == 1 || left_box.is_none() {

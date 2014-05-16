@@ -18,6 +18,7 @@ use geom::{Point2D, Rect, SideOffsets2D, Size2D};
 use gfx::display_list::ContentLevel;
 use gfx::font::FontMetrics;
 use gfx::font_context::FontContext;
+use gfx::text::glyph::CharIndex;
 use servo_util::geometry::Au;
 use servo_util::geometry;
 use servo_util::range;
@@ -58,81 +59,80 @@ use sync::Arc;
 /// left corner of the green zone is the same as that of the line, but
 /// the green zone can be taller and wider than the line itself.
 pub struct LineBox {
-    /// Consider the following HTML and rendered element with linebreaks:
-    ///
-    /// ~~~html
-    /// <span>I <span>like truffles,</span> yes I do.</span>
-    /// ~~~
-    ///
-    /// ~~~
-    /// +-----------+
-    /// | I like    |
-    /// | truffles, |
-    /// | yes I do. |
-    /// +-----------+
-    /// ~~~
-    ///
-    /// The ranges that describe these lines would be:
-    ///
-    /// ~~~
-    /// | [0.0, 1.4) | [1.5, 2.0)  | [2.1, 3.0)  |
-    /// |------------|-------------|-------------|
-    /// | 'I like'   | 'truffles,' | 'yes I do.' |
-    /// ~~~
     pub range: Range<LineIndices>,
     pub bounds: Rect<Au>,
     pub green_zone: Size2D<Au>
 }
 
 int_range_index! {
-    #[doc = "The index of a box fragment into the flattened vector of DOM"]
-    #[doc = "elements."]
-    #[doc = ""]
-    #[doc = "For example, given the HTML below:"]
-    #[doc = ""]
-    #[doc = "~~~"]
-    #[doc = "<span>I <span>like      truffles,</span> yes I do.</span>"]
-    #[doc = "~~~"]
-    #[doc = ""]
-    #[doc = "The fragments would be indexed as follows:"]
-    #[doc = ""]
-    #[doc = "~~~"]
-    #[doc = "|  0   |        1         |       2      |"]
-    #[doc = "|------|------------------|--------------|"]
-    #[doc = "| 'I ' | 'like truffles,' | ' yes I do.' |"]
-    #[doc = "~~~"]
+    #[doc = "The index of a box fragment in a flattened vector of DOM elements."]
     struct FragmentIndex(int)
-}
-
-int_range_index! {
-    #[doc = "The index of a glyph in a single DOM fragment. Ligatures and"]
-    #[doc = "continuous runs of whitespace are treated as single glyphs."]
-    #[doc = "Non-breakable DOM fragments such as images are treated as"]
-    #[doc = "having a range length of `1`."]
-    #[doc = ""]
-    #[doc = "For example, given the HTML below:"]
-    #[doc = ""]
-    #[doc = "~~~"]
-    #[doc = "<span>like      truffles,</span>"]
-    #[doc = "~~~"]
-    #[doc = ""]
-    #[doc = "The glyphs would be indexed as follows:"]
-    #[doc = ""]
-    #[doc = "~~~"]
-    #[doc = "| 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 |  8  | 9 | 10 | 11 |"]
-    #[doc = "|---|---|---|---|---|---|---|---|-----|---|----|----|"]
-    #[doc = "| l | i | k | e |   | t | r | u | ffl | e | s  | ,  |"]
-    #[doc = "~~~"]
-    struct GlyphIndex(int)
 }
 
 /// A line index consists of two indices: a fragment index that refers to the
 /// index of a DOM fragment within a flattened inline element; and a glyph index
 /// where the 0th glyph refers to the first glyph of that fragment.
+///
+/// For example, consider the following HTML and rendered element with
+/// linebreaks:
+///
+/// ~~~html
+/// <span>I <span>like truffles,</span> yes I do.</span>
+/// ~~~
+///
+/// ~~~
+/// +-----------+
+/// | I like    |
+/// | truffles, |
+/// | yes I do. |
+/// +-----------+
+/// ~~~
+///
+/// The ranges that describe these lines would be:
+///
+/// ~~~
+/// | [0.0, 1.4) | [1.5, 2.0)  | [2.1, 3.0)  |
+/// |------------|-------------|-------------|
+/// | 'I like'   | 'truffles,' | 'yes I do.' |
+/// ~~~
 #[deriving(Clone, Eq, Ord, TotalEq, TotalOrd, Zero)]
 pub struct LineIndices {
+    /// The index of a box fragment into the flattened vector of DOM
+    /// elements.
+    ///
+    /// For example, given the HTML below:
+    ///
+    /// ~~~
+    /// <span>I <span>like      truffles,</span> yes I do.</span>
+    /// ~~~
+    ///
+    /// The fragments would be indexed as follows:
+    ///
+    /// ~~~
+    /// |  0   |        1         |       2      |
+    /// |------|------------------|--------------|
+    /// | 'I ' | 'like truffles,' | ' yes I do.' |
+    /// ~~~
     pub fragment_index: FragmentIndex,
-    pub glyph_index: GlyphIndex,
+
+    /// The index of a character in a DOM fragment. Ligatures and continuous
+    /// runs of whitespace are treated as single characters. Non-breakable DOM
+    /// fragments such as images are treated as having a range length of `1`.
+    ///
+    /// For example, given the HTML below:
+    ///
+    /// ~~~
+    /// <span>like      truffles,</span>
+    /// ~~~
+    ///
+    /// The characters would be indexed as follows:
+    ///
+    /// ~~~
+    /// | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 |
+    /// |---|---|---|---|---|---|---|---|---|---|----|----|----|----|
+    /// | l | i | k | e |   | t | r | u | f | f | l  | e  | s  | ,  |
+    /// ~~~
+    pub char_index: CharIndex,
 }
 
 impl RangeIndex for LineIndices {}
@@ -141,14 +141,14 @@ impl Add<LineIndices, LineIndices> for LineIndices {
     fn add(&self, other: &LineIndices) -> LineIndices {
         // TODO: use debug_assert! after rustc upgrade
         if cfg!(not(ndebug)) {
-            assert!(other.fragment_index == num::zero() || other.glyph_index == num::zero(),
+            assert!(other.fragment_index == num::zero() || other.char_index == num::zero(),
                     "Attempted to add {} to {}. Both the fragment_index and \
-                     glyph_index of the RHS are non-zero. This probably \
-                     was a mistake!", self, other);
+                     char_index of the RHS are non-zero. This probably was a \
+                     mistake!", self, other);
         }
         LineIndices {
             fragment_index: self.fragment_index + other.fragment_index,
-            glyph_index: self.glyph_index + other.glyph_index,
+            char_index: self.char_index + other.char_index,
         }
     }
 }
@@ -157,14 +157,14 @@ impl Sub<LineIndices, LineIndices> for LineIndices {
     fn sub(&self, other: &LineIndices) -> LineIndices {
         // TODO: use debug_assert! after rustc upgrade
         if cfg!(not(ndebug)) {
-            assert!(other.fragment_index == num::zero() || other.glyph_index == num::zero(),
-                    "Attempted to subtract {} from {}. Both the \
-                     fragment_index and glyph_index of the RHS are non-zero. \
-                     This probably was a mistake!", self, other);
+            assert!(other.fragment_index == num::zero() || other.char_index == num::zero(),
+                    "Attempted to subtract {} from {}. Both the fragment_index \
+                     and char_index of the RHS are non-zero. This probably was \
+                     a mistake!", self, other);
         }
         LineIndices {
             fragment_index: self.fragment_index - other.fragment_index,
-            glyph_index: self.glyph_index - other.glyph_index,
+            char_index: self.char_index - other.char_index,
         }
     }
 }
@@ -173,21 +173,21 @@ impl Neg<LineIndices> for LineIndices {
     fn neg(&self) -> LineIndices {
         // TODO: use debug_assert! after rustc upgrade
         if cfg!(not(ndebug)) {
-            assert!(self.fragment_index == num::zero() || self.glyph_index == num::zero(),
+            assert!(self.fragment_index == num::zero() || self.char_index == num::zero(),
                     "Attempted to negate {}. Both the fragment_index and \
-                     glyph_index are non-zero. This probably was a mistake!",
+                     char_index are non-zero. This probably was a mistake!",
                      self);
         }
         LineIndices {
             fragment_index: -self.fragment_index,
-            glyph_index: -self.glyph_index,
+            char_index: -self.char_index,
         }
     }
 }
 
 impl fmt::Show for LineIndices {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f.buf, "{}.{}", self.fragment_index, self.glyph_index)
+        write!(f.buf, "{}.{}", self.fragment_index, self.char_index)
     }
 }
 
@@ -195,8 +195,8 @@ pub fn each_fragment_index(range: &Range<LineIndices>) -> EachIndex<int, Fragmen
     range::each_index(range.begin().fragment_index, range.length().fragment_index)
 }
 
-pub fn each_glyph_index(range: &Range<LineIndices>) -> EachIndex<int, GlyphIndex> {
-    range::each_index(range.begin().glyph_index, range.length().glyph_index)
+pub fn each_char_index(range: &Range<LineIndices>) -> EachIndex<int, CharIndex> {
+    range::each_index(range.begin().char_index, range.length().char_index)
 }
 
 struct LineboxScanner {
@@ -331,7 +331,6 @@ impl LineboxScanner {
         let first_box_size = first_box.border_box.size;
         let splittable = first_box.can_split();
         debug!("LineboxScanner: box size: {}, splittable: {}", first_box_size, splittable);
-        let line_is_empty: bool = self.pending_line.range.length() == num::zero();
 
         // Initally, pretend a splittable box has 0 width.
         // We will move it later if it has nonzero width
@@ -342,7 +341,7 @@ impl LineboxScanner {
             first_box_size.width
         };
 
-        let mut info = PlacementInfo {
+        let info = PlacementInfo {
             size: Size2D(placement_width, first_box_size.height),
             ceiling: ceiling,
             max_width: flow.base.position.size.width,
@@ -368,48 +367,8 @@ impl LineboxScanner {
             return (line_bounds, first_box_size.width);
         }
 
-        // Otherwise, try and split the box
-        // FIXME(eatkinson): calling split_to_width here seems excessive and expensive.
-        // We should find a better abstraction or merge it with the call in
-        // try_append_to_line.
-        match first_box.split_to_width(line_bounds.size.width, line_is_empty) {
-            CannotSplit => {
-                error!("LineboxScanner: Tried to split unsplittable render box! {}",
-                        first_box);
-                return (line_bounds, first_box_size.width);
-            }
-            SplitDidFit(left, right) => {
-
-                debug!("LineboxScanner: case=box split and fit");
-                let actual_box_width = match (left, right) {
-                    (Some(l_box), Some(_))  => l_box.border_box.size.width,
-                    (Some(l_box), None)     => l_box.border_box.size.width,
-                    (None, Some(r_box))     => r_box.border_box.size.width,
-                    (None, None)            => fail!("This case makes no sense.")
-                };
-                return (line_bounds, actual_box_width);
-            }
-            SplitDidNotFit(left, right) => {
-                // The split didn't fit, but we might be able to
-                // push it down past floats.
-
-
-                debug!("LineboxScanner: case=box split and fit didn't fit; trying to push it down");
-                let actual_box_width = match (left, right) {
-                    (Some(l_box), Some(_))  => l_box.border_box.size.width,
-                    (Some(l_box), None)     => l_box.border_box.size.width,
-                    (None, Some(r_box))     => r_box.border_box.size.width,
-                    (None, None)            => fail!("This case makes no sense.")
-                };
-
-                info.size.width = actual_box_width;
-                let new_bounds = self.floats.place_between_floats(&info);
-
-                debug!("LineboxScanner: case=new line position: {}", new_bounds);
-                return (new_bounds, actual_box_width);
-            }
-        }
-
+        debug!("LineboxScanner: used to call split_to_width here");
+        return (line_bounds, first_box_size.width);
     }
 
     /// Performs float collision avoidance. This is called when adding a box is going to increase
@@ -587,14 +546,14 @@ impl LineboxScanner {
             self.pending_line.range.reset(
                 LineIndices {
                     fragment_index: FragmentIndex(self.new_boxes.len() as int),
-                    glyph_index: GlyphIndex(0) /* unused for now */,
+                    char_index: CharIndex(0) /* unused for now */,
                 },
                 num::zero()
             );
         }
         self.pending_line.range.extend_by(LineIndices {
             fragment_index: FragmentIndex(1),
-            glyph_index: GlyphIndex(0) /* unused for now */ ,
+            char_index: CharIndex(0) /* unused for now */ ,
         });
         self.pending_line.bounds.size.width = self.pending_line.bounds.size.width +
             box_.border_box.size.width;
