@@ -192,11 +192,11 @@ impl fmt::Show for LineIndices {
 }
 
 pub fn each_fragment_index(range: &Range<LineIndices>) -> EachIndex<int, FragmentIndex> {
-    range::each_index(range.begin().fragment_index, range.length().fragment_index)
+    range::each_index(range.begin().fragment_index, range.end().fragment_index)
 }
 
 pub fn each_char_index(range: &Range<LineIndices>) -> EachIndex<int, CharIndex> {
-    range::each_index(range.begin().char_index, range.length().char_index)
+    range::each_index(range.begin().char_index, range.end().char_index)
 }
 
 struct LineboxScanner {
