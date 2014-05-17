@@ -70,3 +70,4 @@
 == background_repeat_both_a.html background_repeat_both_b.html
 == setattribute_id_restyle_a.html setattribute_id_restyle_b.html
 == pseudo_element_a.html pseudo_element_b.html
+== linebreak_simple_a.html linebreak_simple_b.html
