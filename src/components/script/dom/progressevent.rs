@@ -3,11 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::BindingDeclarations::ProgressEventBinding;
-use dom::bindings::codegen::InheritTypes::ProgressEventDerived;
+use dom::bindings::codegen::InheritTypes::{EventCast, ProgressEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::event::{Event, ProgressEventTypeId};
+use dom::event::{Event, EventMethods, ProgressEventTypeId};
 use dom::window::Window;
 use servo_util::str::DOMString;
 
@@ -34,17 +34,24 @@ impl ProgressEvent {
             total: total
         }
     }
-    pub fn new(window: &JSRef<Window>, length_computable: bool,
-                loaded: u64, total: u64) -> Temporary<ProgressEvent> {
-        reflect_dom_object(~ProgressEvent::new_inherited(length_computable, loaded, total),
-                           window,
-                           ProgressEventBinding::Wrap)
+    pub fn new(window: &JSRef<Window>, type_: DOMString,
+               can_bubble: bool, cancelable: bool,
+               length_computable: bool, loaded: u64, total: u64) -> Temporary<ProgressEvent> {
+        let mut ev = reflect_dom_object(~ProgressEvent::new_inherited(length_computable, loaded, total),
+                                        window,
+                                        ProgressEventBinding::Wrap).root();
+        {
+            let event: &mut JSRef<Event> = EventCast::from_mut_ref(&mut *ev);
+            event.InitEvent(type_, can_bubble, cancelable);
+        }
+        Temporary::from_rooted(&*ev)
     }
     pub fn Constructor(owner: &JSRef<Window>,
-                       _type: DOMString,
+                       type_: DOMString,
                        init: &ProgressEventBinding::ProgressEventInit)
                        -> Fallible<Temporary<ProgressEvent>> {
-        let ev = ProgressEvent::new(owner, init.lengthComputable, init.loaded, init.total);
+        let ev = ProgressEvent::new(owner, type_, init.parent.bubbles, init.parent.cancelable,
+                                    init.lengthComputable, init.loaded, init.total);
         Ok(ev)
     }
 }
