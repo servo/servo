@@ -186,9 +186,7 @@ impl Profiler {
         println!("{:39s} {:15s} {:15s} {:15s} {:15s} {:15s}",
                  "_category_", "_mean (ms)_", "_median (ms)_",
                  "_min (ms)_", "_max (ms)_", "_bucket size_");
-        for (category, data) in self.buckets.iter() {
-            // FIXME(XXX): TreeMap currently lacks mut_iter()
-            let mut data = data.clone();
+        for (category, data) in self.buckets.mut_iter() {
             data.sort_by(|a, b| {
                 if a < b {
                     Less
