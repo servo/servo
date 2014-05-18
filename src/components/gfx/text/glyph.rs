@@ -358,9 +358,7 @@ impl<'a> DetailedGlyphStore {
             detail_offset: 0, // unused
         };
 
-        // FIXME: This is a workaround for borrow of self.detail_lookup not getting inferred.
-        let records : &[DetailedGlyphRecord] = self.detail_lookup.as_slice();
-        match records.binary_search_index(&key) {
+        match self.detail_lookup.as_slice().binary_search_index(&key) {
             None => fail!("Invalid index not found in detailed glyph lookup table!"),
             Some(i) => {
                 assert!(i + (count as uint) <= self.detail_buffer.len());
@@ -382,9 +380,7 @@ impl<'a> DetailedGlyphStore {
             detail_offset: 0, // unused
         };
 
-        // FIXME: This is a workaround for borrow of self.detail_lookup not getting inferred.
-        let records: &[DetailedGlyphRecord] = self.detail_lookup.as_slice();
-        match records.binary_search_index(&key) {
+        match self.detail_lookup.as_slice().binary_search_index(&key) {
             None => fail!("Invalid index not found in detailed glyph lookup table!"),
             Some(i) => {
                 assert!(i + (detail_offset as uint)  < self.detail_buffer.len());
