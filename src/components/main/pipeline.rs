@@ -45,7 +45,7 @@ impl Pipeline {
     /// Starts a render task, layout task, and script task. Returns the channels wrapped in a
     /// struct.
     pub fn with_script(id: PipelineId,
-                       subpage_id: Option<SubpageId>,
+                       subpage_id: SubpageId,
                        constellation_chan: ConstellationChan,
                        compositor_chan: CompositorChan,
                        image_cache_task: ImageCacheTask,
@@ -61,7 +61,7 @@ impl Pipeline {
 
         let failure = Failure {
             pipeline_id: id,
-            subpage_id: subpage_id,
+            subpage_id: Some(subpage_id),
         };
 
         RenderTask::create(id,
@@ -86,8 +86,9 @@ impl Pipeline {
                            layout_shutdown_chan);
 
         let new_layout_info = NewLayoutInfo {
-            old_id: script_pipeline.id.clone(),
-            new_id: id,
+            old_pipeline_id: script_pipeline.id.clone(),
+            new_pipeline_id: id,
+            subpage_id: subpage_id,
             layout_chan: layout_chan.clone(),
         };
 
@@ -95,7 +96,7 @@ impl Pipeline {
         chan.send(AttachLayoutMsg(new_layout_info));
 
         Pipeline::new(id,
-                      subpage_id,
+                      Some(subpage_id),
                       script_pipeline.script_chan.clone(),
                       layout_chan,
                       render_chan,
