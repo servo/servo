@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use css::node_style::StyledNode;
-use layout::box_::{Box, CannotSplit, SplitDidFit, SplitDidNotFit};
+use layout::box_::Box;
 use layout::context::LayoutContext;
 use layout::floats::{FloatLeft, Floats, PlacementInfo};
 use layout::flow::{BaseFlow, FlowClass, Flow, InlineFlowClass};
@@ -425,19 +425,16 @@ impl LineboxScanner {
         } else {
             // In case of box includes new-line character
             match in_box.split_by_new_line() {
-                SplitDidFit(left, right) => {
-                    match (left, right) {
-                        (Some(left_box), Some(right_box)) => {
-                            self.push_box_to_line(left_box);
-                            self.work_list.push_front(right_box);
-                        }
-                        (Some(left_box), None) => {
-                            self.push_box_to_line(left_box);
-                        }
-                        _ => error!("LineboxScanner: This split case makes no sense!"),
-                    }
-                }
-                _ => {}
+                Some((left_box, Some(right_box))) => {
+                    self.push_box_to_line(left_box);
+                    self.work_list.push_front(right_box);
+                },
+                Some((left_box, None)) => {
+                    self.push_box_to_line(left_box);
+                },
+                None => {
+                    error!("LineboxScanner: This split case makes no sense!")
+                },
             }
             false
         }
@@ -496,29 +493,15 @@ impl LineboxScanner {
 
         let available_width = green_zone.width - self.pending_line.bounds.size.width;
         let split = in_box.split_to_width(available_width, line_is_empty);
-        let (left, right) = match (split, line_is_empty) {
-            (CannotSplit, _) => {
+        let (left, right) = match split {
+            None => {
                 debug!("LineboxScanner: Tried to split unsplittable render box! {}",
                         in_box);
                 self.work_list.push_front(in_box);
                 return false
             }
-            (SplitDidNotFit(_, _), false) => {
-                debug!("LineboxScanner: case=split box didn't fit, not appending and deferring \
-                        original box.");
-                self.work_list.push_front(in_box);
-                return false
-            }
-            (SplitDidFit(left, right), _) => {
+            Some((left, right)) => {
                 debug!("LineboxScanner: case=split box did fit; deferring remainder box.");
-                (left, right)
-                // Fall through to push boxes to the line.
-            }
-            (SplitDidNotFit(left, right), true) => {
-                // TODO(eatkinson, issue #224): Signal that horizontal overflow happened?
-                debug!("LineboxScanner: case=split box didn't fit and line {:u} is empty, so \
-                        overflowing and deferring remainder box.",
-                        self.lines.len());
                 (left, right)
                 // Fall though to push boxes to the line.
             }

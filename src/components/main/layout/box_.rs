@@ -266,16 +266,6 @@ impl UnscannedTextBoxInfo {
     }
 }
 
-/// Represents the outcome of attempting to split a box.
-pub enum SplitBoxResult {
-    CannotSplit,
-    // in general, when splitting the left or right side can
-    // be zero length, due to leading/trailing trimmable whitespace
-    SplitDidFit(Option<Box>, Option<Box>),
-    SplitDidNotFit(Option<Box>, Option<Box>)
-}
-
-
 /// A box that represents a table column.
 #[deriving(Clone)]
 pub struct TableColumnBoxInfo {
@@ -1097,10 +1087,10 @@ impl Box {
     }
 
     /// Split box which includes new-line character
-    pub fn split_by_new_line(&self) -> SplitBoxResult {
+    pub fn split_by_new_line(&self) -> Option<(Box, Option<Box>)> {
         match self.specific {
             GenericBox | IframeBox(_) | ImageBox(_) | TableBox | TableCellBox |
-            TableRowBox | TableWrapperBox => CannotSplit,
+            TableRowBox | TableWrapperBox => None,
             TableColumnBox(_) => fail!("Table column boxes do not need to split"),
             UnscannedTextBox(_) => fail!("Unscanned text boxes should have been scanned by now!"),
             ScannedTextBox(ref text_box_info) => {
@@ -1117,7 +1107,7 @@ impl Box {
                     let new_metrics = new_text_box_info.run.metrics_for_range(&left_range);
                     let mut new_box = self.transform(new_metrics.bounding_box.size, ScannedTextBox(new_text_box_info));
                     new_box.new_line_pos = vec!();
-                    Some(new_box)
+                    new_box
                 };
 
                 // Right box is for right text of first founded new-line character.
@@ -1131,16 +1121,16 @@ impl Box {
                     None
                 };
 
-                SplitDidFit(left_box, right_box)
+                Some((left_box, right_box))
             }
         }
     }
 
     /// Attempts to split this box so that its width is no more than `max_width`.
-    pub fn split_to_width(&self, max_width: Au, starts_line: bool) -> SplitBoxResult {
+    pub fn split_to_width(&self, max_width: Au, starts_line: bool) -> Option<(Option<Box>, Option<Box>)> {
         match self.specific {
             GenericBox | IframeBox(_) | ImageBox(_) | TableBox | TableCellBox |
-            TableRowBox | TableWrapperBox => CannotSplit,
+            TableRowBox | TableWrapperBox => None,
             TableColumnBox(_) => fail!("Table column boxes do not have width"),
             UnscannedTextBox(_) => fail!("Unscanned text boxes should have been scanned by now!"),
             ScannedTextBox(ref text_box_info) => {
@@ -1231,10 +1221,10 @@ impl Box {
                     Some(self.transform(size, ScannedTextBox(new_text_box_info)))
                 });
 
-                if pieces_processed_count == 1 || left_box.is_none() {
-                    SplitDidNotFit(left_box, right_box)
+                if (pieces_processed_count == 1 || left_box.is_none()) && !starts_line {
+                    None
                 } else {
-                    SplitDidFit(left_box, right_box)
+                    Some((left_box, right_box))
                 }
             }
         }
