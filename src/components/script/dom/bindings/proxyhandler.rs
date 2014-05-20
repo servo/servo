@@ -3,9 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::utils::is_dom_proxy;
+use dom::bindings::conversions::ToJSValConvertible;
 use js::jsapi::{JSContext, jsid, JSPropertyDescriptor, JSObject, JSString, jschar};
 use js::jsapi::{JS_GetPropertyDescriptorById, JS_NewUCString, JS_malloc, JS_free};
-use js::jsapi::{JSBool, JS_DefinePropertyById, JS_NewObjectWithGivenProto};
+use js::jsapi::{JSBool, JS_DefinePropertyById, JS_DeletePropertyById2, JS_NewObjectWithGivenProto};
 use js::jsapi::JS_StrictPropertyStub;
 use js::jsval::ObjectValue;
 use js::glue::GetProxyExtra;
@@ -71,6 +72,18 @@ pub fn defineProperty_(cx: *JSContext, proxy: *JSObject, id: jsid,
 pub extern fn defineProperty(cx: *JSContext, proxy: *JSObject, id: jsid,
                              desc: *JSPropertyDescriptor) -> JSBool {
     defineProperty_(cx, proxy, id, desc)
+}
+
+pub extern fn delete_(cx: *JSContext, proxy: *JSObject, id: jsid,
+               bp: *bool) -> JSBool {
+    unsafe {
+        let expando = EnsureExpandoObject(cx, proxy);
+        if expando.is_null() {
+            return 0;
+        }
+
+        return JS_DeletePropertyById2(cx, expando, id, &(*bp).to_jsval(cx));
+    }
 }
 
 pub fn _obj_toString(cx: *JSContext, className: *libc::c_char) -> *JSString {
