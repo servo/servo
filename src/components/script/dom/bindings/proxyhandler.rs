@@ -10,7 +10,8 @@ use js::jsapi::{JS_GetPropertyDescriptorById, JS_NewUCString, JS_malloc, JS_free
 use js::jsapi::{JSBool, JS_DefinePropertyById, JS_NewObjectWithGivenProto};
 use js::jsapi::{JS_ReportErrorFlagsAndNumber, JS_StrictPropertyStub};
 use js::jsapi::{JSREPORT_WARNING, JSREPORT_STRICT, JSREPORT_STRICT_MODE_ERROR};
-use js::jsval::ObjectValue;
+use js::jsapi::JS_DeletePropertyById2;
+use js::jsval::{UndefinedValue, ObjectValue};
 use js::glue::GetProxyExtra;
 use js::glue::{GetObjectProto, GetObjectParent, SetProxyExtra, GetProxyHandler};
 use js::glue::InvokeGetOwnPropertyDescriptor;
@@ -76,6 +77,24 @@ pub fn defineProperty_(cx: *mut JSContext, proxy: *mut JSObject, id: jsid,
 pub extern fn defineProperty(cx: *mut JSContext, proxy: *mut JSObject, id: jsid,
                              desc: *JSPropertyDescriptor) -> JSBool {
     defineProperty_(cx, proxy, id, desc)
+}
+
+pub extern fn delete_(cx: *mut JSContext, proxy: *mut JSObject, id: jsid,
+                      bp: *mut bool) -> JSBool {
+    unsafe {
+        let expando = EnsureExpandoObject(cx, proxy);
+        if expando.is_null() {
+            return 0;
+        }
+
+        let mut value = UndefinedValue();
+        if JS_DeletePropertyById2(cx, expando, id, &mut value) == 0 {
+            return 0;
+        }
+
+        *bp = value.to_boolean();
+        return 1;
+    }
 }
 
 pub fn _obj_toString(cx: *mut JSContext, className: *libc::c_char) -> *mut JSString {
