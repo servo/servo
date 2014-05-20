@@ -41,6 +41,7 @@
 
 use dom::bindings::utils::{Reflector, Reflectable, cx_for_dom_object};
 use dom::node::Node;
+use dom::xmlhttprequest::{XMLHttpRequest, TrustedXHRAddress};
 use js::jsapi::{JSObject, JS_AddObjectRoot, JS_RemoveObjectRoot};
 use layout_interface::TrustedNodeAddress;
 use script_task::StackRoots;
@@ -137,6 +138,15 @@ impl JS<Node> {
         let TrustedNodeAddress(addr) = inner;
         JS {
             ptr: RefCell::new(addr as *mut Node)
+        }
+    }
+}
+
+impl JS<XMLHttpRequest> {
+    pub unsafe fn from_trusted_xhr_address(inner: TrustedXHRAddress) -> JS<XMLHttpRequest> {
+        let TrustedXHRAddress(addr) = inner;
+        JS {
+            ptr: RefCell::new(addr as *mut XMLHttpRequest)
         }
     }
 }

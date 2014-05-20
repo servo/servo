@@ -32,7 +32,7 @@ fn parse_css(provenance: StylesheetProvenance) -> Stylesheet {
             debug!("cssparse: loading style sheet at {:s}", url.to_str());
             let (input_chan, input_port) = channel();
             resource_task.send(Load(url, input_chan));
-            let LoadResponse { metadata: metadata, progress_port: progress_port }
+            let LoadResponse { metadata: metadata, progress_port: progress_port , ..}
                 = input_port.recv();
             let final_url = &metadata.final_url;
             let protocol_encoding_label = metadata.charset.as_ref().map(|s| s.as_slice());

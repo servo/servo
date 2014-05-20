@@ -40,8 +40,8 @@ interface XMLHttpRequest : XMLHttpRequestEventTarget {
   // request
   [Throws]
   void open(ByteString method, /* [EnsureUTF16] */ DOMString url);
-
-  // void open(ByteString method, /* [EnsureUTF16] */ DOMString url, boolean async, optional /* [EnsureUTF16] */ DOMString? username = null, optional /* [EnsureUTF16] */ DOMString? password = null);
+  [Throws]
+  void open(ByteString method, /* [EnsureUTF16] */ DOMString url, boolean async, optional /* [EnsureUTF16] */ DOMString? username = null, optional /* [EnsureUTF16] */ DOMString? password = null);
 
   // void setRequestHeader(ByteString name, ByteString value);
            attribute unsigned long timeout;
@@ -56,7 +56,7 @@ interface XMLHttpRequest : XMLHttpRequestEventTarget {
   readonly attribute unsigned short status;
   readonly attribute ByteString statusText;
   // ByteString? getResponseHeader(ByteString name);
-  // ByteString getAllResponseHeaders();
+  ByteString getAllResponseHeaders();
   // void overrideMimeType(DOMString mime);
            attribute XMLHttpRequestResponseType responseType;
   readonly attribute any response;

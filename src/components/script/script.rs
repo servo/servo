@@ -20,6 +20,7 @@ extern crate collections;
 extern crate geom;
 extern crate hubbub;
 extern crate encoding;
+extern crate http;
 extern crate js;
 extern crate libc;
 extern crate native;
