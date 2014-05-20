@@ -573,7 +573,7 @@ impl Constellation {
             debug!("Constellation: loading same-origin iframe at {:?}", url);
             // Reuse the script task if same-origin url's
             Pipeline::with_script(next_pipeline_id,
-                                  Some(subpage_id),
+                                  subpage_id,
                                   self.chan.clone(),
                                   self.compositor_chan.clone(),
                                   self.image_cache_task.clone(),

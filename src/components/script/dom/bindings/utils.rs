@@ -37,6 +37,7 @@ use js::jsapi::{JSContext, JSObject, JSBool, jsid, JSClass, JSNative};
 use js::jsapi::{JSFunctionSpec, JSPropertySpec};
 use js::jsapi::{JS_NewGlobalObject, JS_InitStandardClasses};
 use js::jsapi::{JSString};
+use js::jsfriendapi::JS_ObjectToOuterObject;
 use js::jsfriendapi::bindgen::JS_NewObjectWithUniqueType;
 use js::jsval::JSVal;
 use js::jsval::{PrivateValue, ObjectValue, NullValue, ObjectOrNullValue};
@@ -594,19 +595,14 @@ pub fn CreateDOMGlobal(cx: *JSContext, class: *JSClass) -> *JSObject {
 
 pub extern fn wrap_for_same_compartment(cx: *JSContext, obj: *JSObject) -> *JSObject {
     unsafe {
-        let clasp = JS_GetClass(obj);
-        let clasp = clasp as *js::Class;
-        match (*clasp).ext.outerObject {
-            Some(outerize) => {
-                debug!("found an outerize hook");
-                let obj = JSHandleObject { unnamed: &obj };
-                outerize(cx, obj)
-            }
-            None => {
-                debug!("no outerize hook found");
-                obj
-            }
-        }
+        JS_ObjectToOuterObject(cx as *mut _, obj as *mut _) as *_
+    }
+}
+
+pub extern fn pre_wrap(cx: *mut JSContext, _scope: *mut JSObject,
+                       obj: *mut JSObject, _flags: c_uint) -> *mut JSObject {
+    unsafe {
+        JS_ObjectToOuterObject(cx, obj)
     }
 }
 
