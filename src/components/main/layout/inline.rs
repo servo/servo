@@ -492,32 +492,35 @@ impl LineboxScanner {
         }
 
         let available_width = green_zone.width - self.pending_line.bounds.size.width;
-        let split = in_box.split_to_width(available_width, line_is_empty);
-        let (left, right) = match split {
+        match in_box.split_to_width(available_width, line_is_empty) {
             None => {
-                debug!("LineboxScanner: Tried to split unsplittable render box! {}",
-                        in_box);
+                debug!("LineboxScanner: Tried to split unsplittable render box! Deferring to next \
+                       line. {}", in_box);
                 self.work_list.push_front(in_box);
-                return false
-            }
-            Some((left, right)) => {
-                debug!("LineboxScanner: case=split box did fit; deferring remainder box.");
-                (left, right)
-                // Fall though to push boxes to the line.
-            }
-        };
-
-        match (left, right) {
-            (Some(left_box), Some(right_box)) => {
+                false
+            },
+            Some((Some(left_box), Some(right_box))) => {
+                debug!("LineboxScanner: Line break found! Pushing left box to line and deferring \
+                       right box to next line.");
                 self.push_box_to_line(left_box);
                 self.work_list.push_front(right_box);
-            }
-            (Some(left_box), None) => self.push_box_to_line(left_box),
-            (None, Some(right_box)) => self.push_box_to_line(right_box),
-            (None, None) => error!("LineboxScanner: This split case makes no sense!"),
+                true
+            },
+            Some((Some(left_box), None)) => {
+                debug!("LineboxScanner: Pushing left box to line.");
+                self.push_box_to_line(left_box);
+                true
+            },
+            Some((None, Some(right_box))) => {
+                debug!("LineboxScanner: Pushing right box to line.");
+                self.push_box_to_line(right_box);
+                true
+            },
+            Some((None, None)) => {
+                error!("LineboxScanner: This split case makes no sense!");
+                true
+            },
         }
-
-        true
     }
 
     // An unconditional push
