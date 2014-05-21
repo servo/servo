@@ -1203,27 +1203,29 @@ impl Box {
                     }
                 }
 
-                let left_box = if left_range.length() > CharIndex(0) {
-                    let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run.clone(), left_range);
-                    let width = new_text_box_info.run.advance_for_range(&left_range);
-                    let height = self.border_box.size.height;
-                    let size = Size2D(width, height);
-                    Some(self.transform(size, ScannedTextBox(new_text_box_info)))
-                } else {
-                    None
-                };
+                let left_is_some = left_range.length() > CharIndex(0);
 
-                let right_box = right_range.map_or(None, |right_range: Range<CharIndex>| {
-                    let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run.clone(), right_range);
-                    let width = new_text_box_info.run.advance_for_range(&right_range);
-                    let height = self.border_box.size.height;
-                    let size = Size2D(width, height);
-                    Some(self.transform(size, ScannedTextBox(new_text_box_info)))
-                });
-
-                if (pieces_processed_count == 1 || left_box.is_none()) && !starts_line {
+                if (pieces_processed_count == 1 || !left_is_some) && !starts_line {
                     None
                 } else {
+                    let left_box = if left_is_some {
+                        let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run.clone(), left_range);
+                        let width = new_text_box_info.run.advance_for_range(&left_range);
+                        let height = self.border_box.size.height;
+                        let size = Size2D(width, height);
+                        Some(self.transform(size, ScannedTextBox(new_text_box_info)))
+                    } else {
+                        None
+                    };
+
+                    let right_box = right_range.map(|right_range| {
+                        let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run.clone(), right_range);
+                        let width = new_text_box_info.run.advance_for_range(&right_range);
+                        let height = self.border_box.size.height;
+                        let size = Size2D(width, height);
+                        (self.transform(size, ScannedTextBox(new_text_box_info)))
+                    });
+
                     Some((left_box, right_box))
                 }
             }
