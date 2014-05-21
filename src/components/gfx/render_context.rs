@@ -159,6 +159,9 @@ impl<'a> RenderContext<'a>  {
             border_style::solid                        => {
                 self.draw_solid_border_segment(direction,bounds,border,color_select);
             }
+            border_style::double                       => {
+                self.draw_double_border_segment(direction, bounds, border, color_select);
+            }
             border_style::groove | border_style::ridge => {
                 self.draw_groove_ridge_border_segment(direction, bounds, border, color_select, style_select);
             }
@@ -181,6 +184,9 @@ impl<'a> RenderContext<'a>  {
             }
             border_style::solid                        => {
                 self.draw_solid_border_segment(Right,bounds,border,color);
+            }
+            border_style::double                       => {
+                self.draw_double_border_segment(Right, bounds, border, color);
             }
             border_style::groove | border_style::ridge => {
                 self.draw_groove_ridge_border_segment(Right, bounds, border, color, style);
@@ -327,6 +333,18 @@ impl<'a> RenderContext<'a>  {
 
     fn scale_color(&self, color: Color, scale_factor: f32) -> Color {
         return Color(color.r * scale_factor, color.g * scale_factor, color.b * scale_factor, color.a);
+    }
+
+    fn draw_double_border_segment(&self, direction: Direction, bounds: &Rect<Au>, border: SideOffsets2D<f32>, color: Color) {
+        let scaled_border       = SideOffsets2D::new((1.0/3.0) * border.top,
+                                                     (1.0/3.0) * border.right,
+                                                     (1.0/3.0) * border.bottom,
+                                                     (1.0/3.0) * border.left);
+        let inner_scaled_bounds = self.get_scaled_bounds(bounds, border, 2.0/3.0);
+        // draw the outer portion of the double border.
+        self.draw_solid_border_segment(direction, bounds, scaled_border, color);
+        // draw the inner portion of the double border.
+        self.draw_border_path(inner_scaled_bounds, direction, scaled_border, color);
     }
 
     fn draw_groove_ridge_border_segment(&self,
