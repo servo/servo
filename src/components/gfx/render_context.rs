@@ -191,6 +191,45 @@ impl<'a> RenderContext<'a>  {
         }
     }
 
+    fn draw_border_path(&self,
+                        bounds:   (Point2D<f32>, Point2D<f32>, Point2D<f32>, Point2D<f32>),
+                        direction: Direction,
+                        border:    SideOffsets2D<f32>,
+                        color:     Color) {
+        let (left_top, right_top, left_bottom, right_bottom) = bounds;
+        let draw_opts                                        = DrawOptions(1.0 , 0);
+        let path_builder                                     = self.draw_target.create_path_builder();
+         match direction {
+             Top    => {
+                 path_builder.move_to(left_top);
+                 path_builder.line_to(right_top);
+                 path_builder.line_to(right_top + Point2D(-border.right, border.top));
+                 path_builder.line_to(left_top + Point2D(border.left, border.top));
+             }
+             Left   => {
+                 path_builder.move_to(left_top);
+                 path_builder.line_to(left_top + Point2D(border.left, border.top));
+                 path_builder.line_to(left_bottom + Point2D(border.left, -border.bottom));
+                 path_builder.line_to(left_bottom);
+             }
+             Right  => {
+                 path_builder.move_to(right_top);
+                 path_builder.line_to(right_bottom);
+                 path_builder.line_to(right_bottom + Point2D(-border.right, -border.bottom));
+                 path_builder.line_to(right_top + Point2D(-border.right, border.top));
+             }
+             Bottom => {
+                 path_builder.move_to(left_bottom);
+                 path_builder.line_to(left_bottom + Point2D(border.left, -border.bottom));
+                 path_builder.line_to(right_bottom + Point2D(-border.right, -border.bottom));
+                 path_builder.line_to(right_bottom);
+             }
+         }
+         let path = path_builder.finish();
+         self.draw_target.fill(&path, &ColorPattern(color), &draw_opts);
+
+     }
+
     fn draw_dashed_border_segment(&self,
                                   direction: Direction,
                                   bounds:    &Rect<Au>,
@@ -264,7 +303,6 @@ impl<'a> RenderContext<'a>  {
                          bounds:        &Rect<Au>,
                          border:        SideOffsets2D<f32>,
                          shrink_factor: f32) -> (Point2D<f32>, Point2D<f32>, Point2D<f32>, Point2D<f32>) {
-
         let rect           = bounds.to_azure_rect();
         let scaled_border  = SideOffsets2D::new(shrink_factor * border.top,
                                                 shrink_factor * border.right,
@@ -284,8 +322,11 @@ impl<'a> RenderContext<'a>  {
                                                        -scaled_border.bottom);
         let scaled_right_bottom = right_bottom + Point2D(-scaled_border.right,
                                                         -scaled_border.bottom);
-
         return (scaled_left_top, scaled_right_top, scaled_left_bottom, scaled_right_bottom);
+    }
+
+    fn scale_color(&self, color: Color, scale_factor: f32) -> Color {
+        return Color(color.r * scale_factor, color.g * scale_factor, color.b * scale_factor, color.a);
     }
 
     fn draw_groove_ridge_border_segment(&self,
@@ -307,9 +348,7 @@ impl<'a> RenderContext<'a>  {
                 border_style::ridge  =>  false,
                 _                    => { assert!(false, "invalid border style"); false }
         };
-
         let darker_color               = self.scale_color(color, if is_groove { 1.0/3.0 } else { 2.0/3.0 });
-
         let (outer_color, inner_color) = match direction {
             Top    => if is_groove { (darker_color, color) } else { (color, darker_color) },
             Left   => if is_groove { (darker_color, color) } else { (color, darker_color) },
@@ -320,11 +359,6 @@ impl<'a> RenderContext<'a>  {
         self.draw_border_path(original_bounds, direction, scaled_border, outer_color);
         // inner portion of the border
         self.draw_border_path(inner_scaled_bounds, direction, scaled_border,  inner_color);
-
-    }
-
-    fn scale_color(&self, color: Color, scale_factor: f32) -> Color {
-        return Color(color.r * scale_factor, color.g * scale_factor, color.b * scale_factor, color.a);
     }
 
     fn draw_inset_outset_border_segment(&self,
@@ -338,7 +372,7 @@ impl<'a> RenderContext<'a>  {
                 border_style::outset =>  false,
                 _                    => { assert!(false, "invalid border style"); false }
         };
-            // original bounds as a 4 element tuple, with no scaling.
+        // original bounds as a 4 element tuple, with no scaling.
         let original_bounds = self.get_scaled_bounds(bounds, border, 0.0);
         // select and scale the color appropriately.
         let scaled_color    = match direction {
@@ -350,44 +384,6 @@ impl<'a> RenderContext<'a>  {
         self.draw_border_path(original_bounds, direction, border, scaled_color);
     }
 
-    fn draw_border_path(&self,
-                        bounds:   (Point2D<f32>, Point2D<f32>, Point2D<f32>, Point2D<f32>),
-                        direction: Direction,
-                        border:    SideOffsets2D<f32>,
-                        color:     Color) {
-        let (left_top, right_top, left_bottom, right_bottom) = bounds;
-        let draw_opts                                        = DrawOptions(1.0 , 0);
-        let path_builder                                     = self.draw_target.create_path_builder();
-         match direction {
-             Top    => {
-                 path_builder.move_to(left_top);
-                 path_builder.line_to(right_top);
-                 path_builder.line_to(right_top + Point2D(-border.right, border.top));
-                 path_builder.line_to(left_top + Point2D(border.left, border.top));
-             }
-             Left   => {
-                 path_builder.move_to(left_top);
-                 path_builder.line_to(left_top + Point2D(border.left, border.top));
-                 path_builder.line_to(left_bottom + Point2D(border.left, -border.bottom));
-                 path_builder.line_to(left_bottom);
-             }
-             Right  => {
-                 path_builder.move_to(right_top);
-                 path_builder.line_to(right_bottom);
-                 path_builder.line_to(right_bottom + Point2D(-border.right, -border.bottom));
-                 path_builder.line_to(right_top + Point2D(-border.right, border.top));
-             }
-             Bottom => {
-                 path_builder.move_to(left_bottom);
-                 path_builder.line_to(left_bottom + Point2D(border.left, -border.bottom));
-                 path_builder.line_to(right_bottom + Point2D(-border.right, -border.bottom));
-                 path_builder.line_to(right_bottom);
-             }
-         }
-         let path = path_builder.finish();
-         self.draw_target.fill(&path, &ColorPattern(color), &draw_opts);
-
-     }
 }
 
 trait ToAzureRect {
