@@ -306,9 +306,9 @@ impl<'a> RenderContext<'a>  {
     }
 
     fn get_scaled_bounds(&self,
-                         bounds        : &Rect<Au>,
-                         border        : SideOffsets2D<f32>,
-                         shrink_factor : f32) -> (Point2D<f32>, Point2D<f32>, Point2D<f32>, Point2D<f32>) {
+                         bounds:        &Rect<Au>,
+                         border:        SideOffsets2D<f32>,
+                         shrink_factor: f32) -> (Point2D<f32>, Point2D<f32>, Point2D<f32>, Point2D<f32>) {
 
         let rect           = bounds.to_azure_rect();
         let scaled_border  = SideOffsets2D::new(shrink_factor * border.top,
@@ -334,10 +334,10 @@ impl<'a> RenderContext<'a>  {
     }
 
     fn draw_groove_border_segment(&self,
-                                  direction : Direction,
-                                  bounds    : &Rect<Au>,
-                                  border    : SideOffsets2D<f32>,
-                                  color     : Color) {
+                                  direction: Direction,
+                                  bounds:    &Rect<Au>,
+                                  border:    SideOffsets2D<f32>,
+                                  color:     Color) {
         let rect         = bounds.to_azure_rect();
         let left_top     = Point2D(rect.origin.x, rect.origin.y);
         let right_top    = Point2D(rect.origin.x + rect.size.width, rect.origin.y);
@@ -414,10 +414,10 @@ impl<'a> RenderContext<'a>  {
     }
 
     fn draw_ridge_border_segment(&self,
-                                 direction : Direction,
-                                 bounds    : &Rect<Au>,
-                                 border    : SideOffsets2D<f32>,
-                                 color     : Color) {
+                                 direction: Direction,
+                                 bounds:    &Rect<Au>,
+                                 border:    SideOffsets2D<f32>,
+                                 color:     Color) {
         let rect         = bounds.to_azure_rect();
         let left_top     = Point2D(rect.origin.x, rect.origin.y);
         let right_top    = Point2D(rect.origin.x + rect.size.width, rect.origin.y);
@@ -536,21 +536,21 @@ impl<'a> RenderContext<'a>  {
      }
 
     fn draw_short_ended_path(&self,
-                             left_top     : Point2D<f32>,
-                             right_top    : Point2D<f32>,
-                             left_bottom  : Point2D<f32>,
-                             right_bottom : Point2D<f32>,
-                             direction    : Direction,
-                             border       : SideOffsets2D<f32>,
-                             color        : Color,
-                             short_end    : ShortEnd) {
+                             left_top:     Point2D<f32>,
+                             right_top:    Point2D<f32>,
+                             left_bottom:  Point2D<f32>,
+                             right_bottom: Point2D<f32>,
+                             direction:    Direction,
+                             border:       SideOffsets2D<f32>,
+                             color:        Color,
+                             short_end:    ShortEnd) {
 
         match direction {
             Top | Bottom => {
-                let left_border_short = match short_end { LeftShort | AllShort   => { border.left }
-                                                          _                      => { 0.0 }};
-                let right_border_short = match short_end { RightShort | AllShort => { border.right }
-                                                           _                     => { 0.0 }};
+                let left_border_short = match short_end { LeftShort | AllShort   => border.left,
+                                                          _                      => 0.0 };
+                let right_border_short = match short_end { RightShort | AllShort => border.right,
+                                                           _                     => 0.0 };
                 self.draw_square_border_path(left_top + Point2D(left_border_short, 0.0),
                                              right_top + Point2D(-right_border_short, 0.0),
                                              left_bottom + Point2D(left_border_short, 0.0),
@@ -563,10 +563,10 @@ impl<'a> RenderContext<'a>  {
                                              color);
             }
             Left | Right => {
-                let top_border_short    = match short_end { TopShort | AllShort    => { border.top }
-                                                            _                      => { 0.0 }};
-                let bottom_border_short = match short_end { BottomShort | AllShort => { border.bottom }
-                                                            _                      => { 0.0 }};
+                let top_border_short    = match short_end { TopShort | AllShort    => border.top,
+                                                            _                      => 0.0 };
+                let bottom_border_short = match short_end { BottomShort | AllShort => border.bottom,
+                                                            _                      => 0.0 };
 
                 self.draw_square_border_path(left_top + Point2D(0.0, top_border_short),
                                              right_top + Point2D(0.0, top_border_short),
