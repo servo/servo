@@ -41,7 +41,7 @@ use RequestHeaderCollection = http::headers::request::HeaderCollection;
 // As send() start accepting more and more parameter types,
 // change this to the appropriate type from UnionTypes, eg
 // use SendParam = dom::bindings::codegen::UnionTypes::StringOrFormData;
-type SendParam = DOMString;
+pub type SendParam = DOMString;
 
 #[deriving(Eq,Encodable)]
 pub enum XMLHttpRequestId {
@@ -310,7 +310,7 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
             return Err(InvalidState); // Step 1, 2
         }
 
-        let data = match self.request_method.to_lower().as_str() {
+        let _data = match self.request_method.to_lower().as_str() {
             Some("get") | Some("head") => None, // Step 3
             _ => data
         };
@@ -328,12 +328,12 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
         if self.sync {
             return XMLHttpRequest::fetch(&mut Sync(self), resource_task, url);
         } else {
-            let mut builder = task::task().named("XHRTask");
+            let builder = task::task().named("XHRTask");
             unsafe {
                 let addr = self.to_trusted();
                 let script_chan = global.script_chan.clone();
                 builder.spawn(proc() {
-                    XMLHttpRequest::fetch(&mut Async(addr, script_chan), resource_task, url);
+                    let _ = XMLHttpRequest::fetch(&mut Async(addr, script_chan), resource_task, url);
                 })
             }
         }
@@ -351,12 +351,12 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
     fn StatusText(&self) -> ByteString {
         self.status_text.clone()
     }
-    fn GetResponseHeader(&self, name: ByteString) -> Option<ByteString> {
+    fn GetResponseHeader(&self, _name: ByteString) -> Option<ByteString> {
         None
     }
     fn GetAllResponseHeaders(&self) -> ByteString {
         let mut writer = MemWriter::new();
-        self.response_headers.deref().write_all(&mut writer);
+        self.response_headers.deref().write_all(&mut writer).ok().expect("Writing response headers failed");
         ByteString::new(writer.unwrap())
     }
     fn OverrideMimeType(&self, _mime: DOMString) {
