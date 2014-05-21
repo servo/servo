@@ -8,7 +8,7 @@ use std::comm::{channel, Receiver};
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
 use style::Stylesheet;
-use servo_net::resource_task::{Load, LoadResponse, ProgressMsg, Payload, Done, ResourceTask};
+use servo_net::resource_task::{Load, LoadData, LoadResponse, ProgressMsg, Payload, Done, ResourceTask};
 use servo_util::task::spawn_named;
 use url::Url;
 
@@ -31,7 +31,7 @@ fn parse_css(provenance: StylesheetProvenance) -> Stylesheet {
         UrlProvenance(url, resource_task) => {
             debug!("cssparse: loading style sheet at {:s}", url.to_str());
             let (input_chan, input_port) = channel();
-            resource_task.send(Load(url, input_chan));
+            resource_task.send(Load(LoadData::new(url), input_chan));
             let LoadResponse { metadata: metadata, progress_port: progress_port , ..}
                 = input_port.recv();
             let final_url = &metadata.final_url;

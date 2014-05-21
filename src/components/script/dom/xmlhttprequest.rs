@@ -21,7 +21,7 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::window::Window;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use dom::xmlhttprequestupload::XMLHttpRequestUpload;
-use net::resource_task::{ResourceTask, Load, Payload, Done};
+use net::resource_task::{ResourceTask, Load, LoadData, Payload, Done};
 use script_task::{ScriptChan, XHRProgressMsg};
 use servo_util::str::DOMString;
 use servo_util::url::{parse_url, try_parse_url};
@@ -163,7 +163,7 @@ impl XMLHttpRequest {
         }
     }
 
-    fn fetch(fetch_type: &mut SyncOrAsync, resource_task: ResourceTask, url: Url) -> ErrorResult {
+    fn fetch(fetch_type: &mut SyncOrAsync, resource_task: ResourceTask, load_data: LoadData) -> ErrorResult {
 
         fn notify_partial_progress(fetch_type: &mut SyncOrAsync, msg: XHRProgress) {
             match *fetch_type {
@@ -179,7 +179,7 @@ impl XMLHttpRequest {
 
         // Step 10, 13
         let (start_chan, start_port) = channel();
-        resource_task.send(Load(url, start_chan));
+        resource_task.send(Load(load_data, start_chan));
         let response = start_port.recv();
         notify_partial_progress(fetch_type, HeadersReceivedMsg(response.metadata.headers.clone()));
         let mut buf = vec!();
@@ -324,16 +324,16 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
         self.send_flag = true;
         let mut global = self.global.root();
         let resource_task = global.page().resource_task.deref().clone();
-        let url = self.request_url.clone();
+        let load_data = LoadData::new(self.request_url.deref().clone());
         if self.sync {
-            return XMLHttpRequest::fetch(&mut Sync(self), resource_task, url);
+            return XMLHttpRequest::fetch(&mut Sync(self), resource_task, load_data);
         } else {
             let builder = TaskBuilder::new().named("XHRTask");
             unsafe {
                 let addr = self.to_trusted();
                 let script_chan = global.script_chan.clone();
                 builder.spawn(proc() {
-                    let _ = XMLHttpRequest::fetch(&mut Async(addr, script_chan), resource_task, url);
+                    let _ = XMLHttpRequest::fetch(&mut Async(addr, script_chan), resource_task, load_data);
                 })
             }
         }
