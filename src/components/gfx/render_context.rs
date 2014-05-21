@@ -43,15 +43,6 @@ enum DashSize {
     DashedBorder = 3
 }
 
-enum ShortEnd {
-    TopShort,
-    LeftShort,
-    RightShort,
-    BottomShort,
-    NoneShort,
-    AllShort,
-}
-
 impl<'a> RenderContext<'a>  {
     pub fn get_draw_target(&self) -> &'a DrawTarget {
         self.draw_target
@@ -154,28 +145,26 @@ impl<'a> RenderContext<'a>  {
         };
 
         match style_select{
-            border_style::none => {
+            border_style::none                         => {
             }
-            border_style::hidden => {
+            border_style::hidden                       => {
             }
             //FIXME(sammykim): This doesn't work with dash_pattern and cap_style well. I referred firefox code.
-            border_style::dotted => {
+            border_style::dotted                       => {
                 self.draw_dashed_border_segment(direction, bounds, border, color_select, DottedBorder);
             }
-            border_style::dashed => {
+            border_style::dashed                       => {
                 self.draw_dashed_border_segment(direction, bounds, border, color_select, DashedBorder);
             }
-            border_style::solid => {
+            border_style::solid                        => {
                 self.draw_solid_border_segment(direction,bounds,border,color_select);
             }
-            border_style::groove => {
-                self.draw_groove_border_segment(direction, bounds, border, color_select);
+            border_style::groove | border_style::ridge => {
+                self.draw_groove_ridge_border_segment(direction, bounds, border, color_select, style_select);
             }
-            border_style::ridge => {
-                self.draw_ridge_border_segment(direction, bounds, border, color_select);
+            border_style::inset | border_style::outset => {
+                self.draw_inset_outset_border_segment(direction, bounds, border, style_select, color_select);
             }
-            //FIXME(sammykim): Five more styles should be implemented.
-            //double, inset, outset
         }
     }
 
@@ -183,32 +172,30 @@ impl<'a> RenderContext<'a>  {
         let border = SideOffsets2D::new_all_same(bounds.size.width).to_float_px();
 
         match style{
-            border_style::none | border_style::hidden => {}
-            border_style::dotted => {
+            border_style::none | border_style::hidden  => {}
+            border_style::dotted                       => {
                 self.draw_dashed_border_segment(Right, bounds, border, color, DottedBorder);
             }
-            border_style::dashed => {
+            border_style::dashed                       => {
                 self.draw_dashed_border_segment(Right, bounds, border, color, DashedBorder);
             }
-            border_style::solid => {
+            border_style::solid                        => {
                 self.draw_solid_border_segment(Right,bounds,border,color);
             }
-            border_style::groove => {
-                self.draw_groove_border_segment(Right, bounds, border, color);
+            border_style::groove | border_style::ridge => {
+                self.draw_groove_ridge_border_segment(Right, bounds, border, color, style);
             }
-            border_style::ridge => {
-                self.draw_ridge_border_segment(Right, bounds, border, color);
+            border_style::inset | border_style::outset => {
+                self.draw_inset_outset_border_segment(Right, bounds, border, style, color);
             }
-            //FIXME(sankha93): Five more styles should be implemented.
-            //double, inset, outset
         }
     }
 
-    fn draw_dashed_border_segment(&self, 
-                                  direction: Direction, 
-                                  bounds:    &Rect<Au>, 
-                                  border:    SideOffsets2D<f32>, 
-                                  color:     Color, 
+    fn draw_dashed_border_segment(&self,
+                                  direction: Direction,
+                                  bounds:    &Rect<Au>,
+                                  border:    SideOffsets2D<f32>,
+                                  color:     Color,
                                   dash_size: DashSize) {
         let rect = bounds.to_azure_rect();
         let draw_opts = DrawOptions(1 as AzFloat, 0 as uint16_t);
@@ -266,43 +253,11 @@ impl<'a> RenderContext<'a>  {
 
     fn draw_solid_border_segment(&self, direction: Direction, bounds: &Rect<Au>, border: SideOffsets2D<f32>, color: Color) {
         let rect = bounds.to_azure_rect();
-        let draw_opts = DrawOptions(1.0 , 0);
-        let path_builder = self.draw_target.create_path_builder();
-
         let left_top = Point2D(rect.origin.x, rect.origin.y);
         let right_top = Point2D(rect.origin.x + rect.size.width, rect.origin.y);
         let left_bottom = Point2D(rect.origin.x, rect.origin.y + rect.size.height);
         let right_bottom = Point2D(rect.origin.x + rect.size.width, rect.origin.y + rect.size.height);
-
-        match direction {
-            Top => {
-                path_builder.move_to(left_top);
-                path_builder.line_to(right_top);
-                path_builder.line_to(right_top + Point2D(-border.right, border.top));
-                path_builder.line_to(left_top + Point2D(border.left, border.top));
-            }
-            Left => {
-                path_builder.move_to(left_top);
-                path_builder.line_to(left_top + Point2D(border.left, border.top));
-                path_builder.line_to(left_bottom + Point2D(border.left, -border.bottom));
-                path_builder.line_to(left_bottom);
-            }
-            Right => {
-                path_builder.move_to(right_top);
-                path_builder.line_to(right_bottom);
-                path_builder.line_to(right_bottom + Point2D(-border.right, -border.bottom));
-                path_builder.line_to(right_top + Point2D(-border.right, border.top));
-            }
-            Bottom => {
-                path_builder.move_to(left_bottom);
-                path_builder.line_to(left_bottom + Point2D(border.left, -border.bottom));
-                path_builder.line_to(right_bottom + Point2D(-border.right, -border.bottom));
-                path_builder.line_to(right_bottom);
-            }
-        }
-
-        let path = path_builder.finish();
-        self.draw_target.fill(&path, &ColorPattern(color), &draw_opts);
+        self.draw_border_path((left_top, right_top, left_bottom, right_bottom), direction, border, color);
     }
 
     fn get_scaled_bounds(&self,
@@ -333,200 +288,99 @@ impl<'a> RenderContext<'a>  {
         return (scaled_left_top, scaled_right_top, scaled_left_bottom, scaled_right_bottom);
     }
 
-    fn draw_groove_border_segment(&self,
-                                  direction: Direction,
-                                  bounds:    &Rect<Au>,
-                                  border:    SideOffsets2D<f32>,
-                                  color:     Color) {
-        let rect         = bounds.to_azure_rect();
-        let left_top     = Point2D(rect.origin.x, rect.origin.y);
-        let right_top    = Point2D(rect.origin.x + rect.size.width, rect.origin.y);
-        let left_bottom  = Point2D(rect.origin.x, rect.origin.y + rect.size.height);
-        let right_bottom = Point2D(rect.origin.x + rect.size.width, rect.origin.y + rect.size.height);
+    fn draw_groove_ridge_border_segment(&self,
+                                        direction: Direction,
+                                        bounds:    &Rect<Au>,
+                                        border:    SideOffsets2D<f32>,
+                                        color:     Color,
+                                        style:     border_style::T) {
+        // original bounds as a 4 element tuple, with no scaling.
+        let original_bounds            = self.get_scaled_bounds(bounds, border, 0.0);
+        // shrink the bounds by 1/2 of the border, leaving the innermost 1/2 of the border
+        let inner_scaled_bounds        = self.get_scaled_bounds(bounds, border, 0.5);
+        let scaled_border              = SideOffsets2D::new(0.5 * border.top,
+                                               0.5 * border.right,
+                                               0.5 * border.bottom,
+                                               0.5 * border.left);
+        let is_groove = match style {
+                border_style::groove =>  true,
+                border_style::ridge  =>  false,
+                _                    => { assert!(false, "invalid border style"); false }
+        };
 
-        // shrink the bounds by 2/3 of the border, leaving the innermost 1/3 of the border
-        let (inner_left_top, inner_right_top, inner_left_bottom, inner_right_bottom)     =
-            self.get_scaled_bounds(bounds, border, 2.0/3.0);
+        let darker_color               = self.scale_color(color, if is_groove { 1.0/3.0 } else { 2.0/3.0 });
 
-        // shrink the bounds by 1/3 of the border, leaving the innermost 2/3 of the border
-        let (middle_left_top, middle_right_top, middle_left_bottom, middle_right_bottom) =
-            self.get_scaled_bounds(bounds, border, 1.0/3.0);
-
-        let scaled_border = SideOffsets2D::new((1.0/3.0) * border.top,
-                                               (1.0/3.0) * border.right,
-                                               (1.0/3.0) * border.bottom,
-                                               (1.0/3.0) * border.left);
-        let darker_color  = Color(color.r * 1.0/3.0, color.g * 1.0/3.0, color.b * 1.0/3.0, color.a);
-        match direction {
-            Top    => {
-                // outer portion of the border
-                self.draw_short_ended_path(left_top, right_top, left_bottom, right_bottom,
-                                           direction, scaled_border, darker_color, LeftShort);
-                // middle portion of the border
-                self.draw_short_ended_path(middle_left_top, middle_right_top, middle_left_bottom,
-                                           middle_right_bottom, direction, scaled_border, darker_color,
-                                           LeftShort);
-                // inner portion of the border
-                self.draw_short_ended_path(inner_left_top, inner_right_top, inner_left_bottom,
-                                           inner_right_bottom, direction, scaled_border, color,
-                                           LeftShort);
-            }
-            Left   => {
-                // outer portion of the border
-                self.draw_short_ended_path(left_top, right_top, left_bottom, right_bottom,
-                                           direction, scaled_border, darker_color, NoneShort);
-                // middle portion of the border
-                self.draw_short_ended_path(middle_left_top, middle_right_top, middle_left_bottom,
-                                           middle_right_bottom, direction, scaled_border, darker_color,
-                                           NoneShort);
-                // inner portion of the border
-                self.draw_short_ended_path(inner_left_top, inner_right_top, inner_left_bottom,
-                                           inner_right_bottom, direction, scaled_border, color,
-                                           NoneShort);
-            }
-            Right  => {
-                // outer portion of the border
-                self.draw_short_ended_path(left_top, right_top, left_bottom, right_bottom,
-                                           direction, scaled_border, color, AllShort);
-                // middle portion of the border
-                self.draw_short_ended_path(middle_left_top, middle_right_top, middle_left_bottom,
-                                           middle_right_bottom, direction, scaled_border, darker_color,
-                                           AllShort);
-                // inner portion of the border
-                self.draw_short_ended_path(inner_left_top, inner_right_top, inner_left_bottom,
-                                           inner_right_bottom, direction, scaled_border, darker_color,
-                                           AllShort);
-            }
-            Bottom => {
-                // outer portion of the border
-                self.draw_short_ended_path(left_top, right_top, left_bottom, right_bottom,
-                                           direction, scaled_border, color, LeftShort);
-                // middle portion of the border
-                self.draw_short_ended_path(middle_left_top, middle_right_top, middle_left_bottom,
-                                           middle_right_bottom, direction, scaled_border, darker_color,
-                                           LeftShort);
-                // inner portion of the border
-                self.draw_short_ended_path(inner_left_top, inner_right_top, inner_left_bottom,
-                                           inner_right_bottom, direction, scaled_border, darker_color,
-                                           LeftShort);
-            }
-        }
-    }
-
-    fn draw_ridge_border_segment(&self,
-                                 direction: Direction,
-                                 bounds:    &Rect<Au>,
-                                 border:    SideOffsets2D<f32>,
-                                 color:     Color) {
-        let rect         = bounds.to_azure_rect();
-        let left_top     = Point2D(rect.origin.x, rect.origin.y);
-        let right_top    = Point2D(rect.origin.x + rect.size.width, rect.origin.y);
-        let left_bottom  = Point2D(rect.origin.x, rect.origin.y + rect.size.height);
-        let right_bottom = Point2D(rect.origin.x + rect.size.width, rect.origin.y + rect.size.height);
-
-        // shrink the bounds by 2/3 of the border, leaving the innermost 1/3 of the border
-        let (inner_left_top, inner_right_top, inner_left_bottom, inner_right_bottom)     =
-            self.get_scaled_bounds(bounds, border, 2.0/3.0);
-
-        // shrink the bounds by 1/3 of the border, leaving the innermost 2/3 of the border
-        let (middle_left_top, middle_right_top, middle_left_bottom, middle_right_bottom) =
-            self.get_scaled_bounds(bounds, border, 1.0/3.0);
-
-        let scaled_border = SideOffsets2D::new((1.0/3.0) * border.top,
-                                               (1.0/3.0) * border.right,
-                                               (1.0/3.0) * border.bottom,
-                                               (1.0/3.0) * border.left);
-        let darker_color  = Color(color.r * 2.0/3.0, color.g * 2.0/3.0, color.b * 2.0/3.0, color.a);
-        match direction {
-            Top    => {
-                // outer portion of the border
-                self.draw_short_ended_path(left_top, right_top, left_bottom, right_bottom,
-                                           direction, scaled_border, color, LeftShort);
-                // middle portion of the border
-                self.draw_short_ended_path(middle_left_top, middle_right_top, middle_left_bottom,
-                                           middle_right_bottom, direction, scaled_border, color,
-                                           LeftShort);
-                // inner portion of the border
-                self.draw_short_ended_path(inner_left_top, inner_right_top, inner_left_bottom,
-                                           inner_right_bottom, direction, scaled_border, darker_color,
-                                           LeftShort);
-            }
-            Left   => {
-                // outer portion of the border
-                self.draw_short_ended_path(left_top, right_top, left_bottom, right_bottom,
-                                           direction, scaled_border, color, NoneShort);
-                // middle portion of the border
-                self.draw_short_ended_path(middle_left_top, middle_right_top, middle_left_bottom,
-                                           middle_right_bottom, direction, scaled_border, color,
-                                           NoneShort);
-                // inner portion of the border
-                self.draw_short_ended_path(inner_left_top, inner_right_top, inner_left_bottom,
-                                           inner_right_bottom, direction, scaled_border, darker_color,
-                                           NoneShort);
-            }
-            Right  => {
-                // outer portion of the border
-                self.draw_short_ended_path(left_top, right_top, left_bottom, right_bottom,
-                                           direction, scaled_border, darker_color, AllShort);
-                // middle portion of the border
-                self.draw_short_ended_path(middle_left_top, middle_right_top, middle_left_bottom,
-                                           middle_right_bottom, direction, scaled_border, color,
-                                           AllShort);
-                // inner portion of the border
-                self.draw_short_ended_path(inner_left_top, inner_right_top, inner_left_bottom,
-                                           inner_right_bottom, direction, scaled_border, color,
-                                           AllShort);
-            }
-            Bottom => {
-                // outer portion of the border
-                self.draw_short_ended_path(left_top, right_top, left_bottom, right_bottom,
-                                           direction, scaled_border, darker_color, LeftShort);
-                // middle portion of the border
-                self.draw_short_ended_path(middle_left_top, middle_right_top, middle_left_bottom,
-                                           middle_right_bottom, direction, scaled_border, color,
-                                           LeftShort);
-                // inner portion of the border
-                self.draw_short_ended_path(inner_left_top, inner_right_top, inner_left_bottom,
-                                           inner_right_bottom, direction, scaled_border, color,
-                                           LeftShort);
-            }
-        }
+        let (outer_color, inner_color) = match direction {
+            Top    => if is_groove { (darker_color, color) } else { (color, darker_color) },
+            Left   => if is_groove { (darker_color, color) } else { (color, darker_color) },
+            Right  => if is_groove { (color, darker_color) } else { (darker_color, color) },
+            Bottom => if is_groove { (color, darker_color) } else { (darker_color, color) }
+        };
+        // outer portion of the border
+        self.draw_border_path(original_bounds, direction, scaled_border, outer_color);
+        // inner portion of the border
+        self.draw_border_path(inner_scaled_bounds, direction, scaled_border,  inner_color);
 
     }
 
-    fn draw_square_border_path(&self,
-                               left_top     : Point2D<f32>,
-                               right_top    : Point2D<f32>,
-                               left_bottom  : Point2D<f32>,
-                               right_bottom : Point2D<f32>,
-                               direction    : Direction,
-                               border       : SideOffsets2D<f32>,
-                               color        : Color) {
-        let draw_opts    = DrawOptions(1.0 , 0);
-        let path_builder = self.draw_target.create_path_builder();
+    fn scale_color(&self, color: Color, scale_factor: f32) -> Color {
+        return Color(color.r * scale_factor, color.g * scale_factor, color.b * scale_factor, color.a);
+    }
+
+    fn draw_inset_outset_border_segment(&self,
+                                        direction: Direction,
+                                        bounds:    &Rect<Au>,
+                                        border:    SideOffsets2D<f32>,
+                                        style:     border_style::T,
+                                        color:     Color) {
+        let is_inset = match style {
+                border_style::inset  =>  true,
+                border_style::outset =>  false,
+                _                    => { assert!(false, "invalid border style"); false }
+        };
+            // original bounds as a 4 element tuple, with no scaling.
+        let original_bounds = self.get_scaled_bounds(bounds, border, 0.0);
+        // select and scale the color appropriately.
+        let scaled_color    = match direction {
+            Top    => self.scale_color(color, if is_inset { 2.0/3.0 } else { 1.0     }),
+            Left   => self.scale_color(color, if is_inset { 1.0/6.0 } else { 0.5     }),
+            Right  => self.scale_color(color, if is_inset { 1.0     } else { 2.0/3.0 }),
+            Bottom => self.scale_color(color, if is_inset { 1.0     } else { 2.0/3.0 })
+        };
+        self.draw_border_path(original_bounds, direction, border, scaled_color);
+    }
+
+    fn draw_border_path(&self,
+                        bounds:   (Point2D<f32>, Point2D<f32>, Point2D<f32>, Point2D<f32>),
+                        direction: Direction,
+                        border:    SideOffsets2D<f32>,
+                        color:     Color) {
+        let (left_top, right_top, left_bottom, right_bottom) = bounds;
+        let draw_opts                                        = DrawOptions(1.0 , 0);
+        let path_builder                                     = self.draw_target.create_path_builder();
          match direction {
              Top    => {
                  path_builder.move_to(left_top);
                  path_builder.line_to(right_top);
-                 path_builder.line_to(right_top + Point2D(0.0, border.top));
-                 path_builder.line_to(left_top + Point2D(0.0, border.top));
+                 path_builder.line_to(right_top + Point2D(-border.right, border.top));
+                 path_builder.line_to(left_top + Point2D(border.left, border.top));
              }
              Left   => {
                  path_builder.move_to(left_top);
-                 path_builder.line_to(left_top + Point2D(border.left, 0.0));
-                 path_builder.line_to(left_bottom + Point2D(border.left, 0.0));
+                 path_builder.line_to(left_top + Point2D(border.left, border.top));
+                 path_builder.line_to(left_bottom + Point2D(border.left, -border.bottom));
                  path_builder.line_to(left_bottom);
              }
              Right  => {
                  path_builder.move_to(right_top);
                  path_builder.line_to(right_bottom);
-                 path_builder.line_to(right_bottom + Point2D(-border.right, 0.0));
-                 path_builder.line_to(right_top + Point2D(-border.right, 0.0));
+                 path_builder.line_to(right_bottom + Point2D(-border.right, -border.bottom));
+                 path_builder.line_to(right_top + Point2D(-border.right, border.top));
              }
              Bottom => {
                  path_builder.move_to(left_bottom);
-                 path_builder.line_to(left_bottom + Point2D(0.0, -border.bottom));
-                 path_builder.line_to(right_bottom + Point2D(0.0, -border.bottom));
+                 path_builder.line_to(left_bottom + Point2D(border.left, -border.bottom));
+                 path_builder.line_to(right_bottom + Point2D(-border.right, -border.bottom));
                  path_builder.line_to(right_bottom);
              }
          }
@@ -534,54 +388,6 @@ impl<'a> RenderContext<'a>  {
          self.draw_target.fill(&path, &ColorPattern(color), &draw_opts);
 
      }
-
-    fn draw_short_ended_path(&self,
-                             left_top:     Point2D<f32>,
-                             right_top:    Point2D<f32>,
-                             left_bottom:  Point2D<f32>,
-                             right_bottom: Point2D<f32>,
-                             direction:    Direction,
-                             border:       SideOffsets2D<f32>,
-                             color:        Color,
-                             short_end:    ShortEnd) {
-
-        match direction {
-            Top | Bottom => {
-                let left_border_short = match short_end { LeftShort | AllShort   => border.left,
-                                                          _                      => 0.0 };
-                let right_border_short = match short_end { RightShort | AllShort => border.right,
-                                                           _                     => 0.0 };
-                self.draw_square_border_path(left_top + Point2D(left_border_short, 0.0),
-                                             right_top + Point2D(-right_border_short, 0.0),
-                                             left_bottom + Point2D(left_border_short, 0.0),
-                                             right_bottom + Point2D(-right_border_short, 0.0),
-                                             direction,
-                                             SideOffsets2D::new(border.top,
-                                                                border.right - right_border_short,
-                                                                border.bottom,
-                                                                border.left - left_border_short),
-                                             color);
-            }
-            Left | Right => {
-                let top_border_short    = match short_end { TopShort | AllShort    => border.top,
-                                                            _                      => 0.0 };
-                let bottom_border_short = match short_end { BottomShort | AllShort => border.bottom,
-                                                            _                      => 0.0 };
-
-                self.draw_square_border_path(left_top + Point2D(0.0, top_border_short),
-                                             right_top + Point2D(0.0, top_border_short),
-                                             left_bottom + Point2D(0.0, -bottom_border_short),
-                                             right_bottom + Point2D(0.0, -bottom_border_short),
-                                             direction,
-                                             SideOffsets2D::new(border.top - top_border_short,
-                                                                border.right,
-                                                                border.bottom - bottom_border_short,
-                                                                border.left),
-                                             color);
-
-            }
-        }
-    }
 }
 
 trait ToAzureRect {
