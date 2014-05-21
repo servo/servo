@@ -1086,7 +1086,11 @@ impl Box {
         }
     }
 
-    /// Split box which includes new-line character
+    /// Split box which includes new-line character.
+    ///
+    /// A return value of `None` indicates that the box could not be split.
+    /// Otherwise the split boxes are returned. The right boxe is optional due
+    /// to the possibility of it being whitespace.
     pub fn split_by_new_line(&self) -> Option<(Box, Option<Box>)> {
         match self.specific {
             GenericBox | IframeBox(_) | ImageBox(_) | TableBox | TableCellBox |
@@ -1127,6 +1131,10 @@ impl Box {
     }
 
     /// Attempts to split this box so that its width is no more than `max_width`.
+    ///
+    /// A return value of `None` indicates that the box could not be split.
+    /// Otherwise the split boxes are returned. The left and right boxes are
+    /// optional due to the possibility of them being whitespace.
     pub fn split_to_width(&self, max_width: Au, starts_line: bool) -> Option<(Option<Box>, Option<Box>)> {
         match self.specific {
             GenericBox | IframeBox(_) | ImageBox(_) | TableBox | TableCellBox |
