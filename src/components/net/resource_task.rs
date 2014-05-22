@@ -30,7 +30,7 @@ pub struct LoadData {
     pub url: Url,
     pub method: Method,
     pub headers: RequestHeaderCollection,
-    pub data: Option<Vec<u8>>
+    pub data: Option<~str>
 }
 
 impl LoadData {
