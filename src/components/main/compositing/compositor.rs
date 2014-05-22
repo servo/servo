@@ -669,25 +669,25 @@ impl IOCompositor {
 
     fn update_zoom_transform(&mut self) {
         let scale = self.device_pixels_per_px();
-        self.root_layer.common.borrow_mut().set_transform(identity().scale(*scale, *scale, 1f32));
+        self.root_layer.common.borrow_mut().set_transform(identity().scale(scale.get(), scale.get(), 1f32));
     }
 
     fn on_zoom_window_event(&mut self, magnification: f32) {
         self.zoom_action = true;
         self.zoom_time = precise_time_s();
         let old_world_zoom = self.world_zoom;
-        let window_size = self.window_size;
+        let window_size = self.window_size.as_f32();
 
         // Determine zoom amount
-        self.world_zoom = ScaleFactor((*self.world_zoom * magnification).max(1.0));
+        self.world_zoom = ScaleFactor((self.world_zoom.get() * magnification).max(1.0));
         let world_zoom = self.world_zoom;
 
         self.update_zoom_transform();
 
         // Scroll as needed
         let page_delta = TypedPoint2D(
-            *window_size.width as f32 * *(world_zoom.inv() - old_world_zoom.inv()) * 0.5,
-            *window_size.height as f32 * *(world_zoom.inv() - old_world_zoom.inv()) * 0.5);
+            window_size.width.get() * (world_zoom.inv() - old_world_zoom.inv()).get() * 0.5,
+            window_size.height.get() * (world_zoom.inv() - old_world_zoom.inv()).get() * 0.5);
         // TODO: modify delta to snap scroll to pixels.
         let page_cursor = TypedPoint2D(-1f32, -1f32); // Make sure this hits the base layer
         let page_window = self.page_window();
@@ -717,7 +717,7 @@ impl IOCompositor {
                 let rect = Rect(Point2D(0f32, 0f32), page_window.to_untyped());
                 let recomposite = layer.get_buffer_request(&self.graphics_context,
                                                            rect,
-                                                           *scale) ||
+                                                           scale.get()) ||
                                   self.recomposite;
                 self.recomposite = recomposite;
             } else {
@@ -748,7 +748,7 @@ impl IOCompositor {
         // self.window.present()) as OpenGL ES 2 does not have glReadBuffer().
         if self.load_complete && self.ready_state == FinishedLoading
             && self.opts.output_file.is_some() {
-            let (width, height) = (*self.window_size.width as uint, *self.window_size.height as uint);
+            let (width, height) = (self.window_size.width.get(), self.window_size.height.get());
             let path = from_str::<Path>(*self.opts.output_file.get_ref()).unwrap();
             let mut pixels = gl2::read_pixels(0, 0,
                                               width as gl2::GLsizei,

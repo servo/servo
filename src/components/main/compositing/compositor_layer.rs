@@ -375,7 +375,7 @@ impl CompositorLayer {
             self.scroll_offset = scroll_offset;
 
             self.root_layer.common.borrow_mut().set_transform(
-                identity().translate(*self.scroll_offset.x, *self.scroll_offset.y, 0.0));
+                identity().translate(self.scroll_offset.x.get(), self.scroll_offset.y.get(), 0.0));
 
             result = true
         }
