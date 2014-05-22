@@ -1,3 +1,4 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">
 <html>
 <head>
 <style>
@@ -11,15 +12,15 @@
     border-width: 10px;
     border-color: green red yellow black;
 }
-#solid{
-    border-style: solid;
-    border-width: 10px;
-    border-color: yellow green red black;
-}
 #double{
     border-style: double;
     border-width: 10px;
-    border-color: yellow green red black;
+    border-color: yellow;
+}
+#solid{
+    border-style: solid;
+    border-width: 10px;
+    border-color: yellow;
 }
 #dashed{
     border-style: dashed;
@@ -35,52 +36,46 @@
     border-style: groove;
     border-width: 10px;
     border-color: green red yellow black;
+    position: relative;
+    left: -30px;
+    width:1024px;
 }
 #ridge{
     border-style: ridge;
     border-width: 10px;
     border-color: green red yellow black;
+    position: relative;
+    left: -30px;
+    width:1024px;
 }
 #inset{
     border-style: inset;
     border-width: 10px;
     border-color: green red yellow black;
+    position: relative;
+    left: -30px;
+    width:1024px;
 }
 #outset{
     border-style: outset;
     border-width: 10px;
     border-color: green red yellow black;
-}
-
-#diamond1{
-    width: 0;
-    height: 0;
-    border: 50px solid transparent;
-    border-bottom-color: red;
     position: relative;
-}
-#diamond2{
-    width: 0;
-    height: 0;
-    border: 50px solid transparent;
-    border-top-color: red;
-    position: relative;
+    left: -30px;
+    width:1024px;
 }
 </style>
 </head>
 <body>
-<div id="none"> none test.</div>
-<div id="hidden"> hidden test.</div>
-<div id="solid"> solid test</div>
-<div id="double"> double test</div>
-<div id="dashed"> dashed test</div>
-<div id="dotted"> dotted test</div>
-<div id="groove"> groove test</div>
-<div id="ridge"> ridge test</div>
-<div id="inset"> inset test</div>
-<div id="outset"> outset test</div>
-<!-- It's a Diamond -->
-<div id="diamond1"></div>
-<div id="diamond2"></div>
+<div id="none"></div>
+<div id="hidden"></div>
+<div id="solid"></div>
+<div id="double"></div>
+<div id="dashed"></div>
+<div id="dotted"></div>
+<div id="groove"></div>
+<div id="ridge"></div>
+<div id="inset"></div>
+<div id="outset"></div>
 </body>
 </HTML>

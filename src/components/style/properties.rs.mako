@@ -221,8 +221,7 @@ pub mod longhands {
         ${predefined_type("border-%s-color" % side, "CSSColor", "CurrentColor")}
     % endfor
 
-    //  double groove ridge insed outset
-    ${single_keyword("border-top-style", values="none solid dotted dashed hidden")}
+    ${single_keyword("border-top-style", values="none solid double dotted dashed hidden groove ridge inset outset")}
 
     % for side in ["right", "bottom", "left"]:
         <%self:longhand name="border-${side}-style", no_super="True">
