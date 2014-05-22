@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use css::node_style::StyledNode;
-use layout::box_::Box;
+use layout::box_::{Box, ScannedTextBox, ScannedTextBoxInfo};
 use layout::context::LayoutContext;
 use layout::floats::{FloatLeft, Floats, PlacementInfo};
 use layout::flow::{BaseFlow, FlowClass, Flow, InlineFlowClass};
@@ -492,7 +492,20 @@ impl LineboxScanner {
         }
 
         let available_width = green_zone.width - self.pending_line.bounds.size.width;
-        match in_box.split_to_width(available_width, line_is_empty) {
+        match in_box.find_split_positions(CharIndex(0), available_width, line_is_empty).map(
+            |(left, right, run)| {
+                let make_box = |(range, width): (Range<CharIndex>, Au)| {
+                    let info = ScannedTextBoxInfo::new(run.clone(), range);
+                    let specific = ScannedTextBox(info);
+                    let size = Size2D(width, in_box.border_box.size.height);
+                    // TODO: Remove box splitting
+                    in_box.transform(size, specific)
+                };
+
+                (left.map(|x|  { debug!("LineboxScanner: Left split {}",  x); make_box(x) }),
+                 right.map(|x| { debug!("LineboxScanner: Right split {}", x); make_box(x) }))
+            }
+        ) {
             None => {
                 debug!("LineboxScanner: Tried to split unsplittable render box! Deferring to next \
                        line. {}", in_box);

@@ -1131,12 +1131,22 @@ impl Box {
         }
     }
 
-    /// Attempts to split this box so that its width is no more than `max_width`.
+    /// Attempts to find the split positions of a text box so that its width is
+    /// no more than `max_width`.
     ///
     /// A return value of `None` indicates that the box could not be split.
-    /// Otherwise the split boxes are returned. The left and right boxes are
-    /// optional due to the possibility of them being whitespace.
-    pub fn split_to_width(&self, max_width: Au, starts_line: bool) -> Option<(Option<Box>, Option<Box>)> {
+    /// Otherwise tuples of the width of the splits, the index into the text
+    /// boxes to the left and right side of the split, and the respective text
+    /// box info are returned. The left and right boxes are optional due to the
+    /// possibility of them being whitespace.
+    ///
+    // TODO: The returned box info values should be removed along with the box
+    // splitting logic in inline.rs
+    pub fn find_split_positions(&self, start: CharIndex, max_width: Au, starts_line: bool) -> Option<(
+        Option<(Range<CharIndex>, Au)>,
+        Option<(Range<CharIndex>, Au)>,
+        Arc<~TextRun>, // TODO: remove
+    )> {
         match self.specific {
             GenericBox | IframeBox(_) | ImageBox(_) | TableBox | TableCellBox |
             TableRowBox | TableWrapperBox => None,
@@ -1145,7 +1155,7 @@ impl Box {
             ScannedTextBox(ref text_box_info) => {
                 let mut pieces_processed_count: uint = 0;
                 let mut remaining_width: Au = max_width;
-                let mut left_range = Range::new(text_box_info.range.begin(), CharIndex(0));
+                let mut left_range = Range::new(text_box_info.range.begin() + start, CharIndex(0));
                 let mut right_range: Option<Range<CharIndex>> = None;
 
                 debug!("split_to_width: splitting text box (strlen={:u}, range={}, \
@@ -1217,25 +1227,17 @@ impl Box {
                 if (pieces_processed_count == 1 || !left_is_some) && !starts_line {
                     None
                 } else {
-                    let left_box = if left_is_some {
-                        let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run.clone(), left_range);
-                        let width = new_text_box_info.run.advance_for_range(&left_range);
-                        let height = self.border_box.size.height;
-                        let size = Size2D(width, height);
-                        Some(self.transform(size, ScannedTextBox(new_text_box_info)))
+                    let left = if left_is_some {
+                        Some((left_range, text_box_info.run.advance_for_range(&left_range)))
                     } else {
                         None
                     };
 
-                    let right_box = right_range.map(|right_range| {
-                        let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run.clone(), right_range);
-                        let width = new_text_box_info.run.advance_for_range(&right_range);
-                        let height = self.border_box.size.height;
-                        let size = Size2D(width, height);
-                        (self.transform(size, ScannedTextBox(new_text_box_info)))
+                    let right = right_range.map(|right_range| {
+                        (right_range, text_box_info.run.advance_for_range(&right_range))
                     });
 
-                    Some((left_box, right_box))
+                    Some((left, right, text_box_info.run.clone()))
                 }
             }
         }
