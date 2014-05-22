@@ -65,7 +65,7 @@ pub struct IOCompositor {
     window_size: TypedSize2D<DevicePixel, uint>,
 
     /// The device pixel ratio for this window.
-    hidpi_factor: ScaleFactor<ScreenPx, DevicePixel>,
+    hidpi_factor: ScaleFactor<ScreenPx, DevicePixel, f32>,
 
     /// The platform-specific graphics context.
     graphics_context: NativeCompositingGraphicsContext,
@@ -83,7 +83,7 @@ pub struct IOCompositor {
     recomposite: bool,
 
     /// Keeps track of the current zoom factor.
-    world_zoom: ScaleFactor<PagePx, ScreenPx>,
+    world_zoom: ScaleFactor<PagePx, ScreenPx, f32>,
 
     /// Tracks whether the zoom action has happend recently.
     zoom_action: bool,
@@ -663,7 +663,7 @@ impl IOCompositor {
         self.ask_for_tiles();
     }
 
-    fn device_pixels_per_px(&self) -> ScaleFactor<PagePx, DevicePixel> {
+    fn device_pixels_per_px(&self) -> ScaleFactor<PagePx, DevicePixel, f32> {
         self.world_zoom * self.hidpi_factor
     }
 

@@ -185,7 +185,7 @@ impl WindowMethods<Application> for Window {
         //self.update_window_title()
     }
 
-    fn hidpi_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel> {
+    fn hidpi_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32> {
         //FIXME: Do nothing in GLUT now.
         ScaleFactor(1.0)
     }

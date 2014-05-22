@@ -73,6 +73,6 @@ pub trait WindowMethods<A> {
     fn set_render_state(&self, render_state: RenderState);
 
     /// Returns the hidpi factor of the monitor.
-    fn hidpi_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel>;
+    fn hidpi_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32>;
 }
 

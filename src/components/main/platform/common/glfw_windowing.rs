@@ -195,7 +195,7 @@ impl WindowMethods<Application> for Window {
         self.update_window_title()
     }
 
-    fn hidpi_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel> {
+    fn hidpi_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32> {
         let (backing_size, _) = self.glfw_window.get_framebuffer_size();
         let (window_size, _) = self.glfw_window.get_size();
         ScaleFactor((backing_size as f32) / (window_size as f32))
