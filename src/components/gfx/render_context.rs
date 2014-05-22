@@ -198,13 +198,16 @@ impl<'a> RenderContext<'a>  {
     }
 
     fn draw_border_path(&self,
-                        bounds:   (Point2D<f32>, Point2D<f32>, Point2D<f32>, Point2D<f32>),
+                        bounds:    Rect<f32>,
                         direction: Direction,
                         border:    SideOffsets2D<f32>,
                         color:     Color) {
-        let (left_top, right_top, left_bottom, right_bottom) = bounds;
-        let draw_opts                                        = DrawOptions(1.0 , 0);
-        let path_builder                                     = self.draw_target.create_path_builder();
+        let left_top     = bounds.origin;
+        let right_top    = left_top + Point2D(bounds.size.width, 0.0);
+        let left_bottom  = left_top + Point2D(0.0, bounds.size.height);
+        let right_bottom = left_top + Point2D(bounds.size.width, bounds.size.height);
+        let draw_opts    = DrawOptions(1.0, 0);
+        let path_builder = self.draw_target.create_path_builder();
          match direction {
              Top    => {
                  path_builder.move_to(left_top);
@@ -298,37 +301,23 @@ impl<'a> RenderContext<'a>  {
 
     fn draw_solid_border_segment(&self, direction: Direction, bounds: &Rect<Au>, border: SideOffsets2D<f32>, color: Color) {
         let rect = bounds.to_azure_rect();
-        let left_top = Point2D(rect.origin.x, rect.origin.y);
-        let right_top = Point2D(rect.origin.x + rect.size.width, rect.origin.y);
-        let left_bottom = Point2D(rect.origin.x, rect.origin.y + rect.size.height);
-        let right_bottom = Point2D(rect.origin.x + rect.size.width, rect.origin.y + rect.size.height);
-        self.draw_border_path((left_top, right_top, left_bottom, right_bottom), direction, border, color);
+        self.draw_border_path(rect, direction, border, color);
     }
 
     fn get_scaled_bounds(&self,
                          bounds:        &Rect<Au>,
                          border:        SideOffsets2D<f32>,
-                         shrink_factor: f32) -> (Point2D<f32>, Point2D<f32>, Point2D<f32>, Point2D<f32>) {
-        let rect           = bounds.to_azure_rect();
-        let scaled_border  = SideOffsets2D::new(shrink_factor * border.top,
-                                                shrink_factor * border.right,
-                                                shrink_factor * border.bottom,
-                                                shrink_factor * border.left);
-
-        let left_top     = Point2D(rect.origin.x, rect.origin.y);
-        let right_top    = Point2D(rect.origin.x + rect.size.width, rect.origin.y);
-        let left_bottom  = Point2D(rect.origin.x, rect.origin.y + rect.size.height);
-        let right_bottom = Point2D(rect.origin.x + rect.size.width, rect.origin.y + rect.size.height);
-
-        let scaled_left_top     = left_top + Point2D(scaled_border.left,
-                                                    scaled_border.top);
-        let scaled_right_top    = right_top + Point2D(-scaled_border.right,
-                                                     scaled_border.top);
-        let scaled_left_bottom  = left_bottom + Point2D(scaled_border.left,
-                                                       -scaled_border.bottom);
-        let scaled_right_bottom = right_bottom + Point2D(-scaled_border.right,
-                                                        -scaled_border.bottom);
-        return (scaled_left_top, scaled_right_top, scaled_left_bottom, scaled_right_bottom);
+                         shrink_factor: f32) -> Rect<f32> {
+        let rect            = bounds.to_azure_rect();
+        let scaled_border   = SideOffsets2D::new(shrink_factor * border.top,
+                                                 shrink_factor * border.right,
+                                                 shrink_factor * border.bottom,
+                                                 shrink_factor * border.left);
+        let left_top        = Point2D(rect.origin.x, rect.origin.y);
+        let scaled_left_top = left_top + Point2D(scaled_border.left,
+                                                 scaled_border.top);
+        return Rect(scaled_left_top,
+                    Size2D(rect.size.width - 2.0 * scaled_border.right, rect.size.height - 2.0 * scaled_border.bottom));
     }
 
     fn scale_color(&self, color: Color, scale_factor: f32) -> Color {
@@ -353,30 +342,28 @@ impl<'a> RenderContext<'a>  {
                                         border:    SideOffsets2D<f32>,
                                         color:     Color,
                                         style:     border_style::T) {
-        // original bounds as a 4 element tuple, with no scaling.
+        // original bounds as a Rect<f32>, with no scaling.
         let original_bounds            = self.get_scaled_bounds(bounds, border, 0.0);
         // shrink the bounds by 1/2 of the border, leaving the innermost 1/2 of the border
         let inner_scaled_bounds        = self.get_scaled_bounds(bounds, border, 0.5);
         let scaled_border              = SideOffsets2D::new(0.5 * border.top,
-                                               0.5 * border.right,
-                                               0.5 * border.bottom,
-                                               0.5 * border.left);
+                                                            0.5 * border.right,
+                                                            0.5 * border.bottom,
+                                                            0.5 * border.left);
         let is_groove = match style {
                 border_style::groove =>  true,
                 border_style::ridge  =>  false,
-                _                    => { assert!(false, "invalid border style"); false }
+                _                    =>  fail!("invalid border style")
         };
         let darker_color               = self.scale_color(color, if is_groove { 1.0/3.0 } else { 2.0/3.0 });
-        let (outer_color, inner_color) = match direction {
-            Top    => if is_groove { (darker_color, color) } else { (color, darker_color) },
-            Left   => if is_groove { (darker_color, color) } else { (color, darker_color) },
-            Right  => if is_groove { (color, darker_color) } else { (darker_color, color) },
-            Bottom => if is_groove { (color, darker_color) } else { (darker_color, color) }
+        let (outer_color, inner_color) = match (direction, is_groove) {
+            (Top, true)  | (Left, true)  | (Right, false) | (Bottom, false) => (darker_color, color),
+            (Top, false) | (Left, false) | (Right, true)  | (Bottom, true)  => (color, darker_color)
         };
         // outer portion of the border
         self.draw_border_path(original_bounds, direction, scaled_border, outer_color);
         // inner portion of the border
-        self.draw_border_path(inner_scaled_bounds, direction, scaled_border,  inner_color);
+        self.draw_border_path(inner_scaled_bounds, direction, scaled_border, inner_color);
     }
 
     fn draw_inset_outset_border_segment(&self,
@@ -388,16 +375,15 @@ impl<'a> RenderContext<'a>  {
         let is_inset = match style {
                 border_style::inset  =>  true,
                 border_style::outset =>  false,
-                _                    => { assert!(false, "invalid border style"); false }
+                _                    =>  fail!("invalid border style")
         };
-        // original bounds as a 4 element tuple, with no scaling.
+        // original bounds as a Rect<f32>
         let original_bounds = self.get_scaled_bounds(bounds, border, 0.0);
         // select and scale the color appropriately.
         let scaled_color    = match direction {
-            Top    => self.scale_color(color, if is_inset { 2.0/3.0 } else { 1.0     }),
-            Left   => self.scale_color(color, if is_inset { 1.0/6.0 } else { 0.5     }),
-            Right  => self.scale_color(color, if is_inset { 1.0     } else { 2.0/3.0 }),
-            Bottom => self.scale_color(color, if is_inset { 1.0     } else { 2.0/3.0 })
+            Top             => self.scale_color(color, if is_inset { 2.0/3.0 } else { 1.0     }),
+            Left            => self.scale_color(color, if is_inset { 1.0/6.0 } else { 0.5     }),
+            Right | Bottom  => self.scale_color(color, if is_inset { 1.0     } else { 2.0/3.0 })
         };
         self.draw_border_path(original_bounds, direction, border, scaled_color);
     }
