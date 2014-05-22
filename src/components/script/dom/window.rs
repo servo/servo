@@ -5,7 +5,7 @@
 use dom::bindings::codegen::BindingDeclarations::WindowBinding;
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalSettable};
 use dom::bindings::trace::{Traceable, Untraceable};
-use dom::bindings::utils::{Reflectable, Reflector, /*object_handle, value_handle*/};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::browsercontext::BrowserContext;
 use dom::document::Document;
 use dom::element::Element;

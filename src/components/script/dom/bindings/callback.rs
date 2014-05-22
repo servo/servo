@@ -34,9 +34,15 @@ impl<S: Encoder<E>, E> Encodable<S, E> for CallbackInterface {
         unsafe {
             let tracer: *mut JSTracer = cast::transmute(s);
             "callback".to_c_str().with_ref(|name| {
-                //XXXjdm the arg can be moved
+                // FIXME: JS_CallObjectTracer could theoretically do something that can
+                //        cause pointers to shuffle around. We need to pass a *mut *mut JSObject
+                //        to JS_CallObjectTracer, but the Encodable trait doesn't allow us
+                //        to obtain a mutable reference to self (and thereby self.cb);
+                //        All we can do right now is scream loudly if this actually causes
+                //        a problem in practice.
                 let mut cb = self.callback;
                 JS_CallObjectTracer(tracer, &mut cb, name);
+                assert!(cb == self.callback);
             });
         };
         Ok(())

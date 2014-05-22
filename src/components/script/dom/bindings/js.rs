@@ -41,9 +41,7 @@
 
 use dom::bindings::utils::{Reflector, Reflectable, /*cx_for_dom_object*/};
 use dom::node::Node;
-//use js::glue::{AddObjectRoot, RemoveObjectRoot};
 use js::jsapi::JSObject;
-//use js::rust::JSAutoRequest;
 use layout_interface::TrustedNodeAddress;
 use script_task::StackRoots;
 
@@ -57,7 +55,7 @@ use std::local_data;
 /// `JS<T>::assign` method or `OptionalSettable::assign` (for Option<JS<T>> fields).
 pub struct Temporary<T> {
     inner: JS<T>,
-    root: *mut JSObject,
+    root: *mut JSObject, //XXXjdm not sure that this does anything anymore
 }
 
 impl<T> Eq for Temporary<T> {
@@ -69,22 +67,14 @@ impl<T> Eq for Temporary<T> {
 #[unsafe_destructor]
 impl<T: Reflectable> Drop for Temporary<T> {
     fn drop(&mut self) {
-        /*let cx = cx_for_dom_object(&self.inner);
-        let _ar = JSAutoRequest::new(cx);
-        unsafe {
-            RemoveObjectRoot(cx, self.inner.mut_reflector().rootable());
-        }*/
+        //XXXjdm use the JS::PersistentRooted mechanism to ensure proper rooting
     }
 }
 
 impl<T: Reflectable> Temporary<T> {
     /// Create a new Temporary value from a JS-owned value.
     pub fn new(mut inner: JS<T>) -> Temporary<T> {
-        //let cx = cx_for_dom_object(&inner);
-        //let _ar = JSAutoRequest::new(cx);
-        /*unsafe {
-            AddObjectRoot(cx, inner.mut_reflector().rootable());
-        }*/
+        //XXXjdm use the JS::PersistentRooted mechanism to ensure proper rooting
         Temporary {
             root: inner.reflector().get_jsobject(),
             inner: inner,

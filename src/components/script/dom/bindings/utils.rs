@@ -490,32 +490,6 @@ pub fn GetArrayIndexFromId(_cx: *mut JSContext, id: jsid) -> Option<u32> {
     }*/
 }
 
-/*fn InternJSString(cx: *mut JSContext, chars: *libc::c_char) -> Option<JSHandleId> {
-    unsafe {
-        let s = JS_InternString(cx, chars);
-        if s.is_not_null() {
-            Some(RUST_INTERNED_STRING_TO_JSID(cx, s))
-        } else {
-            None
-        }
-    }
-}*/
-
-pub fn InitIds(_cx: *mut JSContext, _specs: &[JSPropertySpec], _ids: &mut [jsid]) -> bool {
-    /*for (i, spec) in specs.iter().enumerate() {
-        if spec.name.is_null() == true {
-            return true;
-        }
-        match InternJSString(cx, spec.name) {
-            Some(id) => ids[i] = id,
-            None => {
-                return false;
-            }
-        }
-    }*/
-    true
-}
-
 pub fn FindEnumStringIndex(cx: *mut JSContext,
                            v: JSVal,
                            values: &[&'static str]) -> Result<Option<uint>, ()> {
@@ -612,6 +586,7 @@ pub fn IsConvertibleToCallbackInterface(cx: *mut JSContext, obj: *mut JSObject) 
 
 pub fn CreateDOMGlobal(cx: *mut JSContext, class: *JSClass) -> *mut JSObject {
     unsafe {
+        //XXXjdm need to trace the protoiface cache, too
         let obj = NewGlobalObject(cx, class, ptr::mut_null(), 0 /*FireOnNewGlobalHook*/);
         if obj.is_null() {
             return ptr::mut_null();
@@ -626,24 +601,6 @@ pub fn CreateDOMGlobal(cx: *mut JSContext, class: *JSClass) -> *mut JSObject {
         });
         initialize_global(obj);
         obj
-    }
-}
-
-pub extern fn wrap_for_same_compartment(cx: *mut JSContext, obj: *mut JSObject) -> *mut JSObject {
-    unsafe {
-        let clasp = JS_GetClass(obj);
-        let clasp = clasp as *js::Class;
-        match (*clasp).ext.outerObject {
-            Some(outerize) => {
-                debug!("found an outerize hook");
-                let obj = JSHandleObject { unnamed_field1: &obj };
-                outerize(cx, obj)
-            }
-            None => {
-                debug!("no outerize hook found");
-                obj
-            }
-        }
     }
 }
 

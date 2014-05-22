@@ -36,7 +36,7 @@ use layout_interface;
 use geom::point::Point2D;
 use geom::size::Size2D;
 use js::glue::CallFunctionValue;
-use js::jsapi::{/*JS_SetWrapObjectCallbacks,*/ JS_SetGCZeal, JS_GC};
+use js::jsapi::{JS_SetGCZeal, JS_GC};
 use js::jsapi::{JSContext, JSRuntime, JSMutableHandleValue};
 use js::jsval::NullValue;
 use js::rust::{Cx, RtUtils};
@@ -635,24 +635,6 @@ impl ScriptTask {
             let ptr: *mut JSRuntime = (*js_runtime).ptr;
             ptr.is_not_null()
         });
-        /*unsafe {
-            // JS_SetWrapObjectCallbacks clobbers the existing wrap callback,
-            // and JSCompartment::wrap crashes if that happens. The only way
-            // to retrieve the default callback is as the result of
-            // JS_SetWrapObjectCallbacks, which is why we call it twice.
-            let callbacks = Struct_JSWrapObjectCallbacks {
-                wrap: None,
-                preWrap: Some(wrap_for_same_compartment),
-            };
-            let callback = JS_SetWrapObjectCallbacks((*js_runtime).ptr,
-                                                     ptr::mut_null(),
-                                                     wrap_for_same_compartment,
-                                                     ptr::mut_null());
-            JS_SetWrapObjectCallbacks((*js_runtime).ptr,
-                                      callback,
-                                      wrap_for_same_compartment,
-                                      ptr::mut_null());
-        }*/
 
         let js_context = js_runtime.cx();
         assert!({
