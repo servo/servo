@@ -170,6 +170,7 @@ ENV_RLDFLAGS_$(1) += $$(foreach dep,$$(DEPS_$(1)),-L $$(B)src/$$(PATH_$$(dep)) -
 # variables that depend on dependency definitions from sub.mk!
 ENV_CFLAGS_$(1) = CFLAGS="$$(CFLAGS_$(1))"
 ENV_RFLAGS_$(1) = RUSTFLAGS="$$(strip $$(CFG_RUSTC_FLAGS)) $$(ENV_RLDFLAGS_$(1))"
+ENV_EXT_DEPS_$(1) = EXT_DEPS="$$(DONE_DEPS_$(1))"
 
 # Native builds do not depend on the rust compiler, so we can build them in parallel with rustc
 RUSTC_DEP_$(1)=
@@ -195,6 +196,7 @@ $$(DONE_$(1)) : $$(DONE_DEPS_$(1)) $$(ROUGH_DEPS_$(1)) $$(RUSTC_DEP_$(1))
 	$$(ENV_CFLAGS_$(1)) \
 	$$(ENV_CXXFLAGS_$(1)) \
 	$$(ENV_RFLAGS_$(1)) \
+	$$(ENV_EXT_DEPS_$(1)) \
     $$(CROSS_COMPILER_CC) \
     $$(CROSS_COMPILER_CXX) \
     $$(CROSS_COMPILER_LD) \
