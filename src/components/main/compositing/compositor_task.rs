@@ -110,6 +110,7 @@ impl RenderListener for CompositorChan {
                                               metadata.id,
                                               metadata.background_color));
             self.chan.send(SetLayerPageSize(pipeline_id, metadata.id, size, epoch));
+            self.chan.send(SetLayerClipRect(pipeline_id, metadata.id, rect));
         }
     }
 
