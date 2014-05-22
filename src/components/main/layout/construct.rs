@@ -879,9 +879,11 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
 
             // Absolutely positioned elements will have computed value of
             // `float` as 'none' and `display` as per the table.
-            // Currently, for original `display` value of 'inline', the new
-            // `display` value is 'block'.
-            (_, _, position::absolute) | (_, _, position::fixed) => {
+            // Only match here for block items. If an item is absolutely
+            // positioned, but inline we shouldn't try to construct a block
+            // flow here - instead, let it match the inline case
+            // below.
+            (display::block, _, position::absolute) | (_, _, position::fixed) => {
                 node.set_flow_construction_result(self.build_flow_for_block(node))
             }
 
