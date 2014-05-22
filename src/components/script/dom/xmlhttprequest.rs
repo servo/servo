@@ -339,7 +339,7 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
                     buf.push_bytes(&[0x2C, 0x20]);
                     buf.push_bytes(value.as_slice());
                     value = ByteString::new(buf.as_mut_vec());
-                    
+
                 }
             },
             None => {}
@@ -396,7 +396,6 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
 
         // XXXManishearth deal with the Origin/Referer/Accept headers
         // XXXManishearth the below is only valid when content type is not already set by the user.
-        // 
         self.insert_trusted_header("content-type".to_owned(), "text/plain;charset=UTF-8".to_owned());
         load_data.headers = self.request_headers.deref().clone();
         load_data.method = self.request_method.deref().clone();
