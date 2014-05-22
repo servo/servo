@@ -222,7 +222,7 @@ pub mod longhands {
     % endfor
 
     //  double groove ridge insed outset
-    ${single_keyword("border-top-style", values="none solid dotted dashed hidden")}
+    ${single_keyword("border-top-style", values="none solid dotted double dashed hidden")}
 
     % for side in ["right", "bottom", "left"]:
         <%self:longhand name="border-${side}-style", no_super="True">

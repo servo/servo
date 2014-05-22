@@ -159,8 +159,11 @@ impl<'a> RenderContext<'a>  {
             border_style::solid => {
                 self.draw_solid_border_segment(direction,bounds,border,color_select);
             }
-            //FIXME(sammykim): Five more styles should be implemented.
-            //double, groove, ridge, inset, outset
+            border_style::double => {
+                self.draw_double_border_segment(direction, bounds, border, color_select);
+            }
+            //FIXME(sammykim): Four more styles should be implemented.
+            //groove, ridge, inset, outset
         }
     }
 
@@ -178,8 +181,11 @@ impl<'a> RenderContext<'a>  {
             border_style::solid => {
                 self.draw_solid_border_segment(Right,bounds,border,color);
             }
-            //FIXME(sankha93): Five more styles should be implemented.
-            //double, groove, ridge, inset, outset
+            border_style::double => {
+                self.draw_double_border_segment(Right, bounds, border, color);
+            }
+            //FIXME(sankha93): Four more styles should be implemented.
+            //groove, ridge, inset, outset
         }
     }
 
@@ -244,14 +250,57 @@ impl<'a> RenderContext<'a>  {
     }
 
     fn draw_solid_border_segment(&self, direction: Direction, bounds: &Rect<Au>, border: SideOffsets2D<f32>, color: Color) {
-        let rect = bounds.to_azure_rect();
-        let draw_opts = DrawOptions(1.0 , 0);
-        let path_builder = self.draw_target.create_path_builder();
-
-        let left_top = Point2D(rect.origin.x, rect.origin.y);
-        let right_top = Point2D(rect.origin.x + rect.size.width, rect.origin.y);
-        let left_bottom = Point2D(rect.origin.x, rect.origin.y + rect.size.height);
+        let rect         = bounds.to_azure_rect();
+        let left_top     = Point2D(rect.origin.x, rect.origin.y);
+        let right_top    = Point2D(rect.origin.x + rect.size.width, rect.origin.y);
+        let left_bottom  = Point2D(rect.origin.x, rect.origin.y + rect.size.height);
         let right_bottom = Point2D(rect.origin.x + rect.size.width, rect.origin.y + rect.size.height);
+        self.draw_border_path(left_top, right_top, left_bottom, right_bottom, direction, border, color);
+    }
+
+    fn draw_double_border_segment(&self, direction: Direction, bounds: &Rect<Au>, border: SideOffsets2D<f32>, color: Color) {
+        let rect          = bounds.to_azure_rect();
+        let scaled_border = SideOffsets2D::new((1.0/3.0) * border.top,
+                                               (1.0/3.0) * border.right,
+                                               (1.0/3.0) * border.bottom,
+                                               (1.0/3.0) * border.left);
+
+        // draw the outer portion of the double border.
+        self.draw_solid_border_segment(direction, bounds, scaled_border, color);
+
+        let inner_left_top     = Point2D(rect.origin.x + (border.left - scaled_border.left),
+                                     rect.origin.y + (border.top - scaled_border.top));
+
+        let inner_right_top    = Point2D(rect.origin.x + rect.size.width + (scaled_border.right - border.right), 
+                                      rect.origin.y + (border.top - scaled_border.top));
+
+        let inner_left_bottom  = Point2D(rect.origin.x + (border.left - scaled_border.left),
+                                        rect.origin.y + rect.size.height + scaled_border.bottom - border.bottom);        
+
+        let inner_right_bottom = Point2D(rect.origin.x + rect.size.width + (scaled_border.right - border.right),
+                                         rect.origin.y + rect.size.height + (scaled_border.bottom - border.bottom));
+
+        // draw the inner portion of the double border.
+        self.draw_border_path(inner_left_top,
+                              inner_right_top,
+                              inner_left_bottom,
+                              inner_right_bottom,
+                              direction,
+                              scaled_border,
+                              color);
+    }
+
+    fn draw_border_path(&self,
+                        left_top     : Point2D<f32>,
+                        right_top    : Point2D<f32>,
+                        left_bottom  : Point2D<f32>,
+                        right_bottom : Point2D<f32>,
+                        direction    : Direction,
+                        border       : SideOffsets2D<f32>,
+                        color        : Color) {
+
+        let draw_opts    = DrawOptions(1.0 , 0);
+        let path_builder = self.draw_target.create_path_builder();
 
         match direction {
             Top => {
