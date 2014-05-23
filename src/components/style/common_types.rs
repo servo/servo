@@ -54,9 +54,7 @@ pub mod specified {
             Length::parse_internal(input, /* negative_ok = */ false)
         }
         pub fn parse_dimension(value: CSSFloat, unit: &str) -> Option<Length> {
-            // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
-            let unit_lower = unit.to_ascii_lower();
-            match unit_lower.as_slice() {
+            match unit.to_ascii_lower().as_slice() {
                 "px" => Some(Length::from_px(value)),
                 "in" => Some(Au_(Au((value * AU_PER_IN) as i32))),
                 "cm" => Some(Au_(Au((value * AU_PER_CM) as i32))),

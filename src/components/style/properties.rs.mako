@@ -237,9 +237,7 @@ pub mod longhands {
                               -> Option<specified::Length> {
         match component_value {
             &Ident(ref value) => {
-                // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
-                let value_lower = value.to_owned().to_ascii_lower();
-                match value_lower.as_slice() {
+                match value.to_owned().to_ascii_lower().as_slice() {
                     "thin" => Some(specified::Length::from_px(1.)),
                     "medium" => Some(specified::Length::from_px(3.)),
                     "thick" => Some(specified::Length::from_px(5.)),
@@ -462,9 +460,7 @@ pub mod longhands {
                                     -> Option<SpecifiedValue> {
             match input {
                 &Ident(ref value) => {
-                    // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
-                    let value_lower = value.to_owned().to_ascii_lower();
-                    match value_lower.as_slice() {
+                    match value.to_owned().to_ascii_lower().as_slice() {
                         % for keyword in vertical_align_keywords:
                         "${keyword}" => Some(Specified_${to_rust_ident(keyword)}),
                         % endfor
@@ -539,10 +535,7 @@ pub mod longhands {
             pub fn parse(input: &[ComponentValue], _base_url: &Url) -> Option<SpecifiedValue> {
                 match one_component_value(input) {
                     Some(&Ident(ref keyword)) => {
-                        // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
-                        let keyword_lower = keyword.to_owned().to_ascii_lower();
-                        match keyword_lower.as_slice() {
-
+                        match keyword.to_owned().to_ascii_lower().as_slice() {
                             "normal" => return Some(normal),
                             "none" => return Some(none),
                             _ => ()
@@ -735,9 +728,7 @@ pub mod longhands {
                     // TODO: avoid copying strings?
                     Some(&String(ref value)) => add!(FamilyName(value.to_owned()), break 'outer),
                     Some(&Ident(ref value)) => {
-                        // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
-                        let value_lower = value.to_owned().to_ascii_lower();
-                        match value_lower.as_slice() {
+                        match value.to_owned().to_ascii_lower().as_slice() {
 //                            "serif" => add!(Serif, break 'outer),
 //                            "sans-serif" => add!(SansSerif, break 'outer),
 //                            "cursive" => add!(Cursive, break 'outer),
@@ -787,9 +778,7 @@ pub mod longhands {
                                     -> Option<SpecifiedValue> {
             match input {
                 &Ident(ref value) => {
-                    // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
-                    let value_lower = value.to_owned().to_ascii_lower();
-                    match value_lower.as_slice() {
+                    match value.to_owned().to_ascii_lower().as_slice() {
                         "bold" => Some(SpecifiedWeight700),
                         "normal" => Some(SpecifiedWeight400),
                         "bolder" => Some(Bolder),

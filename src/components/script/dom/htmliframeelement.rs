@@ -267,9 +267,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
         if "sandbox" == name {
             let mut modes = AllowNothing as u8;
             for word in value.split(' ') {
-                // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
-                let word_lower = word.to_ascii_lower();
-                modes |= match word_lower.as_slice() {
+                modes |= match word.to_ascii_lower().as_slice() {
                     "allow-same-origin" => AllowSameOrigin,
                     "allow-forms" => AllowForms,
                     "allow-pointer-lock" => AllowPointerLock,
