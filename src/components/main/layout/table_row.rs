@@ -86,7 +86,7 @@ impl TableRowFlow {
             {
                 let child_box = kid.as_table_cell().box_();
                 // TODO: Percentage height
-                let child_specified_height = MaybeAuto::from_style(child_box.style().Box.get().height,
+                let child_specified_height = MaybeAuto::from_style(child_box.style().get_box().height,
                                                                    Au::new(0)).specified_or_zero();
                 max_y =
                     geometry::max(max_y,
@@ -99,7 +99,7 @@ impl TableRowFlow {
 
         let mut height = max_y;
         // TODO: Percentage height
-        height = match MaybeAuto::from_style(self.block_flow.box_.style().Box.get().height, Au(0)) {
+        height = match MaybeAuto::from_style(self.block_flow.box_.style().get_box().height, Au(0)) {
             Auto => height,
             Specified(value) => geometry::max(value, height)
         };
@@ -173,7 +173,7 @@ impl Flow for TableRowFlow {
             // collect the specified column widths of cells. These are used in fixed table layout calculation.
             {
                 let child_box = kid.as_table_cell().box_();
-                let child_specified_width = MaybeAuto::from_style(child_box.style().Box.get().width,
+                let child_specified_width = MaybeAuto::from_style(child_box.style().get_box().width,
                                                                   Au::new(0)).specified_or_zero();
                 self.col_widths.push(child_specified_width);
             }

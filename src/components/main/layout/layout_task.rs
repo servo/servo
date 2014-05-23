@@ -689,8 +689,7 @@ impl LayoutTask {
                             let thread_safe_child = ThreadSafeLayoutNode::new(&child);
                             thread_safe_child.style()
                                              .resolve_color(thread_safe_child.style()
-                                                                             .Background
-                                                                             .get()
+                                                                             .get_background()
                                                                              .background_color)
                                              .to_gfx_color()
                         };

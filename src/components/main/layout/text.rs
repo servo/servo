@@ -278,20 +278,20 @@ pub fn computed_style_to_font_style(style: &ComputedValues) -> FontStyle {
     debug!("(font style) start");
 
     // FIXME: Too much allocation here.
-    let mut font_families = style.Font.get().font_family.iter().map(|family| {
+    let mut font_families = style.get_font().font_family.iter().map(|family| {
         match *family {
             font_family::FamilyName(ref name) => (*name).clone(),
         }
     });
     debug!("(font style) font families: `{:?}`", font_families);
 
-    let font_size = style.Font.get().font_size.to_f64().unwrap() / 60.0;
+    let font_size = style.get_font().font_size.to_f64().unwrap() / 60.0;
     debug!("(font style) font size: `{:f}px`", font_size);
 
     FontStyle {
         pt_size: font_size,
-        weight: style.Font.get().font_weight,
-        style: style.Font.get().font_style,
+        weight: style.get_font().font_weight,
+        style: style.get_font().font_style,
         families: font_families.collect(),
     }
 }
@@ -300,12 +300,12 @@ pub fn computed_style_to_font_style(style: &ComputedValues) -> FontStyle {
 ///
 /// FIXME(pcwalton): I believe this should not take a separate `font-size` parameter.
 pub fn line_height_from_style(style: &ComputedValues, font_size: Au) -> Au {
-    let from_inline = match style.InheritedBox.get().line_height {
+    let from_inline = match style.get_inheritedbox().line_height {
         line_height::Normal => font_size.scale_by(1.14),
         line_height::Number(l) => font_size.scale_by(l),
         line_height::Length(l) => l
     };
-    let minimum = style.InheritedBox.get()._servo_minimum_line_height;
+    let minimum = style.get_inheritedbox()._servo_minimum_line_height;
     Au::max(from_inline, minimum)
 }
 

@@ -43,7 +43,7 @@ impl TableFlow {
                              box_: Box)
                              -> TableFlow {
         let mut block_flow = BlockFlow::from_node_and_box(node, box_);
-        let table_layout = if block_flow.box_().style().Table.get().table_layout ==
+        let table_layout = if block_flow.box_().style().get_table().table_layout ==
                               table_layout::fixed {
             FixedLayout
         } else {
@@ -62,7 +62,7 @@ impl TableFlow {
                      node: &ThreadSafeLayoutNode)
                      -> TableFlow {
         let mut block_flow = BlockFlow::from_node(constructor, node);
-        let table_layout = if block_flow.box_().style().Table.get().table_layout ==
+        let table_layout = if block_flow.box_().style().get_table().table_layout ==
                               table_layout::fixed {
             FixedLayout
         } else {
@@ -82,7 +82,7 @@ impl TableFlow {
                            float_kind: FloatKind)
                            -> TableFlow {
         let mut block_flow = BlockFlow::float_from_node(constructor, node, float_kind);
-        let table_layout = if block_flow.box_().style().Table.get().table_layout ==
+        let table_layout = if block_flow.box_().style().get_table().table_layout ==
                               table_layout::fixed {
             FixedLayout
         } else {
