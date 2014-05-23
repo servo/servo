@@ -73,3 +73,4 @@
 == setattribute_id_restyle_a.html setattribute_id_restyle_b.html
 == pseudo_element_a.html pseudo_element_b.html
 == linebreak_simple_a.html linebreak_simple_b.html
+== linebreak_inline_span_a.html linebreak_inline_span_b.html
