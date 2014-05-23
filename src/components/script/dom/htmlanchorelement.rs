@@ -4,13 +4,18 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLAnchorElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLAnchorElementDerived;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
+use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
 use dom::bindings::error::ErrorResult;
-use dom::document::Document;
-use dom::element::HTMLAnchorElementTypeId;
+use dom::document::{Document, DocumentHelpers};
+use dom::attr::AttrMethods;
+use dom::element::{Element, AttributeHandlers, HTMLAnchorElementTypeId};
+use dom::event::{Event, EventMethods};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, ElementNodeTypeId};
+use dom::node::{Node, NodeHelpers, ElementNodeTypeId};
+use dom::virtualmethods::VirtualMethods;
+use servo_util::namespace::Null;
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
@@ -169,5 +174,45 @@ impl<'a> HTMLAnchorElementMethods for JSRef<'a, HTMLAnchorElement> {
 
     fn SetShape(&mut self, _shape: DOMString) -> ErrorResult {
         Ok(())
+    }
+}
+
+trait PrivateHTMLAnchorElementHelpers {
+    fn handle_event_impl(&self, event: &JSRef<Event>);
+}
+
+impl<'a> PrivateHTMLAnchorElementHelpers for JSRef<'a, HTMLAnchorElement> {
+    fn handle_event_impl(&self, event: &JSRef<Event>) {
+        if "click" == event.Type() && !event.DefaultPrevented() {
+            let element: &JSRef<Element> = ElementCast::from_ref(self);
+            let attr = element.get_attribute(Null, "href").root();
+            match attr {
+                Some(ref href) => {
+                    let value = href.Value();
+                    debug!("clicked on link to {:s}", value);
+                    let node: &JSRef<Node> = NodeCast::from_ref(self);
+                    let mut doc = node.owner_doc().root();
+                    doc.load_anchor_href(value);
+                }
+                None => ()
+            }
+        }
+    }
+}
+
+impl<'a> VirtualMethods for JSRef<'a, HTMLAnchorElement> {
+    fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods:> {
+        let htmlelement: &mut JSRef<HTMLElement> = HTMLElementCast::from_mut_ref(self);
+        Some(htmlelement as &mut VirtualMethods:)
+    }
+
+    fn handle_event(&mut self, event: &JSRef<Event>) {
+        match self.super_type() {
+            Some(s) => {
+                s.handle_event(event);
+            }
+            None => {}
+        }
+        self.handle_event_impl(event);
     }
 }

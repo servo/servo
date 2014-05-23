@@ -16,11 +16,12 @@ use dom::navigator::Navigator;
 use dom::performance::Performance;
 
 use layout_interface::{ReflowForDisplay, DocumentDamageLevel};
-use script_task::{ExitWindowMsg, FireTimerMsg, Page, ScriptChan};
+use script_task::{ExitWindowMsg, FireTimerMsg, Page, ScriptChan, TriggerLoadMsg, TriggerFragmentMsg};
 use servo_msg::compositor_msg::ScriptListener;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_util::str::DOMString;
 use servo_util::task::{spawn_named};
+use servo_util::url::parse_url;
 
 use js::jsapi::JSContext;
 use js::jsapi::{JS_GC, JS_GetRuntime};
@@ -292,6 +293,7 @@ pub trait WindowHelpers {
     fn damage_and_reflow(&self, damage: DocumentDamageLevel);
     fn wait_until_safe_to_modify_dom(&self);
     fn init_browser_context(&mut self, doc: &JSRef<Document>);
+    fn load_url(&self, href: DOMString);
 }
 
 trait PrivateWindowHelpers {
@@ -315,6 +317,19 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
 
     fn init_browser_context(&mut self, doc: &JSRef<Document>) {
         self.browser_context = Some(BrowserContext::new(doc));
+    }
+
+    /// Commence a new URL load which will either replace this window or scroll to a fragment.
+    fn load_url(&self, href: DOMString) {
+        let base_url = Some(self.page().get_url());
+        debug!("current page url is {:?}", base_url);
+        let url = parse_url(href, base_url);
+        let ScriptChan(ref script_chan) = self.script_chan;
+        if href.starts_with("#") {
+            script_chan.send(TriggerFragmentMsg(self.page.id, url));
+        } else {
+            script_chan.send(TriggerLoadMsg(self.page.id, url));
+        }
     }
 }
 

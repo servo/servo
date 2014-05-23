@@ -1,0 +1,18 @@
+<html>
+<head>
+<script src="./harness.js"></script>
+<a id="foo" href="/nonexistent">test link</a>
+<script>
+var link = document.getElementById('foo');
+link.addEventListener('click', function(ev) {
+  ev.preventDefault();
+});
+var ev = new Event('click', {bubbles: true, cancelable: true});
+link.dispatchEvent(ev);
+setTimeout(function() {
+  is(true, true, "load probably would have occurred by now");
+  finish();
+}, 500);
+</script>
+</head>
+</html>

@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::InheritTypes::ElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLAnchorElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLIFrameElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLImageElementCast;
@@ -10,8 +11,10 @@ use dom::bindings::codegen::InheritTypes::HTMLObjectElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLStyleElementCast;
 use dom::bindings::js::JSRef;
 use dom::element::Element;
-use dom::element::{ElementTypeId, HTMLImageElementTypeId};
+use dom::element::{ElementTypeId, HTMLAnchorElementTypeId, HTMLImageElementTypeId};
 use dom::element::{HTMLIFrameElementTypeId, HTMLObjectElementTypeId, HTMLStyleElementTypeId};
+use dom::event::Event;
+use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlelement::HTMLElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
@@ -68,6 +71,16 @@ pub trait VirtualMethods {
             _ => (),
         }
     }
+
+    /// Called during event dispatch after the bubbling phase completes.
+    fn handle_event(&mut self, event: &JSRef<Event>) {
+        match self.super_type() {
+            Some(s) => {
+                s.handle_event(event);
+            }
+            _ => (),
+        }
+    }
 }
 
 /// Obtain a VirtualMethods instance for a given Node-derived object. Any
@@ -76,6 +89,10 @@ pub trait VirtualMethods {
 /// interrupted.
 pub fn vtable_for<'a>(node: &'a mut JSRef<Node>) -> &'a mut VirtualMethods: {
     match node.type_id() {
+        ElementNodeTypeId(HTMLAnchorElementTypeId) => {
+            let element: &mut JSRef<HTMLAnchorElement> = HTMLAnchorElementCast::to_mut_ref(node).unwrap();
+            element as &mut VirtualMethods:
+        }
         ElementNodeTypeId(HTMLImageElementTypeId) => {
             let element: &mut JSRef<HTMLImageElement> = HTMLImageElementCast::to_mut_ref(node).unwrap();
             element as &mut VirtualMethods:
