@@ -12,7 +12,6 @@ use serialize::{Encodable, Encoder};
 pub use servo_util::url::parse_url;
 use sync::Arc;
 pub use url::Url;
-use servo_util::cowarc::CowArc;
 
 pub use cssparser::*;
 pub use cssparser::ast::*;
@@ -1568,10 +1567,10 @@ pub mod style_structs {
     % endfor
 }
 
-#[deriving(Eq, Clone)]
+#[deriving(Clone)]
 pub struct ComputedValues {
     % for style_struct in STYLE_STRUCTS:
-        pub ${style_struct.name}: CowArc<style_structs::${style_struct.name}>,
+        pub ${style_struct.name}: Arc<style_structs::${style_struct.name}>,
     % endfor
     shareable: bool,
 }
@@ -1587,7 +1586,7 @@ impl ComputedValues {
     pub fn resolve_color(&self, color: computed::CSSColor) -> RGBA {
         match color {
             RGBA(rgba) => rgba,
-            CurrentColor => self.Color.get().color,
+            CurrentColor => self.Color.color,
         }
     }
 }
@@ -1596,7 +1595,7 @@ impl ComputedValues {
 lazy_init! {
     static ref INITIAL_VALUES: ComputedValues = ComputedValues {
         % for style_struct in STYLE_STRUCTS:
-            ${style_struct.name}: CowArc::new(style_structs::${style_struct.name} {
+            ${style_struct.name}: Arc::new(style_structs::${style_struct.name} {
                 % for longhand in style_struct.longhands:
                     ${longhand.ident}: longhands::${longhand.ident}::get_initial_value(),
                 % endfor
@@ -1604,6 +1603,20 @@ lazy_init! {
         % endfor
         shareable: true,
     };
+}
+
+
+/// This only exists to limit the scope of #[allow(experimental)]
+/// FIXME: remove this when Arc::make_unique() is not experimental anymore.
+trait ArcExperimental<T> {
+    fn make_unique_experimental<'a>(&'a mut self) -> &'a mut T;
+}
+impl<T: Send + Share + Clone> ArcExperimental<T> for Arc<T> {
+    #[inline]
+    #[allow(experimental)]
+    fn make_unique_experimental<'a>(&'a mut self) -> &'a mut T {
+        self.make_unique()
+    }
 }
 
 /// Fast path for the function below. Only computes new inherited styles.
@@ -1651,18 +1664,18 @@ fn cascade_with_cached_declarations(applicable_declarations: &[MatchedProperty],
                                             //
                                             // FIXME: is it still?
                                             parent_style.${style_struct.name}
-                                                        .get()
                                                         .${property.ident}
                                                         .clone()
                                         }
                                     };
-                                    style_${style_struct.name}.get_mut().${property.ident} =
-                                        computed_value;
+                                    style_${style_struct.name}.make_unique_experimental()
+                                        .${property.ident} = computed_value;
 
                                     % if property.name in DERIVED_LONGHANDS:
                                         % for derived in DERIVED_LONGHANDS[property.name]:
-                                            style_${derived.style_struct.name}.get_mut()
-                                                                              .${derived.ident} =
+                                            style_${derived.style_struct.name}
+                                                .make_unique_experimental()
+                                                .${derived.ident} =
                                                 longhands::${derived.ident}
                                                          ::derive_from_${property.ident}(
                                                              computed_value,
@@ -1719,21 +1732,20 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
     };
 
     let mut context = {
-        let inherited_font_style = inherited_style.Font.get();
+        let inherited_font_style = &*inherited_style.Font;
         computed::Context {
             is_root_element: is_root_element,
             inherited_font_weight: inherited_font_style.font_weight,
             inherited_font_size: inherited_font_style.font_size,
-            inherited_height: inherited_style.Box.get().height,
+            inherited_height: inherited_style.Box.height,
             inherited_minimum_line_height: inherited_style.InheritedBox
-                                                          .get()
                                                           ._servo_minimum_line_height,
             inherited_text_decorations_in_effect:
-                inherited_style.InheritedText.get()._servo_text_decorations_in_effect,
+                inherited_style.InheritedText._servo_text_decorations_in_effect,
             // To be overridden by applicable declarations:
             font_size: inherited_font_style.font_size,
             display: longhands::display::get_initial_value(),
-            color: inherited_style.Color.get().color,
+            color: inherited_style.Color.color,
             text_decoration: longhands::text_decoration::get_initial_value(),
             positioned: false,
             floated: false,
@@ -1750,7 +1762,7 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
             match *$declared_value {
                 SpecifiedValue(specified_value) => specified_value,
                 CSSWideKeyword(Initial) => longhands::$property::get_initial_value(),
-                CSSWideKeyword(Inherit) => inherited_style.$style_struct.get().$property.clone(),
+                CSSWideKeyword(Inherit) => inherited_style.$style_struct.$property.clone(),
             }
         };
     )
@@ -1854,18 +1866,18 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
                                         // FIXME: is it still?
                                         cacheable = false;
                                         inherited_style.${style_struct.name}
-                                                       .get()
                                                        .${property.ident}
                                                        .clone()
                                     }
                                 };
-                                style_${style_struct.name}.get_mut().${property.ident} =
-                                    computed_value;
+                                style_${style_struct.name}.make_unique_experimental()
+                                    .${property.ident} = computed_value;
 
                                 % if property.name in DERIVED_LONGHANDS:
                                     % for derived in DERIVED_LONGHANDS[property.name]:
-                                        style_${derived.style_struct.name}.get_mut()
-                                                                          .${derived.ident} =
+                                        style_${derived.style_struct.name}
+                                            .make_unique_experimental()
+                                            .${derived.ident} =
                                             longhands::${derived.ident}
                                                      ::derive_from_${property.ident}(
                                                          computed_value,
@@ -1886,7 +1898,7 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
 
     // The initial value of border-*-width may be changed at computed value time.
     {
-        let border = style_Border.get_mut();
+        let border = style_Border.make_unique_experimental();
         % for side in ["top", "right", "bottom", "left"]:
             // Like calling to_computed_value, which wouldn't type check.
             if !context.border_${side}_present {
@@ -1897,7 +1909,7 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
 
     // The initial value of display may be changed at computed value time.
     if !seen.get_display() {
-        let box_ = style_Box.get_mut();
+        let box_ = style_Box.make_unique_experimental();
         box_.display = longhands::display::to_computed_value(box_.display, &context);
     }
 
@@ -1929,7 +1941,7 @@ pub fn cascade_anonymous(parent_style: &ComputedValues) -> ComputedValues {
         shareable: false,
     };
     {
-        let border = result.Border.get_mut();
+        let border = result.Border.make_unique_experimental();
         % for side in ["top", "right", "bottom", "left"]:
             // Like calling to_computed_value, which wouldn't type check.
             border.border_${side}_width = Au(0);
