@@ -419,18 +419,35 @@ impl LineboxScanner {
 
     fn try_append_to_line_by_new_line(&mut self, in_box: Box) -> bool {
         if in_box.new_line_pos.len() == 0 {
-            // In case of box does not include new-line character
+                debug!("LineboxScanner: Did not find a new-line character, so pushing the box to \
+                       the line without splitting.");
             self.push_box_to_line(in_box);
             true
         } else {
-            // In case of box includes new-line character
+            debug!("LineboxScanner: Found a new-line character, so splitting theline.");
             match in_box.split_by_new_line() {
-                Some((left_box, Some(right_box))) => {
-                    self.push_box_to_line(left_box);
-                    self.work_list.push_front(right_box);
-                },
-                Some((left_box, None)) => {
-                    self.push_box_to_line(left_box);
+                Some((left, right, run)) => {
+                    // TODO: Remove box splitting
+                    let split_box = |split: SplitInfo| {
+                        let info = ScannedTextBoxInfo::new(run.clone(), split.range);
+                        let specific = ScannedTextBox(info);
+                        let size = Size2D(split.width, in_box.border_box.size.height);
+                        in_box.transform(size, specific)
+                    };
+
+                    debug!("LineboxScanner: Pushing the box to the left of the new-line character \
+                           to the line.");
+                    let mut left = split_box(left);
+                    left.new_line_pos = vec!();
+                    self.push_box_to_line(left);
+
+                    right.map(|right| {
+                        debug!("LineboxScanner: Deferring the box to the right of the new-line \
+                               character to the line.");
+                        let mut right = split_box(right);
+                        right.new_line_pos = in_box.new_line_pos.clone();
+                        self.work_list.push_front(right);
+                    });
                 },
                 None => {
                     error!("LineboxScanner: This split case makes no sense!")

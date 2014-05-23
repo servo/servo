@@ -1093,12 +1093,13 @@ impl Box {
         }
     }
 
-    /// Split box which includes new-line character.
+    /// Find the split of a box that includes a new-line character.
     ///
-    /// A return value of `None` indicates that the box could not be split.
-    /// Otherwise the split boxes are returned. The right box is optional due
-    /// to the possibility of it being whitespace.
-    pub fn split_by_new_line(&self) -> Option<(Box, Option<Box>)> {
+    /// A return value of `None` indicates that the box is not splittable.
+    /// Otherwise the split information is returned. The right information is
+    /// optional due to the possibility of it being whitespace.
+    pub fn find_split_positions_by_new_line(&self)
+            -> Option<(SplitInfo, Option<SplitInfo>, Arc<~TextRun> /* TODO: remove */)> {
         match self.specific {
             GenericBox | IframeBox(_) | ImageBox(_) | TableBox | TableCellBox |
             TableRowBox | TableWrapperBox => None,
@@ -1113,26 +1114,22 @@ impl Box {
                                              text_box_info.range.length() - (cur_new_line_pos + CharIndex(1)));
 
                 // Left box is for left text of first founded new-line character.
-                let left_box = {
-                    let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run.clone(), left_range);
-                    let new_metrics = new_text_box_info.run.metrics_for_range(&left_range);
-                    let mut new_box = self.transform(new_metrics.bounding_box.size, ScannedTextBox(new_text_box_info));
-                    new_box.new_line_pos = vec!();
-                    new_box
+                let left_box = SplitInfo {
+                    range: left_range,
+                    width: text_box_info.run.advance_for_range(&left_range),
                 };
 
                 // Right box is for right text of first founded new-line character.
                 let right_box = if right_range.length() > CharIndex(0) {
-                    let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run.clone(), right_range);
-                    let new_metrics = new_text_box_info.run.metrics_for_range(&right_range);
-                    let mut new_box = self.transform(new_metrics.bounding_box.size, ScannedTextBox(new_text_box_info));
-                    new_box.new_line_pos = new_line_pos;
-                    Some(new_box)
+                    Some(SplitInfo {
+                        range: right_range,
+                        width: text_box_info.run.advance_for_range(&right_range),
+                    })
                 } else {
                     None
                 };
 
-                Some((left_box, right_box))
+                Some((left_box, right_box, text_box_info.run.clone()))
             }
         }
     }
