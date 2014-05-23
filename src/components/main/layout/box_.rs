@@ -1098,7 +1098,7 @@ impl Box {
     /// A return value of `None` indicates that the box is not splittable.
     /// Otherwise the split information is returned. The right information is
     /// optional due to the possibility of it being whitespace.
-    pub fn find_split_positions_by_new_line(&self)
+    pub fn find_split_info_by_new_line(&self)
             -> Option<(SplitInfo, Option<SplitInfo>, Arc<~TextRun> /* TODO: remove */)> {
         match self.specific {
             GenericBox | IframeBox(_) | ImageBox(_) | TableBox | TableCellBox |
@@ -1141,7 +1141,7 @@ impl Box {
     /// Otherwise the information pertaining to the split is returned. The left
     /// and right split information are both optional due to the possibility of
     /// them being whitespace.
-    pub fn find_split_positions(&self, start: CharIndex, max_width: Au, starts_line: bool)
+    pub fn find_split_info_for_width(&self, start: CharIndex, max_width: Au, starts_line: bool)
             -> Option<(Option<SplitInfo>, Option<SplitInfo>, Arc<~TextRun> /* TODO: remove */)> {
         match self.specific {
             GenericBox | IframeBox(_) | ImageBox(_) | TableBox | TableCellBox |
