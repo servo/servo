@@ -23,7 +23,7 @@ use sync::Arc;
 
 pub struct RenderContext<'a> {
     pub draw_target: &'a DrawTarget,
-    pub font_ctx: &'a mut ~FontContext,
+    pub font_ctx: &'a mut Box<FontContext>,
     pub opts: &'a Opts,
     /// The rectangle that this context encompasses in page coordinates.
     pub page_rect: Rect<f32>,
@@ -98,7 +98,7 @@ impl<'a> RenderContext<'a>  {
         self.draw_target.pop_clip();
     }
 
-    pub fn draw_image(&self, bounds: Rect<Au>, image: Arc<~Image>) {
+    pub fn draw_image(&self, bounds: Rect<Au>, image: Arc<Box<Image>>) {
         let size = Size2D(image.width as i32, image.height as i32);
         let pixel_width = match image.color_type {
             RGBA8 => 4,

@@ -6,7 +6,6 @@ use compositing::*;
 
 use geom::size::Size2D;
 use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, ResizedWindowMsg};
-use std::comm::{Empty, Disconnected, Data, Receiver};
 use servo_util::time::ProfilerChan;
 use servo_util::time;
 
@@ -42,8 +41,8 @@ impl NullCompositor {
         // another task from finishing (i.e. SetIds)
         loop {
             match compositor.port.try_recv() {
-                Empty | Disconnected => break,
-                Data(_) => {},
+                Err(_) => break,
+                Ok(_) => {},
             }
         }
 

@@ -42,7 +42,6 @@ use std::cast::transmute;
 use std::char;
 use std::cmp;
 use std::ptr::null;
-use std::slice;
 
 static NO_GLYPH: i32 = -1;
 static CONTINUATION_BYTE: i32 = -2;
@@ -243,15 +242,15 @@ impl Shaper {
         }
 
         // make map of what chars have glyphs
-        let mut byteToGlyph: ~[i32];
+        let mut byteToGlyph: Vec<i32>;
 
         // fast path: all chars are single-byte.
         if byte_max == char_max {
-            byteToGlyph = slice::from_elem(byte_max as uint, NO_GLYPH);
+            byteToGlyph = Vec::from_elem(byte_max as uint, NO_GLYPH);
         } else {
-            byteToGlyph = slice::from_elem(byte_max as uint, CONTINUATION_BYTE);
+            byteToGlyph = Vec::from_elem(byte_max as uint, CONTINUATION_BYTE);
             for (i, _) in text.char_indices() {
-                byteToGlyph[i] = NO_GLYPH;
+                *byteToGlyph.get_mut(i) = NO_GLYPH;
             }
         }
 
@@ -260,8 +259,8 @@ impl Shaper {
             // loc refers to a *byte* offset within the utf8 string.
             let loc = glyph_data.byte_offset_of_glyph(i);
             if loc < byte_max {
-                assert!(byteToGlyph[loc as uint] != CONTINUATION_BYTE);
-                byteToGlyph[loc as uint] = i as i32;
+                assert!(*byteToGlyph.get(loc as uint) != CONTINUATION_BYTE);
+                *byteToGlyph.get_mut(loc as uint) = i as i32;
             } else {
                 debug!("ERROR: tried to set out of range byteToGlyph: idx={}, glyph idx={}",
                        loc,
@@ -273,7 +272,7 @@ impl Shaper {
         debug!("text: {:s}", text);
         debug!("(char idx): char->(glyph index):");
         for (i, ch) in text.char_indices() {
-            debug!("{}: {} --> {:d}", i, ch, byteToGlyph[i] as int);
+            debug!("{}: {} --> {:d}", i, ch, *byteToGlyph.get(i) as int);
         }
 
         // some helpers
@@ -305,7 +304,7 @@ impl Shaper {
                        char_byte_span.begin(), char_byte_span.length(), glyph_span.begin());
 
                 while char_byte_span.end() != byte_max &&
-                        byteToGlyph[char_byte_span.end() as uint] == NO_GLYPH {
+                        *byteToGlyph.get(char_byte_span.end() as uint) == NO_GLYPH {
                     debug!("Extending char byte span to include byte offset={} with no associated \
                             glyph", char_byte_span.end());
                     let range = text.char_range_at(char_byte_span.end() as uint);
@@ -317,8 +316,8 @@ impl Shaper {
                 // in cases where one char made several glyphs and left some unassociated chars.
                 let mut max_glyph_idx = glyph_span.end();
                 for i in char_byte_span.each_index() {
-                    if byteToGlyph[i as uint] > NO_GLYPH {
-                        max_glyph_idx = cmp::max(byteToGlyph[i as uint] as int + 1, max_glyph_idx);
+                    if *byteToGlyph.get(i as uint) > NO_GLYPH {
+                        max_glyph_idx = cmp::max(*byteToGlyph.get(i as uint) as int + 1, max_glyph_idx);
                     }
                 }
 
@@ -377,7 +376,7 @@ impl Shaper {
             let mut covered_byte_span = char_byte_span.clone();
             // extend, clipping at end of text range.
             while covered_byte_span.end() < byte_max
-                    && byteToGlyph[covered_byte_span.end() as uint] == NO_GLYPH {
+                    && *byteToGlyph.get(covered_byte_span.end() as uint) == NO_GLYPH {
                 let range = text.char_range_at(covered_byte_span.end() as uint);
                 drop(range.ch);
                 covered_byte_span.extend_to(range.next as int);

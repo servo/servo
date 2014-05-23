@@ -13,7 +13,6 @@ use windowing::{Forward, Back};
 use alert::{Alert, AlertMethods};
 use libc::{c_int, c_uchar};
 use std::cell::{Cell, RefCell};
-use std::local_data;
 use std::rc::Rc;
 use geom::point::Point2D;
 use geom::size::Size2D;
@@ -92,7 +91,7 @@ impl WindowMethods<Application> for Window {
                 debug!("GLUT display func registgered");
             }
         }
-        glut::display_func(~DisplayCallbackState);
+        glut::display_func(box DisplayCallbackState);
         struct ReshapeCallbackState;
         impl glut::ReshapeCallback for ReshapeCallbackState {
             fn call(&self, width: c_int, height: c_int) {
@@ -100,7 +99,7 @@ impl WindowMethods<Application> for Window {
                 tmp.event_queue.borrow_mut().push(ResizeWindowEvent(width as uint, height as uint))
             }
         }
-        glut::reshape_func(glut_window, ~ReshapeCallbackState);
+        glut::reshape_func(glut_window, box ReshapeCallbackState);
         struct KeyboardCallbackState;
         impl glut::KeyboardCallback for KeyboardCallbackState {
             fn call(&self, key: c_uchar, _x: c_int, _y: c_int) {
@@ -108,7 +107,7 @@ impl WindowMethods<Application> for Window {
                 tmp.handle_key(key)
             }
         }
-        glut::keyboard_func(~KeyboardCallbackState);
+        glut::keyboard_func(box KeyboardCallbackState);
         struct MouseCallbackState;
         impl glut::MouseCallback for MouseCallbackState {
             fn call(&self, button: c_int, state: c_int, x: c_int, y: c_int) {
@@ -130,7 +129,7 @@ impl WindowMethods<Application> for Window {
                 }
             }
         }
-        glut::mouse_func(~MouseCallbackState);
+        glut::mouse_func(box MouseCallbackState);
 
         let wrapped_window = Rc::new(window);
 
@@ -275,16 +274,16 @@ impl Window {
     }
 }
 
-static TLS_KEY: local_data::Key<Rc<Window>> = &local_data::Key;
+local_data_key!(TLS_KEY: Rc<Window>)
 
 fn install_local_window(window: Rc<Window>) {
-    local_data::set(TLS_KEY, window);
+    TLS_KEY.replace(Some(window));
 }
 
 fn drop_local_window() {
-    local_data::pop(TLS_KEY);
+    TLS_KEY.replace(None);
 }
 
 fn local_window() -> Rc<Window> {
-    local_data::get(TLS_KEY, |v| v.unwrap().clone())
+    TLS_KEY.get().unwrap().clone()
 }

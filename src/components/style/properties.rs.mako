@@ -238,7 +238,7 @@ pub mod longhands {
         match component_value {
             &Ident(ref value) => {
                 // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
-                let value_lower = value.to_ascii_lower();
+                let value_lower = value.to_owned().to_ascii_lower();
                 match value_lower.as_slice() {
                     "thin" => Some(specified::Length::from_px(1.)),
                     "medium" => Some(specified::Length::from_px(3.)),
@@ -382,7 +382,7 @@ pub mod longhands {
                 &Dimension(ref value, ref unit) if value.value >= 0.
                 => specified::Length::parse_dimension(value.value, unit.as_slice())
                     .map(SpecifiedLength),
-                &Ident(ref value) if value.eq_ignore_ascii_case("normal")
+                &Ident(ref value) if value.to_owned().eq_ignore_ascii_case("normal")
                 => Some(SpecifiedNormal),
                 _ => None,
             }
@@ -463,7 +463,7 @@ pub mod longhands {
             match input {
                 &Ident(ref value) => {
                     // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
-                    let value_lower = value.to_ascii_lower();
+                    let value_lower = value.to_owned().to_ascii_lower();
                     match value_lower.as_slice() {
                         % for keyword in vertical_align_keywords:
                         "${keyword}" => Some(Specified_${to_rust_ident(keyword)}),
@@ -540,7 +540,7 @@ pub mod longhands {
                 match one_component_value(input) {
                     Some(&Ident(ref keyword)) => {
                         // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
-                        let keyword_lower = keyword.to_ascii_lower();
+                        let keyword_lower = keyword.to_owned().to_ascii_lower();
                         match keyword_lower.as_slice() {
 
                             "normal" => return Some(normal),
@@ -586,7 +586,7 @@ pub mod longhands {
                         let image_url = parse_url(url.as_slice(), Some(base_url.clone()));
                         Some(Some(image_url))
                     },
-                    &ast::Ident(ref value) if value.eq_ignore_ascii_case("none") => Some(None),
+                    &ast::Ident(ref value) if value.to_owned().eq_ignore_ascii_case("none") => Some(None),
                     _ => None,
                 }
             }
@@ -709,7 +709,7 @@ pub mod longhands {
             pub type T = Vec<FontFamily>;
         }
         pub type SpecifiedValue = computed_value::T;
-        #[inline] pub fn get_initial_value() -> computed_value::T { vec!(FamilyName(~"serif")) }
+        #[inline] pub fn get_initial_value() -> computed_value::T { vec!(FamilyName("serif".to_owned())) }
         /// <familiy-name>#
         /// <familiy-name> = <string> | [ <ident>+ ]
         /// TODO: <generic-familiy>
@@ -736,7 +736,7 @@ pub mod longhands {
                     Some(&String(ref value)) => add!(FamilyName(value.to_owned()), break 'outer),
                     Some(&Ident(ref value)) => {
                         // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
-                        let value_lower = value.to_ascii_lower();
+                        let value_lower = value.to_owned().to_ascii_lower();
                         match value_lower.as_slice() {
 //                            "serif" => add!(Serif, break 'outer),
 //                            "sans-serif" => add!(SansSerif, break 'outer),
@@ -788,7 +788,7 @@ pub mod longhands {
             match input {
                 &Ident(ref value) => {
                     // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
-                    let value_lower = value.to_ascii_lower();
+                    let value_lower = value.to_owned().to_ascii_lower();
                     match value_lower.as_slice() {
                         "bold" => Some(SpecifiedWeight700),
                         "normal" => Some(SpecifiedWeight400),
@@ -1266,7 +1266,7 @@ pub mod shorthands {
             // font-style, font-weight and font-variant.
             // Leaves the values to None, 'normal' is the initial value for each of them.
             match get_ident_lower(component_value) {
-                Some(ref ident) if ident.eq_ignore_ascii_case("normal") => {
+                Some(ref ident) if ident.to_owned().eq_ignore_ascii_case("normal") => {
                     nb_normals += 1;
                     continue;
                 }
@@ -1415,7 +1415,7 @@ pub fn parse_property_declaration_list<I: Iterator<Node>>(input: I, base_url: &U
                 } else {
                     (&mut normal_declarations, &mut normal_seen)
                 };
-                match PropertyDeclaration::parse(n, v, list, base_url, seen) {
+                match PropertyDeclaration::parse(n.to_owned(), v.as_slice(), list, base_url, seen) {
                     UnknownProperty => log_css_error(l, format!(
                         "Unsupported property: {}:{}", n, v.iter().to_css())),
                     InvalidValue => log_css_error(l, format!(
@@ -1479,7 +1479,7 @@ impl PropertyDeclaration {
                  base_url: &Url,
                  seen: &mut PropertyBitField) -> PropertyDeclarationParseResult {
         // FIXME: local variable to work around Rust #10683
-        let name_lower = name.to_ascii_lower();
+        let name_lower = name.to_owned().to_ascii_lower();
         match name_lower.as_slice() {
             % for property in LONGHANDS:
                 % if property.derived_from is None:

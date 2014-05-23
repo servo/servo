@@ -8,7 +8,7 @@ use std::comm::Sender;
 use std::task::TaskBuilder;
 
 pub fn spawn_named<S: IntoMaybeOwned<'static>>(name: S, f: proc():Send) {
-    let builder = task::task().named(name);
+    let builder = task::TaskBuilder::new().named(name);
     builder.spawn(f);
 }
 

@@ -24,7 +24,7 @@ impl Blob {
     }
 
     pub fn new(window: &JSRef<Window>) -> Temporary<Blob> {
-        reflect_dom_object(~Blob::new_inherited(window),
+        reflect_dom_object(box Blob::new_inherited(window),
                            window,
                            BlobBinding::Wrap)
     }

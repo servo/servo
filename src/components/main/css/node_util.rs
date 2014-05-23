@@ -27,23 +27,23 @@ impl<'ln> NodeUtil for ThreadSafeLayoutNode<'ln> {
             let layout_data_ref = self.borrow_layout_data();
             match self.get_pseudo_element_type() {
                 Before | BeforeBlock => {
-                     cast::transmute_region(layout_data_ref.as_ref()
-                                                           .unwrap()
-                                                           .data
-                                                           .before_style
-                                                           .as_ref()
-                                                           .unwrap())
+                     cast::transmute_lifetime(layout_data_ref.as_ref()
+                                                             .unwrap()
+                                                             .data
+                                                             .before_style
+                                                             .as_ref()
+                                                             .unwrap())
                 }
                 After | AfterBlock => {
-                    cast::transmute_region(layout_data_ref.as_ref()
-                                                          .unwrap()
-                                                          .data
-                                                          .after_style
-                                                          .as_ref()
-                                                          .unwrap())
+                    cast::transmute_lifetime(layout_data_ref.as_ref()
+                                                            .unwrap()
+                                                            .data
+                                                            .after_style
+                                                            .as_ref()
+                                                            .unwrap())
                 }
                 Normal => {
-                    cast::transmute_region(layout_data_ref.as_ref()
+                    cast::transmute_lifetime(layout_data_ref.as_ref()
                                                           .unwrap()
                                                           .shared_data
                                                           .style

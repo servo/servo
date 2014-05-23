@@ -23,7 +23,7 @@ static LOAD_DENOMINATOR: uint = 4;
 
 /// One bucket in the hash table.
 struct Bucket<K,V> {
-    next: Option<~Bucket<K,V>>,
+    next: Option<Box<Bucket<K,V>>>,
     key: K,
     value: V,
 }
@@ -116,7 +116,7 @@ impl<K:Hash + Eq,V> ConcurrentHashMap<K,V> {
                         }
                     }
 
-                    (*bucket).next = Some(~Bucket {
+                    (*bucket).next = Some(box Bucket {
                         next: None,
                         key: key,
                         value: value,
@@ -153,7 +153,7 @@ impl<K:Hash + Eq,V> ConcurrentHashMap<K,V> {
                 let next_opt = mem::replace(&mut bucket.next, None);
                 match next_opt {
                     None => nuke_bucket = true,
-                    Some(~next) => *bucket = next,
+                    Some(box next) => *bucket = next,
                 }
                 drop(this.size.fetch_sub(1, SeqCst))
             }
@@ -175,7 +175,7 @@ impl<K:Hash + Eq,V> ConcurrentHashMap<K,V> {
                         }
 
                         // If we got here, then we found the key. Now do a pointer stitch.
-                        let ~Bucket {
+                        let box Bucket {
                             next: next_next,
                             ..
                         } = (*prev).next.take_unwrap();
@@ -314,7 +314,7 @@ impl<K:Hash + Eq,V> ConcurrentHashMap<K,V> {
                         loop {
                             match bucket {
                                 None => break,
-                                Some(~Bucket {
+                                Some(box Bucket {
                                     key: key,
                                     value: value,
                                     next: next
@@ -346,7 +346,7 @@ impl<K:Hash + Eq,V> ConcurrentHashMap<K,V> {
     #[inline]
     fn bucket_and_lock_indices(&self, key: &K) -> (uint, uint) {
         let this: &mut ConcurrentHashMap<K,V> = unsafe {
-            cast::transmute_mut(cast::transmute_region(self))
+            cast::transmute_mut(cast::transmute_lifetime(self))
         };
 
         let hash = sip::hash_with_keys(self.k0, self.k1, key);

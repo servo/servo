@@ -58,7 +58,7 @@ fn load(mut url: Url, start_chan: Sender<LoadResponse>) {
 
         let request = RequestWriter::<NetworkStream>::new(Get, url.clone());
         let writer = match request {
-            Ok(w) => ~w,
+            Ok(w) => box w,
             Err(e) => {
                 send_error(url, e.desc.to_owned(), start_chan);
                 return;

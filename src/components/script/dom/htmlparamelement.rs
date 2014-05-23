@@ -33,7 +33,7 @@ impl HTMLParamElement {
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLParamElement> {
         let element = HTMLParamElement::new_inherited(localName, document);
-        Node::reflect_node(~element, document, HTMLParamElementBinding::Wrap)
+        Node::reflect_node(box element, document, HTMLParamElementBinding::Wrap)
     }
 }
 

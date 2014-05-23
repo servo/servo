@@ -108,10 +108,10 @@ fn css_link_listener(to_parent: Sender<HtmlDiscoveryMessage>,
 
     loop {
         match from_parent.recv_opt() {
-            Some(CSSTaskNewFile(provenance)) => {
+            Ok(CSSTaskNewFile(provenance)) => {
                 result_vec.push(spawn_css_parser(provenance));
             }
-            Some(CSSTaskExit) | None => {
+            Ok(CSSTaskExit) | Err(()) => {
                 break;
             }
         }
@@ -120,7 +120,7 @@ fn css_link_listener(to_parent: Sender<HtmlDiscoveryMessage>,
     // Send the sheets back in order
     // FIXME: Shouldn't wait until after we've recieved CSSTaskExit to start sending these
     for port in result_vec.iter() {
-        to_parent.try_send(HtmlDiscoveredStyle(port.recv()));
+        to_parent.send_opt(HtmlDiscoveredStyle(port.recv()));
     }
 }
 
@@ -131,7 +131,7 @@ fn js_script_listener(to_parent: Sender<HtmlDiscoveryMessage>,
 
     loop {
         match from_parent.recv_opt() {
-            Some(JSTaskNewFile(url)) => {
+            Ok(JSTaskNewFile(url)) => {
                 match load_whole_resource(&resource_task, url.clone()) {
                     Err(_) => {
                         error!("error loading script {:s}", url.to_str());
@@ -144,16 +144,16 @@ fn js_script_listener(to_parent: Sender<HtmlDiscoveryMessage>,
                     }
                 }
             }
-            Some(JSTaskNewInlineScript(data, url)) => {
+            Ok(JSTaskNewInlineScript(data, url)) => {
                 result_vec.push(JSFile { data: data, url: url });
             }
-            Some(JSTaskExit) | None => {
+            Ok(JSTaskExit) | Err(()) => {
                 break;
             }
         }
     }
 
-    to_parent.try_send(HtmlDiscoveredScript(result_vec));
+    to_parent.send_opt(HtmlDiscoveredScript(result_vec));
 }
 
 // Silly macros to handle constructing      DOM nodes. This produces bad code and should be optimized
@@ -339,7 +339,7 @@ pub fn parse_html(page: &Page,
 
     let doc_cell = RefCell::new(document);
 
-    let tree_handler = hubbub::TreeHandler {
+    let mut tree_handler = hubbub::TreeHandler {
         create_comment: |data: ~str| {
             debug!("create comment");
             // NOTE: tmp vars are workaround for lifetime issues. Both required.
@@ -349,12 +349,14 @@ pub fn parse_html(page: &Page,
             let comment: &JSRef<Node> = NodeCast::from_ref(&*comment);
             unsafe { comment.to_hubbub_node() }
         },
-        create_doctype: |doctype: ~hubbub::Doctype| {
+        create_doctype: |doctype: Box<hubbub::Doctype>| {
             debug!("create doctype");
-            let ~hubbub::Doctype {name: name,
-                                public_id: public_id,
-                                system_id: system_id,
-                                force_quirks: _ } = doctype;
+            let box hubbub::Doctype {
+                name: name,
+                public_id: public_id,
+                system_id: system_id,
+                force_quirks: _
+            } = doctype;
             // NOTE: tmp vars are workaround for lifetime issues. Both required.
             let tmp_borrow = doc_cell.borrow();
             let tmp = &*tmp_borrow;
@@ -363,7 +365,7 @@ pub fn parse_html(page: &Page,
                 doctype_node.deref().to_hubbub_node()
             }
         },
-        create_element: |tag: ~hubbub::Tag| {
+        create_element: |tag: Box<hubbub::Tag>| {
             debug!("create element {:?}", tag.name.clone());
             // NOTE: tmp vars are workaround for lifetime issues. Both required.
             let tmp_borrow = doc_cell.borrow();
@@ -515,7 +517,7 @@ pub fn parse_html(page: &Page,
             // style parsing is handled in element::notify_child_list_changed.
         },
     };
-    parser.set_tree_handler(&tree_handler);
+    parser.set_tree_handler(&mut tree_handler);
     debug!("set tree handler");
 
     debug!("loaded page");

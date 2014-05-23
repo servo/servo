@@ -33,7 +33,7 @@ impl HTMLBaseElement {
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLBaseElement> {
         let element = HTMLBaseElement::new_inherited(localName, document);
-        Node::reflect_node(~element, document, HTMLBaseElementBinding::Wrap)
+        Node::reflect_node(box element, document, HTMLBaseElementBinding::Wrap)
     }
 }
 

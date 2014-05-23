@@ -44,7 +44,7 @@ impl HTMLHeadingElement {
 
     pub fn new(localName: DOMString, document: &JSRef<Document>, level: HeadingLevel) -> Temporary<HTMLHeadingElement> {
         let element = HTMLHeadingElement::new_inherited(localName, document, level);
-        Node::reflect_node(~element, document, HTMLHeadingElementBinding::Wrap)
+        Node::reflect_node(box element, document, HTMLHeadingElementBinding::Wrap)
     }
 }
 

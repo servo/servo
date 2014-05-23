@@ -33,7 +33,7 @@ impl HTMLDataListElement {
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLDataListElement> {
         let element = HTMLDataListElement::new_inherited(localName, document);
-        Node::reflect_node(~element, document, HTMLDataListElementBinding::Wrap)
+        Node::reflect_node(box element, document, HTMLDataListElementBinding::Wrap)
     }
 }
 
@@ -50,7 +50,7 @@ impl<'a> HTMLDataListElementMethods for JSRef<'a, HTMLDataListElement> {
             }
         }
         let node: &JSRef<Node> = NodeCast::from_ref(self);
-        let filter = ~HTMLDataListOptionsFilter;
+        let filter = box HTMLDataListOptionsFilter;
         let window = window_from_node(node).root();
         HTMLCollection::create(&*window, node, filter)
     }

@@ -119,7 +119,7 @@ impl Profiler {
                 spawn_named("Profiler timer", proc() {
                     loop {
                         sleep(period);
-                        if !chan.try_send(PrintMsg) {
+                        if chan.send_opt(PrintMsg).is_err() {
                             break;
                         }
                     }
@@ -135,7 +135,7 @@ impl Profiler {
                 spawn_named("Profiler", proc() {
                     loop {
                         match port.recv_opt() {
-                            None | Some(ExitMsg) => break,
+                            Err(_) | Ok(ExitMsg) => break,
                             _ => {}
                         }
                     }
@@ -158,12 +158,12 @@ impl Profiler {
         loop {
             let msg = self.port.recv_opt();
             match msg {
-               Some(msg) => {
+               Ok(msg) => {
                    if !self.handle_msg(msg) {
                        break
                    }
                }
-               None => break
+               _ => break
             }
         }
     }

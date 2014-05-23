@@ -48,7 +48,7 @@ impl DocumentType {
                                                        public_id,
                                                        system_id,
                                                        document);
-        Node::reflect_node(~documenttype, document, DocumentTypeBinding::Wrap)
+        Node::reflect_node(box documenttype, document, DocumentTypeBinding::Wrap)
     }
 }
 

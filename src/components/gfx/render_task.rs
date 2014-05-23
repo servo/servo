@@ -30,7 +30,7 @@ use servo_util::time;
 use servo_util::task::send_on_failure;
 
 use std::comm::{channel, Receiver, Sender};
-use std::task;
+use std::task::TaskBuilder;
 use sync::Arc;
 
 /// Information about a layer that layout sends to the painting task.
@@ -50,7 +50,7 @@ pub struct RenderLayer {
 pub enum Msg {
     RenderMsg(SmallVec1<RenderLayer>),
     ReRenderMsg(Vec<BufferRequest>, f32, LayerId, Epoch),
-    UnusedBufferMsg(Vec<~LayerBuffer>),
+    UnusedBufferMsg(Vec<Box<LayerBuffer>>),
     PaintPermissionGranted,
     PaintPermissionRevoked,
     ExitMsg(Option<Sender<()>>),
@@ -96,11 +96,11 @@ impl RenderChan {
     }
 
     pub fn send(&self, msg: Msg) {
-        assert!(self.try_send(msg), "RenderChan.send: render port closed")
+        assert!(self.send_opt(msg).is_ok(), "RenderChan.send: render port closed")
     }
 
-    pub fn try_send(&self, msg: Msg) -> bool {
-        self.chan.try_send(msg)
+    pub fn send_opt(&self, msg: Msg) -> Result<(), Msg> {
+        self.chan.send_opt(msg)
     }
 }
 
@@ -116,7 +116,7 @@ pub struct RenderTask<C> {
     port: Receiver<Msg>,
     compositor: C,
     constellation_chan: ConstellationChan,
-    font_ctx: ~FontContext,
+    font_ctx: Box<FontContext>,
     opts: Opts,
 
     /// A channel to the profiler.
@@ -138,7 +138,7 @@ pub struct RenderTask<C> {
     epoch: Epoch,
 
     /// A data structure to store unused LayerBuffers
-    buffer_map: BufferMap<~LayerBuffer>,
+    buffer_map: BufferMap<Box<LayerBuffer>>,
 }
 
 // If we implement this as a function, we get borrowck errors from borrowing
@@ -174,7 +174,7 @@ impl<C: RenderListener + Send> RenderTask<C> {
                   opts: Opts,
                   profiler_chan: ProfilerChan,
                   shutdown_chan: Sender<()>) {
-        let mut builder = task::task().named("RenderTask");
+        let mut builder = TaskBuilder::new().named("RenderTask");
         let ConstellationChan(c) = constellation_chan.clone();
         send_on_failure(&mut builder, FailureMsg(failure_msg), c);
         builder.spawn(proc() {
@@ -190,7 +190,7 @@ impl<C: RenderListener + Send> RenderTask<C> {
                     port: port,
                     compositor: compositor,
                     constellation_chan: constellation_chan,
-                    font_ctx: ~FontContext::new(FontContextInfo {
+                    font_ctx: box FontContext::new(FontContextInfo {
                         backend: opts.render_backend.clone(),
                         needs_font_list: false,
                         profiler_chan: profiler_chan.clone(),
@@ -382,7 +382,7 @@ impl<C: RenderListener + Send> RenderTask<C> {
                                         width as i32 * 4);
                                 native_surface.mark_wont_leak();
 
-                                ~LayerBuffer {
+                                box LayerBuffer {
                                     native_surface: native_surface,
                                     rect: tile.page_rect,
                                     screen_pos: tile.screen_rect,
@@ -412,7 +412,7 @@ impl<C: RenderListener + Send> RenderTask<C> {
                             NativeSurfaceAzureMethods::from_azure_surface(native_surface);
                         native_surface.mark_wont_leak();
 
-                        ~LayerBuffer {
+                        box LayerBuffer {
                             native_surface: native_surface,
                             rect: tile.page_rect,
                             screen_pos: tile.screen_rect,
@@ -425,7 +425,7 @@ impl<C: RenderListener + Send> RenderTask<C> {
                 new_buffers.push(buffer);
             }
 
-            let layer_buffer_set = ~LayerBufferSet {
+            let layer_buffer_set = box LayerBufferSet {
                 buffers: new_buffers,
             };
 

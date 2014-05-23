@@ -26,7 +26,7 @@ impl<'ln> LayoutAuxMethods for LayoutNode<'ln> {
                 *layout_data_ref = Some(LayoutDataWrapper {
                     chan: Some(chan),
                     shared_data: SharedLayoutData { style: None },
-                    data: ~PrivateLayoutData::new(),
+                    data: box PrivateLayoutData::new(),
                 });
             }
             Some(_) => {}

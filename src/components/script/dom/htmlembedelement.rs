@@ -33,7 +33,7 @@ impl HTMLEmbedElement {
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLEmbedElement> {
         let element = HTMLEmbedElement::new_inherited(localName, document);
-        Node::reflect_node(~element, document, HTMLEmbedElementBinding::Wrap)
+        Node::reflect_node(box element, document, HTMLEmbedElementBinding::Wrap)
     }
 }
 

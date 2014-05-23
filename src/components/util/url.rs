@@ -18,7 +18,7 @@ Create a URL object from a string. Does various helpful browsery things like
 */
 // TODO: about:failure->
 pub fn try_parse_url(str_url: &str, base_url: Option<std_url::Url>) -> Result<std_url::Url, ~str> {
-    let str_url = str_url.trim_chars(& &[' ', '\t', '\n', '\r', '\x0C']);
+    let str_url = str_url.trim_chars(&[' ', '\t', '\n', '\r', '\x0C']).to_owned();
     let schm = std_url::get_scheme(str_url);
     let str_url = match schm {
         Err(_) => {
@@ -45,11 +45,11 @@ pub fn try_parse_url(str_url: &str, base_url: Option<std_url::Url>) -> Result<st
                     new_url.scheme + ":" + str_url
                 } else if base_url.path.is_empty() || str_url.starts_with("/") {
                     new_url.path = "/".to_owned();
-                    new_url.to_str() + str_url.trim_left_chars(&'/')
+                    new_url.to_str() + str_url.trim_left_chars('/')
                 } else if str_url.starts_with("#") {
                     new_url.to_str() + str_url
                 } else { // relative path
-                    let base_path = base_url.path.trim_right_chars(&|c: char| c != '/');
+                    let base_path = base_url.path.trim_right_chars(|c: char| c != '/');
                     new_url.path = base_path.to_owned();
                     new_url.to_str() + str_url
                 }
@@ -203,7 +203,7 @@ pub fn url_map<T: Clone + 'static>() -> UrlMap<T> {
 
 
 pub fn is_image_data(uri: &str) -> bool {
-    static types: &'static [&'static str] = &[&"data:image/png", &"data:image/gif", &"data:image/jpeg"];
+    static types: &'static [&'static str] = &["data:image/png", "data:image/gif", "data:image/jpeg"];
     types.iter().any(|&type_| uri.starts_with(type_))
 }
 

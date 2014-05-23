@@ -20,7 +20,7 @@ pub fn null_str_as_empty(s: &Option<DOMString>) -> DOMString {
 pub fn null_str_as_empty_ref<'a>(s: &'a Option<DOMString>) -> &'a str {
     match *s {
         Some(ref s) => s.as_slice(),
-        None => &'a ""
+        None => ""
     }
 }
 

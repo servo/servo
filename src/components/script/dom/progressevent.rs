@@ -37,7 +37,7 @@ impl ProgressEvent {
     pub fn new(window: &JSRef<Window>, type_: DOMString,
                can_bubble: bool, cancelable: bool,
                length_computable: bool, loaded: u64, total: u64) -> Temporary<ProgressEvent> {
-        let mut ev = reflect_dom_object(~ProgressEvent::new_inherited(length_computable, loaded, total),
+        let mut ev = reflect_dom_object(box ProgressEvent::new_inherited(length_computable, loaded, total),
                                         window,
                                         ProgressEventBinding::Wrap).root();
         {

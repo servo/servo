@@ -217,10 +217,9 @@ impl<'a> Font {
                            backend: BackendType)
             -> Result<Rc<RefCell<Font>>, ()> {
         let handle = FontHandleMethods::new_from_buffer(&ctx.handle, buffer, style);
-        let handle: FontHandle = if handle.is_ok() {
-            handle.unwrap()
-        } else {
-            return Err(handle.unwrap_err());
+        let handle: FontHandle = match handle {
+            Ok(handle) => handle,
+            Err(()) => return Err(()),
         };
 
         let metrics = handle.get_metrics();
@@ -329,7 +328,7 @@ impl<'a> Font {
 impl Font {
     pub fn draw_text_into_context(&mut self,
                               rctx: &RenderContext,
-                              run: &~TextRun,
+                              run: &Box<TextRun>,
                               range: &Range<CharIndex>,
                               baseline_origin: Point2D<Au>,
                               color: Color) {

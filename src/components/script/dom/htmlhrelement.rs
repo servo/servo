@@ -33,7 +33,7 @@ impl HTMLHRElement {
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLHRElement> {
         let element = HTMLHRElement::new_inherited(localName, document);
-        Node::reflect_node(~element, document, HTMLHRElementBinding::Wrap)
+        Node::reflect_node(box element, document, HTMLHRElementBinding::Wrap)
     }
 }
 

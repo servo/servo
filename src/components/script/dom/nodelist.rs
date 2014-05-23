@@ -33,7 +33,7 @@ impl NodeList {
 
     pub fn new(window: &JSRef<Window>,
                list_type: NodeListType) -> Temporary<NodeList> {
-        reflect_dom_object(~NodeList::new_inherited(window, list_type),
+        reflect_dom_object(box NodeList::new_inherited(window, list_type),
                            window, NodeListBinding::Wrap)
     }
 

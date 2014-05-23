@@ -40,6 +40,7 @@ fn main() {
         ratchet_metrics: None,
         save_metrics: None,
         test_shard: None,
+        nocapture: false,
     };
 
     match run_tests_console(&test_opts, tests) {
@@ -89,8 +90,8 @@ fn parse_lists(filenames: &[~str], servo_args: &[~str]) -> Vec<TestDescAndFn> {
             }
 
             let kind = match parts.get(0) {
-                & &"==" => Same,
-                & &"!=" => Different,
+                & "==" => Same,
+                & "!=" => Different,
                 &part => fail!("reftest line: '{:s}' has invalid kind '{:s}'",
                                line, part)
             };

@@ -56,12 +56,11 @@ use servo_util::task::send_on_failure;
 use servo_util::namespace::Null;
 use std::cast;
 use std::cell::{Cell, RefCell, Ref, RefMut};
-use std::comm::{channel, Sender, Receiver, Empty, Disconnected, Data};
-use std::local_data;
+use std::comm::{channel, Sender, Receiver, Empty, Disconnected};
 use std::mem::replace;
 use std::ptr;
 use std::rc::Rc;
-use std::task;
+use std::task::TaskBuilder;
 use url::Url;
 
 use serialize::{Encoder, Encodable};
@@ -242,7 +241,7 @@ impl Page {
                 .find(|&(_idx, ref page_tree)| {
                     // FIXME: page_tree has a lifetime such that it's unusable for anything.
                     let page_tree = unsafe {
-                        cast::transmute_region(page_tree)
+                        cast::transmute_lifetime(page_tree)
                     };
                     page_tree.id() == id
                 })
@@ -351,12 +350,12 @@ impl Page {
             match join_port {
                 Some(ref join_port) => {
                     match join_port.try_recv() {
-                        Empty => {
+                        Err(Empty) => {
                             info!("script: waiting on layout");
                             join_port.recv();
                         }
-                        Data(_) => {}
-                        Disconnected => {
+                        Ok(_) => {}
+                        Err(Disconnected) => {
                             fail!("Layout task failed while script was waiting for a result.");
                         }
                     }
@@ -422,7 +421,7 @@ impl Page {
                 let window_size = self.window_size.deref().get();
 
                 // Send new document and relevant styles to layout.
-                let reflow = ~Reflow {
+                let reflow = box Reflow {
                     document_root: root.to_trusted_node_address(),
                     url: self.get_url(),
                     goal: goal,
@@ -525,14 +524,14 @@ struct StackRootTLS;
 
 impl StackRootTLS {
     fn new(roots: &RootCollection) -> StackRootTLS {
-        local_data::set(StackRoots, roots as *RootCollection);
+        StackRoots.replace(Some(roots as *RootCollection));
         StackRootTLS
     }
 }
 
 impl Drop for StackRootTLS {
     fn drop(&mut self) {
-        let _ = local_data::pop(StackRoots);
+        let _ = StackRoots.replace(None);
     }
 }
 
@@ -557,7 +556,7 @@ pub struct ScriptTask {
     /// For communicating load url messages to the constellation
     pub constellation_chan: ConstellationChan,
     /// A handle to the compositor for communicating ready state messages.
-    pub compositor: ~ScriptListener,
+    pub compositor: Box<ScriptListener>,
 
     /// The JavaScript runtime.
     pub js_runtime: js::rust::rt,
@@ -606,7 +605,7 @@ impl<'a> Drop for ScriptMemoryFailsafe<'a> {
 impl ScriptTask {
     /// Creates a new script task.
     pub fn new(id: PipelineId,
-               compositor: ~ScriptListener,
+               compositor: Box<ScriptListener>,
                layout_chan: LayoutChan,
                port: Receiver<ScriptMsg>,
                chan: ScriptChan,
@@ -686,7 +685,7 @@ impl ScriptTask {
 
     pub fn create<C:ScriptListener + Send>(
                   id: PipelineId,
-                  compositor: ~C,
+                  compositor: Box<C>,
                   layout_chan: LayoutChan,
                   port: Receiver<ScriptMsg>,
                   chan: ScriptChan,
@@ -695,12 +694,12 @@ impl ScriptTask {
                   resource_task: ResourceTask,
                   image_cache_task: ImageCacheTask,
                   window_size: Size2D<uint>) {
-        let mut builder = task::task().named("ScriptTask");
+        let mut builder = TaskBuilder::new().named("ScriptTask");
         let ConstellationChan(const_chan) = constellation_chan.clone();
         send_on_failure(&mut builder, FailureMsg(failure_msg), const_chan);
         builder.spawn(proc() {
             let script_task = ScriptTask::new(id,
-                                              compositor as ~ScriptListener,
+                                              compositor as Box<ScriptListener>,
                                               layout_chan,
                                               port,
                                               chan,
@@ -764,8 +763,8 @@ impl ScriptTask {
             }
 
             match self.port.try_recv() {
-                Empty | Disconnected => break,
-                Data(ev) => event = ev,
+                Err(_) => break,
+                Ok(ev) => event = ev,
             }
         }
 
@@ -991,15 +990,15 @@ impl ScriptTask {
         let mut js_scripts = None;
         loop {
             match discovery_port.recv_opt() {
-                Some(HtmlDiscoveredScript(scripts)) => {
+                Ok(HtmlDiscoveredScript(scripts)) => {
                     assert!(js_scripts.is_none());
                     js_scripts = Some(scripts);
                 }
-                Some(HtmlDiscoveredStyle(sheet)) => {
+                Ok(HtmlDiscoveredStyle(sheet)) => {
                     let LayoutChan(ref chan) = *page.layout_chan;
                     chan.send(AddStylesheetMsg(sheet));
                 }
-                None => break
+                Err(()) => break
             }
         }
 

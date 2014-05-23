@@ -3,10 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::js::{JS, JSRef, Temporary};
-use dom::bindings::codegen::BindingDeclarations::TestBindingBinding;
+use dom::bindings::codegen::BindingDeclarations::TestBindingBinding::TestEnum;
+use dom::bindings::codegen::BindingDeclarations::TestBindingBinding::TestEnumValues::_empty;
 use dom::bindings::codegen::UnionTypes::{HTMLElementOrLong, StringOrFormData};
-use self::TestBindingBinding::TestEnum;
-use self::TestBindingBinding::TestEnumValues::_empty;
 use dom::bindings::str::ByteString;
 use dom::bindings::utils::{Reflector, Reflectable};
 use dom::blob::Blob;

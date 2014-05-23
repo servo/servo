@@ -70,9 +70,9 @@ pub struct Window {
     pub location: Option<JS<Location>>,
     pub navigator: Option<JS<Navigator>>,
     pub image_cache_task: ImageCacheTask,
-    pub active_timers: HashMap<TimerId, TimerHandle>,
+    pub active_timers: Box<HashMap<TimerId, TimerHandle>>,
     pub next_timer_handle: i32,
-    pub compositor: Untraceable<~ScriptListener>,
+    pub compositor: Untraceable<Box<ScriptListener>>,
     pub browser_context: Option<BrowserContext>,
     pub page: Rc<Page>,
     pub performance: Option<JS<Performance>>,
@@ -382,10 +382,10 @@ impl Window {
     pub fn new(cx: *JSContext,
                page: Rc<Page>,
                script_chan: ScriptChan,
-               compositor: ~ScriptListener,
+               compositor: Box<ScriptListener>,
                image_cache_task: ImageCacheTask)
                -> JS<Window> {
-        let win = ~Window {
+        let win = box Window {
             eventtarget: EventTarget::new_inherited(WindowTypeId),
             script_chan: script_chan,
             console: None,
@@ -394,7 +394,7 @@ impl Window {
             location: None,
             navigator: None,
             image_cache_task: image_cache_task,
-            active_timers: HashMap::new(),
+            active_timers: box HashMap::new(),
             next_timer_handle: 0,
             browser_context: None,
             performance: None,

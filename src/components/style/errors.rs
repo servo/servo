@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::local_data;
 use cssparser::ast::{SyntaxError, SourceLocation};
 
 
@@ -29,15 +28,15 @@ local_data_key!(silence_errors: bool)
 
 pub fn log_css_error(location: SourceLocation, message: &str) {
     // TODO eventually this will got into a "web console" or something.
-    if local_data::get(silence_errors, |silenced| silenced.is_none()) {
+    if silence_errors.get().is_none() {
         error!("{:u}:{:u} {:s}", location.line, location.column, message)
     }
 }
 
 
 pub fn with_errors_silenced<T>(f: || -> T) -> T {
-    local_data::set(silence_errors, true);
+    silence_errors.replace(Some(true));
     let result = f();
-    local_data::pop(silence_errors);
+    silence_errors.replace(None);
     result
 }

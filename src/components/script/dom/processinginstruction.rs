@@ -34,7 +34,7 @@ impl ProcessingInstruction {
 
     pub fn new(target: DOMString, data: DOMString, document: &JSRef<Document>) -> Temporary<ProcessingInstruction> {
         let node = ProcessingInstruction::new_inherited(target, data, document);
-        Node::reflect_node(~node, document, ProcessingInstructionBinding::Wrap)
+        Node::reflect_node(box node, document, ProcessingInstructionBinding::Wrap)
     }
 }
 

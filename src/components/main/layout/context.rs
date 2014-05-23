@@ -27,9 +27,6 @@ use std::rt::task::Task;
 use style::Stylist;
 use url::Url;
 
-#[cfg(target_os="android")]
-use std::local_data;
-
 #[cfg(not(target_os="android"))]
 #[thread_local]
 static mut FONT_CONTEXT: *mut FontContext = 0 as *mut FontContext;
@@ -95,9 +92,9 @@ impl LayoutContext {
         // Sanity check.
         {
             let mut task = Local::borrow(None::<Task>);
-            match task.get().maybe_take_runtime::<GreenTask>() {
+            match task.maybe_take_runtime::<GreenTask>() {
                 Some(green) => {
-                    task.get().put_runtime(green);
+                    task.put_runtime(green);
                     fail!("can't call this on a green task!")
                 }
                 None => {}
@@ -106,7 +103,7 @@ impl LayoutContext {
 
         unsafe {
             if FONT_CONTEXT == ptr::mut_null() {
-                let context = ~FontContext::new(self.font_context_info.clone());
+                let context = box FontContext::new(self.font_context_info.clone());
                 FONT_CONTEXT = cast::transmute(context)
             }
             cast::transmute(FONT_CONTEXT)
@@ -117,9 +114,9 @@ impl LayoutContext {
         // Sanity check.
         {
             let mut task = Local::borrow(None::<Task>);
-            match task.get().maybe_take_runtime::<GreenTask>() {
+            match task.maybe_take_runtime::<GreenTask>() {
                 Some(green) => {
-                    task.get().put_runtime(green);
+                    task.put_runtime(green);
                     fail!("can't call this on a green task!")
                 }
                 None => {}
@@ -128,7 +125,7 @@ impl LayoutContext {
 
         unsafe {
             if APPLICABLE_DECLARATIONS_CACHE == ptr::mut_null() {
-                let cache = ~ApplicableDeclarationsCache::new();
+                let cache = box ApplicableDeclarationsCache::new();
                 APPLICABLE_DECLARATIONS_CACHE = cast::transmute(cache)
             }
             cast::transmute(APPLICABLE_DECLARATIONS_CACHE)
@@ -139,9 +136,9 @@ impl LayoutContext {
         // Sanity check.
         {
             let mut task = Local::borrow(None::<Task>);
-            match task.get().maybe_take_runtime::<GreenTask>() {
+            match task.maybe_take_runtime::<GreenTask>() {
                 Some(green) => {
-                    task.get().put_runtime(green);
+                    task.put_runtime(green);
                     fail!("can't call this on a green task!")
                 }
                 None => {}
@@ -150,7 +147,7 @@ impl LayoutContext {
 
         unsafe {
             if STYLE_SHARING_CANDIDATE_CACHE == ptr::mut_null() {
-                let cache = ~StyleSharingCandidateCache::new();
+                let cache = box StyleSharingCandidateCache::new();
                 STYLE_SHARING_CANDIDATE_CACHE = cast::transmute(cache)
             }
             cast::transmute(STYLE_SHARING_CANDIDATE_CACHE)
@@ -168,45 +165,45 @@ impl LayoutContext {
 impl LayoutContext {
     pub fn font_context<'a>(&'a mut self) -> &'a mut FontContext {
         unsafe {
-            let opt = local_data::pop(font_context);
+            let opt = font_context.replace(None);
             let mut context;
             match opt {
                 Some(c) => context = cast::transmute(c),
                 None => {
-                    context = cast::transmute(~FontContext::new(self.font_context_info.clone()))
+                    context = cast::transmute(box FontContext::new(self.font_context_info.clone()))
                 }
             }
-            local_data::set(font_context, context);
+            font_context.replace(Some(context));
             cast::transmute(context)
         }
     }
 
     pub fn applicable_declarations_cache<'a>(&'a self) -> &'a mut ApplicableDeclarationsCache {
         unsafe {
-            let opt = local_data::pop(applicable_declarations_cache);
+            let opt = applicable_declarations_cache.replace(None);
             let mut cache;
             match opt {
                 Some(c) => cache = cast::transmute(c),
                 None => {
-                    cache = cast::transmute(~ApplicableDeclarationsCache::new());
+                    cache = cast::transmute(box ApplicableDeclarationsCache::new());
                 }
             }
-            local_data::set(applicable_declarations_cache, cache);
+            applicable_declarations_cache.replace(Some(cache));
             cast::transmute(cache)
         }
     }
 
     pub fn style_sharing_candidate_cache<'a>(&'a self) -> &'a mut StyleSharingCandidateCache {
         unsafe {
-            let opt = local_data::pop(style_sharing_candidate_cache);
+            let opt = style_sharing_candidate_cache.replace(None);
             let mut cache;
             match opt {
                 Some(c) => cache = cast::transmute(c),
                 None => {
-                    cache = cast::transmute(~StyleSharingCandidateCache::new());
+                    cache = cast::transmute(box StyleSharingCandidateCache::new());
                 }
             }
-            local_data::set(style_sharing_candidate_cache, cache);
+            style_sharing_candidate_cache.replace(Some(cache));
             cast::transmute(cache)
         }
     }

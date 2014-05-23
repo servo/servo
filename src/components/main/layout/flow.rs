@@ -58,6 +58,7 @@ use std::cast;
 use std::fmt;
 use std::iter::Zip;
 use std::num::Zero;
+use std::owned;
 use std::sync::atomics::Relaxed;
 use std::slice::MutItems;
 use style::computed_values::{clear, position, text_align};
@@ -171,7 +172,7 @@ pub trait Flow: fmt::Show + ToStr {
     /// this child was impacted by floats or false otherwise.
     fn assign_height_for_inorder_child_if_necessary(&mut self, layout_context: &mut LayoutContext)
                                                     -> bool {
-        let impacted = base(self).flags.impacted_by_floats();
+        let impacted = base(&*self).flags.impacted_by_floats();
         if impacted {
             self.assign_height(layout_context);
         }
@@ -337,7 +338,7 @@ pub trait ImmutableFlowUtils {
     fn need_anonymous_flow(self, child: &Flow) -> bool;
 
     /// Generates missing child flow of this flow.
-    fn generate_missing_child_flow(self, node: &ThreadSafeLayoutNode) -> ~Flow:Share;
+    fn generate_missing_child_flow(self, node: &ThreadSafeLayoutNode) -> owned::Box<Flow:Share>;
 
     /// Returns true if this flow has no children.
     fn is_leaf(self) -> bool;
@@ -391,7 +392,7 @@ pub trait MutableFlowUtils {
 pub trait MutableOwnedFlowUtils {
     /// Adds a new flow as a child of this flow. Removes the flow from the given leaf set if
     /// it's present.
-    fn add_new_child(&mut self, new_child: ~Flow:Share);
+    fn add_new_child(&mut self, new_child: owned::Box<Flow:Share>);
 
     /// Finishes a flow. Once a flow is finished, no more child flows or boxes may be added to it.
     /// This will normally run the bubble-widths (minimum and preferred -- i.e. intrinsic -- width)
@@ -841,15 +842,15 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
     }
 
     /// Generates missing child flow of this flow.
-    fn generate_missing_child_flow(self, node: &ThreadSafeLayoutNode) -> ~Flow:Share {
+    fn generate_missing_child_flow(self, node: &ThreadSafeLayoutNode) -> owned::Box<Flow:Share> {
         match self.class() {
             TableFlowClass | TableRowGroupFlowClass => {
                 let box_ = Box::new_anonymous_table_box(node, TableRowBox);
-                ~TableRowFlow::from_node_and_box(node, box_) as ~Flow:Share
+                box TableRowFlow::from_node_and_box(node, box_) as owned::Box<Flow:Share>
             },
             TableRowFlowClass => {
                 let box_ = Box::new_anonymous_table_box(node, TableCellBox);
-                ~TableCellFlow::from_node_and_box(node, box_) as ~Flow:Share
+                box TableCellFlow::from_node_and_box(node, box_) as owned::Box<Flow:Share>
             },
             _ => {
                 fail!("no need to generate a missing child")
@@ -907,7 +908,7 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
 
     /// Dumps the flow tree for debugging, with a prefix to indicate that we're at the given level.
     fn dump_with_level(self, level: uint) {
-        let mut indent = "".to_owned();
+        let mut indent = StrBuf::new();
         for _ in range(0, level) {
             indent.push_str("| ")
         }
@@ -1051,9 +1052,9 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
     }
 }
 
-impl MutableOwnedFlowUtils for ~Flow:Share {
+impl MutableOwnedFlowUtils for owned::Box<Flow:Share> {
     /// Adds a new flow as a child of this flow. Fails if this flow is marked as a leaf.
-    fn add_new_child(&mut self, mut new_child: ~Flow:Share) {
+    fn add_new_child(&mut self, mut new_child: owned::Box<Flow:Share>) {
         {
             let kid_base = mut_base(new_child);
             kid_base.parallel.parent = parallel::mut_owned_flow_to_unsafe_flow(self);

@@ -64,7 +64,8 @@ fn test_options(config: Config) -> TestOpts {
         ratchet_noise_percent: None,
         save_metrics: None,
         test_shard: None,
-        logfile: None
+        logfile: None,
+        nocapture: false
     }
 }
 

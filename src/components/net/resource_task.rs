@@ -9,7 +9,7 @@ use http_loader;
 use data_loader;
 
 use std::comm::{channel, Receiver, Sender};
-use std::task;
+use std::task::TaskBuilder;
 use http::headers::content_type::MediaType;
 use http::headers::response::HeaderCollection;
 use url::Url;
@@ -56,10 +56,10 @@ impl Metadata {
             Some(MediaType { type_:      ref type_,
                              subtype:    ref subtype,
                              parameters: ref parameters }) => {
-                self.content_type = Some((type_.clone(), subtype.clone()));
+                self.content_type = Some((type_.as_slice().to_owned(), subtype.as_slice().to_owned()));
                 for &(ref k, ref v) in parameters.iter() {
                     if "charset" == k.as_slice() {
-                        self.charset = Some(v.clone());
+                        self.charset = Some(v.as_slice().to_owned());
                     }
                 }
             }
@@ -140,7 +140,7 @@ pub fn ResourceTask() -> ResourceTask {
 
 fn create_resource_task_with_loaders(loaders: Vec<(~str, LoaderTaskFactory)>) -> ResourceTask {
     let (setup_chan, setup_port) = channel();
-    let builder = task::task().named("ResourceManager");
+    let builder = TaskBuilder::new().named("ResourceManager");
     builder.spawn(proc() {
         let (chan, port) = channel();
         setup_chan.send(chan);

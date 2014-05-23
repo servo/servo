@@ -33,7 +33,7 @@ impl HTMLSourceElement {
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLSourceElement> {
         let element = HTMLSourceElement::new_inherited(localName, document);
-        Node::reflect_node(~element, document, HTMLSourceElementBinding::Wrap)
+        Node::reflect_node(box element, document, HTMLSourceElementBinding::Wrap)
     }
 }
 

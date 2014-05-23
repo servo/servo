@@ -33,7 +33,7 @@ impl HTMLAreaElement {
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLAreaElement> {
         let element = HTMLAreaElement::new_inherited(localName, document);
-        Node::reflect_node(~element, document, HTMLAreaElementBinding::Wrap)
+        Node::reflect_node(box element, document, HTMLAreaElementBinding::Wrap)
     }
 }
 

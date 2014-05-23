@@ -111,7 +111,7 @@ impl StackingContext {
 
         for item in list.move_iter() {
             match item {
-                ClipDisplayItemClass(~ClipDisplayItem {
+                ClipDisplayItemClass(box ClipDisplayItem {
                     base: base,
                     children: sublist
                 }) => {
@@ -168,7 +168,7 @@ impl StackingContext {
         let push = |destination: &mut DisplayList, source: DisplayList, level| {
             if !source.is_empty() {
                 let base = BaseDisplayItem::new(*clip_rect, clipping_dom_node, level);
-                destination.push(ClipDisplayItemClass(~ClipDisplayItem::new(base, source)))
+                destination.push(ClipDisplayItemClass(box ClipDisplayItem::new(base, source)))
             }
         };
 
@@ -332,19 +332,19 @@ impl DisplayList {
 
 /// One drawing command in the list.
 pub enum DisplayItem {
-    SolidColorDisplayItemClass(~SolidColorDisplayItem),
-    TextDisplayItemClass(~TextDisplayItem),
-    ImageDisplayItemClass(~ImageDisplayItem),
-    BorderDisplayItemClass(~BorderDisplayItem),
-    LineDisplayItemClass(~LineDisplayItem),
-    ClipDisplayItemClass(~ClipDisplayItem),
+    SolidColorDisplayItemClass(Box<SolidColorDisplayItem>),
+    TextDisplayItemClass(Box<TextDisplayItem>),
+    ImageDisplayItemClass(Box<ImageDisplayItem>),
+    BorderDisplayItemClass(Box<BorderDisplayItem>),
+    LineDisplayItemClass(Box<LineDisplayItem>),
+    ClipDisplayItemClass(Box<ClipDisplayItem>),
 
     /// A pseudo-display item that exists only so that queries like `ContentBoxQuery` and
     /// `ContentBoxesQuery` can be answered.
     ///
     /// FIXME(pcwalton): This is really bogus. Those queries should not consult the display list
     /// but should instead consult the flow/box tree.
-    PseudoDisplayItemClass(~BaseDisplayItem),
+    PseudoDisplayItemClass(Box<BaseDisplayItem>),
 }
 
 /// Information common to all display items.
@@ -393,7 +393,7 @@ pub struct TextDisplayItem {
     pub base: BaseDisplayItem,
 
     /// The text run.
-    pub text_run: Arc<~TextRun>,
+    pub text_run: Arc<Box<TextRun>>,
 
     /// The range of text within the text run.
     pub range: Range<CharIndex>,
@@ -408,7 +408,7 @@ pub struct TextDisplayItem {
 /// Renders an image.
 pub struct ImageDisplayItem {
     pub base: BaseDisplayItem,
-    pub image: Arc<~Image>,
+    pub image: Arc<Box<Image>>,
 
     /// The dimensions to which the image display item should be stretched. If this is smaller than
     /// the bounds of this display item, then the image will be repeated in the appropriate
@@ -631,7 +631,7 @@ impl DisplayItem {
     }
 
     pub fn debug_with_level(&self, level: uint) {
-            let mut indent = "".to_owned();
+            let mut indent = StrBuf::new();
             for _ in range(0, level) {
                 indent.push_str("| ")
             }

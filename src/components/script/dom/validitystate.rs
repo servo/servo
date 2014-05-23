@@ -24,7 +24,7 @@ impl ValidityState {
     }
 
     pub fn new(window: &JSRef<Window>) -> Temporary<ValidityState> {
-        reflect_dom_object(~ValidityState::new_inherited(window),
+        reflect_dom_object(box ValidityState::new_inherited(window),
                            window,
                            ValidityStateBinding::Wrap)
     }
