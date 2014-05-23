@@ -5,5 +5,7 @@ config = {
     'mock_files': [('/home/servobld/.ssh', '/home/mock_mozilla/.ssh')],
     'concurrency': 6,
     'add_actions': ['setup-mock'],
-    'env': {'PATH': '/tools/gcc-4.7.3-0moz1/bin:%(PATH)s'},
+    'env': {'PATH': '/tools/gcc-4.7.3-0moz1/bin:%(PATH)s',
+            'LIBRARY_PATH': '/tools/gcc-4.7.3-0moz1/lib64',
+            'LD_LIBRARY_PATH': '/tools/gcc-4.7.3-0moz1/lib64'},
 }
