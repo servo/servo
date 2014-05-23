@@ -7,7 +7,6 @@ use resource_task;
 use resource_task::ResourceTask;
 use servo_util::url::{UrlMap, url_map};
 
-use std::cast;
 use std::comm::{channel, Receiver, Sender};
 use std::mem::replace;
 use std::task::spawn;
@@ -144,8 +143,7 @@ struct ImageCache {
     /// The state of processsing an image for a URL
     state_map: UrlMap<ImageState>,
     /// List of clients waiting on a WaitForImage response
-    // FIXME(rust#13125): Remove the *() for the real type.
-    wait_map: UrlMap<Arc<Mutex<*()>>>,
+    wait_map: UrlMap<Arc<Mutex<Vec<Sender<ImageResponseMsg>>>>>,
     need_exit: Option<Sender<()>>,
 }
 
@@ -373,17 +371,10 @@ impl ImageCache {
     fn purge_waiters(&mut self, url: Url, f: || -> ImageResponseMsg) {
         match self.wait_map.pop(&url) {
             Some(waiters) => {
-                let val = waiters.lock();
-                let items = unsafe {
-                    cast::transmute::<*(), Box<Vec<Sender<ImageResponseMsg>>>>(*val)
-                };
+                let mut items = waiters.lock();
                 for response in items.iter() {
                     response.send(f());
                 }
-                let _ = unsafe {
-                    // Cast back to avoid the drop at the end.
-                    cast::transmute::<Box<Vec<Sender<ImageResponseMsg>>>, *()>(items)
-                };
             }
             None => ()
         }
@@ -411,22 +402,11 @@ impl ImageCache {
                 if self.wait_map.contains_key(&url) {
                     let waiters = self.wait_map.find_mut(&url).unwrap();
                     let mut response = Some(response);
-                    let val = waiters.lock();
-                    let mut items = unsafe {
-                        cast::transmute::<*(), Box<Vec<Sender<ImageResponseMsg>>>>(*val)
-                    };
+                    let mut items = waiters.lock();
                     items.push(response.take().unwrap());
-                    let _ = unsafe {
-                        // Cast back to avoid the drop at the end.
-                        cast::transmute::<Box<Vec<Sender<ImageResponseMsg>>>, *()>(items)
-                    };
                 } else {
-                    let response = box vec!(response);
-                    let wrapped = unsafe {
-                        Arc::new(Mutex::new(
-                            cast::transmute::<Box<Vec<Sender<ImageResponseMsg>>>, *()>(response)))
-                    };
-
+                    let response = vec!(response);
+                    let wrapped = Arc::new(Mutex::new(response));
                     self.wait_map.insert(url, wrapped);
                 }
             }
