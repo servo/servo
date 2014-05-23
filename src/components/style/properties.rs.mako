@@ -4,8 +4,6 @@
 
 // This file is a Mako template: http://www.makotemplates.org/
 
-#![allow(non_camel_case_types, uppercase_variables)]
-
 pub use std::ascii::StrAsciiExt;
 use serialize::{Encodable, Encoder};
 
@@ -29,6 +27,8 @@ pub mod common_types;
 
 <%!
 
+import re
+
 def to_rust_ident(name):
     name = name.replace("-", "_")
     if name in ["static", "super", "box"]:  # Rust keywords
@@ -39,6 +39,10 @@ class Longhand(object):
     def __init__(self, name, derived_from=None):
         self.name = name
         self.ident = to_rust_ident(name)
+        self.camel_case, _ = re.subn(
+            "_([a-z])",
+            lambda m: m.group(1).upper(),
+            self.ident.strip("_").capitalize())
         self.style_struct = THIS_STYLE_STRUCT
         if derived_from is None:
             self.derived_from = None
@@ -150,6 +154,7 @@ pub mod longhands {
         <%self:single_component_value name="${name}">
             ${caller.body()}
             pub mod computed_value {
+                #[allow(non_camel_case_types)]
                 #[deriving(Eq, Clone, FromPrimitive)]
                 pub enum T {
                     % for value in values.split():
@@ -450,6 +455,7 @@ pub mod longhands {
     <%self:single_component_value name="vertical-align">
         <% vertical_align_keywords = (
             "baseline sub super top text-top middle bottom text-bottom".split()) %>
+        #[allow(non_camel_case_types)]
         #[deriving(Clone)]
         pub enum SpecifiedValue {
             % for keyword in vertical_align_keywords:
@@ -478,6 +484,7 @@ pub mod longhands {
         }
         pub mod computed_value {
             use super::super::{Au, CSSFloat};
+            #[allow(non_camel_case_types)]
             #[deriving(Eq, Clone)]
             pub enum T {
                 % for keyword in vertical_align_keywords:
@@ -525,6 +532,7 @@ pub mod longhands {
                 pub enum Content {
                     StringContent(~str),
                 }
+                #[allow(non_camel_case_types)]
                 #[deriving(Eq, Clone)]
                 pub enum T {
                     normal,
@@ -1462,7 +1470,7 @@ pub enum DeclaredValue<T> {
 #[deriving(Clone)]
 pub enum PropertyDeclaration {
     % for property in LONGHANDS:
-        ${property.ident}_declaration(DeclaredValue<longhands::${property.ident}::SpecifiedValue>),
+        ${property.camel_case}Declaration(DeclaredValue<longhands::${property.ident}::SpecifiedValue>),
     % endfor
 }
 
@@ -1491,7 +1499,7 @@ impl PropertyDeclaration {
                         match longhands::${property.ident}::parse_declared(value, base_url) {
                             Some(value) => {
                                 seen.set_${property.ident}();
-                                result_list.push(${property.ident}_declaration(value));
+                                result_list.push(${property.camel_case}Declaration(value));
                                 ValidOrIgnoredDeclaration
                             },
                             None => InvalidValue,
@@ -1512,7 +1520,7 @@ impl PropertyDeclaration {
                             % for sub_property in shorthand.sub_properties:
                                 if !seen.get_${sub_property.ident}() {
                                     seen.set_${sub_property.ident}();
-                                    result_list.push(${sub_property.ident}_declaration(
+                                    result_list.push(${sub_property.camel_case}Declaration(
                                         CSSWideKeyword(keyword)));
                                 }
                             % endfor
@@ -1522,7 +1530,7 @@ impl PropertyDeclaration {
                             % for sub_property in shorthand.sub_properties:
                                 if !seen.get_${sub_property.ident}() {
                                     seen.set_${sub_property.ident}();
-                                    result_list.push(${sub_property.ident}_declaration(
+                                    result_list.push(${sub_property.camel_case}Declaration(
                                         CSSWideKeyword(
                                             ${"Inherit" if sub_property.style_struct.inherited else "Initial"}
                                         )
@@ -1536,7 +1544,7 @@ impl PropertyDeclaration {
                                 % for sub_property in shorthand.sub_properties:
                                     if !seen.get_${sub_property.ident}() {
                                         seen.set_${sub_property.ident}();
-                                        result_list.push(${sub_property.ident}_declaration(
+                                        result_list.push(${sub_property.camel_case}Declaration(
                                             match result.${sub_property.ident} {
                                                 Some(value) => SpecifiedValue(value),
                                                 None => CSSWideKeyword(Initial),
@@ -1640,7 +1648,7 @@ fn cascade_with_cached_declarations(applicable_declarations: &[MatchedProperty],
                     % if style_struct.inherited:
                         % for property in style_struct.longhands:
                             % if property.derived_from is None:
-                                ${property.ident}_declaration(ref declared_value) => {
+                                ${property.camel_case}Declaration(ref declared_value) => {
                                     if seen.get_${property.ident}() {
                                         continue
                                     }
@@ -1679,7 +1687,7 @@ fn cascade_with_cached_declarations(applicable_declarations: &[MatchedProperty],
                                     % endif
                                 }
                             % else:
-                                ${property.ident}_declaration(_) => {
+                                ${property.camel_case}Declaration(_) => {
                                     // Do not allow stylesheets to set derived properties.
                                 }
                             % endif
@@ -1768,7 +1776,7 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
         // Declarations are stored in reverse source order, we want them in forward order here.
         for declaration in sub_list.declarations.iter().rev() {
             match *declaration {
-                font_size_declaration(ref value) => {
+                FontSizeDeclaration(ref value) => {
                     context.font_size = match *value {
                         SpecifiedValue(specified_value) => computed::compute_Au_with_font_size(
                             specified_value, context.inherited_font_size),
@@ -1776,27 +1784,27 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
                         CSSWideKeyword(Inherit) => context.inherited_font_size,
                     }
                 }
-                color_declaration(ref value) => {
+                ColorDeclaration(ref value) => {
                     context.color = get_specified!(get_color, color, value);
                 }
-                display_declaration(ref value) => {
+                DisplayDeclaration(ref value) => {
                     context.display = get_specified!(get_box, display, value);
                 }
-                position_declaration(ref value) => {
+                PositionDeclaration(ref value) => {
                     context.positioned = match get_specified!(get_box, position, value) {
                         longhands::position::absolute | longhands::position::fixed => true,
                         _ => false,
                     }
                 }
-                float_declaration(ref value) => {
+                FloatDeclaration(ref value) => {
                     context.floated = get_specified!(get_box, float, value)
                                       != longhands::float::none;
                 }
-                text_decoration_declaration(ref value) => {
+                TextDecorationDeclaration(ref value) => {
                     context.text_decoration = get_specified!(get_text, text_decoration, value);
                 }
                 % for side in ["top", "right", "bottom", "left"]:
-                    border_${side}_style_declaration(ref value) => {
+                    Border${side.capitalize()}StyleDeclaration(ref value) => {
                         context.border_${side}_present =
                         match get_specified!(get_border, border_${side}_style, value) {
                             longhands::border_top_style::none |
@@ -1842,7 +1850,7 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
                 % for style_struct in STYLE_STRUCTS:
                     % for property in style_struct.longhands:
                         % if property.derived_from is None:
-                            ${property.ident}_declaration(ref declared_value) => {
+                            ${property.camel_case}Declaration(ref declared_value) => {
                                 if seen.get_${property.ident}() {
                                     continue
                                 }
@@ -1882,7 +1890,7 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
                                 % endif
                             }
                         % else:
-                            ${property.ident}_declaration(_) => {
+                            ${property.camel_case}Declaration(_) => {
                                 // Do not allow stylesheets to set derived properties.
                             }
                         % endif
