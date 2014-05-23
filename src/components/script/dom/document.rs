@@ -13,6 +13,7 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::error::{ErrorResult, Fallible, NotSupported, InvalidCharacter, HierarchyRequest, NamespaceError};
 use dom::bindings::utils::{xml_name_type, InvalidXMLName, Name, QName};
 use dom::comment::Comment;
+use dom::customevent::CustomEvent;
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
 use dom::domimplementation::DOMImplementation;
@@ -540,6 +541,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             // FIXME: Implement CustomEvent (http://dom.spec.whatwg.org/#customevent)
             "uievents" | "uievent" => Ok(EventCast::from_temporary(UIEvent::new_uninitialized(&*window))),
             "mouseevents" | "mouseevent" => Ok(EventCast::from_temporary(MouseEvent::new_uninitialized(&*window))),
+            "customevent" => Ok(EventCast::from_temporary(CustomEvent::new_uninitialized(&*window))),
             "htmlevents" | "events" | "event" => Ok(Event::new(&*window)),
             _ => Err(NotSupported)
         }
