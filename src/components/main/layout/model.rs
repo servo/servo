@@ -12,6 +12,7 @@ use style::computed_values::{LPA_Auto, LPA_Length, LPA_Percentage, LP_Length, LP
 use style::ComputedValues;
 use servo_util::geometry::Au;
 use servo_util::geometry;
+use std::fmt;
 
 /// A collapsible margin. See CSS 2.1 § 8.3.1.
 pub struct AdjoiningMargins {
@@ -247,6 +248,12 @@ pub struct IntrinsicWidths {
     /// The estimated sum of borders, padding, and margins. Some calculations use this information
     /// when computing intrinsic widths.
     pub surround_width: Au,
+}
+
+impl fmt::Show for IntrinsicWidths {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f.buf, "min={}, pref={}, surr={}", self.minimum_width, self.preferred_width, self.surround_width)
+    }
 }
 
 impl IntrinsicWidths {

@@ -8,6 +8,7 @@ use geom::size::Size2D;
 use servo_util::cowarc::CowArc;
 use servo_util::geometry::{Au, max, min};
 use std::i32;
+use std::fmt;
 use style::computed_values::float;
 
 /// The kind of float: left or right.
@@ -43,6 +44,12 @@ struct Float {
     kind: FloatKind,
 }
 
+impl fmt::Show for Float {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f.buf, "bounds={} kind={:?}", self.bounds, self.kind)
+    }
+}
+
 /// Information about the floats next to a flow.
 ///
 /// FIXME(pcwalton): When we have fast `MutexArc`s, try removing `#[deriving(Clone)]` and wrap in a
@@ -61,6 +68,12 @@ impl FloatList {
             floats: vec!(),
             max_top: Au(0),
         }
+    }
+}
+
+impl fmt::Show for FloatList {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f.buf, "max_top={} floats={:?}", self.max_top, self.floats)
     }
 }
 
@@ -114,6 +127,12 @@ pub struct PlacementInfo {
     pub kind: FloatKind
 }
 
+impl fmt::Show for PlacementInfo {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f.buf, "size={} ceiling={} max_width={} kind={:?}", self.size, self.ceiling, self.max_width, self.kind)
+    }
+}
+
 fn range_intersect(top_1: Au, bottom_1: Au, top_2: Au, bottom_2: Au) -> (Au, Au) {
     (max(top_1, top_2), min(bottom_1, bottom_2))
 }
@@ -126,6 +145,19 @@ pub struct Floats {
     list: FloatListRef,
     /// The offset of the flow relative to the first float.
     offset: Point2D<Au>,
+}
+
+impl fmt::Show for Floats {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self.list.get() {
+            None => {
+                write!(f.buf, "[empty]")
+            }
+            Some(list) => {
+                write!(f.buf, "offset={} floats={}", self.offset, list)
+            }
+        }
+    }
 }
 
 impl Floats {
