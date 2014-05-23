@@ -4,8 +4,8 @@
 
 use std::str::IntoMaybeOwned;
 use std::task;
-use std::comm::Sender;
-use std::task::TaskBuilder;
+use std::comm::{channel, Sender};
+use std::task::TaskOpts;
 
 pub fn spawn_named<S: IntoMaybeOwned<'static>>(name: S, f: proc():Send) {
     let builder = task::task().named(name);
@@ -14,12 +14,14 @@ pub fn spawn_named<S: IntoMaybeOwned<'static>>(name: S, f: proc():Send) {
 
 /// Arrange to send a particular message to a channel if the task built by
 /// this `TaskBuilder` fails.
-pub fn send_on_failure<T: Send>(builder: &mut TaskBuilder, msg: T, dest: Sender<T>) {
-    let port = builder.future_result();
-    let watched_name = builder.opts.name.as_ref().unwrap().as_slice().to_owned();
+pub fn send_on_failure<T: Send>(opts: &mut TaskOpts, msg: T, dest: Sender<T>) {
+    assert!(opts.notify_chan.is_none());
+    let (tx, rx) = channel();
+    opts.notify_chan = Some(tx);
+    let watched_name = opts.name.as_ref().unwrap().as_slice().to_owned();
     let name = format!("{:s}Watcher", watched_name);
     spawn_named(name, proc() {
-        match port.recv() {
+        match rx.recv() {
             Ok(()) => (),
             Err(..) => {
                 debug!("{:s} failed, notifying constellation", watched_name);

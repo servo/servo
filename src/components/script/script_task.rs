@@ -46,13 +46,13 @@ use native;
 use servo_msg::compositor_msg::{FinishedLoading, LayerId, Loading, PerformingLayout};
 use servo_msg::compositor_msg::{ScriptListener};
 use servo_msg::constellation_msg::{ConstellationChan, LoadCompleteMsg, LoadUrlMsg, NavigationDirection};
-use servo_msg::constellation_msg::{PipelineId, SubpageId, Failure, /*FailureMsg*/};
+use servo_msg::constellation_msg::{PipelineId, SubpageId, Failure, FailureMsg};
 use servo_msg::constellation_msg;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_util::geometry::to_frac_px;
 use servo_util::url::parse_url;
-//use servo_util::task::send_on_failure;
+use servo_util::task::send_on_failure;
 use servo_util::namespace::Null;
 use std::cast;
 use std::cell::{Cell, RefCell, Ref, RefMut};
@@ -676,7 +676,7 @@ impl ScriptTask {
         let mut opts = task::TaskOpts::new();
         opts.name = Some(Slice("ScriptTask"));
         let ConstellationChan(const_chan) = constellation_chan.clone();
-        //send_on_failure(&mut builder, FailureMsg(failure_msg), const_chan);
+        send_on_failure(&mut opts, FailureMsg(failure_msg), const_chan);
         native::task::spawn_opts(opts, proc() {
             let script_task = ScriptTask::new(id,
                                               compositor as ~ScriptListener,

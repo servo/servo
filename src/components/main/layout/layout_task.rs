@@ -289,7 +289,7 @@ impl LayoutTask {
                   shutdown_chan: Sender<()>) {
         let mut builder = task::task().named("LayoutTask");
         let ConstellationChan(con_chan) = constellation_chan.clone();
-        send_on_failure(&mut builder, FailureMsg(failure_msg), con_chan);
+        send_on_failure(&mut builder.opts, FailureMsg(failure_msg), con_chan);
         builder.spawn(proc() {
             { // Ensures layout task is destroyed before we send shutdown message
                 let mut layout = LayoutTask::new(id,

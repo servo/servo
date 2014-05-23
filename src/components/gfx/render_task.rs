@@ -176,7 +176,7 @@ impl<C: RenderListener + Send> RenderTask<C> {
                   shutdown_chan: Sender<()>) {
         let mut builder = task::task().named("RenderTask");
         let ConstellationChan(c) = constellation_chan.clone();
-        send_on_failure(&mut builder, FailureMsg(failure_msg), c);
+        send_on_failure(&mut builder.opts, FailureMsg(failure_msg), c);
         builder.spawn(proc() {
 
             { // Ensures RenderTask and graphics context are destroyed before shutdown msg
