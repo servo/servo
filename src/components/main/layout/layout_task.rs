@@ -854,7 +854,7 @@ impl LayoutTask {
                     for item in iterator {
                         match *item {
                             ClipDisplayItemClass(ref cc) => {
-                                mouse_over_test(x, y, cc.children.list.rev_iter(), result);
+                                mouse_over_test(x, y, cc.children.list.iter().rev(), result);
                             }
                             _ => {
                                 let bounds = item.bounds();
@@ -881,7 +881,7 @@ impl LayoutTask {
                     Some(ref display_list) => {
                         mouse_over_test(x,
                                         y,
-                                        display_list.list.rev_iter(),
+                                        display_list.list.iter().rev(),
                                         &mut mouse_over_list);
                     }
                 };
