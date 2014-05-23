@@ -26,7 +26,6 @@ extern crate std_url = "url";
 
 pub mod cache;
 pub mod concurrentmap;
-pub mod cowarc;
 pub mod debug;
 pub mod geometry;
 pub mod namespace;
