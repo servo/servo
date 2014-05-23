@@ -329,9 +329,7 @@ fn parse_one_simple_selector(iter: &mut Iter, namespaces: &NamespaceMap, inside_
             match iter.next() {
                 Some(Ident(name)) => match parse_simple_pseudo_class(name.as_slice()) {
                     None => {
-                        // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
-                        let name_lower = name.as_slice().to_ascii_lower();
-                        match name_lower.as_slice() {
+                        match name.as_slice().to_ascii_lower().as_slice() {
                             // Supported CSS 2.1 pseudo-elements only.
                             // ** Do not add to this list! **
                             "before" => PseudoElementResult(Before),
@@ -475,9 +473,7 @@ fn parse_attribute_selector(content: Vec<ComponentValue>, namespaces: &Namespace
 
 
 fn parse_simple_pseudo_class(name: &str) -> Option<SimpleSelector> {
-    // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
-    let name_lower = name.to_ascii_lower();
-    match name_lower.as_slice() {
+    match name.to_ascii_lower().as_slice() {
         "any-link" => Some(AnyLink),
         "link" => Some(Link),
         "visited" => Some(Visited),
@@ -498,9 +494,7 @@ fn parse_simple_pseudo_class(name: &str) -> Option<SimpleSelector> {
 fn parse_functional_pseudo_class(name: StrBuf, arguments: Vec<ComponentValue>,
                                  namespaces: &NamespaceMap, inside_negation: bool)
                                  -> Option<SimpleSelector> {
-    // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
-    let name_lower = name.as_slice().to_ascii_lower();
-    match name_lower.as_slice() {
+    match name.as_slice().to_ascii_lower().as_slice() {
 //        "lang" => parse_lang(arguments),
         "nth-child"        => parse_nth(arguments.as_slice()).map(|(a, b)| NthChild(a, b)),
         "nth-last-child"   => parse_nth(arguments.as_slice()).map(|(a, b)| NthLastChild(a, b)),
@@ -513,9 +507,7 @@ fn parse_functional_pseudo_class(name: StrBuf, arguments: Vec<ComponentValue>,
 
 
 fn parse_pseudo_element(name: StrBuf) -> Option<PseudoElement> {
-    // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
-    let name_lower = name.as_slice().to_ascii_lower();
-    match name_lower.as_slice() {
+    match name.as_slice().to_ascii_lower().as_slice() {
         // All supported pseudo-elements
         "before" => Some(Before),
         "after" => Some(After),
