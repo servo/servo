@@ -241,6 +241,12 @@ impl ScannedTextBoxInfo {
     }
 }
 
+#[deriving(Show)]
+pub struct SplitInfo {
+    pub range: Range<CharIndex>,
+    pub width: Au,
+}
+
 /// Data for an unscanned text box. Unscanned text boxes are the results of flow construction that
 /// have not yet had their width determined.
 #[deriving(Clone)]
@@ -1090,7 +1096,7 @@ impl Box {
     /// Split box which includes new-line character.
     ///
     /// A return value of `None` indicates that the box could not be split.
-    /// Otherwise the split boxes are returned. The right boxe is optional due
+    /// Otherwise the split boxes are returned. The right box is optional due
     /// to the possibility of it being whitespace.
     pub fn split_by_new_line(&self) -> Option<(Box, Option<Box>)> {
         match self.specific {
@@ -1135,18 +1141,11 @@ impl Box {
     /// no more than `max_width`.
     ///
     /// A return value of `None` indicates that the box could not be split.
-    /// Otherwise tuples of the width of the splits, the index into the text
-    /// boxes to the left and right side of the split, and the respective text
-    /// box info are returned. The left and right boxes are optional due to the
-    /// possibility of them being whitespace.
-    ///
-    // TODO: The returned box info values should be removed along with the box
-    // splitting logic in inline.rs
-    pub fn find_split_positions(&self, start: CharIndex, max_width: Au, starts_line: bool) -> Option<(
-        Option<(Range<CharIndex>, Au)>,
-        Option<(Range<CharIndex>, Au)>,
-        Arc<~TextRun>, // TODO: remove
-    )> {
+    /// Otherwise the information pertaining to the split is returned. The left
+    /// and right split information are both optional due to the possibility of
+    /// them being whitespace.
+    pub fn find_split_positions(&self, start: CharIndex, max_width: Au, starts_line: bool)
+            -> Option<(Option<SplitInfo>, Option<SplitInfo>, Arc<~TextRun> /* TODO: remove */)> {
         match self.specific {
             GenericBox | IframeBox(_) | ImageBox(_) | TableBox | TableCellBox |
             TableRowBox | TableWrapperBox => None,
@@ -1228,13 +1227,19 @@ impl Box {
                     None
                 } else {
                     let left = if left_is_some {
-                        Some((left_range, text_box_info.run.advance_for_range(&left_range)))
+                        Some(SplitInfo {
+                            range: left_range,
+                            width: text_box_info.run.advance_for_range(&left_range),
+                        })
                     } else {
                         None
                     };
 
                     let right = right_range.map(|right_range| {
-                        (right_range, text_box_info.run.advance_for_range(&right_range))
+                        SplitInfo {
+                            range: right_range,
+                            width: text_box_info.run.advance_for_range(&right_range),
+                        }
                     });
 
                     Some((left, right, text_box_info.run.clone()))
