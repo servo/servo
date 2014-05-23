@@ -839,6 +839,28 @@ impl BlockFlow {
         // At this point, `cur_y` is at the content edge of our box. Now iterate over children.
         let mut floats = self.base.floats.clone();
         let mut layers_needed_for_descendants = false;
+
+        for kid in self.base.child_iter() {
+            // Assign height now for the child if it was impacted by floats and we couldn't before.
+            if kid.is_float() {
+                flow::mut_base(kid).floats = floats.clone();
+    
+                // FIXME(pcwalton): Using `position.origin.y` to mean the float ceiling is a
+                // bit of a hack.
+                flow::mut_base(kid).position.origin.y =
+                    margin_collapse_info.current_float_ceiling();
+                propagate_layer_flag_from_child(&mut layers_needed_for_descendants, kid);
+
+                let kid_was_impacted_by_floats =
+                    kid.assign_height_for_inorder_child_if_necessary(layout_context);
+                assert!(kid_was_impacted_by_floats);    // As it was a float itself...
+
+                let kid_base = flow::mut_base(kid);
+                kid_base.position.origin.y = cur_y;
+                floats = kid_base.floats.clone();
+            }
+        }
+
         for kid in self.base.child_iter() {
             if kid.is_absolutely_positioned() {
                 // Assume that the *hypothetical box* for an absolute flow starts immediately after
@@ -854,74 +876,58 @@ impl BlockFlow {
 
             // Assign height now for the child if it was impacted by floats and we couldn't before.
             flow::mut_base(kid).floats = floats.clone();
-            if kid.is_float() {
-                // FIXME(pcwalton): Using `position.origin.y` to mean the float ceiling is a
-                // bit of a hack.
-                flow::mut_base(kid).position.origin.y =
-                    margin_collapse_info.current_float_ceiling();
-                propagate_layer_flag_from_child(&mut layers_needed_for_descendants, kid);
+            if !kid.is_float() {
+                // If we have clearance, assume there are no floats in.
+                //
+                // FIXME(#2008, pcwalton): This could be wrong if we have `clear: left` or `clear:
+                // right` and there are still floats to impact, of course. But this gets complicated
+                // with margin collapse. Possibly the right thing to do is to lay out the block again
+                // in this rare case. (Note that WebKit can lay blocks out twice; this may be related,
+                // although I haven't looked into it closely.)
+                if kid.float_clearance() != clear::none {
+                    flow::mut_base(kid).floats = Floats::new()
+                }
 
+                // Lay the child out if this was an in-order traversal.
                 let kid_was_impacted_by_floats =
                     kid.assign_height_for_inorder_child_if_necessary(layout_context);
-                assert!(kid_was_impacted_by_floats);    // As it was a float itself...
 
+                // Mark flows for layerization if necessary to handle painting order correctly.
+                propagate_layer_flag_from_child(&mut layers_needed_for_descendants, kid);
+
+                // Handle any (possibly collapsed) top margin.
+                let delta =
+                    margin_collapse_info.advance_top_margin(&flow::base(kid).collapsible_margins);
+                translate_including_floats(&mut cur_y, delta, &mut floats);
+
+                // Clear past the floats that came in, if necessary.
+                let clearance = match kid.float_clearance() {
+                    clear::none => Au(0),
+                    clear::left => floats.clearance(ClearLeft),
+                    clear::right => floats.clearance(ClearRight),
+                    clear::both => floats.clearance(ClearBoth),
+                };
+                cur_y = cur_y + clearance;
+
+                // At this point, `cur_y` is at the border edge of the child.
+                flow::mut_base(kid).position.origin.y = cur_y;
+
+                // Now pull out the child's outgoing floats. We didn't do this immediately after the
+                // `assign_height_for_inorder_child_if_necessary` call because clearance on a block
+                // operates on the floats that come *in*, not the floats that go *out*.
+                if kid_was_impacted_by_floats {
+                    floats = flow::mut_base(kid).floats.clone()
+                }
+
+                // Move past the child's border box. Do not use the `translate_including_floats`
+                // function here because the child has already translated floats past its border box.
                 let kid_base = flow::mut_base(kid);
-                kid_base.position.origin.y = cur_y;
-                floats = kid_base.floats.clone();
-                continue
+                cur_y = cur_y + kid_base.position.size.height;
+
+                // Handle any (possibly collapsed) bottom margin.
+                let delta = margin_collapse_info.advance_bottom_margin(&kid_base.collapsible_margins);
+                translate_including_floats(&mut cur_y, delta, &mut floats);
             }
-
-
-            // If we have clearance, assume there are no floats in.
-            //
-            // FIXME(#2008, pcwalton): This could be wrong if we have `clear: left` or `clear:
-            // right` and there are still floats to impact, of course. But this gets complicated
-            // with margin collapse. Possibly the right thing to do is to lay out the block again
-            // in this rare case. (Note that WebKit can lay blocks out twice; this may be related,
-            // although I haven't looked into it closely.)
-            if kid.float_clearance() != clear::none {
-                flow::mut_base(kid).floats = Floats::new()
-            }
-
-            // Lay the child out if this was an in-order traversal.
-            let kid_was_impacted_by_floats =
-                kid.assign_height_for_inorder_child_if_necessary(layout_context);
-
-            // Mark flows for layerization if necessary to handle painting order correctly.
-            propagate_layer_flag_from_child(&mut layers_needed_for_descendants, kid);
-
-            // Handle any (possibly collapsed) top margin.
-            let delta =
-                margin_collapse_info.advance_top_margin(&flow::base(kid).collapsible_margins);
-            translate_including_floats(&mut cur_y, delta, &mut floats);
-
-            // Clear past the floats that came in, if necessary.
-            let clearance = match kid.float_clearance() {
-                clear::none => Au(0),
-                clear::left => floats.clearance(ClearLeft),
-                clear::right => floats.clearance(ClearRight),
-                clear::both => floats.clearance(ClearBoth),
-            };
-            cur_y = cur_y + clearance;
-
-            // At this point, `cur_y` is at the border edge of the child.
-            flow::mut_base(kid).position.origin.y = cur_y;
-
-            // Now pull out the child's outgoing floats. We didn't do this immediately after the
-            // `assign_height_for_inorder_child_if_necessary` call because clearance on a block
-            // operates on the floats that come *in*, not the floats that go *out*.
-            if kid_was_impacted_by_floats {
-                floats = flow::mut_base(kid).floats.clone()
-            }
-
-            // Move past the child's border box. Do not use the `translate_including_floats`
-            // function here because the child has already translated floats past its border box.
-            let kid_base = flow::mut_base(kid);
-            cur_y = cur_y + kid_base.position.size.height;
-
-            // Handle any (possibly collapsed) bottom margin.
-            let delta = margin_collapse_info.advance_bottom_margin(&kid_base.collapsible_margins);
-            translate_including_floats(&mut cur_y, delta, &mut floats);
         }
 
         // Mark ourselves for layerization if that will be necessary to paint in the proper order
