@@ -364,6 +364,7 @@ cpu_type CFG_CPUTYPE ${TARGET_CPUTYPE}
 # probe before updating PATH so we don't get ndk-toolchain stuff
 probe_need CFG_GIT         git
 probe_need CFG_PYTHON2     python2 python2.7 python
+probe_need CFG_GPERF       gperf
 export PYTHON=${CFG_PYTHON2}
 echo "exporting python = ${CFG_PYTHON2}"
 # Spidermonkey requires autoconf 2.13 exactly
