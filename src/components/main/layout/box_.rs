@@ -1099,7 +1099,7 @@ impl Box {
     /// Otherwise the split information is returned. The right information is
     /// optional due to the possibility of it being whitespace.
     pub fn find_split_info_by_new_line(&self)
-            -> Option<(SplitInfo, Option<SplitInfo>, Arc<~TextRun> /* TODO: remove */)> {
+            -> Option<(SplitInfo, Option<SplitInfo>, Arc<owned::Box<TextRun>> /* TODO: remove */)> {
         match self.specific {
             GenericBox | IframeBox(_) | ImageBox(_) | TableBox | TableCellBox |
             TableRowBox | TableWrapperBox => None,
@@ -1142,7 +1142,7 @@ impl Box {
     /// and right split information are both optional due to the possibility of
     /// them being whitespace.
     pub fn find_split_info_for_width(&self, start: CharIndex, max_width: Au, starts_line: bool)
-            -> Option<(Option<SplitInfo>, Option<SplitInfo>, Arc<~TextRun> /* TODO: remove */)> {
+            -> Option<(Option<SplitInfo>, Option<SplitInfo>, Arc<owned::Box<TextRun>> /* TODO: remove */)> {
         match self.specific {
             GenericBox | IframeBox(_) | ImageBox(_) | TableBox | TableCellBox |
             TableRowBox | TableWrapperBox => None,
