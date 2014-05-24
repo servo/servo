@@ -81,10 +81,10 @@ fn serialize_text(text: &JSRef<Text>, html: &mut StrBuf) {
                 "noembed" | "noframes" | "plaintext" |
                 "noscript" if elem.deref().namespace == namespace::HTML
                 => html.push_str(text.deref().characterdata.data),
-                _ => html.push_str(escape(text.deref().characterdata.data, false))
+                _ => escape(text.deref().characterdata.data, false, html)
             }
         }
-        _ => html.push_str(escape(text.deref().characterdata.data, false))
+        _ => escape(text.deref().characterdata.data, false, html)
     }
 }
 
@@ -151,18 +151,19 @@ fn serialize_attr(attr: &JSRef<Attr>, html: &mut StrBuf) {
         html.push_str(attr.deref().name);
     };
     html.push_str("=\"");
-    html.push_str(escape(attr.deref().value, true));
+    escape(attr.deref().value, true, html);
     html.push_char('"');
 }
 
-fn escape(string: &str, attr_mode: bool) -> ~str {
-    let replaced = string.replace("&", "&amp;").replace("\xA0", "&nbsp;");
-    match attr_mode {
-        true => {
-            replaced.replace("\"", "&quot;")
-        },
-        false => {
-            replaced.replace("<", "&lt;").replace(">", "&gt;")
+fn escape(string: &str, attr_mode: bool, html: &mut StrBuf) {
+    for c in string.chars() {
+        match c {
+            '&' => html.push_str("&amp;"),
+            '\xA0' => html.push_str("&nbsp;"),
+            '"' if attr_mode => html.push_str("&quot;"),
+            '<' if !attr_mode => html.push_str("&lt;"),
+            '>' if !attr_mode => html.push_str("&gt;"),
+            c => html.push_char(c),
         }
     }
 }
