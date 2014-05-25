@@ -58,13 +58,12 @@ pub enum ImageResponseMsg {
 
 impl Eq for ImageResponseMsg {
     fn eq(&self, other: &ImageResponseMsg) -> bool {
-        // FIXME: Bad copies
-        match (self.clone(), other.clone()) {
-            (ImageReady(..), ImageReady(..)) => fail!("unimplemented comparison"),
-            (ImageNotReady, ImageNotReady) => true,
-            (ImageFailed, ImageFailed) => true,
+        match (self, other) {
+            (&ImageReady(..), &ImageReady(..)) => fail!("unimplemented comparison"),
+            (&ImageNotReady, &ImageNotReady) => true,
+            (&ImageFailed, &ImageFailed) => true,
 
-            (ImageReady(..), _) | (ImageNotReady, _) | (ImageFailed, _) => false
+            (&ImageReady(..), _) | (&ImageNotReady, _) | (&ImageFailed, _) => false
         }
     }
 
