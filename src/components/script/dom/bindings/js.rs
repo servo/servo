@@ -394,7 +394,7 @@ pub struct Root<'a, 'b, T> {
     /// Reference to rooted value that must not outlive this container
     jsref: JSRef<'b, T>,
     /// Pointer to underlying Rust data
-    ptr: RefCell<*mut T>,
+    ptr: *T,
     /// On-stack JS pointer to assuage conservative stack scanner
     js_ptr: *mut JSObject,
 }
@@ -404,13 +404,14 @@ impl<'a, 'b, T: Reflectable> Root<'a, 'b, T> {
     /// It cannot not outlive its associated RootCollection, and it contains a JSRef
     /// which cannot outlive this new Root.
     fn new(roots: &'a RootCollection, unrooted: &JS<T>) -> Root<'a, 'b, T> {
+        let ptr: *T = unrooted.ptr.borrow().clone() as *T;
         let root = Root {
             root_list: roots,
             jsref: JSRef {
-                ptr: unrooted.ptr.clone(),
+                ptr: ptr,
                 chain: ContravariantLifetime,
             },
-            ptr: unrooted.ptr.clone(),
+            ptr: ptr,
             js_ptr: unrooted.reflector().get_jsobject(),
         };
         roots.root(&root);
@@ -445,25 +446,23 @@ impl<'a, 'b, T: Reflectable> DerefMut<JSRef<'b, T>> for Root<'a, 'b, T> {
 
 impl<'a, T: Reflectable> Deref<T> for JSRef<'a, T> {
     fn deref<'b>(&'b self) -> &'b T {
-        let borrow = self.ptr.borrow();
         unsafe {
-            &**borrow
+            &*self.ptr
         }
     }
 }
 
 impl<'a, T: Reflectable> DerefMut<T> for JSRef<'a, T> {
     fn deref_mut<'b>(&'b mut self) -> &'b mut T {
-        let mut borrowed = self.ptr.borrow_mut();
         unsafe {
-            &mut **borrowed
+            &mut *(self.ptr as *mut T)
         }
     }
 }
 
 /// Encapsulates a reference to something that is guaranteed to be alive. This is freely copyable.
 pub struct JSRef<'a, T> {
-    ptr: RefCell<*mut T>,
+    ptr: *T,
     chain: ContravariantLifetime<'a>,
 }
 
@@ -495,7 +494,7 @@ impl<'a,T> JSRef<'a,T> {
 
     pub fn unrooted(&self) -> JS<T> {
         JS {
-            ptr: self.ptr.clone()
+            ptr: RefCell::new(self.ptr as *mut T)
         }
     }
 }
