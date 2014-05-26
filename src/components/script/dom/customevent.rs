@@ -27,8 +27,8 @@ impl CustomEventDerived for Event {
 }
 
 pub trait CustomEventMethods {
-    fn Detail(&self, _cx: *JSContext) -> JSVal;
-    fn InitCustomEvent(&mut self, _cx: *JSContext,
+    fn Detail(&self, _cx: *mut JSContext) -> JSVal;
+    fn InitCustomEvent(&mut self, _cx: *mut JSContext,
                        type_: DOMString, can_bubble: bool,
                        cancelable: bool, detail: JSVal);
 }
@@ -59,12 +59,12 @@ impl CustomEvent {
 }
 
 impl<'a> CustomEventMethods for JSRef<'a, CustomEvent> {
-    fn Detail(&self, _cx: *JSContext) -> JSVal {
+    fn Detail(&self, _cx: *mut JSContext) -> JSVal {
         self.detail.deref().clone()
     }
 
     fn InitCustomEvent(&mut self,
-                        _cx: *JSContext,
+                        _cx: *mut JSContext,
                        type_: DOMString,
                        can_bubble: bool,
                        cancelable: bool,

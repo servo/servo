@@ -82,7 +82,7 @@ pub struct Window {
 }
 
 impl Window {
-    pub fn get_cx(&self) -> *JSContext {
+    pub fn get_cx(&self) -> *mut JSContext {
         let js_info = self.page().js_info();
         (**js_info.get_ref().js_context).ptr
     }
@@ -132,10 +132,10 @@ pub trait WindowMethods {
     fn Confirm(&self, _message: DOMString) -> bool;
     fn Prompt(&self, _message: DOMString, _default: DOMString) -> Option<DOMString>;
     fn Print(&self);
-    fn ShowModalDialog(&self, _cx: *JSContext, _url: DOMString, _argument: Option<JSVal>) -> JSVal;
-    fn SetTimeout(&mut self, _cx: *JSContext, callback: JSVal, timeout: i32) -> i32;
+    fn ShowModalDialog(&self, _cx: *mut JSContext, _url: DOMString, _argument: Option<JSVal>) -> JSVal;
+    fn SetTimeout(&mut self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32;
     fn ClearTimeout(&mut self, handle: i32);
-    fn SetInterval(&mut self, _cx: *JSContext, callback: JSVal, timeout: i32) -> i32;
+    fn SetInterval(&mut self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32;
     fn ClearInterval(&mut self, handle: i32);
     fn Window(&self) -> Temporary<Window>;
     fn Self(&self) -> Temporary<Window>;
@@ -227,11 +227,11 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     fn Print(&self) {
     }
 
-    fn ShowModalDialog(&self, _cx: *JSContext, _url: DOMString, _argument: Option<JSVal>) -> JSVal {
+    fn ShowModalDialog(&self, _cx: *mut JSContext, _url: DOMString, _argument: Option<JSVal>) -> JSVal {
         NullValue()
     }
 
-    fn SetTimeout(&mut self, _cx: *JSContext, callback: JSVal, timeout: i32) -> i32 {
+    fn SetTimeout(&mut self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32 {
         self.set_timeout_or_interval(callback, timeout, false)
     }
 
@@ -244,7 +244,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         self.active_timers.remove(&TimerId(handle));
     }
 
-    fn SetInterval(&mut self, _cx: *JSContext, callback: JSVal, timeout: i32) -> i32 {
+    fn SetInterval(&mut self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32 {
         self.set_timeout_or_interval(callback, timeout, true)
     }
 
@@ -394,7 +394,7 @@ impl<'a> PrivateWindowHelpers for JSRef<'a, Window> {
 }
 
 impl Window {
-    pub fn new(cx: *JSContext,
+    pub fn new(cx: *mut JSContext,
                page: Rc<Page>,
                script_chan: ScriptChan,
                compositor: Box<ScriptListener>,

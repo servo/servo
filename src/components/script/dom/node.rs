@@ -637,12 +637,12 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
 
 /// If the given untrusted node address represents a valid DOM node in the given runtime,
 /// returns it.
-pub fn from_untrusted_node_address(runtime: *JSRuntime, candidate: UntrustedNodeAddress)
+pub fn from_untrusted_node_address(runtime: *mut JSRuntime, candidate: UntrustedNodeAddress)
     -> Temporary<Node> {
     unsafe {
         let candidate: uintptr_t = cast::transmute(candidate);
-        let object: *JSObject = jsfriendapi::bindgen::JS_GetAddressableObject(runtime,
-                                                                              candidate);
+        let object: *mut JSObject = jsfriendapi::bindgen::JS_GetAddressableObject(runtime,
+                                                                                  candidate);
         if object.is_null() {
             fail!("Attempted to create a `JS<Node>` from an invalid pointer!")
         }
@@ -889,7 +889,7 @@ impl Node {
     pub fn reflect_node<N: Reflectable+NodeBase>
             (node:      Box<N>,
              document:  &JSRef<Document>,
-             wrap_fn:   extern "Rust" fn(*JSContext, &JSRef<Window>, Box<N>) -> JS<N>)
+             wrap_fn:   extern "Rust" fn(*mut JSContext, &JSRef<Window>, Box<N>) -> JS<N>)
              -> Temporary<N> {
         assert!(node.reflector().get_jsobject().is_null());
         let window = document.deref().window.root();

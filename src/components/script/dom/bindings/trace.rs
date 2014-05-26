@@ -11,8 +11,6 @@ use js::jsval::JSVal;
 use libc;
 use std::cast;
 use std::cell::{Cell, RefCell};
-use std::ptr;
-use std::ptr::null;
 use serialize::{Encodable, Encoder};
 
 // IMPORTANT: We rely on the fact that we never attempt to encode DOM objects using
@@ -50,11 +48,11 @@ pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: JSVal) {
 
     unsafe {
         description.to_c_str().with_ref(|name| {
-            (*tracer).debugPrinter = ptr::null();
+            (*tracer).debugPrinter = None;
             (*tracer).debugPrintIndex = -1;
             (*tracer).debugPrintArg = name as *libc::c_void;
             debug!("tracing value {:s}", description);
-            JS_CallTracer(tracer as *JSTracer, val.to_gcthing(), val.trace_kind());
+            JS_CallTracer(tracer, val.to_gcthing(), val.trace_kind());
         });
     }
 }
@@ -63,14 +61,14 @@ pub fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Ref
     trace_object(tracer, description, reflector.get_jsobject())
 }
 
-pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: *JSObject) {
+pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: *mut JSObject) {
     unsafe {
         description.to_c_str().with_ref(|name| {
-            (*tracer).debugPrinter = ptr::null();
+            (*tracer).debugPrinter = None;
             (*tracer).debugPrintIndex = -1;
             (*tracer).debugPrintArg = name as *libc::c_void;
             debug!("tracing {:s}", description);
-            JS_CallTracer(tracer as *JSTracer, obj, JSTRACE_OBJECT as u32);
+            JS_CallTracer(tracer, obj as *mut libc::c_void, JSTRACE_OBJECT);
         });
     }
 }
@@ -148,7 +146,7 @@ impl<S: Encoder<E>, E, T: Encodable<S, E>+Copy> Encodable<S, E> for Traceable<Ce
     }
 }
 
-impl<S: Encoder<E>, E> Encodable<S, E> for Traceable<*JSObject> {
+impl<S: Encoder<E>, E> Encodable<S, E> for Traceable<*mut JSObject> {
     fn encode(&self, s: &mut S) -> Result<(), E> {
         trace_object(get_jstracer(s), "object", **self);
         Ok(())
