@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+
 use cssparser::ast::{SyntaxError, SourceLocation};
 
 
@@ -21,21 +22,24 @@ impl<T, I: Iterator<Result<T, SyntaxError>>> Iterator<T> for ErrorLoggerIterator
 }
 
 
-// FIXME: go back to `()` instead of `bool` after upgrading Rust
-// past 898669c4e203ae91e2048fb6c0f8591c867bccc6
-// Using bool is a work-around for https://github.com/mozilla/rust/issues/13322
-local_data_key!(silence_errors: bool)
-
+/// Defaults to a no-op.
+/// Set a `RUST_LOG=style::errors` environment variable
+/// to log CSS parse errors to stderr.
 pub fn log_css_error(location: SourceLocation, message: &str) {
-    // TODO eventually this will got into a "web console" or something.
-    if silence_errors.get().is_none() {
-        error!("{:u}:{:u} {:s}", location.line, location.column, message)
+    // Check this first as it’s cheaper than local_data.
+    if log_enabled!(::log::INFO) {
+        if silence_errors.get().is_none() {
+            // TODO eventually this will got into a "web console" or something.
+            info!("{:u}:{:u} {:s}", location.line, location.column, message)
+        }
     }
 }
 
 
+local_data_key!(silence_errors: ())
+
 pub fn with_errors_silenced<T>(f: || -> T) -> T {
-    silence_errors.replace(Some(true));
+    silence_errors.replace(Some(()));
     let result = f();
     silence_errors.replace(None);
     result
