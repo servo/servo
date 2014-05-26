@@ -229,7 +229,7 @@ pub trait XMLHttpRequestMethods<'a> {
     fn OverrideMimeType(&self, _mime: DOMString);
     fn ResponseType(&self) -> XMLHttpRequestResponseType;
     fn SetResponseType(&mut self, response_type: XMLHttpRequestResponseType);
-    fn Response(&self, _cx: *JSContext) -> JSVal;
+    fn Response(&self, _cx: *mut JSContext) -> JSVal;
     fn ResponseText(&self) -> DOMString;
     fn GetResponseXML(&self) -> Option<Temporary<Document>>;
 }
@@ -368,7 +368,7 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
     fn SetResponseType(&mut self, response_type: XMLHttpRequestResponseType) {
         self.response_type = response_type
     }
-    fn Response(&self, cx: *JSContext) -> JSVal {
+    fn Response(&self, cx: *mut JSContext) -> JSVal {
          match self.response_type {
             _empty | Text => {
                 if self.ready_state == XHRDone || self.ready_state == Loading {
@@ -438,14 +438,14 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
     unsafe fn to_trusted(&mut self) -> TrustedXHRAddress {
         assert!(self.pinned == false);
         self.pinned = true;
-        JS_AddObjectRoot(self.global.root().get_cx(), self.reflector().rootable());
+        JS_AddObjectRoot(self.global.root().get_cx(), self.mut_reflector().rootable());
         TrustedXHRAddress(self.deref() as *XMLHttpRequest as *libc::c_void)
     }
 
     fn release(&mut self) {
         assert!(self.pinned);
         unsafe {
-            JS_RemoveObjectRoot(self.global.root().get_cx(), self.reflector().rootable());
+            JS_RemoveObjectRoot(self.global.root().get_cx(), self.mut_reflector().rootable());
         }
         self.pinned = false;
     }

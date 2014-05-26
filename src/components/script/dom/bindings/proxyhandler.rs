@@ -21,7 +21,7 @@ use std::mem::size_of;
 
 static JSPROXYSLOT_EXPANDO: u32 = 0;
 
-pub extern fn getPropertyDescriptor(cx: *JSContext, proxy: *JSObject, id: jsid,
+pub extern fn getPropertyDescriptor(cx: *mut JSContext, proxy: *mut JSObject, id: jsid,
                                 set: libc::c_int, desc: *mut JSPropertyDescriptor) -> libc::c_int {
   unsafe {
     let handler = GetProxyHandler(proxy);
@@ -35,7 +35,7 @@ pub extern fn getPropertyDescriptor(cx: *JSContext, proxy: *JSObject, id: jsid,
     //let proto = JS_GetPrototype(proxy);
     let proto = GetObjectProto(proxy);
     if proto.is_null() {
-        (*desc).obj = ptr::null();
+        (*desc).obj = ptr::mut_null();
         return 1;
     }
 
@@ -43,7 +43,7 @@ pub extern fn getPropertyDescriptor(cx: *JSContext, proxy: *JSObject, id: jsid,
   }
 }
 
-pub fn defineProperty_(cx: *JSContext, proxy: *JSObject, id: jsid,
+pub fn defineProperty_(cx: *mut JSContext, proxy: *mut JSObject, id: jsid,
                        desc: *JSPropertyDescriptor) -> JSBool {
     unsafe {
         //FIXME: Workaround for https://github.com/mozilla/rust/issues/13385
@@ -68,18 +68,18 @@ pub fn defineProperty_(cx: *JSContext, proxy: *JSObject, id: jsid,
     }
 }
 
-pub extern fn defineProperty(cx: *JSContext, proxy: *JSObject, id: jsid,
+pub extern fn defineProperty(cx: *mut JSContext, proxy: *mut JSObject, id: jsid,
                              desc: *JSPropertyDescriptor) -> JSBool {
     defineProperty_(cx, proxy, id, desc)
 }
 
-pub fn _obj_toString(cx: *JSContext, className: *libc::c_char) -> *JSString {
+pub fn _obj_toString(cx: *mut JSContext, className: *libc::c_char) -> *mut JSString {
   unsafe {
     let name = str::raw::from_c_str(className);
     let nchars = "[object ]".len() + name.len();
     let chars: *mut jschar = JS_malloc(cx, (nchars + 1) as libc::size_t * (size_of::<jschar>() as libc::size_t)) as *mut jschar;
     if chars.is_null() {
-        return ptr::null();
+        return ptr::mut_null();
     }
 
     let result = "[object ".to_owned() + name + "]";
@@ -87,35 +87,36 @@ pub fn _obj_toString(cx: *JSContext, className: *libc::c_char) -> *JSString {
       *chars.offset(i as int) = c as jschar;
     }
     *chars.offset(nchars as int) = 0;
-    let jsstr = JS_NewUCString(cx, chars as *jschar, nchars as libc::size_t);
+    let jsstr = JS_NewUCString(cx, chars, nchars as libc::size_t);
     if jsstr.is_null() {
-        JS_free(cx, chars as *libc::c_void);
+        JS_free(cx, chars as *mut libc::c_void);
     }
     jsstr
   }
 }
 
-pub fn GetExpandoObject(obj: *JSObject) -> *JSObject {
+pub fn GetExpandoObject(obj: *mut JSObject) -> *mut JSObject {
     unsafe {
         assert!(is_dom_proxy(obj));
         let val = GetProxyExtra(obj, JSPROXYSLOT_EXPANDO);
         if val.is_undefined() {
-            ptr::null()
+            ptr::mut_null()
         } else {
             val.to_object()
         }
     }
 }
 
-pub fn EnsureExpandoObject(cx: *JSContext, obj: *JSObject) -> *JSObject {
+pub fn EnsureExpandoObject(cx: *mut JSContext, obj: *mut JSObject) -> *mut JSObject {
     unsafe {
         assert!(is_dom_proxy(obj));
         let mut expando = GetExpandoObject(obj);
         if expando.is_null() {
-            expando = JS_NewObjectWithGivenProto(cx, ptr::null(), ptr::null(),
+            expando = JS_NewObjectWithGivenProto(cx, ptr::null(),
+                                                 ptr::mut_null(),
                                                  GetObjectParent(obj));
             if expando.is_null() {
-                return ptr::null();
+                return ptr::mut_null();
             }
 
             SetProxyExtra(obj, JSPROXYSLOT_EXPANDO, ObjectValue(&*expando));
@@ -124,7 +125,7 @@ pub fn EnsureExpandoObject(cx: *JSContext, obj: *JSObject) -> *JSObject {
     }
 }
 
-pub fn FillPropertyDescriptor(desc: &mut JSPropertyDescriptor, obj: *JSObject, readonly: bool) {
+pub fn FillPropertyDescriptor(desc: &mut JSPropertyDescriptor, obj: *mut JSObject, readonly: bool) {
     desc.obj = obj;
     desc.attrs = if readonly { JSPROP_READONLY } else { 0 } | JSPROP_ENUMERATE;
     desc.getter = None;

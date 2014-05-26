@@ -19,7 +19,7 @@ use std::ptr;
 pub struct BrowserContext {
     history: Vec<SessionHistoryEntry>,
     active_index: uint,
-    window_proxy: Traceable<*JSObject>,
+    window_proxy: Traceable<*mut JSObject>,
 }
 
 impl BrowserContext {
@@ -27,7 +27,7 @@ impl BrowserContext {
         let mut context = BrowserContext {
             history: vec!(SessionHistoryEntry::new(document)),
             active_index: 0,
-            window_proxy: Traceable::new(ptr::null()),
+            window_proxy: Traceable::new(ptr::mut_null()),
         };
         context.window_proxy = Traceable::new(context.create_window_proxy());
         context
@@ -42,12 +42,12 @@ impl BrowserContext {
         Temporary::new(doc.deref().window.clone())
     }
 
-    pub fn window_proxy(&self) -> *JSObject {
+    pub fn window_proxy(&self) -> *mut JSObject {
         assert!(self.window_proxy.deref().is_not_null());
         *self.window_proxy
     }
 
-    pub fn create_window_proxy(&self) -> *JSObject {
+    pub fn create_window_proxy(&self) -> *mut JSObject {
         let win = self.active_window().root();
         let page = win.deref().page();
         let js_info = page.js_info();
