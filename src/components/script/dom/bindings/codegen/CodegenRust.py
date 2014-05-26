@@ -1722,7 +1722,7 @@ def CreateBindingJSObject(descriptor, parent=None):
   let mut private = PrivateValue(squirrel_away_unique(aObject) as *libc::c_void);
   let obj = with_compartment(aCx, proto, || {
     NewProxyObject(aCx, *handler,
-                   &mut private,
+                   &private,
                    proto, %s,
                    ptr::mut_null(), ptr::mut_null())
   });
