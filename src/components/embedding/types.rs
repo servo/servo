@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use libc::{c_uint, c_ushort, c_int, c_double, size_t, c_void, c_longlong};
+use libc::types::os::arch::c95::wchar_t;
 
 pub type cef_string_map_t = c_void;
 pub type cef_string_list_t = c_void;
@@ -33,24 +34,27 @@ pub type cef_string_t = cef_string_utf8; //FIXME: this is #defined...
 pub type cef_string_userfree_t = cef_string_t; //FIXME: this is #defined...
 
 pub type cef_string_utf8_t = cef_string_utf8;
+pub type cef_string_userfree_utf8_t = cef_string_utf8;
 pub struct cef_string_utf8 {
-    pub str: *u8,
+    pub str: *mut u8,
     pub length: size_t,
-    pub dtor: *fn(str: *u8),
+    pub dtor: extern "C" fn(str: *mut u8),
 }
 
 pub type cef_string_utf16_t = cef_string_utf16;
+pub type cef_string_userfree_utf16_t = cef_string_utf16;
 pub struct cef_string_utf16 {
-    pub str: *c_ushort,
+    pub str: *mut c_ushort,
     pub length: size_t,
-    pub dtor: *fn(str: *c_ushort),
+    pub dtor: extern "C" fn(str: *mut c_ushort),
 }
 
 pub type cef_string_wide_t = cef_string_wide;
+pub type cef_string_userfree_wide_t = cef_string_wide;
 pub struct cef_string_wide {
-    pub str: *c_uint, //FIXME: not sure if correct...
+    pub str: *mut wchar_t,
     pub length: size_t,
-    pub dtor: *fn(str: *c_uint),
+    pub dtor: extern "C" fn(str: *mut wchar_t),
 }
 
 pub type cef_main_args_t = cef_main_args;
@@ -563,13 +567,6 @@ pub struct cef_settings {
   // called from your application message loop.
   ///
   pub multi_threaded_message_loop: c_int,
-
-  ///
-  // Set to true to enable windowless (off-screen) rendering support. Do not
-  // enable this value if the application does not use windowless rendering as
-  // it may reduce rendering performance on some systems.
-  ///
-  pub windowless_rendering_enabled: bool,
 
   ///
   // Set to true (1) to disable configuration of browser process features using

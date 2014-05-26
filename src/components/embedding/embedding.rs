@@ -16,7 +16,6 @@ extern crate rustuv;
 extern crate servo_macros = "macros";
 extern crate servo;
 
-extern crate alert;
 extern crate azure;
 extern crate geom;
 extern crate gfx;
@@ -47,4 +46,15 @@ extern crate core_graphics;
 #[cfg(target_os="macos")]
 extern crate core_text;
 
+pub mod browser;
+pub mod command_line;
+pub mod core;
+pub mod eutil;
+#[cfg(target_os="linux")] #[cfg(target_os="macos")]
+pub mod mem;
+pub mod request;
+pub mod string;
+pub mod task;
 pub mod types;
+pub mod urlrequest;
+

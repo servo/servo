@@ -159,7 +159,7 @@ pub extern "C" fn android_start(argc: int, argv: **u8) -> int {
 }
 
 #[cfg(not(test))]
-fn run(opts: opts::Opts) {
+pub fn run(opts: opts::Opts) {
     let mut pool_config = green::PoolConfig::new();
     pool_config.event_loop_factory = rustuv::event_loop;
     let mut pool = green::SchedPool::new(pool_config);
