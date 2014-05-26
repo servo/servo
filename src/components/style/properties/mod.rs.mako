@@ -1035,6 +1035,17 @@ pub mod longhands {
     ${single_keyword("table-layout", "auto fixed")}
 
     // CSS 2.1, Section 18 - User interface
+
+
+    // CSS Writing Modes Level 3
+    // http://dev.w3.org/csswg/css-writing-modes/
+    ${switch_to_style_struct("InheritedBox")}
+
+    ${single_keyword("writing-mode", "horizontal-tb vertical-rl vertical-lr")}
+
+    // FIXME(SimonSapin): Add 'mixed' and 'upright' (needs vertical text support)
+    // FIXME(SimonSapin): initial (first) value should be 'mixed', when that's implemented
+    ${single_keyword("text-orientation", "sideways sideways-left sideways-right")}
 }
 
 
@@ -1565,6 +1576,9 @@ impl PropertyDeclaration {
 
 pub mod style_structs {
     use super::longhands;
+    use super::computed_values;
+    use servo_util::logical_geometry::WritingMode;
+
     % for style_struct in STYLE_STRUCTS:
         #[deriving(PartialEq, Clone)]
         pub struct ${style_struct.name} {
@@ -1573,6 +1587,42 @@ pub mod style_structs {
             % endfor
         }
     % endfor
+
+    impl InheritedBox {
+        /// Return a WritingMode bitflags from the relevant CSS properties.
+        pub fn get_writing_mode(&self) -> WritingMode {
+            use servo_util::logical_geometry;
+            let mut flags = WritingMode::empty();
+            match self.direction {
+                computed_values::direction::ltr => {},
+                computed_values::direction::rtl => {
+                    flags.insert(logical_geometry::FlagRTL);
+                },
+            }
+            match self.writing_mode {
+                computed_values::writing_mode::horizontal_tb => {},
+                computed_values::writing_mode::vertical_rl => {
+                    flags.insert(logical_geometry::FlagVertical);
+                },
+                computed_values::writing_mode::vertical_lr => {
+                    flags.insert(logical_geometry::FlagVertical);
+                    flags.insert(logical_geometry::FlagVerticalLR);
+                },
+            }
+            match self.text_orientation {
+                computed_values::text_orientation::sideways_right => {},
+                computed_values::text_orientation::sideways_left => {
+                    flags.insert(logical_geometry::FlagSidewaysLeft);
+                },
+                computed_values::text_orientation::sideways => {
+                    if flags.intersects(logical_geometry::FlagVerticalLR) {
+                        flags.insert(logical_geometry::FlagSidewaysLeft);
+                    }
+                },
+            }
+            flags
+        }
+    }
 }
 
 #[deriving(Clone)]

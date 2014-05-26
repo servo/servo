@@ -32,6 +32,7 @@ extern crate std_url = "url";
 pub mod cache;
 pub mod debug_utils;
 pub mod geometry;
+pub mod logical_geometry;
 pub mod memory;
 pub mod namespace;
 pub mod opts;
