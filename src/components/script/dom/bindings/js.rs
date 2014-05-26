@@ -111,7 +111,7 @@ impl<T: Reflectable> Temporary<T> {
 
 /// A rooted, JS-owned value. Must only be used as a field in other JS-owned types.
 pub struct JS<T> {
-    ptr: RefCell<*mut T>
+    ptr: *T
 }
 
 impl<T> Eq for JS<T> {
@@ -134,7 +134,7 @@ impl JS<Node> {
     pub unsafe fn from_trusted_node_address(inner: TrustedNodeAddress) -> JS<Node> {
         let TrustedNodeAddress(addr) = inner;
         JS {
-            ptr: RefCell::new(addr as *mut Node)
+            ptr: addr as *Node
         }
     }
 }
@@ -143,7 +143,7 @@ impl JS<XMLHttpRequest> {
     pub unsafe fn from_trusted_xhr_address(inner: TrustedXHRAddress) -> JS<XMLHttpRequest> {
         let TrustedXHRAddress(addr) = inner;
         JS {
-            ptr: RefCell::new(addr as *mut XMLHttpRequest)
+            ptr: addr as *XMLHttpRequest
         }
     }
 }
@@ -152,7 +152,7 @@ impl<T: Reflectable> JS<T> {
     /// Create a new JS-owned value wrapped from a raw Rust pointer.
     pub unsafe fn from_raw(raw: *mut T) -> JS<T> {
         JS {
-            ptr: RefCell::new(raw)
+            ptr: raw as *T
         }
     }
 
@@ -404,14 +404,13 @@ impl<'a, 'b, T: Reflectable> Root<'a, 'b, T> {
     /// It cannot not outlive its associated RootCollection, and it contains a JSRef
     /// which cannot outlive this new Root.
     fn new(roots: &'a RootCollection, unrooted: &JS<T>) -> Root<'a, 'b, T> {
-        let ptr: *T = unrooted.ptr.borrow().clone() as *T;
         let root = Root {
             root_list: roots,
             jsref: JSRef {
-                ptr: ptr,
+                ptr: unrooted.ptr.clone(),
                 chain: ContravariantLifetime,
             },
-            ptr: ptr,
+            ptr: unrooted.ptr.clone(),
             js_ptr: unrooted.reflector().get_jsobject(),
         };
         roots.root(&root);
@@ -494,7 +493,7 @@ impl<'a,T> JSRef<'a,T> {
 
     pub fn unrooted(&self) -> JS<T> {
         JS {
-            ptr: RefCell::new(self.ptr as *mut T)
+            ptr: self.ptr
         }
     }
 }

@@ -136,6 +136,10 @@ pub struct LayoutNode<'a> {
 
     /// Being chained to a ContravariantLifetime prevents `LayoutNode`s from escaping.
     pub chain: ContravariantLifetime<'a>,
+
+    /// Padding to ensure the transmute `JS<T>` -> `LayoutNode`, `LayoutNode` -> `UnsafeLayoutNode`,
+    /// and `UnsafeLayoutNode` -> others.
+    pad: uint
 }
 
 impl<'ln> Clone for LayoutNode<'ln> {
@@ -143,6 +147,7 @@ impl<'ln> Clone for LayoutNode<'ln> {
         LayoutNode {
             node: self.node.clone(),
             chain: self.chain,
+            pad: 0,
         }
     }
 }
@@ -160,6 +165,7 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
         LayoutNode {
             node: node.transmute_copy(),
             chain: self.chain,
+            pad: 0,
         }
     }
 
@@ -196,6 +202,7 @@ impl<'ln> LayoutNode<'ln> {
         f(LayoutNode {
             node: node,
             chain: ContravariantLifetime,
+            pad: 0,
         })
     }
 
@@ -425,6 +432,7 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
             node: LayoutNode {
                 node: node.transmute_copy(),
                 chain: self.node.chain,
+                pad: 0,
             },
             pseudo: Normal,
         }
