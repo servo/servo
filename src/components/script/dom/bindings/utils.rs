@@ -206,10 +206,10 @@ pub struct DOMJSClass {
     pub dom_class: DOMClass
 }
 
-pub fn GetProtoOrIfaceArray(global: *mut JSObject) -> **mut JSObject {
+pub fn GetProtoOrIfaceArray(global: *mut JSObject) -> *mut *mut JSObject {
     unsafe {
         assert!(((*JS_GetClass(global)).flags & JSCLASS_DOM_GLOBAL) != 0);
-        JS_GetReservedSlot(global, DOM_PROTOTYPE_SLOT).to_private() as **mut JSObject
+        JS_GetReservedSlot(global, DOM_PROTOTYPE_SLOT).to_private() as *mut *mut JSObject
     }
 }
 

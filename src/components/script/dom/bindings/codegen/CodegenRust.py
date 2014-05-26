@@ -1966,7 +1966,7 @@ class CGGetPerInterfaceObject(CGAbstractMethod):
   assert!(((*JS_GetClass(aGlobal)).flags & JSCLASS_DOM_GLOBAL) != 0);
 
   /* Check to see whether the interface objects are already installed */
-  let protoOrIfaceArray: *mut *mut JSObject = GetProtoOrIfaceArray(aGlobal) as *mut *mut JSObject;
+  let protoOrIfaceArray = GetProtoOrIfaceArray(aGlobal);
   let cachedObject: *mut JSObject = *protoOrIfaceArray.offset(%s as int);
   if cachedObject.is_null() {
     let tmp: *mut JSObject = CreateInterfaceObjects(aCx, aGlobal, aReceiver);
