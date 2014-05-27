@@ -140,7 +140,7 @@ pub fn dispatch_event<'a, 'b>(target: &JSRef<'a, EventTarget>,
 
     event.dispatching = false;
     event.phase = PhaseNone;
-    event.current_target = None;
+    event.current_target.set(None);
 
     !event.DefaultPrevented()
 }
