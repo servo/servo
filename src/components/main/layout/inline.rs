@@ -441,13 +441,13 @@ impl LineboxScanner {
                     left.new_line_pos = vec!();
                     self.push_box_to_line(left);
 
-                    right.map(|right| {
+                    for right in right.move_iter() {
                         debug!("LineboxScanner: Deferring the box to the right of the new-line \
                                character to the line.");
                         let mut right = split_box(right);
                         right.new_line_pos = in_box.new_line_pos.clone();
                         self.work_list.push_front(right);
-                    });
+                    }
                 },
                 None => {
                     error!("LineboxScanner: This split case makes no sense!")
@@ -509,20 +509,19 @@ impl LineboxScanner {
         }
 
         let available_width = green_zone.width - self.pending_line.bounds.size.width;
-        match in_box.find_split_info_for_width(CharIndex(0), available_width, line_is_empty).map(
-            |(left, right, run)| {
-                // TODO(bjz): Remove box splitting
-                let split_box = |split: SplitInfo| {
-                    let info = ScannedTextBoxInfo::new(run.clone(), split.range);
-                    let specific = ScannedTextBox(info);
-                    let size = Size2D(split.width, in_box.border_box.size.height);
-                    in_box.transform(size, specific)
-                };
+        let split = in_box.find_split_info_for_width(CharIndex(0), available_width, line_is_empty);
+        match split.map(|(left, right, run)| {
+            // TODO(bjz): Remove box splitting
+            let split_box = |split: SplitInfo| {
+                let info = ScannedTextBoxInfo::new(run.clone(), split.range);
+                let specific = ScannedTextBox(info);
+                let size = Size2D(split.width, in_box.border_box.size.height);
+                in_box.transform(size, specific)
+            };
 
-                (left.map(|x| { debug!("LineboxScanner: Left split {}", x); split_box(x) }),
-                 right.map(|x| { debug!("LineboxScanner: Right split {}", x); split_box(x) }))
-            }
-        ) {
+            (left.map(|x| { debug!("LineboxScanner: Left split {}", x); split_box(x) }),
+             right.map(|x| { debug!("LineboxScanner: Right split {}", x); split_box(x) }))
+        }) {
             None => {
                 debug!("LineboxScanner: Tried to split unsplittable render box! Deferring to next \
                        line. {}", in_box);
