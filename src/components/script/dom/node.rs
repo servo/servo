@@ -1297,8 +1297,8 @@ impl Node {
                 // FIXME: https://github.com/mozilla/servo/issues/1737
                 copy_elem.namespace = node_elem.namespace.clone();
                 let window = document.deref().window.root();
-                for attr in node_elem.attrs.iter().map(|attr| attr.root()) {
-                    copy_elem.attrs.push_unrooted(
+                for attr in node_elem.attrs.borrow().iter().map(|attr| attr.root()) {
+                    copy_elem.attrs.borrow_mut().push_unrooted(
                         &Attr::new(&*window,
                                    attr.deref().local_name.clone(), attr.deref().value.clone(),
                                    attr.deref().name.clone(), attr.deref().namespace.clone(),
@@ -1766,9 +1766,11 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
             let element: &JSRef<Element> = ElementCast::to_ref(node).unwrap();
             let other_element: &JSRef<Element> = ElementCast::to_ref(other).unwrap();
             // FIXME: namespace prefix
-            (element.deref().namespace == other_element.deref().namespace) &&
-            (element.deref().local_name == other_element.deref().local_name) &&
-            (element.deref().attrs.len() == other_element.deref().attrs.len())
+            let element = element.deref();
+            let other_element = other_element.deref();
+            (element.namespace == other_element.namespace) &&
+            (element.local_name == other_element.local_name) &&
+            (element.attrs.borrow().len() == other_element.attrs.borrow().len())
         }
         fn is_equal_processinginstruction(node: &JSRef<Node>, other: &JSRef<Node>) -> bool {
             let pi: &JSRef<ProcessingInstruction> = ProcessingInstructionCast::to_ref(node).unwrap();
@@ -1784,9 +1786,11 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         fn is_equal_element_attrs(node: &JSRef<Node>, other: &JSRef<Node>) -> bool {
             let element: &JSRef<Element> = ElementCast::to_ref(node).unwrap();
             let other_element: &JSRef<Element> = ElementCast::to_ref(other).unwrap();
-            assert!(element.deref().attrs.len() == other_element.deref().attrs.len());
-            element.deref().attrs.iter().map(|attr| attr.root()).all(|attr| {
-                other_element.deref().attrs.iter().map(|attr| attr.root()).any(|other_attr| {
+            let element = element.deref();
+            let other_element = other_element.deref();
+            assert!(element.attrs.borrow().len() == other_element.attrs.borrow().len());
+            element.attrs.borrow().iter().map(|attr| attr.root()).all(|attr| {
+                other_element.attrs.borrow().iter().map(|attr| attr.root()).any(|other_attr| {
                     (attr.namespace == other_attr.namespace) &&
                     (attr.local_name == other_attr.local_name) &&
                     (attr.value == other_attr.value)
