@@ -229,15 +229,18 @@ pub trait AttributeHandlers {
 
 impl<'a> AttributeHandlers for JSRef<'a, Element> {
     fn get_attribute(&self, namespace: Namespace, name: &str) -> Option<Temporary<Attr>> {
-        if self.html_element_in_html_document() {
-            self.deref().attrs.iter().map(|attr| attr.root()).find(|attr| {
-                name.to_ascii_lower() == attr.local_name && attr.namespace == namespace
-            }).map(|x| Temporary::from_rooted(&*x))
-        } else {
-            self.deref().attrs.iter().map(|attr| attr.root()).find(|attr| {
-                name == attr.local_name && attr.namespace == namespace
-            }).map(|x| Temporary::from_rooted(&*x))
-        }
+        let element: &Element = self.deref();
+        let is_html_element = self.html_element_in_html_document();
+
+        element.attrs.iter().map(|attr| attr.root()).find(|attr| {
+            let same_name = if is_html_element {
+                name.to_ascii_lower() == attr.local_name
+            } else {
+                name == attr.local_name
+            };
+
+            same_name && attr.namespace == namespace
+        }).map(|x| Temporary::from_rooted(&*x))
     }
 
     fn set_attribute_from_parser(&mut self, local_name: DOMString,
