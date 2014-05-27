@@ -2,9 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::InheritTypes::{DocumentDerived, EventCast, HTMLElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLHeadElementCast, TextCast, ElementCast};
 use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, HTMLHtmlElementCast, NodeCast};
+use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::codegen::BindingDeclarations::DocumentBinding;
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalSettable, TemporaryPushable};
 use dom::bindings::js::OptionalRootable;
@@ -21,7 +23,7 @@ use dom::element::{Element, AttributeHandlers, get_attribute_parts};
 use dom::element::{HTMLHtmlElementTypeId, HTMLHeadElementTypeId, HTMLTitleElementTypeId};
 use dom::element::{HTMLBodyElementTypeId, HTMLFrameSetElementTypeId};
 use dom::event::Event;
-use dom::eventtarget::{EventTarget, NodeTargetTypeId};
+use dom::eventtarget::{EventTarget, NodeTargetTypeId, EventTargetHelpers};
 use dom::htmlcollection::{HTMLCollection, CollectionFilter};
 use dom::htmlelement::HTMLElement;
 use dom::htmlheadelement::HTMLHeadElement;
@@ -325,6 +327,8 @@ pub trait DocumentMethods {
     fn Applets(&self) -> Temporary<HTMLCollection>;
     fn Location(&mut self) -> Temporary<Location>;
     fn Children(&self) -> Temporary<HTMLCollection>;
+    fn GetOnload(&self) -> Option<EventHandlerNonNull>;
+    fn SetOnload(&mut self, listener: Option<EventHandlerNonNull>);
 }
 
 impl<'a> DocumentMethods for JSRef<'a, Document> {
@@ -803,5 +807,15 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     fn Children(&self) -> Temporary<HTMLCollection> {
         let window = self.window.root();
         HTMLCollection::children(&*window, NodeCast::from_ref(self))
+    }
+
+    fn GetOnload(&self) -> Option<EventHandlerNonNull> {
+        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        eventtarget.get_event_handler_common("load")
+    }
+
+    fn SetOnload(&mut self, listener: Option<EventHandlerNonNull>) {
+        let eventtarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(self);
+        eventtarget.set_event_handler_common("load", listener)
     }
 }

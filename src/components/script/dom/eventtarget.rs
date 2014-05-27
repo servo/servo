@@ -2,16 +2,23 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::callback::CallbackContainer;
+use dom::bindings::codegen::BindingDeclarations::EventListenerBinding::EventListener;
+use dom::bindings::codegen::EventHandlerBinding::EventHandlerNonNull;
+use dom::bindings::error::{Fallible, InvalidState};
 use dom::bindings::js::JSRef;
 use dom::bindings::utils::{Reflectable, Reflector};
-use dom::bindings::error::{Fallible, InvalidState};
-use dom::bindings::codegen::BindingDeclarations::EventListenerBinding::EventListener;
 use dom::event::Event;
 use dom::eventdispatcher::dispatch_event;
 use dom::node::NodeTypeId;
 use dom::xmlhttprequest::XMLHttpRequestId;
 use dom::virtualmethods::VirtualMethods;
+use js::jsapi::{JS_CompileUCFunction, JS_GetFunctionObject, JS_CloneFunctionObject};
+use js::jsapi::{JSContext, JSObject};
 use servo_util::str::DOMString;
+use libc::{c_char, size_t};
+use std::ptr;
+use url::Url;
 
 use collections::hashmap::HashMap;
 
@@ -28,10 +35,24 @@ pub enum EventTargetTypeId {
     XMLHttpRequestTargetTypeId(XMLHttpRequestId)
 }
 
+#[deriving(Eq, Encodable)]
+pub enum EventListenerType {
+    Additive(EventListener),
+    Inline(EventListener),
+}
+
+impl EventListenerType {
+    fn get_listener(&self) -> EventListener {
+        match *self {
+            Additive(listener) | Inline(listener) => listener
+        }
+    }
+}
+
 #[deriving(Eq,Encodable)]
 pub struct EventListenerEntry {
     pub phase: ListenerPhase,
-    pub listener: EventListener
+    pub listener: EventListenerType
 }
 
 #[deriving(Encodable)]
@@ -52,7 +73,7 @@ impl EventTarget {
 
     pub fn get_listeners(&self, type_: &str) -> Option<Vec<EventListener>> {
         self.handlers.find_equiv(&type_).map(|listeners| {
-            listeners.iter().map(|entry| entry.listener).collect()
+            listeners.iter().map(|entry| entry.listener.get_listener()).collect()
         })
     }
 
@@ -60,7 +81,7 @@ impl EventTarget {
         -> Option<Vec<EventListener>> {
         self.handlers.find_equiv(&type_).map(|listeners| {
             let filtered = listeners.iter().filter(|entry| entry.phase == desired_phase);
-            filtered.map(|entry| entry.listener).collect()
+            filtered.map(|entry| entry.listener.get_listener()).collect()
         })
     }
 }
@@ -69,6 +90,19 @@ pub trait EventTargetHelpers {
     fn dispatch_event_with_target<'a>(&self,
                                       target: Option<JSRef<'a, EventTarget>>,
                                       event: &mut JSRef<Event>) -> Fallible<bool>;
+    fn set_inline_event_listener(&mut self,
+                                 ty: DOMString,
+                                 listener: Option<EventListener>);
+    fn get_inline_event_listener(&self, ty: DOMString) -> Option<EventListener>;
+    fn set_event_handler_uncompiled(&mut self,
+                                    cx: *mut JSContext,
+                                    url: Url,
+                                    scope: *mut JSObject,
+                                    ty: &str,
+                                    source: DOMString);
+    fn set_event_handler_common<T: CallbackContainer>(&mut self, ty: &str,
+                                                      listener: Option<T>);
+    fn get_event_handler_common<T: CallbackContainer>(&self, ty: &str) -> Option<T>;
 }
 
 impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
@@ -79,6 +113,91 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
             return Err(InvalidState);
         }
         Ok(dispatch_event(self, target, event))
+    }
+
+    fn set_inline_event_listener(&mut self,
+                                 ty: DOMString,
+                                 listener: Option<EventListener>) {
+        let entries = self.handlers.find_or_insert_with(ty, |_| vec!());
+        let idx = entries.iter().position(|&entry| {
+            match entry.listener {
+                Inline(_) => true,
+                _ => false,
+            }
+        });
+
+        match idx {
+            Some(idx) => {
+                match listener {
+                    Some(listener) => entries.get_mut(idx).listener = Inline(listener),
+                    None => {
+                        entries.remove(idx);
+                    }
+                }
+            }
+            None => {
+                if listener.is_some() {
+                    entries.push(EventListenerEntry {
+                        phase: Bubbling,
+                        listener: Inline(listener.unwrap()),
+                    });
+                }
+            }
+        }
+    }
+
+    fn get_inline_event_listener(&self, ty: DOMString) -> Option<EventListener> {
+        let entries = self.handlers.find(&ty);
+        entries.and_then(|entries| entries.iter().find(|entry| {
+            match entry.listener {
+                Inline(_) => true,
+                _ => false,
+            }
+        }).map(|entry| entry.listener.get_listener()))
+    }
+
+    fn set_event_handler_uncompiled(&mut self,
+                                    cx: *mut JSContext,
+                                    url: Url,
+                                    scope: *mut JSObject,
+                                    ty: &str,
+                                    source: DOMString) {
+        let url = url.to_str().to_c_str();
+        let name = ty.to_c_str();
+        let lineno = 0; //XXXjdm need to get a real number here
+
+        let nargs = 1; //XXXjdm not true for onerror
+        static arg_name: [c_char, ..6] =
+            ['e' as c_char, 'v' as c_char, 'e' as c_char, 'n' as c_char, 't' as c_char, 0];
+        static arg_names: [*c_char, ..1] = [&arg_name as *c_char];
+
+        let source = source.to_utf16();
+        let handler =
+            name.with_ref(|name| {
+            url.with_ref(|url| { unsafe {
+                let fun = JS_CompileUCFunction(cx, ptr::mut_null(), name,
+                                               nargs, &arg_names as **i8 as *mut *i8, source.as_ptr(),
+                                               source.len() as size_t,
+                                               url, lineno);
+                assert!(fun.is_not_null());
+                JS_GetFunctionObject(fun)
+            }})});
+        let funobj = unsafe { JS_CloneFunctionObject(cx, handler, scope) };
+        assert!(funobj.is_not_null());
+        self.set_event_handler_common(ty, Some(EventHandlerNonNull::new(funobj)))
+    }
+
+    fn set_event_handler_common<T: CallbackContainer>(
+        &mut self, ty: &str, listener: Option<T>)
+    {
+        let event_listener = listener.map(|listener|
+                                          EventListener::new(listener.callback()));
+        self.set_inline_event_listener(ty.to_owned(), event_listener);
+    }
+
+    fn get_event_handler_common<T: CallbackContainer>(&self, ty: &str) -> Option<T> {
+        let listener = self.get_inline_event_listener(ty.to_owned());
+        listener.map(|listener| CallbackContainer::new(listener.parent.callback()))
     }
 }
 
@@ -104,7 +223,7 @@ impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {
             let phase = if capture { Capturing } else { Bubbling };
             let new_entry = EventListenerEntry {
                 phase: phase,
-                listener: listener
+                listener: Additive(listener)
             };
             if entry.as_slice().position_elem(&new_entry).is_none() {
                 entry.push(new_entry);
@@ -122,7 +241,7 @@ impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {
                 let phase = if capture { Capturing } else { Bubbling };
                 let old_entry = EventListenerEntry {
                     phase: phase,
-                    listener: listener
+                    listener: Additive(listener)
                 };
                 let position = entry.as_slice().position_elem(&old_entry);
                 for &position in position.iter() {

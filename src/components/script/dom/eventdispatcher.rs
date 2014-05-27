@@ -50,7 +50,7 @@ pub fn dispatch_event<'a, 'b>(target: &JSRef<'a, EventTarget>,
                 for listener in listeners.iter() {
                     //FIXME: this should have proper error handling, or explicitly
                     //       drop the exception on the floor
-                    assert!(listener.HandleEvent__(event, ReportExceptions).is_ok());
+                    assert!(listener.HandleEvent_(&**cur_target, event, ReportExceptions).is_ok());
 
                     if event.deref().stop_immediate {
                         break;
@@ -80,7 +80,7 @@ pub fn dispatch_event<'a, 'b>(target: &JSRef<'a, EventTarget>,
             for listener in listeners.iter() {
                 //FIXME: this should have proper error handling, or explicitly drop the
                 //       exception on the floor.
-                assert!(listener.HandleEvent__(event, ReportExceptions).is_ok());
+                assert!(listener.HandleEvent_(target, event, ReportExceptions).is_ok());
                 if event.deref().stop_immediate {
                     break;
                 }
@@ -99,7 +99,7 @@ pub fn dispatch_event<'a, 'b>(target: &JSRef<'a, EventTarget>,
                     for listener in listeners.iter() {
                         //FIXME: this should have proper error handling or explicitly
                         //       drop exceptions on the floor.
-                        assert!(listener.HandleEvent__(event, ReportExceptions).is_ok());
+                        assert!(listener.HandleEvent_(&**cur_target, event, ReportExceptions).is_ok());
 
                         if event.deref().stop_immediate {
                             break;

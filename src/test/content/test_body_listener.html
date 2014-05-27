@@ -1,0 +1,18 @@
+<html>
+<head>
+<script src="harness.js"></script>
+<script>
+  function check_onload(listener) {
+    is(listener, window);
+    var ev = new Event('click', {bubbles: true, cancelable: true});
+    document.body.dispatchEvent(ev);
+  }
+  function check_onclick(listener) {
+    is(listener, document.body);
+    finish();
+  }
+</script>
+</head>
+<body onload="check_onload(this)" onclick="check_onclick(this)">
+</body>
+</html>

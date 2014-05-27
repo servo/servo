@@ -23,4 +23,4 @@ partial interface HTMLBodyElement {
     [SetterThrows]                          attribute DOMString background;
 };
 
-//HTMLBodyElement implements WindowEventHandlers;
+HTMLBodyElement implements WindowEventHandlers;

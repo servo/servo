@@ -3,13 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::BindingDeclarations::WindowBinding;
+use dom::bindings::codegen::EventHandlerBinding::{OnErrorEventHandlerNonNull, EventHandlerNonNull};
+use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalSettable};
 use dom::bindings::trace::{Traceable, Untraceable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::browsercontext::BrowserContext;
 use dom::document::Document;
 use dom::element::Element;
-use dom::eventtarget::{EventTarget, WindowTypeId};
+use dom::eventtarget::{EventTarget, WindowTypeId, EventTargetHelpers};
 use dom::console::Console;
 use dom::location::Location;
 use dom::navigator::Navigator;
@@ -140,6 +142,12 @@ pub trait WindowMethods {
     fn Window(&self) -> Temporary<Window>;
     fn Self(&self) -> Temporary<Window>;
     fn Performance(&mut self) -> Temporary<Performance>;
+    fn GetOnload(&self) -> Option<EventHandlerNonNull>;
+    fn SetOnload(&mut self, listener: Option<EventHandlerNonNull>);
+    fn GetOnunload(&self) -> Option<EventHandlerNonNull>;
+    fn SetOnunload(&mut self, listener: Option<EventHandlerNonNull>);
+    fn GetOnerror(&self) -> Option<OnErrorEventHandlerNonNull>;
+    fn SetOnerror(&mut self, listener: Option<OnErrorEventHandlerNonNull>);
     fn Debug(&self, message: DOMString);
     fn Gc(&self);
 }
@@ -266,6 +274,36 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
             self.performance.assign(Some(performance));
         }
         Temporary::new(self.performance.get_ref().clone())
+    }
+
+    fn GetOnload(&self) -> Option<EventHandlerNonNull> {
+        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        eventtarget.get_event_handler_common("load")
+    }
+
+    fn SetOnload(&mut self, listener: Option<EventHandlerNonNull>) {
+        let eventtarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(self);
+        eventtarget.set_event_handler_common("load", listener)
+    }
+
+    fn GetOnunload(&self) -> Option<EventHandlerNonNull> {
+        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        eventtarget.get_event_handler_common("unload")
+    }
+
+    fn SetOnunload(&mut self, listener: Option<EventHandlerNonNull>) {
+        let eventtarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(self);
+        eventtarget.set_event_handler_common("unload", listener)
+    }
+
+    fn GetOnerror(&self) -> Option<OnErrorEventHandlerNonNull> {
+        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        eventtarget.get_event_handler_common("error")
+    }
+
+    fn SetOnerror(&mut self, listener: Option<OnErrorEventHandlerNonNull>) {
+        let eventtarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(self);
+        eventtarget.set_event_handler_common("error", listener)
     }
 
     fn Debug(&self, message: DOMString) {

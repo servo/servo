@@ -48,6 +48,7 @@ pub mod dom {
         pub mod str;
         pub mod trace;
         pub mod codegen {
+            pub mod EventHandlerBinding;
             pub mod InterfaceTypes;
             pub mod InheritTypes;
             pub mod PrototypeList;

@@ -54,3 +54,5 @@ partial interface HTMLElement {
   readonly attribute long offsetWidth;
   readonly attribute long offsetHeight;
 };
+HTMLElement implements GlobalEventHandlers;
+//HTMLElement implements OnErrorEventHandlerForNodes;

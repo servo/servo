@@ -9,7 +9,7 @@ use dom::bindings::utils::jsstring_to_str;
 use dom::bindings::utils::unwrap_jsmanaged;
 use servo_util::str::DOMString;
 
-use js::jsapi::{JSBool, JSContext};
+use js::jsapi::{JSBool, JSContext, JSObject};
 use js::jsapi::{JS_ValueToUint64, JS_ValueToInt64};
 use js::jsapi::{JS_ValueToECMAUint32, JS_ValueToECMAInt32};
 use js::jsapi::{JS_ValueToUint16, JS_ValueToNumber, JS_ValueToBoolean};
@@ -18,7 +18,7 @@ use js::jsapi::{JS_NewUCStringCopyN, JS_NewStringCopyN};
 use js::jsapi::{JS_WrapValue};
 use js::jsval::JSVal;
 use js::jsval::{UndefinedValue, NullValue, BooleanValue, Int32Value, UInt32Value};
-use js::jsval::{StringValue, ObjectValue};
+use js::jsval::{StringValue, ObjectValue, ObjectOrNullValue};
 use js::glue::RUST_JS_NumberValue;
 use libc;
 use std::default::Default;
@@ -328,6 +328,12 @@ impl<'a, T: Reflectable> ToJSValConvertible for JSRef<'a, T> {
     }
 }
 
+impl<'a, T: Reflectable> ToJSValConvertible for JS<T> {
+    fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
+        self.reflector().to_jsval(cx)
+    }
+}
+
 impl<T: ToJSValConvertible> ToJSValConvertible for Option<T> {
     fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
         match self {
@@ -346,5 +352,15 @@ impl<X: Default, T: FromJSValConvertible<X>> FromJSValConvertible<()> for Option
             let result: Result<T, ()> = FromJSValConvertible::from_jsval(cx, value, option);
             result.map(Some)
         }
+    }
+}
+
+impl ToJSValConvertible for *mut JSObject {
+    fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
+        let mut wrapped = ObjectOrNullValue(*self);
+        unsafe {
+            assert!(JS_WrapValue(cx, &mut wrapped) != 0);
+        }
+        wrapped
     }
 }

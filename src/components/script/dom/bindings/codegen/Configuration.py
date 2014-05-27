@@ -76,7 +76,11 @@ class Configuration:
     @staticmethod
     def _filterForFile(items, webIDLFile=""):
         """Gets the items that match the given filters."""
+        if not webIDLFile:
+            return items
+
         return filter(lambda x: x.filename() == webIDLFile, items)
+
     def getDictionaries(self, webIDLFile=""):
         return self._filterForFile(self.dictionaries, webIDLFile=webIDLFile)
     def getCallbacks(self, webIDLFile=""):
@@ -269,3 +273,54 @@ class Descriptor(DescriptorProvider):
             throws = member.getExtendedAttribute(throwsAttr)
         maybeAppendInfallibleToAttrs(attrs, throws)
         return attrs
+
+# Some utility methods
+def getTypesFromDescriptor(descriptor):
+    """
+    Get all argument and return types for all members of the descriptor
+    """
+    members = [m for m in descriptor.interface.members]
+    if descriptor.interface.ctor():
+        members.append(descriptor.interface.ctor())
+    members.extend(descriptor.interface.namedConstructors)
+    signatures = [s for m in members if m.isMethod() for s in m.signatures()]
+    types = []
+    for s in signatures:
+        assert len(s) == 2
+        (returnType, arguments) = s
+        types.append(returnType)
+        types.extend(a.type for a in arguments)
+
+    types.extend(a.type for a in members if a.isAttr())
+    return types
+
+def getFlatTypes(types):
+    retval = set()
+    for type in types:
+        type = type.unroll()
+        if type.isUnion():
+            retval |= set(type.flatMemberTypes)
+        else:
+            retval.add(type)
+    return retval
+
+def getTypesFromDictionary(dictionary):
+    """
+    Get all member types for this dictionary
+    """
+    types = []
+    curDict = dictionary
+    while curDict:
+        types.extend([m.type for m in curDict.members])
+        curDict = curDict.parent
+    return types
+
+def getTypesFromCallback(callback):
+    """
+    Get the types this callback depends on: its return type and the
+    types of its arguments.
+    """
+    sig = callback.signatures()[0]
+    types = [sig[0]] # Return type
+    types.extend(arg.type for arg in sig[1]) # Arguments
+    return types

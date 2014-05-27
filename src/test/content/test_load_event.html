@@ -4,13 +4,30 @@
 </head>
 <body>
 <script>
-  addEventListener("load", function(ev) {
+  var onloads = 0;
+  function check(ev) {
     is_a(ev, Event);
     ev.preventDefault();
     is(ev.defaultPrevented, false);
     is(ev.target, document);
     is(ev.currentTarget, window);
-    finish();
+    if (onloads == 2) {
+      finish();
+    }
+  }
+
+  window.onload = function(ev) {
+    _fail("this inline handler should be overwritten");
+  }
+  window.onload = function(ev) {
+    onloads++;
+    is(onloads, 1);
+    check(ev);
+  }
+  addEventListener("load", function(ev) {
+    onloads++;
+    is(onloads, 2);
+    check(ev);
   });
 </script>
 </body>

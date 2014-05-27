@@ -70,7 +70,7 @@ interface TestBinding {
            attribute TestEnum enumAttribute;
            attribute Blob interfaceAttribute;
   //         attribute (HTMLElement or long) unionAttribute;
-  //         attribute (DOMString or FormData) union2Attribute;
+  //         attribute (Event or DOMString) union2Attribute;
            attribute any anyAttribute;
 
            attribute boolean? booleanAttributeNullable;
@@ -89,7 +89,7 @@ interface TestBinding {
   readonly attribute TestEnum? enumAttributeNullable;
            attribute Blob? interfaceAttributeNullable;
   //         attribute (HTMLElement or long)? unionAttributeNullable;
-  //         attribute (DOMString or FormData)? union2AttributeNullable;
+  //         attribute (Event or DOMString)? union2AttributeNullable;
 
   void receiveVoid();
   boolean receiveBoolean();
@@ -137,7 +137,7 @@ interface TestBinding {
   void passEnum(TestEnum arg);
   void passInterface(Blob arg);
   void passUnion((HTMLElement or long) arg);
-  void passUnion2((DOMString or FormData) data);
+  void passUnion2((Event or DOMString) data);
   void passAny(any arg);
 
   void passNullableBoolean(boolean? arg);
@@ -156,7 +156,7 @@ interface TestBinding {
   // void passNullableEnum(TestEnum? arg);
   void passNullableInterface(Blob? arg);
   void passNullableUnion((HTMLElement or long)? arg);
-  void passNullableUnion2((DOMString or FormData)? data);
+  void passNullableUnion2((Event or DOMString)? data);
 
   void passOptionalBoolean(optional boolean arg);
   void passOptionalByte(optional byte arg);
@@ -174,7 +174,7 @@ interface TestBinding {
   void passOptionalEnum(optional TestEnum arg);
   void passOptionalInterface(optional Blob arg);
   void passOptionalUnion(optional (HTMLElement or long) arg);
-  void passOptionalUnion2(optional (DOMString or FormData) data);
+  void passOptionalUnion2(optional (Event or DOMString) data);
   void passOptionalAny(optional any arg);
 
   void passOptionalNullableBoolean(optional boolean? arg);
@@ -193,7 +193,7 @@ interface TestBinding {
   // void passOptionalNullableEnum(optional TestEnum? arg);
   void passOptionalNullableInterface(optional Blob? arg);
   void passOptionalNullableUnion(optional (HTMLElement or long)? arg);
-  void passOptionalNullableUnion2(optional (DOMString or FormData)? data);
+  void passOptionalNullableUnion2(optional (Event or DOMString)? data);
 
   void passOptionalBooleanWithDefault(optional boolean arg = false);
   void passOptionalByteWithDefault(optional byte arg = 0);
@@ -207,7 +207,7 @@ interface TestBinding {
   void passOptionalStringWithDefault(optional DOMString arg = "");
   void passOptionalEnumWithDefault(optional TestEnum arg = "foo");
   // void passOptionalUnionWithDefault(optional (HTMLElement or long) arg = 9);
-  // void passOptionalUnion2WithDefault(optional(DOMString or FormData)? data = "foo");
+  // void passOptionalUnion2WithDefault(optional(Event or DOMString)? data = "foo");
 
   void passOptionalNullableBooleanWithDefault(optional boolean? arg = null);
   void passOptionalNullableByteWithDefault(optional byte? arg = null);
@@ -223,7 +223,7 @@ interface TestBinding {
   // void passOptionalNullableEnumWithDefault(optional TestEnum? arg = null);
   void passOptionalNullableInterfaceWithDefault(optional Blob? arg = null);
   void passOptionalNullableUnionWithDefault(optional (HTMLElement or long)? arg = null);
-  void passOptionalNullableUnion2WithDefault(optional (DOMString or FormData)? data = null);
+  void passOptionalNullableUnion2WithDefault(optional (Event or DOMString)? data = null);
   void passOptionalAnyWithDefault(optional any arg = null);
 
   void passOptionalNullableBooleanWithNonNullDefault(optional boolean? arg = false);
@@ -240,5 +240,5 @@ interface TestBinding {
   void passOptionalNullableStringWithNonNullDefault(optional DOMString? arg = "");
   // void passOptionalNullableEnumWithNonNullDefault(optional TestEnum? arg = "foo");
   // void passOptionalNullableUnionWithNonNullDefault(optional (HTMLElement or long)? arg = 7);
-  // void passOptionalNullableUnion2WithNonNullDefault(optional (DOMString or FormData)? data = "foo");
+  // void passOptionalNullableUnion2WithNonNullDefault(optional (Event or DOMString)? data = "foo");
 };
