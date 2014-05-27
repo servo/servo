@@ -12,6 +12,7 @@ use dom::eventtarget::EventTarget;
 use dom::uievent::{UIEvent, UIEventMethods};
 use dom::window::Window;
 use servo_util::str::DOMString;
+use std::cell::Cell;
 
 #[deriving(Encodable)]
 pub struct MouseEvent {
@@ -25,7 +26,7 @@ pub struct MouseEvent {
     pub alt_key: bool,
     pub meta_key: bool,
     pub button: u16,
-    pub related_target: Option<JS<EventTarget>>
+    pub related_target: Cell<Option<JS<EventTarget>>>
 }
 
 impl MouseEventDerived for Event {
@@ -47,7 +48,7 @@ impl MouseEvent {
             alt_key: false,
             meta_key: false,
             button: 0,
-            related_target: None
+            related_target: Cell::new(None)
         }
     }
 
@@ -168,7 +169,7 @@ impl<'a> MouseEventMethods for JSRef<'a, MouseEvent> {
     }
 
     fn GetRelatedTarget(&self) -> Option<Temporary<EventTarget>> {
-        self.related_target.clone().map(|target| Temporary::new(target))
+        self.related_target.get().clone().map(|target| Temporary::new(target))
     }
 
     fn GetModifierState(&self, _keyArg: DOMString) -> bool {
