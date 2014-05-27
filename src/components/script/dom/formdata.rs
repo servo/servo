@@ -10,7 +10,6 @@ use dom::blob::Blob;
 use dom::htmlformelement::HTMLFormElement;
 use dom::window::Window;
 use servo_util::str::DOMString;
-
 use collections::hashmap::HashMap;
 
 #[deriving(Encodable)]
