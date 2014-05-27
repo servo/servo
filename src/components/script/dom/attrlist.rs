@@ -39,11 +39,11 @@ pub trait AttrListMethods {
 
 impl<'a> AttrListMethods for JSRef<'a, AttrList> {
     fn Length(&self) -> u32 {
-        self.owner.root().attrs.len() as u32
+        self.owner.root().attrs.borrow().len() as u32
     }
 
     fn Item(&self, index: u32) -> Option<Temporary<Attr>> {
-        self.owner.root().attrs.as_slice().get(index as uint).map(|x| Temporary::new(x.clone()))
+        self.owner.root().attrs.borrow().as_slice().get(index as uint).map(|x| Temporary::new(x.clone()))
     }
 
     fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Temporary<Attr>> {
