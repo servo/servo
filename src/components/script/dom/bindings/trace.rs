@@ -160,3 +160,10 @@ impl<S: Encoder<E>, E> Encodable<S, E> for Traceable<JSVal> {
         Ok(())
     }
 }
+
+/// for a field which contains DOMType
+impl<T: Reflectable+Encodable<S, E>, S: Encoder<E>, E> Encodable<S, E> for Cell<JS<T>> {
+    fn encode(&self, s: &mut S) -> Result<(), E> {
+        self.get().encode(s)
+    }
+}
