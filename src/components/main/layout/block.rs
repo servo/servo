@@ -12,7 +12,7 @@
 //!
 //! CB: Containing Block of the current flow.
 
-use layout::box_::{Box, ImageBox, ScannedTextBox};
+use layout::box_::{Fragment, ImageFragment, ScannedTextFragment};
 use layout::construct::FlowConstructor;
 use layout::context::LayoutContext;
 use layout::floats::{ClearBoth, ClearLeft, ClearRight, FloatKind, Floats, PlacementInfo};
@@ -41,7 +41,6 @@ use servo_util::geometry;
 use std::fmt;
 use std::mem;
 use std::num::Zero;
-use std::owned;
 use style::computed_values::{LPA_Auto, LPA_Length, LPA_Percentage, LPN_Length, LPN_None};
 use style::computed_values::{LPN_Percentage, LP_Length, LP_Percentage, display, float, overflow};
 use sync::Arc;
@@ -490,7 +489,7 @@ pub struct BlockFlow {
     pub base: BaseFlow,
 
     /// The associated box.
-    pub box_: Box,
+    pub box_: Fragment,
 
     /// TODO: is_root should be a bit field to conserve memory.
     /// Whether this block flow is the root flow.
@@ -504,14 +503,14 @@ pub struct BlockFlow {
     previous_float_width: Option<Au>,
 
     /// Additional floating flow members.
-    pub float: Option<owned::Box<FloatedBlockInfo>>
+    pub float: Option<Box<FloatedBlockInfo>>
 }
 
 impl BlockFlow {
     pub fn from_node(constructor: &mut FlowConstructor, node: &ThreadSafeLayoutNode) -> BlockFlow {
         BlockFlow {
             base: BaseFlow::new((*node).clone()),
-            box_: Box::new(constructor, node),
+            box_: Fragment::new(constructor, node),
             is_root: false,
             static_y_offset: Au::new(0),
             previous_float_width: None,
@@ -519,7 +518,7 @@ impl BlockFlow {
         }
     }
 
-    pub fn from_node_and_box(node: &ThreadSafeLayoutNode, box_: Box) -> BlockFlow {
+    pub fn from_node_and_box(node: &ThreadSafeLayoutNode, box_: Fragment) -> BlockFlow {
         BlockFlow {
             base: BaseFlow::new((*node).clone()),
             box_: box_,
@@ -536,7 +535,7 @@ impl BlockFlow {
                            -> BlockFlow {
         BlockFlow {
             base: BaseFlow::new((*node).clone()),
-            box_: Box::new(constructor, node),
+            box_: Fragment::new(constructor, node),
             is_root: false,
             static_y_offset: Au::new(0),
             previous_float_width: None,
@@ -602,7 +601,7 @@ impl BlockFlow {
     }
 
     /// Return this flow's box.
-    pub fn box_<'a>(&'a mut self) -> &'a mut Box {
+    pub fn box_<'a>(&'a mut self) -> &'a mut Fragment {
         &mut self.box_
     }
 
@@ -705,7 +704,7 @@ impl BlockFlow {
     /// image boxes.
     fn is_replaced_content(&self) -> bool {
         match self.box_.specific {
-            ScannedTextBox(_) | ImageBox(_) => true,
+            ScannedTextFragment(_) | ImageFragment(_) => true,
             _ => false,
         }
     }
@@ -1203,11 +1202,11 @@ impl BlockFlow {
             let available_height = containing_block_height - self.box_.border_padding.vertical();
             if self.is_replaced_content() {
                 // Calculate used value of height just like we do for inline replaced elements.
-                // TODO: Pass in the containing block height when Box's
+                // TODO: Pass in the containing block height when Fragment's
                 // assign-height can handle it correctly.
                 self.box_.assign_replaced_height_if_necessary();
                 // TODO: Right now, this content height value includes the
-                // margin because of erroneous height calculation in Box_.
+                // margin because of erroneous height calculation in box_.
                 // Check this when that has been fixed.
                 let height_used_val = self.box_.border_box.size.height;
                 solution = Some(HeightConstraintSolution::solve_vertical_constraints_abs_replaced(
@@ -1289,7 +1288,7 @@ impl BlockFlow {
         self.base.layers.push_back(new_layer)
     }
 
-    /// Return the top outer edge of the Hypothetical Box for an absolute flow.
+    /// Return the top outer edge of the Hypothetical Fragment for an absolute flow.
     ///
     /// This is wrt its parent flow box.
     ///
@@ -1404,7 +1403,7 @@ impl BlockFlow {
             display::table_cell | display::table_caption | display::inline_block => {
                 OtherFormattingContext
             }
-            _ if style.get_box().position == position::static_ && 
+            _ if style.get_box().position == position::static_ &&
                     style.get_box().overflow != overflow::visible => {
                 BlockFormattingContext
             }

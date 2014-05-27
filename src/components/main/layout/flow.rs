@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! Servo's experimental layout system builds a tree of `Flow` and `Box` objects and solves
+//! Servo's experimental layout system builds a tree of `Flow` and `Fragment` objects and solves
 //! layout constraints to obtain positions and display attributes of tree nodes. Positions are
 //! computed in several tree traversals driven by the fundamental data dependencies required by
 /// inline and block layout.
@@ -27,7 +27,7 @@
 
 use css::node_style::StyledNode;
 use layout::block::BlockFlow;
-use layout::box_::{Box, TableRowBox, TableCellBox};
+use layout::box_::{Fragment, TableRowFragment, TableCellFragment};
 use layout::context::LayoutContext;
 use layout::floats::Floats;
 use layout::flow_list::{FlowList, Link, Rawlink, FlowListIterator, MutFlowListIterator};
@@ -58,7 +58,6 @@ use std::cast;
 use std::fmt;
 use std::iter::Zip;
 use std::num::Zero;
-use std::owned;
 use std::sync::atomics::Relaxed;
 use std::slice::MutItems;
 use style::computed_values::{clear, position, text_align};
@@ -338,7 +337,7 @@ pub trait ImmutableFlowUtils {
     fn need_anonymous_flow(self, child: &Flow) -> bool;
 
     /// Generates missing child flow of this flow.
-    fn generate_missing_child_flow(self, node: &ThreadSafeLayoutNode) -> owned::Box<Flow:Share>;
+    fn generate_missing_child_flow(self, node: &ThreadSafeLayoutNode) -> Box<Flow:Share>;
 
     /// Returns true if this flow has no children.
     fn is_leaf(self) -> bool;
@@ -392,7 +391,7 @@ pub trait MutableFlowUtils {
 pub trait MutableOwnedFlowUtils {
     /// Adds a new flow as a child of this flow. Removes the flow from the given leaf set if
     /// it's present.
-    fn add_new_child(&mut self, new_child: owned::Box<Flow:Share>);
+    fn add_new_child(&mut self, new_child: Box<Flow:Share>);
 
     /// Finishes a flow. Once a flow is finished, no more child flows or boxes may be added to it.
     /// This will normally run the bubble-widths (minimum and preferred -- i.e. intrinsic -- width)
@@ -842,15 +841,15 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
     }
 
     /// Generates missing child flow of this flow.
-    fn generate_missing_child_flow(self, node: &ThreadSafeLayoutNode) -> owned::Box<Flow:Share> {
+    fn generate_missing_child_flow(self, node: &ThreadSafeLayoutNode) -> Box<Flow:Share> {
         match self.class() {
             TableFlowClass | TableRowGroupFlowClass => {
-                let box_ = Box::new_anonymous_table_box(node, TableRowBox);
-                box TableRowFlow::from_node_and_box(node, box_) as owned::Box<Flow:Share>
+                let box_ = Fragment::new_anonymous_table_box(node, TableRowFragment);
+                box TableRowFlow::from_node_and_box(node, box_) as Box<Flow:Share>
             },
             TableRowFlowClass => {
-                let box_ = Box::new_anonymous_table_box(node, TableCellBox);
-                box TableCellFlow::from_node_and_box(node, box_) as owned::Box<Flow:Share>
+                let box_ = Fragment::new_anonymous_table_box(node, TableCellFragment);
+                box TableCellFlow::from_node_and_box(node, box_) as Box<Flow:Share>
             },
             _ => {
                 fail!("no need to generate a missing child")
@@ -1052,9 +1051,9 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
     }
 }
 
-impl MutableOwnedFlowUtils for owned::Box<Flow:Share> {
+impl MutableOwnedFlowUtils for Box<Flow:Share> {
     /// Adds a new flow as a child of this flow. Fails if this flow is marked as a leaf.
-    fn add_new_child(&mut self, mut new_child: owned::Box<Flow:Share>) {
+    fn add_new_child(&mut self, mut new_child: Box<Flow:Share>) {
         {
             let kid_base = mut_base(new_child);
             kid_base.parallel.parent = parallel::mut_owned_flow_to_unsafe_flow(self);

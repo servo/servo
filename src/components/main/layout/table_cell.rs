@@ -4,7 +4,7 @@
 
 //! CSS table formatting contexts.
 
-use layout::box_::Box;
+use layout::box_::Fragment;
 use layout::block::{BlockFlow, MarginsMayNotCollapse, WidthAndMarginsComputer};
 use layout::context::LayoutContext;
 use layout::flow::{TableCellFlowClass, FlowClass, Flow};
@@ -22,17 +22,17 @@ pub struct TableCellFlow {
 }
 
 impl TableCellFlow {
-    pub fn from_node_and_box(node: &ThreadSafeLayoutNode, box_: Box) -> TableCellFlow {
+    pub fn from_node_and_box(node: &ThreadSafeLayoutNode, box_: Fragment) -> TableCellFlow {
         TableCellFlow {
             block_flow: BlockFlow::from_node_and_box(node, box_)
         }
     }
 
-    pub fn box_<'a>(&'a mut self) -> &'a Box {
+    pub fn box_<'a>(&'a mut self) -> &'a Fragment {
         &self.block_flow.box_
     }
 
-    pub fn mut_box<'a>(&'a mut self) -> &'a mut Box {
+    pub fn mut_box<'a>(&'a mut self) -> &'a mut Fragment {
         &mut self.block_flow.box_
     }
 

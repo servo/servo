@@ -4,9 +4,9 @@
 
 //! Text layout.
 
-use layout::box_::{Box, ScannedTextBox, ScannedTextBoxInfo, UnscannedTextBox};
+use layout::box_::{Fragment, ScannedTextFragment, ScannedTextFragmentInfo, UnscannedTextFragment};
 use layout::flow::Flow;
-use layout::inline::InlineBoxes;
+use layout::inline::InlineFragments;
 
 use gfx::font::{FontMetrics, FontStyle};
 use gfx::font_context::FontContext;
@@ -25,12 +25,12 @@ struct NewLinePositions {
 }
 
 // A helper function.
-fn can_coalesce_text_nodes(boxes: &[Box], left_i: uint, right_i: uint) -> bool {
+fn can_coalesce_text_nodes(boxes: &[Fragment], left_i: uint, right_i: uint) -> bool {
     assert!(left_i != right_i);
     boxes[left_i].can_merge_with_box(&boxes[right_i])
 }
 
-/// A stack-allocated object for scanning an inline flow into `TextRun`-containing `TextBox`es.
+/// A stack-allocated object for scanning an inline flow into `TextRun`-containing `TextFragment`es.
 pub struct TextRunScanner {
     pub clump: Range<CharIndex>,
 }
@@ -48,10 +48,10 @@ impl TextRunScanner {
             debug!("TextRunScanner: scanning {:u} boxes for text runs...", inline.boxes.len());
         }
 
-        let InlineBoxes {
+        let InlineFragments {
             boxes: old_boxes,
             map: mut map
-        } = mem::replace(&mut flow.as_inline().boxes, InlineBoxes::new());
+        } = mem::replace(&mut flow.as_inline().boxes, InlineFragments::new());
 
         let mut last_whitespace = true;
         let mut new_boxes = Vec::new();
@@ -79,7 +79,7 @@ impl TextRunScanner {
 
         // Swap out the old and new box list of the flow.
         map.fixup(old_boxes.as_slice(), new_boxes.as_slice());
-        flow.as_inline().boxes = InlineBoxes {
+        flow.as_inline().boxes = InlineFragments {
             boxes: new_boxes,
             map: map,
         }
@@ -96,8 +96,8 @@ impl TextRunScanner {
     /// with some smaller stub.
     pub fn flush_clump_to_list(&mut self,
                                font_context: &mut FontContext,
-                               in_boxes: &[Box],
-                               out_boxes: &mut Vec<Box>,
+                               in_boxes: &[Fragment],
+                               out_boxes: &mut Vec<Fragment>,
                                last_whitespace: bool)
                                -> bool {
         assert!(self.clump.length() > CharIndex(0));
@@ -106,7 +106,7 @@ impl TextRunScanner {
         let is_singleton = self.clump.length() == CharIndex(1);
 
         let is_text_clump = match in_boxes[self.clump.begin().to_uint()].specific {
-            UnscannedTextBox(_) => true,
+            UnscannedTextFragment(_) => true,
             _ => false,
         };
 
@@ -124,7 +124,7 @@ impl TextRunScanner {
             (true, true)  => {
                 let old_box = &in_boxes[self.clump.begin().to_uint()];
                 let text = match old_box.specific {
-                    UnscannedTextBox(ref text_box_info) => &text_box_info.text,
+                    UnscannedTextFragment(ref text_box_info) => &text_box_info.text,
                     _ => fail!("Expected an unscanned text box!"),
                 };
 
@@ -159,9 +159,9 @@ impl TextRunScanner {
                            *text);
                     let range = Range::new(CharIndex(0), run.char_len());
                     let new_metrics = run.metrics_for_range(&range);
-                    let new_text_box_info = ScannedTextBoxInfo::new(Arc::new(run), range);
+                    let new_text_box_info = ScannedTextFragmentInfo::new(Arc::new(run), range);
                     let mut new_box = old_box.transform(new_metrics.bounding_box.size,
-                                                        ScannedTextBox(new_text_box_info));
+                                                        ScannedTextFragment(new_text_box_info));
                     new_box.new_line_pos = new_line_pos;
                     out_boxes.push(new_box)
                 }
@@ -191,7 +191,7 @@ impl TextRunScanner {
                     // be compressed correctly with respect to the text run.
                     let idx = CharIndex(i as int) + self.clump.begin();
                     let in_box = match in_boxes[idx.to_uint()].specific {
-                        UnscannedTextBox(ref text_box_info) => &text_box_info.text,
+                        UnscannedTextFragment(ref text_box_info) => &text_box_info.text,
                         _ => fail!("Expected an unscanned text box!"),
                     };
 
@@ -243,10 +243,10 @@ impl TextRunScanner {
                         continue
                     }
 
-                    let new_text_box_info = ScannedTextBoxInfo::new(run.get_ref().clone(), *range);
+                    let new_text_box_info = ScannedTextFragmentInfo::new(run.get_ref().clone(), *range);
                     let new_metrics = new_text_box_info.run.metrics_for_range(range);
                     let mut new_box = in_boxes[i.to_uint()].transform(new_metrics.bounding_box.size,
-                                                            ScannedTextBox(new_text_box_info));
+                                                            ScannedTextFragment(new_text_box_info));
                     new_box.new_line_pos = new_line_positions.get(logical_offset.to_uint()).new_line_pos.clone();
                     out_boxes.push(new_box)
                 }

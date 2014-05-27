@@ -4,7 +4,7 @@
 
 //! CSS table formatting contexts.
 
-use layout::box_::Box;
+use layout::box_::Fragment;
 use layout::block::{BlockFlow, MarginsMayNotCollapse, WidthAndMarginsComputer};
 use layout::block::{WidthConstraintInput, WidthConstraintSolution};
 use layout::construct::FlowConstructor;
@@ -37,7 +37,7 @@ pub struct TableWrapperFlow {
 
 impl TableWrapperFlow {
     pub fn from_node_and_box(node: &ThreadSafeLayoutNode,
-                             box_: Box)
+                             box_: Fragment)
                              -> TableWrapperFlow {
         let mut block_flow = BlockFlow::from_node_and_box(node, box_);
         let table_layout = if block_flow.box_().style().get_table().table_layout ==

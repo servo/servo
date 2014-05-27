@@ -22,15 +22,15 @@
 
 use css::node_style::StyledNode;
 use layout::block::BlockFlow;
-use layout::box_::{Box, GenericBox, IframeBox, IframeBoxInfo, ImageBox, ImageBoxInfo};
-use layout::box_::{SpecificBoxInfo, TableBox, TableCellBox, TableColumnBox, TableColumnBoxInfo};
-use layout::box_::{TableRowBox, TableWrapperBox, UnscannedTextBox, UnscannedTextBoxInfo};
+use layout::box_::{Fragment, GenericFragment, IframeFragment, IframeFragmentInfo, ImageFragment, ImageFragmentInfo};
+use layout::box_::{SpecificFragmentInfo, TableFragment, TableCellFragment, TableColumnFragment, TableColumnFragmentInfo};
+use layout::box_::{TableRowFragment, TableWrapperFragment, UnscannedTextFragment, UnscannedTextFragmentInfo};
 use layout::context::LayoutContext;
 use layout::floats::FloatKind;
 use layout::flow::{Flow, ImmutableFlowUtils, MutableOwnedFlowUtils};
 use layout::flow::{Descendants, AbsDescendants};
 use layout::flow_list::{Rawlink};
-use layout::inline::{FragmentIndex, InlineBoxes, InlineFlow};
+use layout::inline::{FragmentIndex, InlineFragments, InlineFlow};
 use layout::table_wrapper::TableWrapperFlow;
 use layout::table::TableFlow;
 use layout::table_caption::TableCaptionFlow;
@@ -60,7 +60,6 @@ use servo_util::range::Range;
 use servo_util::str::is_whitespace;
 use servo_util::url::{is_image_data, parse_url};
 use std::mem;
-use std::owned;
 use style::ComputedValues;
 use style::computed_values::{display, position, float, white_space};
 use sync::Arc;
@@ -75,7 +74,7 @@ pub enum ConstructionResult {
     /// This node contributed a flow at the proper position in the tree.
     /// Nothing more needs to be done for this node. It has bubbled up fixed
     /// and absolute descendant flows that have a CB above it.
-    FlowConstructionResult(owned::Box<Flow:Share>, AbsDescendants),
+    FlowConstructionResult(Box<Flow:Share>, AbsDescendants),
 
     /// This node contributed some object or objects that will be needed to construct a proper flow
     /// later up the tree, but these objects have not yet found their home.
@@ -97,34 +96,34 @@ impl ConstructionResult {
 /// attached to.
 pub enum ConstructionItem {
     /// Inline boxes and associated {ib} splits that have not yet found flows.
-    InlineBoxesConstructionItem(InlineBoxesConstructionResult),
+    InlineFragmentsConstructionItem(InlineFragmentsConstructionResult),
     /// Potentially ignorable whitespace.
     WhitespaceConstructionItem(OpaqueNode, Arc<ComputedValues>),
-    /// TableColumn Box
-    TableColumnBoxConstructionItem(Box),
+    /// TableColumn Fragment
+    TableColumnFragmentConstructionItem(Fragment),
 }
 
 impl ConstructionItem {
     fn destroy(&mut self) {
         match *self {
-            InlineBoxesConstructionItem(ref mut result) => {
+            InlineFragmentsConstructionItem(ref mut result) => {
                 for split in result.splits.mut_iter() {
                     split.destroy()
                 }
             }
             WhitespaceConstructionItem(..) => {}
-            TableColumnBoxConstructionItem(_) => {}
+            TableColumnFragmentConstructionItem(_) => {}
         }
     }
 }
 
 /// Represents inline boxes and {ib} splits that are bubbling up from an inline.
-pub struct InlineBoxesConstructionResult {
+pub struct InlineFragmentsConstructionResult {
     /// Any {ib} splits that we're bubbling up.
     pub splits: Vec<InlineBlockSplit>,
 
     /// Any boxes that succeed the {ib} splits.
-    pub boxes: InlineBoxes,
+    pub boxes: InlineFragments,
 
     /// Any absolute descendants that we're bubbling up.
     pub abs_descendants: AbsDescendants,
@@ -141,7 +140,7 @@ pub struct InlineBoxesConstructionResult {
 ///
 /// The resulting `ConstructionItem` for the outer `span` will be:
 ///
-///     InlineBoxesConstructionItem(Some(~[
+///     InlineFragmentsConstructionItem(Some(~[
 ///         InlineBlockSplit {
 ///             predecessor_boxes: ~[
 ///                 A
@@ -154,10 +153,10 @@ pub struct InlineBoxesConstructionResult {
 ///         ])
 pub struct InlineBlockSplit {
     /// The inline boxes that precede the flow.
-    pub predecessors: InlineBoxes,
+    pub predecessors: InlineFragments,
 
     /// The flow that caused this {ib} split.
-    pub flow: owned::Box<Flow:Share>,
+    pub flow: Box<Flow:Share>,
 }
 
 impl InlineBlockSplit {
@@ -167,34 +166,34 @@ impl InlineBlockSplit {
 }
 
 /// Holds inline boxes that we're gathering for children of an inline node.
-struct InlineBoxAccumulator {
+struct InlineFragmentsAccumulator {
     /// The list of boxes.
-    boxes: InlineBoxes,
+    boxes: InlineFragments,
 
     /// Whether we've created a range to enclose all the boxes. This will be true if the outer node
     /// is an inline and false otherwise.
     has_enclosing_range: bool,
 }
 
-impl InlineBoxAccumulator {
-    fn new() -> InlineBoxAccumulator {
-        InlineBoxAccumulator {
-            boxes: InlineBoxes::new(),
+impl InlineFragmentsAccumulator {
+    fn new() -> InlineFragmentsAccumulator {
+        InlineFragmentsAccumulator {
+            boxes: InlineFragments::new(),
             has_enclosing_range: false,
         }
     }
 
-    fn from_inline_node(node: &ThreadSafeLayoutNode) -> InlineBoxAccumulator {
-        let mut boxes = InlineBoxes::new();
+    fn from_inline_node(node: &ThreadSafeLayoutNode) -> InlineFragmentsAccumulator {
+        let mut boxes = InlineFragments::new();
         boxes.map.push(node.style().clone(), Range::empty());
-        InlineBoxAccumulator {
+        InlineFragmentsAccumulator {
             boxes: boxes,
             has_enclosing_range: true,
         }
     }
 
-    fn finish(self) -> InlineBoxes {
-        let InlineBoxAccumulator {
+    fn finish(self) -> InlineFragments {
+        let InlineFragmentsAccumulator {
             boxes: mut boxes,
             has_enclosing_range
         } = self;
@@ -223,12 +222,12 @@ pub struct FlowConstructor<'a> {
     ///
     /// FIXME(pcwalton): This is pretty bogus and is basically just a workaround for libgreen
     /// having slow TLS.
-    pub font_context: Option<owned::Box<FontContext>>,
+    pub font_context: Option<Box<FontContext>>,
 }
 
 impl<'a> FlowConstructor<'a> {
     /// Creates a new flow constructor.
-    pub fn new(layout_context: &'a mut LayoutContext, font_context: Option<owned::Box<FontContext>>)
+    pub fn new(layout_context: &'a mut LayoutContext, font_context: Option<Box<FontContext>>)
                -> FlowConstructor<'a> {
         FlowConstructor {
             layout_context: layout_context,
@@ -247,7 +246,7 @@ impl<'a> FlowConstructor<'a> {
     }
 
     /// Destroys this flow constructor and retrieves the font context.
-    pub fn unwrap_font_context(self) -> Option<owned::Box<FontContext>> {
+    pub fn unwrap_font_context(self) -> Option<Box<FontContext>> {
         let FlowConstructor {
             font_context,
             ..
@@ -255,43 +254,43 @@ impl<'a> FlowConstructor<'a> {
         font_context
     }
 
-    /// Builds the `ImageBoxInfo` for the given image. This is out of line to guide inlining.
+    /// Builds the `ImageFragmentInfo` for the given image. This is out of line to guide inlining.
     fn build_box_info_for_image(&mut self, node: &ThreadSafeLayoutNode, url: Option<Url>)
-                                -> SpecificBoxInfo {
+                                -> SpecificFragmentInfo {
         match url {
-            None => GenericBox,
+            None => GenericFragment,
             Some(url) => {
                 // FIXME(pcwalton): The fact that image boxes store the cache within them makes
                 // little sense to me.
-                ImageBox(ImageBoxInfo::new(node, url, self.layout_context.image_cache.clone()))
+                ImageFragment(ImageFragmentInfo::new(node, url, self.layout_context.image_cache.clone()))
             }
         }
     }
 
-    /// Builds specific `Box` info for the given node.
+    /// Builds specific `Fragment` info for the given node.
     pub fn build_specific_box_info_for_node(&mut self, node: &ThreadSafeLayoutNode)
-                                            -> SpecificBoxInfo {
+                                            -> SpecificFragmentInfo {
         match node.type_id() {
             Some(ElementNodeTypeId(HTMLImageElementTypeId)) => {
                 self.build_box_info_for_image(node, node.image_url())
             }
             Some(ElementNodeTypeId(HTMLIFrameElementTypeId)) => {
-                IframeBox(IframeBoxInfo::new(node))
+                IframeFragment(IframeFragmentInfo::new(node))
             }
             Some(ElementNodeTypeId(HTMLObjectElementTypeId)) => {
                 let data = node.get_object_data(&self.layout_context.url);
                 self.build_box_info_for_image(node, data)
             }
-            Some(ElementNodeTypeId(HTMLTableElementTypeId)) => TableWrapperBox,
+            Some(ElementNodeTypeId(HTMLTableElementTypeId)) => TableWrapperFragment,
             Some(ElementNodeTypeId(HTMLTableColElementTypeId)) => {
-                TableColumnBox(TableColumnBoxInfo::new(node))
+                TableColumnFragment(TableColumnFragmentInfo::new(node))
             }
             Some(ElementNodeTypeId(HTMLTableDataCellElementTypeId)) |
-            Some(ElementNodeTypeId(HTMLTableHeaderCellElementTypeId)) => TableCellBox,
+            Some(ElementNodeTypeId(HTMLTableHeaderCellElementTypeId)) => TableCellFragment,
             Some(ElementNodeTypeId(HTMLTableRowElementTypeId)) |
-            Some(ElementNodeTypeId(HTMLTableSectionElementTypeId)) => TableRowBox,
-            None | Some(TextNodeTypeId) => UnscannedTextBox(UnscannedTextBoxInfo::new(node)),
-            _ => GenericBox,
+            Some(ElementNodeTypeId(HTMLTableSectionElementTypeId)) => TableRowFragment,
+            None | Some(TextNodeTypeId) => UnscannedTextFragment(UnscannedTextFragmentInfo::new(node)),
+            _ => GenericFragment,
         }
     }
 
@@ -302,9 +301,9 @@ impl<'a> FlowConstructor<'a> {
     /// otherwise.
     #[inline(always)]
     fn flush_inline_boxes_to_flow_or_list(&mut self,
-                                          box_accumulator: InlineBoxAccumulator,
-                                          flow: &mut owned::Box<Flow:Share>,
-                                          flow_list: &mut Vec<owned::Box<Flow:Share>>,
+                                          box_accumulator: InlineFragmentsAccumulator,
+                                          flow: &mut Box<Flow:Share>,
+                                          flow_list: &mut Vec<Box<Flow:Share>>,
                                           whitespace_stripping: WhitespaceStrippingMode,
                                           node: &ThreadSafeLayoutNode) {
         let mut boxes = box_accumulator.finish();
@@ -330,7 +329,7 @@ impl<'a> FlowConstructor<'a> {
 
         let mut inline_flow = box InlineFlow::from_boxes((*node).clone(), boxes);
         inline_flow.compute_minimum_ascent_and_descent(self.font_context(), &**node.style());
-        let mut inline_flow = inline_flow as owned::Box<Flow:Share>;
+        let mut inline_flow = inline_flow as Box<Flow:Share>;
         TextRunScanner::new().scan_for_runs(self.font_context(), inline_flow);
         inline_flow.finish(self.layout_context);
 
@@ -342,13 +341,13 @@ impl<'a> FlowConstructor<'a> {
     }
 
     fn build_block_flow_using_children_construction_result(&mut self,
-                                                           flow: &mut owned::Box<Flow:Share>,
+                                                           flow: &mut Box<Flow:Share>,
                                                            consecutive_siblings:
-                                                                &mut Vec<owned::Box<Flow:Share>>,
+                                                                &mut Vec<Box<Flow:Share>>,
                                                            node: &ThreadSafeLayoutNode,
                                                            kid: ThreadSafeLayoutNode,
                                                            inline_box_accumulator:
-                                                                &mut InlineBoxAccumulator,
+                                                                &mut InlineFragmentsAccumulator,
                                                            abs_descendants: &mut Descendants,
                                                            first_box: &mut bool) {
         match kid.swap_out_construction_result() {
@@ -377,7 +376,7 @@ impl<'a> FlowConstructor<'a> {
                     debug!("flushing {} inline box(es) to flow A",
                            inline_box_accumulator.boxes.len());
                     self.flush_inline_boxes_to_flow_or_list(
-                        mem::replace(inline_box_accumulator, InlineBoxAccumulator::new()),
+                        mem::replace(inline_box_accumulator, InlineFragmentsAccumulator::new()),
                         flow,
                         consecutive_siblings,
                         whitespace_stripping,
@@ -392,8 +391,8 @@ impl<'a> FlowConstructor<'a> {
                 }
                 abs_descendants.push_descendants(kid_abs_descendants);
             }
-            ConstructionItemConstructionResult(InlineBoxesConstructionItem(
-                    InlineBoxesConstructionResult {
+            ConstructionItemConstructionResult(InlineFragmentsConstructionItem(
+                    InlineFragmentsConstructionResult {
                         splits: splits,
                         boxes: successor_boxes,
                         abs_descendants: kid_abs_descendants,
@@ -422,7 +421,7 @@ impl<'a> FlowConstructor<'a> {
                            inline_box_accumulator.boxes.len());
                     self.flush_inline_boxes_to_flow_or_list(
                             mem::replace(inline_box_accumulator,
-                                         InlineBoxAccumulator::new()),
+                                         InlineFragmentsAccumulator::new()),
                             flow,
                             consecutive_siblings,
                             whitespace_stripping,
@@ -444,7 +443,7 @@ impl<'a> FlowConstructor<'a> {
             ConstructionItemConstructionResult(WhitespaceConstructionItem(..)) => {
                 // Nothing to do here.
             }
-            ConstructionItemConstructionResult(TableColumnBoxConstructionItem(_)) => {
+            ConstructionItemConstructionResult(TableColumnFragmentConstructionItem(_)) => {
                 // TODO: Implement anonymous table objects for missing parents
                 // CSS 2.1 § 17.2.1, step 3-2
             }
@@ -459,11 +458,11 @@ impl<'a> FlowConstructor<'a> {
     /// Also, deal with the absolute and fixed descendants bubbled up by
     /// children nodes.
     fn build_flow_using_children(&mut self,
-                                 mut flow: owned::Box<Flow:Share>,
+                                 mut flow: Box<Flow:Share>,
                                  node: &ThreadSafeLayoutNode)
                                  -> ConstructionResult {
         // Gather up boxes for the inline flows we might need to create.
-        let mut inline_box_accumulator = InlineBoxAccumulator::new();
+        let mut inline_box_accumulator = InlineFragmentsAccumulator::new();
         let mut consecutive_siblings = vec!();
         let mut first_box = true;
 
@@ -517,7 +516,7 @@ impl<'a> FlowConstructor<'a> {
     /// other `BlockFlow`s or `InlineFlow`s underneath it, depending on whether {ib} splits needed
     /// to happen.
     fn build_flow_for_block(&mut self, node: &ThreadSafeLayoutNode) -> ConstructionResult {
-        let flow = box BlockFlow::from_node(self, node) as owned::Box<Flow:Share>;
+        let flow = box BlockFlow::from_node(self, node) as Box<Flow:Share>;
         self.build_flow_using_children(flow, node)
     }
 
@@ -525,17 +524,17 @@ impl<'a> FlowConstructor<'a> {
     /// a `BlockFlow` underneath it.
     fn build_flow_for_floated_block(&mut self, node: &ThreadSafeLayoutNode, float_kind: FloatKind)
                                     -> ConstructionResult {
-        let flow = box BlockFlow::float_from_node(self, node, float_kind) as owned::Box<Flow:Share>;
+        let flow = box BlockFlow::float_from_node(self, node, float_kind) as Box<Flow:Share>;
         self.build_flow_using_children(flow, node)
     }
 
     /// Concatenates the boxes of kids, adding in our own borders/padding/margins if necessary.
-    /// Returns the `InlineBoxesConstructionResult`, if any. There will be no
-    /// `InlineBoxesConstructionResult` if this node consisted entirely of ignorable whitespace.
+    /// Returns the `InlineFragmentsConstructionResult`, if any. There will be no
+    /// `InlineFragmentsConstructionResult` if this node consisted entirely of ignorable whitespace.
     fn build_boxes_for_nonreplaced_inline_content(&mut self, node: &ThreadSafeLayoutNode)
                                                   -> ConstructionResult {
         let mut opt_inline_block_splits: Vec<InlineBlockSplit> = Vec::new();
-        let mut box_accumulator = InlineBoxAccumulator::from_inline_node(node);
+        let mut box_accumulator = InlineFragmentsAccumulator::from_inline_node(node);
         let mut abs_descendants = Descendants::new();
 
         // Concatenate all the boxes of our kids, creating {ib} splits as necessary.
@@ -551,14 +550,14 @@ impl<'a> FlowConstructor<'a> {
                     let split = InlineBlockSplit {
                         predecessors:
                             mem::replace(&mut box_accumulator,
-                                         InlineBoxAccumulator::from_inline_node(node)).finish(),
+                                         InlineFragmentsAccumulator::from_inline_node(node)).finish(),
                         flow: flow,
                     };
                     opt_inline_block_splits.push(split);
                     abs_descendants.push_descendants(kid_abs_descendants);
                 }
-                ConstructionItemConstructionResult(InlineBoxesConstructionItem(
-                        InlineBoxesConstructionResult {
+                ConstructionItemConstructionResult(InlineFragmentsConstructionItem(
+                        InlineFragmentsConstructionResult {
                             splits: splits,
                             boxes: successors,
                             abs_descendants: kid_abs_descendants,
@@ -575,7 +574,7 @@ impl<'a> FlowConstructor<'a> {
                         let split = InlineBlockSplit {
                             predecessors:
                                 mem::replace(&mut box_accumulator,
-                                             InlineBoxAccumulator::from_inline_node(node))
+                                             InlineFragmentsAccumulator::from_inline_node(node))
                                     .finish(),
                             flow: kid_flow,
                         };
@@ -590,13 +589,13 @@ impl<'a> FlowConstructor<'a> {
                                                                               whitespace_style))
                         => {
                     // Instantiate the whitespace box.
-                    let box_info = UnscannedTextBox(UnscannedTextBoxInfo::from_text(" ".to_owned()));
-                    let fragment = Box::from_opaque_node_and_style(whitespace_node,
+                    let box_info = UnscannedTextFragment(UnscannedTextFragmentInfo::from_text(" ".to_owned()));
+                    let fragment = Fragment::from_opaque_node_and_style(whitespace_node,
                                                                    whitespace_style.clone(),
                                                                    box_info);
                     box_accumulator.boxes.push(fragment, whitespace_style)
                 }
-                ConstructionItemConstructionResult(TableColumnBoxConstructionItem(_)) => {
+                ConstructionItemConstructionResult(TableColumnFragmentConstructionItem(_)) => {
                     // TODO: Implement anonymous table objects for missing parents
                     // CSS 2.1 § 17.2.1, step 3-2
                 }
@@ -606,7 +605,7 @@ impl<'a> FlowConstructor<'a> {
         // Finally, make a new construction result.
         if opt_inline_block_splits.len() > 0 || box_accumulator.boxes.len() > 0
                 || abs_descendants.len() > 0 {
-            let construction_item = InlineBoxesConstructionItem(InlineBoxesConstructionResult {
+            let construction_item = InlineFragmentsConstructionItem(InlineFragmentsConstructionResult {
                 splits: opt_inline_block_splits,
                 boxes: box_accumulator.finish(),
                 abs_descendants: abs_descendants,
@@ -617,8 +616,8 @@ impl<'a> FlowConstructor<'a> {
         }
     }
 
-    /// Creates an `InlineBoxesConstructionResult` for replaced content. Replaced content doesn't
-    /// render its children, so this just nukes a child's boxes and creates a `Box`.
+    /// Creates an `InlineFragmentsConstructionResult` for replaced content. Replaced content doesn't
+    /// render its children, so this just nukes a child's boxes and creates a `Fragment`.
     fn build_boxes_for_replaced_inline_content(&mut self, node: &ThreadSafeLayoutNode)
                                                -> ConstructionResult {
         for kid in node.children() {
@@ -635,10 +634,10 @@ impl<'a> FlowConstructor<'a> {
                 node.style().clone()))
         }
 
-        let mut boxes = InlineBoxes::new();
-        boxes.push(Box::new(self, node), node.style().clone());
+        let mut boxes = InlineFragments::new();
+        boxes.push(Fragment::new(self, node), node.style().clone());
 
-        let construction_item = InlineBoxesConstructionItem(InlineBoxesConstructionResult {
+        let construction_item = InlineFragmentsConstructionItem(InlineFragmentsConstructionResult {
             splits: Vec::new(),
             boxes: boxes,
             abs_descendants: Descendants::new(),
@@ -647,7 +646,7 @@ impl<'a> FlowConstructor<'a> {
     }
 
     /// Builds one or more boxes for a node with `display: inline`. This yields an
-    /// `InlineBoxesConstructionResult`.
+    /// `InlineFragmentsConstructionResult`.
     fn build_boxes_for_inline(&mut self, node: &ThreadSafeLayoutNode) -> ConstructionResult {
         // Is this node replaced content?
         if !node.is_replaced_content() {
@@ -661,7 +660,7 @@ impl<'a> FlowConstructor<'a> {
 
     /// TableCaptionFlow is populated underneath TableWrapperFlow
     fn place_table_caption_under_table_wrapper(&mut self,
-                                               table_wrapper_flow: &mut owned::Box<Flow:Share>,
+                                               table_wrapper_flow: &mut Box<Flow:Share>,
                                                node: &ThreadSafeLayoutNode) {
         for kid in node.children() {
             match kid.swap_out_construction_result() {
@@ -678,8 +677,8 @@ impl<'a> FlowConstructor<'a> {
     /// Generates an anonymous table flow according to CSS 2.1 § 17.2.1, step 2.
     /// If necessary, generate recursively another anonymous table flow.
     fn generate_anonymous_missing_child(&mut self,
-                                        child_flows: Vec<owned::Box<Flow:Share>>,
-                                        flow: &mut owned::Box<Flow:Share>,
+                                        child_flows: Vec<Box<Flow:Share>>,
+                                        flow: &mut Box<Flow:Share>,
                                         node: &ThreadSafeLayoutNode) {
         let mut anonymous_flow = flow.generate_missing_child_flow(node);
         let mut consecutive_siblings = vec!();
@@ -705,11 +704,11 @@ impl<'a> FlowConstructor<'a> {
     /// Builds a flow for a node with `display: table`. This yields a `TableWrapperFlow` with possibly
     /// other `TableCaptionFlow`s or `TableFlow`s underneath it.
     fn build_flow_for_table_wrapper(&mut self, node: &ThreadSafeLayoutNode) -> ConstructionResult {
-        let box_ = Box::new_from_specific_info(node, TableWrapperBox);
-        let mut wrapper_flow = box TableWrapperFlow::from_node_and_box(node, box_) as owned::Box<Flow:Share>;
+        let box_ = Fragment::new_from_specific_info(node, TableWrapperFragment);
+        let mut wrapper_flow = box TableWrapperFlow::from_node_and_box(node, box_) as Box<Flow:Share>;
 
-        let table_box_ = Box::new_from_specific_info(node, TableBox);
-        let table_flow = box TableFlow::from_node_and_box(node, table_box_) as owned::Box<Flow:Share>;
+        let table_box_ = Fragment::new_from_specific_info(node, TableFragment);
+        let table_flow = box TableFlow::from_node_and_box(node, table_box_) as Box<Flow:Share>;
 
         // We first populate the TableFlow with other flows than TableCaptionFlow.
         // We then populate the TableWrapperFlow with TableCaptionFlow, and attach
@@ -755,31 +754,31 @@ impl<'a> FlowConstructor<'a> {
     /// Builds a flow for a node with `display: table-caption`. This yields a `TableCaptionFlow`
     /// with possibly other `BlockFlow`s or `InlineFlow`s underneath it.
     fn build_flow_for_table_caption(&mut self, node: &ThreadSafeLayoutNode) -> ConstructionResult {
-        let flow = box TableCaptionFlow::from_node(self, node) as owned::Box<Flow:Share>;
+        let flow = box TableCaptionFlow::from_node(self, node) as Box<Flow:Share>;
         self.build_flow_using_children(flow, node)
     }
 
     /// Builds a flow for a node with `display: table-row-group`. This yields a `TableRowGroupFlow`
     /// with possibly other `TableRowFlow`s underneath it.
     fn build_flow_for_table_rowgroup(&mut self, node: &ThreadSafeLayoutNode) -> ConstructionResult {
-        let box_ = Box::new_from_specific_info(node, TableRowBox);
-        let flow = box TableRowGroupFlow::from_node_and_box(node, box_) as owned::Box<Flow:Share>;
+        let box_ = Fragment::new_from_specific_info(node, TableRowFragment);
+        let flow = box TableRowGroupFlow::from_node_and_box(node, box_) as Box<Flow:Share>;
         self.build_flow_using_children(flow, node)
     }
 
     /// Builds a flow for a node with `display: table-row`. This yields a `TableRowFlow` with
     /// possibly other `TableCellFlow`s underneath it.
     fn build_flow_for_table_row(&mut self, node: &ThreadSafeLayoutNode) -> ConstructionResult {
-        let box_ = Box::new_from_specific_info(node, TableRowBox);
-        let flow = box TableRowFlow::from_node_and_box(node, box_) as owned::Box<Flow:Share>;
+        let box_ = Fragment::new_from_specific_info(node, TableRowFragment);
+        let flow = box TableRowFlow::from_node_and_box(node, box_) as Box<Flow:Share>;
         self.build_flow_using_children(flow, node)
     }
 
     /// Builds a flow for a node with `display: table-cell`. This yields a `TableCellFlow` with
     /// possibly other `BlockFlow`s or `InlineFlow`s underneath it.
     fn build_flow_for_table_cell(&mut self, node: &ThreadSafeLayoutNode) -> ConstructionResult {
-        let box_ = Box::new_from_specific_info(node, TableCellBox);
-        let flow = box TableCellFlow::from_node_and_box(node, box_) as owned::Box<Flow:Share>;
+        let box_ = Fragment::new_from_specific_info(node, TableCellFragment);
+        let flow = box TableCellFlow::from_node_and_box(node, box_) as Box<Flow:Share>;
         self.build_flow_using_children(flow, node)
     }
 
@@ -790,9 +789,9 @@ impl<'a> FlowConstructor<'a> {
             kid.set_flow_construction_result(NoConstructionResult)
         }
 
-        let specific = TableColumnBox(TableColumnBoxInfo::new(node));
-        let construction_item = TableColumnBoxConstructionItem(
-            Box::new_from_specific_info(node, specific)
+        let specific = TableColumnFragment(TableColumnFragmentInfo::new(node));
+        let construction_item = TableColumnFragmentConstructionItem(
+            Fragment::new_from_specific_info(node, specific)
         );
         ConstructionItemConstructionResult(construction_item)
     }
@@ -800,26 +799,25 @@ impl<'a> FlowConstructor<'a> {
     /// Builds a flow for a node with `display: table-column-group`.
     /// This yields a `TableColGroupFlow`.
     fn build_flow_for_table_colgroup(&mut self, node: &ThreadSafeLayoutNode) -> ConstructionResult {
-        let box_ = Box::new_from_specific_info(node,
-                                               TableColumnBox(TableColumnBoxInfo::new(node)));
+        let box_ = Fragment::new_from_specific_info(node,
+                                               TableColumnFragment(TableColumnFragmentInfo::new(node)));
         let mut col_boxes = vec!();
         for kid in node.children() {
             // CSS 2.1 § 17.2.1. Treat all non-column child boxes of `table-column-group`
             // as `display: none`.
             match kid.swap_out_construction_result() {
-                ConstructionItemConstructionResult(TableColumnBoxConstructionItem(box_)) => {
+                ConstructionItemConstructionResult(TableColumnFragmentConstructionItem(box_)) => {
                     col_boxes.push(box_);
                 }
                 _ => {}
             }
         }
         if col_boxes.is_empty() {
-            debug!("add TableColumnBox for empty colgroup");
-            let specific = TableColumnBox(TableColumnBoxInfo::new(node));
-            col_boxes.push( Box::new_from_specific_info(node, specific) );
+            debug!("add TableColumnFragment for empty colgroup");
+            let specific = TableColumnFragment(TableColumnFragmentInfo::new(node));
+            col_boxes.push(Fragment::new_from_specific_info(node, specific));
         }
-        let mut flow = box TableColGroupFlow::from_node_and_boxes(node, box_, col_boxes) as
-            owned::Box<Flow:Share>;
+        let mut flow = box TableColGroupFlow::from_node_and_boxes(node, box_, col_boxes) as Box<Flow:Share>;
         flow.finish(self.layout_context);
 
         FlowConstructionResult(flow, Descendants::new())
@@ -1087,15 +1085,15 @@ impl<'ln> ObjectElement for ThreadSafeLayoutNode<'ln> {
 }
 
 /// Strips ignorable whitespace from the start of a list of boxes.
-fn strip_ignorable_whitespace_from_start(boxes: &mut InlineBoxes) {
+fn strip_ignorable_whitespace_from_start(boxes: &mut InlineFragments) {
     if boxes.len() == 0 {
         return
     }
 
-    let InlineBoxes {
+    let InlineFragments {
         boxes: old_boxes,
         map: mut map
-    } = mem::replace(boxes, InlineBoxes::new());
+    } = mem::replace(boxes, InlineFragments::new());
 
     // FIXME(#2264, pcwalton): This is slow because vector shift is broken. :(
     let mut found_nonwhitespace = false;
@@ -1111,22 +1109,22 @@ fn strip_ignorable_whitespace_from_start(boxes: &mut InlineBoxes) {
     }
 
     map.fixup(old_boxes.as_slice(), new_boxes.as_slice());
-    *boxes = InlineBoxes {
+    *boxes = InlineFragments {
         boxes: new_boxes,
         map: map,
     }
 }
 
 /// Strips ignorable whitespace from the end of a list of boxes.
-fn strip_ignorable_whitespace_from_end(boxes: &mut InlineBoxes) {
+fn strip_ignorable_whitespace_from_end(boxes: &mut InlineFragments) {
     if boxes.len() == 0 {
         return
     }
 
-    let InlineBoxes {
+    let InlineFragments {
         boxes: old_boxes,
         map: mut map
-    } = mem::replace(boxes, InlineBoxes::new());
+    } = mem::replace(boxes, InlineFragments::new());
 
     let mut new_boxes = old_boxes.clone();
     while new_boxes.len() > 0 && new_boxes.as_slice().last().get_ref().is_whitespace_only() {
@@ -1135,7 +1133,7 @@ fn strip_ignorable_whitespace_from_end(boxes: &mut InlineBoxes) {
     }
 
     map.fixup(old_boxes.as_slice(), new_boxes.as_slice());
-    *boxes = InlineBoxes {
+    *boxes = InlineFragments {
         boxes: new_boxes,
         map: map,
     }

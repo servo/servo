@@ -4,7 +4,7 @@
 
 //! CSS table formatting contexts.
 
-use layout::box_::{Box, TableColumnBox};
+use layout::box_::{Fragment, TableColumnFragment};
 use layout::context::LayoutContext;
 use layout::flow::{BaseFlow, TableColGroupFlowClass, FlowClass, Flow};
 use layout::model::{MaybeAuto};
@@ -19,10 +19,10 @@ pub struct TableColGroupFlow {
     pub base: BaseFlow,
 
     /// The associated box.
-    pub box_: Option<Box>,
+    pub box_: Option<Fragment>,
 
     /// The table column boxes
-    pub cols: Vec<Box>,
+    pub cols: Vec<Fragment>,
 
     /// The specified widths of table columns
     pub widths: Vec<Au>,
@@ -30,8 +30,8 @@ pub struct TableColGroupFlow {
 
 impl TableColGroupFlow {
     pub fn from_node_and_boxes(node: &ThreadSafeLayoutNode,
-                               box_: Box,
-                               boxes: Vec<Box>) -> TableColGroupFlow {
+                               box_: Fragment,
+                               boxes: Vec<Fragment>) -> TableColGroupFlow {
         TableColGroupFlow {
             base: BaseFlow::new((*node).clone()),
             box_: Some(box_),
@@ -57,7 +57,7 @@ impl Flow for TableColGroupFlow {
                                               Au::new(0)).specified_or_zero();
 
             let span: int = match box_.specific {
-                TableColumnBox(col_box) => col_box.span.unwrap_or(1),
+                TableColumnFragment(col_box) => col_box.span.unwrap_or(1),
                 _ => fail!("Other box come out in TableColGroupFlow. {:?}", box_.specific)
             };
             for _ in range(0, span) {

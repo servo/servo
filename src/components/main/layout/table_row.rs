@@ -4,7 +4,7 @@
 
 //! CSS table formatting contexts.
 
-use layout::box_::Box;
+use layout::box_::Fragment;
 use layout::block::BlockFlow;
 use layout::block::WidthAndMarginsComputer;
 use layout::construct::FlowConstructor;
@@ -35,7 +35,7 @@ pub struct TableRowFlow {
 
 impl TableRowFlow {
     pub fn from_node_and_box(node: &ThreadSafeLayoutNode,
-                             box_: Box)
+                             box_: Fragment)
                              -> TableRowFlow {
         TableRowFlow {
             block_flow: BlockFlow::from_node_and_box(node, box_),
@@ -56,7 +56,7 @@ impl TableRowFlow {
         }
     }
 
-    pub fn box_<'a>(&'a mut self) -> &'a Box {
+    pub fn box_<'a>(&'a mut self) -> &'a Fragment {
         &self.block_flow.box_
     }
 
