@@ -52,31 +52,40 @@ impl ByteString {
             }
         })
     }
+
     pub fn is_field_value(&self) -> bool {
+        // Classifications of characters necessary for the [CRLF] (SP|HT) rule
+        #[deriving(Eq)]
+        enum PreviousCharacter {
+            Other,
+            CR,
+            LF,
+            SP_HT // SP or HT
+        }
         let ByteString(ref vec) = *self;
-        let mut prev = 0; // previous character. 1: CR, 2: LF, 3: (SP|HT)
+        let mut prev = Other; // The previous character
         vec.iter().all(|&x| {
             // http://tools.ietf.org/html/rfc2616#section-2.2
             match x {
                 13  => { // CR
-                    if prev == 0 || prev == 3 {
-                        prev = 1;
+                    if prev == Other || prev == SP_HT {
+                        prev = CR;
                         true
                     } else {
                         false
                     }
                 },
                 10 => { // LF
-                    if prev == 1 {
-                        prev = 2;
+                    if prev == CR {
+                        prev = LF;
                         true
                     } else {
                         false
                     }
                 },
                 32 | 9 => { // SP | HT
-                    if prev == 2 || prev == 3 {
-                        prev = 3;
+                    if prev == LF || prev == SP_HT {
+                        prev = SP_HT;
                         true
                     } else {
                         false
@@ -84,8 +93,8 @@ impl ByteString {
                 },
                 0..31 | 127 => false, // CTLs
                 x if x > 127 => false, // non ASCII
-                _ if prev == 0 || prev == 3 => {
-                    prev = 0;
+                _ if prev == Other || prev == SP_HT => {
+                    prev = Other;
                     true
                 },
                 _ => false // Previous character was a CR/LF but not part of the [CRLF] (SP|HT) rule

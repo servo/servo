@@ -63,15 +63,15 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
                 return;
             }
         };
-        writer.headers = ~load_data.headers.clone();
+        writer.headers = box load_data.headers.clone();
         match load_data.data {
             Some(ref data) => {
                 writer.headers.content_length = Some(data.len());
                 match writer.write(data.clone().into_bytes().as_slice()) {
                     Err(e) => {
-                          send_error(url, e.desc.to_owned(), start_chan);
-                            return;
-                        }
+                        send_error(url, e.desc.to_owned(), start_chan);
+                        return;
+                    }
                     _ => {}
                 }
             },

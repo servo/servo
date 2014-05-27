@@ -32,7 +32,8 @@ use libc::c_void;
 
 use std::comm::channel;
 use std::io::{BufReader, MemWriter};
-
+use std::from_str::FromStr;
+use std::ascii::StrAsciiExt;
 use std::task::TaskBuilder;
 
 use ResponseHeaderCollection = http::headers::response::HeaderCollection;
@@ -41,8 +42,6 @@ use RequestHeaderCollection = http::headers::request::HeaderCollection;
 use http::headers::{HeaderEnum, HeaderValueByteIterator};
 use http::headers::request::Header;
 use http::method::{Method, Get, Head, Post, Connect, Trace};
-use std::from_str::FromStr;
-use std::ascii::StrAsciiExt;
 
 // As send() start accepting more and more parameter types,
 // change this to the appropriate type from UnionTypes, eg
@@ -254,7 +253,7 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
         match maybe_method {
             Some(Get) | Some(Post) | Some(Head) => {
 
-                self.request_method = Untraceable::new(maybe_method.unwrap());
+                *self.request_method = maybe_method.unwrap();
 
                 // Step 6
                 let parsed_url = match try_parse_url(url, base) {
@@ -304,6 +303,7 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
         let name_str = match name.to_lower().as_str() {
             Some(s) => {
                 match s {
+                    // Disallowed headers
                     "accept-charset" | "accept-encoding" |
                     "access-control-request-headers" |
                     "access-control-request-method" |
@@ -314,10 +314,10 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
                     "upgrade" | "user-agent" | "via" => {
                         return Ok(()); // Step 5
                     },
-                    _ => s.to_owned()
+                    _ => StrBuf::from_str(s)
                 }
             },
-            None => {return Err(Syntax)}
+            None => return Err(Syntax)
         };
         let collection = self.request_headers.deref_mut();
 
@@ -377,7 +377,7 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
             return Err(InvalidState); // Step 1, 2
         }
 
-        let data = match *self.request_method.deref() {
+        let data = match *self.request_method {
             Get | Head => None, // Step 3
             _ => data
         };
@@ -391,14 +391,14 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
         self.send_flag = true;
         let mut global = self.global.root();
         let resource_task = global.page().resource_task.deref().clone();
-        let mut load_data = LoadData::new(self.request_url.deref().clone());
+        let mut load_data = LoadData::new((*self.request_url).clone());
         load_data.data = data;
 
         // XXXManishearth deal with the Origin/Referer/Accept headers
         // XXXManishearth the below is only valid when content type is not already set by the user.
         self.insert_trusted_header("content-type".to_owned(), "text/plain;charset=UTF-8".to_owned());
-        load_data.headers = self.request_headers.deref().clone();
-        load_data.method = self.request_method.deref().clone();
+        load_data.headers = (*self.request_headers).clone();
+        load_data.method = (*self.request_method).clone();
         if self.sync {
             return XMLHttpRequest::fetch(&mut Sync(self), resource_task, load_data);
         } else {
@@ -575,12 +575,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         let collection = self.request_headers.deref_mut();
         let value_bytes = value.into_bytes();
         let mut reader = BufReader::new(value_bytes);
-        let maybe_header: Option<Header> = HeaderEnum::value_from_stream(name, &mut HeaderValueByteIterator::new(&mut reader));
-        match maybe_header {
-            Some(h) => {
-                collection.insert(h);
-            },
-            None => unreachable!()
-        }
+        let maybe_header: Option<Header> = HeaderEnum::value_from_stream(StrBuf::from_str(name), &mut HeaderValueByteIterator::new(&mut reader));
+        collection.insert(maybe_header.unwrap());
     }
 }
