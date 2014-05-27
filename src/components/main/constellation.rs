@@ -397,7 +397,7 @@ impl Constellation {
         fn force_pipeline_exit(old_pipeline: &Rc<Pipeline>) {
             let ScriptChan(ref old_script) = old_pipeline.script_chan;
             old_script.send_opt(ExitPipelineMsg(old_pipeline.id));
-            old_pipeline.render_chan.chan.send_opt(render_task::ExitMsg(None));
+            old_pipeline.render_chan.send_opt(render_task::ExitMsg(None));
             let LayoutChan(ref old_layout) = old_pipeline.layout_chan;
             old_layout.send_opt(layout_interface::ExitNowMsg);
         }

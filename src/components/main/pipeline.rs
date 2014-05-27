@@ -197,12 +197,12 @@ impl Pipeline {
     }
 
     pub fn grant_paint_permission(&self) {
-        self.render_chan.chan.send_opt(PaintPermissionGranted);
+        self.render_chan.send_opt(PaintPermissionGranted);
     }
 
     pub fn revoke_paint_permission(&self) {
         debug!("pipeline revoking render channel paint permission");
-        self.render_chan.chan.send_opt(PaintPermissionRevoked);
+        self.render_chan.send_opt(PaintPermissionRevoked);
     }
 
     pub fn exit(&self) {

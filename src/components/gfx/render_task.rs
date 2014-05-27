@@ -73,34 +73,23 @@ pub fn BufferRequest(screen_rect: Rect<uint>, page_rect: Rect<f32>) -> BufferReq
     }
 }
 
-// FIXME(#2005, pcwalton): This should be a newtype struct.
-pub struct RenderChan {
-    pub chan: Sender<Msg>,
-}
-
-impl Clone for RenderChan {
-    fn clone(&self) -> RenderChan {
-        RenderChan {
-            chan: self.chan.clone(),
-        }
-    }
-}
+#[deriving(Clone)]
+pub struct RenderChan(Sender<Msg>);
 
 impl RenderChan {
     pub fn new() -> (Receiver<Msg>, RenderChan) {
         let (chan, port) = channel();
-        let render_chan = RenderChan {
-            chan: chan,
-        };
-        (port, render_chan)
+        (port, RenderChan(chan))
     }
 
     pub fn send(&self, msg: Msg) {
-        assert!(self.send_opt(msg).is_ok(), "RenderChan.send: render port closed")
+        let &RenderChan(ref chan) = self;
+        assert!(chan.send_opt(msg).is_ok(), "RenderChan.send: render port closed")
     }
 
     pub fn send_opt(&self, msg: Msg) -> Result<(), Msg> {
-        self.chan.send_opt(msg)
+        let &RenderChan(ref chan) = self;
+        chan.send_opt(msg)
     }
 }
 
