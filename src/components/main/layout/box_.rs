@@ -243,6 +243,8 @@ impl ScannedTextBoxInfo {
 
 #[deriving(Show)]
 pub struct SplitInfo {
+    // TODO(bjz): this should only need to be a single character index, but both values are
+    // currently needed for splitting in the `inline::try_append_*` functions.
     pub range: Range<CharIndex>,
     pub width: Au,
 }
@@ -1107,8 +1109,11 @@ impl Box {
     /// A return value of `None` indicates that the box is not splittable.
     /// Otherwise the split information is returned. The right information is
     /// optional due to the possibility of it being whitespace.
+    //
+    // TODO(bjz): The text run should be removed in the future, but it is currently needed for
+    // the current method of box splitting in the `inline::try_append_*` functions.
     pub fn find_split_info_by_new_line(&self)
-            -> Option<(SplitInfo, Option<SplitInfo>, Arc<owned::Box<TextRun>> /* TODO: remove */)> {
+            -> Option<(SplitInfo, Option<SplitInfo>, Arc<owned::Box<TextRun>> /* TODO(bjz): remove */)> {
         match self.specific {
             GenericBox | IframeBox(_) | ImageBox(_) | TableBox | TableCellBox |
             TableRowBox | TableWrapperBox => None,
@@ -1144,8 +1149,11 @@ impl Box {
     /// Otherwise the information pertaining to the split is returned. The left
     /// and right split information are both optional due to the possibility of
     /// them being whitespace.
+    //
+    // TODO(bjz): The text run should be removed in the future, but it is currently needed for
+    // the current method of box splitting in the `inline::try_append_*` functions.
     pub fn find_split_info_for_width(&self, start: CharIndex, max_width: Au, starts_line: bool)
-            -> Option<(Option<SplitInfo>, Option<SplitInfo>, Arc<owned::Box<TextRun>> /* TODO: remove */)> {
+            -> Option<(Option<SplitInfo>, Option<SplitInfo>, Arc<owned::Box<TextRun>> /* TODO(bjz): remove */)> {
         match self.specific {
             GenericBox | IframeBox(_) | ImageBox(_) | TableBox | TableCellBox |
             TableRowBox | TableWrapperBox => None,

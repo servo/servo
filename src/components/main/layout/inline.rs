@@ -427,7 +427,7 @@ impl LineboxScanner {
             debug!("LineboxScanner: Found a new-line character, so splitting theline.");
             match in_box.find_split_info_by_new_line() {
                 Some((left, right, run)) => {
-                    // TODO: Remove box splitting
+                    // TODO(bjz): Remove box splitting
                     let split_box = |split: SplitInfo| {
                         let info = ScannedTextBoxInfo::new(run.clone(), split.range);
                         let specific = ScannedTextBox(info);
@@ -511,7 +511,7 @@ impl LineboxScanner {
         let available_width = green_zone.width - self.pending_line.bounds.size.width;
         match in_box.find_split_info_for_width(CharIndex(0), available_width, line_is_empty).map(
             |(left, right, run)| {
-                // TODO: Remove box splitting
+                // TODO(bjz): Remove box splitting
                 let split_box = |split: SplitInfo| {
                     let info = ScannedTextBoxInfo::new(run.clone(), split.range);
                     let specific = ScannedTextBox(info);
