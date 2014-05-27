@@ -168,6 +168,12 @@ impl<T: Reflectable+Encodable<S, E>, S: Encoder<E>, E> Encodable<S, E> for Cell<
     }
 }
 
+impl<T: Reflectable+Encodable<S, E>, S: Encoder<E>, E> Encodable<S, E> for Cell<Option<JS<T>>> {
+    fn encode(&self, s: &mut S) -> Result<(), E> {
+        self.get().encode(s)
+    }
+}
+
 /// for a field which contains non-POD type contains DOMType
 impl<T: Reflectable+Encodable<S, E>, S: Encoder<E>, E> Encodable<S, E> for RefCell<Vec<JS<T>>> {
     fn encode(&self, s: &mut S) -> Result<(), E> {
