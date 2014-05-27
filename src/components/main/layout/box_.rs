@@ -247,6 +247,15 @@ pub struct SplitInfo {
     pub width: Au,
 }
 
+impl SplitInfo {
+    fn new(range: Range<CharIndex>, info: &ScannedTextBoxInfo) -> SplitInfo {
+        SplitInfo {
+            range: range,
+            width: info.run.advance_for_range(&range),
+        }
+    }
+}
+
 /// Data for an unscanned text box. Unscanned text boxes are the results of flow construction that
 /// have not yet had their width determined.
 #[deriving(Clone)]
@@ -1114,17 +1123,11 @@ impl Box {
                                              text_box_info.range.length() - (cur_new_line_pos + CharIndex(1)));
 
                 // Left box is for left text of first founded new-line character.
-                let left_box = SplitInfo {
-                    range: left_range,
-                    width: text_box_info.run.advance_for_range(&left_range),
-                };
+                let left_box = SplitInfo::new(left_range, text_box_info);
 
                 // Right box is for right text of first founded new-line character.
                 let right_box = if right_range.length() > CharIndex(0) {
-                    Some(SplitInfo {
-                        range: right_range,
-                        width: text_box_info.run.advance_for_range(&right_range),
-                    })
+                    Some(SplitInfo::new(right_range, text_box_info))
                 } else {
                     None
                 };
@@ -1224,20 +1227,11 @@ impl Box {
                     None
                 } else {
                     let left = if left_is_some {
-                        Some(SplitInfo {
-                            range: left_range,
-                            width: text_box_info.run.advance_for_range(&left_range),
-                        })
+                        Some(SplitInfo::new(left_range, text_box_info))
                     } else {
-                        None
+                         None
                     };
-
-                    let right = right_range.map(|right_range| {
-                        SplitInfo {
-                            range: right_range,
-                            width: text_box_info.run.advance_for_range(&right_range),
-                        }
-                    });
+                    let right = right_range.map(|right_range| SplitInfo::new(right_range, text_box_info));
 
                     Some((left, right, text_box_info.run.clone()))
                 }
