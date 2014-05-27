@@ -47,7 +47,7 @@ use layout_interface::TrustedNodeAddress;
 use script_task::StackRoots;
 
 use std::cast;
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::kinds::marker::ContravariantLifetime;
 
 /// A type that represents a JS-owned value that is rooted for the lifetime of this value.
@@ -268,6 +268,15 @@ impl<T: Assignable<U>, U: Reflectable> OptionalSettable<T> for Option<JS<U>> {
         *self = val.map(|val| unsafe { val.get_js() });
     }
 }
+
+impl<T: Assignable<U>, U: Reflectable> OptionalSettable<T> for Cell<Option<JS<U>>> {
+    fn assign(&mut self, val: Option<T>) {
+        let mut item = self.get();
+        item.assign(val);
+        self.set(item);
+    }
+}
+
 
 /// Root a rootable Option type (used for Option<Temporary<T>>)
 pub trait OptionalRootable<T> {
