@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use css::node_style::StyledNode;
-use layout::box_::Box;
+use layout::box_::{Box, ScannedTextBox, ScannedTextBoxInfo, SplitInfo};
 use layout::context::LayoutContext;
 use layout::floats::{FloatLeft, Floats, PlacementInfo};
 use layout::flow::{BaseFlow, FlowClass, Flow, InlineFlowClass};
@@ -419,18 +419,35 @@ impl LineboxScanner {
 
     fn try_append_to_line_by_new_line(&mut self, in_box: Box) -> bool {
         if in_box.new_line_pos.len() == 0 {
-            // In case of box does not include new-line character
+                debug!("LineboxScanner: Did not find a new-line character, so pushing the box to \
+                       the line without splitting.");
             self.push_box_to_line(in_box);
             true
         } else {
-            // In case of box includes new-line character
-            match in_box.split_by_new_line() {
-                Some((left_box, Some(right_box))) => {
-                    self.push_box_to_line(left_box);
-                    self.work_list.push_front(right_box);
-                },
-                Some((left_box, None)) => {
-                    self.push_box_to_line(left_box);
+            debug!("LineboxScanner: Found a new-line character, so splitting theline.");
+            match in_box.find_split_info_by_new_line() {
+                Some((left, right, run)) => {
+                    // TODO(bjz): Remove box splitting
+                    let split_box = |split: SplitInfo| {
+                        let info = ScannedTextBoxInfo::new(run.clone(), split.range);
+                        let specific = ScannedTextBox(info);
+                        let size = Size2D(split.width, in_box.border_box.size.height);
+                        in_box.transform(size, specific)
+                    };
+
+                    debug!("LineboxScanner: Pushing the box to the left of the new-line character \
+                           to the line.");
+                    let mut left = split_box(left);
+                    left.new_line_pos = vec!();
+                    self.push_box_to_line(left);
+
+                    for right in right.move_iter() {
+                        debug!("LineboxScanner: Deferring the box to the right of the new-line \
+                               character to the line.");
+                        let mut right = split_box(right);
+                        right.new_line_pos = in_box.new_line_pos.clone();
+                        self.work_list.push_front(right);
+                    }
                 },
                 None => {
                     error!("LineboxScanner: This split case makes no sense!")
@@ -492,7 +509,19 @@ impl LineboxScanner {
         }
 
         let available_width = green_zone.width - self.pending_line.bounds.size.width;
-        match in_box.split_to_width(available_width, line_is_empty) {
+        let split = in_box.find_split_info_for_width(CharIndex(0), available_width, line_is_empty);
+        match split.map(|(left, right, run)| {
+            // TODO(bjz): Remove box splitting
+            let split_box = |split: SplitInfo| {
+                let info = ScannedTextBoxInfo::new(run.clone(), split.range);
+                let specific = ScannedTextBox(info);
+                let size = Size2D(split.width, in_box.border_box.size.height);
+                in_box.transform(size, specific)
+            };
+
+            (left.map(|x| { debug!("LineboxScanner: Left split {}", x); split_box(x) }),
+             right.map(|x| { debug!("LineboxScanner: Right split {}", x); split_box(x) }))
+        }) {
             None => {
                 debug!("LineboxScanner: Tried to split unsplittable render box! Deferring to next \
                        line. {}", in_box);
