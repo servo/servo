@@ -18,10 +18,10 @@ pub struct TableColGroupFlow {
     /// Data common to all flows.
     pub base: BaseFlow,
 
-    /// The associated box.
-    pub box_: Option<Fragment>,
+    /// The associated fragment.
+    pub fragment: Option<Fragment>,
 
-    /// The table column boxes
+    /// The table column fragments
     pub cols: Vec<Fragment>,
 
     /// The specified widths of table columns
@@ -29,13 +29,13 @@ pub struct TableColGroupFlow {
 }
 
 impl TableColGroupFlow {
-    pub fn from_node_and_boxes(node: &ThreadSafeLayoutNode,
-                               box_: Fragment,
-                               boxes: Vec<Fragment>) -> TableColGroupFlow {
+    pub fn from_node_and_fragments(node: &ThreadSafeLayoutNode,
+                                   fragment: Fragment,
+                                   fragments: Vec<Fragment>) -> TableColGroupFlow {
         TableColGroupFlow {
             base: BaseFlow::new((*node).clone()),
-            box_: Some(box_),
-            cols: boxes,
+            fragment: Some(fragment),
+            cols: fragments,
             widths: vec!(),
         }
     }
@@ -51,14 +51,14 @@ impl Flow for TableColGroupFlow {
     }
 
     fn bubble_widths(&mut self, _: &mut LayoutContext) {
-        for box_ in self.cols.iter() {
+        for fragment in self.cols.iter() {
             // get the specified value from width property
-            let width = MaybeAuto::from_style(box_.style().get_box().width,
+            let width = MaybeAuto::from_style(fragment.style().get_box().width,
                                               Au::new(0)).specified_or_zero();
 
-            let span: int = match box_.specific {
-                TableColumnFragment(col_box) => col_box.span.unwrap_or(1),
-                _ => fail!("Other box come out in TableColGroupFlow. {:?}", box_.specific)
+            let span: int = match fragment.specific {
+                TableColumnFragment(col_fragment) => col_fragment.span.unwrap_or(1),
+                _ => fail!("Other fragment come out in TableColGroupFlow. {:?}", fragment.specific)
             };
             for _ in range(0, span) {
                 self.widths.push(width);
@@ -78,7 +78,7 @@ impl Flow for TableColGroupFlow {
 
 impl fmt::Show for TableColGroupFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self.box_ {
+        match self.fragment {
             Some(ref rb) => write!(f.buf, "TableColGroupFlow: {}", rb),
             None => write!(f.buf, "TableColGroupFlow"),
         }

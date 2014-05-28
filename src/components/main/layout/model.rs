@@ -88,7 +88,7 @@ pub struct MarginCollapseInfo {
 }
 
 impl MarginCollapseInfo {
-    /// TODO(#2012, pcwalton): Remove this method once `box_` is not an `Option`.
+    /// TODO(#2012, pcwalton): Remove this method once `fragment` is not an `Option`.
     pub fn new() -> MarginCollapseInfo {
         MarginCollapseInfo {
             state: AccumulatingCollapsibleTopMargin,
@@ -120,15 +120,15 @@ impl MarginCollapseInfo {
                                 MarginsCollapseThroughFinalMarginState
                             },
                             _ => {
-                                // If the box has non-zero min-height, margins may not collapse
-                                // through it.
+                                // If the fragment has non-zero min-height, margins may not
+                                // collapse through it.
                                 BottomMarginCollapsesFinalMarginState
                             }
                         }
                     },
                     _ => {
-                        // If the box has an explicitly specified height, margins may not collapse
-                        // through it.
+                        // If the fragment has an explicitly specified height, margins may not
+                        // collapse through it.
                         BottomMarginCollapsesFinalMarginState
                     }
                 }
