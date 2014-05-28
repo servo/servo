@@ -30,6 +30,7 @@ use js::jsapi::{JS_GC, JS_GetRuntime};
 use js::jsval::{NullValue, JSVal};
 
 use collections::hashmap::HashMap;
+use std::cell::Cell;
 use std::cmp;
 use std::comm::{channel, Sender};
 use std::comm::Select;
@@ -69,16 +70,16 @@ impl TimerHandle {
 pub struct Window {
     pub eventtarget: EventTarget,
     pub script_chan: ScriptChan,
-    pub console: Option<JS<Console>>,
-    pub location: Option<JS<Location>>,
-    pub navigator: Option<JS<Navigator>>,
+    pub console: Cell<Option<JS<Console>>>,
+    pub location: Cell<Option<JS<Location>>>,
+    pub navigator: Cell<Option<JS<Navigator>>>,
     pub image_cache_task: ImageCacheTask,
     pub active_timers: Box<HashMap<TimerId, TimerHandle>>,
     pub next_timer_handle: i32,
     pub compositor: Untraceable<Box<ScriptListener>>,
     pub browser_context: Option<BrowserContext>,
     pub page: Rc<Page>,
-    pub performance: Option<JS<Performance>>,
+    pub performance: Cell<Option<JS<Performance>>>,
     pub navigationStart: u64,
     pub navigationStartPrecise: f64,
 }
@@ -200,28 +201,28 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     }
 
     fn Location(&mut self) -> Temporary<Location> {
-        if self.location.is_none() {
+        if self.location.get().is_none() {
             let page = self.deref().page.clone();
             let location = Location::new(self, page);
             self.location.assign(Some(location));
         }
-        Temporary::new(self.location.get_ref().clone())
+        Temporary::new(self.location.get().get_ref().clone())
     }
 
     fn Console(&mut self) -> Temporary<Console> {
-        if self.console.is_none() {
+        if self.console.get().is_none() {
             let console = Console::new(self);
             self.console.assign(Some(console));
         }
-        Temporary::new(self.console.get_ref().clone())
+        Temporary::new(self.console.get().get_ref().clone())
     }
 
     fn Navigator(&mut self) -> Temporary<Navigator> {
-        if self.navigator.is_none() {
+        if self.navigator.get().is_none() {
             let navigator = Navigator::new(self);
             self.navigator.assign(Some(navigator));
         }
-        Temporary::new(self.navigator.get_ref().clone())
+        Temporary::new(self.navigator.get().get_ref().clone())
     }
 
     fn Confirm(&self, _message: DOMString) -> bool {
@@ -269,11 +270,11 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     }
 
     fn Performance(&mut self) -> Temporary<Performance> {
-        if self.performance.is_none() {
+        if self.performance.get().is_none() {
             let performance = Performance::new(self);
             self.performance.assign(Some(performance));
         }
-        Temporary::new(self.performance.get_ref().clone())
+        Temporary::new(self.performance.get().get_ref().clone())
     }
 
     fn GetOnload(&self) -> Option<EventHandlerNonNull> {
@@ -441,16 +442,16 @@ impl Window {
         let win = box Window {
             eventtarget: EventTarget::new_inherited(WindowTypeId),
             script_chan: script_chan,
-            console: None,
+            console: Cell::new(None),
             compositor: Untraceable::new(compositor),
             page: page,
-            location: None,
-            navigator: None,
+            location: Cell::new(None),
+            navigator: Cell::new(None),
             image_cache_task: image_cache_task,
             active_timers: box HashMap::new(),
             next_timer_handle: 0,
             browser_context: None,
-            performance: None,
+            performance: Cell::new(None),
             navigationStart: time::get_time().sec as u64,
             navigationStartPrecise: time::precise_time_s(),
         };
