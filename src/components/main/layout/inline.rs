@@ -59,6 +59,33 @@ use sync::Arc;
 /// left corner of the green zone is the same as that of the line, but
 /// the green zone can be taller and wider than the line itself.
 pub struct Line {
+    /// A range of line indices that describe line breaks.
+    ///
+    /// For example, consider the following HTML and rendered element with
+    /// linebreaks:
+    ///
+    /// ~~~html
+    /// <span>I <span>like truffles, <img></span> yes I do.</span>
+    /// ~~~
+    ///
+    /// ~~~
+    /// +------------+
+    /// | I like     |
+    /// | truffles,  |
+    /// | +----+     |
+    /// | |    |     |
+    /// | +----+ yes |
+    /// | I do.      |
+    /// +------------+
+    /// ~~~
+    ///
+    /// The ranges that describe these lines would be:
+    ///
+    /// ~~~
+    /// | [0.0, 1.4) | [1.5, 2.0)  | [2.0, 3.4)  | [3.4, 4.0)  |
+    /// |------------|-------------|-------------|-------------|
+    /// | 'I like'   | 'truffles,' | '<img> yes' | 'yes I do.' |
+    /// ~~~
     pub range: Range<LineIndices>,
     pub bounds: Rect<Au>,
     pub green_zone: Size2D<Au>
@@ -72,29 +99,6 @@ int_range_index! {
 /// A line index consists of two indices: a fragment index that refers to the
 /// index of a DOM fragment within a flattened inline element; and a glyph index
 /// where the 0th glyph refers to the first glyph of that fragment.
-///
-/// For example, consider the following HTML and rendered element with
-/// linebreaks:
-///
-/// ~~~html
-/// <span>I <span>like truffles,</span> yes I do.</span>
-/// ~~~
-///
-/// ~~~
-/// +-----------+
-/// | I like    |
-/// | truffles, |
-/// | yes I do. |
-/// +-----------+
-/// ~~~
-///
-/// The ranges that describe these lines would be:
-///
-/// ~~~
-/// | [0.0, 1.4) | [1.5, 2.0)  | [2.1, 3.0)  |
-/// |------------|-------------|-------------|
-/// | 'I like'   | 'truffles,' | 'yes I do.' |
-/// ~~~
 #[deriving(Clone, Eq, Ord, TotalEq, TotalOrd, Zero)]
 pub struct LineIndices {
     /// The index of a fragment into the flattened vector of DOM elements.
@@ -102,34 +106,38 @@ pub struct LineIndices {
     /// For example, given the HTML below:
     ///
     /// ~~~
-    /// <span>I <span>like      truffles,</span> yes I do.</span>
+    /// <span>I <span>like      truffles, <img></span> yes I do.</span>
     /// ~~~
     ///
     /// The fragments would be indexed as follows:
     ///
     /// ~~~
-    /// |  0   |        1         |       2      |
-    /// |------|------------------|--------------|
-    /// | 'I ' | 'like truffles,' | ' yes I do.' |
+    /// |  0   |        1         |   2   |       3      |
+    /// |------|------------------|-------|--------------|
+    /// | 'I ' | 'like truffles,' | <img> | ' yes I do.' |
     /// ~~~
     pub fragment_index: FragmentIndex,
 
-    /// The index of a character in a DOM fragment. Ligatures and continuous
-    /// runs of whitespace are treated as single characters. Non-breakable DOM
+    /// The index of a character in a DOM fragment. Continuous runs of whitespace
+    /// are treated as single characters. Non-breakable DOM
     /// fragments such as images are treated as having a range length of `1`.
     ///
     /// For example, given the HTML below:
     ///
     /// ~~~
-    /// <span>like      truffles,</span>
+    /// <span>I <span>like      truffles, <img></span> yes I do.</span>
     /// ~~~
     ///
     /// The characters would be indexed as follows:
     ///
     /// ~~~
-    /// | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 |
-    /// |---|---|---|---|---|---|---|---|---|---|----|----|----|----|
-    /// | l | i | k | e |   | t | r | u | f | f | l  | e  | s  | ,  |
+    /// | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
+    /// |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|----|
+    /// | I |   | l | i | k | e | e | l | i | k | e |   | t | r | u | f | f | l  |
+    ///
+    /// | 11 | 12 | 13 | 14 |   0   | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
+    /// |----|----|----|----|-------|---|---|---|---|---|---|---|---|---|---|
+    /// | e  | s  | ,  |    | <img> |   | y | e | s |   | I |   | d | o | . |
     /// ~~~
     pub char_index: CharIndex,
 }
