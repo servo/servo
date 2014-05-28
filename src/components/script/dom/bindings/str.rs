@@ -37,6 +37,7 @@ impl ByteString {
             }
         }).collect())
     }
+
     pub fn is_token(&self) -> bool {
         let ByteString(ref vec) = *self;
         vec.iter().all(|&x| {
@@ -48,6 +49,55 @@ impl ByteString {
                 47 | 91 | 93 | 63 | 61 |
                 123 | 125 | 32  => false, // separators
                 _ => true
+            }
+        })
+    }
+
+    pub fn is_field_value(&self) -> bool {
+        // Classifications of characters necessary for the [CRLF] (SP|HT) rule
+        #[deriving(Eq)]
+        enum PreviousCharacter {
+            Other,
+            CR,
+            LF,
+            SP_HT // SP or HT
+        }
+        let ByteString(ref vec) = *self;
+        let mut prev = Other; // The previous character
+        vec.iter().all(|&x| {
+            // http://tools.ietf.org/html/rfc2616#section-2.2
+            match x {
+                13  => { // CR
+                    if prev == Other || prev == SP_HT {
+                        prev = CR;
+                        true
+                    } else {
+                        false
+                    }
+                },
+                10 => { // LF
+                    if prev == CR {
+                        prev = LF;
+                        true
+                    } else {
+                        false
+                    }
+                },
+                32 | 9 => { // SP | HT
+                    if prev == LF || prev == SP_HT {
+                        prev = SP_HT;
+                        true
+                    } else {
+                        false
+                    }
+                },
+                0..31 | 127 => false, // CTLs
+                x if x > 127 => false, // non ASCII
+                _ if prev == Other || prev == SP_HT => {
+                    prev = Other;
+                    true
+                },
+                _ => false // Previous character was a CR/LF but not part of the [CRLF] (SP|HT) rule
             }
         })
     }

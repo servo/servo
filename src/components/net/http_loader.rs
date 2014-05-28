@@ -2,11 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use resource_task::{Metadata, Payload, Done, LoadResponse, LoaderTask, start_sending};
+use resource_task::{Metadata, Payload, Done, LoadResponse, LoadData, LoaderTask, start_sending};
 
 use collections::hashmap::HashSet;
 use http::client::{RequestWriter, NetworkStream};
-use http::method::Get;
 use http::headers::HeaderEnum;
 use std::io::Reader;
 use servo_util::task::spawn_named;
@@ -23,13 +22,13 @@ fn send_error(url: Url, err: ~str, start_chan: Sender<LoadResponse>) {
     start_sending(start_chan, Metadata::default(url)).send(Done(Err(err)));
 }
 
-fn load(mut url: Url, start_chan: Sender<LoadResponse>) {
+fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
     //        repository DOES exist, please update this constant to use it.
     let max_redirects = 50u;
     let mut iters = 0u;
-
+    let mut url = load_data.url.clone();
     let mut redirected_to = HashSet::new();
 
     // Loop to handle redirects.
@@ -56,14 +55,28 @@ fn load(mut url: Url, start_chan: Sender<LoadResponse>) {
 
         info!("requesting {:s}", url.to_str());
 
-        let request = RequestWriter::<NetworkStream>::new(Get, url.clone());
-        let writer = match request {
+        let request = RequestWriter::<NetworkStream>::new(load_data.method.clone(), url.clone());
+        let mut writer = match request {
             Ok(w) => box w,
             Err(e) => {
                 send_error(url, e.desc.to_owned(), start_chan);
                 return;
             }
         };
+        writer.headers = box load_data.headers.clone();
+        match load_data.data {
+            Some(ref data) => {
+                writer.headers.content_length = Some(data.len());
+                match writer.write(data.clone().into_bytes().as_slice()) {
+                    Err(e) => {
+                        send_error(url, e.desc.to_owned(), start_chan);
+                        return;
+                    }
+                    _ => {}
+                }
+            },
+            _ => {}
+        }
         let mut response = match writer.read_response() {
             Ok(r) => r,
             Err((_, e)) => {

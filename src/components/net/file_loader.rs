@@ -26,7 +26,8 @@ fn read_all(reader: &mut io::Stream, progress_chan: &Sender<ProgressMsg>)
 }
 
 pub fn factory() -> LoaderTask {
-    let f: LoaderTask = proc(url, start_chan) {
+    let f: LoaderTask = proc(load_data, start_chan) {
+        let url = load_data.url;
         assert!("file" == url.scheme);
         let progress_chan = start_sending(start_chan, Metadata::default(url.clone()));
         spawn_named("file_loader", proc() {
