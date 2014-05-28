@@ -7,7 +7,6 @@ use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::performancetiming::{PerformanceTiming, PerformanceTimingMethods};
 use dom::window::Window;
-
 use time;
 
 pub type DOMHighResTimeStamp = f64;
@@ -20,9 +19,10 @@ pub struct Performance {
 
 impl Performance {
     fn new_inherited(window: &JSRef<Window>) -> Performance {
+        let timing = PerformanceTiming::new(window).root().root_ref().unrooted();
         Performance {
             reflector_: Reflector::new(),
-            timing: PerformanceTiming::new(window).root().root_ref().unrooted(),
+            timing: timing,
         }
     }
 
