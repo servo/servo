@@ -113,9 +113,9 @@ impl MarginCollapseInfo {
                                                   -> (CollapsibleMargins, Au) {
         let state = match self.state {
             AccumulatingCollapsibleTopMargin => {
-                match fragment.style().Box.get().height {
+                match fragment.style().get_box().height {
                     LPA_Auto | LPA_Length(Au(0)) | LPA_Percentage(0.) => {
-                        match fragment.style().Box.get().min_height {
+                        match fragment.style().get_box().min_height {
                             LP_Length(Au(0)) | LP_Percentage(0.) => {
                                 MarginsCollapseThroughFinalMarginState
                             },
@@ -322,7 +322,7 @@ pub fn specified(length: computed::LengthOrPercentage, containing_length: Au) ->
 
 #[inline]
 pub fn border_from_style(style: &ComputedValues) -> SideOffsets2D<Au> {
-    let border_style = style.Border.get();
+    let border_style = style.get_border();
     SideOffsets2D::new(border_style.border_top_width,
                        border_style.border_right_width,
                        border_style.border_bottom_width,
@@ -332,7 +332,7 @@ pub fn border_from_style(style: &ComputedValues) -> SideOffsets2D<Au> {
 #[inline]
 pub fn padding_from_style(style: &ComputedValues, containing_block_width: Au)
                           -> SideOffsets2D<Au> {
-    let padding_style = style.Padding.get();
+    let padding_style = style.get_padding();
     SideOffsets2D::new(specified(padding_style.padding_top, containing_block_width),
                        specified(padding_style.padding_right, containing_block_width),
                        specified(padding_style.padding_bottom, containing_block_width),

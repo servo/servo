@@ -474,10 +474,10 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
 
             if self.pseudo == Before {
                 let before_style = node_layout_data_wrapper.data.before_style.get_ref();
-                return get_content(&before_style.Box.get().content)
+                return get_content(&before_style.get_box().content)
             } else {
                 let after_style = node_layout_data_wrapper.data.after_style.get_ref();
-                return get_content(&after_style.Box.get().content)
+                return get_content(&after_style.get_box().content)
             }
         }
 
@@ -553,15 +553,15 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         let display = match kind {
             Before | BeforeBlock => {
                 let before_style = node_layout_data_wrapper.data.before_style.get_ref();
-                before_style.Box.get().display
+                before_style.get_box().display
             }
             After | AfterBlock => {
                 let after_style = node_layout_data_wrapper.data.after_style.get_ref();
-                after_style.Box.get().display
+                after_style.get_box().display
             }
             Normal => {
                 let after_style = node_layout_data_wrapper.shared_data.style.get_ref();
-                after_style.Box.get().display
+                after_style.get_box().display
             }
         };
 

@@ -843,11 +843,11 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             None => {
                 // Pseudo-element.
                 let style = node.style();
-                (display::inline, style.Box.get().float, style.Box.get().position)
+                (display::inline, style.get_box().float, style.get_box().position)
             }
             Some(ElementNodeTypeId(_)) => {
                 let style = node.style();
-                (style.Box.get().display, style.Box.get().float, style.Box.get().position)
+                (style.get_box().display, style.get_box().float, style.get_box().position)
             }
             Some(TextNodeTypeId) => (display::inline, float::none, position::static_),
             Some(CommentNodeTypeId) |
@@ -999,7 +999,7 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
                     //
                     // If you implement other values for this property, you will almost certainly
                     // want to update this check.
-                    match self.style().InheritedText.get().white_space {
+                    match self.style().get_inheritedtext().white_space {
                         white_space::normal => true,
                         _ => false,
                     }

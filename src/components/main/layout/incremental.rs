@@ -106,8 +106,8 @@ impl RestyleDamage {
 // breakage on modifications.
 macro_rules! add_if_not_equal(
     ($old:ident, $new:ident, $damage:ident,
-     [ $($effect:ident),* ], [ $($style_struct:ident.$name:ident),* ]) => ({
-        if $( ($old.$style_struct.get().$name != $new.$style_struct.get().$name) )||* {
+     [ $($effect:ident),* ], [ $($style_struct_getter:ident.$name:ident),* ]) => ({
+        if $( ($old.$style_struct_getter().$name != $new.$style_struct_getter().$name) )||* {
             $damage.union_in_place( restyle_damage!( $($effect),* ) );
         }
     })
@@ -123,18 +123,20 @@ pub fn compute_damage(old: &ComputedValues, new: &ComputedValues) -> RestyleDama
     // FIXME: We can short-circuit more of this.
 
     add_if_not_equal!(old, new, damage, [ Repaint ],
-        [ Color.color, Background.background_color,
-          Border.border_top_color, Border.border_right_color,
-          Border.border_bottom_color, Border.border_left_color ]);
+        [ get_color.color, get_background.background_color,
+          get_border.border_top_color, get_border.border_right_color,
+          get_border.border_bottom_color, get_border.border_left_color ]);
 
     add_if_not_equal!(old, new, damage, [ Repaint, BubbleWidths, Reflow ],
-        [ Border.border_top_width, Border.border_right_width,
-          Border.border_bottom_width, Border.border_left_width,
-          Margin.margin_top, Margin.margin_right, Margin.margin_bottom, Margin.margin_left,
-          Padding.padding_top, Padding.padding_right, Padding.padding_bottom, Padding.padding_left,
-          Box.position, Box.width, Box.height, Box.float, Box.display,
-          Font.font_family, Font.font_size, Font.font_style, Font.font_weight,
-          InheritedText.text_align, Text.text_decoration, InheritedBox.line_height ]);
+        [ get_border.border_top_width, get_border.border_right_width,
+          get_border.border_bottom_width, get_border.border_left_width,
+          get_margin.margin_top, get_margin.margin_right,
+          get_margin.margin_bottom, get_margin.margin_left,
+          get_padding.padding_top, get_padding.padding_right,
+          get_padding.padding_bottom, get_padding.padding_left,
+          get_box.position, get_box.width, get_box.height, get_box.float, get_box.display,
+          get_font.font_family, get_font.font_size, get_font.font_style, get_font.font_weight,
+          get_inheritedtext.text_align, get_text.text_decoration, get_inheritedbox.line_height ]);
 
     // FIXME: test somehow that we checked every CSS property
 

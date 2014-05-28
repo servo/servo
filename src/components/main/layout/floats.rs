@@ -5,11 +5,11 @@
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
-use servo_util::cowarc::CowArc;
 use servo_util::geometry::{Au, max, min};
 use std::i32;
 use std::fmt;
 use style::computed_values::float;
+use sync::Arc;
 
 /// The kind of float: left or right.
 #[deriving(Clone)]
@@ -82,7 +82,7 @@ impl fmt::Show for FloatList {
 /// FIXME(pcwalton): When we have fast `MutexArc`s, try removing `CowArc` and use a mutex instead.
 #[deriving(Clone)]
 struct FloatListRef {
-    list: Option<CowArc<FloatList>>,
+    list: Option<Arc<FloatList>>,
 }
 
 impl FloatListRef {
@@ -102,16 +102,17 @@ impl FloatListRef {
     fn get<'a>(&'a self) -> Option<&'a FloatList> {
         match self.list {
             None => None,
-            Some(ref list) => Some(list.get()),
+            Some(ref list) => Some(&**list),
         }
     }
 
+    #[allow(experimental)]
     #[inline]
     fn get_mut<'a>(&'a mut self) -> &'a mut FloatList {
         if self.list.is_none() {
-            self.list = Some(CowArc::new(FloatList::new()))
+            self.list = Some(Arc::new(FloatList::new()))
         }
-        self.list.as_mut().unwrap().get_mut()
+        self.list.as_mut().unwrap().make_unique()
     }
 }
 

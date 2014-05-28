@@ -857,7 +857,7 @@ impl InlineFlow {
                                               style: &ComputedValues) {
         let font_style = text::computed_style_to_font_style(style);
         let font_metrics = text::font_metrics_for_style(font_context, &font_style);
-        let line_height = text::line_height_from_style(style, style.Font.get().font_size);
+        let line_height = text::line_height_from_style(style, style.get_font().font_size);
         let inline_metrics = InlineMetrics::from_font_metrics(&font_metrics, line_height);
         self.minimum_height_above_baseline = inline_metrics.height_above_baseline;
         self.minimum_depth_below_baseline = inline_metrics.depth_below_baseline;
@@ -993,7 +993,7 @@ impl Flow for InlineFlow {
                 //
                 // CSS 2.1 does not state which font to use. Previous versions of the code used
                 // the parent's font; this code uses the current font.
-                let parent_text_top = fragment.style().Font.get().font_size;
+                let parent_text_top = fragment.style().get_font().font_size;
 
                 // We should calculate the distance from baseline to the bottom of the parent's
                 // content area. But for now we assume it's zero.

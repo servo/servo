@@ -69,7 +69,7 @@ impl Flow for TableCellFlow {
     /// Minimum/preferred widths set by this function are used in automatic table layout calculation.
     fn bubble_widths(&mut self, ctx: &mut LayoutContext) {
         self.block_flow.bubble_widths(ctx);
-        let specified_width = MaybeAuto::from_style(self.block_flow.box_.style().Box.get().width,
+        let specified_width = MaybeAuto::from_style(self.block_flow.box_.style().get_box().width,
                                                     Au::new(0)).specified_or_zero();
         if self.block_flow.base.intrinsic_widths.minimum_width < specified_width {
             self.block_flow.base.intrinsic_widths.minimum_width = specified_width;

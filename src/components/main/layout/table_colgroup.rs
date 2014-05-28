@@ -53,7 +53,7 @@ impl Flow for TableColGroupFlow {
     fn bubble_widths(&mut self, _: &mut LayoutContext) {
         for box_ in self.cols.iter() {
             // get the specified value from width property
-            let width = MaybeAuto::from_style(box_.style().Box.get().width,
+            let width = MaybeAuto::from_style(box_.style().get_box().width,
                                               Au::new(0)).specified_or_zero();
 
             let span: int = match box_.specific {

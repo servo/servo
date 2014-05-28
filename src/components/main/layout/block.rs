@@ -299,21 +299,21 @@ impl CandidateHeightIterator {
         // the containing block. If that is not determined yet by the time we need to resolve
         // `min-height` and `max-height`, percentage values are ignored.
 
-        let height = match (style.Box.get().height, block_container_height) {
+        let height = match (style.get_box().height, block_container_height) {
             (LPA_Percentage(percent), Some(block_container_height)) => {
                 Specified(block_container_height.scale_by(percent))
             }
             (LPA_Percentage(_), None) | (LPA_Auto, _) => Auto,
             (LPA_Length(length), _) => Specified(length),
         };
-        let max_height = match (style.Box.get().max_height, block_container_height) {
+        let max_height = match (style.get_box().max_height, block_container_height) {
             (LPN_Percentage(percent), Some(block_container_height)) => {
                 Some(block_container_height.scale_by(percent))
             }
             (LPN_Percentage(_), None) | (LPN_None, _) => None,
             (LPN_Length(length), _) => Some(length),
         };
-        let min_height = match (style.Box.get().min_height, block_container_height) {
+        let min_height = match (style.get_box().min_height, block_container_height) {
             (LP_Percentage(percent), Some(block_container_height)) => {
                 block_container_height.scale_by(percent)
             }
@@ -1183,11 +1183,11 @@ impl BlockFlow {
         {
             // Non-auto margin-top and margin-bottom values have already been
             // calculated during assign-width.
-            let margin_top = match self.box_.style().Margin.get().margin_top {
+            let margin_top = match self.box_.style().get_margin().margin_top {
                 LPA_Auto => Auto,
                 _ => Specified(self.box_.margin.top)
             };
-            let margin_bottom = match self.box_.style().Margin.get().margin_bottom {
+            let margin_bottom = match self.box_.style().get_margin().margin_bottom {
                 LPA_Auto => Auto,
                 _ => Specified(self.box_.margin.bottom)
             };
@@ -1195,7 +1195,7 @@ impl BlockFlow {
             let top;
             let bottom;
             {
-                let position_style = self.box_.style().PositionOffsets.get();
+                let position_style = self.box_.style().get_positionoffsets();
                 top = MaybeAuto::from_style(position_style.top, containing_block_height);
                 bottom = MaybeAuto::from_style(position_style.bottom, containing_block_height);
             }
@@ -1397,15 +1397,15 @@ impl BlockFlow {
     /// `FormattingContextType`.
     fn formatting_context_type(&self) -> FormattingContextType {
         let style = self.box_.style();
-        if style.Box.get().float != float::none {
+        if style.get_box().float != float::none {
             return OtherFormattingContext
         }
-        match style.Box.get().display {
+        match style.get_box().display {
             display::table_cell | display::table_caption | display::inline_block => {
                 OtherFormattingContext
             }
-            _ if style.Box.get().position == position::static_ && 
-                    style.Box.get().overflow != overflow::visible => {
+            _ if style.get_box().position == position::static_ && 
+                    style.get_box().overflow != overflow::visible => {
                 BlockFormattingContext
             }
             _ => NonformattingContext,
@@ -1424,7 +1424,7 @@ impl Flow for BlockFlow {
 
     /// Returns the direction that this flow clears floats in, if any.
     fn float_clearance(&self) -> clear::T {
-        self.box_.style().Box.get().clear
+        self.box_.style().get_box().clear
     }
 
     /// Pass 1 of reflow: computes minimum and preferred widths.
@@ -1466,7 +1466,7 @@ impl Flow for BlockFlow {
         intrinsic_widths.surround_width = box_intrinsic_widths.surround_width;
         self.base.intrinsic_widths = intrinsic_widths;
 
-        match self.box_.style().Box.get().float {
+        match self.box_.style().get_box().float {
             float::none => {}
             float::left => flags.set_has_left_floated_descendants(true),
             float::right => flags.set_has_right_floated_descendants(true),
@@ -1666,7 +1666,7 @@ impl Flow for BlockFlow {
 
     /// The 'position' property of this flow.
     fn positioning(&self) -> position::T {
-        self.box_.style.Box.get().position
+        self.box_.style.get_box().position
     }
 
     /// Return true if this is the root of an Absolute flow tree.
@@ -1799,15 +1799,15 @@ pub trait WidthAndMarginsComputer {
         let style = block.box_.style();
 
         // The text alignment of a block flow is the text alignment of its box's style.
-        block.base.flags.set_text_align(style.InheritedText.get().text_align);
+        block.base.flags.set_text_align(style.get_inheritedtext().text_align);
 
         let (margin_left, margin_right) =
-            (MaybeAuto::from_style(style.Margin.get().margin_left, containing_block_width),
-             MaybeAuto::from_style(style.Margin.get().margin_right, containing_block_width));
+            (MaybeAuto::from_style(style.get_margin().margin_left, containing_block_width),
+             MaybeAuto::from_style(style.get_margin().margin_right, containing_block_width));
 
         let (left, right) =
-            (MaybeAuto::from_style(style.PositionOffsets.get().left, containing_block_width),
-             MaybeAuto::from_style(style.PositionOffsets.get().right, containing_block_width));
+            (MaybeAuto::from_style(style.get_positionoffsets().left, containing_block_width),
+             MaybeAuto::from_style(style.get_positionoffsets().right, containing_block_width));
         let available_width = containing_block_width - block.box_.border_padding.horizontal();
         return WidthConstraintInput::new(computed_width,
                                          margin_left,
@@ -1854,7 +1854,7 @@ pub trait WidthAndMarginsComputer {
                               parent_flow_width: Au,
                               ctx: &mut LayoutContext)
                               -> MaybeAuto {
-        MaybeAuto::from_style(block.box_().style().Box.get().width,
+        MaybeAuto::from_style(block.box_().style().get_box().width,
                               self.containing_block_width(block, parent_flow_width, ctx))
     }
 
@@ -1881,7 +1881,7 @@ pub trait WidthAndMarginsComputer {
 
         // If the tentative used width is greater than 'max-width', width should be recalculated,
         // but this time using the computed value of 'max-width' as the computed value for 'width'.
-        match specified_or_none(block.box_().style().Box.get().max_width, containing_block_width) {
+        match specified_or_none(block.box_().style().get_box().max_width, containing_block_width) {
             Some(max_width) if max_width < solution.width => {
                 input.computed_width = Specified(max_width);
                 solution = self.solve_width_constraints(block, &input);
@@ -1891,7 +1891,7 @@ pub trait WidthAndMarginsComputer {
 
         // If the resulting width is smaller than 'min-width', width should be recalculated,
         // but this time using the value of 'min-width' as the computed value for 'width'.
-        let computed_min_width = specified(block.box_().style().Box.get().min_width,
+        let computed_min_width = specified(block.box_().style().get_box().min_width,
                                            containing_block_width);
         if computed_min_width > solution.width {
             input.computed_width = Specified(computed_min_width);

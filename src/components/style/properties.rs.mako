@@ -4,15 +4,12 @@
 
 // This file is a Mako template: http://www.makotemplates.org/
 
-#![allow(non_camel_case_types, uppercase_variables)]
-
 pub use std::ascii::StrAsciiExt;
 use serialize::{Encodable, Encoder};
 
 pub use servo_util::url::parse_url;
 use sync::Arc;
 pub use url::Url;
-use servo_util::cowarc::CowArc;
 
 pub use cssparser::*;
 pub use cssparser::ast::*;
@@ -29,9 +26,11 @@ pub mod common_types;
 
 <%!
 
+import re
+
 def to_rust_ident(name):
     name = name.replace("-", "_")
-    if name in ["static", "super"]:  # Rust keywords
+    if name in ["static", "super", "box"]:  # Rust keywords
         name += "_"
     return name
 
@@ -39,6 +38,10 @@ class Longhand(object):
     def __init__(self, name, derived_from=None):
         self.name = name
         self.ident = to_rust_ident(name)
+        self.camel_case, _ = re.subn(
+            "_([a-z])",
+            lambda m: m.group(1).upper(),
+            self.ident.strip("_").capitalize())
         self.style_struct = THIS_STYLE_STRUCT
         if derived_from is None:
             self.derived_from = None
@@ -54,6 +57,7 @@ class Shorthand(object):
 class StyleStruct(object):
     def __init__(self, name, inherited):
         self.name = name
+        self.ident = to_rust_ident(name.lower())
         self.longhands = []
         self.inherited = inherited
 
@@ -149,6 +153,7 @@ pub mod longhands {
         <%self:single_component_value name="${name}">
             ${caller.body()}
             pub mod computed_value {
+                #[allow(non_camel_case_types)]
                 #[deriving(Eq, Clone, FromPrimitive)]
                 pub enum T {
                     % for value in values.split():
@@ -447,6 +452,7 @@ pub mod longhands {
     <%self:single_component_value name="vertical-align">
         <% vertical_align_keywords = (
             "baseline sub super top text-top middle bottom text-bottom".split()) %>
+        #[allow(non_camel_case_types)]
         #[deriving(Clone)]
         pub enum SpecifiedValue {
             % for keyword in vertical_align_keywords:
@@ -473,6 +479,7 @@ pub mod longhands {
         }
         pub mod computed_value {
             use super::super::{Au, CSSFloat};
+            #[allow(non_camel_case_types)]
             #[deriving(Eq, Clone)]
             pub enum T {
                 % for keyword in vertical_align_keywords:
@@ -520,6 +527,7 @@ pub mod longhands {
                 pub enum Content {
                     StringContent(~str),
                 }
+                #[allow(non_camel_case_types)]
                 #[deriving(Eq, Clone)]
                 pub enum T {
                     normal,
@@ -1450,7 +1458,7 @@ pub enum DeclaredValue<T> {
 #[deriving(Clone)]
 pub enum PropertyDeclaration {
     % for property in LONGHANDS:
-        ${property.ident}_declaration(DeclaredValue<longhands::${property.ident}::SpecifiedValue>),
+        ${property.camel_case}Declaration(DeclaredValue<longhands::${property.ident}::SpecifiedValue>),
     % endfor
 }
 
@@ -1479,7 +1487,7 @@ impl PropertyDeclaration {
                         match longhands::${property.ident}::parse_declared(value, base_url) {
                             Some(value) => {
                                 seen.set_${property.ident}();
-                                result_list.push(${property.ident}_declaration(value));
+                                result_list.push(${property.camel_case}Declaration(value));
                                 ValidOrIgnoredDeclaration
                             },
                             None => InvalidValue,
@@ -1500,7 +1508,7 @@ impl PropertyDeclaration {
                             % for sub_property in shorthand.sub_properties:
                                 if !seen.get_${sub_property.ident}() {
                                     seen.set_${sub_property.ident}();
-                                    result_list.push(${sub_property.ident}_declaration(
+                                    result_list.push(${sub_property.camel_case}Declaration(
                                         CSSWideKeyword(keyword)));
                                 }
                             % endfor
@@ -1510,7 +1518,7 @@ impl PropertyDeclaration {
                             % for sub_property in shorthand.sub_properties:
                                 if !seen.get_${sub_property.ident}() {
                                     seen.set_${sub_property.ident}();
-                                    result_list.push(${sub_property.ident}_declaration(
+                                    result_list.push(${sub_property.camel_case}Declaration(
                                         CSSWideKeyword(
                                             ${"Inherit" if sub_property.style_struct.inherited else "Initial"}
                                         )
@@ -1524,7 +1532,7 @@ impl PropertyDeclaration {
                                 % for sub_property in shorthand.sub_properties:
                                     if !seen.get_${sub_property.ident}() {
                                         seen.set_${sub_property.ident}();
-                                        result_list.push(${sub_property.ident}_declaration(
+                                        result_list.push(${sub_property.camel_case}Declaration(
                                             match result.${sub_property.ident} {
                                                 Some(value) => SpecifiedValue(value),
                                                 None => CSSWideKeyword(Initial),
@@ -1557,10 +1565,10 @@ pub mod style_structs {
     % endfor
 }
 
-#[deriving(Eq, Clone)]
+#[deriving(Clone)]
 pub struct ComputedValues {
     % for style_struct in STYLE_STRUCTS:
-        pub ${style_struct.name}: CowArc<style_structs::${style_struct.name}>,
+        ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
     % endfor
     shareable: bool,
 }
@@ -1576,16 +1584,23 @@ impl ComputedValues {
     pub fn resolve_color(&self, color: computed::CSSColor) -> RGBA {
         match color {
             RGBA(rgba) => rgba,
-            CurrentColor => self.Color.get().color,
+            CurrentColor => self.get_color().color,
         }
     }
+
+    % for style_struct in STYLE_STRUCTS:
+        pub fn get_${style_struct.name.lower()}
+                <'a>(&'a self) -> &'a style_structs::${style_struct.name} {
+            &*self.${style_struct.ident}
+        }
+    % endfor
 }
 
 /// The initial values for all style structs as defined by the specification.
 lazy_init! {
     static ref INITIAL_VALUES: ComputedValues = ComputedValues {
         % for style_struct in STYLE_STRUCTS:
-            ${style_struct.name}: CowArc::new(style_structs::${style_struct.name} {
+            ${style_struct.ident}: Arc::new(style_structs::${style_struct.name} {
                 % for longhand in style_struct.longhands:
                     ${longhand.ident}: longhands::${longhand.ident}::get_initial_value(),
                 % endfor
@@ -1593,6 +1608,20 @@ lazy_init! {
         % endfor
         shareable: true,
     };
+}
+
+
+/// This only exists to limit the scope of #[allow(experimental)]
+/// FIXME: remove this when Arc::make_unique() is not experimental anymore.
+trait ArcExperimental<T> {
+    fn make_unique_experimental<'a>(&'a mut self) -> &'a mut T;
+}
+impl<T: Send + Share + Clone> ArcExperimental<T> for Arc<T> {
+    #[inline]
+    #[allow(experimental)]
+    fn make_unique_experimental<'a>(&'a mut self) -> &'a mut T {
+        self.make_unique()
+    }
 }
 
 /// Fast path for the function below. Only computes new inherited styles.
@@ -1604,9 +1633,9 @@ fn cascade_with_cached_declarations(applicable_declarations: &[MatchedProperty],
                                     -> ComputedValues {
     % for style_struct in STYLE_STRUCTS:
         % if style_struct.inherited:
-            let mut style_${style_struct.name} = parent_style.${style_struct.name}.clone();
+            let mut style_${style_struct.ident} = parent_style.${style_struct.ident}.clone();
         % else:
-            let style_${style_struct.name} = cached_style.${style_struct.name}.clone();
+            let style_${style_struct.ident} = cached_style.${style_struct.ident}.clone();
         % endif
     % endfor
 
@@ -1621,7 +1650,7 @@ fn cascade_with_cached_declarations(applicable_declarations: &[MatchedProperty],
                     % if style_struct.inherited:
                         % for property in style_struct.longhands:
                             % if property.derived_from is None:
-                                ${property.ident}_declaration(ref declared_value) => {
+                                ${property.camel_case}Declaration(ref declared_value) => {
                                     if seen.get_${property.ident}() {
                                         continue
                                     }
@@ -1639,19 +1668,19 @@ fn cascade_with_cached_declarations(applicable_declarations: &[MatchedProperty],
                                             // matter.
                                             //
                                             // FIXME: is it still?
-                                            parent_style.${style_struct.name}
-                                                        .get()
+                                            parent_style.${style_struct.ident}
                                                         .${property.ident}
                                                         .clone()
                                         }
                                     };
-                                    style_${style_struct.name}.get_mut().${property.ident} =
-                                        computed_value;
+                                    style_${style_struct.ident}.make_unique_experimental()
+                                        .${property.ident} = computed_value;
 
                                     % if property.name in DERIVED_LONGHANDS:
                                         % for derived in DERIVED_LONGHANDS[property.name]:
-                                            style_${derived.style_struct.name}.get_mut()
-                                                                              .${derived.ident} =
+                                            style_${derived.style_struct.ident}
+                                                .make_unique_experimental()
+                                                .${derived.ident} =
                                                 longhands::${derived.ident}
                                                          ::derive_from_${property.ident}(
                                                              computed_value,
@@ -1660,7 +1689,7 @@ fn cascade_with_cached_declarations(applicable_declarations: &[MatchedProperty],
                                     % endif
                                 }
                             % else:
-                                ${property.ident}_declaration(_) => {
+                                ${property.camel_case}Declaration(_) => {
                                     // Do not allow stylesheets to set derived properties.
                                 }
                             % endif
@@ -1674,7 +1703,7 @@ fn cascade_with_cached_declarations(applicable_declarations: &[MatchedProperty],
 
     ComputedValues {
         % for style_struct in STYLE_STRUCTS:
-            ${style_struct.name}: style_${style_struct.name},
+            ${style_struct.ident}: style_${style_struct.ident},
         % endfor
         shareable: shareable,
     }
@@ -1708,21 +1737,20 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
     };
 
     let mut context = {
-        let inherited_font_style = inherited_style.Font.get();
+        let inherited_font_style = inherited_style.get_font();
         computed::Context {
             is_root_element: is_root_element,
             inherited_font_weight: inherited_font_style.font_weight,
             inherited_font_size: inherited_font_style.font_size,
-            inherited_height: inherited_style.Box.get().height,
-            inherited_minimum_line_height: inherited_style.InheritedBox
-                                                          .get()
+            inherited_height: inherited_style.get_box().height,
+            inherited_minimum_line_height: inherited_style.get_inheritedbox()
                                                           ._servo_minimum_line_height,
             inherited_text_decorations_in_effect:
-                inherited_style.InheritedText.get()._servo_text_decorations_in_effect,
+                inherited_style.get_inheritedtext()._servo_text_decorations_in_effect,
             // To be overridden by applicable declarations:
             font_size: inherited_font_style.font_size,
             display: longhands::display::get_initial_value(),
-            color: inherited_style.Color.get().color,
+            color: inherited_style.get_color().color,
             text_decoration: longhands::text_decoration::get_initial_value(),
             positioned: false,
             floated: false,
@@ -1735,11 +1763,11 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
 
     // This assumes that the computed and specified values have the same Rust type.
     macro_rules! get_specified(
-        ($style_struct: ident, $property: ident, $declared_value: expr) => {
+        ($style_struct_getter: ident, $property: ident, $declared_value: expr) => {
             match *$declared_value {
                 SpecifiedValue(specified_value) => specified_value,
                 CSSWideKeyword(Initial) => longhands::$property::get_initial_value(),
-                CSSWideKeyword(Inherit) => inherited_style.$style_struct.get().$property.clone(),
+                CSSWideKeyword(Inherit) => inherited_style.$style_struct_getter().$property.clone(),
             }
         };
     )
@@ -1750,7 +1778,7 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
         // Declarations are stored in reverse source order, we want them in forward order here.
         for declaration in sub_list.declarations.iter().rev() {
             match *declaration {
-                font_size_declaration(ref value) => {
+                FontSizeDeclaration(ref value) => {
                     context.font_size = match *value {
                         SpecifiedValue(specified_value) => computed::compute_Au_with_font_size(
                             specified_value, context.inherited_font_size),
@@ -1758,28 +1786,29 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
                         CSSWideKeyword(Inherit) => context.inherited_font_size,
                     }
                 }
-                color_declaration(ref value) => {
-                    context.color = get_specified!(Color, color, value);
+                ColorDeclaration(ref value) => {
+                    context.color = get_specified!(get_color, color, value);
                 }
-                display_declaration(ref value) => {
-                    context.display = get_specified!(Box, display, value);
+                DisplayDeclaration(ref value) => {
+                    context.display = get_specified!(get_box, display, value);
                 }
-                position_declaration(ref value) => {
-                    context.positioned = match get_specified!(Box, position, value) {
+                PositionDeclaration(ref value) => {
+                    context.positioned = match get_specified!(get_box, position, value) {
                         longhands::position::absolute | longhands::position::fixed => true,
                         _ => false,
                     }
                 }
-                float_declaration(ref value) => {
-                    context.floated = get_specified!(Box, float, value) != longhands::float::none;
+                FloatDeclaration(ref value) => {
+                    context.floated = get_specified!(get_box, float, value)
+                                      != longhands::float::none;
                 }
-                text_decoration_declaration(ref value) => {
-                    context.text_decoration = get_specified!(Text, text_decoration, value);
+                TextDecorationDeclaration(ref value) => {
+                    context.text_decoration = get_specified!(get_text, text_decoration, value);
                 }
                 % for side in ["top", "right", "bottom", "left"]:
-                    border_${side}_style_declaration(ref value) => {
+                    Border${side.capitalize()}StyleDeclaration(ref value) => {
                         context.border_${side}_present =
-                        match get_specified!(Border, border_${side}_style, value) {
+                        match get_specified!(get_border, border_${side}_style, value) {
                             longhands::border_top_style::none |
                             longhands::border_top_style::hidden => false,
                             _ => true,
@@ -1804,13 +1833,13 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
 
     // Set computed values, overwriting earlier declarations for the same property.
     % for style_struct in STYLE_STRUCTS:
-        let mut style_${style_struct.name} =
+        let mut style_${style_struct.ident} =
             % if style_struct.inherited:
                 inherited_style
             % else:
                 initial_values
             % endif
-            .${style_struct.name}.clone();
+            .${style_struct.ident}.clone();
     % endfor
     let mut cacheable = true;
     let mut seen = PropertyBitField::new();
@@ -1823,7 +1852,7 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
                 % for style_struct in STYLE_STRUCTS:
                     % for property in style_struct.longhands:
                         % if property.derived_from is None:
-                            ${property.ident}_declaration(ref declared_value) => {
+                            ${property.camel_case}Declaration(ref declared_value) => {
                                 if seen.get_${property.ident}() {
                                     continue
                                 }
@@ -1842,19 +1871,19 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
                                         //
                                         // FIXME: is it still?
                                         cacheable = false;
-                                        inherited_style.${style_struct.name}
-                                                       .get()
+                                        inherited_style.${style_struct.ident}
                                                        .${property.ident}
                                                        .clone()
                                     }
                                 };
-                                style_${style_struct.name}.get_mut().${property.ident} =
-                                    computed_value;
+                                style_${style_struct.ident}.make_unique_experimental()
+                                    .${property.ident} = computed_value;
 
                                 % if property.name in DERIVED_LONGHANDS:
                                     % for derived in DERIVED_LONGHANDS[property.name]:
-                                        style_${derived.style_struct.name}.get_mut()
-                                                                          .${derived.ident} =
+                                        style_${derived.style_struct.ident}
+                                            .make_unique_experimental()
+                                            .${derived.ident} =
                                             longhands::${derived.ident}
                                                      ::derive_from_${property.ident}(
                                                          computed_value,
@@ -1863,7 +1892,7 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
                                 % endif
                             }
                         % else:
-                            ${property.ident}_declaration(_) => {
+                            ${property.camel_case}Declaration(_) => {
                                 // Do not allow stylesheets to set derived properties.
                             }
                         % endif
@@ -1875,7 +1904,7 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
 
     // The initial value of border-*-width may be changed at computed value time.
     {
-        let border = style_Border.get_mut();
+        let border = style_border.make_unique_experimental();
         % for side in ["top", "right", "bottom", "left"]:
             // Like calling to_computed_value, which wouldn't type check.
             if !context.border_${side}_present {
@@ -1886,13 +1915,13 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
 
     // The initial value of display may be changed at computed value time.
     if !seen.get_display() {
-        let box_ = style_Box.get_mut();
+        let box_ = style_box_.make_unique_experimental();
         box_.display = longhands::display::to_computed_value(box_.display, &context);
     }
 
     (ComputedValues {
         % for style_struct in STYLE_STRUCTS:
-            ${style_struct.name}: style_${style_struct.name},
+            ${style_struct.ident}: style_${style_struct.ident},
         % endfor
         shareable: shareable,
     }, cacheable)
@@ -1907,18 +1936,18 @@ pub fn cascade_anonymous(parent_style: &ComputedValues) -> ComputedValues {
     let initial_values = &*INITIAL_VALUES;
     let mut result = ComputedValues {
         % for style_struct in STYLE_STRUCTS:
-            ${style_struct.name}:
+            ${style_struct.ident}:
                 % if style_struct.inherited:
                     parent_style
                 % else:
                     initial_values
                 % endif
-                .${style_struct.name}.clone(),
+                .${style_struct.ident}.clone(),
         % endfor
         shareable: false,
     };
     {
-        let border = result.Border.get_mut();
+        let border = result.border.make_unique_experimental();
         % for side in ["top", "right", "bottom", "left"]:
             // Like calling to_computed_value, which wouldn't type check.
             border.border_${side}_width = Au(0);

@@ -416,18 +416,18 @@ impl Box {
         };
 
         let style = self.style();
-        let width = MaybeAuto::from_style(style.Box.get().width, Au::new(0)).specified_or_zero();
+        let width = MaybeAuto::from_style(style.get_box().width, Au::new(0)).specified_or_zero();
 
         let (margin_left, margin_right) = if use_margins {
-            (MaybeAuto::from_style(style.Margin.get().margin_left, Au(0)).specified_or_zero(),
-             MaybeAuto::from_style(style.Margin.get().margin_right, Au(0)).specified_or_zero())
+            (MaybeAuto::from_style(style.get_margin().margin_left, Au(0)).specified_or_zero(),
+             MaybeAuto::from_style(style.get_margin().margin_right, Au(0)).specified_or_zero())
         } else {
             (Au(0), Au(0))
         };
 
         let (padding_left, padding_right) = if use_padding {
-            (model::specified(style.Padding.get().padding_left, Au(0)),
-             model::specified(style.Padding.get().padding_right, Au(0)))
+            (model::specified(style.get_padding().padding_left, Au(0)),
+             model::specified(style.get_padding().padding_right, Au(0)))
         } else {
             (Au(0), Au(0))
         };
@@ -478,10 +478,10 @@ impl Box {
             _ => {
                 // NB: Percentages are relative to containing block width (not height) per CSS 2.1.
                 self.margin.top =
-                    MaybeAuto::from_style(self.style().Margin.get().margin_top,
+                    MaybeAuto::from_style(self.style().get_margin().margin_top,
                                           containing_block_width).specified_or_zero();
                 self.margin.bottom =
-                    MaybeAuto::from_style(self.style().Margin.get().margin_bottom,
+                    MaybeAuto::from_style(self.style().get_margin().margin_bottom,
                                           containing_block_width).specified_or_zero()
             }
         }
@@ -517,26 +517,26 @@ impl Box {
                              -> Point2D<Au> {
         fn left_right(style: &ComputedValues, block_width: Au) -> Au {
             // TODO(ksh8281) : consider RTL(right-to-left) culture
-            match (style.PositionOffsets.get().left, style.PositionOffsets.get().right) {
+            match (style.get_positionoffsets().left, style.get_positionoffsets().right) {
                 (LPA_Auto, _) => {
-                    -MaybeAuto::from_style(style.PositionOffsets.get().right, block_width)
+                    -MaybeAuto::from_style(style.get_positionoffsets().right, block_width)
                         .specified_or_zero()
                 }
                 (_, _) => {
-                    MaybeAuto::from_style(style.PositionOffsets.get().left, block_width)
+                    MaybeAuto::from_style(style.get_positionoffsets().left, block_width)
                         .specified_or_zero()
                 }
             }
         }
 
         fn top_bottom(style: &ComputedValues,block_height: Au) -> Au {
-            match (style.PositionOffsets.get().top, style.PositionOffsets.get().bottom) {
+            match (style.get_positionoffsets().top, style.get_positionoffsets().bottom) {
                 (LPA_Auto, _) => {
-                    -MaybeAuto::from_style(style.PositionOffsets.get().bottom, block_height)
+                    -MaybeAuto::from_style(style.get_positionoffsets().bottom, block_height)
                         .specified_or_zero()
                 }
                 (_, _) => {
-                    MaybeAuto::from_style(style.PositionOffsets.get().top, block_height)
+                    MaybeAuto::from_style(style.get_positionoffsets().top, block_height)
                         .specified_or_zero()
                 }
             }
@@ -546,14 +546,14 @@ impl Box {
         let mut rel_pos: Point2D<Au> = Zero::zero();
         match inline_fragment_context {
             None => {
-                if self.style().Box.get().position == position::relative {
+                if self.style().get_box().position == position::relative {
                     rel_pos.x = rel_pos.x + left_right(self.style(), container_block_size.width);
                     rel_pos.y = rel_pos.y + top_bottom(self.style(), container_block_size.height);
                 }
             }
             Some(inline_fragment_context) => {
                 for range in inline_fragment_context.ranges() {
-                    if range.style.Box.get().position == position::relative {
+                    if range.style.get_box().position == position::relative {
                         rel_pos.x = rel_pos.x + left_right(&*range.style,
                                                            container_block_size.width);
                         rel_pos.y = rel_pos.y + top_bottom(&*range.style,
@@ -572,7 +572,7 @@ impl Box {
     #[inline(always)]
     pub fn clear(&self) -> Option<ClearType> {
         let style = self.style();
-        match style.Box.get().clear {
+        match style.get_box().clear {
             clear::none => None,
             clear::left => Some(ClearLeft),
             clear::right => Some(ClearRight),
@@ -593,15 +593,15 @@ impl Box {
     /// Returns the text alignment of the computed style of the nearest ancestor-or-self `Element`
     /// node.
     pub fn text_align(&self) -> text_align::T {
-        self.style().InheritedText.get().text_align
+        self.style().get_inheritedtext().text_align
     }
 
     pub fn vertical_align(&self) -> vertical_align::T {
-        self.style().Box.get().vertical_align
+        self.style().get_box().vertical_align
     }
 
     pub fn white_space(&self) -> white_space::T {
-        self.style().InheritedText.get().white_space
+        self.style().get_inheritedtext().white_space
     }
 
     /// Returns the text decoration of this box, according to the style of the nearest ancestor
@@ -612,7 +612,7 @@ impl Box {
     /// model. Therefore, this is a best lower bound approximation, but the end result may actually
     /// have the various decoration flags turned on afterward.
     pub fn text_decoration(&self) -> text_decoration::T {
-        self.style().Text.get().text_decoration
+        self.style().get_text().text_decoration
     }
 
     /// Returns the left offset from margin edge to content edge.
@@ -648,7 +648,7 @@ impl Box {
         // inefficient. What we really want is something like "nearest ancestor element that
         // doesn't have a box".
         let style = self.style();
-        let background_color = style.resolve_color(style.Background.get().background_color);
+        let background_color = style.resolve_color(style.get_background().background_color);
         if !background_color.alpha.approx_eq(&0.0) {
             let display_item = box SolidColorDisplayItem {
                 base: BaseDisplayItem::new(*absolute_bounds, self.node, level),
@@ -661,7 +661,7 @@ impl Box {
         // The background image is painted on top of the background color.
         // Implements background image, per spec:
         // http://www.w3.org/TR/CSS21/colors.html#background
-        let background = style.Background.get();
+        let background = style.get_background();
         let image_url = match background.background_image {
             None => return,
             Some(ref image_url) => image_url,
@@ -757,10 +757,10 @@ impl Box {
         }
 
         let style = self.style();
-        let top_color = style.resolve_color(style.Border.get().border_top_color);
-        let right_color = style.resolve_color(style.Border.get().border_right_color);
-        let bottom_color = style.resolve_color(style.Border.get().border_bottom_color);
-        let left_color = style.resolve_color(style.Border.get().border_left_color);
+        let top_color = style.resolve_color(style.get_border().border_top_color);
+        let right_color = style.resolve_color(style.get_border().border_right_color);
+        let bottom_color = style.resolve_color(style.get_border().border_bottom_color);
+        let left_color = style.resolve_color(style.get_border().border_left_color);
 
         // Append the border to the display list.
         let border_display_item = box BorderDisplayItem {
@@ -770,10 +770,10 @@ impl Box {
                                       right_color.to_gfx_color(),
                                       bottom_color.to_gfx_color(),
                                       left_color.to_gfx_color()),
-            style: SideOffsets2D::new(style.Border.get().border_top_style,
-                                      style.Border.get().border_right_style,
-                                      style.Border.get().border_bottom_style,
-                                      style.Border.get().border_left_style)
+            style: SideOffsets2D::new(style.get_border().border_top_style,
+                                      style.get_border().border_right_style,
+                                      style.get_border().border_bottom_style,
+                                      style.get_border().border_left_style)
         };
 
         list.push(BorderDisplayItemClass(border_display_item))
@@ -859,7 +859,7 @@ impl Box {
                                                                absolute_box_bounds,
                                                                self.node,
                                                                ContentStackingLevel);
-        if self.style().InheritedBox.get().visibility != visibility::visible {
+        if self.style().get_inheritedbox().visibility != visibility::visible {
             return accumulator
         }
 
@@ -899,12 +899,11 @@ impl Box {
             TableColumnBox(_) => fail!("Shouldn't see table column boxes here."),
             ScannedTextBox(ref text_box) => {
                 // Compute text color.
-                let text_color = self.style().Color.get().color.to_gfx_color();
+                let text_color = self.style().get_color().color.to_gfx_color();
 
                 // Compute text decorations.
                 let text_decorations_in_effect = self.style()
-                                                     .InheritedText
-                                                     .get()
+                                                     .get_inheritedtext()
                                                      ._servo_text_decorations_in_effect;
                 let text_decorations = TextDecorations {
                     underline: text_decorations_in_effect.underline.map(|c| c.to_gfx_color()),
@@ -1271,8 +1270,8 @@ impl Box {
 
         self.compute_border_padding_margins(container_width, inline_fragment_context);
 
-        let style_width = self.style().Box.get().width;
-        let style_height = self.style().Box.get().height;
+        let style_width = self.style().get_box().width;
+        let style_height = self.style().get_box().height;
         let noncontent_width = self.border_padding.horizontal();
 
         match self.specific {
@@ -1320,8 +1319,8 @@ impl Box {
             ImageBox(_) | ScannedTextBox(_) => {}
         }
 
-        let style_width = self.style().Box.get().width;
-        let style_height = self.style().Box.get().height;
+        let style_width = self.style().get_box().width;
+        let style_height = self.style().get_box().height;
         let noncontent_height = self.border_padding.vertical();
 
         match self.specific {
@@ -1374,7 +1373,7 @@ impl Box {
             }
             ScannedTextBox(ref text_box) => {
                 // See CSS 2.1 § 10.8.1.
-                let font_size = self.style().Font.get().font_size;
+                let font_size = self.style().get_font().font_size;
                 let line_height = self.calculate_line_height(font_size);
                 InlineMetrics::from_font_metrics(&text_box.run.font_metrics, line_height)
             }
@@ -1401,7 +1400,7 @@ impl Box {
 
     /// Returns true if the contents should be clipped (i.e. if `overflow` is `hidden`).
     pub fn needs_clip(&self) -> bool {
-        self.style().Box.get().overflow == overflow::hidden
+        self.style().get_box().overflow == overflow::hidden
     }
 
     /// A helper function to return a debug string describing the side offsets for one of the rect
@@ -1478,7 +1477,7 @@ impl ChildDisplayListAccumulator {
     fn new(style: &ComputedValues, bounds: Rect<Au>, node: OpaqueNode, level: StackingLevel)
            -> ChildDisplayListAccumulator {
         ChildDisplayListAccumulator {
-            clip_display_item: match style.Box.get().overflow {
+            clip_display_item: match style.get_box().overflow {
                 overflow::hidden => {
                     Some(box ClipDisplayItem {
                         base: BaseDisplayItem::new(bounds, node, level),
