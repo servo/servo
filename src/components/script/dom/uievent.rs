@@ -86,7 +86,7 @@ pub trait UIEventMethods {
 
 impl<'a> UIEventMethods for JSRef<'a, UIEvent> {
     fn GetView(&self) -> Option<Temporary<Window>> {
-        self.view.clone().map(|view| Temporary::new(view))
+        self.view.map(|view| Temporary::new(view))
     }
 
     fn Detail(&self) -> i32 {
