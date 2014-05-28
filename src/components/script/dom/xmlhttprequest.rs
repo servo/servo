@@ -32,6 +32,7 @@ use url::Url;
 use libc;
 use libc::c_void;
 
+use std::cell::Cell;
 use std::comm::channel;
 use std::io::{BufReader, MemWriter};
 use std::from_str::FromStr;
@@ -98,14 +99,14 @@ pub struct XMLHttpRequest {
     ready_state: XMLHttpRequestState,
     timeout: u32,
     with_credentials: bool,
-    upload: Option<JS<XMLHttpRequestUpload>>,
+    upload: Cell<Option<JS<XMLHttpRequestUpload>>>,
     response_url: DOMString,
     status: u16,
     status_text: ByteString,
     response: ByteString,
     response_type: XMLHttpRequestResponseType,
     response_text: DOMString,
-    response_xml: Option<JS<Document>>,
+    response_xml: Cell<Option<JS<Document>>>,
     response_headers: Untraceable<ResponseHeaderCollection>,
 
     // Associated concepts
@@ -129,14 +130,14 @@ impl XMLHttpRequest {
             ready_state: Unsent,
             timeout: 0u32,
             with_credentials: false,
-            upload: None,
+            upload: Cell::new(None),
             response_url: "".to_owned(),
             status: 0,
             status_text: ByteString::new(vec!()),
             response: ByteString::new(vec!()),
             response_type: _empty,
             response_text: "".to_owned(),
-            response_xml: None,
+            response_xml: Cell::new(None),
             response_headers: Untraceable::new(ResponseHeaderCollection::new()),
 
             request_method: Untraceable::new(Get),
@@ -385,7 +386,7 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
         self.with_credentials = with_credentials
     }
     fn Upload(&self) -> Temporary<XMLHttpRequestUpload> {
-        Temporary::new(self.upload.get_ref().clone())
+        Temporary::new(self.upload.get().get_ref().clone())
     }
     fn Send(&mut self, data: Option<DOMString>) -> ErrorResult {
         if self.ready_state != Opened || self.send_flag {
@@ -407,7 +408,7 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
         };
         if !self.sync {
             // Step 8
-            let upload_target = &*self.upload.root().unwrap();
+            let upload_target = &*self.upload.get().root().unwrap();
             let event_target: &JSRef<EventTarget> = EventTargetCast::from_ref(upload_target);
             if  event_target.handlers.iter().len() > 0 {
                 self.upload_events = true;
@@ -498,7 +499,7 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
         self.response_text.clone()
     }
     fn GetResponseXML(&self) -> Option<Temporary<Document>> {
-        self.response_xml.clone().map(|response| Temporary::new(response))
+        self.response_xml.get().map(|response| Temporary::new(response))
     }
 }
 
@@ -637,7 +638,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
 
     fn dispatch_progress_event(&self, upload: bool, type_: DOMString, loaded: u64, total: Option<u64>) {
         let win = &*self.global.root();
-        let upload_target = &*self.upload.root().unwrap();
+        let upload_target = &*self.upload.get().root().unwrap();
         let mut progressevent = ProgressEvent::new(win, type_, false, false,
                                                    total.is_some(), loaded,
                                                    total.unwrap_or(0)).root();
