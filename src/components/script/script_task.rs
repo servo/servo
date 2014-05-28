@@ -131,7 +131,7 @@ pub struct Page {
     pub subpage_id: Option<SubpageId>,
 
     /// Unique id for last reflow request; used for confirming completion reply.
-    pub last_reflow_id: Traceable<Cell<uint>>,
+    last_reflow_id: Traceable<Cell<uint>>,
 
     /// The outermost frame containing the document, window, and page URL.
     pub frame: Traceable<RefCell<Option<Frame>>>,
@@ -140,29 +140,29 @@ pub struct Page {
     pub layout_chan: Untraceable<LayoutChan>,
 
     /// The port that we will use to join layout. If this is `None`, then layout is not running.
-    pub layout_join_port: Untraceable<RefCell<Option<Receiver<()>>>>,
+    layout_join_port: Untraceable<RefCell<Option<Receiver<()>>>>,
 
     /// What parts of the document are dirty, if any.
-    pub damage: Traceable<RefCell<Option<DocumentDamage>>>,
+    damage: Traceable<RefCell<Option<DocumentDamage>>>,
 
     /// The current size of the window, in pixels.
-    pub window_size: Untraceable<Cell<Size2D<uint>>>,
+    window_size: Untraceable<Cell<Size2D<uint>>>,
 
-    pub js_info: Traceable<RefCell<Option<JSPageInfo>>>,
+    js_info: Traceable<RefCell<Option<JSPageInfo>>>,
 
     /// Cached copy of the most recent url loaded by the script
     /// TODO(tkuehn): this currently does not follow any particular caching policy
     /// and simply caches pages forever (!). The bool indicates if reflow is required
     /// when reloading.
-    pub url: Untraceable<RefCell<Option<(Url, bool)>>>,
+    url: Untraceable<RefCell<Option<(Url, bool)>>>,
 
-    pub next_subpage_id: Untraceable<Cell<SubpageId>>,
+    next_subpage_id: Untraceable<Cell<SubpageId>>,
 
     /// Pending resize event, if any.
-    pub resize_event: Untraceable<Cell<Option<Size2D<uint>>>>,
+    resize_event: Untraceable<Cell<Option<Size2D<uint>>>>,
 
     /// Pending scroll to fragment event, if any
-    pub fragment_node: Traceable<RefCell<Option<JS<Element>>>>,
+    fragment_node: Traceable<RefCell<Option<JS<Element>>>>,
 
     /// Associated resource task for use by DOM objects like XMLHttpRequest
     pub resource_task: Untraceable<ResourceTask>,
@@ -229,10 +229,6 @@ impl Page {
         }
     }
 
-    fn id(&self) -> PipelineId {
-        self.id
-    }
-
     // must handle root case separately
     pub fn remove(&self, id: PipelineId) -> Option<Rc<Page>> {
         let remove_idx = {
@@ -246,7 +242,7 @@ impl Page {
                     let page_tree = unsafe {
                         cast::transmute_lifetime(page_tree)
                     };
-                    page_tree.id() == id
+                    page_tree.id == id
                 })
                 .map(|(idx, _)| idx)
         };
@@ -545,29 +541,29 @@ impl Drop for StackRootTLS {
 /// FIXME: Rename to `Page`, following WebKit?
 pub struct ScriptTask {
     /// A handle to the information pertaining to page layout
-    pub page: RefCell<Rc<Page>>,
+    page: RefCell<Rc<Page>>,
     /// A handle to the image cache task.
-    pub image_cache_task: ImageCacheTask,
+    image_cache_task: ImageCacheTask,
     /// A handle to the resource task.
-    pub resource_task: ResourceTask,
+    resource_task: ResourceTask,
 
     /// The port on which the script task receives messages (load URL, exit, etc.)
-    pub port: Receiver<ScriptMsg>,
+    port: Receiver<ScriptMsg>,
     /// A channel to hand out when some other task needs to be able to respond to a message from
     /// the script task.
-    pub chan: ScriptChan,
+    chan: ScriptChan,
 
     /// For communicating load url messages to the constellation
-    pub constellation_chan: ConstellationChan,
+    constellation_chan: ConstellationChan,
     /// A handle to the compositor for communicating ready state messages.
-    pub compositor: Box<ScriptListener>,
+    compositor: Box<ScriptListener>,
 
     /// The JavaScript runtime.
-    pub js_runtime: js::rust::rt,
+    js_runtime: js::rust::rt,
     /// The JSContext.
-    pub js_context: RefCell<Option<Rc<Cx>>>,
+    js_context: RefCell<Option<Rc<Cx>>>,
 
-    pub mouse_over_targets: RefCell<Option<Vec<JS<Node>>>>
+    mouse_over_targets: RefCell<Option<Vec<JS<Node>>>>
 }
 
 /// In the event of task failure, all data on the stack runs its destructor. However, there
