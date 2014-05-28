@@ -21,7 +21,7 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::window::Window;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use dom::xmlhttprequestupload::XMLHttpRequestUpload;
-use net::resource_task::{ResourceTask, Load, Payload, Done};
+use net::resource_task::{ResourceTask, Load, LoadData, Payload, Done};
 use script_task::{ScriptChan, XHRProgressMsg};
 use servo_util::str::DOMString;
 use servo_util::url::{parse_url, try_parse_url};
@@ -31,12 +31,18 @@ use libc;
 use libc::c_void;
 
 use std::comm::channel;
-use std::io::MemWriter;
-
+use std::io::{BufReader, MemWriter};
+use std::from_str::FromStr;
+use std::ascii::StrAsciiExt;
 use std::task::TaskBuilder;
+use std::path::BytesContainer;
 
 use ResponseHeaderCollection = http::headers::response::HeaderCollection;
 use RequestHeaderCollection = http::headers::request::HeaderCollection;
+
+use http::headers::{HeaderEnum, HeaderValueByteIterator};
+use http::headers::request::Header;
+use http::method::{Method, Get, Head, Post, Connect, Trace};
 
 // As send() start accepting more and more parameter types,
 // change this to the appropriate type from UnionTypes, eg
@@ -101,7 +107,7 @@ pub struct XMLHttpRequest {
     response_headers: Untraceable<ResponseHeaderCollection>,
 
     // Associated concepts
-    request_method: ByteString,
+    request_method: Untraceable<Method>,
     request_url: Untraceable<Url>,
     request_headers: Untraceable<RequestHeaderCollection>,
     request_body: SendParam,
@@ -131,7 +137,7 @@ impl XMLHttpRequest {
             response_xml: None,
             response_headers: Untraceable::new(ResponseHeaderCollection::new()),
 
-            request_method: ByteString::new(vec!()),
+            request_method: Untraceable::new(Get),
             request_url: Untraceable::new(parse_url("", None)),
             request_headers: Untraceable::new(RequestHeaderCollection::new()),
             request_body: "".to_owned(),
@@ -163,7 +169,7 @@ impl XMLHttpRequest {
         }
     }
 
-    fn fetch(fetch_type: &mut SyncOrAsync, resource_task: ResourceTask, url: Url) -> ErrorResult {
+    fn fetch(fetch_type: &mut SyncOrAsync, resource_task: ResourceTask, load_data: LoadData) -> ErrorResult {
 
         fn notify_partial_progress(fetch_type: &mut SyncOrAsync, msg: XHRProgress) {
             match *fetch_type {
@@ -179,7 +185,7 @@ impl XMLHttpRequest {
 
         // Step 10, 13
         let (start_chan, start_port) = channel();
-        resource_task.send(Load(url, start_chan));
+        resource_task.send(Load(load_data, start_chan));
         let response = start_port.recv();
         notify_partial_progress(fetch_type, HeadersReceivedMsg(response.metadata.headers.clone()));
         let mut buf = vec!();
@@ -213,7 +219,7 @@ pub trait XMLHttpRequestMethods<'a> {
     fn Open(&mut self, _method: ByteString, _url: DOMString) -> ErrorResult;
     fn Open_(&mut self, _method: ByteString, _url: DOMString, _async: bool,
              _username: Option<DOMString>, _password: Option<DOMString>) -> ErrorResult;
-    fn SetRequestHeader(&self, _name: ByteString, _value: ByteString);
+    fn SetRequestHeader(&mut self, name: ByteString, mut value: ByteString) -> ErrorResult;
     fn Timeout(&self) -> u32;
     fn SetTimeout(&mut self, timeout: u32);
     fn WithCredentials(&self) -> bool;
@@ -239,15 +245,15 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
         self.ready_state as u16
     }
     fn Open(&mut self, method: ByteString, url: DOMString) -> ErrorResult {
-        self.request_method = method;
-
+        let maybe_method: Option<Method> = method.as_str().and_then(|s| {
+            FromStr::from_str(s.to_ascii_upper()) // rust-http tests against the uppercase versions
+        });
         // Step 2
         let base: Option<Url> = Some(self.global.root().get_url());
-        match self.request_method.to_lower().as_str() {
-            Some("get") => {
+        match maybe_method {
+            Some(Get) | Some(Post) | Some(Head) => {
 
-                // Step 5
-                self.request_method = self.request_method.to_lower();
+                *self.request_method = maybe_method.unwrap();
 
                 // Step 6
                 let parsed_url = match try_parse_url(url, base) {
@@ -257,8 +263,8 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
                 // XXXManishearth Do some handling of username/passwords, and abort existing requests
 
                 // Step 12
-                self.request_url = Untraceable::new(parsed_url);
-                self.request_headers = Untraceable::new(RequestHeaderCollection::new());
+                *self.request_url = parsed_url;
+                *self.request_headers = RequestHeaderCollection::new();
                 self.send_flag = false;
                 // XXXManishearth Set response to a NetworkError
 
@@ -268,12 +274,13 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
                 Ok(())
             },
             // XXXManishearth Handle other standard methods
-            Some("connect") | Some("trace") | Some("track") => {
+            Some(Connect) | Some(Trace) => {
+                // XXXManishearth Track isn't in rust-http, but it should end up in this match arm.
                 Err(Security) // Step 4
             },
-            None => Err(Syntax),
+            None => Err(Syntax), // Step 3
             _ => {
-                if self.request_method.is_token() {
+                if method.is_token() {
                     Ok(()) // XXXManishearth handle extension methods
                 } else {
                     Err(Syntax) // Step 3
@@ -286,8 +293,69 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
         self.sync = !async;
         self.Open(method, url)
     }
-    fn SetRequestHeader(&self, _name: ByteString, _value: ByteString) {
+    fn SetRequestHeader(&mut self, name: ByteString, mut value: ByteString) -> ErrorResult {
+        if self.ready_state != Opened || self.send_flag {
+            return Err(InvalidState); // Step 1, 2
+        }
+        if !name.is_token() || !value.is_field_value() {
+            return Err(Syntax); // Step 3, 4
+        }
+        let name_str = match name.to_lower().as_str() {
+            Some(s) => {
+                match s {
+                    // Disallowed headers
+                    "accept-charset" | "accept-encoding" |
+                    "access-control-request-headers" |
+                    "access-control-request-method" |
+                    "connection" | "content-length" |
+                    "cookie" | "cookie2" | "date" |"dnt" |
+                    "expect" | "host" | "keep-alive" | "origin" |
+                    "referer" | "te" | "trailer" | "transfer-encoding" |
+                    "upgrade" | "user-agent" | "via" => {
+                        return Ok(()); // Step 5
+                    },
+                    _ => StrBuf::from_str(s)
+                }
+            },
+            None => return Err(Syntax)
+        };
+        let collection = self.request_headers.deref_mut();
 
+
+        // Steps 6,7
+        let old_header = collection.iter().find(|ref h| -> bool {
+            // XXXManishearth following line waiting on the rust upgrade:
+            ByteString::new(h.header_name().into_bytes()).eq_ignore_case(&value)
+        });
+        match old_header {
+            Some(h) => {
+                unsafe {
+                    // By step 4, the value is a subset of valid utf8
+                    // So this unsafe block should never fail
+
+                    let mut buf = h.header_value();
+                    buf.push_bytes(&[0x2C, 0x20]);
+                    buf.push_bytes(value.as_slice());
+                    value = ByteString::new(buf.container_into_owned_bytes());
+
+                }
+            },
+            None => {}
+        }
+
+        let mut reader = BufReader::new(value.as_slice());
+        let maybe_header: Option<Header> = HeaderEnum::value_from_stream(
+                                                            name_str,
+                                                            &mut HeaderValueByteIterator::new(&mut reader));
+        match maybe_header {
+            Some(h) => {
+                // Overwrites existing headers, which we want since we have
+                // prepended the new header value with the old one already
+                collection.insert(h);
+                Ok(())
+            },
+            None => Err(Syntax)
+        }
     }
     fn Timeout(&self) -> u32 {
         self.timeout
@@ -305,13 +373,12 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
         Temporary::new(self.upload.get_ref().clone())
     }
     fn Send(&mut self, data: Option<DOMString>) -> ErrorResult {
-        // XXXManishearth handle POSTdata, and headers
         if self.ready_state != Opened || self.send_flag {
             return Err(InvalidState); // Step 1, 2
         }
 
-        let _data = match self.request_method.to_lower().as_str() {
-            Some("get") | Some("head") => None, // Step 3
+        let data = match *self.request_method {
+            Get | Head => None, // Step 3
             _ => data
         };
 
@@ -324,16 +391,23 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
         self.send_flag = true;
         let mut global = self.global.root();
         let resource_task = global.page().resource_task.deref().clone();
-        let url = self.request_url.clone();
+        let mut load_data = LoadData::new((*self.request_url).clone());
+        load_data.data = data;
+
+        // XXXManishearth deal with the Origin/Referer/Accept headers
+        // XXXManishearth the below is only valid when content type is not already set by the user.
+        self.insert_trusted_header("content-type".to_owned(), "text/plain;charset=UTF-8".to_owned());
+        load_data.headers = (*self.request_headers).clone();
+        load_data.method = (*self.request_method).clone();
         if self.sync {
-            return XMLHttpRequest::fetch(&mut Sync(self), resource_task, url);
+            return XMLHttpRequest::fetch(&mut Sync(self), resource_task, load_data);
         } else {
             let builder = TaskBuilder::new().named("XHRTask");
             unsafe {
                 let addr = self.to_trusted();
                 let script_chan = global.script_chan.clone();
                 builder.spawn(proc() {
-                    let _ = XMLHttpRequest::fetch(&mut Async(addr, script_chan), resource_task, url);
+                    let _ = XMLHttpRequest::fetch(&mut Async(addr, script_chan), resource_task, load_data);
                 })
             }
         }
@@ -431,6 +505,7 @@ trait PrivateXMLHttpRequestHelpers {
     fn release(&mut self);
     fn change_ready_state(&mut self, XMLHttpRequestState);
     fn process_partial_response(&mut self, progress: XHRProgress);
+    fn insert_trusted_header(&mut self, name: ~str, value: ~str);
 }
 
 impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
@@ -492,5 +567,17 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                 self.release();
             }
         }
+    }
+
+    fn insert_trusted_header(&mut self, name: ~str, value: ~str) {
+        // Insert a header without checking spec-compliance
+        // Use for hardcoded headers
+        let collection = self.request_headers.deref_mut();
+        let value_bytes = value.into_bytes();
+        let mut reader = BufReader::new(value_bytes);
+        let maybe_header: Option<Header> = HeaderEnum::value_from_stream(
+                                                                StrBuf::from_str(name),
+                                                                &mut HeaderValueByteIterator::new(&mut reader));
+        collection.insert(maybe_header.unwrap());
     }
 }

@@ -18,7 +18,7 @@ use script_task::Page;
 
 use hubbub::hubbub;
 use hubbub::hubbub::{NullNs, XLinkNs, XmlNs, XmlNsNs};
-use servo_net::resource_task::{Load, Payload, Done, ResourceTask, load_whole_resource};
+use servo_net::resource_task::{Load, LoadData, Payload, Done, ResourceTask, load_whole_resource};
 use servo_util::namespace;
 use servo_util::namespace::Null;
 use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS};
@@ -312,7 +312,7 @@ pub fn parse_html(page: &Page,
 
     // Wait for the LoadResponse so that the parser knows the final URL.
     let (input_chan, input_port) = channel();
-    resource_task.send(Load(url.clone(), input_chan));
+    resource_task.send(Load(LoadData::new(url.clone()), input_chan));
     let load_response = input_port.recv();
 
     debug!("Fetched page; metadata is {:?}", load_response.metadata);

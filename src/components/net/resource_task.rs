@@ -11,7 +11,9 @@ use data_loader;
 use std::comm::{channel, Receiver, Sender};
 use std::task::TaskBuilder;
 use http::headers::content_type::MediaType;
-use http::headers::response::HeaderCollection;
+use ResponseHeaderCollection = http::headers::response::HeaderCollection;
+use RequestHeaderCollection = http::headers::request::HeaderCollection;
+use http::method::{Method, Get};
 use url::Url;
 
 #[cfg(test)]
@@ -19,8 +21,27 @@ use std::from_str::FromStr;
 
 pub enum ControlMsg {
     /// Request the data associated with a particular URL
-    Load(Url, Sender<LoadResponse>),
+    Load(LoadData, Sender<LoadResponse>),
     Exit
+}
+
+#[deriving(Clone)]
+pub struct LoadData {
+    pub url: Url,
+    pub method: Method,
+    pub headers: RequestHeaderCollection,
+    pub data: Option<~str>
+}
+
+impl LoadData {
+    pub fn new(url: Url) -> LoadData {
+        LoadData {
+            url: url,
+            method: Get,
+            headers: RequestHeaderCollection::new(),
+            data: None
+        }
+    }
 }
 
 /// Metadata about a loaded resource, such as is obtained from HTTP headers.
@@ -35,7 +56,7 @@ pub struct Metadata {
     pub charset: Option<~str>,
 
     /// Headers
-    pub headers: Option<HeaderCollection>,
+    pub headers: Option<ResponseHeaderCollection>,
 }
 
 impl Metadata {
@@ -102,7 +123,7 @@ pub fn start_sending(start_chan: Sender<LoadResponse>, metadata: Metadata) -> Se
 pub fn load_whole_resource(resource_task: &ResourceTask, url: Url)
         -> Result<(Metadata, Vec<u8>), ~str> {
     let (start_chan, start_port) = channel();
-    resource_task.send(Load(url, start_chan));
+    resource_task.send(Load(LoadData::new(url), start_chan));
     let response = start_port.recv();
 
     let mut buf = vec!();
@@ -118,7 +139,7 @@ pub fn load_whole_resource(resource_task: &ResourceTask, url: Url)
 /// Handle to a resource task
 pub type ResourceTask = Sender<ControlMsg>;
 
-pub type LoaderTask = proc(url: Url, Sender<LoadResponse>);
+pub type LoaderTask = proc(load_data: LoadData, Sender<LoadResponse>);
 
 /**
 Creates a task to load a specific resource
@@ -169,8 +190,8 @@ impl ResourceManager {
     fn start(&self) {
         loop {
             match self.from_client.recv() {
-              Load(url, start_chan) => {
-                self.load(url.clone(), start_chan)
+              Load(load_data, start_chan) => {
+                self.load(load_data.clone(), start_chan)
               }
               Exit => {
                 break
@@ -179,24 +200,24 @@ impl ResourceManager {
         }
     }
 
-    fn load(&self, url: Url, start_chan: Sender<LoadResponse>) {
-        match self.get_loader_factory(&url) {
+    fn load(&self, load_data: LoadData, start_chan: Sender<LoadResponse>) {
+        match self.get_loader_factory(&load_data) {
             Some(loader_factory) => {
-                debug!("resource_task: loading url: {:s}", url.to_str());
-                loader_factory(url, start_chan);
+                debug!("resource_task: loading url: {:s}", load_data.url.to_str());
+                loader_factory(load_data, start_chan);
             }
             None => {
-                debug!("resource_task: no loader for scheme {:s}", url.scheme);
-                start_sending(start_chan, Metadata::default(url)).send(Done(Err("no loader for scheme".to_owned())));
+                debug!("resource_task: no loader for scheme {:s}", load_data.url.scheme);
+                start_sending(start_chan, Metadata::default(load_data.url)).send(Done(Err("no loader for scheme".to_owned())));
             }
         }
     }
 
-    fn get_loader_factory(&self, url: &Url) -> Option<LoaderTask> {
+    fn get_loader_factory(&self, load_data: &LoadData) -> Option<LoaderTask> {
         for scheme_loader in self.loaders.iter() {
             match *scheme_loader {
                 (ref scheme, ref loader_factory) => {
-	            if (*scheme) == url.scheme {
+	            if (*scheme) == load_data.url.scheme {
                         return Some((*loader_factory)());
                     }
 	        }
@@ -216,7 +237,7 @@ fn test_exit() {
 fn test_bad_scheme() {
     let resource_task = ResourceTask();
     let (start_chan, start) = channel();
-    resource_task.send(Load(FromStr::from_str("bogus://whatever").unwrap(), start_chan));
+    resource_task.send(Load(LoadData::new(FromStr::from_str("bogus://whatever").unwrap()), start_chan));
     let response = start.recv();
     match response.progress_port.recv() {
       Done(result) => { assert!(result.is_err()) }
@@ -230,8 +251,8 @@ static snicklefritz_payload: [u8, ..3] = [1, 2, 3];
 
 #[cfg(test)]
 fn snicklefritz_loader_factory() -> LoaderTask {
-    let f: LoaderTask = proc(url: Url, start_chan: Sender<LoadResponse>) {
-        let progress_chan = start_sending(start_chan, Metadata::default(url));
+    let f: LoaderTask = proc(load_data: LoadData, start_chan: Sender<LoadResponse>) {
+        let progress_chan = start_sending(start_chan, Metadata::default(load_data.url));
         progress_chan.send(Payload(Vec::from_slice(snicklefritz_payload)));
         progress_chan.send(Done(Ok(())));
     };
@@ -243,7 +264,7 @@ fn should_delegate_to_scheme_loader() {
     let loader_factories = vec!(("snicklefritz".to_owned(), snicklefritz_loader_factory));
     let resource_task = create_resource_task_with_loaders(loader_factories);
     let (start_chan, start) = channel();
-    resource_task.send(Load(FromStr::from_str("snicklefritz://heya").unwrap(), start_chan));
+    resource_task.send(Load(LoadData::new(FromStr::from_str("snicklefritz://heya").unwrap()), start_chan));
 
     let response = start.recv();
     let progress = response.progress_port;

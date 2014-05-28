@@ -4,7 +4,7 @@
 
 use image::base::{Image, load_from_memory};
 use resource_task;
-use resource_task::ResourceTask;
+use resource_task::{LoadData, ResourceTask};
 use servo_util::url::{UrlMap, url_map};
 
 use std::comm::{channel, Receiver, Sender};
@@ -458,7 +458,7 @@ impl ImageCacheTask {
 
 fn load_image_data(url: Url, resource_task: ResourceTask) -> Result<~[u8], ()> {
     let (response_chan, response_port) = channel();
-    resource_task.send(resource_task::Load(url, response_chan));
+    resource_task.send(resource_task::Load(LoadData::new(url), response_chan));
 
     let mut image_data = vec!();
 

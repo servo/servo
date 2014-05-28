@@ -2,10 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use resource_task::{Done, Payload, Metadata, LoadResponse, LoaderTask, start_sending};
+use resource_task::{Done, Payload, Metadata, LoadData, LoadResponse, LoaderTask, start_sending};
 
 use serialize::base64::FromBase64;
-use url::Url;
 
 use http::headers::test_utils::from_stream_with_str;
 use http::headers::content_type::MediaType;
@@ -19,7 +18,8 @@ pub fn factory() -> LoaderTask {
     }
 }
 
-fn load(url: Url, start_chan: Sender<LoadResponse>) {
+fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
+    let url = load_data.url;
     assert!("data" == url.scheme);
 
     let mut metadata = Metadata::default(url.clone());
@@ -76,7 +76,7 @@ fn assert_parse(url:          &'static str,
     use std::comm;
 
     let (start_chan, start_port) = comm::channel();
-    load(FromStr::from_str(url).unwrap(), start_chan);
+    load(LoadData::new(FromStr::from_str(url).unwrap()), start_chan);
 
     let response = start_port.recv();
     assert_eq!(&response.metadata.content_type, &content_type);
