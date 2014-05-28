@@ -63,7 +63,12 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
                 return;
             }
         };
+
+        // Preserve the `host` header set automatically by RequestWriter.
+        let host = writer.headers.host.clone();
         writer.headers = box load_data.headers.clone();
+        writer.headers.host = host;
+
         match load_data.data {
             Some(ref data) => {
                 writer.headers.content_length = Some(data.len());
