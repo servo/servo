@@ -9,7 +9,7 @@
 ///
 /// Flows are interior nodes in the layout tree and correspond closely to *flow contexts* in the
 /// CSS specification. Flows are responsible for positioning their child flow contexts and fragments.
-/// Flows have purpose-specific fields, such as auxiliary line fragment structs, out-of-flow child
+/// Flows have purpose-specific fields, such as auxiliary line structs, out-of-flow child
 /// lists, and so on.
 ///
 /// Currently, the important types of flows are:
