@@ -77,7 +77,7 @@ static SPIN_COUNT: uint = 1000;
 impl<QUD:Send,WUD:Send> WorkerThread<QUD,WUD> {
     /// The main logic. This function starts up the worker and listens for
     /// messages.
-    pub fn start(&mut self) {
+    fn start(&mut self) {
         loop {
             // Wait for a start message.
             let (mut deque, ref_count, queue_data) = match self.port.recv() {
@@ -161,9 +161,9 @@ impl<QUD:Send,WUD:Send> WorkerThread<QUD,WUD> {
 
 /// A handle to the work queue that individual work units have.
 pub struct WorkerProxy<'a,QUD,WUD> {
-    pub worker: &'a mut Worker<WorkUnit<QUD,WUD>>,
-    pub ref_count: *mut AtomicUint,
-    pub queue_data: *QUD,
+    worker: &'a mut Worker<WorkUnit<QUD,WUD>>,
+    ref_count: *mut AtomicUint,
+    queue_data: *QUD,
 }
 
 impl<'a,QUD,WUD:Send> WorkerProxy<'a,QUD,WUD> {
@@ -192,7 +192,7 @@ pub struct WorkQueue<QUD,WUD> {
     /// A port on which deques can be received from the workers.
     port: Receiver<SupervisorMsg<QUD,WUD>>,
     /// The amount of work that has been enqueued.
-    pub work_count: uint,
+    work_count: uint,
     /// Arbitrary user data.
     pub data: QUD,
 }
