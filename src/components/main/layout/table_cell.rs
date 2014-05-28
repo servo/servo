@@ -4,10 +4,10 @@
 
 //! CSS table formatting contexts.
 
-use layout::box_::Fragment;
 use layout::block::{BlockFlow, MarginsMayNotCollapse, WidthAndMarginsComputer};
 use layout::context::LayoutContext;
 use layout::flow::{TableCellFlowClass, FlowClass, Flow};
+use layout::fragment::Fragment;
 use layout::model::{MaybeAuto};
 use layout::table::InternalTable;
 use layout::wrapper::ThreadSafeLayoutNode;

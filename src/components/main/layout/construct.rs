@@ -22,14 +22,14 @@
 
 use css::node_style::StyledNode;
 use layout::block::BlockFlow;
-use layout::box_::{Fragment, GenericFragment, IframeFragment, IframeFragmentInfo, ImageFragment, ImageFragmentInfo};
-use layout::box_::{SpecificFragmentInfo, TableFragment, TableCellFragment, TableColumnFragment, TableColumnFragmentInfo};
-use layout::box_::{TableRowFragment, TableWrapperFragment, UnscannedTextFragment, UnscannedTextFragmentInfo};
 use layout::context::LayoutContext;
 use layout::floats::FloatKind;
 use layout::flow::{Flow, ImmutableFlowUtils, MutableOwnedFlowUtils};
 use layout::flow::{Descendants, AbsDescendants};
 use layout::flow_list::{Rawlink};
+use layout::fragment::{Fragment, GenericFragment, IframeFragment, IframeFragmentInfo, ImageFragment, ImageFragmentInfo};
+use layout::fragment::{SpecificFragmentInfo, TableFragment, TableCellFragment, TableColumnFragment, TableColumnFragmentInfo};
+use layout::fragment::{TableRowFragment, TableWrapperFragment, UnscannedTextFragment, UnscannedTextFragmentInfo};
 use layout::inline::{FragmentIndex, InlineFragments, InlineFlow};
 use layout::table_wrapper::TableWrapperFlow;
 use layout::table::TableFlow;

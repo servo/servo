@@ -95,12 +95,12 @@ pub mod pipeline;
 
 pub mod layout {
     pub mod block;
-    pub mod box_;
     pub mod construct;
     pub mod context;
     pub mod floats;
     pub mod flow;
     pub mod flow_list;
+    pub mod fragment;
     pub mod layout_task;
     pub mod inline;
     pub mod model;

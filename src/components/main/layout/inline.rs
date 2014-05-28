@@ -3,11 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use css::node_style::StyledNode;
-use layout::box_::{Fragment, ScannedTextFragment, ScannedTextFragmentInfo, SplitInfo};
 use layout::context::LayoutContext;
 use layout::floats::{FloatLeft, Floats, PlacementInfo};
 use layout::flow::{BaseFlow, FlowClass, Flow, InlineFlowClass};
 use layout::flow;
+use layout::fragment::{Fragment, ScannedTextFragment, ScannedTextFragmentInfo, SplitInfo};
 use layout::model::IntrinsicWidths;
 use layout::model;
 use layout::text;

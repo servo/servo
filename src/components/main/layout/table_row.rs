@@ -4,13 +4,13 @@
 
 //! CSS table formatting contexts.
 
-use layout::box_::Fragment;
 use layout::block::BlockFlow;
 use layout::block::WidthAndMarginsComputer;
 use layout::construct::FlowConstructor;
 use layout::context::LayoutContext;
 use layout::flow::{TableRowFlowClass, FlowClass, Flow, ImmutableFlowUtils};
 use layout::flow;
+use layout::fragment::Fragment;
 use layout::table::InternalTable;
 use layout::model::{MaybeAuto, Specified, Auto};
 use layout::wrapper::ThreadSafeLayoutNode;

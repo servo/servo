@@ -4,7 +4,7 @@
 
 //! Borders, padding, and margins.
 
-use layout::box_::Fragment;
+use layout::fragment::Fragment;
 
 use computed = style::computed_values;
 use geom::SideOffsets2D;

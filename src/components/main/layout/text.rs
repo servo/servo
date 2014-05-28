@@ -4,8 +4,8 @@
 
 //! Text layout.
 
-use layout::box_::{Fragment, ScannedTextFragment, ScannedTextFragmentInfo, UnscannedTextFragment};
 use layout::flow::Flow;
+use layout::fragment::{Fragment, ScannedTextFragment, ScannedTextFragmentInfo, UnscannedTextFragment};
 use layout::inline::InlineFragments;
 
 use gfx::font::{FontMetrics, FontStyle};

@@ -4,9 +4,9 @@
 
 //! CSS table formatting contexts.
 
-use layout::box_::{Fragment, TableColumnFragment};
 use layout::context::LayoutContext;
 use layout::flow::{BaseFlow, TableColGroupFlowClass, FlowClass, Flow};
+use layout::fragment::{Fragment, TableColumnFragment};
 use layout::model::{MaybeAuto};
 use layout::wrapper::ThreadSafeLayoutNode;
 

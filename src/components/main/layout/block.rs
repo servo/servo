@@ -12,13 +12,13 @@
 //!
 //! CB: Containing Block of the current flow.
 
-use layout::box_::{Fragment, ImageFragment, ScannedTextFragment};
 use layout::construct::FlowConstructor;
 use layout::context::LayoutContext;
 use layout::floats::{ClearBoth, ClearLeft, ClearRight, FloatKind, Floats, PlacementInfo};
 use layout::flow::{BaseFlow, BlockFlowClass, FlowClass, Flow, ImmutableFlowUtils};
 use layout::flow::{MutableFlowUtils, PreorderFlowTraversal, PostorderFlowTraversal, mut_base};
 use layout::flow;
+use layout::fragment::{Fragment, ImageFragment, ScannedTextFragment};
 use layout::model::{Auto, IntrinsicWidths, MarginCollapseInfo, MarginsCollapse};
 use layout::model::{MarginsCollapseThrough, MaybeAuto, NoCollapsibleMargins, Specified, specified};
 use layout::model::{specified_or_none};

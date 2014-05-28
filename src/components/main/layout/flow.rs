@@ -27,10 +27,10 @@
 
 use css::node_style::StyledNode;
 use layout::block::BlockFlow;
-use layout::box_::{Fragment, TableRowFragment, TableCellFragment};
 use layout::context::LayoutContext;
 use layout::floats::Floats;
 use layout::flow_list::{FlowList, Link, Rawlink, FlowListIterator, MutFlowListIterator};
+use layout::fragment::{Fragment, TableRowFragment, TableCellFragment};
 use layout::incremental::RestyleDamage;
 use layout::inline::InlineFlow;
 use layout::model::{CollapsibleMargins, IntrinsicWidths, MarginCollapseInfo};
