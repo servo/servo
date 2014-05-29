@@ -13,6 +13,7 @@ use dom::virtualmethods::vtable_for;
 use servo_util::namespace;
 use servo_util::namespace::Namespace;
 use servo_util::str::DOMString;
+use std::cell::Cell;
 
 pub enum AttrSettingType {
     FirstSetAttr,
@@ -29,7 +30,7 @@ pub struct Attr {
     pub prefix: Option<DOMString>,
 
     /// the element that owns this attribute.
-    pub owner: JS<Element>,
+    pub owner: Cell<JS<Element>>,
 }
 
 impl Reflectable for Attr {
@@ -53,7 +54,7 @@ impl Attr {
             name: name, //TODO: Intern attribute names
             namespace: namespace,
             prefix: prefix,
-            owner: owner.unrooted(),
+            owner: Cell::new(owner.unrooted()),
         }
     }
 
@@ -65,7 +66,7 @@ impl Attr {
     }
 
     pub fn set_value(&mut self, set_type: AttrSettingType, value: DOMString) {
-        let mut owner = self.owner.root();
+        let mut owner = self.owner.get().root();
         let node: &mut JSRef<Node> = NodeCast::from_mut_ref(&mut *owner);
         let namespace_is_null = self.namespace == namespace::Null;
 

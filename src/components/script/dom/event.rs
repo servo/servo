@@ -10,6 +10,7 @@ use dom::bindings::error::Fallible;
 use dom::eventtarget::EventTarget;
 use dom::window::Window;
 use servo_util::str::DOMString;
+use std::cell::Cell;
 
 use geom::point::Point2D;
 
@@ -46,8 +47,8 @@ pub enum EventTypeId {
 pub struct Event {
     pub type_id: EventTypeId,
     pub reflector_: Reflector,
-    pub current_target: Option<JS<EventTarget>>,
-    pub target: Option<JS<EventTarget>>,
+    pub current_target: Cell<Option<JS<EventTarget>>>,
+    pub target: Cell<Option<JS<EventTarget>>>,
     pub type_: DOMString,
     pub phase: EventPhase,
     pub canceled: bool,
@@ -66,8 +67,8 @@ impl Event {
         Event {
             type_id: type_id,
             reflector_: Reflector::new(),
-            current_target: None,
-            target: None,
+            current_target: Cell::new(None),
+            target: Cell::new(None),
             phase: PhaseNone,
             type_: "".to_owned(),
             canceled: false,
@@ -123,11 +124,11 @@ impl<'a> EventMethods for JSRef<'a, Event> {
     }
 
     fn GetTarget(&self) -> Option<Temporary<EventTarget>> {
-        self.target.as_ref().map(|target| Temporary::new(target.clone()))
+        self.target.get().as_ref().map(|target| Temporary::new(target.clone()))
     }
 
     fn GetCurrentTarget(&self) -> Option<Temporary<EventTarget>> {
-        self.current_target.as_ref().map(|target| Temporary::new(target.clone()))
+        self.current_target.get().as_ref().map(|target| Temporary::new(target.clone()))
     }
 
     fn DefaultPrevented(&self) -> bool {
@@ -173,7 +174,7 @@ impl<'a> EventMethods for JSRef<'a, Event> {
         self.stop_immediate = false;
         self.canceled = false;
         self.trusted = false;
-        self.target = None;
+        self.target.set(None);
         self.type_ = type_;
         self.bubbles = bubbles;
         self.cancelable = cancelable;

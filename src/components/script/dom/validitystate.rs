@@ -6,11 +6,12 @@ use dom::bindings::codegen::BindingDeclarations::ValidityStateBinding;
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::window::Window;
+use std::cell::Cell;
 
 #[deriving(Encodable)]
 pub struct ValidityState {
     pub reflector_: Reflector,
-    pub window: JS<Window>,
+    pub window: Cell<JS<Window>>,
     pub state: u8,
 }
 
@@ -18,7 +19,7 @@ impl ValidityState {
     pub fn new_inherited(window: &JSRef<Window>) -> ValidityState {
         ValidityState {
             reflector_: Reflector::new(),
-            window: window.unrooted(),
+            window: Cell::new(window.unrooted()),
             state: 0,
         }
     }

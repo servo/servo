@@ -136,6 +136,10 @@ pub struct LayoutNode<'a> {
 
     /// Being chained to a ContravariantLifetime prevents `LayoutNode`s from escaping.
     pub chain: ContravariantLifetime<'a>,
+
+    /// Padding to ensure the transmute `JS<T>` -> `LayoutNode`, `LayoutNode` -> `UnsafeLayoutNode`,
+    /// and `UnsafeLayoutNode` -> others.
+    pad: uint
 }
 
 impl<'ln> Clone for LayoutNode<'ln> {
@@ -143,6 +147,7 @@ impl<'ln> Clone for LayoutNode<'ln> {
         LayoutNode {
             node: self.node.clone(),
             chain: self.chain,
+            pad: 0,
         }
     }
 }
@@ -160,6 +165,7 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
         LayoutNode {
             node: node.transmute_copy(),
             chain: self.chain,
+            pad: 0,
         }
     }
 
@@ -175,7 +181,7 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
 
     fn first_child(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
-            self.get_jsmanaged().first_child_ref().map(|node| self.new_with_this_lifetime(node))
+            self.get_jsmanaged().first_child_ref().map(|node| self.new_with_this_lifetime(&node))
         }
     }
 
@@ -196,6 +202,7 @@ impl<'ln> LayoutNode<'ln> {
         f(LayoutNode {
             node: node,
             chain: ContravariantLifetime,
+            pad: 0,
         })
     }
 
@@ -223,19 +230,19 @@ impl<'ln> LayoutNode<'ln> {
 impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
     fn parent_node(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
-            self.node.parent_node_ref().map(|node| self.new_with_this_lifetime(node))
+            self.node.parent_node_ref().map(|node| self.new_with_this_lifetime(&node))
         }
     }
 
     fn prev_sibling(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
-            self.node.prev_sibling_ref().map(|node| self.new_with_this_lifetime(node))
+            self.node.prev_sibling_ref().map(|node| self.new_with_this_lifetime(&node))
         }
     }
 
     fn next_sibling(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
-            self.node.next_sibling_ref().map(|node| self.new_with_this_lifetime(node))
+            self.node.next_sibling_ref().map(|node| self.new_with_this_lifetime(&node))
         }
     }
 
@@ -425,6 +432,7 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
             node: LayoutNode {
                 node: node.transmute_copy(),
                 chain: self.node.chain,
+                pad: 0,
             },
             pseudo: Normal,
         }
@@ -463,7 +471,7 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
         }
 
         unsafe {
-            self.get_jsmanaged().first_child_ref().map(|node| self.new_with_this_lifetime(node))
+            self.get_jsmanaged().first_child_ref().map(|node| self.new_with_this_lifetime(&node))
         }
     }
 
@@ -513,10 +521,10 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     /// Returns the next sibling of this node. Unsafe and private because this can lead to races.
     unsafe fn next_sibling(&self) -> Option<ThreadSafeLayoutNode<'ln>> {
         if self.pseudo == Before || self.pseudo == BeforeBlock {
-            return self.get_jsmanaged().first_child_ref().map(|node| self.new_with_this_lifetime(node))
+            return self.get_jsmanaged().first_child_ref().map(|node| self.new_with_this_lifetime(&node))
         }
 
-        self.get_jsmanaged().next_sibling_ref().map(|node| self.new_with_this_lifetime(node))
+        self.get_jsmanaged().next_sibling_ref().map(|node| self.new_with_this_lifetime(&node))
     }
 
     /// Returns an iterator over this node's children.

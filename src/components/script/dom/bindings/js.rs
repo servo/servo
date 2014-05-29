@@ -47,7 +47,7 @@ use layout_interface::TrustedNodeAddress;
 use script_task::StackRoots;
 
 use std::cast;
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::kinds::marker::ContravariantLifetime;
 
 /// A type that represents a JS-owned value that is rooted for the lifetime of this value.
@@ -111,7 +111,7 @@ impl<T: Reflectable> Temporary<T> {
 
 /// A rooted, JS-owned value. Must only be used as a field in other JS-owned types.
 pub struct JS<T> {
-    ptr: RefCell<*mut T>
+    ptr: *T
 }
 
 impl<T> Eq for JS<T> {
@@ -134,7 +134,7 @@ impl JS<Node> {
     pub unsafe fn from_trusted_node_address(inner: TrustedNodeAddress) -> JS<Node> {
         let TrustedNodeAddress(addr) = inner;
         JS {
-            ptr: RefCell::new(addr as *mut Node)
+            ptr: addr as *Node
         }
     }
 }
@@ -143,7 +143,7 @@ impl JS<XMLHttpRequest> {
     pub unsafe fn from_trusted_xhr_address(inner: TrustedXHRAddress) -> JS<XMLHttpRequest> {
         let TrustedXHRAddress(addr) = inner;
         JS {
-            ptr: RefCell::new(addr as *mut XMLHttpRequest)
+            ptr: addr as *XMLHttpRequest
         }
     }
 }
@@ -152,7 +152,7 @@ impl<T: Reflectable> JS<T> {
     /// Create a new JS-owned value wrapped from a raw Rust pointer.
     pub unsafe fn from_raw(raw: *mut T) -> JS<T> {
         JS {
-            ptr: RefCell::new(raw)
+            ptr: raw as *T
         }
     }
 
@@ -268,6 +268,15 @@ impl<T: Assignable<U>, U: Reflectable> OptionalSettable<T> for Option<JS<U>> {
         *self = val.map(|val| unsafe { val.get_js() });
     }
 }
+
+impl<T: Assignable<U>, U: Reflectable> OptionalSettable<T> for Cell<Option<JS<U>>> {
+    fn assign(&mut self, val: Option<T>) {
+        let mut item = self.get();
+        item.assign(val);
+        self.set(item);
+    }
+}
+
 
 /// Root a rootable Option type (used for Option<Temporary<T>>)
 pub trait OptionalRootable<T> {
@@ -394,7 +403,7 @@ pub struct Root<'a, 'b, T> {
     /// Reference to rooted value that must not outlive this container
     jsref: JSRef<'b, T>,
     /// Pointer to underlying Rust data
-    ptr: RefCell<*mut T>,
+    ptr: *T,
     /// On-stack JS pointer to assuage conservative stack scanner
     js_ptr: *mut JSObject,
 }
@@ -445,25 +454,23 @@ impl<'a, 'b, T: Reflectable> DerefMut<JSRef<'b, T>> for Root<'a, 'b, T> {
 
 impl<'a, T: Reflectable> Deref<T> for JSRef<'a, T> {
     fn deref<'b>(&'b self) -> &'b T {
-        let borrow = self.ptr.borrow();
         unsafe {
-            &**borrow
+            &*self.ptr
         }
     }
 }
 
 impl<'a, T: Reflectable> DerefMut<T> for JSRef<'a, T> {
     fn deref_mut<'b>(&'b mut self) -> &'b mut T {
-        let mut borrowed = self.ptr.borrow_mut();
         unsafe {
-            &mut **borrowed
+            &mut *(self.ptr as *mut T)
         }
     }
 }
 
 /// Encapsulates a reference to something that is guaranteed to be alive. This is freely copyable.
 pub struct JSRef<'a, T> {
-    ptr: RefCell<*mut T>,
+    ptr: *T,
     chain: ContravariantLifetime<'a>,
 }
 
@@ -495,7 +502,7 @@ impl<'a,T> JSRef<'a,T> {
 
     pub fn unrooted(&self) -> JS<T> {
         JS {
-            ptr: self.ptr.clone()
+            ptr: self.ptr
         }
     }
 }

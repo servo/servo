@@ -18,9 +18,10 @@ pub struct ClientRectList {
 impl ClientRectList {
     pub fn new_inherited(window: &JSRef<Window>,
                          rects: Vec<JSRef<ClientRect>>) -> ClientRectList {
+        let rects = rects.iter().map(|rect| rect.unrooted()).collect();
         ClientRectList {
             reflector_: Reflector::new(),
-            rects: rects.iter().map(|rect| rect.unrooted()).collect(),
+            rects: rects,
             window: window.unrooted(),
         }
     }
@@ -44,8 +45,9 @@ impl<'a> ClientRectListMethods for JSRef<'a, ClientRectList> {
     }
 
     fn Item(&self, index: u32) -> Option<Temporary<ClientRect>> {
-        if index < self.rects.len() as u32 {
-            Some(Temporary::new(self.rects.get(index as uint).clone()))
+        let rects = &self.rects;
+        if index < rects.len() as u32 {
+            Some(Temporary::new(rects.get(index as uint).clone()))
         } else {
             None
         }

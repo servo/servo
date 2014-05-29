@@ -162,7 +162,7 @@ pub struct Page {
     resize_event: Untraceable<Cell<Option<Size2D<uint>>>>,
 
     /// Pending scroll to fragment event, if any
-    fragment_node: Traceable<RefCell<Option<JS<Element>>>>,
+    fragment_node: Cell<Option<JS<Element>>>,
 
     /// Associated resource task for use by DOM objects like XMLHttpRequest
     pub resource_task: Untraceable<ResourceTask>,
@@ -221,7 +221,7 @@ impl Page {
             url: Untraceable::new(RefCell::new(None)),
             next_subpage_id: Untraceable::new(Cell::new(SubpageId(0))),
             resize_event: Untraceable::new(Cell::new(None)),
-            fragment_node: Traceable::new(RefCell::new(None)),
+            fragment_node: Cell::new(None),
             last_reflow_id: Traceable::new(Cell::new(0)),
             resource_task: Untraceable::new(resource_task),
             constellation_chan: Untraceable::new(constellation_chan),
@@ -1043,8 +1043,8 @@ impl ScriptTask {
         let _ = wintarget.dispatch_event_with_target(Some((*doctarget).clone()),
                                                      &mut *event);
 
-        let mut fragment_node = page.fragment_node.deref().borrow_mut();
-        (*fragment_node).assign(fragment.map_or(None, |fragid| page.find_fragment_node(fragid)));
+        let mut fragment_node = page.fragment_node.get();
+        fragment_node.assign(fragment.map_or(None, |fragid| page.find_fragment_node(fragid)));
 
         let ConstellationChan(ref chan) = self.constellation_chan;
         chan.send(LoadCompleteMsg(page.id, url));
@@ -1080,7 +1080,7 @@ impl ScriptTask {
                         page.reflow(ReflowForDisplay, self.chan.clone(), self.compositor)
                     }
 
-                    let mut fragment_node = page.fragment_node.deref().borrow_mut();
+                    let mut fragment_node = page.fragment_node.get();
                     match fragment_node.take().map(|node| node.root()) {
                         Some(node) => self.scroll_fragment_point(pipeline_id, &*node),
                         None => {}

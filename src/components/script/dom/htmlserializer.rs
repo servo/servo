@@ -106,7 +106,7 @@ fn serialize_doctype(doctype: &JSRef<DocumentType>, html: &mut StrBuf) {
 fn serialize_elem(elem: &JSRef<Element>, open_elements: &mut Vec<~str>, html: &mut StrBuf) {
     html.push_char('<');
     html.push_str(elem.deref().local_name);
-    for attr in elem.deref().attrs.iter() {
+    for attr in elem.deref().attrs.borrow().iter() {
         let attr = attr.root();
         serialize_attr(&*attr, html);
     };
