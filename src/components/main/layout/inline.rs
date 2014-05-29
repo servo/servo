@@ -82,12 +82,62 @@ pub struct Line {
     /// The ranges that describe these lines would be:
     ///
     /// ~~~
-    /// | [0.0, 1.4) | [1.5, 2.0)  | [2.0, 3.4)  | [3.4, 4.0)  |
-    /// |------------|-------------|-------------|-------------|
-    /// | 'I like'   | 'truffles,' | '<img> yes' | 'yes I do.' |
+    /// | [0.0, 1.4) | [1.5, 2.0)  | [2.0, 3.4)  | [3.4, 4.0) |
+    /// |------------|-------------|-------------|------------|
+    /// | 'I like'   | 'truffles,' | '<img> yes' | 'I do.'    |
     /// ~~~
     pub range: Range<LineIndices>,
+    /// The bounds are the exact position and extents of the line with respect
+    /// to the parent box.
+    ///
+    /// For example, for the HTML below...
+    ///
+    /// ~~~html
+    /// <div><span>I <span>like      truffles, <img></span></div>
+    /// ~~~
+    ///
+    /// ...the bounds would be:
+    ///
+    /// ~~~
+    /// +-----------------------------------------------------------+
+    /// |               ^                                           |
+    /// |               |                                           |
+    /// |            origin.y                                       |
+    /// |               |                                           |
+    /// |               v                                           |
+    /// |< - origin.x ->+ - - - - - - - - +---------+----           |
+    /// |               |                 |         |   ^           |
+    /// |               |                 |  <img>  |  size.height  |
+    /// |               I like truffles,  |         |   v           |
+    /// |               + - - - - - - - - +---------+----           |
+    /// |               |                           |               |
+    /// |               |<------ size.width ------->|               |
+    /// |                                                           |
+    /// |                                                           |
+    /// +-----------------------------------------------------------+
+    /// ~~~
     pub bounds: Rect<Au>,
+    /// The green zone is the greatest extent from wich a line can extend to
+    /// before it collides with a float.
+    ///
+    /// ~~~
+    /// +-----------------------+
+    /// |:::::::::::::::::      |
+    /// |:::::::::::::::::FFFFFF|
+    /// |============:::::FFFFFF|
+    /// |:::::::::::::::::FFFFFF|
+    /// |:::::::::::::::::FFFFFF|
+    /// |:::::::::::::::::      |
+    /// |    FFFFFFFFF          |
+    /// |    FFFFFFFFF          |
+    /// |    FFFFFFFFF          |
+    /// |                       |
+    /// +-----------------------+
+    ///
+    /// === line
+    /// ::: green zone
+    /// FFF float
+    /// ~~~
     pub green_zone: Size2D<Au>
 }
 
@@ -105,7 +155,7 @@ pub struct LineIndices {
     ///
     /// For example, given the HTML below:
     ///
-    /// ~~~
+    /// ~~~html
     /// <span>I <span>like      truffles, <img></span> yes I do.</span>
     /// ~~~
     ///
@@ -117,27 +167,26 @@ pub struct LineIndices {
     /// | 'I ' | 'like truffles,' | <img> | ' yes I do.' |
     /// ~~~
     pub fragment_index: FragmentIndex,
-
     /// The index of a character in a DOM fragment. Continuous runs of whitespace
-    /// are treated as single characters. Non-breakable DOM
-    /// fragments such as images are treated as having a range length of `1`.
+    /// are treated as single characters. Non-breakable DOM fragments such as
+    /// images are treated as having a range length of `1`.
     ///
     /// For example, given the HTML below:
     ///
-    /// ~~~
+    /// ~~~html
     /// <span>I <span>like      truffles, <img></span> yes I do.</span>
     /// ~~~
     ///
     /// The characters would be indexed as follows:
     ///
     /// ~~~
-    /// | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
-    /// |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|----|
-    /// | I |   | l | i | k | e | e | l | i | k | e |   | t | r | u | f | f | l  |
+    /// | 0 | 1 | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 |
+    /// |---|---|---|---|---|---|---|---|---|---|---|---|----|----|----|----|----|
+    /// | I |   | l | i | k | e |   | t | r | u | f | f | l  | e  | s  | ,  |    |
     ///
-    /// | 11 | 12 | 13 | 14 |   0   | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
-    /// |----|----|----|----|-------|---|---|---|---|---|---|---|---|---|---|
-    /// | e  | s  | ,  |    | <img> |   | y | e | s |   | I |   | d | o | . |
+    /// |   0   | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
+    /// |-------|---|---|---|---|---|---|---|---|---|---|
+    /// | <img> |   | y | e | s |   | I |   | d | o | . |
     /// ~~~
     pub char_index: CharIndex,
 }
