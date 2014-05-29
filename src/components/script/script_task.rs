@@ -1136,7 +1136,7 @@ impl ScriptTask {
                                         let mut event = Event::new(&*window).root();
                                         event.InitEvent("click".to_owned(), true, true);
                                         let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(&node);
-                                        eventtarget.dispatch_event_with_target(None, &mut *event);
+                                        let _ = eventtarget.dispatch_event_with_target(None, &mut *event);
                                     }
                                     None => {}
                                 }
