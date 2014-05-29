@@ -42,7 +42,8 @@ use std::fmt;
 use std::mem;
 use std::num::Zero;
 use style::computed_values::{LPA_Auto, LPA_Length, LPA_Percentage, LPN_Length, LPN_None};
-use style::computed_values::{LPN_Percentage, LP_Length, LP_Percentage, display, float, overflow};
+use style::computed_values::{LPN_Percentage, LP_Length, LP_Percentage};
+use style::computed_values::{display, direction, float, overflow};
 use sync::Arc;
 
 /// Information specific to floated blocks.
@@ -1717,6 +1718,7 @@ pub struct WidthConstraintInput {
     pub right: MaybeAuto,
     pub available_width: Au,
     pub static_x_offset: Au,
+    pub direction: direction::T,
 }
 
 impl WidthConstraintInput {
@@ -1726,7 +1728,8 @@ impl WidthConstraintInput {
                left: MaybeAuto,
                right: MaybeAuto,
                available_width: Au,
-               static_x_offset: Au)
+               static_x_offset: Au,
+               direction: direction::T)
            -> WidthConstraintInput {
         WidthConstraintInput {
             computed_width: computed_width,
@@ -1736,6 +1739,7 @@ impl WidthConstraintInput {
             right: right,
             available_width: available_width,
             static_x_offset: static_x_offset,
+            direction: direction,
         }
     }
 }
@@ -1814,7 +1818,8 @@ pub trait WidthAndMarginsComputer {
                                          left,
                                          right,
                                          available_width,
-                                         block.static_x_offset());
+                                         block.static_x_offset(),
+                                         style.get_inheritedbox().direction);
     }
 
     /// Set the used values for width and margins got from the relevant constraint equation.
@@ -1940,9 +1945,12 @@ pub trait WidthAndMarginsComputer {
             // If direction is ltr, ignore the specified right margin and
             // solve for it.
             // If it is rtl, ignore the specified left margin.
-            // FIXME(eatkinson): this assumes the direction is ltr
-            (Specified(margin_l), Specified(width), Specified(_margin_r)) =>
-                (margin_l, width, available_width - (margin_l + width )),
+            (Specified(margin_l), Specified(width), Specified(margin_r)) => {
+                match input.direction {
+                    direction::ltr => (margin_l, width, available_width - (margin_l + width)),
+                    direction::rtl => (available_width - (margin_r + width), width, margin_r),
+                }
+            },
 
             // If exactly one value is 'auto', solve for it
             (Auto, Specified(width), Specified(margin_r)) =>
@@ -2004,6 +2012,7 @@ impl WidthAndMarginsComputer for AbsoluteNonReplaced {
             right,
             available_width,
             static_x_offset,
+            direction,
         } = input;
 
         // TODO: Check for direction of parent flow (NOT Containing Block)
@@ -2152,6 +2161,7 @@ impl WidthAndMarginsComputer for AbsoluteReplaced {
             right,
             available_width,
             static_x_offset,
+            direction,
         } = input;
         // TODO: Check for direction of static-position Containing Block (aka
         // parent flow, _not_ the actual Containing Block) when right-to-left
