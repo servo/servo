@@ -12,13 +12,13 @@
 //!
 //! CB: Containing Block of the current flow.
 
-use layout::box_::{Box, ImageBox, ScannedTextBox};
 use layout::construct::FlowConstructor;
 use layout::context::LayoutContext;
 use layout::floats::{ClearBoth, ClearLeft, ClearRight, FloatKind, Floats, PlacementInfo};
 use layout::flow::{BaseFlow, BlockFlowClass, FlowClass, Flow, ImmutableFlowUtils};
 use layout::flow::{MutableFlowUtils, PreorderFlowTraversal, PostorderFlowTraversal, mut_base};
 use layout::flow;
+use layout::fragment::{Fragment, ImageFragment, ScannedTextFragment};
 use layout::model::{Auto, IntrinsicWidths, MarginCollapseInfo, MarginsCollapse};
 use layout::model::{MarginsCollapseThrough, MaybeAuto, NoCollapsibleMargins, Specified, specified};
 use layout::model::{specified_or_none};
@@ -41,7 +41,6 @@ use servo_util::geometry;
 use std::fmt;
 use std::mem;
 use std::num::Zero;
-use std::owned;
 use style::computed_values::{LPA_Auto, LPA_Length, LPA_Percentage, LPN_Length, LPN_None};
 use style::computed_values::{LPN_Percentage, LP_Length, LP_Percentage, display, float, overflow};
 use sync::Arc;
@@ -53,7 +52,7 @@ pub struct FloatedBlockInfo {
     /// Offset relative to where the parent tried to position this flow
     pub rel_pos: Point2D<Au>,
 
-    /// Index into the box list for inline floats
+    /// Index into the fragment list for inline floats
     pub index: Option<uint>,
 
     /// Left or right?
@@ -489,8 +488,8 @@ pub struct BlockFlow {
     /// Data common to all flows.
     pub base: BaseFlow,
 
-    /// The associated box.
-    pub box_: Box,
+    /// The associated fragment.
+    pub fragment: Fragment,
 
     /// TODO: is_root should be a bit field to conserve memory.
     /// Whether this block flow is the root flow.
@@ -504,14 +503,14 @@ pub struct BlockFlow {
     previous_float_width: Option<Au>,
 
     /// Additional floating flow members.
-    pub float: Option<owned::Box<FloatedBlockInfo>>
+    pub float: Option<Box<FloatedBlockInfo>>
 }
 
 impl BlockFlow {
     pub fn from_node(constructor: &mut FlowConstructor, node: &ThreadSafeLayoutNode) -> BlockFlow {
         BlockFlow {
             base: BaseFlow::new((*node).clone()),
-            box_: Box::new(constructor, node),
+            fragment: Fragment::new(constructor, node),
             is_root: false,
             static_y_offset: Au::new(0),
             previous_float_width: None,
@@ -519,10 +518,10 @@ impl BlockFlow {
         }
     }
 
-    pub fn from_node_and_box(node: &ThreadSafeLayoutNode, box_: Box) -> BlockFlow {
+    pub fn from_node_and_fragment(node: &ThreadSafeLayoutNode, fragment: Fragment) -> BlockFlow {
         BlockFlow {
             base: BaseFlow::new((*node).clone()),
-            box_: box_,
+            fragment: fragment,
             is_root: false,
             static_y_offset: Au::new(0),
             previous_float_width: None,
@@ -536,7 +535,7 @@ impl BlockFlow {
                            -> BlockFlow {
         BlockFlow {
             base: BaseFlow::new((*node).clone()),
-            box_: Box::new(constructor, node),
+            fragment: Fragment::new(constructor, node),
             is_root: false,
             static_y_offset: Au::new(0),
             previous_float_width: None,
@@ -601,9 +600,9 @@ impl BlockFlow {
         }
     }
 
-    /// Return this flow's box.
-    pub fn box_<'a>(&'a mut self) -> &'a mut Box {
-        &mut self.box_
+    /// Return this flow's fragment.
+    pub fn fragment<'a>(&'a mut self) -> &'a mut Fragment {
+        &mut self.fragment
     }
 
     /// Return the static x offset from the appropriate Containing Block for this flow.
@@ -699,13 +698,13 @@ impl BlockFlow {
         traversal.process(flow)
     }
 
-    /// Return true if this has a replaced box.
+    /// Return true if this has a replaced fragment.
     ///
-    /// The only two types of replaced boxes currently are text boxes and
-    /// image boxes.
+    /// The only two types of replaced fragments currently are text fragments
+    /// and image fragments.
     fn is_replaced_content(&self) -> bool {
-        match self.box_.specific {
-            ScannedTextBox(_) | ImageBox(_) => true,
+        match self.fragment.specific {
+            ScannedTextFragment(_) | ImageFragment(_) => true,
             _ => false,
         }
     }
@@ -766,7 +765,7 @@ impl BlockFlow {
     ///
     /// TODO(#2017, pcwalton): This is somewhat inefficient (traverses kids twice); can we do
     /// better?
-    fn adjust_boxes_for_collapsed_margins_if_root(&mut self) {
+    fn adjust_fragments_for_collapsed_margins_if_root(&mut self) {
         if !self.is_root() {
             return
         }
@@ -789,7 +788,7 @@ impl BlockFlow {
 
         self.base.position.size.height = self.base.position.size.height + top_margin_value +
             bottom_margin_value;
-        self.box_.border_box.size.height = self.box_.border_box.size.height + top_margin_value +
+        self.fragment.border_box.size.height = self.fragment.border_box.size.height + top_margin_value +
             bottom_margin_value;
     }
 
@@ -823,17 +822,17 @@ impl BlockFlow {
         }
 
         let mut margin_collapse_info = MarginCollapseInfo::new();
-        self.base.floats.translate(Point2D(-self.box_.left_offset(), Au(0)));
+        self.base.floats.translate(Point2D(-self.fragment.left_offset(), Au(0)));
 
         // The sum of our top border and top padding.
-        let top_offset = self.box_.border_padding.top;
+        let top_offset = self.fragment.border_padding.top;
         translate_including_floats(&mut cur_y, top_offset, &mut self.base.floats);
 
         let can_collapse_top_margin_with_kids =
             margins_may_collapse == MarginsMayCollapse &&
             !self.is_absolutely_positioned() &&
-            self.box_.border_padding.top == Au(0);
-        margin_collapse_info.initialize_top_margin(&self.box_,
+            self.fragment.border_padding.top == Au(0);
+        margin_collapse_info.initialize_top_margin(&self.fragment,
                                                    can_collapse_top_margin_with_kids);
 
         // At this point, `cur_y` is at the content edge of our box. Now iterate over children.
@@ -935,10 +934,10 @@ impl BlockFlow {
         let can_collapse_bottom_margin_with_kids =
             margins_may_collapse == MarginsMayCollapse &&
             !self.is_absolutely_positioned() &&
-            self.box_.border_padding.bottom == Au(0);
+            self.fragment.border_padding.bottom == Au(0);
         let (collapsible_margins, delta) =
             margin_collapse_info.finish_and_compute_collapsible_margins(
-            &self.box_,
+            &self.fragment,
             can_collapse_bottom_margin_with_kids);
         self.base.collapsible_margins = collapsible_margins;
         translate_including_floats(&mut cur_y, delta, &mut floats);
@@ -964,11 +963,11 @@ impl BlockFlow {
 
             // Store the content height for use in calculating the absolute flow's dimensions
             // later.
-            self.box_.border_box.size.height = height;
+            self.fragment.border_box.size.height = height;
             return
         }
 
-        let mut candidate_height_iterator = CandidateHeightIterator::new(self.box_.style(),
+        let mut candidate_height_iterator = CandidateHeightIterator::new(self.fragment.style(),
                                                                          None);
         for (candidate_height, new_candidate_height) in candidate_height_iterator {
             *new_candidate_height = match candidate_height {
@@ -983,17 +982,17 @@ impl BlockFlow {
         translate_including_floats(&mut cur_y, delta, &mut floats);
 
         // Compute content height and noncontent height.
-        let bottom_offset = self.box_.border_padding.bottom;
+        let bottom_offset = self.fragment.border_padding.bottom;
         translate_including_floats(&mut cur_y, bottom_offset, &mut floats);
 
         // Now that `cur_y` is at the bottom of the border box, compute the final border box
         // position.
-        self.box_.border_box.size.height = cur_y;
-        self.box_.border_box.origin.y = Au(0);
+        self.fragment.border_box.size.height = cur_y;
+        self.fragment.border_box.origin.y = Au(0);
         self.base.position.size.height = cur_y;
 
         self.base.floats = floats.clone();
-        self.adjust_boxes_for_collapsed_margins_if_root();
+        self.adjust_fragments_for_collapsed_margins_if_root();
 
         if self.is_root_of_absolute_flow_tree() {
             // Assign heights for all flows in this Absolute flow tree.
@@ -1019,16 +1018,16 @@ impl BlockFlow {
     /// already called on this kid flow by the traversal function. So, the values used are
     /// well-defined.
     pub fn place_float(&mut self) {
-        let height = self.box_.border_box.size.height;
-        let clearance = match self.box_.clear() {
+        let height = self.fragment.border_box.size.height;
+        let clearance = match self.fragment.clear() {
             None => Au(0),
             Some(clear) => self.base.floats.clearance(clear),
         };
 
-        let margin_height = self.box_.margin.vertical();
+        let margin_height = self.fragment.margin.vertical();
         let info = PlacementInfo {
-            size: Size2D(self.base.position.size.width + self.box_.margin.horizontal() +
-                         self.box_.border_padding.horizontal(),
+            size: Size2D(self.base.position.size.width + self.fragment.margin.horizontal() +
+                         self.fragment.border_padding.horizontal(),
                          height + margin_height),
             ceiling: clearance + self.base.position.origin.y,
             max_width: self.float.get_ref().containing_width,
@@ -1061,7 +1060,7 @@ impl BlockFlow {
         // Floats establish a block formatting context, so we discard the output floats here.
         drop(floats);
 
-        let top_offset = self.box_.margin.top + self.box_.border_padding.top;
+        let top_offset = self.fragment.margin.top + self.fragment.border_padding.top;
         let mut cur_y = top_offset;
 
         // cur_y is now at the top content edge
@@ -1075,11 +1074,11 @@ impl BlockFlow {
 
         let content_height = cur_y - top_offset;
 
-        // The associated box is the border box of this flow.
-        self.box_.border_box.origin.y = self.box_.margin.top;
+        // The associated fragment has the border box of this flow.
+        self.fragment.border_box.origin.y = self.fragment.margin.top;
 
         // Calculate content height, taking `min-height` and `max-height` into account.
-        let mut candidate_height_iterator = CandidateHeightIterator::new(self.box_.style(), None);
+        let mut candidate_height_iterator = CandidateHeightIterator::new(self.fragment.style(), None);
         for (candidate_height, new_candidate_height) in candidate_height_iterator {
             *new_candidate_height = match candidate_height {
                 Auto => content_height,
@@ -1088,9 +1087,9 @@ impl BlockFlow {
         }
 
         let content_height = candidate_height_iterator.candidate_value;
-        let noncontent_height = self.box_.border_padding.vertical();
+        let noncontent_height = self.fragment.border_padding.vertical();
         debug!("assign_height_float -- height: {}", content_height + noncontent_height);
-        self.box_.border_box.size.height = content_height + noncontent_height;
+        self.fragment.border_box.size.height = content_height + noncontent_height;
     }
 
     fn build_display_list_block_common(&mut self,
@@ -1098,7 +1097,7 @@ impl BlockFlow {
                                        offset: Point2D<Au>,
                                        background_border_level: BackgroundAndBorderLevel) {
         let rel_offset =
-            self.box_.relative_position(&self.base
+            self.fragment.relative_position(&self.base
                                              .absolute_position_info
                                              .relative_containing_block_size,
                                         None);
@@ -1106,11 +1105,11 @@ impl BlockFlow {
         // Add the box that starts the block context.
         let mut display_list = DisplayList::new();
         let mut accumulator =
-            self.box_.build_display_list(&mut display_list,
-                                         layout_context,
-                                         self.base.abs_position + rel_offset + offset,
-                                         background_border_level,
-                                         None);
+            self.fragment.build_display_list(&mut display_list,
+                                             layout_context,
+                                             self.base.abs_position + rel_offset + offset,
+                                             background_border_level,
+                                             None);
 
         let mut child_layers = DList::new();
         for kid in self.base.child_iter() {
@@ -1177,39 +1176,39 @@ impl BlockFlow {
         let static_y_offset = self.static_y_offset;
 
         // This is the stored content height value from assign-height
-        let content_height = self.box_.content_box().size.height;
+        let content_height = self.fragment.content_box().size.height;
 
         let mut solution = None;
         {
             // Non-auto margin-top and margin-bottom values have already been
             // calculated during assign-width.
-            let margin_top = match self.box_.style().get_margin().margin_top {
+            let margin_top = match self.fragment.style().get_margin().margin_top {
                 LPA_Auto => Auto,
-                _ => Specified(self.box_.margin.top)
+                _ => Specified(self.fragment.margin.top)
             };
-            let margin_bottom = match self.box_.style().get_margin().margin_bottom {
+            let margin_bottom = match self.fragment.style().get_margin().margin_bottom {
                 LPA_Auto => Auto,
-                _ => Specified(self.box_.margin.bottom)
+                _ => Specified(self.fragment.margin.bottom)
             };
 
             let top;
             let bottom;
             {
-                let position_style = self.box_.style().get_positionoffsets();
+                let position_style = self.fragment.style().get_positionoffsets();
                 top = MaybeAuto::from_style(position_style.top, containing_block_height);
                 bottom = MaybeAuto::from_style(position_style.bottom, containing_block_height);
             }
 
-            let available_height = containing_block_height - self.box_.border_padding.vertical();
+            let available_height = containing_block_height - self.fragment.border_padding.vertical();
             if self.is_replaced_content() {
                 // Calculate used value of height just like we do for inline replaced elements.
-                // TODO: Pass in the containing block height when Box's
+                // TODO: Pass in the containing block height when Fragment's
                 // assign-height can handle it correctly.
-                self.box_.assign_replaced_height_if_necessary();
+                self.fragment.assign_replaced_height_if_necessary();
                 // TODO: Right now, this content height value includes the
-                // margin because of erroneous height calculation in Box_.
+                // margin because of erroneous height calculation in fragment.
                 // Check this when that has been fixed.
-                let height_used_val = self.box_.border_box.size.height;
+                let height_used_val = self.fragment.border_box.size.height;
                 solution = Some(HeightConstraintSolution::solve_vertical_constraints_abs_replaced(
                         height_used_val,
                         margin_top,
@@ -1220,7 +1219,7 @@ impl BlockFlow {
                         available_height,
                         static_y_offset));
             } else {
-                let style = self.box_.style();
+                let style = self.fragment.style();
                 let mut candidate_height_iterator =
                     CandidateHeightIterator::new(style, Some(containing_block_height));
 
@@ -1242,13 +1241,13 @@ impl BlockFlow {
         }
 
         let solution = solution.unwrap();
-        self.box_.margin.top = solution.margin_top;
-        self.box_.margin.bottom = solution.margin_bottom;
-        self.box_.border_box.origin.y = Au(0);
-        self.box_.border_box.size.height = solution.height + self.box_.border_padding.vertical();
+        self.fragment.margin.top = solution.margin_top;
+        self.fragment.margin.bottom = solution.margin_bottom;
+        self.fragment.border_box.origin.y = Au(0);
+        self.fragment.border_box.size.height = solution.height + self.fragment.border_padding.vertical();
 
-        self.base.position.origin.y = solution.top + self.box_.margin.top;
-        self.base.position.size.height = solution.height + self.box_.border_padding.vertical();
+        self.base.position.origin.y = solution.top + self.fragment.margin.top;
+        self.base.position.size.height = solution.height + self.fragment.border_padding.vertical();
     }
 
     /// Add display items for Absolutely Positioned flow.
@@ -1289,7 +1288,7 @@ impl BlockFlow {
         self.base.layers.push_back(new_layer)
     }
 
-    /// Return the top outer edge of the Hypothetical Box for an absolute flow.
+    /// Return the top outer edge of the hypothetical box for an absolute flow.
     ///
     /// This is wrt its parent flow box.
     ///
@@ -1317,7 +1316,7 @@ impl BlockFlow {
         let absolute_static_x_offset = if self.is_positioned() {
             // This flow is the containing block. The static X offset will be the left padding
             // edge.
-            self.box_.border_padding.left - model::border_from_style(self.box_.style()).left
+            self.fragment.border_padding.left - model::border_from_style(self.fragment.style()).left
         } else {
             // For kids, the left margin edge will be at our left content edge. The current static
             // offset is at our left margin edge. So move in to the left content edge.
@@ -1396,7 +1395,7 @@ impl BlockFlow {
     /// Determines the type of formatting context this is. See the definition of
     /// `FormattingContextType`.
     fn formatting_context_type(&self) -> FormattingContextType {
-        let style = self.box_.style();
+        let style = self.fragment.style();
         if style.get_box().float != float::none {
             return OtherFormattingContext
         }
@@ -1404,7 +1403,7 @@ impl BlockFlow {
             display::table_cell | display::table_caption | display::inline_block => {
                 OtherFormattingContext
             }
-            _ if style.get_box().position == position::static_ && 
+            _ if style.get_box().position == position::static_ &&
                     style.get_box().overflow != overflow::visible => {
                 BlockFormattingContext
             }
@@ -1424,7 +1423,7 @@ impl Flow for BlockFlow {
 
     /// Returns the direction that this flow clears floats in, if any.
     fn float_clearance(&self) -> clear::T {
-        self.box_.style().get_box().clear
+        self.fragment.style().get_box().clear
     }
 
     /// Pass 1 of reflow: computes minimum and preferred widths.
@@ -1432,7 +1431,7 @@ impl Flow for BlockFlow {
     /// Recursively (bottom-up) determine the flow's minimum and preferred widths. When called on
     /// this flow, all child flows have had their minimum and preferred widths set. This function
     /// must decide minimum/preferred widths based on its children's widths and the dimensions of
-    /// any boxes it is responsible for flowing.
+    /// any fragments it is responsible for flowing.
     ///
     /// TODO(pcwalton): Inline blocks.
     fn bubble_widths(&mut self, _: &mut LayoutContext) {
@@ -1458,15 +1457,15 @@ impl Flow for BlockFlow {
             flags.union_floated_descendants_flags(child_base.flags);
         }
 
-        let box_intrinsic_widths = self.box_.intrinsic_widths(None);
+        let fragment_intrinsic_widths = self.fragment.intrinsic_widths(None);
         intrinsic_widths.minimum_width = geometry::max(intrinsic_widths.minimum_width,
-                                                       box_intrinsic_widths.minimum_width);
+                                                       fragment_intrinsic_widths.minimum_width);
         intrinsic_widths.preferred_width = geometry::max(intrinsic_widths.preferred_width,
-                                                         box_intrinsic_widths.preferred_width);
-        intrinsic_widths.surround_width = box_intrinsic_widths.surround_width;
+                                                         fragment_intrinsic_widths.preferred_width);
+        intrinsic_widths.surround_width = fragment_intrinsic_widths.surround_width;
         self.base.intrinsic_widths = intrinsic_widths;
 
-        match self.box_.style().get_box().float {
+        match self.fragment.style().get_box().float {
             float::none => {}
             float::left => flags.set_has_left_floated_descendants(true),
             float::right => flags.set_has_right_floated_descendants(true),
@@ -1474,10 +1473,10 @@ impl Flow for BlockFlow {
         self.base.flags = flags
     }
 
-    /// Recursively (top-down) determines the actual width of child contexts and boxes. When called
-    /// on this context, the context has had its width set by the parent context.
+    /// Recursively (top-down) determines the actual width of child contexts and fragments. When
+    /// called on this context, the context has had its width set by the parent context.
     ///
-    /// Dual boxes consume some width first, and the remainder is assigned to all child (block)
+    /// Dual fragments consume some width first, and the remainder is assigned to all child (block)
     /// contexts.
     fn assign_widths(&mut self, layout_context: &mut LayoutContext) {
         debug!("assign_widths({}): assigning width for flow",
@@ -1519,8 +1518,8 @@ impl Flow for BlockFlow {
                 match self.previous_float_width {
                     None => {}
                     Some(previous_float_width) => {
-                        self.box_.border_box.size.width =
-                            self.box_.border_box.size.width - previous_float_width
+                        self.fragment.border_box.size.width =
+                            self.fragment.border_box.size.width - previous_float_width
                     }
                 }
             }
@@ -1531,9 +1530,9 @@ impl Flow for BlockFlow {
         }
 
         // Move in from the left border edge
-        let left_content_edge = self.box_.border_box.origin.x + self.box_.border_padding.left;
-        let padding_and_borders = self.box_.border_padding.horizontal();
-        let content_width = self.box_.border_box.size.width - padding_and_borders;
+        let left_content_edge = self.fragment.border_box.origin.x + self.fragment.border_padding.left;
+        let padding_and_borders = self.fragment.border_padding.horizontal();
+        let content_width = self.fragment.border_box.size.width - padding_and_borders;
 
         if self.is_float() {
             self.base.position.size.width = content_width;
@@ -1563,8 +1562,8 @@ impl Flow for BlockFlow {
     }
 
     fn assign_height(&mut self, ctx: &mut LayoutContext) {
-        // Assign height for box if it is an image box.
-        self.box_.assign_replaced_height_if_necessary();
+        // Assign height for fragment if it is an image fragment.
+        self.fragment.assign_replaced_height_if_necessary();
 
         if self.is_float() {
             debug!("assign_height_float: assigning height for float");
@@ -1599,10 +1598,10 @@ impl Flow for BlockFlow {
         // the content box. The containing block for absolutely-positioned descendants, on the
         // other hand, is only established if we are positioned.
         let relative_offset =
-            self.box_.relative_position(&self.base
-                                             .absolute_position_info
-                                             .relative_containing_block_size,
-                                        None);
+            self.fragment.relative_position(&self.base
+                                                 .absolute_position_info
+                                                 .relative_containing_block_size,
+                                            None);
         if self.is_positioned() {
             self.base.absolute_position_info.absolute_containing_block_position =
                 self.base.abs_position +
@@ -1618,7 +1617,7 @@ impl Flow for BlockFlow {
 
         // Compute absolute position info for children.
         let mut absolute_position_info = self.base.absolute_position_info;
-        absolute_position_info.relative_containing_block_size = self.box_.content_box().size;
+        absolute_position_info.relative_containing_block_size = self.fragment.content_box().size;
         absolute_position_info.layers_needed_for_positioned_flows =
             self.base.flags.layers_needed_for_descendants();
 
@@ -1666,7 +1665,7 @@ impl Flow for BlockFlow {
 
     /// The 'position' property of this flow.
     fn positioning(&self) -> position::T {
-        self.box_.style.get_box().position
+        self.fragment.style.get_box().position
     }
 
     /// Return true if this is the root of an Absolute flow tree.
@@ -1679,17 +1678,17 @@ impl Flow for BlockFlow {
     /// Return the dimensions of the containing block generated by this flow for absolutely-
     /// positioned descendants. For block flows, this is the padding box.
     fn generated_containing_block_rect(&self) -> Rect<Au> {
-        let border = model::border_from_style(self.box_.style());
-        Rect(self.box_.border_box.origin + Point2D(border.left, border.top),
-             Size2D(self.box_.border_box.size.width - border.horizontal(),
-                    self.box_.border_box.size.height - border.vertical()))
+        let border = model::border_from_style(self.fragment.style());
+        Rect(self.fragment.border_box.origin + Point2D(border.left, border.top),
+             Size2D(self.fragment.border_box.size.width - border.horizontal(),
+                    self.fragment.border_box.size.height - border.vertical()))
     }
 
     fn layer_id(&self, fragment_index: uint) -> LayerId {
         // FIXME(#2010, pcwalton): This is a hack and is totally bogus in the presence of pseudo-
         // elements. But until we have incremental reflow we can't do better--we recreate the flow
         // for every DOM node so otherwise we nuke layers on every reflow.
-        LayerId(self.box_.node.id(), fragment_index)
+        LayerId(self.fragment.node.id(), fragment_index)
     }
 
     fn is_absolute_containing_block(&self) -> bool {
@@ -1700,11 +1699,11 @@ impl Flow for BlockFlow {
 impl fmt::Show for BlockFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if self.is_float() {
-            write!(f.buf, "FloatFlow: {}", self.box_)
+            write!(f.buf, "FloatFlow: {}", self.fragment)
         } else if self.is_root() {
-            write!(f.buf, "RootFlow: {}", self.box_)
+            write!(f.buf, "RootFlow: {}", self.fragment)
         } else {
-            write!(f.buf, "BlockFlow: {}", self.box_)
+            write!(f.buf, "BlockFlow: {}", self.fragment)
         }
     }
 }
@@ -1794,9 +1793,9 @@ pub trait WidthAndMarginsComputer {
         let containing_block_width = self.containing_block_width(block, parent_flow_width, ctx);
         let computed_width = self.initial_computed_width(block, parent_flow_width, ctx);
 
-        block.box_.compute_border_padding_margins(containing_block_width, None);
+        block.fragment.compute_border_padding_margins(containing_block_width, None);
 
-        let style = block.box_.style();
+        let style = block.fragment.style();
 
         // The text alignment of a block flow is the text alignment of its box's style.
         block.base.flags.set_text_align(style.get_inheritedtext().text_align);
@@ -1808,7 +1807,7 @@ pub trait WidthAndMarginsComputer {
         let (left, right) =
             (MaybeAuto::from_style(style.get_positionoffsets().left, containing_block_width),
              MaybeAuto::from_style(style.get_positionoffsets().right, containing_block_width));
-        let available_width = containing_block_width - block.box_.border_padding.horizontal();
+        let available_width = containing_block_width - block.fragment.border_padding.horizontal();
         return WidthConstraintInput::new(computed_width,
                                          margin_left,
                                          margin_right,
@@ -1829,15 +1828,15 @@ pub trait WidthAndMarginsComputer {
     fn set_width_constraint_solutions(&self,
                                       block: &mut BlockFlow,
                                       solution: WidthConstraintSolution) {
-        let box_ = block.box_();
-        box_.margin.left = solution.margin_left;
-        box_.margin.right = solution.margin_right;
+        let fragment = block.fragment();
+        fragment.margin.left = solution.margin_left;
+        fragment.margin.right = solution.margin_right;
 
-        // The associated box is the border box of this flow.
+        // The associated fragment has the border box of this flow.
         // Left border edge.
-        box_.border_box.origin.x = box_.margin.left;
+        fragment.border_box.origin.x = fragment.margin.left;
         // Border box width.
-        box_.border_box.size.width = solution.width + box_.border_padding.horizontal();
+        fragment.border_box.size.width = solution.width + fragment.border_padding.horizontal();
     }
 
     /// Set the x coordinate of the given flow if it is absolutely positioned.
@@ -1854,7 +1853,7 @@ pub trait WidthAndMarginsComputer {
                               parent_flow_width: Au,
                               ctx: &mut LayoutContext)
                               -> MaybeAuto {
-        MaybeAuto::from_style(block.box_().style().get_box().width,
+        MaybeAuto::from_style(block.fragment().style().get_box().width,
                               self.containing_block_width(block, parent_flow_width, ctx))
     }
 
@@ -1881,7 +1880,7 @@ pub trait WidthAndMarginsComputer {
 
         // If the tentative used width is greater than 'max-width', width should be recalculated,
         // but this time using the computed value of 'max-width' as the computed value for 'width'.
-        match specified_or_none(block.box_().style().get_box().max_width, containing_block_width) {
+        match specified_or_none(block.fragment().style().get_box().max_width, containing_block_width) {
             Some(max_width) if max_width < solution.width => {
                 input.computed_width = Specified(max_width);
                 solution = self.solve_width_constraints(block, &input);
@@ -1891,7 +1890,7 @@ pub trait WidthAndMarginsComputer {
 
         // If the resulting width is smaller than 'min-width', width should be recalculated,
         // but this time using the value of 'min-width' as the computed value for 'width'.
-        let computed_min_width = specified(block.box_().style().get_box().min_width,
+        let computed_min_width = specified(block.fragment().style().get_box().min_width,
                                            containing_block_width);
         if computed_min_width > solution.width {
             input.computed_width = Specified(computed_min_width);
@@ -2234,11 +2233,11 @@ impl WidthAndMarginsComputer for AbsoluteReplaced {
                               ctx: &mut LayoutContext)
                               -> MaybeAuto {
         let containing_block_width = block.containing_block_size(ctx.screen_size).width;
-        let box_ = block.box_();
-        box_.assign_replaced_width_if_necessary(containing_block_width, None);
+        let fragment = block.fragment();
+        fragment.assign_replaced_width_if_necessary(containing_block_width, None);
         // For replaced absolute flow, the rest of the constraint solving will
         // take width to be specified as the value computed here.
-        Specified(box_.content_width())
+        Specified(fragment.content_width())
     }
 
     fn containing_block_width(&self, block: &mut BlockFlow, _: Au, ctx: &mut LayoutContext) -> Au {
@@ -2283,11 +2282,11 @@ impl WidthAndMarginsComputer for BlockReplaced {
                               parent_flow_width: Au,
                               _: &mut LayoutContext)
                               -> MaybeAuto {
-        let box_ = block.box_();
-        box_.assign_replaced_width_if_necessary(parent_flow_width, None);
+        let fragment = block.fragment();
+        fragment.assign_replaced_width_if_necessary(parent_flow_width, None);
         // For replaced block flow, the rest of the constraint solving will
         // take width to be specified as the value computed here.
-        Specified(box_.content_width())
+        Specified(fragment.content_width())
     }
 
 }
@@ -2339,11 +2338,11 @@ impl WidthAndMarginsComputer for FloatReplaced {
                               parent_flow_width: Au,
                               _: &mut LayoutContext)
                               -> MaybeAuto {
-        let box_ = block.box_();
-        box_.assign_replaced_width_if_necessary(parent_flow_width, None);
+        let fragment = block.fragment();
+        fragment.assign_replaced_width_if_necessary(parent_flow_width, None);
         // For replaced block flow, the rest of the constraint solving will
         // take width to be specified as the value computed here.
-        Specified(box_.content_width())
+        Specified(fragment.content_width())
     }
 }
 

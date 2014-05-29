@@ -4,10 +4,10 @@
 
 //! CSS table formatting contexts.
 
-use layout::box_::Box;
 use layout::block::{BlockFlow, MarginsMayNotCollapse, WidthAndMarginsComputer};
 use layout::context::LayoutContext;
 use layout::flow::{TableCellFlowClass, FlowClass, Flow};
+use layout::fragment::Fragment;
 use layout::model::{MaybeAuto};
 use layout::table::InternalTable;
 use layout::wrapper::ThreadSafeLayoutNode;
@@ -22,18 +22,18 @@ pub struct TableCellFlow {
 }
 
 impl TableCellFlow {
-    pub fn from_node_and_box(node: &ThreadSafeLayoutNode, box_: Box) -> TableCellFlow {
+    pub fn from_node_and_fragment(node: &ThreadSafeLayoutNode, fragment: Fragment) -> TableCellFlow {
         TableCellFlow {
-            block_flow: BlockFlow::from_node_and_box(node, box_)
+            block_flow: BlockFlow::from_node_and_fragment(node, fragment)
         }
     }
 
-    pub fn box_<'a>(&'a mut self) -> &'a Box {
-        &self.block_flow.box_
+    pub fn fragment<'a>(&'a mut self) -> &'a Fragment {
+        &self.block_flow.fragment
     }
 
-    pub fn mut_box<'a>(&'a mut self) -> &'a mut Box {
-        &mut self.block_flow.box_
+    pub fn mut_fragment<'a>(&'a mut self) -> &'a mut Fragment {
+        &mut self.block_flow.fragment
     }
 
     /// Assign height for table-cell flow.
@@ -69,7 +69,7 @@ impl Flow for TableCellFlow {
     /// Minimum/preferred widths set by this function are used in automatic table layout calculation.
     fn bubble_widths(&mut self, ctx: &mut LayoutContext) {
         self.block_flow.bubble_widths(ctx);
-        let specified_width = MaybeAuto::from_style(self.block_flow.box_.style().get_box().width,
+        let specified_width = MaybeAuto::from_style(self.block_flow.fragment.style().get_box().width,
                                                     Au::new(0)).specified_or_zero();
         if self.block_flow.base.intrinsic_widths.minimum_width < specified_width {
             self.block_flow.base.intrinsic_widths.minimum_width = specified_width;
@@ -81,8 +81,8 @@ impl Flow for TableCellFlow {
         }
     }
 
-    /// Recursively (top-down) determines the actual width of child contexts and boxes. When called
-    /// on this context, the context has had its width set by the parent table row.
+    /// Recursively (top-down) determines the actual width of child contexts and fragments. When
+    /// called on this context, the context has had its width set by the parent table row.
     fn assign_widths(&mut self, ctx: &mut LayoutContext) {
         debug!("assign_widths({}): assigning width for flow", "table_cell");
 
@@ -92,10 +92,10 @@ impl Flow for TableCellFlow {
         let width_computer = InternalTable;
         width_computer.compute_used_width(&mut self.block_flow, ctx, containing_block_width);
 
-        let left_content_edge = self.block_flow.box_.border_box.origin.x +
-            self.block_flow.box_.border_padding.left;
-        let padding_and_borders = self.block_flow.box_.border_padding.horizontal();
-        let content_width = self.block_flow.box_.border_box.size.width - padding_and_borders;
+        let left_content_edge = self.block_flow.fragment.border_box.origin.x +
+            self.block_flow.fragment.border_padding.left;
+        let padding_and_borders = self.block_flow.fragment.border_padding.horizontal();
+        let content_width = self.block_flow.fragment.border_box.size.width - padding_and_borders;
 
         self.block_flow.propagate_assigned_width_to_children(left_content_edge,
                                                              content_width,

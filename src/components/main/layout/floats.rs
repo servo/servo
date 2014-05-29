@@ -320,7 +320,7 @@ impl Floats {
         max_height.map(|h| h + self.offset.y)
     }
 
-    /// Given placement information, finds the closest place a box can be positioned without
+    /// Given placement information, finds the closest place a fragment can be positioned without
     /// colliding with any floats.
     pub fn place_between_floats(&self, info: &PlacementInfo) -> Rect<Au> {
         debug!("place_between_floats: Placing object with width {} and height {}",

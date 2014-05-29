@@ -4,7 +4,7 @@
 
 //! Borders, padding, and margins.
 
-use layout::box_::Box;
+use layout::fragment::Fragment;
 
 use computed = style::computed_values;
 use geom::SideOffsets2D;
@@ -88,7 +88,7 @@ pub struct MarginCollapseInfo {
 }
 
 impl MarginCollapseInfo {
-    /// TODO(#2012, pcwalton): Remove this method once `box_` is not an `Option`.
+    /// TODO(#2012, pcwalton): Remove this method once `fragment` is not an `Option`.
     pub fn new() -> MarginCollapseInfo {
         MarginCollapseInfo {
             state: AccumulatingCollapsibleTopMargin,
@@ -98,7 +98,7 @@ impl MarginCollapseInfo {
     }
 
     pub fn initialize_top_margin(&mut self,
-                                 fragment: &Box,
+                                 fragment: &Fragment,
                                  can_collapse_top_margin_with_kids: bool) {
         if !can_collapse_top_margin_with_kids {
             self.state = AccumulatingMarginIn
@@ -108,7 +108,7 @@ impl MarginCollapseInfo {
     }
 
     pub fn finish_and_compute_collapsible_margins(mut self,
-                                                  fragment: &Box,
+                                                  fragment: &Fragment,
                                                   can_collapse_bottom_margin_with_kids: bool)
                                                   -> (CollapsibleMargins, Au) {
         let state = match self.state {
@@ -120,15 +120,15 @@ impl MarginCollapseInfo {
                                 MarginsCollapseThroughFinalMarginState
                             },
                             _ => {
-                                // If the box has non-zero min-height, margins may not collapse
-                                // through it.
+                                // If the fragment has non-zero min-height, margins may not
+                                // collapse through it.
                                 BottomMarginCollapsesFinalMarginState
                             }
                         }
                     },
                     _ => {
-                        // If the box has an explicitly specified height, margins may not collapse
-                        // through it.
+                        // If the fragment has an explicitly specified height, margins may not
+                        // collapse through it.
                         BottomMarginCollapsesFinalMarginState
                     }
                 }

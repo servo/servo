@@ -4,9 +4,9 @@
 
 //! Text layout.
 
-use layout::box_::{Box, ScannedTextBox, ScannedTextBoxInfo, UnscannedTextBox};
 use layout::flow::Flow;
-use layout::inline::InlineBoxes;
+use layout::fragment::{Fragment, ScannedTextFragment, ScannedTextFragmentInfo, UnscannedTextFragment};
+use layout::inline::InlineFragments;
 
 use gfx::font::{FontMetrics, FontStyle};
 use gfx::font_context::FontContext;
@@ -25,12 +25,12 @@ struct NewLinePositions {
 }
 
 // A helper function.
-fn can_coalesce_text_nodes(boxes: &[Box], left_i: uint, right_i: uint) -> bool {
+fn can_coalesce_text_nodes(fragments: &[Fragment], left_i: uint, right_i: uint) -> bool {
     assert!(left_i != right_i);
-    boxes[left_i].can_merge_with_box(&boxes[right_i])
+    fragments[left_i].can_merge_with_fragment(&fragments[right_i])
 }
 
-/// A stack-allocated object for scanning an inline flow into `TextRun`-containing `TextBox`es.
+/// A stack-allocated object for scanning an inline flow into `TextRun`-containing `TextFragment`s.
 pub struct TextRunScanner {
     pub clump: Range<CharIndex>,
 }
@@ -45,22 +45,22 @@ impl TextRunScanner {
     pub fn scan_for_runs(&mut self, font_context: &mut FontContext, flow: &mut Flow) {
         {
             let inline = flow.as_immutable_inline();
-            debug!("TextRunScanner: scanning {:u} boxes for text runs...", inline.boxes.len());
+            debug!("TextRunScanner: scanning {:u} fragments for text runs...", inline.fragments.len());
         }
 
-        let InlineBoxes {
-            boxes: old_boxes,
+        let InlineFragments {
+            fragments: old_fragments,
             map: mut map
-        } = mem::replace(&mut flow.as_inline().boxes, InlineBoxes::new());
+        } = mem::replace(&mut flow.as_inline().fragments, InlineFragments::new());
 
         let mut last_whitespace = true;
-        let mut new_boxes = Vec::new();
-        for box_i in range(0, old_boxes.len()) {
-            debug!("TextRunScanner: considering box: {:u}", box_i);
-            if box_i > 0 && !can_coalesce_text_nodes(old_boxes.as_slice(), box_i - 1, box_i) {
+        let mut new_fragments = Vec::new();
+        for fragment_i in range(0, old_fragments.len()) {
+            debug!("TextRunScanner: considering fragment: {:u}", fragment_i);
+            if fragment_i > 0 && !can_coalesce_text_nodes(old_fragments.as_slice(), fragment_i - 1, fragment_i) {
                 last_whitespace = self.flush_clump_to_list(font_context,
-                                                           old_boxes.as_slice(),
-                                                           &mut new_boxes,
+                                                           old_fragments.as_slice(),
+                                                           &mut new_fragments,
                                                            last_whitespace);
             }
 
@@ -70,43 +70,43 @@ impl TextRunScanner {
         // Handle remaining clumps.
         if self.clump.length() > CharIndex(0) {
             drop(self.flush_clump_to_list(font_context,
-                                          old_boxes.as_slice(),
-                                          &mut new_boxes,
+                                          old_fragments.as_slice(),
+                                          &mut new_fragments,
                                           last_whitespace))
         }
 
-        debug!("TextRunScanner: swapping out boxes.");
+        debug!("TextRunScanner: swapping out fragments.");
 
-        // Swap out the old and new box list of the flow.
-        map.fixup(old_boxes.as_slice(), new_boxes.as_slice());
-        flow.as_inline().boxes = InlineBoxes {
-            boxes: new_boxes,
+        // Swap out the old and new fragment list of the flow.
+        map.fixup(old_fragments.as_slice(), new_fragments.as_slice());
+        flow.as_inline().fragments = InlineFragments {
+            fragments: new_fragments,
             map: map,
         }
     }
 
-    /// A "clump" is a range of inline flow leaves that can be merged together into a single box.
-    /// Adjacent text with the same style can be merged, and nothing else can.
+    /// A "clump" is a range of inline flow leaves that can be merged together into a single
+    /// fragment. Adjacent text with the same style can be merged, and nothing else can.
     ///
-    /// The flow keeps track of the boxes contained by all non-leaf DOM nodes. This is necessary
-    /// for correct painting order. Since we compress several leaf boxes here, the mapping must be
-    /// adjusted.
+    /// The flow keeps track of the fragments contained by all non-leaf DOM nodes. This is necessary
+    /// for correct painting order. Since we compress several leaf fragments here, the mapping must
+    /// be adjusted.
     ///
-    /// FIXME(#2267, pcwalton): Stop cloning boxes. Instead we will need to replace each `in_box`
-    /// with some smaller stub.
+    /// FIXME(#2267, pcwalton): Stop cloning fragments. Instead we will need to replace each
+    /// `in_fragment` with some smaller stub.
     pub fn flush_clump_to_list(&mut self,
                                font_context: &mut FontContext,
-                               in_boxes: &[Box],
-                               out_boxes: &mut Vec<Box>,
+                               in_fragments: &[Fragment],
+                               out_fragments: &mut Vec<Fragment>,
                                last_whitespace: bool)
                                -> bool {
         assert!(self.clump.length() > CharIndex(0));
 
-        debug!("TextRunScanner: flushing boxes in range={}", self.clump);
+        debug!("TextRunScanner: flushing fragments in range={}", self.clump);
         let is_singleton = self.clump.length() == CharIndex(1);
 
-        let is_text_clump = match in_boxes[self.clump.begin().to_uint()].specific {
-            UnscannedTextBox(_) => true,
+        let is_text_clump = match in_fragments[self.clump.begin().to_uint()].specific {
+            UnscannedTextFragment(_) => true,
             _ => false,
         };
 
@@ -116,23 +116,23 @@ impl TextRunScanner {
                 fail!("WAT: can't coalesce non-text nodes in flush_clump_to_list()!")
             }
             (true, false) => {
-                // FIXME(pcwalton): Stop cloning boxes, as above.
-                debug!("TextRunScanner: pushing single non-text box in range: {}", self.clump);
-                let new_box = in_boxes[self.clump.begin().to_uint()].clone();
-                out_boxes.push(new_box)
+                // FIXME(pcwalton): Stop cloning fragments, as above.
+                debug!("TextRunScanner: pushing single non-text fragment in range: {}", self.clump);
+                let new_fragment = in_fragments[self.clump.begin().to_uint()].clone();
+                out_fragments.push(new_fragment)
             },
             (true, true)  => {
-                let old_box = &in_boxes[self.clump.begin().to_uint()];
-                let text = match old_box.specific {
-                    UnscannedTextBox(ref text_box_info) => &text_box_info.text,
-                    _ => fail!("Expected an unscanned text box!"),
+                let old_fragment = &in_fragments[self.clump.begin().to_uint()];
+                let text = match old_fragment.specific {
+                    UnscannedTextFragment(ref text_fragment_info) => &text_fragment_info.text,
+                    _ => fail!("Expected an unscanned text fragment!"),
                 };
 
-                let font_style = old_box.font_style();
-                let decoration = old_box.text_decoration();
+                let font_style = old_fragment.font_style();
+                let decoration = old_fragment.text_decoration();
 
                 // TODO(#115): Use the actual CSS `white-space` property of the relevant style.
-                let compression = match old_box.white_space() {
+                let compression = match old_fragment.white_space() {
                     white_space::normal => CompressWhitespaceNewline,
                     white_space::pre => CompressNone,
                 };
@@ -154,29 +154,29 @@ impl TextRunScanner {
                     let run = box fontgroup.borrow().create_textrun(
                         transformed_text.clone(), decoration);
 
-                    debug!("TextRunScanner: pushing single text box in range: {} ({})",
+                    debug!("TextRunScanner: pushing single text fragment in range: {} ({})",
                            self.clump,
                            *text);
                     let range = Range::new(CharIndex(0), run.char_len());
                     let new_metrics = run.metrics_for_range(&range);
-                    let new_text_box_info = ScannedTextBoxInfo::new(Arc::new(run), range);
-                    let mut new_box = old_box.transform(new_metrics.bounding_box.size,
-                                                        ScannedTextBox(new_text_box_info));
-                    new_box.new_line_pos = new_line_pos;
-                    out_boxes.push(new_box)
+                    let new_text_fragment_info = ScannedTextFragmentInfo::new(Arc::new(run), range);
+                    let mut new_fragment = old_fragment.transform(new_metrics.bounding_box.size,
+                                                                  ScannedTextFragment(new_text_fragment_info));
+                    new_fragment.new_line_pos = new_line_pos;
+                    out_fragments.push(new_fragment)
                 }
             },
             (false, true) => {
                 // TODO(#177): Text run creation must account for the renderability of text by
                 // font group fonts. This is probably achieved by creating the font group above
                 // and then letting `FontGroup` decide which `Font` to stick into the text run.
-                let in_box = &in_boxes[self.clump.begin().to_uint()];
-                let font_style = in_box.font_style();
+                let in_fragment = &in_fragments[self.clump.begin().to_uint()];
+                let font_style = in_fragment.font_style();
                 let fontgroup = font_context.get_resolved_font_for_style(&font_style);
-                let decoration = in_box.text_decoration();
+                let decoration = in_fragment.text_decoration();
 
                 // TODO(#115): Use the actual CSS `white-space` property of the relevant style.
-                let compression = match in_box.white_space() {
+                let compression = match in_fragment.white_space() {
                     white_space::normal => CompressWhitespaceNewline,
                     white_space::pre => CompressNone,
                 };
@@ -187,17 +187,17 @@ impl TextRunScanner {
                 let mut last_whitespace_in_clump = new_whitespace;
                 let transformed_strs: Vec<~str> = Vec::from_fn(self.clump.length().to_uint(), |i| {
                     // TODO(#113): We should be passing the compression context between calls to
-                    // `transform_text`, so that boxes starting and/or ending with whitespace can
+                    // `transform_text`, so that fragments starting and/or ending with whitespace can
                     // be compressed correctly with respect to the text run.
                     let idx = CharIndex(i as int) + self.clump.begin();
-                    let in_box = match in_boxes[idx.to_uint()].specific {
-                        UnscannedTextBox(ref text_box_info) => &text_box_info.text,
-                        _ => fail!("Expected an unscanned text box!"),
+                    let in_fragment = match in_fragments[idx.to_uint()].specific {
+                        UnscannedTextFragment(ref text_fragment_info) => &text_fragment_info.text,
+                        _ => fail!("Expected an unscanned text fragment!"),
                     };
 
                     let mut new_line_pos = vec![];
 
-                    let (new_str, new_whitespace) = transform_text(*in_box,
+                    let (new_str, new_whitespace) = transform_text(*in_fragment,
                                                                    compression,
                                                                    last_whitespace_in_clump,
                                                                    &mut new_line_pos);
@@ -232,23 +232,23 @@ impl TextRunScanner {
                     None
                 };
 
-                // Make new boxes with the run and adjusted text indices.
-                debug!("TextRunScanner: pushing box(es) in range: {}", self.clump);
+                // Make new fragments with the run and adjusted text indices.
+                debug!("TextRunScanner: pushing fragment(s) in range: {}", self.clump);
                 for i in clump.each_index() {
                     let logical_offset = i - self.clump.begin();
                     let range = new_ranges.get(logical_offset.to_uint());
                     if range.length() == CharIndex(0) {
-                        debug!("Elided an `UnscannedTextbox` because it was zero-length after \
-                                compression; {}", in_boxes[i.to_uint()]);
+                        debug!("Elided an `UnscannedTextFragment` because it was zero-length after \
+                                compression; {}", in_fragments[i.to_uint()]);
                         continue
                     }
 
-                    let new_text_box_info = ScannedTextBoxInfo::new(run.get_ref().clone(), *range);
-                    let new_metrics = new_text_box_info.run.metrics_for_range(range);
-                    let mut new_box = in_boxes[i.to_uint()].transform(new_metrics.bounding_box.size,
-                                                            ScannedTextBox(new_text_box_info));
-                    new_box.new_line_pos = new_line_positions.get(logical_offset.to_uint()).new_line_pos.clone();
-                    out_boxes.push(new_box)
+                    let new_text_fragment_info = ScannedTextFragmentInfo::new(run.get_ref().clone(), *range);
+                    let new_metrics = new_text_fragment_info.run.metrics_for_range(range);
+                    let mut new_fragment = in_fragments[i.to_uint()].transform(new_metrics.bounding_box.size,
+                                                                               ScannedTextFragment(new_text_fragment_info));
+                    new_fragment.new_line_pos = new_line_positions.get(logical_offset.to_uint()).new_line_pos.clone();
+                    out_fragments.push(new_fragment)
                 }
             }
         } // End of match.

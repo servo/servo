@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! Servo's experimental layout system builds a tree of `Flow` and `Box` objects and solves
+//! Servo's experimental layout system builds a tree of `Flow` and `Fragment` objects and solves
 //! layout constraints to obtain positions and display attributes of tree nodes. Positions are
 //! computed in several tree traversals driven by the fundamental data dependencies required by
 /// inline and block layout.
 ///
 /// Flows are interior nodes in the layout tree and correspond closely to *flow contexts* in the
-/// CSS specification. Flows are responsible for positioning their child flow contexts and boxes.
-/// Flows have purpose-specific fields, such as auxiliary line box structs, out-of-flow child
+/// CSS specification. Flows are responsible for positioning their child flow contexts and fragments.
+/// Flows have purpose-specific fields, such as auxiliary line structs, out-of-flow child
 /// lists, and so on.
 ///
 /// Currently, the important types of flows are:
@@ -21,16 +21,16 @@
 ///   the viewport.
 ///
 /// * `InlineFlow`: A flow that establishes an inline context. It has a flat list of child
-///   boxes/flows that are subject to inline layout and line breaking and structs to represent
+///   fragments/flows that are subject to inline layout and line breaking and structs to represent
 ///   line breaks and mapping to CSS boxes, for the purpose of handling `getClientRects()` and
 ///   similar methods.
 
 use css::node_style::StyledNode;
 use layout::block::BlockFlow;
-use layout::box_::{Box, TableRowBox, TableCellBox};
 use layout::context::LayoutContext;
 use layout::floats::Floats;
 use layout::flow_list::{FlowList, Link, Rawlink, FlowListIterator, MutFlowListIterator};
+use layout::fragment::{Fragment, TableRowFragment, TableCellFragment};
 use layout::incremental::RestyleDamage;
 use layout::inline::InlineFlow;
 use layout::model::{CollapsibleMargins, IntrinsicWidths, MarginCollapseInfo};
@@ -58,7 +58,6 @@ use std::cast;
 use std::fmt;
 use std::iter::Zip;
 use std::num::Zero;
-use std::owned;
 use std::sync::atomics::Relaxed;
 use std::slice::MutItems;
 use style::computed_values::{clear, position, text_align};
@@ -338,7 +337,7 @@ pub trait ImmutableFlowUtils {
     fn need_anonymous_flow(self, child: &Flow) -> bool;
 
     /// Generates missing child flow of this flow.
-    fn generate_missing_child_flow(self, node: &ThreadSafeLayoutNode) -> owned::Box<Flow:Share>;
+    fn generate_missing_child_flow(self, node: &ThreadSafeLayoutNode) -> Box<Flow:Share>;
 
     /// Returns true if this flow has no children.
     fn is_leaf(self) -> bool;
@@ -392,7 +391,7 @@ pub trait MutableFlowUtils {
 pub trait MutableOwnedFlowUtils {
     /// Adds a new flow as a child of this flow. Removes the flow from the given leaf set if
     /// it's present.
-    fn add_new_child(&mut self, new_child: owned::Box<Flow:Share>);
+    fn add_new_child(&mut self, new_child: Box<Flow:Share>);
 
     /// Finishes a flow. Once a flow is finished, no more child flows or boxes may be added to it.
     /// This will normally run the bubble-widths (minimum and preferred -- i.e. intrinsic -- width)
@@ -842,15 +841,15 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
     }
 
     /// Generates missing child flow of this flow.
-    fn generate_missing_child_flow(self, node: &ThreadSafeLayoutNode) -> owned::Box<Flow:Share> {
+    fn generate_missing_child_flow(self, node: &ThreadSafeLayoutNode) -> Box<Flow:Share> {
         match self.class() {
             TableFlowClass | TableRowGroupFlowClass => {
-                let box_ = Box::new_anonymous_table_box(node, TableRowBox);
-                box TableRowFlow::from_node_and_box(node, box_) as owned::Box<Flow:Share>
+                let fragment = Fragment::new_anonymous_table_fragment(node, TableRowFragment);
+                box TableRowFlow::from_node_and_fragment(node, fragment) as Box<Flow:Share>
             },
             TableRowFlowClass => {
-                let box_ = Box::new_anonymous_table_box(node, TableCellBox);
-                box TableCellFlow::from_node_and_box(node, box_) as owned::Box<Flow:Share>
+                let fragment = Fragment::new_anonymous_table_fragment(node, TableCellFragment);
+                box TableCellFlow::from_node_and_fragment(node, fragment) as Box<Flow:Share>
             },
             _ => {
                 fail!("no need to generate a missing child")
@@ -870,8 +869,8 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
 
     /// Return true if this flow is a Block Container.
     ///
-    /// Except for table boxes and replaced elements, block-level boxes (`BlockFlow`) are
-    /// also block container boxes.
+    /// Except for table fragments and replaced elements, block-level fragments (`BlockFlow`) are
+    /// also block container fragments.
     /// Non-replaced inline blocks and non-replaced table cells are also block
     /// containers.
     fn is_block_container(self) -> bool {
@@ -1052,9 +1051,9 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
     }
 }
 
-impl MutableOwnedFlowUtils for owned::Box<Flow:Share> {
+impl MutableOwnedFlowUtils for Box<Flow:Share> {
     /// Adds a new flow as a child of this flow. Fails if this flow is marked as a leaf.
-    fn add_new_child(&mut self, mut new_child: owned::Box<Flow:Share>) {
+    fn add_new_child(&mut self, mut new_child: Box<Flow:Share>) {
         {
             let kid_base = mut_base(new_child);
             kid_base.parallel.parent = parallel::mut_owned_flow_to_unsafe_flow(self);
@@ -1066,7 +1065,7 @@ impl MutableOwnedFlowUtils for owned::Box<Flow:Share> {
         let _ = base.parallel.children_and_absolute_descendant_count.fetch_add(1, Relaxed);
     }
 
-    /// Finishes a flow. Once a flow is finished, no more child flows or boxes may be added to it.
+    /// Finishes a flow. Once a flow is finished, no more child flows or fragments may be added to it.
     /// This will normally run the bubble-widths (minimum and preferred -- i.e. intrinsic -- width)
     /// calculation, unless the global `bubble_widths_separately` flag is on.
     ///

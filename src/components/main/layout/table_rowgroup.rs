@@ -4,13 +4,13 @@
 
 //! CSS table formatting contexts.
 
-use layout::box_::Box;
 use layout::block::BlockFlow;
 use layout::block::WidthAndMarginsComputer;
 use layout::construct::FlowConstructor;
 use layout::context::LayoutContext;
 use layout::flow::{TableRowGroupFlowClass, FlowClass, Flow, ImmutableFlowUtils};
 use layout::flow;
+use layout::fragment::Fragment;
 use layout::table::{InternalTable, TableFlow};
 use layout::wrapper::ThreadSafeLayoutNode;
 
@@ -33,11 +33,11 @@ pub struct TableRowGroupFlow {
 }
 
 impl TableRowGroupFlow {
-    pub fn from_node_and_box(node: &ThreadSafeLayoutNode,
-                             box_: Box)
-                             -> TableRowGroupFlow {
+    pub fn from_node_and_fragment(node: &ThreadSafeLayoutNode,
+                                  fragment: Fragment)
+                                  -> TableRowGroupFlow {
         TableRowGroupFlow {
-            block_flow: BlockFlow::from_node_and_box(node, box_),
+            block_flow: BlockFlow::from_node_and_fragment(node, fragment),
             col_widths: vec!(),
             col_min_widths: vec!(),
             col_pref_widths: vec!(),
@@ -55,8 +55,8 @@ impl TableRowGroupFlow {
         }
     }
 
-    pub fn box_<'a>(&'a mut self) -> &'a Box {
-        &self.block_flow.box_
+    pub fn fragment<'a>(&'a mut self) -> &'a Fragment {
+        &self.block_flow.fragment
     }
 
     fn initialize_offsets(&mut self) -> (Au, Au, Au) {
@@ -87,9 +87,9 @@ impl TableRowGroupFlow {
 
         let height = cur_y - top_offset;
 
-        let mut position = self.block_flow.box_.border_box;
+        let mut position = self.block_flow.fragment.border_box;
         position.size.height = height;
-        self.block_flow.box_.border_box = position;
+        self.block_flow.fragment.border_box = position;
         self.block_flow.base.position.size.height = height;
     }
 
@@ -126,7 +126,7 @@ impl Flow for TableRowGroupFlow {
 
     /// Recursively (bottom-up) determines the context's preferred and minimum widths. When called
     /// on this context, all child contexts have had their min/pref widths set. This function must
-    /// decide min/pref widths based on child context widths and dimensions of any boxes it is
+    /// decide min/pref widths based on child context widths and dimensions of any fragments it is
     /// responsible for flowing.
     /// Min/pref widths set by this function are used in automatic table layout calculation.
     /// Also, this function finds the specified column widths from the first row.
@@ -171,8 +171,8 @@ impl Flow for TableRowGroupFlow {
                                                                               pref_width);
     }
 
-    /// Recursively (top-down) determines the actual width of child contexts and boxes. When called
-    /// on this context, the context has had its width set by the parent context.
+    /// Recursively (top-down) determines the actual width of child contexts and fragments. When
+    /// called on this context, the context has had its width set by the parent context.
     fn assign_widths(&mut self, ctx: &mut LayoutContext) {
         debug!("assign_widths({}): assigning width for flow", "table_rowgroup");
 
@@ -200,6 +200,6 @@ impl Flow for TableRowGroupFlow {
 
 impl fmt::Show for TableRowGroupFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f.buf, "TableRowGroupFlow: {}", self.block_flow.box_)
+        write!(f.buf, "TableRowGroupFlow: {}", self.block_flow.fragment)
     }
 }

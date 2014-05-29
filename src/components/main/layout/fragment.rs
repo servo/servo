@@ -44,7 +44,6 @@ use std::from_str::FromStr;
 use std::iter::AdditiveIterator;
 use std::mem;
 use std::num::Zero;
-use std::owned;
 use style::{ComputedValues, TElement, TNode, cascade_anonymous};
 use style::computed_values::{LengthOrPercentageOrAuto, overflow, LPA_Auto, background_attachment};
 use style::computed_values::{background_repeat, border_style, clear, position, text_align};
@@ -52,47 +51,47 @@ use style::computed_values::{text_decoration, vertical_align, visibility, white_
 use sync::Arc;
 use url::Url;
 
-/// Boxes (`struct Box`) are the leaves of the layout tree. They cannot position themselves. In
-/// general, boxes do not have a simple correspondence with CSS boxes in the specification:
+/// Fragments (`struct Fragment`) are the leaves of the layout tree. They cannot position themselves. In
+/// general, fragments do not have a simple correspondence with CSS fragments in the specification:
 ///
-/// * Several boxes may correspond to the same CSS box or DOM node. For example, a CSS text box
-/// broken across two lines is represented by two boxes.
+/// * Several fragments may correspond to the same CSS box or DOM node. For example, a CSS text box
+/// broken across two lines is represented by two fragments.
 ///
-/// * Some CSS boxes are not created at all, such as some anonymous block boxes induced by inline
-///   boxes with block-level sibling boxes. In that case, Servo uses an `InlineFlow` with
+/// * Some CSS fragments are not created at all, such as some anonymous block fragments induced by inline
+///   fragments with block-level sibling fragments. In that case, Servo uses an `InlineFlow` with
 ///   `BlockFlow` siblings; the `InlineFlow` is block-level, but not a block container. It is
-///   positioned as if it were a block box, but its children are positioned according to inline
+///   positioned as if it were a block fragment, but its children are positioned according to inline
 ///   flow.
 ///
-/// A `GenericBox` is an empty box that contributes only borders, margins, padding, and
+/// A `GenericFragment` is an empty fragment that contributes only borders, margins, padding, and
 /// backgrounds. It is analogous to a CSS nonreplaced content box.
 ///
-/// A box's type influences how its styles are interpreted during layout. For example, replaced
+/// A fragment's type influences how its styles are interpreted during layout. For example, replaced
 /// content such as images are resized differently from tables, text, or other content. Different
-/// types of boxes may also contain custom data; for example, text boxes contain text.
+/// types of fragments may also contain custom data; for example, text fragments contain text.
 ///
 /// FIXME(#2260, pcwalton): This can be slimmed down some.
 #[deriving(Clone)]
-pub struct Box {
-    /// An opaque reference to the DOM node that this `Box` originates from.
+pub struct Fragment {
+    /// An opaque reference to the DOM node that this `Fragment` originates from.
     pub node: OpaqueNode,
 
-    /// The CSS style of this box.
+    /// The CSS style of this fragment.
     pub style: Arc<ComputedValues>,
 
-    /// The position of this box relative to its owning flow.
+    /// The position of this fragment relative to its owning flow.
     /// The size includes padding and border, but not margin.
     pub border_box: Rect<Au>,
 
     /// The sum of border and padding; i.e. the distance from the edge of the border box to the
-    /// content edge of the box.
+    /// content edge of the fragment.
     pub border_padding: SideOffsets2D<Au>,
 
     /// The margin of the content box.
     pub margin: SideOffsets2D<Au>,
 
-    /// Info specific to the kind of box. Keep this enum small.
-    pub specific: SpecificBoxInfo,
+    /// Info specific to the kind of fragment. Keep this enum small.
+    pub specific: SpecificFragmentInfo,
 
     /// New-line chracter(\n)'s positions(relative, not absolute)
     ///
@@ -100,25 +99,25 @@ pub struct Box {
     pub new_line_pos: Vec<CharIndex>,
 }
 
-/// Info specific to the kind of box. Keep this enum small.
+/// Info specific to the kind of fragment. Keep this enum small.
 #[deriving(Clone)]
-pub enum SpecificBoxInfo {
-    GenericBox,
-    ImageBox(ImageBoxInfo),
-    IframeBox(IframeBoxInfo),
-    ScannedTextBox(ScannedTextBoxInfo),
-    TableBox,
-    TableCellBox,
-    TableColumnBox(TableColumnBoxInfo),
-    TableRowBox,
-    TableWrapperBox,
-    UnscannedTextBox(UnscannedTextBoxInfo),
+pub enum SpecificFragmentInfo {
+    GenericFragment,
+    ImageFragment(ImageFragmentInfo),
+    IframeFragment(IframeFragmentInfo),
+    ScannedTextFragment(ScannedTextFragmentInfo),
+    TableFragment,
+    TableCellFragment,
+    TableColumnFragment(TableColumnFragmentInfo),
+    TableRowFragment,
+    TableWrapperFragment,
+    UnscannedTextFragment(UnscannedTextFragmentInfo),
 }
 
-/// A box that represents a replaced content image and its accompanying borders, shadows, etc.
+/// A fragment that represents a replaced content image and its accompanying borders, shadows, etc.
 #[deriving(Clone)]
-pub struct ImageBoxInfo {
-    /// The image held within this box.
+pub struct ImageFragmentInfo {
+    /// The image held within this fragment.
     pub image: ImageHolder,
     pub computed_width: Option<Au>,
     pub computed_height: Option<Au>,
@@ -126,15 +125,15 @@ pub struct ImageBoxInfo {
     pub dom_height: Option<Au>,
 }
 
-impl ImageBoxInfo {
-    /// Creates a new image box from the given URL and local image cache.
+impl ImageFragmentInfo {
+    /// Creates a new image fragment from the given URL and local image cache.
     ///
-    /// FIXME(pcwalton): The fact that image boxes store the cache in the box makes little sense to
+    /// FIXME(pcwalton): The fact that image fragments store the cache in the fragment makes little sense to
     /// me.
     pub fn new(node: &ThreadSafeLayoutNode,
                image_url: Url,
                local_image_cache: LocalImageCacheHandle)
-               -> ImageBoxInfo {
+               -> ImageFragmentInfo {
         fn convert_length(node: &ThreadSafeLayoutNode, name: &str) -> Option<Au> {
             let element = node.as_element();
             element.get_attr(&namespace::Null, name).and_then(|string| {
@@ -143,7 +142,7 @@ impl ImageBoxInfo {
             }).and_then(|pixels| Some(Au::from_px(pixels)))
         }
 
-        ImageBoxInfo {
+        ImageFragmentInfo {
             image: ImageHolder::new(image_url, local_image_cache),
             computed_width: None,
             computed_height: None,
@@ -197,44 +196,44 @@ impl ImageBoxInfo {
     }
 }
 
-/// A box that represents an inline frame (iframe). This stores the pipeline ID so that the size
+/// A fragment that represents an inline frame (iframe). This stores the pipeline ID so that the size
 /// of this iframe can be communicated via the constellation to the iframe's own layout task.
 #[deriving(Clone)]
-pub struct IframeBoxInfo {
+pub struct IframeFragmentInfo {
     /// The pipeline ID of this iframe.
     pub pipeline_id: PipelineId,
     /// The subpage ID of this iframe.
     pub subpage_id: SubpageId,
 }
 
-impl IframeBoxInfo {
-    /// Creates the information specific to an iframe box.
-    pub fn new(node: &ThreadSafeLayoutNode) -> IframeBoxInfo {
+impl IframeFragmentInfo {
+    /// Creates the information specific to an iframe fragment.
+    pub fn new(node: &ThreadSafeLayoutNode) -> IframeFragmentInfo {
         let (pipeline_id, subpage_id) = node.iframe_pipeline_and_subpage_ids();
-        IframeBoxInfo {
+        IframeFragmentInfo {
             pipeline_id: pipeline_id,
             subpage_id: subpage_id,
         }
     }
 }
 
-/// A scanned text box represents a single run of text with a distinct style. A `TextBox` may be
-/// split into two or more boxes across line breaks. Several `TextBox`es may correspond to a single
-/// DOM text node. Split text boxes are implemented by referring to subsets of a single `TextRun`
-/// object.
+/// A scanned text fragment represents a single run of text with a distinct style. A `TextFragment`
+/// may be split into two or more fragments across line breaks. Several `TextFragment`s may
+/// correspond to a single DOM text node. Split text fragments are implemented by referring to
+/// subsets of a single `TextRun` object.
 #[deriving(Clone)]
-pub struct ScannedTextBoxInfo {
+pub struct ScannedTextFragmentInfo {
     /// The text run that this represents.
-    pub run: Arc<owned::Box<TextRun>>,
+    pub run: Arc<Box<TextRun>>,
 
     /// The range within the above text run that this represents.
     pub range: Range<CharIndex>,
 }
 
-impl ScannedTextBoxInfo {
-    /// Creates the information specific to a scanned text box from a range and a text run.
-    pub fn new(run: Arc<owned::Box<TextRun>>, range: Range<CharIndex>) -> ScannedTextBoxInfo {
-        ScannedTextBoxInfo {
+impl ScannedTextFragmentInfo {
+    /// Creates the information specific to a scanned text fragment from a range and a text run.
+    pub fn new(run: Arc<Box<TextRun>>, range: Range<CharIndex>) -> ScannedTextFragmentInfo {
+        ScannedTextFragmentInfo {
             run: run,
             range: range,
         }
@@ -250,7 +249,7 @@ pub struct SplitInfo {
 }
 
 impl SplitInfo {
-    fn new(range: Range<CharIndex>, info: &ScannedTextBoxInfo) -> SplitInfo {
+    fn new(range: Range<CharIndex>, info: &ScannedTextFragmentInfo) -> SplitInfo {
         SplitInfo {
             range: range,
             width: info.run.advance_for_range(&range),
@@ -258,42 +257,42 @@ impl SplitInfo {
     }
 }
 
-/// Data for an unscanned text box. Unscanned text boxes are the results of flow construction that
+/// Data for an unscanned text fragment. Unscanned text fragments are the results of flow construction that
 /// have not yet had their width determined.
 #[deriving(Clone)]
-pub struct UnscannedTextBoxInfo {
-    /// The text inside the box.
+pub struct UnscannedTextFragmentInfo {
+    /// The text inside the fragment.
     pub text: ~str,
 }
 
-impl UnscannedTextBoxInfo {
-    /// Creates a new instance of `UnscannedTextBoxInfo` from the given DOM node.
-    pub fn new(node: &ThreadSafeLayoutNode) -> UnscannedTextBoxInfo {
+impl UnscannedTextFragmentInfo {
+    /// Creates a new instance of `UnscannedTextFragmentInfo` from the given DOM node.
+    pub fn new(node: &ThreadSafeLayoutNode) -> UnscannedTextFragmentInfo {
         // FIXME(pcwalton): Don't copy text; atomically reference count it instead.
-        UnscannedTextBoxInfo {
+        UnscannedTextFragmentInfo {
             text: node.text(),
         }
     }
 
-    /// Creates a new instance of `UnscannedTextBoxInfo` from the given text.
+    /// Creates a new instance of `UnscannedTextFragmentInfo` from the given text.
     #[inline]
-    pub fn from_text(text: ~str) -> UnscannedTextBoxInfo {
-        UnscannedTextBoxInfo {
+    pub fn from_text(text: ~str) -> UnscannedTextFragmentInfo {
+        UnscannedTextFragmentInfo {
             text: text,
         }
     }
 }
 
-/// A box that represents a table column.
+/// A fragment that represents a table column.
 #[deriving(Clone)]
-pub struct TableColumnBoxInfo {
+pub struct TableColumnFragmentInfo {
     /// the number of columns a <col> element should span
     pub span: Option<int>,
 }
 
-impl TableColumnBoxInfo {
-    /// Create the information specific to an table column box.
-    pub fn new(node: &ThreadSafeLayoutNode) -> TableColumnBoxInfo {
+impl TableColumnFragmentInfo {
+    /// Create the information specific to an table column fragment.
+    pub fn new(node: &ThreadSafeLayoutNode) -> TableColumnFragmentInfo {
         let span = {
             let element = node.as_element();
             element.get_attr(&namespace::Null, "span").and_then(|string| {
@@ -301,35 +300,35 @@ impl TableColumnBoxInfo {
                 n
             })
         };
-        TableColumnBoxInfo {
+        TableColumnFragmentInfo {
             span: span,
         }
     }
 }
 
-impl Box {
-    /// Constructs a new `Box` instance for the given node.
+impl Fragment {
+    /// Constructs a new `Fragment` instance for the given node.
     ///
     /// Arguments:
     ///
     ///   * `constructor`: The flow constructor.
     ///
-    ///   * `node`: The node to create a box for.
-    pub fn new(constructor: &mut FlowConstructor, node: &ThreadSafeLayoutNode) -> Box {
-        Box {
+    ///   * `node`: The node to create a fragment for.
+    pub fn new(constructor: &mut FlowConstructor, node: &ThreadSafeLayoutNode) -> Fragment {
+        Fragment {
             node: OpaqueNodeMethods::from_thread_safe_layout_node(node),
             style: node.style().clone(),
             border_box: Rect::zero(),
             border_padding: Zero::zero(),
             margin: Zero::zero(),
-            specific: constructor.build_specific_box_info_for_node(node),
+            specific: constructor.build_specific_fragment_info_for_node(node),
             new_line_pos: vec!(),
         }
     }
 
-    /// Constructs a new `Box` instance from a specific info.
-    pub fn new_from_specific_info(node: &ThreadSafeLayoutNode, specific: SpecificBoxInfo) -> Box {
-        Box {
+    /// Constructs a new `Fragment` instance from a specific info.
+    pub fn new_from_specific_info(node: &ThreadSafeLayoutNode, specific: SpecificFragmentInfo) -> Fragment {
+        Fragment {
             node: OpaqueNodeMethods::from_thread_safe_layout_node(node),
             style: node.style().clone(),
             border_box: Rect::zero(),
@@ -340,19 +339,19 @@ impl Box {
         }
     }
 
-    /// Constructs a new `Box` instance for an anonymous table object.
-    pub fn new_anonymous_table_box(node: &ThreadSafeLayoutNode, specific: SpecificBoxInfo) -> Box {
-        // CSS 2.1 § 17.2.1 This is for non-inherited properties on anonymous table boxes
+    /// Constructs a new `Fragment` instance for an anonymous table object.
+    pub fn new_anonymous_table_fragment(node: &ThreadSafeLayoutNode, specific: SpecificFragmentInfo) -> Fragment {
+        // CSS 2.1 § 17.2.1 This is for non-inherited properties on anonymous table fragments
         // example:
         //
         //     <div style="display: table">
         //         Foo
         //     </div>
         //
-        // Anonymous table boxes, TableRowBox and TableCellBox, are generated around `Foo`, but it shouldn't inherit the border.
+        // Anonymous table fragments, TableRowFragment and TableCellFragment, are generated around `Foo`, but it shouldn't inherit the border.
 
         let node_style = cascade_anonymous(&**node.style());
-        Box {
+        Fragment {
             node: OpaqueNodeMethods::from_thread_safe_layout_node(node),
             style: Arc::new(node_style),
             border_box: Rect::zero(),
@@ -363,12 +362,12 @@ impl Box {
         }
     }
 
-    /// Constructs a new `Box` instance from an opaque node.
+    /// Constructs a new `Fragment` instance from an opaque node.
     pub fn from_opaque_node_and_style(node: OpaqueNode,
                                       style: Arc<ComputedValues>,
-                                      specific: SpecificBoxInfo)
-                                      -> Box {
-        Box {
+                                      specific: SpecificFragmentInfo)
+                                      -> Fragment {
+        Fragment {
             node: node,
             style: style,
             border_box: Rect::zero(),
@@ -379,18 +378,18 @@ impl Box {
         }
     }
 
-    /// Returns a debug ID of this box. This ID should not be considered stable across multiple
-    /// layouts or box manipulations.
+    /// Returns a debug ID of this fragment. This ID should not be considered stable across multiple
+    /// layouts or fragment manipulations.
     pub fn debug_id(&self) -> uint {
         unsafe {
             cast::transmute(self)
         }
     }
 
-    /// Transforms this box into another box of the given type, with the given size, preserving all
+    /// Transforms this fragment into another fragment of the given type, with the given size, preserving all
     /// the other data.
-    pub fn transform(&self, size: Size2D<Au>, specific: SpecificBoxInfo) -> Box {
-        Box {
+    pub fn transform(&self, size: Size2D<Au>, specific: SpecificFragmentInfo) -> Fragment {
+        Fragment {
             node: self.node,
             style: self.style.clone(),
             border_box: Rect(self.border_box.origin, size),
@@ -405,12 +404,12 @@ impl Box {
     /// replaced elements.
     fn style_specified_intrinsic_width(&self) -> IntrinsicWidths {
         let (use_margins, use_padding) = match self.specific {
-            GenericBox | IframeBox(_) | ImageBox(_) => (true, true),
-            TableBox | TableCellBox => (false, true),
-            TableWrapperBox => (true, false),
-            TableRowBox => (false, false),
-            ScannedTextBox(_) | TableColumnBox(_) | UnscannedTextBox(_) => {
-                // Styles are irrelevant for these kinds of boxes.
+            GenericFragment | IframeFragment(_) | ImageFragment(_) => (true, true),
+            TableFragment | TableCellFragment => (false, true),
+            TableWrapperFragment => (true, false),
+            TableRowFragment => (false, false),
+            ScannedTextFragment(_) | TableColumnFragment(_) | UnscannedTextFragment(_) => {
+                // Styles are irrelevant for these kinds of fragments.
                 return IntrinsicWidths::new()
             }
         };
@@ -471,7 +470,7 @@ impl Box {
         // Compute vertical margins. Note that this value will be ignored by layout if the style
         // specifies `auto`.
         match self.specific {
-            TableBox | TableCellBox | TableRowBox | TableColumnBox(_) => {
+            TableFragment | TableCellFragment | TableRowFragment | TableColumnFragment(_) => {
                 self.margin.top = Au(0);
                 self.margin.bottom = Au(0)
             }
@@ -496,7 +495,7 @@ impl Box {
 
         // Compute padding.
         let padding = match self.specific {
-            TableColumnBox(_) | TableRowBox | TableWrapperBox => Zero::zero(),
+            TableColumnFragment(_) | TableRowFragment | TableWrapperFragment => Zero::zero(),
             _ => {
                 match inline_fragment_context {
                     None => model::padding_from_style(self.style(), containing_block_width),
@@ -542,7 +541,7 @@ impl Box {
             }
         }
 
-        // Go over the ancestor boxes and add all relative offsets (if any).
+        // Go over the ancestor fragments and add all relative offsets (if any).
         let mut rel_pos: Point2D<Au> = Zero::zero();
         match inline_fragment_context {
             None => {
@@ -604,7 +603,7 @@ impl Box {
         self.style().get_inheritedtext().white_space
     }
 
-    /// Returns the text decoration of this box, according to the style of the nearest ancestor
+    /// Returns the text decoration of this fragment, according to the style of the nearest ancestor
     /// element.
     ///
     /// NB: This may not be the actual text decoration, because of the override rules specified in
@@ -621,23 +620,23 @@ impl Box {
     /// inlines.
     pub fn left_offset(&self) -> Au {
         match self.specific {
-            TableWrapperBox => self.margin.left,
-            TableBox | TableCellBox | TableRowBox => self.border_padding.left,
-            TableColumnBox(_) => Au(0),
+            TableWrapperFragment => self.margin.left,
+            TableFragment | TableCellFragment | TableRowFragment => self.border_padding.left,
+            TableColumnFragment(_) => Au(0),
             _ => self.margin.left + self.border_padding.left,
         }
     }
 
-    /// Returns true if this element can be split. This is true for text boxes.
+    /// Returns true if this element can be split. This is true for text fragments.
     pub fn can_split(&self) -> bool {
         match self.specific {
-            ScannedTextBox(..) => true,
+            ScannedTextFragment(..) => true,
             _ => false,
         }
     }
 
-    /// Adds the display items necessary to paint the background of this box to the display list if
-    /// necessary.
+    /// Adds the display items necessary to paint the background of this fragment to the display
+    /// list if necessary.
     pub fn build_display_list_for_background_if_applicable(&self,
                                                            list: &mut DisplayList,
                                                            layout_context: &LayoutContext,
@@ -646,7 +645,7 @@ impl Box {
         // FIXME: This causes a lot of background colors to be displayed when they are clearly not
         // needed. We could use display list optimization to clean this up, but it still seems
         // inefficient. What we really want is something like "nearest ancestor element that
-        // doesn't have a box".
+        // doesn't have a fragment".
         let style = self.style();
         let background_color = style.resolve_color(style.get_background().background_color);
         if !background_color.alpha.approx_eq(&0.0) {
@@ -742,7 +741,7 @@ impl Box {
         }
     }
 
-    /// Adds the display items necessary to paint the borders of this box to a display list if
+    /// Adds the display items necessary to paint the borders of this fragment to a display list if
     /// necessary.
     pub fn build_display_list_for_borders_if_applicable(&self,
                                                         list: &mut DisplayList,
@@ -779,18 +778,18 @@ impl Box {
         list.push(BorderDisplayItemClass(border_display_item))
     }
 
-    fn build_debug_borders_around_text_boxes(&self,
+    fn build_debug_borders_around_text_fragments(&self,
                                              display_list: &mut DisplayList,
                                              flow_origin: Point2D<Au>,
-                                             text_box: &ScannedTextBoxInfo) {
-        let box_bounds = self.border_box;
-        let absolute_box_bounds = box_bounds.translate(&flow_origin);
+                                             text_fragment: &ScannedTextFragmentInfo) {
+        let fragment_bounds = self.border_box;
+        let absolute_fragment_bounds = fragment_bounds.translate(&flow_origin);
 
-        // Compute the text box bounds and draw a border surrounding them.
+        // Compute the text fragment bounds and draw a border surrounding them.
         let debug_border = SideOffsets2D::new_all_same(Au::from_px(1));
 
         let border_display_item = box BorderDisplayItem {
-            base: BaseDisplayItem::new(absolute_box_bounds, self.node, ContentStackingLevel),
+            base: BaseDisplayItem::new(absolute_fragment_bounds, self.node, ContentStackingLevel),
             border: debug_border,
             color: SideOffsets2D::new_all_same(rgb(0, 0, 200)),
             style: SideOffsets2D::new_all_same(border_style::solid)
@@ -798,9 +797,9 @@ impl Box {
         display_list.push(BorderDisplayItemClass(border_display_item));
 
         // Draw a rectangle representing the baselines.
-        let ascent = text_box.run.ascent();
-        let baseline = Rect(absolute_box_bounds.origin + Point2D(Au(0), ascent),
-                            Size2D(absolute_box_bounds.size.width, Au(0)));
+        let ascent = text_fragment.run.ascent();
+        let baseline = Rect(absolute_fragment_bounds.origin + Point2D(Au(0), ascent),
+                            Size2D(absolute_fragment_bounds.size.width, Au(0)));
 
         let line_display_item = box LineDisplayItem {
             base: BaseDisplayItem::new(baseline, self.node, ContentStackingLevel),
@@ -810,17 +809,17 @@ impl Box {
         display_list.push(LineDisplayItemClass(line_display_item));
     }
 
-    fn build_debug_borders_around_box(&self,
+    fn build_debug_borders_around_fragment(&self,
                                       display_list: &mut DisplayList,
                                       flow_origin: Point2D<Au>) {
-        let box_bounds = self.border_box;
-        let absolute_box_bounds = box_bounds.translate(&flow_origin);
+        let fragment_bounds = self.border_box;
+        let absolute_fragment_bounds = fragment_bounds.translate(&flow_origin);
 
-        // This prints a debug border around the border of this box.
+        // This prints a debug border around the border of this fragment.
         let debug_border = SideOffsets2D::new_all_same(Au::from_px(1));
 
         let border_display_item = box BorderDisplayItem {
-            base: BaseDisplayItem::new(absolute_box_bounds, self.node, ContentStackingLevel),
+            base: BaseDisplayItem::new(absolute_fragment_bounds, self.node, ContentStackingLevel),
             border: debug_border,
             color: SideOffsets2D::new_all_same(rgb(0, 0, 200)),
             style: SideOffsets2D::new_all_same(border_style::solid)
@@ -828,7 +827,7 @@ impl Box {
         display_list.push(BorderDisplayItemClass(border_display_item))
     }
 
-    /// Adds the display items for this box to the given stacking context.
+    /// Adds the display items for this fragment to the given stacking context.
     ///
     /// Arguments:
     ///
@@ -836,7 +835,6 @@ impl Box {
     /// * `layout_context`: The layout context.
     /// * `dirty`: The dirty rectangle in the coordinate system of the owning flow.
     /// * `flow_origin`: Position of the origin of the owning flow wrt the display list root flow.
-    ///   box.
     pub fn build_display_list(&self,
                               display_list: &mut DisplayList,
                               layout_context: &LayoutContext,
@@ -844,60 +842,60 @@ impl Box {
                               background_and_border_level: BackgroundAndBorderLevel,
                               inline_fragment_context: Option<InlineFragmentContext>)
                               -> ChildDisplayListAccumulator {
-        // Box position wrt to the owning flow.
-        let box_bounds = self.border_box;
-        let absolute_box_bounds = box_bounds.translate(&flow_origin);
-        debug!("Box::build_display_list at rel={}, abs={}: {}",
-               box_bounds,
-               absolute_box_bounds,
+        // Fragment position wrt to the owning flow.
+        let fragment_bounds = self.border_box;
+        let absolute_fragment_bounds = fragment_bounds.translate(&flow_origin);
+        debug!("Fragment::build_display_list at rel={}, abs={}: {}",
+               fragment_bounds,
+               absolute_fragment_bounds,
                self);
-        debug!("Box::build_display_list: dirty={}, flow_origin={}",
+        debug!("Fragment::build_display_list: dirty={}, flow_origin={}",
                layout_context.dirty,
                flow_origin);
 
         let mut accumulator = ChildDisplayListAccumulator::new(self.style(),
-                                                               absolute_box_bounds,
+                                                               absolute_fragment_bounds,
                                                                self.node,
                                                                ContentStackingLevel);
         if self.style().get_inheritedbox().visibility != visibility::visible {
             return accumulator
         }
 
-        if !absolute_box_bounds.intersects(&layout_context.dirty) {
-            debug!("Box::build_display_list: Did not intersect...");
+        if !absolute_fragment_bounds.intersects(&layout_context.dirty) {
+            debug!("Fragment::build_display_list: Did not intersect...");
             return accumulator
         }
 
-        debug!("Box::build_display_list: intersected. Adding display item...");
+        debug!("Fragment::build_display_list: intersected. Adding display item...");
 
         {
             let level =
                 StackingLevel::from_background_and_border_level(background_and_border_level);
 
             // Add a pseudo-display item for content box queries. This is a very bogus thing to do.
-            let base_display_item = box BaseDisplayItem::new(absolute_box_bounds, self.node, level);
+            let base_display_item = box BaseDisplayItem::new(absolute_fragment_bounds, self.node, level);
             display_list.push(PseudoDisplayItemClass(base_display_item));
 
             // Add the background to the list, if applicable.
             self.build_display_list_for_background_if_applicable(display_list,
                                                                  layout_context,
                                                                  level,
-                                                                 &absolute_box_bounds);
+                                                                 &absolute_fragment_bounds);
 
             // Add a border, if applicable.
             //
             // TODO: Outlines.
             self.build_display_list_for_borders_if_applicable(display_list,
-                                                              &absolute_box_bounds,
+                                                              &absolute_fragment_bounds,
                                                               level,
                                                               inline_fragment_context);
         }
 
         // Add a clip, if applicable.
         match self.specific {
-            UnscannedTextBox(_) => fail!("Shouldn't see unscanned boxes here."),
-            TableColumnBox(_) => fail!("Shouldn't see table column boxes here."),
-            ScannedTextBox(ref text_box) => {
+            UnscannedTextFragment(_) => fail!("Shouldn't see unscanned fragments here."),
+            TableColumnFragment(_) => fail!("Shouldn't see table column fragments here."),
+            ScannedTextFragment(ref text_fragment) => {
                 // Compute text color.
                 let text_color = self.style().get_color().color.to_gfx_color();
 
@@ -912,15 +910,15 @@ impl Box {
                                                             .map(|c| c.to_gfx_color()),
                 };
 
-                let mut bounds = absolute_box_bounds.clone();
+                let mut bounds = absolute_fragment_bounds.clone();
                 bounds.origin.x = bounds.origin.x + self.border_padding.left;
                 bounds.size.width = bounds.size.width - self.border_padding.horizontal();
 
-                // Create the text box.
+                // Create the text fragment.
                 let text_display_item = box TextDisplayItem {
                     base: BaseDisplayItem::new(bounds, self.node, ContentStackingLevel),
-                    text_run: text_box.run.clone(),
-                    range: text_box.range,
+                    text_run: text_fragment.run.clone(),
+                    range: text_fragment.range,
                     text_color: text_color,
                     text_decorations: text_decorations,
                 };
@@ -930,29 +928,29 @@ impl Box {
                 //
                 // FIXME(#2263, pcwalton): This is a bit of an abuse of the logging infrastructure.
                 // We should have a real `SERVO_DEBUG` system.
-                debug!("{:?}", self.build_debug_borders_around_text_boxes(display_list,
+                debug!("{:?}", self.build_debug_borders_around_text_fragments(display_list,
                                                                           flow_origin,
-                                                                          text_box))
+                                                                          text_fragment))
             },
-            GenericBox | IframeBox(..) | TableBox | TableCellBox | TableRowBox |
-            TableWrapperBox => {
+            GenericFragment | IframeFragment(..) | TableFragment | TableCellFragment | TableRowFragment |
+            TableWrapperFragment => {
                 // FIXME(pcwalton): This is a bit of an abuse of the logging infrastructure. We
                 // should have a real `SERVO_DEBUG` system.
-                debug!("{:?}", self.build_debug_borders_around_box(display_list, flow_origin))
+                debug!("{:?}", self.build_debug_borders_around_fragment(display_list, flow_origin))
             },
-            ImageBox(_) => {
-                let mut bounds = absolute_box_bounds.clone();
+            ImageFragment(_) => {
+                let mut bounds = absolute_fragment_bounds.clone();
                 bounds.origin.x = bounds.origin.x + self.border_padding.left;
                 bounds.origin.y = bounds.origin.y + self.border_padding.top;
                 bounds.size.width = bounds.size.width - self.border_padding.horizontal();
                 bounds.size.height = bounds.size.height - self.border_padding.vertical();
 
                 match self.specific {
-                    ImageBox(ref image_box) => {
-                        let image_ref = &image_box.image;
+                    ImageFragment(ref image_fragment) => {
+                        let image_ref = &image_fragment.image;
                         match image_ref.get_image_if_present() {
                             Some(image) => {
-                                debug!("(building display list) building image box");
+                                debug!("(building display list) building image fragment");
 
                                 // Place the image into the display list.
                                 let image_display_item = box ImageDisplayItem {
@@ -978,7 +976,7 @@ impl Box {
 
                 // FIXME(pcwalton): This is a bit of an abuse of the logging
                 // infrastructure. We should have a real `SERVO_DEBUG` system.
-                debug!("{:?}", self.build_debug_borders_around_box(display_list, flow_origin))
+                debug!("{:?}", self.build_debug_borders_around_fragment(display_list, flow_origin))
             }
         }
 
@@ -993,8 +991,8 @@ impl Box {
         // layout for the iframe only needs to know size, and origin is only relevant if the
         // iframe is actually going to be displayed.
         match self.specific {
-            IframeBox(ref iframe_box) => {
-                self.finalize_position_and_size_of_iframe(iframe_box, flow_origin, layout_context)
+            IframeFragment(ref iframe_fragment) => {
+                self.finalize_position_and_size_of_iframe(iframe_fragment, flow_origin, layout_context)
             }
             _ => {}
         }
@@ -1008,30 +1006,30 @@ impl Box {
         let mut result = self.style_specified_intrinsic_width();
 
         match self.specific {
-            GenericBox | IframeBox(_) | TableBox | TableCellBox | TableColumnBox(_) | TableRowBox |
-            TableWrapperBox => {}
-            ImageBox(ref mut image_box_info) => {
-                let image_width = image_box_info.image_width();
+            GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment | TableColumnFragment(_) | TableRowFragment |
+            TableWrapperFragment => {}
+            ImageFragment(ref mut image_fragment_info) => {
+                let image_width = image_fragment_info.image_width();
                 result.minimum_width = geometry::max(result.minimum_width, image_width);
                 result.preferred_width = geometry::max(result.preferred_width, image_width);
             }
-            ScannedTextBox(ref text_box_info) => {
-                let range = &text_box_info.range;
-                let min_line_width = text_box_info.run.min_width_for_range(range);
+            ScannedTextFragment(ref text_fragment_info) => {
+                let range = &text_fragment_info.range;
+                let min_line_width = text_fragment_info.run.min_width_for_range(range);
 
                 let mut max_line_width = Au::new(0);
-                for line_range in text_box_info.run.iter_natural_lines_for_range(range) {
-                    let line_metrics = text_box_info.run.metrics_for_range(&line_range);
+                for line_range in text_fragment_info.run.iter_natural_lines_for_range(range) {
+                    let line_metrics = text_fragment_info.run.metrics_for_range(&line_range);
                     max_line_width = Au::max(max_line_width, line_metrics.advance_width);
                 }
 
                 result.minimum_width = geometry::max(result.minimum_width, min_line_width);
                 result.preferred_width = geometry::max(result.preferred_width, max_line_width);
             }
-            UnscannedTextBox(..) => fail!("Unscanned text boxes should have been scanned by now!"),
+            UnscannedTextFragment(..) => fail!("Unscanned text fragments should have been scanned by now!"),
         }
 
-        // Take borders and padding for parent inline boxes into account, if necessary.
+        // Take borders and padding for parent inline fragments into account, if necessary.
         match inline_fragment_context {
             None => {}
             Some(context) => {
@@ -1048,44 +1046,44 @@ impl Box {
     }
 
 
-    /// TODO: What exactly does this function return? Why is it Au(0) for GenericBox?
+    /// TODO: What exactly does this function return? Why is it Au(0) for GenericFragment?
     pub fn content_width(&self) -> Au {
         match self.specific {
-            GenericBox | IframeBox(_) | TableBox | TableCellBox | TableRowBox |
-            TableWrapperBox => Au(0),
-            ImageBox(ref image_box_info) => {
-                image_box_info.computed_width()
+            GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment | TableRowFragment |
+            TableWrapperFragment => Au(0),
+            ImageFragment(ref image_fragment_info) => {
+                image_fragment_info.computed_width()
             }
-            ScannedTextBox(ref text_box_info) => {
-                let (range, run) = (&text_box_info.range, &text_box_info.run);
+            ScannedTextFragment(ref text_fragment_info) => {
+                let (range, run) = (&text_fragment_info.range, &text_fragment_info.run);
                 let text_bounds = run.metrics_for_range(range).bounding_box;
                 text_bounds.size.width
             }
-            TableColumnBox(_) => fail!("Table column boxes do not have width"),
-            UnscannedTextBox(_) => fail!("Unscanned text boxes should have been scanned by now!"),
+            TableColumnFragment(_) => fail!("Table column fragments do not have width"),
+            UnscannedTextFragment(_) => fail!("Unscanned text fragments should have been scanned by now!"),
         }
     }
 
-    /// Returns, and computes, the height of this box.
+    /// Returns, and computes, the height of this fragment.
     pub fn content_height(&self) -> Au {
         match self.specific {
-            GenericBox | IframeBox(_) | TableBox | TableCellBox | TableRowBox |
-            TableWrapperBox => Au(0),
-            ImageBox(ref image_box_info) => {
-                image_box_info.computed_height()
+            GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment | TableRowFragment |
+            TableWrapperFragment => Au(0),
+            ImageFragment(ref image_fragment_info) => {
+                image_fragment_info.computed_height()
             }
-            ScannedTextBox(ref text_box_info) => {
+            ScannedTextFragment(ref text_fragment_info) => {
                 // Compute the height based on the line-height and font size.
                 //
                 // FIXME(pcwalton): Shouldn't we use the value of the `font-size` property below
                 // instead of the bounding box of the text run?
-                let (range, run) = (&text_box_info.range, &text_box_info.run);
+                let (range, run) = (&text_fragment_info.range, &text_fragment_info.run);
                 let text_bounds = run.metrics_for_range(range).bounding_box;
                 let em_size = text_bounds.size.height;
                 self.calculate_line_height(em_size)
             }
-            TableColumnBox(_) => fail!("Table column boxes do not have height"),
-            UnscannedTextBox(_) => fail!("Unscanned text boxes should have been scanned by now!"),
+            TableColumnFragment(_) => fail!("Table column fragments do not have height"),
+            UnscannedTextFragment(_) => fail!("Unscanned text fragments should have been scanned by now!"),
         }
     }
 
@@ -1103,82 +1101,81 @@ impl Box {
         }
     }
 
-    /// Find the split of a box that includes a new-line character.
+    /// Find the split of a fragment that includes a new-line character.
     ///
-    /// A return value of `None` indicates that the box is not splittable.
+    /// A return value of `None` indicates that the fragment is not splittable.
     /// Otherwise the split information is returned. The right information is
     /// optional due to the possibility of it being whitespace.
     //
     // TODO(bjz): The text run should be removed in the future, but it is currently needed for
-    // the current method of box splitting in the `inline::try_append_*` functions.
+    // the current method of fragment splitting in the `inline::try_append_*` functions.
     pub fn find_split_info_by_new_line(&self)
-            -> Option<(SplitInfo, Option<SplitInfo>, Arc<owned::Box<TextRun>> /* TODO(bjz): remove */)> {
+            -> Option<(SplitInfo, Option<SplitInfo>, Arc<Box<TextRun>> /* TODO(bjz): remove */)> {
         match self.specific {
-            GenericBox | IframeBox(_) | ImageBox(_) | TableBox | TableCellBox |
-            TableRowBox | TableWrapperBox => None,
-            TableColumnBox(_) => fail!("Table column boxes do not need to split"),
-            UnscannedTextBox(_) => fail!("Unscanned text boxes should have been scanned by now!"),
-            ScannedTextBox(ref text_box_info) => {
+            GenericFragment | IframeFragment(_) | ImageFragment(_) | TableFragment | TableCellFragment |
+            TableRowFragment | TableWrapperFragment => None,
+            TableColumnFragment(_) => fail!("Table column fragments do not need to split"),
+            UnscannedTextFragment(_) => fail!("Unscanned text fragments should have been scanned by now!"),
+            ScannedTextFragment(ref text_fragment_info) => {
                 let mut new_line_pos = self.new_line_pos.clone();
                 let cur_new_line_pos = new_line_pos.shift().unwrap();
 
-                let left_range = Range::new(text_box_info.range.begin(), cur_new_line_pos);
-                let right_range = Range::new(text_box_info.range.begin() + cur_new_line_pos + CharIndex(1),
-                                             text_box_info.range.length() - (cur_new_line_pos + CharIndex(1)));
+                let left_range = Range::new(text_fragment_info.range.begin(), cur_new_line_pos);
+                let right_range = Range::new(text_fragment_info.range.begin() + cur_new_line_pos + CharIndex(1),
+                                             text_fragment_info.range.length() - (cur_new_line_pos + CharIndex(1)));
 
-                // Left box is for left text of first founded new-line character.
-                let left_box = SplitInfo::new(left_range, text_box_info);
+                // Left fragment is for left text of first founded new-line character.
+                let left_fragment = SplitInfo::new(left_range, text_fragment_info);
 
-                // Right box is for right text of first founded new-line character.
-                let right_box = if right_range.length() > CharIndex(0) {
-                    Some(SplitInfo::new(right_range, text_box_info))
+                // Right fragment is for right text of first founded new-line character.
+                let right_fragment = if right_range.length() > CharIndex(0) {
+                    Some(SplitInfo::new(right_range, text_fragment_info))
                 } else {
                     None
                 };
 
-                Some((left_box, right_box, text_box_info.run.clone()))
+                Some((left_fragment, right_fragment, text_fragment_info.run.clone()))
             }
         }
     }
 
-    /// Attempts to find the split positions of a text box so that its width is
+    /// Attempts to find the split positions of a text fragment so that its width is
     /// no more than `max_width`.
     ///
-    /// A return value of `None` indicates that the box could not be split.
+    /// A return value of `None` indicates that the fragment could not be split.
     /// Otherwise the information pertaining to the split is returned. The left
     /// and right split information are both optional due to the possibility of
     /// them being whitespace.
     //
     // TODO(bjz): The text run should be removed in the future, but it is currently needed for
-    // the current method of box splitting in the `inline::try_append_*` functions.
+    // the current method of fragment splitting in the `inline::try_append_*` functions.
     pub fn find_split_info_for_width(&self, start: CharIndex, max_width: Au, starts_line: bool)
-            -> Option<(Option<SplitInfo>, Option<SplitInfo>, Arc<owned::Box<TextRun>> /* TODO(bjz): remove */)> {
+            -> Option<(Option<SplitInfo>, Option<SplitInfo>, Arc<Box<TextRun>> /* TODO(bjz): remove */)> {
         match self.specific {
-            GenericBox | IframeBox(_) | ImageBox(_) | TableBox | TableCellBox |
-            TableRowBox | TableWrapperBox => None,
-            TableColumnBox(_) => fail!("Table column boxes do not have width"),
-            UnscannedTextBox(_) => fail!("Unscanned text boxes should have been scanned by now!"),
-            ScannedTextBox(ref text_box_info) => {
+            GenericFragment | IframeFragment(_) | ImageFragment(_) | TableFragment | TableCellFragment |
+            TableRowFragment | TableWrapperFragment => None,
+            TableColumnFragment(_) => fail!("Table column fragments do not have width"),
+            UnscannedTextFragment(_) => fail!("Unscanned text fragments should have been scanned by now!"),
+            ScannedTextFragment(ref text_fragment_info) => {
                 let mut pieces_processed_count: uint = 0;
                 let mut remaining_width: Au = max_width;
-                let mut left_range = Range::new(text_box_info.range.begin() + start, CharIndex(0));
+                let mut left_range = Range::new(text_fragment_info.range.begin() + start, CharIndex(0));
                 let mut right_range: Option<Range<CharIndex>> = None;
 
-                debug!("split_to_width: splitting text box (strlen={:u}, range={}, \
-                                                            avail_width={})",
-                       text_box_info.run.text.len(),
-                       text_box_info.range,
+                debug!("split_to_width: splitting text fragment (strlen={}, range={}, avail_width={})",
+                       text_fragment_info.run.text.len(),
+                       text_fragment_info.range,
                        max_width);
 
-                for (glyphs, offset, slice_range) in text_box_info.run.iter_slices_for_range(
-                        &text_box_info.range) {
+                for (glyphs, offset, slice_range) in text_fragment_info.run.iter_slices_for_range(
+                        &text_fragment_info.range) {
                     debug!("split_to_width: considering slice (offset={}, range={}, \
                                                                remain_width={})",
                            offset,
                            slice_range,
                            remaining_width);
 
-                    let metrics = text_box_info.run.metrics_for_slice(glyphs, &slice_range);
+                    let metrics = text_fragment_info.run.metrics_for_slice(glyphs, &slice_range);
                     let advance = metrics.advance_width;
 
                     let should_continue;
@@ -1202,19 +1199,19 @@ impl Box {
                         if glyphs.is_whitespace() {
                             // If there are still things after the trimmable whitespace, create the
                             // right chunk.
-                            if slice_end < text_box_info.range.end() {
+                            if slice_end < text_fragment_info.range.end() {
                                 debug!("split_to_width: case=skipping trimmable trailing \
                                         whitespace, then split remainder");
-                                let right_range_end = text_box_info.range.end() - slice_end;
+                                let right_range_end = text_fragment_info.range.end() - slice_end;
                                 right_range = Some(Range::new(slice_end, right_range_end));
                             } else {
                                 debug!("split_to_width: case=skipping trimmable trailing \
                                         whitespace");
                             }
-                        } else if slice_begin < text_box_info.range.end() {
+                        } else if slice_begin < text_fragment_info.range.end() {
                             // There are still some things left over at the end of the line. Create
                             // the right chunk.
-                            let right_range_end = text_box_info.range.end() - slice_begin;
+                            let right_range_end = text_fragment_info.range.end() - slice_begin;
                             right_range = Some(Range::new(slice_begin, right_range_end));
                             debug!("split_to_width: case=splitting remainder with right range={:?}",
                                    right_range);
@@ -1234,38 +1231,38 @@ impl Box {
                     None
                 } else {
                     let left = if left_is_some {
-                        Some(SplitInfo::new(left_range, text_box_info))
+                        Some(SplitInfo::new(left_range, text_fragment_info))
                     } else {
                          None
                     };
-                    let right = right_range.map(|right_range| SplitInfo::new(right_range, text_box_info));
+                    let right = right_range.map(|right_range| SplitInfo::new(right_range, text_fragment_info));
 
-                    Some((left, right, text_box_info.run.clone()))
+                    Some((left, right, text_fragment_info.run.clone()))
                 }
             }
         }
     }
 
-    /// Returns true if this box is an unscanned text box that consists entirely of whitespace.
+    /// Returns true if this fragment is an unscanned text fragment that consists entirely of whitespace.
     pub fn is_whitespace_only(&self) -> bool {
         match self.specific {
-            UnscannedTextBox(ref text_box_info) => is_whitespace(text_box_info.text),
+            UnscannedTextFragment(ref text_fragment_info) => is_whitespace(text_fragment_info.text),
             _ => false,
         }
     }
 
-    /// Assigns replaced width, padding, and margins for this box only if it is replaced content
-    /// per CSS 2.1 § 10.3.2.
+    /// Assigns replaced width, padding, and margins for this fragment only if it is replaced
+    /// content per CSS 2.1 § 10.3.2.
     pub fn assign_replaced_width_if_necessary(&mut self,
                                               container_width: Au,
                                               inline_fragment_context:
                                                 Option<InlineFragmentContext>) {
         match self.specific {
-            GenericBox | IframeBox(_) | TableBox | TableCellBox | TableRowBox |
-            TableWrapperBox => return,
-            TableColumnBox(_) => fail!("Table column boxes do not have width"),
-            UnscannedTextBox(_) => fail!("Unscanned text boxes should have been scanned by now!"),
-            ImageBox(_) | ScannedTextBox(_) => {}
+            GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment | TableRowFragment |
+            TableWrapperFragment => return,
+            TableColumnFragment(_) => fail!("Table column fragments do not have width"),
+            UnscannedTextFragment(_) => fail!("Unscanned text fragments should have been scanned by now!"),
+            ImageFragment(_) | ScannedTextFragment(_) => {}
         };
 
         self.compute_border_padding_margins(container_width, inline_fragment_context);
@@ -1275,48 +1272,48 @@ impl Box {
         let noncontent_width = self.border_padding.horizontal();
 
         match self.specific {
-            ScannedTextBox(_) => {
-                // Scanned text boxes will have already had their content widths assigned by this
+            ScannedTextFragment(_) => {
+                // Scanned text fragments will have already had their content widths assigned by this
                 // point.
                 self.border_box.size.width = self.border_box.size.width + noncontent_width
             }
-            ImageBox(ref mut image_box_info) => {
+            ImageFragment(ref mut image_fragment_info) => {
                 // TODO(ksh8281): compute border,margin
-                let width = ImageBoxInfo::style_length(style_width,
-                                                       image_box_info.dom_width,
+                let width = ImageFragmentInfo::style_length(style_width,
+                                                       image_fragment_info.dom_width,
                                                        container_width);
-                let height = ImageBoxInfo::style_length(style_height,
-                                                        image_box_info.dom_height,
+                let height = ImageFragmentInfo::style_length(style_height,
+                                                        image_fragment_info.dom_height,
                                                         Au(0));
 
                 let width = match (width,height) {
-                    (Auto, Auto) => image_box_info.image_width(),
+                    (Auto, Auto) => image_fragment_info.image_width(),
                     (Auto,Specified(h)) => {
-                        let scale = image_box_info.
+                        let scale = image_fragment_info.
                             image_height().to_f32().unwrap() / h.to_f32().unwrap();
-                        Au::new((image_box_info.image_width().to_f32().unwrap() / scale) as i32)
+                        Au::new((image_fragment_info.image_width().to_f32().unwrap() / scale) as i32)
                     },
                     (Specified(w), _) => w,
                 };
 
                 self.border_box.size.width = width + noncontent_width;
-                image_box_info.computed_width = Some(width);
+                image_fragment_info.computed_width = Some(width);
             }
             _ => fail!("this case should have been handled above"),
         }
     }
 
-    /// Assign height for this box if it is replaced content. The width must have been assigned
+    /// Assign height for this fragment if it is replaced content. The width must have been assigned
     /// first.
     ///
     /// Ideally, this should follow CSS 2.1 § 10.6.2.
     pub fn assign_replaced_height_if_necessary(&mut self) {
         match self.specific {
-            GenericBox | IframeBox(_) | TableBox | TableCellBox | TableRowBox |
-            TableWrapperBox => return,
-            TableColumnBox(_) => fail!("Table column boxes do not have height"),
-            UnscannedTextBox(_) => fail!("Unscanned text boxes should have been scanned by now!"),
-            ImageBox(_) | ScannedTextBox(_) => {}
+            GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment | TableRowFragment |
+            TableWrapperFragment => return,
+            TableColumnFragment(_) => fail!("Table column fragments do not have height"),
+            UnscannedTextFragment(_) => fail!("Unscanned text fragments should have been scanned by now!"),
+            ImageFragment(_) | ScannedTextFragment(_) => {}
         }
 
         let style_width = self.style().get_box().width;
@@ -1324,34 +1321,34 @@ impl Box {
         let noncontent_height = self.border_padding.vertical();
 
         match self.specific {
-            ImageBox(ref mut image_box_info) => {
+            ImageFragment(ref mut image_fragment_info) => {
                 // TODO(ksh8281): compute border,margin,padding
-                let width = image_box_info.computed_width();
+                let width = image_fragment_info.computed_width();
                 // FIXME(ksh8281): we shouldn't assign height this way
                 // we don't know about size of parent's height
-                let height = ImageBoxInfo::style_length(style_height,
-                                                        image_box_info.dom_height,
+                let height = ImageFragmentInfo::style_length(style_height,
+                                                        image_fragment_info.dom_height,
                                                         Au(0));
 
-                let height = match (style_width, image_box_info.dom_width, height) {
+                let height = match (style_width, image_fragment_info.dom_width, height) {
                     (LPA_Auto, None, Auto) => {
-                        image_box_info.image_height()
+                        image_fragment_info.image_height()
                     },
                     (_,_,Auto) => {
-                        let scale = image_box_info.image_width().to_f32().unwrap()
+                        let scale = image_fragment_info.image_width().to_f32().unwrap()
                             / width.to_f32().unwrap();
-                        Au::new((image_box_info.image_height().to_f32().unwrap() / scale) as i32)
+                        Au::new((image_fragment_info.image_height().to_f32().unwrap() / scale) as i32)
                     },
                     (_,_,Specified(h)) => {
                         h
                     }
                 };
 
-                image_box_info.computed_height = Some(height);
+                image_fragment_info.computed_height = Some(height);
                 self.border_box.size.height = height + noncontent_height
             }
-            ScannedTextBox(_) => {
-                // Scanned text boxes' content heights are calculated by the text run scanner
+            ScannedTextFragment(_) => {
+                // Scanned text fragments' content heights are calculated by the text run scanner
                 // during flow construction.
                 self.border_box.size.height = self.border_box.size.height + noncontent_height
             }
@@ -1363,19 +1360,19 @@ impl Box {
     /// used in an inline formatting context. See CSS 2.1 § 10.8.1.
     pub fn inline_metrics(&self) -> InlineMetrics {
         match self.specific {
-            ImageBox(ref image_box_info) => {
-                let computed_height = image_box_info.computed_height();
+            ImageFragment(ref image_fragment_info) => {
+                let computed_height = image_fragment_info.computed_height();
                 InlineMetrics {
                     height_above_baseline: computed_height + self.border_padding.vertical(),
                     depth_below_baseline: Au(0),
                     ascent: computed_height + self.border_padding.bottom,
                 }
             }
-            ScannedTextBox(ref text_box) => {
+            ScannedTextFragment(ref text_fragment) => {
                 // See CSS 2.1 § 10.8.1.
                 let font_size = self.style().get_font().font_size;
                 let line_height = self.calculate_line_height(font_size);
-                InlineMetrics::from_font_metrics(&text_box.run.font_metrics, line_height)
+                InlineMetrics::from_font_metrics(&text_fragment.run.font_metrics, line_height)
             }
             _ => {
                 InlineMetrics {
@@ -1387,10 +1384,10 @@ impl Box {
         }
     }
 
-    /// Returns true if this box can merge with another adjacent box or false otherwise.
-    pub fn can_merge_with_box(&self, other: &Box) -> bool {
+    /// Returns true if this fragment can merge with another adjacent fragment or false otherwise.
+    pub fn can_merge_with_fragment(&self, other: &Fragment) -> bool {
         match (&self.specific, &other.specific) {
-            (&UnscannedTextBox(_), &UnscannedTextBox(_)) => {
+            (&UnscannedTextFragment(_), &UnscannedTextFragment(_)) => {
                 self.font_style() == other.font_style() &&
                     self.text_decoration() == other.text_decoration()
             }
@@ -1420,11 +1417,11 @@ impl Box {
         }
     }
 
-    /// Sends the size and position of this iframe box to the constellation. This is out of line to
-    /// guide inlining.
+    /// Sends the size and position of this iframe fragment to the constellation. This is out of
+    /// line to guide inlining.
     #[inline(never)]
     fn finalize_position_and_size_of_iframe(&self,
-                                            iframe_box: &IframeBoxInfo,
+                                            iframe_fragment: &IframeFragmentInfo,
                                             offset: Point2D<Au>,
                                             layout_context: &LayoutContext) {
         let left = offset.x + self.margin.left + self.border_padding.left;
@@ -1436,29 +1433,29 @@ impl Box {
         let rect = Rect(origin, size);
 
         debug!("finalizing position and size of iframe for {:?},{:?}",
-               iframe_box.pipeline_id,
-               iframe_box.subpage_id);
-        let msg = FrameRectMsg(iframe_box.pipeline_id, iframe_box.subpage_id, rect);
+               iframe_fragment.pipeline_id,
+               iframe_fragment.subpage_id);
+        let msg = FrameRectMsg(iframe_fragment.pipeline_id, iframe_fragment.subpage_id, rect);
         let ConstellationChan(ref chan) = layout_context.constellation_chan;
         chan.send(msg)
     }
 }
 
-impl fmt::Show for Box {
-    /// Outputs a debugging string describing this box.
+impl fmt::Show for Fragment {
+    /// Outputs a debugging string describing this fragment.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         try!(write!(f.buf, "({} ",
             match self.specific {
-                GenericBox => "GenericBox",
-                IframeBox(_) => "IframeBox",
-                ImageBox(_) => "ImageBox",
-                ScannedTextBox(_) => "ScannedTextBox",
-                TableBox => "TableBox",
-                TableCellBox => "TableCellBox",
-                TableColumnBox(_) => "TableColumnBox",
-                TableRowBox => "TableRowBox",
-                TableWrapperBox => "TableWrapperBox",
-                UnscannedTextBox(_) => "UnscannedTextBox",
+                GenericFragment => "GenericFragment",
+                IframeFragment(_) => "IframeFragment",
+                ImageFragment(_) => "ImageFragment",
+                ScannedTextFragment(_) => "ScannedTextFragment",
+                TableFragment => "TableFragment",
+                TableCellFragment => "TableCellFragment",
+                TableColumnFragment(_) => "TableColumnFragment",
+                TableRowFragment => "TableRowFragment",
+                TableWrapperFragment => "TableWrapperFragment",
+                UnscannedTextFragment(_) => "UnscannedTextFragment",
         }));
         try!(self.side_offsets_debug_fmt("bp", self.border_padding, f));
         try!(write!(f.buf, " "));
@@ -1469,7 +1466,7 @@ impl fmt::Show for Box {
 
 /// An object that accumulates display lists of child flows, applying a clipping rect if necessary.
 pub struct ChildDisplayListAccumulator {
-    clip_display_item: Option<owned::Box<ClipDisplayItem>>,
+    clip_display_item: Option<Box<ClipDisplayItem>>,
 }
 
 impl ChildDisplayListAccumulator {

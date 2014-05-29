@@ -4,13 +4,13 @@
 
 //! CSS table formatting contexts.
 
-use layout::box_::Box;
 use layout::block::{BlockFlow, MarginsMayNotCollapse, WidthAndMarginsComputer};
 use layout::block::{WidthConstraintInput, WidthConstraintSolution};
 use layout::construct::FlowConstructor;
 use layout::context::LayoutContext;
 use layout::floats::FloatKind;
 use layout::flow::{TableFlowClass, FlowClass, Flow, ImmutableFlowUtils};
+use layout::fragment::Fragment;
 use layout::table_wrapper::{TableLayout, FixedLayout, AutoLayout};
 use layout::wrapper::ThreadSafeLayoutNode;
 
@@ -19,9 +19,9 @@ use servo_util::geometry;
 use std::fmt;
 use style::computed_values::table_layout;
 
-/// A table flow corresponded to the table's internal table box under a table wrapper flow.
-/// The properties `position`, `float`, and `margin-*` are used on the table wrapper box,
-/// not table box per CSS 2.1 § 10.5.
+/// A table flow corresponded to the table's internal table fragment under a table wrapper flow.
+/// The properties `position`, `float`, and `margin-*` are used on the table wrapper fragment,
+/// not table fragment per CSS 2.1 § 10.5.
 pub struct TableFlow {
     pub block_flow: BlockFlow,
 
@@ -39,11 +39,11 @@ pub struct TableFlow {
 }
 
 impl TableFlow {
-    pub fn from_node_and_box(node: &ThreadSafeLayoutNode,
-                             box_: Box)
-                             -> TableFlow {
-        let mut block_flow = BlockFlow::from_node_and_box(node, box_);
-        let table_layout = if block_flow.box_().style().get_table().table_layout ==
+    pub fn from_node_and_fragment(node: &ThreadSafeLayoutNode,
+                                  fragment: Fragment)
+                                  -> TableFlow {
+        let mut block_flow = BlockFlow::from_node_and_fragment(node, fragment);
+        let table_layout = if block_flow.fragment().style().get_table().table_layout ==
                               table_layout::fixed {
             FixedLayout
         } else {
@@ -62,7 +62,7 @@ impl TableFlow {
                      node: &ThreadSafeLayoutNode)
                      -> TableFlow {
         let mut block_flow = BlockFlow::from_node(constructor, node);
-        let table_layout = if block_flow.box_().style().get_table().table_layout ==
+        let table_layout = if block_flow.fragment().style().get_table().table_layout ==
                               table_layout::fixed {
             FixedLayout
         } else {
@@ -82,7 +82,7 @@ impl TableFlow {
                            float_kind: FloatKind)
                            -> TableFlow {
         let mut block_flow = BlockFlow::float_from_node(constructor, node, float_kind);
-        let table_layout = if block_flow.box_().style().get_table().table_layout ==
+        let table_layout = if block_flow.fragment().style().get_table().table_layout ==
                               table_layout::fixed {
             FixedLayout
         } else {
@@ -231,8 +231,8 @@ impl Flow for TableFlow {
             geometry::max(min_width, pref_width);
     }
 
-    /// Recursively (top-down) determines the actual width of child contexts and boxes. When called
-    /// on this context, the context has had its width set by the parent context.
+    /// Recursively (top-down) determines the actual width of child contexts and fragments. When
+    /// called on this context, the context has had its width set by the parent context.
     fn assign_widths(&mut self, ctx: &mut LayoutContext) {
         debug!("assign_widths({}): assigning width for flow", "table");
 
@@ -252,9 +252,9 @@ impl Flow for TableFlow {
         let width_computer = InternalTable;
         width_computer.compute_used_width(&mut self.block_flow, ctx, containing_block_width);
 
-        let left_content_edge = self.block_flow.box_.border_padding.left;
-        let padding_and_borders = self.block_flow.box_.border_padding.horizontal();
-        let content_width = self.block_flow.box_.border_box.size.width - padding_and_borders;
+        let left_content_edge = self.block_flow.fragment.border_padding.left;
+        let padding_and_borders = self.block_flow.fragment.border_padding.horizontal();
+        let content_width = self.block_flow.fragment.border_box.size.width - padding_and_borders;
 
         match self.table_layout {
             FixedLayout => {

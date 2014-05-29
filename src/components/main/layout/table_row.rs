@@ -4,13 +4,13 @@
 
 //! CSS table formatting contexts.
 
-use layout::box_::Box;
 use layout::block::BlockFlow;
 use layout::block::WidthAndMarginsComputer;
 use layout::construct::FlowConstructor;
 use layout::context::LayoutContext;
 use layout::flow::{TableRowFlowClass, FlowClass, Flow, ImmutableFlowUtils};
 use layout::flow;
+use layout::fragment::Fragment;
 use layout::table::InternalTable;
 use layout::model::{MaybeAuto, Specified, Auto};
 use layout::wrapper::ThreadSafeLayoutNode;
@@ -34,11 +34,11 @@ pub struct TableRowFlow {
 }
 
 impl TableRowFlow {
-    pub fn from_node_and_box(node: &ThreadSafeLayoutNode,
-                             box_: Box)
-                             -> TableRowFlow {
+    pub fn from_node_and_fragment(node: &ThreadSafeLayoutNode,
+                                  fragment: Fragment)
+                                  -> TableRowFlow {
         TableRowFlow {
-            block_flow: BlockFlow::from_node_and_box(node, box_),
+            block_flow: BlockFlow::from_node_and_fragment(node, fragment),
             col_widths: vec!(),
             col_min_widths: vec!(),
             col_pref_widths: vec!(),
@@ -56,8 +56,8 @@ impl TableRowFlow {
         }
     }
 
-    pub fn box_<'a>(&'a mut self) -> &'a Box {
-        &self.block_flow.box_
+    pub fn fragment<'a>(&'a mut self) -> &'a Fragment {
+        &self.block_flow.fragment
     }
 
     fn initialize_offsets(&mut self) -> (Au, Au, Au) {
@@ -84,13 +84,13 @@ impl TableRowFlow {
             kid.assign_height_for_inorder_child_if_necessary(layout_context);
 
             {
-                let child_box = kid.as_table_cell().box_();
+                let child_fragment = kid.as_table_cell().fragment();
                 // TODO: Percentage height
-                let child_specified_height = MaybeAuto::from_style(child_box.style().get_box().height,
+                let child_specified_height = MaybeAuto::from_style(child_fragment.style().get_box().height,
                                                                    Au::new(0)).specified_or_zero();
                 max_y =
                     geometry::max(max_y,
-                                  child_specified_height + child_box.border_padding.vertical());
+                                  child_specified_height + child_fragment.border_padding.vertical());
             }
             let child_node = flow::mut_base(kid);
             child_node.position.origin.y = cur_y;
@@ -99,27 +99,27 @@ impl TableRowFlow {
 
         let mut height = max_y;
         // TODO: Percentage height
-        height = match MaybeAuto::from_style(self.block_flow.box_.style().get_box().height, Au(0)) {
+        height = match MaybeAuto::from_style(self.block_flow.fragment.style().get_box().height, Au(0)) {
             Auto => height,
             Specified(value) => geometry::max(value, height)
         };
         // cur_y = cur_y + height;
 
-        // Assign the height of own box
+        // Assign the height of own fragment
         //
         // FIXME(pcwalton): Take `cur_y` into account.
-        let mut position = self.block_flow.box_.border_box;
+        let mut position = self.block_flow.fragment.border_box;
         position.size.height = height;
-        self.block_flow.box_.border_box = position;
+        self.block_flow.fragment.border_box = position;
         self.block_flow.base.position.size.height = height;
 
-        // Assign the height of kid boxes, which is the same value as own height.
+        // Assign the height of kid fragments, which is the same value as own height.
         for kid in self.block_flow.base.child_iter() {
             {
-                let kid_box_ = kid.as_table_cell().mut_box();
-                let mut position = kid_box_.border_box;
+                let kid_fragment = kid.as_table_cell().mut_fragment();
+                let mut position = kid_fragment.border_box;
                 position.size.height = height;
-                kid_box_.border_box = position;
+                kid_fragment.border_box = position;
             }
             let child_node = flow::mut_base(kid);
             child_node.position.size.height = height;
@@ -159,7 +159,7 @@ impl Flow for TableRowFlow {
 
     /// Recursively (bottom-up) determines the context's preferred and minimum widths. When called
     /// on this context, all child contexts have had their min/pref widths set. This function must
-    /// decide min/pref widths based on child context widths and dimensions of any boxes it is
+    /// decide min/pref widths based on child context widths and dimensions of any fragments it is
     /// responsible for flowing.
     /// Min/pref widths set by this function are used in automatic table layout calculation.
     /// The specified column widths of children cells are used in fixed table layout calculation.
@@ -172,8 +172,8 @@ impl Flow for TableRowFlow {
 
             // collect the specified column widths of cells. These are used in fixed table layout calculation.
             {
-                let child_box = kid.as_table_cell().box_();
-                let child_specified_width = MaybeAuto::from_style(child_box.style().get_box().width,
+                let child_fragment = kid.as_table_cell().fragment();
+                let child_specified_width = MaybeAuto::from_style(child_fragment.style().get_box().width,
                                                                   Au::new(0)).specified_or_zero();
                 self.col_widths.push(child_specified_width);
             }
@@ -190,7 +190,7 @@ impl Flow for TableRowFlow {
                                                                               pref_width);
     }
 
-    /// Recursively (top-down) determines the actual width of child contexts and boxes. When called
+    /// Recursively (top-down) determines the actual width of child contexts and fragments. When called
     /// on this context, the context has had its width set by the parent context.
     fn assign_widths(&mut self, ctx: &mut LayoutContext) {
         debug!("assign_widths({}): assigning width for flow", "table_row");
@@ -218,6 +218,6 @@ impl Flow for TableRowFlow {
 
 impl fmt::Show for TableRowFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f.buf, "TableRowFlow: {}", self.block_flow.box_)
+        write!(f.buf, "TableRowFlow: {}", self.block_flow.fragment)
     }
 }

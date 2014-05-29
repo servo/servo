@@ -18,7 +18,7 @@ pub trait LayoutAuxMethods {
 impl<'ln> LayoutAuxMethods for LayoutNode<'ln> {
     /// Resets layout data and styles for the node.
     ///
-    /// FIXME(pcwalton): Do this as part of box building instead of in a traversal.
+    /// FIXME(pcwalton): Do this as part of fragment building instead of in a traversal.
     fn initialize_layout_data(&self, chan: LayoutChan) {
         let mut layout_data_ref = self.mutate_layout_data();
         match *layout_data_ref {
@@ -35,7 +35,7 @@ impl<'ln> LayoutAuxMethods for LayoutNode<'ln> {
 
     /// Resets layout data and styles for a Node tree.
         ///
-    /// FIXME(pcwalton): Do this as part of box building instead of in a traversal.
+    /// FIXME(pcwalton): Do this as part of fragment building instead of in a traversal.
     fn initialize_style_for_subtree(&self, chan: LayoutChan) {
         for n in self.traverse_preorder() {
             n.initialize_layout_data(chan.clone());
