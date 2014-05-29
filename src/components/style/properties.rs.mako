@@ -321,7 +321,13 @@ pub mod longhands {
     ${single_keyword("float", "none left right")}
     ${single_keyword("clear", "none left right both")}
 
+    ${new_style_struct("InheritedBox", is_inherited=True)}
+
+    ${single_keyword("direction", "ltr rtl")}
+
     // CSS 2.1, Section 10 - Visual formatting model details
+
+    ${switch_to_style_struct("Box")}
 
     ${predefined_type("width", "LengthOrPercentageOrAuto",
                       "computed::LPA_Auto",
@@ -364,7 +370,7 @@ pub mod longhands {
                       "computed::LPN_None",
                       "parse_non_negative")}
 
-    ${new_style_struct("InheritedBox", is_inherited=True)}
+    ${switch_to_style_struct("InheritedBox")}
 
     <%self:single_component_value name="line-height">
         #[deriving(Clone)]
