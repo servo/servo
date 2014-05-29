@@ -26,7 +26,7 @@ enum XMLHttpRequestResponseType {
  Exposed=Window,Worker]
 interface XMLHttpRequest : XMLHttpRequestEventTarget {
   // event handler
-  // attribute EventHandler onreadystatechange;
+  attribute EventHandler onreadystatechange;
 
   // states
   const unsigned short UNSENT = 0;
