@@ -65,10 +65,6 @@ impl Eq for ImageResponseMsg {
             (&ImageReady(..), _) | (&ImageNotReady, _) | (&ImageFailed, _) => false
         }
     }
-
-    fn ne(&self, other: &ImageResponseMsg) -> bool {
-        !(*self).eq(other)
-    }
 }
 
 #[deriving(Clone)]
