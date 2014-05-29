@@ -1757,7 +1757,7 @@ class CGAbstractMethod(CGThing):
         assert(False) # Override me!
 
 def CreateBindingJSObject(descriptor, parent=None):
-    create = "  let mut raw: JS<%s> = JS::from_raw(&mut *aObject);\n" % descriptor.concreteType
+    create = "  let mut raw: JS<%s> = JS::from_raw(&*aObject);\n" % descriptor.concreteType
     if descriptor.proxy:
         assert not descriptor.createGlobal
         create += """
@@ -2436,7 +2436,7 @@ class CGSpecializedMethod(CGAbstractExternMethod):
         self.method = method
         name = method.identifier.name
         args = [Argument('*mut JSContext', 'cx'), Argument('JSHandleObject', '_obj'),
-                Argument('*mut %s' % descriptor.concreteType, 'this'),
+                Argument('*%s' % descriptor.concreteType, 'this'),
                 Argument('libc::c_uint', 'argc'), Argument('*mut JSVal', 'vp')]
         CGAbstractExternMethod.__init__(self, descriptor, name, 'JSBool', args)
 
@@ -2481,7 +2481,7 @@ class CGSpecializedGetter(CGAbstractExternMethod):
         name = 'get_' + attr.identifier.name
         args = [ Argument('*mut JSContext', 'cx'),
                  Argument('JSHandleObject', '_obj'),
-                 Argument('*mut %s' % descriptor.concreteType, 'this'),
+                 Argument('*%s' % descriptor.concreteType, 'this'),
                  Argument('*mut JSVal', 'vp') ]
         CGAbstractExternMethod.__init__(self, descriptor, name, "JSBool", args)
 
@@ -2537,7 +2537,7 @@ class CGSpecializedSetter(CGAbstractExternMethod):
         name = 'set_' + attr.identifier.name
         args = [ Argument('*mut JSContext', 'cx'),
                  Argument('JSHandleObject', '_obj'),
-                 Argument('*mut %s' % descriptor.concreteType, 'this'),
+                 Argument('*%s' % descriptor.concreteType, 'this'),
                  Argument('*mut JSVal', 'argv')]
         CGAbstractExternMethod.__init__(self, descriptor, name, "JSBool", args)
 
@@ -3449,14 +3449,14 @@ class CGProxyNamedSetter(CGProxySpecialOperation):
 class CGProxyUnwrap(CGAbstractMethod):
     def __init__(self, descriptor):
         args = [Argument('*mut JSObject', 'obj')]
-        CGAbstractMethod.__init__(self, descriptor, "UnwrapProxy", '*mut ' + descriptor.concreteType, args, alwaysInline=True)
+        CGAbstractMethod.__init__(self, descriptor, "UnwrapProxy", '*' + descriptor.concreteType, args, alwaysInline=True)
 
     def definition_body(self):
         return """  /*if (xpc::WrapperFactory::IsXrayWrapper(obj)) {
     obj = js::UnwrapObject(obj);
   }*/
   //MOZ_ASSERT(IsProxy(obj));
-  let box_: *mut %s = cast::transmute(GetProxyPrivate(obj).to_private());
+  let box_ = GetProxyPrivate(obj).to_private() as *%s;
   return box_;""" % (self.descriptor.concreteType)
 
 class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
@@ -3782,7 +3782,7 @@ class CGAbstractClassHook(CGAbstractExternMethod):
 
     def definition_body_prologue(self):
         return """
-  let this: *mut %s = unwrap::<%s>(obj);
+  let this: *%s = unwrap::<%s>(obj);
 """ % (self.descriptor.concreteType, self.descriptor.concreteType)
 
     def definition_body(self):

@@ -150,9 +150,9 @@ impl JS<XMLHttpRequest> {
 
 impl<T: Reflectable> JS<T> {
     /// Create a new JS-owned value wrapped from a raw Rust pointer.
-    pub unsafe fn from_raw(raw: *mut T) -> JS<T> {
+    pub unsafe fn from_raw(raw: *T) -> JS<T> {
         JS {
-            ptr: raw as *T
+            ptr: raw
         }
     }
 
