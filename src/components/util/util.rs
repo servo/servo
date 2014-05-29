@@ -25,7 +25,6 @@ extern crate std_time = "time";
 extern crate std_url = "url";
 
 pub mod cache;
-pub mod concurrentmap;
 pub mod debug;
 pub mod geometry;
 pub mod namespace;
