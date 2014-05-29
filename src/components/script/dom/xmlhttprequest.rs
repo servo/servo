@@ -3,21 +3,23 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::BindingDeclarations::XMLHttpRequestBinding;
+use dom::bindings::codegen::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::str::ByteString;
 use dom::bindings::codegen::BindingDeclarations::XMLHttpRequestBinding::XMLHttpRequestResponseType;
 use dom::bindings::codegen::BindingDeclarations::XMLHttpRequestBinding::XMLHttpRequestResponseTypeValues::{_empty, Text};
-use dom::bindings::codegen::InheritTypes::{EventTargetCast, XMLHttpRequestDerived};
+use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast, XMLHttpRequestDerived};
 use dom::bindings::error::{ErrorResult, InvalidState, Network, Syntax, Security};
 use dom::document::Document;
 use dom::event::{Event, EventMethods};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, XMLHttpRequestTargetTypeId};
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::Fallible;
-use dom::bindings::js::{JS, JSRef, Temporary, OptionalSettable};
+use dom::bindings::js::{JS, JSRef, Temporary, OptionalSettable, OptionalRootedRootable};
 use dom::bindings::trace::Untraceable;
 use js::jsapi::{JS_AddObjectRoot, JS_RemoveObjectRoot, JSContext};
 use js::jsval::{JSVal, NullValue};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::progressevent::ProgressEvent;
 use dom::window::Window;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use dom::xmlhttprequestupload::XMLHttpRequestUpload;
@@ -215,6 +217,8 @@ impl XMLHttpRequest {
 }
 
 pub trait XMLHttpRequestMethods<'a> {
+    fn GetOnreadystatechange(&self) -> Option<EventHandlerNonNull>;
+    fn SetOnreadystatechange(&mut self, listener: Option<EventHandlerNonNull>);
     fn ReadyState(&self) -> u16;
     fn Open(&mut self, _method: ByteString, _url: DOMString) -> ErrorResult;
     fn Open_(&mut self, _method: ByteString, _url: DOMString, _async: bool,
@@ -241,9 +245,20 @@ pub trait XMLHttpRequestMethods<'a> {
 }
 
 impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
+    fn GetOnreadystatechange(&self) -> Option<EventHandlerNonNull> {
+        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        eventtarget.get_event_handler_common("readystatechange")
+    }
+
+    fn SetOnreadystatechange(&mut self, listener: Option<EventHandlerNonNull>) {
+        let eventtarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(self);
+        eventtarget.set_event_handler_common("readystatechange", listener)
+    }
+
     fn ReadyState(&self) -> u16 {
         self.ready_state as u16
     }
+
     fn Open(&mut self, method: ByteString, url: DOMString) -> ErrorResult {
         let maybe_method: Option<Method> = method.as_str().and_then(|s| {
             FromStr::from_str(s.to_ascii_upper()) // rust-http tests against the uppercase versions
@@ -383,12 +398,29 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
         };
 
         // Step 6
-        self.upload_complete = false;
         self.upload_events = false;
-        // XXXManishearth handle upload events
+        // Step 7
+        self.upload_complete = match data {
+            None => true,
+            Some (ref s) if s.len() == 0 => true,
+            _ => false
+        };
+        if !self.sync {
+            // Step 8
+            let upload_target = &*self.upload.root().unwrap();
+            let event_target: &JSRef<EventTarget> = EventTargetCast::from_ref(upload_target);
+            if  event_target.handlers.iter().len() > 0 {
+                self.upload_events = true;
+            }
 
-        // Step 9
-        self.send_flag = true;
+            // Step 9
+            self.send_flag = true;
+            self.dispatch_response_progress_event("loadstart".to_owned());
+            if !self.upload_complete {
+                self.dispatch_upload_progress_event("loadstart".to_owned(), Some(0));
+            }
+        }
+
         let mut global = self.global.root();
         let resource_task = global.page().resource_task.deref().clone();
         let mut load_data = LoadData::new((*self.request_url).clone());
@@ -506,6 +538,9 @@ trait PrivateXMLHttpRequestHelpers {
     fn change_ready_state(&mut self, XMLHttpRequestState);
     fn process_partial_response(&mut self, progress: XHRProgress);
     fn insert_trusted_header(&mut self, name: ~str, value: ~str);
+    fn dispatch_progress_event(&self, upload: bool, type_: DOMString, loaded: u64, total: Option<u64>);
+    fn dispatch_upload_progress_event(&self, type_: DOMString, partial_load: Option<u64>);
+    fn dispatch_response_progress_event(&self, type_: DOMString);
 }
 
 impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
@@ -537,6 +572,12 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
     fn process_partial_response(&mut self, progress: XHRProgress) {
         match progress {
             HeadersReceivedMsg(headers) => {
+                // XXXManishearth Find a way to track partial progress of the send (onprogresss for XHRUpload)
+                self.upload_complete = true;
+                self.dispatch_upload_progress_event("progress".to_owned(), None);
+                self.dispatch_upload_progress_event("load".to_owned(), None);
+                self.dispatch_upload_progress_event("loadend".to_owned(), None);
+
                 match headers {
                     Some(ref h) => *self.response_headers = h.clone(),
                     None => {}
@@ -545,23 +586,36 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
             },
             LoadingMsg(partial_response) => {
                 self.response = partial_response;
+                self.dispatch_response_progress_event("progress".to_owned());
                 if self.ready_state == HeadersReceived {
                     self.change_ready_state(Loading);
                 }
             },
             DoneMsg => {
+                let len = self.response.len() as u64;
+                self.dispatch_response_progress_event("progress".to_owned());
+                self.dispatch_response_progress_event("load".to_owned());
+                self.dispatch_response_progress_event("loadend".to_owned());
                 self.send_flag = false;
                 self.change_ready_state(XHRDone);
             },
             ErroredMsg => {
-                 self.send_flag = false;
+                self.send_flag = false;
                 // XXXManishearth set response to NetworkError
-                if !self.upload_complete {
-                    self.upload_complete = true;
-                    // XXXManishearth handle upload progress
-                }
-                // XXXManishearth fire some progress events
+                // XXXManishearth also handle terminated requests (timeout/abort/fatal)
                 self.change_ready_state(XHRDone);
+                if !self.sync {
+                    if !self.upload_complete {
+                        self.upload_complete = true;
+                        self.dispatch_upload_progress_event("progress".to_owned(), None);
+                        self.dispatch_upload_progress_event("load".to_owned(), None);
+                        self.dispatch_upload_progress_event("loadend".to_owned(), None);
+                    }
+                    self.dispatch_response_progress_event("progress".to_owned());
+                    self.dispatch_response_progress_event("load".to_owned());
+                    self.dispatch_response_progress_event("loadend".to_owned());
+                }
+
             },
             ReleaseMsg => {
                 self.release();
@@ -579,5 +633,34 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                                                                 StrBuf::from_str(name),
                                                                 &mut HeaderValueByteIterator::new(&mut reader));
         collection.insert(maybe_header.unwrap());
+    }
+
+    fn dispatch_progress_event(&self, upload: bool, type_: DOMString, loaded: u64, total: Option<u64>) {
+        let win = &*self.global.root();
+        let upload_target = &*self.upload.root().unwrap();
+        let mut progressevent = ProgressEvent::new(win, type_, false, false,
+                                                   total.is_some(), loaded,
+                                                   total.unwrap_or(0)).root();
+        let target: &JSRef<EventTarget> = if upload {
+            EventTargetCast::from_ref(upload_target)
+        } else {
+            EventTargetCast::from_ref(self)
+        };
+        let event: &mut JSRef<Event> = EventCast::from_mut_ref(&mut *progressevent);
+        target.dispatch_event_with_target(None, &mut *event).ok();
+    }
+
+    fn dispatch_upload_progress_event(&self, type_: DOMString, partial_load: Option<u64>) {
+        // If partial_load is None, loading has completed and we can just use the value from the request body
+
+        let total = self.request_body.len() as u64;
+        self.dispatch_progress_event(true, type_, partial_load.unwrap_or(total), Some(total));
+    }
+
+    fn dispatch_response_progress_event(&self, type_: DOMString) {
+        let win = &*self.global.root();
+        let len = self.response.len() as u64;
+        let total = self.response_headers.deref().content_length.map(|x| {x as u64});
+        self.dispatch_progress_event(false, type_, len, total);
     }
 }

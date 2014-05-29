@@ -16,7 +16,6 @@
 /* https://github.com/mozilla/servo/issues/1223:  [NoInterfaceObject] */
 interface XMLHttpRequestEventTarget : EventTarget {
   // event handlers
-  /* Needs EventHandler: https://github.com/mozilla/servo/issues/1238
   attribute EventHandler onloadstart;
   attribute EventHandler onprogress;
   attribute EventHandler onabort;
@@ -24,5 +23,4 @@ interface XMLHttpRequestEventTarget : EventTarget {
   attribute EventHandler onload;
   attribute EventHandler ontimeout;
   attribute EventHandler onloadend;
-  */
 };
