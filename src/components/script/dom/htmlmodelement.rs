@@ -39,9 +39,9 @@ impl HTMLModElement {
 
 pub trait HTMLModElementMethods {
     fn Cite(&self) -> DOMString;
-    fn SetCite(&mut self, _cite: DOMString) -> ErrorResult;
+    fn SetCite(&self, _cite: DOMString) -> ErrorResult;
     fn DateTime(&self) -> DOMString;
-    fn SetDateTime(&mut self, _datetime: DOMString) -> ErrorResult;
+    fn SetDateTime(&self, _datetime: DOMString) -> ErrorResult;
 }
 
 impl<'a> HTMLModElementMethods for JSRef<'a, HTMLModElement> {
@@ -49,7 +49,7 @@ impl<'a> HTMLModElementMethods for JSRef<'a, HTMLModElement> {
         "".to_owned()
     }
 
-    fn SetCite(&mut self, _cite: DOMString) -> ErrorResult {
+    fn SetCite(&self, _cite: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -57,7 +57,7 @@ impl<'a> HTMLModElementMethods for JSRef<'a, HTMLModElement> {
         "".to_owned()
     }
 
-    fn SetDateTime(&mut self, _datetime: DOMString) -> ErrorResult {
+    fn SetDateTime(&self, _datetime: DOMString) -> ErrorResult {
         Ok(())
     }
 }
