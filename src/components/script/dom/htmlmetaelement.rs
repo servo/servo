@@ -39,13 +39,13 @@ impl HTMLMetaElement {
 
 pub trait HTMLMetaElementMethods {
     fn Name(&self) -> DOMString;
-    fn SetName(&mut self, _name: DOMString) -> ErrorResult;
+    fn SetName(&self, _name: DOMString) -> ErrorResult;
     fn HttpEquiv(&self) -> DOMString;
-    fn SetHttpEquiv(&mut self, _http_equiv: DOMString) -> ErrorResult;
+    fn SetHttpEquiv(&self, _http_equiv: DOMString) -> ErrorResult;
     fn Content(&self) -> DOMString;
-    fn SetContent(&mut self, _content: DOMString) -> ErrorResult;
+    fn SetContent(&self, _content: DOMString) -> ErrorResult;
     fn Scheme(&self) -> DOMString;
-    fn SetScheme(&mut self, _scheme: DOMString) -> ErrorResult;
+    fn SetScheme(&self, _scheme: DOMString) -> ErrorResult;
 }
 
 impl<'a> HTMLMetaElementMethods for JSRef<'a, HTMLMetaElement> {
@@ -53,7 +53,7 @@ impl<'a> HTMLMetaElementMethods for JSRef<'a, HTMLMetaElement> {
         "".to_owned()
     }
 
-    fn SetName(&mut self, _name: DOMString) -> ErrorResult {
+    fn SetName(&self, _name: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -61,7 +61,7 @@ impl<'a> HTMLMetaElementMethods for JSRef<'a, HTMLMetaElement> {
         "".to_owned()
     }
 
-    fn SetHttpEquiv(&mut self, _http_equiv: DOMString) -> ErrorResult {
+    fn SetHttpEquiv(&self, _http_equiv: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -69,7 +69,7 @@ impl<'a> HTMLMetaElementMethods for JSRef<'a, HTMLMetaElement> {
         "".to_owned()
     }
 
-    fn SetContent(&mut self, _content: DOMString) -> ErrorResult {
+    fn SetContent(&self, _content: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -77,7 +77,7 @@ impl<'a> HTMLMetaElementMethods for JSRef<'a, HTMLMetaElement> {
         "".to_owned()
     }
 
-    fn SetScheme(&mut self, _scheme: DOMString) -> ErrorResult {
+    fn SetScheme(&self, _scheme: DOMString) -> ErrorResult {
         Ok(())
     }
 }
