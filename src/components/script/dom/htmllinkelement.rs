@@ -39,25 +39,25 @@ impl HTMLLinkElement {
 
 pub trait HTMLLinkElementMethods {
     fn Disabled(&self) -> bool;
-    fn SetDisabled(&mut self, _disable: bool);
+    fn SetDisabled(&self, _disable: bool);
     fn Href(&self) -> DOMString;
-    fn SetHref(&mut self, _href: DOMString) -> ErrorResult;
+    fn SetHref(&self, _href: DOMString) -> ErrorResult;
     fn CrossOrigin(&self) -> DOMString;
-    fn SetCrossOrigin(&mut self, _cross_origin: DOMString) -> ErrorResult;
+    fn SetCrossOrigin(&self, _cross_origin: DOMString) -> ErrorResult;
     fn Rel(&self) -> DOMString;
-    fn SetRel(&mut self, _rel: DOMString) -> ErrorResult;
+    fn SetRel(&self, _rel: DOMString) -> ErrorResult;
     fn Media(&self) -> DOMString;
-    fn SetMedia(&mut self, _media: DOMString) -> ErrorResult;
+    fn SetMedia(&self, _media: DOMString) -> ErrorResult;
     fn Hreflang(&self) -> DOMString;
-    fn SetHreflang(&mut self, _href: DOMString) -> ErrorResult;
+    fn SetHreflang(&self, _href: DOMString) -> ErrorResult;
     fn Type(&self) -> DOMString;
-    fn SetType(&mut self, _type: DOMString) -> ErrorResult;
+    fn SetType(&self, _type: DOMString) -> ErrorResult;
     fn Charset(&self) -> DOMString;
-    fn SetCharset(&mut self, _charset: DOMString) -> ErrorResult;
+    fn SetCharset(&self, _charset: DOMString) -> ErrorResult;
     fn Rev(&self) -> DOMString;
-    fn SetRev(&mut self, _rev: DOMString) -> ErrorResult;
+    fn SetRev(&self, _rev: DOMString) -> ErrorResult;
     fn Target(&self) -> DOMString;
-    fn SetTarget(&mut self, _target: DOMString) -> ErrorResult;
+    fn SetTarget(&self, _target: DOMString) -> ErrorResult;
 }
 
 impl<'a> HTMLLinkElementMethods for JSRef<'a, HTMLLinkElement> {
@@ -65,14 +65,14 @@ impl<'a> HTMLLinkElementMethods for JSRef<'a, HTMLLinkElement> {
         false
     }
 
-    fn SetDisabled(&mut self, _disable: bool) {
+    fn SetDisabled(&self, _disable: bool) {
     }
 
     fn Href(&self) -> DOMString {
         "".to_owned()
     }
 
-    fn SetHref(&mut self, _href: DOMString) -> ErrorResult {
+    fn SetHref(&self, _href: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -80,7 +80,7 @@ impl<'a> HTMLLinkElementMethods for JSRef<'a, HTMLLinkElement> {
         "".to_owned()
     }
 
-    fn SetCrossOrigin(&mut self, _cross_origin: DOMString) -> ErrorResult {
+    fn SetCrossOrigin(&self, _cross_origin: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -88,7 +88,7 @@ impl<'a> HTMLLinkElementMethods for JSRef<'a, HTMLLinkElement> {
         "".to_owned()
     }
 
-    fn SetRel(&mut self, _rel: DOMString) -> ErrorResult {
+    fn SetRel(&self, _rel: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -96,7 +96,7 @@ impl<'a> HTMLLinkElementMethods for JSRef<'a, HTMLLinkElement> {
         "".to_owned()
     }
 
-    fn SetMedia(&mut self, _media: DOMString) -> ErrorResult {
+    fn SetMedia(&self, _media: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -104,7 +104,7 @@ impl<'a> HTMLLinkElementMethods for JSRef<'a, HTMLLinkElement> {
         "".to_owned()
     }
 
-    fn SetHreflang(&mut self, _href: DOMString) -> ErrorResult {
+    fn SetHreflang(&self, _href: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -112,7 +112,7 @@ impl<'a> HTMLLinkElementMethods for JSRef<'a, HTMLLinkElement> {
         "".to_owned()
     }
 
-    fn SetType(&mut self, _type: DOMString) -> ErrorResult {
+    fn SetType(&self, _type: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -120,7 +120,7 @@ impl<'a> HTMLLinkElementMethods for JSRef<'a, HTMLLinkElement> {
         "".to_owned()
     }
 
-    fn SetCharset(&mut self, _charset: DOMString) -> ErrorResult {
+    fn SetCharset(&self, _charset: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -128,7 +128,7 @@ impl<'a> HTMLLinkElementMethods for JSRef<'a, HTMLLinkElement> {
         "".to_owned()
     }
 
-    fn SetRev(&mut self, _rev: DOMString) -> ErrorResult {
+    fn SetRev(&self, _rev: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -136,7 +136,7 @@ impl<'a> HTMLLinkElementMethods for JSRef<'a, HTMLLinkElement> {
         "".to_owned()
     }
 
-    fn SetTarget(&mut self, _target: DOMString) -> ErrorResult {
+    fn SetTarget(&self, _target: DOMString) -> ErrorResult {
         Ok(())
     }
 }

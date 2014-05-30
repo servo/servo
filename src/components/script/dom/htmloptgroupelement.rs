@@ -39,9 +39,9 @@ impl HTMLOptGroupElement {
 
 pub trait HTMLOptGroupElementMethods {
     fn Disabled(&self) -> bool;
-    fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult;
+    fn SetDisabled(&self, _disabled: bool) -> ErrorResult;
     fn Label(&self) -> DOMString;
-    fn SetLabel(&mut self, _label: DOMString) -> ErrorResult;
+    fn SetLabel(&self, _label: DOMString) -> ErrorResult;
 }
 
 impl<'a> HTMLOptGroupElementMethods for JSRef<'a, HTMLOptGroupElement> {
@@ -49,7 +49,7 @@ impl<'a> HTMLOptGroupElementMethods for JSRef<'a, HTMLOptGroupElement> {
         false
     }
 
-    fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult {
+    fn SetDisabled(&self, _disabled: bool) -> ErrorResult {
         Ok(())
     }
 
@@ -57,7 +57,7 @@ impl<'a> HTMLOptGroupElementMethods for JSRef<'a, HTMLOptGroupElement> {
         "".to_owned()
     }
 
-    fn SetLabel(&mut self, _label: DOMString) -> ErrorResult {
+    fn SetLabel(&self, _label: DOMString) -> ErrorResult {
         Ok(())
     }
 }

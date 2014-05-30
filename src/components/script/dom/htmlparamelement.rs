@@ -39,13 +39,13 @@ impl HTMLParamElement {
 
 pub trait HTMLParamElementMethods {
     fn Name(&self) -> DOMString;
-    fn SetName(&mut self, _name: DOMString) -> ErrorResult;
+    fn SetName(&self, _name: DOMString) -> ErrorResult;
     fn Value(&self) -> DOMString;
-    fn SetValue(&mut self, _value: DOMString) -> ErrorResult;
+    fn SetValue(&self, _value: DOMString) -> ErrorResult;
     fn Type(&self) -> DOMString;
-    fn SetType(&mut self, _type: DOMString) -> ErrorResult;
+    fn SetType(&self, _type: DOMString) -> ErrorResult;
     fn ValueType(&self) -> DOMString;
-    fn SetValueType(&mut self, _value_type: DOMString) -> ErrorResult;
+    fn SetValueType(&self, _value_type: DOMString) -> ErrorResult;
 }
 
 impl<'a> HTMLParamElementMethods for JSRef<'a, HTMLParamElement> {
@@ -53,7 +53,7 @@ impl<'a> HTMLParamElementMethods for JSRef<'a, HTMLParamElement> {
         "".to_owned()
     }
 
-    fn SetName(&mut self, _name: DOMString) -> ErrorResult {
+    fn SetName(&self, _name: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -61,7 +61,7 @@ impl<'a> HTMLParamElementMethods for JSRef<'a, HTMLParamElement> {
         "".to_owned()
     }
 
-    fn SetValue(&mut self, _value: DOMString) -> ErrorResult {
+    fn SetValue(&self, _value: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -69,7 +69,7 @@ impl<'a> HTMLParamElementMethods for JSRef<'a, HTMLParamElement> {
         "".to_owned()
     }
 
-    fn SetType(&mut self, _type: DOMString) -> ErrorResult {
+    fn SetType(&self, _type: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -77,7 +77,7 @@ impl<'a> HTMLParamElementMethods for JSRef<'a, HTMLParamElement> {
         "".to_owned()
     }
 
-    fn SetValueType(&mut self, _value_type: DOMString) -> ErrorResult {
+    fn SetValueType(&self, _value_type: DOMString) -> ErrorResult {
         Ok(())
     }
 }

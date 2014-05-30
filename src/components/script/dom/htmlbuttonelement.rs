@@ -41,33 +41,33 @@ impl HTMLButtonElement {
 
 pub trait HTMLButtonElementMethods {
     fn Autofocus(&self) -> bool;
-    fn SetAutofocus(&mut self, _autofocus: bool) -> ErrorResult;
+    fn SetAutofocus(&self, _autofocus: bool) -> ErrorResult;
     fn Disabled(&self) -> bool;
-    fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult;
+    fn SetDisabled(&self, _disabled: bool) -> ErrorResult;
     fn GetForm(&self) -> Option<Temporary<HTMLFormElement>>;
     fn FormAction(&self) -> DOMString;
-    fn SetFormAction(&mut self, _formaction: DOMString) -> ErrorResult;
+    fn SetFormAction(&self, _formaction: DOMString) -> ErrorResult;
     fn FormEnctype(&self) -> DOMString;
-    fn SetFormEnctype(&mut self, _formenctype: DOMString) -> ErrorResult;
+    fn SetFormEnctype(&self, _formenctype: DOMString) -> ErrorResult;
     fn FormMethod(&self) -> DOMString;
-    fn SetFormMethod(&mut self, _formmethod: DOMString) -> ErrorResult;
+    fn SetFormMethod(&self, _formmethod: DOMString) -> ErrorResult;
     fn FormNoValidate(&self) -> bool;
-    fn SetFormNoValidate(&mut self, _novalidate: bool) -> ErrorResult;
+    fn SetFormNoValidate(&self, _novalidate: bool) -> ErrorResult;
     fn FormTarget(&self) -> DOMString;
-    fn SetFormTarget(&mut self, _formtarget: DOMString) -> ErrorResult;
+    fn SetFormTarget(&self, _formtarget: DOMString) -> ErrorResult;
     fn Name(&self) -> DOMString;
-    fn SetName(&mut self, _name: DOMString) -> ErrorResult;
+    fn SetName(&self, _name: DOMString) -> ErrorResult;
     fn Type(&self) -> DOMString;
-    fn SetType(&mut self, _type: DOMString) -> ErrorResult;
+    fn SetType(&self, _type: DOMString) -> ErrorResult;
     fn Value(&self) -> DOMString;
-    fn SetValue(&mut self, _value: DOMString) -> ErrorResult;
+    fn SetValue(&self, _value: DOMString) -> ErrorResult;
     fn WillValidate(&self) -> bool;
-    fn SetWillValidate(&mut self, _will_validate: bool);
+    fn SetWillValidate(&self, _will_validate: bool);
     fn Validity(&self) -> Temporary<ValidityState>;
     fn ValidationMessage(&self) -> DOMString;
-    fn SetValidationMessage(&mut self, _message: DOMString) -> ErrorResult;
+    fn SetValidationMessage(&self, _message: DOMString) -> ErrorResult;
     fn CheckValidity(&self) -> bool;
-    fn SetCustomValidity(&mut self, _error: DOMString);
+    fn SetCustomValidity(&self, _error: DOMString);
 }
 
 impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
@@ -75,7 +75,7 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
         false
     }
 
-    fn SetAutofocus(&mut self, _autofocus: bool) -> ErrorResult {
+    fn SetAutofocus(&self, _autofocus: bool) -> ErrorResult {
         Ok(())
     }
 
@@ -83,7 +83,7 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
         false
     }
 
-    fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult {
+    fn SetDisabled(&self, _disabled: bool) -> ErrorResult {
         Ok(())
     }
 
@@ -95,7 +95,7 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
         "".to_owned()
     }
 
-    fn SetFormAction(&mut self, _formaction: DOMString) -> ErrorResult {
+    fn SetFormAction(&self, _formaction: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -103,7 +103,7 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
         "".to_owned()
     }
 
-    fn SetFormEnctype(&mut self, _formenctype: DOMString) -> ErrorResult {
+    fn SetFormEnctype(&self, _formenctype: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -111,7 +111,7 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
         "".to_owned()
     }
 
-    fn SetFormMethod(&mut self, _formmethod: DOMString) -> ErrorResult {
+    fn SetFormMethod(&self, _formmethod: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -119,7 +119,7 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
         false
     }
 
-    fn SetFormNoValidate(&mut self, _novalidate: bool) -> ErrorResult {
+    fn SetFormNoValidate(&self, _novalidate: bool) -> ErrorResult {
         Ok(())
     }
 
@@ -127,7 +127,7 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
         "".to_owned()
     }
 
-    fn SetFormTarget(&mut self, _formtarget: DOMString) -> ErrorResult {
+    fn SetFormTarget(&self, _formtarget: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -135,7 +135,7 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
         "".to_owned()
     }
 
-    fn SetName(&mut self, _name: DOMString) -> ErrorResult {
+    fn SetName(&self, _name: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -143,7 +143,7 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
         "".to_owned()
     }
 
-    fn SetType(&mut self, _type: DOMString) -> ErrorResult {
+    fn SetType(&self, _type: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -151,7 +151,7 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
         "".to_owned()
     }
 
-    fn SetValue(&mut self, _value: DOMString) -> ErrorResult {
+    fn SetValue(&self, _value: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -159,7 +159,7 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
         false
     }
 
-    fn SetWillValidate(&mut self, _will_validate: bool) {
+    fn SetWillValidate(&self, _will_validate: bool) {
     }
 
     fn Validity(&self) -> Temporary<ValidityState> {
@@ -171,7 +171,7 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
         "".to_owned()
     }
 
-    fn SetValidationMessage(&mut self, _message: DOMString) -> ErrorResult {
+    fn SetValidationMessage(&self, _message: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -179,6 +179,6 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
         true
     }
 
-    fn SetCustomValidity(&mut self, _error: DOMString) {
+    fn SetCustomValidity(&self, _error: DOMString) {
     }
 }

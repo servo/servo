@@ -39,9 +39,9 @@ impl HTMLUListElement {
 
 pub trait HTMLUListElementMethods {
     fn Compact(&self) -> bool;
-    fn SetCompact(&mut self, _compact: bool) -> ErrorResult;
+    fn SetCompact(&self, _compact: bool) -> ErrorResult;
     fn Type(&self) -> DOMString;
-    fn SetType(&mut self, _type: DOMString) -> ErrorResult;
+    fn SetType(&self, _type: DOMString) -> ErrorResult;
 }
 
 impl<'a> HTMLUListElementMethods for JSRef<'a, HTMLUListElement> {
@@ -49,7 +49,7 @@ impl<'a> HTMLUListElementMethods for JSRef<'a, HTMLUListElement> {
         false
     }
 
-    fn SetCompact(&mut self, _compact: bool) -> ErrorResult {
+    fn SetCompact(&self, _compact: bool) -> ErrorResult {
         Ok(())
     }
 
@@ -57,7 +57,7 @@ impl<'a> HTMLUListElementMethods for JSRef<'a, HTMLUListElement> {
         "".to_owned()
     }
 
-    fn SetType(&mut self, _type: DOMString) -> ErrorResult {
+    fn SetType(&self, _type: DOMString) -> ErrorResult {
         Ok(())
     }
 }

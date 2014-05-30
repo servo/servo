@@ -39,15 +39,15 @@ impl HTMLTrackElement {
 
 pub trait HTMLTrackElementMethods {
     fn Kind(&self) -> DOMString;
-    fn SetKind(&mut self, _kind: DOMString) -> ErrorResult;
+    fn SetKind(&self, _kind: DOMString) -> ErrorResult;
     fn Src(&self) -> DOMString;
-    fn SetSrc(&mut self, _src: DOMString) -> ErrorResult;
+    fn SetSrc(&self, _src: DOMString) -> ErrorResult;
     fn Srclang(&self) -> DOMString;
-    fn SetSrclang(&mut self, _srclang: DOMString) -> ErrorResult;
+    fn SetSrclang(&self, _srclang: DOMString) -> ErrorResult;
     fn Label(&self) -> DOMString;
-    fn SetLabel(&mut self, _label: DOMString) -> ErrorResult;
+    fn SetLabel(&self, _label: DOMString) -> ErrorResult;
     fn Default(&self) -> bool;
-    fn SetDefault(&mut self, _default: bool) -> ErrorResult;
+    fn SetDefault(&self, _default: bool) -> ErrorResult;
     fn ReadyState(&self) -> u16;
 }
 
@@ -56,7 +56,7 @@ impl<'a> HTMLTrackElementMethods for JSRef<'a, HTMLTrackElement> {
         "".to_owned()
     }
 
-    fn SetKind(&mut self, _kind: DOMString) -> ErrorResult {
+    fn SetKind(&self, _kind: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -64,7 +64,7 @@ impl<'a> HTMLTrackElementMethods for JSRef<'a, HTMLTrackElement> {
         "".to_owned()
     }
 
-    fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
+    fn SetSrc(&self, _src: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -72,7 +72,7 @@ impl<'a> HTMLTrackElementMethods for JSRef<'a, HTMLTrackElement> {
         "".to_owned()
     }
 
-    fn SetSrclang(&mut self, _srclang: DOMString) -> ErrorResult {
+    fn SetSrclang(&self, _srclang: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -80,7 +80,7 @@ impl<'a> HTMLTrackElementMethods for JSRef<'a, HTMLTrackElement> {
         "".to_owned()
     }
 
-    fn SetLabel(&mut self, _label: DOMString) -> ErrorResult {
+    fn SetLabel(&self, _label: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -88,7 +88,7 @@ impl<'a> HTMLTrackElementMethods for JSRef<'a, HTMLTrackElement> {
         false
     }
 
-    fn SetDefault(&mut self, _default: bool) -> ErrorResult {
+    fn SetDefault(&self, _default: bool) -> ErrorResult {
         Ok(())
     }
 

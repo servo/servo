@@ -39,7 +39,7 @@ impl HTMLAppletElement {
 
 pub trait HTMLAppletElementMethods {
     fn Align(&self) -> DOMString;
-    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult;
+    fn SetAlign(&self, _align: DOMString) -> ErrorResult;
     fn Alt(&self) -> DOMString;
     fn SetAlt(&self, _alt: DOMString) -> ErrorResult;
     fn Archive(&self) -> DOMString;
@@ -51,15 +51,15 @@ pub trait HTMLAppletElementMethods {
     fn Height(&self) -> DOMString;
     fn SetHeight(&self, _height: DOMString) -> ErrorResult;
     fn Hspace(&self) -> u32;
-    fn SetHspace(&mut self, _hspace: u32) -> ErrorResult;
+    fn SetHspace(&self, _hspace: u32) -> ErrorResult;
     fn Name(&self) -> DOMString;
-    fn SetName(&mut self, _name: DOMString) -> ErrorResult;
+    fn SetName(&self, _name: DOMString) -> ErrorResult;
     fn Object(&self) -> DOMString;
-    fn SetObject(&mut self, _object: DOMString) -> ErrorResult;
+    fn SetObject(&self, _object: DOMString) -> ErrorResult;
     fn Vspace(&self) -> u32;
-    fn SetVspace(&mut self, _vspace: u32) -> ErrorResult;
+    fn SetVspace(&self, _vspace: u32) -> ErrorResult;
     fn Width(&self) -> DOMString;
-    fn SetWidth(&mut self, _width: DOMString) -> ErrorResult;
+    fn SetWidth(&self, _width: DOMString) -> ErrorResult;
 }
 
 impl<'a> HTMLAppletElementMethods for JSRef<'a, HTMLAppletElement> {
@@ -67,7 +67,7 @@ impl<'a> HTMLAppletElementMethods for JSRef<'a, HTMLAppletElement> {
         "".to_owned()
     }
 
-    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
+    fn SetAlign(&self, _align: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -115,7 +115,7 @@ impl<'a> HTMLAppletElementMethods for JSRef<'a, HTMLAppletElement> {
         0
     }
 
-    fn SetHspace(&mut self, _hspace: u32) -> ErrorResult {
+    fn SetHspace(&self, _hspace: u32) -> ErrorResult {
         Ok(())
     }
 
@@ -123,7 +123,7 @@ impl<'a> HTMLAppletElementMethods for JSRef<'a, HTMLAppletElement> {
         "".to_owned()
     }
 
-    fn SetName(&mut self, _name: DOMString) -> ErrorResult {
+    fn SetName(&self, _name: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -131,7 +131,7 @@ impl<'a> HTMLAppletElementMethods for JSRef<'a, HTMLAppletElement> {
         "".to_owned()
     }
 
-    fn SetObject(&mut self, _object: DOMString) -> ErrorResult {
+    fn SetObject(&self, _object: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -139,7 +139,7 @@ impl<'a> HTMLAppletElementMethods for JSRef<'a, HTMLAppletElement> {
         0
     }
 
-    fn SetVspace(&mut self, _vspace: u32) -> ErrorResult {
+    fn SetVspace(&self, _vspace: u32) -> ErrorResult {
         Ok(())
     }
 
@@ -147,7 +147,7 @@ impl<'a> HTMLAppletElementMethods for JSRef<'a, HTMLAppletElement> {
         "".to_owned()
     }
 
-    fn SetWidth(&mut self, _width: DOMString) -> ErrorResult {
+    fn SetWidth(&self, _width: DOMString) -> ErrorResult {
         Ok(())
     }
 }

@@ -39,9 +39,9 @@ impl HTMLCanvasElement {
 
 pub trait HTMLCanvasElementMethods {
     fn Width(&self) -> u32;
-    fn SetWidth(&mut self, _width: u32) -> ErrorResult;
+    fn SetWidth(&self, _width: u32) -> ErrorResult;
     fn Height(&self) -> u32;
-    fn SetHeight(&mut self, _height: u32) -> ErrorResult;
+    fn SetHeight(&self, _height: u32) -> ErrorResult;
 }
 
 impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
@@ -49,7 +49,7 @@ impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
         0
     }
 
-    fn SetWidth(&mut self, _width: u32) -> ErrorResult {
+    fn SetWidth(&self, _width: u32) -> ErrorResult {
         Ok(())
     }
 
@@ -57,7 +57,7 @@ impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
         0
     }
 
-    fn SetHeight(&mut self, _height: u32) -> ErrorResult {
+    fn SetHeight(&self, _height: u32) -> ErrorResult {
         Ok(())
     }
 }

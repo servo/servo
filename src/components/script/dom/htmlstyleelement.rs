@@ -44,9 +44,9 @@ pub trait HTMLStyleElementMethods {
     fn Disabled(&self) -> bool;
     fn SetDisabled(&self, _disabled: bool);
     fn Media(&self) -> DOMString;
-    fn SetMedia(&mut self, _media: DOMString) -> ErrorResult;
+    fn SetMedia(&self, _media: DOMString) -> ErrorResult;
     fn Type(&self) -> DOMString;
-    fn SetType(&mut self, _type: DOMString) -> ErrorResult;
+    fn SetType(&self, _type: DOMString) -> ErrorResult;
     fn Scoped(&self) -> bool;
     fn SetScoped(&self, _scoped: bool) -> ErrorResult;
 }
@@ -63,7 +63,7 @@ impl<'a> HTMLStyleElementMethods for JSRef<'a, HTMLStyleElement> {
         "".to_owned()
     }
 
-    fn SetMedia(&mut self, _media: DOMString) -> ErrorResult {
+    fn SetMedia(&self, _media: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -71,7 +71,7 @@ impl<'a> HTMLStyleElementMethods for JSRef<'a, HTMLStyleElement> {
         "".to_owned()
     }
 
-    fn SetType(&mut self, _type: DOMString) -> ErrorResult {
+    fn SetType(&self, _type: DOMString) -> ErrorResult {
         Ok(())
     }
 

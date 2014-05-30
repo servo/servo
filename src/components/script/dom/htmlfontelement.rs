@@ -39,11 +39,11 @@ impl HTMLFontElement {
 
 pub trait HTMLFontElementMethods {
     fn Color(&self) -> DOMString;
-    fn SetColor(&mut self, _color: DOMString) -> ErrorResult;
+    fn SetColor(&self, _color: DOMString) -> ErrorResult;
     fn Face(&self) -> DOMString;
-    fn SetFace(&mut self, _face: DOMString) -> ErrorResult;
+    fn SetFace(&self, _face: DOMString) -> ErrorResult;
     fn Size(&self) -> DOMString;
-    fn SetSize(&mut self, _size: DOMString) -> ErrorResult;
+    fn SetSize(&self, _size: DOMString) -> ErrorResult;
 }
 
 impl<'a> HTMLFontElementMethods for JSRef<'a, HTMLFontElement> {
@@ -51,7 +51,7 @@ impl<'a> HTMLFontElementMethods for JSRef<'a, HTMLFontElement> {
         "".to_owned()
     }
 
-    fn SetColor(&mut self, _color: DOMString) -> ErrorResult {
+    fn SetColor(&self, _color: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -59,7 +59,7 @@ impl<'a> HTMLFontElementMethods for JSRef<'a, HTMLFontElement> {
         "".to_owned()
     }
 
-    fn SetFace(&mut self, _face: DOMString) -> ErrorResult {
+    fn SetFace(&self, _face: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -67,7 +67,7 @@ impl<'a> HTMLFontElementMethods for JSRef<'a, HTMLFontElement> {
         "".to_owned()
     }
 
-    fn SetSize(&mut self, _size: DOMString) -> ErrorResult {
+    fn SetSize(&self, _size: DOMString) -> ErrorResult {
         Ok(())
     }
 }

@@ -42,19 +42,19 @@ impl HTMLOutputElement {
 pub trait HTMLOutputElementMethods {
     fn GetForm(&self) -> Option<Temporary<HTMLFormElement>>;
     fn Name(&self) -> DOMString;
-    fn SetName(&mut self, _name: DOMString) -> ErrorResult;
+    fn SetName(&self, _name: DOMString) -> ErrorResult;
     fn Type(&self) -> DOMString;
     fn DefaultValue(&self) -> DOMString;
-    fn SetDefaultValue(&mut self, _value: DOMString) -> ErrorResult;
+    fn SetDefaultValue(&self, _value: DOMString) -> ErrorResult;
     fn Value(&self) -> DOMString;
-    fn SetValue(&mut self, _value: DOMString) -> ErrorResult;
+    fn SetValue(&self, _value: DOMString) -> ErrorResult;
     fn WillValidate(&self) -> bool;
-    fn SetWillValidate(&mut self, _will_validate: bool);
+    fn SetWillValidate(&self, _will_validate: bool);
     fn Validity(&self) -> Temporary<ValidityState>;
     fn ValidationMessage(&self) -> DOMString;
-    fn SetValidationMessage(&mut self, _message: DOMString) -> ErrorResult;
+    fn SetValidationMessage(&self, _message: DOMString) -> ErrorResult;
     fn CheckValidity(&self) -> bool;
-    fn SetCustomValidity(&mut self, _error: DOMString);
+    fn SetCustomValidity(&self, _error: DOMString);
 }
 
 impl<'a> HTMLOutputElementMethods for JSRef<'a, HTMLOutputElement> {
@@ -66,7 +66,7 @@ impl<'a> HTMLOutputElementMethods for JSRef<'a, HTMLOutputElement> {
         "".to_owned()
     }
 
-    fn SetName(&mut self, _name: DOMString) -> ErrorResult {
+    fn SetName(&self, _name: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -78,7 +78,7 @@ impl<'a> HTMLOutputElementMethods for JSRef<'a, HTMLOutputElement> {
         "".to_owned()
     }
 
-    fn SetDefaultValue(&mut self, _value: DOMString) -> ErrorResult {
+    fn SetDefaultValue(&self, _value: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -86,7 +86,7 @@ impl<'a> HTMLOutputElementMethods for JSRef<'a, HTMLOutputElement> {
         "".to_owned()
     }
 
-    fn SetValue(&mut self, _value: DOMString) -> ErrorResult {
+    fn SetValue(&self, _value: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -94,7 +94,7 @@ impl<'a> HTMLOutputElementMethods for JSRef<'a, HTMLOutputElement> {
         false
     }
 
-    fn SetWillValidate(&mut self, _will_validate: bool) {
+    fn SetWillValidate(&self, _will_validate: bool) {
     }
 
     fn Validity(&self) -> Temporary<ValidityState> {
@@ -106,7 +106,7 @@ impl<'a> HTMLOutputElementMethods for JSRef<'a, HTMLOutputElement> {
         "".to_owned()
     }
 
-    fn SetValidationMessage(&mut self, _message: DOMString) -> ErrorResult {
+    fn SetValidationMessage(&self, _message: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -114,6 +114,6 @@ impl<'a> HTMLOutputElementMethods for JSRef<'a, HTMLOutputElement> {
         true
     }
 
-    fn SetCustomValidity(&mut self, _error: DOMString) {
+    fn SetCustomValidity(&self, _error: DOMString) {
     }
 }

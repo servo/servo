@@ -40,23 +40,23 @@ impl HTMLScriptElement {
 
 pub trait HTMLScriptElementMethods {
     fn Src(&self) -> DOMString;
-    fn SetSrc(&mut self, _src: DOMString) -> ErrorResult;
+    fn SetSrc(&self, _src: DOMString) -> ErrorResult;
     fn Type(&self) -> DOMString;
-    fn SetType(&mut self, _type: DOMString) -> ErrorResult;
+    fn SetType(&self, _type: DOMString) -> ErrorResult;
     fn Charset(&self) -> DOMString;
-    fn SetCharset(&mut self, _charset: DOMString) -> ErrorResult;
+    fn SetCharset(&self, _charset: DOMString) -> ErrorResult;
     fn Async(&self) -> bool;
     fn SetAsync(&self, _async: bool) -> ErrorResult;
     fn Defer(&self) -> bool;
     fn SetDefer(&self, _defer: bool) -> ErrorResult;
     fn CrossOrigin(&self) -> DOMString;
-    fn SetCrossOrigin(&mut self, _cross_origin: DOMString) -> ErrorResult;
+    fn SetCrossOrigin(&self, _cross_origin: DOMString) -> ErrorResult;
     fn Text(&self) -> DOMString;
-    fn SetText(&mut self, _text: DOMString) -> ErrorResult;
+    fn SetText(&self, _text: DOMString) -> ErrorResult;
     fn Event(&self) -> DOMString;
-    fn SetEvent(&mut self, _event: DOMString) -> ErrorResult;
+    fn SetEvent(&self, _event: DOMString) -> ErrorResult;
     fn HtmlFor(&self) -> DOMString;
-    fn SetHtmlFor(&mut self, _html_for: DOMString) -> ErrorResult;
+    fn SetHtmlFor(&self, _html_for: DOMString) -> ErrorResult;
 }
 
 impl<'a> HTMLScriptElementMethods for JSRef<'a, HTMLScriptElement> {
@@ -65,7 +65,7 @@ impl<'a> HTMLScriptElementMethods for JSRef<'a, HTMLScriptElement> {
         element.get_url_attribute("src")
     }
 
-    fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
+    fn SetSrc(&self, _src: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -73,7 +73,7 @@ impl<'a> HTMLScriptElementMethods for JSRef<'a, HTMLScriptElement> {
         "".to_owned()
     }
 
-    fn SetType(&mut self, _type: DOMString) -> ErrorResult {
+    fn SetType(&self, _type: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -81,7 +81,7 @@ impl<'a> HTMLScriptElementMethods for JSRef<'a, HTMLScriptElement> {
         "".to_owned()
     }
 
-    fn SetCharset(&mut self, _charset: DOMString) -> ErrorResult {
+    fn SetCharset(&self, _charset: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -105,7 +105,7 @@ impl<'a> HTMLScriptElementMethods for JSRef<'a, HTMLScriptElement> {
         "".to_owned()
     }
 
-    fn SetCrossOrigin(&mut self, _cross_origin: DOMString) -> ErrorResult {
+    fn SetCrossOrigin(&self, _cross_origin: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -113,7 +113,7 @@ impl<'a> HTMLScriptElementMethods for JSRef<'a, HTMLScriptElement> {
         "".to_owned()
     }
 
-    fn SetText(&mut self, _text: DOMString) -> ErrorResult {
+    fn SetText(&self, _text: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -121,7 +121,7 @@ impl<'a> HTMLScriptElementMethods for JSRef<'a, HTMLScriptElement> {
         "".to_owned()
     }
 
-    fn SetEvent(&mut self, _event: DOMString) -> ErrorResult {
+    fn SetEvent(&self, _event: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -129,7 +129,7 @@ impl<'a> HTMLScriptElementMethods for JSRef<'a, HTMLScriptElement> {
         "".to_owned()
     }
 
-    fn SetHtmlFor(&mut self, _html_for: DOMString) -> ErrorResult {
+    fn SetHtmlFor(&self, _html_for: DOMString) -> ErrorResult {
         Ok(())
     }
 }

@@ -52,13 +52,13 @@ impl HTMLObjectElement {
 }
 
 trait ProcessDataURL {
-    fn process_data_url(&mut self, image_cache: ImageCacheTask, url: Option<Url>);
+    fn process_data_url(&self, image_cache: ImageCacheTask, url: Option<Url>);
 }
 
 impl<'a> ProcessDataURL for JSRef<'a, HTMLObjectElement> {
     // Makes the local `data` member match the status of the `data` attribute and starts
     /// prefetching the image. This method must be called after `data` is changed.
-    fn process_data_url(&mut self, image_cache: ImageCacheTask, url: Option<Url>) {
+    fn process_data_url(&self, image_cache: ImageCacheTask, url: Option<Url>) {
         let elem: &JSRef<Element> = ElementCast::from_ref(self);
 
         // TODO: support other values
@@ -78,45 +78,45 @@ impl<'a> ProcessDataURL for JSRef<'a, HTMLObjectElement> {
 
 pub trait HTMLObjectElementMethods {
     fn Data(&self) -> DOMString;
-    fn SetData(&mut self, _data: DOMString) -> ErrorResult;
+    fn SetData(&self, _data: DOMString) -> ErrorResult;
     fn Type(&self) -> DOMString;
-    fn SetType(&mut self, _type: DOMString) -> ErrorResult;
+    fn SetType(&self, _type: DOMString) -> ErrorResult;
     fn Name(&self) -> DOMString;
-    fn SetName(&mut self, _name: DOMString) -> ErrorResult;
+    fn SetName(&self, _name: DOMString) -> ErrorResult;
     fn UseMap(&self) -> DOMString;
-    fn SetUseMap(&mut self, _use_map: DOMString) -> ErrorResult;
+    fn SetUseMap(&self, _use_map: DOMString) -> ErrorResult;
     fn GetForm(&self) -> Option<Temporary<HTMLFormElement>>;
     fn Width(&self) -> DOMString;
-    fn SetWidth(&mut self, _width: DOMString) -> ErrorResult;
+    fn SetWidth(&self, _width: DOMString) -> ErrorResult;
     fn Height(&self) -> DOMString;
-    fn SetHeight(&mut self, _height: DOMString) -> ErrorResult;
+    fn SetHeight(&self, _height: DOMString) -> ErrorResult;
     fn GetContentDocument(&self) -> Option<Temporary<Document>>;
     fn GetContentWindow(&self) -> Option<Temporary<Window>>;
     fn WillValidate(&self) -> bool;
     fn Validity(&self) -> Temporary<ValidityState>;
     fn ValidationMessage(&self) -> DOMString;
     fn CheckValidity(&self) -> bool;
-    fn SetCustomValidity(&mut self, _error: DOMString);
+    fn SetCustomValidity(&self, _error: DOMString);
     fn Align(&self) -> DOMString;
-    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult;
+    fn SetAlign(&self, _align: DOMString) -> ErrorResult;
     fn Archive(&self) -> DOMString;
-    fn SetArchive(&mut self, _archive: DOMString) -> ErrorResult;
+    fn SetArchive(&self, _archive: DOMString) -> ErrorResult;
     fn Code(&self) -> DOMString;
-    fn SetCode(&mut self, _code: DOMString) -> ErrorResult;
+    fn SetCode(&self, _code: DOMString) -> ErrorResult;
     fn Declare(&self) -> bool;
-    fn SetDeclare(&mut self, _declare: bool) -> ErrorResult;
+    fn SetDeclare(&self, _declare: bool) -> ErrorResult;
     fn Hspace(&self) -> u32;
-    fn SetHspace(&mut self, _hspace: u32) -> ErrorResult;
+    fn SetHspace(&self, _hspace: u32) -> ErrorResult;
     fn Standby(&self) -> DOMString;
-    fn SetStandby(&mut self, _standby: DOMString) -> ErrorResult;
+    fn SetStandby(&self, _standby: DOMString) -> ErrorResult;
     fn Vspace(&self) -> u32;
-    fn SetVspace(&mut self, _vspace: u32) -> ErrorResult;
+    fn SetVspace(&self, _vspace: u32) -> ErrorResult;
     fn CodeBase(&self) -> DOMString;
-    fn SetCodeBase(&mut self, _codebase: DOMString) -> ErrorResult;
+    fn SetCodeBase(&self, _codebase: DOMString) -> ErrorResult;
     fn CodeType(&self) -> DOMString;
-    fn SetCodeType(&mut self, _codetype: DOMString) -> ErrorResult;
+    fn SetCodeType(&self, _codetype: DOMString) -> ErrorResult;
     fn Border(&self) -> DOMString;
-    fn SetBorder(&mut self, _border: DOMString) -> ErrorResult;
+    fn SetBorder(&self, _border: DOMString) -> ErrorResult;
     fn GetSVGDocument(&self) -> Option<Temporary<Document>>;
 }
 
@@ -125,7 +125,7 @@ impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
         "".to_owned()
     }
 
-    fn SetData(&mut self, _data: DOMString) -> ErrorResult {
+    fn SetData(&self, _data: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -133,7 +133,7 @@ impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
         "".to_owned()
     }
 
-    fn SetType(&mut self, _type: DOMString) -> ErrorResult {
+    fn SetType(&self, _type: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -141,7 +141,7 @@ impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
         "".to_owned()
     }
 
-    fn SetName(&mut self, _name: DOMString) -> ErrorResult {
+    fn SetName(&self, _name: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -149,7 +149,7 @@ impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
         "".to_owned()
     }
 
-    fn SetUseMap(&mut self, _use_map: DOMString) -> ErrorResult {
+    fn SetUseMap(&self, _use_map: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -161,7 +161,7 @@ impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
         "".to_owned()
     }
 
-    fn SetWidth(&mut self, _width: DOMString) -> ErrorResult {
+    fn SetWidth(&self, _width: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -169,7 +169,7 @@ impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
         "".to_owned()
     }
 
-    fn SetHeight(&mut self, _height: DOMString) -> ErrorResult {
+    fn SetHeight(&self, _height: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -198,14 +198,14 @@ impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
         false
     }
 
-    fn SetCustomValidity(&mut self, _error: DOMString) {
+    fn SetCustomValidity(&self, _error: DOMString) {
     }
 
     fn Align(&self) -> DOMString {
         "".to_owned()
     }
 
-    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
+    fn SetAlign(&self, _align: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -213,7 +213,7 @@ impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
         "".to_owned()
     }
 
-    fn SetArchive(&mut self, _archive: DOMString) -> ErrorResult {
+    fn SetArchive(&self, _archive: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -221,7 +221,7 @@ impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
         "".to_owned()
     }
 
-    fn SetCode(&mut self, _code: DOMString) -> ErrorResult {
+    fn SetCode(&self, _code: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -229,7 +229,7 @@ impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
         false
     }
 
-    fn SetDeclare(&mut self, _declare: bool) -> ErrorResult {
+    fn SetDeclare(&self, _declare: bool) -> ErrorResult {
         Ok(())
     }
 
@@ -237,7 +237,7 @@ impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
         0
     }
 
-    fn SetHspace(&mut self, _hspace: u32) -> ErrorResult {
+    fn SetHspace(&self, _hspace: u32) -> ErrorResult {
         Ok(())
     }
 
@@ -245,7 +245,7 @@ impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
         "".to_owned()
     }
 
-    fn SetStandby(&mut self, _standby: DOMString) -> ErrorResult {
+    fn SetStandby(&self, _standby: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -253,7 +253,7 @@ impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
         0
     }
 
-    fn SetVspace(&mut self, _vspace: u32) -> ErrorResult {
+    fn SetVspace(&self, _vspace: u32) -> ErrorResult {
         Ok(())
     }
 
@@ -261,7 +261,7 @@ impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
         "".to_owned()
     }
 
-    fn SetCodeBase(&mut self, _codebase: DOMString) -> ErrorResult {
+    fn SetCodeBase(&self, _codebase: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -269,7 +269,7 @@ impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
         "".to_owned()
     }
 
-    fn SetCodeType(&mut self, _codetype: DOMString) -> ErrorResult {
+    fn SetCodeType(&self, _codetype: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -277,7 +277,7 @@ impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
         "".to_owned()
     }
 
-    fn SetBorder(&mut self, _border: DOMString) -> ErrorResult {
+    fn SetBorder(&self, _border: DOMString) -> ErrorResult {
         Ok(())
     }
 

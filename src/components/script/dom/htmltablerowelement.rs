@@ -42,7 +42,7 @@ pub trait HTMLTableRowElementMethods {
     fn GetRowIndex(&self) -> i32;
     fn SectionRowIndex(&self) -> i32;
     fn GetSectionRowIndex(&self) -> i32;
-    fn DeleteCell(&mut self, _index: i32) -> ErrorResult;
+    fn DeleteCell(&self, _index: i32) -> ErrorResult;
     fn Align(&self) -> DOMString;
     fn SetAlign(&self, _align: DOMString) -> ErrorResult;
     fn Ch(&self) -> DOMString;
@@ -72,7 +72,7 @@ impl<'a> HTMLTableRowElementMethods for JSRef<'a, HTMLTableRowElement> {
         0
     }
 
-    fn DeleteCell(&mut self, _index: i32) -> ErrorResult {
+    fn DeleteCell(&self, _index: i32) -> ErrorResult {
         Ok(())
     }
 

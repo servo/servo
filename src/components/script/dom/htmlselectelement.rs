@@ -43,38 +43,38 @@ impl HTMLSelectElement {
 
 pub trait HTMLSelectElementMethods {
     fn Autofocus(&self) -> bool;
-    fn SetAutofocus(&mut self, _autofocus: bool) -> ErrorResult;
+    fn SetAutofocus(&self, _autofocus: bool) -> ErrorResult;
     fn Disabled(&self) -> bool;
-    fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult;
+    fn SetDisabled(&self, _disabled: bool) -> ErrorResult;
     fn GetForm(&self) -> Option<Temporary<HTMLFormElement>>;
     fn Multiple(&self) -> bool;
-    fn SetMultiple(&mut self, _multiple: bool) -> ErrorResult;
+    fn SetMultiple(&self, _multiple: bool) -> ErrorResult;
     fn Name(&self) -> DOMString;
-    fn SetName(&mut self, _name: DOMString) -> ErrorResult;
+    fn SetName(&self, _name: DOMString) -> ErrorResult;
     fn Required(&self) -> bool;
-    fn SetRequired(&mut self, _multiple: bool) -> ErrorResult;
+    fn SetRequired(&self, _multiple: bool) -> ErrorResult;
     fn Size(&self) -> u32;
-    fn SetSize(&mut self, _size: u32) -> ErrorResult;
+    fn SetSize(&self, _size: u32) -> ErrorResult;
     fn Type(&self) -> DOMString;
     fn Length(&self) -> u32;
-    fn SetLength(&mut self, _length: u32) -> ErrorResult;
+    fn SetLength(&self, _length: u32) -> ErrorResult;
     fn Item(&self, _index: u32) -> Option<Temporary<Element>>;
     fn NamedItem(&self, _name: DOMString) -> Option<Temporary<HTMLOptionElement>>;
     fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> Option<Temporary<Element>>;
-    fn IndexedSetter(&mut self, _index: u32, _option: Option<JSRef<HTMLOptionElement>>) -> ErrorResult;
+    fn IndexedSetter(&self, _index: u32, _option: Option<JSRef<HTMLOptionElement>>) -> ErrorResult;
     fn Remove_(&self);
     fn Remove(&self, _index: i32);
     fn SelectedIndex(&self) -> i32;
-    fn SetSelectedIndex(&mut self, _index: i32) -> ErrorResult;
+    fn SetSelectedIndex(&self, _index: i32) -> ErrorResult;
     fn Value(&self) -> DOMString;
-    fn SetValue(&mut self, _value: DOMString);
+    fn SetValue(&self, _value: DOMString);
     fn WillValidate(&self) -> bool;
-    fn SetWillValidate(&mut self, _will_validate: bool);
+    fn SetWillValidate(&self, _will_validate: bool);
     fn Validity(&self) -> Temporary<ValidityState>;
     fn ValidationMessage(&self) -> DOMString;
-    fn SetValidationMessage(&mut self, _message: DOMString) -> ErrorResult;
+    fn SetValidationMessage(&self, _message: DOMString) -> ErrorResult;
     fn CheckValidity(&self) -> bool;
-    fn SetCustomValidity(&mut self, _error: DOMString);
+    fn SetCustomValidity(&self, _error: DOMString);
     fn Add(&self, _element: HTMLOptionElementOrHTMLOptGroupElement, _before: Option<HTMLElementOrLong>) -> ErrorResult;
 }
 
@@ -83,7 +83,7 @@ impl<'a> HTMLSelectElementMethods for JSRef<'a, HTMLSelectElement> {
         false
     }
 
-    fn SetAutofocus(&mut self, _autofocus: bool) -> ErrorResult {
+    fn SetAutofocus(&self, _autofocus: bool) -> ErrorResult {
         Ok(())
     }
 
@@ -91,7 +91,7 @@ impl<'a> HTMLSelectElementMethods for JSRef<'a, HTMLSelectElement> {
         false
     }
 
-    fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult {
+    fn SetDisabled(&self, _disabled: bool) -> ErrorResult {
         Ok(())
     }
 
@@ -103,7 +103,7 @@ impl<'a> HTMLSelectElementMethods for JSRef<'a, HTMLSelectElement> {
         false
     }
 
-    fn SetMultiple(&mut self, _multiple: bool) -> ErrorResult {
+    fn SetMultiple(&self, _multiple: bool) -> ErrorResult {
         Ok(())
     }
 
@@ -111,7 +111,7 @@ impl<'a> HTMLSelectElementMethods for JSRef<'a, HTMLSelectElement> {
         "".to_owned()
     }
 
-    fn SetName(&mut self, _name: DOMString) -> ErrorResult {
+    fn SetName(&self, _name: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -119,7 +119,7 @@ impl<'a> HTMLSelectElementMethods for JSRef<'a, HTMLSelectElement> {
         false
     }
 
-    fn SetRequired(&mut self, _multiple: bool) -> ErrorResult {
+    fn SetRequired(&self, _multiple: bool) -> ErrorResult {
         Ok(())
     }
 
@@ -127,7 +127,7 @@ impl<'a> HTMLSelectElementMethods for JSRef<'a, HTMLSelectElement> {
         0
     }
 
-    fn SetSize(&mut self, _size: u32) -> ErrorResult {
+    fn SetSize(&self, _size: u32) -> ErrorResult {
         Ok(())
     }
 
@@ -139,7 +139,7 @@ impl<'a> HTMLSelectElementMethods for JSRef<'a, HTMLSelectElement> {
         0
     }
 
-    fn SetLength(&mut self, _length: u32) -> ErrorResult {
+    fn SetLength(&self, _length: u32) -> ErrorResult {
         Ok(())
     }
 
@@ -155,7 +155,7 @@ impl<'a> HTMLSelectElementMethods for JSRef<'a, HTMLSelectElement> {
         None
     }
 
-    fn IndexedSetter(&mut self, _index: u32, _option: Option<JSRef<HTMLOptionElement>>) -> ErrorResult {
+    fn IndexedSetter(&self, _index: u32, _option: Option<JSRef<HTMLOptionElement>>) -> ErrorResult {
         Ok(())
     }
 
@@ -169,7 +169,7 @@ impl<'a> HTMLSelectElementMethods for JSRef<'a, HTMLSelectElement> {
         0
     }
 
-    fn SetSelectedIndex(&mut self, _index: i32) -> ErrorResult {
+    fn SetSelectedIndex(&self, _index: i32) -> ErrorResult {
         Ok(())
     }
 
@@ -177,14 +177,14 @@ impl<'a> HTMLSelectElementMethods for JSRef<'a, HTMLSelectElement> {
         "".to_owned()
     }
 
-    fn SetValue(&mut self, _value: DOMString) {
+    fn SetValue(&self, _value: DOMString) {
     }
 
     fn WillValidate(&self) -> bool {
         false
     }
 
-    fn SetWillValidate(&mut self, _will_validate: bool) {
+    fn SetWillValidate(&self, _will_validate: bool) {
     }
 
     fn Validity(&self) -> Temporary<ValidityState> {
@@ -196,7 +196,7 @@ impl<'a> HTMLSelectElementMethods for JSRef<'a, HTMLSelectElement> {
         "".to_owned()
     }
 
-    fn SetValidationMessage(&mut self, _message: DOMString) -> ErrorResult {
+    fn SetValidationMessage(&self, _message: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -204,7 +204,7 @@ impl<'a> HTMLSelectElementMethods for JSRef<'a, HTMLSelectElement> {
         true
     }
 
-    fn SetCustomValidity(&mut self, _error: DOMString) {
+    fn SetCustomValidity(&self, _error: DOMString) {
     }
 
     fn Add(&self, _element: HTMLOptionElementOrHTMLOptGroupElement, _before: Option<HTMLElementOrLong>) -> ErrorResult {

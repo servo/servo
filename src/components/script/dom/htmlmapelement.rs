@@ -40,7 +40,7 @@ impl HTMLMapElement {
 
 pub trait HTMLMapElementMethods {
     fn Name(&self) -> DOMString;
-    fn SetName(&mut self, _name: DOMString) -> ErrorResult;
+    fn SetName(&self, _name: DOMString) -> ErrorResult;
     fn Areas(&self) -> Temporary<HTMLCollection>;
 }
 
@@ -49,7 +49,7 @@ impl<'a> HTMLMapElementMethods for JSRef<'a, HTMLMapElement> {
         "".to_owned()
     }
 
-    fn SetName(&mut self, _name: DOMString) -> ErrorResult {
+    fn SetName(&self, _name: DOMString) -> ErrorResult {
         Ok(())
     }
 

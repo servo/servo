@@ -39,35 +39,35 @@ impl HTMLTextAreaElement {
 
 pub trait HTMLTextAreaElementMethods {
     fn Autofocus(&self) -> bool;
-    fn SetAutofocus(&mut self, _autofocus: bool) -> ErrorResult;
+    fn SetAutofocus(&self, _autofocus: bool) -> ErrorResult;
     fn Cols(&self) -> u32;
     fn SetCols(&self, _cols: u32) -> ErrorResult;
     fn Disabled(&self) -> bool;
-    fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult;
+    fn SetDisabled(&self, _disabled: bool) -> ErrorResult;
     fn MaxLength(&self) -> i32;
     fn SetMaxLength(&self, _max_length: i32) -> ErrorResult;
     fn Name(&self) -> DOMString;
-    fn SetName(&mut self, _name: DOMString) -> ErrorResult;
+    fn SetName(&self, _name: DOMString) -> ErrorResult;
     fn Placeholder(&self) -> DOMString;
-    fn SetPlaceholder(&mut self, _placeholder: DOMString) -> ErrorResult;
+    fn SetPlaceholder(&self, _placeholder: DOMString) -> ErrorResult;
     fn ReadOnly(&self) -> bool;
-    fn SetReadOnly(&mut self, _read_only: bool) -> ErrorResult;
+    fn SetReadOnly(&self, _read_only: bool) -> ErrorResult;
     fn Required(&self) -> bool;
-    fn SetRequired(&mut self, _required: bool) -> ErrorResult;
+    fn SetRequired(&self, _required: bool) -> ErrorResult;
     fn Rows(&self) -> u32;
     fn SetRows(&self, _rows: u32) -> ErrorResult;
     fn Wrap(&self) -> DOMString;
-    fn SetWrap(&mut self, _wrap: DOMString) -> ErrorResult;
+    fn SetWrap(&self, _wrap: DOMString) -> ErrorResult;
     fn Type(&self) -> DOMString;
-    fn SetType(&mut self, _type: DOMString);
+    fn SetType(&self, _type: DOMString);
     fn DefaultValue(&self) -> DOMString;
-    fn SetDefaultValue(&mut self, _default_value: DOMString) -> ErrorResult;
+    fn SetDefaultValue(&self, _default_value: DOMString) -> ErrorResult;
     fn Value(&self) -> DOMString;
-    fn SetValue(&mut self, _value: DOMString);
+    fn SetValue(&self, _value: DOMString);
     fn TextLength(&self) -> u32;
     fn SetTextLength(&self, _text_length: u32) -> ErrorResult;
     fn WillValidate(&self) -> bool;
-    fn SetWillValidate(&mut self, _will_validate: bool) -> ErrorResult;
+    fn SetWillValidate(&self, _will_validate: bool) -> ErrorResult;
     fn ValidationMessage(&self) -> DOMString;
     fn CheckValidity(&self) -> bool;
     fn SetCustomValidity(&self, _error: DOMString);
@@ -86,7 +86,7 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
         false
     }
 
-    fn SetAutofocus(&mut self, _autofocus: bool) -> ErrorResult {
+    fn SetAutofocus(&self, _autofocus: bool) -> ErrorResult {
         Ok(())
     }
 
@@ -102,7 +102,7 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
         false
     }
 
-    fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult {
+    fn SetDisabled(&self, _disabled: bool) -> ErrorResult {
         Ok(())
     }
 
@@ -118,7 +118,7 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
         "".to_owned()
     }
 
-    fn SetName(&mut self, _name: DOMString) -> ErrorResult {
+    fn SetName(&self, _name: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -126,7 +126,7 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
         "".to_owned()
     }
 
-    fn SetPlaceholder(&mut self, _placeholder: DOMString) -> ErrorResult {
+    fn SetPlaceholder(&self, _placeholder: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -134,7 +134,7 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
         false
     }
 
-    fn SetReadOnly(&mut self, _read_only: bool) -> ErrorResult {
+    fn SetReadOnly(&self, _read_only: bool) -> ErrorResult {
         Ok(())
     }
 
@@ -142,7 +142,7 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
         false
     }
 
-    fn SetRequired(&mut self, _required: bool) -> ErrorResult {
+    fn SetRequired(&self, _required: bool) -> ErrorResult {
         Ok(())
     }
 
@@ -158,7 +158,7 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
         "".to_owned()
     }
 
-    fn SetWrap(&mut self, _wrap: DOMString) -> ErrorResult {
+    fn SetWrap(&self, _wrap: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -166,14 +166,14 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
         "".to_owned()
     }
 
-    fn SetType(&mut self, _type: DOMString) {
+    fn SetType(&self, _type: DOMString) {
     }
 
     fn DefaultValue(&self) -> DOMString {
         "".to_owned()
     }
 
-    fn SetDefaultValue(&mut self, _default_value: DOMString) -> ErrorResult {
+    fn SetDefaultValue(&self, _default_value: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -181,7 +181,7 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
         "".to_owned()
     }
 
-    fn SetValue(&mut self, _value: DOMString) {
+    fn SetValue(&self, _value: DOMString) {
     }
 
     fn TextLength(&self) -> u32 {
@@ -196,7 +196,7 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
         false
     }
 
-    fn SetWillValidate(&mut self, _will_validate: bool) -> ErrorResult {
+    fn SetWillValidate(&self, _will_validate: bool) -> ErrorResult {
         Ok(())
     }
 

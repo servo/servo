@@ -39,7 +39,7 @@ impl HTMLDataElement {
 
 pub trait HTMLDataElementMethods {
     fn Value(&self) -> DOMString;
-    fn SetValue(&mut self, _value: DOMString) -> ErrorResult;
+    fn SetValue(&self, _value: DOMString) -> ErrorResult;
 }
 
 impl<'a> HTMLDataElementMethods for JSRef<'a, HTMLDataElement> {
@@ -47,7 +47,7 @@ impl<'a> HTMLDataElementMethods for JSRef<'a, HTMLDataElement> {
         "".to_owned()
     }
 
-    fn SetValue(&mut self, _value: DOMString) -> ErrorResult {
+    fn SetValue(&self, _value: DOMString) -> ErrorResult {
         Ok(())
     }
 }

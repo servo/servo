@@ -39,9 +39,9 @@ impl HTMLLIElement {
 
 pub trait HTMLLIElementMethods {
     fn Value(&self) -> i32;
-    fn SetValue(&mut self, _value: i32) -> ErrorResult;
+    fn SetValue(&self, _value: i32) -> ErrorResult;
     fn Type(&self) -> DOMString;
-    fn SetType(&mut self, _type: DOMString) -> ErrorResult;
+    fn SetType(&self, _type: DOMString) -> ErrorResult;
 }
 
 impl<'a> HTMLLIElementMethods for JSRef<'a, HTMLLIElement> {
@@ -49,7 +49,7 @@ impl<'a> HTMLLIElementMethods for JSRef<'a, HTMLLIElement> {
         0
     }
 
-    fn SetValue(&mut self, _value: i32) -> ErrorResult {
+    fn SetValue(&self, _value: i32) -> ErrorResult {
         Ok(())
     }
 
@@ -57,7 +57,7 @@ impl<'a> HTMLLIElementMethods for JSRef<'a, HTMLLIElement> {
         "".to_owned()
     }
 
-    fn SetType(&mut self, _type: DOMString) -> ErrorResult {
+    fn SetType(&self, _type: DOMString) -> ErrorResult {
         Ok(())
     }
 }

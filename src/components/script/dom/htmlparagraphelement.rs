@@ -39,7 +39,7 @@ impl HTMLParagraphElement {
 
 pub trait HTMLParagraphElementMethods {
     fn Align(&self) -> DOMString;
-    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult;
+    fn SetAlign(&self, _align: DOMString) -> ErrorResult;
 }
 
 impl<'a> HTMLParagraphElementMethods for JSRef<'a, HTMLParagraphElement> {
@@ -47,7 +47,7 @@ impl<'a> HTMLParagraphElementMethods for JSRef<'a, HTMLParagraphElement> {
         "".to_owned()
     }
 
-    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
+    fn SetAlign(&self, _align: DOMString) -> ErrorResult {
         Ok(())
     }
 }

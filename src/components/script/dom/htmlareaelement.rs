@@ -53,7 +53,7 @@ pub trait HTMLAreaElementMethods {
     fn Ping(&self) -> DOMString;
     fn SetPing(&self, _ping: DOMString) -> ErrorResult;
     fn NoHref(&self) -> bool;
-    fn SetNoHref(&mut self, _no_href: bool) -> ErrorResult;
+    fn SetNoHref(&self, _no_href: bool) -> ErrorResult;
 }
 
 impl<'a> HTMLAreaElementMethods for JSRef<'a, HTMLAreaElement> {
@@ -117,7 +117,7 @@ impl<'a> HTMLAreaElementMethods for JSRef<'a, HTMLAreaElement> {
         false
     }
 
-    fn SetNoHref(&mut self, _no_href: bool) -> ErrorResult {
+    fn SetNoHref(&self, _no_href: bool) -> ErrorResult {
         Ok(())
     }
 }

@@ -37,39 +37,39 @@ impl HTMLMediaElement {
 
 pub trait HTMLMediaElementMethods {
     fn Src(&self) -> DOMString;
-    fn SetSrc(&mut self, _src: DOMString) -> ErrorResult;
+    fn SetSrc(&self, _src: DOMString) -> ErrorResult;
     fn CurrentSrc(&self) -> DOMString;
     fn CrossOrigin(&self) -> DOMString;
-    fn SetCrossOrigin(&mut self, _cross_origin: DOMString) -> ErrorResult;
+    fn SetCrossOrigin(&self, _cross_origin: DOMString) -> ErrorResult;
     fn Preload(&self) -> DOMString;
-    fn SetPreload(&mut self, _preload: DOMString) -> ErrorResult;
+    fn SetPreload(&self, _preload: DOMString) -> ErrorResult;
     fn Load(&self);
     fn CanPlayType(&self, _type: DOMString) -> DOMString;
     fn ReadyState(&self) -> u16;
     fn Seeking(&self) -> bool;
     fn CurrentTime(&self) -> f64;
-    fn SetCurrentTime(&mut self, _current_time: f64) -> ErrorResult;
+    fn SetCurrentTime(&self, _current_time: f64) -> ErrorResult;
     fn GetDuration(&self) -> f64;
     fn Paused(&self) -> bool;
     fn DefaultPlaybackRate(&self) -> f64;
-    fn SetDefaultPlaybackRate(&mut self, _default_playback_rate: f64) -> ErrorResult;
+    fn SetDefaultPlaybackRate(&self, _default_playback_rate: f64) -> ErrorResult;
     fn PlaybackRate(&self) -> f64;
-    fn SetPlaybackRate(&mut self, _playback_rate: f64) -> ErrorResult;
+    fn SetPlaybackRate(&self, _playback_rate: f64) -> ErrorResult;
     fn Ended(&self) -> bool;
     fn Autoplay(&self) -> bool;
-    fn SetAutoplay(&mut self, _autoplay: bool) -> ErrorResult;
+    fn SetAutoplay(&self, _autoplay: bool) -> ErrorResult;
     fn Loop(&self) -> bool;
-    fn SetLoop(&mut self, _loop: bool) -> ErrorResult;
+    fn SetLoop(&self, _loop: bool) -> ErrorResult;
     fn Play(&self) -> ErrorResult;
     fn Pause(&self) -> ErrorResult;
     fn Controls(&self) -> bool;
-    fn SetControls(&mut self, _controls: bool) -> ErrorResult;
+    fn SetControls(&self, _controls: bool) -> ErrorResult;
     fn Volume(&self) -> f64;
-    fn SetVolume(&mut self, _volume: f64) -> ErrorResult;
+    fn SetVolume(&self, _volume: f64) -> ErrorResult;
     fn Muted(&self) -> bool;
-    fn SetMuted(&mut self, _muted: bool);
+    fn SetMuted(&self, _muted: bool);
     fn DefaultMuted(&self) -> bool;
-    fn SetDefaultMuted(&mut self, _default_muted: bool) -> ErrorResult;
+    fn SetDefaultMuted(&self, _default_muted: bool) -> ErrorResult;
 }
 
 impl<'a> HTMLMediaElementMethods for JSRef<'a, HTMLMediaElement> {
@@ -77,7 +77,7 @@ impl<'a> HTMLMediaElementMethods for JSRef<'a, HTMLMediaElement> {
         "".to_owned()
     }
 
-    fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
+    fn SetSrc(&self, _src: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -89,7 +89,7 @@ impl<'a> HTMLMediaElementMethods for JSRef<'a, HTMLMediaElement> {
         "".to_owned()
     }
 
-    fn SetCrossOrigin(&mut self, _cross_origin: DOMString) -> ErrorResult {
+    fn SetCrossOrigin(&self, _cross_origin: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -97,7 +97,7 @@ impl<'a> HTMLMediaElementMethods for JSRef<'a, HTMLMediaElement> {
         "".to_owned()
     }
 
-    fn SetPreload(&mut self, _preload: DOMString) -> ErrorResult {
+    fn SetPreload(&self, _preload: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -120,7 +120,7 @@ impl<'a> HTMLMediaElementMethods for JSRef<'a, HTMLMediaElement> {
         0f64
     }
 
-    fn SetCurrentTime(&mut self, _current_time: f64) -> ErrorResult {
+    fn SetCurrentTime(&self, _current_time: f64) -> ErrorResult {
         Ok(())
     }
 
@@ -136,7 +136,7 @@ impl<'a> HTMLMediaElementMethods for JSRef<'a, HTMLMediaElement> {
         0f64
     }
 
-    fn SetDefaultPlaybackRate(&mut self, _default_playback_rate: f64) -> ErrorResult {
+    fn SetDefaultPlaybackRate(&self, _default_playback_rate: f64) -> ErrorResult {
         Ok(())
     }
 
@@ -144,7 +144,7 @@ impl<'a> HTMLMediaElementMethods for JSRef<'a, HTMLMediaElement> {
         0f64
     }
 
-    fn SetPlaybackRate(&mut self, _playback_rate: f64) -> ErrorResult {
+    fn SetPlaybackRate(&self, _playback_rate: f64) -> ErrorResult {
         Ok(())
     }
 
@@ -156,7 +156,7 @@ impl<'a> HTMLMediaElementMethods for JSRef<'a, HTMLMediaElement> {
         false
     }
 
-    fn SetAutoplay(&mut self, _autoplay: bool) -> ErrorResult {
+    fn SetAutoplay(&self, _autoplay: bool) -> ErrorResult {
         Ok(())
     }
 
@@ -164,7 +164,7 @@ impl<'a> HTMLMediaElementMethods for JSRef<'a, HTMLMediaElement> {
         false
     }
 
-    fn SetLoop(&mut self, _loop: bool) -> ErrorResult {
+    fn SetLoop(&self, _loop: bool) -> ErrorResult {
         Ok(())
     }
 
@@ -180,7 +180,7 @@ impl<'a> HTMLMediaElementMethods for JSRef<'a, HTMLMediaElement> {
         false
     }
 
-    fn SetControls(&mut self, _controls: bool) -> ErrorResult {
+    fn SetControls(&self, _controls: bool) -> ErrorResult {
         Ok(())
     }
 
@@ -188,7 +188,7 @@ impl<'a> HTMLMediaElementMethods for JSRef<'a, HTMLMediaElement> {
         0f64
     }
 
-    fn SetVolume(&mut self, _volume: f64) -> ErrorResult {
+    fn SetVolume(&self, _volume: f64) -> ErrorResult {
         Ok(())
     }
 
@@ -196,14 +196,14 @@ impl<'a> HTMLMediaElementMethods for JSRef<'a, HTMLMediaElement> {
         false
     }
 
-    fn SetMuted(&mut self, _muted: bool) {
+    fn SetMuted(&self, _muted: bool) {
     }
 
     fn DefaultMuted(&self) -> bool {
         false
     }
 
-    fn SetDefaultMuted(&mut self, _default_muted: bool) -> ErrorResult {
+    fn SetDefaultMuted(&self, _default_muted: bool) -> ErrorResult {
         Ok(())
     }
 }
