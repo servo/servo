@@ -40,23 +40,23 @@ impl HTMLFormElement {
 
 pub trait HTMLFormElementMethods {
     fn AcceptCharset(&self) -> DOMString;
-    fn SetAcceptCharset(&mut self, _accept_charset: DOMString) -> ErrorResult;
+    fn SetAcceptCharset(&self, _accept_charset: DOMString) -> ErrorResult;
     fn Action(&self) -> DOMString;
-    fn SetAction(&mut self, _action: DOMString) -> ErrorResult;
+    fn SetAction(&self, _action: DOMString) -> ErrorResult;
     fn Autocomplete(&self) -> DOMString;
-    fn SetAutocomplete(&mut self, _autocomplete: DOMString) -> ErrorResult;
+    fn SetAutocomplete(&self, _autocomplete: DOMString) -> ErrorResult;
     fn Enctype(&self) -> DOMString;
-    fn SetEnctype(&mut self, _enctype: DOMString) -> ErrorResult;
+    fn SetEnctype(&self, _enctype: DOMString) -> ErrorResult;
     fn Encoding(&self) -> DOMString;
-    fn SetEncoding(&mut self, _encoding: DOMString) -> ErrorResult;
+    fn SetEncoding(&self, _encoding: DOMString) -> ErrorResult;
     fn Method(&self) -> DOMString;
-    fn SetMethod(&mut self, _method: DOMString) -> ErrorResult;
+    fn SetMethod(&self, _method: DOMString) -> ErrorResult;
     fn Name(&self) -> DOMString;
-    fn SetName(&mut self, _name: DOMString) -> ErrorResult;
+    fn SetName(&self, _name: DOMString) -> ErrorResult;
     fn NoValidate(&self) -> bool;
-    fn SetNoValidate(&mut self, _no_validate: bool) -> ErrorResult;
+    fn SetNoValidate(&self, _no_validate: bool) -> ErrorResult;
     fn Target(&self) -> DOMString;
-    fn SetTarget(&mut self, _target: DOMString) -> ErrorResult;
+    fn SetTarget(&self, _target: DOMString) -> ErrorResult;
     fn Elements(&self) -> Temporary<HTMLCollection>;
     fn Length(&self) -> i32;
     fn Submit(&self) -> ErrorResult;
@@ -70,7 +70,7 @@ impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
         "".to_owned()
     }
 
-    fn SetAcceptCharset(&mut self, _accept_charset: DOMString) -> ErrorResult {
+    fn SetAcceptCharset(&self, _accept_charset: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -78,7 +78,7 @@ impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
         "".to_owned()
     }
 
-    fn SetAction(&mut self, _action: DOMString) -> ErrorResult {
+    fn SetAction(&self, _action: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -86,7 +86,7 @@ impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
         "".to_owned()
     }
 
-    fn SetAutocomplete(&mut self, _autocomplete: DOMString) -> ErrorResult {
+    fn SetAutocomplete(&self, _autocomplete: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -94,7 +94,7 @@ impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
         "".to_owned()
     }
 
-    fn SetEnctype(&mut self, _enctype: DOMString) -> ErrorResult {
+    fn SetEnctype(&self, _enctype: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -102,7 +102,7 @@ impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
         "".to_owned()
     }
 
-    fn SetEncoding(&mut self, _encoding: DOMString) -> ErrorResult {
+    fn SetEncoding(&self, _encoding: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -110,7 +110,7 @@ impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
         "".to_owned()
     }
 
-    fn SetMethod(&mut self, _method: DOMString) -> ErrorResult {
+    fn SetMethod(&self, _method: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -118,7 +118,7 @@ impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
         "".to_owned()
     }
 
-    fn SetName(&mut self, _name: DOMString) -> ErrorResult {
+    fn SetName(&self, _name: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -126,7 +126,7 @@ impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
         false
     }
 
-    fn SetNoValidate(&mut self, _no_validate: bool) -> ErrorResult {
+    fn SetNoValidate(&self, _no_validate: bool) -> ErrorResult {
         Ok(())
     }
 
@@ -134,7 +134,7 @@ impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
         "".to_owned()
     }
 
-    fn SetTarget(&mut self, _target: DOMString) -> ErrorResult {
+    fn SetTarget(&self, _target: DOMString) -> ErrorResult {
         Ok(())
     }
 
