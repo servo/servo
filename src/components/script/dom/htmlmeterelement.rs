@@ -39,17 +39,17 @@ impl HTMLMeterElement {
 
 pub trait HTMLMeterElementMethods {
     fn Value(&self) -> f64;
-    fn SetValue(&mut self, _value: f64) -> ErrorResult;
+    fn SetValue(&self, _value: f64) -> ErrorResult;
     fn Min(&self) -> f64;
-    fn SetMin(&mut self, _min: f64) -> ErrorResult;
+    fn SetMin(&self, _min: f64) -> ErrorResult;
     fn Max(&self) -> f64;
-    fn SetMax(&mut self, _max: f64) -> ErrorResult;
+    fn SetMax(&self, _max: f64) -> ErrorResult;
     fn Low(&self) -> f64;
-    fn SetLow(&mut self, _low: f64) -> ErrorResult;
+    fn SetLow(&self, _low: f64) -> ErrorResult;
     fn High(&self) -> f64;
-    fn SetHigh(&mut self, _high: f64) -> ErrorResult;
+    fn SetHigh(&self, _high: f64) -> ErrorResult;
     fn Optimum(&self) -> f64;
-    fn SetOptimum(&mut self, _optimum: f64) -> ErrorResult;
+    fn SetOptimum(&self, _optimum: f64) -> ErrorResult;
 }
 
 impl<'a> HTMLMeterElementMethods for JSRef<'a, HTMLMeterElement> {
@@ -57,7 +57,7 @@ impl<'a> HTMLMeterElementMethods for JSRef<'a, HTMLMeterElement> {
         0.0
     }
 
-    fn SetValue(&mut self, _value: f64) -> ErrorResult {
+    fn SetValue(&self, _value: f64) -> ErrorResult {
         Ok(())
     }
 
@@ -65,7 +65,7 @@ impl<'a> HTMLMeterElementMethods for JSRef<'a, HTMLMeterElement> {
         0.0
     }
 
-    fn SetMin(&mut self, _min: f64) -> ErrorResult {
+    fn SetMin(&self, _min: f64) -> ErrorResult {
         Ok(())
     }
 
@@ -73,7 +73,7 @@ impl<'a> HTMLMeterElementMethods for JSRef<'a, HTMLMeterElement> {
         0.0
     }
 
-    fn SetMax(&mut self, _max: f64) -> ErrorResult {
+    fn SetMax(&self, _max: f64) -> ErrorResult {
         Ok(())
     }
 
@@ -81,7 +81,7 @@ impl<'a> HTMLMeterElementMethods for JSRef<'a, HTMLMeterElement> {
         0.0
     }
 
-    fn SetLow(&mut self, _low: f64) -> ErrorResult {
+    fn SetLow(&self, _low: f64) -> ErrorResult {
         Ok(())
     }
 
@@ -89,7 +89,7 @@ impl<'a> HTMLMeterElementMethods for JSRef<'a, HTMLMeterElement> {
         0.0
     }
 
-    fn SetHigh(&mut self, _high: f64) -> ErrorResult {
+    fn SetHigh(&self, _high: f64) -> ErrorResult {
         Ok(())
     }
 
@@ -97,7 +97,7 @@ impl<'a> HTMLMeterElementMethods for JSRef<'a, HTMLMeterElement> {
         0.0
     }
 
-    fn SetOptimum(&mut self, _optimum: f64) -> ErrorResult {
+    fn SetOptimum(&self, _optimum: f64) -> ErrorResult {
         Ok(())
     }
 }
