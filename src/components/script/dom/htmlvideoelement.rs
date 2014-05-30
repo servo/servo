@@ -39,13 +39,13 @@ impl HTMLVideoElement {
 
 pub trait HTMLVideoElementMethods {
     fn Width(&self) -> u32;
-    fn SetWidth(&mut self, _width: u32) -> ErrorResult;
+    fn SetWidth(&self, _width: u32) -> ErrorResult;
     fn Height(&self) -> u32;
-    fn SetHeight(&mut self, _height: u32) -> ErrorResult;
+    fn SetHeight(&self, _height: u32) -> ErrorResult;
     fn VideoWidth(&self) -> u32;
     fn VideoHeight(&self) -> u32;
     fn Poster(&self) -> DOMString;
-    fn SetPoster(&mut self, _poster: DOMString) -> ErrorResult;
+    fn SetPoster(&self, _poster: DOMString) -> ErrorResult;
 }
 
 impl<'a> HTMLVideoElementMethods for JSRef<'a, HTMLVideoElement> {
@@ -53,7 +53,7 @@ impl<'a> HTMLVideoElementMethods for JSRef<'a, HTMLVideoElement> {
         0
     }
 
-    fn SetWidth(&mut self, _width: u32) -> ErrorResult {
+    fn SetWidth(&self, _width: u32) -> ErrorResult {
         Ok(())
     }
 
@@ -61,7 +61,7 @@ impl<'a> HTMLVideoElementMethods for JSRef<'a, HTMLVideoElement> {
         0
     }
 
-    fn SetHeight(&mut self, _height: u32) -> ErrorResult {
+    fn SetHeight(&self, _height: u32) -> ErrorResult {
         Ok(())
     }
 
@@ -77,7 +77,7 @@ impl<'a> HTMLVideoElementMethods for JSRef<'a, HTMLVideoElement> {
         "".to_owned()
     }
 
-    fn SetPoster(&mut self, _poster: DOMString) -> ErrorResult {
+    fn SetPoster(&self, _poster: DOMString) -> ErrorResult {
         Ok(())
     }
 }
