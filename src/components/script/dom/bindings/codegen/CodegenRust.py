@@ -2172,7 +2172,7 @@ class CGCallGenerator(CGThing):
             call = CGWrapper(call, pre="%s::" % descriptorProvider.interface.identifier.name)
         else: 
             call = CGWrapper(call, pre="(*%s)." % object)
-        call = CGList([call, CGWrapper(args, pre="(", post=");")])
+        call = CGList([call, CGWrapper(args, pre="(", post=")")])
 
         self.cgRoot.append(CGList([
             CGGeneric("let result: "),
@@ -2194,7 +2194,7 @@ class CGCallGenerator(CGThing):
                 "    Err(e) => {\n"
                 "%s"
                 "        throw_dom_exception(cx, &*global, e);\n"
-                "        return%s;"
+                "        return%s;\n"
                 "    },\n"
                 "};\n" % (glob, errorResult)))
 
