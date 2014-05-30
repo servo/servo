@@ -84,10 +84,10 @@ pub unsafe fn dom_object_slot(obj: *mut JSObject) -> u32 {
     }
 }
 
-pub unsafe fn unwrap<T>(obj: *mut JSObject) -> *mut T {
+pub unsafe fn unwrap<T>(obj: *mut JSObject) -> *T {
     let slot = dom_object_slot(obj);
     let val = JS_GetReservedSlot(obj, slot);
-    val.to_private() as *mut T
+    val.to_private() as *T
 }
 
 pub unsafe fn get_dom_class(obj: *mut JSObject) -> Result<DOMClass, ()> {

@@ -70,7 +70,7 @@ pub struct TrustedNodeAddress(pub *c_void);
 impl<S: Encoder<E>, E> Encodable<S, E> for TrustedNodeAddress {
     fn encode(&self, s: &mut S) -> Result<(), E> {
         let TrustedNodeAddress(addr) = *self;
-        let node = addr as *Node as *mut Node;
+        let node = addr as *Node;
         unsafe {
             JS::from_raw(node).encode(s)
         }
