@@ -40,18 +40,18 @@ impl HTMLOptionElement {
 
 pub trait HTMLOptionElementMethods {
     fn Disabled(&self) -> bool;
-    fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult;
+    fn SetDisabled(&self, _disabled: bool) -> ErrorResult;
     fn GetForm(&self) -> Option<Temporary<HTMLFormElement>>;
     fn Label(&self) -> DOMString;
-    fn SetLabel(&mut self, _label: DOMString) -> ErrorResult;
+    fn SetLabel(&self, _label: DOMString) -> ErrorResult;
     fn DefaultSelected(&self) -> bool;
-    fn SetDefaultSelected(&mut self, _default_selected: bool) -> ErrorResult;
+    fn SetDefaultSelected(&self, _default_selected: bool) -> ErrorResult;
     fn Selected(&self) -> bool;
-    fn SetSelected(&mut self, _selected: bool) -> ErrorResult;
+    fn SetSelected(&self, _selected: bool) -> ErrorResult;
     fn Value(&self) -> DOMString;
-    fn SetValue(&mut self, _value: DOMString) -> ErrorResult;
+    fn SetValue(&self, _value: DOMString) -> ErrorResult;
     fn Text(&self) -> DOMString;
-    fn SetText(&mut self, _text: DOMString) -> ErrorResult;
+    fn SetText(&self, _text: DOMString) -> ErrorResult;
     fn Index(&self) -> i32;
 }
 
@@ -60,7 +60,7 @@ impl<'a> HTMLOptionElementMethods for JSRef<'a, HTMLOptionElement> {
         false
     }
 
-    fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult {
+    fn SetDisabled(&self, _disabled: bool) -> ErrorResult {
         Ok(())
     }
 
@@ -72,7 +72,7 @@ impl<'a> HTMLOptionElementMethods for JSRef<'a, HTMLOptionElement> {
         "".to_owned()
     }
 
-    fn SetLabel(&mut self, _label: DOMString) -> ErrorResult {
+    fn SetLabel(&self, _label: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -80,7 +80,7 @@ impl<'a> HTMLOptionElementMethods for JSRef<'a, HTMLOptionElement> {
         false
     }
 
-    fn SetDefaultSelected(&mut self, _default_selected: bool) -> ErrorResult {
+    fn SetDefaultSelected(&self, _default_selected: bool) -> ErrorResult {
         Ok(())
     }
 
@@ -88,7 +88,7 @@ impl<'a> HTMLOptionElementMethods for JSRef<'a, HTMLOptionElement> {
         false
     }
 
-    fn SetSelected(&mut self, _selected: bool) -> ErrorResult {
+    fn SetSelected(&self, _selected: bool) -> ErrorResult {
         Ok(())
     }
 
@@ -96,7 +96,7 @@ impl<'a> HTMLOptionElementMethods for JSRef<'a, HTMLOptionElement> {
         "".to_owned()
     }
 
-    fn SetValue(&mut self, _value: DOMString) -> ErrorResult {
+    fn SetValue(&self, _value: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -104,7 +104,7 @@ impl<'a> HTMLOptionElementMethods for JSRef<'a, HTMLOptionElement> {
         "".to_owned()
     }
 
-    fn SetText(&mut self, _text: DOMString) -> ErrorResult {
+    fn SetText(&self, _text: DOMString) -> ErrorResult {
         Ok(())
     }
 
