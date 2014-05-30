@@ -39,7 +39,7 @@ impl HTMLTitleElement {
 
 pub trait HTMLTitleElementMethods {
     fn Text(&self) -> DOMString;
-    fn SetText(&mut self, _text: DOMString) -> ErrorResult;
+    fn SetText(&self, _text: DOMString) -> ErrorResult;
 }
 
 impl<'a> HTMLTitleElementMethods for JSRef<'a, HTMLTitleElement> {
@@ -47,7 +47,7 @@ impl<'a> HTMLTitleElementMethods for JSRef<'a, HTMLTitleElement> {
         "".to_owned()
     }
 
-    fn SetText(&mut self, _text: DOMString) -> ErrorResult {
+    fn SetText(&self, _text: DOMString) -> ErrorResult {
         Ok(())
     }
 }
