@@ -74,7 +74,7 @@ pub trait UIEventMethods {
     fn GetRangeParent(&self) -> Option<Temporary<Node>>;
     fn RangeOffset(&self) -> i32;
     fn CancelBubble(&self) -> bool;
-    fn SetCancelBubble(&mut self, _val: bool);
+    fn SetCancelBubble(&self, _val: bool);
     fn IsChar(&self) -> bool;
     fn InitUIEvent(&mut self,
                    type_: DOMString,
@@ -147,7 +147,7 @@ impl<'a> UIEventMethods for JSRef<'a, UIEvent> {
         false
     }
 
-    fn SetCancelBubble(&mut self, _val: bool) {
+    fn SetCancelBubble(&self, _val: bool) {
         //TODO
     }
 
