@@ -42,17 +42,17 @@ impl HTMLFieldSetElement {
 
 pub trait HTMLFieldSetElementMethods {
     fn Disabled(&self) -> bool;
-    fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult;
+    fn SetDisabled(&self, _disabled: bool) -> ErrorResult;
     fn GetForm(&self) -> Option<Temporary<HTMLFormElement>>;
     fn Name(&self) -> DOMString;
-    fn SetName(&mut self, _name: DOMString) -> ErrorResult;
+    fn SetName(&self, _name: DOMString) -> ErrorResult;
     fn Type(&self) -> DOMString;
     fn Elements(&self) -> Temporary<HTMLCollection>;
     fn WillValidate(&self) -> bool;
     fn Validity(&self) -> Temporary<ValidityState>;
     fn ValidationMessage(&self) -> DOMString;
     fn CheckValidity(&self) -> bool;
-    fn SetCustomValidity(&mut self, _error: DOMString);
+    fn SetCustomValidity(&self, _error: DOMString);
 }
 
 impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
@@ -60,7 +60,7 @@ impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
         false
     }
 
-    fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult {
+    fn SetDisabled(&self, _disabled: bool) -> ErrorResult {
         Ok(())
     }
 
@@ -72,7 +72,7 @@ impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
         "".to_owned()
     }
 
-    fn SetName(&mut self, _name: DOMString) -> ErrorResult {
+    fn SetName(&self, _name: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -114,6 +114,6 @@ impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
         false
     }
 
-    fn SetCustomValidity(&mut self, _error: DOMString) {
+    fn SetCustomValidity(&self, _error: DOMString) {
     }
 }
