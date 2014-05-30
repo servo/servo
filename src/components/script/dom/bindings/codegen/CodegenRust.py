@@ -2129,19 +2129,21 @@ class CGCallGenerator(CGThing):
     A class to generate an actual call to a C++ object.  Assumes that the C++
     object is stored in a variable whose name is given by the |object| argument.
 
-    errorReport should be a CGThing for an error report or None if no
-    error reporting is needed.
+    errorResult should be a string for the value to return in case of an
+    exception from the native code, or None if no error reporting is needed.
     """
-    def __init__(self, errorReport, arguments, argsPre, returnType,
+    def __init__(self, errorResult, arguments, argsPre, returnType,
                  extendedAttributes, descriptorProvider, nativeMethodName,
                  static, object="this"):
         CGThing.__init__(self)
 
-        assert errorReport is None or isinstance(errorReport, CGThing)
+        assert errorResult is None or isinstance(errorResult, str)
 
-        isFallible = errorReport is not None
+        isFallible = errorResult is not None
 
         result = getRetvalDeclarationForType(returnType, descriptorProvider)
+        if isFallible:
+            result = CGWrapper(result, pre="Result<", post=", Error>")
 
         args = CGList([CGGeneric(arg) for arg in argsPre], ", ")
         for (a, name) in arguments:
@@ -2172,26 +2174,29 @@ class CGCallGenerator(CGThing):
             call = CGWrapper(call, pre="(*%s)." % object)
         call = CGList([call, CGWrapper(args, pre="(", post=");")])
 
-        if isFallible:
-            self.cgRoot.prepend(CGWrapper(result,
-                pre="let result_fallible: Result<", post=",Error>;"))
-
-        result = CGWrapper(result, pre="let result: ", post=";")
-        self.cgRoot.prepend(result)
-
-        if isFallible:
-            call = CGWrapper(call, pre="result_fallible = ")
-        else:
-            call = CGWrapper(call, pre="result = ")
-
-        call = CGWrapper(call)
-        self.cgRoot.append(call)
+        self.cgRoot.append(CGList([
+            CGGeneric("let result: "),
+            result,
+            CGGeneric(" = "),
+            call,
+            CGGeneric(";"),
+        ]))
 
         if isFallible:
-            self.cgRoot.append(CGGeneric("if result_fallible.is_err() {"))
-            self.cgRoot.append(CGIndenter(errorReport))
-            self.cgRoot.append(CGGeneric("}"))
-            self.cgRoot.append(CGGeneric("result = result_fallible.unwrap();"))
+            if static:
+                glob = ""
+            else:
+                glob = "        let global = global_object_for_js_object(this.reflector().get_jsobject()).root();\n"
+
+            self.cgRoot.append(CGGeneric(
+                "let result = match result {\n"
+                "    Ok(result) => result,\n"
+                "    Err(e) => {\n"
+                "%s"
+                "        throw_dom_exception(cx, &*global, e);\n"
+                "        return%s;"
+                "    },\n"
+                "};\n" % (glob, errorResult)))
 
         if typeRetValNeedsRooting(returnType):
             self.cgRoot.append(CGGeneric("let result = result.root();"))
@@ -2250,7 +2255,7 @@ class CGPerSignatureCall(CGThing):
                          i in range(argConversionStartsAt, self.argCount)])
 
         cgThings.append(CGCallGenerator(
-                    self.getErrorReport() if self.isFallible() else None,
+                    ' false as JSBool' if self.isFallible() else None,
                     self.getArguments(), self.argsPre, returnType,
                     self.extendedAttributes, descriptor, nativeMethodName,
                     static))
@@ -2275,12 +2280,6 @@ class CGPerSignatureCall(CGThing):
 
     def wrap_return_value(self):
         return wrapForType('*vp')
-
-    def getErrorReport(self):
-        return CGGeneric(
-            'return throw_method_failed_with_details(cx, result_fallible, "%s", "%s");' %
-                (self.descriptor.interface.identifier.name,
-                 self.idlNode.identifier.name))
 
     def define(self):
         return (self.cgRoot.define() + "\n" + self.wrap_return_value())
@@ -4302,7 +4301,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::codegen::BindingDeclarations::*',
             'dom::bindings::codegen::UnionTypes::*',
             'dom::bindings::error::{FailureUnknown, Fallible, Error, ErrorResult}',
-            'dom::bindings::error::{throw_method_failed_with_details}',
+            'dom::bindings::error::throw_dom_exception',
             'dom::bindings::error::throw_type_error',
             'dom::bindings::proxyhandler',
             'dom::bindings::proxyhandler::{_obj_toString, defineProperty}',
