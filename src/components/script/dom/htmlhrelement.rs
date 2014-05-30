@@ -39,15 +39,15 @@ impl HTMLHRElement {
 
 pub trait HTMLHRElementMethods {
     fn Align(&self) -> DOMString;
-    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult;
+    fn SetAlign(&self, _align: DOMString) -> ErrorResult;
     fn Color(&self) -> DOMString;
-    fn SetColor(&mut self, _color: DOMString) -> ErrorResult;
+    fn SetColor(&self, _color: DOMString) -> ErrorResult;
     fn NoShade(&self) -> bool;
     fn SetNoShade(&self, _no_shade: bool) -> ErrorResult;
     fn Size(&self) -> DOMString;
-    fn SetSize(&mut self, _size: DOMString) -> ErrorResult;
+    fn SetSize(&self, _size: DOMString) -> ErrorResult;
     fn Width(&self) -> DOMString;
-    fn SetWidth(&mut self, _width: DOMString) -> ErrorResult;
+    fn SetWidth(&self, _width: DOMString) -> ErrorResult;
 }
 
 impl<'a> HTMLHRElementMethods for JSRef<'a, HTMLHRElement> {
@@ -55,7 +55,7 @@ impl<'a> HTMLHRElementMethods for JSRef<'a, HTMLHRElement> {
         "".to_owned()
     }
 
-    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
+    fn SetAlign(&self, _align: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -63,7 +63,7 @@ impl<'a> HTMLHRElementMethods for JSRef<'a, HTMLHRElement> {
         "".to_owned()
     }
 
-    fn SetColor(&mut self, _color: DOMString) -> ErrorResult {
+    fn SetColor(&self, _color: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -79,7 +79,7 @@ impl<'a> HTMLHRElementMethods for JSRef<'a, HTMLHRElement> {
         "".to_owned()
     }
 
-    fn SetSize(&mut self, _size: DOMString) -> ErrorResult {
+    fn SetSize(&self, _size: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -87,7 +87,7 @@ impl<'a> HTMLHRElementMethods for JSRef<'a, HTMLHRElement> {
         "".to_owned()
     }
 
-    fn SetWidth(&mut self, _width: DOMString) -> ErrorResult {
+    fn SetWidth(&self, _width: DOMString) -> ErrorResult {
         Ok(())
     }
 }
