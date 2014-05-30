@@ -41,9 +41,9 @@ pub trait HTMLOListElementMethods {
     fn Reversed(&self) -> bool;
     fn SetReversed(&self, _reversed: bool) -> ErrorResult;
     fn Start(&self) -> i32;
-    fn SetStart(&mut self, _start: i32) -> ErrorResult;
+    fn SetStart(&self, _start: i32) -> ErrorResult;
     fn Type(&self) -> DOMString;
-    fn SetType(&mut self, _type: DOMString) -> ErrorResult;
+    fn SetType(&self, _type: DOMString) -> ErrorResult;
     fn Compact(&self) -> bool;
     fn SetCompact(&self, _compact: bool) -> ErrorResult;
 }
@@ -61,7 +61,7 @@ impl<'a> HTMLOListElementMethods for JSRef<'a, HTMLOListElement> {
         0
     }
 
-    fn SetStart(&mut self, _start: i32) -> ErrorResult {
+    fn SetStart(&self, _start: i32) -> ErrorResult {
         Ok(())
     }
 
@@ -69,7 +69,7 @@ impl<'a> HTMLOListElementMethods for JSRef<'a, HTMLOListElement> {
         "".to_owned()
     }
 
-    fn SetType(&mut self, _type: DOMString) -> ErrorResult {
+    fn SetType(&self, _type: DOMString) -> ErrorResult {
         Ok(())
     }
 
