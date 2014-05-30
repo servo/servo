@@ -39,17 +39,17 @@ impl HTMLEmbedElement {
 
 pub trait HTMLEmbedElementMethods {
     fn Src(&self) -> DOMString;
-    fn SetSrc(&mut self, _src: DOMString) -> ErrorResult;
+    fn SetSrc(&self, _src: DOMString) -> ErrorResult;
     fn Type(&self) -> DOMString;
-    fn SetType(&mut self, _type: DOMString) -> ErrorResult;
+    fn SetType(&self, _type: DOMString) -> ErrorResult;
     fn Width(&self) -> DOMString;
-    fn SetWidth(&mut self, _width: DOMString) -> ErrorResult;
+    fn SetWidth(&self, _width: DOMString) -> ErrorResult;
     fn Height(&self) -> DOMString;
-    fn SetHeight(&mut self, _height: DOMString) -> ErrorResult;
+    fn SetHeight(&self, _height: DOMString) -> ErrorResult;
     fn Align(&self) -> DOMString;
-    fn SetAlign(&mut self, _type: DOMString) -> ErrorResult;
+    fn SetAlign(&self, _type: DOMString) -> ErrorResult;
     fn Name(&self) -> DOMString;
-    fn SetName(&mut self, _type: DOMString) -> ErrorResult;
+    fn SetName(&self, _type: DOMString) -> ErrorResult;
     fn GetSVGDocument(&self) -> Option<Temporary<Document>>;
 }
 
@@ -58,7 +58,7 @@ impl<'a> HTMLEmbedElementMethods for JSRef<'a, HTMLEmbedElement> {
         "".to_owned()
     }
 
-    fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
+    fn SetSrc(&self, _src: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -66,7 +66,7 @@ impl<'a> HTMLEmbedElementMethods for JSRef<'a, HTMLEmbedElement> {
         "".to_owned()
     }
 
-    fn SetType(&mut self, _type: DOMString) -> ErrorResult {
+    fn SetType(&self, _type: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -74,7 +74,7 @@ impl<'a> HTMLEmbedElementMethods for JSRef<'a, HTMLEmbedElement> {
         "".to_owned()
     }
 
-    fn SetWidth(&mut self, _width: DOMString) -> ErrorResult {
+    fn SetWidth(&self, _width: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -82,7 +82,7 @@ impl<'a> HTMLEmbedElementMethods for JSRef<'a, HTMLEmbedElement> {
         "".to_owned()
     }
 
-    fn SetHeight(&mut self, _height: DOMString) -> ErrorResult {
+    fn SetHeight(&self, _height: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -90,7 +90,7 @@ impl<'a> HTMLEmbedElementMethods for JSRef<'a, HTMLEmbedElement> {
         "".to_owned()
     }
 
-    fn SetAlign(&mut self, _type: DOMString) -> ErrorResult {
+    fn SetAlign(&self, _type: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -98,7 +98,7 @@ impl<'a> HTMLEmbedElementMethods for JSRef<'a, HTMLEmbedElement> {
         "".to_owned()
     }
 
-    fn SetName(&mut self, _type: DOMString) -> ErrorResult {
+    fn SetName(&self, _type: DOMString) -> ErrorResult {
         Ok(())
     }
 
