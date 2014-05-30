@@ -38,19 +38,19 @@ impl HTMLTableSectionElement {
 }
 
 pub trait HTMLTableSectionElementMethods {
-    fn DeleteRow(&mut self, _index: i32) -> ErrorResult;
+    fn DeleteRow(&self, _index: i32) -> ErrorResult;
     fn Align(&self) -> DOMString;
-    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult;
+    fn SetAlign(&self, _align: DOMString) -> ErrorResult;
     fn Ch(&self) -> DOMString;
-    fn SetCh(&mut self, _ch: DOMString) -> ErrorResult;
+    fn SetCh(&self, _ch: DOMString) -> ErrorResult;
     fn ChOff(&self) -> DOMString;
-    fn SetChOff(&mut self, _ch_off: DOMString) -> ErrorResult;
+    fn SetChOff(&self, _ch_off: DOMString) -> ErrorResult;
     fn VAlign(&self) -> DOMString;
-    fn SetVAlign(&mut self, _v_align: DOMString) -> ErrorResult;
+    fn SetVAlign(&self, _v_align: DOMString) -> ErrorResult;
 }
 
 impl<'a> HTMLTableSectionElementMethods for JSRef<'a, HTMLTableSectionElement> {
-    fn DeleteRow(&mut self, _index: i32) -> ErrorResult {
+    fn DeleteRow(&self, _index: i32) -> ErrorResult {
         Ok(())
     }
 
@@ -58,7 +58,7 @@ impl<'a> HTMLTableSectionElementMethods for JSRef<'a, HTMLTableSectionElement> {
         "".to_owned()
     }
 
-    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
+    fn SetAlign(&self, _align: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -66,7 +66,7 @@ impl<'a> HTMLTableSectionElementMethods for JSRef<'a, HTMLTableSectionElement> {
         "".to_owned()
     }
 
-    fn SetCh(&mut self, _ch: DOMString) -> ErrorResult {
+    fn SetCh(&self, _ch: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -74,7 +74,7 @@ impl<'a> HTMLTableSectionElementMethods for JSRef<'a, HTMLTableSectionElement> {
         "".to_owned()
     }
 
-    fn SetChOff(&mut self, _ch_off: DOMString) -> ErrorResult {
+    fn SetChOff(&self, _ch_off: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -82,7 +82,7 @@ impl<'a> HTMLTableSectionElementMethods for JSRef<'a, HTMLTableSectionElement> {
         "".to_owned()
     }
 
-    fn SetVAlign(&mut self, _v_align: DOMString) -> ErrorResult {
+    fn SetVAlign(&self, _v_align: DOMString) -> ErrorResult {
         Ok(())
     }
 }
