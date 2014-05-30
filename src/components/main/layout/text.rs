@@ -6,7 +6,6 @@
 
 use layout::flow::Flow;
 use layout::fragment::{Fragment, ScannedTextFragment, ScannedTextFragmentInfo, UnscannedTextFragment};
-use layout::inline::InlineFragments;
 
 use gfx::font::{FontMetrics, FontStyle};
 use gfx::font_context::FontContext;
@@ -15,7 +14,6 @@ use gfx::text::text_run::TextRun;
 use gfx::text::util::{CompressWhitespaceNewline, transform_text, CompressNone};
 use servo_util::geometry::Au;
 use servo_util::range::Range;
-use std::mem;
 use style::ComputedValues;
 use style::computed_values::{font_family, line_height, white_space};
 use sync::Arc;
@@ -48,18 +46,15 @@ impl TextRunScanner {
             debug!("TextRunScanner: scanning {:u} fragments for text runs...", inline.fragments.len());
         }
 
-        let InlineFragments {
-            fragments: old_fragments,
-            map: mut map
-        } = mem::replace(&mut flow.as_inline().fragments, InlineFragments::new());
+        let fragments = &mut flow.as_inline().fragments;
 
         let mut last_whitespace = true;
         let mut new_fragments = Vec::new();
-        for fragment_i in range(0, old_fragments.len()) {
+        for fragment_i in range(0, fragments.fragments.len()) {
             debug!("TextRunScanner: considering fragment: {:u}", fragment_i);
-            if fragment_i > 0 && !can_coalesce_text_nodes(old_fragments.as_slice(), fragment_i - 1, fragment_i) {
+            if fragment_i > 0 && !can_coalesce_text_nodes(fragments.fragments.as_slice(), fragment_i - 1, fragment_i) {
                 last_whitespace = self.flush_clump_to_list(font_context,
-                                                           old_fragments.as_slice(),
+                                                           fragments.fragments.as_slice(),
                                                            &mut new_fragments,
                                                            last_whitespace);
             }
@@ -70,19 +65,14 @@ impl TextRunScanner {
         // Handle remaining clumps.
         if self.clump.length() > CharIndex(0) {
             drop(self.flush_clump_to_list(font_context,
-                                          old_fragments.as_slice(),
+                                          fragments.fragments.as_slice(),
                                           &mut new_fragments,
                                           last_whitespace))
         }
 
         debug!("TextRunScanner: swapping out fragments.");
 
-        // Swap out the old and new fragment list of the flow.
-        map.fixup(old_fragments.as_slice(), new_fragments.as_slice());
-        flow.as_inline().fragments = InlineFragments {
-            fragments: new_fragments,
-            map: map,
-        }
+        fragments.fixup(new_fragments);
     }
 
     /// A "clump" is a range of inline flow leaves that can be merged together into a single
