@@ -39,7 +39,7 @@ impl HTMLTimeElement {
 
 pub trait HTMLTimeElementMethods {
     fn DateTime(&self) -> DOMString;
-    fn SetDateTime(&mut self, _dateTime: DOMString) -> ErrorResult;
+    fn SetDateTime(&self, _dateTime: DOMString) -> ErrorResult;
 }
 
 impl<'a> HTMLTimeElementMethods for JSRef<'a, HTMLTimeElement> {
@@ -47,7 +47,7 @@ impl<'a> HTMLTimeElementMethods for JSRef<'a, HTMLTimeElement> {
         "".to_owned()
     }
 
-    fn SetDateTime(&mut self, _dateTime: DOMString) -> ErrorResult {
+    fn SetDateTime(&self, _dateTime: DOMString) -> ErrorResult {
         Ok(())
     }
 }
