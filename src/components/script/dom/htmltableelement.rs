@@ -41,7 +41,7 @@ pub trait HTMLTableElementMethods {
     fn DeleteCaption(&self);
     fn DeleteTHead(&self);
     fn DeleteTFoot(&self);
-    fn DeleteRow(&mut self, _index: i32) -> ErrorResult;
+    fn DeleteRow(&self, _index: i32) -> ErrorResult;
     fn Sortable(&self) -> bool;
     fn SetSortable(&self, _sortable: bool);
     fn StopSorting(&self);
@@ -75,7 +75,7 @@ impl<'a> HTMLTableElementMethods for JSRef<'a, HTMLTableElement> {
     fn DeleteTFoot(&self) {
     }
 
-    fn DeleteRow(&mut self, _index: i32) -> ErrorResult {
+    fn DeleteRow(&self, _index: i32) -> ErrorResult {
         Ok(())
     }
 
