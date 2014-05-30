@@ -267,9 +267,9 @@ impl IOCompositor {
                     chan.send(Some(azure_hl::current_graphics_metadata()));
                 }
 
-                (Ok(CreateRootCompositorLayerIfNecessary(pipeline_id, layer_id, size)),
+                (Ok(CreateRootCompositorLayerIfNecessary(pipeline_id, layer_id, size, color)),
                  false) => {
-                    self.create_root_compositor_layer_if_necessary(pipeline_id, layer_id, size);
+                    self.create_root_compositor_layer_if_necessary(pipeline_id, layer_id, size, color);
                 }
 
                 (Ok(CreateDescendantCompositorLayerIfNecessary(pipeline_id,
@@ -322,12 +322,11 @@ impl IOCompositor {
         }
     }
 
-    // FIXME(#2004, pcwalton): Take the pipeline ID and layer ID into account.
-    fn set_unrendered_color(&mut self, _: PipelineId, _: LayerId, color: Color) {
+    fn set_unrendered_color(&mut self, pipeline_id: PipelineId, layer_id: LayerId, color: Color) {
         match self.compositor_layer {
-            Some(ref mut layer) => layer.unrendered_color = color,
-            None => {}
-        }
+            Some(ref mut layer) => layer.set_unrendered_color(pipeline_id, layer_id, color),
+            None => false,
+        };
     }
 
     fn set_ids(&mut self,
@@ -353,7 +352,8 @@ impl IOCompositor {
     fn create_root_compositor_layer_if_necessary(&mut self,
                                                  id: PipelineId,
                                                  layer_id: LayerId,
-                                                 size: Size2D<f32>) {
+                                                 size: Size2D<f32>,
+                                                 unrendered_color: Color) {
         let (root_pipeline, root_layer_id) = match self.compositor_layer {
             Some(ref compositor_layer) if compositor_layer.pipeline.id == id => {
                 (compositor_layer.pipeline.clone(), compositor_layer.id_of_first_child())
@@ -372,6 +372,7 @@ impl IOCompositor {
                                                           size,
                                                           self.opts.tile_size,
                                                           self.opts.cpu_painting);
+            new_layer.unrendered_color = unrendered_color;
 
             let first_child = self.root_layer.first_child.borrow().clone();
             match first_child {

@@ -965,5 +965,19 @@ impl CompositorLayer {
     pub fn id_of_first_child(&self) -> LayerId {
         self.children.iter().next().expect("no first child!").child.id
     }
+
+    pub fn set_unrendered_color(&mut self, pipeline_id: PipelineId, layer_id: LayerId, color: Color) -> bool {
+        if self.pipeline.id != pipeline_id || self.id != layer_id {
+            for child_layer in self.children.mut_iter() {
+                if child_layer.child.set_unrendered_color(pipeline_id, layer_id, color) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        self.unrendered_color = color;
+        return true;
+    }
 }
 
