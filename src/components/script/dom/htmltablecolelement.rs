@@ -39,17 +39,17 @@ impl HTMLTableColElement {
 
 pub trait HTMLTableColElementMethods {
     fn Span(&self) -> u32;
-    fn SetSpan(&mut self, _span: u32) -> ErrorResult;
+    fn SetSpan(&self, _span: u32) -> ErrorResult;
     fn Align(&self) -> DOMString;
-    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult;
+    fn SetAlign(&self, _align: DOMString) -> ErrorResult;
     fn Ch(&self) -> DOMString;
-    fn SetCh(&mut self, _ch: DOMString) -> ErrorResult;
+    fn SetCh(&self, _ch: DOMString) -> ErrorResult;
     fn ChOff(&self) -> DOMString;
-    fn SetChOff(&mut self, _ch_off: DOMString) -> ErrorResult;
+    fn SetChOff(&self, _ch_off: DOMString) -> ErrorResult;
     fn VAlign(&self) -> DOMString;
-    fn SetVAlign(&mut self, _v_align: DOMString) -> ErrorResult;
+    fn SetVAlign(&self, _v_align: DOMString) -> ErrorResult;
     fn Width(&self) -> DOMString;
-    fn SetWidth(&mut self, _width: DOMString) -> ErrorResult;
+    fn SetWidth(&self, _width: DOMString) -> ErrorResult;
 }
 
 impl<'a> HTMLTableColElementMethods for JSRef<'a, HTMLTableColElement> {
@@ -57,7 +57,7 @@ impl<'a> HTMLTableColElementMethods for JSRef<'a, HTMLTableColElement> {
         0
     }
 
-    fn SetSpan(&mut self, _span: u32) -> ErrorResult {
+    fn SetSpan(&self, _span: u32) -> ErrorResult {
         Ok(())
     }
 
@@ -65,7 +65,7 @@ impl<'a> HTMLTableColElementMethods for JSRef<'a, HTMLTableColElement> {
         "".to_owned()
     }
 
-    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
+    fn SetAlign(&self, _align: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -73,7 +73,7 @@ impl<'a> HTMLTableColElementMethods for JSRef<'a, HTMLTableColElement> {
         "".to_owned()
     }
 
-    fn SetCh(&mut self, _ch: DOMString) -> ErrorResult {
+    fn SetCh(&self, _ch: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -81,7 +81,7 @@ impl<'a> HTMLTableColElementMethods for JSRef<'a, HTMLTableColElement> {
         "".to_owned()
     }
 
-    fn SetChOff(&mut self, _ch_off: DOMString) -> ErrorResult {
+    fn SetChOff(&self, _ch_off: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -89,7 +89,7 @@ impl<'a> HTMLTableColElementMethods for JSRef<'a, HTMLTableColElement> {
         "".to_owned()
     }
 
-    fn SetVAlign(&mut self, _v_align: DOMString) -> ErrorResult {
+    fn SetVAlign(&self, _v_align: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -97,7 +97,7 @@ impl<'a> HTMLTableColElementMethods for JSRef<'a, HTMLTableColElement> {
         "".to_owned()
     }
 
-    fn SetWidth(&mut self, _width: DOMString) -> ErrorResult {
+    fn SetWidth(&self, _width: DOMString) -> ErrorResult {
         Ok(())
     }
 }
