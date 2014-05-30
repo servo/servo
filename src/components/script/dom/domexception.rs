@@ -4,6 +4,8 @@
 
 use dom::bindings::codegen::BindingDeclarations::DOMExceptionBinding;
 use dom::bindings::codegen::BindingDeclarations::DOMExceptionBinding::DOMExceptionConstants;
+use dom::bindings::error;
+use dom::bindings::error::Error;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::window::Window;
@@ -35,6 +37,24 @@ pub enum DOMErrorName {
     EncodingError
 }
 
+impl DOMErrorName {
+    fn from_error(error: Error) -> DOMErrorName {
+        match error {
+            error::IndexSize => IndexSizeError,
+            error::NotFound => NotFoundError,
+            error::HierarchyRequest => HierarchyRequestError,
+            error::InvalidCharacter => InvalidCharacterError,
+            error::NotSupported => NotSupportedError,
+            error::InvalidState => InvalidStateError,
+            error::NamespaceError => NamespaceError,
+            error::Syntax => SyntaxError,
+            error::Security => SecurityError,
+            error::Network => NetworkError,
+            error::FailureUnknown => fail!(),
+        }
+    }
+}
+
 #[deriving(Encodable)]
 pub struct DOMException {
     pub code: DOMErrorName,
@@ -51,6 +71,10 @@ impl DOMException {
 
     pub fn new(window: &JSRef<Window>, code: DOMErrorName) -> Temporary<DOMException> {
         reflect_dom_object(box DOMException::new_inherited(code), window, DOMExceptionBinding::Wrap)
+    }
+
+    pub fn new_from_error(window: &JSRef<Window>, code: Error) -> Temporary<DOMException> {
+        DOMException::new(window, DOMErrorName::from_error(code))
     }
 }
 
