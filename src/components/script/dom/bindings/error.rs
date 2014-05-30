@@ -2,8 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::conversions::ToJSValConvertible;
+use dom::bindings::js::JSRef;
+use dom::domexception::DOMException;
+use dom::window::Window;
+
 use js::jsapi::{JSContext, JSBool};
-use js::jsapi::{JS_IsExceptionPending};
+use js::jsapi::{JS_IsExceptionPending, JS_SetPendingException};
 use js::jsapi::{JS_ReportErrorNumber, JSErrorFormatString, JSEXN_TYPEERR};
 use js::glue::{ReportError};
 
@@ -29,17 +34,14 @@ pub type Fallible<T> = Result<T, Error>;
 
 pub type ErrorResult = Fallible<()>;
 
-pub fn throw_method_failed_with_details<T>(cx: *mut JSContext,
-                                           result: Result<T, Error>,
-                                           interface: &'static str,
-                                           member: &'static str) -> JSBool {
-    assert!(result.is_err());
+pub fn throw_dom_exception(cx: *mut JSContext, global: &JSRef<Window>,
+                           result: Error) {
     assert!(unsafe { JS_IsExceptionPending(cx) } == 0);
-    let message = format!("Method failed: {}.{}", interface, member);
-    message.with_c_str(|string| {
-        unsafe { ReportError(cx, string) };
-    });
-    return 0;
+    let exception = DOMException::new_from_error(global, result).root();
+    let thrown = exception.to_jsval(cx);
+    unsafe {
+        JS_SetPendingException(cx, thrown);
+    }
 }
 
 pub fn throw_not_in_union(cx: *mut JSContext, names: &'static str) -> JSBool {
