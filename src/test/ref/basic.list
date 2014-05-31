@@ -76,3 +76,6 @@
 == linebreak_inline_span_a.html linebreak_inline_span_b.html
 == overconstrained_block.html overconstrained_block_ref.html
 == position_fixed_background_color_a.html position_fixed_background_color_b.html
+# Failing overflow tests
+== position_fixed_overflow_a.html position_fixed_overflow_b.html
+== linebreak_overflow_a.html linebreak_overflow_b.html
