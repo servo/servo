@@ -2,23 +2,24 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::BindingDeclarations::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::BindingDeclarations::HTMLElementBinding;
-use dom::bindings::codegen::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLFrameSetElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLElementDerived, HTMLBodyElementDerived};
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::codegen::InheritTypes::{HTMLElementDerived, HTMLBodyElementDerived};
 use dom::bindings::error::{ErrorResult, Fallible};
+use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
 use dom::element::{Element, ElementTypeId, HTMLElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::node::{Node, ElementNodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::WindowMethods;
-use js::jsapi::JSContext;
-use js::jsval::{JSVal, NullValue};
 use servo_util::namespace;
 use servo_util::str::DOMString;
+
+use js::jsapi::JSContext;
+use js::jsval::{JSVal, NullValue};
 
 #[deriving(Encodable)]
 pub struct HTMLElement {

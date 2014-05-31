@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::BindingDeclarations::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::BindingDeclarations::HTMLBodyElementBinding;
-use dom::bindings::codegen::EventHandlerBinding::EventHandlerNonNull;
-use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLElementCast};
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
+use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLElementCast};
 use dom::bindings::error::ErrorResult;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::Reflectable;
