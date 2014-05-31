@@ -83,18 +83,25 @@ impl Event {
         }
     }
 
-    pub fn new(window: &JSRef<Window>) -> Temporary<Event> {
+    pub fn new_uninitialized(window: &JSRef<Window>) -> Temporary<Event> {
         reflect_dom_object(box Event::new_inherited(HTMLEventTypeId),
                            window,
                            EventBinding::Wrap)
     }
 
+    pub fn new(window: &JSRef<Window>,
+               type_: DOMString,
+               can_bubble: bool,
+               cancelable: bool) -> Temporary<Event> {
+        let mut event = Event::new_uninitialized(window).root();
+        event.InitEvent(type_, can_bubble, cancelable);
+        Temporary::from_rooted(&*event)
+    }
+
     pub fn Constructor(global: &JSRef<Window>,
                        type_: DOMString,
                        init: &EventBinding::EventInit) -> Fallible<Temporary<Event>> {
-        let mut ev = Event::new(global).root();
-        ev.InitEvent(type_, init.bubbles, init.cancelable);
-        Ok(Temporary::from_rooted(&*ev))
+        Ok(Event::new(global, type_, init.bubbles, init.cancelable))
     }
 }
 

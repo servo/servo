@@ -546,7 +546,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             "uievents" | "uievent" => Ok(EventCast::from_temporary(UIEvent::new_uninitialized(&*window))),
             "mouseevents" | "mouseevent" => Ok(EventCast::from_temporary(MouseEvent::new_uninitialized(&*window))),
             "customevent" => Ok(EventCast::from_temporary(CustomEvent::new_uninitialized(&*window))),
-            "htmlevents" | "events" | "event" => Ok(Event::new(&*window)),
+            "htmlevents" | "events" | "event" => Ok(Event::new_uninitialized(&*window)),
             _ => Err(NotSupported)
         }
     }
