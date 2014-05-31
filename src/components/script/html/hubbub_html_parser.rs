@@ -436,9 +436,9 @@ pub fn parse_html(page: &Page,
         append_child: |parent: hubbub::NodeDataPtr, child: hubbub::NodeDataPtr| {
             unsafe {
                 debug!("append child {:x} {:x}", parent, child);
-                let mut child = from_hubbub_node(child).root();
-                let mut parent: Root<Node> = from_hubbub_node(parent).root();
-                assert!(parent.AppendChild(&mut *child).is_ok());
+                let child: Root<Node> = from_hubbub_node(child).root();
+                let parent: Root<Node> = from_hubbub_node(parent).root();
+                assert!(parent.deref().AppendChild(&*child).is_ok());
             }
             child
         },
