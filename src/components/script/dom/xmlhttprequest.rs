@@ -285,7 +285,9 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
                 // XXXManishearth Set response to a NetworkError
 
                 // Step 13
-                self.change_ready_state(Opened);
+                if self.ready_state != Opened {
+                    self.change_ready_state(Opened);
+                }
                 //XXXManishearth fire a progressevent
                 Ok(())
             },
@@ -562,6 +564,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
     }
 
     fn change_ready_state(&mut self, rs: XMLHttpRequestState) {
+        assert!(self.ready_state != rs)
         self.ready_state = rs;
         let win = &*self.global.root();
         let mut event =
@@ -583,7 +586,9 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                     Some(ref h) => *self.response_headers = h.clone(),
                     None => {}
                 };
-                self.change_ready_state(HeadersReceived);
+                if self.ready_state == Opened {
+                    self.change_ready_state(HeadersReceived);
+                }
             },
             LoadingMsg(partial_response) => {
                 self.response = partial_response;
@@ -593,12 +598,14 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                 }
             },
             DoneMsg => {
-                let len = self.response.len() as u64;
-                self.dispatch_response_progress_event("progress".to_owned());
-                self.dispatch_response_progress_event("load".to_owned());
-                self.dispatch_response_progress_event("loadend".to_owned());
-                self.send_flag = false;
-                self.change_ready_state(XHRDone);
+                if self.ready_state == Loading {
+                    let len = self.response.len() as u64;
+                    self.dispatch_response_progress_event("progress".to_owned());
+                    self.dispatch_response_progress_event("load".to_owned());
+                    self.dispatch_response_progress_event("loadend".to_owned());
+                    self.send_flag = false;
+                    self.change_ready_state(XHRDone);
+                }
             },
             ErroredMsg => {
                 self.send_flag = false;
