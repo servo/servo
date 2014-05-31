@@ -2,23 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::BindingDeclarations::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::BindingDeclarations::XMLHttpRequestBinding;
-use dom::bindings::codegen::EventHandlerBinding::EventHandlerNonNull;
-use dom::bindings::str::ByteString;
 use dom::bindings::codegen::BindingDeclarations::XMLHttpRequestBinding::XMLHttpRequestResponseType;
 use dom::bindings::codegen::BindingDeclarations::XMLHttpRequestBinding::XMLHttpRequestResponseTypeValues::{_empty, Text};
 use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast, XMLHttpRequestDerived};
+use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{ErrorResult, InvalidState, Network, Syntax, Security};
+use dom::bindings::error::Fallible;
+use dom::bindings::js::{JS, JSRef, Temporary, OptionalSettable, OptionalRootedRootable};
+use dom::bindings::str::ByteString;
+use dom::bindings::trace::Untraceable;
+use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::document::Document;
 use dom::event::Event;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, XMLHttpRequestTargetTypeId};
-use dom::bindings::conversions::ToJSValConvertible;
-use dom::bindings::error::Fallible;
-use dom::bindings::js::{JS, JSRef, Temporary, OptionalSettable, OptionalRootedRootable};
-use dom::bindings::trace::Untraceable;
-use js::jsapi::{JS_AddObjectRoot, JS_RemoveObjectRoot, JSContext};
-use js::jsval::{JSVal, NullValue};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::progressevent::ProgressEvent;
 use dom::window::Window;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
@@ -27,18 +25,9 @@ use net::resource_task::{ResourceTask, Load, LoadData, Payload, Done};
 use script_task::{ScriptChan, XHRProgressMsg};
 use servo_util::str::DOMString;
 use servo_util::url::{parse_url, try_parse_url};
-use url::Url;
 
-use libc;
-use libc::c_void;
-
-use std::cell::Cell;
-use std::comm::channel;
-use std::io::{BufReader, MemWriter};
-use std::from_str::FromStr;
-use std::ascii::StrAsciiExt;
-use std::task::TaskBuilder;
-use std::path::BytesContainer;
+use js::jsapi::{JS_AddObjectRoot, JS_RemoveObjectRoot, JSContext};
+use js::jsval::{JSVal, NullValue};
 
 use ResponseHeaderCollection = http::headers::response::HeaderCollection;
 use RequestHeaderCollection = http::headers::request::HeaderCollection;
@@ -46,6 +35,17 @@ use RequestHeaderCollection = http::headers::request::HeaderCollection;
 use http::headers::{HeaderEnum, HeaderValueByteIterator};
 use http::headers::request::Header;
 use http::method::{Method, Get, Head, Post, Connect, Trace};
+
+use libc;
+use libc::c_void;
+use std::cell::Cell;
+use std::comm::channel;
+use std::io::{BufReader, MemWriter};
+use std::from_str::FromStr;
+use std::ascii::StrAsciiExt;
+use std::task::TaskBuilder;
+use std::path::BytesContainer;
+use url::Url;
 
 // As send() start accepting more and more parameter types,
 // change this to the appropriate type from UnionTypes, eg

@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::callback::CallbackContainer;
+use dom::bindings::codegen::BindingDeclarations::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::BindingDeclarations::EventListenerBinding::EventListener;
-use dom::bindings::codegen::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::error::{Fallible, InvalidState};
 use dom::bindings::js::JSRef;
 use dom::bindings::utils::{Reflectable, Reflector};

@@ -2,17 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::BindingDeclarations::EventHandlerBinding::{OnErrorEventHandlerNonNull, EventHandlerNonNull};
 use dom::bindings::codegen::BindingDeclarations::WindowBinding;
-use dom::bindings::codegen::EventHandlerBinding::{OnErrorEventHandlerNonNull, EventHandlerNonNull};
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalSettable};
 use dom::bindings::trace::{Traceable, Untraceable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::browsercontext::BrowserContext;
+use dom::console::Console;
 use dom::document::Document;
 use dom::element::Element;
 use dom::eventtarget::{EventTarget, WindowTypeId, EventTargetHelpers};
-use dom::console::Console;
 use dom::location::Location;
 use dom::navigator::Navigator;
 use dom::performance::Performance;
