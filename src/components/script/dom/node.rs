@@ -654,13 +654,13 @@ pub fn from_untrusted_node_address(runtime: *mut JSRuntime, candidate: Untrusted
 pub trait LayoutNodeHelpers {
     unsafe fn type_id_for_layout(&self) -> NodeTypeId;
 
-    unsafe fn parent_node_ref<'a>(&'a self) -> Option<JS<Node>>;
-    unsafe fn first_child_ref<'a>(&'a self) -> Option<JS<Node>>;
-    unsafe fn last_child_ref<'a>(&'a self) -> Option<JS<Node>>;
-    unsafe fn prev_sibling_ref<'a>(&'a self) -> Option<JS<Node>>;
-    unsafe fn next_sibling_ref<'a>(&'a self) -> Option<JS<Node>>;
+    unsafe fn parent_node_ref(&self) -> Option<JS<Node>>;
+    unsafe fn first_child_ref(&self) -> Option<JS<Node>>;
+    unsafe fn last_child_ref(&self) -> Option<JS<Node>>;
+    unsafe fn prev_sibling_ref(&self) -> Option<JS<Node>>;
+    unsafe fn next_sibling_ref(&self) -> Option<JS<Node>>;
 
-    unsafe fn owner_doc_for_layout<'a>(&'a self) -> JS<Document>;
+    unsafe fn owner_doc_for_layout(&self) -> JS<Document>;
 
     unsafe fn is_element_for_layout(&self) -> bool;
 }
@@ -675,31 +675,31 @@ impl LayoutNodeHelpers for JS<Node> {
     }
 
     #[inline]
-    unsafe fn parent_node_ref<'a>(&'a self) -> Option<JS<Node>> {
+    unsafe fn parent_node_ref(&self) -> Option<JS<Node>> {
         (*self.unsafe_get()).parent_node.get()
     }
 
     #[inline]
-    unsafe fn first_child_ref<'a>(&'a self) -> Option<JS<Node>> {
+    unsafe fn first_child_ref(&self) -> Option<JS<Node>> {
         (*self.unsafe_get()).first_child.get()
     }
 
     #[inline]
-    unsafe fn last_child_ref<'a>(&'a self) -> Option<JS<Node>> {
+    unsafe fn last_child_ref(&self) -> Option<JS<Node>> {
         (*self.unsafe_get()).last_child.get()
     }
 
     #[inline]
-    unsafe fn prev_sibling_ref<'a>(&'a self) -> Option<JS<Node>> {
+    unsafe fn prev_sibling_ref(&self) -> Option<JS<Node>> {
         (*self.unsafe_get()).prev_sibling.get()
     }
 
     #[inline]
-    unsafe fn next_sibling_ref<'a>(&'a self) -> Option<JS<Node>> {
+    unsafe fn next_sibling_ref(&self) -> Option<JS<Node>> {
         (*self.unsafe_get()).next_sibling.get()
     }
 
-    unsafe fn owner_doc_for_layout<'a>(&'a self) -> JS<Document> {
+    unsafe fn owner_doc_for_layout(&self) -> JS<Document> {
         (*self.unsafe_get()).owner_doc.get().unwrap()
     }
 }
