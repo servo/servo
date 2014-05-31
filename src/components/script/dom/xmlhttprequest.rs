@@ -10,7 +10,7 @@ use dom::bindings::codegen::BindingDeclarations::XMLHttpRequestBinding::XMLHttpR
 use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast, XMLHttpRequestDerived};
 use dom::bindings::error::{ErrorResult, InvalidState, Network, Syntax, Security};
 use dom::document::Document;
-use dom::event::{Event, EventMethods};
+use dom::event::Event;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, XMLHttpRequestTargetTypeId};
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::Fallible;
@@ -564,8 +564,8 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
     fn change_ready_state(&mut self, rs: XMLHttpRequestState) {
         self.ready_state = rs;
         let win = &*self.global.root();
-        let mut event = Event::new(win).root();
-        event.InitEvent("readystatechange".to_owned(), false, true);
+        let mut event =
+            Event::new(win, "readystatechange".to_owned(), false, true).root();
         let target: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
         target.dispatch_event_with_target(None, &mut *event).ok();
     }

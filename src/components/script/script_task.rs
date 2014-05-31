@@ -15,7 +15,7 @@ use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
 use dom::document::{Document, HTMLDocument, DocumentMethods, DocumentHelpers};
 use dom::element::{Element, AttributeHandlers};
 use dom::event::{Event_, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent};
-use dom::event::{Event, EventMethods};
+use dom::event::Event;
 use dom::uievent::UIEvent;
 use dom::eventtarget::{EventTarget, EventTargetHelpers};
 use dom::node;
@@ -1036,8 +1036,8 @@ impl ScriptTask {
         // We have no concept of a document loader right now, so just dispatch the
         // "load" event as soon as we've finished executing all scripts parsed during
         // the initial load.
-        let mut event = Event::new(&*window).root();
-        event.InitEvent("load".to_owned(), false, false);
+        let mut event =
+            Event::new(&*window, "load".to_owned(), false, false).root();
         let doctarget: &JSRef<EventTarget> = EventTargetCast::from_ref(&*document);
         let wintarget: &JSRef<EventTarget> = EventTargetCast::from_ref(&*window);
         let _ = wintarget.dispatch_event_with_target(Some((*doctarget).clone()),
@@ -1133,8 +1133,10 @@ impl ScriptTask {
                                 match *page.frame() {
                                     Some(ref frame) => {
                                         let window = frame.window.root();
-                                        let mut event = Event::new(&*window).root();
-                                        event.InitEvent("click".to_owned(), true, true);
+                                        let mut event =
+                                            Event::new(&*window,
+                                                       "click".to_owned(),
+                                                       true, true).root();
                                         let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(&node);
                                         let _ = eventtarget.dispatch_event_with_target(None, &mut *event);
                                     }
