@@ -29,7 +29,7 @@ impl BrowserContext {
             active_index: 0,
             window_proxy: Traceable::new(ptr::mut_null()),
         };
-        context.window_proxy = Traceable::new(context.create_window_proxy());
+        context.create_window_proxy();
         context
     }
 
@@ -47,7 +47,7 @@ impl BrowserContext {
         *self.window_proxy
     }
 
-    pub fn create_window_proxy(&self) -> *mut JSObject {
+    fn create_window_proxy(&mut self) {
         let win = self.active_window().root();
         let page = win.deref().page();
         let js_info = page.js_info();
@@ -61,7 +61,7 @@ impl BrowserContext {
             WrapperNew(cx, parent, *handler.deref())
         });
         assert!(wrapper.is_not_null());
-        wrapper
+        self.window_proxy = Traceable::new(wrapper);
     }
 }
 
