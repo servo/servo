@@ -13,11 +13,12 @@ use dom::window::Window;
 use servo_util::str::DOMString;
 
 use serialize::{Encoder, Encodable};
+use std::cell::Cell;
 
 #[deriving(Encodable)]
 pub struct UIEvent {
     pub event: Event,
-    pub view: Option<JS<Window>>,
+    pub view: Cell<Option<JS<Window>>>,
     pub detail: i32
 }
 
@@ -31,7 +32,7 @@ impl UIEvent {
     pub fn new_inherited(type_id: EventTypeId) -> UIEvent {
         UIEvent {
             event: Event::new_inherited(type_id),
-            view: None,
+            view: Cell::new(None),
             detail: 0
         }
     }
@@ -86,7 +87,7 @@ pub trait UIEventMethods {
 
 impl<'a> UIEventMethods for JSRef<'a, UIEvent> {
     fn GetView(&self) -> Option<Temporary<Window>> {
-        self.view.map(|view| Temporary::new(view))
+        self.view.get().map(|view| Temporary::new(view))
     }
 
     fn Detail(&self) -> i32 {
