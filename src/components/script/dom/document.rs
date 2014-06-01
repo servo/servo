@@ -48,6 +48,7 @@ use servo_util::str::{DOMString, null_str_as_empty_ref};
 use collections::hashmap::HashMap;
 use js::jsapi::JSContext;
 use std::ascii::StrAsciiExt;
+use std::cell::Cell;
 use url::{Url, from_str};
 
 #[deriving(Eq,Encodable)]
@@ -62,7 +63,7 @@ pub struct Document {
     pub reflector_: Reflector,
     pub window: JS<Window>,
     pub idmap: HashMap<DOMString, Vec<JS<Element>>>,
-    pub implementation: Option<JS<DOMImplementation>>,
+    pub implementation: Cell<Option<JS<DOMImplementation>>>,
     pub content_type: DOMString,
     pub encoding_name: DOMString,
     pub is_html_document: bool,
@@ -213,7 +214,7 @@ impl Document {
             reflector_: Reflector::new(),
             window: window.unrooted(),
             idmap: HashMap::new(),
-            implementation: None,
+            implementation: Cell::new(None),
             content_type: match content_type {
                 Some(string) => string.clone(),
                 None => match is_html_document {
@@ -334,11 +335,11 @@ pub trait DocumentMethods {
 impl<'a> DocumentMethods for JSRef<'a, Document> {
     // http://dom.spec.whatwg.org/#dom-document-implementation
     fn Implementation(&mut self) -> Temporary<DOMImplementation> {
-        if self.implementation.is_none() {
+        if self.implementation.get().is_none() {
             let window = self.window.root();
             self.implementation.assign(Some(DOMImplementation::new(&*window)));
         }
-        Temporary::new(self.implementation.get_ref().clone())
+        Temporary::new(self.implementation.get().get_ref().clone())
     }
 
     // http://dom.spec.whatwg.org/#dom-document-url
