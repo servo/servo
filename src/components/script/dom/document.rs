@@ -48,6 +48,7 @@ use servo_util::str::{DOMString, null_str_as_empty_ref};
 use collections::hashmap::HashMap;
 use js::jsapi::JSContext;
 use std::ascii::StrAsciiExt;
+use std::cell::Cell;
 use url::{Url, from_str};
 
 #[deriving(Eq,Encodable)]
@@ -62,7 +63,7 @@ pub struct Document {
     pub reflector_: Reflector,
     pub window: JS<Window>,
     pub idmap: HashMap<DOMString, Vec<JS<Element>>>,
-    pub implementation: Option<JS<DOMImplementation>>,
+    pub implementation: Cell<Option<JS<DOMImplementation>>>,
     pub content_type: DOMString,
     pub encoding_name: DOMString,
     pub is_html_document: bool,
@@ -196,8 +197,8 @@ impl Document {
         let mut raw_doc = reflect_dom_object(document, window, wrap_fn).root();
         assert!(raw_doc.reflector().get_jsobject().is_not_null());
 
-        let mut doc_alias = raw_doc.clone();
-        let node: &mut JSRef<Node> = NodeCast::from_mut_ref(&mut doc_alias);
+        let doc_alias = raw_doc.clone();
+        let node: &JSRef<Node> = NodeCast::from_ref(&doc_alias);
         node.set_owner_doc(&*raw_doc);
         Temporary::from_rooted(&*raw_doc)
     }
@@ -213,7 +214,7 @@ impl Document {
             reflector_: Reflector::new(),
             window: window.unrooted(),
             idmap: HashMap::new(),
-            implementation: None,
+            implementation: Cell::new(None),
             content_type: match content_type {
                 Some(string) => string.clone(),
                 None => match is_html_document {
@@ -309,7 +310,7 @@ pub trait DocumentMethods {
     fn CreateComment(&self, data: DOMString) -> Temporary<Comment>;
     fn CreateProcessingInstruction(&self, target: DOMString, data: DOMString) -> Fallible<Temporary<ProcessingInstruction>>;
     fn ImportNode(&self, node: &JSRef<Node>, deep: bool) -> Fallible<Temporary<Node>>;
-    fn AdoptNode(&self, node: &mut JSRef<Node>) -> Fallible<Temporary<Node>>;
+    fn AdoptNode(&self, node: &JSRef<Node>) -> Fallible<Temporary<Node>>;
     fn CreateEvent(&self, interface: DOMString) -> Fallible<Temporary<Event>>;
     fn Title(&self) -> DOMString;
     fn SetTitle(&self, title: DOMString) -> ErrorResult;
@@ -334,11 +335,11 @@ pub trait DocumentMethods {
 impl<'a> DocumentMethods for JSRef<'a, Document> {
     // http://dom.spec.whatwg.org/#dom-document-implementation
     fn Implementation(&mut self) -> Temporary<DOMImplementation> {
-        if self.implementation.is_none() {
+        if self.implementation.get().is_none() {
             let window = self.window.root();
             self.implementation.assign(Some(DOMImplementation::new(&*window)));
         }
-        Temporary::new(self.implementation.get_ref().clone())
+        Temporary::new(self.implementation.get().get_ref().clone())
     }
 
     // http://dom.spec.whatwg.org/#dom-document-url
@@ -524,7 +525,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     }
 
     // http://dom.spec.whatwg.org/#dom-document-adoptnode
-    fn AdoptNode(&self, node: &mut JSRef<Node>) -> Fallible<Temporary<Node>> {
+    fn AdoptNode(&self, node: &JSRef<Node>) -> Fallible<Temporary<Node>> {
         // Step 1.
         if node.is_document() {
             return Err(NotSupported);
@@ -576,31 +577,31 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     fn SetTitle(&self, title: DOMString) -> ErrorResult {
         self.GetDocumentElement().root().map(|root| {
             let root: &JSRef<Node> = NodeCast::from_ref(&*root);
-            let mut head_node = root.traverse_preorder().find(|child| {
+            let head_node = root.traverse_preorder().find(|child| {
                 child.type_id() == ElementNodeTypeId(HTMLHeadElementTypeId)
             });
-            head_node.as_mut().map(|head| {
-                let mut title_node = head.children().find(|child| {
+            head_node.map(|head| {
+                let title_node = head.children().find(|child| {
                     child.type_id() == ElementNodeTypeId(HTMLTitleElementTypeId)
                 });
 
                 match title_node {
-                    Some(ref mut title_node) => {
-                        for mut title_child in title_node.children() {
-                            assert!(title_node.RemoveChild(&mut title_child).is_ok());
+                    Some(ref title_node) => {
+                        for title_child in title_node.children() {
+                            assert!(title_node.RemoveChild(&title_child).is_ok());
                         }
-                        let mut new_text = self.CreateTextNode(title.clone()).root();
+                        let new_text = self.CreateTextNode(title.clone()).root();
 
-                        assert!(title_node.AppendChild(NodeCast::from_mut_ref(&mut *new_text)).is_ok());
+                        assert!(title_node.AppendChild(NodeCast::from_ref(&*new_text)).is_ok());
                     },
                     None => {
-                        let mut new_title = HTMLTitleElement::new("title".to_owned(), self).root();
-                        let new_title: &mut JSRef<Node> = NodeCast::from_mut_ref(&mut *new_title);
+                        let new_title = HTMLTitleElement::new("title".to_owned(), self).root();
+                        let new_title: &JSRef<Node> = NodeCast::from_ref(&*new_title);
 
-                        let mut new_text = self.CreateTextNode(title.clone()).root();
+                        let new_text = self.CreateTextNode(title.clone()).root();
 
-                        assert!(new_title.AppendChild(NodeCast::from_mut_ref(&mut *new_text)).is_ok());
-                        assert!(head.AppendChild(&mut *new_title).is_ok());
+                        assert!(new_title.AppendChild(NodeCast::from_ref(&*new_text)).is_ok());
+                        assert!(head.AppendChild(new_title).is_ok());
                     },
                 }
             });
@@ -653,7 +654,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         }
 
         // Step 2.
-        let mut old_body = self.GetBody().root();
+        let old_body = self.GetBody().root();
         //FIXME: covariant lifetime workaround. do not judge.
         if old_body.as_ref().map(|body| body.deref()) == new_body.as_ref().map(|a| &*a) {
             return Ok(());
@@ -663,14 +664,14 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         match self.get_html_element().root() {
             // Step 4.
             None => return Err(HierarchyRequest),
-            Some(ref mut root) => {
-                let mut new_body_unwrapped = new_body.unwrap();
-                let new_body: &mut JSRef<Node> = NodeCast::from_mut_ref(&mut new_body_unwrapped);
+            Some(ref root) => {
+                let new_body_unwrapped = new_body.unwrap();
+                let new_body: &JSRef<Node> = NodeCast::from_ref(&new_body_unwrapped);
 
-                let root: &mut JSRef<Node> = NodeCast::from_mut_ref(&mut **root);
+                let root: &JSRef<Node> = NodeCast::from_ref(&**root);
                 match old_body {
-                    Some(ref mut child) => {
-                        let child: &mut JSRef<Node> = NodeCast::from_mut_ref(&mut **child);
+                    Some(ref child) => {
+                        let child: &JSRef<Node> = NodeCast::from_ref(&**child);
 
                         assert!(root.ReplaceChild(new_body, child).is_ok())
                     }
