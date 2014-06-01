@@ -260,20 +260,12 @@ impl<T: Reflectable> Assignable<T> for Temporary<T> {
 /// Assign an optional rootable value (either of JS<T> or Temporary<T>) to an optional
 /// field of a DOM type (ie. Option<JS<T>>)
 pub trait OptionalSettable<T> {
-    fn assign(&mut self, val: Option<T>);
-}
-
-impl<T: Assignable<U>, U: Reflectable> OptionalSettable<T> for Option<JS<U>> {
-    fn assign(&mut self, val: Option<T>) {
-        *self = val.map(|val| unsafe { val.get_js() });
-    }
+    fn assign(&self, val: Option<T>);
 }
 
 impl<T: Assignable<U>, U: Reflectable> OptionalSettable<T> for Cell<Option<JS<U>>> {
-    fn assign(&mut self, val: Option<T>) {
-        let mut item = self.get();
-        item.assign(val);
-        self.set(item);
+    fn assign(&self, val: Option<T>) {
+        self.set(val.map(|val| unsafe { val.get_js() }));
     }
 }
 

@@ -234,16 +234,16 @@ pub enum NodeTypeId {
 }
 
 trait PrivateNodeHelpers {
-    fn set_parent_node(&mut self, new_parent_node: Option<JSRef<Node>>);
-    fn set_first_child(&mut self, new_first_child: Option<JSRef<Node>>);
-    fn set_last_child(&mut self, new_last_child: Option<JSRef<Node>>);
-    fn set_prev_sibling(&mut self, new_prev_sibling: Option<JSRef<Node>>);
-    fn set_next_sibling(&mut self, new_next_sibling: Option<JSRef<Node>>);
+    fn set_parent_node(&self, new_parent_node: Option<JSRef<Node>>);
+    fn set_first_child(&self, new_first_child: Option<JSRef<Node>>);
+    fn set_last_child(&self, new_last_child: Option<JSRef<Node>>);
+    fn set_prev_sibling(&self, new_prev_sibling: Option<JSRef<Node>>);
+    fn set_next_sibling(&self, new_next_sibling: Option<JSRef<Node>>);
 
     fn node_inserted(&self);
     fn node_removed(&self);
-    fn add_child(&mut self, new_child: &mut JSRef<Node>, before: Option<JSRef<Node>>);
-    fn remove_child(&mut self, child: &mut JSRef<Node>);
+    fn add_child(&self, new_child: &JSRef<Node>, before: Option<JSRef<Node>>);
+    fn remove_child(&self, child: &JSRef<Node>);
 }
 
 impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
@@ -284,12 +284,12 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
     /// Adds a new child to the end of this node's list of children.
     ///
     /// Fails unless `new_child` is disconnected from the tree.
-    fn add_child(&mut self, new_child: &mut JSRef<Node>, mut before: Option<JSRef<Node>>) {
+    fn add_child(&self, new_child: &JSRef<Node>, before: Option<JSRef<Node>>) {
         assert!(new_child.parent_node().is_none());
         assert!(new_child.prev_sibling().is_none());
         assert!(new_child.next_sibling().is_none());
         match before {
-            Some(ref mut before) => {
+            Some(ref before) => {
                 // XXX Should assert that parent is self.
                 assert!(before.parent_node().is_some());
                 match before.prev_sibling().root() {
@@ -298,9 +298,9 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
                         //     self.
                         self.set_first_child(Some(new_child.clone()));
                     },
-                    Some(mut prev_sibling) => {
+                    Some(ref prev_sibling) => {
                         prev_sibling.set_next_sibling(Some(new_child.clone()));
-                        new_child.set_prev_sibling(Some((*prev_sibling).clone()));
+                        new_child.set_prev_sibling(Some(**prev_sibling));
                     },
                 }
                 before.set_prev_sibling(Some(new_child.clone()));
@@ -309,10 +309,10 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
             None => {
                 match self.last_child().root() {
                     None => self.set_first_child(Some(new_child.clone())),
-                    Some(mut last_child) => {
+                    Some(ref last_child) => {
                         assert!(last_child.next_sibling().is_none());
                         last_child.set_next_sibling(Some(new_child.clone()));
-                        new_child.set_prev_sibling(Some((*last_child).clone()));
+                        new_child.set_prev_sibling(Some(**last_child));
                     }
                 }
 
@@ -326,7 +326,7 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
     /// Removes the given child from this node's list of children.
     ///
     /// Fails unless `child` is a child of this node. (FIXME: This is not yet checked.)
-    fn remove_child(&mut self, child: &mut JSRef<Node>) {
+    fn remove_child(&self, child: &JSRef<Node>) {
         assert!(child.parent_node.get().is_some());
 
         match child.prev_sibling.get().root() {
@@ -334,7 +334,7 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
                 let next_sibling = child.next_sibling.get().root();
                 self.set_first_child(next_sibling.root_ref());
             }
-            Some(ref mut prev_sibling) => {
+            Some(ref prev_sibling) => {
                 let next_sibling = child.next_sibling.get().root();
                 prev_sibling.set_next_sibling(next_sibling.root_ref());
             }
@@ -345,7 +345,7 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
                 let prev_sibling = child.prev_sibling.get().root();
                 self.set_last_child(prev_sibling.root_ref());
             }
-            Some(ref mut next_sibling) => {
+            Some(ref next_sibling) => {
                 let prev_sibling = child.prev_sibling.get().root();
                 next_sibling.set_prev_sibling(prev_sibling.root_ref());
             }
@@ -360,31 +360,31 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
     // Low-level pointer stitching
     //
 
-    fn set_parent_node(&mut self, new_parent_node: Option<JSRef<Node>>) {
+    fn set_parent_node(&self, new_parent_node: Option<JSRef<Node>>) {
         let doc = self.owner_doc().root();
         doc.deref().wait_until_safe_to_modify_dom();
         self.parent_node.assign(new_parent_node);
     }
 
-    fn set_first_child(&mut self, new_first_child: Option<JSRef<Node>>) {
+    fn set_first_child(&self, new_first_child: Option<JSRef<Node>>) {
         let doc = self.owner_doc().root();
         doc.deref().wait_until_safe_to_modify_dom();
         self.first_child.assign(new_first_child);
     }
 
-    fn set_last_child(&mut self, new_last_child: Option<JSRef<Node>>) {
+    fn set_last_child(&self, new_last_child: Option<JSRef<Node>>) {
         let doc = self.owner_doc().root();
         doc.deref().wait_until_safe_to_modify_dom();
         self.last_child.assign(new_last_child);
     }
 
-    fn set_prev_sibling(&mut self, new_prev_sibling: Option<JSRef<Node>>) {
+    fn set_prev_sibling(&self, new_prev_sibling: Option<JSRef<Node>>) {
         let doc = self.owner_doc().root();
         doc.deref().wait_until_safe_to_modify_dom();
         self.prev_sibling.assign(new_prev_sibling);
     }
 
-    fn set_next_sibling(&mut self, new_next_sibling: Option<JSRef<Node>>) {
+    fn set_next_sibling(&self, new_next_sibling: Option<JSRef<Node>>) {
         let doc = self.owner_doc().root();
         doc.deref().wait_until_safe_to_modify_dom();
         self.next_sibling.assign(new_next_sibling);
@@ -409,7 +409,7 @@ pub trait NodeHelpers {
     fn next_sibling(&self) -> Option<Temporary<Node>>;
 
     fn owner_doc(&self) -> Temporary<Document>;
-    fn set_owner_doc(&mut self, document: &JSRef<Document>);
+    fn set_owner_doc(&self, document: &JSRef<Document>);
 
     fn wait_until_safe_to_modify_dom(&self);
 
@@ -435,7 +435,7 @@ pub trait NodeHelpers {
     fn get_bounding_content_box(&self) -> Rect<Au>;
     fn get_content_boxes(&self) -> Vec<Rect<Au>>;
 
-    fn remove_self(&mut self);
+    fn remove_self(&self);
 }
 
 impl<'a> NodeHelpers for JSRef<'a, Node> {
@@ -601,7 +601,7 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
         Temporary::new(self.owner_doc.get().get_ref().clone())
     }
 
-    fn set_owner_doc(&mut self, document: &JSRef<Document>) {
+    fn set_owner_doc(&self, document: &JSRef<Document>) {
         self.owner_doc.assign(Some(document.clone()));
     }
 
@@ -627,9 +627,9 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
         document.deref().wait_until_safe_to_modify_dom();
     }
 
-    fn remove_self(&mut self) {
+    fn remove_self(&self) {
         match self.parent_node().root() {
-            Some(ref mut parent) => parent.remove_child(self),
+            Some(ref parent) => parent.remove_child(self),
             None => ()
         }
     }
@@ -654,13 +654,13 @@ pub fn from_untrusted_node_address(runtime: *mut JSRuntime, candidate: Untrusted
 pub trait LayoutNodeHelpers {
     unsafe fn type_id_for_layout(&self) -> NodeTypeId;
 
-    unsafe fn parent_node_ref<'a>(&'a self) -> Option<JS<Node>>;
-    unsafe fn first_child_ref<'a>(&'a self) -> Option<JS<Node>>;
-    unsafe fn last_child_ref<'a>(&'a self) -> Option<JS<Node>>;
-    unsafe fn prev_sibling_ref<'a>(&'a self) -> Option<JS<Node>>;
-    unsafe fn next_sibling_ref<'a>(&'a self) -> Option<JS<Node>>;
+    unsafe fn parent_node_ref(&self) -> Option<JS<Node>>;
+    unsafe fn first_child_ref(&self) -> Option<JS<Node>>;
+    unsafe fn last_child_ref(&self) -> Option<JS<Node>>;
+    unsafe fn prev_sibling_ref(&self) -> Option<JS<Node>>;
+    unsafe fn next_sibling_ref(&self) -> Option<JS<Node>>;
 
-    unsafe fn owner_doc_for_layout<'a>(&'a self) -> JS<Document>;
+    unsafe fn owner_doc_for_layout(&self) -> JS<Document>;
 
     unsafe fn is_element_for_layout(&self) -> bool;
 }
@@ -675,31 +675,31 @@ impl LayoutNodeHelpers for JS<Node> {
     }
 
     #[inline]
-    unsafe fn parent_node_ref<'a>(&'a self) -> Option<JS<Node>> {
+    unsafe fn parent_node_ref(&self) -> Option<JS<Node>> {
         (*self.unsafe_get()).parent_node.get()
     }
 
     #[inline]
-    unsafe fn first_child_ref<'a>(&'a self) -> Option<JS<Node>> {
+    unsafe fn first_child_ref(&self) -> Option<JS<Node>> {
         (*self.unsafe_get()).first_child.get()
     }
 
     #[inline]
-    unsafe fn last_child_ref<'a>(&'a self) -> Option<JS<Node>> {
+    unsafe fn last_child_ref(&self) -> Option<JS<Node>> {
         (*self.unsafe_get()).last_child.get()
     }
 
     #[inline]
-    unsafe fn prev_sibling_ref<'a>(&'a self) -> Option<JS<Node>> {
+    unsafe fn prev_sibling_ref(&self) -> Option<JS<Node>> {
         (*self.unsafe_get()).prev_sibling.get()
     }
 
     #[inline]
-    unsafe fn next_sibling_ref<'a>(&'a self) -> Option<JS<Node>> {
+    unsafe fn next_sibling_ref(&self) -> Option<JS<Node>> {
         (*self.unsafe_get()).next_sibling.get()
     }
 
-    unsafe fn owner_doc_for_layout<'a>(&'a self) -> JS<Document> {
+    unsafe fn owner_doc_for_layout(&self) -> JS<Document> {
         (*self.unsafe_get()).owner_doc.get().unwrap()
     }
 }
@@ -927,11 +927,11 @@ impl Node {
     }
 
     // http://dom.spec.whatwg.org/#concept-node-adopt
-    pub fn adopt(node: &mut JSRef<Node>, document: &JSRef<Document>) {
+    pub fn adopt(node: &JSRef<Node>, document: &JSRef<Document>) {
         // Step 1.
         match node.parent_node().root() {
-            Some(mut parent) => {
-                Node::remove(node, &mut *parent, Unsuppressed);
+            Some(parent) => {
+                Node::remove(node, &*parent, Unsuppressed);
             }
             None => (),
         }
@@ -939,7 +939,7 @@ impl Node {
         // Step 2.
         let node_doc = document_from_node(node).root();
         if &*node_doc != document {
-            for mut descendant in node.traverse_preorder() {
+            for descendant in node.traverse_preorder() {
                 descendant.set_owner_doc(document);
             }
         }
@@ -949,7 +949,7 @@ impl Node {
     }
 
     // http://dom.spec.whatwg.org/#concept-node-pre-insert
-    fn pre_insert(node: &mut JSRef<Node>, parent: &mut JSRef<Node>, child: Option<JSRef<Node>>)
+    fn pre_insert(node: &JSRef<Node>, parent: &JSRef<Node>, child: Option<JSRef<Node>>)
                   -> Fallible<Temporary<Node>> {
         // Step 1.
         match parent.type_id() {
@@ -1086,8 +1086,8 @@ impl Node {
     }
 
     // http://dom.spec.whatwg.org/#concept-node-insert
-    fn insert(node: &mut JSRef<Node>,
-              parent: &mut JSRef<Node>,
+    fn insert(node: &JSRef<Node>,
+              parent: &JSRef<Node>,
               child: Option<JSRef<Node>>,
               suppress_observers: SuppressObserver) {
         // XXX assert owner_doc
@@ -1102,8 +1102,8 @@ impl Node {
         // Step 6: DocumentFragment.
         match node.type_id() {
             DocumentFragmentNodeTypeId => {
-                for mut c in node.children() {
-                    Node::remove(&mut c, node, Suppressed);
+                for c in node.children() {
+                    Node::remove(&c, node, Suppressed);
                 }
             },
             _ => (),
@@ -1112,7 +1112,7 @@ impl Node {
         // Step 7: mutation records.
         // Step 8.
         for node in nodes.mut_iter() {
-            parent.add_child(node, child.clone());
+            parent.add_child(node, child);
             node.deref_mut().flags.set_is_in_doc(parent.is_in_doc());
         }
 
@@ -1128,11 +1128,11 @@ impl Node {
     }
 
     // http://dom.spec.whatwg.org/#concept-node-replace-all
-    fn replace_all(mut node: Option<JSRef<Node>>, parent: &mut JSRef<Node>) {
+    fn replace_all(node: Option<JSRef<Node>>, parent: &JSRef<Node>) {
 
         // Step 1.
         match node {
-            Some(ref mut node) => {
+            Some(ref node) => {
                 let document = document_from_node(parent).root();
                 Node::adopt(node, &*document);
             }
@@ -1152,13 +1152,13 @@ impl Node {
         };
 
         // Step 4.
-        for mut child in parent.children() {
-            Node::remove(&mut child, parent, Suppressed);
+        for child in parent.children() {
+            Node::remove(&child, parent, Suppressed);
         }
 
         // Step 5.
         match node {
-            Some(ref mut node) => Node::insert(node, parent, None, Suppressed),
+            Some(ref node) => Node::insert(node, parent, None, Suppressed),
             None => (),
         }
 
@@ -1174,7 +1174,7 @@ impl Node {
     }
 
     // http://dom.spec.whatwg.org/#concept-node-pre-remove
-    fn pre_remove(child: &mut JSRef<Node>, parent: &mut JSRef<Node>) -> Fallible<Temporary<Node>> {
+    fn pre_remove(child: &JSRef<Node>, parent: &JSRef<Node>) -> Fallible<Temporary<Node>> {
         // Step 1.
         match child.parent_node() {
             Some(ref node) if *node != Temporary::from_rooted(parent) => return Err(NotFound),
@@ -1189,14 +1189,17 @@ impl Node {
     }
 
     // http://dom.spec.whatwg.org/#concept-node-remove
-    fn remove(node: &mut JSRef<Node>, parent: &mut JSRef<Node>, suppress_observers: SuppressObserver) {
+    fn remove(node: &JSRef<Node>, parent: &JSRef<Node>, suppress_observers: SuppressObserver) {
         assert!(node.parent_node().map_or(false, |node_parent| node_parent == Temporary::from_rooted(parent)));
 
         // Step 1-5: ranges.
         // Step 6-7: mutation observers.
         // Step 8.
         parent.remove_child(node);
-        node.deref_mut().flags.set_is_in_doc(false);
+
+        // FIXME(2513): remove this `node_alias` when in fix mozilla#2513
+        let mut node_alias = node.clone();
+        node_alias.deref_mut().flags.set_is_in_doc(false);
 
         // Step 9.
         match suppress_observers {
@@ -1314,7 +1317,7 @@ impl Node {
         if clone_children == CloneChildren {
             for ref child in node.children() {
                 let mut child_copy = Node::clone(&*child, Some(&*document), clone_children).root();
-                let _inserted_node = Node::pre_insert(&mut *child_copy, &mut *copy, None);
+                let _inserted_node = Node::pre_insert(&*child_copy, &*copy, None);
             }
         }
 
@@ -1346,7 +1349,7 @@ pub trait NodeMethods {
     fn GetParentNode(&self) -> Option<Temporary<Node>>;
     fn GetParentElement(&self) -> Option<Temporary<Element>>;
     fn HasChildNodes(&self) -> bool;
-    fn ChildNodes(&mut self) -> Temporary<NodeList>;
+    fn ChildNodes(&self) -> Temporary<NodeList>;
     fn GetFirstChild(&self) -> Option<Temporary<Node>>;
     fn GetLastChild(&self) -> Option<Temporary<Node>>;
     fn GetPreviousSibling(&self) -> Option<Temporary<Node>>;
@@ -1355,11 +1358,11 @@ pub trait NodeMethods {
     fn SetNodeValue(&mut self, val: Option<DOMString>) -> ErrorResult;
     fn GetTextContent(&self) -> Option<DOMString>;
     fn SetTextContent(&mut self, value: Option<DOMString>) -> ErrorResult;
-    fn InsertBefore(&mut self, node: &mut JSRef<Node>, child: Option<JSRef<Node>>) -> Fallible<Temporary<Node>>;
-    fn AppendChild(&mut self, node: &mut JSRef<Node>) -> Fallible<Temporary<Node>>;
-    fn ReplaceChild(&mut self, node: &mut JSRef<Node>, child: &mut JSRef<Node>) -> Fallible<Temporary<Node>>;
-    fn RemoveChild(&mut self, node: &mut JSRef<Node>) -> Fallible<Temporary<Node>>;
-    fn Normalize(&mut self);
+    fn InsertBefore(&self, node: &JSRef<Node>, child: Option<JSRef<Node>>) -> Fallible<Temporary<Node>>;
+    fn AppendChild(&self, node: &JSRef<Node>) -> Fallible<Temporary<Node>>;
+    fn ReplaceChild(&self, node: &JSRef<Node>, child: &JSRef<Node>) -> Fallible<Temporary<Node>>;
+    fn RemoveChild(&self, node: &JSRef<Node>) -> Fallible<Temporary<Node>>;
+    fn Normalize(&self);
     fn CloneNode(&self, deep: bool) -> Temporary<Node>;
     fn IsEqualNode(&self, maybe_node: Option<JSRef<Node>>) -> bool;
     fn CompareDocumentPosition(&self, other: &JSRef<Node>) -> u16;
@@ -1447,7 +1450,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     }
 
     // http://dom.spec.whatwg.org/#dom-node-childnodes
-    fn ChildNodes(&mut self) -> Temporary<NodeList> {
+    fn ChildNodes(&self) -> Temporary<NodeList> {
         match self.child_list.get() {
             None => (),
             Some(ref list) => return Temporary::new(list.clone()),
@@ -1574,17 +1577,17 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     }
 
     // http://dom.spec.whatwg.org/#dom-node-insertbefore
-    fn InsertBefore(&mut self, node: &mut JSRef<Node>, child: Option<JSRef<Node>>) -> Fallible<Temporary<Node>> {
+    fn InsertBefore(&self, node: &JSRef<Node>, child: Option<JSRef<Node>>) -> Fallible<Temporary<Node>> {
         Node::pre_insert(node, self, child)
     }
 
     // http://dom.spec.whatwg.org/#dom-node-appendchild
-    fn AppendChild(&mut self, node: &mut JSRef<Node>) -> Fallible<Temporary<Node>> {
+    fn AppendChild(&self, node: &JSRef<Node>) -> Fallible<Temporary<Node>> {
         Node::pre_insert(node, self, None)
     }
 
     // http://dom.spec.whatwg.org/#concept-node-replace
-    fn ReplaceChild(&mut self, node: &mut JSRef<Node>, child: &mut JSRef<Node>) -> Fallible<Temporary<Node>> {
+    fn ReplaceChild(&self, node: &JSRef<Node>, child: &JSRef<Node>) -> Fallible<Temporary<Node>> {
 
         // Step 1.
         match self.type_id() {
@@ -1713,28 +1716,27 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     }
 
     // http://dom.spec.whatwg.org/#dom-node-removechild
-    fn RemoveChild(&mut self, node: &mut JSRef<Node>)
+    fn RemoveChild(&self, node: &JSRef<Node>)
                        -> Fallible<Temporary<Node>> {
         Node::pre_remove(node, self)
     }
 
     // http://dom.spec.whatwg.org/#dom-node-normalize
-    fn Normalize(&mut self) {
+    fn Normalize(&self) {
         let mut prev_text = None;
-        for mut child in self.children() {
+        for child in self.children() {
             if child.is_text() {
-                let mut child_alias = child.clone();
                 let characterdata: &JSRef<CharacterData> = CharacterDataCast::to_ref(&child).unwrap();
                 if characterdata.Length() == 0 {
-                    self.remove_child(&mut child_alias);
+                    self.remove_child(&child);
                 } else {
                     match prev_text {
                         Some(ref mut text_node) => {
                             let prev_characterdata: &mut JSRef<CharacterData> = CharacterDataCast::to_mut_ref(text_node).unwrap();
                             let _ = prev_characterdata.AppendData(characterdata.Data());
-                            self.remove_child(&mut child_alias);
+                            self.remove_child(&child);
                         },
-                        None => prev_text = Some(child_alias)
+                        None => prev_text = Some(child)
                     }
                 }
             } else {
