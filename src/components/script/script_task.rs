@@ -1043,8 +1043,7 @@ impl ScriptTask {
         let _ = wintarget.dispatch_event_with_target(Some((*doctarget).clone()),
                                                      &mut *event);
 
-        let mut fragment_node = page.fragment_node.get();
-        fragment_node.assign(fragment.map_or(None, |fragid| page.find_fragment_node(fragid)));
+        page.fragment_node.assign(fragment.map_or(None, |fragid| page.find_fragment_node(fragid)));
 
         let ConstellationChan(ref chan) = self.constellation_chan;
         chan.send(LoadCompleteMsg(page.id, url));
