@@ -127,8 +127,6 @@ generate_cacheable_wrapper_htmlelement!(HTMLLIElement, HTMLLIElementBinding::Wra
 
 generate_cacheable_wrapper_htmlelement!(HTMLLinkElement, HTMLLinkElementBinding::Wrap)
 
-generate_cacheable_wrapper_htmlelement!(HTMLMainElement, HTMLMainElementBinding::Wrap)
-
 generate_cacheable_wrapper_htmlelement!(HTMLMapElement, HTMLMapElementBinding::Wrap)
 
 generate_cacheable_wrapper_htmlelement!(HTMLMediaElement, HTMLMediaElementBinding::Wrap)
