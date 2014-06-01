@@ -9,7 +9,7 @@ use errors::log_css_error;
 
 pub struct NamespaceMap {
     pub default: Option<Namespace>,
-    pub prefix_map: HashMap<~str, Namespace>,
+    pub prefix_map: HashMap<String, Namespace>,
 }
 
 
@@ -29,7 +29,7 @@ pub fn parse_namespace_rule(rule: AtRule, namespaces: &mut NamespaceMap) {
         }};
     );
     if rule.block.is_some() { syntax_error!() }
-    let mut prefix: Option<~str> = None;
+    let mut prefix: Option<String> = None;
     let mut ns: Option<Namespace> = None;
     let mut iter = rule.prelude.move_skip_whitespace();
     for component_value in iter {

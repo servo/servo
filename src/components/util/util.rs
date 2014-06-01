@@ -13,6 +13,8 @@
 #[phase(syntax, link)]
 extern crate log;
 
+extern crate debug;
+extern crate alloc;
 extern crate azure;
 extern crate collections;
 extern crate geom;
@@ -25,7 +27,7 @@ extern crate std_time = "time";
 extern crate std_url = "url";
 
 pub mod cache;
-pub mod debug;
+pub mod debug_utils;
 pub mod geometry;
 pub mod namespace;
 pub mod opts;

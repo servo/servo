@@ -8,7 +8,6 @@
 use layout::flow::{Flow, base, mut_base};
 use layout::flow_ref::FlowRef;
 
-use std::cast;
 use std::mem;
 use std::ptr;
 
@@ -56,7 +55,7 @@ impl Rawlink {
 
     /// Like Option::Some for Rawlink
     pub fn some(n: &Flow) -> Rawlink {
-        unsafe { cast::transmute(n) }
+        unsafe { mem::transmute(n) }
     }
 
     fn from_optional_flow_ref(flow_ref: &Option<FlowRef>) -> Rawlink {
@@ -70,7 +69,7 @@ impl Rawlink {
         if self.obj.is_null() {
             None
         } else {
-            let me: &mut Flow = cast::transmute_copy(self);
+            let me: &mut Flow = mem::transmute_copy(self);
             Some(me)
         }
     }
@@ -128,7 +127,7 @@ impl FlowList {
             None => None,
             Some(ref mut tail) => {
                 let x: &mut Flow = tail.get_mut();
-                Some(cast::transmute_copy(&x))
+                Some(mem::transmute_copy(&x))
             }
         }
     }

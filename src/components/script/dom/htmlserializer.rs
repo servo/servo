@@ -19,9 +19,9 @@ use dom::node::{TextNodeTypeId, NodeHelpers};
 use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
 
-pub fn serialize(iterator: &mut NodeIterator) -> ~str {
-    let mut html = StrBuf::new();
-    let mut open_elements: Vec<~str> = vec!();
+pub fn serialize(iterator: &mut NodeIterator) -> String {
+    let mut html = String::new();
+    let mut open_elements: Vec<String> = vec!();
 
     for node in *iterator {
         while open_elements.len() > iterator.depth {
@@ -65,13 +65,13 @@ pub fn serialize(iterator: &mut NodeIterator) -> ~str {
     html.into_owned()
 }
 
-fn serialize_comment(comment: &JSRef<Comment>, html: &mut StrBuf) {
+fn serialize_comment(comment: &JSRef<Comment>, html: &mut String) {
     html.push_str("<!--");
-    html.push_str(comment.deref().characterdata.data);
+    html.push_str(comment.deref().characterdata.data.as_slice());
     html.push_str("-->");
 }
 
-fn serialize_text(text: &JSRef<Text>, html: &mut StrBuf) {
+fn serialize_text(text: &JSRef<Text>, html: &mut String) {
     let text_node: &JSRef<Node> = NodeCast::from_ref(text);
     match text_node.parent_node().map(|node| node.root()) {
         Some(ref parent) if parent.is_element() => {
@@ -80,32 +80,32 @@ fn serialize_text(text: &JSRef<Text>, html: &mut StrBuf) {
                 "style" | "script" | "xmp" | "iframe" |
                 "noembed" | "noframes" | "plaintext" |
                 "noscript" if elem.deref().namespace == namespace::HTML
-                => html.push_str(text.deref().characterdata.data),
-                _ => escape(text.deref().characterdata.data, false, html)
+                => html.push_str(text.deref().characterdata.data.as_slice()),
+                _ => escape(text.deref().characterdata.data.as_slice(), false, html)
             }
         }
-        _ => escape(text.deref().characterdata.data, false, html)
+        _ => escape(text.deref().characterdata.data.as_slice(), false, html)
     }
 }
 
 fn serialize_processing_instruction(processing_instruction: &JSRef<ProcessingInstruction>,
-                                    html: &mut StrBuf) {
+                                    html: &mut String) {
     html.push_str("<?");
-    html.push_str(processing_instruction.deref().target);
+    html.push_str(processing_instruction.deref().target.as_slice());
     html.push_char(' ');
-    html.push_str(processing_instruction.deref().characterdata.data);
+    html.push_str(processing_instruction.deref().characterdata.data.as_slice());
     html.push_str("?>");
 }
 
-fn serialize_doctype(doctype: &JSRef<DocumentType>, html: &mut StrBuf) {
+fn serialize_doctype(doctype: &JSRef<DocumentType>, html: &mut String) {
     html.push_str("<!DOCTYPE");
-    html.push_str(doctype.deref().name);
+    html.push_str(doctype.deref().name.as_slice());
     html.push_char('>');
 }
 
-fn serialize_elem(elem: &JSRef<Element>, open_elements: &mut Vec<~str>, html: &mut StrBuf) {
+fn serialize_elem(elem: &JSRef<Element>, open_elements: &mut Vec<String>, html: &mut String) {
     html.push_char('<');
-    html.push_str(elem.deref().local_name);
+    html.push_str(elem.deref().local_name.as_slice());
     for attr in elem.deref().attrs.borrow().iter() {
         let attr = attr.root();
         serialize_attr(&*attr, html);
@@ -118,7 +118,7 @@ fn serialize_elem(elem: &JSRef<Element>, open_elements: &mut Vec<~str>, html: &m
             match node.first_child().map(|child| child.root()) {
                 Some(ref child) if child.is_text() => {
                     let text: &JSRef<CharacterData> = CharacterDataCast::to_ref(&**child).unwrap();
-                    if text.deref().data.len() > 0 && text.deref().data[0] == 0x0A as u8 {
+                    if text.deref().data.len() > 0 && text.deref().data.as_slice().char_at(0) == '\n' {
                         html.push_char('\x0A');
                     }
                 },
@@ -133,29 +133,29 @@ fn serialize_elem(elem: &JSRef<Element>, open_elements: &mut Vec<~str>, html: &m
     }
 }
 
-fn serialize_attr(attr: &JSRef<Attr>, html: &mut StrBuf) {
+fn serialize_attr(attr: &JSRef<Attr>, html: &mut String) {
     html.push_char(' ');
     if attr.deref().namespace == namespace::XML {
         html.push_str("xml:");
-        html.push_str(attr.deref().local_name);
+        html.push_str(attr.deref().local_name.as_slice());
     } else if attr.deref().namespace == namespace::XMLNS &&
         attr.deref().local_name.as_slice() == "xmlns" {
         html.push_str("xmlns");
     } else if attr.deref().namespace == namespace::XMLNS {
         html.push_str("xmlns:");
-        html.push_str(attr.deref().local_name);
+        html.push_str(attr.deref().local_name.as_slice());
     } else if attr.deref().namespace == namespace::XLink {
         html.push_str("xlink:");
-        html.push_str(attr.deref().local_name);
+        html.push_str(attr.deref().local_name.as_slice());
     } else {
-        html.push_str(attr.deref().name);
+        html.push_str(attr.deref().name.as_slice());
     };
     html.push_str("=\"");
-    escape(attr.deref().value, true, html);
+    escape(attr.deref().value.as_slice(), true, html);
     html.push_char('"');
 }
 
-fn escape(string: &str, attr_mode: bool, html: &mut StrBuf) {
+fn escape(string: &str, attr_mode: bool, html: &mut String) {
     for c in string.chars() {
         match c {
             '&' => html.push_str("&amp;"),

@@ -50,7 +50,7 @@ trait PrivateHTMLAnchorElementHelpers {
 
 impl<'a> PrivateHTMLAnchorElementHelpers for JSRef<'a, HTMLAnchorElement> {
     fn handle_event_impl(&self, event: &JSRef<Event>) {
-        if "click" == event.Type() && !event.DefaultPrevented() {
+        if "click" == event.Type().as_slice() && !event.DefaultPrevented() {
             let element: &JSRef<Element> = ElementCast::from_ref(self);
             let attr = element.get_attribute(Null, "href").root();
             match attr {

@@ -202,6 +202,6 @@ impl Flow for TableRowGroupFlow {
 
 impl fmt::Show for TableRowGroupFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f.buf, "TableRowGroupFlow: {}", self.block_flow.fragment)
+        write!(f, "TableRowGroupFlow: {}", self.block_flow.fragment)
     }
 }

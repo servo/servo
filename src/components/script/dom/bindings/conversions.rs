@@ -60,7 +60,7 @@ impl ToJSValConvertible for JSVal {
 
 unsafe fn convert_from_jsval<T: Default>(
     cx: *mut JSContext, value: JSVal,
-    convert_fn: extern "C" unsafe fn(*mut JSContext, JSVal, *mut T) -> JSBool) -> Result<T, ()> {
+    convert_fn: unsafe extern "C" fn(*mut JSContext, JSVal, *mut T) -> JSBool) -> Result<T, ()> {
     let mut ret = Default::default();
     if convert_fn(cx, value, &mut ret) == 0 {
         Err(())
@@ -243,7 +243,7 @@ impl Default for StringificationBehavior {
 impl FromJSValConvertible<StringificationBehavior> for DOMString {
     fn from_jsval(cx: *mut JSContext, value: JSVal, nullBehavior: StringificationBehavior) -> Result<DOMString, ()> {
         if nullBehavior == Empty && value.is_null() {
-            Ok("".to_owned())
+            Ok("".to_string())
         } else {
             let jsstr = unsafe { JS_ValueToString(cx, value) };
             if jsstr.is_null() {

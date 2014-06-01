@@ -14,7 +14,7 @@ use js::glue::InvokeGetOwnPropertyDescriptor;
 use js::{JSPROP_GETTER, JSPROP_ENUMERATE, JSPROP_READONLY, JSRESOLVE_QUALIFIED};
 
 use libc;
-use std::cast;
+use std::mem;
 use std::ptr;
 use std::str;
 use std::mem::size_of;
@@ -39,7 +39,7 @@ pub extern fn getPropertyDescriptor(cx: *mut JSContext, proxy: *mut JSObject, id
         return 1;
     }
 
-    JS_GetPropertyDescriptorById(cx, proto, id, JSRESOLVE_QUALIFIED, cast::transmute(desc))
+    JS_GetPropertyDescriptorById(cx, proto, id, JSRESOLVE_QUALIFIED, mem::transmute(desc))
   }
 }
 
@@ -47,8 +47,8 @@ pub fn defineProperty_(cx: *mut JSContext, proxy: *mut JSObject, id: jsid,
                        desc: *JSPropertyDescriptor) -> JSBool {
     unsafe {
         //FIXME: Workaround for https://github.com/mozilla/rust/issues/13385
-        let setter: *libc::c_void = cast::transmute((*desc).setter);
-        let setter_stub: *libc::c_void = cast::transmute(JS_StrictPropertyStub);
+        let setter: *libc::c_void = mem::transmute((*desc).setter);
+        let setter_stub: *libc::c_void = mem::transmute(JS_StrictPropertyStub);
         if ((*desc).attrs & JSPROP_GETTER) != 0 && setter == setter_stub {
             /*return JS_ReportErrorFlagsAndNumber(cx,
             JSREPORT_WARNING | JSREPORT_STRICT |
@@ -82,7 +82,8 @@ pub fn _obj_toString(cx: *mut JSContext, className: *libc::c_char) -> *mut JSStr
         return ptr::mut_null();
     }
 
-    let result = "[object ".to_owned() + name + "]";
+    let result = format!("[object {}]", name);
+    let result = result.as_slice();
     for (i, c) in result.chars().enumerate() {
       *chars.offset(i as int) = c as jschar;
     }

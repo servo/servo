@@ -70,7 +70,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLBodyElement> {
             _ => (),
         }
 
-        if name.starts_with("on") {
+        if name.as_slice().starts_with("on") {
             static forwarded_events: &'static [&'static str] =
                 &["onfocus", "onload", "onscroll", "onafterprint", "onbeforeprint",
                   "onbeforeunload", "onhashchange", "onlanguagechange", "onmessage",
@@ -87,7 +87,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLBodyElement> {
                     EventTargetCast::from_mut_ref(self)
                 };
             evtarget.set_event_handler_uncompiled(cx, url, reflector,
-                                                  name.slice_from(2).to_owned(),
+                                                  name.as_slice().slice_from(2),
                                                   value);
         }
     }

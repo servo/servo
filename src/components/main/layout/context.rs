@@ -17,7 +17,7 @@ use servo_msg::constellation_msg::ConstellationChan;
 use servo_net::image::holder::LocalImageCacheHandle;
 use servo_util::geometry::Au;
 use servo_util::opts::Opts;
-use std::cast;
+use std::mem;
 #[cfg(not(target_os="android"))]
 use std::ptr;
 #[cfg(not(target_os="android"))]
@@ -104,9 +104,9 @@ impl LayoutContext {
         unsafe {
             if FONT_CONTEXT == ptr::mut_null() {
                 let context = box FontContext::new(self.font_context_info.clone());
-                FONT_CONTEXT = cast::transmute(context)
+                FONT_CONTEXT = mem::transmute(context)
             }
-            cast::transmute(FONT_CONTEXT)
+            mem::transmute(FONT_CONTEXT)
         }
     }
 
@@ -126,9 +126,9 @@ impl LayoutContext {
         unsafe {
             if APPLICABLE_DECLARATIONS_CACHE == ptr::mut_null() {
                 let cache = box ApplicableDeclarationsCache::new();
-                APPLICABLE_DECLARATIONS_CACHE = cast::transmute(cache)
+                APPLICABLE_DECLARATIONS_CACHE = mem::transmute(cache)
             }
-            cast::transmute(APPLICABLE_DECLARATIONS_CACHE)
+            mem::transmute(APPLICABLE_DECLARATIONS_CACHE)
         }
     }
 
@@ -148,9 +148,9 @@ impl LayoutContext {
         unsafe {
             if STYLE_SHARING_CANDIDATE_CACHE == ptr::mut_null() {
                 let cache = box StyleSharingCandidateCache::new();
-                STYLE_SHARING_CANDIDATE_CACHE = cast::transmute(cache)
+                STYLE_SHARING_CANDIDATE_CACHE = mem::transmute(cache)
             }
-            cast::transmute(STYLE_SHARING_CANDIDATE_CACHE)
+            mem::transmute(STYLE_SHARING_CANDIDATE_CACHE)
         }
     }
 }
@@ -168,13 +168,13 @@ impl LayoutContext {
             let opt = font_context.replace(None);
             let mut context;
             match opt {
-                Some(c) => context = cast::transmute(c),
+                Some(c) => context = mem::transmute(c),
                 None => {
-                    context = cast::transmute(box FontContext::new(self.font_context_info.clone()))
+                    context = mem::transmute(box FontContext::new(self.font_context_info.clone()))
                 }
             }
             font_context.replace(Some(context));
-            cast::transmute(context)
+            mem::transmute(context)
         }
     }
 
@@ -183,13 +183,13 @@ impl LayoutContext {
             let opt = applicable_declarations_cache.replace(None);
             let mut cache;
             match opt {
-                Some(c) => cache = cast::transmute(c),
+                Some(c) => cache = mem::transmute(c),
                 None => {
-                    cache = cast::transmute(box ApplicableDeclarationsCache::new());
+                    cache = mem::transmute(box ApplicableDeclarationsCache::new());
                 }
             }
             applicable_declarations_cache.replace(Some(cache));
-            cast::transmute(cache)
+            mem::transmute(cache)
         }
     }
 
@@ -198,13 +198,13 @@ impl LayoutContext {
             let opt = style_sharing_candidate_cache.replace(None);
             let mut cache;
             match opt {
-                Some(c) => cache = cast::transmute(c),
+                Some(c) => cache = mem::transmute(c),
                 None => {
-                    cache = cast::transmute(box StyleSharingCandidateCache::new());
+                    cache = mem::transmute(box StyleSharingCandidateCache::new());
                 }
             }
             style_sharing_candidate_cache.replace(Some(cache));
-            cast::transmute(cache)
+            mem::transmute(cache)
         }
     }
 }

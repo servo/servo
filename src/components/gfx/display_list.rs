@@ -631,7 +631,7 @@ impl DisplayItem {
     }
 
     pub fn debug_with_level(&self, level: uint) {
-            let mut indent = StrBuf::new();
+            let mut indent = String::new();
             for _ in range(0, level) {
                 indent.push_str("| ")
             }
@@ -644,7 +644,7 @@ impl DisplayItem {
 
 impl fmt::Show for DisplayItem {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f.buf, "{} @ {} ({:x})",
+        write!(f, "{} @ {} ({:x})",
             match *self {
                 SolidColorDisplayItemClass(_) => "SolidColor",
                 TextDisplayItemClass(_) => "Text",

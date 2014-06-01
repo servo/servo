@@ -15,6 +15,7 @@
 #![feature(phase)]
 #[phase(syntax, link)] extern crate log;
 
+extern crate debug;
 extern crate collections;
 extern crate num;
 extern crate serialize;

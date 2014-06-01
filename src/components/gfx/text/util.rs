@@ -24,8 +24,8 @@ pub enum CompressionMode {
 // * Untracked: various edge cases for bidi, CJK, etc.
 pub fn transform_text(text: &str, mode: CompressionMode,
                       incoming_whitespace: bool,
-                      new_line_pos: &mut Vec<CharIndex>) -> (~str, bool) {
-    let mut out_str = StrBuf::new();
+                      new_line_pos: &mut Vec<CharIndex>) -> (String, bool) {
+    let mut out_str = String::new();
     let out_whitespace = match mode {
         CompressNone | DiscardNewline => {
             let mut new_line_index = CharIndex(0);
@@ -195,7 +195,7 @@ fn test_transform_discard_newline() {
 /* FIXME: Fix and re-enable
 #[test]
 fn test_transform_compress_whitespace() {
-    let  test_strs : ~[~str] = ~["  foo bar".to_owned(),
+    let  test_strs : ~[String] = ~["  foo bar".to_owned(),
                                  "foo bar  ".to_owned(),
                                  "foo\n bar".to_owned(),
                                  "foo \nbar".to_owned(),
@@ -203,7 +203,7 @@ fn test_transform_compress_whitespace() {
                                  "foo bar baz".to_owned(),
                                  "foobarbaz\n\n".to_owned()];
 
-    let oracle_strs : ~[~str] = ~[" foo bar".to_owned(),
+    let oracle_strs : ~[String] = ~[" foo bar".to_owned(),
                                  "foo bar ".to_owned(),
                                  "foo\n bar".to_owned(),
                                  "foo \nbar".to_owned(),
@@ -223,7 +223,7 @@ fn test_transform_compress_whitespace() {
 
 #[test]
 fn test_transform_compress_whitespace_newline() {
-    let  test_strs : ~[~str] = ~["  foo bar".to_owned(),
+    let  test_strs : ~[String] = ~["  foo bar".to_owned(),
                                  "foo bar  ".to_owned(),
                                  "foo\n bar".to_owned(),
                                  "foo \nbar".to_owned(),
@@ -231,7 +231,7 @@ fn test_transform_compress_whitespace_newline() {
                                  "foo bar baz".to_owned(),
                                  "foobarbaz\n\n".to_owned()];
 
-    let oracle_strs : ~[~str] = ~["foo bar".to_owned(),
+    let oracle_strs : ~[String] = ~["foo bar".to_owned(),
                                  "foo bar ".to_owned(),
                                  "foo bar".to_owned(),
                                  "foo bar".to_owned(),

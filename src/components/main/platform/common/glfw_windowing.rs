@@ -337,8 +337,8 @@ impl Window {
         alert.add_prompt();
         alert.run();
         let value = alert.prompt_value();
-        if "" == value {    // To avoid crashing on Linux.
-            self.event_queue.borrow_mut().push(LoadUrlWindowEvent("http://purple.com/".to_owned()))
+        if "" == value.as_slice() {    // To avoid crashing on Linux.
+            self.event_queue.borrow_mut().push(LoadUrlWindowEvent("http://purple.com/".to_string()))
         } else {
             self.event_queue.borrow_mut().push(LoadUrlWindowEvent(value.clone()))
         }

@@ -66,11 +66,11 @@ impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
     }
 
     fn SubstringData(&self, offset: u32, count: u32) -> Fallible<DOMString> {
-        Ok(self.data.slice(offset as uint, count as uint).to_str())
+        Ok(self.data.as_slice().slice(offset as uint, count as uint).to_str())
     }
 
     fn AppendData(&mut self, arg: DOMString) -> ErrorResult {
-        self.data = self.data + arg;
+        self.data.push_str(arg.as_slice());
         Ok(())
     }
 
@@ -79,7 +79,7 @@ impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
     }
 
     fn DeleteData(&mut self, offset: u32, count: u32) -> ErrorResult {
-        self.ReplaceData(offset, count, "".to_owned())
+        self.ReplaceData(offset, count, "".to_string())
     }
 
     fn ReplaceData(&mut self, offset: u32, count: u32, arg: DOMString) -> ErrorResult {
@@ -92,9 +92,9 @@ impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
         } else {
             count
         };
-        let mut data = self.data.slice(0, offset as uint).to_strbuf();
-        data.push_str(arg);
-        data.push_str(self.data.slice((offset + count) as uint, length as uint));
+        let mut data = self.data.as_slice().slice(0, offset as uint).to_string();
+        data.push_str(arg.as_slice());
+        data.push_str(self.data.as_slice().slice((offset + count) as uint, length as uint));
         self.data = data.into_owned();
         // FIXME: Once we have `Range`, we should implement step7 to step11
         Ok(())

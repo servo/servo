@@ -44,7 +44,7 @@ pub fn dispatch_event<'a, 'b>(target: &JSRef<'a, EventTarget>,
 
     /* capturing */
     for cur_target in chain.as_slice().iter().rev() {
-        let stopped = match cur_target.get_listeners_for(type_, Capturing) {
+        let stopped = match cur_target.get_listeners_for(type_.as_slice(), Capturing) {
             Some(listeners) => {
                 event.current_target.assign(Some(cur_target.deref().clone()));
                 for listener in listeners.iter() {
@@ -74,7 +74,7 @@ pub fn dispatch_event<'a, 'b>(target: &JSRef<'a, EventTarget>,
             event.current_target.assign(Some(target.clone()));
         }
 
-        let opt_listeners = target.deref().get_listeners(type_);
+        let opt_listeners = target.deref().get_listeners(type_.as_slice());
         for listeners in opt_listeners.iter() {
             for listener in listeners.iter() {
                 // Explicitly drop any exception on the floor.
@@ -92,7 +92,7 @@ pub fn dispatch_event<'a, 'b>(target: &JSRef<'a, EventTarget>,
         event.deref_mut().phase = PhaseBubbling;
 
         for cur_target in chain.iter() {
-            let stopped = match cur_target.deref().get_listeners_for(type_, Bubbling) {
+            let stopped = match cur_target.deref().get_listeners_for(type_.as_slice(), Bubbling) {
                 Some(listeners) => {
                     event.deref_mut().current_target.assign(Some(cur_target.deref().clone()));
                     for listener in listeners.iter() {

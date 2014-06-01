@@ -63,7 +63,7 @@ pub fn parse_media_rule(rule: AtRule, parent_rules: &mut Vec<CSSRule>,
         match rule {
             QualifiedRule(rule) => parse_style_rule(rule, &mut rules, namespaces, base_url),
             AtRule(rule) => parse_nested_at_rule(
-                rule.name.as_slice().to_ascii_lower(), rule, &mut rules, namespaces, base_url),
+                rule.name.as_slice().to_ascii_lower().as_slice(), rule, &mut rules, namespaces, base_url),
         }
     }
     parent_rules.push(CSSMediaRule(MediaRule {

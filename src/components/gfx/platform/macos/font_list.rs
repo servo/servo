@@ -12,7 +12,7 @@ use core_foundation::base::TCFType;
 use core_foundation::string::{CFString, CFStringRef};
 use core_text::font_descriptor::{CTFontDescriptor, CTFontDescriptorRef};
 use core_text;
-use std::cast;
+use std::mem;
 
 pub struct FontListHandle {
     fctx: FontContextHandle,
@@ -29,12 +29,12 @@ impl FontListHandle {
         let family_names = core_text::font_collection::get_family_names();
         let mut family_map: FontFamilyMap = HashMap::new();
         for strref in family_names.iter() {
-            let family_name_ref: CFStringRef = unsafe { cast::transmute(strref) };
+            let family_name_ref: CFStringRef = unsafe { mem::transmute(strref) };
             let family_name_cf: CFString = unsafe { TCFType::wrap_under_get_rule(family_name_ref) };
             let family_name = family_name_cf.to_str();
             debug!("Creating new FontFamily for family: {:s}", family_name);
 
-            let new_family = FontFamily::new(family_name);
+            let new_family = FontFamily::new(family_name.as_slice());
             family_map.insert(family_name, new_family);
         }
         family_map
@@ -44,10 +44,10 @@ impl FontListHandle {
         debug!("Looking for faces of family: {:s}", family.family_name);
 
         let family_collection =
-            core_text::font_collection::create_for_family(family.family_name);
+            core_text::font_collection::create_for_family(family.family_name.as_slice());
         let family_descriptors = family_collection.get_descriptors();
         for descref in family_descriptors.iter() {
-            let descref: CTFontDescriptorRef = unsafe { cast::transmute(descref) };
+            let descref: CTFontDescriptorRef = unsafe { mem::transmute(descref) };
             let desc: CTFontDescriptor = unsafe { TCFType::wrap_under_get_rule(descref) };
             let font = core_text::font::new_from_descriptor(&desc, 0.0);
             let handle = FontHandle::new_from_CTFont(&self.fctx, font).unwrap();
@@ -58,7 +58,7 @@ impl FontListHandle {
         }
     }
 
-    pub fn get_last_resort_font_families() -> Vec<~str> {
-        vec!("Arial Unicode MS".to_owned(), "Arial".to_owned())
+    pub fn get_last_resort_font_families() -> Vec<String> {
+        vec!("Arial Unicode MS".to_string(), "Arial".to_string())
     }
 }

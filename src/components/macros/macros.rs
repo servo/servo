@@ -47,7 +47,7 @@ macro_rules! lazy_init(
                         static mut s: *$T = 0 as *$T;
                         static mut ONCE: ::sync::one::Once = ::sync::one::ONCE_INIT;
                         ONCE.doit(|| {
-                            s = ::std::cast::transmute::<Box<$T>, *$T>(box () ($e));
+                            s = ::std::mem::transmute::<Box<$T>, *$T>(box () ($e));
                         });
                         &*s
                     }
@@ -66,7 +66,7 @@ mod tests {
     lazy_init! {
         static ref NUMBER: uint = times_two(3);
         static ref VEC: [Box<uint>, ..3] = [box 1, box 2, box 3];
-        static ref OWNED_STRING: ~str = "hello".to_owned();
+        static ref OWNED_STRING: String = "hello".to_string();
         static ref HASHMAP: collections::HashMap<uint, &'static str> = {
             let mut m = collections::HashMap::new();
             m.insert(0u, "abc");
@@ -82,7 +82,7 @@ mod tests {
 
     #[test]
     fn test_basic() {
-        assert_eq!(*OWNED_STRING, "hello".to_owned());
+        assert_eq!(*OWNED_STRING, "hello".to_string());
         assert_eq!(*NUMBER, 6);
         assert!(HASHMAP.find(&1).is_some());
         assert!(HASHMAP.find(&3).is_none());

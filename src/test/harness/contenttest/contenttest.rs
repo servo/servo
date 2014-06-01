@@ -9,6 +9,7 @@
 
 extern crate std;
 extern crate getopts;
+extern crate regex;
 extern crate test;
 
 use test::{TestOpts, run_tests_console, TestDesc, TestDescAndFn, DynTestFn, DynTestName};
@@ -16,12 +17,13 @@ use getopts::{getopts, reqopt};
 use std::{os, str};
 use std::io::fs;
 use std::io::Reader;
-use std::io::process::{Process, ProcessConfig, Ignored, CreatePipe, InheritFd, ExitStatus};
+use std::io::process::{Command, Ignored, CreatePipe, InheritFd, ExitStatus};
+use regex::Regex;
 
 #[deriving(Clone)]
 struct Config {
-    source_dir: ~str,
-    filter: Option<~str>
+    source_dir: String,
+    filter: Option<Regex>
 }
 
 fn main() {
@@ -36,7 +38,7 @@ fn main() {
     }
 }
 
-fn parse_config(args: Vec<~str>) -> Config {
+fn parse_config(args: Vec<String>) -> Config {
     let args = args.tail();
     let opts = vec!(reqopt("s", "source-dir", "source-dir", "source-dir"));
     let matches = match getopts(args, opts.as_slice()) {
@@ -46,11 +48,7 @@ fn parse_config(args: Vec<~str>) -> Config {
 
     Config {
         source_dir: matches.opt_str("source-dir").unwrap(),
-        filter: if matches.free.is_empty() {
-            None
-        } else {
-            Some(matches.free.as_slice().head().unwrap().clone())
-        }
+        filter: matches.free.as_slice().head().map(|s| Regex::new(s.as_slice()).unwrap())
     }
 }
 
@@ -79,7 +77,7 @@ fn find_tests(config: Config) -> Vec<TestDescAndFn> {
     return files.iter().map(|file| make_test(file.display().to_str()) ).collect();
 }
 
-fn make_test(file: ~str) -> TestDescAndFn {
+fn make_test(file: String) -> TestDescAndFn {
     TestDescAndFn {
         desc: TestDesc {
             name: DynTestName(file.clone()),
@@ -90,24 +88,22 @@ fn make_test(file: ~str) -> TestDescAndFn {
     }
 }
 
-fn run_test(file: ~str) {
+fn run_test(file: String) {
     let path = os::make_absolute(&Path::new(file));
     // FIXME (#1094): not the right way to transform a path
-    let infile = "file://".to_owned() + path.display().to_str();
+    let infile = "file://".to_string().append(path.display().to_str().as_slice());
     let stdout = CreatePipe(false, true);
     let stderr = InheritFd(2);
 
-    let config = ProcessConfig {
-        program: "./servo",
-        args: &["-z".to_owned(), "-f".to_owned(), infile.clone()],
-        stdin: Ignored,
-        stdout: stdout,
-        stderr: stderr,
-        .. ProcessConfig::new()
-    };
-    let mut prc = match Process::configure(config) {
+    let mut prc = match Command::new("./servo")
+        .args(["-z", "-f", infile.as_slice()])
+        .stdin(Ignored)
+        .stdout(stdout)
+        .stderr(stderr)
+        .spawn()
+    {
         Ok(p) => p,
-        _ => fail!("Unable to configure process."),
+        _ => fail!("Unable to spawn process."),
     };
     let mut output = Vec::new();
     loop {
@@ -125,12 +121,12 @@ fn run_test(file: ~str) {
     let lines: Vec<&str> = out.unwrap().split('\n').collect();
     for &line in lines.iter() {
         if line.contains("TEST-UNEXPECTED-FAIL") {
-            fail!(line.to_owned());
+            fail!(line.to_string());
         }
     }
 
     let retval = prc.wait();
-    if retval != ExitStatus(0) {
+    if retval != Ok(ExitStatus(0)) {
         fail!("Servo exited with non-zero status {}", retval);
     }
 }

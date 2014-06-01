@@ -129,13 +129,13 @@ pub struct XMLHttpRequest {
 
 impl XMLHttpRequest {
     pub fn new_inherited(owner: &JSRef<Window>) -> XMLHttpRequest {
-        let mut xhr = XMLHttpRequest {
+        let xhr = XMLHttpRequest {
             eventtarget: XMLHttpRequestEventTarget::new_inherited(XMLHttpRequestTypeId),
             ready_state: Unsent,
             timeout: 0u32,
             with_credentials: false,
             upload: Cell::new(None),
-            response_url: "".to_owned(),
+            response_url: "".to_string(),
             status: 0,
             status_text: ByteString::new(vec!()),
             response: ByteString::new(vec!()),
@@ -146,7 +146,7 @@ impl XMLHttpRequest {
             request_method: Untraceable::new(Get),
             request_url: Untraceable::new(parse_url("", None)),
             request_headers: Untraceable::new(RequestHeaderCollection::new()),
-            request_body: "".to_owned(),
+            request_body: "".to_string(),
             sync: false,
             send_flag: false,
 
@@ -266,7 +266,7 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
 
     fn Open(&mut self, method: ByteString, url: DOMString) -> ErrorResult {
         let maybe_method: Option<Method> = method.as_str().and_then(|s| {
-            FromStr::from_str(s.to_ascii_upper()) // rust-http tests against the uppercase versions
+            FromStr::from_str(s.to_ascii_upper().as_slice()) // rust-http tests against the uppercase versions
         });
         // Step 2
         let base: Option<Url> = Some(self.global.root().get_url());
@@ -276,7 +276,7 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
                 *self.request_method = maybe_method.unwrap();
 
                 // Step 6
-                let parsed_url = match try_parse_url(url, base) {
+                let parsed_url = match try_parse_url(url.as_slice(), base) {
                     Ok(parsed) => parsed,
                     Err(_) => return Err(Syntax) // Step 7
                 };
@@ -337,7 +337,7 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
                     "upgrade" | "user-agent" | "via" => {
                         return Ok(()); // Step 5
                     },
-                    _ => StrBuf::from_str(s)
+                    _ => String::from_str(s)
                 }
             },
             None => return Err(Syntax)
@@ -423,9 +423,9 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
 
             // Step 9
             self.send_flag = true;
-            self.dispatch_response_progress_event("loadstart".to_owned());
+            self.dispatch_response_progress_event("loadstart".to_string());
             if !self.upload_complete {
-                self.dispatch_upload_progress_event("loadstart".to_owned(), Some(0));
+                self.dispatch_upload_progress_event("loadstart".to_string(), Some(0));
             }
         }
 
@@ -436,7 +436,7 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
 
         // XXXManishearth deal with the Origin/Referer/Accept headers
         // XXXManishearth the below is only valid when content type is not already set by the user.
-        self.insert_trusted_header("content-type".to_owned(), "text/plain;charset=UTF-8".to_owned());
+        self.insert_trusted_header("content-type".to_string(), "text/plain;charset=UTF-8".to_string());
         load_data.headers = (*self.request_headers).clone();
         load_data.method = (*self.request_method).clone();
         if self.sync {
@@ -488,7 +488,7 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
                 if self.ready_state == XHRDone || self.ready_state == Loading {
                     self.response.to_jsval(cx)
                 } else {
-                    "".to_owned().to_jsval(cx)
+                    "".to_string().to_jsval(cx)
                 }
             },
             _ => {
@@ -509,8 +509,8 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
                     // XXXManishearth handle charset, etc (http://xhr.spec.whatwg.org/#text-response)
                     // According to Simon decode() should never return an error, so unwrap()ing
                     // the result should be fine. XXXManishearth have a closer look at this later
-                    Loading | XHRDone => Ok(UTF_8.decode(self.response.as_slice(), DecodeReplace).unwrap().to_owned()),
-                    _ => Ok("".to_owned())
+                    Loading | XHRDone => Ok(UTF_8.decode(self.response.as_slice(), DecodeReplace).unwrap().to_string()),
+                    _ => Ok("".to_string())
                 }
             },
             _ => Err(InvalidState)
@@ -556,7 +556,7 @@ trait PrivateXMLHttpRequestHelpers {
     fn release(&mut self);
     fn change_ready_state(&mut self, XMLHttpRequestState);
     fn process_partial_response(&mut self, progress: XHRProgress);
-    fn insert_trusted_header(&mut self, name: ~str, value: ~str);
+    fn insert_trusted_header(&mut self, name: String, value: String);
     fn dispatch_progress_event(&self, upload: bool, type_: DOMString, loaded: u64, total: Option<u64>);
     fn dispatch_upload_progress_event(&self, type_: DOMString, partial_load: Option<u64>);
     fn dispatch_response_progress_event(&self, type_: DOMString);
@@ -584,7 +584,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         self.ready_state = rs;
         let win = &*self.global.root();
         let mut event =
-            Event::new(win, "readystatechange".to_owned(), false, true).root();
+            Event::new(win, "readystatechange".to_string(), false, true).root();
         let target: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
         target.dispatch_event_with_target(None, &mut *event).ok();
     }
@@ -598,9 +598,9 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                 // Substep 1
                 self.upload_complete = true;
                 // Substeps 2-4
-                self.dispatch_upload_progress_event("progress".to_owned(), None);
-                self.dispatch_upload_progress_event("load".to_owned(), None);
-                self.dispatch_upload_progress_event("loadend".to_owned(), None);
+                self.dispatch_upload_progress_event("progress".to_string(), None);
+                self.dispatch_upload_progress_event("load".to_string(), None);
+                self.dispatch_upload_progress_event("loadend".to_string(), None);
 
                 // Part of step 13, send() (processing response)
                 // XXXManishearth handle errors, if any (substep 1)
@@ -627,7 +627,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                 // Substep 3
                 self.response = partial_response;
                 // Substep 4
-                self.dispatch_response_progress_event("progress".to_owned());
+                self.dispatch_response_progress_event("progress".to_string());
             },
             DoneMsg => {
                 // Part of step 13, send() (processing response end of file)
@@ -640,10 +640,9 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                     self.change_ready_state(XHRDone);
 
                     // Subsubsteps 5-7
-                    let len = self.response.len() as u64;
-                    self.dispatch_response_progress_event("progress".to_owned());
-                    self.dispatch_response_progress_event("load".to_owned());
-                    self.dispatch_response_progress_event("loadend".to_owned());
+                    self.dispatch_response_progress_event("progress".to_string());
+                    self.dispatch_response_progress_event("load".to_string());
+                    self.dispatch_response_progress_event("loadend".to_string());
                 }
             },
             ErroredMsg => {
@@ -654,13 +653,13 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                 if !self.sync {
                     if !self.upload_complete {
                         self.upload_complete = true;
-                        self.dispatch_upload_progress_event("progress".to_owned(), None);
-                        self.dispatch_upload_progress_event("load".to_owned(), None);
-                        self.dispatch_upload_progress_event("loadend".to_owned(), None);
+                        self.dispatch_upload_progress_event("progress".to_string(), None);
+                        self.dispatch_upload_progress_event("load".to_string(), None);
+                        self.dispatch_upload_progress_event("loadend".to_string(), None);
                     }
-                    self.dispatch_response_progress_event("progress".to_owned());
-                    self.dispatch_response_progress_event("load".to_owned());
-                    self.dispatch_response_progress_event("loadend".to_owned());
+                    self.dispatch_response_progress_event("progress".to_string());
+                    self.dispatch_response_progress_event("load".to_string());
+                    self.dispatch_response_progress_event("loadend".to_string());
                 }
 
             },
@@ -670,14 +669,14 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         }
     }
 
-    fn insert_trusted_header(&mut self, name: ~str, value: ~str) {
+    fn insert_trusted_header(&mut self, name: String, value: String) {
         // Insert a header without checking spec-compliance
         // Use for hardcoded headers
         let collection = self.request_headers.deref_mut();
         let value_bytes = value.into_bytes();
-        let mut reader = BufReader::new(value_bytes);
+        let mut reader = BufReader::new(value_bytes.as_slice());
         let maybe_header: Option<Header> = HeaderEnum::value_from_stream(
-                                                                StrBuf::from_str(name),
+                                                                String::from_str(name.as_slice()),
                                                                 &mut HeaderValueByteIterator::new(&mut reader));
         collection.insert(maybe_header.unwrap());
     }
@@ -705,7 +704,6 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
     }
 
     fn dispatch_response_progress_event(&self, type_: DOMString) {
-        let win = &*self.global.root();
         let len = self.response.len() as u64;
         let total = self.response_headers.deref().content_length.map(|x| {x as u64});
         self.dispatch_progress_event(false, type_, len, total);

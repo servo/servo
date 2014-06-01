@@ -20,21 +20,21 @@ pub fn factory() -> LoaderTask {
 
 fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
     let url = load_data.url;
-    assert!("data" == url.scheme);
+    assert!("data" == url.scheme.as_slice());
 
     let mut metadata = Metadata::default(url.clone());
 
     // Split out content type and data.
-    let parts: ~[&str] = url.path.splitn(',', 1).collect();
+    let parts: Vec<&str> = url.path.as_slice().splitn(',', 1).collect();
     if parts.len() != 2 {
-        start_sending(start_chan, metadata).send(Done(Err("invalid data uri".to_owned())));
+        start_sending(start_chan, metadata).send(Done(Err("invalid data uri".to_string())));
         return;
     }
 
     // ";base64" must come at the end of the content type, per RFC 2397.
     // rust-http will fail to parse it because there's no =value part.
     let mut is_base64 = false;
-    let mut ct_str = parts[0];
+    let mut ct_str = *parts.get(0);
     if ct_str.ends_with(";base64") {
         is_base64 = true;
         ct_str = ct_str.slice_to(ct_str.as_bytes().len() - 7);
@@ -48,12 +48,12 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
     let progress_chan = start_sending(start_chan, metadata);
 
     if is_base64 {
-        match parts[1].from_base64() {
+        match (*parts.get(1)).from_base64() {
             Err(..) => {
-                progress_chan.send(Done(Err("non-base64 data uri".to_owned())));
+                progress_chan.send(Done(Err("non-base64 data uri".to_string())));
             }
             Ok(data) => {
-                let data: ~[u8] = data;
+                let data: Vec<u8> = data;
                 progress_chan.send(Payload(data.move_iter().collect()));
                 progress_chan.send(Done(Ok(())));
             }
@@ -61,7 +61,7 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
     } else {
         // FIXME: Since the %-decoded URL is already a str, we can't
         // handle UTF8-incompatible encodings.
-        let bytes: &[u8] = parts[1].as_bytes();
+        let bytes: &[u8] = (*parts.get(1)).as_bytes();
         progress_chan.send(Payload(bytes.iter().map(|&x| x).collect()));
         progress_chan.send(Done(Ok(())));
     }
@@ -69,8 +69,8 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
 
 #[cfg(test)]
 fn assert_parse(url:          &'static str,
-                content_type: Option<(~str, ~str)>,
-                charset:      Option<~str>,
+                content_type: Option<(String, String)>,
+                charset:      Option<String>,
                 data:         Option<Vec<u8>>) {
     use std::from_str::FromStr;
     use std::comm;
@@ -86,7 +86,7 @@ fn assert_parse(url:          &'static str,
 
     match data {
         None => {
-            assert_eq!(progress, Done(Err("invalid data uri".to_owned())));
+            assert_eq!(progress, Done(Err("invalid data uri".to_string())));
         }
         Some(dat) => {
             assert_eq!(progress, Payload(dat));
@@ -108,13 +108,13 @@ fn plain() {
 #[test]
 fn plain_ct() {
     assert_parse("data:text/plain,hello",
-        Some(("text".to_owned(), "plain".to_owned())), None, Some(bytes!("hello").iter().map(|&x| x).collect()));
+        Some(("text".to_string(), "plain".to_string())), None, Some(bytes!("hello").iter().map(|&x| x).collect()));
 }
 
 #[test]
 fn plain_charset() {
     assert_parse("data:text/plain;charset=latin1,hello",
-        Some(("text".to_owned(), "plain".to_owned())), Some("latin1".to_owned()), Some(bytes!("hello").iter().map(|&x| x).collect()));
+        Some(("text".to_string(), "plain".to_string())), Some("latin1".to_string()), Some(bytes!("hello").iter().map(|&x| x).collect()));
 }
 
 #[test]
@@ -125,12 +125,12 @@ fn base64() {
 #[test]
 fn base64_ct() {
     assert_parse("data:application/octet-stream;base64,C62+7w==",
-        Some(("application".to_owned(), "octet-stream".to_owned())), None, Some(vec!(0x0B, 0xAD, 0xBE, 0xEF)));
+        Some(("application".to_string(), "octet-stream".to_string())), None, Some(vec!(0x0B, 0xAD, 0xBE, 0xEF)));
 }
 
 #[test]
 fn base64_charset() {
     assert_parse("data:text/plain;charset=koi8-r;base64,8PLl9+XkIO3l5Pfl5A==",
-        Some(("text".to_owned(), "plain".to_owned())), Some("koi8-r".to_owned()),
+        Some(("text".to_string(), "plain".to_string())), Some("koi8-r".to_string()),
         Some(vec!(0xF0, 0xF2, 0xE5, 0xF7, 0xE5, 0xE4, 0x20, 0xED, 0xE5, 0xE4, 0xF7, 0xE5, 0xE4)));
 }

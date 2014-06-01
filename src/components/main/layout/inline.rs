@@ -245,7 +245,7 @@ impl Neg<LineIndices> for LineIndices {
 
 impl fmt::Show for LineIndices {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f.buf, "{}.{}", self.fragment_index, self.char_index)
+        write!(f, "{}.{}", self.fragment_index, self.char_index)
     }
 }
 
@@ -1302,12 +1302,12 @@ impl Flow for InlineFlow {
 
 impl fmt::Show for InlineFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(write!(f.buf, "InlineFlow"));
+        try!(write!(f, "InlineFlow"));
         for (i, (fragment, _)) in self.fragments.iter().enumerate() {
             if i == 0 {
-                try!(write!(f.buf, ": {}", fragment))
+                try!(write!(f, ": {}", fragment))
             } else {
-                try!(write!(f.buf, ", {}", fragment))
+                try!(write!(f, ", {}", fragment))
             }
         }
         Ok(())

@@ -133,9 +133,9 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
             _ => (),
         }
 
-        if "sandbox" == name {
+        if "sandbox" == name.as_slice() {
             let mut modes = AllowNothing as u8;
-            for word in value.split(' ') {
+            for word in value.as_slice().split(' ') {
                 modes |= match word.to_ascii_lower().as_slice() {
                     "allow-same-origin" => AllowSameOrigin,
                     "allow-forms" => AllowForms,
@@ -156,7 +156,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
             _ => (),
         }
 
-        if "sandbox" == name {
+        if "sandbox" == name.as_slice() {
             self.deref_mut().sandbox = None;
         }
     }

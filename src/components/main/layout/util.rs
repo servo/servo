@@ -13,7 +13,7 @@ use script::dom::bindings::js::JS;
 use script::dom::bindings::utils::Reflectable;
 use script::dom::node::{Node, SharedLayoutData};
 use script::layout_interface::{LayoutChan, UntrustedNodeAddress, TrustedNodeAddress};
-use std::cast;
+use std::mem;
 use std::cell::{Ref, RefMut};
 use style::ComputedValues;
 use style;
@@ -76,20 +76,20 @@ pub trait LayoutDataAccess {
 impl<'ln> LayoutDataAccess for LayoutNode<'ln> {
     #[inline(always)]
     unsafe fn borrow_layout_data_unchecked(&self) -> *Option<LayoutDataWrapper> {
-        cast::transmute(self.get().layout_data.borrow_unchecked())
+        mem::transmute(self.get().layout_data.borrow_unchecked())
     }
 
     #[inline(always)]
     fn borrow_layout_data<'a>(&'a self) -> Ref<'a,Option<LayoutDataWrapper>> {
         unsafe {
-            cast::transmute(self.get().layout_data.borrow())
+            mem::transmute(self.get().layout_data.borrow())
         }
     }
 
     #[inline(always)]
     fn mutate_layout_data<'a>(&'a self) -> RefMut<'a,Option<LayoutDataWrapper>> {
         unsafe {
-            cast::transmute(self.get().layout_data.borrow_mut())
+            mem::transmute(self.get().layout_data.borrow_mut())
         }
     }
 }
@@ -135,7 +135,7 @@ impl OpaqueNodeMethods for OpaqueNode {
 
     fn from_jsmanaged(node: &JS<Node>) -> OpaqueNode {
         unsafe {
-            let ptr: uintptr_t = cast::transmute(node.reflector().get_jsobject());
+            let ptr: uintptr_t = mem::transmute(node.reflector().get_jsobject());
             OpaqueNode(ptr)
         }
     }
@@ -143,7 +143,7 @@ impl OpaqueNodeMethods for OpaqueNode {
     fn to_untrusted_node_address(&self) -> UntrustedNodeAddress {
         unsafe {
             let OpaqueNode(addr) = *self;
-            let addr: UntrustedNodeAddress = cast::transmute(addr);
+            let addr: UntrustedNodeAddress = mem::transmute(addr);
             addr
         }
     }

@@ -19,6 +19,7 @@ objdir
 parser.out
 src/components/script/dom/bindings/codegen/*.rs
 src/components/script/dom/bindings/codegen/_cache/
+src/components/script/dom/bindings/codegen/Bindings/
 src/components/script/dom/bindings/codegen/test/*.rs
 src/components/script/dom/bindings/codegen/RegisterBindings.cpp
 src/components/script/dom/bindings/codegen/PrototypeList.h

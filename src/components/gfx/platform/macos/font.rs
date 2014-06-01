@@ -91,11 +91,11 @@ impl FontHandleMethods for FontHandle {
         return result;
     }
 
-    fn family_name(&self) -> ~str {
+    fn family_name(&self) -> String {
         self.ctfont.family_name()
     }
 
-    fn face_name(&self) -> ~str {
+    fn face_name(&self) -> String {
         self.ctfont.face_name()
     }
 
@@ -189,7 +189,7 @@ impl FontHandleMethods for FontHandle {
         })
     }
 
-    fn face_identifier(&self) -> ~str {
+    fn face_identifier(&self) -> String {
         self.ctfont.postscript_name()
     }
 }

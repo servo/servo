@@ -99,11 +99,11 @@ impl HTMLCollection {
         }
         impl CollectionFilter for ClassNameFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                self.classes.iter().all(|class| elem.has_class(*class))
+                self.classes.iter().all(|class| elem.has_class(class.as_slice()))
             }
         }
         let filter = ClassNameFilter {
-            classes: split_html_space_chars(classes).map(|class| class.into_owned()).collect()
+            classes: split_html_space_chars(classes.as_slice()).map(|class| class.into_owned()).collect()
         };
         HTMLCollection::create(window, root, box filter)
     }

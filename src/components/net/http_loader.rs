@@ -18,7 +18,7 @@ pub fn factory() -> LoaderTask {
     f
 }
 
-fn send_error(url: Url, err: ~str, start_chan: Sender<LoadResponse>) {
+fn send_error(url: Url, err: String, start_chan: Sender<LoadResponse>) {
     start_sending(start_chan, Metadata::default(url)).send(Done(Err(err)));
 }
 
@@ -36,18 +36,18 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
         iters = iters + 1;
 
         if iters > max_redirects {
-            send_error(url, "too many redirects".to_owned(), start_chan);
+            send_error(url, "too many redirects".to_string(), start_chan);
             return;
         }
 
         if redirected_to.contains(&url) {
-            send_error(url, "redirect loop".to_owned(), start_chan);
+            send_error(url, "redirect loop".to_string(), start_chan);
             return;
         }
 
         redirected_to.insert(url.clone());
 
-        if "http" != url.scheme {
+        if "http" != url.scheme.as_slice() {
             let s = format!("{:s} request, but we don't support that scheme", url.scheme);
             send_error(url, s, start_chan);
             return;
@@ -59,7 +59,7 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
         let mut writer = match request {
             Ok(w) => box w,
             Err(e) => {
-                send_error(url, e.desc.to_owned(), start_chan);
+                send_error(url, e.desc.to_string(), start_chan);
                 return;
             }
         };
@@ -74,7 +74,7 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
                 writer.headers.content_length = Some(data.len());
                 match writer.write(data.clone().into_bytes().as_slice()) {
                     Err(e) => {
-                        send_error(url, e.desc.to_owned(), start_chan);
+                        send_error(url, e.desc.to_string(), start_chan);
                         return;
                     }
                     _ => {}
@@ -85,7 +85,7 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
         let mut response = match writer.read_response() {
             Ok(r) => r,
             Err((_, e)) => {
-                send_error(url, e.desc.to_owned(), start_chan);
+                send_error(url, e.desc.to_string(), start_chan);
                 return;
             }
         };

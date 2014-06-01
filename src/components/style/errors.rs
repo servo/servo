@@ -14,7 +14,8 @@ impl<T, I: Iterator<Result<T, SyntaxError>>> Iterator<T> for ErrorLoggerIterator
         loop {
             match this.next() {
                 Some(Ok(v)) => return Some(v),
-                Some(Err(error)) => log_css_error(error.location, format!("{:?}", error.reason)),
+                Some(Err(error)) => log_css_error(error.location,
+                                                  format!("{:?}", error.reason).as_slice()),
                 None => return None,
             }
         }

@@ -38,7 +38,7 @@ use harfbuzz::{hb_shape, hb_buffer_get_glyph_infos};
 use libc::{c_uint, c_int, c_void, c_char};
 use servo_util::geometry::Au;
 use servo_util::range::Range;
-use std::cast::transmute;
+use std::mem;
 use std::char;
 use std::cmp;
 use std::ptr::null;
@@ -507,7 +507,7 @@ extern fn get_font_table_func(_: *hb_face_t, tag: hb_tag_t, user_data: *c_void) 
                     blob = hb_blob_create(buf as *c_char,
                                           len as c_uint,
                                           HB_MEMORY_MODE_READONLY,
-                                          transmute(skinny_font_table_ptr),
+                                          mem::transmute(skinny_font_table_ptr),
                                           destroy_blob_func);
                 });
 

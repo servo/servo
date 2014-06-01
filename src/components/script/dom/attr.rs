@@ -120,7 +120,7 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
     fn GetNamespaceURI(&self) -> Option<DOMString> {
         match self.namespace.to_str() {
             "" => None,
-            url => Some(url.to_owned()),
+            url => Some(url.to_string()),
         }
     }
 

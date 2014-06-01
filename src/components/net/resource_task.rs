@@ -33,7 +33,7 @@ pub struct LoadData {
     pub url: Url,
     pub method: Method,
     pub headers: RequestHeaderCollection,
-    pub data: Option<~str>
+    pub data: Option<String>
 }
 
 impl LoadData {
@@ -53,10 +53,10 @@ pub struct Metadata {
     pub final_url: Url,
 
     /// MIME type / subtype.
-    pub content_type: Option<(~str, ~str)>,
+    pub content_type: Option<(String, String)>,
 
     /// Character set.
-    pub charset: Option<~str>,
+    pub charset: Option<String>,
 
     /// Headers
     pub headers: Option<ResponseHeaderCollection>,
@@ -84,10 +84,10 @@ impl Metadata {
             Some(MediaType { type_:      ref type_,
                              subtype:    ref subtype,
                              parameters: ref parameters }) => {
-                self.content_type = Some((type_.as_slice().to_owned(), subtype.as_slice().to_owned()));
+                self.content_type = Some((type_.clone(), subtype.clone()));
                 for &(ref k, ref v) in parameters.iter() {
                     if "charset" == k.as_slice() {
-                        self.charset = Some(v.as_slice().to_owned());
+                        self.charset = Some(v.clone());
                     }
                 }
             }
@@ -113,7 +113,7 @@ pub enum ProgressMsg {
     /// Binary data - there may be multiple of these
     Payload(Vec<u8>),
     /// Indicates loading is complete, either successfully or not
-    Done(Result<(), ~str>)
+    Done(Result<(), String>)
 }
 
 /// For use by loaders in responding to a Load message.
@@ -128,7 +128,7 @@ pub fn start_sending(start_chan: Sender<LoadResponse>, metadata: Metadata) -> Se
 
 /// Convenience function for synchronously loading a whole resource.
 pub fn load_whole_resource(resource_task: &ResourceTask, url: Url)
-        -> Result<(Metadata, Vec<u8>), ~str> {
+        -> Result<(Metadata, Vec<u8>), String> {
     let (start_chan, start_port) = channel();
     resource_task.send(Load(LoadData::new(url), start_chan));
     let response = start_port.recv();
@@ -159,14 +159,14 @@ type LoaderTaskFactory = extern "Rust" fn() -> LoaderTask;
 /// Create a ResourceTask with the default loaders
 pub fn ResourceTask() -> ResourceTask {
     let loaders = vec!(
-        ("file".to_owned(), file_loader::factory),
-        ("http".to_owned(), http_loader::factory),
-        ("data".to_owned(), data_loader::factory),
+        ("file".to_string(), file_loader::factory),
+        ("http".to_string(), http_loader::factory),
+        ("data".to_string(), data_loader::factory),
     );
     create_resource_task_with_loaders(loaders)
 }
 
-fn create_resource_task_with_loaders(loaders: Vec<(~str, LoaderTaskFactory)>) -> ResourceTask {
+fn create_resource_task_with_loaders(loaders: Vec<(String, LoaderTaskFactory)>) -> ResourceTask {
     let (setup_chan, setup_port) = channel();
     let builder = TaskBuilder::new().named("ResourceManager");
     builder.spawn(proc() {
@@ -180,12 +180,12 @@ fn create_resource_task_with_loaders(loaders: Vec<(~str, LoaderTaskFactory)>) ->
 struct ResourceManager {
     from_client: Receiver<ControlMsg>,
     /// Per-scheme resource loaders
-    loaders: Vec<(~str, LoaderTaskFactory)>,
+    loaders: Vec<(String, LoaderTaskFactory)>,
 }
 
 
 fn ResourceManager(from_client: Receiver<ControlMsg>,
-                   loaders: Vec<(~str, LoaderTaskFactory)>) -> ResourceManager {
+                   loaders: Vec<(String, LoaderTaskFactory)>) -> ResourceManager {
     ResourceManager {
         from_client : from_client,
         loaders : loaders,
@@ -215,7 +215,7 @@ impl ResourceManager {
             }
             None => {
                 debug!("resource_task: no loader for scheme {:s}", load_data.url.scheme);
-                start_sending(start_chan, Metadata::default(load_data.url)).send(Done(Err("no loader for scheme".to_owned())));
+                start_sending(start_chan, Metadata::default(load_data.url)).send(Done(Err("no loader for scheme".to_string())));
             }
         }
     }
@@ -268,7 +268,7 @@ fn snicklefritz_loader_factory() -> LoaderTask {
 
 #[test]
 fn should_delegate_to_scheme_loader() {
-    let loader_factories = vec!(("snicklefritz".to_owned(), snicklefritz_loader_factory));
+    let loader_factories = vec!(("snicklefritz".to_string(), snicklefritz_loader_factory));
     let resource_task = create_resource_task_with_loaders(loader_factories);
     let (start_chan, start) = channel();
     resource_task.send(Load(LoadData::new(FromStr::from_str("snicklefritz://heya").unwrap()), start_chan));

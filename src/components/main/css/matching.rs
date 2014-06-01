@@ -14,9 +14,9 @@ use layout::wrapper::{LayoutElement, LayoutNode, PostorderNodeMutTraversal, Thre
 use gfx::font_context::FontContext;
 use servo_util::cache::{Cache, LRUCache, SimpleHashCache};
 use servo_util::namespace::Null;
-use servo_util::smallvec::{SmallVec, SmallVec0, SmallVec16};
+use servo_util::smallvec::{SmallVec, SmallVec16};
 use servo_util::str::DOMString;
-use std::cast;
+use std::mem;
 use std::hash::{Hash, sip};
 use std::slice::Items;
 use style::{After, Before, ComputedValues, MatchedProperty, Stylist, TElement, TNode, cascade};
@@ -24,8 +24,8 @@ use sync::Arc;
 
 pub struct ApplicableDeclarations {
     pub normal: SmallVec16<MatchedProperty>,
-    pub before: SmallVec0<MatchedProperty>,
-    pub after: SmallVec0<MatchedProperty>,
+    pub before: Vec<MatchedProperty>,
+    pub after: Vec<MatchedProperty>,
 
     /// Whether the `normal` declarations are shareable with other nodes.
     pub normal_shareable: bool,
@@ -35,28 +35,28 @@ impl ApplicableDeclarations {
     pub fn new() -> ApplicableDeclarations {
         ApplicableDeclarations {
             normal: SmallVec16::new(),
-            before: SmallVec0::new(),
-            after: SmallVec0::new(),
+            before: Vec::new(),
+            after: Vec::new(),
             normal_shareable: false,
         }
     }
 
     pub fn clear(&mut self) {
         self.normal = SmallVec16::new();
-        self.before = SmallVec0::new();
-        self.after = SmallVec0::new();
+        self.before = Vec::new();
+        self.after = Vec::new();
         self.normal_shareable = false;
     }
 }
 
 #[deriving(Clone)]
 pub struct ApplicableDeclarationsCacheEntry {
-    pub declarations: SmallVec16<MatchedProperty>,
+    pub declarations: Vec<MatchedProperty>,
 }
 
 impl ApplicableDeclarationsCacheEntry {
     fn new(slice: &[MatchedProperty]) -> ApplicableDeclarationsCacheEntry {
-        let mut entry_declarations = SmallVec16::new();
+        let mut entry_declarations = Vec::new();
         for declarations in slice.iter() {
             entry_declarations.push(declarations.clone());
         }
@@ -96,8 +96,8 @@ impl<'a> ApplicableDeclarationsCacheQuery<'a> {
 #[inline]
 fn arc_ptr_eq<T>(a: &Arc<T>, b: &Arc<T>) -> bool {
     unsafe {
-        let a: uint = cast::transmute_copy(a);
-        let b: uint = cast::transmute_copy(b);
+        let a: uint = mem::transmute_copy(a);
+        let b: uint = mem::transmute_copy(b);
         a == b
     }
 }
@@ -121,7 +121,7 @@ impl<'a> Hash for ApplicableDeclarationsCacheQuery<'a> {
     fn hash(&self, state: &mut sip::SipState) {
         for declaration in self.declarations.iter() {
             let ptr: uint = unsafe {
-                cast::transmute_copy(declaration)
+                mem::transmute_copy(declaration)
             };
             ptr.hash(state);
         }
@@ -231,12 +231,12 @@ impl StyleSharingCandidate {
     }
 
     fn can_share_style_with(&self, element: &LayoutElement) -> bool {
-        if element.get_local_name() != self.local_name {
+        if element.get_local_name() != self.local_name.as_slice() {
             return false
         }
         match (&self.class, element.get_attr(&Null, "class")) {
             (&None, Some(_)) | (&Some(_), None) => return false,
-            (&Some(ref this_class), Some(element_class)) if element_class != *this_class => {
+            (&Some(ref this_class), Some(element_class)) if element_class != this_class.as_slice() => {
                 return false
             }
             (&Some(_), Some(_)) | (&None, None) => {}
@@ -383,7 +383,7 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
         };
 
         let parent_layout_data: &Option<LayoutDataWrapper> = unsafe {
-            cast::transmute(parent_node.borrow_layout_data_unchecked())
+            mem::transmute(parent_node.borrow_layout_data_unchecked())
         };
         match parent_layout_data {
             &Some(ref parent_layout_data_ref) => {

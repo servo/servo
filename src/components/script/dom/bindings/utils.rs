@@ -14,7 +14,7 @@ use servo_util::str::DOMString;
 use collections::hashmap::HashMap;
 use libc;
 use libc::c_uint;
-use std::cast;
+use std::mem;
 use std::cmp::Eq;
 use std::ptr;
 use std::ptr::null;
@@ -141,7 +141,7 @@ pub fn unwrap_jsmanaged<T: Reflectable>(mut obj: *mut JSObject,
 }
 
 pub unsafe fn squirrel_away_unique<T>(x: Box<T>) -> *T {
-    cast::transmute(x)
+    mem::transmute(x)
 }
 
 pub fn jsstring_to_str(cx: *mut JSContext, s: *mut JSString) -> DOMString {

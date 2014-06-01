@@ -10,13 +10,13 @@ use platform::surface::NativeSurfaceAzureMethods;
 use azure::AzSkiaGrGLSharedSurfaceRef;
 use io_surface::IOSurface;
 use layers::platform::surface::NativeSurface;
-use std::cast;
+use std::mem;
 
 impl NativeSurfaceAzureMethods for NativeSurface {
     fn from_azure_surface(surface: AzSkiaGrGLSharedSurfaceRef) -> NativeSurface {
         unsafe {
             let io_surface = IOSurface {
-                obj: cast::transmute(surface),
+                obj: mem::transmute(surface),
             };
             NativeSurface::from_io_surface(io_surface)
         }

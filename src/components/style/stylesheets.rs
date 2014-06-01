@@ -113,7 +113,7 @@ impl Stylesheet {
                         },
                         _ => {
                             next_state = STATE_BODY;
-                            parse_nested_at_rule(lower_name, rule, &mut rules, &namespaces, &base_url)
+                            parse_nested_at_rule(lower_name.as_slice(), rule, &mut rules, &namespaces, &base_url)
                         },
                     }
                 },
@@ -136,7 +136,7 @@ pub fn parse_style_rule(rule: QualifiedRule, parent_rules: &mut Vec<CSSRule>,
             declarations: properties::parse_property_declaration_list(block.move_iter(), base_url)
         })),
         None => log_css_error(location, format!(
-            "Invalid/unsupported selector: {}", serialized)),
+            "Invalid/unsupported selector: {}", serialized).as_slice()),
     }
 }
 
@@ -146,7 +146,8 @@ pub fn parse_nested_at_rule(lower_name: &str, rule: AtRule,
                             parent_rules: &mut Vec<CSSRule>, namespaces: &NamespaceMap, base_url: &Url) {
     match lower_name {
         "media" => parse_media_rule(rule, parent_rules, namespaces, base_url),
-        _ => log_css_error(rule.location, format!("Unsupported at-rule: @{:s}", lower_name))
+        _ => log_css_error(rule.location,
+                           format!("Unsupported at-rule: @{:s}", lower_name).as_slice())
     }
 }
 

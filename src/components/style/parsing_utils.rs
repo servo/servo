@@ -13,7 +13,7 @@ pub fn one_component_value<'a>(input: &'a [ComponentValue]) -> Option<&'a Compon
 }
 
 
-pub fn get_ident_lower(component_value: &ComponentValue) -> Option<~str> {
+pub fn get_ident_lower(component_value: &ComponentValue) -> Option<String> {
     match component_value {
         &Ident(ref value) => Some(value.as_slice().to_ascii_lower()),
         _ => None,

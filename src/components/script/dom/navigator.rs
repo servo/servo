@@ -37,7 +37,7 @@ pub trait NavigatorMethods {
 
 impl<'a> NavigatorMethods for JSRef<'a, Navigator> {
     fn Product(&self) -> DOMString {
-        "Gecko".to_owned()
+        "Gecko".to_string()
     }
 
     fn TaintEnabled(&self) -> bool {
@@ -45,15 +45,15 @@ impl<'a> NavigatorMethods for JSRef<'a, Navigator> {
     }
 
     fn AppName(&self) -> DOMString {
-        "Netscape".to_owned() // Like Gecko/Webkit
+        "Netscape".to_string() // Like Gecko/Webkit
     }
 
     fn AppCodeName(&self) -> DOMString {
-        "Mozilla".to_owned()
+        "Mozilla".to_string()
     }
 
     fn Platform(&self) -> DOMString {
-        "".to_owned()
+        "".to_string()
     }
 }
 

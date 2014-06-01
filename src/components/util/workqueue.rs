@@ -10,7 +10,6 @@
 use native;
 use rand;
 use rand::{Rng, XorShiftRng};
-use std::cast;
 use std::mem;
 use std::sync::atomics::{AtomicUint, SeqCst};
 use std::sync::deque::{Abort, BufferPool, Data, Empty, Stealer, Worker};
@@ -92,7 +91,7 @@ impl<QueueData: Send, WorkData: Send> WorkerThread<QueueData, WorkData> {
                 // FIXME(pcwalton): Nasty workaround for the lack of labeled break/continue
                 // cross-crate.
                 let mut work_unit = unsafe {
-                    mem::uninit()
+                    mem::uninitialized()
                 };
                 match deque.pop() {
                     Some(work) => work_unit = work,
@@ -179,7 +178,7 @@ impl<'a, QueueData, WorkData: Send> WorkerProxy<'a, QueueData, WorkData> {
     #[inline]
     pub fn user_data<'a>(&'a self) -> &'a QueueData {
         unsafe {
-            cast::transmute(self.queue_data)
+            mem::transmute(self.queue_data)
         }
     }
 }
@@ -205,7 +204,7 @@ impl<QueueData: Send, WorkData: Send> WorkQueue<QueueData, WorkData> {
         let (mut infos, mut threads) = (vec!(), vec!());
         for i in range(0, thread_count) {
             let (worker_chan, worker_port) = channel();
-            let mut pool = BufferPool::new();
+            let pool = BufferPool::new();
             let (worker, thief) = pool.deque();
             infos.push(WorkerInfo {
                 chan: worker_chan,

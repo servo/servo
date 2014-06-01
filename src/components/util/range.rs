@@ -108,7 +108,7 @@ pub struct Range<I> {
 
 impl<I: RangeIndex> fmt::Show for Range<I> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f.buf, "[{} .. {})", self.begin(), self.end())
+        write!(f, "[{} .. {})", self.begin(), self.end())
     }
 }
 

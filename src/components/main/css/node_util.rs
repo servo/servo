@@ -6,7 +6,7 @@ use layout::incremental::RestyleDamage;
 use layout::util::LayoutDataAccess;
 use layout::wrapper::{TLayoutNode, ThreadSafeLayoutNode};
 use layout::wrapper::{After, AfterBlock, Before, BeforeBlock, Normal};
-use std::cast;
+use std::mem;
 use style::ComputedValues;
 use sync::Arc;
 
@@ -27,28 +27,28 @@ impl<'ln> NodeUtil for ThreadSafeLayoutNode<'ln> {
             let layout_data_ref = self.borrow_layout_data();
             match self.get_pseudo_element_type() {
                 Before | BeforeBlock => {
-                     cast::transmute_lifetime(layout_data_ref.as_ref()
-                                                             .unwrap()
-                                                             .data
-                                                             .before_style
-                                                             .as_ref()
-                                                             .unwrap())
+                     mem::transmute(layout_data_ref.as_ref()
+                                                   .unwrap()
+                                                   .data
+                                                   .before_style
+                                                   .as_ref()
+                                                   .unwrap())
                 }
                 After | AfterBlock => {
-                    cast::transmute_lifetime(layout_data_ref.as_ref()
-                                                            .unwrap()
-                                                            .data
-                                                            .after_style
-                                                            .as_ref()
-                                                            .unwrap())
+                    mem::transmute(layout_data_ref.as_ref()
+                                                  .unwrap()
+                                                  .data
+                                                  .after_style
+                                                  .as_ref()
+                                                  .unwrap())
                 }
                 Normal => {
-                    cast::transmute_lifetime(layout_data_ref.as_ref()
-                                                          .unwrap()
-                                                          .shared_data
-                                                          .style
-                                                          .as_ref()
-                                                          .unwrap())
+                    mem::transmute(layout_data_ref.as_ref()
+                                                  .unwrap()
+                                                  .shared_data
+                                                  .style
+                                                  .as_ref()
+                                                  .unwrap())
                 }
             }
         }

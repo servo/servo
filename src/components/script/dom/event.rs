@@ -70,7 +70,7 @@ impl Event {
             current_target: Cell::new(None),
             target: Cell::new(None),
             phase: PhaseNone,
-            type_: "".to_owned(),
+            type_: "".to_string(),
             canceled: false,
             cancelable: true,
             bubbles: false,

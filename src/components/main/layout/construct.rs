@@ -553,10 +553,10 @@ impl<'a> FlowConstructor<'a> {
                                                                               whitespace_style))
                         => {
                     // Instantiate the whitespace fragment.
-                    let fragment_info = UnscannedTextFragment(UnscannedTextFragmentInfo::from_text(" ".to_owned()));
+                    let fragment_info = UnscannedTextFragment(UnscannedTextFragmentInfo::from_text(" ".to_string()));
                     let fragment = Fragment::from_opaque_node_and_style(whitespace_node,
-                                                                   whitespace_style.clone(),
-                                                                   fragment_info);
+                                                                        whitespace_style.clone(),
+                                                                        fragment_info);
                     fragment_accumulator.fragments.push(fragment, whitespace_style)
                 }
                 ConstructionItemConstructionResult(TableColumnFragmentConstructionItem(_)) => {

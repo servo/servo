@@ -11,7 +11,7 @@ pub enum Namespace {
     XLink,
     SVG,
     MathML,
-    Other(~str)
+    Other(String)
 }
 
 impl Namespace {
@@ -25,7 +25,7 @@ impl Namespace {
             "http://www.w3.org/2000/svg" => SVG,
             "http://www.w3.org/1998/Math/MathML" => MathML,
             "" => Null,
-            ns => Other(ns.to_owned())
+            ns => Other(ns.to_string())
         }
     }
     pub fn to_str<'a>(&'a self) -> &'a str {

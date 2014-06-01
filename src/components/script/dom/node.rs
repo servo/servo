@@ -39,8 +39,6 @@ use js::jsapi::{JSContext, JSObject, JSRuntime};
 use js::jsfriendapi;
 use libc;
 use libc::uintptr_t;
-use std::cast::transmute;
-use std::cast;
 use std::cell::{Cell, RefCell, Ref, RefMut};
 use std::iter::{Map, Filter};
 use std::mem;
@@ -171,7 +169,7 @@ impl LayoutDataRef {
 
     pub unsafe fn from_data<T>(data: Box<T>) -> LayoutDataRef {
         LayoutDataRef {
-            data_cell: RefCell::new(Some(cast::transmute(data))),
+            data_cell: RefCell::new(Some(mem::transmute(data))),
         }
     }
 
@@ -195,7 +193,7 @@ impl LayoutDataRef {
     /// safe layout data accessor.
     #[inline]
     pub unsafe fn borrow_unchecked(&self) -> *Option<LayoutData> {
-        cast::transmute(&self.data_cell)
+        mem::transmute(&self.data_cell)
     }
 
     /// Borrows the layout data immutably. This function is *not* thread-safe.
@@ -384,7 +382,7 @@ pub trait NodeHelpers {
 
     fn dump(&self);
     fn dump_indent(&self, indent: uint);
-    fn debug_str(&self) -> ~str;
+    fn debug_str(&self) -> String;
 
     fn traverse_preorder<'a>(&'a self) -> TreeIterator<'a>;
     fn sequential_traverse_postorder<'a>(&'a self) -> TreeIterator<'a>;
@@ -406,12 +404,12 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
 
     /// Dumps the node tree, for debugging, with indentation.
     fn dump_indent(&self, indent: uint) {
-        let mut s = StrBuf::new();
+        let mut s = String::new();
         for _ in range(0, indent) {
             s.push_str("    ");
         }
 
-        s.push_str(self.debug_str());
+        s.push_str(self.debug_str().as_slice());
         debug!("{:s}", s);
 
         // FIXME: this should have a pure version?
@@ -421,7 +419,7 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
     }
 
     /// Returns a string that describes this node.
-    fn debug_str(&self) -> ~str {
+    fn debug_str(&self) -> String {
         format!("{:?}", self.type_id())
     }
 
@@ -600,7 +598,7 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
 pub fn from_untrusted_node_address(runtime: *mut JSRuntime, candidate: UntrustedNodeAddress)
     -> Temporary<Node> {
     unsafe {
-        let candidate: uintptr_t = cast::transmute(candidate);
+        let candidate: uintptr_t = mem::transmute(candidate);
         let object: *mut JSObject = jsfriendapi::bindgen::JS_GetAddressableObject(runtime,
                                                                                   candidate);
         if object.is_null() {
@@ -1353,19 +1351,19 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                 let elem: &JSRef<Element> = ElementCast::to_ref(self).unwrap();
                 elem.TagName()
             }
-            TextNodeTypeId => "#text".to_owned(),
+            TextNodeTypeId => "#text".to_string(),
             ProcessingInstructionNodeTypeId => {
                 let processing_instruction: &JSRef<ProcessingInstruction> =
                     ProcessingInstructionCast::to_ref(self).unwrap();
                 processing_instruction.Target()
             }
-            CommentNodeTypeId => "#comment".to_owned(),
+            CommentNodeTypeId => "#comment".to_string(),
             DoctypeNodeTypeId => {
                 let doctype: &JSRef<DocumentType> = DocumentTypeCast::to_ref(self).unwrap();
                 doctype.deref().name.clone()
             },
-            DocumentFragmentNodeTypeId => "#document-fragment".to_owned(),
-            DocumentNodeTypeId => "#document".to_owned()
+            DocumentFragmentNodeTypeId => "#document-fragment".to_string(),
+            DocumentNodeTypeId => "#document".to_string()
         }
     }
 
@@ -1476,7 +1474,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         match self.type_id {
             DocumentFragmentNodeTypeId |
             ElementNodeTypeId(..) => {
-                let mut content = StrBuf::new();
+                let mut content = String::new();
                 for node in self.traverse_preorder() {
                     if node.is_text() {
                         let text: &JSRef<Text> = TextCast::to_ref(&node).unwrap();

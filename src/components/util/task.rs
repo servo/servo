@@ -16,7 +16,7 @@ pub fn spawn_named<S: IntoMaybeOwned<'static>>(name: S, f: proc():Send) {
 /// this `TaskBuilder` fails.
 pub fn send_on_failure<T: Send>(builder: &mut TaskBuilder, msg: T, dest: Sender<T>) {
     let port = builder.future_result();
-    let watched_name = builder.opts.name.as_ref().unwrap().as_slice().to_owned();
+    let watched_name = builder.opts.name.as_ref().unwrap().as_slice().to_string();
     let name = format!("{:s}Watcher", watched_name);
     spawn_named(name, proc() {
         match port.recv() {

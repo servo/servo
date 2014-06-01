@@ -302,9 +302,9 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
     fn load_url(&self, href: DOMString) {
         let base_url = Some(self.page().get_url());
         debug!("current page url is {:?}", base_url);
-        let url = parse_url(href, base_url);
+        let url = parse_url(href.as_slice(), base_url);
         let ScriptChan(ref script_chan) = self.script_chan;
-        if href.starts_with("#") {
+        if href.as_slice().starts_with("#") {
             script_chan.send(TriggerFragmentMsg(self.page.id, url));
         } else {
             script_chan.send(TriggerLoadMsg(self.page.id, url));

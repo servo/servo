@@ -46,7 +46,7 @@ struct Float {
 
 impl fmt::Show for Float {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f.buf, "bounds={} kind={:?}", self.bounds, self.kind)
+        write!(f, "bounds={} kind={:?}", self.bounds, self.kind)
     }
 }
 
@@ -73,7 +73,7 @@ impl FloatList {
 
 impl fmt::Show for FloatList {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f.buf, "max_top={} floats={:?}", self.max_top, self.floats)
+        write!(f, "max_top={} floats={:?}", self.max_top, self.floats)
     }
 }
 
@@ -130,7 +130,7 @@ pub struct PlacementInfo {
 
 impl fmt::Show for PlacementInfo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f.buf, "size={} ceiling={} max_width={} kind={:?}", self.size, self.ceiling, self.max_width, self.kind)
+        write!(f, "size={} ceiling={} max_width={} kind={:?}", self.size, self.ceiling, self.max_width, self.kind)
     }
 }
 
@@ -152,10 +152,10 @@ impl fmt::Show for Floats {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.list.get() {
             None => {
-                write!(f.buf, "[empty]")
+                write!(f, "[empty]")
             }
             Some(list) => {
-                write!(f.buf, "offset={} floats={}", self.offset, list)
+                write!(f, "offset={} floats={}", self.offset, list)
             }
         }
     }
