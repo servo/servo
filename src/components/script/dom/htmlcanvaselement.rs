@@ -5,7 +5,6 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLCanvasElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLCanvasElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::{ErrorResult};
 use dom::document::Document;
 use dom::element::HTMLCanvasElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -38,26 +37,4 @@ impl HTMLCanvasElement {
 }
 
 pub trait HTMLCanvasElementMethods {
-    fn Width(&self) -> u32;
-    fn SetWidth(&self, _width: u32) -> ErrorResult;
-    fn Height(&self) -> u32;
-    fn SetHeight(&self, _height: u32) -> ErrorResult;
-}
-
-impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
-    fn Width(&self) -> u32 {
-        0
-    }
-
-    fn SetWidth(&self, _width: u32) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Height(&self) -> u32 {
-        0
-    }
-
-    fn SetHeight(&self, _height: u32) -> ErrorResult {
-        Ok(())
-    }
 }

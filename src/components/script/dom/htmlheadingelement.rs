@@ -49,15 +49,4 @@ impl HTMLHeadingElement {
 }
 
 pub trait HTMLHeadingElementMethods {
-    fn Align(&self) -> DOMString;
-    fn SetAlign(&self, _align: DOMString);
-}
-
-impl<'a> HTMLHeadingElementMethods for JSRef<'a, HTMLHeadingElement> {
-    fn Align(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetAlign(&self, _align: DOMString) {
-    }
 }

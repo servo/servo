@@ -5,7 +5,6 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLParamElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLParamElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLParamElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -38,46 +37,4 @@ impl HTMLParamElement {
 }
 
 pub trait HTMLParamElementMethods {
-    fn Name(&self) -> DOMString;
-    fn SetName(&self, _name: DOMString) -> ErrorResult;
-    fn Value(&self) -> DOMString;
-    fn SetValue(&self, _value: DOMString) -> ErrorResult;
-    fn Type(&self) -> DOMString;
-    fn SetType(&self, _type: DOMString) -> ErrorResult;
-    fn ValueType(&self) -> DOMString;
-    fn SetValueType(&self, _value_type: DOMString) -> ErrorResult;
-}
-
-impl<'a> HTMLParamElementMethods for JSRef<'a, HTMLParamElement> {
-    fn Name(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetName(&self, _name: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Value(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetValue(&self, _value: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Type(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetType(&self, _type: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn ValueType(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetValueType(&self, _value_type: DOMString) -> ErrorResult {
-        Ok(())
-    }
 }

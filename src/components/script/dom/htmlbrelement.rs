@@ -4,7 +4,6 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLBRElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLBRElementDerived;
-use dom::bindings::error::ErrorResult;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
 use dom::element::HTMLBRElementTypeId;
@@ -38,16 +37,4 @@ impl HTMLBRElement {
 }
 
 pub trait HTMLBRElementMethods {
-    fn Clear(&self) -> DOMString;
-    fn SetClear(&self, _text: DOMString) -> ErrorResult;
-}
-
-impl<'a> HTMLBRElementMethods for JSRef<'a, HTMLBRElement> {
-    fn Clear(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetClear(&self, _text: DOMString) -> ErrorResult {
-        Ok(())
-    }
 }

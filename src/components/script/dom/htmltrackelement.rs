@@ -5,7 +5,6 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLTrackElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTrackElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLTrackElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -38,61 +37,4 @@ impl HTMLTrackElement {
 }
 
 pub trait HTMLTrackElementMethods {
-    fn Kind(&self) -> DOMString;
-    fn SetKind(&self, _kind: DOMString) -> ErrorResult;
-    fn Src(&self) -> DOMString;
-    fn SetSrc(&self, _src: DOMString) -> ErrorResult;
-    fn Srclang(&self) -> DOMString;
-    fn SetSrclang(&self, _srclang: DOMString) -> ErrorResult;
-    fn Label(&self) -> DOMString;
-    fn SetLabel(&self, _label: DOMString) -> ErrorResult;
-    fn Default(&self) -> bool;
-    fn SetDefault(&self, _default: bool) -> ErrorResult;
-    fn ReadyState(&self) -> u16;
-}
-
-impl<'a> HTMLTrackElementMethods for JSRef<'a, HTMLTrackElement> {
-    fn Kind(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetKind(&self, _kind: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Src(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetSrc(&self, _src: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Srclang(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetSrclang(&self, _srclang: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Label(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetLabel(&self, _label: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Default(&self) -> bool {
-        false
-    }
-
-    fn SetDefault(&self, _default: bool) -> ErrorResult {
-        Ok(())
-    }
-
-    fn ReadyState(&self) -> u16 {
-        0
-    }
 }

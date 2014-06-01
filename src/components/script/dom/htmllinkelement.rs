@@ -5,7 +5,6 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLLinkElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLLinkElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLLinkElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -38,105 +37,4 @@ impl HTMLLinkElement {
 }
 
 pub trait HTMLLinkElementMethods {
-    fn Disabled(&self) -> bool;
-    fn SetDisabled(&self, _disable: bool);
-    fn Href(&self) -> DOMString;
-    fn SetHref(&self, _href: DOMString) -> ErrorResult;
-    fn CrossOrigin(&self) -> DOMString;
-    fn SetCrossOrigin(&self, _cross_origin: DOMString) -> ErrorResult;
-    fn Rel(&self) -> DOMString;
-    fn SetRel(&self, _rel: DOMString) -> ErrorResult;
-    fn Media(&self) -> DOMString;
-    fn SetMedia(&self, _media: DOMString) -> ErrorResult;
-    fn Hreflang(&self) -> DOMString;
-    fn SetHreflang(&self, _href: DOMString) -> ErrorResult;
-    fn Type(&self) -> DOMString;
-    fn SetType(&self, _type: DOMString) -> ErrorResult;
-    fn Charset(&self) -> DOMString;
-    fn SetCharset(&self, _charset: DOMString) -> ErrorResult;
-    fn Rev(&self) -> DOMString;
-    fn SetRev(&self, _rev: DOMString) -> ErrorResult;
-    fn Target(&self) -> DOMString;
-    fn SetTarget(&self, _target: DOMString) -> ErrorResult;
-}
-
-impl<'a> HTMLLinkElementMethods for JSRef<'a, HTMLLinkElement> {
-    fn Disabled(&self) -> bool {
-        false
-    }
-
-    fn SetDisabled(&self, _disable: bool) {
-    }
-
-    fn Href(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetHref(&self, _href: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn CrossOrigin(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetCrossOrigin(&self, _cross_origin: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Rel(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetRel(&self, _rel: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Media(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetMedia(&self, _media: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Hreflang(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetHreflang(&self, _href: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Type(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetType(&self, _type: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Charset(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetCharset(&self, _charset: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Rev(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetRev(&self, _rev: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Target(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetTarget(&self, _target: DOMString) -> ErrorResult {
-        Ok(())
-    }
 }

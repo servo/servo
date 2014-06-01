@@ -5,7 +5,6 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLTableRowElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTableRowElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLTableRowElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -38,81 +37,4 @@ impl HTMLTableRowElement {
 }
 
 pub trait HTMLTableRowElementMethods {
-    fn RowIndex(&self) -> i32;
-    fn GetRowIndex(&self) -> i32;
-    fn SectionRowIndex(&self) -> i32;
-    fn GetSectionRowIndex(&self) -> i32;
-    fn DeleteCell(&self, _index: i32) -> ErrorResult;
-    fn Align(&self) -> DOMString;
-    fn SetAlign(&self, _align: DOMString) -> ErrorResult;
-    fn Ch(&self) -> DOMString;
-    fn SetCh(&self, _ch: DOMString) -> ErrorResult;
-    fn ChOff(&self) -> DOMString;
-    fn SetChOff(&self, _ch_off: DOMString) -> ErrorResult;
-    fn VAlign(&self) -> DOMString;
-    fn SetVAlign(&self, _v_align: DOMString) -> ErrorResult;
-    fn BgColor(&self) -> DOMString;
-    fn SetBgColor(&self, _bg_color: DOMString) -> ErrorResult;
-}
-
-impl<'a> HTMLTableRowElementMethods for JSRef<'a, HTMLTableRowElement> {
-    fn RowIndex(&self) -> i32 {
-        0
-    }
-
-    fn GetRowIndex(&self) -> i32 {
-        0
-    }
-
-    fn SectionRowIndex(&self) -> i32 {
-        0
-    }
-
-    fn GetSectionRowIndex(&self) -> i32 {
-        0
-    }
-
-    fn DeleteCell(&self, _index: i32) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Align(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetAlign(&self, _align: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Ch(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetCh(&self, _ch: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn ChOff(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetChOff(&self, _ch_off: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn VAlign(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetVAlign(&self, _v_align: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn BgColor(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetBgColor(&self, _bg_color: DOMString) -> ErrorResult {
-        Ok(())
-    }
 }

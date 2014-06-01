@@ -6,7 +6,6 @@ use dom::bindings::codegen::BindingDeclarations::EventHandlerBinding::EventHandl
 use dom::bindings::codegen::BindingDeclarations::HTMLBodyElementBinding;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLElementCast};
-use dom::bindings::error::ErrorResult;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::Reflectable;
 use dom::document::Document;
@@ -43,71 +42,11 @@ impl HTMLBodyElement {
 }
 
 pub trait HTMLBodyElementMethods {
-    fn Text(&self) -> DOMString;
-    fn SetText(&mut self, _text: DOMString) -> ErrorResult;
-    fn Link(&self) -> DOMString;
-    fn SetLink(&self, _link: DOMString) -> ErrorResult;
-    fn VLink(&self) -> DOMString;
-    fn SetVLink(&self, _v_link: DOMString) -> ErrorResult;
-    fn ALink(&self) -> DOMString;
-    fn SetALink(&self, _a_link: DOMString) -> ErrorResult;
-    fn BgColor(&self) -> DOMString;
-    fn SetBgColor(&self, _bg_color: DOMString) -> ErrorResult;
-    fn Background(&self) -> DOMString;
-    fn SetBackground(&self, _background: DOMString) -> ErrorResult;
     fn GetOnunload(&self) -> Option<EventHandlerNonNull>;
     fn SetOnunload(&mut self, listener: Option<EventHandlerNonNull>);
 }
 
 impl<'a> HTMLBodyElementMethods for JSRef<'a, HTMLBodyElement> {
-    fn Text(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetText(&mut self, _text: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Link(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetLink(&self, _link: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn VLink(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetVLink(&self, _v_link: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn ALink(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetALink(&self, _a_link: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn BgColor(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetBgColor(&self, _bg_color: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Background(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetBackground(&self, _background: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
     fn GetOnunload(&self) -> Option<EventHandlerNonNull> {
         let win = window_from_node(self).root();
         win.deref().GetOnunload()

@@ -1,38 +1,21 @@
 /* -*- Mode: IDL; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/.
- *
- * The origin of this IDL file is
- * http://www.whatwg.org/specs/web-apps/current-work/#the-embed-element
- * http://www.whatwg.org/specs/web-apps/current-work/#HTMLEmbedElement-partial
- *
- * © Copyright 2004-2011 Apple Computer, Inc., Mozilla Foundation, and
- * Opera Software ASA. You are granted a license to use, reproduce
- * and create derivative works of this document.
- */
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// http://www.whatwg.org/specs/web-apps/current-work/#the-embed-element
+// http://www.whatwg.org/html/#htmlembedelement
 interface HTMLEmbedElement : HTMLElement {
-  [Pure, SetterThrows]
-           attribute DOMString src;
-  [Pure, SetterThrows]
-           attribute DOMString type;
-  [Pure, SetterThrows]
-           attribute DOMString width;
-  [Pure, SetterThrows]
-           attribute DOMString height;
+  //         attribute DOMString src;
+  //         attribute DOMString type;
+  //         attribute DOMString width;
+  //         attribute DOMString height;
+  //legacycaller any (any... arguments);
+
+  // also has obsolete members
 };
 
-// http://www.whatwg.org/specs/web-apps/current-work/#HTMLEmbedElement-partial
+// http://www.whatwg.org/html/#HTMLEmbedElement-partial
 partial interface HTMLEmbedElement {
-  [Pure, SetterThrows]
-           attribute DOMString align;
-  [Pure, SetterThrows]
-           attribute DOMString name;
-};
-
-partial interface HTMLEmbedElement {
-  // GetSVGDocument
-  Document? getSVGDocument();
+  //         attribute DOMString align;
+  //         attribute DOMString name;
 };

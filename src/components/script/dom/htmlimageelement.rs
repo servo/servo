@@ -4,7 +4,6 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLImageElementBinding;
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, HTMLElementCast, HTMLImageElementDerived};
-use dom::bindings::error::ErrorResult;
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::trace::Untraceable;
 use dom::document::Document;
@@ -93,8 +92,6 @@ pub trait HTMLImageElementMethods {
     fn SetAlt(&mut self, alt: DOMString);
     fn Src(&self) -> DOMString;
     fn SetSrc(&mut self, src: DOMString);
-    fn CrossOrigin(&self) -> DOMString;
-    fn SetCrossOrigin(&mut self, _cross_origin: DOMString) -> ErrorResult;
     fn UseMap(&self) -> DOMString;
     fn SetUseMap(&mut self, use_map: DOMString);
     fn IsMap(&self) -> bool;
@@ -103,9 +100,6 @@ pub trait HTMLImageElementMethods {
     fn SetWidth(&mut self, width: u32);
     fn Height(&self) -> u32;
     fn SetHeight(&mut self, height: u32);
-    fn NaturalWidth(&self) -> u32;
-    fn NaturalHeight(&self) -> u32;
-    fn Complete(&self) -> bool;
     fn Name(&self) -> DOMString;
     fn SetName(&mut self, name: DOMString);
     fn Align(&self) -> DOMString;
@@ -139,14 +133,6 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
     fn SetSrc(&mut self, src: DOMString) {
         let element: &mut JSRef<Element> = ElementCast::from_mut_ref(self);
         element.set_url_attribute("src", src)
-    }
-
-    fn CrossOrigin(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetCrossOrigin(&mut self, _cross_origin: DOMString) -> ErrorResult {
-        Ok(())
     }
 
     fn UseMap(&self) -> DOMString {
@@ -189,18 +175,6 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
     fn SetHeight(&mut self, height: u32) {
         let elem: &mut JSRef<Element> = ElementCast::from_mut_ref(self);
         elem.set_uint_attribute("height", height)
-    }
-
-    fn NaturalWidth(&self) -> u32 {
-        0
-    }
-
-    fn NaturalHeight(&self) -> u32 {
-        0
-    }
-
-    fn Complete(&self) -> bool {
-        false
     }
 
     fn Name(&self) -> DOMString {

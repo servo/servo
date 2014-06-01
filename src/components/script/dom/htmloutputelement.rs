@@ -5,12 +5,10 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLOutputElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLOutputElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLOutputElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::htmlformelement::HTMLFormElement;
 use dom::node::{Node, ElementNodeTypeId, window_from_node};
 use dom::validitystate::ValidityState;
 use servo_util::str::DOMString;
@@ -40,80 +38,12 @@ impl HTMLOutputElement {
 }
 
 pub trait HTMLOutputElementMethods {
-    fn GetForm(&self) -> Option<Temporary<HTMLFormElement>>;
-    fn Name(&self) -> DOMString;
-    fn SetName(&self, _name: DOMString) -> ErrorResult;
-    fn Type(&self) -> DOMString;
-    fn DefaultValue(&self) -> DOMString;
-    fn SetDefaultValue(&self, _value: DOMString) -> ErrorResult;
-    fn Value(&self) -> DOMString;
-    fn SetValue(&self, _value: DOMString) -> ErrorResult;
-    fn WillValidate(&self) -> bool;
-    fn SetWillValidate(&self, _will_validate: bool);
     fn Validity(&self) -> Temporary<ValidityState>;
-    fn ValidationMessage(&self) -> DOMString;
-    fn SetValidationMessage(&self, _message: DOMString) -> ErrorResult;
-    fn CheckValidity(&self) -> bool;
-    fn SetCustomValidity(&self, _error: DOMString);
 }
 
 impl<'a> HTMLOutputElementMethods for JSRef<'a, HTMLOutputElement> {
-    fn GetForm(&self) -> Option<Temporary<HTMLFormElement>> {
-        None
-    }
-
-    fn Name(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetName(&self, _name: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Type(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn DefaultValue(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetDefaultValue(&self, _value: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Value(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetValue(&self, _value: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn WillValidate(&self) -> bool {
-        false
-    }
-
-    fn SetWillValidate(&self, _will_validate: bool) {
-    }
-
     fn Validity(&self) -> Temporary<ValidityState> {
         let window = window_from_node(self).root();
         ValidityState::new(&*window)
-    }
-
-    fn ValidationMessage(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetValidationMessage(&self, _message: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn CheckValidity(&self) -> bool {
-        true
-    }
-
-    fn SetCustomValidity(&self, _error: DOMString) {
     }
 }

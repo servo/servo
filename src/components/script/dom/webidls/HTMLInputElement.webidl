@@ -1,102 +1,76 @@
 /* -*- Mode: IDL; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/.
- *
- * The origin of this IDL file is
- * http://www.whatwg.org/specs/web-apps/current-work/#the-input-element
- * http://www.whatwg.org/specs/web-apps/current-work/#other-elements,-attributes-and-apis
- *
- * © Copyright 2004-2011 Apple Computer, Inc., Mozilla Foundation, and
- * Opera Software ASA. You are granted a license to use, reproduce
- * and create derivative works of this document.
- */
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+// http://www.whatwg.org/html/#htmlinputelement
 interface HTMLInputElement : HTMLElement {
-  [Pure, SetterThrows]
-           attribute DOMString accept;
-  [Pure, SetterThrows]
-           attribute DOMString alt;
-  [Pure, SetterThrows]
-           attribute DOMString autocomplete;
-  [Pure, SetterThrows]
-           attribute boolean autofocus;
-  [Pure, SetterThrows]
-           attribute boolean defaultChecked;
-  [Pure]
-           attribute boolean checked;
-  [Pure, SetterThrows]
-           attribute boolean disabled;
-  [Pure, SetterThrows]
-           attribute DOMString formAction;
-  [Pure, SetterThrows]
-           attribute DOMString formEnctype;
-  [Pure, SetterThrows]
-           attribute DOMString formMethod;
-  [Pure, SetterThrows]
-           attribute boolean formNoValidate;
-  [Pure, SetterThrows]
-           attribute DOMString formTarget;
-  [Pure, SetterThrows]
-           attribute unsigned long height;
-  [Pure]
-           attribute boolean indeterminate;
-  [Pure, SetterThrows]
-           attribute DOMString inputMode;
-  [Pure, SetterThrows]
-           attribute DOMString max;
-  [Pure, SetterThrows]
-           attribute long maxLength;
-  [Pure, SetterThrows]
-           attribute DOMString min;
-  [Pure, SetterThrows]
-           attribute boolean multiple;
-  [Pure, SetterThrows]
-           attribute DOMString name;
-  [Pure, SetterThrows]
-           attribute DOMString pattern;
-  [Pure, SetterThrows]
-           attribute DOMString placeholder;
-  [Pure, SetterThrows]
-           attribute boolean readOnly;
-  [Pure, SetterThrows]
-           attribute boolean required;
-  [Pure, SetterThrows]
-           attribute unsigned long size;
-  [Pure, SetterThrows]
-           attribute DOMString src;
-  [Pure, SetterThrows]
-           attribute DOMString step;
-  [Pure, SetterThrows]
-           attribute DOMString type;
-  [Pure, SetterThrows]
-           attribute DOMString defaultValue;
-  [Pure, TreatNullAs=EmptyString, SetterThrows]
-           attribute DOMString value;
-           attribute unsigned long width;
+  //         attribute DOMString accept;
+  //         attribute DOMString alt;
+  //         attribute DOMString autocomplete;
+  //         attribute boolean autofocus;
+  //         attribute boolean defaultChecked;
+  //         attribute boolean checked;
+  //         attribute DOMString dirName;
+  //         attribute boolean disabled;
+  //readonly attribute HTMLFormElement? form;
+  //readonly attribute FileList? files;
+  //         attribute DOMString formAction;
+  //         attribute DOMString formEnctype;
+  //         attribute DOMString formMethod;
+  //         attribute boolean formNoValidate;
+  //         attribute DOMString formTarget;
+  //         attribute unsigned long height;
+  //         attribute boolean indeterminate;
+  //         attribute DOMString inputMode;
+  //readonly attribute HTMLElement? list;
+  //         attribute DOMString max;
+  //         attribute long maxLength;
+  //         attribute DOMString min;
+  //         attribute long minLength;
+  //         attribute boolean multiple;
+  //         attribute DOMString name;
+  //         attribute DOMString pattern;
+  //         attribute DOMString placeholder;
+  //         attribute boolean readOnly;
+  //         attribute boolean required;
+  //         attribute unsigned long size;
+  //         attribute DOMString src;
+  //         attribute DOMString step;
+  //         attribute DOMString type;
+  //         attribute DOMString defaultValue;
+  //[TreatNullAs=EmptyString] attribute DOMString value;
+  //         attribute Date? valueAsDate;
+  //         attribute unrestricted double valueAsNumber;
+  //         attribute double valueLow;
+  //         attribute double valueHigh;
+  //         attribute unsigned long width;
 
-  [Pure]
-  readonly attribute boolean willValidate;
-  [GetterThrows]
-  readonly attribute DOMString validationMessage;
-  boolean checkValidity();
-  void setCustomValidity(DOMString error);
+  //void stepUp(optional long n = 1);
+  //void stepDown(optional long n = 1);
 
-  void select();
+  //readonly attribute boolean willValidate;
+  //readonly attribute ValidityState validity;
+  //readonly attribute DOMString validationMessage;
+  //boolean checkValidity();
+  //boolean reportValidity();
+  //void setCustomValidity(DOMString error);
 
-  [Throws]
-           // TODO: unsigned vs signed
-           attribute long selectionStart;
-  [Throws]
-           attribute long selectionEnd;
-  [Throws]
-           attribute DOMString selectionDirection;
+  //readonly attribute NodeList labels;
+
+  //void select();
+  //         attribute unsigned long selectionStart;
+  //         attribute unsigned long selectionEnd;
+  //         attribute DOMString selectionDirection;
+  //void setRangeText(DOMString replacement);
+  //void setRangeText(DOMString replacement, unsigned long start, unsigned long end, optional SelectionMode selectionMode = "preserve");
+  //void setSelectionRange(unsigned long start, unsigned long end, optional DOMString direction);
+
   // also has obsolete members
 };
 
+// http://www.whatwg.org/html/#HTMLInputElement-partial
 partial interface HTMLInputElement {
-  [Pure, SetterThrows]
-           attribute DOMString align;
-  [Pure, SetterThrows]
-           attribute DOMString useMap;
+  //         attribute DOMString align;
+  //         attribute DOMString useMap;
 };

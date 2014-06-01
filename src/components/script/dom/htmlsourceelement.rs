@@ -5,7 +5,6 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLSourceElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLSourceElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLSourceElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -38,36 +37,4 @@ impl HTMLSourceElement {
 }
 
 pub trait HTMLSourceElementMethods {
-    fn Src(&self) -> DOMString;
-    fn SetSrc(&self, _src: DOMString) -> ErrorResult;
-    fn Type(&self) -> DOMString;
-    fn SetType(&self, _type: DOMString) -> ErrorResult;
-    fn Media(&self) -> DOMString;
-    fn SetMedia(&self, _media: DOMString) -> ErrorResult;
-}
-
-impl<'a> HTMLSourceElementMethods for JSRef<'a, HTMLSourceElement> {
-    fn Src(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetSrc(&self, _src: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Type(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetType(&self, _type: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Media(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetMedia(&self, _media: DOMString) -> ErrorResult {
-        Ok(())
-    }
 }

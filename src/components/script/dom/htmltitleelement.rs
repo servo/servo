@@ -5,7 +5,6 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLTitleElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTitleElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLTitleElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -38,16 +37,4 @@ impl HTMLTitleElement {
 }
 
 pub trait HTMLTitleElementMethods {
-    fn Text(&self) -> DOMString;
-    fn SetText(&self, _text: DOMString) -> ErrorResult;
-}
-
-impl<'a> HTMLTitleElementMethods for JSRef<'a, HTMLTitleElement> {
-    fn Text(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetText(&self, _text: DOMString) -> ErrorResult {
-        Ok(())
-    }
 }
