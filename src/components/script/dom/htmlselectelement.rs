@@ -4,6 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLSelectElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLSelectElementDerived;
+use dom::bindings::codegen::UnionTypes::{HTMLElementOrLong, HTMLOptionElementOrHTMLOptGroupElement};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
 use dom::element::HTMLSelectElementTypeId;
@@ -39,11 +40,16 @@ impl HTMLSelectElement {
 
 pub trait HTMLSelectElementMethods {
     fn Validity(&self) -> Temporary<ValidityState>;
+    fn Add(&self, _element: HTMLOptionElementOrHTMLOptGroupElement, _before: Option<HTMLElementOrLong>);
 }
 
 impl<'a> HTMLSelectElementMethods for JSRef<'a, HTMLSelectElement> {
     fn Validity(&self) -> Temporary<ValidityState> {
         let window = window_from_node(self).root();
         ValidityState::new(&*window)
+    }
+
+    // Note: this function currently only exists for test_union.html.
+    fn Add(&self, _element: HTMLOptionElementOrHTMLOptGroupElement, _before: Option<HTMLElementOrLong>) {
     }
 }
