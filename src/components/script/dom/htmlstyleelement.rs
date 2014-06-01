@@ -5,7 +5,6 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLStyleElementBinding;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLStyleElementDerived, NodeCast};
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLStyleElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -41,47 +40,6 @@ impl HTMLStyleElement {
 }
 
 pub trait HTMLStyleElementMethods {
-    fn Disabled(&self) -> bool;
-    fn SetDisabled(&self, _disabled: bool);
-    fn Media(&self) -> DOMString;
-    fn SetMedia(&self, _media: DOMString) -> ErrorResult;
-    fn Type(&self) -> DOMString;
-    fn SetType(&self, _type: DOMString) -> ErrorResult;
-    fn Scoped(&self) -> bool;
-    fn SetScoped(&self, _scoped: bool) -> ErrorResult;
-}
-
-impl<'a> HTMLStyleElementMethods for JSRef<'a, HTMLStyleElement> {
-    fn Disabled(&self) -> bool {
-        false
-    }
-
-    fn SetDisabled(&self, _disabled: bool) {
-    }
-
-    fn Media(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetMedia(&self, _media: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Type(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetType(&self, _type: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Scoped(&self) -> bool {
-        false
-    }
-
-    fn SetScoped(&self, _scoped: bool) -> ErrorResult {
-        Ok(())
-    }
 }
 
 pub trait StyleElementHelpers {

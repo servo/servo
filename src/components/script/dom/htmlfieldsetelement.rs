@@ -5,11 +5,9 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLFieldSetElementBinding;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLFieldSetElementDerived, NodeCast};
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::{Element, HTMLFieldSetElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
-use dom::htmlformelement::HTMLFormElement;
 use dom::htmlcollection::{HTMLCollection, CollectionFilter};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, ElementNodeTypeId, window_from_node};
@@ -41,45 +39,11 @@ impl HTMLFieldSetElement {
 }
 
 pub trait HTMLFieldSetElementMethods {
-    fn Disabled(&self) -> bool;
-    fn SetDisabled(&self, _disabled: bool) -> ErrorResult;
-    fn GetForm(&self) -> Option<Temporary<HTMLFormElement>>;
-    fn Name(&self) -> DOMString;
-    fn SetName(&self, _name: DOMString) -> ErrorResult;
-    fn Type(&self) -> DOMString;
     fn Elements(&self) -> Temporary<HTMLCollection>;
-    fn WillValidate(&self) -> bool;
     fn Validity(&self) -> Temporary<ValidityState>;
-    fn ValidationMessage(&self) -> DOMString;
-    fn CheckValidity(&self) -> bool;
-    fn SetCustomValidity(&self, _error: DOMString);
 }
 
 impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
-    fn Disabled(&self) -> bool {
-        false
-    }
-
-    fn SetDisabled(&self, _disabled: bool) -> ErrorResult {
-        Ok(())
-    }
-
-    fn GetForm(&self) -> Option<Temporary<HTMLFormElement>> {
-        None
-    }
-
-    fn Name(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetName(&self, _name: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Type(&self) -> DOMString {
-        "".to_owned()
-    }
-
     // http://www.whatwg.org/html/#dom-fieldset-elements
     fn Elements(&self) -> Temporary<HTMLCollection> {
         struct ElementsFilter;
@@ -97,23 +61,8 @@ impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
         HTMLCollection::create(&*window, node, filter)
     }
 
-    fn WillValidate(&self) -> bool {
-        false
-    }
-
     fn Validity(&self) -> Temporary<ValidityState> {
         let window = window_from_node(self).root();
         ValidityState::new(&*window)
-    }
-
-    fn ValidationMessage(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn CheckValidity(&self) -> bool {
-        false
-    }
-
-    fn SetCustomValidity(&self, _error: DOMString) {
     }
 }

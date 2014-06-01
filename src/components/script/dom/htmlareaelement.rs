@@ -5,7 +5,6 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLAreaElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLAreaElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLAreaElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -38,86 +37,4 @@ impl HTMLAreaElement {
 }
 
 pub trait HTMLAreaElementMethods {
-    fn Alt(&self) -> DOMString;
-    fn SetAlt(&self, _alt: DOMString) -> ErrorResult;
-    fn Coords(&self) -> DOMString;
-    fn SetCoords(&self, _coords: DOMString) -> ErrorResult;
-    fn Shape(&self) -> DOMString;
-    fn SetShape(&self, _shape: DOMString) -> ErrorResult;
-    fn Href(&self) -> DOMString;
-    fn SetHref(&self, _href: DOMString) -> ErrorResult;
-    fn Target(&self) -> DOMString;
-    fn SetTarget(&self, _target: DOMString) -> ErrorResult;
-    fn Download(&self) -> DOMString;
-    fn SetDownload(&self, _download: DOMString) -> ErrorResult;
-    fn Ping(&self) -> DOMString;
-    fn SetPing(&self, _ping: DOMString) -> ErrorResult;
-    fn NoHref(&self) -> bool;
-    fn SetNoHref(&self, _no_href: bool) -> ErrorResult;
-}
-
-impl<'a> HTMLAreaElementMethods for JSRef<'a, HTMLAreaElement> {
-    fn Alt(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetAlt(&self, _alt: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Coords(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetCoords(&self, _coords: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Shape(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetShape(&self, _shape: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Href(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetHref(&self, _href: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Target(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetTarget(&self, _target: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Download(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetDownload(&self, _download: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Ping(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetPing(&self, _ping: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn NoHref(&self) -> bool {
-        false
-    }
-
-    fn SetNoHref(&self, _no_href: bool) -> ErrorResult {
-        Ok(())
-    }
 }

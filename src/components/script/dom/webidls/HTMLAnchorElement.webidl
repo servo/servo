@@ -11,44 +11,27 @@
  * and create derivative works of this document.
  */
 
-// http://www.whatwg.org/specs/web-apps/current-work/#the-a-element
+// http://www.whatwg.org/html/#htmlanchorelement
 interface HTMLAnchorElement : HTMLElement {
-  // No support for stringifier attributes yet
-  //[SetterThrows]
-  //stringifier attribute DOMString href;
-  //stringifier;
-           [SetterThrows]
-           attribute DOMString href;
-           [SetterThrows]
-           attribute DOMString target;
-           [SetterThrows]
-           attribute DOMString download;
-           [SetterThrows]
-           attribute DOMString ping;
-           [SetterThrows]
-           attribute DOMString rel;
-  // relList not supported yet
+  //         attribute DOMString target;
+  //         attribute DOMString download;
+  //[PutForwards=value] attribute DOMSettableTokenList ping;
+  //         attribute DOMString rel;
   //readonly attribute DOMTokenList relList;
-           [SetterThrows]
-           attribute DOMString hreflang;
-           [SetterThrows]
-           attribute DOMString type;
+  //         attribute DOMString hreflang;
+  //         attribute DOMString type;
 
-           [SetterThrows]
-           attribute DOMString text;
+  //         attribute DOMString text;
+
+  // also has obsolete members
 };
 //HTMLAnchorElement implements URLUtils;
 
-// http://www.whatwg.org/specs/web-apps/current-work/#other-elements,-attributes-and-apis
+// http://www.whatwg.org/html/#HTMLAnchorElement-partial
 partial interface HTMLAnchorElement {
-           [SetterThrows]
-           attribute DOMString coords;
-           [SetterThrows]
-           attribute DOMString charset;
-           [SetterThrows]
-           attribute DOMString name;
-           [SetterThrows]
-           attribute DOMString rev;
-           [SetterThrows]
-           attribute DOMString shape;
+  //         attribute DOMString coords;
+  //         attribute DOMString charset;
+  //         attribute DOMString name;
+  //         attribute DOMString rev;
+  //         attribute DOMString shape;
 };

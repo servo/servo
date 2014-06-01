@@ -5,7 +5,6 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLOListElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLOListElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLOListElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -38,46 +37,4 @@ impl HTMLOListElement {
 }
 
 pub trait HTMLOListElementMethods {
-    fn Reversed(&self) -> bool;
-    fn SetReversed(&self, _reversed: bool) -> ErrorResult;
-    fn Start(&self) -> i32;
-    fn SetStart(&self, _start: i32) -> ErrorResult;
-    fn Type(&self) -> DOMString;
-    fn SetType(&self, _type: DOMString) -> ErrorResult;
-    fn Compact(&self) -> bool;
-    fn SetCompact(&self, _compact: bool) -> ErrorResult;
-}
-
-impl<'a> HTMLOListElementMethods for JSRef<'a, HTMLOListElement> {
-    fn Reversed(&self) -> bool {
-        false
-    }
-
-    fn SetReversed(&self, _reversed: bool) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Start(&self) -> i32 {
-        0
-    }
-
-    fn SetStart(&self, _start: i32) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Type(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetType(&self, _type: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Compact(&self) -> bool {
-        false
-    }
-
-    fn SetCompact(&self, _compact: bool) -> ErrorResult {
-        Ok(())
-    }
 }

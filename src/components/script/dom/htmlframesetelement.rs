@@ -5,7 +5,6 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLFrameSetElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLFrameSetElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLFrameSetElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -38,26 +37,4 @@ impl HTMLFrameSetElement {
 }
 
 pub trait HTMLFrameSetElementMethods {
-    fn Cols(&self) -> DOMString;
-    fn SetCols(&self, _cols: DOMString) -> ErrorResult;
-    fn Rows(&self) -> DOMString;
-    fn SetRows(&self, _rows: DOMString) -> ErrorResult;
-}
-
-impl<'a> HTMLFrameSetElementMethods for JSRef<'a, HTMLFrameSetElement> {
-    fn Cols(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetCols(&self, _cols: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Rows(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetRows(&self, _rows: DOMString) -> ErrorResult {
-        Ok(())
-    }
 }

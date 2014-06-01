@@ -4,7 +4,6 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLIFrameElementBinding;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLIFrameElementDerived, HTMLElementCast};
-use dom::bindings::error::ErrorResult;
 use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
 use dom::document::Document;
 use dom::element::{HTMLIFrameElementTypeId, Element};
@@ -90,62 +89,12 @@ impl HTMLIFrameElement {
 }
 
 pub trait HTMLIFrameElementMethods {
-    fn Src(&self) -> DOMString;
-    fn SetSrc(&mut self, _src: DOMString) -> ErrorResult;
-    fn Srcdoc(&self) -> DOMString;
-    fn SetSrcdoc(&mut self, _srcdoc: DOMString) -> ErrorResult;
-    fn Name(&self) -> DOMString;
-    fn SetName(&mut self, _name: DOMString) -> ErrorResult;
     fn Sandbox(&self) -> DOMString;
     fn SetSandbox(&mut self, sandbox: DOMString);
-    fn AllowFullscreen(&self) -> bool;
-    fn SetAllowFullscreen(&mut self, _allow: bool) -> ErrorResult;
-    fn Width(&self) -> DOMString;
-    fn SetWidth(&mut self, _width: DOMString) -> ErrorResult;
-    fn Height(&self) -> DOMString;
-    fn SetHeight(&mut self, _height: DOMString) -> ErrorResult;
-    fn GetContentDocument(&self) -> Option<Temporary<Document>>;
     fn GetContentWindow(&self) -> Option<Temporary<Window>>;
-    fn Align(&self) -> DOMString;
-    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult;
-    fn Scrolling(&self) -> DOMString;
-    fn SetScrolling(&mut self, _scrolling: DOMString) -> ErrorResult;
-    fn FrameBorder(&self) -> DOMString;
-    fn SetFrameBorder(&mut self, _frameborder: DOMString) -> ErrorResult;
-    fn LongDesc(&self) -> DOMString;
-    fn SetLongDesc(&mut self, _longdesc: DOMString) -> ErrorResult;
-    fn MarginHeight(&self) -> DOMString;
-    fn SetMarginHeight(&mut self, _marginheight: DOMString) -> ErrorResult;
-    fn MarginWidth(&self) -> DOMString;
-    fn SetMarginWidth(&mut self, _marginwidth: DOMString) -> ErrorResult;
-    fn GetSVGDocument(&self) -> Option<Temporary<Document>>;
 }
 
 impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
-    fn Src(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Srcdoc(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetSrcdoc(&mut self, _srcdoc: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Name(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetName(&mut self, _name: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
     fn Sandbox(&self) -> DOMString {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
         element.get_string_attribute("sandbox")
@@ -154,34 +103,6 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
     fn SetSandbox(&mut self, sandbox: DOMString) {
         let element: &mut JSRef<Element> = ElementCast::from_mut_ref(self);
         element.set_string_attribute("sandbox", sandbox);
-    }
-
-    fn AllowFullscreen(&self) -> bool {
-        false
-    }
-
-    fn SetAllowFullscreen(&mut self, _allow: bool) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Width(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetWidth(&mut self, _width: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Height(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetHeight(&mut self, _height: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn GetContentDocument(&self) -> Option<Temporary<Document>> {
-        None
     }
 
     fn GetContentWindow(&self) -> Option<Temporary<Window>> {
@@ -197,58 +118,6 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
                 })
             })
         })
-    }
-
-    fn Align(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Scrolling(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetScrolling(&mut self, _scrolling: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn FrameBorder(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetFrameBorder(&mut self, _frameborder: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn LongDesc(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetLongDesc(&mut self, _longdesc: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn MarginHeight(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetMarginHeight(&mut self, _marginheight: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn MarginWidth(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetMarginWidth(&mut self, _marginwidth: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn GetSVGDocument(&self) -> Option<Temporary<Document>> {
-        None
     }
 }
 

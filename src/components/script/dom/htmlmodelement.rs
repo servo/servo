@@ -5,7 +5,6 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLModElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLModElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLModElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -38,26 +37,4 @@ impl HTMLModElement {
 }
 
 pub trait HTMLModElementMethods {
-    fn Cite(&self) -> DOMString;
-    fn SetCite(&self, _cite: DOMString) -> ErrorResult;
-    fn DateTime(&self) -> DOMString;
-    fn SetDateTime(&self, _datetime: DOMString) -> ErrorResult;
-}
-
-impl<'a> HTMLModElementMethods for JSRef<'a, HTMLModElement> {
-    fn Cite(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetCite(&self, _cite: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn DateTime(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetDateTime(&self, _datetime: DOMString) -> ErrorResult {
-        Ok(())
-    }
 }

@@ -44,16 +44,4 @@ impl Text {
 }
 
 pub trait TextMethods {
-    fn SplitText(&self, _offset: u32) -> Fallible<Temporary<Text>>;
-    fn GetWholeText(&self) -> Fallible<DOMString>;
-}
-
-impl<'a> TextMethods for JSRef<'a, Text> {
-    fn SplitText(&self, _offset: u32) -> Fallible<Temporary<Text>> {
-        fail!("unimplemented")
-    }
-
-    fn GetWholeText(&self) -> Fallible<DOMString> {
-        Ok("".to_owned())
-    }
 }

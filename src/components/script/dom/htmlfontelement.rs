@@ -5,7 +5,6 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLFontElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLFontElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLFontElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -38,36 +37,4 @@ impl HTMLFontElement {
 }
 
 pub trait HTMLFontElementMethods {
-    fn Color(&self) -> DOMString;
-    fn SetColor(&self, _color: DOMString) -> ErrorResult;
-    fn Face(&self) -> DOMString;
-    fn SetFace(&self, _face: DOMString) -> ErrorResult;
-    fn Size(&self) -> DOMString;
-    fn SetSize(&self, _size: DOMString) -> ErrorResult;
-}
-
-impl<'a> HTMLFontElementMethods for JSRef<'a, HTMLFontElement> {
-    fn Color(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetColor(&self, _color: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Face(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetFace(&self, _face: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Size(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetSize(&self, _size: DOMString) -> ErrorResult {
-        Ok(())
-    }
 }

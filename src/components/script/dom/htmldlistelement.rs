@@ -5,7 +5,6 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLDListElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLDListElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLDListElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -38,27 +37,4 @@ impl HTMLDListElement {
 }
 
 pub trait HTMLDListElementMethods {
-    fn Compact(&self) -> bool;
-    fn SetCompact(&self, _compact: bool) -> ErrorResult;
-    fn Type(&self) -> DOMString;
-    fn SetType(&self, _type: DOMString) -> ErrorResult;
 }
-
-impl<'a> HTMLDListElementMethods for JSRef<'a, HTMLDListElement> {
-    fn Compact(&self) -> bool {
-        false
-    }
-
-    fn SetCompact(&self, _compact: bool) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Type(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetType(&self, _type: DOMString) -> ErrorResult {
-        Ok(())
-    }
-}
-

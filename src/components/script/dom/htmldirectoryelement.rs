@@ -5,7 +5,6 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLDirectoryElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLDirectoryElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLDirectoryElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -38,16 +37,4 @@ impl HTMLDirectoryElement {
 }
 
 pub trait HTMLDirectoryElementMethods {
-    fn Compact(&self) -> bool;
-    fn SetCompact(&self, _compact: bool) -> ErrorResult;
-}
-
-impl<'a> HTMLDirectoryElementMethods for JSRef<'a, HTMLDirectoryElement> {
-    fn Compact(&self) -> bool {
-        false
-    }
-
-    fn SetCompact(&self, _compact: bool) -> ErrorResult {
-        Ok(())
-    }
 }

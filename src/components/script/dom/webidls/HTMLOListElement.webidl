@@ -1,29 +1,18 @@
 /* -*- Mode: IDL; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/.
- *
- * The origin of this IDL file is
- * http://www.whatwg.org/specs/web-apps/current-work/#the-ol-element
- * http://www.whatwg.org/specs/web-apps/current-work/#other-elements,-attributes-and-apis
- *
- * © Copyright 2004-2011 Apple Computer, Inc., Mozilla Foundation, and
- * Opera Software ASA. You are granted a license to use, reproduce
- * and create derivative works of this document.
- */
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// http://www.whatwg.org/specs/web-apps/current-work/#the-ol-element
+// http://www.whatwg.org/html/#htmlolistelement
 interface HTMLOListElement : HTMLElement {
-           [SetterThrows]
-           attribute boolean reversed;
-           [SetterThrows]
-           attribute long start;
-           [SetterThrows]
-           attribute DOMString type;
+  //         attribute boolean reversed;
+  //         attribute long start;
+  //         attribute DOMString type;
+
+  // also has obsolete members
 };
 
-// http://www.whatwg.org/specs/web-apps/current-work/#other-elements,-attributes-and-apis
+// http://www.whatwg.org/html/#HTMLOListElement-partial
 partial interface HTMLOListElement {
-           [SetterThrows]
-           attribute boolean compact;
+  //         attribute boolean compact;
 };

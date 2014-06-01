@@ -5,7 +5,6 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLMetaElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLMetaElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLMetaElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -38,46 +37,4 @@ impl HTMLMetaElement {
 }
 
 pub trait HTMLMetaElementMethods {
-    fn Name(&self) -> DOMString;
-    fn SetName(&self, _name: DOMString) -> ErrorResult;
-    fn HttpEquiv(&self) -> DOMString;
-    fn SetHttpEquiv(&self, _http_equiv: DOMString) -> ErrorResult;
-    fn Content(&self) -> DOMString;
-    fn SetContent(&self, _content: DOMString) -> ErrorResult;
-    fn Scheme(&self) -> DOMString;
-    fn SetScheme(&self, _scheme: DOMString) -> ErrorResult;
-}
-
-impl<'a> HTMLMetaElementMethods for JSRef<'a, HTMLMetaElement> {
-    fn Name(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetName(&self, _name: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn HttpEquiv(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetHttpEquiv(&self, _http_equiv: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Content(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetContent(&self, _content: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Scheme(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetScheme(&self, _scheme: DOMString) -> ErrorResult {
-        Ok(())
-    }
 }

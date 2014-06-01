@@ -5,7 +5,6 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLPreElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLPreElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLPreElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -38,16 +37,4 @@ impl HTMLPreElement {
 }
 
 pub trait HTMLPreElementMethods {
-    fn Width(&self) -> i32;
-    fn SetWidth(&self, _width: i32) -> ErrorResult;
-}
-
-impl<'a> HTMLPreElementMethods for JSRef<'a, HTMLPreElement> {
-    fn Width(&self) -> i32 {
-        0
-    }
-
-    fn SetWidth(&self, _width: i32) -> ErrorResult {
-        Ok(())
-    }
 }

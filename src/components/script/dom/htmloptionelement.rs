@@ -5,12 +5,10 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLOptionElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLOptionElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLOptionElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::htmlformelement::HTMLFormElement;
 use dom::node::{Node, ElementNodeTypeId};
 use servo_util::str::DOMString;
 
@@ -39,76 +37,4 @@ impl HTMLOptionElement {
 }
 
 pub trait HTMLOptionElementMethods {
-    fn Disabled(&self) -> bool;
-    fn SetDisabled(&self, _disabled: bool) -> ErrorResult;
-    fn GetForm(&self) -> Option<Temporary<HTMLFormElement>>;
-    fn Label(&self) -> DOMString;
-    fn SetLabel(&self, _label: DOMString) -> ErrorResult;
-    fn DefaultSelected(&self) -> bool;
-    fn SetDefaultSelected(&self, _default_selected: bool) -> ErrorResult;
-    fn Selected(&self) -> bool;
-    fn SetSelected(&self, _selected: bool) -> ErrorResult;
-    fn Value(&self) -> DOMString;
-    fn SetValue(&self, _value: DOMString) -> ErrorResult;
-    fn Text(&self) -> DOMString;
-    fn SetText(&self, _text: DOMString) -> ErrorResult;
-    fn Index(&self) -> i32;
-}
-
-impl<'a> HTMLOptionElementMethods for JSRef<'a, HTMLOptionElement> {
-    fn Disabled(&self) -> bool {
-        false
-    }
-
-    fn SetDisabled(&self, _disabled: bool) -> ErrorResult {
-        Ok(())
-    }
-
-    fn GetForm(&self) -> Option<Temporary<HTMLFormElement>> {
-        None
-    }
-
-    fn Label(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetLabel(&self, _label: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn DefaultSelected(&self) -> bool {
-        false
-    }
-
-    fn SetDefaultSelected(&self, _default_selected: bool) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Selected(&self) -> bool {
-        false
-    }
-
-    fn SetSelected(&self, _selected: bool) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Value(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetValue(&self, _value: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Text(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetText(&self, _text: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Index(&self) -> i32 {
-        0
-    }
 }

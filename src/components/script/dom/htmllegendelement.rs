@@ -5,7 +5,6 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLLegendElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLLegendElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLLegendElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -38,16 +37,4 @@ impl HTMLLegendElement {
 }
 
 pub trait HTMLLegendElementMethods {
-    fn Align(&self) -> DOMString;
-    fn SetAlign(&self, _align: DOMString) -> ErrorResult;
-}
-
-impl<'a> HTMLLegendElementMethods for JSRef<'a, HTMLLegendElement> {
-    fn Align(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetAlign(&self, _align: DOMString) -> ErrorResult {
-        Ok(())
-    }
 }

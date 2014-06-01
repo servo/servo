@@ -5,7 +5,6 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLQuoteElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLQuoteElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLQuoteElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -38,16 +37,4 @@ impl HTMLQuoteElement {
 }
 
 pub trait HTMLQuoteElementMethods {
-    fn Cite(&self) -> DOMString;
-    fn SetCite(&self, _cite: DOMString) -> ErrorResult;
-}
-
-impl<'a> HTMLQuoteElementMethods for JSRef<'a, HTMLQuoteElement> {
-    fn Cite(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetCite(&self, _cite: DOMString) -> ErrorResult {
-        Ok(())
-    }
 }

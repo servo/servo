@@ -5,7 +5,6 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLTimeElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTimeElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLTimeElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -38,16 +37,4 @@ impl HTMLTimeElement {
 }
 
 pub trait HTMLTimeElementMethods {
-    fn DateTime(&self) -> DOMString;
-    fn SetDateTime(&self, _dateTime: DOMString) -> ErrorResult;
-}
-
-impl<'a> HTMLTimeElementMethods for JSRef<'a, HTMLTimeElement> {
-    fn DateTime(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetDateTime(&self, _dateTime: DOMString) -> ErrorResult {
-        Ok(())
-    }
 }

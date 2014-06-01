@@ -5,7 +5,6 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLHtmlElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLHtmlElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLHtmlElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -38,16 +37,4 @@ impl HTMLHtmlElement {
 }
 
 pub trait HTMLHtmlElementMethods {
-    fn Version(&self) -> DOMString;
-    fn SetVersion(&self, _version: DOMString) -> ErrorResult;
-}
-
-impl<'a> HTMLHtmlElementMethods for JSRef<'a, HTMLHtmlElement> {
-    fn Version(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetVersion(&self, _version: DOMString) -> ErrorResult {
-        Ok(())
-    }
 }

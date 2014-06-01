@@ -7,17 +7,14 @@ use dom::bindings::codegen::BindingDeclarations::HTMLObjectElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLObjectElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::{Element, HTMLObjectElementTypeId};
 use dom::element::AttributeHandlers;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::htmlformelement::HTMLFormElement;
 use dom::node::{Node, ElementNodeTypeId, NodeHelpers, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
-use dom::window::Window;
 use servo_util::str::DOMString;
 
 use servo_net::image_cache_task;
@@ -77,212 +74,13 @@ impl<'a> ProcessDataURL for JSRef<'a, HTMLObjectElement> {
 }
 
 pub trait HTMLObjectElementMethods {
-    fn Data(&self) -> DOMString;
-    fn SetData(&self, _data: DOMString) -> ErrorResult;
-    fn Type(&self) -> DOMString;
-    fn SetType(&self, _type: DOMString) -> ErrorResult;
-    fn Name(&self) -> DOMString;
-    fn SetName(&self, _name: DOMString) -> ErrorResult;
-    fn UseMap(&self) -> DOMString;
-    fn SetUseMap(&self, _use_map: DOMString) -> ErrorResult;
-    fn GetForm(&self) -> Option<Temporary<HTMLFormElement>>;
-    fn Width(&self) -> DOMString;
-    fn SetWidth(&self, _width: DOMString) -> ErrorResult;
-    fn Height(&self) -> DOMString;
-    fn SetHeight(&self, _height: DOMString) -> ErrorResult;
-    fn GetContentDocument(&self) -> Option<Temporary<Document>>;
-    fn GetContentWindow(&self) -> Option<Temporary<Window>>;
-    fn WillValidate(&self) -> bool;
     fn Validity(&self) -> Temporary<ValidityState>;
-    fn ValidationMessage(&self) -> DOMString;
-    fn CheckValidity(&self) -> bool;
-    fn SetCustomValidity(&self, _error: DOMString);
-    fn Align(&self) -> DOMString;
-    fn SetAlign(&self, _align: DOMString) -> ErrorResult;
-    fn Archive(&self) -> DOMString;
-    fn SetArchive(&self, _archive: DOMString) -> ErrorResult;
-    fn Code(&self) -> DOMString;
-    fn SetCode(&self, _code: DOMString) -> ErrorResult;
-    fn Declare(&self) -> bool;
-    fn SetDeclare(&self, _declare: bool) -> ErrorResult;
-    fn Hspace(&self) -> u32;
-    fn SetHspace(&self, _hspace: u32) -> ErrorResult;
-    fn Standby(&self) -> DOMString;
-    fn SetStandby(&self, _standby: DOMString) -> ErrorResult;
-    fn Vspace(&self) -> u32;
-    fn SetVspace(&self, _vspace: u32) -> ErrorResult;
-    fn CodeBase(&self) -> DOMString;
-    fn SetCodeBase(&self, _codebase: DOMString) -> ErrorResult;
-    fn CodeType(&self) -> DOMString;
-    fn SetCodeType(&self, _codetype: DOMString) -> ErrorResult;
-    fn Border(&self) -> DOMString;
-    fn SetBorder(&self, _border: DOMString) -> ErrorResult;
-    fn GetSVGDocument(&self) -> Option<Temporary<Document>>;
 }
 
 impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
-    fn Data(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetData(&self, _data: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Type(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetType(&self, _type: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Name(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetName(&self, _name: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn UseMap(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetUseMap(&self, _use_map: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn GetForm(&self) -> Option<Temporary<HTMLFormElement>> {
-        None
-    }
-
-    fn Width(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetWidth(&self, _width: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Height(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetHeight(&self, _height: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn GetContentDocument(&self) -> Option<Temporary<Document>> {
-        None
-    }
-
-    fn GetContentWindow(&self) -> Option<Temporary<Window>> {
-        None
-    }
-
-    fn WillValidate(&self) -> bool {
-        false
-    }
-
     fn Validity(&self) -> Temporary<ValidityState> {
         let window = window_from_node(self).root();
         ValidityState::new(&*window)
-    }
-
-    fn ValidationMessage(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn CheckValidity(&self) -> bool {
-        false
-    }
-
-    fn SetCustomValidity(&self, _error: DOMString) {
-    }
-
-    fn Align(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetAlign(&self, _align: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Archive(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetArchive(&self, _archive: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Code(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetCode(&self, _code: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Declare(&self) -> bool {
-        false
-    }
-
-    fn SetDeclare(&self, _declare: bool) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Hspace(&self) -> u32 {
-        0
-    }
-
-    fn SetHspace(&self, _hspace: u32) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Standby(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetStandby(&self, _standby: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Vspace(&self) -> u32 {
-        0
-    }
-
-    fn SetVspace(&self, _vspace: u32) -> ErrorResult {
-        Ok(())
-    }
-
-    fn CodeBase(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetCodeBase(&self, _codebase: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn CodeType(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetCodeType(&self, _codetype: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Border(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetBorder(&self, _border: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn GetSVGDocument(&self) -> Option<Temporary<Document>> {
-        None
     }
 }
 

@@ -4,7 +4,6 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLBaseElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLBaseElementDerived;
-use dom::bindings::error::ErrorResult;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
 use dom::element::HTMLBaseElementTypeId;
@@ -38,26 +37,4 @@ impl HTMLBaseElement {
 }
 
 pub trait HTMLBaseElementMethods {
-    fn Href(&self) -> DOMString;
-    fn SetHref(&self, _href: DOMString) -> ErrorResult;
-    fn Target(&self) -> DOMString;
-    fn SetTarget(&self, _target: DOMString) -> ErrorResult;
-}
-
-impl<'a> HTMLBaseElementMethods for JSRef<'a, HTMLBaseElement> {
-    fn Href(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetHref(&self, _href: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Target(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetTarget(&self, _target: DOMString) -> ErrorResult {
-        Ok(())
-    }
 }

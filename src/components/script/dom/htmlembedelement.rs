@@ -5,7 +5,6 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLEmbedElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLEmbedElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLEmbedElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -38,71 +37,4 @@ impl HTMLEmbedElement {
 }
 
 pub trait HTMLEmbedElementMethods {
-    fn Src(&self) -> DOMString;
-    fn SetSrc(&self, _src: DOMString) -> ErrorResult;
-    fn Type(&self) -> DOMString;
-    fn SetType(&self, _type: DOMString) -> ErrorResult;
-    fn Width(&self) -> DOMString;
-    fn SetWidth(&self, _width: DOMString) -> ErrorResult;
-    fn Height(&self) -> DOMString;
-    fn SetHeight(&self, _height: DOMString) -> ErrorResult;
-    fn Align(&self) -> DOMString;
-    fn SetAlign(&self, _type: DOMString) -> ErrorResult;
-    fn Name(&self) -> DOMString;
-    fn SetName(&self, _type: DOMString) -> ErrorResult;
-    fn GetSVGDocument(&self) -> Option<Temporary<Document>>;
-}
-
-impl<'a> HTMLEmbedElementMethods for JSRef<'a, HTMLEmbedElement> {
-    fn Src(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetSrc(&self, _src: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Type(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetType(&self, _type: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Width(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetWidth(&self, _width: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Height(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetHeight(&self, _height: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Align(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetAlign(&self, _type: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Name(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetName(&self, _type: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn GetSVGDocument(&self) -> Option<Temporary<Document>> {
-        None
-    }
 }
