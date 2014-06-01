@@ -229,7 +229,7 @@ pub fn build_element_from_tag(tag: DOMString, document: &JSRef<Document>) -> Tem
     handle_element!(document, tag, "legend",    HTMLLegendElement);
     handle_element!(document, tag, "li",        HTMLLIElement);
     handle_element!(document, tag, "link",      HTMLLinkElement);
-    handle_element!(document, tag, "main",      HTMLMainElement);
+    handle_element!(document, tag, "main",      HTMLElement);
     handle_element!(document, tag, "map",       HTMLMapElement);
     handle_element!(document, tag, "mark",      HTMLElement);
     handle_element!(document, tag, "marquee",   HTMLElement);

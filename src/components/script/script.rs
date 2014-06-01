@@ -114,7 +114,6 @@ pub mod dom {
     pub mod htmllegendelement;
     pub mod htmllielement;
     pub mod htmllinkelement;
-    pub mod htmlmainelement;
     pub mod htmlmapelement;
     pub mod htmlmediaelement;
     pub mod htmlmetaelement;
