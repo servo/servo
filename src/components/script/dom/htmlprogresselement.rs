@@ -5,7 +5,6 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLProgressElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLProgressElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::{ErrorResult, Fallible};
 use dom::document::Document;
 use dom::element::HTMLProgressElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -38,36 +37,4 @@ impl HTMLProgressElement {
 }
 
 pub trait HTMLProgressElementMethods {
-    fn Value(&self) -> f64;
-    fn SetValue(&self, _value: f64) -> ErrorResult;
-    fn Max(&self) -> f64;
-    fn SetMax(&self, _max: f64) -> ErrorResult;
-    fn Position(&self) -> f64;
-    fn GetPositiom(&self) -> Fallible<f64>;
-}
-
-impl<'a> HTMLProgressElementMethods for JSRef<'a, HTMLProgressElement> {
-    fn Value(&self) -> f64 {
-        0f64
-    }
-
-    fn SetValue(&self, _value: f64) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Max(&self) -> f64 {
-        0f64
-    }
-
-    fn SetMax(&self, _max: f64) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Position(&self) -> f64 {
-        0f64
-    }
-
-    fn GetPositiom(&self) -> Fallible<f64> {
-        Ok(0f64)
-    }
 }

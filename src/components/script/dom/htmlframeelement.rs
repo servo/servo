@@ -5,13 +5,11 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLFrameElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLFrameElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLFrameElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, ElementNodeTypeId};
-use dom::window::Window;
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
@@ -39,96 +37,4 @@ impl HTMLFrameElement {
 }
 
 pub trait HTMLFrameElementMethods {
-    fn Name(&self) -> DOMString;
-    fn SetName(&self, _name: DOMString) -> ErrorResult;
-    fn Scrolling(&self) -> DOMString;
-    fn SetScrolling(&self, _scrolling: DOMString) -> ErrorResult;
-    fn Src(&self) -> DOMString;
-    fn SetSrc(&self, _src: DOMString) -> ErrorResult;
-    fn FrameBorder(&self) -> DOMString;
-    fn SetFrameBorder(&self, _frameborder: DOMString) -> ErrorResult;
-    fn LongDesc(&self) -> DOMString;
-    fn SetLongDesc(&self, _longdesc: DOMString) -> ErrorResult;
-    fn NoResize(&self) -> bool;
-    fn SetNoResize(&self, _no_resize: bool) -> ErrorResult;
-    fn GetContentDocument(&self) -> Option<Temporary<Document>>;
-    fn GetContentWindow(&self) -> Option<Temporary<Window>>;
-    fn MarginHeight(&self) -> DOMString;
-    fn SetMarginHeight(&self, _height: DOMString) -> ErrorResult;
-    fn MarginWidth(&self) -> DOMString;
-    fn SetMarginWidth(&self, _height: DOMString) -> ErrorResult;
-}
-
-impl<'a> HTMLFrameElementMethods for JSRef<'a, HTMLFrameElement> {
-    fn Name(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetName(&self, _name: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Scrolling(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetScrolling(&self, _scrolling: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Src(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetSrc(&self, _src: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn FrameBorder(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetFrameBorder(&self, _frameborder: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn LongDesc(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetLongDesc(&self, _longdesc: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn NoResize(&self) -> bool {
-        false
-    }
-
-    fn SetNoResize(&self, _no_resize: bool) -> ErrorResult {
-        Ok(())
-    }
-
-    fn GetContentDocument(&self) -> Option<Temporary<Document>> {
-        None
-    }
-
-    fn GetContentWindow(&self) -> Option<Temporary<Window>> {
-        None
-    }
-
-    fn MarginHeight(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetMarginHeight(&self, _height: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn MarginWidth(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetMarginWidth(&self, _height: DOMString) -> ErrorResult {
-        Ok(())
-    }
 }

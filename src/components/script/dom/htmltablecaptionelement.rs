@@ -5,7 +5,6 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLTableCaptionElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTableCaptionElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLTableCaptionElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -38,16 +37,4 @@ impl HTMLTableCaptionElement {
 }
 
 pub trait HTMLTableCaptionElementMethods {
-    fn Align(&self) -> DOMString;
-    fn SetAlign(&self, _align: DOMString) -> ErrorResult;
-}
-
-impl<'a> HTMLTableCaptionElementMethods for JSRef<'a, HTMLTableCaptionElement> {
-    fn Align(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetAlign(&self, _align: DOMString) -> ErrorResult {
-        Ok(())
-    }
 }

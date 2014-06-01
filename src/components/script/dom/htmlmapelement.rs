@@ -5,13 +5,11 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLMapElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLMapElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLMapElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
-use dom::htmlcollection::{HTMLCollection, Static};
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, ElementNodeTypeId, window_from_node};
+use dom::node::{Node, ElementNodeTypeId};
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
@@ -39,24 +37,4 @@ impl HTMLMapElement {
 }
 
 pub trait HTMLMapElementMethods {
-    fn Name(&self) -> DOMString;
-    fn SetName(&self, _name: DOMString) -> ErrorResult;
-    fn Areas(&self) -> Temporary<HTMLCollection>;
 }
-
-impl<'a> HTMLMapElementMethods for JSRef<'a, HTMLMapElement> {
-    fn Name(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetName(&self, _name: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Areas(&self) -> Temporary<HTMLCollection> {
-        // FIXME: https://github.com/mozilla/servo/issues/1845
-        let window = window_from_node(self).root();
-        HTMLCollection::new(&*window, Static(vec!()))
-    }
-}
-

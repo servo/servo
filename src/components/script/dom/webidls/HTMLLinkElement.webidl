@@ -1,43 +1,26 @@
 /* -*- Mode: IDL; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/.
- *
- * The origin of this IDL file is
- * http://www.whatwg.org/specs/web-apps/current-work/#the-link-element
- * http://www.whatwg.org/specs/web-apps/current-work/#other-elements,-attributes-and-apis
- * © Copyright 2004-2011 Apple Computer, Inc., Mozilla Foundation, and
- * Opera Software ASA. You are granted a license to use, reproduce
- * and create derivative works of this document.
- */
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// http://www.whatwg.org/specs/web-apps/current-work/#the-link-element
+// http://www.whatwg.org/html/#htmllinkelement
 interface HTMLLinkElement : HTMLElement {
-    [Pure]
-        attribute boolean disabled;
-    [SetterThrows, Pure]
-        attribute DOMString href;
-    [SetterThrows, Pure]
-        attribute DOMString crossOrigin;
-    [SetterThrows, Pure]
-        attribute DOMString rel;
-    [SetterThrows, Pure]
-        attribute DOMString media;
-    [SetterThrows, Pure]
-        attribute DOMString hreflang;
-    [SetterThrows, Pure]
-        attribute DOMString type;
-};
+  //         attribute DOMString href;
+  //         attribute DOMString crossOrigin;
+  //         attribute DOMString rel;
+  //readonly attribute DOMTokenList relList;
+  //         attribute DOMString media;
+  //         attribute DOMString hreflang;
+  //         attribute DOMString type;
+  //[PutForwards=value] readonly attribute DOMSettableTokenList sizes;
 
-// TODO
+  // also has obsolete members
+};
 //HTMLLinkElement implements LinkStyle;
 
-// http://www.whatwg.org/specs/web-apps/current-work/#other-elements,-attributes-and-apis
+// http://www.whatwg.org/html/#HTMLLinkElement-partial
 partial interface HTMLLinkElement {
-    [SetterThrows, Pure]
-        attribute DOMString charset;
-    [SetterThrows, Pure]
-        attribute DOMString rev;
-    [SetterThrows, Pure]
-        attribute DOMString target;
+  //         attribute DOMString charset;
+  //         attribute DOMString rev;
+  //         attribute DOMString target;
 };

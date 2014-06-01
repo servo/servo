@@ -5,7 +5,6 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLTableSectionElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTableSectionElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLTableSectionElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -38,51 +37,4 @@ impl HTMLTableSectionElement {
 }
 
 pub trait HTMLTableSectionElementMethods {
-    fn DeleteRow(&self, _index: i32) -> ErrorResult;
-    fn Align(&self) -> DOMString;
-    fn SetAlign(&self, _align: DOMString) -> ErrorResult;
-    fn Ch(&self) -> DOMString;
-    fn SetCh(&self, _ch: DOMString) -> ErrorResult;
-    fn ChOff(&self) -> DOMString;
-    fn SetChOff(&self, _ch_off: DOMString) -> ErrorResult;
-    fn VAlign(&self) -> DOMString;
-    fn SetVAlign(&self, _v_align: DOMString) -> ErrorResult;
-}
-
-impl<'a> HTMLTableSectionElementMethods for JSRef<'a, HTMLTableSectionElement> {
-    fn DeleteRow(&self, _index: i32) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Align(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetAlign(&self, _align: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Ch(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetCh(&self, _ch: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn ChOff(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetChOff(&self, _ch_off: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn VAlign(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetVAlign(&self, _v_align: DOMString) -> ErrorResult {
-        Ok(())
-    }
 }

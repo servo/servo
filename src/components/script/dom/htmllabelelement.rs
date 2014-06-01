@@ -37,15 +37,4 @@ impl HTMLLabelElement {
 }
 
 pub trait HTMLLabelElementMethods {
-    fn HtmlFor(&self) -> DOMString;
-    fn SetHtmlFor(&self, _html_for: DOMString);
-}
-
-impl<'a> HTMLLabelElementMethods for JSRef<'a, HTMLLabelElement> {
-    fn HtmlFor(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetHtmlFor(&self, _html_for: DOMString) {
-    }
 }

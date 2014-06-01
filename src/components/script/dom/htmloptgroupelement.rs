@@ -5,7 +5,6 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLOptGroupElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLOptGroupElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLOptGroupElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -38,26 +37,4 @@ impl HTMLOptGroupElement {
 }
 
 pub trait HTMLOptGroupElementMethods {
-    fn Disabled(&self) -> bool;
-    fn SetDisabled(&self, _disabled: bool) -> ErrorResult;
-    fn Label(&self) -> DOMString;
-    fn SetLabel(&self, _label: DOMString) -> ErrorResult;
-}
-
-impl<'a> HTMLOptGroupElementMethods for JSRef<'a, HTMLOptGroupElement> {
-    fn Disabled(&self) -> bool {
-        false
-    }
-
-    fn SetDisabled(&self, _disabled: bool) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Label(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetLabel(&self, _label: DOMString) -> ErrorResult {
-        Ok(())
-    }
 }

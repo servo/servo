@@ -5,7 +5,6 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLMeterElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLMeterElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLMeterElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -38,67 +37,4 @@ impl HTMLMeterElement {
 }
 
 pub trait HTMLMeterElementMethods {
-    fn Value(&self) -> f64;
-    fn SetValue(&self, _value: f64) -> ErrorResult;
-    fn Min(&self) -> f64;
-    fn SetMin(&self, _min: f64) -> ErrorResult;
-    fn Max(&self) -> f64;
-    fn SetMax(&self, _max: f64) -> ErrorResult;
-    fn Low(&self) -> f64;
-    fn SetLow(&self, _low: f64) -> ErrorResult;
-    fn High(&self) -> f64;
-    fn SetHigh(&self, _high: f64) -> ErrorResult;
-    fn Optimum(&self) -> f64;
-    fn SetOptimum(&self, _optimum: f64) -> ErrorResult;
 }
-
-impl<'a> HTMLMeterElementMethods for JSRef<'a, HTMLMeterElement> {
-    fn Value(&self) -> f64 {
-        0.0
-    }
-
-    fn SetValue(&self, _value: f64) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Min(&self) -> f64 {
-        0.0
-    }
-
-    fn SetMin(&self, _min: f64) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Max(&self) -> f64 {
-        0.0
-    }
-
-    fn SetMax(&self, _max: f64) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Low(&self) -> f64 {
-        0.0
-    }
-
-    fn SetLow(&self, _low: f64) -> ErrorResult {
-        Ok(())
-    }
-
-    fn High(&self) -> f64 {
-        0.0
-    }
-
-    fn SetHigh(&self, _high: f64) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Optimum(&self) -> f64 {
-        0.0
-    }
-
-    fn SetOptimum(&self, _optimum: f64) -> ErrorResult {
-        Ok(())
-    }
-}
-

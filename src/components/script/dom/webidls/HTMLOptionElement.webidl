@@ -1,31 +1,18 @@
 /* -*- Mode: IDL; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/.
- *
- * The origin of this IDL file is
- * http://www.whatwg.org/specs/web-apps/current-work/#the-option-element
- *
- * © Copyright 2004-2011 Apple Computer, Inc., Mozilla Foundation, and
- * Opera Software ASA. You are granted a license to use, reproduce
- * and create derivative works of this document.
- */
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-[NamedConstructor=Option(optional DOMString text, optional DOMString value, optional boolean defaultSelected, optional boolean selected)]
+// http://www.whatwg.org/html/#htmloptionelement
+//[NamedConstructor=Option(optional DOMString text = "", optional DOMString value, optional boolean defaultSelected = false, optional boolean selected = false)]
 interface HTMLOptionElement : HTMLElement {
-           [SetterThrows]
-           attribute boolean disabled;
-  readonly attribute HTMLFormElement? form;
-           [SetterThrows]
-           attribute DOMString label;
-           [SetterThrows]
-           attribute boolean defaultSelected;
-           [SetterThrows]
-           attribute boolean selected;
-           [SetterThrows]
-           attribute DOMString value;
+  //         attribute boolean disabled;
+  //readonly attribute HTMLFormElement? form;
+  //         attribute DOMString label;
+  //         attribute boolean defaultSelected;
+  //         attribute boolean selected;
+  //         attribute DOMString value;
 
-           [SetterThrows]
-           attribute DOMString text;
-  readonly attribute long index;
+  //         attribute DOMString text;
+  //readonly attribute long index;
 };

@@ -6,7 +6,6 @@ use dom::bindings::codegen::BindingDeclarations::HTMLScriptElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLScriptElementDerived;
 use dom::bindings::codegen::InheritTypes::ElementCast;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::{HTMLScriptElementTypeId, Element, AttributeHandlers};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -40,96 +39,11 @@ impl HTMLScriptElement {
 
 pub trait HTMLScriptElementMethods {
     fn Src(&self) -> DOMString;
-    fn SetSrc(&self, _src: DOMString) -> ErrorResult;
-    fn Type(&self) -> DOMString;
-    fn SetType(&self, _type: DOMString) -> ErrorResult;
-    fn Charset(&self) -> DOMString;
-    fn SetCharset(&self, _charset: DOMString) -> ErrorResult;
-    fn Async(&self) -> bool;
-    fn SetAsync(&self, _async: bool) -> ErrorResult;
-    fn Defer(&self) -> bool;
-    fn SetDefer(&self, _defer: bool) -> ErrorResult;
-    fn CrossOrigin(&self) -> DOMString;
-    fn SetCrossOrigin(&self, _cross_origin: DOMString) -> ErrorResult;
-    fn Text(&self) -> DOMString;
-    fn SetText(&self, _text: DOMString) -> ErrorResult;
-    fn Event(&self) -> DOMString;
-    fn SetEvent(&self, _event: DOMString) -> ErrorResult;
-    fn HtmlFor(&self) -> DOMString;
-    fn SetHtmlFor(&self, _html_for: DOMString) -> ErrorResult;
 }
 
 impl<'a> HTMLScriptElementMethods for JSRef<'a, HTMLScriptElement> {
     fn Src(&self) -> DOMString {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
         element.get_url_attribute("src")
-    }
-
-    fn SetSrc(&self, _src: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Type(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetType(&self, _type: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Charset(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetCharset(&self, _charset: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Async(&self) -> bool {
-        false
-    }
-
-    fn SetAsync(&self, _async: bool) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Defer(&self) -> bool {
-        false
-    }
-
-    fn SetDefer(&self, _defer: bool) -> ErrorResult {
-        Ok(())
-    }
-
-    fn CrossOrigin(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetCrossOrigin(&self, _cross_origin: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Text(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetText(&self, _text: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Event(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetEvent(&self, _event: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn HtmlFor(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetHtmlFor(&self, _html_for: DOMString) -> ErrorResult {
-        Ok(())
     }
 }

@@ -5,7 +5,6 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLHRElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLHRElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLHRElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -38,56 +37,4 @@ impl HTMLHRElement {
 }
 
 pub trait HTMLHRElementMethods {
-    fn Align(&self) -> DOMString;
-    fn SetAlign(&self, _align: DOMString) -> ErrorResult;
-    fn Color(&self) -> DOMString;
-    fn SetColor(&self, _color: DOMString) -> ErrorResult;
-    fn NoShade(&self) -> bool;
-    fn SetNoShade(&self, _no_shade: bool) -> ErrorResult;
-    fn Size(&self) -> DOMString;
-    fn SetSize(&self, _size: DOMString) -> ErrorResult;
-    fn Width(&self) -> DOMString;
-    fn SetWidth(&self, _width: DOMString) -> ErrorResult;
-}
-
-impl<'a> HTMLHRElementMethods for JSRef<'a, HTMLHRElement> {
-    fn Align(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetAlign(&self, _align: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Color(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetColor(&self, _color: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn NoShade(&self) -> bool {
-        false
-    }
-
-    fn SetNoShade(&self, _no_shade: bool) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Size(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetSize(&self, _size: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Width(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetWidth(&self, _width: DOMString) -> ErrorResult {
-        Ok(())
-    }
 }

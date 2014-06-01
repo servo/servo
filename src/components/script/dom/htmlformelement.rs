@@ -5,13 +5,11 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLFormElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLFormElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::ErrorResult;
 use dom::document::Document;
-use dom::element::{Element, HTMLFormElementTypeId};
+use dom::element::HTMLFormElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
-use dom::htmlcollection::{HTMLCollection, Static};
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, ElementNodeTypeId, window_from_node};
+use dom::node::{Node, ElementNodeTypeId};
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
@@ -39,127 +37,4 @@ impl HTMLFormElement {
 }
 
 pub trait HTMLFormElementMethods {
-    fn AcceptCharset(&self) -> DOMString;
-    fn SetAcceptCharset(&self, _accept_charset: DOMString) -> ErrorResult;
-    fn Action(&self) -> DOMString;
-    fn SetAction(&self, _action: DOMString) -> ErrorResult;
-    fn Autocomplete(&self) -> DOMString;
-    fn SetAutocomplete(&self, _autocomplete: DOMString) -> ErrorResult;
-    fn Enctype(&self) -> DOMString;
-    fn SetEnctype(&self, _enctype: DOMString) -> ErrorResult;
-    fn Encoding(&self) -> DOMString;
-    fn SetEncoding(&self, _encoding: DOMString) -> ErrorResult;
-    fn Method(&self) -> DOMString;
-    fn SetMethod(&self, _method: DOMString) -> ErrorResult;
-    fn Name(&self) -> DOMString;
-    fn SetName(&self, _name: DOMString) -> ErrorResult;
-    fn NoValidate(&self) -> bool;
-    fn SetNoValidate(&self, _no_validate: bool) -> ErrorResult;
-    fn Target(&self) -> DOMString;
-    fn SetTarget(&self, _target: DOMString) -> ErrorResult;
-    fn Elements(&self) -> Temporary<HTMLCollection>;
-    fn Length(&self) -> i32;
-    fn Submit(&self) -> ErrorResult;
-    fn Reset(&self);
-    fn CheckValidity(&self) -> bool;
-    fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> Temporary<Element>;
-}
-
-impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
-    fn AcceptCharset(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetAcceptCharset(&self, _accept_charset: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Action(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetAction(&self, _action: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Autocomplete(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetAutocomplete(&self, _autocomplete: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Enctype(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetEnctype(&self, _enctype: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Encoding(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetEncoding(&self, _encoding: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Method(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetMethod(&self, _method: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Name(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetName(&self, _name: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn NoValidate(&self) -> bool {
-        false
-    }
-
-    fn SetNoValidate(&self, _no_validate: bool) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Target(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetTarget(&self, _target: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Elements(&self) -> Temporary<HTMLCollection> {
-        // FIXME: https://github.com/mozilla/servo/issues/1844
-        let window = window_from_node(self).root();
-        HTMLCollection::new(&*window, Static(vec!()))
-    }
-
-    fn Length(&self) -> i32 {
-        0
-    }
-
-    fn Submit(&self) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Reset(&self) {
-    }
-
-    fn CheckValidity(&self) -> bool {
-        false
-    }
-
-    fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> Temporary<Element> {
-        fail!("Not implemented.")
-    }
 }

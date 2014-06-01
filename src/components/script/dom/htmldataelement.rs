@@ -5,7 +5,6 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLDataElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLDataElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLDataElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -38,16 +37,4 @@ impl HTMLDataElement {
 }
 
 pub trait HTMLDataElementMethods {
-    fn Value(&self) -> DOMString;
-    fn SetValue(&self, _value: DOMString) -> ErrorResult;
-}
-
-impl<'a> HTMLDataElementMethods for JSRef<'a, HTMLDataElement> {
-    fn Value(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetValue(&self, _value: DOMString) -> ErrorResult {
-        Ok(())
-    }
 }

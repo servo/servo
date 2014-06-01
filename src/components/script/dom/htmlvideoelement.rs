@@ -5,7 +5,6 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLVideoElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLVideoElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLVideoElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -38,46 +37,4 @@ impl HTMLVideoElement {
 }
 
 pub trait HTMLVideoElementMethods {
-    fn Width(&self) -> u32;
-    fn SetWidth(&self, _width: u32) -> ErrorResult;
-    fn Height(&self) -> u32;
-    fn SetHeight(&self, _height: u32) -> ErrorResult;
-    fn VideoWidth(&self) -> u32;
-    fn VideoHeight(&self) -> u32;
-    fn Poster(&self) -> DOMString;
-    fn SetPoster(&self, _poster: DOMString) -> ErrorResult;
-}
-
-impl<'a> HTMLVideoElementMethods for JSRef<'a, HTMLVideoElement> {
-    fn Width(&self) -> u32 {
-        0
-    }
-
-    fn SetWidth(&self, _width: u32) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Height(&self) -> u32 {
-        0
-    }
-
-    fn SetHeight(&self, _height: u32) -> ErrorResult {
-        Ok(())
-    }
-
-    fn VideoWidth(&self) -> u32 {
-        0
-    }
-
-    fn VideoHeight(&self) -> u32 {
-        0
-    }
-
-    fn Poster(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetPoster(&self, _poster: DOMString) -> ErrorResult {
-        Ok(())
-    }
 }

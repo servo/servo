@@ -5,7 +5,6 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLLIElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLLIElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLLIElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -38,26 +37,4 @@ impl HTMLLIElement {
 }
 
 pub trait HTMLLIElementMethods {
-    fn Value(&self) -> i32;
-    fn SetValue(&self, _value: i32) -> ErrorResult;
-    fn Type(&self) -> DOMString;
-    fn SetType(&self, _type: DOMString) -> ErrorResult;
-}
-
-impl<'a> HTMLLIElementMethods for JSRef<'a, HTMLLIElement> {
-    fn Value(&self) -> i32 {
-        0
-    }
-
-    fn SetValue(&self, _value: i32) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Type(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetType(&self, _type: DOMString) -> ErrorResult {
-        Ok(())
-    }
 }

@@ -7,7 +7,6 @@ use dom::bindings::codegen::BindingDeclarations::HTMLElementBinding;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLFrameSetElementDerived};
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::codegen::InheritTypes::{HTMLElementDerived, HTMLBodyElementDerived};
-use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
 use dom::element::{Element, ElementTypeId, HTMLElementTypeId};
@@ -17,9 +16,6 @@ use dom::virtualmethods::VirtualMethods;
 use dom::window::WindowMethods;
 use servo_util::namespace;
 use servo_util::str::DOMString;
-
-use js::jsapi::JSContext;
-use js::jsval::{JSVal, NullValue};
 
 #[deriving(Encodable)]
 pub struct HTMLElement {
@@ -61,158 +57,11 @@ impl<'a> PrivateHTMLElementHelpers for JSRef<'a, HTMLElement> {
 }
 
 pub trait HTMLElementMethods {
-    fn Title(&self) -> DOMString;
-    fn SetTitle(&mut self, _title: DOMString);
-    fn Lang(&self) -> DOMString;
-    fn SetLang(&mut self, _lang: DOMString);
-    fn Dir(&self) -> DOMString;
-    fn SetDir(&mut self, _dir: DOMString) -> ErrorResult;
-    fn GetItemValue(&self, _cx: *mut JSContext) -> Fallible<JSVal>;
-    fn SetItemValue(&mut self, _cx: *mut JSContext, _val: JSVal) -> ErrorResult;
-    fn Hidden(&self) -> bool;
-    fn SetHidden(&mut self, _hidden: bool) -> ErrorResult;
-    fn Click(&self);
-    fn TabIndex(&self) -> i32;
-    fn SetTabIndex(&mut self, _index: i32) -> ErrorResult;
-    fn Focus(&self) -> ErrorResult;
-    fn Blur(&self) -> ErrorResult;
-    fn AccessKey(&self) -> DOMString;
-    fn SetAccessKey(&self, _key: DOMString) -> ErrorResult;
-    fn AccessKeyLabel(&self) -> DOMString;
-    fn Draggable(&self) -> bool;
-    fn SetDraggable(&mut self, _draggable: bool) -> ErrorResult;
-    fn ContentEditable(&self) -> DOMString;
-    fn SetContentEditable(&mut self, _val: DOMString) -> ErrorResult;
-    fn IsContentEditable(&self) -> bool;
-    fn Spellcheck(&self) -> bool;
-    fn SetSpellcheck(&self, _val: bool) -> ErrorResult;
-    fn GetOffsetParent(&self) -> Option<Temporary<Element>>;
-    fn OffsetTop(&self) -> i32;
-    fn OffsetLeft(&self) -> i32;
-    fn OffsetWidth(&self) -> i32;
-    fn OffsetHeight(&self) -> i32;
     fn GetOnload(&self) -> Option<EventHandlerNonNull>;
     fn SetOnload(&mut self, listener: Option<EventHandlerNonNull>);
 }
 
 impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
-    fn Title(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetTitle(&mut self, _title: DOMString) {
-    }
-
-    fn Lang(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetLang(&mut self, _lang: DOMString) {
-    }
-
-    fn Dir(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetDir(&mut self, _dir: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn GetItemValue(&self, _cx: *mut JSContext) -> Fallible<JSVal> {
-        Ok(NullValue())
-    }
-
-    fn SetItemValue(&mut self, _cx: *mut JSContext, _val: JSVal) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Hidden(&self) -> bool {
-        false
-    }
-
-    fn SetHidden(&mut self, _hidden: bool) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Click(&self) {
-    }
-
-    fn TabIndex(&self) -> i32 {
-        0
-    }
-
-    fn SetTabIndex(&mut self, _index: i32) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Focus(&self) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Blur(&self) -> ErrorResult {
-        Ok(())
-    }
-
-    fn AccessKey(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetAccessKey(&self, _key: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn AccessKeyLabel(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn Draggable(&self) -> bool {
-        false
-    }
-
-    fn SetDraggable(&mut self, _draggable: bool) -> ErrorResult {
-        Ok(())
-    }
-
-    fn ContentEditable(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetContentEditable(&mut self, _val: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn IsContentEditable(&self) -> bool {
-        false
-    }
-
-    fn Spellcheck(&self) -> bool {
-        false
-    }
-
-    fn SetSpellcheck(&self, _val: bool) -> ErrorResult {
-        Ok(())
-    }
-
-    fn GetOffsetParent(&self) -> Option<Temporary<Element>> {
-        None
-    }
-
-    fn OffsetTop(&self) -> i32 {
-        0
-    }
-
-    fn OffsetLeft(&self) -> i32 {
-        0
-    }
-
-    fn OffsetWidth(&self) -> i32 {
-        0
-    }
-
-    fn OffsetHeight(&self) -> i32 {
-        0
-    }
-
     fn GetOnload(&self) -> Option<EventHandlerNonNull> {
         if self.is_body_or_frameset() {
             let win = window_from_node(self).root();

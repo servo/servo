@@ -5,7 +5,6 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLUListElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLUListElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLUListElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -38,26 +37,4 @@ impl HTMLUListElement {
 }
 
 pub trait HTMLUListElementMethods {
-    fn Compact(&self) -> bool;
-    fn SetCompact(&self, _compact: bool) -> ErrorResult;
-    fn Type(&self) -> DOMString;
-    fn SetType(&self, _type: DOMString) -> ErrorResult;
-}
-
-impl<'a> HTMLUListElementMethods for JSRef<'a, HTMLUListElement> {
-    fn Compact(&self) -> bool {
-        false
-    }
-
-    fn SetCompact(&self, _compact: bool) -> ErrorResult {
-        Ok(())
-    }
-
-    fn Type(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetType(&self, _type: DOMString) -> ErrorResult {
-        Ok(())
-    }
 }
