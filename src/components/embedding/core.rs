@@ -50,6 +50,7 @@ pub extern "C" fn cef_run_message_loop() {
         n_render_threads: 1,
         cpu_painting: false,
         tile_size: 512,
+        device_pixels_per_px: None,
         profiler_period: None,
         layout_threads: 1,
         //layout_threads: cmp::max(rt::default_sched_threads() * 3 / 4, 1),
