@@ -631,7 +631,7 @@ impl LineBreaker {
 /// Iterator over fragments.
 pub struct FragmentIterator<'a> {
     iter: Enumerate<Items<'a,Fragment>>,
-    map: &'a InlineFragmentMap,
+    ranges: &'a Vec<InlineFragmentRange>,
 }
 
 impl<'a> Iterator<(&'a Fragment, InlineFragmentContext<'a>)> for FragmentIterator<'a> {
@@ -641,7 +641,7 @@ impl<'a> Iterator<(&'a Fragment, InlineFragmentContext<'a>)> for FragmentIterato
             None => None,
             Some((i, fragment)) => Some((
                 fragment,
-                InlineFragmentContext::new(self.map, FragmentIndex(i as int)),
+                InlineFragmentContext::new(self.ranges, FragmentIndex(i as int)),
             )),
         }
     }
@@ -650,7 +650,7 @@ impl<'a> Iterator<(&'a Fragment, InlineFragmentContext<'a>)> for FragmentIterato
 /// Mutable iterator over fragments.
 pub struct MutFragmentIterator<'a> {
     iter: Enumerate<MutItems<'a,Fragment>>,
-    map: &'a InlineFragmentMap,
+    ranges: &'a Vec<InlineFragmentRange>,
 }
 
 impl<'a> Iterator<(&'a mut Fragment, InlineFragmentContext<'a>)> for MutFragmentIterator<'a> {
@@ -660,7 +660,7 @@ impl<'a> Iterator<(&'a mut Fragment, InlineFragmentContext<'a>)> for MutFragment
             None => None,
             Some((i, fragment)) => Some((
                 fragment,
-                InlineFragmentContext::new(self.map, FragmentIndex(i as int)),
+                InlineFragmentContext::new(self.ranges, FragmentIndex(i as int)),
             )),
         }
     }
@@ -670,16 +670,17 @@ impl<'a> Iterator<(&'a mut Fragment, InlineFragmentContext<'a>)> for MutFragment
 pub struct InlineFragments {
     /// The fragments themselves.
     pub fragments: Vec<Fragment>,
-    /// Tracks the elements that made up the fragments above.
-    pub map: InlineFragmentMap,
+    /// Tracks the elements that made up the fragments above. This is used to
+    /// recover the DOM structure from the `fragments` when it's needed.
+    pub ranges: Vec<InlineFragmentRange>,
 }
 
 impl InlineFragments {
     /// Creates an empty set of inline fragments.
     pub fn new() -> InlineFragments {
         InlineFragments {
-            fragments: Vec::new(),
-            map: InlineFragmentMap::new(),
+            fragments: vec![],
+            ranges: vec![],
         }
     }
 
@@ -695,7 +696,7 @@ impl InlineFragments {
 
     /// Pushes a new inline fragment.
     pub fn push(&mut self, fragment: Fragment, style: Arc<ComputedValues>) {
-        self.map.list.push(InlineFragmentRange::new(
+        self.ranges.push(InlineFragmentRange::new(
             style, Range::new(FragmentIndex(self.fragments.len() as int), FragmentIndex(1)),
         ));
         self.fragments.push(fragment)
@@ -705,10 +706,10 @@ impl InlineFragments {
     pub fn push_all(&mut self, other: InlineFragments) {
         let InlineFragments {
             fragments: other_fragments,
-            map: other_map
+            ranges: other_ranges,
         } = other;
         let adjustment = FragmentIndex(self.fragments.len() as int);
-        self.push_all_ranges(other_map, adjustment);
+        self.push_all_ranges(other_ranges, adjustment);
         self.fragments.push_all_move(other_fragments);
     }
 
@@ -716,7 +717,7 @@ impl InlineFragments {
     pub fn iter<'a>(&'a self) -> FragmentIterator<'a> {
         FragmentIterator {
             iter: self.fragments.as_slice().iter().enumerate(),
-            map: &self.map,
+            ranges: &self.ranges,
         }
     }
 
@@ -725,7 +726,7 @@ impl InlineFragments {
     pub fn mut_iter<'a>(&'a mut self) -> MutFragmentIterator<'a> {
         MutFragmentIterator {
             iter: self.fragments.as_mut_slice().mut_iter().enumerate(),
-            map: &self.map,
+            ranges: &self.ranges,
         }
     }
 
@@ -741,16 +742,12 @@ impl InlineFragments {
 
     /// Adds the given node to the fragment map.
     pub fn push_range(&mut self, style: Arc<ComputedValues>, range: Range<FragmentIndex>) {
-        self.map.list.push(InlineFragmentRange::new(style, range))
+        self.ranges.push(InlineFragmentRange::new(style, range))
     }
 
     /// Pushes the ranges in a fragment map, adjusting indices as necessary.
-    fn push_all_ranges(&mut self, other: InlineFragmentMap, adjustment: FragmentIndex) {
-        let InlineFragmentMap {
-            list: other_list
-        } = other;
- 
-        for other_range in other_list.move_iter() {
+    fn push_all_ranges(&mut self, ranges: Vec<InlineFragmentRange>, adjustment: FragmentIndex) {
+        for other_range in ranges.move_iter() {
             let InlineFragmentRange {
                 style: other_style,
                 range: mut other_range
@@ -763,7 +760,7 @@ impl InlineFragments {
 
     /// Returns the range with the given index.
     pub fn get_mut_range<'a>(&'a mut self, index: FragmentIndex) -> &'a mut InlineFragmentRange {
-        self.map.list.get_mut(index.to_uint())
+        self.ranges.get_mut(index.to_uint())
     }
 
     /// Rebuilds the list after the fragments have been split or deleted (for example, for line
@@ -777,7 +774,7 @@ impl InlineFragments {
     /// needlessly has to clone fragments.
     pub fn fixup(&mut self, new_fragments: Vec<Fragment>) {
         // TODO(pcwalton): Post Rust upgrade, use `with_capacity` here.
-        let old_list = mem::replace(&mut self.map.list, vec![]);
+        let old_list = mem::replace(&mut self.ranges, vec![]);
         let mut worklist = vec![];        // FIXME(#2269, pcwalton): was smallvec4
         let mut old_list_iter = old_list.move_iter().peekable();
 
@@ -864,7 +861,7 @@ impl InlineFragments {
                         ..
                     } = worklist.pop().unwrap();
                     let range = Range::new(new_start_index, new_last_index - new_start_index);
-                    self.map.list.push(InlineFragmentRange::new(style, range))
+                    self.ranges.push(InlineFragmentRange::new(style, range))
                 }
             }
         }
@@ -1386,32 +1383,17 @@ impl<'a> Iterator<&'a InlineFragmentRange> for RangeIterator<'a> {
     }
 }
 
-/// Information that inline flows keep about nested elements. This is used to recover the DOM
-/// structure from the flat fragment list when it's needed.
-pub struct InlineFragmentMap {
-    list: Vec<InlineFragmentRange>,
-}
-
-impl InlineFragmentMap {
-    /// Creates a new fragment map.
-    pub fn new() -> InlineFragmentMap {
-        InlineFragmentMap {
-            list: Vec::new(),
-        }
-    }
-}
-
 /// The context that an inline fragment appears in. This allows the fragment map to be passed in
 /// conveniently to various fragment functions.
 pub struct InlineFragmentContext<'a> {
-    map: &'a InlineFragmentMap,
+    ranges: &'a Vec<InlineFragmentRange>,
     index: FragmentIndex,
 }
 
 impl<'a> InlineFragmentContext<'a> {
-    pub fn new<'a>(map: &'a InlineFragmentMap, index: FragmentIndex) -> InlineFragmentContext<'a> {
+    pub fn new<'a>(ranges: &'a Vec<InlineFragmentRange>, index: FragmentIndex) -> InlineFragmentContext<'a> {
         InlineFragmentContext {
-            map: map,
+            ranges: ranges,
             index: index,
         }
     }
@@ -1420,7 +1402,7 @@ impl<'a> InlineFragmentContext<'a> {
     #[inline(always)]
     pub fn ranges(&self) -> RangeIterator<'a> {
         RangeIterator {
-            iter: self.map.list.iter(),
+            iter: self.ranges.iter(),
             index: self.index,
             seen_first: false,
         }
