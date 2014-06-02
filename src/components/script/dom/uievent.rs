@@ -8,7 +8,6 @@ use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, OptionalSettable}
 use dom::bindings::error::Fallible;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{Event, EventMethods, EventTypeId, UIEventTypeId};
-use dom::node::Node;
 use dom::window::Window;
 use servo_util::str::DOMString;
 
@@ -67,16 +66,6 @@ impl UIEvent {
 pub trait UIEventMethods {
     fn GetView(&self) -> Option<Temporary<Window>>;
     fn Detail(&self) -> i32;
-    fn LayerX(&self) -> i32;
-    fn LayerY(&self) -> i32;
-    fn PageX(&self) -> i32;
-    fn PageY(&self) -> i32;
-    fn Which(&self) -> u32;
-    fn GetRangeParent(&self) -> Option<Temporary<Node>>;
-    fn RangeOffset(&self) -> i32;
-    fn CancelBubble(&self) -> bool;
-    fn SetCancelBubble(&self, _val: bool);
-    fn IsChar(&self) -> bool;
     fn InitUIEvent(&mut self,
                    type_: DOMString,
                    can_bubble: bool,
@@ -106,55 +95,6 @@ impl<'a> UIEventMethods for JSRef<'a, UIEvent> {
         }
         self.view.assign(view);
         self.detail = detail;
-    }
-
-    fn LayerX(&self) -> i32 {
-        //TODO
-        0
-    }
-
-    fn LayerY(&self) -> i32 {
-        //TODO
-        0
-    }
-
-    fn PageX(&self) -> i32 {
-        //TODO
-        0
-    }
-
-    fn PageY(&self) -> i32 {
-        //TODO
-        0
-    }
-
-    fn Which(&self) -> u32 {
-        //TODO
-        0
-    }
-
-    fn GetRangeParent(&self) -> Option<Temporary<Node>> {
-        //TODO
-        None
-    }
-
-    fn RangeOffset(&self) -> i32 {
-        //TODO
-        0
-    }
-
-    fn CancelBubble(&self) -> bool {
-        //TODO
-        false
-    }
-
-    fn SetCancelBubble(&self, _val: bool) {
-        //TODO
-    }
-
-    fn IsChar(&self) -> bool {
-        //TODO
-        false
     }
 }
 

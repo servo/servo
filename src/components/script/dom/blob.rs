@@ -7,7 +7,6 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::error::Fallible;
 use dom::bindings::codegen::BindingDeclarations::BlobBinding;
 use dom::window::Window;
-use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
 pub struct Blob {
@@ -35,27 +34,6 @@ impl Blob {
 }
 
 pub trait BlobMethods {
-    fn Size(&self) -> u64;
-    fn Type(&self) -> DOMString;
-    fn Slice(&self, _start: Option<i64>, _end: Option<i64>, _contentType: Option<DOMString>) -> Temporary<Blob>;
-    fn Close(&self);
-}
-
-impl<'a> BlobMethods for JSRef<'a, Blob> {
-    fn Size(&self) -> u64 {
-        0
-    }
-
-    fn Type(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn Slice(&self, _start: Option<i64>, _end: Option<i64>, _contentType: Option<DOMString>) -> Temporary<Blob> {
-        let window = self.window.root();
-        Blob::new(&window.root_ref())
-    }
-
-    fn Close(&self) {}
 }
 
 impl Reflectable for Blob {

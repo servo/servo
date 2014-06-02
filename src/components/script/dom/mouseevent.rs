@@ -25,7 +25,7 @@ pub struct MouseEvent {
     pub shift_key: bool,
     pub alt_key: bool,
     pub meta_key: bool,
-    pub button: u16,
+    pub button: i16,
     pub related_target: Cell<Option<JS<EventTarget>>>
 }
 
@@ -72,7 +72,7 @@ impl MouseEvent {
                altKey: bool,
                shiftKey: bool,
                metaKey: bool,
-               button: u16,
+               button: i16,
                relatedTarget: Option<JSRef<EventTarget>>) -> Temporary<MouseEvent> {
         let mut ev = MouseEvent::new_uninitialized(window).root();
         ev.InitMouseEvent(type_, canBubble, cancelable, view, detail,
@@ -85,9 +85,11 @@ impl MouseEvent {
     pub fn Constructor(owner: &JSRef<Window>,
                        type_: DOMString,
                        init: &MouseEventBinding::MouseEventInit) -> Fallible<Temporary<MouseEvent>> {
-        let event = MouseEvent::new(owner, type_, init.bubbles, init.cancelable,
-                                    init.view.root_ref(),
-                                    init.detail, init.screenX, init.screenY,
+        let event = MouseEvent::new(owner, type_, init.parent.parent.bubbles,
+                                    init.parent.parent.cancelable,
+                                    init.parent.view.root_ref(),
+                                    init.parent.detail,
+                                    init.screenX, init.screenY,
                                     init.clientX, init.clientY, init.ctrlKey,
                                     init.altKey, init.shiftKey, init.metaKey,
                                     init.button, init.relatedTarget.root_ref());
@@ -104,10 +106,8 @@ pub trait MouseEventMethods {
     fn ShiftKey(&self) -> bool;
     fn AltKey(&self) -> bool;
     fn MetaKey(&self) -> bool;
-    fn Button(&self) -> u16;
-    fn Buttons(&self)-> u16;
+    fn Button(&self) -> i16;
     fn GetRelatedTarget(&self) -> Option<Temporary<EventTarget>>;
-    fn GetModifierState(&self, _keyArg: DOMString) -> bool;
     fn InitMouseEvent(&mut self,
                       typeArg: DOMString,
                       canBubbleArg: bool,
@@ -122,7 +122,7 @@ pub trait MouseEventMethods {
                       altKeyArg: bool,
                       shiftKeyArg: bool,
                       metaKeyArg: bool,
-                      buttonArg: u16,
+                      buttonArg: i16,
                       relatedTargetArg: Option<JSRef<EventTarget>>);
 }
 
@@ -159,22 +159,12 @@ impl<'a> MouseEventMethods for JSRef<'a, MouseEvent> {
         self.meta_key
     }
 
-    fn Button(&self) -> u16 {
+    fn Button(&self) -> i16 {
         self.button
-    }
-
-    fn Buttons(&self)-> u16 {
-        //TODO
-        0
     }
 
     fn GetRelatedTarget(&self) -> Option<Temporary<EventTarget>> {
         self.related_target.get().clone().map(|target| Temporary::new(target))
-    }
-
-    fn GetModifierState(&self, _keyArg: DOMString) -> bool {
-        //TODO
-        false
     }
 
     fn InitMouseEvent(&mut self,
@@ -191,7 +181,7 @@ impl<'a> MouseEventMethods for JSRef<'a, MouseEvent> {
                       altKeyArg: bool,
                       shiftKeyArg: bool,
                       metaKeyArg: bool,
-                      buttonArg: u16,
+                      buttonArg: i16,
                       relatedTargetArg: Option<JSRef<EventTarget>>) {
         {
             let uievent: &mut JSRef<UIEvent> = UIEventCast::from_mut_ref(self);
