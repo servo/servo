@@ -127,8 +127,12 @@ impl IOCompositor {
 
         let hidpi_factor = match opts.device_pixels_per_px {
             Some(dppx) => dppx,
-            None => window.hidpi_factor(),
+            None => match opts.output_file {
+                Some(_) => 1.0,
+                None => window.hidpi_factor(),
+            }
         };
+
         root_layer.common.borrow_mut().set_transform(identity().scale(hidpi_factor, hidpi_factor, 1f32));
 
         IOCompositor {
