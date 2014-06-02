@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::BindingDeclarations::DOMExceptionBinding;
-use dom::bindings::codegen::BindingDeclarations::DOMExceptionBinding::DOMExceptionConstants;
+use dom::bindings::codegen::Bindings::DOMExceptionBinding;
+use dom::bindings::codegen::Bindings::DOMExceptionBinding::DOMExceptionConstants;
 use dom::bindings::error;
 use dom::bindings::error::Error;
 use dom::bindings::js::{JSRef, Temporary};

@@ -77,7 +77,7 @@ def main():
     generate_file(config, 'InheritTypes')
 
     # Generate the module declarations.
-    generate_file(config, 'BindingDeclarations')
+    generate_file(config, 'Bindings')
 
     generate_file(config, 'UnionTypes')
 
