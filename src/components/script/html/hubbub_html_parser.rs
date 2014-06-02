@@ -370,7 +370,7 @@ pub fn parse_html(page: &Page,
             // NOTE: tmp vars are workaround for lifetime issues. Both required.
             let tmp_borrow = doc_cell.borrow();
             let tmp = &*tmp_borrow;
-            let mut element = build_element_from_tag(tag.name.clone(), *tmp).root();
+            let element: Root<Element> = build_element_from_tag(tag.name.clone(), *tmp).root();
 
             debug!("-- attach attrs");
             for attr in tag.attributes.iter() {
@@ -381,20 +381,20 @@ pub fn parse_html(page: &Page,
                     XmlNsNs => (namespace::XMLNS, Some("xmlns")),
                     ns => fail!("Not expecting namespace {:?}", ns),
                 };
-                element.set_attribute_from_parser(attr.name.clone(),
-                                                  attr.value.clone(),
-                                                  namespace,
-                                                  prefix.map(|p| p.to_owned()));
+                element.deref().set_attribute_from_parser(attr.name.clone(),
+                                                          attr.value.clone(),
+                                                          namespace,
+                                                          prefix.map(|p| p.to_owned()));
             }
 
             //FIXME: workaround for https://github.com/mozilla/rust/issues/13246;
             //       we get unrooting order failures if these are inside the match.
             let rel = {
-                let rel = element.get_attribute(Null, "rel").root();
+                let rel = element.deref().get_attribute(Null, "rel").root();
                 rel.map(|a| a.deref().Value())
             };
             let href = {
-                let href= element.get_attribute(Null, "href").root();
+                let href= element.deref().get_attribute(Null, "href").root();
                 href.map(|a| a.deref().Value())
             };
 
@@ -421,7 +421,7 @@ pub fn parse_html(page: &Page,
                 _ => {}
             }
 
-            unsafe { element.to_hubbub_node() }
+            unsafe { element.deref().to_hubbub_node() }
         },
         create_text: |data: ~str| {
             debug!("create text");
