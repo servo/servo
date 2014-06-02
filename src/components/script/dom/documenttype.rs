@@ -56,7 +56,7 @@ pub trait DocumentTypeMethods {
     fn Name(&self) -> DOMString;
     fn PublicId(&self) -> DOMString;
     fn SystemId(&self) -> DOMString;
-    fn Remove(&mut self);
+    fn Remove(&self);
 }
 
 impl<'a> DocumentTypeMethods for JSRef<'a, DocumentType> {
@@ -73,8 +73,8 @@ impl<'a> DocumentTypeMethods for JSRef<'a, DocumentType> {
     }
 
     // http://dom.spec.whatwg.org/#dom-childnode-remove
-    fn Remove(&mut self) {
-        let node: &mut JSRef<Node> = NodeCast::from_mut_ref(self);
+    fn Remove(&self) {
+        let node: &JSRef<Node> = NodeCast::from_ref(self);
         node.remove_self();
     }
 }
