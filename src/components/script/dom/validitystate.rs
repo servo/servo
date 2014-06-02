@@ -32,53 +32,6 @@ impl ValidityState {
 }
 
 pub trait ValidityStateMethods {
-    fn ValueMissing(&self) -> bool;
-    fn TypeMismatch(&self) -> bool;
-    fn PatternMismatch(&self) -> bool;
-    fn TooLong(&self) -> bool;
-    fn RangeUnderflow(&self) -> bool;
-    fn RangeOverflow(&self) -> bool;
-    fn StepMismatch(&self) -> bool;
-    fn CustomError(&self) -> bool;
-    fn Valid(&self) -> bool;
-}
-
-impl<'a> ValidityStateMethods for JSRef<'a, ValidityState> {
-    fn ValueMissing(&self) -> bool {
-        false
-    }
-
-    fn TypeMismatch(&self) -> bool {
-        false
-    }
-
-    fn PatternMismatch(&self) -> bool {
-        false
-    }
-
-    fn TooLong(&self) -> bool {
-        false
-    }
-
-    fn RangeUnderflow(&self) -> bool {
-        false
-    }
-
-    fn RangeOverflow(&self) -> bool {
-        false
-    }
-
-    fn StepMismatch(&self) -> bool {
-        false
-    }
-
-    fn CustomError(&self) -> bool {
-        false
-    }
-
-    fn Valid(&self) -> bool {
-        true
-    }
 }
 
 impl Reflectable for ValidityState {

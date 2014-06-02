@@ -11,7 +11,6 @@ use dom::bindings::utils::{Reflectable, Reflector};
 use dom::browsercontext::BrowserContext;
 use dom::console::Console;
 use dom::document::Document;
-use dom::element::Element;
 use dom::eventtarget::{EventTarget, WindowTypeId, EventTargetHelpers};
 use dom::location::Location;
 use dom::navigator::Navigator;
@@ -27,7 +26,7 @@ use servo_util::url::parse_url;
 
 use js::jsapi::JSContext;
 use js::jsapi::{JS_GC, JS_GetRuntime};
-use js::jsval::{NullValue, JSVal};
+use js::jsval::JSVal;
 
 use collections::hashmap::HashMap;
 use std::cell::Cell;
@@ -120,22 +119,9 @@ pub trait WindowMethods {
     fn Alert(&self, s: DOMString);
     fn Close(&self);
     fn Document(&self) -> Temporary<Document>;
-    fn Name(&self) -> DOMString;
-    fn SetName(&self, _name: DOMString);
-    fn Status(&self) -> DOMString;
-    fn SetStatus(&self, _status: DOMString);
-    fn Closed(&self) -> bool;
-    fn Stop(&self);
-    fn Focus(&self);
-    fn Blur(&self);
-    fn GetFrameElement(&self) -> Option<Temporary<Element>>;
     fn Location(&mut self) -> Temporary<Location>;
     fn Console(&mut self) -> Temporary<Console>;
     fn Navigator(&mut self) -> Temporary<Navigator>;
-    fn Confirm(&self, _message: DOMString) -> bool;
-    fn Prompt(&self, _message: DOMString, _default: DOMString) -> Option<DOMString>;
-    fn Print(&self);
-    fn ShowModalDialog(&self, _cx: *mut JSContext, _url: DOMString, _argument: Option<JSVal>) -> JSVal;
     fn SetTimeout(&mut self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32;
     fn ClearTimeout(&mut self, handle: i32);
     fn SetInterval(&mut self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32;
@@ -169,37 +155,6 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         Temporary::new(frame.get_ref().document.clone())
     }
 
-    fn Name(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetName(&self, _name: DOMString) {
-    }
-
-    fn Status(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn SetStatus(&self, _status: DOMString) {
-    }
-
-    fn Closed(&self) -> bool {
-        false
-    }
-
-    fn Stop(&self) {
-    }
-
-    fn Focus(&self) {
-    }
-
-    fn Blur(&self) {
-    }
-
-    fn GetFrameElement(&self) -> Option<Temporary<Element>> {
-        None
-    }
-
     fn Location(&mut self) -> Temporary<Location> {
         if self.location.get().is_none() {
             let page = self.deref().page.clone();
@@ -223,21 +178,6 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
             self.navigator.assign(Some(navigator));
         }
         Temporary::new(self.navigator.get().get_ref().clone())
-    }
-
-    fn Confirm(&self, _message: DOMString) -> bool {
-        false
-    }
-
-    fn Prompt(&self, _message: DOMString, _default: DOMString) -> Option<DOMString> {
-        None
-    }
-
-    fn Print(&self) {
-    }
-
-    fn ShowModalDialog(&self, _cx: *mut JSContext, _url: DOMString, _argument: Option<JSVal>) -> JSVal {
-        NullValue()
     }
 
     fn SetTimeout(&mut self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32 {

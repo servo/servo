@@ -5,7 +5,6 @@
 use dom::bindings::codegen::BindingDeclarations::NavigatorBinding;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::bindings::error::Fallible;
 use dom::window::Window;
 use servo_util::str::DOMString;
 
@@ -29,55 +28,16 @@ impl Navigator {
 }
 
 pub trait NavigatorMethods {
-    fn DoNotTrack(&self) -> DOMString;
-    fn Vendor(&self) -> DOMString;
-    fn VendorSub(&self) -> DOMString;
     fn Product(&self) -> DOMString;
-    fn ProductSub(&self) -> DOMString;
-    fn CookieEnabled(&self) -> bool;
-    fn GetBuildID(&self) -> Fallible<DOMString>;
-    fn JavaEnabled(&self) -> Fallible<bool>;
     fn TaintEnabled(&self) -> bool;
     fn AppName(&self) -> DOMString;
-    fn GetAppCodeName(&self) -> Fallible<DOMString>;
-    fn GetAppVersion(&self) -> Fallible<DOMString>;
-    fn GetPlatform(&self) -> Fallible<DOMString>;
-    fn GetUserAgent(&self) -> Fallible<DOMString>;
-    fn GetLanguage(&self) -> Option<DOMString>;
-    fn OnLine(&self) -> bool;
+    fn AppCodeName(&self) -> DOMString;
+    fn Platform(&self) -> DOMString;
 }
 
 impl<'a> NavigatorMethods for JSRef<'a, Navigator> {
-    fn DoNotTrack(&self) -> DOMString {
-        "unspecified".to_owned()
-    }
-
-    fn Vendor(&self) -> DOMString {
-        "".to_owned() // Like Gecko
-    }
-
-    fn VendorSub(&self) -> DOMString {
-        "".to_owned() // Like Gecko
-    }
-
     fn Product(&self) -> DOMString {
         "Gecko".to_owned()
-    }
-
-    fn ProductSub(&self) -> DOMString {
-        "".to_owned()
-    }
-
-    fn CookieEnabled(&self) -> bool {
-        false
-    }
-
-    fn GetBuildID(&self) -> Fallible<DOMString> {
-        Ok("".to_owned())
-    }
-
-    fn JavaEnabled(&self) -> Fallible<bool> {
-        Ok(false)
     }
 
     fn TaintEnabled(&self) -> bool {
@@ -88,28 +48,12 @@ impl<'a> NavigatorMethods for JSRef<'a, Navigator> {
         "Netscape".to_owned() // Like Gecko/Webkit
     }
 
-    fn GetAppCodeName(&self) -> Fallible<DOMString> {
-        Ok("Mozilla".to_owned()) // Like Gecko/Webkit
+    fn AppCodeName(&self) -> DOMString {
+        "Mozilla".to_owned()
     }
 
-    fn GetAppVersion(&self) -> Fallible<DOMString> {
-        Ok("".to_owned())
-    }
-
-    fn GetPlatform(&self) -> Fallible<DOMString> {
-        Ok("".to_owned())
-    }
-
-    fn GetUserAgent(&self) -> Fallible<DOMString> {
-        Ok("".to_owned())
-    }
-
-    fn GetLanguage(&self) -> Option<DOMString> {
-        None
-    }
-
-    fn OnLine(&self) -> bool {
-        true
+    fn Platform(&self) -> DOMString {
+        "".to_owned()
     }
 }
 
