@@ -82,12 +82,62 @@ pub struct Line {
     /// The ranges that describe these lines would be:
     ///
     /// ~~~
-    /// | [0.0, 1.4) | [1.5, 2.0)  | [2.0, 3.4)  | [3.4, 4.0)  |
-    /// |------------|-------------|-------------|-------------|
-    /// | 'I like'   | 'truffles,' | '<img> yes' | 'yes I do.' |
+    /// | [0.0, 1.4) | [1.5, 2.0)  | [2.0, 3.4)  | [3.4, 4.0) |
+    /// |------------|-------------|-------------|------------|
+    /// | 'I like'   | 'truffles,' | '<img> yes' | 'I do.'    |
     /// ~~~
     pub range: Range<LineIndices>,
+    /// The bounds are the exact position and extents of the line with respect
+    /// to the parent box.
+    ///
+    /// For example, for the HTML below...
+    ///
+    /// ~~~html
+    /// <div><span>I <span>like      truffles, <img></span></div>
+    /// ~~~
+    ///
+    /// ...the bounds would be:
+    ///
+    /// ~~~
+    /// +-----------------------------------------------------------+
+    /// |               ^                                           |
+    /// |               |                                           |
+    /// |            origin.y                                       |
+    /// |               |                                           |
+    /// |               v                                           |
+    /// |< - origin.x ->+ - - - - - - - - +---------+----           |
+    /// |               |                 |         |   ^           |
+    /// |               |                 |  <img>  |  size.height  |
+    /// |               I like truffles,  |         |   v           |
+    /// |               + - - - - - - - - +---------+----           |
+    /// |               |                           |               |
+    /// |               |<------ size.width ------->|               |
+    /// |                                                           |
+    /// |                                                           |
+    /// +-----------------------------------------------------------+
+    /// ~~~
     pub bounds: Rect<Au>,
+    /// The green zone is the greatest extent from wich a line can extend to
+    /// before it collides with a float.
+    ///
+    /// ~~~
+    /// +-----------------------+
+    /// |:::::::::::::::::      |
+    /// |:::::::::::::::::FFFFFF|
+    /// |============:::::FFFFFF|
+    /// |:::::::::::::::::FFFFFF|
+    /// |:::::::::::::::::FFFFFF|
+    /// |:::::::::::::::::      |
+    /// |    FFFFFFFFF          |
+    /// |    FFFFFFFFF          |
+    /// |    FFFFFFFFF          |
+    /// |                       |
+    /// +-----------------------+
+    ///
+    /// === line
+    /// ::: green zone
+    /// FFF float
+    /// ~~~
     pub green_zone: Size2D<Au>
 }
 
@@ -105,7 +155,7 @@ pub struct LineIndices {
     ///
     /// For example, given the HTML below:
     ///
-    /// ~~~
+    /// ~~~html
     /// <span>I <span>like      truffles, <img></span> yes I do.</span>
     /// ~~~
     ///
@@ -117,27 +167,26 @@ pub struct LineIndices {
     /// | 'I ' | 'like truffles,' | <img> | ' yes I do.' |
     /// ~~~
     pub fragment_index: FragmentIndex,
-
     /// The index of a character in a DOM fragment. Continuous runs of whitespace
-    /// are treated as single characters. Non-breakable DOM
-    /// fragments such as images are treated as having a range length of `1`.
+    /// are treated as single characters. Non-breakable DOM fragments such as
+    /// images are treated as having a range length of `1`.
     ///
     /// For example, given the HTML below:
     ///
-    /// ~~~
+    /// ~~~html
     /// <span>I <span>like      truffles, <img></span> yes I do.</span>
     /// ~~~
     ///
     /// The characters would be indexed as follows:
     ///
     /// ~~~
-    /// | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
-    /// |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|----|
-    /// | I |   | l | i | k | e | e | l | i | k | e |   | t | r | u | f | f | l  |
+    /// | 0 | 1 | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 |
+    /// |---|---|---|---|---|---|---|---|---|---|---|---|----|----|----|----|----|
+    /// | I |   | l | i | k | e |   | t | r | u | f | f | l  | e  | s  | ,  |    |
     ///
-    /// | 11 | 12 | 13 | 14 |   0   | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
-    /// |----|----|----|----|-------|---|---|---|---|---|---|---|---|---|---|
-    /// | e  | s  | ,  |    | <img> |   | y | e | s |   | I |   | d | o | . |
+    /// |   0   | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
+    /// |-------|---|---|---|---|---|---|---|---|---|---|
+    /// | <img> |   | y | e | s |   | I |   | d | o | . |
     /// ~~~
     pub char_index: CharIndex,
 }
@@ -252,57 +301,51 @@ impl LineBreaker {
     pub fn scan_for_lines(&mut self, flow: &mut InlineFlow) {
         self.reset_scanner();
 
-        // Swap out temporarily.
-        let InlineFragments {
-            fragments: old_fragments,
-            map: mut map
-        } = mem::replace(&mut flow.fragments, InlineFragments::new());
+        let mut old_fragments = mem::replace(&mut flow.fragments, InlineFragments::new());
 
-        let mut old_fragment_iter = old_fragments.iter();
-        loop {
-            // acquire the next fragment to lay out from work list or fragment list
-            let cur_fragment = if self.work_list.is_empty() {
-                match old_fragment_iter.next() {
-                    None => break,
-                    Some(fragment) => {
-                        debug!("LineBreaker: Working with fragment from flow: b{}",
-                               fragment.debug_id());
-                        (*fragment).clone()
+        { // Enter a new scope so that old_fragment_iter's borrow is released
+            let mut old_fragment_iter = old_fragments.fragments.iter();
+            loop {
+                // acquire the next fragment to lay out from work list or fragment list
+                let cur_fragment = if self.work_list.is_empty() {
+                    match old_fragment_iter.next() {
+                        None => break,
+                        Some(fragment) => {
+                            debug!("LineBreaker: Working with fragment from flow: b{}",
+                                   fragment.debug_id());
+                            (*fragment).clone()
+                        }
                     }
+                } else {
+                    let fragment = self.work_list.pop_front().unwrap();
+                    debug!("LineBreaker: Working with fragment from work list: b{}",
+                           fragment.debug_id());
+                    fragment
+                };
+
+                let fragment_was_appended = match cur_fragment.white_space() {
+                    white_space::normal => self.try_append_to_line(cur_fragment, flow),
+                    white_space::pre => self.try_append_to_line_by_new_line(cur_fragment),
+                };
+
+                if !fragment_was_appended {
+                    debug!("LineBreaker: Fragment wasn't appended, because line {:u} was full.",
+                            self.lines.len());
+                    self.flush_current_line();
+                } else {
+                    debug!("LineBreaker: appended a fragment to line {:u}", self.lines.len());
                 }
-            } else {
-                let fragment = self.work_list.pop_front().unwrap();
-                debug!("LineBreaker: Working with fragment from work list: b{}",
-                       fragment.debug_id());
-                fragment
-            };
+            }
 
-            let fragment_was_appended = match cur_fragment.white_space() {
-                white_space::normal => self.try_append_to_line(cur_fragment, flow),
-                white_space::pre => self.try_append_to_line_by_new_line(cur_fragment),
-            };
-
-            if !fragment_was_appended {
-                debug!("LineBreaker: Fragment wasn't appended, because line {:u} was full.",
+            if self.pending_line.range.length() > num::zero() {
+                debug!("LineBreaker: Partially full line {:u} left at end of scanning.",
                         self.lines.len());
                 self.flush_current_line();
-            } else {
-                debug!("LineBreaker: appended a fragment to line {:u}", self.lines.len());
             }
         }
 
-        if self.pending_line.range.length() > num::zero() {
-            debug!("LineBreaker: Partially full line {:u} left at end of scanning.",
-                    self.lines.len());
-            self.flush_current_line();
-        }
-
-        map.fixup(old_fragments.as_slice(), self.new_fragments.as_slice());
-        flow.fragments = InlineFragments {
-            fragments: mem::replace(&mut self.new_fragments, Vec::new()),
-            map: map,
-        };
-
+        old_fragments.fixup(mem::replace(&mut self.new_fragments, vec![]));
+        flow.fragments = old_fragments;
         flow.lines = mem::replace(&mut self.lines, Vec::new());
     }
 
@@ -588,7 +631,7 @@ impl LineBreaker {
 /// Iterator over fragments.
 pub struct FragmentIterator<'a> {
     iter: Enumerate<Items<'a,Fragment>>,
-    map: &'a InlineFragmentMap,
+    ranges: &'a Vec<InlineFragmentRange>,
 }
 
 impl<'a> Iterator<(&'a Fragment, InlineFragmentContext<'a>)> for FragmentIterator<'a> {
@@ -598,7 +641,7 @@ impl<'a> Iterator<(&'a Fragment, InlineFragmentContext<'a>)> for FragmentIterato
             None => None,
             Some((i, fragment)) => Some((
                 fragment,
-                InlineFragmentContext::new(self.map, FragmentIndex(i as int)),
+                InlineFragmentContext::new(self.ranges, FragmentIndex(i as int)),
             )),
         }
     }
@@ -607,7 +650,7 @@ impl<'a> Iterator<(&'a Fragment, InlineFragmentContext<'a>)> for FragmentIterato
 /// Mutable iterator over fragments.
 pub struct MutFragmentIterator<'a> {
     iter: Enumerate<MutItems<'a,Fragment>>,
-    map: &'a InlineFragmentMap,
+    ranges: &'a Vec<InlineFragmentRange>,
 }
 
 impl<'a> Iterator<(&'a mut Fragment, InlineFragmentContext<'a>)> for MutFragmentIterator<'a> {
@@ -617,7 +660,7 @@ impl<'a> Iterator<(&'a mut Fragment, InlineFragmentContext<'a>)> for MutFragment
             None => None,
             Some((i, fragment)) => Some((
                 fragment,
-                InlineFragmentContext::new(self.map, FragmentIndex(i as int)),
+                InlineFragmentContext::new(self.ranges, FragmentIndex(i as int)),
             )),
         }
     }
@@ -627,16 +670,17 @@ impl<'a> Iterator<(&'a mut Fragment, InlineFragmentContext<'a>)> for MutFragment
 pub struct InlineFragments {
     /// The fragments themselves.
     pub fragments: Vec<Fragment>,
-    /// Tracks the elements that made up the fragments above.
-    pub map: InlineFragmentMap,
+    /// Tracks the elements that made up the fragments above. This is used to
+    /// recover the DOM structure from the `fragments` when it's needed.
+    pub ranges: Vec<InlineFragmentRange>,
 }
 
 impl InlineFragments {
     /// Creates an empty set of inline fragments.
     pub fn new() -> InlineFragments {
         InlineFragments {
-            fragments: Vec::new(),
-            map: InlineFragmentMap::new(),
+            fragments: vec![],
+            ranges: vec![],
         }
     }
 
@@ -652,26 +696,24 @@ impl InlineFragments {
 
     /// Pushes a new inline fragment.
     pub fn push(&mut self, fragment: Fragment, style: Arc<ComputedValues>) {
-        self.map.push(style, Range::new(FragmentIndex(self.fragments.len() as int), FragmentIndex(1)));
+        self.ranges.push(InlineFragmentRange::new(
+            style, Range::new(FragmentIndex(self.fragments.len() as int), FragmentIndex(1)),
+        ));
         self.fragments.push(fragment)
     }
 
     /// Merges another set of inline fragments with this one.
-    pub fn push_all(&mut self, other: InlineFragments) {
-        let InlineFragments {
-            fragments: other_fragments,
-            map: other_map
-        } = other;
+    pub fn push_all(&mut self, InlineFragments { fragments, ranges }: InlineFragments) {
         let adjustment = FragmentIndex(self.fragments.len() as int);
-        self.map.push_all(other_map, adjustment);
-        self.fragments.push_all_move(other_fragments);
+        self.push_all_ranges(ranges, adjustment);
+        self.fragments.push_all_move(fragments);
     }
 
     /// Returns an iterator that iterates over all fragments along with the appropriate context.
     pub fn iter<'a>(&'a self) -> FragmentIterator<'a> {
         FragmentIterator {
             iter: self.fragments.as_slice().iter().enumerate(),
-            map: &self.map,
+            ranges: &self.ranges,
         }
     }
 
@@ -680,7 +722,7 @@ impl InlineFragments {
     pub fn mut_iter<'a>(&'a mut self) -> MutFragmentIterator<'a> {
         MutFragmentIterator {
             iter: self.fragments.as_mut_slice().mut_iter().enumerate(),
-            map: &self.map,
+            ranges: &self.ranges,
         }
     }
 
@@ -692,6 +734,171 @@ impl InlineFragments {
     /// A convenience function to return a mutable reference to the fragment at a given index.
     pub fn get_mut<'a>(&'a mut self, index: uint) -> &'a mut Fragment {
         self.fragments.get_mut(index)
+    }
+
+    /// Adds the given node to the fragment map.
+    pub fn push_range(&mut self, style: Arc<ComputedValues>, range: Range<FragmentIndex>) {
+        self.ranges.push(InlineFragmentRange::new(style, range))
+    }
+
+    /// Pushes the ranges in a fragment map, adjusting indices as necessary.
+    fn push_all_ranges(&mut self, ranges: Vec<InlineFragmentRange>, adjustment: FragmentIndex) {
+        for other_range in ranges.move_iter() {
+            let InlineFragmentRange {
+                style: other_style,
+                range: mut other_range
+            } = other_range;
+ 
+            other_range.shift_by(adjustment);
+            self.push_range(other_style, other_range)
+        }
+    }
+
+    /// Returns the range with the given index.
+    pub fn get_mut_range<'a>(&'a mut self, index: FragmentIndex) -> &'a mut InlineFragmentRange {
+        self.ranges.get_mut(index.to_uint())
+    }
+
+    /// Rebuilds the list after the fragments have been split or deleted (for example, for line
+    /// breaking). This assumes that the overall structure of the DOM has not changed; if the
+    /// DOM has changed, then the flow constructor will need to do more complicated surgery than
+    /// this function can provide.
+    ///
+    /// FIXME(#2267, pcwalton): It would be more efficient to not have to clone fragments all the time;
+    /// i.e. if `self.fragments` contained less info than the entire range of fragments. See
+    /// `layout::construct::strip_ignorable_whitespace_from_start` for an example of some code that
+    /// needlessly has to clone fragments.
+    pub fn fixup(&mut self, new_fragments: Vec<Fragment>) {
+        // TODO(pcwalton): Post Rust upgrade, use `with_capacity` here.
+        let old_list = mem::replace(&mut self.ranges, vec![]);
+        let mut worklist = vec![];        // FIXME(#2269, pcwalton): was smallvec4
+        let mut old_list_iter = old_list.move_iter().peekable();
+
+        { // Enter a new scope so that new_fragments_iter's borrow is released
+            let mut new_fragments_iter = new_fragments.iter().enumerate().peekable();
+            // FIXME(#2270, pcwalton): I don't think this will work if multiple old fragments
+            // correspond to the same node.
+            for (i, old_fragment) in self.fragments.iter().enumerate() {
+                let old_fragment_index = FragmentIndex(i as int);
+                // Find the start of the corresponding new fragment.
+                let new_fragment_start = match new_fragments_iter.peek() {
+                    Some(&(index, new_fragment)) if new_fragment.node == old_fragment.node => {
+                        // We found the start of the corresponding new fragment.
+                        FragmentIndex(index as int)
+                    }
+                    Some(_) | None => {
+                        // The old fragment got deleted entirely.
+                        continue
+                    }
+                };
+                drop(new_fragments_iter.next());
+
+                // Eat any additional fragments that the old fragment got split into.
+                loop {
+                    match new_fragments_iter.peek() {
+                        Some(&(_, new_fragment)) if new_fragment.node == old_fragment.node => {}
+                        Some(_) | None => break,
+                    }
+                    drop(new_fragments_iter.next());
+                }
+
+                // Find all ranges that started at this old fragment and add them onto the worklist.
+                loop {
+                    match old_list_iter.peek() {
+                        None => break,
+                        Some(fragment_range) => {
+                            if fragment_range.range.begin() > old_fragment_index {
+                                // We haven't gotten to the appropriate old fragment yet, so stop.
+                                break
+                            }
+                            // Note that it can be the case that `fragment_range.range.begin() < i`.
+                            // This is OK, as it corresponds to the case in which a fragment got
+                            // deleted entirely (e.g. ignorable whitespace got nuked). In that case we
+                            // want to keep the range, but shorten it.
+                        }
+                    };
+
+                    let InlineFragmentRange {
+                        style: style,
+                        range: old_range,
+                    } = old_list_iter.next().unwrap();
+                    worklist.push(InlineFragmentFixupWorkItem {
+                        style: style,
+                        new_start_index: new_fragment_start,
+                        old_end_index: old_range.end(),
+                    });
+                }
+
+                // Pop off any ranges that ended at this fragment.
+                loop {
+                    match worklist.as_slice().last() {
+                        None => break,
+                        Some(last_work_item) => {
+                            if last_work_item.old_end_index > old_fragment_index + FragmentIndex(1) {
+                                // Haven't gotten to it yet.
+                                break
+                            }
+                        }
+                    }
+
+                    let new_last_index = match new_fragments_iter.peek() {
+                        None => {
+                            // At the end.
+                            FragmentIndex(new_fragments.len() as int)
+                        }
+                        Some(&(index, _)) => {
+                            FragmentIndex(index as int)
+                        },
+                    };
+
+                    let InlineFragmentFixupWorkItem {
+                        style,
+                        new_start_index,
+                        ..
+                    } = worklist.pop().unwrap();
+                    let range = Range::new(new_start_index, new_last_index - new_start_index);
+                    self.ranges.push(InlineFragmentRange::new(style, range))
+                }
+            }
+        }
+        self.fragments = new_fragments;
+    }
+
+    /// Strips ignorable whitespace from the start of a list of fragments.
+    pub fn strip_ignorable_whitespace_from_start(&mut self) {
+        if self.is_empty() {
+            return;
+        }
+
+        // FIXME(#2264, pcwalton): This is slow because vector shift is broken. :(
+        let mut found_nonwhitespace = false;
+        let mut new_fragments = Vec::new();
+        for fragment in self.fragments.iter() {
+            if !found_nonwhitespace && fragment.is_whitespace_only() {
+                debug!("stripping ignorable whitespace from start");
+                continue;
+            }
+
+            found_nonwhitespace = true;
+            new_fragments.push(fragment.clone())
+        }
+
+        self.fixup(new_fragments);
+    }
+
+    /// Strips ignorable whitespace from the end of a list of fragments.
+    pub fn strip_ignorable_whitespace_from_end(&mut self) {
+        if self.is_empty() {
+            return;
+        }
+
+        let mut new_fragments = self.fragments.clone();
+        while new_fragments.len() > 0 && new_fragments.as_slice().last().get_ref().is_whitespace_only() {
+            debug!("stripping ignorable whitespace from end");
+            drop(new_fragments.pop());
+        }
+
+        self.fixup(new_fragments);
     }
 }
 
@@ -1172,178 +1379,29 @@ impl<'a> Iterator<&'a InlineFragmentRange> for RangeIterator<'a> {
     }
 }
 
-/// Information that inline flows keep about nested elements. This is used to recover the DOM
-/// structure from the flat fragment list when it's needed.
-pub struct InlineFragmentMap {
-    list: Vec<InlineFragmentRange>,
-}
-
-impl InlineFragmentMap {
-    /// Creates a new fragment map.
-    pub fn new() -> InlineFragmentMap {
-        InlineFragmentMap {
-            list: Vec::new(),
-        }
-    }
-
-    /// Adds the given node to the fragment map.
-    pub fn push(&mut self, style: Arc<ComputedValues>, range: Range<FragmentIndex>) {
-        self.list.push(InlineFragmentRange::new(style, range))
-    }
-
-    /// Pushes the ranges in another fragment map onto the end of this one, adjusting indices as
-    /// necessary.
-    fn push_all(&mut self, other: InlineFragmentMap, adjustment: FragmentIndex) {
-        let InlineFragmentMap {
-            list: other_list
-        } = other;
-
-        for other_range in other_list.move_iter() {
-            let InlineFragmentRange {
-                style: other_style,
-                range: mut other_range
-            } = other_range;
-
-            other_range.shift_by(adjustment);
-            self.push(other_style, other_range)
-        }
-    }
-
-    /// Returns the range with the given index.
-    pub fn get_mut<'a>(&'a mut self, index: FragmentIndex) -> &'a mut InlineFragmentRange {
-        &mut self.list.as_mut_slice()[index.to_uint()]
-    }
-
-    /// Iterates over all ranges that contain the fragment with the given index, outermost first.
-    #[inline(always)]
-    fn ranges_for_index<'a>(&'a self, index: FragmentIndex) -> RangeIterator<'a> {
-        RangeIterator {
-            iter: self.list.as_slice().iter(),
-            index: index,
-            seen_first: false,
-        }
-    }
-
-    /// Rebuilds the list after the fragments have been split or deleted (for example, for line
-    /// breaking). This assumes that the overall structure of the DOM has not changed; if the
-    /// DOM has changed, then the flow constructor will need to do more complicated surgery than
-    /// this function can provide.
-    ///
-    /// FIXME(#2267, pcwalton): It would be more efficient to not have to clone fragments all the time;
-    /// i.e. if `old_fragments` contained less info than the entire range of fragments. See
-    /// `layout::construct::strip_ignorable_whitespace_from_start` for an example of some code that
-    /// needlessly has to clone fragments.
-    pub fn fixup(&mut self, old_fragments: &[Fragment], new_fragments: &[Fragment]) {
-        // TODO(pcwalton): Post Rust upgrade, use `with_capacity` here.
-        let old_list = mem::replace(&mut self.list, Vec::new());
-        let mut worklist = Vec::new();        // FIXME(#2269, pcwalton): was smallvec4
-        let mut old_list_iter = old_list.move_iter().peekable();
-        let mut new_fragments_iter = new_fragments.iter().enumerate().peekable();
-
-        // FIXME(#2270, pcwalton): I don't think this will work if multiple old fragments
-        // correspond to the same node.
-        for (i, old_fragment) in old_fragments.iter().enumerate() {
-            let old_fragment_index = FragmentIndex(i as int);
-            // Find the start of the corresponding new fragment.
-            let new_fragment_start = match new_fragments_iter.peek() {
-                Some(&(index, new_fragment)) if new_fragment.node == old_fragment.node => {
-                    // We found the start of the corresponding new fragment.
-                    FragmentIndex(index as int)
-                }
-                Some(_) | None => {
-                    // The old fragment got deleted entirely.
-                    continue
-                }
-            };
-            drop(new_fragments_iter.next());
-
-            // Eat any additional fragments that the old fragment got split into.
-            loop {
-                match new_fragments_iter.peek() {
-                    Some(&(_, new_fragment)) if new_fragment.node == old_fragment.node => {}
-                    Some(_) | None => break,
-                }
-                drop(new_fragments_iter.next());
-            }
-
-            // Find all ranges that started at this old fragment and add them onto the worklist.
-            loop {
-                match old_list_iter.peek() {
-                    None => break,
-                    Some(fragment_range) => {
-                        if fragment_range.range.begin() > old_fragment_index {
-                            // We haven't gotten to the appropriate old fragment yet, so stop.
-                            break
-                        }
-                        // Note that it can be the case that `fragment_range.range.begin() < i`.
-                        // This is OK, as it corresponds to the case in which a fragment got
-                        // deleted entirely (e.g. ignorable whitespace got nuked). In that case we
-                        // want to keep the range, but shorten it.
-                    }
-                };
-
-                let InlineFragmentRange {
-                    style: style,
-                    range: old_range,
-                } = old_list_iter.next().unwrap();
-                worklist.push(InlineFragmentFixupWorkItem {
-                    style: style,
-                    new_start_index: new_fragment_start,
-                    old_end_index: old_range.end(),
-                });
-            }
-
-            // Pop off any ranges that ended at this fragment.
-            loop {
-                match worklist.as_slice().last() {
-                    None => break,
-                    Some(last_work_item) => {
-                        if last_work_item.old_end_index > old_fragment_index + FragmentIndex(1) {
-                            // Haven't gotten to it yet.
-                            break
-                        }
-                    }
-                }
-
-                let new_last_index = match new_fragments_iter.peek() {
-                    None => {
-                        // At the end.
-                        FragmentIndex(new_fragments.len() as int)
-                    }
-                    Some(&(index, _)) => {
-                        FragmentIndex(index as int)
-                    },
-                };
-
-                let InlineFragmentFixupWorkItem {
-                    style,
-                    new_start_index,
-                    ..
-                } = worklist.pop().unwrap();
-                let range = Range::new(new_start_index, new_last_index - new_start_index);
-                self.list.push(InlineFragmentRange::new(style, range))
-            }
-        }
-    }
-}
-
 /// The context that an inline fragment appears in. This allows the fragment map to be passed in
 /// conveniently to various fragment functions.
 pub struct InlineFragmentContext<'a> {
-    map: &'a InlineFragmentMap,
+    ranges: &'a Vec<InlineFragmentRange>,
     index: FragmentIndex,
 }
 
 impl<'a> InlineFragmentContext<'a> {
-    pub fn new<'a>(map: &'a InlineFragmentMap, index: FragmentIndex) -> InlineFragmentContext<'a> {
+    pub fn new<'a>(ranges: &'a Vec<InlineFragmentRange>, index: FragmentIndex) -> InlineFragmentContext<'a> {
         InlineFragmentContext {
-            map: map,
+            ranges: ranges,
             index: index,
         }
     }
 
+    /// Iterates over all ranges that contain the fragment at context's index, outermost first.
+    #[inline(always)]
     pub fn ranges(&self) -> RangeIterator<'a> {
-        self.map.ranges_for_index(self.index)
+        RangeIterator {
+            iter: self.ranges.iter(),
+            index: self.index,
+            seen_first: false,
+        }
     }
 }
 

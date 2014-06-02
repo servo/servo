@@ -185,7 +185,7 @@ impl InlineFragmentsAccumulator {
 
     fn from_inline_node(node: &ThreadSafeLayoutNode) -> InlineFragmentsAccumulator {
         let mut fragments = InlineFragments::new();
-        fragments.map.push(node.style().clone(), Range::empty());
+        fragments.push_range(node.style().clone(), Range::empty());
         InlineFragmentsAccumulator {
             fragments: fragments,
             has_enclosing_range: true,
@@ -200,7 +200,7 @@ impl InlineFragmentsAccumulator {
 
         if has_enclosing_range {
             let len = FragmentIndex(fragments.len() as int);
-            fragments.map.get_mut(FragmentIndex(0)).range.extend_to(len);
+            fragments.get_mut_range(FragmentIndex(0)).range.extend_to(len);
         }
         fragments
     }
@@ -307,23 +307,17 @@ impl<'a> FlowConstructor<'a> {
                                           whitespace_stripping: WhitespaceStrippingMode,
                                           node: &ThreadSafeLayoutNode) {
         let mut fragments = fragment_accumulator.finish();
-        if fragments.len() == 0 {
-            return
-        }
+        if fragments.is_empty() { return };
 
         match whitespace_stripping {
             NoWhitespaceStripping => {}
             StripWhitespaceFromStart => {
-                strip_ignorable_whitespace_from_start(&mut fragments);
-                if fragments.len() == 0 {
-                    return
-                }
+                fragments.strip_ignorable_whitespace_from_start();
+                if fragments.is_empty() { return };
             }
             StripWhitespaceFromEnd => {
-                strip_ignorable_whitespace_from_end(&mut fragments);
-                if fragments.len() == 0 {
-                    return
-                }
+                fragments.strip_ignorable_whitespace_from_end();
+                if fragments.is_empty() { return };
             }
         }
 
@@ -1082,60 +1076,5 @@ impl<'ln> ObjectElement for ThreadSafeLayoutNode<'ln> {
             (None, Some(uri)) if is_image_data(uri) => Some(parse_url(uri, Some(base_url.clone()))),
             _ => None
         }
-    }
-}
-
-/// Strips ignorable whitespace from the start of a list of fragments.
-fn strip_ignorable_whitespace_from_start(fragments: &mut InlineFragments) {
-    if fragments.len() == 0 {
-        return
-    }
-
-    let InlineFragments {
-        fragments: old_fragments,
-        map: mut map
-    } = mem::replace(fragments, InlineFragments::new());
-
-    // FIXME(#2264, pcwalton): This is slow because vector shift is broken. :(
-    let mut found_nonwhitespace = false;
-    let mut new_fragments = Vec::new();
-    for fragment in old_fragments.iter() {
-        if !found_nonwhitespace && fragment.is_whitespace_only() {
-            debug!("stripping ignorable whitespace from start");
-            continue
-        }
-
-        found_nonwhitespace = true;
-        new_fragments.push(fragment.clone())
-    }
-
-    map.fixup(old_fragments.as_slice(), new_fragments.as_slice());
-    *fragments = InlineFragments {
-        fragments: new_fragments,
-        map: map,
-    }
-}
-
-/// Strips ignorable whitespace from the end of a list of fragments.
-fn strip_ignorable_whitespace_from_end(fragments: &mut InlineFragments) {
-    if fragments.len() == 0 {
-        return
-    }
-
-    let InlineFragments {
-        fragments: old_fragments,
-        map: mut map
-    } = mem::replace(fragments, InlineFragments::new());
-
-    let mut new_fragments = old_fragments.clone();
-    while new_fragments.len() > 0 && new_fragments.as_slice().last().get_ref().is_whitespace_only() {
-        debug!("stripping ignorable whitespace from end");
-        drop(new_fragments.pop());
-    }
-
-    map.fixup(old_fragments.as_slice(), new_fragments.as_slice());
-    *fragments = InlineFragments {
-        fragments: new_fragments,
-        map: map,
     }
 }
