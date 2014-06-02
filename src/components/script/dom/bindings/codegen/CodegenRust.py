@@ -4123,25 +4123,26 @@ class CGDictionary(CGThing):
         return declType.define()
 
     def getMemberConversion(self, memberInfo):
+        def indent(s):
+            return CGIndenter(CGGeneric(s), 8).define()
+
         member, (templateBody, default, declType, _) = memberInfo
         if not member.defaultValue:
             raise TypeError("We don't support dictionary members without a "
                             "default value.")
 
-        replacements = { "val": "value.unwrap()" }
+        replacements = { "val": "value" }
         conversion = string.Template(templateBody).substitute(replacements)
-        conversion = CGIndenter(
-            CGIfElseWrapper("value.is_some()",
-                            CGGeneric(conversion),
-                            CGGeneric(default)), 8).define()
-
         conversion = (
             "match get_dictionary_property(cx, object, \"%s\") {\n"
             "    Err(()) => return Err(()),\n"
-            "    Ok(value) => {\n"
+            "    Ok(Some(value)) => {\n"
             "%s\n"
             "    },\n"
-            "}") % (member.identifier.name, conversion)
+            "    Ok(None) => {\n"
+            "%s\n"
+            "    },\n"
+            "}") % (member.identifier.name, indent(conversion), indent(default))
 
         return CGGeneric(conversion)
 
