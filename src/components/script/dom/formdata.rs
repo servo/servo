@@ -4,7 +4,7 @@
 
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::error::{Fallible};
-use dom::bindings::codegen::BindingDeclarations::FormDataBinding;
+use dom::bindings::codegen::Bindings::FormDataBinding;
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalUnrootable};
 use dom::blob::Blob;
 use dom::htmlformelement::HTMLFormElement;

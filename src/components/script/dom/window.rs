@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::BindingDeclarations::EventHandlerBinding::{OnErrorEventHandlerNonNull, EventHandlerNonNull};
-use dom::bindings::codegen::BindingDeclarations::WindowBinding;
+use dom::bindings::codegen::Bindings::EventHandlerBinding::{OnErrorEventHandlerNonNull, EventHandlerNonNull};
+use dom::bindings::codegen::Bindings::WindowBinding;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalSettable};
 use dom::bindings::trace::{Traceable, Untraceable};

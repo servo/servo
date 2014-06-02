@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::AttrMethods;
-use dom::bindings::codegen::BindingDeclarations::HTMLObjectElementBinding;
+use dom::bindings::codegen::Bindings::HTMLObjectElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLObjectElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::js::{JSRef, Temporary};

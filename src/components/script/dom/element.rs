@@ -6,7 +6,7 @@
 
 use dom::attr::{Attr, ReplacedAttr, FirstSetAttr, AttrMethods};
 use dom::attrlist::AttrList;
-use dom::bindings::codegen::BindingDeclarations::ElementBinding;
+use dom::bindings::codegen::Bindings::ElementBinding;
 use dom::bindings::codegen::InheritTypes::{ElementDerived, NodeCast};
 use dom::bindings::js::{JS, JSRef, Temporary, TemporaryPushable};
 use dom::bindings::js::{OptionalSettable, OptionalRootable, Root};

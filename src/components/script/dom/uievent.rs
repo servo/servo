@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::BindingDeclarations::UIEventBinding;
+use dom::bindings::codegen::Bindings::UIEventBinding;
 use dom::bindings::codegen::InheritTypes::{EventCast, UIEventDerived};
 use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, OptionalSettable};
 use dom::bindings::error::Fallible;

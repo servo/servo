@@ -52,7 +52,7 @@ pub mod dom {
             pub mod InheritTypes;
             pub mod PrototypeList;
             pub mod RegisterBindings;
-            pub mod BindingDeclarations;
+            pub mod Bindings;
             pub mod UnionTypes;
         }
     }

@@ -4169,7 +4169,7 @@ class CGRegisterProtos(CGAbstractMethod):
         self.config = config
 
     def _registerProtos(self):
-        lines = ["  codegen::BindingDeclarations::%sBinding::DefineDOMInterface(window, js_info);" % desc.name
+        lines = ["  codegen::Bindings::%sBinding::DefineDOMInterface(window, js_info);" % desc.name
                  for desc in self.config.getDescriptors(hasInterfaceObject=True,
                                                         register=True)]
         return '\n'.join(lines) + '\n'
@@ -4298,7 +4298,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::conversions::IDLInterface',
             'dom::bindings::conversions::{Default, Empty}',
             'dom::bindings::codegen::*',
-            'dom::bindings::codegen::BindingDeclarations::*',
+            'dom::bindings::codegen::Bindings::*',
             'dom::bindings::codegen::UnionTypes::*',
             'dom::bindings::error::{FailureUnknown, Fallible, Error, ErrorResult}',
             'dom::bindings::error::throw_dom_exception',
@@ -5191,7 +5191,7 @@ class GlobalGenRoots():
 
         def pathToType(descriptor):
             if descriptor.interface.isCallback():
-                return "dom::bindings::codegen::BindingDeclarations::%sBinding" % descriptor.name
+                return "dom::bindings::codegen::Bindings::%sBinding" % descriptor.name
             return "dom::%s" % descriptor.name.lower()
 
         descriptors = [d.name for d in config.getDescriptors(register=True, hasInterfaceObject=True)]
@@ -5200,7 +5200,7 @@ class GlobalGenRoots():
         return curr
 
     @staticmethod
-    def BindingDeclarations(config):
+    def Bindings(config):
 
         descriptors = (set(d.name + "Binding" for d in config.getDescriptors(register=True)) |
             set(d.unroll().module() for d in config.callbacks))

@@ -5,7 +5,7 @@
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::error::Fallible;
-use dom::bindings::codegen::BindingDeclarations::BlobBinding;
+use dom::bindings::codegen::Bindings::BlobBinding;
 use dom::window::Window;
 
 #[deriving(Encodable)]
