@@ -703,14 +703,10 @@ impl InlineFragments {
     }
 
     /// Merges another set of inline fragments with this one.
-    pub fn push_all(&mut self, other: InlineFragments) {
-        let InlineFragments {
-            fragments: other_fragments,
-            ranges: other_ranges,
-        } = other;
+    pub fn push_all(&mut self, InlineFragments { fragments, ranges }: InlineFragments) {
         let adjustment = FragmentIndex(self.fragments.len() as int);
-        self.push_all_ranges(other_ranges, adjustment);
-        self.fragments.push_all_move(other_fragments);
+        self.push_all_ranges(ranges, adjustment);
+        self.fragments.push_all_move(fragments);
     }
 
     /// Returns an iterator that iterates over all fragments along with the appropriate context.
