@@ -185,7 +185,7 @@ impl InlineFragmentsAccumulator {
 
     fn from_inline_node(node: &ThreadSafeLayoutNode) -> InlineFragmentsAccumulator {
         let mut fragments = InlineFragments::new();
-        fragments.map.push(node.style().clone(), Range::empty());
+        fragments.push_range(node.style().clone(), Range::empty());
         InlineFragmentsAccumulator {
             fragments: fragments,
             has_enclosing_range: true,
@@ -200,7 +200,7 @@ impl InlineFragmentsAccumulator {
 
         if has_enclosing_range {
             let len = FragmentIndex(fragments.len() as int);
-            fragments.map.get_mut(FragmentIndex(0)).range.extend_to(len);
+            fragments.get_mut_range(FragmentIndex(0)).range.extend_to(len);
         }
         fragments
     }

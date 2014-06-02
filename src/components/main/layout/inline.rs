@@ -695,7 +695,9 @@ impl InlineFragments {
 
     /// Pushes a new inline fragment.
     pub fn push(&mut self, fragment: Fragment, style: Arc<ComputedValues>) {
-        self.map.push(style, Range::new(FragmentIndex(self.fragments.len() as int), FragmentIndex(1)));
+        self.map.list.push(InlineFragmentRange::new(
+            style, Range::new(FragmentIndex(self.fragments.len() as int), FragmentIndex(1)),
+        ));
         self.fragments.push(fragment)
     }
 
@@ -706,7 +708,7 @@ impl InlineFragments {
             map: other_map
         } = other;
         let adjustment = FragmentIndex(self.fragments.len() as int);
-        self.map.push_all(other_map, adjustment);
+        self.push_all_ranges(other_map, adjustment);
         self.fragments.push_all_move(other_fragments);
     }
 
@@ -735,6 +737,33 @@ impl InlineFragments {
     /// A convenience function to return a mutable reference to the fragment at a given index.
     pub fn get_mut<'a>(&'a mut self, index: uint) -> &'a mut Fragment {
         self.fragments.get_mut(index)
+    }
+
+    /// Adds the given node to the fragment map.
+    pub fn push_range(&mut self, style: Arc<ComputedValues>, range: Range<FragmentIndex>) {
+        self.map.list.push(InlineFragmentRange::new(style, range))
+    }
+
+    /// Pushes the ranges in a fragment map, adjusting indices as necessary.
+    fn push_all_ranges(&mut self, other: InlineFragmentMap, adjustment: FragmentIndex) {
+        let InlineFragmentMap {
+            list: other_list
+        } = other;
+ 
+        for other_range in other_list.move_iter() {
+            let InlineFragmentRange {
+                style: other_style,
+                range: mut other_range
+            } = other_range;
+ 
+            other_range.shift_by(adjustment);
+            self.push_range(other_style, other_range)
+        }
+    }
+
+    /// Returns the range with the given index.
+    pub fn get_mut_range<'a>(&'a mut self, index: FragmentIndex) -> &'a mut InlineFragmentRange {
+        self.map.list.get_mut(index.to_uint())
     }
 
     /// Rebuilds the list after the fragments have been split or deleted (for example, for line
@@ -1370,44 +1399,6 @@ impl InlineFragmentMap {
             list: Vec::new(),
         }
     }
-
-    /// Adds the given node to the fragment map.
-    pub fn push(&mut self, style: Arc<ComputedValues>, range: Range<FragmentIndex>) {
-        self.list.push(InlineFragmentRange::new(style, range))
-    }
-
-    /// Pushes the ranges in another fragment map onto the end of this one, adjusting indices as
-    /// necessary.
-    fn push_all(&mut self, other: InlineFragmentMap, adjustment: FragmentIndex) {
-        let InlineFragmentMap {
-            list: other_list
-        } = other;
-
-        for other_range in other_list.move_iter() {
-            let InlineFragmentRange {
-                style: other_style,
-                range: mut other_range
-            } = other_range;
-
-            other_range.shift_by(adjustment);
-            self.push(other_style, other_range)
-        }
-    }
-
-    /// Returns the range with the given index.
-    pub fn get_mut<'a>(&'a mut self, index: FragmentIndex) -> &'a mut InlineFragmentRange {
-        &mut self.list.as_mut_slice()[index.to_uint()]
-    }
-
-    /// Iterates over all ranges that contain the fragment with the given index, outermost first.
-    #[inline(always)]
-    fn ranges_for_index<'a>(&'a self, index: FragmentIndex) -> RangeIterator<'a> {
-        RangeIterator {
-            iter: self.list.as_slice().iter(),
-            index: index,
-            seen_first: false,
-        }
-    }
 }
 
 /// The context that an inline fragment appears in. This allows the fragment map to be passed in
@@ -1425,8 +1416,14 @@ impl<'a> InlineFragmentContext<'a> {
         }
     }
 
+    /// Iterates over all ranges that contain the fragment at context's index, outermost first.
+    #[inline(always)]
     pub fn ranges(&self) -> RangeIterator<'a> {
-        self.map.ranges_for_index(self.index)
+        RangeIterator {
+            iter: self.map.list.iter(),
+            index: self.index,
+            seen_first: false,
+        }
     }
 }
 
