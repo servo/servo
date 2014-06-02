@@ -234,12 +234,6 @@ pub enum NodeTypeId {
 }
 
 trait PrivateNodeHelpers {
-    fn set_parent_node(&self, new_parent_node: Option<JSRef<Node>>);
-    fn set_first_child(&self, new_first_child: Option<JSRef<Node>>);
-    fn set_last_child(&self, new_last_child: Option<JSRef<Node>>);
-    fn set_prev_sibling(&self, new_prev_sibling: Option<JSRef<Node>>);
-    fn set_next_sibling(&self, new_next_sibling: Option<JSRef<Node>>);
-
     fn node_inserted(&self);
     fn node_removed(&self);
     fn add_child(&self, new_child: &JSRef<Node>, before: Option<JSRef<Node>>);
@@ -285,109 +279,75 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
     ///
     /// Fails unless `new_child` is disconnected from the tree.
     fn add_child(&self, new_child: &JSRef<Node>, before: Option<JSRef<Node>>) {
+        let doc = self.owner_doc().root();
+        doc.deref().wait_until_safe_to_modify_dom();
+
         assert!(new_child.parent_node().is_none());
         assert!(new_child.prev_sibling().is_none());
         assert!(new_child.next_sibling().is_none());
         match before {
             Some(ref before) => {
-                // XXX Should assert that parent is self.
-                assert!(before.parent_node().is_some());
+                assert!(before.parent_node().root().root_ref() == Some(*self));
                 match before.prev_sibling().root() {
                     None => {
-                        // XXX Should assert that before is the first child of
-                        //     self.
-                        self.set_first_child(Some(new_child.clone()));
+                        assert!(Some(*before) == self.first_child().root().root_ref());
+                        self.first_child.assign(Some(*new_child));
                     },
                     Some(ref prev_sibling) => {
-                        prev_sibling.set_next_sibling(Some(new_child.clone()));
-                        new_child.set_prev_sibling(Some(**prev_sibling));
+                        prev_sibling.next_sibling.assign(Some(*new_child));
+                        new_child.prev_sibling.assign(Some(**prev_sibling));
                     },
                 }
-                before.set_prev_sibling(Some(new_child.clone()));
-                new_child.set_next_sibling(Some(before.clone()));
+                before.prev_sibling.assign(Some(*new_child));
+                new_child.next_sibling.assign(Some(*before));
             },
             None => {
                 match self.last_child().root() {
-                    None => self.set_first_child(Some(new_child.clone())),
+                    None => self.first_child.assign(Some(*new_child)),
                     Some(ref last_child) => {
                         assert!(last_child.next_sibling().is_none());
-                        last_child.set_next_sibling(Some(new_child.clone()));
-                        new_child.set_prev_sibling(Some(**last_child));
+                        last_child.next_sibling.assign(Some(*new_child));
+                        new_child.prev_sibling.assign(Some(**last_child));
                     }
                 }
 
-                self.set_last_child(Some(new_child.clone()));
+                self.last_child.assign(Some(*new_child));
             },
         }
 
-        new_child.set_parent_node(Some(self.clone()));
+        new_child.parent_node.assign(Some(*self));
     }
 
     /// Removes the given child from this node's list of children.
     ///
-    /// Fails unless `child` is a child of this node. (FIXME: This is not yet checked.)
+    /// Fails unless `child` is a child of this node.
     fn remove_child(&self, child: &JSRef<Node>) {
-        assert!(child.parent_node.get().is_some());
+        let doc = self.owner_doc().root();
+        doc.deref().wait_until_safe_to_modify_dom();
+
+        assert!(child.parent_node().root().root_ref() == Some(*self));
 
         match child.prev_sibling.get().root() {
             None => {
-                let next_sibling = child.next_sibling.get().root();
-                self.set_first_child(next_sibling.root_ref());
+                self.first_child.assign(child.next_sibling.get());
             }
             Some(ref prev_sibling) => {
-                let next_sibling = child.next_sibling.get().root();
-                prev_sibling.set_next_sibling(next_sibling.root_ref());
+                prev_sibling.next_sibling.assign(child.next_sibling.get());
             }
         }
 
         match child.next_sibling.get().root() {
             None => {
-                let prev_sibling = child.prev_sibling.get().root();
-                self.set_last_child(prev_sibling.root_ref());
+                self.last_child.assign(child.prev_sibling.get());
             }
             Some(ref next_sibling) => {
-                let prev_sibling = child.prev_sibling.get().root();
-                next_sibling.set_prev_sibling(prev_sibling.root_ref());
+                next_sibling.prev_sibling.assign(child.prev_sibling.get());
             }
         }
 
-        child.set_prev_sibling(None);
-        child.set_next_sibling(None);
-        child.set_parent_node(None);
-    }
-
-    //
-    // Low-level pointer stitching
-    //
-
-    fn set_parent_node(&self, new_parent_node: Option<JSRef<Node>>) {
-        let doc = self.owner_doc().root();
-        doc.deref().wait_until_safe_to_modify_dom();
-        self.parent_node.assign(new_parent_node);
-    }
-
-    fn set_first_child(&self, new_first_child: Option<JSRef<Node>>) {
-        let doc = self.owner_doc().root();
-        doc.deref().wait_until_safe_to_modify_dom();
-        self.first_child.assign(new_first_child);
-    }
-
-    fn set_last_child(&self, new_last_child: Option<JSRef<Node>>) {
-        let doc = self.owner_doc().root();
-        doc.deref().wait_until_safe_to_modify_dom();
-        self.last_child.assign(new_last_child);
-    }
-
-    fn set_prev_sibling(&self, new_prev_sibling: Option<JSRef<Node>>) {
-        let doc = self.owner_doc().root();
-        doc.deref().wait_until_safe_to_modify_dom();
-        self.prev_sibling.assign(new_prev_sibling);
-    }
-
-    fn set_next_sibling(&self, new_next_sibling: Option<JSRef<Node>>) {
-        let doc = self.owner_doc().root();
-        doc.deref().wait_until_safe_to_modify_dom();
-        self.next_sibling.assign(new_next_sibling);
+        child.prev_sibling.set(None);
+        child.next_sibling.set(None);
+        child.parent_node.set(None);
     }
 }
 
