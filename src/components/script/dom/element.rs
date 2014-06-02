@@ -797,3 +797,35 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
         }
     }
 }
+
+impl<'a> style::TElement for JSRef<'a, Element> {
+    fn get_attr(&self, namespace: &Namespace, attr: &str) -> Option<&'static str> {
+        let element: &Element = self.deref();
+        unsafe { element.get_attr_val_for_layout(namespace, attr) }
+    }
+    fn get_link(&self) -> Option<&'static str> {
+        let element: &Element = self.deref();
+        // FIXME: This is HTML only.
+        match element.node.type_id {
+            // http://www.whatwg.org/specs/web-apps/current-work/multipage/selectors.html#
+            // selector-link
+            ElementNodeTypeId(HTMLAnchorElementTypeId) |
+            ElementNodeTypeId(HTMLAreaElementTypeId) |
+            ElementNodeTypeId(HTMLLinkElementTypeId) => {
+                unsafe { element.get_attr_val_for_layout(&namespace::Null, "href") }
+            },
+            _ => None,
+         }
+    }
+    fn get_local_name<'a>(&'a self) -> &'a str {
+        let element: &Element = self.deref();
+        element.local_name.as_slice()
+    }
+    fn get_namespace<'a>(&'a self) -> &'a Namespace {
+        let element: &Element = self.deref();
+        &element.namespace
+    }
+    fn get_hover_state(&self) -> bool {
+        self.get_hover_state()
+    }
+}
