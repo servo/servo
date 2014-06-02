@@ -686,7 +686,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                             "yet")
         enum = type.inner.identifier.name
         if invalidEnumValueFatal:
-            handleInvalidEnumValueCode = "return 0;"
+            handleInvalidEnumValueCode = exceptionCode
         else:
             handleInvalidEnumValueCode = "return 1;"
             
@@ -696,7 +696,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             "  Ok(None) => { %(handleInvalidEnumValueCode)s },\n"
             "  Ok(Some(index)) => {\n"
             "    //XXXjdm need some range checks up in here.\n"
-            "    cast::transmute(index)\n"
+            "    unsafe { cast::transmute(index) }\n"
             "  },\n"
             "}" % { "values" : enum + "Values::strings",
              "exceptionCode" : exceptionCode,
