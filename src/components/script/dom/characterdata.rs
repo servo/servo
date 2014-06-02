@@ -48,7 +48,7 @@ pub trait CharacterDataMethods {
     fn InsertData(&mut self, _offset: u32, _arg: DOMString) -> ErrorResult;
     fn DeleteData(&mut self, _offset: u32, _count: u32) -> ErrorResult;
     fn ReplaceData(&mut self, _offset: u32, _count: u32, _arg: DOMString) -> ErrorResult;
-    fn Remove(&mut self);
+    fn Remove(&self);
 }
 
 impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
@@ -101,8 +101,8 @@ impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
     }
 
     // http://dom.spec.whatwg.org/#dom-childnode-remove
-    fn Remove(&mut self) {
-        let node: &mut JSRef<Node> = NodeCast::from_mut_ref(self);
+    fn Remove(&self) {
+        let node: &JSRef<Node> = NodeCast::from_ref(self);
         node.remove_self();
     }
 }
