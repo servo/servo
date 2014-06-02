@@ -90,7 +90,7 @@ impl HTMLIFrameElement {
 
 pub trait HTMLIFrameElementMethods {
     fn Sandbox(&self) -> DOMString;
-    fn SetSandbox(&mut self, sandbox: DOMString);
+    fn SetSandbox(&self, sandbox: DOMString);
     fn GetContentWindow(&self) -> Option<Temporary<Window>>;
 }
 
@@ -100,8 +100,8 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
         element.get_string_attribute("sandbox")
     }
 
-    fn SetSandbox(&mut self, sandbox: DOMString) {
-        let element: &mut JSRef<Element> = ElementCast::from_mut_ref(self);
+    fn SetSandbox(&self, sandbox: DOMString) {
+        let element: &JSRef<Element> = ElementCast::from_ref(self);
         element.set_string_attribute("sandbox", sandbox);
     }
 

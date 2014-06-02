@@ -208,25 +208,25 @@ impl<'a> ElementHelpers for JSRef<'a, Element> {
 
 pub trait AttributeHandlers {
     fn get_attribute(&self, namespace: Namespace, name: &str) -> Option<Temporary<Attr>>;
-    fn set_attribute_from_parser(&mut self, local_name: DOMString,
+    fn set_attribute_from_parser(&self, local_name: DOMString,
                                  value: DOMString, namespace: Namespace,
                                  prefix: Option<DOMString>);
-    fn set_attribute(&mut self, namespace: Namespace, name: DOMString,
+    fn set_attribute(&self, namespace: Namespace, name: DOMString,
                      value: DOMString) -> ErrorResult;
-    fn do_set_attribute(&mut self, local_name: DOMString, value: DOMString,
+    fn do_set_attribute(&self, local_name: DOMString, value: DOMString,
                         name: DOMString, namespace: Namespace,
                         prefix: Option<DOMString>, cb: |&JSRef<Attr>| -> bool);
 
-    fn remove_attribute(&mut self, namespace: Namespace, name: DOMString) -> ErrorResult;
+    fn remove_attribute(&self, namespace: Namespace, name: DOMString) -> ErrorResult;
     fn notify_attribute_changed(&self, local_name: DOMString);
     fn has_class(&self, name: &str) -> bool;
 
     // http://www.whatwg.org/html/#reflecting-content-attributes-in-idl-attributes
     fn get_url_attribute(&self, name: &str) -> DOMString;
-    fn set_url_attribute(&mut self, name: &str, value: DOMString);
+    fn set_url_attribute(&self, name: &str, value: DOMString);
     fn get_string_attribute(&self, name: &str) -> DOMString;
-    fn set_string_attribute(&mut self, name: &str, value: DOMString);
-    fn set_uint_attribute(&mut self, name: &str, value: u32);
+    fn set_string_attribute(&self, name: &str, value: DOMString);
+    fn set_uint_attribute(&self, name: &str, value: u32);
 }
 
 impl<'a> AttributeHandlers for JSRef<'a, Element> {
@@ -245,7 +245,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         }).map(|x| Temporary::from_rooted(&*x))
     }
 
-    fn set_attribute_from_parser(&mut self, local_name: DOMString,
+    fn set_attribute_from_parser(&self, local_name: DOMString,
                                  value: DOMString, namespace: Namespace,
                                  prefix: Option<DOMString>) {
         let name = match prefix {
@@ -255,7 +255,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         self.do_set_attribute(local_name, value, name, namespace, prefix, |_| false)
     }
 
-    fn set_attribute(&mut self, namespace: Namespace, name: DOMString,
+    fn set_attribute(&self, namespace: Namespace, name: DOMString,
                      value: DOMString) -> ErrorResult {
         let (prefix, local_name) = get_attribute_parts(name.clone());
         match prefix {
@@ -269,8 +269,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             None => {}
         }
 
-        let self_alias = self.clone();
-        let node: &JSRef<Node> = NodeCast::from_ref(&self_alias);
+        let node: &JSRef<Node> = NodeCast::from_ref(self);
         node.wait_until_safe_to_modify_dom();
 
         let position: |&JSRef<Attr>| -> bool =
@@ -283,7 +282,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         Ok(())
     }
 
-    fn do_set_attribute(&mut self, local_name: DOMString, value: DOMString,
+    fn do_set_attribute(&self, local_name: DOMString, value: DOMString,
                         name: DOMString, namespace: Namespace,
                         prefix: Option<DOMString>, cb: |&JSRef<Attr>| -> bool) {
         let idx = self.deref().attrs.borrow().iter()
@@ -303,7 +302,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         self.deref().attrs.borrow().get(idx).root().set_value(set_type, value);
     }
 
-    fn remove_attribute(&mut self, namespace: Namespace, name: DOMString) -> ErrorResult {
+    fn remove_attribute(&self, namespace: Namespace, name: DOMString) -> ErrorResult {
         let (_, local_name) = get_attribute_parts(name.clone());
 
         let idx = self.deref().attrs.borrow().iter().map(|attr| attr.root()).position(|attr| {
@@ -314,13 +313,14 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             None => (),
             Some(idx) => {
                 {
-                    let node: &mut JSRef<Node> = NodeCast::from_mut_ref(self);
+                    let node: &JSRef<Node> = NodeCast::from_ref(self);
                     node.wait_until_safe_to_modify_dom();
                 }
 
                 if namespace == namespace::Null {
                     let removed_raw_value = self.deref().attrs.borrow().get(idx).root().Value();
-                    vtable_for(NodeCast::from_mut_ref(self))
+                    let mut self_alias = self.clone();
+                    vtable_for(NodeCast::from_mut_ref(&mut self_alias))
                         .before_remove_attr(local_name.clone(), removed_raw_value);
                 }
 
@@ -353,7 +353,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         // XXX Resolve URL.
         self.get_string_attribute(name)
     }
-    fn set_url_attribute(&mut self, name: &str, value: DOMString) {
+    fn set_url_attribute(&self, name: &str, value: DOMString) {
         self.set_string_attribute(name, value);
     }
 
@@ -366,12 +366,12 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             None => "".to_owned()
         }
     }
-    fn set_string_attribute(&mut self, name: &str, value: DOMString) {
+    fn set_string_attribute(&self, name: &str, value: DOMString) {
         assert!(name == name.to_ascii_lower());
         assert!(self.set_attribute(Null, name.to_owned(), value).is_ok());
     }
 
-    fn set_uint_attribute(&mut self, name: &str, value: u32) {
+    fn set_uint_attribute(&self, name: &str, value: u32) {
         assert!(name == name.to_ascii_lower());
         assert!(self.set_attribute(Null, name.to_owned(), value.to_str()).is_ok());
     }
@@ -399,16 +399,16 @@ pub trait ElementMethods {
     fn GetPrefix(&self) -> Option<DOMString>;
     fn TagName(&self) -> DOMString;
     fn Id(&self) -> DOMString;
-    fn SetId(&mut self, id: DOMString);
+    fn SetId(&self, id: DOMString);
     fn ClassName(&self) -> DOMString;
-    fn SetClassName(&mut self, class: DOMString);
-    fn Attributes(&mut self) -> Temporary<AttrList>;
+    fn SetClassName(&self, class: DOMString);
+    fn Attributes(&self) -> Temporary<AttrList>;
     fn GetAttribute(&self, name: DOMString) -> Option<DOMString>;
     fn GetAttributeNS(&self, namespace: Option<DOMString>, local_name: DOMString) -> Option<DOMString>;
-    fn SetAttribute(&mut self, name: DOMString, value: DOMString) -> ErrorResult;
-    fn SetAttributeNS(&mut self, namespace_url: Option<DOMString>, name: DOMString, value: DOMString) -> ErrorResult;
-    fn RemoveAttribute(&mut self, name: DOMString) -> ErrorResult;
-    fn RemoveAttributeNS(&mut self, namespace: Option<DOMString>, localname: DOMString) -> ErrorResult;
+    fn SetAttribute(&self, name: DOMString, value: DOMString) -> ErrorResult;
+    fn SetAttributeNS(&self, namespace_url: Option<DOMString>, name: DOMString, value: DOMString) -> ErrorResult;
+    fn RemoveAttribute(&self, name: DOMString) -> ErrorResult;
+    fn RemoveAttributeNS(&self, namespace: Option<DOMString>, localname: DOMString) -> ErrorResult;
     fn HasAttribute(&self, name: DOMString) -> bool;
     fn HasAttributeNS(&self, namespace: Option<DOMString>, local_name: DOMString) -> bool;
     fn GetElementsByTagName(&self, localname: DOMString) -> Temporary<HTMLCollection>;
@@ -419,7 +419,7 @@ pub trait ElementMethods {
     fn GetInnerHTML(&self) -> Fallible<DOMString>;
     fn GetOuterHTML(&self) -> Fallible<DOMString>;
     fn Children(&self) -> Temporary<HTMLCollection>;
-    fn Remove(&mut self);
+    fn Remove(&self);
 }
 
 impl<'a> ElementMethods for JSRef<'a, Element> {
@@ -455,7 +455,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     }
 
     // http://dom.spec.whatwg.org/#dom-element-id
-    fn SetId(&mut self, id: DOMString) {
+    fn SetId(&self, id: DOMString) {
         self.set_string_attribute("id", id);
     }
 
@@ -465,12 +465,12 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     }
 
     // http://dom.spec.whatwg.org/#dom-element-classname
-    fn SetClassName(&mut self, class: DOMString) {
+    fn SetClassName(&self, class: DOMString) {
         self.set_string_attribute("class", class);
     }
 
     // http://dom.spec.whatwg.org/#dom-element-attributes
-    fn Attributes(&mut self) -> Temporary<AttrList> {
+    fn Attributes(&self) -> Temporary<AttrList> {
         match self.attr_list.get() {
             None => (),
             Some(ref list) => return Temporary::new(list.clone()),
@@ -507,7 +507,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     }
 
     // http://dom.spec.whatwg.org/#dom-element-setattribute
-    fn SetAttribute(&mut self,
+    fn SetAttribute(&self,
                     name: DOMString,
                     value: DOMString) -> ErrorResult {
         {
@@ -536,7 +536,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     }
 
     // http://dom.spec.whatwg.org/#dom-element-setattributens
-    fn SetAttributeNS(&mut self,
+    fn SetAttributeNS(&self,
                       namespace_url: Option<DOMString>,
                       name: DOMString,
                       value: DOMString) -> ErrorResult {
@@ -598,7 +598,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     }
 
     // http://dom.spec.whatwg.org/#dom-element-removeattribute
-    fn RemoveAttribute(&mut self,
+    fn RemoveAttribute(&self,
                        name: DOMString) -> ErrorResult {
         let name = if self.html_element_in_html_document() {
             name.to_ascii_lower()
@@ -609,7 +609,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     }
 
     // http://dom.spec.whatwg.org/#dom-element-removeattributens
-    fn RemoveAttributeNS(&mut self,
+    fn RemoveAttributeNS(&self,
                          namespace: Option<DOMString>,
                          localname: DOMString) -> ErrorResult {
         let namespace = Namespace::from_str(null_str_as_empty_ref(&namespace));
@@ -694,8 +694,8 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     }
 
     // http://dom.spec.whatwg.org/#dom-childnode-remove
-    fn Remove(&mut self) {
-        let node: &mut JSRef<Node> = NodeCast::from_mut_ref(self);
+    fn Remove(&self) {
+        let node: &JSRef<Node> = NodeCast::from_ref(self);
         node.remove_self();
     }
 }
