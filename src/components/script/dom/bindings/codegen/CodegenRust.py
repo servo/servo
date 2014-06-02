@@ -4119,7 +4119,9 @@ class CGDictionary(CGThing):
         return "/* uh oh */ %s" % name
 
     def getMemberType(self, memberInfo):
-        _, (_, _, declType, _) = memberInfo
+        member, (_, _, declType, _) = memberInfo
+        if not member.defaultValue:
+            declType = CGWrapper(declType, pre="Option<", post=">")
         return declType.define()
 
     def getMemberConversion(self, memberInfo):
@@ -4127,12 +4129,14 @@ class CGDictionary(CGThing):
             return CGIndenter(CGGeneric(s), 8).define()
 
         member, (templateBody, default, declType, _) = memberInfo
-        if not member.defaultValue:
-            raise TypeError("We don't support dictionary members without a "
-                            "default value.")
-
         replacements = { "val": "value" }
         conversion = string.Template(templateBody).substitute(replacements)
+
+        assert (member.defaultValue is None) == (default is None)
+        if not default:
+            default = "None"
+            conversion = "Some(%s)" % conversion
+
         conversion = (
             "match get_dictionary_property(cx, object, \"%s\") {\n"
             "    Err(()) => return Err(()),\n"

@@ -4,23 +4,23 @@
 
 enum TestEnum { "", "foo", "bar" };
 
-/* dictionary TestDictionary {
-  // boolean booleanValue;
-  // byte byteValue;
-  // octet octetValue;
-  // short shortValue;
-  // unsigned short unsignedShortValue;
-  // long longValue;
-  // unsigned long unsignedLongValue;
-  // long long longLongValue;
-  // unsigned long long unsignedLongLongValue;
-  // float floatValue;
-  // double doubleValue;
-  // DOMString stringValue;
-  // TestEnum enumValue;
-  // Blob interfaceValue;
-  // any anyValue;
-}; */
+dictionary TestDictionary {
+  boolean booleanValue;
+  byte byteValue;
+  octet octetValue;
+  short shortValue;
+  unsigned short unsignedShortValue;
+  long longValue;
+  unsigned long unsignedLongValue;
+  long long longLongValue;
+  unsigned long long unsignedLongLongValue;
+  float floatValue;
+  double doubleValue;
+  DOMString stringValue;
+  TestEnum enumValue;
+  Blob interfaceValue;
+  any anyValue;
+};
 
 dictionary TestDictionaryDefaults {
   boolean booleanValue = false;
