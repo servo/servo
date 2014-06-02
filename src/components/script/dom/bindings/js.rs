@@ -166,6 +166,14 @@ impl<T: Reflectable> JS<T> {
     }
 }
 
+impl<T: Assignable<U>, U: Reflectable> JS<U> {
+    pub fn from_rooted(root: T) -> JS<U> {
+        unsafe {
+            root.get_js()
+        }
+    }
+}
+
 //XXXjdm This is disappointing. This only gets called from trace hooks, in theory,
 //       so it's safe to assume that self is rooted and thereby safe to access.
 impl<T: Reflectable> Reflectable for JS<T> {
