@@ -125,7 +125,10 @@ impl IOCompositor {
         let root_layer = Rc::new(ContainerLayer());
         let window_size = window.size();
 
-        let hidpi_factor = window.hidpi_factor();
+        let hidpi_factor = match opts.device_pixels_per_px {
+            Some(dppx) => dppx,
+            None => window.hidpi_factor(),
+        };
         root_layer.common.borrow_mut().set_transform(identity().scale(hidpi_factor, hidpi_factor, 1f32));
 
         IOCompositor {

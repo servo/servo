@@ -34,6 +34,10 @@ pub struct Opts {
     /// The maximum size of each tile in pixels (`-s`).
     pub tile_size: uint,
 
+    /// The ratio of device pixels per px at the default scale. If unspecified, will use the
+    /// platform default setting.
+    pub device_pixels_per_px: Option<f32>,
+
     /// `None` to disable the profiler or `Some` with an interval in seconds to enable it and cause
     /// it to produce output on that interval (`-p`).
     pub profiler_period: Option<f64>,
@@ -75,6 +79,7 @@ pub fn from_cmdline_args(args: &[~str]) -> Option<Opts> {
         getopts::optopt("o", "output", "Output file", "output.png"),
         getopts::optopt("r", "rendering", "Rendering backend", "direct2d|core-graphics|core-graphics-accelerated|cairo|skia."),
         getopts::optopt("s", "size", "Size of tiles", "512"),
+        getopts::optopt("", "device-pixel-ratio", "Device pixels per px", ""),
         getopts::optopt("t", "threads", "Number of render threads", "1"),
         getopts::optflagopt("p", "profile", "Profiler flag and output interval", "10"),
         getopts::optflag("x", "exit", "Exit after load flag"),
@@ -130,6 +135,10 @@ pub fn from_cmdline_args(args: &[~str]) -> Option<Opts> {
         None => 512,
     };
 
+    let device_pixels_per_px = opt_match.opt_str("device-pixel-ratio").map(|dppx_str|
+        from_str(dppx_str).unwrap()
+    );
+
     let n_render_threads: uint = match opt_match.opt_str("t") {
         Some(n_render_threads_str) => from_str(n_render_threads_str).unwrap(),
         None => 1,      // FIXME: Number of cores.
@@ -153,6 +162,7 @@ pub fn from_cmdline_args(args: &[~str]) -> Option<Opts> {
         n_render_threads: n_render_threads,
         cpu_painting: cpu_painting,
         tile_size: tile_size,
+        device_pixels_per_px: device_pixels_per_px,
         profiler_period: profiler_period,
         layout_threads: layout_threads,
         exit_after_load: opt_match.opt_present("x"),
