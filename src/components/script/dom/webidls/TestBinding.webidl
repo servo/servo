@@ -23,30 +23,30 @@ enum TestEnum { "", "foo", "bar" };
 }; */
 
 dictionary TestDictionaryDefaults {
-  // boolean booleanValue = false;
-  // byte byteValue = 7;
-  // octet octetValue = 7;
+  boolean booleanValue = false;
+  byte byteValue = 7;
+  octet octetValue = 7;
   short shortValue = 7;
   unsigned short unsignedShortValue = 7;
   long longValue = 7;
   unsigned long unsignedLongValue = 7;
-  // long long longLongValue = 7;
-  // unsigned long long unsignedLongLongValue = 7;
+  long long longLongValue = 7;
+  unsigned long long unsignedLongLongValue = 7;
   // float floatValue = 7.0;
   // double doubleValue = 7.0;
   DOMString stringValue = "";
-  // TestEnum enumValue = "bar";
+  TestEnum enumValue = "bar";
   any anyValue = null;
 
-  // boolean? nullableBooleanValue = false;
-  // byte? nullableByteValue = 7;
-  // octet? nullableOctetValue = 7;
+  boolean? nullableBooleanValue = false;
+  byte? nullableByteValue = 7;
+  octet? nullableOctetValue = 7;
   short? nullableShortValue = 7;
   unsigned short? nullableUnsignedShortValue = 7;
   long? nullableLongValue = 7;
   unsigned long? nullableUnsignedLongValue = 7;
-  // long long? nullableLongLongValue = 7;
-  // unsigned long long? nullableUnsignedLongLongValue = 7;
+  long long? nullableLongLongValue = 7;
+  unsigned long long? nullableUnsignedLongLongValue = 7;
   // float? nullableFloatValue = 7.0;
   // double? nullableDoubleValue = 7.0;
   DOMString? nullableStringValue = "";
