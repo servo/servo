@@ -7,10 +7,12 @@ use dom::bindings::codegen::Bindings::DocumentFragmentBinding;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::Fallible;
 use dom::document::Document;
+use dom::element::Element;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlcollection::HTMLCollection;
 use dom::node::{DocumentFragmentNodeTypeId, Node, window_from_node};
 use dom::window::{Window, WindowMethods};
+use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
 pub struct DocumentFragment {
@@ -46,11 +48,16 @@ impl DocumentFragment {
 
 pub trait DocumentFragmentMethods {
     fn Children(&self) -> Temporary<HTMLCollection>;
+    fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>>;
 }
 
 impl<'a> DocumentFragmentMethods for JSRef<'a, DocumentFragment> {
     fn Children(&self) -> Temporary<HTMLCollection> {
         let window = window_from_node(self).root();
         HTMLCollection::children(&window.root_ref(), NodeCast::from_ref(self))
+    }
+
+    fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>> {
+        Ok(None)
     }
 }

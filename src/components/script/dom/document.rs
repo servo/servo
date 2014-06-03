@@ -328,6 +328,7 @@ pub trait DocumentMethods {
     fn Applets(&self) -> Temporary<HTMLCollection>;
     fn Location(&self) -> Temporary<Location>;
     fn Children(&self) -> Temporary<HTMLCollection>;
+    fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>>;
     fn GetOnload(&self) -> Option<EventHandlerNonNull>;
     fn SetOnload(&mut self, listener: Option<EventHandlerNonNull>);
 }
@@ -808,6 +809,10 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     fn Children(&self) -> Temporary<HTMLCollection> {
         let window = self.window.root();
         HTMLCollection::children(&*window, NodeCast::from_ref(self))
+    }
+
+    fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>> {
+        Ok(None)
     }
 
     fn GetOnload(&self) -> Option<EventHandlerNonNull> {
