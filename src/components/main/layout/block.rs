@@ -2012,7 +2012,7 @@ impl WidthAndMarginsComputer for AbsoluteNonReplaced {
             right,
             available_width,
             static_x_offset,
-            direction,
+            ..
         } = input;
 
         // TODO: Check for direction of parent flow (NOT Containing Block)
@@ -2161,7 +2161,7 @@ impl WidthAndMarginsComputer for AbsoluteReplaced {
             right,
             available_width,
             static_x_offset,
-            direction,
+            ..
         } = input;
         // TODO: Check for direction of static-position Containing Block (aka
         // parent flow, _not_ the actual Containing Block) when right-to-left
