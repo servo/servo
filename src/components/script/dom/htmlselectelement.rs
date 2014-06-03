@@ -4,7 +4,8 @@
 
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLSelectElementDerived;
-use dom::bindings::codegen::UnionTypes::{HTMLElementOrLong, HTMLOptionElementOrHTMLOptGroupElement};
+use dom::bindings::codegen::UnionTypes::HTMLElementOrLong::HTMLElementOrLong;
+use dom::bindings::codegen::UnionTypes::HTMLOptionElementOrHTMLOptGroupElement::HTMLOptionElementOrHTMLOptGroupElement;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
 use dom::element::HTMLSelectElementTypeId;

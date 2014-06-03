@@ -138,6 +138,7 @@ interface TestBinding {
   void passInterface(Blob arg);
   void passUnion((HTMLElement or long) arg);
   void passUnion2((Event or DOMString) data);
+  void passUnion3((Blob or DOMString) data);
   void passAny(any arg);
 
   void passNullableBoolean(boolean? arg);
