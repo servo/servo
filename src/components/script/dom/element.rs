@@ -429,6 +429,7 @@ pub trait ElementMethods {
     fn GetInnerHTML(&self) -> Fallible<DOMString>;
     fn GetOuterHTML(&self) -> Fallible<DOMString>;
     fn Children(&self) -> Temporary<HTMLCollection>;
+    fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>>;
     fn Remove(&self);
 }
 
@@ -702,6 +703,10 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     fn Children(&self) -> Temporary<HTMLCollection> {
         let window = window_from_node(self).root();
         HTMLCollection::children(&*window, NodeCast::from_ref(self))
+    }
+
+    fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>> {
+        Ok(None)
     }
 
     // http://dom.spec.whatwg.org/#dom-childnode-remove

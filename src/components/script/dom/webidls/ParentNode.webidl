@@ -22,4 +22,10 @@ interface ParentNode {
   // Not implemented yet
   // void prepend((Node or DOMString)... nodes);
   // void append((Node or DOMString)... nodes);
+
+  //Element? query(DOMString relativeSelectors);
+  //[NewObject] Elements queryAll(DOMString relativeSelectors);
+  [Throws]
+  Element? querySelector(DOMString selectors);
+  //[NewObject] NodeList querySelectorAll(DOMString selectors);
 };
