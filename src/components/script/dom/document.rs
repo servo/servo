@@ -291,7 +291,7 @@ impl<'a> PrivateDocumentHelpers for JSRef<'a, Document> {
 }
 
 pub trait DocumentMethods {
-    fn Implementation(&mut self) -> Temporary<DOMImplementation>;
+    fn Implementation(&self) -> Temporary<DOMImplementation>;
     fn URL(&self) -> DOMString;
     fn DocumentURI(&self) -> DOMString;
     fn CompatMode(&self) -> DOMString;
@@ -326,7 +326,7 @@ pub trait DocumentMethods {
     fn Scripts(&self) -> Temporary<HTMLCollection>;
     fn Anchors(&self) -> Temporary<HTMLCollection>;
     fn Applets(&self) -> Temporary<HTMLCollection>;
-    fn Location(&mut self) -> Temporary<Location>;
+    fn Location(&self) -> Temporary<Location>;
     fn Children(&self) -> Temporary<HTMLCollection>;
     fn GetOnload(&self) -> Option<EventHandlerNonNull>;
     fn SetOnload(&mut self, listener: Option<EventHandlerNonNull>);
@@ -334,7 +334,7 @@ pub trait DocumentMethods {
 
 impl<'a> DocumentMethods for JSRef<'a, Document> {
     // http://dom.spec.whatwg.org/#dom-document-implementation
-    fn Implementation(&mut self) -> Temporary<DOMImplementation> {
+    fn Implementation(&self) -> Temporary<DOMImplementation> {
         if self.implementation.get().is_none() {
             let window = self.window.root();
             self.implementation.assign(Some(DOMImplementation::new(&*window)));
@@ -800,7 +800,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         HTMLCollection::create(&*window, NodeCast::from_ref(self), filter)
     }
 
-    fn Location(&mut self) -> Temporary<Location> {
+    fn Location(&self) -> Temporary<Location> {
         let mut window = self.window.root();
         window.Location()
     }

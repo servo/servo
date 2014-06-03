@@ -119,16 +119,16 @@ pub trait WindowMethods {
     fn Alert(&self, s: DOMString);
     fn Close(&self);
     fn Document(&self) -> Temporary<Document>;
-    fn Location(&mut self) -> Temporary<Location>;
-    fn Console(&mut self) -> Temporary<Console>;
-    fn Navigator(&mut self) -> Temporary<Navigator>;
+    fn Location(&self) -> Temporary<Location>;
+    fn Console(&self) -> Temporary<Console>;
+    fn Navigator(&self) -> Temporary<Navigator>;
     fn SetTimeout(&mut self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32;
     fn ClearTimeout(&mut self, handle: i32);
     fn SetInterval(&mut self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32;
     fn ClearInterval(&mut self, handle: i32);
     fn Window(&self) -> Temporary<Window>;
     fn Self(&self) -> Temporary<Window>;
-    fn Performance(&mut self) -> Temporary<Performance>;
+    fn Performance(&self) -> Temporary<Performance>;
     fn GetOnload(&self) -> Option<EventHandlerNonNull>;
     fn SetOnload(&mut self, listener: Option<EventHandlerNonNull>);
     fn GetOnunload(&self) -> Option<EventHandlerNonNull>;
@@ -155,7 +155,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         Temporary::new(frame.get_ref().document.clone())
     }
 
-    fn Location(&mut self) -> Temporary<Location> {
+    fn Location(&self) -> Temporary<Location> {
         if self.location.get().is_none() {
             let page = self.deref().page.clone();
             let location = Location::new(self, page);
@@ -164,7 +164,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         Temporary::new(self.location.get().get_ref().clone())
     }
 
-    fn Console(&mut self) -> Temporary<Console> {
+    fn Console(&self) -> Temporary<Console> {
         if self.console.get().is_none() {
             let console = Console::new(self);
             self.console.assign(Some(console));
@@ -172,7 +172,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         Temporary::new(self.console.get().get_ref().clone())
     }
 
-    fn Navigator(&mut self) -> Temporary<Navigator> {
+    fn Navigator(&self) -> Temporary<Navigator> {
         if self.navigator.get().is_none() {
             let navigator = Navigator::new(self);
             self.navigator.assign(Some(navigator));
@@ -209,7 +209,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         self.Window()
     }
 
-    fn Performance(&mut self) -> Temporary<Performance> {
+    fn Performance(&self) -> Temporary<Performance> {
         if self.performance.get().is_none() {
             let performance = Performance::new(self);
             self.performance.assign(Some(performance));
