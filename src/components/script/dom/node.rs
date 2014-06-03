@@ -4,7 +4,8 @@
 
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
-use dom::attr::Attr;
+use cssparser::tokenize;
+use dom::attr::{Attr, AttrMethods};
 use dom::bindings::codegen::InheritTypes::{CommentCast, DocumentCast, DocumentTypeCast};
 use dom::bindings::codegen::InheritTypes::{ElementCast, TextCast, NodeCast, ElementDerived};
 use dom::bindings::codegen::InheritTypes::{CharacterDataCast, NodeBase, NodeDerived};
@@ -21,7 +22,8 @@ use dom::comment::Comment;
 use dom::document::{Document, DocumentMethods, DocumentHelpers, HTMLDocument, NonHTMLDocument};
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
-use dom::element::{Element, ElementMethods, ElementTypeId, HTMLAnchorElementTypeId};
+use dom::element::{AttributeHandlers, Element, ElementMethods, ElementTypeId};
+use dom::element::{HTMLAnchorElementTypeId, ElementHelpers};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::nodelist::{NodeList};
 use dom::processinginstruction::{ProcessingInstruction, ProcessingInstructionMethods};
@@ -42,6 +44,7 @@ use libc::uintptr_t;
 use std::cell::{Cell, RefCell, Ref, RefMut};
 use std::iter::{Map, Filter};
 use std::mem;
+use style;
 use style::ComputedValues;
 use sync::Arc;
 
@@ -1899,5 +1902,48 @@ impl<'a> VirtualMethods for JSRef<'a, Node> {
     fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods:> {
         let eventtarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(self);
         Some(eventtarget as &mut VirtualMethods:)
+    }
+}
+
+impl<'a> style::TNode<JSRef<'a, Element>> for JSRef<'a, Node> {
+    fn parent_node(&self) -> Option<JSRef<'a, Node>> {
+        (self as &NodeHelpers).parent_node().map(|node| *node.root())
+    }
+    fn prev_sibling(&self) -> Option<JSRef<'a, Node>> {
+        (self as &NodeHelpers).prev_sibling().map(|node| *node.root())
+    }
+    fn next_sibling(&self) -> Option<JSRef<'a, Node>> {
+        (self as &NodeHelpers).next_sibling().map(|node| *node.root())
+    }
+    fn is_document(&self) -> bool {
+        (self as &NodeHelpers).is_document()
+    }
+    fn is_element(&self) -> bool {
+        (self as &NodeHelpers).is_element()
+    }
+    fn as_element(&self) -> JSRef<'a, Element> {
+        let elem: Option<&JSRef<'a, Element>> = ElementCast::to_ref(self);
+        assert!(elem.is_some());
+        *elem.unwrap()
+    }
+    fn match_attr(&self, attr: &style::AttrSelector, test: |&str| -> bool) -> bool {
+        let name = {
+            let elem: Option<&JSRef<'a, Element>> = ElementCast::to_ref(self);
+            assert!(elem.is_some());
+            let elem: &ElementHelpers = elem.unwrap() as &ElementHelpers;
+            if elem.html_element_in_html_document() {
+                attr.lower_name.as_slice()
+            } else {
+                attr.name.as_slice()
+            }
+        };
+        match attr.namespace {
+            style::SpecificNamespace(ref ns) => {
+                self.as_element().get_attribute(ns.clone(), name).root()
+                    .map_or(false, |attr| test(attr.deref().Value().as_slice()))
+            },
+            // FIXME: https://github.com/mozilla/servo/issues/1558
+            style::AnyNamespace => false,
+        }
     }
 }
