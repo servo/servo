@@ -1276,7 +1276,7 @@ impl Node {
         // Step 6.
         if clone_children == CloneChildren {
             for ref child in node.children() {
-                let mut child_copy = Node::clone(&*child, Some(&*document), clone_children).root();
+                let child_copy = Node::clone(&*child, Some(&*document), clone_children).root();
                 let _inserted_node = Node::pre_insert(&*child_copy, &*copy, None);
             }
         }
