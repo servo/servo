@@ -33,6 +33,9 @@
 //!   o Instead of `html_element_in_html_document()`, use
 //!     `html_element_in_html_document_for_layout()`.
 
+use css::node_style::StyledNode;
+use layout::util::LayoutDataWrapper;
+
 use script::dom::bindings::codegen::InheritTypes::{HTMLIFrameElementDerived};
 use script::dom::bindings::codegen::InheritTypes::{HTMLImageElementDerived, TextDerived};
 use script::dom::bindings::js::JS;
@@ -41,18 +44,18 @@ use script::dom::element::{HTMLLinkElementTypeId, LayoutElementHelpers, RawLayou
 use script::dom::htmliframeelement::HTMLIFrameElement;
 use script::dom::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
 use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, Node, NodeTypeId};
-use script::dom::node::{LayoutNodeHelpers, RawLayoutNodeHelpers};
+use script::dom::node::{LayoutNodeHelpers, RawLayoutNodeHelpers, TextNodeTypeId};
 use script::dom::text::Text;
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
-use servo_util::namespace;
 use servo_util::namespace::Namespace;
+use servo_util::namespace;
+use servo_util::str::is_whitespace;
 use std::cast;
 use std::cell::{Ref, RefMut};
 use std::kinds::marker::ContravariantLifetime;
-use style::{PropertyDeclarationBlock, TElement, TNode, AttrSelector, SpecificNamespace};
-use style::{AnyNamespace};
-use style::computed_values::{content, display};
-use layout::util::LayoutDataWrapper;
+use style::computed_values::{content, display, white_space};
+use style::{AnyNamespace, AttrSelector, PropertyDeclarationBlock, SpecificNamespace, TElement};
+use style::{TNode};
 use url::Url;
 
 /// Allows some convenience methods on generic layout nodes.
@@ -629,6 +632,31 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         }
 
         traversal.process(self)
+    }
+
+    pub fn is_ignorable_whitespace(&self) -> bool {
+        match self.type_id() {
+            Some(TextNodeTypeId) => {
+                unsafe {
+                    let text: JS<Text> = self.get_jsmanaged().transmute_copy();
+                    if !is_whitespace((*text.unsafe_get()).characterdata.data) {
+                        return false
+                    }
+
+                    // NB: See the rules for `white-space` here:
+                    //
+                    //    http://www.w3.org/TR/CSS21/text.html#propdef-white-space
+                    //
+                    // If you implement other values for this property, you will almost certainly
+                    // want to update this check.
+                    match self.style().get_inheritedtext().white_space {
+                        white_space::normal => true,
+                        _ => false,
+                    }
+                }
+            }
+            _ => false
+        }
     }
 }
 

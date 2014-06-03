@@ -4,6 +4,8 @@
 
 //! CSS table formatting contexts.
 
+#![deny(unsafe_block)]
+
 use layout::block::BlockFlow;
 use layout::block::WidthAndMarginsComputer;
 use layout::construct::FlowConstructor;

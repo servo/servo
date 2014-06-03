@@ -4,6 +4,8 @@
 
 //! Text layout.
 
+#![deny(unsafe_block)]
+
 use layout::flow::Flow;
 use layout::fragment::{Fragment, ScannedTextFragment, ScannedTextFragmentInfo, UnscannedTextFragment};
 

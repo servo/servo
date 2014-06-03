@@ -12,6 +12,7 @@ use layout::context::LayoutContext;
 use layout::extra::LayoutAuxMethods;
 use layout::flow::{Flow, MutableFlowUtils, PreorderFlowTraversal, PostorderFlowTraversal};
 use layout::flow;
+use layout::flow_ref::FlowRef;
 use layout::layout_task::{AssignHeightsAndStoreOverflowTraversal, AssignWidthsTraversal};
 use layout::layout_task::{BubbleWidthsTraversal};
 use layout::util::{LayoutDataAccess, OpaqueNodeMethods};
@@ -63,13 +64,13 @@ fn null_unsafe_flow() -> UnsafeFlow {
     (0, 0)
 }
 
-pub fn owned_flow_to_unsafe_flow(flow: *Box<Flow:Share>) -> UnsafeFlow {
+pub fn owned_flow_to_unsafe_flow(flow: *FlowRef) -> UnsafeFlow {
     unsafe {
         cast::transmute_copy(&*flow)
     }
 }
 
-pub fn mut_owned_flow_to_unsafe_flow(flow: *mut Box<Flow:Share>) -> UnsafeFlow {
+pub fn mut_owned_flow_to_unsafe_flow(flow: *mut FlowRef) -> UnsafeFlow {
     unsafe {
         cast::transmute_copy(&*flow)
     }
@@ -141,14 +142,14 @@ trait ParallelPostorderFlowTraversal : PostorderFlowTraversal {
         loop {
             unsafe {
                 // Get a real flow.
-                let flow: &mut Box<Flow:Share> = cast::transmute(&unsafe_flow);
+                let flow: &mut FlowRef = cast::transmute(&unsafe_flow);
 
                 // Perform the appropriate traversal.
-                if self.should_process(*flow) {
-                    self.process(*flow);
+                if self.should_process(flow.get_mut()) {
+                    self.process(flow.get_mut());
                 }
 
-                let base = flow::mut_base(*flow);
+                let base = flow::mut_base(flow.get_mut());
 
                 // Reset the count of children for the next layout traversal.
                 base.parallel.children_count.store(base.children.len() as int, Relaxed);
@@ -163,8 +164,8 @@ trait ParallelPostorderFlowTraversal : PostorderFlowTraversal {
                 // No, we're not at the root yet. Then are we the last child
                 // of our parent to finish processing? If so, we can continue
                 // on with our parent; otherwise, we've gotta wait.
-                let parent: &mut Box<Flow:Share> = cast::transmute(&unsafe_parent);
-                let parent_base = flow::mut_base(*parent);
+                let parent: &mut FlowRef = cast::transmute(&unsafe_parent);
+                let parent_base = flow::mut_base(parent.get_mut());
                 if parent_base.parallel.children_count.fetch_sub(1, SeqCst) == 1 {
                     // We were the last child of our parent. Reflow our parent.
                     unsafe_flow = unsafe_parent
@@ -196,13 +197,13 @@ trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
         let mut had_children = false;
         unsafe {
             // Get a real flow.
-            let flow: &mut Box<Flow:Share> = cast::transmute(&unsafe_flow);
+            let flow: &mut FlowRef = cast::transmute(&unsafe_flow);
 
             // Perform the appropriate traversal.
-            self.process(*flow);
+            self.process(flow.get_mut());
 
             // Possibly enqueue the children.
-            for kid in flow::child_iter(*flow) {
+            for kid in flow::child_iter(flow.get_mut()) {
                 had_children = true;
                 proxy.push(WorkUnit {
                     fun: top_down_func,
@@ -421,27 +422,28 @@ fn compute_absolute_position(unsafe_flow: PaddedUnsafeFlow,
     let mut had_descendants = false;
     unsafe {
         // Get a real flow.
-        let flow: &mut Box<Flow:Share> = cast::transmute(&unsafe_flow);
+        let flow: &mut FlowRef = cast::transmute(&unsafe_flow);
 
         // Compute the absolute position for the flow.
-        flow.compute_absolute_position();
+        flow.get_mut().compute_absolute_position();
 
         // Count the number of absolutely-positioned children, so that we can subtract it from
         // from `children_and_absolute_descendant_count` to get the number of real children.
         let mut absolutely_positioned_child_count = 0;
-        for kid in flow::child_iter(*flow) {
+        for kid in flow::child_iter(flow.get_mut()) {
             if kid.is_absolutely_positioned() {
                 absolutely_positioned_child_count += 1;
             }
         }
 
         // Don't enqueue absolutely positioned children.
-        drop(flow::mut_base(*flow).parallel
-                                  .children_and_absolute_descendant_count
-                                  .fetch_sub(absolutely_positioned_child_count as int, SeqCst));
+        drop(flow::mut_base(flow.get_mut()).parallel
+                                           .children_and_absolute_descendant_count
+                                           .fetch_sub(absolutely_positioned_child_count as int,
+                                                      SeqCst));
 
         // Possibly enqueue the children.
-        for kid in flow::child_iter(*flow) {
+        for kid in flow::child_iter(flow.get_mut()) {
             if !kid.is_absolutely_positioned() {
                 had_descendants = true;
                 proxy.push(WorkUnit {
@@ -452,9 +454,9 @@ fn compute_absolute_position(unsafe_flow: PaddedUnsafeFlow,
         }
 
         // Possibly enqueue absolute descendants.
-        for absolute_descendant_link in flow::mut_base(*flow).abs_descendants.iter() {
+        for absolute_descendant_link in flow::mut_base(flow.get_mut()).abs_descendants.iter() {
             had_descendants = true;
-            let descendant = absolute_descendant_link.resolve().unwrap();
+            let descendant = absolute_descendant_link;
             proxy.push(WorkUnit {
                 fun: compute_absolute_position,
                 data: UnsafeFlowConversions::from_flow(&borrowed_flow_to_unsafe_flow(descendant)),
@@ -479,13 +481,13 @@ fn build_display_list(mut unsafe_flow: PaddedUnsafeFlow,
     loop {
         unsafe {
             // Get a real flow.
-            let flow: &mut Box<Flow:Share> = cast::transmute(&unsafe_flow);
+            let flow: &mut FlowRef = cast::transmute(&unsafe_flow);
 
             // Build display lists.
-            flow.build_display_list(layout_context);
+            flow.get_mut().build_display_list(layout_context);
 
             {
-                let base = flow::mut_base(*flow);
+                let base = flow::mut_base(flow.get_mut());
 
                 // Reset the count of children and absolute descendants for the next layout
                 // traversal.
@@ -497,12 +499,15 @@ fn build_display_list(mut unsafe_flow: PaddedUnsafeFlow,
             }
 
             // Possibly enqueue the parent.
-            let unsafe_parent = if flow.is_absolutely_positioned() {
-                mut_borrowed_flow_to_unsafe_flow(flow::mut_base(*flow).absolute_cb
-                                                                      .resolve()
-                                                                      .unwrap())
+            let unsafe_parent = if flow.get().is_absolutely_positioned() {
+                match *flow::mut_base(flow.get_mut()).absolute_cb.get() {
+                    None => fail!("no absolute containing block for absolutely positioned?!"),
+                    Some(ref mut absolute_cb) => {
+                        mut_borrowed_flow_to_unsafe_flow(absolute_cb.get_mut())
+                    }
+                }
             } else {
-                flow::mut_base(*flow).parallel.parent
+                flow::mut_base(flow.get_mut()).parallel.parent
             };
             if unsafe_parent == null_unsafe_flow() {
                 // We're done!
@@ -512,8 +517,8 @@ fn build_display_list(mut unsafe_flow: PaddedUnsafeFlow,
             // No, we're not at the root yet. Then are we the last child
             // of our parent to finish processing? If so, we can continue
             // on with our parent; otherwise, we've gotta wait.
-            let parent: &mut Box<Flow:Share> = cast::transmute(&unsafe_parent);
-            let parent_base = flow::mut_base(*parent);
+            let parent: &mut FlowRef = cast::transmute(&unsafe_parent);
+            let parent_base = flow::mut_base(parent.get_mut());
             if parent_base.parallel
                           .children_and_absolute_descendant_count
                           .fetch_sub(1, SeqCst) == 1 {
@@ -545,7 +550,7 @@ pub fn recalc_style_for_subtree(root_node: &LayoutNode,
     queue.data = ptr::mut_null()
 }
 
-pub fn traverse_flow_tree_preorder(root: &mut Box<Flow:Share>,
+pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
                                    profiler_chan: ProfilerChan,
                                    layout_context: &mut LayoutContext,
                                    queue: &mut WorkQueue<*mut LayoutContext,PaddedUnsafeFlow>) {
@@ -565,7 +570,7 @@ pub fn traverse_flow_tree_preorder(root: &mut Box<Flow:Share>,
     queue.data = ptr::mut_null()
 }
 
-pub fn build_display_list_for_subtree(root: &mut Box<Flow:Share>,
+pub fn build_display_list_for_subtree(root: &mut FlowRef,
                                       profiler_chan: ProfilerChan,
                                       layout_context: &mut LayoutContext,
                                       queue: &mut WorkQueue<*mut LayoutContext,PaddedUnsafeFlow>) {
