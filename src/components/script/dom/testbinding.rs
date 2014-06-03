@@ -5,7 +5,9 @@
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::codegen::Bindings::TestBindingBinding::TestEnum;
 use dom::bindings::codegen::Bindings::TestBindingBinding::TestEnumValues::_empty;
-use dom::bindings::codegen::UnionTypes::{HTMLElementOrLong, EventOrString};
+use dom::bindings::codegen::UnionTypes::BlobOrString::BlobOrString;
+use dom::bindings::codegen::UnionTypes::EventOrString::EventOrString;
+use dom::bindings::codegen::UnionTypes::HTMLElementOrLong::HTMLElementOrLong;
 use dom::bindings::str::ByteString;
 use dom::bindings::utils::{Reflector, Reflectable};
 use dom::blob::Blob;
@@ -139,6 +141,7 @@ pub trait TestBindingMethods {
     fn PassInterface(&self, _: &JSRef<Blob>) {}
     fn PassUnion(&self, _: HTMLElementOrLong) {}
     fn PassUnion2(&self, _: EventOrString) {}
+    fn PassUnion3(&self, _: BlobOrString) {}
     fn PassAny(&self, _: *mut JSContext, _: JSVal) {}
 
     fn PassNullableBoolean(&self, _: Option<bool>) {}
