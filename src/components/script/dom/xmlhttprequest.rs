@@ -577,34 +577,56 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         match progress {
             HeadersReceivedMsg(headers) => {
                 // XXXManishearth Find a way to track partial progress of the send (onprogresss for XHRUpload)
+
+                // Part of step 13, send() (processing request end of file)
+                // Substep 1
                 self.upload_complete = true;
+
+                // Substeps 2-4
                 self.dispatch_upload_progress_event("progress".to_owned(), None);
                 self.dispatch_upload_progress_event("load".to_owned(), None);
                 self.dispatch_upload_progress_event("loadend".to_owned(), None);
 
+                // Part of step 13, send() (processing response)
+                // XXXManishearth handle errors, if any (substep 1)
+                // Substep 2 (only headers)
                 match headers {
                     Some(ref h) => *self.response_headers = h.clone(),
                     None => {}
                 };
+                // Substep 3
                 if self.ready_state == Opened {
                     self.change_ready_state(HeadersReceived);
                 }
             },
             LoadingMsg(partial_response) => {
-                self.response = partial_response;
-                self.dispatch_response_progress_event("progress".to_owned());
+                // Part of step 13, send() (processing response body)
+                // XXXManishearth handle errors, if any (substep 1)
+
+                // Substep 2
                 if self.ready_state == HeadersReceived {
                     self.change_ready_state(Loading);
                 }
+                // Substep 3
+                self.response = partial_response;
+                // Substep 4
+                self.dispatch_response_progress_event("progress".to_owned());
             },
             DoneMsg => {
+                // Part of step 13, send() (processing response end of file)
+                // XXXManishearth handle errors, if any (substep 1)
+
+                // Substep 3
                 if self.ready_state == Loading {
+                    // Subsubsteps 2-4
+                    self.send_flag = false;
+                    self.change_ready_state(XHRDone);
+
+                    // Subsubsteps 5-7
                     let len = self.response.len() as u64;
                     self.dispatch_response_progress_event("progress".to_owned());
                     self.dispatch_response_progress_event("load".to_owned());
                     self.dispatch_response_progress_event("loadend".to_owned());
-                    self.send_flag = false;
-                    self.change_ready_state(XHRDone);
                 }
             },
             ErroredMsg => {
