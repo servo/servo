@@ -298,10 +298,6 @@ impl IOCompositor {
                     self.set_layer_clip_rect(pipeline_id, layer_id, new_rect);
                 }
 
-                (Ok(DeleteLayerGroup(id)), _) => {
-                    self.delete_layer(id);
-                }
-
                 (Ok(Paint(pipeline_id, layer_id, new_layer_buffer_set, epoch)), false) => {
                     self.paint(pipeline_id, layer_id, new_layer_buffer_set, epoch);
                 }
@@ -367,8 +363,10 @@ impl IOCompositor {
             }
             _ => {
                 match self.root_pipeline {
-                    Some(ref root_pipeline) => (root_pipeline.clone(), LayerId::null()),
-                    None => fail!("Compositor: Received new layer without initialized pipeline"),
+                    Some(ref root_pipeline) if root_pipeline.id == id => {
+                        (root_pipeline.clone(), LayerId::null())
+                    },
+                    _ => fail!("Compositor: Received new layer without initialized pipeline"),
                 }
             }
         };
@@ -381,13 +379,7 @@ impl IOCompositor {
                                                           self.opts.cpu_painting);
             new_layer.unrendered_color = unrendered_color;
 
-            let first_child = self.root_layer.first_child.borrow().clone();
-            match first_child {
-                None => {}
-                Some(old_layer) => {
-                    ContainerLayer::remove_child(self.root_layer.clone(), old_layer)
-                }
-            }
+            self.root_layer.remove_all_children();
 
             assert!(new_layer.add_child_if_necessary(self.root_layer.clone(),
                                                      root_pipeline_id,
@@ -466,22 +458,6 @@ impl IOCompositor {
         let ask: bool = match self.compositor_layer {
             Some(ref mut layer) => {
                 assert!(layer.set_clipping_rect(pipeline_id, layer_id, new_rect));
-                true
-            }
-            None => {
-                false
-            }
-        };
-
-        if ask {
-            self.ask_for_tiles();
-        }
-    }
-
-    fn delete_layer(&mut self, id: PipelineId) {
-        let ask: bool = match self.compositor_layer {
-            Some(ref mut layer) => {
-                assert!(layer.delete(&self.graphics_context, id));
                 true
             }
             None => {

@@ -78,7 +78,7 @@ impl NullCompositor {
 
                 CreateRootCompositorLayerIfNecessary(..) |
                 CreateDescendantCompositorLayerIfNecessary(..) | SetLayerPageSize(..) |
-                SetLayerClipRect(..) | DeleteLayerGroup(..) | Paint(..) |
+                SetLayerClipRect(..) | Paint(..) |
                 ChangeReadyState(..) | ChangeRenderState(..) | ScrollFragmentPoint(..) |
                 SetUnRenderedColor(..) | LoadComplete(..) => ()
             }

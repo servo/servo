@@ -126,10 +126,6 @@ impl RenderListener for CompositorChan {
         self.chan.send(SetLayerClipRect(pipeline_id, layer_id, new_rect))
     }
 
-    fn delete_layer_group(&self, id: PipelineId) {
-        self.chan.send(DeleteLayerGroup(id))
-    }
-
     fn set_render_state(&self, render_state: RenderState) {
         self.chan.send(ChangeRenderState(render_state))
     }
@@ -175,8 +171,6 @@ pub enum Msg {
     SetLayerPageSize(PipelineId, LayerId, Size2D<f32>, Epoch),
     /// Alerts the compositor that the specified layer's clipping rect has changed.
     SetLayerClipRect(PipelineId, LayerId, Rect<f32>),
-    /// Alerts the compositor that the specified pipeline has been deleted.
-    DeleteLayerGroup(PipelineId),
     /// Scroll a page in a window
     ScrollFragmentPoint(PipelineId, LayerId, Point2D<f32>),
     /// Requests that the compositor paint the given layer buffer set for the given page size.

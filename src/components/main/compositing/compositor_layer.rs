@@ -857,40 +857,6 @@ impl CompositorLayer {
         return None
     }
 
-    // Deletes a specified sublayer, including hidden children. Returns false if the layer is not
-    // found.
-    pub fn delete(&mut self,
-                  graphics_context: &NativeCompositingGraphicsContext,
-                  pipeline_id: PipelineId)
-                  -> bool {
-        match self.children.iter().position(|x| x.child.pipeline.id == pipeline_id) {
-            Some(i) => {
-                let mut child = self.children.remove(i);
-                match self.quadtree {
-                    NoTree(..) => {} // Nothing to do
-                    Tree(ref mut quadtree) => {
-                        match *child.get_ref().container.scissor.borrow() {
-                            Some(rect) => {
-                                quadtree.set_status_page(rect, Normal, false); // Unhide this rect
-                            }
-                            None => {} // Nothing to do
-                        }
-                    }
-                }
-
-                // Send back all tiles to renderer.
-                child.get_mut_ref().child.clear_all_tiles();
-
-                self.build_layer_tree(graphics_context);
-                true
-            }
-            None => {
-                self.children.mut_iter().map(|x| &mut x.child)
-                                        .any(|x| x.delete(graphics_context, pipeline_id))
-            }
-        }
-    }
-
     // Recursively sets occluded portions of quadtrees to Hidden, so that they do not ask for
     // tile requests. If layers are moved, resized, or deleted, these portions may be updated.
     fn set_occlusions(&mut self) {
