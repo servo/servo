@@ -5,13 +5,14 @@
 //! A variant of `DList` specialized to store `Flow`s without an extra
 //! indirection.
 
+use layout::flow::{Flow, base, mut_base};
+use layout::flow_ref::FlowRef;
+
 use std::cast;
 use std::mem;
 use std::ptr;
 
-use layout::flow::{Flow, base, mut_base};
-
-pub type Link = Option<Box<Flow:Share>>;
+pub type Link = Option<FlowRef>;
 
 #[deriving(Clone)]
 pub struct Rawlink {
@@ -26,7 +27,7 @@ pub struct Rawlink {
 pub struct FlowList {
     length: uint,
     list_head: Link,
-    list_tail: Rawlink,
+    list_tail: Link,
 }
 
 /// Double-ended FlowList iterator
@@ -54,42 +55,30 @@ impl Rawlink {
     }
 
     /// Like Option::Some for Rawlink
-    pub fn some(n: &mut Flow) -> Rawlink {
+    pub fn some(n: &Flow) -> Rawlink {
         unsafe { cast::transmute(n) }
     }
 
-    /// Convert the `Rawlink` into an Option value
-    fn resolve_immut(&self) -> Option<&Flow> {
-        if self.obj.is_null() {
-            None
-        } else {
-            let me: &Flow = unsafe { cast::transmute_copy(self) };
-            Some(me)
+    fn from_optional_flow_ref(flow_ref: &Option<FlowRef>) -> Rawlink {
+        match *flow_ref {
+            None => Rawlink::none(),
+            Some(ref flow_ref) => Rawlink::some(flow_ref.get()),
         }
     }
 
-    pub fn resolve(&mut self) -> Option<&mut Flow> {
+    pub unsafe fn resolve_mut(&self) -> Option<&mut Flow> {
         if self.obj.is_null() {
             None
         } else {
-            let me: &mut Flow = unsafe { cast::transmute_copy(self) };
+            let me: &mut Flow = cast::transmute_copy(self);
             Some(me)
         }
-    }
-
-    fn is_none(&self) -> bool {
-        self.obj.is_null()
-    }
-
-    unsafe fn get<'a>(&'a mut self) -> &'a mut Flow {
-        assert!(self.obj.is_not_null());
-        cast::transmute_copy(self)
     }
 }
 
 /// Set the .prev field on `next`, then return `Some(next)`
-fn link_with_prev(mut next: Box<Flow:Share>, prev: Rawlink) -> Link {
-    mut_base(next).prev_sibling = prev;
+unsafe fn link_with_prev(mut next: FlowRef, prev: Option<FlowRef>) -> Link {
+    mut_base(next.get_mut()).prev_sibling = prev;
     Some(next)
 }
 
@@ -112,33 +101,34 @@ impl FlowList {
     /// Provide a reference to the front element, or None if the list is empty
     #[inline]
     pub fn front<'a>(&'a self) -> Option<&'a Flow> {
-        self.list_head.as_ref().map(|head| { let x: &Flow = *head; x })
+        self.list_head.as_ref().map(|head| head.get())
     }
 
     /// Provide a mutable reference to the front element, or None if the list is empty
     #[inline]
-    pub fn front_mut<'a>(&'a mut self) -> Option<&'a mut Flow> {
-        self.list_head.as_mut().map(|head| { let x: &mut Flow = *head; x })
+    pub unsafe fn front_mut<'a>(&'a mut self) -> Option<&'a mut Flow> {
+        self.list_head.as_mut().map(|head| head.get_mut())
     }
 
     /// Provide a reference to the back element, or None if the list is empty
     #[inline]
     pub fn back<'a>(&'a self) -> Option<&'a Flow> {
-        let tmp = self.list_tail.resolve_immut();
-        tmp.as_ref().map(|tail| { let x: &Flow = *tail; x })
+        match self.list_tail {
+            None => None,
+            Some(ref list_tail) => Some(list_tail.get())
+        }
     }
 
     /// Provide a mutable reference to the back element, or None if the list is empty
     #[inline]
-    pub fn back_mut<'a>(&'a mut self) -> Option<&'a mut Flow> {
+    pub unsafe fn back_mut<'a>(&'a mut self) -> Option<&'a mut Flow> {
         // Can't use map() due to error:
         // lifetime of `tail` is too short to guarantee its contents can be safely reborrowed
-        let tmp = self.list_tail.resolve();
-        match tmp {
+        match self.list_tail {
             None => None,
-            Some(tail) => {
-                let x: &mut Flow = tail;
-                Some(x)
+            Some(ref mut tail) => {
+                let x: &mut Flow = tail.get_mut();
+                Some(cast::transmute_copy(&x))
             }
         }
     }
@@ -146,31 +136,35 @@ impl FlowList {
     /// Add an element first in the list
     ///
     /// O(1)
-    pub fn push_front(&mut self, mut new_head: Box<Flow:Share>) {
-        match self.list_head {
-            None => {
-                self.list_tail = Rawlink::some(new_head);
-                self.list_head = link_with_prev(new_head, Rawlink::none());
+    pub fn push_front(&mut self, mut new_head: FlowRef) {
+        unsafe {
+            match self.list_head {
+                None => {
+                    self.list_tail = Some(new_head.clone());
+                    self.list_head = link_with_prev(new_head, None);
+                }
+                Some(ref mut head) => {
+                    mut_base(new_head.get_mut()).prev_sibling = None;
+                    mut_base(head.get_mut()).prev_sibling = Some(new_head.clone());
+                    mem::swap(head, &mut new_head);
+                    mut_base(head.get_mut()).next_sibling = Some(new_head);
+                }
             }
-            Some(ref mut head) => {
-                mut_base(new_head).prev_sibling = Rawlink::none();
-                mut_base(*head).prev_sibling = Rawlink::some(new_head);
-                mem::swap(head, &mut new_head);
-                mut_base(*head).next_sibling = Some(new_head);
-            }
+            self.length += 1;
         }
-        self.length += 1;
     }
 
     /// Remove the first element and return it, or None if the list is empty
     ///
     /// O(1)
-    pub fn pop_front(&mut self) -> Option<Box<Flow:Share>> {
+    pub fn pop_front(&mut self) -> Option<FlowRef> {
         self.list_head.take().map(|mut front_node| {
             self.length -= 1;
-            match mut_base(front_node).next_sibling.take() {
-                Some(node) => self.list_head = link_with_prev(node, Rawlink::none()),
-                None => self.list_tail = Rawlink::none()
+            unsafe {
+                match mut_base(front_node.get_mut()).next_sibling.take() {
+                    Some(node) => self.list_head = link_with_prev(node, None),
+                    None => self.list_tail = None,
+                }
             }
             front_node
         })
@@ -179,34 +173,19 @@ impl FlowList {
     /// Add an element last in the list
     ///
     /// O(1)
-    pub fn push_back(&mut self, mut new_tail: Box<Flow:Share>) {
+    pub fn push_back(&mut self, new_tail: FlowRef) {
         if self.list_tail.is_none() {
             return self.push_front(new_tail);
-        } else {
-            let mut old_tail = self.list_tail;
-            self.list_tail = Rawlink::some(new_tail);
-            let tail = unsafe { old_tail.get() };
-            mut_base(tail).next_sibling = link_with_prev(new_tail, Rawlink::some(tail));
+        }
+
+        let old_tail = self.list_tail.clone();
+        self.list_tail = Some(new_tail.clone());
+        let mut tail = (*old_tail.as_ref().unwrap()).clone();
+        let tail_clone = Some(tail.clone());
+        unsafe {
+            mut_base(tail.get_mut()).next_sibling = link_with_prev(new_tail, tail_clone);
         }
         self.length += 1;
-    }
-
-    /// Remove the last element and return it, or None if the list is empty
-    ///
-    /// O(1)
-    pub fn pop_back(&mut self) -> Option<Box<Flow:Share>> {
-        if self.list_tail.is_none() {
-            None
-        } else {
-            self.length -= 1;
-
-            self.list_tail = base(unsafe { self.list_tail.get() }).prev_sibling;
-            if self.list_tail.is_none() {
-                self.list_head.take()
-            } else {
-                mut_base(unsafe { self.list_tail.get() }).next_sibling.take()
-            }
-        }
     }
 
     /// Create an empty list
@@ -214,7 +193,7 @@ impl FlowList {
     pub fn new() -> FlowList {
         FlowList {
             list_head: None,
-            list_tail: Rawlink::none(),
+            list_tail: None,
             length: 0,
         }
     }
@@ -225,7 +204,7 @@ impl FlowList {
         FlowListIterator {
             nelem: self.len(),
             head: &self.list_head,
-            tail: self.list_tail
+            tail: Rawlink::from_optional_flow_ref(&self.list_tail)
         }
     }
 
@@ -233,13 +212,13 @@ impl FlowList {
     #[inline]
     pub fn mut_iter<'a>(&'a mut self) -> MutFlowListIterator<'a> {
         let head_raw = match self.list_head {
-            Some(ref mut h) => Rawlink::some(*h),
+            Some(ref mut h) => Rawlink::some(h.get()),
             None => Rawlink::none(),
         };
         MutFlowListIterator {
             nelem: self.len(),
             head: head_raw,
-            tail: self.list_tail,
+            tail: Rawlink::from_optional_flow_ref(&self.list_tail),
             list: self
         }
     }
@@ -251,20 +230,20 @@ impl Drop for FlowList {
         // Dissolve the list in backwards direction
         // Just dropping the list_head can lead to stack exhaustion
         // when length is >> 1_000_000
-        let mut tail = self.list_tail;
+        let mut tail = mem::replace(&mut self.list_tail, None);
         loop {
-            match tail.resolve() {
+            let new_tail = match tail {
                 None => break,
-                Some(prev) => {
-                    let prev_base = mut_base(prev);
+                Some(ref mut prev) => {
+                    let prev_base = mut_base(prev.get_mut());
                     prev_base.next_sibling.take();
-                    tail = prev_base.prev_sibling;
+                    prev_base.prev_sibling.clone()
                 }
-            }
+            };
+            tail = new_tail
         }
         self.length = 0;
         self.list_head = None;
-        self.list_tail = Rawlink::none();
     }
 }
 
@@ -275,10 +254,10 @@ impl<'a> Iterator<&'a Flow> for FlowListIterator<'a> {
             return None;
         }
         self.head.as_ref().map(|head| {
-            let head_base = base(*head);
+            let head_base = base(head.get());
             self.nelem -= 1;
             self.head = &head_base.next_sibling;
-            let ret: &Flow = *head;
+            let ret: &Flow = head.get();
             ret
         })
     }
@@ -295,17 +274,19 @@ impl<'a> Iterator<&'a mut Flow> for MutFlowListIterator<'a> {
         if self.nelem == 0 {
             return None;
         }
-        self.head.resolve().map(|next| {
-            self.nelem -= 1;
-            self.head = match mut_base(next).next_sibling {
-                Some(ref mut node) => {
-                    let x: &mut Flow = *node;
-                    Rawlink::some(x)
-                }
-                None => Rawlink::none(),
-            };
-            next
-        })
+        unsafe {
+            self.head.resolve_mut().map(|next| {
+                self.nelem -= 1;
+                self.head = match mut_base(next).next_sibling {
+                    Some(ref mut node) => {
+                        let x: &mut Flow = node.get_mut();
+                        Rawlink::some(x)
+                    }
+                    None => Rawlink::none(),
+                };
+                next
+            })
+        }
     }
 
     #[inline]
