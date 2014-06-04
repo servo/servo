@@ -4,6 +4,8 @@
 
 //! The `Box` type, which represents the leaves of the layout tree.
 
+#![deny(unsafe_block)]
+
 use css::node_style::StyledNode;
 use layout::construct::FlowConstructor;
 use layout::context::LayoutContext;
@@ -38,7 +40,6 @@ use servo_util::range::*;
 use servo_util::namespace;
 use servo_util::smallvec::SmallVec;
 use servo_util::str::is_whitespace;
-use std::cast;
 use std::fmt;
 use std::from_str::FromStr;
 use std::iter::AdditiveIterator;
@@ -381,9 +382,7 @@ impl Fragment {
     /// Returns a debug ID of this fragment. This ID should not be considered stable across multiple
     /// layouts or fragment manipulations.
     pub fn debug_id(&self) -> uint {
-        unsafe {
-            cast::transmute(self)
-        }
+        self as *Fragment as uint
     }
 
     /// Transforms this fragment into another fragment of the given type, with the given size, preserving all

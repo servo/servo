@@ -12,6 +12,8 @@
 //!
 //! CB: Containing Block of the current flow.
 
+#![deny(unsafe_block)]
+
 use layout::construct::FlowConstructor;
 use layout::context::LayoutContext;
 use layout::floats::{ClearBoth, ClearLeft, ClearRight, FloatKind, Floats, PlacementInfo};
@@ -656,17 +658,12 @@ impl BlockFlow {
         let mut descendant_offset_iter = mut_base(flow).abs_descendants.iter_with_offset();
         // Pass in the respective static y offset for each descendant.
         for (ref mut descendant_link, ref y_offset) in descendant_offset_iter {
-            match descendant_link.resolve() {
-                Some(flow) => {
-                    let block = flow.as_block();
-                    // The stored y_offset is wrt to the flow box.
-                    // Translate it to the CB (which is the padding box).
-                    block.static_y_offset = **y_offset - cb_top_edge_offset;
-                    if !block.traverse_preorder_absolute_flows(traversal) {
-                        return false
-                    }
-                }
-                None => fail!("empty Rawlink to a descendant")
+            let block = descendant_link.as_block();
+            // The stored y_offset is wrt to the flow box.
+            // Translate it to the CB (which is the padding box).
+            block.static_y_offset = **y_offset - cb_top_edge_offset;
+            if !block.traverse_preorder_absolute_flows(traversal) {
+                return false
             }
         }
 
@@ -685,14 +682,9 @@ impl BlockFlow {
         }
 
         for descendant_link in mut_base(flow).abs_descendants.iter() {
-            match descendant_link.resolve() {
-                Some(abs_flow) => {
-                    let block = abs_flow.as_block();
-                    if !block.traverse_postorder_absolute_flows(traversal) {
-                        return false
-                    }
-                }
-                None => fail!("empty Rawlink to a descendant")
+            let block = descendant_link.as_block();
+            if !block.traverse_postorder_absolute_flows(traversal) {
+                return false
             }
         }
 
@@ -1125,15 +1117,10 @@ impl BlockFlow {
 
         // Process absolute descendant links.
         for abs_descendant_link in self.base.abs_descendants.iter() {
-            match abs_descendant_link.resolve() {
-                Some(kid) => {
-                    // TODO(pradeep): Send in our absolute position directly.
-                    accumulator.push_child(&mut display_list, kid);
-                    child_layers.append(mem::replace(&mut flow::mut_base(kid).layers,
-                                                     DList::new()));
-                }
-                None => fail!("empty Rawlink to a descendant")
-            }
+            // TODO(pradeep): Send in our absolute position directly.
+            accumulator.push_child(&mut display_list, abs_descendant_link);
+            child_layers.append(mem::replace(&mut flow::mut_base(abs_descendant_link).layers,
+                                             DList::new()));
         }
 
         accumulator.finish(&mut *self, display_list);
@@ -1634,14 +1621,8 @@ impl Flow for BlockFlow {
         }
 
         // Process absolute descendant links.
-        for absolute_descendant_link in self.base.abs_descendants.iter() {
-            match absolute_descendant_link.resolve() {
-                Some(absolute_descendant) => {
-                    flow::mut_base(absolute_descendant).absolute_position_info =
-                        absolute_position_info
-                }
-                None => fail!("empty Rawlink to a descendant")
-            }
+        for absolute_descendant in self.base.abs_descendants.iter() {
+            flow::mut_base(absolute_descendant).absolute_position_info = absolute_position_info
         }
     }
 

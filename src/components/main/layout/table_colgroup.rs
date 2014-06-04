@@ -4,6 +4,8 @@
 
 //! CSS table formatting contexts.
 
+#![deny(unsafe_block)]
+
 use layout::context::LayoutContext;
 use layout::flow::{BaseFlow, TableColGroupFlowClass, FlowClass, Flow};
 use layout::fragment::{Fragment, TableColumnFragment};

@@ -29,13 +29,13 @@ use css::node_style::StyledNode;
 use layout::block::BlockFlow;
 use layout::context::LayoutContext;
 use layout::floats::Floats;
-use layout::flow_list::{FlowList, Link, Rawlink, FlowListIterator, MutFlowListIterator};
+use layout::flow_list::{FlowList, Link, FlowListIterator, MutFlowListIterator};
+use layout::flow_ref::FlowRef;
 use layout::fragment::{Fragment, TableRowFragment, TableCellFragment};
 use layout::incremental::RestyleDamage;
 use layout::inline::InlineFlow;
 use layout::model::{CollapsibleMargins, IntrinsicWidths, MarginCollapseInfo};
 use layout::parallel::FlowParallelInfo;
-use layout::parallel;
 use layout::table_wrapper::TableWrapperFlow;
 use layout::table::TableFlow;
 use layout::table_colgroup::TableColGroupFlow;
@@ -45,7 +45,6 @@ use layout::table_caption::TableCaptionFlow;
 use layout::table_cell::TableCellFlow;
 use layout::wrapper::ThreadSafeLayoutNode;
 
-use collections::Deque;
 use collections::dlist::DList;
 use geom::point::Point2D;
 use geom::rect::Rect;
@@ -58,7 +57,7 @@ use std::cast;
 use std::fmt;
 use std::iter::Zip;
 use std::num::Zero;
-use std::sync::atomics::Relaxed;
+use std::sync::atomics::{AtomicUint, Relaxed, SeqCst};
 use std::slice::MutItems;
 use style::computed_values::{clear, position, text_align};
 
@@ -66,7 +65,7 @@ use style::computed_values::{clear, position, text_align};
 ///
 /// Note that virtual methods have a cost; we should not overuse them in Servo. Consider adding
 /// methods to `ImmutableFlowUtils` or `MutableFlowUtils` before adding more methods here.
-pub trait Flow: fmt::Show + ToStr {
+pub trait Flow: fmt::Show + ToStr + Share {
     // RTTI
     //
     // TODO(pcwalton): Use Rust's RTTI, once that works.
@@ -293,11 +292,6 @@ pub fn mut_base<'a>(this: &'a mut Flow) -> &'a mut BaseFlow {
     }
 }
 
-/// Returns the last child of this flow.
-pub fn last_child<'a>(flow: &'a mut Flow) -> Option<&'a mut Flow> {
-    mut_base(flow).children.back_mut()
-}
-
 /// Iterates over the children of this flow.
 pub fn child_iter<'a>(flow: &'a mut Flow) -> MutFlowListIterator<'a> {
     mut_base(flow).children.mut_iter()
@@ -337,7 +331,7 @@ pub trait ImmutableFlowUtils {
     fn need_anonymous_flow(self, child: &Flow) -> bool;
 
     /// Generates missing child flow of this flow.
-    fn generate_missing_child_flow(self, node: &ThreadSafeLayoutNode) -> Box<Flow:Share>;
+    fn generate_missing_child_flow(self, node: &ThreadSafeLayoutNode) -> FlowRef;
 
     /// Returns true if this flow has no children.
     fn is_leaf(self) -> bool;
@@ -372,42 +366,18 @@ pub trait MutableFlowUtils {
 
     // Mutators
 
-    /// Invokes a closure with the first child of this flow.
-    fn with_first_child<R>(self, f: |Option<&mut Flow>| -> R) -> R;
-
-    /// Invokes a closure with the last child of this flow.
-    fn with_last_child<R>(self, f: |Option<&mut Flow>| -> R) -> R;
-
     /// Computes the overflow region for this flow.
     fn store_overflow(self, _: &mut LayoutContext);
 
     /// Builds the display lists for this flow.
     fn build_display_list(self, layout_context: &LayoutContext);
-
-    /// Destroys the flow.
-    fn destroy(self);
 }
 
 pub trait MutableOwnedFlowUtils {
-    /// Adds a new flow as a child of this flow. Removes the flow from the given leaf set if
-    /// it's present.
-    fn add_new_child(&mut self, new_child: Box<Flow:Share>);
-
-    /// Finishes a flow. Once a flow is finished, no more child flows or boxes may be added to it.
-    /// This will normally run the bubble-widths (minimum and preferred -- i.e. intrinsic -- width)
-    /// calculation, unless the global `bubble_widths_separately` flag is on.
-    ///
-    /// All flows must be finished at some point, or they will not have their intrinsic widths
-    /// properly computed. (This is not, however, a memory safety problem.)
-    fn finish(&mut self, context: &mut LayoutContext);
-
     /// Set absolute descendants for this flow.
     ///
     /// Set this flow as the Containing Block for all the absolute descendants.
     fn set_abs_descendants(&mut self, abs_descendants: AbsDescendants);
-
-    /// Destroys the flow.
-    fn destroy(&mut self);
 }
 
 #[deriving(Eq, Show)]
@@ -550,10 +520,11 @@ impl FlowFlags {
 /// The Descendants of a flow.
 ///
 /// Also, details about their position wrt this flow.
-/// FIXME: This should use @pcwalton's reference counting scheme (Coming Soon).
 pub struct Descendants {
-    /// Links to every Descendant.
-    pub descendant_links: Vec<Rawlink>,
+    /// Links to every descendant. This must be private because it is unsafe to leak `FlowRef`s to
+    /// layout.
+    descendant_links: Vec<FlowRef>,
+
     /// Static y offsets of all descendants from the start of this flow box.
     pub static_y_offsets: Vec<Au>,
 }
@@ -570,7 +541,7 @@ impl Descendants {
         self.descendant_links.len()
     }
 
-    pub fn push(&mut self, given_descendant: Rawlink) {
+    pub fn push(&mut self, given_descendant: FlowRef) {
         self.descendant_links.push(given_descendant);
     }
 
@@ -585,21 +556,41 @@ impl Descendants {
 
     /// Return an iterator over the descendant flows.
     pub fn iter<'a>(&'a mut self) -> DescendantIter<'a> {
-        self.descendant_links.mut_slice_from(0).mut_iter()
+        DescendantIter {
+            iter: self.descendant_links.mut_slice_from(0).mut_iter(),
+        }
     }
 
     /// Return an iterator over (descendant, static y offset).
     pub fn iter_with_offset<'a>(&'a mut self) -> DescendantOffsetIter<'a> {
-        self.descendant_links.mut_slice_from(0).mut_iter().zip(
-            self.static_y_offsets.mut_slice_from(0).mut_iter())
+        let descendant_iter = DescendantIter {
+            iter: self.descendant_links.mut_slice_from(0).mut_iter(),
+        };
+        descendant_iter.zip(self.static_y_offsets.mut_slice_from(0).mut_iter())
     }
 }
 
 pub type AbsDescendants = Descendants;
 
-pub type DescendantIter<'a> = MutItems<'a, Rawlink>;
+pub struct DescendantIter<'a> {
+    iter: MutItems<'a, FlowRef>,
+}
 
-pub type DescendantOffsetIter<'a> = Zip<MutItems<'a, Rawlink>, MutItems<'a, Au>>;
+impl<'a> Iterator<&'a mut Flow> for DescendantIter<'a> {
+    fn next(&mut self) -> Option<&'a mut Flow> {
+        match self.iter.next() {
+            None => None,
+            Some(ref mut flow) => {
+                unsafe {
+                    let result: &'a mut Flow = cast::transmute(flow.get_mut());
+                    Some(result)
+                }
+            }
+        }
+    }
+}
+
+pub type DescendantOffsetIter<'a> = Zip<DescendantIter<'a>, MutItems<'a, Au>>;
 
 /// Information needed to compute absolute (i.e. viewport-relative) flow positions (not to be
 /// confused with absolutely-positioned flows).
@@ -628,12 +619,17 @@ impl AbsolutePositionInfo {
 
 /// Data common to all flows.
 pub struct BaseFlow {
+    /// NB: Must be the first element.
+    ///
+    /// The necessity of this will disappear once we have dynamically-sized types.
+    ref_count: AtomicUint,
+
     pub restyle_damage: RestyleDamage,
 
     /// The children of this flow.
     pub children: FlowList,
     pub next_sibling: Link,
-    pub prev_sibling: Rawlink,
+    pub prev_sibling: Link,
 
     /* layout computations */
     // TODO: min/pref and position are used during disjoint phases of
@@ -694,12 +690,6 @@ pub struct BaseFlow {
     /// Any layers that we're bubbling up, in a linked list.
     pub layers: DList<RenderLayer>,
 
-    /// Whether this flow has been destroyed.
-    ///
-    /// TODO(pcwalton): Pack this into the flags? Need to be careful because manipulation of this
-    /// flag can have memory safety implications.
-    destroyed: bool,
-
     /// Various flags for flows, tightly packed to save space.
     pub flags: FlowFlags,
 }
@@ -707,8 +697,8 @@ pub struct BaseFlow {
 #[unsafe_destructor]
 impl Drop for BaseFlow {
     fn drop(&mut self) {
-        if !self.destroyed {
-            fail!("Flow destroyed by going out of scope—this is unsafe! Use `destroy()` instead!")
+        if self.ref_count.load(SeqCst) != 0 {
+            fail!("Flow destroyed before its ref count hit zero—this is unsafe!")
         }
     }
 }
@@ -717,11 +707,13 @@ impl BaseFlow {
     #[inline]
     pub fn new(node: ThreadSafeLayoutNode) -> BaseFlow {
         BaseFlow {
+            ref_count: AtomicUint::new(1),
+
             restyle_damage: node.restyle_damage(),
 
             children: FlowList::new(),
             next_sibling: None,
-            prev_sibling: Rawlink::none(),
+            prev_sibling: None,
 
             intrinsic_widths: IntrinsicWidths::new(),
             position: Rect::zero(),
@@ -740,14 +732,16 @@ impl BaseFlow {
             layers: DList::new(),
             absolute_position_info: AbsolutePositionInfo::new(),
 
-            destroyed: false,
-
             flags: FlowFlags::new(),
         }
     }
 
     pub fn child_iter<'a>(&'a mut self) -> MutFlowListIterator<'a> {
         self.children.mut_iter()
+    }
+
+    pub unsafe fn ref_count<'a>(&'a self) -> &'a AtomicUint {
+        &self.ref_count
     }
 }
 
@@ -841,20 +835,21 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
     }
 
     /// Generates missing child flow of this flow.
-    fn generate_missing_child_flow(self, node: &ThreadSafeLayoutNode) -> Box<Flow:Share> {
-        match self.class() {
+    fn generate_missing_child_flow(self, node: &ThreadSafeLayoutNode) -> FlowRef {
+        let flow = match self.class() {
             TableFlowClass | TableRowGroupFlowClass => {
                 let fragment = Fragment::new_anonymous_table_fragment(node, TableRowFragment);
-                box TableRowFlow::from_node_and_fragment(node, fragment) as Box<Flow:Share>
+                box TableRowFlow::from_node_and_fragment(node, fragment) as Box<Flow>
             },
             TableRowFlowClass => {
                 let fragment = Fragment::new_anonymous_table_fragment(node, TableCellFragment);
-                box TableCellFlow::from_node_and_fragment(node, fragment) as Box<Flow:Share>
+                box TableCellFlow::from_node_and_fragment(node, fragment) as Box<Flow>
             },
             _ => {
                 fail!("no need to generate a missing child")
             }
-        }
+        };
+        FlowRef::new(flow)
     }
 
     /// Returns true if this flow has no children.
@@ -957,16 +952,6 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
         traversal.process(self)
     }
 
-    /// Invokes a closure with the first child of this flow.
-    fn with_first_child<R>(self, f: |Option<&mut Flow>| -> R) -> R {
-        f(mut_base(self).children.front_mut())
-    }
-
-    /// Invokes a closure with the last child of this flow.
-    fn with_last_child<R>(self, f: |Option<&mut Flow>| -> R) -> R {
-        f(mut_base(self).children.back_mut())
-    }
-
     /// Calculate and set overflow for current flow.
     ///
     /// CSS Section 11.1
@@ -994,14 +979,9 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
 
             // FIXME(#2004, pcwalton): This is wrong for `position: fixed`.
             for descendant_link in mut_base(self).abs_descendants.iter() {
-                match descendant_link.resolve() {
-                    Some(flow) => {
-                        let mut kid_overflow = base(flow).overflow;
-                        kid_overflow = kid_overflow.translate(&my_position.origin);
-                        overflow = overflow.union(&kid_overflow)
-                    }
-                    None => fail!("empty Rawlink to a descendant")
-                }
+                let mut kid_overflow = base(descendant_link).overflow;
+                kid_overflow = kid_overflow.translate(&my_position.origin);
+                overflow = overflow.union(&kid_overflow)
             }
         }
         mut_base(self).overflow = overflow;
@@ -1040,52 +1020,20 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
             }
         }
     }
-
-    /// Destroys the flow.
-    fn destroy(self) {
-        for kid in child_iter(self) {
-            kid.destroy()
-        }
-
-        mut_base(self).destroyed = true
-    }
 }
 
-impl MutableOwnedFlowUtils for Box<Flow:Share> {
-    /// Adds a new flow as a child of this flow. Fails if this flow is marked as a leaf.
-    fn add_new_child(&mut self, mut new_child: Box<Flow:Share>) {
-        {
-            let kid_base = mut_base(new_child);
-            kid_base.parallel.parent = parallel::mut_owned_flow_to_unsafe_flow(self);
-        }
-
-        let base = mut_base(*self);
-        base.children.push_back(new_child);
-        let _ = base.parallel.children_count.fetch_add(1, Relaxed);
-        let _ = base.parallel.children_and_absolute_descendant_count.fetch_add(1, Relaxed);
-    }
-
-    /// Finishes a flow. Once a flow is finished, no more child flows or fragments may be added to it.
-    /// This will normally run the bubble-widths (minimum and preferred -- i.e. intrinsic -- width)
-    /// calculation, unless the global `bubble_widths_separately` flag is on.
-    ///
-    /// All flows must be finished at some point, or they will not have their intrinsic widths
-    /// properly computed. (This is not, however, a memory safety problem.)
-    fn finish(&mut self, context: &mut LayoutContext) {
-        if !context.opts.bubble_widths_separately {
-            self.bubble_widths(context)
-        }
-    }
-
+impl MutableOwnedFlowUtils for FlowRef {
     /// Set absolute descendants for this flow.
     ///
     /// Set yourself as the Containing Block for all the absolute descendants.
     ///
-    /// Assumption: This is called in a bottom-up traversal, so that nothing
-    /// else is accessing the descendant flows.
+    /// This is called during flow construction, so nothing else can be accessing the descendant
+    /// flows. This is enforced by the fact that we have a mutable `FlowRef`, which only flow
+    /// construction is allowed to possess.
     fn set_abs_descendants(&mut self, abs_descendants: AbsDescendants) {
-        let self_link = Rawlink::some(*self);
-        let block = self.as_block();
+        let this = self.clone();
+
+        let block = self.get_mut().as_block();
         block.base.abs_descendants = abs_descendants;
         block.base
              .parallel
@@ -1093,20 +1041,9 @@ impl MutableOwnedFlowUtils for Box<Flow:Share> {
              .fetch_add(block.base.abs_descendants.len() as int, Relaxed);
 
         for descendant_link in block.base.abs_descendants.iter() {
-            match descendant_link.resolve() {
-                Some(flow) => {
-                    let base = mut_base(flow);
-                    base.absolute_cb.set(self_link.clone());
-                }
-                None => fail!("empty Rawlink to a descendant")
-            }
+            let base = mut_base(descendant_link);
+            base.absolute_cb.set(this.clone());
         }
-    }
-
-    /// Destroys the flow.
-    fn destroy(&mut self) {
-        let self_borrowed: &mut Flow = *self;
-        self_borrowed.destroy();
     }
 }
 
@@ -1116,29 +1053,34 @@ impl MutableOwnedFlowUtils for Box<Flow:Share> {
 /// tree. A pointer up the tree is unsafe during layout because it can be used to access a node
 /// with an immutable reference while that same node is being laid out, causing possible iterator
 /// invalidation and use-after-free.
+///
+/// FIXME(pcwalton): I think this would be better with a borrow flag instead of `unsafe`.
 pub struct ContainingBlockLink {
-    /// TODO(pcwalton): Reference count.
-    link: Rawlink,
+    /// The pointer up to the containing block.
+    link: Option<FlowRef>,
 }
 
 impl ContainingBlockLink {
     fn new() -> ContainingBlockLink {
         ContainingBlockLink {
-            link: Rawlink::none(),
+            link: None,
         }
     }
 
-    fn set(&mut self, link: Rawlink) {
-        self.link = link
+    fn set(&mut self, link: FlowRef) {
+        self.link = Some(link)
     }
 
-    pub unsafe fn resolve(&mut self) -> Option<&mut Flow> {
-        self.link.resolve()
+    pub unsafe fn get<'a>(&'a mut self) -> &'a mut Option<FlowRef> {
+        &mut self.link
     }
 
     #[inline]
     pub fn generated_containing_block_rect(&mut self) -> Rect<Au> {
-        self.link.resolve().unwrap().generated_containing_block_rect()
+        match self.link {
+            None => fail!("haven't done it"),
+            Some(ref mut link) => link.get_mut().generated_containing_block_rect(),
+        }
     }
 }
 

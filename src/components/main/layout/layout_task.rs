@@ -14,6 +14,7 @@ use layout::context::LayoutContext;
 use layout::flow::{Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
 use layout::flow::{PreorderFlowTraversal, PostorderFlowTraversal};
 use layout::flow;
+use layout::flow_ref::FlowRef;
 use layout::incremental::RestyleDamage;
 use layout::parallel::PaddedUnsafeFlow;
 use layout::parallel;
@@ -246,7 +247,7 @@ impl<'a> BuildDisplayListTraversal<'a> {
         }
 
         for absolute_descendant_link in flow::mut_base(flow).abs_descendants.iter() {
-            self.process(absolute_descendant_link.resolve().unwrap())
+            self.process(absolute_descendant_link)
         }
 
         flow.build_display_list(self.layout_context)
@@ -455,7 +456,7 @@ impl LayoutTask {
     }
 
     /// Retrieves the flow tree root from the root node.
-    fn get_layout_root(&self, node: LayoutNode) -> Box<Flow:Share> {
+    fn get_layout_root(&self, node: LayoutNode) -> FlowRef {
         let mut layout_data_ref = node.mutate_layout_data();
         let result = match &mut *layout_data_ref {
             &Some(ref mut layout_data) => {
@@ -475,7 +476,7 @@ impl LayoutTask {
             }
             _ => fail!("Flow construction didn't result in a flow at the root of the tree!"),
         };
-        flow.mark_as_root();
+        flow.get_mut().mark_as_root();
         flow
     }
 
@@ -521,13 +522,13 @@ impl LayoutTask {
     /// benchmarked against those two. It is marked `#[inline(never)]` to aid profiling.
     #[inline(never)]
     fn solve_constraints_parallel(&mut self,
-                                  layout_root: &mut Box<Flow:Share>,
+                                  layout_root: &mut FlowRef,
                                   layout_context: &mut LayoutContext) {
         if layout_context.opts.bubble_widths_separately {
             let mut traversal = BubbleWidthsTraversal {
                 layout_context: layout_context,
             };
-            layout_root.traverse_postorder(&mut traversal);
+            layout_root.get_mut().traverse_postorder(&mut traversal);
         }
 
         match self.parallel_traversal {
@@ -547,13 +548,13 @@ impl LayoutTask {
     /// This is only on in debug builds.
     #[inline(never)]
     #[cfg(debug)]
-    fn verify_flow_tree(&mut self, layout_root: &mut Box<Flow:Share>) {
+    fn verify_flow_tree(&mut self, layout_root: &mut FlowRef) {
         let mut traversal = FlowTreeVerificationTraversal;
         layout_root.traverse_preorder(&mut traversal);
     }
 
     #[cfg(not(debug))]
-    fn verify_flow_tree(&mut self, _: &mut Box<Flow:Share>) {
+    fn verify_flow_tree(&mut self, _: &mut FlowRef) {
     }
 
     /// The high-level routine that performs layout tasks.
@@ -634,10 +635,10 @@ impl LayoutTask {
 
         // Propagate damage.
         profile(time::LayoutDamagePropagateCategory, self.profiler_chan.clone(), || {
-            layout_root.traverse_preorder(&mut PropagateDamageTraversal {
+            layout_root.get_mut().traverse_preorder(&mut PropagateDamageTraversal {
                 all_style_damage: all_style_damage
             });
-            layout_root.traverse_postorder(&mut ComputeDamageTraversal.clone());
+            layout_root.get_mut().traverse_postorder(&mut ComputeDamageTraversal.clone());
         });
 
         // Perform the primary layout passes over the flow tree to compute the locations of all
@@ -646,7 +647,7 @@ impl LayoutTask {
             match self.parallel_traversal {
                 None => {
                     // Sequential mode.
-                    self.solve_constraints(layout_root, &mut layout_ctx)
+                    self.solve_constraints(layout_root.get_mut(), &mut layout_ctx)
                 }
                 Some(_) => {
                     // Parallel mode.
@@ -658,14 +659,14 @@ impl LayoutTask {
         // Build the display list if necessary, and send it to the renderer.
         if data.goal == ReflowForDisplay {
             profile(time::LayoutDispListBuildCategory, self.profiler_chan.clone(), || {
-                layout_ctx.dirty = flow::base(layout_root).position.clone();
+                layout_ctx.dirty = flow::base(layout_root.get()).position.clone();
 
                 match self.parallel_traversal {
                     None => {
                         let mut traversal = BuildDisplayListTraversal {
                             layout_context: &layout_ctx,
                         };
-                        traversal.process(layout_root);
+                        traversal.process(layout_root.get_mut());
                     }
                     Some(ref mut traversal) => {
                         parallel::build_display_list_for_subtree(&mut layout_root,
@@ -675,8 +676,9 @@ impl LayoutTask {
                     }
                 }
 
-                let root_display_list = mem::replace(&mut flow::mut_base(layout_root).display_list,
-                                                     DisplayList::new());
+                let root_display_list =
+                    mem::replace(&mut flow::mut_base(layout_root.get_mut()).display_list,
+                                 DisplayList::new());
                 let display_list = Arc::new(root_display_list.flatten(ContentStackingLevel));
 
                 // FIXME(pcwalton): This is really ugly and can't handle overflow: scroll. Refactor
@@ -703,11 +705,11 @@ impl LayoutTask {
                     }
                 }
 
-                let root_size = flow::base(layout_root).position.size;
+                let root_size = flow::base(layout_root.get()).position.size;
                 let root_size = Size2D(root_size.width.to_nearest_px() as uint,
                                        root_size.height.to_nearest_px() as uint);
                 let render_layer = RenderLayer {
-                    id: layout_root.layer_id(0),
+                    id: layout_root.get().layer_id(0),
                     display_list: display_list.clone(),
                     position: Rect(Point2D(0u, 0u), root_size),
                     background_color: color,
@@ -721,7 +723,7 @@ impl LayoutTask {
                 // reflow.
                 let mut layers = SmallVec1::new();
                 layers.push(render_layer);
-                for layer in mem::replace(&mut flow::mut_base(layout_root).layers,
+                for layer in mem::replace(&mut flow::mut_base(layout_root.get_mut()).layers,
                                           DList::new()).move_iter() {
                     layers.push(layer)
                 }
@@ -731,8 +733,6 @@ impl LayoutTask {
                 self.render_chan.send(RenderMsg(layers));
             });
         }
-
-        layout_root.destroy();
 
         // Tell script that we're done.
         //
