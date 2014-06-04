@@ -61,6 +61,7 @@ interface XMLHttpRequest : XMLHttpRequestEventTarget {
   // void overrideMimeType(DOMString mime);
            attribute XMLHttpRequestResponseType responseType;
   readonly attribute any response;
+  [Throws]
   readonly attribute DOMString responseText;
   [Exposed=Window] readonly attribute Document? responseXML;
 };
