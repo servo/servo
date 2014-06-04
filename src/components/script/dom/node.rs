@@ -15,7 +15,7 @@ use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, Root, OptionalUnr
 use dom::bindings::js::{OptionalSettable, TemporaryPushable, OptionalRootedRootable};
 use dom::bindings::js::{ResultRootable, OptionalRootable};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::bindings::error::{ErrorResult, Fallible, NotFound, HierarchyRequest};
+use dom::bindings::error::{ErrorResult, Fallible, NotFound, HierarchyRequest, Syntax};
 use dom::bindings::utils;
 use dom::characterdata::{CharacterData, CharacterDataMethods};
 use dom::comment::Comment;
@@ -36,6 +36,7 @@ use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery, C
                        LayoutChan, ReapLayoutDataMsg, TrustedNodeAddress, UntrustedNodeAddress};
 use servo_util::geometry::Au;
 use servo_util::str::{DOMString, null_str_as_empty};
+use style::{parse_selector_list, matches_compound_selector, NamespaceMap};
 
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use js::jsfriendapi;
@@ -396,6 +397,8 @@ pub trait NodeHelpers {
     fn get_bounding_content_box(&self) -> Rect<Au>;
     fn get_content_boxes(&self) -> Vec<Rect<Au>>;
 
+    fn query_selector(&self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>>;
+
     fn remove_self(&self);
 }
 
@@ -550,6 +553,30 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
         let addr = self.to_trusted_node_address();
         let ContentBoxesResponse(rects) = page.query_layout(ContentBoxesQuery(addr, chan), port);
         rects
+    }
+
+    // http://dom.spec.whatwg.org/#dom-parentnode-queryselector
+    fn query_selector(&self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>> {
+        // Step 1.
+        let namespace = NamespaceMap::new();
+        match parse_selector_list(tokenize(selectors.as_slice()).map(|(token, _)| token).collect(), &namespace) {
+            // Step 2.
+            None => return Err(Syntax),
+            // Step 3.
+            Some(ref selectors) => {
+                for selector in selectors.iter() {
+                    assert!(selector.pseudo_element.is_none());
+                    for elem in self.child_elements() {
+                        let node: &JSRef<Node> = NodeCast::from_ref(&elem);
+                        let mut _shareable: bool = false;
+                        if matches_compound_selector(selector.compound_selectors.deref(), node, &mut _shareable) {
+                            return Ok(Some(Temporary::from_rooted(&elem)));
+                        }
+                    }
+                }
+            }
+        }
+        Ok(None)
     }
 
     fn ancestors(&self) -> AncestorIterator {
