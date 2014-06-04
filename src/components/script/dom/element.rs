@@ -700,13 +700,16 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         Ok(serialize(&mut NodeIterator::new(NodeCast::from_ref(self), true, false)))
     }
 
+    // http://dom.spec.whatwg.org/#dom-parentnode-children
     fn Children(&self) -> Temporary<HTMLCollection> {
         let window = window_from_node(self).root();
         HTMLCollection::children(&*window, NodeCast::from_ref(self))
     }
 
+    // http://dom.spec.whatwg.org/#dom-parentnode-queryselector
     fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>> {
-        Ok(None)
+        let root: &JSRef<Node> = NodeCast::from_ref(self);
+        root.query_selector(selectors)
     }
 
     // http://dom.spec.whatwg.org/#dom-childnode-remove
