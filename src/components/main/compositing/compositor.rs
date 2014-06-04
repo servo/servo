@@ -298,10 +298,6 @@ impl IOCompositor {
                     self.set_layer_clip_rect(pipeline_id, layer_id, new_rect);
                 }
 
-                (Ok(DeleteLayerGroup(id)), _) => {
-                    self.delete_layer(id);
-                }
-
                 (Ok(Paint(pipeline_id, layer_id, new_layer_buffer_set, epoch)), false) => {
                     self.paint(pipeline_id, layer_id, new_layer_buffer_set, epoch);
                 }
@@ -462,22 +458,6 @@ impl IOCompositor {
         let ask: bool = match self.compositor_layer {
             Some(ref mut layer) => {
                 assert!(layer.set_clipping_rect(pipeline_id, layer_id, new_rect));
-                true
-            }
-            None => {
-                false
-            }
-        };
-
-        if ask {
-            self.ask_for_tiles();
-        }
-    }
-
-    fn delete_layer(&mut self, id: PipelineId) {
-        let ask: bool = match self.compositor_layer {
-            Some(ref mut layer) => {
-                assert!(layer.delete(&self.graphics_context, id));
                 true
             }
             None => {
