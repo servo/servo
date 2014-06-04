@@ -381,13 +381,7 @@ impl IOCompositor {
                                                           self.opts.cpu_painting);
             new_layer.unrendered_color = unrendered_color;
 
-            let first_child = self.root_layer.first_child.borrow().clone();
-            match first_child {
-                None => {}
-                Some(old_layer) => {
-                    ContainerLayer::remove_child(self.root_layer.clone(), old_layer)
-                }
-            }
+            self.root_layer.remove_all_children();
 
             assert!(new_layer.add_child_if_necessary(self.root_layer.clone(),
                                                      root_pipeline_id,
