@@ -18,6 +18,7 @@
 == border_style_none_a.html border_style_none_b.html
 == borders_a.html borders_b.html
 == acid1_a.html acid1_b.html
+== text_decoration_cached.html text_decoration_cached_ref.html
 # text_decoration_propagation_a.html text_decoration_propagation_b.html
 # inline_text_align_a.html inline_text_align_b.html
 == font_size_em.html font_size_em_ref.html
