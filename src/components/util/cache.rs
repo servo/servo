@@ -216,7 +216,7 @@ impl<K:Clone+Eq+Hash,V:Clone> SimpleHashCache<K,V> {
 impl<K:Clone+Eq+Hash,V:Clone> Cache<K,V> for SimpleHashCache<K,V> {
     fn insert(&mut self, key: K, value: V) {
         let bucket_index = self.bucket_for_key(&key);
-        *self.entries.get_mut(bucket_index) = Some((key, value))
+        *self.entries.get_mut(bucket_index) = Some((key, value));
     }
 
     fn find(&mut self, key: &K) -> Option<V> {

@@ -131,7 +131,7 @@ impl<'a> Hash for ApplicableDeclarationsCacheQuery<'a> {
 static APPLICABLE_DECLARATIONS_CACHE_SIZE: uint = 32;
 
 pub struct ApplicableDeclarationsCache {
-    pub cache: SimpleHashCache<ApplicableDeclarationsCacheEntry,Arc<ComputedValues>>,
+    cache: SimpleHashCache<ApplicableDeclarationsCacheEntry,Arc<ComputedValues>>,
 }
 
 impl ApplicableDeclarationsCache {
@@ -149,7 +149,7 @@ impl ApplicableDeclarationsCache {
     }
 
     fn insert(&mut self, declarations: &[MatchedProperty], style: Arc<ComputedValues>) {
-        drop(self.cache.insert(ApplicableDeclarationsCacheEntry::new(declarations), style))
+        self.cache.insert(ApplicableDeclarationsCacheEntry::new(declarations), style)
     }
 }
 
