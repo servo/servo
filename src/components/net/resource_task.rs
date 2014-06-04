@@ -16,6 +16,9 @@ use RequestHeaderCollection = http::headers::request::HeaderCollection;
 use http::method::{Method, Get};
 use url::Url;
 
+use StatusOk = http::status::Ok;
+use http::status::Status;
+
 #[cfg(test)]
 use std::from_str::FromStr;
 
@@ -57,6 +60,9 @@ pub struct Metadata {
 
     /// Headers
     pub headers: Option<ResponseHeaderCollection>,
+
+    /// HTTP Status
+    pub status: Status
 }
 
 impl Metadata {
@@ -66,7 +72,8 @@ impl Metadata {
             final_url:    url,
             content_type: None,
             charset:      None,
-            headers: None
+            headers: None,
+            status: StatusOk // http://fetch.spec.whatwg.org/#concept-response-status-message
         }
     }
 

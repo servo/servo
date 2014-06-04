@@ -8,8 +8,7 @@ use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestRespo
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseTypeValues::{_empty, Text};
 use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast, XMLHttpRequestDerived};
 use dom::bindings::conversions::ToJSValConvertible;
-use dom::bindings::error::{ErrorResult, InvalidState, Network, Syntax, Security};
-use dom::bindings::error::Fallible;
+use dom::bindings::error::{ErrorResult, Fallible, InvalidState, Network, Syntax, Security};
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalSettable, OptionalRootedRootable};
 use dom::bindings::str::ByteString;
 use dom::bindings::trace::Untraceable;
@@ -21,30 +20,36 @@ use dom::progressevent::ProgressEvent;
 use dom::window::Window;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use dom::xmlhttprequestupload::XMLHttpRequestUpload;
+
+use encoding::all::UTF_8;
+use encoding::types::{DecodeReplace, Encoding};
+
+use ResponseHeaderCollection = http::headers::response::HeaderCollection;
+use RequestHeaderCollection = http::headers::request::HeaderCollection;
+use http::headers::{HeaderEnum, HeaderValueByteIterator};
+use http::headers::request::Header;
+use http::method::{Method, Get, Head, Post, Connect, Trace};
+use http::status::Status;
+
+use js::jsapi::{JS_AddObjectRoot, JS_RemoveObjectRoot, JSContext};
+use js::jsval::{JSVal, NullValue};
+
+use libc;
+use libc::c_void;
+
 use net::resource_task::{ResourceTask, Load, LoadData, Payload, Done};
 use script_task::{ScriptChan, XHRProgressMsg};
 use servo_util::str::DOMString;
 use servo_util::url::{parse_url, try_parse_url};
 
-use js::jsapi::{JS_AddObjectRoot, JS_RemoveObjectRoot, JSContext};
-use js::jsval::{JSVal, NullValue};
-
-use ResponseHeaderCollection = http::headers::response::HeaderCollection;
-use RequestHeaderCollection = http::headers::request::HeaderCollection;
-
-use http::headers::{HeaderEnum, HeaderValueByteIterator};
-use http::headers::request::Header;
-use http::method::{Method, Get, Head, Post, Connect, Trace};
-
-use libc;
-use libc::c_void;
+use std::ascii::StrAsciiExt;
 use std::cell::Cell;
 use std::comm::channel;
 use std::io::{BufReader, MemWriter};
 use std::from_str::FromStr;
-use std::ascii::StrAsciiExt;
-use std::task::TaskBuilder;
 use std::path::BytesContainer;
+use std::task::TaskBuilder;
+
 use url::Url;
 
 // As send() start accepting more and more parameter types,
@@ -69,7 +74,7 @@ enum XMLHttpRequestState {
 
 pub enum XHRProgress {
     /// Notify that headers have been received
-    HeadersReceivedMsg(Option<ResponseHeaderCollection>),
+    HeadersReceivedMsg(Option<ResponseHeaderCollection>, Status),
     /// Partial progress (after receiving headers), containing portion of the response
     LoadingMsg(ByteString),
     /// Loading is done
@@ -105,7 +110,6 @@ pub struct XMLHttpRequest {
     status_text: ByteString,
     response: ByteString,
     response_type: XMLHttpRequestResponseType,
-    response_text: DOMString,
     response_xml: Cell<Option<JS<Document>>>,
     response_headers: Untraceable<ResponseHeaderCollection>,
 
@@ -136,7 +140,6 @@ impl XMLHttpRequest {
             status_text: ByteString::new(vec!()),
             response: ByteString::new(vec!()),
             response_type: _empty,
-            response_text: "".to_owned(),
             response_xml: Cell::new(None),
             response_headers: Untraceable::new(ResponseHeaderCollection::new()),
 
@@ -190,7 +193,8 @@ impl XMLHttpRequest {
         let (start_chan, start_port) = channel();
         resource_task.send(Load(load_data, start_chan));
         let response = start_port.recv();
-        notify_partial_progress(fetch_type, HeadersReceivedMsg(response.metadata.headers.clone()));
+        notify_partial_progress(fetch_type, HeadersReceivedMsg(
+            response.metadata.headers.clone(), response.metadata.status.clone()));
         let mut buf = vec!();
         loop {
             match response.progress_port.recv() {
@@ -241,7 +245,7 @@ pub trait XMLHttpRequestMethods<'a> {
     fn ResponseType(&self) -> XMLHttpRequestResponseType;
     fn SetResponseType(&mut self, response_type: XMLHttpRequestResponseType);
     fn Response(&self, _cx: *mut JSContext) -> JSVal;
-    fn ResponseText(&self) -> DOMString;
+    fn GetResponseText(&self) -> Fallible<DOMString>;
     fn GetResponseXML(&self) -> Option<Temporary<Document>>;
 }
 
@@ -282,7 +286,8 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
                 *self.request_url = parsed_url;
                 *self.request_headers = RequestHeaderCollection::new();
                 self.send_flag = false;
-                // XXXManishearth Set response to a NetworkError
+                self.status_text = ByteString::new(vec!());
+                self.status = 0;
 
                 // Step 13
                 if self.ready_state != Opened {
@@ -497,8 +502,19 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
             }
         }
     }
-    fn ResponseText(&self) -> DOMString {
-        self.response_text.clone()
+    fn GetResponseText(&self) -> Fallible<DOMString> {
+        match self.response_type {
+            _empty | Text => {
+                match self.ready_state {
+                    // XXXManishearth handle charset, etc (http://xhr.spec.whatwg.org/#text-response)
+                    // According to Simon decode() should never return an error, so unwrap()ing
+                    // the result should be fine. XXXManishearth have a closer look at this later
+                    Loading | XHRDone => Ok(UTF_8.decode(self.response.as_slice(), DecodeReplace).unwrap().to_owned()),
+                    _ => Ok("".to_owned())
+                }
+            },
+            _ => Err(InvalidState)
+        }
     }
     fn GetResponseXML(&self) -> Option<Temporary<Document>> {
         self.response_xml.get().map(|response| Temporary::new(response))
@@ -575,13 +591,12 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
 
     fn process_partial_response(&mut self, progress: XHRProgress) {
         match progress {
-            HeadersReceivedMsg(headers) => {
+            HeadersReceivedMsg(headers, status) => {
                 // XXXManishearth Find a way to track partial progress of the send (onprogresss for XHRUpload)
 
                 // Part of step 13, send() (processing request end of file)
                 // Substep 1
                 self.upload_complete = true;
-
                 // Substeps 2-4
                 self.dispatch_upload_progress_event("progress".to_owned(), None);
                 self.dispatch_upload_progress_event("load".to_owned(), None);
@@ -589,7 +604,9 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
 
                 // Part of step 13, send() (processing response)
                 // XXXManishearth handle errors, if any (substep 1)
-                // Substep 2 (only headers)
+                // Substep 2
+                self.status_text = ByteString::new(status.reason().container_into_owned_bytes());
+                self.status = status.code();
                 match headers {
                     Some(ref h) => *self.response_headers = h.clone(),
                     None => {}
