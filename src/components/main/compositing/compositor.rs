@@ -367,8 +367,10 @@ impl IOCompositor {
             }
             _ => {
                 match self.root_pipeline {
-                    Some(ref root_pipeline) => (root_pipeline.clone(), LayerId::null()),
-                    None => fail!("Compositor: Received new layer without initialized pipeline"),
+                    Some(ref root_pipeline) if root_pipeline.id == id => {
+                        (root_pipeline.clone(), LayerId::null())
+                    },
+                    _ => fail!("Compositor: Received new layer without initialized pipeline"),
                 }
             }
         };
