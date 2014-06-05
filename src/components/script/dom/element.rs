@@ -4,14 +4,15 @@
 
 //! Element nodes.
 
+use cssparser::tokenize;
 use dom::attr::{Attr, ReplacedAttr, FirstSetAttr, AttrMethods};
 use dom::attrlist::AttrList;
 use dom::bindings::codegen::Bindings::ElementBinding;
-use dom::bindings::codegen::InheritTypes::{ElementDerived, NodeCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, ElementDerived, NodeCast};
 use dom::bindings::js::{JS, JSRef, Temporary, TemporaryPushable};
 use dom::bindings::js::{OptionalSettable, OptionalRootable, Root};
 use dom::bindings::utils::{Reflectable, Reflector};
-use dom::bindings::error::{ErrorResult, Fallible, NamespaceError, InvalidCharacter};
+use dom::bindings::error::{ErrorResult, Fallible, NamespaceError, InvalidCharacter, Syntax};
 use dom::bindings::utils::{QName, Name, InvalidXMLName, xml_name_type};
 use dom::clientrect::ClientRect;
 use dom::clientrectlist::ClientRectList;
@@ -25,6 +26,7 @@ use dom::virtualmethods::{VirtualMethods, vtable_for};
 use layout_interface::ContentChangedDocumentDamage;
 use layout_interface::MatchSelectorsDocumentDamage;
 use style;
+use style::{parse_selector_list, matches_compound_selector, NamespaceMap};
 use servo_util::namespace;
 use servo_util::namespace::{Namespace, Null};
 use servo_util::str::{DOMString, null_str_as_empty_ref, split_html_space_chars};
@@ -419,6 +421,7 @@ pub trait ElementMethods {
     fn GetInnerHTML(&self) -> Fallible<DOMString>;
     fn GetOuterHTML(&self) -> Fallible<DOMString>;
     fn Children(&self) -> Temporary<HTMLCollection>;
+    fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>>;
     fn Remove(&self);
 }
 
@@ -693,6 +696,30 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         HTMLCollection::children(&*window, NodeCast::from_ref(self))
     }
 
+    fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>> {
+        // Step 1.
+        let namespace = NamespaceMap::new();
+        match parse_selector_list(tokenize(selectors).map(|(token, _)| token).collect(), &namespace) {
+            // Step 2.
+            None => return Err(Syntax),
+            // Step 3.
+            Some(ref selectors) => {
+                for selector in selectors.iter() {
+                    assert!(selector.pseudo_element.is_none());
+                    let root: &JSRef<Node> = NodeCast::from_ref(self);
+                    for node in root.traverse_preorder().filter(|node| node.is_element()) {
+                        let elem: Option<&JSRef<Element>> = ElementCast::to_ref(&node);
+                        let mut shareable: bool = false;
+                        if matches_compound_selector(selector.compound_selectors.deref(), &node, &mut shareable) {
+                            return Ok(elem.map(|elem| Temporary::from_rooted(elem)));
+                        }
+                    }
+                }
+            }
+        }
+        Ok(None)
+    }
+
     // http://dom.spec.whatwg.org/#dom-childnode-remove
     fn Remove(&self) {
         let node: &JSRef<Node> = NodeCast::from_ref(self);
@@ -795,5 +822,37 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
             }
             _ => ()
         }
+    }
+}
+
+impl<'a> style::TElement for JSRef<'a, Element> {
+    fn get_attr(&self, namespace: &Namespace, attr: &str) -> Option<&'static str> {
+        let element: &Element = self.deref();
+        unsafe { element.get_attr_val_for_layout(namespace, attr) }
+    }
+    fn get_link(&self) -> Option<&'static str> {
+        let element: &Element = self.deref();
+        // FIXME: This is HTML only.
+        match element.node.type_id {
+            // http://www.whatwg.org/specs/web-apps/current-work/multipage/selectors.html#
+            // selector-link
+            ElementNodeTypeId(HTMLAnchorElementTypeId) |
+            ElementNodeTypeId(HTMLAreaElementTypeId) |
+            ElementNodeTypeId(HTMLLinkElementTypeId) => {
+                unsafe { element.get_attr_val_for_layout(&namespace::Null, "href") }
+            },
+            _ => None,
+         }
+    }
+    fn get_local_name<'a>(&'a self) -> &'a str {
+        let element: &Element = self.deref();
+        element.local_name.as_slice()
+    }
+    fn get_namespace<'a>(&'a self) -> &'a Namespace {
+        let element: &Element = self.deref();
+        &element.namespace
+    }
+    fn get_hover_state(&self) -> bool {
+        self.get_hover_state()
     }
 }

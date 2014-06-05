@@ -21,7 +21,7 @@ use dom::comment::Comment;
 use dom::document::{Document, DocumentMethods, DocumentHelpers, HTMLDocument, NonHTMLDocument};
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
-use dom::element::{Element, ElementMethods, ElementTypeId, HTMLAnchorElementTypeId};
+use dom::element::{Element, ElementMethods, ElementTypeId, HTMLAnchorElementTypeId, LayoutElementHelpers, RawLayoutElementHelpers};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::nodelist::{NodeList};
 use dom::processinginstruction::{ProcessingInstruction, ProcessingInstructionMethods};
@@ -44,6 +44,7 @@ use std::cast;
 use std::cell::{Cell, RefCell, Ref, RefMut};
 use std::iter::{Map, Filter};
 use std::mem;
+use style;
 use style::ComputedValues;
 use sync::Arc;
 
@@ -1901,5 +1902,53 @@ impl<'a> VirtualMethods for JSRef<'a, Node> {
     fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods:> {
         let eventtarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(self);
         Some(eventtarget as &mut VirtualMethods:)
+    }
+}
+
+impl<'a> style::TNode<JSRef<'a, Element>> for JSRef<'a, Node> {
+    fn parent_node(&self) -> Option<JSRef<'a, Node>> {
+        let node: &Node = self.deref();
+        node.parent_node.get().map(|node| *(node.root()))
+    }
+    fn prev_sibling(&self) -> Option<JSRef<'a, Node>> {
+        let node: &Node = self.deref();
+        node.prev_sibling.get().map(|node| *(node.root()))
+    }
+    fn next_sibling(&self) -> Option<JSRef<'a, Node>> {
+        let node: &Node = self.deref();
+        node.next_sibling.get().map(|node| *(node.root()))
+    }
+    fn is_document(&self) -> bool {
+        unsafe { (self as &NodeHelpers).is_document() }
+    }
+    fn is_element(&self) -> bool {
+        unsafe { (self as &NodeHelpers).is_element() }
+    }
+    fn as_element(&self) -> JSRef<'a, Element> {
+        let elem: Option<&JSRef<'a, Element>> = ElementCast::to_ref(self);
+        *elem.unwrap()
+    }
+    fn match_attr(&self, attr: &style::AttrSelector, test: |&str| -> bool) -> bool {
+        unsafe {
+            let name = {
+                let elem: Option<&JSRef<'a, Element>> = ElementCast::to_ref(self);
+                let elem: &LayoutElementHelpers = &elem.unwrap().unrooted() as &LayoutElementHelpers;
+                if elem.html_element_in_html_document_for_layout() {
+                    attr.lower_name.as_slice()
+                } else {
+                    attr.name.as_slice()
+                }
+            };
+            match attr.namespace {
+                style::SpecificNamespace(ref ns) => {
+                    let elem: Option<&JSRef<'a, Element>> = ElementCast::to_ref(self);
+                    let elem: &RawLayoutElementHelpers = elem.unwrap().deref() as &RawLayoutElementHelpers;
+                    elem.get_attr_val_for_layout(ns, name)
+                        .map_or(false, |attr| test(attr))
+                },
+                // FIXME: https://github.com/mozilla/servo/issues/1558
+                style::AnyNamespace => false,
+            }
+        }
     }
 }

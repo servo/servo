@@ -16,6 +16,7 @@
 #[phase(syntax, link)]
 extern crate log;
 
+extern crate cssparser;
 extern crate collections;
 extern crate geom;
 extern crate hubbub;
