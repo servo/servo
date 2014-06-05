@@ -5,6 +5,7 @@
 //! The task that handles all rendering/painting.
 
 use buffer_map::BufferMap;
+use display_list::optimizer::DisplayListOptimizer;
 use display_list::DisplayList;
 use font_context::{FontContext, FontContextInfo};
 use render_context::RenderContext;
@@ -17,19 +18,18 @@ use geom::size::Size2D;
 use layers::platform::surface::{NativePaintingGraphicsContext, NativeSurface};
 use layers::platform::surface::{NativeSurfaceMethods};
 use layers;
-use servo_msg::compositor_msg::{Epoch, IdleRenderState, LayerBuffer};
-use servo_msg::compositor_msg::{LayerBufferSet, LayerId, LayerMetadata, RenderListener};
-use servo_msg::compositor_msg::{RenderingRenderState, ScrollPolicy};
-use servo_msg::constellation_msg::{ConstellationChan, PipelineId, RendererReadyMsg};
-use servo_msg::constellation_msg::{Failure, FailureMsg};
+use servo_msg::compositor_msg::{Epoch, IdleRenderState, LayerBuffer, LayerBufferSet, LayerId};
+use servo_msg::compositor_msg::{LayerMetadata, RenderListener, RenderingRenderState, ScrollPolicy};
+use servo_msg::constellation_msg::{ConstellationChan, Failure, FailureMsg, PipelineId};
+use servo_msg::constellation_msg::{RendererReadyMsg};
 use servo_msg::platform::surface::NativeSurfaceAzureMethods;
+use servo_util::geometry;
 use servo_util::opts::Opts;
 use servo_util::smallvec::{SmallVec, SmallVec1};
+use servo_util::task::send_on_failure;
 use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
-use servo_util::task::send_on_failure;
-
-use std::comm::{channel, Receiver, Sender};
+use std::comm::{Receiver, Sender, channel};
 use std::task::TaskBuilder;
 use sync::Arc;
 
@@ -154,7 +154,7 @@ fn initialize_layers<C:RenderListener>(
     compositor.initialize_layers_for_pipeline(pipeline_id, metadata, epoch);
 }
 
-impl<C: RenderListener + Send> RenderTask<C> {
+impl<C:RenderListener + Send> RenderTask<C> {
     pub fn create(id: PipelineId,
                   port: Receiver<Msg>,
                   compositor: C,
@@ -294,6 +294,12 @@ impl<C: RenderListener + Send> RenderTask<C> {
 
             // Divide up the layer into tiles.
             for tile in tiles.iter() {
+                // Optimize the display list for this tile.
+                let page_rect_au = geometry::f32_rect_to_au_rect(tile.page_rect);
+                let optimizer = DisplayListOptimizer::new(render_layer.display_list.clone(),
+                                                          page_rect_au);
+                let display_list = optimizer.optimize();
+
                 let width = tile.screen_rect.size.width;
                 let height = tile.screen_rect.size.height;
 
@@ -340,7 +346,7 @@ impl<C: RenderListener + Send> RenderTask<C> {
 
                     // Draw the display list.
                     profile(time::RenderingDrawingCategory, self.profiler_chan.clone(), || {
-                        render_layer.display_list.draw_into_context(&mut ctx);
+                        display_list.draw_into_context(&mut ctx);
                         ctx.draw_target.flush();
                     });
                 }

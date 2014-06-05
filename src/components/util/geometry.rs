@@ -4,6 +4,7 @@
 
 use geom::point::Point2D;
 use geom::rect::Rect;
+use geom::size::Size2D;
 
 use std::default::Default;
 use std::num::{NumCast, One, Zero};
@@ -160,6 +161,11 @@ impl Au {
     }
 
     #[inline]
+    pub fn from_frac32_px(px: f32) -> Au {
+        Au((px * 60f32) as i32)
+    }
+
+    #[inline]
     pub fn from_pt(pt: f64) -> Au {
         from_px(pt_to_px(pt) as int)
     }
@@ -229,5 +235,11 @@ pub fn to_pt(au: Au) -> f64 {
 pub fn rect_contains_point<T:Ord + Add<T,T>>(rect: Rect<T>, point: Point2D<T>) -> bool {
     point.x >= rect.origin.x && point.x < rect.origin.x + rect.size.width &&
         point.y >= rect.origin.y && point.y < rect.origin.y + rect.size.height
+}
+
+/// A helper function to convert a rect of `f32` pixels to a rect of app units.
+pub fn f32_rect_to_au_rect(rect: Rect<f32>) -> Rect<Au> {
+    Rect(Point2D(Au::from_frac32_px(rect.origin.x), Au::from_frac32_px(rect.origin.y)),
+         Size2D(Au::from_frac32_px(rect.size.width), Au::from_frac32_px(rect.size.height)))
 }
 

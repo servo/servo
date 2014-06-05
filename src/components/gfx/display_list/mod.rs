@@ -33,6 +33,8 @@ use std::slice::Items;
 use style::computed_values::border_style;
 use sync::Arc;
 
+pub mod optimizer;
+
 /// An opaque handle to a node. The only safe operation that can be performed on this node is to
 /// compare it to another opaque handle or to another node.
 ///
@@ -51,7 +53,7 @@ impl OpaqueNode {
 }
 
 /// "Steps" as defined by CSS 2.1 § E.2.
-#[deriving(Eq)]
+#[deriving(Clone, Eq)]
 pub enum StackingLevel {
     /// The border and backgrounds for the root of this stacking context: steps 1 and 2.
     BackgroundAndBordersStackingLevel,
@@ -207,6 +209,7 @@ pub enum BackgroundAndBorderLevel {
 }
 
 /// A list of rendering operations to be performed.
+#[deriving(Clone)]
 pub struct DisplayList {
     pub list: DList<DisplayItem>,
 }
@@ -331,6 +334,7 @@ impl DisplayList {
 }
 
 /// One drawing command in the list.
+#[deriving(Clone)]
 pub enum DisplayItem {
     SolidColorDisplayItemClass(Box<SolidColorDisplayItem>),
     TextDisplayItemClass(Box<TextDisplayItem>),
@@ -348,6 +352,7 @@ pub enum DisplayItem {
 }
 
 /// Information common to all display items.
+#[deriving(Clone)]
 pub struct BaseDisplayItem {
     /// The boundaries of the display item.
     ///
@@ -372,12 +377,14 @@ impl BaseDisplayItem {
 }
 
 /// Renders a solid color.
+#[deriving(Clone)]
 pub struct SolidColorDisplayItem {
     pub base: BaseDisplayItem,
     pub color: Color,
 }
 
 /// Text decoration information.
+#[deriving(Clone)]
 pub struct TextDecorations {
     /// The color to use for underlining, if any.
     pub underline: Option<Color>,
@@ -388,6 +395,7 @@ pub struct TextDecorations {
 }
 
 /// Renders text.
+#[deriving(Clone)]
 pub struct TextDisplayItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,
@@ -406,6 +414,7 @@ pub struct TextDisplayItem {
 }
 
 /// Renders an image.
+#[deriving(Clone)]
 pub struct ImageDisplayItem {
     pub base: BaseDisplayItem,
     pub image: Arc<Box<Image>>,
@@ -417,6 +426,7 @@ pub struct ImageDisplayItem {
 }
 
 /// Renders a border.
+#[deriving(Clone)]
 pub struct BorderDisplayItem {
     pub base: BaseDisplayItem,
 
@@ -431,6 +441,7 @@ pub struct BorderDisplayItem {
 }
 
 /// Renders a line segment.
+#[deriving(Clone)]
 pub struct LineDisplayItem {
     pub base: BaseDisplayItem,
 
@@ -442,6 +453,7 @@ pub struct LineDisplayItem {
 }
 
 /// Clips a list of child display items to this display item's boundaries.
+#[deriving(Clone)]
 pub struct ClipDisplayItem {
     /// The base information.
     pub base: BaseDisplayItem,
