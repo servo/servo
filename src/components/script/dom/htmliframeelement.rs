@@ -14,7 +14,7 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, ElementNodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
-use script_task::IterablePage;
+use page::IterablePage;
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use servo_msg::constellation_msg::{IFrameSandboxed, IFrameUnsandboxed};
 use servo_msg::constellation_msg::{ConstellationChan, LoadIframeUrlMsg};

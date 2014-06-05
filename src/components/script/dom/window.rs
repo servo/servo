@@ -17,7 +17,8 @@ use dom::navigator::Navigator;
 use dom::performance::Performance;
 
 use layout_interface::{ReflowForDisplay, DocumentDamageLevel};
-use script_task::{ExitWindowMsg, FireTimerMsg, Page, ScriptChan, TriggerLoadMsg, TriggerFragmentMsg};
+use page::Page;
+use script_task::{ExitWindowMsg, FireTimerMsg, ScriptChan, TriggerLoadMsg, TriggerFragmentMsg};
 use servo_msg::compositor_msg::ScriptListener;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_util::str::DOMString;

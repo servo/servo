@@ -4339,7 +4339,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::proxyhandler::{FillPropertyDescriptor, GetExpandoObject}',
             'dom::bindings::proxyhandler::{getPropertyDescriptor}',
             'dom::bindings::str::ByteString',
-            'script_task::JSPageInfo',
+            'page::JSPageInfo',
             'libc',
             'servo_util::str::DOMString',
             'std::mem',
@@ -5214,7 +5214,7 @@ class GlobalGenRoots():
             'dom::bindings::codegen',
             'dom::bindings::js::{JS, JSRef}',
             'dom::window::Window',
-            'script_task::JSPageInfo',
+            'page::JSPageInfo',
         ])
 
     @staticmethod
