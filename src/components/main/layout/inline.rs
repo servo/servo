@@ -750,7 +750,7 @@ impl InlineFragments {
                 style: other_style,
                 range: mut other_range
             } = other_range;
- 
+
             other_range.shift_by(adjustment);
             self.push_range(other_style, other_range)
         }
