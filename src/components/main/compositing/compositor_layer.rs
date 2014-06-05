@@ -342,12 +342,12 @@ impl CompositorLayer {
     }
 
     #[allow(dead_code)]
-    fn dump_layer_tree(&self, layer: Rc<ContainerLayer>, indent: ~str) {
+    fn dump_layer_tree(&self, layer: Rc<ContainerLayer>, indent: String) {
         println!("{}scissor {:?}", indent, layer.scissor.borrow());
         for kid in layer.children() {
             match kid {
                 ContainerLayerKind(ref container_layer) => {
-                    self.dump_layer_tree((*container_layer).clone(), indent + "  ");
+                    self.dump_layer_tree((*container_layer).clone(), format!("{}  ", indent));
                 }
                 TextureLayerKind(_) => {
                     println!("{}  (texture layer)", indent);
@@ -406,13 +406,13 @@ impl CompositorLayer {
             MouseWindowMouseUpEvent(button, _) => MouseUpEvent(button, cursor),
         };
         let ScriptChan(ref chan) = self.pipeline.script_chan;
-        chan.send_opt(SendEventMsg(self.pipeline.id.clone(), message));
+        let _ = chan.send_opt(SendEventMsg(self.pipeline.id.clone(), message));
     }
 
     pub fn send_mouse_move_event(&self, cursor: Point2D<f32>) {
         let message = MouseMoveEvent(cursor);
         let ScriptChan(ref chan) = self.pipeline.script_chan;
-        chan.send_opt(SendEventMsg(self.pipeline.id.clone(), message));
+        let _ = chan.send_opt(SendEventMsg(self.pipeline.id.clone(), message));
     }
 
     // Given the current window size, determine which tiles need to be (re-)rendered and sends them
@@ -432,7 +432,7 @@ impl CompositorLayer {
                 redisplay = !unused.is_empty();
                 if redisplay {
                     // Send back unused tiles.
-                    self.pipeline.render_chan.send_opt(UnusedBufferMsg(unused));
+                    let _ = self.pipeline.render_chan.send_opt(UnusedBufferMsg(unused));
                 }
                 if !request.is_empty() {
                     // Ask for tiles.
@@ -440,7 +440,7 @@ impl CompositorLayer {
                     // FIXME(#2003, pcwalton): We may want to batch these up in the case in which
                     // one page has multiple layers, to avoid the user seeing inconsistent states.
                     let msg = ReRenderMsg(request, scale, self.id, self.epoch);
-                    self.pipeline.render_chan.send_opt(msg);
+                    let _ = self.pipeline.render_chan.send_opt(msg);
                 }
             }
         };
@@ -548,7 +548,7 @@ impl CompositorLayer {
         self.page_size = Some(new_size);
         match self.quadtree {
             Tree(ref mut quadtree) => {
-                self.pipeline
+                let _ = self.pipeline
                     .render_chan
                     .send_opt(UnusedBufferMsg(quadtree.resize(new_size.width as uint,
                                                               new_size.height as uint)));
@@ -655,7 +655,7 @@ impl CompositorLayer {
                 child.page_size = Some(new_size);
                 match child.quadtree {
                     Tree(ref mut quadtree) => {
-                        child.pipeline.render_chan.send_opt(UnusedBufferMsg(quadtree.resize(new_size.width as uint,
+                        let _ = child.pipeline.render_chan.send_opt(UnusedBufferMsg(quadtree.resize(new_size.width as uint,
                                                                                             new_size.height as uint)));
                     }
                     NoTree(tile_size, max_mem) => {
@@ -829,7 +829,7 @@ impl CompositorLayer {
                    self.epoch,
                    epoch,
                    self.pipeline.id);
-            self.pipeline.render_chan.send_opt(UnusedBufferMsg(new_buffers.buffers));
+            let _ = self.pipeline.render_chan.send_opt(UnusedBufferMsg(new_buffers.buffers));
             return None
         }
 
@@ -849,7 +849,7 @@ impl CompositorLayer {
                                                                    buffer));
             }
             if !unused_tiles.is_empty() { // send back unused buffers
-                self.pipeline.render_chan.send_opt(UnusedBufferMsg(unused_tiles));
+                let _ = self.pipeline.render_chan.send_opt(UnusedBufferMsg(unused_tiles));
             }
         }
 
@@ -892,7 +892,7 @@ impl CompositorLayer {
                     tile.mark_wont_leak()
                 }
 
-                self.pipeline.render_chan.send_opt(UnusedBufferMsg(tiles));
+                let _ = self.pipeline.render_chan.send_opt(UnusedBufferMsg(tiles));
             }
         }
     }

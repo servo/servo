@@ -9,7 +9,6 @@
 use layout::flow::Flow;
 use layout::flow;
 
-use std::cast;
 use std::mem;
 use std::ptr;
 use std::sync::atomics::SeqCst;
@@ -25,22 +24,22 @@ impl FlowRef {
         unsafe {
             let result = {
                 let flow_ref: &mut Flow = flow;
-                cast::transmute(flow_ref)
+                mem::transmute(flow_ref)
             };
-            cast::forget(flow);
+            mem::forget(flow);
             result
         }
     }
 
     pub fn get<'a>(&'a self) -> &'a Flow {
         unsafe {
-            cast::transmute_copy(self)
+            mem::transmute_copy(self)
         }
     }
 
     pub fn get_mut<'a>(&'a mut self) -> &'a mut Flow {
         unsafe {
-            cast::transmute_copy(self)
+            mem::transmute_copy(self)
         }
     }
 }
@@ -58,7 +57,7 @@ impl Drop for FlowRef {
                 vtable: ptr::null(),
                 ptr: ptr::null(),
             });
-            drop(cast::transmute::<FlowRef,Box<Flow>>(flow_ref));
+            drop(mem::transmute::<FlowRef,Box<Flow>>(flow_ref));
             self.vtable = ptr::null();
             self.ptr = ptr::null();
         }

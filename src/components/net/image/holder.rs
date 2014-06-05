@@ -7,7 +7,6 @@ use image_cache_task::{ImageReady, ImageNotReady, ImageFailed};
 use local_image_cache::LocalImageCache;
 
 use geom::size::Size2D;
-use std::cast;
 use std::mem;
 use std::ptr;
 use sync::{Arc, Mutex};
@@ -26,7 +25,7 @@ impl Drop for LocalImageCacheHandle {
     fn drop(&mut self) {
         unsafe {
             let _: Box<Arc<Mutex<Box<LocalImageCache>>>> =
-                cast::transmute(mem::replace(&mut self.data, ptr::null()));
+                mem::transmute(mem::replace(&mut self.data, ptr::null()));
         }
     }
 }
@@ -34,7 +33,7 @@ impl Drop for LocalImageCacheHandle {
 impl Clone for LocalImageCacheHandle {
     fn clone(&self) -> LocalImageCacheHandle {
         unsafe {
-            let handle = cast::transmute::<&Arc<Mutex<Box<LocalImageCache>>>,&Arc<*()>>(self.get());
+            let handle = mem::transmute::<&Arc<Mutex<Box<LocalImageCache>>>,&Arc<*()>>(self.get());
             let new_handle = (*handle).clone();
             LocalImageCacheHandle::new(new_handle)
         }
@@ -44,13 +43,13 @@ impl Clone for LocalImageCacheHandle {
 impl LocalImageCacheHandle {
     pub unsafe fn new(cache: Arc<*()>) -> LocalImageCacheHandle {
         LocalImageCacheHandle {
-            data: cast::transmute(box cache),
+            data: mem::transmute(box cache),
         }
     }
 
     pub fn get<'a>(&'a self) -> &'a Arc<Mutex<Box<LocalImageCache>>> {
         unsafe {
-            cast::transmute::<*uint,&'a Arc<Mutex<Box<LocalImageCache>>>>(self.data)
+            mem::transmute::<*uint,&'a Arc<Mutex<Box<LocalImageCache>>>>(self.data)
         }
     }
 }

@@ -6,7 +6,6 @@ use libc::{calloc, c_int, size_t};
 use std::mem;
 use std::str;
 use std::c_vec::CVec;
-use std::cast::transmute;
 use string::{cef_string_userfree_utf16_alloc, cef_string_utf16_set};
 use types::{cef_command_line_t, cef_string_t, cef_string_userfree_t, cef_string_utf16_t};
 
@@ -14,7 +13,7 @@ type command_line_t = command_line;
 struct command_line {
     pub cl: cef_command_line_t,
     pub argc: c_int,
-    pub argv: Vec<~str>,
+    pub argv: Vec<String>,
 }
 
 static mut GLOBAL_CMDLINE: Option<*mut command_line_t> = None;
@@ -29,7 +28,7 @@ fn command_line_new() -> *mut command_line_t {
 
 pub fn command_line_init(argc: c_int, argv: **u8) {
     unsafe {
-        let mut a: Vec<~str> = vec!();
+        let mut a: Vec<String> = vec!();
         for i in range(0u, argc as uint) {
             a.push(str::raw::from_c_str(*argv.offset(i as int) as *i8));
         }
@@ -49,18 +48,18 @@ pub extern "C" fn command_line_get_switch_value(cmd: *mut cef_command_line_t, na
     unsafe {
         //technically cef_string_t can be any type of character size
         //but the default cef callback uses utf16, so I'm jumping on board the SS Copy
-        let cl: *mut command_line_t = transmute(cmd);
-        let cs: *cef_string_utf16_t = transmute(name);
+        let cl: *mut command_line_t = mem::transmute(cmd);
+        let cs: *cef_string_utf16_t = mem::transmute(name);
         let opt = str::from_utf16(CVec::new((*cs).str, (*cs).length as uint).as_slice()).unwrap();
             //debug!("opt: {}", opt);
         for s in (*cl).argv.iter() {
-            let o = s.trim_left_chars('-');
+            let o = s.as_slice().trim_left_chars('-');
             //debug!("arg: {}", o);
-            if o.starts_with(opt) {
+            if o.as_slice().starts_with(opt.as_slice()) {
                 let string = cef_string_userfree_utf16_alloc() as *mut cef_string_utf16_t;
                 let arg = o.slice_from(opt.len() + 1).as_bytes();
                 arg.with_c_str(|c_str| {
-                    cef_string_utf16_set(transmute(c_str), arg.len() as u64, string, 1);
+                    cef_string_utf16_set(mem::transmute(c_str), arg.len() as u64, string, 1);
                 });
                 return string as *mut cef_string_userfree_t
             }
@@ -74,7 +73,7 @@ pub extern "C" fn cef_command_line_create() -> *mut cef_command_line_t {
         unsafe {
             let cl = command_line_new();
             (*cl).cl.get_switch_value = command_line_get_switch_value;
-            transmute(cl)
+            mem::transmute(cl)
         }
 }
 
@@ -83,7 +82,7 @@ pub extern "C" fn cef_command_line_get_global() -> *mut cef_command_line_t {
     unsafe {
         match GLOBAL_CMDLINE {
             Some(scl) => {
-                transmute(scl)
+                mem::transmute(scl)
             },
             None => {
                 0 as *mut cef_command_line_t

@@ -41,6 +41,10 @@ fn byte_swap(color_type: png::ColorType, data: &mut [u8]) {
 }
 
 pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
+    if buffer.len() == 0 {
+        return None;
+    }
+
     if png::is_png(buffer) {
         match png::load_png_from_memory(buffer) {
             Ok(mut png_image) => {

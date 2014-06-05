@@ -23,10 +23,10 @@ impl FontContextHandle {
 
 impl FontContextHandleMethods for FontContextHandle {
     fn create_font_from_identifier(&self,
-                                   name: ~str,
+                                   name: String,
                                    style: UsedFontStyle)
                                 -> Result<FontHandle, ()> {
-        let ctfont_result = core_text::font::new_from_name(name, style.pt_size);
+        let ctfont_result = core_text::font::new_from_name(name.as_slice(), style.pt_size);
         ctfont_result.and_then(|ctfont| {
             FontHandle::new_from_CTFont(self, ctfont)
         })

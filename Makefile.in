@@ -51,6 +51,7 @@ export CFG_LOCAL_RUSTC
 export CFG_ENABLE_DEBUG
 export CFG_ENABLE_DEBUG_SKIA
 export RUSTC=$(CFG_RUSTC)
+export RUSTDOC=$(CFG_RUST_HOME)/bin/rustdoc
 export RUSTFLAGS=$(CFG_RUSTC_FLAGS)
 export RANLIB=$(CFG_RANLIB)
 export PYTHON=$(CFG_PYTHON2)
@@ -255,7 +256,7 @@ WEBIDLS_SRC = $(S)src/components/script/dom/webidls
 
 WEBIDLS_script = $(call rwildcard, $(WEBIDLS_SRC), *.webidl)
 BINDINGS_script = $(patsubst %.webidl, %Binding.rs, $(WEBIDLS_script))
-AUTOGEN_SRC_script = $(foreach var, $(BINDINGS_script), $(subst $(WEBIDLS_SRC), $(BINDINGS_SRC), $(var)))
+AUTOGEN_SRC_script = $(foreach var, $(BINDINGS_script), $(subst $(WEBIDLS_SRC), $(BINDINGS_SRC)/Bindings, $(var)))
 
 SRC_script = $(call rwildcard,$(S)src/components/script/,*.rs) $(AUTOGEN_SRC_script)
 CRATE_script = $(S)src/components/script/script.rs
@@ -265,9 +266,9 @@ DEPS_script = $(CRATE_script) $(SRC_script) $(DONE_SUBMODULES) $(DONE_util) $(DO
 
 RFLAGS_style = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/util -L$(B)src/components/macros
 MAKO_ZIP = $(S)src/components/style/Mako-0.9.1.zip
-MAKO_style = $(S)src/components/style/properties.rs
+MAKO_style = $(S)src/components/style/properties/mod.rs
 MAKO_SRC_style = $(MAKO_style).mako
-SRC_style = $(call rwildcard,$(S)src/components/style/,*.rs) $(MAKO_style)
+SRC_style = $(call rwildcard,$(S)src/components/style/,*.rs) $(call rwildcard,$(S)src/compontents/style/properties/*.rs) $(MAKO_style)
 CRATE_style = $(S)src/components/style/style.rs
 DONE_style = $(B)src/components/style/libstyle.dummy
 
@@ -303,25 +304,28 @@ $(eval $(call DEF_LIB_CRATE_RULES,$(lib_crate))))
 
 CACHE_DIR = $(BINDINGS_SRC)/_cache
 
-bindinggen_dependencies := $(addprefix $(BINDINGS_SRC)/, BindingGen.py Bindings.conf Configuration.py CodegenRust.py parser/WebIDL.py ParserResults.pkl)
+bindinggen_dependencies := $(addprefix $(BINDINGS_SRC)/, BindingGen.py Bindings.conf Configuration.py CodegenRust.py parser/WebIDL.py ParserResults.pkl Bindings/.done)
 
-$(AUTOGEN_SRC_script): $(BINDINGS_SRC)/%Binding.rs: $(bindinggen_dependencies) \
+$(AUTOGEN_SRC_script): $(BINDINGS_SRC)/Bindings/%Binding.rs: $(bindinggen_dependencies) \
                                                     $(addprefix $(WEBIDLS_SRC)/, %.webidl)
 	@$(call E, "Maybe generating $(shell basename $@)...")
 	$(Q) $(CFG_PYTHON2) $(BINDINGS_SRC)/pythonpath.py \
 	  -I$(BINDINGS_SRC)/parser -I$(BINDINGS_SRC)/ply \
 	  -D$(BINDINGS_SRC) \
 	  $(BINDINGS_SRC)/BindingGen.py \
-	  $(BINDINGS_SRC)/Bindings.conf $*Binding $(addprefix $(WEBIDLS_SRC)/, $*.webidl)
+	  $(BINDINGS_SRC)/Bindings.conf Bindings/$*Binding $(addprefix $(WEBIDLS_SRC)/, $*.webidl)
 	$(Q)touch $@
 
-globalgen_dependencies := $(addprefix $(BINDINGS_SRC)/, GlobalGen.py Bindings.conf Configuration.py CodegenRust.py parser/WebIDL.py) $(CACHE_DIR)/.done
+globalgen_dependencies := $(addprefix $(BINDINGS_SRC)/, GlobalGen.py Bindings.conf Configuration.py CodegenRust.py parser/WebIDL.py) $(CACHE_DIR)/.done $(BINDINGS_SRC)/Bindings/.done
 
 $(MAKO_style): $(MAKO_SRC_style)
 # Use a temporary file to avoid writing an empty (but more recent) file on failure.
 	PYTHONPATH=$(MAKO_ZIP) $(CFG_PYTHON2) -c "from mako.template import Template; print(Template(filename='$<').render())" > $@.tmp
 	mv $@.tmp $@
 
+$(BINDINGS_SRC)/Bindings/.done:
+	mkdir -p $(BINDINGS_SRC)/Bindings
+	@touch $@
 
 $(CACHE_DIR)/.done:
 	mkdir -p $(CACHE_DIR)

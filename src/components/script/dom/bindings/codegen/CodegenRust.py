@@ -641,7 +641,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             default = "None"
         else:
             assert defaultValue.type.tag() == IDLType.Tags.domstring
-            value = "str::from_utf8(data).unwrap().to_owned()"
+            value = "str::from_utf8(data).unwrap().to_string()"
             if type.nullable():
                 value = "Some(%s)" % value
 
@@ -691,7 +691,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             "  Ok(None) => { %(handleInvalidEnumValueCode)s },\n"
             "  Ok(Some(index)) => {\n"
             "    //XXXjdm need some range checks up in here.\n"
-            "    unsafe { cast::transmute(index) }\n"
+            "    unsafe { mem::transmute(index) }\n"
             "  },\n"
             "}" % { "values" : enum + "Values::strings",
              "exceptionCode" : exceptionCode,
@@ -2130,7 +2130,7 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
     trace: Some(%s)
   };
   js_info.dom_static.proxy_handlers.insert(PrototypeList::id::%s as uint,
-                                           CreateProxyHandler(&traps, cast::transmute(&Class)));
+                                           CreateProxyHandler(&traps, mem::transmute(&Class)));
 
 """ % (FINALIZE_HOOK_NAME,
        TRACE_HOOK_NAME,
@@ -2673,7 +2673,7 @@ pub static strings: &'static [&'static str] = &[
 
 impl ToJSValConvertible for valuelist {
   fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
-    strings[*self as uint].to_owned().to_jsval(cx)
+    strings[*self as uint].to_string().to_jsval(cx)
   }
 }
 """ % (",\n  ".join(map(getEnumValueName, enum.values())),
@@ -3821,7 +3821,7 @@ class CGAbstractClassHook(CGAbstractExternMethod):
 
 def finalizeHook(descriptor, hookName, context):
     release = """let val = JS_GetReservedSlot(obj, dom_object_slot(obj));
-let _: Box<%s> = cast::transmute(val.to_private());
+let _: Box<%s> = mem::transmute(val.to_private());
 debug!("%s finalize: {:p}", this);
 """ % (descriptor.concreteType, descriptor.concreteType)
     return release
@@ -4343,7 +4343,7 @@ class CGBindingRoot(CGThing):
             'script_task::JSPageInfo',
             'libc',
             'servo_util::str::DOMString',
-            'std::cast',
+            'std::mem',
             'std::cmp',
             'std::ptr',
             'std::str',

@@ -46,9 +46,9 @@ use js::jsapi::{JSObject, JS_AddObjectRoot, JS_RemoveObjectRoot};
 use layout_interface::TrustedNodeAddress;
 use script_task::StackRoots;
 
-use std::cast;
 use std::cell::{Cell, RefCell};
 use std::kinds::marker::ContravariantLifetime;
+use std::mem;
 
 /// A type that represents a JS-owned value that is rooted for the lifetime of this value.
 /// Importantly, it requires explicit rooting in order to interact with the inner value.
@@ -105,7 +105,7 @@ impl<T: Reflectable> Temporary<T> {
 
     //XXXjdm It would be lovely if this could be private.
     pub unsafe fn transmute<To>(self) -> Temporary<To> {
-        cast::transmute(self)
+        mem::transmute(self)
     }
 }
 
@@ -195,7 +195,7 @@ impl<T: Reflectable> JS<T> {
     /// flags. This is the only method that be safely accessed from layout. (The fact that this
     /// is unsafe is what necessitates the layout wrappers.)
     pub unsafe fn unsafe_get(&self) -> *mut T {
-        cast::transmute_copy(&self.ptr)
+        mem::transmute_copy(&self.ptr)
     }
 
     /// Store an unrooted value in this field. This is safe under the assumption that JS<T>
@@ -209,11 +209,11 @@ impl<T: Reflectable> JS<T> {
 impl<From, To> JS<From> {
     //XXXjdm It would be lovely if this could be private.
     pub unsafe fn transmute(self) -> JS<To> {
-        cast::transmute(self)
+        mem::transmute(self)
     }
 
     pub unsafe fn transmute_copy(&self) -> JS<To> {
-        cast::transmute_copy(self)
+        mem::transmute_copy(self)
     }
 }
 
@@ -492,12 +492,12 @@ impl<'a, T> Eq for JSRef<'a, T> {
 impl<'a,T> JSRef<'a,T> {
     //XXXjdm It would be lovely if this could be private.
     pub unsafe fn transmute<'b, To>(&'b self) -> &'b JSRef<'a, To> {
-        cast::transmute(self)
+        mem::transmute(self)
     }
 
     //XXXjdm It would be lovely if this could be private.
     pub unsafe fn transmute_mut<'b, To>(&'b mut self) -> &'b mut JSRef<'a, To> {
-        cast::transmute(self)
+        mem::transmute(self)
     }
 
     pub fn unrooted(&self) -> JS<T> {

@@ -388,10 +388,10 @@ impl Constellation {
 
         fn force_pipeline_exit(old_pipeline: &Rc<Pipeline>) {
             let ScriptChan(ref old_script) = old_pipeline.script_chan;
-            old_script.send_opt(ExitPipelineMsg(old_pipeline.id));
-            old_pipeline.render_chan.send_opt(render_task::ExitMsg(None));
+            let _ = old_script.send_opt(ExitPipelineMsg(old_pipeline.id));
+            let _ = old_pipeline.render_chan.send_opt(render_task::ExitMsg(None));
             let LayoutChan(ref old_layout) = old_pipeline.layout_chan;
-            old_layout.send_opt(layout_interface::ExitNowMsg);
+            let _ = old_layout.send_opt(layout_interface::ExitNowMsg);
         }
         force_pipeline_exit(&old_pipeline);
         self.pipelines.remove(&pipeline_id);
@@ -796,7 +796,7 @@ impl Constellation {
             debug!("constellation sending resize message to active frame");
             let pipeline = &frame_tree.pipeline;
             let ScriptChan(ref chan) = pipeline.script_chan;
-            chan.send_opt(ResizeMsg(pipeline.id, new_size));
+            let _ = chan.send_opt(ResizeMsg(pipeline.id, new_size));
             already_seen.insert(pipeline.id);
         }
         for frame_tree in self.navigation_context.previous.iter()
@@ -805,7 +805,7 @@ impl Constellation {
             if !already_seen.contains(&pipeline.id) {
                 debug!("constellation sending resize message to inactive frame");
                 let ScriptChan(ref chan) = pipeline.script_chan;
-                chan.send_opt(ResizeInactiveMsg(pipeline.id, new_size));
+                let _ = chan.send_opt(ResizeInactiveMsg(pipeline.id, new_size));
                 already_seen.insert(pipeline.id);
             }
         }
@@ -818,7 +818,7 @@ impl Constellation {
                 debug!("constellation sending resize message to pending outer frame ({:?})",
                        frame_tree.pipeline.id);
                 let ScriptChan(ref chan) = frame_tree.pipeline.script_chan;
-                chan.send_opt(ResizeMsg(frame_tree.pipeline.id, new_size));
+                let _ = chan.send_opt(ResizeMsg(frame_tree.pipeline.id, new_size));
             }
         }
 

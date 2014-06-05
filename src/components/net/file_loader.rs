@@ -12,14 +12,14 @@ use servo_util::task::spawn_named;
 static READ_SIZE: uint = 1;
 
 fn read_all(reader: &mut io::Stream, progress_chan: &Sender<ProgressMsg>)
-        -> Result<(), ~str> {
+        -> Result<(), String> {
     loop {
         let mut buf = vec!();
-        match reader.push_exact(&mut buf, READ_SIZE) {
+        match reader.push_at_least(READ_SIZE, READ_SIZE, &mut buf) {
             Ok(_) => progress_chan.send(Payload(buf)),
             Err(e) => match e.kind {
                 io::EndOfFile => return Ok(()),
-                _ => return Err(e.desc.to_owned()),
+                _ => return Err(e.desc.to_string()),
             }
         }
     }
@@ -28,7 +28,7 @@ fn read_all(reader: &mut io::Stream, progress_chan: &Sender<ProgressMsg>)
 pub fn factory() -> LoaderTask {
     let f: LoaderTask = proc(load_data, start_chan) {
         let url = load_data.url;
-        assert!("file" == url.scheme);
+        assert!("file" == url.scheme.as_slice());
         let progress_chan = start_sending(start_chan, Metadata::default(url.clone()));
         spawn_named("file_loader", proc() {
             match File::open_mode(&Path::new(url.path), io::Open, io::Read) {
@@ -37,7 +37,7 @@ pub fn factory() -> LoaderTask {
                     progress_chan.send(Done(res));
                 }
                 Err(e) => {
-                    progress_chan.send(Done(Err(e.desc.to_owned())));
+                    progress_chan.send(Done(Err(e.desc.to_string())));
                 }
             };
         });

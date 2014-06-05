@@ -17,7 +17,7 @@ use std::rt;
 #[deriving(Clone)]
 pub struct Opts {
     /// The initial URLs to load.
-    pub urls: Vec<~str>,
+    pub urls: Vec<String>,
 
     /// The rendering backend to use (`-r`).
     pub render_backend: BackendType,
@@ -49,7 +49,7 @@ pub struct Opts {
     /// True to exit after the page load (`-x`).
     pub exit_after_load: bool,
 
-    pub output_file: Option<~str>,
+    pub output_file: Option<String>,
     pub headless: bool,
     pub hard_fail: bool,
 
@@ -62,7 +62,7 @@ pub struct Opts {
 
 fn print_usage(app: &str, opts: &[getopts::OptGroup]) {
     let message = format!("Usage: {} [ options ... ] [URL]\n\twhere options include", app);
-    println!("{}", getopts::usage(message, opts));
+    println!("{}", getopts::usage(message.as_slice(), opts));
 }
 
 fn args_fail(msg: &str) {
@@ -70,11 +70,11 @@ fn args_fail(msg: &str) {
     os::set_exit_status(1);
 }
 
-pub fn from_cmdline_args(args: &[~str]) -> Option<Opts> {
+pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
     let app_name = args[0].to_str();
     let args = args.tail();
 
-    let opts = ~[
+    let opts = vec!(
         getopts::optflag("c", "cpu", "CPU rendering"),
         getopts::optopt("o", "output", "Output file", "output.png"),
         getopts::optopt("r", "rendering", "Rendering backend", "direct2d|core-graphics|core-graphics-accelerated|cairo|skia."),
@@ -88,23 +88,23 @@ pub fn from_cmdline_args(args: &[~str]) -> Option<Opts> {
         getopts::optflag("f", "hard-fail", "Exit on task failure instead of displaying about:failure"),
         getopts::optflag("b", "bubble-widths", "Bubble intrinsic widths separately like other engines"),
         getopts::optflag("h", "help", "Print this message")
-    ];
+    );
 
-    let opt_match = match getopts::getopts(args, opts) {
+    let opt_match = match getopts::getopts(args, opts.as_slice()) {
         Ok(m) => m,
         Err(f) => {
-            args_fail(f.to_err_msg());
+            args_fail(f.to_err_msg().as_slice());
             return None;
         }
     };
 
     if opt_match.opt_present("h") || opt_match.opt_present("help") {
-        print_usage(app_name, opts);
+        print_usage(app_name.as_slice(), opts.as_slice());
         return None;
     };
 
     let urls = if opt_match.free.is_empty() {
-        print_usage(app_name, opts);
+        print_usage(app_name.as_slice(), opts.as_slice());
         args_fail("servo asks that you provide 1 or more URLs");
         return None;
     } else {
@@ -113,15 +113,15 @@ pub fn from_cmdline_args(args: &[~str]) -> Option<Opts> {
 
     let render_backend = match opt_match.opt_str("r") {
         Some(backend_str) => {
-            if "direct2d" == backend_str {
+            if "direct2d" == backend_str.as_slice() {
                 Direct2DBackend
-            } else if "core-graphics" == backend_str {
+            } else if "core-graphics" == backend_str.as_slice() {
                 CoreGraphicsBackend
-            } else if "core-graphics-accelerated" == backend_str {
+            } else if "core-graphics-accelerated" == backend_str.as_slice() {
                 CoreGraphicsAcceleratedBackend
-            } else if "cairo" == backend_str {
+            } else if "cairo" == backend_str.as_slice() {
                 CairoBackend
-            } else if "skia" == backend_str {
+            } else if "skia" == backend_str.as_slice() {
                 SkiaBackend
             } else {
                 fail!("unknown backend type")
@@ -131,28 +131,28 @@ pub fn from_cmdline_args(args: &[~str]) -> Option<Opts> {
     };
 
     let tile_size: uint = match opt_match.opt_str("s") {
-        Some(tile_size_str) => from_str(tile_size_str).unwrap(),
+        Some(tile_size_str) => from_str(tile_size_str.as_slice()).unwrap(),
         None => 512,
     };
 
     let device_pixels_per_px = opt_match.opt_str("device-pixel-ratio").map(|dppx_str|
-        from_str(dppx_str).unwrap()
+        from_str(dppx_str.as_slice()).unwrap()
     );
 
     let n_render_threads: uint = match opt_match.opt_str("t") {
-        Some(n_render_threads_str) => from_str(n_render_threads_str).unwrap(),
+        Some(n_render_threads_str) => from_str(n_render_threads_str.as_slice()).unwrap(),
         None => 1,      // FIXME: Number of cores.
     };
 
     // if only flag is present, default to 5 second period
     let profiler_period = opt_match.opt_default("p", "5").map(|period| {
-        from_str(period).unwrap()
+        from_str(period.as_slice()).unwrap()
     });
 
     let cpu_painting = opt_match.opt_present("c");
 
     let layout_threads: uint = match opt_match.opt_str("y") {
-        Some(layout_threads_str) => from_str(layout_threads_str).unwrap(),
+        Some(layout_threads_str) => from_str(layout_threads_str.as_slice()).unwrap(),
         None => cmp::max(rt::default_sched_threads() * 3 / 4, 1),
     };
 

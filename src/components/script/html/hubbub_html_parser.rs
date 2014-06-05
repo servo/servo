@@ -25,10 +25,9 @@ use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS};
 use servo_util::task::spawn_named;
 use servo_util::url::parse_url;
 use std::ascii::StrAsciiExt;
-use std::cast;
+use std::mem;
 use std::cell::RefCell;
 use std::comm::{channel, Sender, Receiver};
-use std::str;
 use style::Stylesheet;
 use url::Url;
 
@@ -38,7 +37,7 @@ macro_rules! handle_element(
      $string: expr,
      $ctor: ident
      $(, $arg:expr )*) => (
-        if $string == $localName {
+        if $string == $localName.as_slice() {
             return ElementCast::from_temporary($ctor::new($localName, $document $(, $arg)*));
         }
     )
@@ -46,7 +45,7 @@ macro_rules! handle_element(
 
 
 pub struct JSFile {
-    pub data: ~str,
+    pub data: String,
     pub url: Url
 }
 
@@ -59,7 +58,7 @@ enum CSSMessage {
 
 enum JSMessage {
     JSTaskNewFile(Url),
-    JSTaskNewInlineScript(~str, Url),
+    JSTaskNewInlineScript(String, Url),
     JSTaskExit
 }
 
@@ -79,12 +78,12 @@ trait NodeWrapping<T> {
 
 impl<'a, T: NodeBase+Reflectable> NodeWrapping<T> for JSRef<'a, T> {
     unsafe fn to_hubbub_node(&self) -> hubbub::NodeDataPtr {
-        cast::transmute(self.deref())
+        mem::transmute(self.deref())
     }
 }
 
 unsafe fn from_hubbub_node<T: Reflectable>(n: hubbub::NodeDataPtr) -> Temporary<T> {
-    Temporary::new(JS::from_raw(cast::transmute(n)))
+    Temporary::new(JS::from_raw(mem::transmute(n)))
 }
 
 /**
@@ -120,7 +119,7 @@ fn css_link_listener(to_parent: Sender<HtmlDiscoveryMessage>,
     // Send the sheets back in order
     // FIXME: Shouldn't wait until after we've recieved CSSTaskExit to start sending these
     for port in result_vec.iter() {
-        to_parent.send_opt(HtmlDiscoveredStyle(port.recv()));
+        assert!(to_parent.send_opt(HtmlDiscoveredStyle(port.recv())).is_ok());
     }
 }
 
@@ -138,7 +137,7 @@ fn js_script_listener(to_parent: Sender<HtmlDiscoveryMessage>,
                     }
                     Ok((metadata, bytes)) => {
                         result_vec.push(JSFile {
-                            data: str::from_utf8(bytes.as_slice()).unwrap().to_owned(),
+                            data: String::from_utf8(bytes).unwrap().to_string(),
                             url: metadata.final_url,
                         });
                     }
@@ -153,7 +152,7 @@ fn js_script_listener(to_parent: Sender<HtmlDiscoveryMessage>,
         }
     }
 
-    to_parent.send_opt(HtmlDiscoveredScript(result_vec));
+    assert!(to_parent.send_opt(HtmlDiscoveredScript(result_vec)).is_ok());
 }
 
 // Silly macros to handle constructing      DOM nodes. This produces bad code and should be optimized
@@ -340,7 +339,7 @@ pub fn parse_html(page: &Page,
     let doc_cell = RefCell::new(document);
 
     let mut tree_handler = hubbub::TreeHandler {
-        create_comment: |data: ~str| {
+        create_comment: |data: String| {
             debug!("create comment");
             // NOTE: tmp vars are workaround for lifetime issues. Both required.
             let tmp_borrow = doc_cell.borrow();
@@ -370,7 +369,7 @@ pub fn parse_html(page: &Page,
             // NOTE: tmp vars are workaround for lifetime issues. Both required.
             let tmp_borrow = doc_cell.borrow();
             let tmp = &*tmp_borrow;
-            let element: Root<Element> = build_element_from_tag(tag.name.clone(), *tmp).root();
+            let mut element: Root<Element> = build_element_from_tag(tag.name.clone(), *tmp).root();
 
             debug!("-- attach attrs");
             for attr in tag.attributes.iter() {
@@ -381,10 +380,10 @@ pub fn parse_html(page: &Page,
                     XmlNsNs => (namespace::XMLNS, Some("xmlns")),
                     ns => fail!("Not expecting namespace {:?}", ns),
                 };
-                element.deref().set_attribute_from_parser(attr.name.clone(),
-                                                          attr.value.clone(),
-                                                          namespace,
-                                                          prefix.map(|p| p.to_owned()));
+                element.set_attribute_from_parser(attr.name.clone(),
+                                                  attr.value.clone(),
+                                                  namespace,
+                                                  prefix.map(|p| p.to_string()));
             }
 
             //FIXME: workaround for https://github.com/mozilla/rust/issues/13246;
@@ -407,9 +406,9 @@ pub fn parse_html(page: &Page,
                 // Handle CSS style sheets from <link> elements
                 ElementNodeTypeId(HTMLLinkElementTypeId) => {
                     match (rel, href) {
-                        (Some(ref rel), Some(ref href)) if rel.split(HTML_SPACE_CHARACTERS.as_slice())
+                        (Some(ref rel), Some(ref href)) if rel.as_slice().split(HTML_SPACE_CHARACTERS.as_slice())
                                                               .any(|s| {
-                                    s.eq_ignore_ascii_case("stylesheet")
+                                    s.as_slice().eq_ignore_ascii_case("stylesheet")
                                 }) => {
                             debug!("found CSS stylesheet: {:s}", *href);
                             let url = parse_url(href.as_slice(), Some(url2.clone()));
@@ -423,7 +422,7 @@ pub fn parse_html(page: &Page,
 
             unsafe { element.deref().to_hubbub_node() }
         },
-        create_text: |data: ~str| {
+        create_text: |data: String| {
             debug!("create text");
             // NOTE: tmp vars are workaround for lifetime issues. Both required.
             let tmp_borrow = doc_cell.borrow();

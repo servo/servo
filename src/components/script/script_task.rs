@@ -53,7 +53,6 @@ use servo_util::geometry::to_frac_px;
 use servo_util::task::send_on_failure;
 use servo_util::namespace::Null;
 use servo_util::str::DOMString;
-use std::cast;
 use std::cell::{Cell, RefCell, Ref, RefMut};
 use std::comm::{channel, Sender, Receiver, Empty, Disconnected};
 use std::mem::replace;
@@ -239,10 +238,8 @@ impl Page {
                 .enumerate()
                 .find(|&(_idx, ref page_tree)| {
                     // FIXME: page_tree has a lifetime such that it's unusable for anything.
-                    let page_tree = unsafe {
-                        cast::transmute_lifetime(page_tree)
-                    };
-                    page_tree.id == id
+                    let page_tree_id = page_tree.id;
+                    page_tree_id == id
                 })
                 .map(|(idx, _)| idx)
         };
@@ -442,7 +439,7 @@ impl Page {
     /// Attempt to find a named element in this page's document.
     fn find_fragment_node(&self, fragid: DOMString) -> Option<Temporary<Element>> {
         let document = self.frame().get_ref().document.root();
-        match document.deref().GetElementById(fragid.to_owned()) {
+        match document.deref().GetElementById(fragid.to_string()) {
             Some(node) => Some(node),
             None => {
                 let doc_node: &JSRef<Node> = NodeCast::from_ref(&*document);
@@ -451,7 +448,7 @@ impl Page {
                 anchors.find(|node| {
                     let elem: &JSRef<Element> = ElementCast::to_ref(node).unwrap();
                     elem.get_attribute(Null, "name").root().map_or(false, |attr| {
-                        attr.deref().value_ref() == fragid
+                        attr.deref().value_ref() == fragid.as_slice()
                     })
                 }).map(|node| Temporary::from_rooted(ElementCast::to_ref(&node).unwrap()))
             }
@@ -1007,7 +1004,7 @@ impl ScriptTask {
         // Kick off the initial reflow of the page.
         document.content_changed();
 
-        let fragment = url.fragment.as_ref().map(|ref fragment| fragment.to_owned());
+        let fragment = url.fragment.as_ref().map(|ref fragment| fragment.to_string());
 
         {
             // No more reflow required
@@ -1037,7 +1034,7 @@ impl ScriptTask {
         // "load" event as soon as we've finished executing all scripts parsed during
         // the initial load.
         let mut event =
-            Event::new(&*window, "load".to_owned(), false, false).root();
+            Event::new(&*window, "load".to_string(), false, false).root();
         let doctarget: &JSRef<EventTarget> = EventTargetCast::from_ref(&*document);
         let wintarget: &JSRef<EventTarget> = EventTargetCast::from_ref(&*window);
         let _ = wintarget.dispatch_event_with_target(Some((*doctarget).clone()),
@@ -1092,7 +1089,7 @@ impl ScriptTask {
                     Some(mut window) => {
                         // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
                         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#event-type-resize
-                        let mut uievent = UIEvent::new(&window.clone(), "resize".to_owned(), false, false,
+                        let mut uievent = UIEvent::new(&window.clone(), "resize".to_string(), false, false,
                                                        Some((*window).clone()), 0i32).root();
                         let event: &mut JSRef<Event> = EventCast::from_mut_ref(&mut *uievent);
 
@@ -1134,7 +1131,7 @@ impl ScriptTask {
                                         let window = frame.window.root();
                                         let mut event =
                                             Event::new(&*window,
-                                                       "click".to_owned(),
+                                                       "click".to_string(),
                                                        true, true).root();
                                         let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(&node);
                                         let _ = eventtarget.dispatch_event_with_target(None, &mut *event);

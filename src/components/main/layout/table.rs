@@ -295,7 +295,7 @@ impl Flow for TableFlow {
 impl fmt::Show for TableFlow {
     /// Outputs a debugging string describing this table flow.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f.buf, "TableFlow: {}", self.block_flow)
+        write!(f, "TableFlow: {}", self.block_flow)
     }
 }
 

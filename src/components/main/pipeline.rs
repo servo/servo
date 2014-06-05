@@ -197,12 +197,12 @@ impl Pipeline {
     }
 
     pub fn grant_paint_permission(&self) {
-        self.render_chan.send_opt(PaintPermissionGranted);
+        let _ = self.render_chan.send_opt(PaintPermissionGranted);
     }
 
     pub fn revoke_paint_permission(&self) {
         debug!("pipeline revoking render channel paint permission");
-        self.render_chan.send_opt(PaintPermissionRevoked);
+        let _ = self.render_chan.send_opt(PaintPermissionRevoked);
     }
 
     pub fn exit(&self) {
@@ -214,8 +214,8 @@ impl Pipeline {
         if chan.send_opt(script_task::ExitPipelineMsg(self.id)).is_ok() {
             // Wait until all slave tasks have terminated and run destructors
             // NOTE: We don't wait for script task as we don't always own it
-            self.render_shutdown_port.recv_opt();
-            self.layout_shutdown_port.recv_opt();
+            let _ = self.render_shutdown_port.recv_opt();
+            let _ = self.layout_shutdown_port.recv_opt();
         }
     }
 

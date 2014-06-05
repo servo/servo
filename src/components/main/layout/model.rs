@@ -254,7 +254,7 @@ pub struct IntrinsicWidths {
 
 impl fmt::Show for IntrinsicWidths {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f.buf, "min={}, pref={}, surr={}", self.minimum_width, self.preferred_width, self.surround_width)
+        write!(f, "min={}, pref={}, surr={}", self.minimum_width, self.preferred_width, self.surround_width)
     }
 }
 

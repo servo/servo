@@ -10,7 +10,7 @@ use num::div_rem;
 use sync::Arc;
 
 use servo_util::namespace;
-use servo_util::smallvec::SmallVec;
+use servo_util::smallvec::VecLike;
 use servo_util::sort;
 use servo_util::str::DOMString;
 
@@ -36,7 +36,7 @@ struct LowercaseAsciiString<'a>(&'a str);
 impl<'a> Equiv<DOMString> for LowercaseAsciiString<'a> {
     fn equiv(&self, other: &DOMString) -> bool {
         let LowercaseAsciiString(this) = *self;
-        this.eq_ignore_ascii_case(*other)
+        this.eq_ignore_ascii_case(other.as_slice())
     }
 }
 
@@ -49,7 +49,7 @@ impl<'a> Hash for LowercaseAsciiString<'a> {
             // `Ascii` type's invariants by using `to_ascii_nocheck`, but it's OK as we simply
             // convert to a byte afterward.
             unsafe {
-                state.write_u8(b.to_ascii_nocheck().to_lower().to_byte()).unwrap()
+                state.write_u8(b.to_ascii_nocheck().to_lowercase().to_byte()).unwrap()
             };
         }
         // Terminate the string with a non-UTF-8 character, to match what the built-in string
@@ -106,7 +106,7 @@ impl SelectorMap {
     /// Sort the Rules at the end to maintain cascading order.
     fn get_all_matching_rules<E:TElement,
                               N:TNode<E>,
-                              V:SmallVec<MatchedProperty>>(
+                              V:VecLike<MatchedProperty>>(
                               &self,
                               node: &N,
                               matching_rules_list: &mut V,
@@ -116,15 +116,15 @@ impl SelectorMap {
         }
 
         // At the end, we're going to sort the rules that we added, so remember where we began.
-        let init_len = matching_rules_list.len();
+        let init_len = matching_rules_list.vec_len();
         let element = node.as_element();
         match element.get_attr(&namespace::Null, "id") {
             Some(id) => {
                 SelectorMap::get_matching_rules_from_hash(node,
-                                                            &self.id_hash,
-                                                            id,
-                                                            matching_rules_list,
-                                                            shareable)
+                                                          &self.id_hash,
+                                                          id,
+                                                          matching_rules_list,
+                                                          shareable)
             }
             None => {}
         }
@@ -156,12 +156,12 @@ impl SelectorMap {
                                         shareable);
 
         // Sort only the rules we just added.
-        sort::quicksort(matching_rules_list.mut_slice_from(init_len));
+        sort::quicksort(matching_rules_list.vec_mut_slice_from(init_len));
     }
 
     fn get_matching_rules_from_hash<E:TElement,
                                     N:TNode<E>,
-                                    V:SmallVec<MatchedProperty>>(
+                                    V:VecLike<MatchedProperty>>(
                                     node: &N,
                                     hash: &HashMap<DOMString, Vec<Rule>>,
                                     key: &str,
@@ -177,7 +177,7 @@ impl SelectorMap {
 
     fn get_matching_rules_from_hash_ignoring_case<E:TElement,
                                                   N:TNode<E>,
-                                                  V:SmallVec<MatchedProperty>>(
+                                                  V:VecLike<MatchedProperty>>(
                                                   node: &N,
                                                   hash: &HashMap<DOMString, Vec<Rule>>,
                                                   key: &str,
@@ -194,7 +194,7 @@ impl SelectorMap {
     /// Adds rules in `rules` that match `node` to the `matching_rules` list.
     fn get_matching_rules<E:TElement,
                           N:TNode<E>,
-                          V:SmallVec<MatchedProperty>>(
+                          V:VecLike<MatchedProperty>>(
                           node: &N,
                           rules: &[Rule],
                           matching_rules: &mut V,
@@ -202,7 +202,7 @@ impl SelectorMap {
         for rule in rules.iter() {
             if matches_compound_selector(&*rule.selector, node, shareable) {
                 // TODO(pradeep): Is the cloning inefficient?
-                matching_rules.push(rule.property.clone());
+                matching_rules.vec_push(rule.property.clone());
             }
         }
     }
@@ -260,7 +260,7 @@ impl SelectorMap {
     }
 
     /// Retrieve the first ID name in Rule, or None otherwise.
-    fn get_id_name(rule: &Rule) -> Option<~str> {
+    fn get_id_name(rule: &Rule) -> Option<String> {
         let simple_selector_sequence = &rule.selector.simple_selectors;
         for ss in simple_selector_sequence.iter() {
             match *ss {
@@ -274,7 +274,7 @@ impl SelectorMap {
     }
 
     /// Retrieve the FIRST class name in Rule, or None otherwise.
-    fn get_class_name(rule: &Rule) -> Option<~str> {
+    fn get_class_name(rule: &Rule) -> Option<String> {
         let simple_selector_sequence = &rule.selector.simple_selectors;
         for ss in simple_selector_sequence.iter() {
             match *ss {
@@ -288,13 +288,13 @@ impl SelectorMap {
     }
 
     /// Retrieve the name if it is a type selector, or None otherwise.
-    fn get_element_name(rule: &Rule) -> Option<~str> {
+    fn get_element_name(rule: &Rule) -> Option<String> {
         let simple_selector_sequence = &rule.selector.simple_selectors;
         for ss in simple_selector_sequence.iter() {
             match *ss {
                 // HTML elements in HTML documents must be matched case-insensitively
                 // TODO: case-sensitivity depends on the document type
-                LocalNameSelector(ref name) => return Some(name.to_ascii_lower()),
+                LocalNameSelector(ref name) => return Some(name.as_slice().to_ascii_lower()),
                 _ => {}
             }
         }
@@ -381,7 +381,7 @@ impl Stylist {
     /// in `css::matching::PrivateMatchMethods::candidate_element_allows_for_style_sharing`.
     pub fn push_applicable_declarations<E:TElement,
                                         N:TNode<E>,
-                                        V:SmallVec<MatchedProperty>>(
+                                        V:VecLike<MatchedProperty>>(
                                         &self,
                                         element: &N,
                                         style_attribute: Option<&PropertyDeclarationBlock>,
@@ -410,7 +410,7 @@ impl Stylist {
         // Step 2: Normal style attributes.
         style_attribute.map(|sa| {
             shareable = false;
-            applicable_declarations.push(MatchedProperty::from_declarations(sa.normal.clone()))
+            applicable_declarations.vec_push(MatchedProperty::from_declarations(sa.normal.clone()))
         });
 
         // Step 3: Author-supplied `!important` rules.
@@ -421,7 +421,7 @@ impl Stylist {
         // Step 4: `!important` style attributes.
         style_attribute.map(|sa| {
             shareable = false;
-            applicable_declarations.push(MatchedProperty::from_declarations(sa.important.clone()))
+            applicable_declarations.vec_push(MatchedProperty::from_declarations(sa.important.clone()))
         });
 
         // Step 5: User and UA `!important` rules.
@@ -681,7 +681,7 @@ fn matches_simple_selector<E:TElement,
             let element = element.as_element();
             element.get_attr(&namespace::Null, "id")
                     .map_or(false, |attr| {
-                attr == *id
+                attr == id.as_slice()
             })
         }
         // TODO: cache and intern class names on elements.

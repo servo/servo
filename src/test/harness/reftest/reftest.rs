@@ -12,7 +12,7 @@ extern crate std;
 extern crate test;
 
 use std::io;
-use std::io::{File, Reader, Process};
+use std::io::{File, Reader, Command};
 use std::io::process::ExitStatus;
 use std::os;
 use test::{DynTestName, DynTestFn, TestDesc, TestOpts, TestDescAndFn};
@@ -57,14 +57,14 @@ enum ReftestKind {
 }
 
 struct Reftest {
-    name: ~str,
+    name: String,
     kind: ReftestKind,
-    files: [~str, ..2],
+    files: [String, ..2],
     id: uint,
-    servo_args: Vec<~str>,
+    servo_args: Vec<String>,
 }
 
-fn parse_lists(filenames: &[~str], servo_args: &[~str]) -> Vec<TestDescAndFn> {
+fn parse_lists(filenames: &[String], servo_args: &[String]) -> Vec<TestDescAndFn> {
     let mut tests = Vec::new();
     let mut next_id = 0;
     for file in filenames.iter() {
@@ -77,7 +77,7 @@ fn parse_lists(filenames: &[~str], servo_args: &[~str]) -> Vec<TestDescAndFn> {
                 _ => fail!("Could not read file"),
             };
 
-        for line in contents.lines() {
+        for line in contents.as_slice().lines() {
             // ignore comments
             if line.starts_with("#") {
                 continue;
@@ -97,11 +97,11 @@ fn parse_lists(filenames: &[~str], servo_args: &[~str]) -> Vec<TestDescAndFn> {
             };
             let src_path = file_path.dir_path();
             let src_dir = src_path.display().to_str();
-            let file_left =  src_dir + "/" + *parts.get(1);
-            let file_right = src_dir + "/" + *parts.get(2);
+            let file_left =  src_dir.clone().append("/").append(*parts.get(1));
+            let file_right = src_dir.append("/").append(*parts.get(2));
 
             let reftest = Reftest {
-                name: parts.get(1) + " / " + *parts.get(2),
+                name: parts.get(1).to_string().append(" / ").append(*parts.get(2)),
                 kind: kind,
                 files: [file_left, file_right],
                 id: next_id,
@@ -135,13 +135,13 @@ fn capture(reftest: &Reftest, side: uint) -> png::Image {
     let mut args = reftest.servo_args.clone();
     args.push_all_move(vec!("-f".to_owned(), "-o".to_owned(), filename.clone(), reftest.files[side].clone()));
 
-    let retval = match Process::status("./servo", args.as_slice()) {
+    let retval = match Command::new("./servo").args(args.as_slice()).status() {
         Ok(status) => status,
         Err(e) => fail!("failed to execute process: {}", e),
     };
     assert!(retval == ExitStatus(0));
 
-    png::load_png(&from_str::<Path>(filename).unwrap()).unwrap()
+    png::load_png(&from_str::<Path>(filename.as_slice()).unwrap()).unwrap()
 }
 
 fn check_reftest(reftest: Reftest) {
@@ -163,7 +163,7 @@ fn check_reftest(reftest: Reftest) {
 
     if pixels.iter().any(|&a| a < 255) {
         let output_str = format!("/tmp/servo-reftest-{:06u}-diff.png", reftest.id);
-        let output = from_str::<Path>(output_str).unwrap();
+        let output = from_str::<Path>(output_str.as_slice()).unwrap();
 
         let img = png::Image {
             width: left.width,

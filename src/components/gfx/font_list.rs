@@ -13,12 +13,12 @@ use style::computed_values::{font_weight, font_style};
 use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
 
-pub type FontFamilyMap = HashMap<~str, FontFamily>;
+pub type FontFamilyMap = HashMap<String, FontFamily>;
 
 trait FontListHandleMethods {
     fn get_available_families(&self, fctx: &FontContextHandle) -> FontFamilyMap;
     fn load_variations_for_family(&self, family: &mut FontFamily);
-    fn get_last_resort_font_families() -> Vec<~str>;
+    fn get_last_resort_font_families() -> Vec<String>;
 }
 
 /// The platform-independent font list abstraction.
@@ -53,7 +53,7 @@ impl FontList {
     }
 
     pub fn find_font_in_family<'a>(&'a mut self,
-                                   family_name: &~str,
+                                   family_name: &String,
                                    style: &SpecifiedFontStyle) -> Option<&'a FontEntry> {
         // TODO(Issue #188): look up localized font family names if canonical name not found
         // look up canonical name
@@ -75,14 +75,14 @@ impl FontList {
         }
     }
 
-    pub fn get_last_resort_font_families() -> Vec<~str> {
+    pub fn get_last_resort_font_families() -> Vec<String> {
         FontListHandle::get_last_resort_font_families()
     }
 }
 
 // Holds a specific font family, and the various
 pub struct FontFamily {
-    pub family_name: ~str,
+    pub family_name: String,
     pub entries: Vec<FontEntry>,
 }
 
@@ -130,7 +130,7 @@ impl FontFamily {
 /// In the common case, each FontFamily will have a singleton FontEntry, or it will have the
 /// standard four faces: Normal, Bold, Italic, BoldItalic.
 pub struct FontEntry {
-    pub face_name: ~str,
+    pub face_name: String,
     weight: font_weight::T,
     italic: bool,
     pub handle: FontHandle,

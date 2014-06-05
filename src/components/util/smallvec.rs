@@ -6,16 +6,45 @@
 //! to the heap for larger allocations.
 
 use i = std::mem::init;
-use std::cast;
 use std::cmp;
 use std::intrinsics;
 use std::mem;
 use std::ptr;
-use std::rt::global_heap;
-use std::rt::local_heap;
 use std::raw::Slice;
+use std::rt::local_heap;
+use alloc::heap;
 
 // Generic code for all small vectors
+
+pub trait VecLike<T> {
+    fn vec_len(&self) -> uint;
+    fn vec_push(&mut self, value: T);
+
+    fn vec_mut_slice<'a>(&'a mut self, start: uint, end: uint) -> &'a mut [T];
+
+    #[inline]
+    fn vec_mut_slice_from<'a>(&'a mut self, start: uint) -> &'a mut [T] {
+        let len = self.vec_len();
+        self.vec_mut_slice(start, len)
+    }
+}
+
+impl<T> VecLike<T> for Vec<T> {
+    #[inline]
+    fn vec_len(&self) -> uint {
+        self.len()
+    }
+
+    #[inline]
+    fn vec_push(&mut self, value: T) {
+        self.push(value);
+    }
+
+    #[inline]
+    fn vec_mut_slice<'a>(&'a mut self, start: uint, end: uint) -> &'a mut [T] {
+        self.mut_slice(start, end)
+    }
+}
 
 trait SmallVecPrivate<T> {
     unsafe fn set_len(&mut self, new_len: uint);
@@ -63,8 +92,8 @@ pub trait SmallVec<T> : SmallVecPrivate<T> {
     fn mut_iter<'a>(&'a mut self) -> SmallVecMutIterator<'a,T> {
         unsafe {
             SmallVecMutIterator {
-                ptr: cast::transmute(self.begin()),
-                end: cast::transmute(self.end()),
+                ptr: mem::transmute(self.begin()),
+                end: mem::transmute(self.end()),
                 lifetime: None,
             }
         }
@@ -74,9 +103,9 @@ pub trait SmallVec<T> : SmallVecPrivate<T> {
     /// actually clears out the original array instead of moving it.
     fn move_iter<'a>(&'a mut self) -> SmallVecMoveIterator<'a,T> {
         unsafe {
-            let iter = cast::transmute(self.iter());
+            let iter = mem::transmute(self.iter());
             let ptr_opt = if self.spilled() {
-                Some(cast::transmute(self.ptr()))
+                Some(mem::transmute(self.ptr()))
             } else {
                 None
             };
@@ -85,6 +114,7 @@ pub trait SmallVec<T> : SmallVecPrivate<T> {
             self.set_len(0);
             SmallVecMoveIterator {
                 allocation: ptr_opt,
+                cap: inline_size,
                 iter: iter,
                 lifetime: None,
             }
@@ -97,8 +127,8 @@ pub trait SmallVec<T> : SmallVecPrivate<T> {
             self.grow(cmp::max(cap * 2, 1))
         }
         unsafe {
-            let end: &mut T = cast::transmute(self.end());
-            mem::move_val_init(end, value);
+            let end: &mut T = mem::transmute(self.end());
+            mem::overwrite(end, value);
             let len = self.len();
             self.set_len(len + 1)
         }
@@ -116,7 +146,7 @@ pub trait SmallVec<T> : SmallVecPrivate<T> {
         }
 
         unsafe {
-            let mut value: T = mem::uninit();
+            let mut value: T = mem::uninitialized();
             let last_index = self.len() - 1;
 
             if (last_index as int) < 0 {
@@ -124,7 +154,7 @@ pub trait SmallVec<T> : SmallVecPrivate<T> {
             }
             let end_ptr = self.begin().offset(last_index as int);
 
-            mem::swap(&mut value, cast::transmute::<*T,&mut T>(end_ptr));
+            mem::swap(&mut value, mem::transmute::<*T,&mut T>(end_ptr));
             self.set_len(last_index);
             Some(value)
         }
@@ -132,18 +162,21 @@ pub trait SmallVec<T> : SmallVecPrivate<T> {
 
     fn grow(&mut self, new_cap: uint) {
         unsafe {
-            let new_alloc: *mut T = cast::transmute(global_heap::malloc_raw(mem::size_of::<T>() *
-                                                                            new_cap));
+            let new_alloc: *mut T = mem::transmute(heap::allocate(mem::size_of::<T>() *
+                                                                            new_cap,
+                                                                  mem::min_align_of::<T>()));
             ptr::copy_nonoverlapping_memory(new_alloc, self.begin(), self.len());
 
             if self.spilled() {
                 if intrinsics::owns_managed::<T>() {
                     local_heap::local_free(self.ptr() as *u8)
                 } else {
-                    global_heap::exchange_free(self.ptr() as *u8)
+                    heap::deallocate(self.mut_ptr() as *mut u8,
+                                     mem::size_of::<T>() * self.cap(),
+                                     mem::min_align_of::<T>())
                 }
             } else {
-                let mut_begin: *mut T = cast::transmute(self.begin());
+                let mut_begin: *mut T = mem::transmute(self.begin());
                 intrinsics::set_memory(mut_begin, 0, self.len())
             }
 
@@ -157,7 +190,7 @@ pub trait SmallVec<T> : SmallVecPrivate<T> {
             self.fail_bounds_check(index)
         }
         unsafe {
-            cast::transmute(self.begin().offset(index as int))
+            mem::transmute(self.begin().offset(index as int))
         }
     }
 
@@ -166,7 +199,7 @@ pub trait SmallVec<T> : SmallVecPrivate<T> {
             self.fail_bounds_check(index)
         }
         unsafe {
-            cast::transmute(self.begin().offset(index as int))
+            mem::transmute(self.begin().offset(index as int))
         }
     }
 
@@ -174,7 +207,7 @@ pub trait SmallVec<T> : SmallVecPrivate<T> {
         assert!(start <= end);
         assert!(end <= self.len());
         unsafe {
-            cast::transmute(Slice {
+            mem::transmute(Slice {
                 data: self.begin().offset(start as int),
                 len: (end - start)
             })
@@ -194,7 +227,7 @@ pub trait SmallVec<T> : SmallVecPrivate<T> {
         assert!(start <= end);
         assert!(end <= self.len());
         unsafe {
-            cast::transmute(Slice {
+            mem::transmute(Slice {
                 data: self.begin().offset(start as int),
                 len: (end - start)
             })
@@ -226,11 +259,11 @@ impl<'a,T> Iterator<&'a T> for SmallVecIterator<'a,T> {
             }
             let old = self.ptr;
             self.ptr = if mem::size_of::<T>() == 0 {
-                cast::transmute(self.ptr as uint + 1)
+                mem::transmute(self.ptr as uint + 1)
             } else {
                 self.ptr.offset(1)
             };
-            Some(cast::transmute(old))
+            Some(mem::transmute(old))
         }
     }
 }
@@ -250,17 +283,18 @@ impl<'a,T> Iterator<&'a mut T> for SmallVecMutIterator<'a,T> {
             }
             let old = self.ptr;
             self.ptr = if mem::size_of::<T>() == 0 {
-                cast::transmute(self.ptr as uint + 1)
+                mem::transmute(self.ptr as uint + 1)
             } else {
                 self.ptr.offset(1)
             };
-            Some(cast::transmute(old))
+            Some(mem::transmute(old))
         }
     }
 }
 
 pub struct SmallVecMoveIterator<'a,T> {
     allocation: Option<*mut u8>,
+    cap: uint,
     iter: SmallVecIterator<'static,T>,
     lifetime: Option<&'a T>,
 }
@@ -273,8 +307,8 @@ impl<'a,T> Iterator<T> for SmallVecMoveIterator<'a,T> {
                 None => None,
                 Some(reference) => {
                     // Zero out the values as we go so they don't get double-freed.
-                    let reference: &mut T = cast::transmute(reference);
-                    Some(mem::replace(reference, mem::init()))
+                    let reference: &mut T = mem::transmute(reference);
+                    Some(mem::replace(reference, mem::zeroed()))
                 }
             }
         }
@@ -294,7 +328,9 @@ impl<'a,T> Drop for SmallVecMoveIterator<'a,T> {
                     if intrinsics::owns_managed::<T>() {
                         local_heap::local_free(allocation as *u8)
                     } else {
-                        global_heap::exchange_free(allocation as *u8)
+                        heap::deallocate(allocation as *mut u8,
+                                         mem::size_of::<T>() * self.cap,
+                                         mem::min_align_of::<T>())
                     }
                 }
             }
@@ -332,10 +368,10 @@ macro_rules! def_small_vector(
                 self.ptr
             }
             unsafe fn mut_ptr(&mut self) -> *mut T {
-                cast::transmute(self.ptr)
+                mem::transmute(self.ptr)
             }
             unsafe fn set_ptr(&mut self, new_ptr: *mut T) {
-                self.ptr = cast::transmute(new_ptr)
+                self.ptr = mem::transmute(new_ptr)
             }
         }
 
@@ -351,6 +387,23 @@ macro_rules! def_small_vector(
             }
         }
 
+        impl<T> VecLike<T> for $name<T> {
+            #[inline]
+            fn vec_len(&self) -> uint {
+                self.len()
+            }
+
+            #[inline]
+            fn vec_push(&mut self, value: T) {
+                self.push(value);
+            }
+
+            #[inline]
+            fn vec_mut_slice<'a>(&'a mut self, start: uint, end: uint) -> &'a mut [T] {
+                self.mut_slice(start, end)
+            }
+        }
+
         impl<T> $name<T> {
             #[inline]
             pub fn new() -> $name<T> {
@@ -359,7 +412,7 @@ macro_rules! def_small_vector(
                         len: 0,
                         cap: $size,
                         ptr: ptr::null(),
-                        data: mem::init(),
+                        data: mem::zeroed(),
                     }
                 }
             }
@@ -375,59 +428,6 @@ def_small_vector!(SmallVec16, 16)
 def_small_vector!(SmallVec24, 24)
 def_small_vector!(SmallVec32, 32)
 
-/// TODO(pcwalton): Remove in favor of `vec_ng` after a Rust upgrade.
-pub struct SmallVec0<T> {
-    len: uint,
-    cap: uint,
-    ptr: *mut T,
-}
-
-impl<T> SmallVecPrivate<T> for SmallVec0<T> {
-    unsafe fn set_len(&mut self, new_len: uint) {
-        self.len = new_len
-    }
-    unsafe fn set_cap(&mut self, new_cap: uint) {
-        self.cap = new_cap
-    }
-    fn data(&self, _: uint) -> *T {
-        ptr::null()
-    }
-    fn mut_data(&mut self, _: uint) -> *mut T {
-        ptr::mut_null()
-    }
-    unsafe fn ptr(&self) -> *T {
-        cast::transmute(self.ptr)
-    }
-    unsafe fn mut_ptr(&mut self) -> *mut T {
-        self.ptr
-    }
-    unsafe fn set_ptr(&mut self, new_ptr: *mut T) {
-        self.ptr = new_ptr
-    }
-}
-
-impl<T> SmallVec<T> for SmallVec0<T> {
-    fn inline_size(&self) -> uint {
-        0
-    }
-    fn len(&self) -> uint {
-        self.len
-    }
-    fn cap(&self) -> uint {
-        self.cap
-    }
-}
-
-impl<T> SmallVec0<T> {
-    pub fn new() -> SmallVec0<T> {
-        SmallVec0 {
-            len: 0,
-            cap: 0,
-            ptr: ptr::mut_null(),
-        }
-    }
-}
-
 macro_rules! def_small_vector_drop_impl(
     ($name:ident, $size:expr) => (
         #[unsafe_destructor]
@@ -440,13 +440,15 @@ macro_rules! def_small_vector_drop_impl(
                 unsafe {
                     let ptr = self.mut_ptr();
                     for i in range(0, self.len()) {
-                        *ptr.offset(i as int) = mem::uninit();
+                        *ptr.offset(i as int) = mem::uninitialized();
                     }
 
                     if intrinsics::owns_managed::<T>() {
                         local_heap::local_free(self.ptr() as *u8)
                     } else {
-                        global_heap::exchange_free(self.ptr() as *u8)
+                        heap::deallocate(self.mut_ptr() as *mut u8,
+                                         mem::size_of::<T>() * self.cap(),
+                                         mem::min_align_of::<T>())
                     }
                 }
             }
@@ -454,7 +456,6 @@ macro_rules! def_small_vector_drop_impl(
     )
 )
 
-def_small_vector_drop_impl!(SmallVec0, 0)
 def_small_vector_drop_impl!(SmallVec1, 1)
 def_small_vector_drop_impl!(SmallVec2, 2)
 def_small_vector_drop_impl!(SmallVec4, 4)
@@ -477,7 +478,6 @@ macro_rules! def_small_vector_clone_impl(
     )
 )
 
-def_small_vector_clone_impl!(SmallVec0)
 def_small_vector_clone_impl!(SmallVec1)
 def_small_vector_clone_impl!(SmallVec2)
 def_small_vector_clone_impl!(SmallVec4)
@@ -488,57 +488,41 @@ def_small_vector_clone_impl!(SmallVec32)
 
 #[cfg(test)]
 pub mod tests {
-    use smallvec::{SmallVec, SmallVec0, SmallVec2, SmallVec16};
+    use smallvec::{SmallVec, SmallVec2, SmallVec16};
 
     // We heap allocate all these strings so that double frees will show up under valgrind.
 
     #[test]
     pub fn test_inline() {
         let mut v = SmallVec16::new();
-        v.push("hello".to_owned());
-        v.push("there".to_owned());
-        assert_eq!(v.as_slice(), &["hello".to_owned(), "there".to_owned()]);
+        v.push("hello".to_string());
+        v.push("there".to_string());
+        assert_eq!(v.as_slice(), &["hello".to_string(), "there".to_string()]);
     }
 
     #[test]
     pub fn test_spill() {
         let mut v = SmallVec2::new();
-        v.push("hello".to_owned());
-        v.push("there".to_owned());
-        v.push("burma".to_owned());
-        v.push("shave".to_owned());
-        assert_eq!(v.as_slice(), &["hello".to_owned(), "there".to_owned(), "burma".to_owned(), "shave".to_owned()]);
+        v.push("hello".to_string());
+        v.push("there".to_string());
+        v.push("burma".to_string());
+        v.push("shave".to_string());
+        assert_eq!(v.as_slice(), &["hello".to_string(), "there".to_string(), "burma".to_string(), "shave".to_string()]);
     }
 
     #[test]
     pub fn test_double_spill() {
         let mut v = SmallVec2::new();
-        v.push("hello".to_owned());
-        v.push("there".to_owned());
-        v.push("burma".to_owned());
-        v.push("shave".to_owned());
-        v.push("hello".to_owned());
-        v.push("there".to_owned());
-        v.push("burma".to_owned());
-        v.push("shave".to_owned());
+        v.push("hello".to_string());
+        v.push("there".to_string());
+        v.push("burma".to_string());
+        v.push("shave".to_string());
+        v.push("hello".to_string());
+        v.push("there".to_string());
+        v.push("burma".to_string());
+        v.push("shave".to_string());
         assert_eq!(v.as_slice(), &[
-            "hello".to_owned(), "there".to_owned(), "burma".to_owned(), "shave".to_owned(), "hello".to_owned(), "there".to_owned(), "burma".to_owned(), "shave".to_owned(),
-        ]);
-    }
-
-    #[test]
-    pub fn test_smallvec0() {
-        let mut v = SmallVec0::new();
-        v.push("hello".to_owned());
-        v.push("there".to_owned());
-        v.push("burma".to_owned());
-        v.push("shave".to_owned());
-        v.push("hello".to_owned());
-        v.push("there".to_owned());
-        v.push("burma".to_owned());
-        v.push("shave".to_owned());
-        assert_eq!(v.as_slice(), &[
-            "hello".to_owned(), "there".to_owned(), "burma".to_owned(), "shave".to_owned(), "hello".to_owned(), "there".to_owned(), "burma".to_owned(), "shave".to_owned(),
+            "hello".to_string(), "there".to_string(), "burma".to_string(), "shave".to_string(), "hello".to_string(), "there".to_string(), "burma".to_string(), "shave".to_string(),
         ]);
     }
 }

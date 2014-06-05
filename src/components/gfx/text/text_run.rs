@@ -13,7 +13,7 @@ use text::glyph::{CharIndex, GlyphStore};
 /// A text run.
 #[deriving(Clone)]
 pub struct TextRun {
-    pub text: Arc<~str>,
+    pub text: Arc<String>,
     pub font_descriptor: FontDescriptor,
     pub font_metrics: FontMetrics,
     pub font_style: FontStyle,
@@ -97,8 +97,8 @@ impl<'a> Iterator<Range<CharIndex>> for LineIterator<'a> {
 }
 
 impl<'a> TextRun {
-    pub fn new(font: &mut Font, text: ~str, decoration: text_decoration::T) -> TextRun {
-        let glyphs = TextRun::break_and_shape(font, text);
+    pub fn new(font: &mut Font, text: String, decoration: text_decoration::T) -> TextRun {
+        let glyphs = TextRun::break_and_shape(font, text.as_slice());
 
         let run = TextRun {
             text: Arc::new(text),
@@ -145,7 +145,7 @@ impl<'a> TextRun {
 
             // Create a glyph store for this slice if it's nonempty.
             if can_break_before && byte_i > byte_last_boundary {
-                let slice = text.slice(byte_last_boundary, byte_i).to_owned();
+                let slice = text.slice(byte_last_boundary, byte_i).to_string();
                 debug!("creating glyph store for slice {} (ws? {}), {} - {} in run {}",
                         slice, !cur_slice_is_whitespace, byte_last_boundary, byte_i, text);
                 glyphs.push(font.shape_text(slice, !cur_slice_is_whitespace));
@@ -157,7 +157,7 @@ impl<'a> TextRun {
 
         // Create a glyph store for the final slice if it's nonempty.
         if byte_i > byte_last_boundary {
-            let slice = text.slice_from(byte_last_boundary).to_owned();
+            let slice = text.slice_from(byte_last_boundary).to_string();
             debug!("creating glyph store for final slice {} (ws? {}), {} - {} in run {}",
                 slice, cur_slice_is_whitespace, byte_last_boundary, text.len(), text);
             glyphs.push(font.shape_text(slice, cur_slice_is_whitespace));

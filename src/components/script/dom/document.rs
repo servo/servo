@@ -219,16 +219,16 @@ impl Document {
                 Some(string) => string.clone(),
                 None => match is_html_document {
                     // http://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
-                    HTMLDocument => "text/html".to_owned(),
+                    HTMLDocument => "text/html".to_string(),
                     // http://dom.spec.whatwg.org/#concept-document-content-type
-                    NonHTMLDocument => "application/xml".to_owned()
+                    NonHTMLDocument => "application/xml".to_string()
                 }
             },
             url: Untraceable::new(url),
             // http://dom.spec.whatwg.org/#concept-document-quirks
             quirks_mode: Untraceable::new(NoQuirks),
             // http://dom.spec.whatwg.org/#concept-document-encoding
-            encoding_name: "utf-8".to_owned(),
+            encoding_name: "utf-8".to_string(),
             is_html_document: is_html_document == HTMLDocument,
         }
     }
@@ -355,14 +355,14 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     // http://dom.spec.whatwg.org/#dom-document-compatmode
     fn CompatMode(&self) -> DOMString {
         match *self.quirks_mode {
-            NoQuirks => "CSS1Compat".to_owned(),
-            LimitedQuirks | FullQuirks => "BackCompat".to_owned()
+            NoQuirks => "CSS1Compat".to_string(),
+            LimitedQuirks | FullQuirks => "BackCompat".to_string()
         }
     }
 
     // http://dom.spec.whatwg.org/#dom-document-characterset
     fn CharacterSet(&self) -> DOMString {
-        self.encoding_name.to_ascii_lower()
+        self.encoding_name.as_slice().to_ascii_lower()
     }
 
     // http://dom.spec.whatwg.org/#dom-document-content_type
@@ -398,7 +398,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         let window = self.window.root();
 
         let namespace = match maybe_ns {
-            Some(namespace) => Namespace::from_str(namespace),
+            Some(namespace) => Namespace::from_str(namespace.as_slice()),
             None => Null
         };
         HTMLCollection::by_tag_name_ns(&*window, NodeCast::from_ref(self), tag_name, namespace)
@@ -421,11 +421,11 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     // http://dom.spec.whatwg.org/#dom-document-createelement
     fn CreateElement(&self, local_name: DOMString) -> Fallible<Temporary<Element>> {
-        if xml_name_type(local_name) == InvalidXMLName {
+        if xml_name_type(local_name.as_slice()) == InvalidXMLName {
             debug!("Not a valid element name");
             return Err(InvalidCharacter);
         }
-        let local_name = local_name.to_ascii_lower();
+        let local_name = local_name.as_slice().to_ascii_lower();
         Ok(build_element_from_tag(local_name, self))
     }
 
@@ -434,7 +434,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                        namespace: Option<DOMString>,
                        qualified_name: DOMString) -> Fallible<Temporary<Element>> {
         let ns = Namespace::from_str(null_str_as_empty_ref(&namespace));
-        match xml_name_type(qualified_name) {
+        match xml_name_type(qualified_name.as_slice()) {
             InvalidXMLName => {
                 debug!("Not a valid element name");
                 return Err(InvalidCharacter);
@@ -454,12 +454,12 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                 return Err(NamespaceError);
             },
             // throw if prefix is "xml" and namespace is not the XML namespace
-            (_, Some(ref prefix), _) if "xml" == *prefix && ns != namespace::XML => {
+            (_, Some(ref prefix), _) if "xml" == prefix.as_slice() && ns != namespace::XML => {
                 debug!("Namespace must be the xml namespace if the prefix is 'xml'");
                 return Err(NamespaceError);
             },
             // throw if namespace is the XMLNS namespace and neither qualifiedName nor prefix is "xmlns"
-            (&namespace::XMLNS, Some(ref prefix), _) if "xmlns" == *prefix => {},
+            (&namespace::XMLNS, Some(ref prefix), _) if "xmlns" == prefix.as_slice() => {},
             (&namespace::XMLNS, _, "xmlns") => {},
             (&namespace::XMLNS, _, _) => {
                 debug!("The prefix or the qualified name must be 'xmlns' if namespace is the XMLNS namespace ");
@@ -495,12 +495,12 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     fn CreateProcessingInstruction(&self, target: DOMString,
                                        data: DOMString) -> Fallible<Temporary<ProcessingInstruction>> {
         // Step 1.
-        if xml_name_type(target) == InvalidXMLName {
+        if xml_name_type(target.as_slice()) == InvalidXMLName {
             return Err(InvalidCharacter);
         }
 
         // Step 2.
-        if data.contains("?>") {
+        if data.as_slice().contains("?>") {
             return Err(InvalidCharacter);
         }
 
@@ -542,7 +542,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     fn CreateEvent(&self, interface: DOMString) -> Fallible<Temporary<Event>> {
         let window = self.window.root();
 
-        match interface.to_ascii_lower().as_slice() {
+        match interface.as_slice().to_ascii_lower().as_slice() {
             // FIXME: Implement CustomEvent (http://dom.spec.whatwg.org/#customevent)
             "uievents" | "uievent" => Ok(EventCast::from_temporary(UIEvent::new_uninitialized(&*window))),
             "mouseevents" | "mouseevent" => Ok(EventCast::from_temporary(MouseEvent::new_uninitialized(&*window))),
@@ -554,7 +554,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     // http://www.whatwg.org/specs/web-apps/current-work/#document.title
     fn Title(&self) -> DOMString {
-        let mut title = StrBuf::new();
+        let mut title = String::new();
         self.GetDocumentElement().root().map(|root| {
             let root: &JSRef<Node> = NodeCast::from_ref(&*root);
             root.traverse_preorder()
@@ -570,7 +570,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         });
         let v: Vec<&str> = title.as_slice().words().collect();
         let title = v.connect(" ");
-        title.trim().to_owned()
+        title.as_slice().trim().to_string()
     }
 
     // http://www.whatwg.org/specs/web-apps/current-work/#document.title
@@ -595,7 +595,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                         assert!(title_node.AppendChild(NodeCast::from_ref(&*new_text)).is_ok());
                     },
                     None => {
-                        let new_title = HTMLTitleElement::new("title".to_owned(), self).root();
+                        let new_title = HTMLTitleElement::new("title".to_string(), self).root();
                         let new_title: &JSRef<Node> = NodeCast::from_ref(&*new_title);
 
                         let new_text = self.CreateTextNode(title.clone()).root();
@@ -691,7 +691,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
             let element: &JSRef<Element> = ElementCast::to_ref(node).unwrap();
             element.get_attribute(Null, "name").root().map_or(false, |mut attr| {
-                attr.value_ref() == name
+                attr.value_ref() == name.as_slice()
             })
         })
     }
@@ -703,7 +703,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         struct ImagesFilter;
         impl CollectionFilter for ImagesFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                "img" == elem.deref().local_name
+                "img" == elem.deref().local_name.as_slice()
             }
         }
         let filter = box ImagesFilter;
@@ -717,7 +717,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         struct EmbedsFilter;
         impl CollectionFilter for EmbedsFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                "embed" == elem.deref().local_name
+                "embed" == elem.deref().local_name.as_slice()
             }
         }
         let filter = box EmbedsFilter;
@@ -736,7 +736,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         struct LinksFilter;
         impl CollectionFilter for LinksFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                ("a" == elem.deref().local_name || "area" == elem.deref().local_name) &&
+                ("a" == elem.deref().local_name.as_slice() || "area" == elem.deref().local_name.as_slice()) &&
                 elem.get_attribute(Null, "href").is_some()
             }
         }
@@ -751,7 +751,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         struct FormsFilter;
         impl CollectionFilter for FormsFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                "form" == elem.deref().local_name
+                "form" == elem.deref().local_name.as_slice()
             }
         }
         let filter = box FormsFilter;
@@ -765,7 +765,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         struct ScriptsFilter;
         impl CollectionFilter for ScriptsFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                "script" == elem.deref().local_name
+                "script" == elem.deref().local_name.as_slice()
             }
         }
         let filter = box ScriptsFilter;
@@ -779,7 +779,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         struct AnchorsFilter;
         impl CollectionFilter for AnchorsFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                "a" == elem.deref().local_name && elem.get_attribute(Null, "name").is_some()
+                "a" == elem.deref().local_name.as_slice() && elem.get_attribute(Null, "name").is_some()
             }
         }
         let filter = box AnchorsFilter;
@@ -793,7 +793,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         struct AppletsFilter;
         impl CollectionFilter for AppletsFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                "applet" == elem.deref().local_name
+                "applet" == elem.deref().local_name.as_slice()
             }
         }
         let filter = box AppletsFilter;

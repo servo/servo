@@ -49,7 +49,7 @@ impl<'a> PrivateHTMLImageElementHelpers for JSRef<'a, HTMLImageElement> {
                 *self.image = None;
             }
             Some(src) => {
-                let img_url = parse_url(src, url);
+                let img_url = parse_url(src.as_slice(), url);
                 *self.image = Some(img_url.clone());
 
                 // inform the image cache to load this, but don't store a
@@ -147,7 +147,7 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
 
     fn IsMap(&self) -> bool {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
-        from_str::<bool>(element.get_string_attribute("hspace")).unwrap()
+        from_str::<bool>(element.get_string_attribute("hspace").as_slice()).unwrap()
     }
 
     fn SetIsMap(&self, is_map: bool) {
@@ -199,7 +199,7 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
 
     fn Hspace(&self) -> u32 {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
-        from_str::<u32>(element.get_string_attribute("hspace")).unwrap()
+        from_str::<u32>(element.get_string_attribute("hspace").as_slice()).unwrap()
     }
 
     fn SetHspace(&self, hspace: u32) {
@@ -209,7 +209,7 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
 
     fn Vspace(&self) -> u32 {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
-        from_str::<u32>(element.get_string_attribute("vspace")).unwrap()
+        from_str::<u32>(element.get_string_attribute("vspace").as_slice()).unwrap()
     }
 
     fn SetVspace(&self, vspace: u32) {
@@ -250,7 +250,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLImageElement> {
             _ => (),
         }
 
-        if "src" == name {
+        if "src" == name.as_slice() {
             let window = window_from_node(self).root();
             let url = Some(window.deref().get_url());
             self.update_image(Some(value), url);
@@ -263,7 +263,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLImageElement> {
             _ => (),
         }
 
-        if "src" == name {
+        if "src" == name.as_slice() {
             self.update_image(None, None);
         }
     }

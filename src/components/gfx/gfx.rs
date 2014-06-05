@@ -13,6 +13,7 @@
 #[phase(syntax, link)]
 extern crate log;
 
+extern crate debug;
 extern crate azure;
 extern crate collections;
 extern crate geom;
@@ -47,6 +48,8 @@ pub use gfx_font_context = font_context;
 pub use gfx_font_list = font_list;
 pub use servo_gfx_font = font;
 pub use servo_gfx_font_list = font_list;
+
+pub use render_context::RenderContext;
 
 // Private rendering modules
 mod render_context;

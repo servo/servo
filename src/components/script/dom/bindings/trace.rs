@@ -9,7 +9,7 @@ use js::jsapi::{JSObject, JSTracer, JS_CallTracer, JSTRACE_OBJECT};
 use js::jsval::JSVal;
 
 use libc;
-use std::cast;
+use std::mem;
 use std::cell::{Cell, RefCell};
 use serialize::{Encodable, Encoder};
 
@@ -20,7 +20,7 @@ use serialize::{Encodable, Encoder};
 
 fn get_jstracer<'a, S: Encoder<E>, E>(s: &'a mut S) -> &'a mut JSTracer {
     unsafe {
-        cast::transmute(s)
+        mem::transmute(s)
     }
 }
 

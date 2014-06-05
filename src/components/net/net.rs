@@ -9,6 +9,7 @@
 
 #![feature(default_type_params, globs, managed_boxes, phase)]
 
+extern crate debug;
 extern crate collections;
 extern crate geom;
 extern crate http;

@@ -84,7 +84,7 @@ impl ProfilerCategory {
 
     // some categories are subcategories of LayoutPerformCategory
     // and should be printed to indicate this
-    pub fn format(self) -> ~str {
+    pub fn format(self) -> String {
         let padding = match self {
             LayoutStyleRecalcCategory |
             LayoutMainCategory |

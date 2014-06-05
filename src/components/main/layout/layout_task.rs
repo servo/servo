@@ -54,8 +54,6 @@ use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
 use servo_util::task::send_on_failure;
 use servo_util::workqueue::WorkQueue;
-use std::cast::transmute;
-use std::cast;
 use std::comm::{channel, Sender, Receiver};
 use std::mem;
 use std::ptr;
@@ -318,8 +316,8 @@ impl LayoutTask {
         let local_image_cache = box LocalImageCache(image_cache_task.clone());
         let local_image_cache = unsafe {
             let cache = Arc::new(Mutex::new(
-                cast::transmute::<Box<LocalImageCache>, *()>(local_image_cache)));
-            LocalImageCacheHandle::new(cast::transmute::<Arc<Mutex<*()>>,Arc<*()>>(cache))
+                mem::transmute::<Box<LocalImageCache>, *()>(local_image_cache)));
+            LocalImageCacheHandle::new(mem::transmute::<Arc<Mutex<*()>>,Arc<*()>>(cache))
         };
         let screen_size = Size2D(Au(0), Au(0));
         let parallel_traversal = if opts.layout_threads != 1 {
@@ -562,7 +560,7 @@ impl LayoutTask {
         // FIXME: Isolate this transmutation into a "bridge" module.
         let node: &mut LayoutNode = unsafe {
             let mut node: JS<Node> = JS::from_trusted_node_address(data.document_root);
-            transmute(&mut node)
+            mem::transmute(&mut node)
         };
 
         debug!("layout: received layout request for: {:s}", data.url.to_str());
@@ -914,7 +912,7 @@ impl LayoutTask {
     /// because it contains local managed pointers.
     unsafe fn handle_reap_layout_data(&self, layout_data: LayoutDataRef) {
         let mut layout_data_ref = layout_data.borrow_mut();
-        let _: Option<LayoutDataWrapper> = cast::transmute(
+        let _: Option<LayoutDataWrapper> = mem::transmute(
             mem::replace(&mut *layout_data_ref, None));
     }
 }

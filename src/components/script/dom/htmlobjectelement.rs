@@ -62,8 +62,8 @@ impl<'a> ProcessDataURL for JSRef<'a, HTMLObjectElement> {
         match (elem.get_attribute(Null, "type").map(|x| x.root().Value()),
                elem.get_attribute(Null, "data").map(|x| x.root().Value())) {
             (None, Some(uri)) => {
-                if is_image_data(uri) {
-                    let data_url = parse_url(uri, url);
+                if is_image_data(uri.as_slice()) {
+                    let data_url = parse_url(uri.as_slice(), url);
                     // Issue #84
                     image_cache.send(image_cache_task::Prefetch(data_url));
                 }
@@ -96,7 +96,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLObjectElement> {
             _ => (),
         }
 
-        if "data" == name {
+        if "data" == name.as_slice() {
             let window = window_from_node(self).root();
             let url = Some(window.deref().get_url());
             self.process_data_url(window.deref().image_cache_task.clone(), url);

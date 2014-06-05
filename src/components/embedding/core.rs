@@ -10,7 +10,7 @@ use libc::{c_int, c_void};
 use native;
 use servo;
 use servo_util::opts;
-use std::cast::transmute;
+use std::mem;
 use types::{cef_app_t, cef_main_args_t, cef_settings_t};
 
 
@@ -23,11 +23,11 @@ pub extern "C" fn cef_initialize(args: *cef_main_args_t, settings: *mut cef_sett
     unsafe {
         command_line_init((*args).argc, (*args).argv);
         let cb = (*application).get_browser_process_handler;
-        if !fptr_is_null(transmute(cb)) {
+        if !fptr_is_null(mem::transmute(cb)) {
             let handler = cb(application);
             if handler.is_not_null() {
                 let hcb = (*handler).on_context_initialized;
-                if !fptr_is_null(transmute(hcb)) {
+                if !fptr_is_null(mem::transmute(hcb)) {
                     hcb(handler);
                 }
             }
@@ -43,7 +43,7 @@ pub extern "C" fn cef_shutdown() {
 #[no_mangle]
 pub extern "C" fn cef_run_message_loop() {
     let mut urls = Vec::new();
-    urls.push("http://www.w3c-test.org".to_owned());
+    urls.push("http://www.w3c-test.org".to_string());
     let opts = opts::Opts {
         urls: urls,
         render_backend: azure::azure_hl::SkiaBackend,

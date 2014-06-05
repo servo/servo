@@ -6,7 +6,7 @@ use azure::{AzFloat, AzScaledFontRef};
 use azure::azure_hl::{BackendType, ColorPattern};
 use azure::scaled_font::ScaledFont;
 use geom::{Point2D, Rect, Size2D};
-use std::cast;
+use std::mem;
 use std::num::Zero;
 use std::ptr;
 use std::str;
@@ -37,9 +37,9 @@ pub trait FontHandleMethods {
                     -> Result<Self,()>;
 
     // an identifier usable by FontContextHandle to recreate this FontHandle.
-    fn face_identifier(&self) -> ~str;
-    fn family_name(&self) -> ~str;
-    fn face_name(&self) -> ~str;
+    fn face_identifier(&self) -> String;
+    fn family_name(&self) -> String;
+    fn face_name(&self) -> String;
     fn is_italic(&self) -> bool;
     fn boldness(&self) -> font_weight::T;
 
@@ -57,17 +57,17 @@ pub type FractionalPixel = f64;
 pub type FontTableTag = u32;
 
 pub trait FontTableTagConversions {
-    fn tag_to_str(&self) -> ~str;
+    fn tag_to_str(&self) -> String;
 }
 
 impl FontTableTagConversions for FontTableTag {
-    fn tag_to_str(&self) -> ~str {
+    fn tag_to_str(&self) -> String {
         unsafe {
-            let reversed = str::raw::from_buf_len(cast::transmute(self), 4);
-            return str::from_chars([reversed.char_at(3),
-                                    reversed.char_at(2),
-                                    reversed.char_at(1),
-                                    reversed.char_at(0)]);
+            let reversed = str::raw::from_buf_len(mem::transmute(self), 4);
+            return str::from_chars([reversed.as_slice().char_at(3),
+                                    reversed.as_slice().char_at(2),
+                                    reversed.as_slice().char_at(1),
+                                    reversed.as_slice().char_at(0)]);
         }
     }
 }
@@ -101,7 +101,7 @@ pub struct FontStyle {
     pub pt_size: f64,
     pub weight: font_weight::T,
     pub style: font_style::T,
-    pub families: Vec<~str>,
+    pub families: Vec<String>,
     // TODO(Issue #198): font-stretch, text-decoration, font-variant, size-adjust
 }
 
@@ -132,7 +132,7 @@ impl FontDescriptor {
 // A FontSelector is a platform-specific strategy for serializing face names.
 #[deriving(Clone, Eq)]
 pub enum FontSelector {
-    SelectorPlatformIdentifier(~str),
+    SelectorPlatformIdentifier(String),
 }
 
 // This struct is the result of mapping a specified FontStyle into the
@@ -143,7 +143,7 @@ pub enum FontSelector {
 // The ordering of font instances is mainly decided by the CSS
 // 'font-family' property. The last font is a system fallback font.
 pub struct FontGroup {
-    pub families: Vec<~str>,
+    pub families: Vec<String>,
     // style of the first western font in group, which is
     // used for purposes of calculating text run metrics.
     pub style: UsedFontStyle,
@@ -151,7 +151,7 @@ pub struct FontGroup {
 }
 
 impl FontGroup {
-    pub fn new(families: Vec<~str>, style: &UsedFontStyle, fonts: Vec<Rc<RefCell<Font>>>) -> FontGroup {
+    pub fn new(families: Vec<String>, style: &UsedFontStyle, fonts: Vec<Rc<RefCell<Font>>>) -> FontGroup {
         FontGroup {
             families: families,
             style: (*style).clone(),
@@ -159,7 +159,7 @@ impl FontGroup {
         }
     }
 
-    pub fn create_textrun(&self, text: ~str, decoration: text_decoration::T) -> TextRun {
+    pub fn create_textrun(&self, text: String, decoration: text_decoration::T) -> TextRun {
         assert!(self.fonts.len() > 0);
 
         // TODO(Issue #177): Actually fall back through the FontGroup when a font is unsuitable.
@@ -206,7 +206,7 @@ pub struct Font {
     pub style: UsedFontStyle,
     pub metrics: FontMetrics,
     pub backend: BackendType,
-    pub shape_cache: HashCache<~str, Arc<GlyphStore>>,
+    pub shape_cache: HashCache<String, Arc<GlyphStore>>,
     pub glyph_advance_cache: HashCache<u32, FractionalPixel>,
 }
 
@@ -285,7 +285,7 @@ impl<'a> Font {
         let result = self.handle.get_table_for_tag(tag);
         let status = if result.is_some() { "Found" } else { "Didn't find" };
 
-        debug!("{:s} font table[{:s}] with family={:s}, face={:s}",
+        debug!("{:s} font table[{:s}] with family={}, face={}",
                status, tag.tag_to_str(),
                self.handle.family_name(), self.handle.face_name());
 
@@ -413,14 +413,14 @@ impl Font {
         RunMetrics::new(advance, self.metrics.ascent, self.metrics.descent)
     }
 
-    pub fn shape_text(&mut self, text: ~str, is_whitespace: bool) -> Arc<GlyphStore> {
+    pub fn shape_text(&mut self, text: String, is_whitespace: bool) -> Arc<GlyphStore> {
 
         //FIXME (ksh8281)
         self.make_shaper();
         let shaper = &self.shaper;
         self.shape_cache.find_or_create(&text, |txt| {
-            let mut glyphs = GlyphStore::new(text.char_len() as int, is_whitespace);
-            shaper.get_ref().shape_text(*txt, &mut glyphs);
+            let mut glyphs = GlyphStore::new(text.as_slice().char_len() as int, is_whitespace);
+            shaper.get_ref().shape_text(txt.as_slice(), &mut glyphs);
             Arc::new(glyphs)
         })
     }

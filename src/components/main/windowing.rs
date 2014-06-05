@@ -32,7 +32,7 @@ pub enum WindowEvent {
     /// Sent when the window is resized.
     ResizeWindowEvent(uint, uint),
     /// Sent when a new URL is to be loaded.
-    LoadUrlWindowEvent(~str),
+    LoadUrlWindowEvent(String),
     /// Sent when a mouse hit test is to be performed.
     MouseWindowEventClass(MouseWindowEvent),
     /// Sent when a mouse move.

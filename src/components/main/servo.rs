@@ -11,6 +11,8 @@
 #[phase(syntax, link)]
 extern crate log;
 
+extern crate debug;
+
 extern crate alert;
 extern crate azure;
 extern crate geom;
@@ -131,7 +133,7 @@ pub mod platform;
 #[allow(dead_code)]
 fn start(argc: int, argv: **u8) -> int {
     native::start(argc, argv, proc() {
-        opts::from_cmdline_args(os::args()).map(run);
+        opts::from_cmdline_args(os::args().as_slice()).map(run);
     })
 }
 
@@ -192,13 +194,13 @@ pub fn run(opts: opts::Opts) {
 
         // Send the URL command to the constellation.
         for filename in opts.urls.iter() {
-            let url = if filename.starts_with("data:") {
+            let url = if filename.as_slice().starts_with("data:") {
                 // As a hack for easier command-line testing,
                 // assume that data URLs are not URL-encoded.
-                Url::new("data".to_owned(), None, "".to_owned(), None,
-                    filename.slice_from(5).to_owned(), vec!(), None)
+                Url::new("data".to_string(), None, "".to_string(), None,
+                    filename.as_slice().slice_from(5).to_string(), vec!(), None)
             } else {
-                parse_url(*filename, None)
+                parse_url(filename.as_slice(), None)
             };
 
             let ConstellationChan(ref chan) = constellation_chan;

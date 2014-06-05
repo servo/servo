@@ -263,7 +263,7 @@ impl SplitInfo {
 #[deriving(Clone)]
 pub struct UnscannedTextFragmentInfo {
     /// The text inside the fragment.
-    pub text: ~str,
+    pub text: String,
 }
 
 impl UnscannedTextFragmentInfo {
@@ -277,7 +277,7 @@ impl UnscannedTextFragmentInfo {
 
     /// Creates a new instance of `UnscannedTextFragmentInfo` from the given text.
     #[inline]
-    pub fn from_text(text: ~str) -> UnscannedTextFragmentInfo {
+    pub fn from_text(text: String) -> UnscannedTextFragmentInfo {
         UnscannedTextFragmentInfo {
             text: text,
         }
@@ -1245,7 +1245,7 @@ impl Fragment {
     /// Returns true if this fragment is an unscanned text fragment that consists entirely of whitespace.
     pub fn is_whitespace_only(&self) -> bool {
         match self.specific {
-            UnscannedTextFragment(ref text_fragment_info) => is_whitespace(text_fragment_info.text),
+            UnscannedTextFragment(ref text_fragment_info) => is_whitespace(text_fragment_info.text.as_slice()),
             _ => false,
         }
     }
@@ -1407,12 +1407,12 @@ impl Fragment {
         if value.is_zero() {
             Ok(())
         } else {
-            write!(f.buf, "{}{},{},{},{}",
-                name,
-                value.top,
-                value.right,
-                value.bottom,
-                value.left)
+            write!(f, "{}{},{},{},{}",
+                   name,
+                   value.top,
+                   value.right,
+                   value.bottom,
+                   value.left)
         }
     }
 
@@ -1443,7 +1443,7 @@ impl Fragment {
 impl fmt::Show for Fragment {
     /// Outputs a debugging string describing this fragment.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(write!(f.buf, "({} ",
+        try!(write!(f, "({} ",
             match self.specific {
                 GenericFragment => "GenericFragment",
                 IframeFragment(_) => "IframeFragment",
@@ -1457,9 +1457,9 @@ impl fmt::Show for Fragment {
                 UnscannedTextFragment(_) => "UnscannedTextFragment",
         }));
         try!(self.side_offsets_debug_fmt("bp", self.border_padding, f));
-        try!(write!(f.buf, " "));
+        try!(write!(f, " "));
         try!(self.side_offsets_debug_fmt("m", self.margin, f));
-        write!(f.buf, ")")
+        write!(f, ")")
     }
 }
 
