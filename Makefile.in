@@ -346,8 +346,7 @@ ifneq ($(CFG_OSTYPE),linux-androideabi)
 all: servo servo-embedding
 servo:	$(DEPS_servo)
 	@$(call E, compile: $@)
-	$(Q)$(RUSTC) $(RFLAGS_servo) -o servo $< --crate-type bin
-	$(Q)$(RUSTC) $(RFLAGS_servo) $< --crate-type dylib,rlib
+	$(Q)$(RUSTC) $(RFLAGS_servo) $< --crate-type bin,dylib,rlib
 
 RFLAGS_embedding = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/gfx -L $(B)src/components/util -L $(B)src/components/net -L $(B)src/components/script -L $(B)src/components/style -L $(B)src/components/msg -L $(B).. -L $(B)src/components/main -L $(B)src/components/macros -A non_camel_case_types -A unused_variable
 
