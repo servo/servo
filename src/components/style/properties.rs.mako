@@ -1653,10 +1653,10 @@ fn cascade_with_cached_declarations(applicable_declarations: &[MatchedProperty],
         for declaration in sub_list.declarations.iter() {
             match *declaration {
                 % for style_struct in STYLE_STRUCTS:
-                    % if style_struct.inherited:
-                        % for property in style_struct.longhands:
-                            % if property.derived_from is None:
-                                ${property.camel_case}Declaration(ref declared_value) => {
+                    % for property in style_struct.longhands:
+                        % if property.derived_from is None:
+                            ${property.camel_case}Declaration(ref declared_value) => {
+                                % if style_struct.inherited:
                                     if seen.get_${property.ident}() {
                                         continue
                                     }
@@ -1681,28 +1681,32 @@ fn cascade_with_cached_declarations(applicable_declarations: &[MatchedProperty],
                                     };
                                     style_${style_struct.ident}.make_unique_experimental()
                                         .${property.ident} = computed_value;
+                                % endif
 
-                                    % if property.name in DERIVED_LONGHANDS:
-                                        % for derived in DERIVED_LONGHANDS[property.name]:
-                                            style_${derived.style_struct.ident}
-                                                .make_unique_experimental()
-                                                .${derived.ident} =
-                                                longhands::${derived.ident}
-                                                         ::derive_from_${property.ident}(
-                                                             computed_value,
-                                                             context);
-                                        % endfor
+                                % if property.name in DERIVED_LONGHANDS:
+                                    % if not style_struct.inherited:
+                                        // Use the cached value.
+                                        let computed_value = style_${style_struct.ident}
+                                            .${property.ident}.clone();
                                     % endif
-                                }
-                            % else:
-                                ${property.camel_case}Declaration(_) => {
-                                    // Do not allow stylesheets to set derived properties.
-                                }
-                            % endif
-                        % endfor
-                    % endif
+                                    % for derived in DERIVED_LONGHANDS[property.name]:
+                                        style_${derived.style_struct.ident}
+                                            .make_unique_experimental()
+                                            .${derived.ident} =
+                                            longhands::${derived.ident}
+                                                     ::derive_from_${property.ident}(
+                                                         computed_value,
+                                                         context);
+                                    % endfor
+                                % endif
+                            }
+                        % else:
+                            ${property.camel_case}Declaration(_) => {
+                                // Do not allow stylesheets to set derived properties.
+                            }
+                        % endif
+                    % endfor
                 % endfor
-                _ => {}
             }
         }
     }

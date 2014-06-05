@@ -131,7 +131,7 @@ impl<'a> Hash for ApplicableDeclarationsCacheQuery<'a> {
 static APPLICABLE_DECLARATIONS_CACHE_SIZE: uint = 32;
 
 pub struct ApplicableDeclarationsCache {
-    pub cache: SimpleHashCache<ApplicableDeclarationsCacheEntry,Arc<ComputedValues>>,
+    cache: SimpleHashCache<ApplicableDeclarationsCacheEntry,Arc<ComputedValues>>,
 }
 
 impl ApplicableDeclarationsCache {
@@ -149,7 +149,7 @@ impl ApplicableDeclarationsCache {
     }
 
     fn insert(&mut self, declarations: &[MatchedProperty], style: Arc<ComputedValues>) {
-        drop(self.cache.insert(ApplicableDeclarationsCacheEntry::new(declarations), style))
+        self.cache.insert(ApplicableDeclarationsCacheEntry::new(declarations), style)
     }
 }
 
@@ -340,12 +340,11 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
         let cacheable;
         match parent_style {
             Some(ref parent_style) => {
-                let cached_computed_values;
                 let cache_entry = applicable_declarations_cache.find(applicable_declarations);
-                match cache_entry {
-                    None => cached_computed_values = None,
-                    Some(ref style) => cached_computed_values = Some(&**style),
-                }
+                let cached_computed_values = match cache_entry {
+                    None => None,
+                    Some(ref style) => Some(&**style),
+                };
                 let (the_style, is_cacheable) = cascade(applicable_declarations,
                                                         shareable,
                                                         Some(&***parent_style),
