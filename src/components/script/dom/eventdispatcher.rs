@@ -48,9 +48,8 @@ pub fn dispatch_event<'a, 'b>(target: &JSRef<'a, EventTarget>,
             Some(listeners) => {
                 event.current_target.assign(Some(cur_target.deref().clone()));
                 for listener in listeners.iter() {
-                    //FIXME: this should have proper error handling, or explicitly
-                    //       drop the exception on the floor
-                    assert!(listener.HandleEvent_(&**cur_target, event, ReportExceptions).is_ok());
+                    // Explicitly drop any exception on the floor.
+                    let _ = listener.HandleEvent_(&**cur_target, event, ReportExceptions);
 
                     if event.deref().stop_immediate {
                         break;
@@ -78,9 +77,9 @@ pub fn dispatch_event<'a, 'b>(target: &JSRef<'a, EventTarget>,
         let opt_listeners = target.deref().get_listeners(type_);
         for listeners in opt_listeners.iter() {
             for listener in listeners.iter() {
-                //FIXME: this should have proper error handling, or explicitly drop the
-                //       exception on the floor.
-                assert!(listener.HandleEvent_(target, event, ReportExceptions).is_ok());
+                // Explicitly drop any exception on the floor.
+                let _ = listener.HandleEvent_(target, event, ReportExceptions);
+
                 if event.deref().stop_immediate {
                     break;
                 }
@@ -97,9 +96,8 @@ pub fn dispatch_event<'a, 'b>(target: &JSRef<'a, EventTarget>,
                 Some(listeners) => {
                     event.deref_mut().current_target.assign(Some(cur_target.deref().clone()));
                     for listener in listeners.iter() {
-                        //FIXME: this should have proper error handling or explicitly
-                        //       drop exceptions on the floor.
-                        assert!(listener.HandleEvent_(&**cur_target, event, ReportExceptions).is_ok());
+                        // Explicitly drop any exception on the floor.
+                        let _ = listener.HandleEvent_(&**cur_target, event, ReportExceptions);
 
                         if event.deref().stop_immediate {
                             break;
