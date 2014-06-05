@@ -68,7 +68,7 @@ impl<'ln> NodeUtil for ThreadSafeLayoutNode<'ln> {
         let default = if self.node_is_element() {
             RestyleDamage::all()
         } else {
-            RestyleDamage::none()
+            RestyleDamage::empty()
         };
 
         let layout_data_ref = self.borrow_layout_data();
@@ -76,7 +76,6 @@ impl<'ln> NodeUtil for ThreadSafeLayoutNode<'ln> {
             .get_ref()
             .data
             .restyle_damage
-            .map(|x| RestyleDamage::from_int(x))
             .unwrap_or(default)
     }
 
@@ -84,7 +83,7 @@ impl<'ln> NodeUtil for ThreadSafeLayoutNode<'ln> {
     fn set_restyle_damage(&self, damage: RestyleDamage) {
         let mut layout_data_ref = self.mutate_layout_data();
         match &mut *layout_data_ref {
-            &Some(ref mut layout_data) => layout_data.data.restyle_damage = Some(damage.to_int()),
+            &Some(ref mut layout_data) => layout_data.data.restyle_damage = Some(damage),
             _ => fail!("no layout data for this node"),
         }
     }

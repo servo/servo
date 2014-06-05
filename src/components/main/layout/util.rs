@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use layout::construct::{ConstructionResult, NoConstructionResult};
+use layout::incremental::RestyleDamage;
 use layout::parallel::DomParallelInfo;
 use layout::wrapper::{LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
 
@@ -28,7 +29,7 @@ pub struct PrivateLayoutData {
     pub after_style: Option<Arc<ComputedValues>>,
 
     /// Description of how to account for recent style changes.
-    pub restyle_damage: Option<int>,
+    pub restyle_damage: Option<RestyleDamage>,
 
     /// The current results of flow construction for this node. This is either a flow or a
     /// `ConstructionItem`. See comments in `construct.rs` for more details.

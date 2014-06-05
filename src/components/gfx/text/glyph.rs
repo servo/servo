@@ -562,7 +562,7 @@ impl<'a> GlyphStore {
         }
 
         assert!(data.ligature_start); // can't compress ligature continuation glyphs.
-        assert!(i < CharIndex(self.entry_buffer.len() as int));
+        assert!(i < self.char_len());
 
         let entry = match (data.is_missing, glyph_is_compressible(data)) {
             (true, _) => GlyphEntry::missing(1),
@@ -578,7 +578,7 @@ impl<'a> GlyphStore {
     }
 
     pub fn add_glyphs_for_char_index(&mut self, i: CharIndex, data_for_glyphs: &[GlyphData]) {
-        assert!(i < CharIndex(self.entry_buffer.len() as int));
+        assert!(i < self.char_len());
         assert!(data_for_glyphs.len() > 0);
 
         let glyph_count = data_for_glyphs.len() as int;
@@ -607,7 +607,7 @@ impl<'a> GlyphStore {
 
     // used when a character index has no associated glyph---for example, a ligature continuation.
     pub fn add_nonglyph_for_char_index(&mut self, i: CharIndex, cluster_start: bool, ligature_start: bool) {
-        assert!(i < CharIndex(self.entry_buffer.len() as int));
+        assert!(i < self.char_len());
 
         let entry = GlyphEntry::complex(cluster_start, ligature_start, 0);
         debug!("adding spacer for chracter without associated glyph[idx={}]", i);
@@ -621,10 +621,10 @@ impl<'a> GlyphStore {
 
     #[inline]
     pub fn iter_glyphs_for_char_range(&'a self, rang: &Range<CharIndex>) -> GlyphIterator<'a> {
-        if rang.begin() >= CharIndex(self.entry_buffer.len() as int) {
+        if rang.begin() >= self.char_len() {
             fail!("iter_glyphs_for_range: range.begin beyond length!");
         }
-        if rang.end() > CharIndex(self.entry_buffer.len() as int) {
+        if rang.end() > self.char_len() {
             fail!("iter_glyphs_for_range: range.end beyond length!");
         }
 
@@ -644,56 +644,56 @@ impl<'a> GlyphStore {
 
     // getter methods
     pub fn char_is_space(&self, i: CharIndex) -> bool {
-        assert!(i < CharIndex(self.entry_buffer.len() as int));
+        assert!(i < self.char_len());
         self.entry_buffer.get(i.to_uint()).char_is_space()
     }
 
     pub fn char_is_tab(&self, i: CharIndex) -> bool {
-        assert!(i < CharIndex(self.entry_buffer.len() as int));
+        assert!(i < self.char_len());
         self.entry_buffer.get(i.to_uint()).char_is_tab()
     }
 
     pub fn char_is_newline(&self, i: CharIndex) -> bool {
-        assert!(i < CharIndex(self.entry_buffer.len() as int));
+        assert!(i < self.char_len());
         self.entry_buffer.get(i.to_uint()).char_is_newline()
     }
 
     pub fn is_ligature_start(&self, i: CharIndex) -> bool {
-        assert!(i < CharIndex(self.entry_buffer.len() as int));
+        assert!(i < self.char_len());
         self.entry_buffer.get(i.to_uint()).is_ligature_start()
     }
 
     pub fn is_cluster_start(&self, i: CharIndex) -> bool {
-        assert!(i < CharIndex(self.entry_buffer.len() as int));
+        assert!(i < self.char_len());
         self.entry_buffer.get(i.to_uint()).is_cluster_start()
     }
 
     pub fn can_break_before(&self, i: CharIndex) -> BreakType {
-        assert!(i < CharIndex(self.entry_buffer.len() as int));
+        assert!(i < self.char_len());
         self.entry_buffer.get(i.to_uint()).can_break_before()
     }
 
     // setter methods
     pub fn set_char_is_space(&mut self, i: CharIndex) {
-        assert!(i < CharIndex(self.entry_buffer.len() as int));
+        assert!(i < self.char_len());
         let entry = *self.entry_buffer.get(i.to_uint());
         *self.entry_buffer.get_mut(i.to_uint()) = entry.set_char_is_space();
     }
 
     pub fn set_char_is_tab(&mut self, i: CharIndex) {
-        assert!(i < CharIndex(self.entry_buffer.len() as int));
+        assert!(i < self.char_len());
         let entry = *self.entry_buffer.get(i.to_uint());
         *self.entry_buffer.get_mut(i.to_uint()) = entry.set_char_is_tab();
     }
 
     pub fn set_char_is_newline(&mut self, i: CharIndex) {
-        assert!(i < CharIndex(self.entry_buffer.len() as int));
+        assert!(i < self.char_len());
         let entry = *self.entry_buffer.get(i.to_uint());
         *self.entry_buffer.get_mut(i.to_uint()) = entry.set_char_is_newline();
     }
 
     pub fn set_can_break_before(&mut self, i: CharIndex, t: BreakType) {
-        assert!(i < CharIndex(self.entry_buffer.len() as int));
+        assert!(i < self.char_len());
         let entry = *self.entry_buffer.get(i.to_uint());
         *self.entry_buffer.get_mut(i.to_uint()) = entry.set_can_break_before(t);
     }
@@ -750,7 +750,7 @@ impl<'a> Iterator<(CharIndex, GlyphInfo<'a>)> for GlyphIterator<'a> {
             match self.char_range.next() {
                 Some(i) => {
                     self.char_index = i;
-                    assert!(i < CharIndex(self.store.entry_buffer.len() as int));
+                    assert!(i < self.store.char_len());
                     let entry = self.store.entry_buffer.get(i.to_uint());
                     if entry.is_simple() {
                         Some((self.char_index, SimpleGlyphInfo(self.store, i)))
