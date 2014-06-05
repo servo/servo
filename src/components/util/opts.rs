@@ -61,6 +61,9 @@ pub struct Opts {
     /// may wish to turn this flag on in order to benchmark style recalculation against other
     /// browser engines.
     pub bubble_widths_separately: bool,
+
+    /// Use native threads instead of green threads
+    pub native_threading: bool
 }
 
 fn print_usage(app: &str, opts: &[getopts::OptGroup]) {
@@ -77,7 +80,7 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
     let app_name = args[0].to_str();
     let args = args.tail();
 
-    let opts = vec!(
+    let opts = vec![
         getopts::optflag("c", "cpu", "CPU rendering"),
         getopts::optopt("o", "output", "Output file", "output.png"),
         getopts::optopt("r", "rendering", "Rendering backend", "direct2d|core-graphics|core-graphics-accelerated|cairo|skia."),
@@ -90,8 +93,9 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
         getopts::optflag("z", "headless", "Headless mode"),
         getopts::optflag("f", "hard-fail", "Exit on task failure instead of displaying about:failure"),
         getopts::optflag("b", "bubble-widths", "Bubble intrinsic widths separately like other engines"),
+        getopts::optflag("n", "native-threading", "Use native threading instead of green threading"),
         getopts::optflag("h", "help", "Print this message")
-    );
+    ];
 
     let opt_match = match getopts::getopts(args, opts.as_slice()) {
         Ok(m) => m,
@@ -169,6 +173,8 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
         None => cmp::max(rt::default_sched_threads() * 3 / 4, 1),
     };
 
+    let native_threading = opt_match.opt_present("h") || opt_match.opt_present("help");
+
     Some(Opts {
         urls: urls,
         render_backend: render_backend,
@@ -183,5 +189,6 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
         headless: opt_match.opt_present("z"),
         hard_fail: opt_match.opt_present("f"),
         bubble_widths_separately: opt_match.opt_present("b"),
+        native_threading: native_threading
     })
 }
