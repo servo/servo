@@ -985,7 +985,11 @@ impl InlineFlow {
             vertical_align::middle => {
                 // TODO: x-height value should be used from font info.
                 let xheight = Au(0);
-                (-(xheight + fragment.content_height()).scale_by(0.5), false)
+                let fragment_height = fragment.content_height();
+                let offset_top = -(xheight + fragment_height).scale_by(0.5);
+                *height_above_baseline = offset_top.scale_by(-1.0);
+                *depth_below_baseline = fragment_height - *height_above_baseline;
+                (offset_top, false)
             },
             vertical_align::sub => {
                 // TODO: The proper position for subscripts should be used. Lower the baseline to
