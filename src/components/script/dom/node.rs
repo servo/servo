@@ -106,31 +106,22 @@ impl NodeDerived for EventTarget {
     }
 }
 
-/// Flags for node items.
-#[deriving(Encodable)]
-pub struct NodeFlags(pub u8);
-
-impl NodeFlags {
-    pub fn new(type_id: NodeTypeId) -> NodeFlags {
-        let mut flags = NodeFlags(0);
-        match type_id {
-            DocumentNodeTypeId => { flags.set_is_in_doc(true); }
-            _ => {}
-        }
-        flags
+bitflags! {
+    #[doc = "Flags for node items."]
+    #[deriving(Encodable)]
+    flags NodeFlags: u8 {
+        #[doc = "Specifies whether this node is in a document."]
+        static IsInDoc = 0x01,
+        #[doc = "Specifies whether this node is hover state for this node"]
+        static InHoverState = 0x02
     }
 }
 
-/// Specifies whether this node is in a document.
-bitfield!(NodeFlags, is_in_doc, set_is_in_doc, 0x01)
-/// Specifies whether this node is hover state for this node
-bitfield!(NodeFlags, get_in_hover_state, set_is_in_hover_state, 0x02)
-
-#[unsafe_destructor]
-impl Drop for Node {
-    fn drop(&mut self) {
-        unsafe {
-            self.reap_layout_data()
+impl NodeFlags {
+    pub fn new(type_id: NodeTypeId) -> NodeFlags {
+        match type_id {
+            DocumentNodeTypeId => IsInDoc,
+            _                  => NodeFlags::empty(),
         }
     }
 }
@@ -424,7 +415,7 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
     }
 
     fn is_in_doc(&self) -> bool {
-        self.deref().flags.is_in_doc()
+        self.deref().flags.contains(IsInDoc)
     }
 
     /// Returns the type ID of this node. Fails if this node is borrowed mutably.
@@ -483,11 +474,15 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
     }
 
     fn get_hover_state(&self) -> bool {
-        self.flags.get_in_hover_state()
+        self.flags.contains(InHoverState)
     }
 
     fn set_hover_state(&mut self, state: bool) {
-        self.flags.set_is_in_hover_state(state);
+        if state {
+            self.flags.insert(InHoverState);
+        } else {
+            self.flags.remove(InHoverState);
+        }
     }
 
     /// Iterates over this node and all its descendants, in preorder.
@@ -668,7 +663,7 @@ pub trait RawLayoutNodeHelpers {
 
 impl RawLayoutNodeHelpers for Node {
     unsafe fn get_hover_state_for_layout(&self) -> bool {
-        self.flags.get_in_hover_state()
+        self.flags.contains(InHoverState)
     }
 }
 
@@ -1071,7 +1066,11 @@ impl Node {
         // Step 8.
         for node in nodes.mut_iter() {
             parent.add_child(node, child);
-            node.deref_mut().flags.set_is_in_doc(parent.is_in_doc());
+            if parent.is_in_doc() {
+                node.flags.insert(IsInDoc);
+            } else {
+                node.flags.remove(IsInDoc);
+            }
         }
 
         // Step 9.
@@ -1157,7 +1156,7 @@ impl Node {
 
         // FIXME(2513): remove this `node_alias` when in fix mozilla#2513
         let mut node_alias = node.clone();
-        node_alias.deref_mut().flags.set_is_in_doc(false);
+        node_alias.deref_mut().flags.remove(IsInDoc);
 
         // Step 9.
         match suppress_observers {
