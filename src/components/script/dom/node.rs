@@ -236,13 +236,13 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
         let document = document_from_node(self).root();
 
         if self.is_in_doc() {
-            for mut node in self.traverse_preorder() {
-                vtable_for(&mut node).bind_to_tree();
+            for node in self.traverse_preorder() {
+                vtable_for(&node).bind_to_tree();
             }
         }
 
-        let mut parent = self.parent_node().root();
-        parent.as_mut().map(|parent| vtable_for(&mut **parent).child_inserted(self));
+        let parent = self.parent_node().root();
+        parent.map(|parent| vtable_for(&*parent).child_inserted(self));
 
         document.deref().content_changed();
     }
@@ -252,9 +252,9 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
         assert!(self.parent_node().is_none());
         let document = document_from_node(self).root();
 
-        for mut node in self.traverse_preorder() {
+        for node in self.traverse_preorder() {
             // XXX how about if the node wasn't in the tree in the first place?
-            vtable_for(&mut node).unbind_from_tree();
+            vtable_for(&node).unbind_from_tree();
         }
 
         document.deref().content_changed();
@@ -1895,8 +1895,8 @@ pub fn window_from_node<T: NodeBase>(derived: &JSRef<T>) -> Temporary<Window> {
 }
 
 impl<'a> VirtualMethods for JSRef<'a, Node> {
-    fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods:> {
-        let eventtarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(self);
-        Some(eventtarget as &mut VirtualMethods:)
+    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods:> {
+        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        Some(eventtarget as &VirtualMethods:)
     }
 }

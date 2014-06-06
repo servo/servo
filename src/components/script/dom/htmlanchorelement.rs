@@ -68,12 +68,12 @@ impl<'a> PrivateHTMLAnchorElementHelpers for JSRef<'a, HTMLAnchorElement> {
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLAnchorElement> {
-    fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods:> {
-        let htmlelement: &mut JSRef<HTMLElement> = HTMLElementCast::from_mut_ref(self);
-        Some(htmlelement as &mut VirtualMethods:)
+    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods:> {
+        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_ref(self);
+        Some(htmlelement as &VirtualMethods:)
     }
 
-    fn handle_event(&mut self, event: &JSRef<Event>) {
+    fn handle_event(&self, event: &JSRef<Event>) {
         match self.super_type() {
             Some(s) => {
                 s.handle_event(event);

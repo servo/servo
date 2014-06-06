@@ -319,8 +319,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
 
                 if namespace == namespace::Null {
                     let removed_raw_value = self.deref().attrs.borrow().get(idx).root().Value();
-                    let mut self_alias = self.clone();
-                    vtable_for(NodeCast::from_mut_ref(&mut self_alias))
+                    vtable_for(NodeCast::from_ref(self))
                         .before_remove_attr(local_name.clone(), removed_raw_value);
                 }
 
@@ -715,14 +714,14 @@ pub fn get_attribute_parts(name: DOMString) -> (Option<String>, String) {
 }
 
 impl<'a> VirtualMethods for JSRef<'a, Element> {
-    fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods:> {
-        let node: &mut JSRef<Node> = NodeCast::from_mut_ref(self);
-        Some(node as &mut VirtualMethods:)
+    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods:> {
+        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        Some(node as &VirtualMethods:)
     }
 
-    fn after_set_attr(&mut self, name: DOMString, value: DOMString) {
+    fn after_set_attr(&self, name: DOMString, value: DOMString) {
         match self.super_type() {
-            Some(ref mut s) => s.after_set_attr(name.clone(), value.clone()),
+            Some(ref s) => s.after_set_attr(name.clone(), value.clone()),
             _ => (),
         }
 
@@ -730,7 +729,8 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
             "style" => {
                 let doc = document_from_node(self).root();
                 let base_url = doc.deref().url().clone();
-                self.deref_mut().style_attribute = Some(style::parse_style_attribute(value.as_slice(), &base_url))
+                let mut self_alias = self.clone();
+                self_alias.deref_mut().style_attribute = Some(style::parse_style_attribute(value.as_slice(), &base_url))
             }
             "id" => {
                 let node: &JSRef<Node> = NodeCast::from_ref(self);
@@ -745,15 +745,16 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
         self.notify_attribute_changed(name);
     }
 
-    fn before_remove_attr(&mut self, name: DOMString, value: DOMString) {
+    fn before_remove_attr(&self, name: DOMString, value: DOMString) {
         match self.super_type() {
-            Some(ref mut s) => s.before_remove_attr(name.clone(), value.clone()),
+            Some(ref s) => s.before_remove_attr(name.clone(), value.clone()),
             _ => (),
         }
 
         match name.as_slice() {
             "style" => {
-                self.deref_mut().style_attribute = None
+                let mut self_alias = self.clone();
+                self_alias.deref_mut().style_attribute = None
             }
             "id" => {
                 let node: &JSRef<Node> = NodeCast::from_ref(self);
@@ -768,9 +769,9 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
         self.notify_attribute_changed(name);
     }
 
-    fn bind_to_tree(&mut self) {
+    fn bind_to_tree(&self) {
         match self.super_type() {
-            Some(ref mut s) => s.bind_to_tree(),
+            Some(ref s) => s.bind_to_tree(),
             _ => (),
         }
 
@@ -783,9 +784,9 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
         }
     }
 
-    fn unbind_from_tree(&mut self) {
+    fn unbind_from_tree(&self) {
         match self.super_type() {
-            Some(ref mut s) => s.unbind_from_tree(),
+            Some(ref s) => s.unbind_from_tree(),
             _ => (),
         }
 

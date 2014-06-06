@@ -122,14 +122,14 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
-    fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods:> {
-        let htmlelement: &mut JSRef<HTMLElement> = HTMLElementCast::from_mut_ref(self);
-        Some(htmlelement as &mut VirtualMethods:)
+    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods:> {
+        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_ref(self);
+        Some(htmlelement as &VirtualMethods:)
     }
 
-    fn after_set_attr(&mut self, name: DOMString, value: DOMString) {
+    fn after_set_attr(&self, name: DOMString, value: DOMString) {
         match self.super_type() {
-            Some(ref mut s) => s.after_set_attr(name.clone(), value.clone()),
+            Some(ref s) => s.after_set_attr(name.clone(), value.clone()),
             _ => (),
         }
 
@@ -146,24 +146,26 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
                     _ => AllowNothing
                 } as u8;
             }
-            self.deref_mut().sandbox = Some(modes);
+            let mut self_alias = self.clone();
+            self_alias.deref_mut().sandbox = Some(modes);
         }
     }
 
-    fn before_remove_attr(&mut self, name: DOMString, value: DOMString) {
+    fn before_remove_attr(&self, name: DOMString, value: DOMString) {
         match self.super_type() {
-            Some(ref mut s) => s.before_remove_attr(name.clone(), value),
+            Some(ref s) => s.before_remove_attr(name.clone(), value),
             _ => (),
         }
 
         if "sandbox" == name.as_slice() {
-            self.deref_mut().sandbox = None;
+            let mut self_alias = self.clone();
+            self_alias.deref_mut().sandbox = None;
         }
     }
 
-    fn bind_to_tree(&mut self) {
+    fn bind_to_tree(&self) {
         match self.super_type() {
-            Some(ref mut s) => s.bind_to_tree(),
+            Some(ref s) => s.bind_to_tree(),
             _ => (),
         }
 
@@ -180,7 +182,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
                 let page = window.deref().page();
                 let subpage_id = page.get_next_subpage_id();
 
-                self.deref_mut().size = Some(IFrameSize {
+                let mut self_alias = self.clone();
+                self_alias.deref_mut().size = Some(IFrameSize {
                     pipeline_id: page.id,
                     subpage_id: subpage_id,
                 });
