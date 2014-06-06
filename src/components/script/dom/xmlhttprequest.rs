@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType;
-use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseTypeValues::{_empty, Text};
+use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseTypeValues::{_empty, Json, Text};
 use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast, XMLHttpRequestDerived};
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{ErrorResult, Fallible, InvalidState, Network, Syntax, Security};
@@ -22,17 +22,19 @@ use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use dom::xmlhttprequestupload::XMLHttpRequestUpload;
 
 use encoding::all::UTF_8;
+use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{DecodeReplace, Encoding};
 
 use ResponseHeaderCollection = http::headers::response::HeaderCollection;
 use RequestHeaderCollection = http::headers::request::HeaderCollection;
+use http::headers::content_type::MediaType;
 use http::headers::{HeaderEnum, HeaderValueByteIterator};
 use http::headers::request::Header;
 use http::method::{Method, Get, Head, Post, Connect, Trace};
 use http::status::Status;
 
-use js::jsapi::{JS_AddObjectRoot, JS_RemoveObjectRoot, JSContext};
-use js::jsval::{JSVal, NullValue};
+use js::jsapi::{JS_AddObjectRoot, JS_ParseJSON, JS_RemoveObjectRoot, JSContext};
+use js::jsval::{JSVal, NullValue, UndefinedValue};
 
 use libc;
 use libc::c_void;
@@ -243,7 +245,7 @@ pub trait XMLHttpRequestMethods<'a> {
     fn GetAllResponseHeaders(&self) -> ByteString;
     fn OverrideMimeType(&self, _mime: DOMString);
     fn ResponseType(&self) -> XMLHttpRequestResponseType;
-    fn SetResponseType(&mut self, response_type: XMLHttpRequestResponseType);
+    fn SetResponseType(&mut self, response_type: XMLHttpRequestResponseType) -> ErrorResult;
     fn Response(&self, _cx: *mut JSContext) -> JSVal;
     fn GetResponseText(&self) -> Fallible<DOMString>;
     fn GetResponseXML(&self) -> Option<Temporary<Document>>;
@@ -434,9 +436,33 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
         let mut load_data = LoadData::new((*self.request_url).clone());
         load_data.data = data;
 
-        // XXXManishearth deal with the Origin/Referer/Accept headers
-        // XXXManishearth the below is only valid when content type is not already set by the user.
-        self.insert_trusted_header("content-type".to_string(), "text/plain;charset=UTF-8".to_string());
+        // Default headers
+
+        if self.request_headers.content_type.is_none() {
+            self.request_headers.content_type = Some(MediaType {
+                type_: String::from_str("text"),
+                subtype: String::from_str("plain"),
+                parameters: vec!((String::from_str("charset"), String::from_str("UTF-8")))
+            });
+        }
+
+        if self.request_headers.accept.is_none() {
+            self.request_headers.accept = Some(String::from_str("*/*"))
+        }
+
+        // XXXManishearth this is to be replaced with Origin for CORS (with no path)
+        let referer_url = self.global.root().get_url();
+        let mut buf = String::new();
+        buf.push_str(referer_url.scheme.as_slice());
+        buf.push_str("://".as_slice());
+        buf.push_str(referer_url.host.as_slice());
+        referer_url.port.as_ref().map(|p| {
+            buf.push_str(":".as_slice());
+            buf.push_str(p.as_slice());
+        });
+        buf.push_str(referer_url.path.as_slice());
+        self.request_headers.referer = Some(buf);
+
         load_data.headers = (*self.request_headers).clone();
         load_data.method = (*self.request_method).clone();
         if self.sync {
@@ -479,26 +505,41 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
     fn ResponseType(&self) -> XMLHttpRequestResponseType {
         self.response_type
     }
-    fn SetResponseType(&mut self, response_type: XMLHttpRequestResponseType) {
-        self.response_type = response_type
+    fn SetResponseType(&mut self, response_type: XMLHttpRequestResponseType) -> ErrorResult {
+        if self.sync {
+            // FIXME: When Workers are implemented, there should be
+            // an additional check that this is a document environment
+            return Err(InvalidState);
+        }
+        match self.ready_state {
+            Loading | XHRDone => Err(InvalidState),
+            _ => {
+                self.response_type = response_type;
+                Ok(())
+            }
+        }
     }
     fn Response(&self, cx: *mut JSContext) -> JSVal {
          match self.response_type {
             _empty | Text => {
                 if self.ready_state == XHRDone || self.ready_state == Loading {
-                    self.response.to_jsval(cx)
+                    self.text_response().to_jsval(cx)
                 } else {
                     "".to_string().to_jsval(cx)
                 }
             },
-            _ => {
-                if self.ready_state == XHRDone {
-                    // XXXManishearth we may not be able to store
-                    // other response types as DOMStrings
-                    self.response.to_jsval(cx)
-                } else {
-                    NullValue()
+            _ if self.ready_state != XHRDone => NullValue(),
+            Json => {
+                let decoded = UTF_8.decode(self.response.as_slice(), DecodeReplace).unwrap().to_string().to_utf16();
+                let mut vp = UndefinedValue();
+                unsafe {
+                    JS_ParseJSON(cx, decoded.as_ptr(), decoded.len() as u32, &mut vp);
                 }
+                vp
+            }
+            _ => {
+                // XXXManishearth handle other response types
+                self.response.to_jsval(cx)
             }
         }
     }
@@ -506,10 +547,7 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
         match self.response_type {
             _empty | Text => {
                 match self.ready_state {
-                    // XXXManishearth handle charset, etc (http://xhr.spec.whatwg.org/#text-response)
-                    // According to Simon decode() should never return an error, so unwrap()ing
-                    // the result should be fine. XXXManishearth have a closer look at this later
-                    Loading | XHRDone => Ok(UTF_8.decode(self.response.as_slice(), DecodeReplace).unwrap().to_string()),
+                    Loading | XHRDone => Ok(self.text_response()),
                     _ => Ok("".to_string())
                 }
             },
@@ -560,6 +598,7 @@ trait PrivateXMLHttpRequestHelpers {
     fn dispatch_progress_event(&self, upload: bool, type_: DOMString, loaded: u64, total: Option<u64>);
     fn dispatch_upload_progress_event(&self, type_: DOMString, partial_load: Option<u64>);
     fn dispatch_response_progress_event(&self, type_: DOMString);
+    fn text_response(&self) -> DOMString;
 }
 
 impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
@@ -707,5 +746,22 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         let len = self.response.len() as u64;
         let total = self.response_headers.deref().content_length.map(|x| {x as u64});
         self.dispatch_progress_event(false, type_, len, total);
+    }
+
+    fn text_response(&self) -> DOMString {
+        let mut encoding = UTF_8 as &Encoding:Send;
+        match self.response_headers.content_type {
+            Some(ref x) => {
+                for &(ref name, ref value) in x.parameters.iter() {
+                    if name.as_slice().eq_ignore_ascii_case("charset") {
+                        encoding = encoding_from_whatwg_label(value.as_slice()).unwrap_or(encoding);
+                    }
+                }
+            },
+            None => {}
+        }
+        // According to Simon, decode() should never return an error, so unwrap()ing
+        // the result should be fine. XXXManishearth have a closer look at this later
+        encoding.decode(self.response.as_slice(), DecodeReplace).unwrap().to_owned()
     }
 }

@@ -68,7 +68,10 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
         let host = writer.headers.host.clone();
         writer.headers = box load_data.headers.clone();
         writer.headers.host = host;
-
+        if writer.headers.accept_encoding.is_none() {
+            // We currently don't support HTTP Compression (FIXME #2587)
+            writer.headers.accept_encoding = Some(String::from_str("identity".as_slice()))
+        }
         match load_data.data {
             Some(ref data) => {
                 writer.headers.content_length = Some(data.len());
