@@ -2130,7 +2130,7 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
     trace: Some(%s)
   };
   js_info.dom_static.proxy_handlers.insert(PrototypeList::id::%s as uint,
-                                           CreateProxyHandler(&traps, mem::transmute(&Class)));
+                                           CreateProxyHandler(&traps, &Class as *_ as *_));
 
 """ % (FINALIZE_HOOK_NAME,
        TRACE_HOOK_NAME,
