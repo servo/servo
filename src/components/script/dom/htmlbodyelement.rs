@@ -59,14 +59,14 @@ impl<'a> HTMLBodyElementMethods for JSRef<'a, HTMLBodyElement> {
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLBodyElement> {
-    fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods:> {
-        let element: &mut JSRef<HTMLElement> = HTMLElementCast::from_mut_ref(self);
-        Some(element as &mut VirtualMethods:)
+    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods:> {
+        let element: &JSRef<HTMLElement> = HTMLElementCast::from_ref(self);
+        Some(element as &VirtualMethods:)
     }
 
-    fn after_set_attr(&mut self, name: DOMString, value: DOMString) {
+    fn after_set_attr(&self, name: DOMString, value: DOMString) {
         match self.super_type() {
-            Some(ref mut s) => s.after_set_attr(name.clone(), value.clone()),
+            Some(ref s) => s.after_set_attr(name.clone(), value.clone()),
             _ => (),
         }
 
@@ -80,11 +80,12 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLBodyElement> {
             let (cx, url, reflector) = (window.get_cx(),
                                         window.get_url(),
                                         window.reflector().get_jsobject());
+            let mut self_alias = self.clone();
             let evtarget: &mut JSRef<EventTarget> =
                 if forwarded_events.iter().any(|&event| name.as_slice() == event) {
                     EventTargetCast::from_mut_ref(&mut *window)
                 } else {
-                    EventTargetCast::from_mut_ref(self)
+                    EventTargetCast::from_mut_ref(&mut self_alias)
                 };
             evtarget.set_event_handler_uncompiled(cx, url, reflector,
                                                   name.as_slice().slice_from(2),

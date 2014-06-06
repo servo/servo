@@ -60,14 +60,14 @@ impl<'a> StyleElementHelpers for JSRef<'a, HTMLStyleElement> {
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLStyleElement> {
-    fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods:> {
-        let htmlelement: &mut JSRef<HTMLElement> = HTMLElementCast::from_mut_ref(self);
-        Some(htmlelement as &mut VirtualMethods:)
+    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods:> {
+        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_ref(self);
+        Some(htmlelement as &VirtualMethods:)
     }
 
-    fn child_inserted(&mut self, child: &JSRef<Node>) {
+    fn child_inserted(&self, child: &JSRef<Node>) {
         match self.super_type() {
-            Some(ref mut s) => s.child_inserted(child),
+            Some(ref s) => s.child_inserted(child),
             _ => (),
         }
         self.parse_own_css();

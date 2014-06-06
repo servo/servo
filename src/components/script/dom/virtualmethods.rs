@@ -30,52 +30,52 @@ use servo_util::str::DOMString;
 pub trait VirtualMethods {
     /// Returns self as the superclass of the implementation for this trait,
     /// if any.
-    fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods:>;
+    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods:>;
 
     /// Called when changing or adding attributes, after the attribute's value
     /// has been updated.
-    fn after_set_attr(&mut self, name: DOMString, value: DOMString) {
+    fn after_set_attr(&self, name: DOMString, value: DOMString) {
         match self.super_type() {
-            Some(ref mut s) => s.after_set_attr(name, value),
+            Some(ref s) => s.after_set_attr(name, value),
             _ => (),
         }
     }
 
     /// Called when changing or removing attributes, before any modification
     /// has taken place.
-    fn before_remove_attr(&mut self, name: DOMString, value: DOMString) {
+    fn before_remove_attr(&self, name: DOMString, value: DOMString) {
         match self.super_type() {
-            Some(ref mut s) => s.before_remove_attr(name, value),
+            Some(ref s) => s.before_remove_attr(name, value),
             _ => (),
         }
     }
 
     /// Called when a Node is appended to a tree that is part of a Document.
-    fn bind_to_tree(&mut self) {
+    fn bind_to_tree(&self) {
         match self.super_type() {
-            Some(ref mut s) => s.bind_to_tree(),
+            Some(ref s) => s.bind_to_tree(),
             _ => (),
         }
     }
 
     /// Called when a Node is removed from a tree that is part of a Document.
-    fn unbind_from_tree(&mut self) {
+    fn unbind_from_tree(&self) {
         match self.super_type() {
-            Some(ref mut s) => s.unbind_from_tree(),
+            Some(ref s) => s.unbind_from_tree(),
             _ => (),
         }
     }
 
     /// Called on the parent when a node is added to its child list.
-    fn child_inserted(&mut self, child: &JSRef<Node>) {
+    fn child_inserted(&self, child: &JSRef<Node>) {
         match self.super_type() {
-            Some(ref mut s) => s.child_inserted(child),
+            Some(ref s) => s.child_inserted(child),
             _ => (),
         }
     }
 
     /// Called during event dispatch after the bubbling phase completes.
-    fn handle_event(&mut self, event: &JSRef<Event>) {
+    fn handle_event(&self, event: &JSRef<Event>) {
         match self.super_type() {
             Some(s) => {
                 s.handle_event(event);
@@ -89,42 +89,42 @@ pub trait VirtualMethods {
 /// method call on the trait object will invoke the corresponding method on the
 /// concrete type, propagating up the parent hierarchy unless otherwise
 /// interrupted.
-pub fn vtable_for<'a>(node: &'a mut JSRef<Node>) -> &'a mut VirtualMethods: {
+pub fn vtable_for<'a>(node: &'a JSRef<Node>) -> &'a VirtualMethods: {
     match node.type_id() {
         ElementNodeTypeId(HTMLAnchorElementTypeId) => {
-            let element: &mut JSRef<HTMLAnchorElement> = HTMLAnchorElementCast::to_mut_ref(node).unwrap();
-            element as &mut VirtualMethods:
+            let element: &JSRef<HTMLAnchorElement> = HTMLAnchorElementCast::to_ref(node).unwrap();
+            element as &VirtualMethods:
         }
         ElementNodeTypeId(HTMLBodyElementTypeId) => {
-            let element: &mut JSRef<HTMLBodyElement> = HTMLBodyElementCast::to_mut_ref(node).unwrap();
-            element as &mut VirtualMethods:
+            let element: &JSRef<HTMLBodyElement> = HTMLBodyElementCast::to_ref(node).unwrap();
+            element as &VirtualMethods:
         }
         ElementNodeTypeId(HTMLImageElementTypeId) => {
-            let element: &mut JSRef<HTMLImageElement> = HTMLImageElementCast::to_mut_ref(node).unwrap();
-            element as &mut VirtualMethods:
+            let element: &JSRef<HTMLImageElement> = HTMLImageElementCast::to_ref(node).unwrap();
+            element as &VirtualMethods:
         }
         ElementNodeTypeId(HTMLIFrameElementTypeId) => {
-            let element: &mut JSRef<HTMLIFrameElement> = HTMLIFrameElementCast::to_mut_ref(node).unwrap();
-            element as &mut VirtualMethods:
+            let element: &JSRef<HTMLIFrameElement> = HTMLIFrameElementCast::to_ref(node).unwrap();
+            element as &VirtualMethods:
         }
         ElementNodeTypeId(HTMLObjectElementTypeId) => {
-            let element: &mut JSRef<HTMLObjectElement> = HTMLObjectElementCast::to_mut_ref(node).unwrap();
-            element as &mut VirtualMethods:
+            let element: &JSRef<HTMLObjectElement> = HTMLObjectElementCast::to_ref(node).unwrap();
+            element as &VirtualMethods:
         }
         ElementNodeTypeId(HTMLStyleElementTypeId) => {
-            let element: &mut JSRef<HTMLStyleElement> = HTMLStyleElementCast::to_mut_ref(node).unwrap();
-            element as &mut VirtualMethods:
+            let element: &JSRef<HTMLStyleElement> = HTMLStyleElementCast::to_ref(node).unwrap();
+            element as &VirtualMethods:
         }
         ElementNodeTypeId(ElementTypeId) => {
-            let element: &mut JSRef<Element> = ElementCast::to_mut_ref(node).unwrap();
-            element as &mut VirtualMethods:
+            let element: &JSRef<Element> = ElementCast::to_ref(node).unwrap();
+            element as &VirtualMethods:
         }
         ElementNodeTypeId(_) => {
-            let element: &mut JSRef<HTMLElement> = HTMLElementCast::to_mut_ref(node).unwrap();
-            element as &mut VirtualMethods:
+            let element: &JSRef<HTMLElement> = HTMLElementCast::to_ref(node).unwrap();
+            element as &VirtualMethods:
         }
         _ => {
-            node as &mut VirtualMethods:
+            node as &VirtualMethods:
         }
     }
 }

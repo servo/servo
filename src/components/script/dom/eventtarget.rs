@@ -267,7 +267,7 @@ impl Reflectable for EventTarget {
 }
 
 impl<'a> VirtualMethods for JSRef<'a, EventTarget> {
-    fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods:> {
+    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods:> {
         None
     }
 }
