@@ -239,32 +239,34 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLImageElement> {
-    fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods:> {
-        let htmlelement: &mut JSRef<HTMLElement> = HTMLElementCast::from_mut_ref(self);
-        Some(htmlelement as &mut VirtualMethods:)
+    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods:> {
+        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_ref(self);
+        Some(htmlelement as &VirtualMethods:)
     }
 
-    fn after_set_attr(&mut self, name: DOMString, value: DOMString) {
+    fn after_set_attr(&self, name: DOMString, value: DOMString) {
         match self.super_type() {
-            Some(ref mut s) => s.after_set_attr(name.clone(), value.clone()),
+            Some(ref s) => s.after_set_attr(name.clone(), value.clone()),
             _ => (),
         }
 
         if "src" == name.as_slice() {
             let window = window_from_node(self).root();
             let url = Some(window.deref().get_url());
-            self.update_image(Some(value), url);
+            let mut self_alias = self.clone();
+            self_alias.update_image(Some(value), url);
         }
     }
 
-    fn before_remove_attr(&mut self, name: DOMString, value: DOMString) {
+    fn before_remove_attr(&self, name: DOMString, value: DOMString) {
         match self.super_type() {
-            Some(ref mut s) => s.before_remove_attr(name.clone(), value.clone()),
+            Some(ref s) => s.before_remove_attr(name.clone(), value.clone()),
             _ => (),
         }
 
         if "src" == name.as_slice() {
-            self.update_image(None, None);
+            let mut self_alias = self.clone();
+            self_alias.update_image(None, None);
         }
     }
 }

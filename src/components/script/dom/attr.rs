@@ -66,8 +66,8 @@ impl Attr {
     }
 
     pub fn set_value(&mut self, set_type: AttrSettingType, value: DOMString) {
-        let mut owner = self.owner.get().root();
-        let node: &mut JSRef<Node> = NodeCast::from_mut_ref(&mut *owner);
+        let owner = self.owner.get().root();
+        let node: &JSRef<Node> = NodeCast::from_ref(&*owner);
         let namespace_is_null = self.namespace == namespace::Null;
 
         match set_type {

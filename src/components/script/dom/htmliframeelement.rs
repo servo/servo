@@ -5,6 +5,7 @@
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLIFrameElementDerived, HTMLElementCast};
 use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
+use dom::bindings::trace::Traceable;
 use dom::document::Document;
 use dom::element::{HTMLIFrameElementTypeId, Element};
 use dom::element::AttributeHandlers;
@@ -22,6 +23,7 @@ use servo_util::str::DOMString;
 use servo_util::url::try_parse_url;
 
 use std::ascii::StrAsciiExt;
+use std::cell::Cell;
 use url::Url;
 
 enum SandboxAllowance {
@@ -38,7 +40,7 @@ enum SandboxAllowance {
 pub struct HTMLIFrameElement {
     pub htmlelement: HTMLElement,
     pub size: Option<IFrameSize>,
-    pub sandbox: Option<u8>
+    pub sandbox: Traceable<Cell<Option<u8>>>,
 }
 
 impl HTMLIFrameElementDerived for EventTarget {
@@ -60,7 +62,7 @@ pub trait HTMLIFrameElementHelpers {
 
 impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
     fn is_sandboxed(&self) -> bool {
-        self.sandbox.is_some()
+        self.sandbox.deref().get().is_some()
     }
 
     fn get_url(&self) -> Option<Url> {
@@ -78,7 +80,7 @@ impl HTMLIFrameElement {
         HTMLIFrameElement {
             htmlelement: HTMLElement::new_inherited(HTMLIFrameElementTypeId, localName, document),
             size: None,
-            sandbox: None,
+            sandbox: Traceable::new(Cell::new(None)),
         }
     }
 
@@ -122,14 +124,14 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
-    fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods:> {
-        let htmlelement: &mut JSRef<HTMLElement> = HTMLElementCast::from_mut_ref(self);
-        Some(htmlelement as &mut VirtualMethods:)
+    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods:> {
+        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_ref(self);
+        Some(htmlelement as &VirtualMethods:)
     }
 
-    fn after_set_attr(&mut self, name: DOMString, value: DOMString) {
+    fn after_set_attr(&self, name: DOMString, value: DOMString) {
         match self.super_type() {
-            Some(ref mut s) => s.after_set_attr(name.clone(), value.clone()),
+            Some(ref s) => s.after_set_attr(name.clone(), value.clone()),
             _ => (),
         }
 
@@ -146,24 +148,24 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
                     _ => AllowNothing
                 } as u8;
             }
-            self.deref_mut().sandbox = Some(modes);
+            self.deref().sandbox.deref().set(Some(modes));
         }
     }
 
-    fn before_remove_attr(&mut self, name: DOMString, value: DOMString) {
+    fn before_remove_attr(&self, name: DOMString, value: DOMString) {
         match self.super_type() {
-            Some(ref mut s) => s.before_remove_attr(name.clone(), value),
+            Some(ref s) => s.before_remove_attr(name.clone(), value),
             _ => (),
         }
 
         if "sandbox" == name.as_slice() {
-            self.deref_mut().sandbox = None;
+            self.deref().sandbox.deref().set(None);
         }
     }
 
-    fn bind_to_tree(&mut self) {
+    fn bind_to_tree(&self) {
         match self.super_type() {
-            Some(ref mut s) => s.bind_to_tree(),
+            Some(ref s) => s.bind_to_tree(),
             _ => (),
         }
 
@@ -180,7 +182,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
                 let page = window.deref().page();
                 let subpage_id = page.get_next_subpage_id();
 
-                self.deref_mut().size = Some(IFrameSize {
+                let mut self_alias = self.clone();
+                self_alias.deref_mut().size = Some(IFrameSize {
                     pipeline_id: page.id,
                     subpage_id: subpage_id,
                 });
