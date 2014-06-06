@@ -34,7 +34,7 @@ use layout_interface::UntrustedNodeAddress;
 use layout_interface;
 
 use geom::point::Point2D;
-use geom::size::Size2D;
+use geom::size::TypedSize2D;
 use js::jsapi::JS_CallFunctionValue;
 use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ, JS_GC};
 use js::jsapi::{JSContext, JSRuntime};
@@ -49,7 +49,7 @@ use servo_msg::constellation_msg::{PipelineId, SubpageId, Failure, FailureMsg};
 use servo_msg::constellation_msg;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
-use servo_util::geometry::to_frac_px;
+use servo_util::geometry::{PagePx, to_frac_px};
 use servo_util::task::send_on_failure;
 use servo_util::namespace::Null;
 use servo_util::str::DOMString;
@@ -80,13 +80,13 @@ pub enum ScriptMsg {
     /// Sends a DOM event.
     SendEventMsg(PipelineId, Event_),
     /// Window resized.  Sends a DOM event eventually, but first we combine events.
-    ResizeMsg(PipelineId, Size2D<uint>),
+    ResizeMsg(PipelineId, TypedSize2D<PagePx, f32>),
     /// Fires a JavaScript timeout.
     FireTimerMsg(PipelineId, TimerId),
     /// Notifies script that reflow is finished.
     ReflowCompleteMsg(PipelineId, uint),
     /// Notifies script that window has been resized but to not take immediate action.
-    ResizeInactiveMsg(PipelineId, Size2D<uint>),
+    ResizeInactiveMsg(PipelineId, TypedSize2D<PagePx, f32>),
     /// Notifies the script that a pipeline should be closed.
     ExitPipelineMsg(PipelineId),
     /// Notifies the script that a window associated with a particular pipeline should be closed.
@@ -145,7 +145,7 @@ pub struct Page {
     damage: Traceable<RefCell<Option<DocumentDamage>>>,
 
     /// The current size of the window, in pixels.
-    window_size: Untraceable<Cell<Size2D<uint>>>,
+    window_size: Untraceable<Cell<TypedSize2D<PagePx, f32>>>,
 
     js_info: Traceable<RefCell<Option<JSPageInfo>>>,
 
@@ -158,7 +158,7 @@ pub struct Page {
     next_subpage_id: Untraceable<Cell<SubpageId>>,
 
     /// Pending resize event, if any.
-    resize_event: Untraceable<Cell<Option<Size2D<uint>>>>,
+    resize_event: Untraceable<Cell<Option<TypedSize2D<PagePx, f32>>>>,
 
     /// Pending scroll to fragment event, if any
     fragment_node: Cell<Option<JS<Element>>>,
@@ -201,7 +201,7 @@ impl IterablePage for Rc<Page> {
 impl Page {
     fn new(id: PipelineId, subpage_id: Option<SubpageId>,
            layout_chan: LayoutChan,
-           window_size: Size2D<uint>, resource_task: ResourceTask,
+           window_size: TypedSize2D<PagePx, f32>, resource_task: ResourceTask,
            constellation_chan: ConstellationChan,
            js_context: Rc<Cx>) -> Page {
         let js_info = JSPageInfo {
@@ -609,7 +609,7 @@ impl ScriptTask {
                constellation_chan: ConstellationChan,
                resource_task: ResourceTask,
                img_cache_task: ImageCacheTask,
-               window_size: Size2D<uint>)
+               window_size: TypedSize2D<PagePx, f32>)
                -> Rc<ScriptTask> {
         let (js_runtime, js_context) = ScriptTask::new_rt_and_cx();
         let page = Page::new(id, None, layout_chan, window_size,
@@ -690,7 +690,7 @@ impl ScriptTask {
                   failure_msg: Failure,
                   resource_task: ResourceTask,
                   image_cache_task: ImageCacheTask,
-                  window_size: Size2D<uint>) {
+                  window_size: TypedSize2D<PagePx, f32>) {
         let mut builder = TaskBuilder::new().named("ScriptTask");
         let ConstellationChan(const_chan) = constellation_chan.clone();
         send_on_failure(&mut builder, FailureMsg(failure_msg), const_chan);
@@ -737,8 +737,8 @@ impl ScriptTask {
             }
         }
 
-        for (id, Size2D { width, height }) in resizes.move_iter() {
-            self.handle_event(id, ResizeEvent(width, height));
+        for (id, size) in resizes.move_iter() {
+            self.handle_event(id, ResizeEvent(size));
         }
 
         // Store new resizes, and gather all other events.
@@ -868,7 +868,7 @@ impl ScriptTask {
     }
 
     /// Window was resized, but this script was not active, so don't reflow yet
-    fn handle_resize_inactive_msg(&self, id: PipelineId, new_size: Size2D<uint>) {
+    fn handle_resize_inactive_msg(&self, id: PipelineId, new_size: TypedSize2D<PagePx, f32>) {
         let mut page = self.page.borrow_mut();
         let page = page.find(id).expect("Received resize message for PipelineId not associated
             with a page in the page tree. This is a bug.");
@@ -1063,12 +1063,12 @@ impl ScriptTask {
     /// TODO: Actually perform DOM event dispatch.
     fn handle_event(&self, pipeline_id: PipelineId, event: Event_) {
         match event {
-            ResizeEvent(new_width, new_height) => {
-                debug!("script got resize event: {:u}, {:u}", new_width, new_height);
+            ResizeEvent(new_size) => {
+                debug!("script got resize event: {:?}", new_size);
 
                 let window = {
                     let page = get_page(&*self.page.borrow(), pipeline_id);
-                    page.window_size.deref().set(Size2D(new_width, new_height));
+                    page.window_size.deref().set(new_size);
 
                     let frame = page.frame();
                     if frame.is_some() {

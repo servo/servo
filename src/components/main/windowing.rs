@@ -32,7 +32,7 @@ pub enum WindowEvent {
     /// Sent when part of the window is marked dirty and needs to be redrawn.
     RefreshWindowEvent,
     /// Sent when the window is resized.
-    ResizeWindowEvent(uint, uint),
+    ResizeWindowEvent(TypedSize2D<DevicePixel, uint>),
     /// Sent when a new URL is to be loaded.
     LoadUrlWindowEvent(String),
     /// Sent when a mouse hit test is to be performed.
@@ -59,8 +59,10 @@ pub trait ApplicationMethods {
 pub trait WindowMethods<A> {
     /// Creates a new window.
     fn new(app: &A, is_foreground: bool) -> Rc<Self>;
-    /// Returns the size of the window.
-    fn size(&self) -> TypedSize2D<DevicePixel, f32>;
+    /// Returns the size of the window in hardware pixels.
+    fn framebuffer_size(&self) -> TypedSize2D<DevicePixel, uint>;
+    /// Returns the size of the window in density-independent "px" units.
+    fn size(&self) -> TypedSize2D<ScreenPx, f32>;
     /// Presents the window to the screen (perhaps by page flipping).
     fn present(&self);
 

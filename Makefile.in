@@ -235,12 +235,12 @@ DONE_net = $(B)src/components/net/libnet.dummy
 
 DEPS_net = $(CRATE_net) $(SRC_net) $(DONE_SUBMODULES) $(DONE_util)
 
-RFLAGS_msg = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES))
+RFLAGS_msg = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/util
 SRC_msg = $(call rwildcard,$(S)src/components/msg/,*.rs)
 CRATE_msg = $(S)src/components/msg/msg.rs
 DONE_msg = $(B)src/components/msg/libmsg.dummy
 
-DEPS_msg = $(CRATE_msg) $(SRC_msg) $(DONE_SUBMODULES)
+DEPS_msg = $(CRATE_msg) $(SRC_msg) $(DONE_SUBMODULES) $(DONE_util)
 
 RFLAGS_gfx = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/util -L $(B)src/components/style -L $(B)src/components/net -L $(B)src/components/msg -L$(B)src/components/macros
 SRC_gfx = $(call rwildcard,$(S)src/components/gfx/,*.rs)

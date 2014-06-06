@@ -145,9 +145,15 @@ impl WindowMethods<Application> for Window {
         wrapped_window
     }
 
-    /// Returns the size of the window.
-    fn size(&self) -> TypedSize2D<DevicePixel, f32> {
+    /// Returns the size of the window in hardware pixels.
+    fn framebuffer_size(&self) -> TypedSize2D<DevicePixel, uint> {
         let (width, height) = self.glfw_window.get_framebuffer_size();
+        TypedSize2D(width as uint, height as uint)
+    }
+
+    /// Returns the size of the window in density-independent "px" units.
+    fn size(&self) -> TypedSize2D<ScreenPx, f32> {
+        let (width, height) = self.glfw_window.get_size();
         TypedSize2D(width as f32, height as f32)
     }
 
@@ -196,9 +202,9 @@ impl WindowMethods<Application> for Window {
     }
 
     fn hidpi_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32> {
-        let (backing_size, _) = self.glfw_window.get_framebuffer_size();
-        let (window_size, _) = self.glfw_window.get_size();
-        ScaleFactor((backing_size as f32) / (window_size as f32))
+        let backing_size = self.framebuffer_size().width.get();
+        let window_size = self.size().width.get();
+        ScaleFactor((backing_size as f32) / window_size)
     }
 }
 
@@ -211,7 +217,8 @@ impl Window {
                 }
             },
             glfw::FramebufferSizeEvent(width, height) => {
-                self.event_queue.borrow_mut().push(ResizeWindowEvent(width as uint, height as uint));
+                self.event_queue.borrow_mut().push(
+                    ResizeWindowEvent(TypedSize2D(width as uint, height as uint)));
             },
             glfw::RefreshEvent => {
                 self.event_queue.borrow_mut().push(RefreshWindowEvent);

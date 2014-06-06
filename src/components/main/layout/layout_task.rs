@@ -581,8 +581,8 @@ impl LayoutTask {
             _ => false
         };
 
-        let current_screen_size = Size2D(Au::from_px(data.window_size.width as int),
-                                         Au::from_px(data.window_size.height as int));
+        let current_screen_size = Size2D(Au::from_page_px(data.window_size.width),
+                                         Au::from_page_px(data.window_size.height));
         if self.screen_size != current_screen_size {
             all_style_damage = true
         }

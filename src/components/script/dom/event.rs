@@ -10,14 +10,16 @@ use dom::bindings::error::Fallible;
 use dom::eventtarget::EventTarget;
 use dom::window::Window;
 use servo_util::str::DOMString;
+use servo_util::geometry::PagePx;
 use std::cell::Cell;
 
 use geom::point::Point2D;
+use geom::size::TypedSize2D;
 
 use time;
 
 pub enum Event_ {
-    ResizeEvent(uint, uint),
+    ResizeEvent(TypedSize2D<PagePx, f32>),
     ReflowEvent,
     ClickEvent(uint, Point2D<f32>),
     MouseDownEvent(uint, Point2D<f32>),
