@@ -44,6 +44,7 @@ pub struct CallbackInterface {
     object: CallbackObject
 }
 
+#[allow(raw_pointer_deriving)]
 #[deriving(Clone,Eq,Encodable)]
 struct CallbackObject {
     callback: Traceable<*mut JSObject>,

@@ -15,6 +15,7 @@ use js::rust::with_compartment;
 use libc::c_void;
 use std::ptr;
 
+#[allow(raw_pointer_deriving)]
 #[deriving(Encodable)]
 pub struct BrowserContext {
     history: Vec<SessionHistoryEntry>,
