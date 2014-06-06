@@ -5,8 +5,11 @@
 //! Configuration options for a single run of the servo application. Created
 //! from command line arguments.
 
+use geometry::{DevicePixel, ScreenPx};
+
 use azure::azure_hl::{BackendType, CairoBackend, CoreGraphicsBackend};
 use azure::azure_hl::{CoreGraphicsAcceleratedBackend, Direct2DBackend, SkiaBackend};
+use geom::scale_factor::ScaleFactor;
 use getopts;
 use std::cmp;
 use std::io;
@@ -36,7 +39,7 @@ pub struct Opts {
 
     /// The ratio of device pixels per px at the default scale. If unspecified, will use the
     /// platform default setting.
-    pub device_pixels_per_px: Option<f32>,
+    pub device_pixels_per_px: Option<ScaleFactor<ScreenPx, DevicePixel, f32>>,
 
     /// `None` to disable the profiler or `Some` with an interval in seconds to enable it and cause
     /// it to produce output on that interval (`-p`).
@@ -136,7 +139,7 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
     };
 
     let device_pixels_per_px = opt_match.opt_str("device-pixel-ratio").map(|dppx_str|
-        from_str(dppx_str.as_slice()).unwrap()
+        ScaleFactor(from_str(dppx_str.as_slice()).unwrap())
     );
 
     let n_render_threads: uint = match opt_match.opt_str("t") {

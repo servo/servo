@@ -8,10 +8,11 @@ use windowing::{MouseWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEve
 use windowing::{MouseWindowMouseUpEvent};
 
 use azure::azure_hl::Color;
+use geom::length::Length;
 use geom::matrix::identity;
-use geom::point::Point2D;
-use geom::rect::Rect;
-use geom::size::Size2D;
+use geom::point::{Point2D, TypedPoint2D};
+use geom::rect::{Rect, TypedRect};
+use geom::size::{Size2D, TypedSize2D};
 use gfx::render_task::{ReRenderMsg, UnusedBufferMsg};
 use gfx;
 use layers::layers::{ContainerLayerKind, ContainerLayer, Flip, NoFlip, TextureLayer};
@@ -23,6 +24,7 @@ use script::script_task::{ScriptChan, SendEventMsg};
 use servo_msg::compositor_msg::{Epoch, FixedPosition, LayerBuffer, LayerBufferSet, LayerId};
 use servo_msg::compositor_msg::{ScrollPolicy, Tile};
 use servo_msg::constellation_msg::PipelineId;
+use servo_util::geometry::PagePx;
 use std::rc::Rc;
 
 #[cfg(target_os="macos")]
@@ -59,7 +61,7 @@ pub struct CompositorLayer {
 
     /// The offset of the page due to scrolling. (0,0) is when the window sees the
     /// top left corner of the page.
-    pub scroll_offset: Point2D<f32>,
+    pub scroll_offset: TypedPoint2D<PagePx, f32>,
 
     /// This layer's children. These could be iframes or any element which
     /// differs in scroll behavior from its parent. Each is associated with a
@@ -169,7 +171,7 @@ impl CompositorLayer {
             id: layer_id,
             bounds: bounds,
             page_size: page_size,
-            scroll_offset: Point2D(0f32, 0f32),
+            scroll_offset: TypedPoint2D(0f32, 0f32),
             children: vec!(),
             quadtree: match page_size {
                 None => NoTree(tile_size, Some(MAX_TILE_MEMORY_PER_LAYER)),
@@ -202,7 +204,7 @@ impl CompositorLayer {
             id: LayerId::null(),
             bounds: Rect(Point2D(0f32, 0f32), page_size),
             page_size: Some(page_size),
-            scroll_offset: Point2D(0f32, 0f32),
+            scroll_offset: TypedPoint2D(0f32, 0f32),
             children: vec!(),
             quadtree: NoTree(tile_size, Some(MAX_TILE_MEMORY_PER_LAYER)),
             root_layer: Rc::new(ContainerLayer()),
@@ -285,9 +287,9 @@ impl CompositorLayer {
     /// mouse is over child layers first. If a layer successfully scrolled, returns true; otherwise
     /// returns false, so a parent layer can scroll instead.
     pub fn handle_scroll_event(&mut self,
-                               delta: Point2D<f32>,
-                               cursor: Point2D<f32>,
-                               window_size: Size2D<f32>)
+                               delta: TypedPoint2D<PagePx, f32>,
+                               cursor: TypedPoint2D<PagePx, f32>,
+                               window_size: TypedSize2D<PagePx, f32>)
                                -> bool {
         // If this layer is hidden, neither it nor its children will scroll.
         if self.hidden {
@@ -308,6 +310,7 @@ impl CompositorLayer {
                     error!("CompositorLayer: unable to perform cursor hit test for layer");
                 }
                 Some(rect) => {
+                    let rect: TypedRect<PagePx, f32> = Rect::from_untyped(&rect);
                     if cursor.x >= rect.origin.x && cursor.x < rect.origin.x + rect.size.width
                         && cursor.y >= rect.origin.y && cursor.y < rect.origin.y + rect.size.height
                         && child.child.handle_scroll_event(delta,
@@ -329,12 +332,17 @@ impl CompositorLayer {
             Some(size) => size,
             None => fail!("CompositorLayer: tried to scroll with no page size set"),
         };
-        let min_x = (window_size.width - page_size.width).min(0.0);
-        self.scroll_offset.x = self.scroll_offset.x.clamp(&min_x, &0.0);
-        let min_y = (window_size.height - page_size.height).min(0.0);
-        self.scroll_offset.y = self.scroll_offset.y.clamp(&min_y, &0.0);
 
-        if old_origin - self.scroll_offset == Point2D(0f32, 0f32) {
+        let window_size = window_size.to_untyped();
+        let scroll_offset = self.scroll_offset.to_untyped();
+
+        let min_x = (window_size.width - page_size.width).min(0.0);
+        self.scroll_offset.x = Length(scroll_offset.x.clamp(&min_x, &0.0));
+
+        let min_y = (window_size.height - page_size.height).min(0.0);
+        self.scroll_offset.y = Length(scroll_offset.y.clamp(&min_y, &0.0));
+
+        if old_origin - self.scroll_offset == TypedPoint2D(0f32, 0f32) {
             return false
         }
 
@@ -358,7 +366,7 @@ impl CompositorLayer {
 
     /// Actually scrolls the descendants of a layer that scroll. This is called by
     /// `handle_scroll_event` above when it determines that a layer wants to scroll.
-    fn scroll(&mut self, scroll_offset: Point2D<f32>) -> bool {
+    fn scroll(&mut self, scroll_offset: TypedPoint2D<PagePx, f32>) -> bool {
         let mut result = false;
 
         // Only scroll this layer if it's not fixed-positioned.
@@ -367,7 +375,7 @@ impl CompositorLayer {
             self.scroll_offset = scroll_offset;
 
             self.root_layer.common.borrow_mut().set_transform(
-                identity().translate(self.scroll_offset.x, self.scroll_offset.y, 0.0));
+                identity().translate(self.scroll_offset.x.get(), self.scroll_offset.y.get(), 0.0));
 
             result = true
         }
@@ -382,7 +390,7 @@ impl CompositorLayer {
     // Takes in a MouseWindowEvent, determines if it should be passed to children, and
     // sends the event off to the appropriate pipeline. NB: the cursor position is in
     // page coordinates.
-    pub fn send_mouse_event(&self, event: MouseWindowEvent, cursor: Point2D<f32>) {
+    pub fn send_mouse_event(&self, event: MouseWindowEvent, cursor: TypedPoint2D<PagePx, f32>) {
         let cursor = cursor - self.scroll_offset;
         for child in self.children.iter().filter(|&x| !x.child.hidden) {
             match *child.container.scissor.borrow() {
@@ -390,6 +398,7 @@ impl CompositorLayer {
                     error!("CompositorLayer: unable to perform cursor hit test for layer");
                 }
                 Some(rect) => {
+                    let rect: TypedRect<PagePx, f32> = Rect::from_untyped(&rect);
                     if cursor.x >= rect.origin.x && cursor.x < rect.origin.x + rect.size.width
                         && cursor.y >= rect.origin.y && cursor.y < rect.origin.y + rect.size.height {
                         child.child.send_mouse_event(event, cursor - rect.origin);
@@ -401,16 +410,16 @@ impl CompositorLayer {
 
         // This mouse event is mine!
         let message = match event {
-            MouseWindowClickEvent(button, _) => ClickEvent(button, cursor),
-            MouseWindowMouseDownEvent(button, _) => MouseDownEvent(button, cursor),
-            MouseWindowMouseUpEvent(button, _) => MouseUpEvent(button, cursor),
+            MouseWindowClickEvent(button, _) => ClickEvent(button, cursor.to_untyped()),
+            MouseWindowMouseDownEvent(button, _) => MouseDownEvent(button, cursor.to_untyped()),
+            MouseWindowMouseUpEvent(button, _) => MouseUpEvent(button, cursor.to_untyped()),
         };
         let ScriptChan(ref chan) = self.pipeline.script_chan;
         let _ = chan.send_opt(SendEventMsg(self.pipeline.id.clone(), message));
     }
 
-    pub fn send_mouse_move_event(&self, cursor: Point2D<f32>) {
-        let message = MouseMoveEvent(cursor);
+    pub fn send_mouse_move_event(&self, cursor: TypedPoint2D<PagePx, f32>) {
+        let message = MouseMoveEvent(cursor.to_untyped());
         let ScriptChan(ref chan) = self.pipeline.script_chan;
         let _ = chan.send_opt(SendEventMsg(self.pipeline.id.clone(), message));
     }
@@ -453,8 +462,9 @@ impl CompositorLayer {
             match *x.container.scissor.borrow() {
                 Some(scissor) => {
                     let mut new_rect = window_rect;
-                    new_rect.origin.x = new_rect.origin.x - x.child.scroll_offset.x;
-                    new_rect.origin.y = new_rect.origin.y - x.child.scroll_offset.y;
+                    let offset = x.child.scroll_offset.to_untyped();
+                    new_rect.origin.x = new_rect.origin.x - offset.x;
+                    new_rect.origin.y = new_rect.origin.y - offset.y;
                     match new_rect.intersection(&scissor) {
                         Some(new_rect) => {
                             // Child layers act as if they are rendered at (0,0), so we
@@ -535,7 +545,7 @@ impl CompositorLayer {
                   pipeline_id: PipelineId,
                   layer_id: LayerId,
                   new_size: Size2D<f32>,
-                  window_size: Size2D<f32>,
+                  window_size: TypedSize2D<PagePx, f32>,
                   epoch: Epoch)
                   -> bool {
         debug!("compositor_layer: starting resize()");
@@ -562,7 +572,7 @@ impl CompositorLayer {
         }
         // Call scroll for bounds checking if the page shrunk. Use (-1, -1) as the cursor position
         // to make sure the scroll isn't propagated downwards.
-        self.handle_scroll_event(Point2D(0f32, 0f32), Point2D(-1f32, -1f32), window_size);
+        self.handle_scroll_event(TypedPoint2D(0f32, 0f32), TypedPoint2D(-1f32, -1f32), window_size);
         self.hidden = false;
         self.set_occlusions();
         true
@@ -572,7 +582,7 @@ impl CompositorLayer {
                 pipeline_id: PipelineId,
                 layer_id: LayerId,
                 origin: Point2D<f32>,
-                window_size: Size2D<f32>)
+                window_size: TypedSize2D<PagePx, f32>)
                 -> bool {
         // Search children for the right layer to move.
         if self.pipeline.id != pipeline_id || self.id != layer_id {
@@ -587,20 +597,23 @@ impl CompositorLayer {
 
         // Scroll this layer!
         let old_origin = self.scroll_offset;
-        self.scroll_offset = Point2D(0f32, 0f32) - origin;
+        self.scroll_offset = Point2D::from_untyped(&(origin * -1.0));
 
         // bounds checking
         let page_size = match self.page_size {
             Some(size) => size,
             None => fail!("CompositorLayer: tried to scroll with no page size set"),
         };
+        let window_size = window_size.to_untyped();
+        let scroll_offset = self.scroll_offset.to_untyped();
+
         let min_x = (window_size.width - page_size.width).min(0.0);
-        self.scroll_offset.x = self.scroll_offset.x.clamp(&min_x, &0.0);
+        self.scroll_offset.x = Length(scroll_offset.x.clamp(&min_x, &0.0));
         let min_y = (window_size.height - page_size.height).min(0.0);
-        self.scroll_offset.y = self.scroll_offset.y.clamp(&min_y, &0.0);
+        self.scroll_offset.y = Length(scroll_offset.y.clamp(&min_y, &0.0));
 
         // check to see if we scrolled
-        if old_origin - self.scroll_offset == Point2D(0f32, 0f32) {
+        if old_origin - self.scroll_offset == TypedPoint2D(0f32, 0f32) {
             return false;
         }
 
@@ -669,9 +682,10 @@ impl CompositorLayer {
                     Some(scissor) => {
                         // Call scroll for bounds checking if the page shrunk. Use (-1, -1) as the
                         // cursor position to make sure the scroll isn't propagated downwards.
-                        child.handle_scroll_event(Point2D(0f32, 0f32),
-                                                  Point2D(-1f32, -1f32),
-                                                  scissor.size);
+                        let size: TypedSize2D<PagePx, f32> = Size2D::from_untyped(&scissor.size);
+                        child.handle_scroll_event(TypedPoint2D(0f32, 0f32),
+                                                  TypedPoint2D(-1f32, -1f32),
+                                                  size);
                         child.hidden = false;
                     }
                     None => {} // Nothing to do

@@ -10,9 +10,41 @@ use std::default::Default;
 use std::num::{NumCast, One, Zero};
 use std::fmt;
 
+// Units for use with geom::length and geom::scale_factor.
+
+/// One hardware pixel.
+///
+/// This unit corresponds to the smallest addressable element of the display hardware.
+pub enum DevicePixel {}
+
+/// A normalized "pixel" at the default resolution for the display.
+///
+/// Like the CSS "px" unit, the exact physical size of this unit may vary between devices, but it
+/// should approximate a device-independent reference length.  This unit corresponds to Android's
+/// "density-independent pixel" (dip), Mac OS X's "point", and Windows "device-independent pixel."
+///
+/// The relationship between DevicePixel and ScreenPx is defined by the OS.  On most low-dpi
+/// screens, one ScreenPx is equal to one DevicePixel.  But on high-density screens it can be
+/// some larger number.  For example, by default on Apple "retina" displays, one ScreenPx equals
+/// two DevicePixels.  On Android "MDPI" displays, one ScreenPx equals 1.5 device pixels.
+///
+/// The ratio between ScreenPx and DevicePixel for a given display be found by calling
+/// `servo::windowing::WindowMethods::hidpi_factor`.
+pub enum ScreenPx {}
+
+/// One CSS "px" in the root coordinate system for the content document.
+///
+///
+/// PagePx is equal to ScreenPx multiplied by a "zoom" factor controlled by the user.  At the
+/// default zoom level of 100%, one PagePx is equal to one ScreenPx.  However, if the document
+/// is zoomed in or out then this scale may be larger or smaller.
+pub enum PagePx {}
+
 // An Au is an "App Unit" and represents 1/60th of a CSS pixel.  It was
 // originally proposed in 2002 as a standard unit of measure in Gecko.
 // See https://bugzilla.mozilla.org/show_bug.cgi?id=177805 for more info.
+//
+// FIXME: Implement Au using Length and ScaleFactor instead of a custom type.
 #[deriving(Clone, Eq, Ord, Zero)]
 pub struct Au(pub i32);
 
