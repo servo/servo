@@ -1247,14 +1247,13 @@ class ConstDefiner(PropertyDefiner):
 
         def stringDecl(const):
             name = const.identifier.name
-            return "static %s_name: [u8, ..%i] = %s;\n" % (name, len(name) + 1,
-                                                         str_to_const_array(name))
+            return "static %s_name: &'static [u8] = &%s;\n" % (name, str_to_const_array(name))
         
         decls = ''.join([stringDecl(m) for m in array])
 
         return decls + self.generatePrefableArray(
             array, name,
-            '  ConstantSpec { name: &%s_name as *u8 as *libc::c_char, value: %s }',
+            '  ConstantSpec { name: %s_name, value: %s }',
             None,
             'ConstantSpec',
             specData)

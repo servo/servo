@@ -192,7 +192,7 @@ pub enum ConstantVal {
 
 #[deriving(Clone)]
 pub struct ConstantSpec {
-    pub name: *libc::c_char,
+    pub name: &'static [u8],
     pub value: ConstantVal
 }
 
@@ -313,7 +313,6 @@ fn CreateInterfaceObject(cx: *mut JSContext, global: *mut JSObject, receiver: *m
 
 fn DefineConstants(cx: *mut JSContext, obj: *mut JSObject, constants: &'static [ConstantSpec]) -> bool {
     constants.iter().all(|spec| {
-        assert!(spec.name.is_not_null());
         let jsval = match spec.value {
             NullVal => NullValue(),
             IntVal(i) => Int32Value(i),
@@ -323,7 +322,8 @@ fn DefineConstants(cx: *mut JSContext, obj: *mut JSObject, constants: &'static [
             VoidVal => UndefinedValue(),
         };
         unsafe {
-            JS_DefineProperty(cx, obj, spec.name, jsval, None, None,
+            JS_DefineProperty(cx, obj, spec.name.as_ptr() as *libc::c_char,
+                              jsval, None, None,
                               JSPROP_ENUMERATE | JSPROP_READONLY |
                               JSPROP_PERMANENT) != 0
         }
