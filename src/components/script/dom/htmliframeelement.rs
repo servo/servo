@@ -56,6 +56,7 @@ pub struct IFrameSize {
 pub trait HTMLIFrameElementHelpers {
     fn is_sandboxed(&self) -> bool;
     fn get_url(&self) -> Option<Url>;
+    fn load(&self);
 }
 
 impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
@@ -70,6 +71,33 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
             try_parse_url(src.deref().value_ref(),
                           Some(window.deref().page().get_url())).ok()
         })
+    }
+
+    fn load(&self) {
+
+        match self.get_url() {
+            Some(url) => {
+                let sandboxed = if self.is_sandboxed() {
+                    IFrameSandboxed
+                } else {
+                    IFrameUnsandboxed
+                };
+
+                let window = window_from_node(self).root();
+                let page = window.deref().page();
+                let subpage_id = page.get_next_subpage_id();
+
+                let mut size = self.deref().size;
+                size = Some(IFrameSize {
+                    pipeline_id: page.id,
+                    subpage_id: subpage_id,
+                });
+
+                let ConstellationChan(ref chan) = *page.constellation_chan.deref();
+                chan.send(LoadIframeUrlMsg(url, page.id, subpage_id, sandboxed));
+            }
+            _ => ()
+        }
     }
 }
 
@@ -148,6 +176,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
             }
             self.deref_mut().sandbox = Some(modes);
         }
+
+        self.load()
     }
 
     fn before_remove_attr(&mut self, name: DOMString, value: DOMString) {
@@ -167,28 +197,6 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
             _ => (),
         }
 
-        match self.get_url() {
-            Some(url) => {
-                let sandboxed = if self.is_sandboxed() {
-                    IFrameSandboxed
-                } else {
-                    IFrameUnsandboxed
-                };
-
-                // Subpage Id
-                let window = window_from_node(self).root();
-                let page = window.deref().page();
-                let subpage_id = page.get_next_subpage_id();
-
-                self.deref_mut().size = Some(IFrameSize {
-                    pipeline_id: page.id,
-                    subpage_id: subpage_id,
-                });
-
-                let ConstellationChan(ref chan) = *page.constellation_chan.deref();
-                chan.send(LoadIframeUrlMsg(url, page.id, subpage_id, sandboxed));
-            }
-            _ => ()
-        }
+        self.load()
     }
 }
