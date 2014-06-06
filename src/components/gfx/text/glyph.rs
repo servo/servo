@@ -270,7 +270,7 @@ impl DetailedGlyph {
     }
 }
 
-#[deriving(Eq, Clone, TotalEq, TotalOrd)]
+#[deriving(Eq, Clone)]
 struct DetailedGlyphRecord {
     // source string offset/GlyphEntry offset in the TextRun
     entry_offset: CharIndex,
