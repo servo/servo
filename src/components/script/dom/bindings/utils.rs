@@ -48,6 +48,7 @@ use js::JSPROP_PERMANENT;
 use js::{JSFUN_CONSTRUCTOR, JSPROP_READONLY};
 use js;
 
+#[allow(raw_pointer_deriving)]
 #[deriving(Encodable)]
 pub struct GlobalStaticData {
     pub proxy_handlers: Untraceable<HashMap<uint, *libc::c_void>>,
