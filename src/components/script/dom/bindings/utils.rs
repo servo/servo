@@ -415,7 +415,7 @@ pub fn reflect_dom_object<T: Reflectable>
 #[allow(raw_pointer_deriving)]
 #[deriving(Eq)]
 pub struct Reflector {
-    pub object: *mut JSObject,
+    object: *mut JSObject,
 }
 
 impl Reflector {
