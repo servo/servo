@@ -1062,7 +1062,7 @@ class PropertyDefiner:
         return prefName[0]
 
     def generatePrefableArray(self, array, name, specTemplate, specTerminator,
-                              specType, getPref, getDataTuple):
+                              specType, getDataTuple):
         """
         This method generates our various arrays.
 
@@ -1072,58 +1072,22 @@ class PropertyDefiner:
 
         specTemplate is a template for each entry of the spec array
 
-        specTerminator is a terminator for the spec array (inserted every time
-          our controlling pref changes and at the end of the array)
+        specTerminator is a terminator for the spec array (inserted at the end
+          of the array), or None
 
         specType is the actual typename of our spec
-
-        getPref is a callback function that takes an array entry and returns
-          the corresponding pref value.
 
         getDataTuple is a callback function that takes an array entry and
           returns a tuple suitable for substitution into specTemplate.
         """
 
-        # We want to generate a single list of specs, but with specTerminator
-        # inserted at every point where the pref name controlling the member
-        # changes.  That will make sure the order of the properties as exposed
-        # on the interface and interface prototype objects does not change when
-        # pref control is added to members while still allowing us to define all
-        # the members in the smallest number of JSAPI calls.
         assert(len(array) is not 0)
-        lastPref = getPref(array[0]) # So we won't put a specTerminator
-                                     # at the very front of the list.
         specs = []
-        prefableSpecs = []
-
-        prefableTemplate = '  { true, &%s[%d] }'
-        prefCacheTemplate = '&%s[%d].enabled'
-        def switchToPref(props, pref):
-            # Remember the info about where our pref-controlled
-            # booleans live.
-            if pref is not None:
-                props.prefCacheData.append(
-                    (pref, prefCacheTemplate % (name, len(prefableSpecs)))
-                    )
-            # Set up pointers to the new sets of specs and ids
-            # inside prefableSpecs and prefableIds
-            prefableSpecs.append(prefableTemplate %
-                                 (name + "_specs", len(specs)))
-
-        switchToPref(self, lastPref)
 
         for member in array:
-            curPref = getPref(member)
-            if lastPref != curPref:
-                # Terminate previous list
-                specs.append(specTerminator)
-                # And switch to our new pref
-                switchToPref(self, curPref)
-                lastPref = curPref
-            # And the actual spec
             specs.append(specTemplate % getDataTuple(member))
-        specs.append(specTerminator)
-        prefableSpecs.append("  { false, NULL }");
+        if specTerminator:
+            specs.append(specTerminator)
 
         return (("static %s: [%s, ..%i] = [\n" +
                  ",\n".join(specs) + "\n" +
@@ -1194,9 +1158,6 @@ class MethodDefiner(PropertyDefiner):
         if len(array) == 0:
             return ""
 
-        def pref(m):
-            return m["pref"]
-
         def specData(m):
             if m.get("methodInfo", True):
                 jitinfo = ("&%s_methodinfo" % m["name"])
@@ -1216,7 +1177,7 @@ class MethodDefiner(PropertyDefiner):
             '  JSFunctionSpec {name: &%s_name as *u8 as *libc::c_char, call: JSNativeWrapper {op: Some(%s), info: %s}, nargs: %s, flags: %s as u16, selfHostedName: 0 as *libc::c_char }',
             '  JSFunctionSpec {name: 0 as *libc::c_char, call: JSNativeWrapper {op: None, info: 0 as *JSJitInfo}, nargs: 0, flags: 0, selfHostedName: 0 as *libc::c_char }',
             'JSFunctionSpec',
-            pref, specData)
+            specData)
 
 class AttrDefiner(PropertyDefiner):
     def __init__(self, descriptor, name):
@@ -1264,7 +1225,7 @@ class AttrDefiner(PropertyDefiner):
             '  JSPropertySpec { name: &%s_name as *u8 as *libc::c_char, tinyid: 0, flags: ((%s) & 0xFF) as u8, getter: %s, setter: %s }',
             '  JSPropertySpec { name: 0 as *libc::c_char, tinyid: 0, flags: 0, getter: JSPropertyOpWrapper {op: None, info: 0 as *JSJitInfo}, setter: JSStrictPropertyOpWrapper {op: None, info: 0 as *JSJitInfo} }',
             'JSPropertySpec',
-            PropertyDefiner.getControllingPref, specData)
+            specData)
 
 class ConstDefiner(PropertyDefiner):
     """
@@ -1286,17 +1247,16 @@ class ConstDefiner(PropertyDefiner):
 
         def stringDecl(const):
             name = const.identifier.name
-            return "static %s_name: [u8, ..%i] = %s;\n" % (name, len(name) + 1,
-                                                         str_to_const_array(name))
+            return "static %s_name: &'static [u8] = &%s;\n" % (name, str_to_const_array(name))
         
         decls = ''.join([stringDecl(m) for m in array])
 
         return decls + self.generatePrefableArray(
             array, name,
-            '  ConstantSpec { name: &%s_name as *u8 as *libc::c_char, value: %s }',
-            '  ConstantSpec { name: 0 as *libc::c_char, value: VoidVal }',
+            '  ConstantSpec { name: %s_name, value: %s }',
+            None,
             'ConstantSpec',
-            PropertyDefiner.getControllingPref, specData)
+            specData)
 
 # We'll want to insert the indent at the beginnings of lines, but we
 # don't want to indent empty lines.  So only indent lines that have a
@@ -1982,8 +1942,8 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
         def arrayPtr(name):
             val = ('%(' + name + ')s') % self.properties.variableNames(False)
             if val == "ptr::null()":
-                return val
-            return "&%s[0]" % val
+                return "None"
+            return "Some(%s.as_slice())" % val
 
         call = """return CreateInterfaceObjects2(aCx, aGlobal, aReceiver, parentProto,
                                %s, %s, %d,

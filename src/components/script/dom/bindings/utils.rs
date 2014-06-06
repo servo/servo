@@ -192,7 +192,7 @@ pub enum ConstantVal {
 
 #[deriving(Clone)]
 pub struct ConstantSpec {
-    pub name: *libc::c_char,
+    pub name: &'static [u8],
     pub value: ConstantVal
 }
 
@@ -219,10 +219,10 @@ pub fn CreateInterfaceObjects2(cx: *mut JSContext, global: *mut JSObject, receiv
                                constructor: JSNative,
                                ctorNargs: u32,
                                domClass: *DOMClass,
-                               methods: *JSFunctionSpec,
-                               properties: *JSPropertySpec,
-                               constants: *ConstantSpec,
-                               staticMethods: *JSFunctionSpec,
+                               methods: Option<&'static [JSFunctionSpec]>,
+                               properties: Option<&'static [JSPropertySpec]>,
+                               constants: Option<&'static [ConstantSpec]>,
+                               staticMethods: Option<&'static [JSFunctionSpec]>,
                                name: &str) -> *mut JSObject {
     let mut proto = ptr::mut_null();
     if protoClass.is_not_null() {
@@ -261,8 +261,8 @@ pub fn CreateInterfaceObjects2(cx: *mut JSContext, global: *mut JSObject, receiv
 fn CreateInterfaceObject(cx: *mut JSContext, global: *mut JSObject, receiver: *mut JSObject,
                          constructorNative: JSNative,
                          ctorNargs: u32, proto: *mut JSObject,
-                         staticMethods: *JSFunctionSpec,
-                         constants: *ConstantSpec,
+                         staticMethods: Option<&'static [JSFunctionSpec]>,
+                         constants: Option<&'static [ConstantSpec]>,
                          name: *libc::c_char) -> *mut JSObject {
     unsafe {
         let fun = JS_NewFunction(cx, constructorNative, ctorNargs,
@@ -274,14 +274,22 @@ fn CreateInterfaceObject(cx: *mut JSContext, global: *mut JSObject, receiver: *m
         let constructor = JS_GetFunctionObject(fun);
         assert!(constructor.is_not_null());
 
-        if staticMethods.is_not_null() &&
-            !DefineMethods(cx, constructor, staticMethods) {
-            return ptr::mut_null();
+        match staticMethods {
+            Some(staticMethods) => {
+                if !DefineMethods(cx, constructor, staticMethods) {
+                    return ptr::mut_null();
+                }
+            },
+            _ => (),
         }
 
-        if constants.is_not_null() &&
-            !DefineConstants(cx, constructor, constants) {
-            return ptr::mut_null();
+        match constants {
+            Some(constants) => {
+                if !DefineConstants(cx, constructor, constants) {
+                    return ptr::mut_null();
+                }
+            },
+            _ => (),
         }
 
         if proto.is_not_null() && JS_LinkConstructorAndPrototype(cx, constructor, proto) == 0 {
@@ -303,67 +311,73 @@ fn CreateInterfaceObject(cx: *mut JSContext, global: *mut JSObject, receiver: *m
     }
 }
 
-fn DefineConstants(cx: *mut JSContext, obj: *mut JSObject, constants: *ConstantSpec) -> bool {
-    let mut i = 0;
-    loop {
+fn DefineConstants(cx: *mut JSContext, obj: *mut JSObject, constants: &'static [ConstantSpec]) -> bool {
+    constants.iter().all(|spec| {
+        let jsval = match spec.value {
+            NullVal => NullValue(),
+            IntVal(i) => Int32Value(i),
+            UintVal(u) => UInt32Value(u),
+            DoubleVal(d) => DoubleValue(d),
+            BoolVal(b) => BooleanValue(b),
+            VoidVal => UndefinedValue(),
+        };
         unsafe {
-            let spec = *constants.offset(i);
-            if spec.name.is_null() {
-                return true;
-            }
-            let jsval = match spec.value {
-                NullVal => NullValue(),
-                IntVal(i) => Int32Value(i),
-                UintVal(u) => UInt32Value(u),
-                DoubleVal(d) => DoubleValue(d),
-                BoolVal(b) => BooleanValue(b),
-                VoidVal => UndefinedValue(),
-            };
-            if JS_DefineProperty(cx, obj, spec.name,
-                                 jsval, None,
-                                 None,
-                                 JSPROP_ENUMERATE | JSPROP_READONLY |
-                                 JSPROP_PERMANENT) == 0 {
-                return false;
-            }
+            JS_DefineProperty(cx, obj, spec.name.as_ptr() as *libc::c_char,
+                              jsval, None, None,
+                              JSPROP_ENUMERATE | JSPROP_READONLY |
+                              JSPROP_PERMANENT) != 0
         }
-        i += 1;
+    })
+}
+
+fn DefineMethods(cx: *mut JSContext, obj: *mut JSObject, methods: &'static [JSFunctionSpec]) -> bool {
+    unsafe {
+        JS_DefineFunctions(cx, obj, methods.as_ptr()) != 0
     }
 }
 
-fn DefineMethods(cx: *mut JSContext, obj: *mut JSObject, methods: *JSFunctionSpec) -> bool {
+fn DefineProperties(cx: *mut JSContext, obj: *mut JSObject, properties: &'static [JSPropertySpec]) -> bool {
     unsafe {
-        JS_DefineFunctions(cx, obj, methods) != 0
-    }
-}
-
-fn DefineProperties(cx: *mut JSContext, obj: *mut JSObject, properties: *JSPropertySpec) -> bool {
-    unsafe {
-        JS_DefineProperties(cx, obj, properties) != 0
+        JS_DefineProperties(cx, obj, properties.as_ptr()) != 0
     }
 }
 
 fn CreateInterfacePrototypeObject(cx: *mut JSContext, global: *mut JSObject,
                                   parentProto: *mut JSObject, protoClass: *JSClass,
-                                  methods: *JSFunctionSpec,
-                                  properties: *JSPropertySpec,
-                                  constants: *ConstantSpec) -> *mut JSObject {
+                                  methods: Option<&'static [JSFunctionSpec]>,
+                                  properties: Option<&'static [JSPropertySpec]>,
+                                  constants: Option<&'static [ConstantSpec]>) -> *mut JSObject {
     unsafe {
         let ourProto = JS_NewObjectWithUniqueType(cx, protoClass, parentProto, global);
         if ourProto.is_null() {
             return ptr::mut_null();
         }
 
-        if methods.is_not_null() && !DefineMethods(cx, ourProto, methods) {
-            return ptr::mut_null();
+        match methods {
+            Some(methods) => {
+                if !DefineMethods(cx, ourProto, methods) {
+                    return ptr::mut_null();
+                }
+            },
+            _ => (),
         }
 
-        if properties.is_not_null() && !DefineProperties(cx, ourProto, properties) {
-            return ptr::mut_null();
+        match properties {
+            Some(properties) => {
+                if !DefineProperties(cx, ourProto, properties) {
+                    return ptr::mut_null();
+                }
+            },
+            _ => (),
         }
 
-        if constants.is_not_null() && !DefineConstants(cx, ourProto, constants) {
-            return ptr::mut_null();
+        match constants {
+            Some(constants) => {
+                if !DefineConstants(cx, ourProto, constants) {
+                    return ptr::mut_null();
+                }
+            },
+            _ => (),
         }
 
         return ourProto;
