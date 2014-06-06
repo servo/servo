@@ -312,10 +312,8 @@ fn CreateInterfaceObject(cx: *mut JSContext, global: *mut JSObject, receiver: *m
 }
 
 fn DefineConstants(cx: *mut JSContext, obj: *mut JSObject, constants: &'static [ConstantSpec]) -> bool {
-    for spec in constants.iter() {
-        if spec.name.is_null() {
-            return true;
-        }
+    constants.iter().all(|spec| {
+        assert!(spec.name.is_not_null());
         let jsval = match spec.value {
             NullVal => NullValue(),
             IntVal(i) => Int32Value(i),
@@ -325,16 +323,11 @@ fn DefineConstants(cx: *mut JSContext, obj: *mut JSObject, constants: &'static [
             VoidVal => UndefinedValue(),
         };
         unsafe {
-            if JS_DefineProperty(cx, obj, spec.name,
-                                 jsval, None,
-                                 None,
-                                 JSPROP_ENUMERATE | JSPROP_READONLY |
-                                 JSPROP_PERMANENT) == 0 {
-                return false;
-            }
+            JS_DefineProperty(cx, obj, spec.name, jsval, None, None,
+                              JSPROP_ENUMERATE | JSPROP_READONLY |
+                              JSPROP_PERMANENT) != 0
         }
-    }
-    fail!();
+    })
 }
 
 fn DefineMethods(cx: *mut JSContext, obj: *mut JSObject, methods: &'static [JSFunctionSpec]) -> bool {

@@ -1073,7 +1073,7 @@ class PropertyDefiner:
         specTemplate is a template for each entry of the spec array
 
         specTerminator is a terminator for the spec array (inserted at the end
-          of the array)
+          of the array), or None
 
         specType is the actual typename of our spec
 
@@ -1086,7 +1086,8 @@ class PropertyDefiner:
 
         for member in array:
             specs.append(specTemplate % getDataTuple(member))
-        specs.append(specTerminator)
+        if specTerminator:
+            specs.append(specTerminator)
 
         return (("static %s: [%s, ..%i] = [\n" +
                  ",\n".join(specs) + "\n" +
@@ -1254,7 +1255,7 @@ class ConstDefiner(PropertyDefiner):
         return decls + self.generatePrefableArray(
             array, name,
             '  ConstantSpec { name: &%s_name as *u8 as *libc::c_char, value: %s }',
-            '  ConstantSpec { name: 0 as *libc::c_char, value: VoidVal }',
+            None,
             'ConstantSpec',
             specData)
 
