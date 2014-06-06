@@ -70,7 +70,7 @@ pub struct LayoutContext {
 
     /// The CSS selector stylist.
     ///
-    /// FIXME(pcwalton): Make this no longer an unsafe pointer once we have fast `RWArc`s.
+    /// FIXME(#2604): Make this no longer an unsafe pointer once we have fast `RWArc`s.
     pub stylist: *Stylist,
 
     /// The root node at which we're starting the layout.
