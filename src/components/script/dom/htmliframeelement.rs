@@ -5,6 +5,7 @@
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLIFrameElementDerived, HTMLElementCast};
 use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
+use dom::bindings::trace::Traceable;
 use dom::document::Document;
 use dom::element::{HTMLIFrameElementTypeId, Element};
 use dom::element::AttributeHandlers;
@@ -22,6 +23,7 @@ use servo_util::str::DOMString;
 use servo_util::url::try_parse_url;
 
 use std::ascii::StrAsciiExt;
+use std::cell::Cell;
 use url::Url;
 
 enum SandboxAllowance {
@@ -38,7 +40,7 @@ enum SandboxAllowance {
 pub struct HTMLIFrameElement {
     pub htmlelement: HTMLElement,
     pub size: Option<IFrameSize>,
-    pub sandbox: Option<u8>
+    pub sandbox: Traceable<Cell<Option<u8>>>,
 }
 
 impl HTMLIFrameElementDerived for EventTarget {
@@ -60,7 +62,7 @@ pub trait HTMLIFrameElementHelpers {
 
 impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
     fn is_sandboxed(&self) -> bool {
-        self.sandbox.is_some()
+        self.sandbox.deref().get().is_some()
     }
 
     fn get_url(&self) -> Option<Url> {
@@ -78,7 +80,7 @@ impl HTMLIFrameElement {
         HTMLIFrameElement {
             htmlelement: HTMLElement::new_inherited(HTMLIFrameElementTypeId, localName, document),
             size: None,
-            sandbox: None,
+            sandbox: Traceable::new(Cell::new(None)),
         }
     }
 
@@ -146,8 +148,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
                     _ => AllowNothing
                 } as u8;
             }
-            let mut self_alias = self.clone();
-            self_alias.deref_mut().sandbox = Some(modes);
+            self.deref().sandbox.deref().set(Some(modes));
         }
     }
 
@@ -158,8 +159,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
         }
 
         if "sandbox" == name.as_slice() {
-            let mut self_alias = self.clone();
-            self_alias.deref_mut().sandbox = None;
+            self.deref().sandbox.deref().set(None);
         }
     }
 
