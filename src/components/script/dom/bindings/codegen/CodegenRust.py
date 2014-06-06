@@ -1942,8 +1942,8 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
         def arrayPtr(name):
             val = ('%(' + name + ')s') % self.properties.variableNames(False)
             if val == "ptr::null()":
-                return val
-            return "&%s[0]" % val
+                return "None"
+            return "Some(%s.as_slice())" % val
 
         call = """return CreateInterfaceObjects2(aCx, aGlobal, aReceiver, parentProto,
                                %s, %s, %d,
