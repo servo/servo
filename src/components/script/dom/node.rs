@@ -130,6 +130,15 @@ impl NodeFlags {
     }
 }
 
+#[unsafe_destructor]
+impl Drop for Node {
+    fn drop(&mut self) {
+        unsafe {
+            self.reap_layout_data();
+        }
+    }
+}
+
 /// suppress observers flag
 /// http://dom.spec.whatwg.org/#concept-node-insert
 /// http://dom.spec.whatwg.org/#concept-node-remove
