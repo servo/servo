@@ -762,6 +762,6 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         }
         // According to Simon, decode() should never return an error, so unwrap()ing
         // the result should be fine. XXXManishearth have a closer look at this later
-        encoding.decode(self.response.as_slice(), DecodeReplace).unwrap().to_owned()
+        encoding.decode(self.response.as_slice(), DecodeReplace).unwrap().to_string()
     }
 }

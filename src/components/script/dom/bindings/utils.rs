@@ -412,6 +412,7 @@ pub fn reflect_dom_object<T: Reflectable>
     Temporary::new(wrap_fn(window.deref().get_cx(), window, obj))
 }
 
+#[allow(raw_pointer_deriving)]
 #[deriving(Eq)]
 pub struct Reflector {
     pub object: *mut JSObject,
