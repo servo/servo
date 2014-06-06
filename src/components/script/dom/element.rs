@@ -196,6 +196,8 @@ impl LayoutElementHelpers for JS<Element> {
 
 pub trait ElementHelpers {
     fn html_element_in_html_document(&self) -> bool;
+    fn get_local_name<'a>(&'a self) -> &'a str;
+    fn get_namespace<'a>(&'a self) -> &'a Namespace;
 }
 
 impl<'a> ElementHelpers for JSRef<'a, Element> {
@@ -203,6 +205,14 @@ impl<'a> ElementHelpers for JSRef<'a, Element> {
         let is_html = self.namespace == namespace::HTML;
         let node: &JSRef<Node> = NodeCast::from_ref(self);
         is_html && node.owner_doc().root().is_html_document
+    }
+
+    fn get_local_name<'a>(&'a self) -> &'a str {
+        self.deref().local_name.as_slice()
+    }
+
+    fn get_namespace<'a>(&'a self) -> &'a Namespace {
+        &self.deref().namespace
     }
 }
 
@@ -418,6 +428,7 @@ pub trait ElementMethods {
     fn GetInnerHTML(&self) -> Fallible<DOMString>;
     fn GetOuterHTML(&self) -> Fallible<DOMString>;
     fn Children(&self) -> Temporary<HTMLCollection>;
+    fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>>;
     fn Remove(&self);
 }
 
@@ -688,9 +699,16 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         Ok(serialize(&mut NodeIterator::new(NodeCast::from_ref(self), true, false)))
     }
 
+    // http://dom.spec.whatwg.org/#dom-parentnode-children
     fn Children(&self) -> Temporary<HTMLCollection> {
         let window = window_from_node(self).root();
         HTMLCollection::children(&*window, NodeCast::from_ref(self))
+    }
+
+    // http://dom.spec.whatwg.org/#dom-parentnode-queryselector
+    fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>> {
+        let root: &JSRef<Node> = NodeCast::from_ref(self);
+        root.query_selector(selectors)
     }
 
     // http://dom.spec.whatwg.org/#dom-childnode-remove
@@ -797,5 +815,35 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
             }
             _ => ()
         }
+    }
+}
+
+impl<'a> style::TElement for JSRef<'a, Element> {
+    fn get_attr(&self, namespace: &Namespace, attr: &str) -> Option<&'static str> {
+        self.get_attribute(namespace.clone(), attr).root().map(|attr| {
+            unsafe { mem::transmute(attr.deref().value_ref()) }
+        })
+    }
+    fn get_link(&self) -> Option<&'static str> {
+        // FIXME: This is HTML only.
+        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        match node.type_id() {
+            // http://www.whatwg.org/specs/web-apps/current-work/multipage/selectors.html#
+            // selector-link
+            ElementNodeTypeId(HTMLAnchorElementTypeId) |
+            ElementNodeTypeId(HTMLAreaElementTypeId) |
+            ElementNodeTypeId(HTMLLinkElementTypeId) => self.get_attr(&namespace::Null, "href"),
+            _ => None,
+         }
+    }
+    fn get_local_name<'a>(&'a self) -> &'a str {
+        (self as &ElementHelpers).get_local_name()
+    }
+    fn get_namespace<'a>(&'a self) -> &'a Namespace {
+        (self as &ElementHelpers).get_namespace()
+    }
+    fn get_hover_state(&self) -> bool {
+        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        node.get_hover_state()
     }
 }

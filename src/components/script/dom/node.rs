@@ -4,7 +4,8 @@
 
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
-use dom::attr::Attr;
+use cssparser::tokenize;
+use dom::attr::{Attr, AttrMethods};
 use dom::bindings::codegen::InheritTypes::{CommentCast, DocumentCast, DocumentTypeCast};
 use dom::bindings::codegen::InheritTypes::{ElementCast, TextCast, NodeCast, ElementDerived};
 use dom::bindings::codegen::InheritTypes::{CharacterDataCast, NodeBase, NodeDerived};
@@ -14,14 +15,15 @@ use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, Root, OptionalUnr
 use dom::bindings::js::{OptionalSettable, TemporaryPushable, OptionalRootedRootable};
 use dom::bindings::js::{ResultRootable, OptionalRootable};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::bindings::error::{ErrorResult, Fallible, NotFound, HierarchyRequest};
+use dom::bindings::error::{ErrorResult, Fallible, NotFound, HierarchyRequest, Syntax};
 use dom::bindings::utils;
 use dom::characterdata::{CharacterData, CharacterDataMethods};
 use dom::comment::Comment;
 use dom::document::{Document, DocumentMethods, DocumentHelpers, HTMLDocument, NonHTMLDocument};
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
-use dom::element::{Element, ElementMethods, ElementTypeId, HTMLAnchorElementTypeId};
+use dom::element::{AttributeHandlers, Element, ElementMethods, ElementTypeId};
+use dom::element::{HTMLAnchorElementTypeId, ElementHelpers};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::nodelist::{NodeList};
 use dom::processinginstruction::{ProcessingInstruction, ProcessingInstructionMethods};
@@ -34,6 +36,7 @@ use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery, C
                        LayoutChan, ReapLayoutDataMsg, TrustedNodeAddress, UntrustedNodeAddress};
 use servo_util::geometry::Au;
 use servo_util::str::{DOMString, null_str_as_empty};
+use style::{parse_selector_list, matches_compound_selector, NamespaceMap};
 
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use js::jsfriendapi;
@@ -42,6 +45,7 @@ use libc::uintptr_t;
 use std::cell::{Cell, RefCell, Ref, RefMut};
 use std::iter::{Map, Filter};
 use std::mem;
+use style;
 use style::ComputedValues;
 use sync::Arc;
 
@@ -384,6 +388,8 @@ pub trait NodeHelpers {
     fn get_bounding_content_box(&self) -> Rect<Au>;
     fn get_content_boxes(&self) -> Vec<Rect<Au>>;
 
+    fn query_selector(&self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>>;
+
     fn remove_self(&self);
 }
 
@@ -542,6 +548,31 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
         let addr = self.to_trusted_node_address();
         let ContentBoxesResponse(rects) = page.query_layout(ContentBoxesQuery(addr, chan), port);
         rects
+    }
+
+    // http://dom.spec.whatwg.org/#dom-parentnode-queryselector
+    fn query_selector(&self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>> {
+        // Step 1.
+        let namespace = NamespaceMap::new();
+        match parse_selector_list(tokenize(selectors.as_slice()).map(|(token, _)| token).collect(), &namespace) {
+            // Step 2.
+            None => return Err(Syntax),
+            // Step 3.
+            Some(ref selectors) => {
+                for selector in selectors.iter() {
+                    assert!(selector.pseudo_element.is_none());
+                    let root = self.ancestors().last().unwrap_or(self.clone());
+                    for node in root.traverse_preorder().filter(|node| node.is_element()) {
+                        let mut _shareable: bool = false;
+                        if matches_compound_selector(selector.compound_selectors.deref(), &node, &mut _shareable) {
+                            let elem: &JSRef<Element> = ElementCast::to_ref(&node).unwrap();
+                            return Ok(Some(Temporary::from_rooted(elem)));
+                        }
+                    }
+                }
+            }
+        }
+        Ok(None)
     }
 
     fn ancestors(&self) -> AncestorIterator {
@@ -1898,5 +1929,48 @@ impl<'a> VirtualMethods for JSRef<'a, Node> {
     fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods:> {
         let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
         Some(eventtarget as &VirtualMethods:)
+    }
+}
+
+impl<'a> style::TNode<JSRef<'a, Element>> for JSRef<'a, Node> {
+    fn parent_node(&self) -> Option<JSRef<'a, Node>> {
+        (self as &NodeHelpers).parent_node().map(|node| *node.root())
+    }
+    fn prev_sibling(&self) -> Option<JSRef<'a, Node>> {
+        (self as &NodeHelpers).prev_sibling().map(|node| *node.root())
+    }
+    fn next_sibling(&self) -> Option<JSRef<'a, Node>> {
+        (self as &NodeHelpers).next_sibling().map(|node| *node.root())
+    }
+    fn is_document(&self) -> bool {
+        (self as &NodeHelpers).is_document()
+    }
+    fn is_element(&self) -> bool {
+        (self as &NodeHelpers).is_element()
+    }
+    fn as_element(&self) -> JSRef<'a, Element> {
+        let elem: Option<&JSRef<'a, Element>> = ElementCast::to_ref(self);
+        assert!(elem.is_some());
+        *elem.unwrap()
+    }
+    fn match_attr(&self, attr: &style::AttrSelector, test: |&str| -> bool) -> bool {
+        let name = {
+            let elem: Option<&JSRef<'a, Element>> = ElementCast::to_ref(self);
+            assert!(elem.is_some());
+            let elem: &ElementHelpers = elem.unwrap() as &ElementHelpers;
+            if elem.html_element_in_html_document() {
+                attr.lower_name.as_slice()
+            } else {
+                attr.name.as_slice()
+            }
+        };
+        match attr.namespace {
+            style::SpecificNamespace(ref ns) => {
+                self.as_element().get_attribute(ns.clone(), name).root()
+                    .map_or(false, |attr| test(attr.deref().Value().as_slice()))
+            },
+            // FIXME: https://github.com/mozilla/servo/issues/1558
+            style::AnyNamespace => false,
+        }
     }
 }

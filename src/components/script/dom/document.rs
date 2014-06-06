@@ -12,7 +12,8 @@ use dom::bindings::js::{JS, JSRef, Temporary, OptionalSettable, TemporaryPushabl
 use dom::bindings::js::OptionalRootable;
 use dom::bindings::trace::Untraceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::bindings::error::{ErrorResult, Fallible, NotSupported, InvalidCharacter, HierarchyRequest, NamespaceError};
+use dom::bindings::error::{ErrorResult, Fallible, NotSupported, InvalidCharacter};
+use dom::bindings::error::{HierarchyRequest, NamespaceError};
 use dom::bindings::utils::{xml_name_type, InvalidXMLName, Name, QName};
 use dom::comment::Comment;
 use dom::customevent::CustomEvent;
@@ -328,6 +329,7 @@ pub trait DocumentMethods {
     fn Applets(&self) -> Temporary<HTMLCollection>;
     fn Location(&self) -> Temporary<Location>;
     fn Children(&self) -> Temporary<HTMLCollection>;
+    fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>>;
     fn GetOnload(&self) -> Option<EventHandlerNonNull>;
     fn SetOnload(&mut self, listener: Option<EventHandlerNonNull>);
 }
@@ -805,9 +807,16 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         window.Location()
     }
 
+    // http://dom.spec.whatwg.org/#dom-parentnode-children
     fn Children(&self) -> Temporary<HTMLCollection> {
         let window = self.window.root();
         HTMLCollection::children(&*window, NodeCast::from_ref(self))
+    }
+
+    // http://dom.spec.whatwg.org/#dom-parentnode-queryselector
+    fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>> {
+        let root: &JSRef<Node> = NodeCast::from_ref(self);
+        root.query_selector(selectors)
     }
 
     fn GetOnload(&self) -> Option<EventHandlerNonNull> {
