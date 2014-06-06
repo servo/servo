@@ -566,11 +566,12 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
             Some(ref selectors) => {
                 for selector in selectors.iter() {
                     assert!(selector.pseudo_element.is_none());
-                    for elem in self.child_elements() {
-                        let node: &JSRef<Node> = NodeCast::from_ref(&elem);
+                    let root = self.ancestors().last().unwrap_or(self.clone());
+                    for node in root.traverse_preorder().filter(|node| node.is_element()) {
                         let mut _shareable: bool = false;
-                        if matches_compound_selector(selector.compound_selectors.deref(), node, &mut _shareable) {
-                            return Ok(Some(Temporary::from_rooted(&elem)));
+                        if matches_compound_selector(selector.compound_selectors.deref(), &node, &mut _shareable) {
+                            let elem: &JSRef<Element> = ElementCast::to_ref(&node).unwrap();
+                            return Ok(Some(Temporary::from_rooted(elem)));
                         }
                     }
                 }
