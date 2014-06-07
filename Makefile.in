@@ -391,12 +391,12 @@ package: servo
 
 else
 
-bindings: $(AUTOGEN_SRC_script)
-
 .PHONY: package
 package:
 
 endif
+
+bindings: $(AUTOGEN_SRC_script)
 
 # Backup targets. These axist until build slaves are using Makefile.backup directly.
 
