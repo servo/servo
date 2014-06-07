@@ -16,7 +16,7 @@ use layout::flow::{PreorderFlowTraversal, PostorderFlowTraversal};
 use layout::flow;
 use layout::flow_ref::FlowRef;
 use layout::incremental::RestyleDamage;
-use layout::parallel::PaddedUnsafeFlow;
+use layout::parallel::UnsafeFlow;
 use layout::parallel;
 use layout::util::{LayoutDataAccess, LayoutDataWrapper, OpaqueNodeMethods, ToGfxColor};
 use layout::wrapper::{LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
@@ -97,7 +97,7 @@ pub struct LayoutTask {
     pub stylist: Box<Stylist>,
 
     /// The workers that we use for parallel operation.
-    pub parallel_traversal: Option<WorkQueue<*mut LayoutContext,PaddedUnsafeFlow>>,
+    pub parallel_traversal: Option<WorkQueue<*mut LayoutContext,UnsafeFlow>>,
 
     /// The channel on which messages can be sent to the profiler.
     pub profiler_chan: ProfilerChan,
