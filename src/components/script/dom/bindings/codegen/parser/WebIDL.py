@@ -2133,7 +2133,7 @@ class IDLAttribute(IDLInterfaceMember):
             raise WebIDLError("An attribute cannot be of a sequence type",
                               [self.location])
         if self.type.isUnion():
-            for f in self.type.flatMemberTypes:
+            for f in self.type.unroll().flatMemberTypes:
                 if f.isDictionary():
                     raise WebIDLError("An attribute cannot be of a union "
                                       "type if one of its member types (or "

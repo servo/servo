@@ -69,8 +69,8 @@ interface TestBinding {
            attribute ByteString byteStringAttribute;
            attribute TestEnum enumAttribute;
            attribute Blob interfaceAttribute;
-  //         attribute (HTMLElement or long) unionAttribute;
-  //         attribute (Event or DOMString) union2Attribute;
+           attribute (HTMLElement or long) unionAttribute;
+           attribute (Event or DOMString) union2Attribute;
            attribute any anyAttribute;
 
            attribute boolean? booleanAttributeNullable;
@@ -88,8 +88,8 @@ interface TestBinding {
            attribute ByteString? byteStringAttributeNullable;
   readonly attribute TestEnum? enumAttributeNullable;
            attribute Blob? interfaceAttributeNullable;
-  //         attribute (HTMLElement or long)? unionAttributeNullable;
-  //         attribute (Event or DOMString)? union2AttributeNullable;
+           attribute (HTMLElement or long)? unionAttributeNullable;
+           attribute (Event or DOMString)? union2AttributeNullable;
 
   void receiveVoid();
   boolean receiveBoolean();
@@ -106,6 +106,8 @@ interface TestBinding {
   TestEnum receiveEnum();
   Blob receiveInterface();
   any receiveAny();
+  (HTMLElement or long) receiveUnion();
+  (Event or DOMString) receiveUnion2();
 
   byte? receiveNullableByte();
   boolean? receiveNullableBoolean();
@@ -120,6 +122,8 @@ interface TestBinding {
   ByteString? receiveNullableByteString();
   TestEnum? receiveNullableEnum();
   Blob? receiveNullableInterface();
+  (HTMLElement or long)? receiveNullableUnion();
+  (Event or DOMString)? receiveNullableUnion2();
 
   void passBoolean(boolean arg);
   void passByte(byte arg);
