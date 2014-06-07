@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use std::from_str::FromStr;
 use std::hash::{Hash, sip};
+use std::path::BytesContainer;
 use std::str;
 
 #[deriving(Encodable,Clone,TotalEq,Eq)]
@@ -112,5 +114,11 @@ impl Hash for ByteString {
     fn hash(&self, state: &mut sip::SipState) {
         let ByteString(ref vec) = *self;
         vec.hash(state);
+    }
+}
+
+impl FromStr for ByteString {
+    fn from_str(s: &str) -> Option<ByteString> {
+        Some(ByteString::new(s.container_into_owned_bytes()))
     }
 }

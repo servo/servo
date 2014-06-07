@@ -56,7 +56,7 @@ interface XMLHttpRequest : XMLHttpRequestEventTarget {
   readonly attribute DOMString responseURL;
   readonly attribute unsigned short status;
   readonly attribute ByteString statusText;
-  // ByteString? getResponseHeader(ByteString name);
+  ByteString? getResponseHeader(ByteString name);
   ByteString getAllResponseHeaders();
   // void overrideMimeType(DOMString mime);
   [SetterThrows]
