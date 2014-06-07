@@ -1002,6 +1002,11 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
         if returnType.nullable():
             result = CGWrapper(result, pre="Option<", post=">")
         return result
+    if returnType.isUnion():
+        result = CGGeneric('%s::%s' % (returnType.unroll().name, returnType.unroll().name))
+        if returnType.nullable():
+            result = CGWrapper(result, pre="Option<", post=">")
+        return result
     if returnType.isAny():
         return CGGeneric("JSVal")
     if returnType.isObject() or returnType.isSpiderMonkeyInterface():
