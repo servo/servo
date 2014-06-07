@@ -22,8 +22,8 @@ enum XMLHttpRequestResponseType {
   "text"
 };
 
-[Constructor,
- Exposed=Window,Worker]
+[Constructor/*,
+ Exposed=Window,Worker*/]
 interface XMLHttpRequest : XMLHttpRequestEventTarget {
   // event handler
   attribute EventHandler onreadystatechange;
@@ -64,5 +64,5 @@ interface XMLHttpRequest : XMLHttpRequestEventTarget {
   readonly attribute any response;
   [Throws]
   readonly attribute DOMString responseText;
-  [Exposed=Window] readonly attribute Document? responseXML;
+  /*[Exposed=Window]*/ readonly attribute Document? responseXML;
 };

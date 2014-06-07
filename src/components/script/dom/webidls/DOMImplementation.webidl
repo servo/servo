@@ -14,13 +14,12 @@
 interface DOMImplementation {
   /*boolean hasFeature(DOMString feature,
                      [TreatNullAs=EmptyString] DOMString version);*/
-  [Creator, Throws]
+  [Throws]
   DocumentType createDocumentType(DOMString qualifiedName, DOMString publicId,
                                   DOMString systemId);
-  [Creator, Throws]
+  [Throws]
   Document createDocument(DOMString? namespace,
                           [TreatNullAs=EmptyString] DOMString qualifiedName,
                           optional DocumentType? doctype = null);
-  [Creator]
   Document createHTMLDocument(optional DOMString title);
 };
