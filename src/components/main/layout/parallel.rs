@@ -16,7 +16,7 @@ use layout::flow_ref::FlowRef;
 use layout::layout_task::{AssignHeightsAndStoreOverflowTraversal, AssignWidthsTraversal};
 use layout::layout_task::{BubbleWidthsTraversal};
 use layout::util::{LayoutDataAccess, LayoutDataWrapper, OpaqueNodeMethods};
-use layout::wrapper::{layout_node_to_unsafe_layout_node, LayoutNode, PostorderNodeMutTraversal};
+use layout::wrapper::{layout_node_to_unsafe_layout_node, layout_node_from_unsafe_layout_node, LayoutNode, PostorderNodeMutTraversal};
 use layout::wrapper::{ThreadSafeLayoutNode, UnsafeLayoutNode};
 
 use gfx::display_list::OpaqueNode;
@@ -219,7 +219,7 @@ fn recalc_style_for_node(unsafe_layout_node: UnsafeLayoutNode,
         let layout_context: &mut LayoutContext = mem::transmute(*proxy.user_data());
 
         // Get a real layout node.
-        let node: LayoutNode = ::std::intrinsics::transmute(unsafe_layout_node);
+        let node: LayoutNode = layout_node_from_unsafe_layout_node(&unsafe_layout_node);
 
         // Initialize layout data.
         //
@@ -309,9 +309,7 @@ fn construct_flows(mut unsafe_layout_node: UnsafeLayoutNode,
         };
 
         // Get a real layout node.
-        let node: LayoutNode = unsafe {
-            mem::transmute(unsafe_layout_node)
-        };
+        let node: LayoutNode = layout_node_from_unsafe_layout_node(&unsafe_layout_node);
 
         // Construct flows for this node.
         {
