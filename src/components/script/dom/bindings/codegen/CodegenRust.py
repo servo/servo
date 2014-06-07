@@ -518,7 +518,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         if not isinstance(defaultValue, IDLNullValue):
             raise TypeError("Can't handle non-null default value here")
 
-        assert type.nullable() or type.isAny() or type.isDictionary()
+        assert type.nullable() or type.isDictionary()
         return nullValue
 
     # A helper function for wrapping up the template body for
@@ -752,7 +752,17 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         assert not isEnforceRange and not isClamp
 
         declType = CGGeneric("JSVal")
-        return handleOptional("${val}", declType, handleDefaultNull("NullValue()"))
+
+        if defaultValue is None:
+            default = None
+        elif isinstance(defaultValue, IDLNullValue):
+            default = "NullValue()"
+        elif isinstance(defaultValue, IDLUndefinedValue):
+            default = "UndefinedValue()"
+        else:
+            raise TypeError("Can't handle non-null, non-undefined default value here")
+
+        return handleOptional("${val}", declType, default)
 
     if type.isObject():
         raise TypeError("Can't handle object arguments yet")
