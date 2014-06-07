@@ -3048,6 +3048,9 @@ class IDLCallbackType(IDLType, IDLObjectWithScope):
         self._treatNonCallableAsNull = False
         self._treatNonObjectAsNull = False
 
+    def module(self):
+        return self.location.filename().split('/')[-1].split('.webidl')[0] + 'Binding'
+
     def isCallback(self):
         return True
 
