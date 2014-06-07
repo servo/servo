@@ -281,17 +281,8 @@ impl<C:RenderListener + Send> RenderTask<C> {
     }
 
     fn spawn_workers(&mut self, result_tx: Sender<Box<LayerBuffer>>) -> Vec<Sender<WorkerMsg>> {
-        // FIXME (rust/14707): This still isn't exposed publicly via std::rt??
-        // FIXME (rust/14704): Terrible name for this lint, which here is allowing
-        //                     Rust types, not C types
-        #[allow(ctypes)]
-        extern {
-            fn rust_get_num_cpus() -> uint;
-        }
-
-        let num_workers = unsafe { rust_get_num_cpus() as uint };
         let mut worker_chans = vec![];
-        for render_idx in range(0, num_workers) {
+        for render_idx in range(0, self.opts.n_render_threads) {
             let (tx, rx) = channel();
             let result_tx = result_tx.clone();
 

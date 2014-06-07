@@ -83,10 +83,10 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
         getopts::optopt("r", "rendering", "Rendering backend", "direct2d|core-graphics|core-graphics-accelerated|cairo|skia."),
         getopts::optopt("s", "size", "Size of tiles", "512"),
         getopts::optopt("", "device-pixel-ratio", "Device pixels per px", ""),
-        getopts::optopt("t", "threads", "Number of render threads", "1"),
         getopts::optflagopt("p", "profile", "Profiler flag and output interval", "10"),
         getopts::optflag("x", "exit", "Exit after load flag"),
-        getopts::optopt("y", "layout-threads", "Number of threads to use for layout", "1"),
+        getopts::optopt("t", "threads", "Number of render threads", "[n-cores]"),
+        getopts::optopt("y", "layout-threads", "Number of layout threads", "1"),
         getopts::optflag("z", "headless", "Headless mode"),
         getopts::optflag("f", "hard-fail", "Exit on task failure instead of displaying about:failure"),
         getopts::optflag("b", "bubble-widths", "Bubble intrinsic widths separately like other engines"),
@@ -144,7 +144,17 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
 
     let n_render_threads: uint = match opt_match.opt_str("t") {
         Some(n_render_threads_str) => from_str(n_render_threads_str.as_slice()).unwrap(),
-        None => 1,      // FIXME: Number of cores.
+        None => {
+            // FIXME (rust/14707): This still isn't exposed publicly via std::rt??
+            // FIXME (rust/14704): Terrible name for this lint, which here is allowing
+            //                     Rust types, not C types
+            #[allow(ctypes)]
+            extern {
+                fn rust_get_num_cpus() -> uint;
+            }
+
+            unsafe { rust_get_num_cpus() as uint }
+        }
     };
 
     // if only flag is present, default to 5 second period
