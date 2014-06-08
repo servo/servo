@@ -129,6 +129,8 @@ pub trait WindowMethods {
     fn Window(&self) -> Temporary<Window>;
     fn Self(&self) -> Temporary<Window>;
     fn Performance(&self) -> Temporary<Performance>;
+    fn GetOnclick(&self) -> Option<EventHandlerNonNull>;
+    fn SetOnclick(&mut self, listener: Option<EventHandlerNonNull>);
     fn GetOnload(&self) -> Option<EventHandlerNonNull>;
     fn SetOnload(&mut self, listener: Option<EventHandlerNonNull>);
     fn GetOnunload(&self) -> Option<EventHandlerNonNull>;
@@ -215,6 +217,16 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
             self.performance.assign(Some(performance));
         }
         Temporary::new(self.performance.get().get_ref().clone())
+    }
+
+    fn GetOnclick(&self) -> Option<EventHandlerNonNull> {
+        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        eventtarget.get_event_handler_common("click")
+    }
+
+    fn SetOnclick(&mut self, listener: Option<EventHandlerNonNull>) {
+        let eventtarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(self);
+        eventtarget.set_event_handler_common("click", listener)
     }
 
     fn GetOnload(&self) -> Option<EventHandlerNonNull> {

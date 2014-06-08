@@ -21,12 +21,13 @@ typedef OnErrorEventHandlerNonNull? OnErrorEventHandler;
 
 [NoInterfaceObject]
 interface GlobalEventHandlers {
-  attribute EventHandler onload;
+           attribute EventHandler onclick;
+           attribute EventHandler onload;
 };
 
 [NoInterfaceObject]
 interface WindowEventHandlers {
-  attribute EventHandler onunload;
+           attribute EventHandler onunload;
 };
 
 // The spec has |attribute OnErrorEventHandler onerror;| on
