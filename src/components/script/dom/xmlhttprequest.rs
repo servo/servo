@@ -95,7 +95,7 @@ enum SyncOrAsync<'a, 'b> {
 impl<'a,'b> SyncOrAsync<'a,'b> {
     fn is_async(&self) -> bool {
         match *self {
-            Sync(_) => true,
+            Async(_,_) => true,
             _ => false
         }
     }
