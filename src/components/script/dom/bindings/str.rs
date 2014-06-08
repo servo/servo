@@ -47,6 +47,9 @@ impl ByteString {
 
     pub fn is_token(&self) -> bool {
         let ByteString(ref vec) = *self;
+        if vec.len() == 0 {
+            return false; // A token must be at least a single character
+        }
         vec.iter().all(|&x| {
             // http://tools.ietf.org/html/rfc2616#section-2.2
             match x {
@@ -55,6 +58,7 @@ impl ByteString {
                 44 | 59 | 58 | 92 | 34 |
                 47 | 91 | 93 | 63 | 61 |
                 123 | 125 | 32  => false, // separators
+                x if x > 127 => false, // non-CHARs
                 _ => true
             }
         })

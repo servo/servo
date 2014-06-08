@@ -301,7 +301,7 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
                 };
                 // XXXManishearth Do some handling of username/passwords
                 if self.sync {
-                    // FIXME: This should only happen if the global environmet is a document environment
+                    // FIXME: This should only happen if the global environment is a document environment
                     if self.timeout != 0 || self.with_credentials || self.response_type != _empty {
                         return Err(InvalidAccess)
                     }
@@ -320,6 +320,8 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
                 }
                 Ok(())
             },
+            // This includes cases where as_str() returns None, and when is_token() returns false,
+            // both of which indicate invalid extension method names
             _ => Err(Syntax), // Step 3
         }
     }
