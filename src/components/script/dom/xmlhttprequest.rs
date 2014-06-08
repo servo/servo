@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestRespo
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseTypeValues::{_empty, Json, Text};
 use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast, XMLHttpRequestDerived};
 use dom::bindings::conversions::ToJSValConvertible;
-use dom::bindings::error::{ErrorResult, Fallible, InvalidState, Network, Syntax, Security};
+use dom::bindings::error::{ErrorResult, Fallible, InvalidState, InvalidAccess, Network, Syntax, Security};
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalSettable, OptionalRootedRootable};
 use dom::bindings::str::ByteString;
 use dom::bindings::trace::Untraceable;
@@ -30,7 +30,7 @@ use RequestHeaderCollection = http::headers::request::HeaderCollection;
 use http::headers::content_type::MediaType;
 use http::headers::{HeaderEnum, HeaderValueByteIterator};
 use http::headers::request::Header;
-use http::method::{Method, Get, Head, Post, Connect, Trace};
+use http::method::{Method, Get, Head, Connect, Trace, ExtensionMethod};
 use http::status::Status;
 
 use js::jsapi::{JS_AddObjectRoot, JS_ParseJSON, JS_RemoveObjectRoot, JSContext};
@@ -95,7 +95,7 @@ enum SyncOrAsync<'a, 'b> {
 impl<'a,'b> SyncOrAsync<'a,'b> {
     fn is_async(&self) -> bool {
         match *self {
-            Sync(_) => true,
+            Async(_,_) => true,
             _ => false
         }
     }
@@ -241,7 +241,7 @@ pub trait XMLHttpRequestMethods<'a> {
     fn ResponseURL(&self) -> DOMString;
     fn Status(&self) -> u16;
     fn StatusText(&self) -> ByteString;
-    fn GetResponseHeader(&self, _name: ByteString) -> Option<ByteString>;
+    fn GetResponseHeader(&self, name: ByteString) -> Option<ByteString>;
     fn GetAllResponseHeaders(&self) -> ByteString;
     fn OverrideMimeType(&self, _mime: DOMString);
     fn ResponseType(&self) -> XMLHttpRequestResponseType;
@@ -267,13 +267,30 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
     }
 
     fn Open(&mut self, method: ByteString, url: DOMString) -> ErrorResult {
-        let maybe_method: Option<Method> = method.as_str().and_then(|s| {
-            FromStr::from_str(s.to_ascii_upper().as_slice()) // rust-http tests against the uppercase versions
+        let uppercase_method = method.as_str().map(|s| {
+            let upper = s.to_ascii_upper();
+            match upper.as_slice() {
+                "DELETE" | "GET" | "HEAD" | "OPTIONS" |
+                "POST" | "PUT" | "CONNECT" | "TRACE" |
+                "TRACK" => upper,
+                _ => s.to_string()
+            }
+        });
+        let maybe_method: Option<Method> = uppercase_method.and_then(|s| {
+            // Note: rust-http tests against the uppercase versions
+            // Since we want to pass methods not belonging to the short list above
+            // without changing capitalization, this will actually sidestep rust-http's type system
+            // since methods like "patch" or "PaTcH" will be considered extension methods
+            // despite the there being a rust-http method variant for them
+            Method::from_str_or_new(s.as_slice())
         });
         // Step 2
         let base: Option<Url> = Some(self.global.root().get_url());
         match maybe_method {
-            Some(Get) | Some(Post) | Some(Head) => {
+            // Step 4
+            Some(Connect) | Some(Trace) => Err(Security),
+            Some(ExtensionMethod(ref t)) if t.as_slice() == "TRACK" => Err(Security),
+            Some(_) if method.is_token() => {
 
                 *self.request_method = maybe_method.unwrap();
 
@@ -282,8 +299,14 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
                     Ok(parsed) => parsed,
                     Err(_) => return Err(Syntax) // Step 7
                 };
-                // XXXManishearth Do some handling of username/passwords, and abort existing requests
-
+                // XXXManishearth Do some handling of username/passwords
+                if self.sync {
+                    // FIXME: This should only happen if the global environment is a document environment
+                    if self.timeout != 0 || self.with_credentials || self.response_type != _empty {
+                        return Err(InvalidAccess)
+                    }
+                }
+                // XXXManishearth abort existing requests
                 // Step 12
                 *self.request_url = parsed_url;
                 *self.request_headers = RequestHeaderCollection::new();
@@ -295,22 +318,11 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
                 if self.ready_state != Opened {
                     self.change_ready_state(Opened);
                 }
-                //XXXManishearth fire a progressevent
                 Ok(())
             },
-            // XXXManishearth Handle other standard methods
-            Some(Connect) | Some(Trace) => {
-                // XXXManishearth Track isn't in rust-http, but it should end up in this match arm.
-                Err(Security) // Step 4
-            },
-            None => Err(Syntax), // Step 3
-            _ => {
-                if method.is_token() {
-                    Ok(()) // XXXManishearth handle extension methods
-                } else {
-                    Err(Syntax) // Step 3
-                }
-            }
+            // This includes cases where as_str() returns None, and when is_token() returns false,
+            // both of which indicate invalid extension method names
+            _ => Err(Syntax), // Step 3
         }
     }
     fn Open_(&mut self, method: ByteString, url: DOMString, async: bool,
@@ -491,8 +503,12 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
     fn StatusText(&self) -> ByteString {
         self.status_text.clone()
     }
-    fn GetResponseHeader(&self, _name: ByteString) -> Option<ByteString> {
-        None
+    fn GetResponseHeader(&self, name: ByteString) -> Option<ByteString> {
+        self.response_headers.deref().iter().find(|h| {
+            name.eq_ignore_case(&FromStr::from_str(h.header_name().as_slice()).unwrap())
+        }).map(|h| {
+            FromStr::from_str(h.header_value().as_slice()).unwrap()
+        })
     }
     fn GetAllResponseHeaders(&self) -> ByteString {
         let mut writer = MemWriter::new();

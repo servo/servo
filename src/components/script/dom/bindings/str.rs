@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use std::from_str::FromStr;
 use std::hash::{Hash, sip};
+use std::path::BytesContainer;
 use std::str;
 
 #[deriving(Encodable,Clone,TotalEq,Eq)]
@@ -45,6 +47,9 @@ impl ByteString {
 
     pub fn is_token(&self) -> bool {
         let ByteString(ref vec) = *self;
+        if vec.len() == 0 {
+            return false; // A token must be at least a single character
+        }
         vec.iter().all(|&x| {
             // http://tools.ietf.org/html/rfc2616#section-2.2
             match x {
@@ -53,6 +58,7 @@ impl ByteString {
                 44 | 59 | 58 | 92 | 34 |
                 47 | 91 | 93 | 63 | 61 |
                 123 | 125 | 32  => false, // separators
+                x if x > 127 => false, // non-CHARs
                 _ => true
             }
         })
@@ -112,5 +118,11 @@ impl Hash for ByteString {
     fn hash(&self, state: &mut sip::SipState) {
         let ByteString(ref vec) = *self;
         vec.hash(state);
+    }
+}
+
+impl FromStr for ByteString {
+    fn from_str(s: &str) -> Option<ByteString> {
+        Some(ByteString::new(s.container_into_owned_bytes()))
     }
 }

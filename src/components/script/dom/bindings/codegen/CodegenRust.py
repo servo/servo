@@ -2627,7 +2627,7 @@ use js::jsapi::JSContext;
 use js::jsval::JSVal;
 
 #[repr(uint)]
-#[deriving(Encodable)]
+#[deriving(Encodable, Eq)]
 pub enum valuelist {
   %s
 }

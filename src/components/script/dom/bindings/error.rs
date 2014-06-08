@@ -26,6 +26,7 @@ pub enum Error {
     InvalidState,
     Syntax,
     NamespaceError,
+    InvalidAccess,
     Security,
     Network
 }
