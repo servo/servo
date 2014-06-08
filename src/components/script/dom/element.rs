@@ -5,7 +5,7 @@
 //! Element nodes.
 
 use dom::attr::{Attr, ReplacedAttr, FirstSetAttr, AttrMethods};
-use dom::attr::{AttrValue, StringAttrValue};
+use dom::attr::{AttrValue, StringAttrValue, UIntAttrValue};
 use dom::attrlist::AttrList;
 use dom::bindings::codegen::Bindings::ElementBinding;
 use dom::bindings::codegen::InheritTypes::{ElementDerived, NodeCast};
@@ -243,6 +243,7 @@ pub trait AttributeHandlers {
     fn get_string_attribute(&self, name: &str) -> DOMString;
     fn set_string_attribute(&self, name: &str, value: DOMString);
     fn set_tokenlist_attribute(&self, name: &str, value: DOMString);
+    fn get_uint_attribute(&self, name: &str) -> u32;
     fn set_uint_attribute(&self, name: &str, value: u32);
 }
 
@@ -388,9 +389,22 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         self.set_attribute(name, AttrValue::from_tokenlist(value));
     }
 
+    fn get_uint_attribute(&self, name: &str) -> u32 {
+        assert!(name == name.to_ascii_lower().as_slice());
+        let attribute = self.get_attribute(Null, name).root();
+        match attribute {
+            Some(attribute) => {
+                match *attribute.deref().value() {
+                    UIntAttrValue(_, value) => value,
+                    _ => fail!("Expected a UIntAttrValue"),
+                }
+            }
+            None => 0,
+        }
+    }
     fn set_uint_attribute(&self, name: &str, value: u32) {
         assert!(name == name.to_ascii_lower().as_slice());
-        self.set_attribute(name, StringAttrValue(value.to_str()));
+        self.set_attribute(name, UIntAttrValue(value.to_str(), value));
     }
 }
 

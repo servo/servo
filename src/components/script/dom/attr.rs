@@ -24,6 +24,7 @@ pub enum AttrSettingType {
 pub enum AttrValue {
     StringAttrValue(DOMString),
     TokenListAttrValue(DOMString, Vec<(uint, uint)>),
+    UIntAttrValue(DOMString, u32),
 }
 
 impl AttrValue {
@@ -39,10 +40,16 @@ impl AttrValue {
         return TokenListAttrValue(list, indexes);
     }
 
+    pub fn from_u32(string: DOMString, default: u32) -> AttrValue {
+        let result: u32 = from_str(string.as_slice()).unwrap_or(default);
+        UIntAttrValue(string, result)
+    }
+
     pub fn as_slice<'a>(&'a self) -> &'a str {
         match *self {
             StringAttrValue(ref value) |
-            TokenListAttrValue(ref value, _) => value.as_slice(),
+            TokenListAttrValue(ref value, _) |
+            UIntAttrValue(ref value, _) => value.as_slice(),
         }
     }
 }
