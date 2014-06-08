@@ -330,6 +330,8 @@ pub trait DocumentMethods {
     fn Location(&self) -> Temporary<Location>;
     fn Children(&self) -> Temporary<HTMLCollection>;
     fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>>;
+    fn GetOnclick(&self) -> Option<EventHandlerNonNull>;
+    fn SetOnclick(&mut self, listener: Option<EventHandlerNonNull>);
     fn GetOnload(&self) -> Option<EventHandlerNonNull>;
     fn SetOnload(&mut self, listener: Option<EventHandlerNonNull>);
 }
@@ -817,6 +819,16 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>> {
         let root: &JSRef<Node> = NodeCast::from_ref(self);
         root.query_selector(selectors)
+    }
+
+    fn GetOnclick(&self) -> Option<EventHandlerNonNull> {
+        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        eventtarget.get_event_handler_common("click")
+    }
+
+    fn SetOnclick(&mut self, listener: Option<EventHandlerNonNull>) {
+        let eventtarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(self);
+        eventtarget.set_event_handler_common("click", listener)
     }
 
     fn GetOnload(&self) -> Option<EventHandlerNonNull> {

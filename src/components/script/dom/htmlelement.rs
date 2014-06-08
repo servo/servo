@@ -8,9 +8,10 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLFrameSetElementDeriv
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::codegen::InheritTypes::{HTMLElementDerived, HTMLBodyElementDerived};
 use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::utils::Reflectable;
 use dom::document::Document;
 use dom::element::{Element, ElementTypeId, HTMLElementTypeId};
-use dom::eventtarget::{EventTarget, NodeTargetTypeId};
+use dom::eventtarget::{EventTarget, EventTargetHelpers, NodeTargetTypeId};
 use dom::node::{Node, ElementNodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::WindowMethods;
@@ -57,11 +58,23 @@ impl<'a> PrivateHTMLElementHelpers for JSRef<'a, HTMLElement> {
 }
 
 pub trait HTMLElementMethods {
+    fn GetOnclick(&self) -> Option<EventHandlerNonNull>;
+    fn SetOnclick(&mut self, listener: Option<EventHandlerNonNull>);
     fn GetOnload(&self) -> Option<EventHandlerNonNull>;
     fn SetOnload(&mut self, listener: Option<EventHandlerNonNull>);
 }
 
 impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
+    fn GetOnclick(&self) -> Option<EventHandlerNonNull> {
+        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        eventtarget.get_event_handler_common("click")
+    }
+
+    fn SetOnclick(&mut self, listener: Option<EventHandlerNonNull>) {
+        let eventtarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(self);
+        eventtarget.set_event_handler_common("click", listener)
+    }
+
     fn GetOnload(&self) -> Option<EventHandlerNonNull> {
         if self.is_body_or_frameset() {
             let win = window_from_node(self).root();
@@ -83,5 +96,25 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLElement> {
     fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods:> {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
         Some(element as &VirtualMethods:)
+    }
+
+    fn after_set_attr(&self, name: DOMString, value: DOMString) {
+        match self.super_type() {
+            Some(ref s) => s.after_set_attr(name.clone(), value.clone()),
+            _ => (),
+        }
+
+        if name.as_slice().starts_with("on") {
+            let mut window = window_from_node(self).root();
+            let (cx, url, reflector) = (window.get_cx(),
+                                        window.get_url(),
+                                        window.reflector().get_jsobject());
+            let mut self_alias = self.clone();
+            let evtarget: &mut JSRef<EventTarget> =
+                EventTargetCast::from_mut_ref(&mut self_alias);
+            evtarget.set_event_handler_uncompiled(cx, url, reflector,
+                                                  name.as_slice().slice_from(2),
+                                                  value);
+        }
     }
 }
