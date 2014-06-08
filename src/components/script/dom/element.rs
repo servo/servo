@@ -5,6 +5,7 @@
 //! Element nodes.
 
 use dom::attr::{Attr, ReplacedAttr, FirstSetAttr, AttrMethods};
+use dom::attr::{AttrValue, StringAttrValue};
 use dom::attrlist::AttrList;
 use dom::bindings::codegen::Bindings::ElementBinding;
 use dom::bindings::codegen::InheritTypes::{ElementDerived, NodeCast};
@@ -222,10 +223,12 @@ pub trait AttributeHandlers {
     fn set_attribute_from_parser(&self, local_name: DOMString,
                                  value: DOMString, namespace: Namespace,
                                  prefix: Option<DOMString>);
-    fn set_attribute(&self, name: &str, value: DOMString);
-    fn do_set_attribute(&self, local_name: DOMString, value: DOMString,
+    fn set_attribute(&self, name: &str, value: AttrValue);
+    fn do_set_attribute(&self, local_name: DOMString, value: AttrValue,
                         name: DOMString, namespace: Namespace,
                         prefix: Option<DOMString>, cb: |&JSRef<Attr>| -> bool);
+    fn parse_attribute(&self, namespace: &Namespace, local_name: &str,
+                       value: DOMString) -> AttrValue;
 
     fn remove_attribute(&self, namespace: Namespace, name: DOMString) -> ErrorResult;
     fn notify_attribute_changed(&self, local_name: DOMString);
@@ -236,6 +239,7 @@ pub trait AttributeHandlers {
     fn set_url_attribute(&self, name: &str, value: DOMString);
     fn get_string_attribute(&self, name: &str) -> DOMString;
     fn set_string_attribute(&self, name: &str, value: DOMString);
+    fn set_tokenlist_attribute(&self, name: &str, value: DOMString);
     fn set_uint_attribute(&self, name: &str, value: u32);
 }
 
@@ -262,10 +266,11 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             None => local_name.clone(),
             Some(ref prefix) => format!("{:s}:{:s}", *prefix, local_name),
         };
+        let value = self.parse_attribute(&namespace, local_name.as_slice(), value);
         self.do_set_attribute(local_name, value, name, namespace, prefix, |_| false)
     }
 
-    fn set_attribute(&self, name: &str, value: DOMString) {
+    fn set_attribute(&self, name: &str, value: AttrValue) {
         assert!(name == name.to_ascii_lower().as_slice());
         assert!(!name.contains(":"));
 
@@ -277,7 +282,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             |attr| attr.deref().local_name.as_slice() == name);
     }
 
-    fn do_set_attribute(&self, local_name: DOMString, value: DOMString,
+    fn do_set_attribute(&self, local_name: DOMString, value: AttrValue,
                         name: DOMString, namespace: Namespace,
                         prefix: Option<DOMString>, cb: |&JSRef<Attr>| -> bool) {
         let idx = self.deref().attrs.borrow().iter()
@@ -295,6 +300,16 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         };
 
         self.deref().attrs.borrow().get(idx).root().set_value(set_type, value);
+    }
+
+    fn parse_attribute(&self, namespace: &Namespace, local_name: &str,
+                       value: DOMString) -> AttrValue {
+        if *namespace == namespace::Null {
+            vtable_for(NodeCast::from_ref(self))
+                .parse_plain_attribute(local_name, value)
+        } else {
+            StringAttrValue(value)
+        }
     }
 
     fn remove_attribute(&self, namespace: Namespace, name: DOMString) -> ErrorResult {
@@ -362,12 +377,17 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
     fn set_string_attribute(&self, name: &str, value: DOMString) {
         assert!(name == name.to_ascii_lower().as_slice());
-        self.set_attribute(name, value);
+        self.set_attribute(name, StringAttrValue(value));
+    }
+
+    fn set_tokenlist_attribute(&self, name: &str, value: DOMString) {
+        assert!(name == name.to_ascii_lower().as_slice());
+        self.set_attribute(name, AttrValue::from_tokenlist(value));
     }
 
     fn set_uint_attribute(&self, name: &str, value: u32) {
         assert!(name == name.to_ascii_lower().as_slice());
-        self.set_attribute(name, value.to_str());
+        self.set_attribute(name, StringAttrValue(value.to_str()));
     }
 }
 
@@ -462,7 +482,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
     // http://dom.spec.whatwg.org/#dom-element-classname
     fn SetClassName(&self, class: DOMString) {
-        self.set_string_attribute("class", class);
+        self.set_tokenlist_attribute("class", class);
     }
 
     // http://dom.spec.whatwg.org/#dom-element-attributes
@@ -525,6 +545,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         };
 
         // Step 3-5.
+        let value = self.parse_attribute(&namespace::Null, name.as_slice(), value);
         self.do_set_attribute(name.clone(), value, name.clone(), namespace::Null, None, |attr| {
             attr.deref().name == name
         });
@@ -586,6 +607,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         }
 
         // Step 9.
+        let value = self.parse_attribute(&namespace, local_name.as_slice(), value);
         self.do_set_attribute(local_name.clone(), value, name, namespace.clone(), prefix, |attr| {
             attr.deref().local_name == local_name &&
             attr.deref().namespace == namespace
@@ -769,6 +791,13 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
         }
 
         self.notify_attribute_changed(name);
+    }
+
+    fn parse_plain_attribute(&self, name: &str, value: DOMString) -> AttrValue {
+        match name {
+            "class" => AttrValue::from_tokenlist(value),
+            _ => self.super_type().unwrap().parse_plain_attribute(name, value),
+        }
     }
 
     fn bind_to_tree(&self) {

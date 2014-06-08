@@ -1300,7 +1300,7 @@ impl Node {
                 for attr in node_elem.attrs.borrow().iter().map(|attr| attr.root()) {
                     copy_elem.attrs.borrow_mut().push_unrooted(
                         &Attr::new(&*window,
-                                   attr.deref().local_name.clone(), attr.deref().value_ref().to_string(),
+                                   attr.deref().local_name.clone(), attr.deref().value().clone(),
                                    attr.deref().name.clone(), attr.deref().namespace.clone(),
                                    attr.deref().prefix.clone(), &copy_elem_alias));
                 }

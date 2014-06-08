@@ -6,13 +6,13 @@ use dom::bindings::codegen::Bindings::AttrBinding;
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::element::Element;
+use dom::element::{Element, AttributeHandlers};
 use dom::node::Node;
 use dom::window::Window;
 use dom::virtualmethods::vtable_for;
 use servo_util::namespace;
 use servo_util::namespace::Namespace;
-use servo_util::str::DOMString;
+use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS};
 use std::cell::Cell;
 
 pub enum AttrSettingType {
@@ -20,11 +20,38 @@ pub enum AttrSettingType {
     ReplacedAttr,
 }
 
+#[deriving(Eq, Clone, Encodable)]
+pub enum AttrValue {
+    StringAttrValue(DOMString),
+    TokenListAttrValue(DOMString, Vec<(uint, uint)>),
+}
+
+impl AttrValue {
+    pub fn from_tokenlist(list: DOMString) -> AttrValue {
+        let mut indexes = vec![];
+        let mut last_index: uint = 0;
+        for (index, ch) in list.as_slice().char_indices() {
+            if HTML_SPACE_CHARACTERS.iter().any(|&space| space == ch) {
+                indexes.push((last_index, index));
+                last_index = index + 1;
+            }
+        }
+        return TokenListAttrValue(list, indexes);
+    }
+
+    pub fn as_slice<'a>(&'a self) -> &'a str {
+        match *self {
+            StringAttrValue(ref value) |
+            TokenListAttrValue(ref value, _) => value.as_slice(),
+        }
+    }
+}
+
 #[deriving(Encodable)]
 pub struct Attr {
     pub reflector_: Reflector,
     pub local_name: DOMString,
-    value: DOMString,
+    value: AttrValue,
     pub name: DOMString,
     pub namespace: Namespace,
     pub prefix: Option<DOMString>,
@@ -44,7 +71,7 @@ impl Reflectable for Attr {
 }
 
 impl Attr {
-    fn new_inherited(local_name: DOMString, value: DOMString,
+    fn new_inherited(local_name: DOMString, value: AttrValue,
                      name: DOMString, namespace: Namespace,
                      prefix: Option<DOMString>, owner: &JSRef<Element>) -> Attr {
         Attr {
@@ -58,14 +85,14 @@ impl Attr {
         }
     }
 
-    pub fn new(window: &JSRef<Window>, local_name: DOMString, value: DOMString,
+    pub fn new(window: &JSRef<Window>, local_name: DOMString, value: AttrValue,
                name: DOMString, namespace: Namespace,
                prefix: Option<DOMString>, owner: &JSRef<Element>) -> Temporary<Attr> {
         let attr = Attr::new_inherited(local_name, value, name, namespace, prefix, owner);
         reflect_dom_object(box attr, window, AttrBinding::Wrap)
     }
 
-    pub fn set_value(&mut self, set_type: AttrSettingType, value: DOMString) {
+    pub fn set_value(&mut self, set_type: AttrSettingType, value: AttrValue) {
         let owner = self.owner.get().root();
         let node: &JSRef<Node> = NodeCast::from_ref(&*owner);
         let namespace_is_null = self.namespace == namespace::Null;
@@ -73,7 +100,7 @@ impl Attr {
         match set_type {
             ReplacedAttr => {
                 if namespace_is_null {
-                    vtable_for(node).before_remove_attr(self.local_name.clone(), self.value.clone());
+                    vtable_for(node).before_remove_attr(self.local_name.clone(), self.value.as_slice().to_string());
                 }
             }
             FirstSetAttr => {}
@@ -82,8 +109,12 @@ impl Attr {
         self.value = value;
 
         if namespace_is_null {
-            vtable_for(node).after_set_attr(self.local_name.clone(), self.value.clone());
+            vtable_for(node).after_set_attr(self.local_name.clone(), self.value.as_slice().to_string());
         }
+    }
+
+    pub fn value<'a>(&'a self) -> &'a AttrValue {
+        &self.value
     }
 
     pub fn value_ref<'a>(&'a self) -> &'a str {
@@ -106,10 +137,13 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
     }
 
     fn Value(&self) -> DOMString {
-        self.value.clone()
+        self.value.as_slice().to_string()
     }
 
     fn SetValue(&mut self, value: DOMString) {
+        let owner = self.owner.get().root();
+        let value = owner.deref().parse_attribute(
+            &self.namespace, self.deref().local_name.as_slice(), value);
         self.set_value(ReplacedAttr, value);
     }
 
