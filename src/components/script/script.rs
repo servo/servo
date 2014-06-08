@@ -78,6 +78,7 @@ pub mod dom {
     pub mod domexception;
     pub mod domimplementation;
     pub mod domparser;
+    pub mod domtokenlist;
     pub mod element;
     pub mod event;
     pub mod eventdispatcher;

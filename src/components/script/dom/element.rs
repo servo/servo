@@ -18,6 +18,7 @@ use dom::bindings::utils::{QName, Name, InvalidXMLName, xml_name_type};
 use dom::clientrect::ClientRect;
 use dom::clientrectlist::ClientRectList;
 use dom::document::{Document, DocumentHelpers};
+use dom::domtokenlist::DOMTokenList;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlserializer::serialize;
@@ -43,7 +44,8 @@ pub struct Element {
     pub prefix: Option<DOMString>,
     pub attrs: RefCell<Vec<JS<Attr>>>,
     pub style_attribute: Traceable<RefCell<Option<style::PropertyDeclarationBlock>>>,
-    pub attr_list: Cell<Option<JS<AttrList>>>
+    pub attr_list: Cell<Option<JS<AttrList>>>,
+    class_list: Cell<Option<JS<DOMTokenList>>>,
 }
 
 impl ElementDerived for EventTarget {
@@ -151,6 +153,7 @@ impl Element {
             prefix: prefix,
             attrs: RefCell::new(vec!()),
             attr_list: Cell::new(None),
+            class_list: Cell::new(None),
             style_attribute: Traceable::new(RefCell::new(None)),
         }
     }
@@ -416,6 +419,7 @@ pub trait ElementMethods {
     fn SetId(&self, id: DOMString);
     fn ClassName(&self) -> DOMString;
     fn SetClassName(&self, class: DOMString);
+    fn ClassList(&self) -> Temporary<DOMTokenList>;
     fn Attributes(&self) -> Temporary<AttrList>;
     fn GetAttribute(&self, name: DOMString) -> Option<DOMString>;
     fn GetAttributeNS(&self, namespace: Option<DOMString>, local_name: DOMString) -> Option<DOMString>;
@@ -483,6 +487,18 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     // http://dom.spec.whatwg.org/#dom-element-classname
     fn SetClassName(&self, class: DOMString) {
         self.set_tokenlist_attribute("class", class);
+    }
+
+    // http://dom.spec.whatwg.org/#dom-element-classlist
+    fn ClassList(&self) -> Temporary<DOMTokenList> {
+        match self.class_list.get() {
+            Some(class_list) => Temporary::new(class_list),
+            None => {
+                let class_list = DOMTokenList::new(self, "class").root();
+                self.class_list.assign(Some(class_list.deref().clone()));
+                Temporary::from_rooted(&*class_list)
+            }
+        }
     }
 
     // http://dom.spec.whatwg.org/#dom-element-attributes
