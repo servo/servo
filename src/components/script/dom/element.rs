@@ -222,8 +222,7 @@ pub trait AttributeHandlers {
     fn set_attribute_from_parser(&self, local_name: DOMString,
                                  value: DOMString, namespace: Namespace,
                                  prefix: Option<DOMString>);
-    fn set_attribute(&self, namespace: Namespace, name: DOMString,
-                     value: DOMString) -> ErrorResult;
+    fn set_attribute(&self, name: &str, value: DOMString);
     fn do_set_attribute(&self, local_name: DOMString, value: DOMString,
                         name: DOMString, namespace: Namespace,
                         prefix: Option<DOMString>, cb: |&JSRef<Attr>| -> bool);
@@ -266,31 +265,16 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         self.do_set_attribute(local_name, value, name, namespace, prefix, |_| false)
     }
 
-    fn set_attribute(&self, namespace: Namespace, name: DOMString,
-                     value: DOMString) -> ErrorResult {
-        let (prefix, local_name) = get_attribute_parts(name.clone());
-        match prefix {
-            Some(ref prefix_str) => {
-                if namespace == namespace::Null ||
-                   ("xml" == prefix_str.as_slice() && namespace != namespace::XML) ||
-                   ("xmlns" == prefix_str.as_slice() && namespace != namespace::XMLNS) {
-                    return Err(NamespaceError);
-                }
-            },
-            None => {}
-        }
+    fn set_attribute(&self, name: &str, value: DOMString) {
+        assert!(name == name.to_ascii_lower().as_slice());
+        assert!(!name.contains(":"));
 
         let node: &JSRef<Node> = NodeCast::from_ref(self);
         node.wait_until_safe_to_modify_dom();
 
-        let position: |&JSRef<Attr>| -> bool =
-            if self.html_element_in_html_document() {
-                |attr| attr.deref().local_name.as_slice().eq_ignore_ascii_case(local_name.as_slice())
-            } else {
-                |attr| attr.deref().local_name == local_name
-            };
-        self.do_set_attribute(name.clone(), value, name.clone(), namespace::Null, None, position);
-        Ok(())
+        self.do_set_attribute(name.to_string(), value, name.to_string(),
+            namespace::Null, None,
+            |attr| attr.deref().local_name.as_slice() == name);
     }
 
     fn do_set_attribute(&self, local_name: DOMString, value: DOMString,
@@ -378,12 +362,12 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
     fn set_string_attribute(&self, name: &str, value: DOMString) {
         assert!(name == name.to_ascii_lower().as_slice());
-        assert!(self.set_attribute(Null, name.to_string(), value).is_ok());
+        self.set_attribute(name, value);
     }
 
     fn set_uint_attribute(&self, name: &str, value: u32) {
         assert!(name == name.to_ascii_lower().as_slice());
-        assert!(self.set_attribute(Null, name.to_string(), value.to_str()).is_ok());
+        self.set_attribute(name, value.to_str());
     }
 }
 
