@@ -17,4 +17,5 @@ interface Console {
   void info(DOMString message);
   void warn(DOMString message);
   void error(DOMString message);
+  void assert(boolean condition, optional DOMString message);
 };
