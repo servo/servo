@@ -50,7 +50,7 @@ use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use servo_util::namespace::Namespace;
 use servo_util::namespace;
 use servo_util::str::is_whitespace;
-use std::cell::{Ref, RefMut};
+use std::cell::{RefCell, Ref, RefMut};
 use std::kinds::marker::ContravariantLifetime;
 use std::mem;
 use style::computed_values::{content, display, white_space};
@@ -355,7 +355,12 @@ pub struct LayoutElement<'le> {
 
 impl<'le> LayoutElement<'le> {
     pub fn style_attribute(&self) -> &'le Option<PropertyDeclarationBlock> {
-        &self.element.style_attribute
+        let style: &Option<PropertyDeclarationBlock> = unsafe {
+            let style: &RefCell<Option<PropertyDeclarationBlock>> = self.element.style_attribute.deref();
+            // cast to the direct reference to T placed on the head of RefCell<T>
+            mem::transmute(style)
+        };
+        style
     }
 }
 
