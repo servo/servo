@@ -173,9 +173,9 @@ impl RawLayoutElementHelpers for Element {
         (*attrs).iter().find(|attr: & &JS<Attr>| {
             let attr = attr.unsafe_get();
             name == (*attr).local_name.as_slice() && (*attr).namespace == *namespace
-       }).map(|attr| {
+        }).map(|attr| {
             let attr = attr.unsafe_get();
-            mem::transmute((*attr).value.as_slice())
+            mem::transmute((*attr).value_ref())
         })
     }
 }

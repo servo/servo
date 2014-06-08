@@ -1300,7 +1300,7 @@ impl Node {
                 for attr in node_elem.attrs.borrow().iter().map(|attr| attr.root()) {
                     copy_elem.attrs.borrow_mut().push_unrooted(
                         &Attr::new(&*window,
-                                   attr.deref().local_name.clone(), attr.deref().value.clone(),
+                                   attr.deref().local_name.clone(), attr.deref().value_ref().to_string(),
                                    attr.deref().name.clone(), attr.deref().namespace.clone(),
                                    attr.deref().prefix.clone(), &copy_elem_alias));
                 }
@@ -1792,7 +1792,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                 other_element.attrs.borrow().iter().map(|attr| attr.root()).any(|other_attr| {
                     (attr.namespace == other_attr.namespace) &&
                     (attr.local_name == other_attr.local_name) &&
-                    (attr.value == other_attr.value)
+                    (attr.deref().value_ref() == other_attr.deref().value_ref())
                 })
             })
         }

@@ -24,7 +24,7 @@ pub enum AttrSettingType {
 pub struct Attr {
     pub reflector_: Reflector,
     pub local_name: DOMString,
-    pub value: DOMString,
+    value: DOMString,
     pub name: DOMString,
     pub namespace: Namespace,
     pub prefix: Option<DOMString>,
