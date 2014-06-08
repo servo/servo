@@ -595,7 +595,7 @@ mod tests {
         assert!(parse("") == None)
         assert!(parse("e") == Some(vec!(Selector{
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: vec!(LocalNameSelector("e".to_owned())),
+                simple_selectors: vec!(LocalNameSelector("e".to_string())),
                 next: None,
             }),
             pseudo_element: None,
@@ -603,7 +603,7 @@ mod tests {
         })))
         assert!(parse(".foo") == Some(vec!(Selector{
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: vec!(ClassSelector("foo".to_owned())),
+                simple_selectors: vec!(ClassSelector("foo".to_string())),
                 next: None,
             }),
             pseudo_element: None,
@@ -611,7 +611,7 @@ mod tests {
         })))
         assert!(parse("#bar") == Some(vec!(Selector{
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: vec!(IDSelector("bar".to_owned())),
+                simple_selectors: vec!(IDSelector("bar".to_string())),
                 next: None,
             }),
             pseudo_element: None,
@@ -619,9 +619,9 @@ mod tests {
         })))
         assert!(parse("e.foo#bar") == Some(vec!(Selector{
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: vec!(LocalNameSelector("e".to_owned()),
-                                       ClassSelector("foo".to_owned()),
-                                       IDSelector("bar".to_owned())),
+                simple_selectors: vec!(LocalNameSelector("e".to_string()),
+                                       ClassSelector("foo".to_string()),
+                                       IDSelector("bar".to_string())),
                 next: None,
             }),
             pseudo_element: None,
@@ -629,10 +629,10 @@ mod tests {
         })))
         assert!(parse("e.foo #bar") == Some(vec!(Selector{
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: vec!(IDSelector("bar".to_owned())),
+                simple_selectors: vec!(IDSelector("bar".to_string())),
                 next: Some((box CompoundSelector {
-                    simple_selectors: vec!(LocalNameSelector("e".to_owned()),
-                                           ClassSelector("foo".to_owned())),
+                    simple_selectors: vec!(LocalNameSelector("e".to_string()),
+                                           ClassSelector("foo".to_string())),
                     next: None,
                 }, Descendant)),
             }),
@@ -645,8 +645,8 @@ mod tests {
         assert!(parse_ns("[Foo]", &namespaces) == Some(vec!(Selector{
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(AttrExists(AttrSelector {
-                    name: "Foo".to_owned(),
-                    lower_name: "foo".to_owned(),
+                    name: "Foo".to_string(),
+                    lower_name: "foo".to_string(),
                     namespace: SpecificNamespace(namespace::Null),
                 })),
                 next: None,
@@ -660,8 +660,8 @@ mod tests {
         assert!(parse_ns("[Foo]", &namespaces) == Some(vec!(Selector{
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(AttrExists(AttrSelector {
-                    name: "Foo".to_owned(),
-                    lower_name: "foo".to_owned(),
+                    name: "Foo".to_string(),
+                    lower_name: "foo".to_string(),
                     namespace: SpecificNamespace(namespace::Null),
                 })),
                 next: None,
@@ -674,7 +674,7 @@ mod tests {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(
                     NamespaceSelector(namespace::MathML),
-                    LocalNameSelector("e".to_owned()),
+                    LocalNameSelector("e".to_string()),
                 ),
                 next: None,
             }),
@@ -694,7 +694,7 @@ mod tests {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(),
                 next: Some((box CompoundSelector {
-                    simple_selectors: vec!(LocalNameSelector("div".to_owned())),
+                    simple_selectors: vec!(LocalNameSelector("div".to_string())),
                     next: None,
                 }, Descendant)),
             }),

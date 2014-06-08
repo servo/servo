@@ -195,21 +195,21 @@ fn test_transform_discard_newline() {
 /* FIXME: Fix and re-enable
 #[test]
 fn test_transform_compress_whitespace() {
-    let  test_strs : ~[String] = ~["  foo bar".to_owned(),
-                                 "foo bar  ".to_owned(),
-                                 "foo\n bar".to_owned(),
-                                 "foo \nbar".to_owned(),
-                                 "  foo  bar  \nbaz".to_owned(),
-                                 "foo bar baz".to_owned(),
-                                 "foobarbaz\n\n".to_owned()];
+    let  test_strs : ~[String] = ~["  foo bar".to_string(),
+                                 "foo bar  ".to_string(),
+                                 "foo\n bar".to_string(),
+                                 "foo \nbar".to_string(),
+                                 "  foo  bar  \nbaz".to_string(),
+                                 "foo bar baz".to_string(),
+                                 "foobarbaz\n\n".to_string()];
 
-    let oracle_strs : ~[String] = ~[" foo bar".to_owned(),
-                                 "foo bar ".to_owned(),
-                                 "foo\n bar".to_owned(),
-                                 "foo \nbar".to_owned(),
-                                 " foo bar \nbaz".to_owned(),
-                                 "foo bar baz".to_owned(),
-                                 "foobarbaz\n\n".to_owned()];
+    let oracle_strs : ~[String] = ~[" foo bar".to_string(),
+                                 "foo bar ".to_string(),
+                                 "foo\n bar".to_string(),
+                                 "foo \nbar".to_string(),
+                                 " foo bar \nbaz".to_string(),
+                                 "foo bar baz".to_string(),
+                                 "foobarbaz\n\n".to_string()];
 
     assert_eq!(test_strs.len(), oracle_strs.len());
     let mode = CompressWhitespace;
@@ -223,21 +223,21 @@ fn test_transform_compress_whitespace() {
 
 #[test]
 fn test_transform_compress_whitespace_newline() {
-    let  test_strs : ~[String] = ~["  foo bar".to_owned(),
-                                 "foo bar  ".to_owned(),
-                                 "foo\n bar".to_owned(),
-                                 "foo \nbar".to_owned(),
-                                 "  foo  bar  \nbaz".to_owned(),
-                                 "foo bar baz".to_owned(),
-                                 "foobarbaz\n\n".to_owned()];
+    let  test_strs : ~[String] = ~["  foo bar".to_string(),
+                                 "foo bar  ".to_string(),
+                                 "foo\n bar".to_string(),
+                                 "foo \nbar".to_string(),
+                                 "  foo  bar  \nbaz".to_string(),
+                                 "foo bar baz".to_string(),
+                                 "foobarbaz\n\n".to_string()];
 
-    let oracle_strs : ~[String] = ~["foo bar".to_owned(),
-                                 "foo bar ".to_owned(),
-                                 "foo bar".to_owned(),
-                                 "foo bar".to_owned(),
-                                 " foo bar baz".to_owned(),
-                                 "foo bar baz".to_owned(),
-                                 "foobarbaz ".to_owned()];
+    let oracle_strs : ~[String] = ~["foo bar".to_string(),
+                                 "foo bar ".to_string(),
+                                 "foo bar".to_string(),
+                                 "foo bar".to_string(),
+                                 " foo bar baz".to_string(),
+                                 "foo bar baz".to_string(),
+                                 "foobarbaz ".to_string()];
 
     assert_eq!(test_strs.len(), oracle_strs.len());
     let mode = CompressWhitespaceNewline;
