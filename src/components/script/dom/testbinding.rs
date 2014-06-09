@@ -255,6 +255,26 @@ pub trait TestBindingMethods {
     // fn PassOptionalNullableDoubleWithNonNullDefault(&self, _: Option<f64>) {}
     fn PassOptionalNullableStringWithNonNullDefault(&self, _: Option<DOMString>) {}
     // fn PassOptionalNullableEnumWithNonNullDefault(&self, _: Option<TestEnum>) {}
+
+    fn PassVariadicBoolean(&self, _: Vec<bool>) {}
+    fn PassVariadicByte(&self, _: Vec<i8>) {}
+    fn PassVariadicOctet(&self, _: Vec<u8>) {}
+    fn PassVariadicShort(&self, _: Vec<i16>) {}
+    fn PassVariadicUnsignedShort(&self, _: Vec<u16>) {}
+    fn PassVariadicLong(&self, _: Vec<i32>) {}
+    fn PassVariadicUnsignedLong(&self, _: Vec<u32>) {}
+    fn PassVariadicLongLong(&self, _: Vec<i64>) {}
+    fn PassVariadicUnsignedLongLong(&self, _: Vec<u64>) {}
+    fn PassVariadicFloat(&self, _: Vec<f32>) {}
+    fn PassVariadicDouble(&self, _: Vec<f64>) {}
+    fn PassVariadicString(&self, _: Vec<DOMString>) {}
+    fn PassVariadicByteString(&self, _: Vec<ByteString>) {}
+    fn PassVariadicEnum(&self, _: Vec<TestEnum>) {}
+    // fn PassVariadicInterface(&self, _: Vec<JSRef<Blob>>) {}
+    fn PassVariadicUnion(&self, _: Vec<HTMLElementOrLong>) {}
+    fn PassVariadicUnion2(&self, _: Vec<EventOrString>) {}
+    fn PassVariadicUnion3(&self, _: Vec<BlobOrString>) {}
+    fn PassVariadicAny(&self, _: *mut JSContext, _: Vec<JSVal>) {}
 }
 
 impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {

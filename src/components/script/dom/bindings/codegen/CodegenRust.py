@@ -551,10 +551,6 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         raise TypeError("Can't handle sequence arguments yet")
 
     if type.isUnion():
-        if isMember:
-            raise TypeError("Can't handle unions as members, we have a "
-                            "holderType")
-
         declType = CGGeneric(type.name + "::" + type.name)
         if type.nullable():
             declType = CGWrapper(declType, pre="Option<", post=" >")

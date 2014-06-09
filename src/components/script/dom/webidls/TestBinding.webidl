@@ -246,4 +246,24 @@ interface TestBinding {
   // void passOptionalNullableEnumWithNonNullDefault(optional TestEnum? arg = "foo");
   // void passOptionalNullableUnionWithNonNullDefault(optional (HTMLElement or long)? arg = 7);
   // void passOptionalNullableUnion2WithNonNullDefault(optional (Event or DOMString)? data = "foo");
+
+  void passVariadicBoolean(boolean... args);
+  void passVariadicByte(byte... args);
+  void passVariadicOctet(octet... args);
+  void passVariadicShort(short... args);
+  void passVariadicUnsignedShort(unsigned short... args);
+  void passVariadicLong(long... args);
+  void passVariadicUnsignedLong(unsigned long... args);
+  void passVariadicLongLong(long long... args);
+  void passVariadicUnsignedLongLong(unsigned long long... args);
+  void passVariadicFloat(float... args);
+  void passVariadicDouble(double... args);
+  void passVariadicString(DOMString... args);
+  void passVariadicByteString(ByteString... args);
+  void passVariadicEnum(TestEnum... args);
+  // void passVariadicInterface(Blob... args);
+  void passVariadicUnion((HTMLElement or long)... args);
+  void passVariadicUnion2((Event or DOMString)... args);
+  void passVariadicUnion3((Blob or DOMString)... args);
+  void passVariadicAny(any... args);
 };
