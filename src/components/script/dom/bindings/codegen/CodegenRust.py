@@ -941,7 +941,7 @@ class CGArgumentConverter(CGThing):
             seqType = CGTemplatedType("Vec", declType)
             variadicConversion = string.Template(
                 "{\n"
-                "  let mut vector: ${seqType} = vec![];\n"
+                "  let mut vector: ${seqType} = Vec::with_capacity((${argc} - ${index}) as uint);\n"
                 "  for variadicArg in range(${index}, ${argc}) {\n"
                 "${inner}\n"
                 "    vector.push(slot);\n"
