@@ -4,17 +4,33 @@
 
 use std::cmp::{Ord, Eq};
 
-pub trait BinarySearchMethods<'a, T: Ord + Eq> {
+/// FIXME(pcwalton): Workaround for lack of unboxed closures. This is called in
+/// performance-critical code, so a closure is insufficient.
+pub trait Comparator<K,T> {
+    fn compare(&self, key: &K, value: &T) -> Ordering;
+}
+
+pub trait BinarySearchMethods<'a, T: TotalOrd + Ord + Eq> {
     fn binary_search(&self, key: &T) -> Option<&'a T>;
     fn binary_search_index(&self, key: &T) -> Option<uint>;
 }
 
-impl<'a, T: Ord + Eq> BinarySearchMethods<'a, T> for &'a [T] {
+pub trait FullBinarySearchMethods<T> {
+    fn binary_search_index_by<K,C:Comparator<K,T>>(&self, key: &K, cmp: C) -> Option<uint>;
+}
+
+impl<'a, T: TotalOrd + Ord + Eq> BinarySearchMethods<'a, T> for &'a [T] {
     fn binary_search(&self, key: &T) -> Option<&'a T> {
         self.binary_search_index(key).map(|i| &self[i])
     }
 
     fn binary_search_index(&self, key: &T) -> Option<uint> {
+        self.binary_search_index_by(key, DefaultComparator)
+    }
+}
+
+impl<'a, T> FullBinarySearchMethods<T> for &'a [T] {
+    fn binary_search_index_by<K,C:Comparator<K,T>>(&self, key: &K, cmp: C) -> Option<uint> {
         if self.len() == 0 {
             return None;
         }
@@ -27,20 +43,26 @@ impl<'a, T: Ord + Eq> BinarySearchMethods<'a, T> for &'a [T] {
             let mid = ((low as uint) + (high as uint)) >> 1;
             let midv = &self[mid];
 
-            if midv < key {
-                low = (mid as int) + 1;
-            } else if midv > key {
-                high = (mid as int) - 1;
-            } else {
-                return Some(mid);
+            match cmp.compare(key, midv) {
+                Greater => low = (mid as int) + 1,
+                Less => high = (mid as int) - 1,
+                Equal => return Some(mid),
             }
         }
         return None;
     }
 }
 
+struct DefaultComparator;
+
+impl<T:Eq + Ord + TotalOrd> Comparator<T,T> for DefaultComparator {
+    fn compare(&self, key: &T, value: &T) -> Ordering {
+        (*key).cmp(value)
+    }
+}
+
 #[cfg(test)]
-fn test_find_all_elems<T: Eq + Ord>(arr: &[T]) {
+fn test_find_all_elems<T: Eq + Ord + TotalEq + TotalOrd>(arr: &[T]) {
     let mut i = 0;
     while i < arr.len() {
         assert!(test_match(&arr[i], arr.binary_search(&arr[i])));
@@ -49,7 +71,7 @@ fn test_find_all_elems<T: Eq + Ord>(arr: &[T]) {
 }
 
 #[cfg(test)]
-fn test_miss_all_elems<T: Eq + Ord>(arr: &[T], misses: &[T]) {
+fn test_miss_all_elems<T: Eq + Ord + TotalEq + TotalOrd>(arr: &[T], misses: &[T]) {
     let mut i = 0;
     while i < misses.len() {
         let res = arr.binary_search(&misses[i]);
