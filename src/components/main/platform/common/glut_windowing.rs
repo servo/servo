@@ -144,9 +144,14 @@ impl WindowMethods<Application> for Window {
         wrapped_window
     }
 
-    /// Returns the size of the window.
-    fn size(&self) -> TypedSize2D<DevicePixel, f32> {
-        TypedSize2D(glut::get(WindowWidth) as f32, glut::get(WindowHeight) as f32)
+    /// Returns the size of the window in hardware pixels.
+    fn framebuffer_size(&self) -> TypedSize2D<DevicePixel, uint> {
+        TypedSize2D(glut::get(WindowWidth) as uint, glut::get(WindowHeight) as uint)
+    }
+
+    /// Returns the size of the window in density-independent "px" units.
+    fn size(&self) -> TypedSize2D<ScreenPx, f32> {
+        self.framebuffer_size().as_f32() / self.hidpi_factor()
     }
 
     /// Presents the window to the screen (perhaps by page flipping).

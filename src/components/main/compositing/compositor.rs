@@ -128,7 +128,7 @@ impl IOCompositor {
         // TODO: There should be no initial layer tree until the renderer creates one from the display
         // list. This is only here because we don't have that logic in the renderer yet.
         let root_layer = Rc::new(ContainerLayer());
-        let window_size = window.size();
+        let window_size = window.framebuffer_size();
         let hidpi_factor = window.hidpi_factor();
 
         IOCompositor {
@@ -138,8 +138,8 @@ impl IOCompositor {
             context: rendergl::init_render_context(),
             root_layer: root_layer.clone(),
             root_pipeline: None,
-            scene: Scene(ContainerLayerKind(root_layer), window_size.to_untyped(), identity()),
-            window_size: window_size.as_uint(),
+            scene: Scene(ContainerLayerKind(root_layer), window_size.as_f32().to_untyped(), identity()),
+            window_size: window_size,
             hidpi_factor: hidpi_factor,
             graphics_context: CompositorTask::create_graphics_context(),
             composite_ready: false,
@@ -176,10 +176,7 @@ impl IOCompositor {
 
     fn run (&mut self) {
         // Tell the constellation about the initial window size.
-        {
-            let ConstellationChan(ref chan) = self.constellation_chan;
-            chan.send(ResizedWindowMsg(self.window_size.to_untyped()));
-        }
+        self.send_window_size();
 
         // Enter the main event loop.
         while !self.done {
@@ -339,13 +336,8 @@ impl IOCompositor {
         self.root_pipeline = Some(frame_tree.pipeline.clone());
 
         // Initialize the new constellation channel by sending it the root window size.
-        let window_size = self.window.size().as_uint();
-        {
-            let ConstellationChan(ref chan) = new_constellation_chan;
-            chan.send(ResizedWindowMsg(window_size.to_untyped()));
-        }
-
         self.constellation_chan = new_constellation_chan;
+        self.send_window_size();
     }
 
     fn create_root_compositor_layer_if_necessary(&mut self,
@@ -423,6 +415,12 @@ impl IOCompositor {
     /// The size of the content area in CSS px at the current zoom level
     fn page_window(&self) -> TypedSize2D<PagePx, f32> {
         self.window_size.as_f32() / self.device_pixels_per_page_px()
+    }
+
+    /// The size of the window in screen px.
+    fn send_window_size(&self) {
+        let ConstellationChan(ref chan) = self.constellation_chan;
+        chan.send(ResizedWindowMsg(self.page_window()));
     }
 
     fn set_layer_page_size(&mut self,
@@ -527,8 +525,8 @@ impl IOCompositor {
                 self.recomposite = true;
             }
 
-            ResizeWindowEvent(width, height) => {
-                self.on_resize_window_event(width, height);
+            ResizeWindowEvent(size) => {
+                self.on_resize_window_event(size);
             }
 
             LoadUrlWindowEvent(url_string) => {
@@ -574,21 +572,19 @@ impl IOCompositor {
         }
     }
 
-    fn on_resize_window_event(&mut self, width: uint, height: uint) {
-        let new_size: TypedSize2D<DevicePixel, uint> = TypedSize2D(width, height);
-        if self.window_size != new_size {
-            debug!("osmain: window resized to {:u}x{:u}", width, height);
-            self.window_size = new_size;
-            let ConstellationChan(ref chan) = self.constellation_chan;
-            chan.send(ResizedWindowMsg(new_size.to_untyped()))
-        } else {
-            debug!("osmain: dropping window resize since size is still {:u}x{:u}", width, height);
-        }
+    fn on_resize_window_event(&mut self, new_size: TypedSize2D<DevicePixel, uint>) {
         // A size change could also mean a resolution change.
         let new_hidpi_factor = self.window.hidpi_factor();
         if self.hidpi_factor != new_hidpi_factor {
             self.hidpi_factor = new_hidpi_factor;
             self.update_zoom_transform();
+        }
+        if self.window_size != new_size {
+            debug!("osmain: window resized to {:?}", new_size);
+            self.window_size = new_size;
+            self.send_window_size();
+        } else {
+            debug!("osmain: dropping window resize since size is still {:?}", new_size);
         }
     }
 
@@ -717,7 +713,7 @@ impl IOCompositor {
         profile(time::CompositingCategory, self.profiler_chan.clone(), || {
             debug!("compositor: compositing");
             // Adjust the layer dimensions as necessary to correspond to the size of the window.
-            self.scene.size = self.window.size().to_untyped();
+            self.scene.size = self.window_size.as_f32().to_untyped();
             // Render the scene.
             match self.compositor_layer {
                 Some(ref mut layer) => {
