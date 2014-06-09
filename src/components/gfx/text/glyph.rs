@@ -270,7 +270,7 @@ impl DetailedGlyph {
     }
 }
 
-#[deriving(Eq, Clone)]
+#[deriving(Eq, Clone, TotalEq)]
 struct DetailedGlyphRecord {
     // source string offset/GlyphEntry offset in the TextRun
     entry_offset: CharIndex,
@@ -280,17 +280,14 @@ struct DetailedGlyphRecord {
 
 impl Ord for DetailedGlyphRecord {
     fn lt(&self, other: &DetailedGlyphRecord) -> bool {
-		self.entry_offset <  other.entry_offset
-	}
-    fn le(&self, other: &DetailedGlyphRecord) -> bool {
-		self.entry_offset <= other.entry_offset
-	}
-    fn ge(&self, other: &DetailedGlyphRecord) -> bool {
-		self.entry_offset >= other.entry_offset
-	}
-    fn gt(&self, other: &DetailedGlyphRecord) -> bool {
-		self.entry_offset >  other.entry_offset
-	}
+        self.entry_offset < other.entry_offset
+    }
+}
+
+impl TotalOrd for DetailedGlyphRecord {
+    fn cmp(&self, other: &DetailedGlyphRecord) -> Ordering {
+        self.entry_offset.cmp(&other.entry_offset)
+    }
 }
 
 // Manages the lookup table for detailed glyphs. Sorting is deferred
