@@ -125,7 +125,7 @@ pub struct RenderTask<C> {
     /// Renderer workers
     worker_txs: Vec<Sender<WorkerMsg>>,
 
-    /// The receiver on which we recieve rendered buffers from the workesr
+    /// The receiver on which we receive rendered buffers from the workers
     worker_result_rx: Receiver<Box<LayerBuffer>>
 }
 
