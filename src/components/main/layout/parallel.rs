@@ -16,7 +16,7 @@ use layout::flow_ref::FlowRef;
 use layout::layout_task::{AssignHeightsAndStoreOverflowTraversal, AssignWidthsTraversal};
 use layout::layout_task::{BubbleWidthsTraversal};
 use layout::util::{LayoutDataAccess, LayoutDataWrapper, OpaqueNodeMethods};
-use layout::wrapper::{layout_node_to_unsafe_layout_node, LayoutNode, PostorderNodeMutTraversal};
+use layout::wrapper::{layout_node_to_unsafe_layout_node, layout_node_from_unsafe_layout_node, LayoutNode, PostorderNodeMutTraversal};
 use layout::wrapper::{ThreadSafeLayoutNode, UnsafeLayoutNode};
 
 use gfx::display_list::OpaqueNode;
@@ -31,29 +31,7 @@ use style::{Stylist, TNode};
 #[allow(dead_code)]
 fn static_assertion(node: UnsafeLayoutNode) {
     unsafe {
-        let _: PaddedUnsafeFlow = ::std::intrinsics::transmute(node);
-    }
-}
-
-/// Memory representation that is at least as large as UnsafeLayoutNode, as it must be
-/// safely transmutable to and from that type to accommodate the type-unsafe parallel work
-/// queue usage that stores both flows and nodes.
-pub type PaddedUnsafeFlow = (uint, uint);
-
-trait UnsafeFlowConversions {
-    fn to_flow(&self) -> UnsafeFlow;
-    fn from_flow(flow: &UnsafeFlow) -> Self;
-}
-
-impl UnsafeFlowConversions for PaddedUnsafeFlow {
-    fn to_flow(&self) -> UnsafeFlow {
-        let (vtable, ptr) = *self;
-        (vtable, ptr)
-    }
-
-    fn from_flow(flow: &UnsafeFlow) -> PaddedUnsafeFlow {
-        let &(vtable, ptr) = flow;
-        (vtable, ptr)
+        let _: UnsafeFlow = ::std::intrinsics::transmute(node);
     }
 }
 
@@ -138,7 +116,7 @@ trait ParallelPostorderFlowTraversal : PostorderFlowTraversal {
     /// fetch-and-subtract the parent's children count.
     fn run_parallel(&mut self,
                     mut unsafe_flow: UnsafeFlow,
-                    _: &mut WorkerProxy<*mut LayoutContext,PaddedUnsafeFlow>) {
+                    _: &mut WorkerProxy<*mut LayoutContext,UnsafeFlow>) {
         loop {
             unsafe {
                 // Get a real flow.
@@ -182,18 +160,18 @@ trait ParallelPostorderFlowTraversal : PostorderFlowTraversal {
 trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
     fn run_parallel(&mut self,
                     unsafe_flow: UnsafeFlow,
-                    proxy: &mut WorkerProxy<*mut LayoutContext,PaddedUnsafeFlow>);
+                    proxy: &mut WorkerProxy<*mut LayoutContext,UnsafeFlow>);
 
     #[inline(always)]
     fn run_parallel_helper(&mut self,
                            unsafe_flow: UnsafeFlow,
-                           proxy: &mut WorkerProxy<*mut LayoutContext,PaddedUnsafeFlow>,
-                           top_down_func: extern "Rust" fn(PaddedUnsafeFlow,
+                           proxy: &mut WorkerProxy<*mut LayoutContext,UnsafeFlow>,
+                           top_down_func: extern "Rust" fn(UnsafeFlow,
                                                            &mut WorkerProxy<*mut LayoutContext,
-                                                                            PaddedUnsafeFlow>),
-                           bottom_up_func: extern "Rust" fn(PaddedUnsafeFlow,
+                                                                            UnsafeFlow>),
+                           bottom_up_func: extern "Rust" fn(UnsafeFlow,
                                                             &mut WorkerProxy<*mut LayoutContext,
-                                                                             PaddedUnsafeFlow>)) {
+                                                                             UnsafeFlow>)) {
         let mut had_children = false;
         unsafe {
             // Get a real flow.
@@ -207,7 +185,7 @@ trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
                 had_children = true;
                 proxy.push(WorkUnit {
                     fun: top_down_func,
-                    data: UnsafeFlowConversions::from_flow(&borrowed_flow_to_unsafe_flow(kid)),
+                    data: borrowed_flow_to_unsafe_flow(kid),
                 });
             }
 
@@ -215,7 +193,7 @@ trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
 
         // If there were no more children, start assigning heights.
         if !had_children {
-            bottom_up_func(UnsafeFlowConversions::from_flow(&unsafe_flow), proxy)
+            bottom_up_func(unsafe_flow, proxy)
         }
     }
 }
@@ -225,7 +203,7 @@ impl<'a> ParallelPostorderFlowTraversal for BubbleWidthsTraversal<'a> {}
 impl<'a> ParallelPreorderFlowTraversal for AssignWidthsTraversal<'a> {
     fn run_parallel(&mut self,
                     unsafe_flow: UnsafeFlow,
-                    proxy: &mut WorkerProxy<*mut LayoutContext,PaddedUnsafeFlow>) {
+                    proxy: &mut WorkerProxy<*mut LayoutContext,UnsafeFlow>) {
         self.run_parallel_helper(unsafe_flow,
                                  proxy,
                                  assign_widths,
@@ -241,7 +219,7 @@ fn recalc_style_for_node(unsafe_layout_node: UnsafeLayoutNode,
         let layout_context: &mut LayoutContext = mem::transmute(*proxy.user_data());
 
         // Get a real layout node.
-        let node: LayoutNode = ::std::intrinsics::transmute(unsafe_layout_node);
+        let node: LayoutNode = layout_node_from_unsafe_layout_node(&unsafe_layout_node);
 
         // Initialize layout data.
         //
@@ -331,9 +309,7 @@ fn construct_flows(mut unsafe_layout_node: UnsafeLayoutNode,
         };
 
         // Get a real layout node.
-        let node: LayoutNode = unsafe {
-            mem::transmute(unsafe_layout_node)
-        };
+        let node: LayoutNode = layout_node_from_unsafe_layout_node(&unsafe_layout_node);
 
         // Construct flows for this node.
         {
@@ -395,30 +371,30 @@ fn construct_flows(mut unsafe_layout_node: UnsafeLayoutNode,
     }
 }
 
-fn assign_widths(unsafe_flow: PaddedUnsafeFlow,
-                 proxy: &mut WorkerProxy<*mut LayoutContext,PaddedUnsafeFlow>) {
+fn assign_widths(unsafe_flow: UnsafeFlow,
+                 proxy: &mut WorkerProxy<*mut LayoutContext,UnsafeFlow>) {
     let layout_context: &mut LayoutContext = unsafe {
         mem::transmute(*proxy.user_data())
     };
     let mut assign_widths_traversal = AssignWidthsTraversal {
         layout_context: layout_context,
     };
-    assign_widths_traversal.run_parallel(unsafe_flow.to_flow(), proxy)
+    assign_widths_traversal.run_parallel(unsafe_flow, proxy)
 }
 
-fn assign_heights_and_store_overflow(unsafe_flow: PaddedUnsafeFlow,
-                                     proxy: &mut WorkerProxy<*mut LayoutContext,PaddedUnsafeFlow>) {
+fn assign_heights_and_store_overflow(unsafe_flow: UnsafeFlow,
+                                     proxy: &mut WorkerProxy<*mut LayoutContext,UnsafeFlow>) {
     let layout_context: &mut LayoutContext = unsafe {
         mem::transmute(*proxy.user_data())
     };
     let mut assign_heights_traversal = AssignHeightsAndStoreOverflowTraversal {
         layout_context: layout_context,
     };
-    assign_heights_traversal.run_parallel(unsafe_flow.to_flow(), proxy)
+    assign_heights_traversal.run_parallel(unsafe_flow, proxy)
 }
 
-fn compute_absolute_position(unsafe_flow: PaddedUnsafeFlow,
-                             proxy: &mut WorkerProxy<*mut LayoutContext,PaddedUnsafeFlow>) {
+fn compute_absolute_position(unsafe_flow: UnsafeFlow,
+                             proxy: &mut WorkerProxy<*mut LayoutContext,UnsafeFlow>) {
     let mut had_descendants = false;
     unsafe {
         // Get a real flow.
@@ -448,7 +424,7 @@ fn compute_absolute_position(unsafe_flow: PaddedUnsafeFlow,
                 had_descendants = true;
                 proxy.push(WorkUnit {
                     fun: compute_absolute_position,
-                    data: UnsafeFlowConversions::from_flow(&borrowed_flow_to_unsafe_flow(kid)),
+                    data: borrowed_flow_to_unsafe_flow(kid),
                 });
             }
         }
@@ -459,21 +435,20 @@ fn compute_absolute_position(unsafe_flow: PaddedUnsafeFlow,
             let descendant = absolute_descendant_link;
             proxy.push(WorkUnit {
                 fun: compute_absolute_position,
-                data: UnsafeFlowConversions::from_flow(&borrowed_flow_to_unsafe_flow(descendant)),
+                data: borrowed_flow_to_unsafe_flow(descendant),
             });
         }
 
         // If there were no more descendants, start building the display list.
         if !had_descendants {
-            build_display_list(UnsafeFlowConversions::from_flow(
-                               &mut_owned_flow_to_unsafe_flow(flow)),
+            build_display_list(mut_owned_flow_to_unsafe_flow(flow),
                                proxy)
         }
     }
 }
 
-fn build_display_list(mut unsafe_flow: PaddedUnsafeFlow,
-                      proxy: &mut WorkerProxy<*mut LayoutContext,PaddedUnsafeFlow>) {
+fn build_display_list(mut unsafe_flow: UnsafeFlow,
+                      proxy: &mut WorkerProxy<*mut LayoutContext,UnsafeFlow>) {
     let layout_context: &mut LayoutContext = unsafe {
         mem::transmute(*proxy.user_data())
     };
@@ -523,7 +498,7 @@ fn build_display_list(mut unsafe_flow: PaddedUnsafeFlow,
                           .children_and_absolute_descendant_count
                           .fetch_sub(1, SeqCst) == 1 {
                 // We were the last child of our parent. Build display lists for our parent.
-                unsafe_flow = UnsafeFlowConversions::from_flow(&unsafe_parent)
+                unsafe_flow = unsafe_parent
             } else {
                 // Stop.
                 break
@@ -553,7 +528,7 @@ pub fn recalc_style_for_subtree(root_node: &LayoutNode,
 pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
                                    profiler_chan: ProfilerChan,
                                    layout_context: &mut LayoutContext,
-                                   queue: &mut WorkQueue<*mut LayoutContext,PaddedUnsafeFlow>) {
+                                   queue: &mut WorkQueue<*mut LayoutContext,UnsafeFlow>) {
     unsafe {
         queue.data = mem::transmute(layout_context)
     }
@@ -561,7 +536,7 @@ pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
     profile(time::LayoutParallelWarmupCategory, profiler_chan, || {
         queue.push(WorkUnit {
             fun: assign_widths,
-            data: UnsafeFlowConversions::from_flow(&mut_owned_flow_to_unsafe_flow(root)),
+            data: mut_owned_flow_to_unsafe_flow(root),
         })
     });
 
@@ -573,7 +548,7 @@ pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
 pub fn build_display_list_for_subtree(root: &mut FlowRef,
                                       profiler_chan: ProfilerChan,
                                       layout_context: &mut LayoutContext,
-                                      queue: &mut WorkQueue<*mut LayoutContext,PaddedUnsafeFlow>) {
+                                      queue: &mut WorkQueue<*mut LayoutContext,UnsafeFlow>) {
     unsafe {
         queue.data = mem::transmute(layout_context)
     }
@@ -581,7 +556,7 @@ pub fn build_display_list_for_subtree(root: &mut FlowRef,
     profile(time::LayoutParallelWarmupCategory, profiler_chan, || {
         queue.push(WorkUnit {
             fun: compute_absolute_position,
-            data: UnsafeFlowConversions::from_flow(&mut_owned_flow_to_unsafe_flow(root)),
+            data: mut_owned_flow_to_unsafe_flow(root),
         })
     });
 
