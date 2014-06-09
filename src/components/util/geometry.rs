@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use geom::length::Length;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
@@ -176,6 +177,11 @@ impl Au {
     #[inline]
     pub fn from_px(px: int) -> Au {
         NumCast::from(px * 60).unwrap()
+    }
+
+    #[inline]
+    pub fn from_page_px(px: Length<PagePx, f32>) -> Au {
+        NumCast::from(px.get() * 60f32).unwrap()
     }
 
     #[inline]

@@ -5,8 +5,8 @@
 use compositing::{CompositorChan, LoadComplete, SetIds, SetLayerClipRect, ShutdownComplete};
 
 use collections::hashmap::{HashMap, HashSet};
-use geom::rect::Rect;
-use geom::size::Size2D;
+use geom::rect::{Rect, TypedRect};
+use geom::size::TypedSize2D;
 use gfx::render_task;
 use libc;
 use pipeline::{Pipeline, CompositionPipeline};
@@ -24,6 +24,7 @@ use servo_msg::constellation_msg;
 use servo_net::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 use servo_net::resource_task::ResourceTask;
 use servo_net::resource_task;
+use servo_util::geometry::PagePx;
 use servo_util::opts::Opts;
 use servo_util::time::ProfilerChan;
 use servo_util::url::parse_url;
@@ -45,9 +46,9 @@ pub struct Constellation {
     navigation_context: NavigationContext,
     next_pipeline_id: PipelineId,
     pending_frames: Vec<FrameChange>,
-    pending_sizes: HashMap<(PipelineId, SubpageId), Rect<f32>>,
+    pending_sizes: HashMap<(PipelineId, SubpageId), TypedRect<PagePx, f32>>,
     pub profiler_chan: ProfilerChan,
-    pub window_size: Size2D<uint>,
+    pub window_size: TypedSize2D<PagePx, f32>,
     pub opts: Opts,
 }
 
@@ -63,7 +64,7 @@ struct ChildFrameTree {
     frame_tree: Rc<FrameTree>,
     /// Clipping rect representing the size and position, in page coordinates, of the visible
     /// region of the child frame relative to the parent.
-    pub rect: Option<Rect<f32>>,
+    pub rect: Option<TypedRect<PagePx, f32>>,
 }
 
 pub struct SendableFrameTree {
@@ -73,7 +74,7 @@ pub struct SendableFrameTree {
 
 pub struct SendableChildFrameTree {
     pub frame_tree: SendableFrameTree,
-    pub rect: Option<Rect<f32>>,
+    pub rect: Option<TypedRect<PagePx, f32>>,
 }
 
 enum ReplaceResult {
@@ -260,7 +261,7 @@ impl Constellation {
                 pending_frames: vec!(),
                 pending_sizes: HashMap::new(),
                 profiler_chan: profiler_chan,
-                window_size: Size2D(800u, 600u),
+                window_size: TypedSize2D(800_f32, 600_f32),
                 opts: opts_clone,
             };
             constellation.run();
@@ -320,7 +321,7 @@ impl Constellation {
             // all frame trees in the navigation context containing the subframe.
             FrameRectMsg(pipeline_id, subpage_id, rect) => {
                 debug!("constellation got frame rect message");
-                self.handle_frame_rect_msg(pipeline_id, subpage_id, rect);
+                self.handle_frame_rect_msg(pipeline_id, subpage_id, Rect::from_untyped(&rect));
             }
             LoadIframeUrlMsg(url, source_pipeline_id, subpage_id, sandbox) => {
                 debug!("constellation got iframe URL load message");
@@ -464,8 +465,9 @@ impl Constellation {
         self.pipelines.insert(pipeline_wrapped.id, pipeline_wrapped);
     }
 
-    fn handle_frame_rect_msg(&mut self, pipeline_id: PipelineId, subpage_id: SubpageId, rect: Rect<f32>) {
-        debug!("Received frame rect {} from {:?}, {:?}", rect, pipeline_id, subpage_id);
+    fn handle_frame_rect_msg(&mut self, pipeline_id: PipelineId, subpage_id: SubpageId,
+                             rect: TypedRect<PagePx, f32>) {
+        debug!("Received frame rect {:?} from {:?}, {:?}", rect, pipeline_id, subpage_id);
         let mut already_sent = HashSet::new();
 
         // Returns true if a child frame tree's subpage id matches the given subpage id
@@ -483,20 +485,16 @@ impl Constellation {
             // if it hasn't been already. Optionally inform the compositor if
             // resize happens immediately.
             let update_child_rect = |child_frame_tree: &mut ChildFrameTree, is_active: bool| {
-                child_frame_tree.rect = Some(rect.clone());
+                child_frame_tree.rect = Some(rect);
                 // NOTE: work around borrowchk issues
                 let pipeline = &child_frame_tree.frame_tree.pipeline;
                 if !already_sent.contains(&pipeline.id) {
-                    let Size2D { width, height } = rect.size;
                     if is_active {
                         let ScriptChan(ref script_chan) = pipeline.script_chan;
-                        script_chan.send(ResizeMsg(pipeline.id, Size2D {
-                            width:  width  as uint,
-                            height: height as uint
-                        }));
+                        script_chan.send(ResizeMsg(pipeline.id, rect.size));
                         self.compositor_chan.send(SetLayerClipRect(pipeline.id,
                                                                    LayerId::null(),
-                                                                   rect));
+                                                                   rect.to_untyped()));
                     } else {
                         already_sent.insert(pipeline.id);
                     }
@@ -790,7 +788,7 @@ impl Constellation {
     }
 
     /// Called when the window is resized.
-    fn handle_resized_window_msg(&mut self, new_size: Size2D<uint>) {
+    fn handle_resized_window_msg(&mut self, new_size: TypedSize2D<PagePx, f32>) {
         let mut already_seen = HashSet::new();
         for frame_tree in self.current_frame().iter() {
             debug!("constellation sending resize message to active frame");
