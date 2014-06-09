@@ -890,9 +890,6 @@ class CGArgumentConverter(CGThing):
     def __init__(self, argument, index, argv, argc, descriptorProvider,
                  invalidEnumValueFatal=True):
         CGThing.__init__(self)
-        if argument.variadic:
-            raise TypeError("We don't support variadic arguments yet " +
-                            str(argument.location))
         assert(not argument.defaultValue or argument.optional)
 
         replacer = {
@@ -914,26 +911,57 @@ class CGArgumentConverter(CGThing):
             treatNullAs=argument.treatNullAs,
             isEnforceRange=argument.enforceRange,
             isClamp=argument.clamp,
+            isMember="Variadic" if argument.variadic else False,
             allowTreatNonObjectAsNull=argument.allowTreatNonCallableAsNull())
 
-        if argument.optional:
-            if argument.defaultValue:
-                assert default
-                template = CGIfElseWrapper(condition,
-                                           CGGeneric(template),
-                                           CGGeneric(default)).define()
+        if not argument.variadic:
+            if argument.optional:
+                if argument.defaultValue:
+                    assert default
+                    template = CGIfElseWrapper(condition,
+                                               CGGeneric(template),
+                                               CGGeneric(default)).define()
+                else:
+                    assert not default
+                    declType = CGWrapper(declType, pre="Option<", post=">")
+                    template = CGIfElseWrapper(condition,
+                                               CGGeneric("Some(%s)" % template),
+                                               CGGeneric("None")).define()
             else:
                 assert not default
-                declType = CGWrapper(declType, pre="Option<", post=">")
-                template = CGIfElseWrapper(condition,
-                                           CGGeneric("Some(%s)" % template),
-                                           CGGeneric("None")).define()
-        else:
-            assert not default
 
-        self.converter = instantiateJSToNativeConversionTemplate(
-            template, replacementVariables, declType, "arg%d" % index,
-            needsRooting)
+            self.converter = instantiateJSToNativeConversionTemplate(
+                template, replacementVariables, declType, "arg%d" % index,
+                needsRooting)
+        else:
+            assert argument.optional
+            variadicConversion = {
+                "val": string.Template("(*${argv}.offset(variadicArg as int))").substitute(replacer),
+            }
+            innerConverter = instantiateJSToNativeConversionTemplate(
+                template, variadicConversion, declType, "slot",
+                needsRooting)
+
+            seqType = CGTemplatedType("Vec", declType)
+            variadicConversion = string.Template(
+                "{\n"
+                "  let mut vector: ${seqType} = vec![];\n"
+                "  for variadicArg in range(${index}, ${argc}) {\n"
+                "${inner}\n"
+                "    vector.push(slot);\n"
+                "  }\n"
+                "  vector\n"
+                "}"
+            ).substitute({
+                "index": index,
+                "argc": argc,
+                "seqType": seqType.define(),
+                "inner": CGIndenter(innerConverter, 4).define(),
+            })
+
+            self.converter = instantiateJSToNativeConversionTemplate(
+                variadicConversion, replacementVariables, seqType, "arg%d" % index,
+                False)
 
     def define(self):
         return self.converter.define()
@@ -4023,7 +4051,7 @@ class CGDictionary(CGThing):
             (member,
              getJSToNativeConversionTemplate(member.type,
                                              descriptorProvider,
-                                             isMember=True,
+                                             isMember="Dictionary",
                                              defaultValue=member.defaultValue,
                                              failureCode="return Err(());",
                                              exceptionCode="return Err(());"))
