@@ -659,10 +659,12 @@ pub trait LayoutNodeHelpers {
 }
 
 impl LayoutNodeHelpers for JS<Node> {
+    #[inline]
     unsafe fn type_id_for_layout(&self) -> NodeTypeId {
         (*self.unsafe_get()).type_id
     }
 
+    #[inline]
     unsafe fn is_element_for_layout(&self) -> bool {
         (*self.unsafe_get()).is_element()
     }
@@ -692,6 +694,7 @@ impl LayoutNodeHelpers for JS<Node> {
         (*self.unsafe_get()).next_sibling.get()
     }
 
+    #[inline]
     unsafe fn owner_doc_for_layout(&self) -> JS<Document> {
         (*self.unsafe_get()).owner_doc.get().unwrap()
     }
