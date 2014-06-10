@@ -130,13 +130,13 @@ pub trait WindowMethods {
     fn Self(&self) -> Temporary<Window>;
     fn Performance(&self) -> Temporary<Performance>;
     fn GetOnclick(&self) -> Option<EventHandlerNonNull>;
-    fn SetOnclick(&mut self, listener: Option<EventHandlerNonNull>);
+    fn SetOnclick(&self, listener: Option<EventHandlerNonNull>);
     fn GetOnload(&self) -> Option<EventHandlerNonNull>;
-    fn SetOnload(&mut self, listener: Option<EventHandlerNonNull>);
+    fn SetOnload(&self, listener: Option<EventHandlerNonNull>);
     fn GetOnunload(&self) -> Option<EventHandlerNonNull>;
-    fn SetOnunload(&mut self, listener: Option<EventHandlerNonNull>);
+    fn SetOnunload(&self, listener: Option<EventHandlerNonNull>);
     fn GetOnerror(&self) -> Option<OnErrorEventHandlerNonNull>;
-    fn SetOnerror(&mut self, listener: Option<OnErrorEventHandlerNonNull>);
+    fn SetOnerror(&self, listener: Option<OnErrorEventHandlerNonNull>);
     fn Debug(&self, message: DOMString);
     fn Gc(&self);
 }
@@ -224,8 +224,8 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         eventtarget.get_event_handler_common("click")
     }
 
-    fn SetOnclick(&mut self, listener: Option<EventHandlerNonNull>) {
-        let eventtarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(self);
+    fn SetOnclick(&self, listener: Option<EventHandlerNonNull>) {
+        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
         eventtarget.set_event_handler_common("click", listener)
     }
 
@@ -234,8 +234,8 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         eventtarget.get_event_handler_common("load")
     }
 
-    fn SetOnload(&mut self, listener: Option<EventHandlerNonNull>) {
-        let eventtarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(self);
+    fn SetOnload(&self, listener: Option<EventHandlerNonNull>) {
+        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
         eventtarget.set_event_handler_common("load", listener)
     }
 
@@ -244,8 +244,8 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         eventtarget.get_event_handler_common("unload")
     }
 
-    fn SetOnunload(&mut self, listener: Option<EventHandlerNonNull>) {
-        let eventtarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(self);
+    fn SetOnunload(&self, listener: Option<EventHandlerNonNull>) {
+        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
         eventtarget.set_event_handler_common("unload", listener)
     }
 
@@ -254,8 +254,8 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         eventtarget.get_event_handler_common("error")
     }
 
-    fn SetOnerror(&mut self, listener: Option<OnErrorEventHandlerNonNull>) {
-        let eventtarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(self);
+    fn SetOnerror(&self, listener: Option<OnErrorEventHandlerNonNull>) {
+        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
         eventtarget.set_event_handler_common("error", listener)
     }
 

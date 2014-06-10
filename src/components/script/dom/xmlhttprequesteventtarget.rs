@@ -44,19 +44,19 @@ impl Reflectable for XMLHttpRequestEventTarget {
 
 pub trait XMLHttpRequestEventTargetMethods {
     fn GetOnloadstart(&self) -> Option<EventHandlerNonNull>;
-    fn SetOnloadstart(&mut self, listener: Option<EventHandlerNonNull>);
+    fn SetOnloadstart(&self, listener: Option<EventHandlerNonNull>);
     fn GetOnprogress(&self) -> Option<EventHandlerNonNull>;
-    fn SetOnprogress(&mut self, listener: Option<EventHandlerNonNull>);
+    fn SetOnprogress(&self, listener: Option<EventHandlerNonNull>);
     fn GetOnabort(&self) -> Option<EventHandlerNonNull>;
-    fn SetOnabort(&mut self, listener: Option<EventHandlerNonNull>);
+    fn SetOnabort(&self, listener: Option<EventHandlerNonNull>);
     fn GetOnerror(&self) -> Option<EventHandlerNonNull>;
-    fn SetOnerror(&mut self, listener: Option<EventHandlerNonNull>);
+    fn SetOnerror(&self, listener: Option<EventHandlerNonNull>);
     fn GetOnload(&self) -> Option<EventHandlerNonNull>;
-    fn SetOnload(&mut self, listener: Option<EventHandlerNonNull>);
+    fn SetOnload(&self, listener: Option<EventHandlerNonNull>);
     fn GetOntimeout(&self) -> Option<EventHandlerNonNull>;
-    fn SetOntimeout(&mut self, listener: Option<EventHandlerNonNull>);
+    fn SetOntimeout(&self, listener: Option<EventHandlerNonNull>);
     fn GetOnloadend(&self) -> Option<EventHandlerNonNull>;
-    fn SetOnloadend(&mut self, listener: Option<EventHandlerNonNull>);
+    fn SetOnloadend(&self, listener: Option<EventHandlerNonNull>);
 }
 
 impl<'a> XMLHttpRequestEventTargetMethods for JSRef<'a, XMLHttpRequestEventTarget> {
@@ -65,8 +65,8 @@ impl<'a> XMLHttpRequestEventTargetMethods for JSRef<'a, XMLHttpRequestEventTarge
         eventtarget.get_event_handler_common("loadstart")
     }
 
-    fn SetOnloadstart(&mut self, listener: Option<EventHandlerNonNull>) {
-        let eventtarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(self);
+    fn SetOnloadstart(&self, listener: Option<EventHandlerNonNull>) {
+        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
         eventtarget.set_event_handler_common("loadstart", listener)
     }
 
@@ -75,8 +75,8 @@ impl<'a> XMLHttpRequestEventTargetMethods for JSRef<'a, XMLHttpRequestEventTarge
         eventtarget.get_event_handler_common("progress")
     }
 
-    fn SetOnprogress(&mut self, listener: Option<EventHandlerNonNull>) {
-        let eventtarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(self);
+    fn SetOnprogress(&self, listener: Option<EventHandlerNonNull>) {
+        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
         eventtarget.set_event_handler_common("progress", listener)
     }
 
@@ -85,8 +85,8 @@ impl<'a> XMLHttpRequestEventTargetMethods for JSRef<'a, XMLHttpRequestEventTarge
         eventtarget.get_event_handler_common("abort")
     }
 
-    fn SetOnabort(&mut self, listener: Option<EventHandlerNonNull>) {
-        let eventtarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(self);
+    fn SetOnabort(&self, listener: Option<EventHandlerNonNull>) {
+        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
         eventtarget.set_event_handler_common("abort", listener)
     }
 
@@ -95,8 +95,8 @@ impl<'a> XMLHttpRequestEventTargetMethods for JSRef<'a, XMLHttpRequestEventTarge
         eventtarget.get_event_handler_common("error")
     }
 
-    fn SetOnerror(&mut self, listener: Option<EventHandlerNonNull>) {
-        let eventtarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(self);
+    fn SetOnerror(&self, listener: Option<EventHandlerNonNull>) {
+        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
         eventtarget.set_event_handler_common("error", listener)
     }
 
@@ -105,8 +105,8 @@ impl<'a> XMLHttpRequestEventTargetMethods for JSRef<'a, XMLHttpRequestEventTarge
         eventtarget.get_event_handler_common("load")
     }
 
-    fn SetOnload(&mut self, listener: Option<EventHandlerNonNull>) {
-        let eventtarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(self);
+    fn SetOnload(&self, listener: Option<EventHandlerNonNull>) {
+        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
         eventtarget.set_event_handler_common("load", listener)
     }
 
@@ -115,8 +115,8 @@ impl<'a> XMLHttpRequestEventTargetMethods for JSRef<'a, XMLHttpRequestEventTarge
         eventtarget.get_event_handler_common("timeout")
     }
 
-    fn SetOntimeout(&mut self, listener: Option<EventHandlerNonNull>) {
-        let eventtarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(self);
+    fn SetOntimeout(&self, listener: Option<EventHandlerNonNull>) {
+        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
         eventtarget.set_event_handler_common("timeout", listener)
     }
 
@@ -125,8 +125,8 @@ impl<'a> XMLHttpRequestEventTargetMethods for JSRef<'a, XMLHttpRequestEventTarge
         eventtarget.get_event_handler_common("loadend")
     }
 
-    fn SetOnloadend(&mut self, listener: Option<EventHandlerNonNull>) {
-        let eventtarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(self);
+    fn SetOnloadend(&self, listener: Option<EventHandlerNonNull>) {
+        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
         eventtarget.set_event_handler_common("loadend", listener)
     }
 }

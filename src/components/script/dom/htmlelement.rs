@@ -59,9 +59,9 @@ impl<'a> PrivateHTMLElementHelpers for JSRef<'a, HTMLElement> {
 
 pub trait HTMLElementMethods {
     fn GetOnclick(&self) -> Option<EventHandlerNonNull>;
-    fn SetOnclick(&mut self, listener: Option<EventHandlerNonNull>);
+    fn SetOnclick(&self, listener: Option<EventHandlerNonNull>);
     fn GetOnload(&self) -> Option<EventHandlerNonNull>;
-    fn SetOnload(&mut self, listener: Option<EventHandlerNonNull>);
+    fn SetOnload(&self, listener: Option<EventHandlerNonNull>);
 }
 
 impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
@@ -70,8 +70,8 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
         eventtarget.get_event_handler_common("click")
     }
 
-    fn SetOnclick(&mut self, listener: Option<EventHandlerNonNull>) {
-        let eventtarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(self);
+    fn SetOnclick(&self, listener: Option<EventHandlerNonNull>) {
+        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
         eventtarget.set_event_handler_common("click", listener)
     }
 
@@ -84,10 +84,10 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
         }
     }
 
-    fn SetOnload(&mut self, listener: Option<EventHandlerNonNull>) {
+    fn SetOnload(&self, listener: Option<EventHandlerNonNull>) {
         if self.is_body_or_frameset() {
-            let mut win = window_from_node(self).root();
-            win.SetOnload(listener)
+            let win = window_from_node(self).root();
+            win.deref().SetOnload(listener)
         }
     }
 }
@@ -109,9 +109,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLElement> {
             let (cx, url, reflector) = (window.get_cx(),
                                         window.get_url(),
                                         window.reflector().get_jsobject());
-            let mut self_alias = self.clone();
-            let evtarget: &mut JSRef<EventTarget> =
-                EventTargetCast::from_mut_ref(&mut self_alias);
+            let evtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
             evtarget.set_event_handler_uncompiled(cx, url, reflector,
                                                   name.as_slice().slice_from(2),
                                                   value);

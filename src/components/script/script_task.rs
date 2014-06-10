@@ -1094,7 +1094,7 @@ impl ScriptTask {
                                                    0i32).root();
                         let event: &JSRef<Event> = EventCast::from_ref(&*uievent);
 
-                        let wintarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(&mut *window);
+                        let wintarget: &JSRef<EventTarget> = EventTargetCast::from_ref(&*window);
                         let _ = wintarget.dispatch_event_with_target(None, event);
                     }
                     None => ()

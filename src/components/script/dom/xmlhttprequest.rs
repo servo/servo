@@ -225,7 +225,7 @@ impl XMLHttpRequest {
 
 pub trait XMLHttpRequestMethods<'a> {
     fn GetOnreadystatechange(&self) -> Option<EventHandlerNonNull>;
-    fn SetOnreadystatechange(&mut self, listener: Option<EventHandlerNonNull>);
+    fn SetOnreadystatechange(&self, listener: Option<EventHandlerNonNull>);
     fn ReadyState(&self) -> u16;
     fn Open(&mut self, _method: ByteString, _url: DOMString) -> ErrorResult;
     fn Open_(&mut self, _method: ByteString, _url: DOMString, _async: bool,
@@ -257,8 +257,8 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
         eventtarget.get_event_handler_common("readystatechange")
     }
 
-    fn SetOnreadystatechange(&mut self, listener: Option<EventHandlerNonNull>) {
-        let eventtarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(self);
+    fn SetOnreadystatechange(&self, listener: Option<EventHandlerNonNull>) {
+        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
         eventtarget.set_event_handler_common("readystatechange", listener)
     }
 
@@ -431,7 +431,7 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
             // Step 8
             let upload_target = &*self.upload.get().root().unwrap();
             let event_target: &JSRef<EventTarget> = EventTargetCast::from_ref(upload_target);
-            if  event_target.handlers.iter().len() > 0 {
+            if event_target.has_handlers() {
                 self.upload_events = true;
             }
 
