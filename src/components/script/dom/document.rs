@@ -430,7 +430,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             return Err(InvalidCharacter);
         }
         let local_name = local_name.as_slice().to_ascii_lower();
-        Ok(build_element_from_tag(local_name, self))
+        Ok(build_element_from_tag(local_name, namespace::HTML, self))
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createelementns
@@ -473,7 +473,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         }
 
         if ns == namespace::HTML {
-            Ok(build_element_from_tag(local_name_from_qname, self))
+            Ok(build_element_from_tag(local_name_from_qname, ns, self))
         } else {
             Ok(Element::new(local_name_from_qname, ns, prefix_from_qname, self))
         }

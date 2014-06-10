@@ -1252,7 +1252,8 @@ impl Node {
             ElementNodeTypeId(..) => {
                 let element: &JSRef<Element> = ElementCast::to_ref(node).unwrap();
                 let element = element.deref();
-                let element = build_element_from_tag(element.local_name.clone(), &*document);
+                let element = build_element_from_tag(element.local_name.clone(),
+                    element.namespace.clone(), &*document);
                 NodeCast::from_temporary(element)
             },
             TextNodeTypeId => {
@@ -1289,22 +1290,16 @@ impl Node {
             },
             ElementNodeTypeId(..) => {
                 let node_elem: &JSRef<Element> = ElementCast::to_ref(node).unwrap();
-                let node_elem = node_elem.deref();
-                let copy_elem: &mut JSRef<Element> = ElementCast::to_mut_ref(&mut *copy).unwrap();
+                let copy_elem: &JSRef<Element> = ElementCast::to_ref(&*copy).unwrap();
 
-                // XXX: to avoid double borrowing compile error. we might be able to fix this after #1854
-                let copy_elem_alias = copy_elem.clone();
-
-                let copy_elem = copy_elem.deref_mut();
                 // FIXME: https://github.com/mozilla/servo/issues/1737
-                copy_elem.namespace = node_elem.namespace.clone();
                 let window = document.deref().window.root();
-                for attr in node_elem.attrs.borrow().iter().map(|attr| attr.root()) {
-                    copy_elem.attrs.borrow_mut().push_unrooted(
+                for attr in node_elem.deref().attrs.borrow().iter().map(|attr| attr.root()) {
+                    copy_elem.deref().attrs.borrow_mut().push_unrooted(
                         &Attr::new(&*window,
                                    attr.deref().local_name.clone(), attr.deref().value.clone(),
                                    attr.deref().name.clone(), attr.deref().namespace.clone(),
-                                   attr.deref().prefix.clone(), &copy_elem_alias));
+                                   attr.deref().prefix.clone(), copy_elem));
                 }
             },
             _ => ()

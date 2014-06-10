@@ -17,10 +17,10 @@ use html::cssparse::{StylesheetProvenance, UrlProvenance, spawn_css_parser};
 use script_task::Page;
 
 use hubbub::hubbub;
-use hubbub::hubbub::{NullNs, XLinkNs, XmlNs, XmlNsNs};
+use hubbub::hubbub::{NullNs, HtmlNs, MathMlNs, SvgNs, XLinkNs, XmlNs, XmlNsNs};
 use servo_net::resource_task::{Load, LoadData, Payload, Done, ResourceTask, load_whole_resource};
 use servo_util::namespace;
-use servo_util::namespace::Null;
+use servo_util::namespace::{Namespace, Null};
 use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS};
 use servo_util::task::spawn_named;
 use servo_util::url::parse_url;
@@ -158,7 +158,11 @@ fn js_script_listener(to_parent: Sender<HtmlDiscoveryMessage>,
 // Silly macros to handle constructing      DOM nodes. This produces bad code and should be optimized
 // via atomization (issue #85).
 
-pub fn build_element_from_tag(tag: DOMString, document: &JSRef<Document>) -> Temporary<Element> {
+pub fn build_element_from_tag(tag: DOMString, ns: Namespace, document: &JSRef<Document>) -> Temporary<Element> {
+    if ns != namespace::HTML {
+        return Element::new(tag, ns, None, document);
+    }
+
     // TODO (Issue #85): use atoms
     handle_element!(document, tag, "a",         HTMLAnchorElement);
     handle_element!(document, tag, "abbr",      HTMLElement);
@@ -369,7 +373,13 @@ pub fn parse_html(page: &Page,
             // NOTE: tmp vars are workaround for lifetime issues. Both required.
             let tmp_borrow = doc_cell.borrow();
             let tmp = &*tmp_borrow;
-            let mut element: Root<Element> = build_element_from_tag(tag.name.clone(), *tmp).root();
+            let namespace = match tag.ns {
+                HtmlNs => namespace::HTML,
+                MathMlNs => namespace::MathML,
+                SvgNs => namespace::SVG,
+                ns => fail!("Not expecting namespace {:?}", ns),
+            };
+            let mut element: Root<Element> = build_element_from_tag(tag.name.clone(), namespace, *tmp).root();
 
             debug!("-- attach attrs");
             for attr in tag.attributes.iter() {
