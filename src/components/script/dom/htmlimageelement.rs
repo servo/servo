@@ -17,12 +17,13 @@ use servo_util::geometry::to_px;
 use servo_net::image_cache_task;
 use servo_util::url::parse_url;
 use servo_util::str::DOMString;
+use std::cell::RefCell;
 use url::Url;
 
 #[deriving(Encodable)]
 pub struct HTMLImageElement {
     pub htmlelement: HTMLElement,
-    image: Untraceable<Option<Url>>,
+    image: Untraceable<RefCell<Option<Url>>>,
 }
 
 impl HTMLImageElementDerived for EventTarget {
@@ -32,25 +33,24 @@ impl HTMLImageElementDerived for EventTarget {
 }
 
 trait PrivateHTMLImageElementHelpers {
-    fn update_image(&mut self, value: Option<DOMString>, url: Option<Url>);
+    fn update_image(&self, value: Option<DOMString>, url: Option<Url>);
 }
 
 impl<'a> PrivateHTMLImageElementHelpers for JSRef<'a, HTMLImageElement> {
     /// Makes the local `image` member match the status of the `src` attribute and starts
     /// prefetching the image. This method must be called after `src` is changed.
-    fn update_image(&mut self, value: Option<DOMString>, url: Option<Url>) {
-        let self_alias = self.clone();
-        let node_alias: &JSRef<Node> = NodeCast::from_ref(&self_alias);
-        let document = node_alias.owner_doc().root();
+    fn update_image(&self, value: Option<DOMString>, url: Option<Url>) {
+        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let document = node.owner_doc().root();
         let window = document.deref().window.root();
         let image_cache = &window.image_cache_task;
         match value {
             None => {
-                *self.image = None;
+                *self.image.deref().borrow_mut() = None;
             }
             Some(src) => {
                 let img_url = parse_url(src.as_slice(), url);
-                *self.image = Some(img_url.clone());
+                *self.image.deref().borrow_mut() = Some(img_url.clone());
 
                 // inform the image cache to load this, but don't store a
                 // handle.
@@ -67,7 +67,7 @@ impl HTMLImageElement {
     pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLImageElement {
         HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(HTMLImageElementTypeId, localName, document),
-            image: Untraceable::new(None),
+            image: Untraceable::new(RefCell::new(None)),
         }
     }
 
@@ -78,12 +78,12 @@ impl HTMLImageElement {
 }
 
 pub trait LayoutHTMLImageElementHelpers {
-    unsafe fn image<'a>(&'a self) -> &'a Option<Url>;
+    unsafe fn image(&self) -> Option<Url>;
 }
 
 impl LayoutHTMLImageElementHelpers for JS<HTMLImageElement> {
-    unsafe fn image<'a>(&'a self) -> &'a Option<Url> {
-        &*(*self.unsafe_get()).image
+    unsafe fn image(&self) -> Option<Url> {
+        (*self.unsafe_get()).image.borrow().clone()
     }
 }
 
@@ -253,8 +253,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLImageElement> {
         if "src" == name.as_slice() {
             let window = window_from_node(self).root();
             let url = Some(window.deref().get_url());
-            let mut self_alias = self.clone();
-            self_alias.update_image(Some(value), url);
+            self.update_image(Some(value), url);
         }
     }
 
@@ -265,8 +264,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLImageElement> {
         }
 
         if "src" == name.as_slice() {
-            let mut self_alias = self.clone();
-            self_alias.update_image(None, None);
+            self.update_image(None, None);
         }
     }
 }
