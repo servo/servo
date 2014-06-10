@@ -31,6 +31,7 @@ pub trait ConsoleMethods {
     fn Info(&self, message: DOMString);
     fn Warn(&self, message: DOMString);
     fn Error(&self, message: DOMString);
+    fn Assert(&self, condition: bool, message: Option<DOMString>);
 }
 
 impl<'a> ConsoleMethods for JSRef<'a, Console> {
@@ -52,6 +53,16 @@ impl<'a> ConsoleMethods for JSRef<'a, Console> {
 
     fn Error(&self, message: DOMString) {
         println!("{:s}", message);
+    }
+
+    fn Assert(&self, condition: bool, message: Option<DOMString>) {
+        if !condition {
+            let message = match message {
+                Some(ref message) => message.as_slice(),
+                None => "no message",
+            };
+            println!("Assertion failed: {:s}", message);
+        }
     }
 }
 
