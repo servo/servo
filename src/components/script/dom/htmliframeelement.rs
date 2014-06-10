@@ -91,12 +91,24 @@ impl HTMLIFrameElement {
 }
 
 pub trait HTMLIFrameElementMethods {
+    fn Src(&self) -> DOMString;
+    fn SetSrc(&self, src: DOMString);
     fn Sandbox(&self) -> DOMString;
     fn SetSandbox(&self, sandbox: DOMString);
     fn GetContentWindow(&self) -> Option<Temporary<Window>>;
 }
 
 impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
+    fn Src(&self) -> DOMString {
+        let element: &JSRef<Element> = ElementCast::from_ref(self);
+        element.get_string_attribute("src")
+    }
+
+    fn SetSrc(&self, src: DOMString) {
+        let element: &JSRef<Element> = ElementCast::from_ref(self);
+        element.set_url_attribute("src", src)
+    }
+
     fn Sandbox(&self) -> DOMString {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
         element.get_string_attribute("sandbox")

@@ -5,7 +5,7 @@
 
 // http://www.whatwg.org/html/#htmliframeelement
 interface HTMLIFrameElement : HTMLElement {
-  //         attribute DOMString src;
+           attribute DOMString src;
   //         attribute DOMString srcdoc;
   //         attribute DOMString name;
   //[PutForwards=value] readonly attribute DOMSettableTokenList sandbox;
