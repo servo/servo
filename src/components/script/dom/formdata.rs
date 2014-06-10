@@ -2,15 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::bindings::error::{Fallible};
 use dom::bindings::codegen::Bindings::FormDataBinding;
+use dom::bindings::error::{Fallible};
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalUnrootable};
+use dom::bindings::trace::Traceable;
+use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::blob::Blob;
 use dom::htmlformelement::HTMLFormElement;
 use dom::window::Window;
 use servo_util::str::DOMString;
 use collections::hashmap::HashMap;
+use std::cell::RefCell;
 
 #[deriving(Encodable)]
 pub enum FormDatum {
@@ -20,7 +22,7 @@ pub enum FormDatum {
 
 #[deriving(Encodable)]
 pub struct FormData {
-    pub data: HashMap<DOMString, FormDatum>,
+    pub data: Traceable<RefCell<HashMap<DOMString, FormDatum>>>,
     pub reflector_: Reflector,
     pub window: JS<Window>,
     pub form: Option<JS<HTMLFormElement>>
@@ -29,7 +31,7 @@ pub struct FormData {
 impl FormData {
     pub fn new_inherited(form: Option<JSRef<HTMLFormElement>>, window: &JSRef<Window>) -> FormData {
         FormData {
-            data: HashMap::new(),
+            data: Traceable::new(RefCell::new(HashMap::new())),
             reflector_: Reflector::new(),
             window: window.unrooted(),
             form: form.unrooted(),
@@ -46,21 +48,21 @@ impl FormData {
 }
 
 pub trait FormDataMethods {
-    fn Append(&mut self, name: DOMString, value: &JSRef<Blob>, filename: Option<DOMString>);
-    fn Append_(&mut self, name: DOMString, value: DOMString);
+    fn Append(&self, name: DOMString, value: &JSRef<Blob>, filename: Option<DOMString>);
+    fn Append_(&self, name: DOMString, value: DOMString);
 }
 
 impl<'a> FormDataMethods for JSRef<'a, FormData> {
-    fn Append(&mut self, name: DOMString, value: &JSRef<Blob>, filename: Option<DOMString>) {
+    fn Append(&self, name: DOMString, value: &JSRef<Blob>, filename: Option<DOMString>) {
         let blob = BlobData {
             blob: value.unrooted(),
             name: filename.unwrap_or("default".to_string())
         };
-        self.data.insert(name.clone(), blob);
+        self.data.deref().borrow_mut().insert(name.clone(), blob);
     }
 
-    fn Append_(&mut self, name: DOMString, value: DOMString) {
-        self.data.insert(name, StringData(value));
+    fn Append_(&self, name: DOMString, value: DOMString) {
+        self.data.deref().borrow_mut().insert(name, StringData(value));
     }
 }
 
