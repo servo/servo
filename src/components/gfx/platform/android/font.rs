@@ -24,7 +24,7 @@ use freetype::freetype::{FT_SizeRec, FT_UInt, FT_Size_Metrics};
 use freetype::freetype::{ft_sfnt_os2};
 use freetype::tt_os2::TT_OS2;
 
-use std::cast;
+use std::mem;
 use std::ptr;
 use std::str;
 
@@ -48,7 +48,7 @@ impl FontTableMethods for FontTable {
 
 enum FontSource {
     FontSourceMem(Vec<u8>),
-    FontSourceFile(~str)
+    FontSourceFile(String)
 }
 
 pub struct FontHandle {
@@ -117,15 +117,15 @@ impl FontHandleMethods for FontHandle {
     }
 
     // an identifier usable by FontContextHandle to recreate this FontHandle.
-    fn face_identifier(&self) -> ~str {
+    fn face_identifier(&self) -> String {
         /* FT_Get_Postscript_Name seems like a better choice here, but it
            doesn't give usable results for fontconfig when deserializing. */
         unsafe { str::raw::from_c_str((*self.face).family_name) }
     }
-    fn family_name(&self) -> ~str {
+    fn family_name(&self) -> String {
         unsafe { str::raw::from_c_str((*self.face).family_name) }
     }
-    fn face_name(&self) -> ~str {
+    fn face_name(&self) -> String {
         unsafe { str::raw::from_c_str(FT_Get_Postscript_Name(self.face)) }
     }
     fn is_italic(&self) -> bool {
@@ -168,7 +168,7 @@ impl FontHandleMethods for FontHandle {
                 FontHandleMethods::new_from_buffer(fctx, buf.clone(), style)
             }
             FontSourceFile(ref file) => {
-                FontHandle::new_from_file(fctx, (*file).clone(), style)
+                FontHandle::new_from_file(fctx, file.as_slice(), style)
             }
         }
     }
@@ -194,7 +194,7 @@ impl FontHandleMethods for FontHandle {
             let res =  FT_Load_Glyph(self.face, glyph as FT_UInt, 0);
             if res.succeeded() {
                 let void_glyph = (*self.face).glyph;
-                let slot: FT_GlyphSlot = cast::transmute(void_glyph);
+                let slot: FT_GlyphSlot = mem::transmute(void_glyph);
                 assert!(slot.is_not_null());
                 debug!("metrics: {:?}", (*slot).metrics);
                 let advance = (*slot).metrics.horiAdvance;
@@ -303,7 +303,7 @@ impl<'a> FontHandle {
         }
     }
 
-    pub fn new_from_file_unstyled(fctx: &FontContextHandle, file: ~str)
+    pub fn new_from_file_unstyled(fctx: &FontContextHandle, file: String)
                                -> Result<FontHandle, ()> {
         unsafe {
             let ft_ctx: FT_Library = fctx.ctx.ctx;
@@ -338,7 +338,7 @@ impl<'a> FontHandle {
 
         // face.size is a *c_void in the bindings, presumably to avoid
         // recursive structural types
-        let size: &FT_SizeRec = unsafe { cast::transmute(&(*face.size)) };
+        let size: &FT_SizeRec = unsafe { mem::transmute(&(*face.size)) };
         let metrics: &FT_Size_Metrics = &(*size).metrics;
 
         let em_size = face.units_per_EM as f64;

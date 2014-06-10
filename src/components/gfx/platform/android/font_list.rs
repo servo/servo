@@ -53,7 +53,7 @@ impl FontListHandle {
                     while FcPatternGetString(*font, FC_FAMILY, v, &family) == FcResultMatch {
                         let family_name = str::raw::from_c_str(family as *c_char);
                         debug!("Creating new FontFamily for family: {:s}", family_name);
-                        let new_family = FontFamily::new(family_name);
+                        let new_family = FontFamily::new(family_name.as_slice());
                         family_map.insert(family_name, new_family);
                         v += 1;
                     }
@@ -129,7 +129,7 @@ impl FontListHandle {
         }
     }
 
-    pub fn get_last_resort_font_families() -> Vec<~str> {
+    pub fn get_last_resort_font_families() -> Vec<String> {
         vec!("Roboto".to_string())
     }
 }
@@ -146,7 +146,7 @@ impl Drop for AutoPattern {
     }
 }
 
-pub fn path_from_identifier(name: ~str, style: &UsedFontStyle) -> Result<~str, ()> {
+pub fn path_from_identifier(name: String, style: &UsedFontStyle) -> Result<String, ()> {
     unsafe {
         let config = FcConfigGetCurrent();
         let wrapper = AutoPattern { pattern: FcPatternCreate() };

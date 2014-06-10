@@ -111,7 +111,7 @@ rust: $(CFG_RUSTC)
 # These arguments are automatically provided by the Rust compiler's build process to
 # itself, so they must be specified later for our Rust modules.
 ifeq ($(CFG_OSTYPE),linux-androideabi)
-  CFG_RUSTC_FLAGS += --target arm-linux-androideabi -C android-cross-path=$(CFG_ANDROID_CROSS_PATH)
+  CFG_RUSTC_FLAGS += --target arm-linux-androideabi -C linker=$(CFG_ANDROID_CROSS_PATH)/bin/arm-linux-androideabi-g++ -C ar=$(CFG_ANDROID_CROSS_PATH)/bin/arm-linux-androideabi-ar
 endif
 
 # Strip off submodule paths to determine "raw" submodule names.

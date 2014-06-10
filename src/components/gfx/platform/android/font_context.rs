@@ -44,12 +44,12 @@ impl FontContextHandle {
 }
 
 impl FontContextHandleMethods for FontContextHandle {
-    fn create_font_from_identifier(&self, name: ~str, style: UsedFontStyle)
+    fn create_font_from_identifier(&self, name: String, style: UsedFontStyle)
                                 -> Result<FontHandle, ()> {
         debug!("Creating font handle for {:s}", name);
         path_from_identifier(name, &style).and_then(|file_name| {
             debug!("Opening font face {:s}", file_name);
-            FontHandle::new_from_file(self, file_name.to_string(), &style)
+            FontHandle::new_from_file(self, file_name.as_slice(), &style)
         })
     }
 }
