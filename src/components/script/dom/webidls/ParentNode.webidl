@@ -24,8 +24,11 @@ interface ParentNode {
   // void append((Node or DOMString)... nodes);
 
   //Element? query(DOMString relativeSelectors);
-  //[NewObject] Elements queryAll(DOMString relativeSelectors);
+  //[NewObject]
+  //Elements queryAll(DOMString relativeSelectors);
   [Throws]
   Element? querySelector(DOMString selectors);
-  //[NewObject] NodeList querySelectorAll(DOMString selectors);
+  //[NewObject]
+  [Throws]
+  NodeList querySelectorAll(DOMString selectors);
 };
