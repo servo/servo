@@ -1033,12 +1033,11 @@ impl ScriptTask {
         // We have no concept of a document loader right now, so just dispatch the
         // "load" event as soon as we've finished executing all scripts parsed during
         // the initial load.
-        let mut event =
-            Event::new(&*window, "load".to_string(), false, false).root();
+        let event = Event::new(&*window, "load".to_string(), false, false).root();
         let doctarget: &JSRef<EventTarget> = EventTargetCast::from_ref(&*document);
         let wintarget: &JSRef<EventTarget> = EventTargetCast::from_ref(&*window);
         let _ = wintarget.dispatch_event_with_target(Some((*doctarget).clone()),
-                                                     &mut *event);
+                                                     &*event);
 
         page.fragment_node.assign(fragment.map_or(None, |fragid| page.find_fragment_node(fragid)));
 
@@ -1089,12 +1088,14 @@ impl ScriptTask {
                     Some(mut window) => {
                         // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
                         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#event-type-resize
-                        let mut uievent = UIEvent::new(&window.clone(), "resize".to_string(), false, false,
-                                                       Some((*window).clone()), 0i32).root();
-                        let event: &mut JSRef<Event> = EventCast::from_mut_ref(&mut *uievent);
+                        let uievent = UIEvent::new(&window.clone(),
+                                                   "resize".to_string(), false,
+                                                   false, Some(window.clone()),
+                                                   0i32).root();
+                        let event: &JSRef<Event> = EventCast::from_ref(&*uievent);
 
                         let wintarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(&mut *window);
-                        let _ = wintarget.dispatch_event_with_target(None, &mut *event);
+                        let _ = wintarget.dispatch_event_with_target(None, event);
                     }
                     None => ()
                 }
@@ -1129,12 +1130,12 @@ impl ScriptTask {
                                 match *page.frame() {
                                     Some(ref frame) => {
                                         let window = frame.window.root();
-                                        let mut event =
+                                        let event =
                                             Event::new(&*window,
                                                        "click".to_string(),
                                                        true, true).root();
                                         let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(&node);
-                                        let _ = eventtarget.dispatch_event_with_target(None, &mut *event);
+                                        let _ = eventtarget.dispatch_event_with_target(None, &*event);
                                     }
                                     None => {}
                                 }

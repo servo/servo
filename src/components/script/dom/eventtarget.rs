@@ -89,7 +89,7 @@ impl EventTarget {
 pub trait EventTargetHelpers {
     fn dispatch_event_with_target<'a>(&self,
                                       target: Option<JSRef<'a, EventTarget>>,
-                                      event: &mut JSRef<Event>) -> Fallible<bool>;
+                                      event: &JSRef<Event>) -> Fallible<bool>;
     fn set_inline_event_listener(&mut self,
                                  ty: DOMString,
                                  listener: Option<EventListener>);
@@ -108,8 +108,8 @@ pub trait EventTargetHelpers {
 impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
     fn dispatch_event_with_target<'b>(&self,
                                       target: Option<JSRef<'b, EventTarget>>,
-                                      event: &mut JSRef<Event>) -> Fallible<bool> {
-        if event.deref().dispatching || !event.deref().initialized {
+                                      event: &JSRef<Event>) -> Fallible<bool> {
+        if event.deref().dispatching.deref().get() || !event.deref().initialized.deref().get() {
             return Err(InvalidState);
         }
         Ok(dispatch_event(self, target, event))
@@ -210,7 +210,7 @@ pub trait EventTargetMethods {
                            ty: DOMString,
                            listener: Option<EventListener>,
                            capture: bool);
-    fn DispatchEvent(&self, event: &mut JSRef<Event>) -> Fallible<bool>;
+    fn DispatchEvent(&self, event: &JSRef<Event>) -> Fallible<bool>;
 }
 
 impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {
@@ -251,7 +251,7 @@ impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {
         }
     }
 
-    fn DispatchEvent(&self, event: &mut JSRef<Event>) -> Fallible<bool> {
+    fn DispatchEvent(&self, event: &JSRef<Event>) -> Fallible<bool> {
         self.dispatch_event_with_target(None, event)
     }
 }

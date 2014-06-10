@@ -90,7 +90,7 @@ impl<'a> UIEventMethods for JSRef<'a, UIEvent> {
                    view: Option<JSRef<Window>>,
                    detail: i32) {
         {
-            let event: &mut JSRef<Event> = EventCast::from_mut_ref(self);
+            let event: &JSRef<Event> = EventCast::from_ref(self);
             event.InitEvent(type_, can_bubble, cancelable);
         }
         self.view.assign(view);

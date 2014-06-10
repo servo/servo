@@ -70,7 +70,7 @@ impl<'a> CustomEventMethods for JSRef<'a, CustomEvent> {
                        cancelable: bool,
                        detail: JSVal) {
         self.detail = Traceable::new(detail);
-        let event: &mut JSRef<Event> = EventCast::from_mut_ref(self);
+        let event: &JSRef<Event> = EventCast::from_ref(self);
         event.InitEvent(type_, can_bubble, cancelable);
     }
 }
