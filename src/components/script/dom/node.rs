@@ -11,12 +11,13 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, TextCast, NodeCast, Elem
 use dom::bindings::codegen::InheritTypes::{CharacterDataCast, NodeBase, NodeDerived};
 use dom::bindings::codegen::InheritTypes::{ProcessingInstructionCast, EventTargetCast};
 use dom::bindings::codegen::Bindings::NodeBinding::NodeConstants;
+use dom::bindings::error::{ErrorResult, Fallible, NotFound, HierarchyRequest, Syntax};
 use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, Root, OptionalUnrootable};
 use dom::bindings::js::{OptionalSettable, TemporaryPushable, OptionalRootedRootable};
 use dom::bindings::js::{ResultRootable, OptionalRootable};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::bindings::error::{ErrorResult, Fallible, NotFound, HierarchyRequest, Syntax};
+use dom::bindings::trace::Untraceable;
 use dom::bindings::utils;
+use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::characterdata::{CharacterData, CharacterDataMethods};
 use dom::comment::Comment;
 use dom::document::{Document, DocumentMethods, DocumentHelpers, HTMLDocument, NonHTMLDocument};
@@ -86,7 +87,7 @@ pub struct Node {
     pub child_list: Cell<Option<JS<NodeList>>>,
 
     /// A bitfield of flags for node items.
-    flags: NodeFlags,
+    flags: Untraceable<RefCell<NodeFlags>>,
 
     /// Layout information. Only the layout task may touch this data.
     ///
@@ -382,7 +383,7 @@ pub trait NodeHelpers {
     fn is_anchor_element(&self) -> bool;
 
     fn get_hover_state(&self) -> bool;
-    fn set_hover_state(&mut self, state: bool);
+    fn set_hover_state(&self, state: bool);
 
     fn dump(&self);
     fn dump_indent(&self, indent: uint);
@@ -430,7 +431,7 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
     }
 
     fn is_in_doc(&self) -> bool {
-        self.deref().flags.contains(IsInDoc)
+        self.deref().flags.deref().borrow().contains(IsInDoc)
     }
 
     /// Returns the type ID of this node. Fails if this node is borrowed mutably.
@@ -489,14 +490,14 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
     }
 
     fn get_hover_state(&self) -> bool {
-        self.flags.contains(InHoverState)
+        self.flags.deref().borrow().contains(InHoverState)
     }
 
-    fn set_hover_state(&mut self, state: bool) {
+    fn set_hover_state(&self, state: bool) {
         if state {
-            self.flags.insert(InHoverState);
+            self.flags.deref().borrow_mut().insert(InHoverState);
         } else {
-            self.flags.remove(InHoverState);
+            self.flags.deref().borrow_mut().remove(InHoverState);
         }
     }
 
@@ -706,7 +707,7 @@ pub trait RawLayoutNodeHelpers {
 
 impl RawLayoutNodeHelpers for Node {
     unsafe fn get_hover_state_for_layout(&self) -> bool {
-        self.flags.contains(InHoverState)
+        self.flags.deref().borrow().contains(InHoverState)
     }
 }
 
@@ -916,7 +917,7 @@ impl Node {
             owner_doc: Cell::new(doc.unrooted()),
             child_list: Cell::new(None),
 
-            flags: NodeFlags::new(type_id),
+            flags: Untraceable::new(RefCell::new(NodeFlags::new(type_id))),
 
             layout_data: LayoutDataRef::new(),
         }
@@ -1110,9 +1111,9 @@ impl Node {
         for node in nodes.mut_iter() {
             parent.add_child(node, child);
             if parent.is_in_doc() {
-                node.flags.insert(IsInDoc);
+                node.flags.deref().borrow_mut().insert(IsInDoc);
             } else {
-                node.flags.remove(IsInDoc);
+                node.flags.deref().borrow_mut().remove(IsInDoc);
             }
         }
 
@@ -1197,9 +1198,7 @@ impl Node {
         // Step 8.
         parent.remove_child(node);
 
-        // FIXME(2513): remove this `node_alias` when in fix mozilla#2513
-        let mut node_alias = node.clone();
-        node_alias.deref_mut().flags.remove(IsInDoc);
+        node.deref().flags.deref().borrow_mut().remove(IsInDoc);
 
         // Step 9.
         match suppress_observers {

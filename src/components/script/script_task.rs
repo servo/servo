@@ -1161,8 +1161,8 @@ impl ScriptTask {
                         match *mouse_over_targets {
                             Some(ref mut mouse_over_targets) => {
                                 for node in mouse_over_targets.mut_iter() {
-                                    let mut node = node.root();
-                                    node.set_hover_state(false);
+                                    let node = node.root();
+                                    node.deref().set_hover_state(false);
                                 }
                             }
                             None => {}
@@ -1176,7 +1176,7 @@ impl ScriptTask {
 
                             let maybe_node = temp_node.root().ancestors().find(|node| node.is_element());
                             match maybe_node {
-                                Some(mut node) => {
+                                Some(node) => {
                                     node.set_hover_state(true);
 
                                     match *mouse_over_targets {
