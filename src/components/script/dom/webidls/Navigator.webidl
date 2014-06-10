@@ -15,7 +15,7 @@ Navigator implements NavigatorID;
 //Navigator implements NavigatorPlugins;
 
 // http://www.whatwg.org/html/#navigatorid
-[NoInterfaceObject, Exposed=Window,Worker]
+[NoInterfaceObject/*, Exposed=Window,Worker*/]
 interface NavigatorID {
   readonly attribute DOMString appCodeName; // constant "Mozilla"
   readonly attribute DOMString appName;

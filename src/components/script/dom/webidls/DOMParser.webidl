@@ -16,6 +16,6 @@ enum SupportedType {
 
 [Constructor]
 interface DOMParser {
-  [Creator, Throws]
+  [Throws]
   Document parseFromString(DOMString str, SupportedType type);
 };

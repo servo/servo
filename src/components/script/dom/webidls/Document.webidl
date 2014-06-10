@@ -26,17 +26,14 @@ interface Document : Node {
   HTMLCollection getElementsByClassName(DOMString classNames);
   Element? getElementById(DOMString elementId);
 
-  [Creator, Throws]
+  [Throws]
   Element createElement(DOMString localName);
-  [Creator, Throws]
+  [Throws]
   Element createElementNS(DOMString? namespace, DOMString qualifiedName);
-  [Creator]
   DocumentFragment createDocumentFragment();
-  [Creator]
   Text createTextNode(DOMString data);
-  [Creator]
   Comment createComment(DOMString data);
-  [Creator, Throws]
+  [Throws]
   ProcessingInstruction createProcessingInstruction(DOMString target, DOMString data);
 
   [Throws]
@@ -44,7 +41,7 @@ interface Document : Node {
   [Throws]
   Node adoptNode(Node node);
 
-  [Creator, Throws]
+  [Throws]
   Event createEvent(DOMString interface_);
 };
 

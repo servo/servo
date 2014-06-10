@@ -191,7 +191,7 @@ pub trait TestBindingMethods {
     fn PassOptionalInterface(&self, _: Option<JSRef<Blob>>) {}
     fn PassOptionalUnion(&self, _: Option<HTMLElementOrLong>) {}
     fn PassOptionalUnion2(&self, _: Option<EventOrString>) {}
-    fn PassOptionalAny(&self, _: *mut JSContext, _: Option<JSVal>) {}
+    fn PassOptionalAny(&self, _: *mut JSContext, _: JSVal) {}
 
     fn PassOptionalNullableBoolean(&self, _: Option<Option<bool>>) {}
     fn PassOptionalNullableByte(&self, _: Option<Option<i8>>) {}
