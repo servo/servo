@@ -1284,8 +1284,8 @@ impl Node {
         match node.type_id() {
             DocumentNodeTypeId => {
                 let node_doc: &JSRef<Document> = DocumentCast::to_ref(node).unwrap();
-                let copy_doc: &mut JSRef<Document> = DocumentCast::to_mut_ref(&mut *copy).unwrap();
-                copy_doc.set_encoding_name(node_doc.encoding_name.clone());
+                let copy_doc: &JSRef<Document> = DocumentCast::to_ref(&*copy).unwrap();
+                copy_doc.set_encoding_name(node_doc.encoding_name.deref().borrow().clone());
                 copy_doc.set_quirks_mode(node_doc.quirks_mode());
             },
             ElementNodeTypeId(..) => {
