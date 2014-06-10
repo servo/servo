@@ -817,31 +817,27 @@ impl ScriptTask {
         let page = page.find(id).expect("ScriptTask: received fire timer msg for a
             pipeline ID not associated with this script task. This is a bug.");
         let frame = page.frame();
-        let mut window = frame.get_ref().window.root();
+        let window = frame.get_ref().window.root();
 
         let this_value = window.deref().reflector().get_jsobject();
 
-        let is_interval;
-        match window.deref().active_timers.find(&timer_id) {
+        let data = match window.deref().active_timers.deref().borrow().find(&timer_id) {
             None => return,
-            Some(timer_handle) => {
-                // TODO: Support extra arguments. This requires passing a `*JSVal` array as `argv`.
-                let cx = self.get_cx();
-                with_compartment(cx, this_value, || {
-                    let mut rval = NullValue();
-                    unsafe {
-                        JS_CallFunctionValue(cx, this_value,
-                                             *timer_handle.data.funval,
-                                             0, ptr::mut_null(), &mut rval);
-                    }
-                });
+            Some(timer_handle) => timer_handle.data,
+        };
 
-                is_interval = timer_handle.data.is_interval;
+        // TODO: Support extra arguments. This requires passing a `*JSVal` array as `argv`.
+        let cx = self.get_cx();
+        with_compartment(cx, this_value, || {
+            let mut rval = NullValue();
+            unsafe {
+                JS_CallFunctionValue(cx, this_value, *data.funval,
+                                     0, ptr::mut_null(), &mut rval);
             }
-        }
+        });
 
-        if !is_interval {
-            window.deref_mut().active_timers.remove(&timer_id);
+        if !data.is_interval {
+            window.deref().active_timers.deref().borrow_mut().remove(&timer_id);
         }
     }
 

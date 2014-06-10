@@ -73,8 +73,8 @@ pub struct Window {
     pub location: Cell<Option<JS<Location>>>,
     pub navigator: Cell<Option<JS<Navigator>>>,
     pub image_cache_task: ImageCacheTask,
-    pub active_timers: Box<HashMap<TimerId, TimerHandle>>,
-    pub next_timer_handle: i32,
+    pub active_timers: Traceable<RefCell<HashMap<TimerId, TimerHandle>>>,
+    pub next_timer_handle: Untraceable<Cell<i32>>,
     pub compositor: Untraceable<Box<ScriptListener>>,
     pub browser_context: Traceable<RefCell<Option<BrowserContext>>>,
     pub page: Rc<Page>,
@@ -100,7 +100,7 @@ impl Window {
 #[unsafe_destructor]
 impl Drop for Window {
     fn drop(&mut self) {
-        for (_, timer_handle) in self.active_timers.mut_iter() {
+        for (_, timer_handle) in self.active_timers.borrow_mut().mut_iter() {
             timer_handle.cancel();
         }
     }
@@ -122,10 +122,10 @@ pub trait WindowMethods {
     fn Location(&self) -> Temporary<Location>;
     fn Console(&self) -> Temporary<Console>;
     fn Navigator(&self) -> Temporary<Navigator>;
-    fn SetTimeout(&mut self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32;
-    fn ClearTimeout(&mut self, handle: i32);
-    fn SetInterval(&mut self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32;
-    fn ClearInterval(&mut self, handle: i32);
+    fn SetTimeout(&self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32;
+    fn ClearTimeout(&self, handle: i32);
+    fn SetInterval(&self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32;
+    fn ClearInterval(&self, handle: i32);
     fn Window(&self) -> Temporary<Window>;
     fn Self(&self) -> Temporary<Window>;
     fn Performance(&self) -> Temporary<Performance>;
@@ -182,24 +182,25 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         Temporary::new(self.navigator.get().get_ref().clone())
     }
 
-    fn SetTimeout(&mut self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32 {
+    fn SetTimeout(&self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32 {
         self.set_timeout_or_interval(callback, timeout, false)
     }
 
-    fn ClearTimeout(&mut self, handle: i32) {
-        let mut timer_handle = self.active_timers.pop(&TimerId(handle));
+    fn ClearTimeout(&self, handle: i32) {
+        let mut timers = self.active_timers.deref().borrow_mut();
+        let mut timer_handle = timers.pop(&TimerId(handle));
         match timer_handle {
             Some(ref mut handle) => handle.cancel(),
             None => { }
         }
-        self.active_timers.remove(&TimerId(handle));
+        timers.remove(&TimerId(handle));
     }
 
-    fn SetInterval(&mut self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32 {
+    fn SetInterval(&self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32 {
         self.set_timeout_or_interval(callback, timeout, true)
     }
 
-    fn ClearInterval(&mut self, handle: i32) {
+    fn ClearInterval(&self, handle: i32) {
         self.ClearTimeout(handle);
     }
 
@@ -288,7 +289,7 @@ pub trait WindowHelpers {
 }
 
 trait PrivateWindowHelpers {
-    fn set_timeout_or_interval(&mut self, callback: JSVal, timeout: i32, is_interval: bool) -> i32;
+    fn set_timeout_or_interval(&self, callback: JSVal, timeout: i32, is_interval: bool) -> i32;
 }
 
 impl<'a> WindowHelpers for JSRef<'a, Window> {
@@ -325,10 +326,10 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
 }
 
 impl<'a> PrivateWindowHelpers for JSRef<'a, Window> {
-    fn set_timeout_or_interval(&mut self, callback: JSVal, timeout: i32, is_interval: bool) -> i32 {
+    fn set_timeout_or_interval(&self, callback: JSVal, timeout: i32, is_interval: bool) -> i32 {
         let timeout = cmp::max(0, timeout) as u64;
-        let handle = self.next_timer_handle;
-        self.next_timer_handle += 1;
+        let handle = self.next_timer_handle.deref().get();
+        self.next_timer_handle.deref().set(handle + 1);
 
         // Post a delayed message to the per-window timer task; it will dispatch it
         // to the relevant script handler that will deal with it.
@@ -379,7 +380,7 @@ impl<'a> PrivateWindowHelpers for JSRef<'a, Window> {
                 funval: Traceable::new(callback),
             }
         };
-        self.active_timers.insert(timer_id, timer);
+        self.active_timers.deref().borrow_mut().insert(timer_id, timer);
         handle
     }
 }
@@ -400,8 +401,8 @@ impl Window {
             location: Cell::new(None),
             navigator: Cell::new(None),
             image_cache_task: image_cache_task,
-            active_timers: box HashMap::new(),
-            next_timer_handle: 0,
+            active_timers: Traceable::new(RefCell::new(HashMap::new())),
+            next_timer_handle: Untraceable::new(Cell::new(0)),
             browser_context: Traceable::new(RefCell::new(None)),
             performance: Cell::new(None),
             navigationStart: time::get_time().sec as u64,
