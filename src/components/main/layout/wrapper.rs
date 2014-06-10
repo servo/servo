@@ -188,7 +188,7 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
                 fail!("not text!")
             }
             let text: JS<Text> = self.get_jsmanaged().transmute_copy();
-            (*text.unsafe_get()).characterdata.data.to_str()
+            (*text.unsafe_get()).characterdata.data.deref().borrow().clone()
         }
     }
 }
@@ -494,7 +494,7 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
                 fail!("not text!")
             }
             let text: JS<Text> = self.get_jsmanaged().transmute_copy();
-            (*text.unsafe_get()).characterdata.data.to_str()
+            (*text.unsafe_get()).characterdata.data.deref().borrow().clone()
         }
     }
 }
@@ -636,7 +636,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
             Some(TextNodeTypeId) => {
                 unsafe {
                     let text: JS<Text> = self.get_jsmanaged().transmute_copy();
-                    if !is_whitespace((*text.unsafe_get()).characterdata.data.as_slice()) {
+                    if !is_whitespace((*text.unsafe_get()).characterdata.data.deref().borrow().as_slice()) {
                         return false
                     }
 

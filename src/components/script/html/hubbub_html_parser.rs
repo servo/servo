@@ -506,17 +506,17 @@ pub fn parse_html(page: &Page,
                         js_chan2.send(JSTaskNewFile(new_url));
                     }
                     None => {
-                        let mut data = vec!();
+                        let mut data = String::new();
                         let scriptnode: &JSRef<Node> = NodeCast::from_ref(script);
                         debug!("iterating over children {:?}", scriptnode.first_child());
                         for child in scriptnode.children() {
                             debug!("child = {:?}", child);
                             let text: &JSRef<Text> = TextCast::to_ref(&child).unwrap();
-                            data.push(text.deref().characterdata.data.to_str());  // FIXME: Bad copy.
+                            data.push_str(text.deref().characterdata.data.deref().borrow().as_slice());
                         }
 
                         debug!("script data = {:?}", data);
-                        js_chan2.send(JSTaskNewInlineScript(data.concat(), url3.clone()));
+                        js_chan2.send(JSTaskNewInlineScript(data, url3.clone()));
                     }
                 }
             }

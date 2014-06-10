@@ -5,18 +5,21 @@
 //! DOM bindings for `CharacterData`.
 
 use dom::bindings::codegen::InheritTypes::{CharacterDataDerived, NodeCast};
-use dom::bindings::js::JSRef;
 use dom::bindings::error::{Fallible, ErrorResult, IndexSize};
+use dom::bindings::js::JSRef;
+use dom::bindings::trace::Untraceable;
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::node::{CommentNodeTypeId, Node, NodeTypeId, TextNodeTypeId, ProcessingInstructionNodeTypeId, NodeHelpers};
 use servo_util::str::DOMString;
 
+use std::cell::RefCell;
+
 #[deriving(Encodable)]
 pub struct CharacterData {
     pub node: Node,
-    pub data: DOMString,
+    pub data: Untraceable<RefCell<DOMString>>,
 }
 
 impl CharacterDataDerived for EventTarget {
@@ -34,56 +37,56 @@ impl CharacterData {
     pub fn new_inherited(id: NodeTypeId, data: DOMString, document: &JSRef<Document>) -> CharacterData {
         CharacterData {
             node: Node::new_inherited(id, document),
-            data: data
+            data: Untraceable::new(RefCell::new(data)),
         }
     }
 }
 
 pub trait CharacterDataMethods {
     fn Data(&self) -> DOMString;
-    fn SetData(&mut self, arg: DOMString) -> ErrorResult;
+    fn SetData(&self, arg: DOMString) -> ErrorResult;
     fn Length(&self) -> u32;
     fn SubstringData(&self, offset: u32, count: u32) -> Fallible<DOMString>;
-    fn AppendData(&mut self, arg: DOMString) -> ErrorResult;
-    fn InsertData(&mut self, _offset: u32, _arg: DOMString) -> ErrorResult;
-    fn DeleteData(&mut self, _offset: u32, _count: u32) -> ErrorResult;
-    fn ReplaceData(&mut self, _offset: u32, _count: u32, _arg: DOMString) -> ErrorResult;
+    fn AppendData(&self, arg: DOMString) -> ErrorResult;
+    fn InsertData(&self, _offset: u32, _arg: DOMString) -> ErrorResult;
+    fn DeleteData(&self, _offset: u32, _count: u32) -> ErrorResult;
+    fn ReplaceData(&self, _offset: u32, _count: u32, _arg: DOMString) -> ErrorResult;
     fn Remove(&self);
 }
 
 impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
     fn Data(&self) -> DOMString {
-        self.data.clone()
+        self.data.deref().borrow().clone()
     }
 
-    fn SetData(&mut self, arg: DOMString) -> ErrorResult {
-        self.data = arg;
+    fn SetData(&self, arg: DOMString) -> ErrorResult {
+        *self.data.deref().borrow_mut() = arg;
         Ok(())
     }
 
     fn Length(&self) -> u32 {
-        self.data.len() as u32
+        self.data.deref().borrow().len() as u32
     }
 
     fn SubstringData(&self, offset: u32, count: u32) -> Fallible<DOMString> {
-        Ok(self.data.as_slice().slice(offset as uint, count as uint).to_str())
+        Ok(self.data.deref().borrow().as_slice().slice(offset as uint, count as uint).to_string())
     }
 
-    fn AppendData(&mut self, arg: DOMString) -> ErrorResult {
-        self.data.push_str(arg.as_slice());
+    fn AppendData(&self, arg: DOMString) -> ErrorResult {
+        self.data.deref().borrow_mut().push_str(arg.as_slice());
         Ok(())
     }
 
-    fn InsertData(&mut self, offset: u32, arg: DOMString) -> ErrorResult {
+    fn InsertData(&self, offset: u32, arg: DOMString) -> ErrorResult {
         self.ReplaceData(offset, 0, arg)
     }
 
-    fn DeleteData(&mut self, offset: u32, count: u32) -> ErrorResult {
+    fn DeleteData(&self, offset: u32, count: u32) -> ErrorResult {
         self.ReplaceData(offset, count, "".to_string())
     }
 
-    fn ReplaceData(&mut self, offset: u32, count: u32, arg: DOMString) -> ErrorResult {
-        let length = self.data.len() as u32;
+    fn ReplaceData(&self, offset: u32, count: u32, arg: DOMString) -> ErrorResult {
+        let length = self.data.deref().borrow().len() as u32;
         if offset > length {
             return Err(IndexSize);
         }
@@ -92,10 +95,10 @@ impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
         } else {
             count
         };
-        let mut data = self.data.as_slice().slice(0, offset as uint).to_string();
+        let mut data = self.data.deref().borrow().as_slice().slice(0, offset as uint).to_string();
         data.push_str(arg.as_slice());
-        data.push_str(self.data.as_slice().slice((offset + count) as uint, length as uint));
-        self.data = data.into_owned();
+        data.push_str(self.data.deref().borrow().as_slice().slice((offset + count) as uint, length as uint));
+        *self.data.deref().borrow_mut() = data.into_owned();
         // FIXME: Once we have `Range`, we should implement step7 to step11
         Ok(())
     }

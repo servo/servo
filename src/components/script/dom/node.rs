@@ -1235,7 +1235,7 @@ impl Node {
             CommentNodeTypeId => {
                 let comment: &JSRef<Comment> = CommentCast::to_ref(node).unwrap();
                 let comment = comment.deref();
-                let comment = Comment::new(comment.characterdata.data.clone(), &*document);
+                let comment = Comment::new(comment.characterdata.data.deref().borrow().clone(), &*document);
                 NodeCast::from_temporary(comment)
             },
             DocumentNodeTypeId => {
@@ -1259,14 +1259,14 @@ impl Node {
             TextNodeTypeId => {
                 let text: &JSRef<Text> = TextCast::to_ref(node).unwrap();
                 let text = text.deref();
-                let text = Text::new(text.characterdata.data.clone(), &*document);
+                let text = Text::new(text.characterdata.data.deref().borrow().clone(), &*document);
                 NodeCast::from_temporary(text)
             },
             ProcessingInstructionNodeTypeId => {
                 let pi: &JSRef<ProcessingInstruction> = ProcessingInstructionCast::to_ref(node).unwrap();
                 let pi = pi.deref();
                 let pi = ProcessingInstruction::new(pi.target.clone(),
-                                                    pi.characterdata.data.clone(), &*document);
+                                                    pi.characterdata.data.deref().borrow().clone(), &*document);
                 NodeCast::from_temporary(pi)
             },
         }.root();
@@ -1514,7 +1514,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                 for node in self.traverse_preorder() {
                     if node.is_text() {
                         let text: &JSRef<Text> = TextCast::to_ref(&node).unwrap();
-                        content.push_str(text.deref().characterdata.data.as_slice());
+                        content.push_str(text.deref().characterdata.data.deref().borrow().as_slice());
                     }
                 }
                 Some(content.into_owned())
@@ -1555,10 +1555,8 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
             ProcessingInstructionNodeTypeId => {
                 self.wait_until_safe_to_modify_dom();
 
-                {
-                    let characterdata: &mut JSRef<CharacterData> = CharacterDataCast::to_mut_ref(self).unwrap();
-                    characterdata.deref_mut().data = value;
-                }
+                let characterdata: &JSRef<CharacterData> = CharacterDataCast::to_ref(self).unwrap();
+                *characterdata.data.deref().borrow_mut() = value;
 
                 // Notify the document that the content of this node is different
                 let document = self.owner_doc().root();
@@ -1772,12 +1770,12 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
             let pi: &JSRef<ProcessingInstruction> = ProcessingInstructionCast::to_ref(node).unwrap();
             let other_pi: &JSRef<ProcessingInstruction> = ProcessingInstructionCast::to_ref(other).unwrap();
             (pi.deref().target == other_pi.deref().target) &&
-            (pi.deref().characterdata.data == other_pi.deref().characterdata.data)
+            (*pi.deref().characterdata.data.deref().borrow() == *other_pi.deref().characterdata.data.deref().borrow())
         }
         fn is_equal_characterdata(node: &JSRef<Node>, other: &JSRef<Node>) -> bool {
             let characterdata: &JSRef<CharacterData> = CharacterDataCast::to_ref(node).unwrap();
             let other_characterdata: &JSRef<CharacterData> = CharacterDataCast::to_ref(other).unwrap();
-            characterdata.deref().data == other_characterdata.deref().data
+            *characterdata.deref().data.deref().borrow() == *other_characterdata.deref().data.deref().borrow()
         }
         fn is_equal_element_attrs(node: &JSRef<Node>, other: &JSRef<Node>) -> bool {
             let element: &JSRef<Element> = ElementCast::to_ref(node).unwrap();
