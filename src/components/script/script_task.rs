@@ -952,7 +952,7 @@ impl ScriptTask {
                                      self.compositor.dup(),
                                      self.image_cache_task.clone()).root();
         let mut document = Document::new(&*window, Some(url.clone()), HTMLDocument, None).root();
-        window.deref_mut().init_browser_context(&*document);
+        window.deref().init_browser_context(&*document);
 
         with_compartment((**cx).ptr, window.reflector().get_jsobject(), || {
             let mut js_info = page.mut_js_info();

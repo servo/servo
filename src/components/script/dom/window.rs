@@ -29,7 +29,7 @@ use js::jsapi::{JS_GC, JS_GetRuntime};
 use js::jsval::JSVal;
 
 use collections::hashmap::HashMap;
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::cmp;
 use std::comm::{channel, Sender};
 use std::comm::Select;
@@ -76,7 +76,7 @@ pub struct Window {
     pub active_timers: Box<HashMap<TimerId, TimerHandle>>,
     pub next_timer_handle: i32,
     pub compositor: Untraceable<Box<ScriptListener>>,
-    pub browser_context: Option<BrowserContext>,
+    pub browser_context: Traceable<RefCell<Option<BrowserContext>>>,
     pub page: Rc<Page>,
     pub performance: Cell<Option<JS<Performance>>>,
     pub navigationStart: u64,
@@ -283,7 +283,7 @@ impl Reflectable for Window {
 pub trait WindowHelpers {
     fn damage_and_reflow(&self, damage: DocumentDamageLevel);
     fn wait_until_safe_to_modify_dom(&self);
-    fn init_browser_context(&mut self, doc: &JSRef<Document>);
+    fn init_browser_context(&self, doc: &JSRef<Document>);
     fn load_url(&self, href: DOMString);
 }
 
@@ -306,8 +306,8 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         self.page().join_layout();
     }
 
-    fn init_browser_context(&mut self, doc: &JSRef<Document>) {
-        self.browser_context = Some(BrowserContext::new(doc));
+    fn init_browser_context(&self, doc: &JSRef<Document>) {
+        *self.browser_context.deref().borrow_mut() = Some(BrowserContext::new(doc));
     }
 
     /// Commence a new URL load which will either replace this window or scroll to a fragment.
@@ -402,7 +402,7 @@ impl Window {
             image_cache_task: image_cache_task,
             active_timers: box HashMap::new(),
             next_timer_handle: 0,
-            browser_context: None,
+            browser_context: Traceable::new(RefCell::new(None)),
             performance: Cell::new(None),
             navigationStart: time::get_time().sec as u64,
             navigationStartPrecise: time::precise_time_s(),
