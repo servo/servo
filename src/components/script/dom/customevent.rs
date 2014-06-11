@@ -14,10 +14,12 @@ use js::jsapi::JSContext;
 use js::jsval::{JSVal, NullValue};
 use servo_util::str::DOMString;
 
+use std::cell::Cell;
+
 #[deriving(Encodable)]
 pub struct CustomEvent {
     event: Event,
-    detail: Traceable<JSVal>
+    detail: Traceable<Cell<Traceable<JSVal>>>,
 }
 
 impl CustomEventDerived for Event {
@@ -28,7 +30,7 @@ impl CustomEventDerived for Event {
 
 pub trait CustomEventMethods {
     fn Detail(&self, _cx: *mut JSContext) -> JSVal;
-    fn InitCustomEvent(&mut self, _cx: *mut JSContext,
+    fn InitCustomEvent(&self, _cx: *mut JSContext,
                        type_: DOMString, can_bubble: bool,
                        cancelable: bool, detail: JSVal);
 }
@@ -37,7 +39,7 @@ impl CustomEvent {
     pub fn new_inherited(type_id: EventTypeId) -> CustomEvent {
         CustomEvent {
             event: Event::new_inherited(type_id),
-            detail: Traceable::new(NullValue())
+            detail: Traceable::new(Cell::new(Traceable::new(NullValue()))),
         }
     }
 
@@ -47,8 +49,8 @@ impl CustomEvent {
                            CustomEventBinding::Wrap)
     }
     pub fn new(window: &JSRef<Window>, type_: DOMString, bubbles: bool, cancelable: bool, detail: JSVal) -> Temporary<CustomEvent> {
-        let mut ev = CustomEvent::new_uninitialized(window).root();
-        ev.InitCustomEvent(window.deref().get_cx(), type_, bubbles, cancelable, detail);
+        let ev = CustomEvent::new_uninitialized(window).root();
+        ev.deref().InitCustomEvent(window.deref().get_cx(), type_, bubbles, cancelable, detail);
         Temporary::from_rooted(&*ev)
     }
     pub fn Constructor(owner: &JSRef<Window>,
@@ -60,17 +62,17 @@ impl CustomEvent {
 
 impl<'a> CustomEventMethods for JSRef<'a, CustomEvent> {
     fn Detail(&self, _cx: *mut JSContext) -> JSVal {
-        self.detail.deref().clone()
+        *self.detail.deref().get()
     }
 
-    fn InitCustomEvent(&mut self,
-                        _cx: *mut JSContext,
+    fn InitCustomEvent(&self,
+                       _cx: *mut JSContext,
                        type_: DOMString,
                        can_bubble: bool,
                        cancelable: bool,
                        detail: JSVal) {
-        self.detail = Traceable::new(detail);
-        let event: &mut JSRef<Event> = EventCast::from_mut_ref(self);
+        self.detail.deref().set(Traceable::new(detail));
+        let event: &JSRef<Event> = EventCast::from_ref(self);
         event.InitEvent(type_, can_bubble, cancelable);
     }
 }

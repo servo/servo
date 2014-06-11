@@ -39,7 +39,7 @@ enum SandboxAllowance {
 #[deriving(Encodable)]
 pub struct HTMLIFrameElement {
     pub htmlelement: HTMLElement,
-    pub size: Option<IFrameSize>,
+    pub size: Traceable<Cell<Option<IFrameSize>>>,
     pub sandbox: Traceable<Cell<Option<u8>>>,
 }
 
@@ -79,7 +79,7 @@ impl HTMLIFrameElement {
     pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLIFrameElement {
         HTMLIFrameElement {
             htmlelement: HTMLElement::new_inherited(HTMLIFrameElementTypeId, localName, document),
-            size: None,
+            size: Traceable::new(Cell::new(None)),
             sandbox: Traceable::new(Cell::new(None)),
         }
     }
@@ -120,7 +120,7 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
     }
 
     fn GetContentWindow(&self) -> Option<Temporary<Window>> {
-        self.size.and_then(|size| {
+        self.size.deref().get().and_then(|size| {
             let window = window_from_node(self).root();
             let children = &*window.deref().page.children.deref().borrow();
             let child = children.iter().find(|child| {
@@ -194,11 +194,10 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
                 let page = window.deref().page();
                 let subpage_id = page.get_next_subpage_id();
 
-                let mut self_alias = self.clone();
-                self_alias.deref_mut().size = Some(IFrameSize {
+                self.deref().size.deref().set(Some(IFrameSize {
                     pipeline_id: page.id,
                     subpage_id: subpage_id,
-                });
+                }));
 
                 let ConstellationChan(ref chan) = *page.constellation_chan.deref();
                 chan.send(LoadIframeUrlMsg(url, page.id, subpage_id, sandboxed));

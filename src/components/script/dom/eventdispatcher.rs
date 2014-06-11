@@ -13,19 +13,16 @@ use dom::virtualmethods::vtable_for;
 // See http://dom.spec.whatwg.org/#concept-event-dispatch for the full dispatch algorithm
 pub fn dispatch_event<'a, 'b>(target: &JSRef<'a, EventTarget>,
                               pseudo_target: Option<JSRef<'b, EventTarget>>,
-                              event: &mut JSRef<Event>) -> bool {
-    assert!(!event.deref().dispatching);
+                              event: &JSRef<Event>) -> bool {
+    assert!(!event.deref().dispatching.deref().get());
 
-    {
-        let event = event.deref_mut();
-        event.target.assign(Some(match pseudo_target {
-            Some(pseudo_target) => pseudo_target,
-            None => target.clone(),
-        }));
-        event.dispatching = true;
-    }
+    event.target.assign(Some(match pseudo_target {
+        Some(pseudo_target) => pseudo_target,
+        None => target.clone(),
+    }));
+    event.dispatching.deref().set(true);
 
-    let type_ = event.deref().type_.clone();
+    let type_ = event.Type();
 
     //TODO: no chain if not participating in a tree
     let mut chain: Vec<Root<EventTarget>> = if target.deref().is_node() {
@@ -38,7 +35,7 @@ pub fn dispatch_event<'a, 'b>(target: &JSRef<'a, EventTarget>,
         vec!()
     };
 
-    event.deref_mut().phase = PhaseCapturing;
+    event.deref().phase.deref().set(PhaseCapturing);
 
     //FIXME: The "callback this value" should be currentTarget
 
@@ -51,12 +48,12 @@ pub fn dispatch_event<'a, 'b>(target: &JSRef<'a, EventTarget>,
                     // Explicitly drop any exception on the floor.
                     let _ = listener.HandleEvent_(&**cur_target, event, ReportExceptions);
 
-                    if event.deref().stop_immediate {
+                    if event.deref().stop_immediate.deref().get() {
                         break;
                     }
                 }
 
-                event.deref().stop_propagation
+                event.deref().stop_propagation.deref().get()
             }
             None => false
         };
@@ -67,12 +64,9 @@ pub fn dispatch_event<'a, 'b>(target: &JSRef<'a, EventTarget>,
     }
 
     /* at target */
-    if !event.deref().stop_propagation {
-        {
-            let event = event.deref_mut();
-            event.phase = PhaseAtTarget;
-            event.current_target.assign(Some(target.clone()));
-        }
+    if !event.deref().stop_propagation.deref().get() {
+        event.phase.deref().set(PhaseAtTarget);
+        event.current_target.assign(Some(target.clone()));
 
         let opt_listeners = target.deref().get_listeners(type_.as_slice());
         for listeners in opt_listeners.iter() {
@@ -80,7 +74,7 @@ pub fn dispatch_event<'a, 'b>(target: &JSRef<'a, EventTarget>,
                 // Explicitly drop any exception on the floor.
                 let _ = listener.HandleEvent_(target, event, ReportExceptions);
 
-                if event.deref().stop_immediate {
+                if event.deref().stop_immediate.deref().get() {
                     break;
                 }
             }
@@ -88,23 +82,23 @@ pub fn dispatch_event<'a, 'b>(target: &JSRef<'a, EventTarget>,
     }
 
     /* bubbling */
-    if event.deref().bubbles && !event.deref().stop_propagation {
-        event.deref_mut().phase = PhaseBubbling;
+    if event.deref().bubbles.deref().get() && !event.deref().stop_propagation.deref().get() {
+        event.deref().phase.deref().set(PhaseBubbling);
 
         for cur_target in chain.iter() {
             let stopped = match cur_target.deref().get_listeners_for(type_.as_slice(), Bubbling) {
                 Some(listeners) => {
-                    event.deref_mut().current_target.assign(Some(cur_target.deref().clone()));
+                    event.deref().current_target.assign(Some(cur_target.deref().clone()));
                     for listener in listeners.iter() {
                         // Explicitly drop any exception on the floor.
                         let _ = listener.HandleEvent_(&**cur_target, event, ReportExceptions);
 
-                        if event.deref().stop_immediate {
+                        if event.deref().stop_immediate.deref().get() {
                             break;
                         }
                     }
 
-                    event.deref().stop_propagation
+                    event.deref().stop_propagation.deref().get()
                 }
                 None => false
             };
@@ -136,8 +130,8 @@ pub fn dispatch_event<'a, 'b>(target: &JSRef<'a, EventTarget>,
         let _ = chain.pop();
     }
 
-    event.dispatching = false;
-    event.phase = PhaseNone;
+    event.dispatching.deref().set(false);
+    event.phase.deref().set(PhaseNone);
     event.current_target.set(None);
 
     !event.DefaultPrevented()

@@ -817,31 +817,27 @@ impl ScriptTask {
         let page = page.find(id).expect("ScriptTask: received fire timer msg for a
             pipeline ID not associated with this script task. This is a bug.");
         let frame = page.frame();
-        let mut window = frame.get_ref().window.root();
+        let window = frame.get_ref().window.root();
 
         let this_value = window.deref().reflector().get_jsobject();
 
-        let is_interval;
-        match window.deref().active_timers.find(&timer_id) {
+        let data = match window.deref().active_timers.deref().borrow().find(&timer_id) {
             None => return,
-            Some(timer_handle) => {
-                // TODO: Support extra arguments. This requires passing a `*JSVal` array as `argv`.
-                let cx = self.get_cx();
-                with_compartment(cx, this_value, || {
-                    let mut rval = NullValue();
-                    unsafe {
-                        JS_CallFunctionValue(cx, this_value,
-                                             *timer_handle.data.funval,
-                                             0, ptr::mut_null(), &mut rval);
-                    }
-                });
+            Some(timer_handle) => timer_handle.data,
+        };
 
-                is_interval = timer_handle.data.is_interval;
+        // TODO: Support extra arguments. This requires passing a `*JSVal` array as `argv`.
+        let cx = self.get_cx();
+        with_compartment(cx, this_value, || {
+            let mut rval = NullValue();
+            unsafe {
+                JS_CallFunctionValue(cx, this_value, *data.funval,
+                                     0, ptr::mut_null(), &mut rval);
             }
-        }
+        });
 
-        if !is_interval {
-            window.deref_mut().active_timers.remove(&timer_id);
+        if !data.is_interval {
+            window.deref().active_timers.deref().borrow_mut().remove(&timer_id);
         }
     }
 
@@ -952,7 +948,7 @@ impl ScriptTask {
                                      self.compositor.dup(),
                                      self.image_cache_task.clone()).root();
         let mut document = Document::new(&*window, Some(url.clone()), HTMLDocument, None).root();
-        window.deref_mut().init_browser_context(&*document);
+        window.deref().init_browser_context(&*document);
 
         with_compartment((**cx).ptr, window.reflector().get_jsobject(), || {
             let mut js_info = page.mut_js_info();
@@ -1033,12 +1029,11 @@ impl ScriptTask {
         // We have no concept of a document loader right now, so just dispatch the
         // "load" event as soon as we've finished executing all scripts parsed during
         // the initial load.
-        let mut event =
-            Event::new(&*window, "load".to_string(), false, false).root();
+        let event = Event::new(&*window, "load".to_string(), false, false).root();
         let doctarget: &JSRef<EventTarget> = EventTargetCast::from_ref(&*document);
         let wintarget: &JSRef<EventTarget> = EventTargetCast::from_ref(&*window);
         let _ = wintarget.dispatch_event_with_target(Some((*doctarget).clone()),
-                                                     &mut *event);
+                                                     &*event);
 
         page.fragment_node.assign(fragment.map_or(None, |fragid| page.find_fragment_node(fragid)));
 
@@ -1089,12 +1084,14 @@ impl ScriptTask {
                     Some(mut window) => {
                         // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
                         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#event-type-resize
-                        let mut uievent = UIEvent::new(&window.clone(), "resize".to_string(), false, false,
-                                                       Some((*window).clone()), 0i32).root();
-                        let event: &mut JSRef<Event> = EventCast::from_mut_ref(&mut *uievent);
+                        let uievent = UIEvent::new(&window.clone(),
+                                                   "resize".to_string(), false,
+                                                   false, Some(window.clone()),
+                                                   0i32).root();
+                        let event: &JSRef<Event> = EventCast::from_ref(&*uievent);
 
-                        let wintarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(&mut *window);
-                        let _ = wintarget.dispatch_event_with_target(None, &mut *event);
+                        let wintarget: &JSRef<EventTarget> = EventTargetCast::from_ref(&*window);
+                        let _ = wintarget.dispatch_event_with_target(None, event);
                     }
                     None => ()
                 }
@@ -1129,12 +1126,12 @@ impl ScriptTask {
                                 match *page.frame() {
                                     Some(ref frame) => {
                                         let window = frame.window.root();
-                                        let mut event =
+                                        let event =
                                             Event::new(&*window,
                                                        "click".to_string(),
                                                        true, true).root();
                                         let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(&node);
-                                        let _ = eventtarget.dispatch_event_with_target(None, &mut *event);
+                                        let _ = eventtarget.dispatch_event_with_target(None, &*event);
                                     }
                                     None => {}
                                 }
@@ -1160,8 +1157,8 @@ impl ScriptTask {
                         match *mouse_over_targets {
                             Some(ref mut mouse_over_targets) => {
                                 for node in mouse_over_targets.mut_iter() {
-                                    let mut node = node.root();
-                                    node.set_hover_state(false);
+                                    let node = node.root();
+                                    node.deref().set_hover_state(false);
                                 }
                             }
                             None => {}
@@ -1175,7 +1172,7 @@ impl ScriptTask {
 
                             let maybe_node = temp_node.root().ancestors().find(|node| node.is_element());
                             match maybe_node {
-                                Some(mut node) => {
+                                Some(node) => {
                                     node.set_hover_state(true);
 
                                     match *mouse_over_targets {

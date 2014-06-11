@@ -4,8 +4,9 @@
 
 use dom::bindings::codegen::Bindings::UIEventBinding;
 use dom::bindings::codegen::InheritTypes::{EventCast, UIEventDerived};
-use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, OptionalSettable};
 use dom::bindings::error::Fallible;
+use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, OptionalSettable};
+use dom::bindings::trace::Untraceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{Event, EventMethods, EventTypeId, UIEventTypeId};
 use dom::window::Window;
@@ -18,7 +19,7 @@ use std::cell::Cell;
 pub struct UIEvent {
     pub event: Event,
     pub view: Cell<Option<JS<Window>>>,
-    pub detail: i32
+    pub detail: Untraceable<Cell<i32>>
 }
 
 impl UIEventDerived for Event {
@@ -32,7 +33,7 @@ impl UIEvent {
         UIEvent {
             event: Event::new_inherited(type_id),
             view: Cell::new(None),
-            detail: 0
+            detail: Untraceable::new(Cell::new(0)),
         }
     }
 
@@ -48,8 +49,8 @@ impl UIEvent {
                cancelable: bool,
                view: Option<JSRef<Window>>,
                detail: i32) -> Temporary<UIEvent> {
-        let mut ev = UIEvent::new_uninitialized(window).root();
-        ev.InitUIEvent(type_, can_bubble, cancelable, view, detail);
+        let ev = UIEvent::new_uninitialized(window).root();
+        ev.deref().InitUIEvent(type_, can_bubble, cancelable, view, detail);
         Temporary::from_rooted(&*ev)
     }
 
@@ -66,7 +67,7 @@ impl UIEvent {
 pub trait UIEventMethods {
     fn GetView(&self) -> Option<Temporary<Window>>;
     fn Detail(&self) -> i32;
-    fn InitUIEvent(&mut self,
+    fn InitUIEvent(&self,
                    type_: DOMString,
                    can_bubble: bool,
                    cancelable: bool,
@@ -80,21 +81,19 @@ impl<'a> UIEventMethods for JSRef<'a, UIEvent> {
     }
 
     fn Detail(&self) -> i32 {
-        self.detail
+        self.detail.deref().get()
     }
 
-    fn InitUIEvent(&mut self,
+    fn InitUIEvent(&self,
                    type_: DOMString,
                    can_bubble: bool,
                    cancelable: bool,
                    view: Option<JSRef<Window>>,
                    detail: i32) {
-        {
-            let event: &mut JSRef<Event> = EventCast::from_mut_ref(self);
-            event.InitEvent(type_, can_bubble, cancelable);
-        }
+        let event: &JSRef<Event> = EventCast::from_ref(self);
+        event.InitEvent(type_, can_bubble, cancelable);
         self.view.assign(view);
-        self.detail = detail;
+        self.detail.deref().set(detail);
     }
 }
 

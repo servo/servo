@@ -49,7 +49,7 @@ use servo_util::str::{DOMString, null_str_as_empty_ref};
 use collections::hashmap::HashMap;
 use js::jsapi::JSContext;
 use std::ascii::StrAsciiExt;
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use url::{Url, from_str};
 
 #[deriving(Eq,Encodable)]
@@ -66,10 +66,10 @@ pub struct Document {
     pub idmap: HashMap<DOMString, Vec<JS<Element>>>,
     pub implementation: Cell<Option<JS<DOMImplementation>>>,
     pub content_type: DOMString,
-    pub encoding_name: DOMString,
+    pub encoding_name: Untraceable<RefCell<DOMString>>,
     pub is_html_document: bool,
     pub url: Untraceable<Url>,
-    pub quirks_mode: Untraceable<QuirksMode>,
+    pub quirks_mode: Untraceable<Cell<QuirksMode>>,
 }
 
 impl DocumentDerived for EventTarget {
@@ -81,8 +81,8 @@ impl DocumentDerived for EventTarget {
 pub trait DocumentHelpers {
     fn url<'a>(&'a self) -> &'a Url;
     fn quirks_mode(&self) -> QuirksMode;
-    fn set_quirks_mode(&mut self, mode: QuirksMode);
-    fn set_encoding_name(&mut self, name: DOMString);
+    fn set_quirks_mode(&self, mode: QuirksMode);
+    fn set_encoding_name(&self, name: DOMString);
     fn content_changed(&self);
     fn damage_and_reflow(&self, damage: DocumentDamageLevel);
     fn wait_until_safe_to_modify_dom(&self);
@@ -97,15 +97,15 @@ impl<'a> DocumentHelpers for JSRef<'a, Document> {
     }
 
     fn quirks_mode(&self) -> QuirksMode {
-        *self.quirks_mode
+        self.quirks_mode.deref().get()
     }
 
-    fn set_quirks_mode(&mut self, mode: QuirksMode) {
-        *self.quirks_mode = mode;
+    fn set_quirks_mode(&self, mode: QuirksMode) {
+        self.quirks_mode.deref().set(mode);
     }
 
-    fn set_encoding_name(&mut self, name: DOMString) {
-        self.encoding_name = name;
+    fn set_encoding_name(&self, name: DOMString) {
+        *self.encoding_name.deref().borrow_mut() = name;
     }
 
     fn content_changed(&self) {
@@ -227,9 +227,9 @@ impl Document {
             },
             url: Untraceable::new(url),
             // http://dom.spec.whatwg.org/#concept-document-quirks
-            quirks_mode: Untraceable::new(NoQuirks),
+            quirks_mode: Untraceable::new(Cell::new(NoQuirks)),
             // http://dom.spec.whatwg.org/#concept-document-encoding
-            encoding_name: "utf-8".to_string(),
+            encoding_name: Untraceable::new(RefCell::new("utf-8".to_string())),
             is_html_document: is_html_document == HTMLDocument,
         }
     }
@@ -331,9 +331,9 @@ pub trait DocumentMethods {
     fn Children(&self) -> Temporary<HTMLCollection>;
     fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>>;
     fn GetOnclick(&self) -> Option<EventHandlerNonNull>;
-    fn SetOnclick(&mut self, listener: Option<EventHandlerNonNull>);
+    fn SetOnclick(&self, listener: Option<EventHandlerNonNull>);
     fn GetOnload(&self) -> Option<EventHandlerNonNull>;
-    fn SetOnload(&mut self, listener: Option<EventHandlerNonNull>);
+    fn SetOnload(&self, listener: Option<EventHandlerNonNull>);
 }
 
 impl<'a> DocumentMethods for JSRef<'a, Document> {
@@ -358,7 +358,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     // http://dom.spec.whatwg.org/#dom-document-compatmode
     fn CompatMode(&self) -> DOMString {
-        match *self.quirks_mode {
+        match self.quirks_mode.deref().get() {
             NoQuirks => "CSS1Compat".to_string(),
             LimitedQuirks | FullQuirks => "BackCompat".to_string()
         }
@@ -366,7 +366,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     // http://dom.spec.whatwg.org/#dom-document-characterset
     fn CharacterSet(&self) -> DOMString {
-        self.encoding_name.as_slice().to_ascii_lower()
+        self.encoding_name.deref().borrow().as_slice().to_ascii_lower()
     }
 
     // http://dom.spec.whatwg.org/#dom-document-content_type
@@ -430,7 +430,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             return Err(InvalidCharacter);
         }
         let local_name = local_name.as_slice().to_ascii_lower();
-        Ok(build_element_from_tag(local_name, self))
+        Ok(build_element_from_tag(local_name, namespace::HTML, self))
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createelementns
@@ -473,7 +473,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         }
 
         if ns == namespace::HTML {
-            Ok(build_element_from_tag(local_name_from_qname, self))
+            Ok(build_element_from_tag(local_name_from_qname, ns, self))
         } else {
             Ok(Element::new(local_name_from_qname, ns, prefix_from_qname, self))
         }
@@ -567,7 +567,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                     for child in title_elem.children() {
                         if child.is_text() {
                             let text: &JSRef<Text> = TextCast::to_ref(&child).unwrap();
-                            title.push_str(text.deref().characterdata.data.as_slice());
+                            title.push_str(text.deref().characterdata.data.deref().borrow().as_slice());
                         }
                     }
                 });
@@ -826,8 +826,8 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         eventtarget.get_event_handler_common("click")
     }
 
-    fn SetOnclick(&mut self, listener: Option<EventHandlerNonNull>) {
-        let eventtarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(self);
+    fn SetOnclick(&self, listener: Option<EventHandlerNonNull>) {
+        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
         eventtarget.set_event_handler_common("click", listener)
     }
 
@@ -836,8 +836,8 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         eventtarget.get_event_handler_common("load")
     }
 
-    fn SetOnload(&mut self, listener: Option<EventHandlerNonNull>) {
-        let eventtarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(self);
+    fn SetOnload(&self, listener: Option<EventHandlerNonNull>) {
+        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
         eventtarget.set_event_handler_common("load", listener)
     }
 }

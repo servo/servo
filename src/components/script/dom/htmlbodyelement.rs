@@ -80,12 +80,11 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLBodyElement> {
             let (cx, url, reflector) = (window.get_cx(),
                                         window.get_url(),
                                         window.reflector().get_jsobject());
-            let mut self_alias = self.clone();
-            let evtarget: &mut JSRef<EventTarget> =
+            let evtarget: &JSRef<EventTarget> =
                 if forwarded_events.iter().any(|&event| name.as_slice() == event) {
-                    EventTargetCast::from_mut_ref(&mut *window)
+                    EventTargetCast::from_ref(&*window)
                 } else {
-                    EventTargetCast::from_mut_ref(&mut self_alias)
+                    EventTargetCast::from_ref(self)
                 };
             evtarget.set_event_handler_uncompiled(cx, url, reflector,
                                                   name.as_slice().slice_from(2),

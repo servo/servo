@@ -29,7 +29,7 @@ use js::jsapi::{JS_GC, JS_GetRuntime};
 use js::jsval::JSVal;
 
 use collections::hashmap::HashMap;
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::cmp;
 use std::comm::{channel, Sender};
 use std::comm::Select;
@@ -73,10 +73,10 @@ pub struct Window {
     pub location: Cell<Option<JS<Location>>>,
     pub navigator: Cell<Option<JS<Navigator>>>,
     pub image_cache_task: ImageCacheTask,
-    pub active_timers: Box<HashMap<TimerId, TimerHandle>>,
-    pub next_timer_handle: i32,
+    pub active_timers: Traceable<RefCell<HashMap<TimerId, TimerHandle>>>,
+    pub next_timer_handle: Untraceable<Cell<i32>>,
     pub compositor: Untraceable<Box<ScriptListener>>,
-    pub browser_context: Option<BrowserContext>,
+    pub browser_context: Traceable<RefCell<Option<BrowserContext>>>,
     pub page: Rc<Page>,
     pub performance: Cell<Option<JS<Performance>>>,
     pub navigationStart: u64,
@@ -100,7 +100,7 @@ impl Window {
 #[unsafe_destructor]
 impl Drop for Window {
     fn drop(&mut self) {
-        for (_, timer_handle) in self.active_timers.mut_iter() {
+        for (_, timer_handle) in self.active_timers.borrow_mut().mut_iter() {
             timer_handle.cancel();
         }
     }
@@ -122,21 +122,21 @@ pub trait WindowMethods {
     fn Location(&self) -> Temporary<Location>;
     fn Console(&self) -> Temporary<Console>;
     fn Navigator(&self) -> Temporary<Navigator>;
-    fn SetTimeout(&mut self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32;
-    fn ClearTimeout(&mut self, handle: i32);
-    fn SetInterval(&mut self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32;
-    fn ClearInterval(&mut self, handle: i32);
+    fn SetTimeout(&self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32;
+    fn ClearTimeout(&self, handle: i32);
+    fn SetInterval(&self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32;
+    fn ClearInterval(&self, handle: i32);
     fn Window(&self) -> Temporary<Window>;
     fn Self(&self) -> Temporary<Window>;
     fn Performance(&self) -> Temporary<Performance>;
     fn GetOnclick(&self) -> Option<EventHandlerNonNull>;
-    fn SetOnclick(&mut self, listener: Option<EventHandlerNonNull>);
+    fn SetOnclick(&self, listener: Option<EventHandlerNonNull>);
     fn GetOnload(&self) -> Option<EventHandlerNonNull>;
-    fn SetOnload(&mut self, listener: Option<EventHandlerNonNull>);
+    fn SetOnload(&self, listener: Option<EventHandlerNonNull>);
     fn GetOnunload(&self) -> Option<EventHandlerNonNull>;
-    fn SetOnunload(&mut self, listener: Option<EventHandlerNonNull>);
+    fn SetOnunload(&self, listener: Option<EventHandlerNonNull>);
     fn GetOnerror(&self) -> Option<OnErrorEventHandlerNonNull>;
-    fn SetOnerror(&mut self, listener: Option<OnErrorEventHandlerNonNull>);
+    fn SetOnerror(&self, listener: Option<OnErrorEventHandlerNonNull>);
     fn Debug(&self, message: DOMString);
     fn Gc(&self);
 }
@@ -182,24 +182,25 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         Temporary::new(self.navigator.get().get_ref().clone())
     }
 
-    fn SetTimeout(&mut self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32 {
+    fn SetTimeout(&self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32 {
         self.set_timeout_or_interval(callback, timeout, false)
     }
 
-    fn ClearTimeout(&mut self, handle: i32) {
-        let mut timer_handle = self.active_timers.pop(&TimerId(handle));
+    fn ClearTimeout(&self, handle: i32) {
+        let mut timers = self.active_timers.deref().borrow_mut();
+        let mut timer_handle = timers.pop(&TimerId(handle));
         match timer_handle {
             Some(ref mut handle) => handle.cancel(),
             None => { }
         }
-        self.active_timers.remove(&TimerId(handle));
+        timers.remove(&TimerId(handle));
     }
 
-    fn SetInterval(&mut self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32 {
+    fn SetInterval(&self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32 {
         self.set_timeout_or_interval(callback, timeout, true)
     }
 
-    fn ClearInterval(&mut self, handle: i32) {
+    fn ClearInterval(&self, handle: i32) {
         self.ClearTimeout(handle);
     }
 
@@ -224,8 +225,8 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         eventtarget.get_event_handler_common("click")
     }
 
-    fn SetOnclick(&mut self, listener: Option<EventHandlerNonNull>) {
-        let eventtarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(self);
+    fn SetOnclick(&self, listener: Option<EventHandlerNonNull>) {
+        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
         eventtarget.set_event_handler_common("click", listener)
     }
 
@@ -234,8 +235,8 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         eventtarget.get_event_handler_common("load")
     }
 
-    fn SetOnload(&mut self, listener: Option<EventHandlerNonNull>) {
-        let eventtarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(self);
+    fn SetOnload(&self, listener: Option<EventHandlerNonNull>) {
+        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
         eventtarget.set_event_handler_common("load", listener)
     }
 
@@ -244,8 +245,8 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         eventtarget.get_event_handler_common("unload")
     }
 
-    fn SetOnunload(&mut self, listener: Option<EventHandlerNonNull>) {
-        let eventtarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(self);
+    fn SetOnunload(&self, listener: Option<EventHandlerNonNull>) {
+        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
         eventtarget.set_event_handler_common("unload", listener)
     }
 
@@ -254,8 +255,8 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         eventtarget.get_event_handler_common("error")
     }
 
-    fn SetOnerror(&mut self, listener: Option<OnErrorEventHandlerNonNull>) {
-        let eventtarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(self);
+    fn SetOnerror(&self, listener: Option<OnErrorEventHandlerNonNull>) {
+        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
         eventtarget.set_event_handler_common("error", listener)
     }
 
@@ -283,12 +284,12 @@ impl Reflectable for Window {
 pub trait WindowHelpers {
     fn damage_and_reflow(&self, damage: DocumentDamageLevel);
     fn wait_until_safe_to_modify_dom(&self);
-    fn init_browser_context(&mut self, doc: &JSRef<Document>);
+    fn init_browser_context(&self, doc: &JSRef<Document>);
     fn load_url(&self, href: DOMString);
 }
 
 trait PrivateWindowHelpers {
-    fn set_timeout_or_interval(&mut self, callback: JSVal, timeout: i32, is_interval: bool) -> i32;
+    fn set_timeout_or_interval(&self, callback: JSVal, timeout: i32, is_interval: bool) -> i32;
 }
 
 impl<'a> WindowHelpers for JSRef<'a, Window> {
@@ -306,8 +307,8 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         self.page().join_layout();
     }
 
-    fn init_browser_context(&mut self, doc: &JSRef<Document>) {
-        self.browser_context = Some(BrowserContext::new(doc));
+    fn init_browser_context(&self, doc: &JSRef<Document>) {
+        *self.browser_context.deref().borrow_mut() = Some(BrowserContext::new(doc));
     }
 
     /// Commence a new URL load which will either replace this window or scroll to a fragment.
@@ -325,10 +326,10 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
 }
 
 impl<'a> PrivateWindowHelpers for JSRef<'a, Window> {
-    fn set_timeout_or_interval(&mut self, callback: JSVal, timeout: i32, is_interval: bool) -> i32 {
+    fn set_timeout_or_interval(&self, callback: JSVal, timeout: i32, is_interval: bool) -> i32 {
         let timeout = cmp::max(0, timeout) as u64;
-        let handle = self.next_timer_handle;
-        self.next_timer_handle += 1;
+        let handle = self.next_timer_handle.deref().get();
+        self.next_timer_handle.deref().set(handle + 1);
 
         // Post a delayed message to the per-window timer task; it will dispatch it
         // to the relevant script handler that will deal with it.
@@ -379,7 +380,7 @@ impl<'a> PrivateWindowHelpers for JSRef<'a, Window> {
                 funval: Traceable::new(callback),
             }
         };
-        self.active_timers.insert(timer_id, timer);
+        self.active_timers.deref().borrow_mut().insert(timer_id, timer);
         handle
     }
 }
@@ -400,9 +401,9 @@ impl Window {
             location: Cell::new(None),
             navigator: Cell::new(None),
             image_cache_task: image_cache_task,
-            active_timers: box HashMap::new(),
-            next_timer_handle: 0,
-            browser_context: None,
+            active_timers: Traceable::new(RefCell::new(HashMap::new())),
+            next_timer_handle: Untraceable::new(Cell::new(0)),
+            browser_context: Traceable::new(RefCell::new(None)),
             performance: Cell::new(None),
             navigationStart: time::get_time().sec as u64,
             navigationStartPrecise: time::precise_time_s(),

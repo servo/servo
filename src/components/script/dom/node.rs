@@ -11,12 +11,13 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, TextCast, NodeCast, Elem
 use dom::bindings::codegen::InheritTypes::{CharacterDataCast, NodeBase, NodeDerived};
 use dom::bindings::codegen::InheritTypes::{ProcessingInstructionCast, EventTargetCast};
 use dom::bindings::codegen::Bindings::NodeBinding::NodeConstants;
+use dom::bindings::error::{ErrorResult, Fallible, NotFound, HierarchyRequest, Syntax};
 use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, Root, OptionalUnrootable};
 use dom::bindings::js::{OptionalSettable, TemporaryPushable, OptionalRootedRootable};
 use dom::bindings::js::{ResultRootable, OptionalRootable};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::bindings::error::{ErrorResult, Fallible, NotFound, HierarchyRequest, Syntax};
+use dom::bindings::trace::Untraceable;
 use dom::bindings::utils;
+use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::characterdata::{CharacterData, CharacterDataMethods};
 use dom::comment::Comment;
 use dom::document::{Document, DocumentMethods, DocumentHelpers, HTMLDocument, NonHTMLDocument};
@@ -86,7 +87,7 @@ pub struct Node {
     pub child_list: Cell<Option<JS<NodeList>>>,
 
     /// A bitfield of flags for node items.
-    flags: NodeFlags,
+    flags: Untraceable<RefCell<NodeFlags>>,
 
     /// Layout information. Only the layout task may touch this data.
     ///
@@ -382,7 +383,7 @@ pub trait NodeHelpers {
     fn is_anchor_element(&self) -> bool;
 
     fn get_hover_state(&self) -> bool;
-    fn set_hover_state(&mut self, state: bool);
+    fn set_hover_state(&self, state: bool);
 
     fn dump(&self);
     fn dump_indent(&self, indent: uint);
@@ -430,7 +431,7 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
     }
 
     fn is_in_doc(&self) -> bool {
-        self.deref().flags.contains(IsInDoc)
+        self.deref().flags.deref().borrow().contains(IsInDoc)
     }
 
     /// Returns the type ID of this node. Fails if this node is borrowed mutably.
@@ -489,14 +490,14 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
     }
 
     fn get_hover_state(&self) -> bool {
-        self.flags.contains(InHoverState)
+        self.flags.deref().borrow().contains(InHoverState)
     }
 
-    fn set_hover_state(&mut self, state: bool) {
+    fn set_hover_state(&self, state: bool) {
         if state {
-            self.flags.insert(InHoverState);
+            self.flags.deref().borrow_mut().insert(InHoverState);
         } else {
-            self.flags.remove(InHoverState);
+            self.flags.deref().borrow_mut().remove(InHoverState);
         }
     }
 
@@ -706,7 +707,7 @@ pub trait RawLayoutNodeHelpers {
 
 impl RawLayoutNodeHelpers for Node {
     unsafe fn get_hover_state_for_layout(&self) -> bool {
-        self.flags.contains(InHoverState)
+        self.flags.deref().borrow().contains(InHoverState)
     }
 }
 
@@ -916,7 +917,7 @@ impl Node {
             owner_doc: Cell::new(doc.unrooted()),
             child_list: Cell::new(None),
 
-            flags: NodeFlags::new(type_id),
+            flags: Untraceable::new(RefCell::new(NodeFlags::new(type_id))),
 
             layout_data: LayoutDataRef::new(),
         }
@@ -1110,9 +1111,9 @@ impl Node {
         for node in nodes.mut_iter() {
             parent.add_child(node, child);
             if parent.is_in_doc() {
-                node.flags.insert(IsInDoc);
+                node.flags.deref().borrow_mut().insert(IsInDoc);
             } else {
-                node.flags.remove(IsInDoc);
+                node.flags.deref().borrow_mut().remove(IsInDoc);
             }
         }
 
@@ -1197,9 +1198,7 @@ impl Node {
         // Step 8.
         parent.remove_child(node);
 
-        // FIXME(2513): remove this `node_alias` when in fix mozilla#2513
-        let mut node_alias = node.clone();
-        node_alias.deref_mut().flags.remove(IsInDoc);
+        node.deref().flags.deref().borrow_mut().remove(IsInDoc);
 
         // Step 9.
         match suppress_observers {
@@ -1236,7 +1235,7 @@ impl Node {
             CommentNodeTypeId => {
                 let comment: &JSRef<Comment> = CommentCast::to_ref(node).unwrap();
                 let comment = comment.deref();
-                let comment = Comment::new(comment.characterdata.data.clone(), &*document);
+                let comment = Comment::new(comment.characterdata.data.deref().borrow().clone(), &*document);
                 NodeCast::from_temporary(comment)
             },
             DocumentNodeTypeId => {
@@ -1253,20 +1252,21 @@ impl Node {
             ElementNodeTypeId(..) => {
                 let element: &JSRef<Element> = ElementCast::to_ref(node).unwrap();
                 let element = element.deref();
-                let element = build_element_from_tag(element.local_name.clone(), &*document);
+                let element = build_element_from_tag(element.local_name.clone(),
+                    element.namespace.clone(), &*document);
                 NodeCast::from_temporary(element)
             },
             TextNodeTypeId => {
                 let text: &JSRef<Text> = TextCast::to_ref(node).unwrap();
                 let text = text.deref();
-                let text = Text::new(text.characterdata.data.clone(), &*document);
+                let text = Text::new(text.characterdata.data.deref().borrow().clone(), &*document);
                 NodeCast::from_temporary(text)
             },
             ProcessingInstructionNodeTypeId => {
                 let pi: &JSRef<ProcessingInstruction> = ProcessingInstructionCast::to_ref(node).unwrap();
                 let pi = pi.deref();
                 let pi = ProcessingInstruction::new(pi.target.clone(),
-                                                    pi.characterdata.data.clone(), &*document);
+                                                    pi.characterdata.data.deref().borrow().clone(), &*document);
                 NodeCast::from_temporary(pi)
             },
         }.root();
@@ -1284,28 +1284,22 @@ impl Node {
         match node.type_id() {
             DocumentNodeTypeId => {
                 let node_doc: &JSRef<Document> = DocumentCast::to_ref(node).unwrap();
-                let copy_doc: &mut JSRef<Document> = DocumentCast::to_mut_ref(&mut *copy).unwrap();
-                copy_doc.set_encoding_name(node_doc.encoding_name.clone());
+                let copy_doc: &JSRef<Document> = DocumentCast::to_ref(&*copy).unwrap();
+                copy_doc.set_encoding_name(node_doc.encoding_name.deref().borrow().clone());
                 copy_doc.set_quirks_mode(node_doc.quirks_mode());
             },
             ElementNodeTypeId(..) => {
                 let node_elem: &JSRef<Element> = ElementCast::to_ref(node).unwrap();
-                let node_elem = node_elem.deref();
-                let copy_elem: &mut JSRef<Element> = ElementCast::to_mut_ref(&mut *copy).unwrap();
+                let copy_elem: &JSRef<Element> = ElementCast::to_ref(&*copy).unwrap();
 
-                // XXX: to avoid double borrowing compile error. we might be able to fix this after #1854
-                let copy_elem_alias = copy_elem.clone();
-
-                let copy_elem = copy_elem.deref_mut();
                 // FIXME: https://github.com/mozilla/servo/issues/1737
-                copy_elem.namespace = node_elem.namespace.clone();
                 let window = document.deref().window.root();
-                for attr in node_elem.attrs.borrow().iter().map(|attr| attr.root()) {
-                    copy_elem.attrs.borrow_mut().push_unrooted(
+                for attr in node_elem.deref().attrs.borrow().iter().map(|attr| attr.root()) {
+                    copy_elem.deref().attrs.borrow_mut().push_unrooted(
                         &Attr::new(&*window,
                                    attr.deref().local_name.clone(), attr.deref().value.clone(),
                                    attr.deref().name.clone(), attr.deref().namespace.clone(),
-                                   attr.deref().prefix.clone(), &copy_elem_alias));
+                                   attr.deref().prefix.clone(), copy_elem));
                 }
             },
             _ => ()
@@ -1520,7 +1514,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                 for node in self.traverse_preorder() {
                     if node.is_text() {
                         let text: &JSRef<Text> = TextCast::to_ref(&node).unwrap();
-                        content.push_str(text.deref().characterdata.data.as_slice());
+                        content.push_str(text.deref().characterdata.data.deref().borrow().as_slice());
                     }
                 }
                 Some(content.into_owned())
@@ -1561,10 +1555,8 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
             ProcessingInstructionNodeTypeId => {
                 self.wait_until_safe_to_modify_dom();
 
-                {
-                    let characterdata: &mut JSRef<CharacterData> = CharacterDataCast::to_mut_ref(self).unwrap();
-                    characterdata.deref_mut().data = value;
-                }
+                let characterdata: &JSRef<CharacterData> = CharacterDataCast::to_ref(self).unwrap();
+                *characterdata.data.deref().borrow_mut() = value;
 
                 // Notify the document that the content of this node is different
                 let document = self.owner_doc().root();
@@ -1778,12 +1770,12 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
             let pi: &JSRef<ProcessingInstruction> = ProcessingInstructionCast::to_ref(node).unwrap();
             let other_pi: &JSRef<ProcessingInstruction> = ProcessingInstructionCast::to_ref(other).unwrap();
             (pi.deref().target == other_pi.deref().target) &&
-            (pi.deref().characterdata.data == other_pi.deref().characterdata.data)
+            (*pi.deref().characterdata.data.deref().borrow() == *other_pi.deref().characterdata.data.deref().borrow())
         }
         fn is_equal_characterdata(node: &JSRef<Node>, other: &JSRef<Node>) -> bool {
             let characterdata: &JSRef<CharacterData> = CharacterDataCast::to_ref(node).unwrap();
             let other_characterdata: &JSRef<CharacterData> = CharacterDataCast::to_ref(other).unwrap();
-            characterdata.deref().data == other_characterdata.deref().data
+            *characterdata.deref().data.deref().borrow() == *other_characterdata.deref().data.deref().borrow()
         }
         fn is_equal_element_attrs(node: &JSRef<Node>, other: &JSRef<Node>) -> bool {
             let element: &JSRef<Element> = ElementCast::to_ref(node).unwrap();
