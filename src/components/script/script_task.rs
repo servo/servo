@@ -956,7 +956,7 @@ impl ScriptTask {
 
         with_compartment((**cx).ptr, window.reflector().get_jsobject(), || {
             let mut js_info = page.mut_js_info();
-            RegisterBindings::Register(&window.unrooted(), js_info.get_mut_ref());
+            RegisterBindings::Register(&*window, js_info.get_mut_ref());
         });
 
         self.compositor.set_ready_state(Loading);
