@@ -10,7 +10,7 @@ use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::codegen::Bindings::DocumentBinding;
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalSettable, TemporaryPushable};
 use dom::bindings::js::OptionalRootable;
-use dom::bindings::trace::Untraceable;
+use dom::bindings::trace::{Traceable, Untraceable};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::error::{ErrorResult, Fallible, NotSupported, InvalidCharacter};
 use dom::bindings::error::{HierarchyRequest, NamespaceError};
@@ -63,7 +63,7 @@ pub struct Document {
     pub node: Node,
     pub reflector_: Reflector,
     pub window: JS<Window>,
-    pub idmap: HashMap<DOMString, Vec<JS<Element>>>,
+    idmap: Traceable<RefCell<HashMap<DOMString, Vec<JS<Element>>>>>,
     pub implementation: Cell<Option<JS<DOMImplementation>>>,
     pub content_type: DOMString,
     pub encoding_name: Untraceable<RefCell<DOMString>>,
@@ -86,8 +86,8 @@ pub trait DocumentHelpers {
     fn content_changed(&self);
     fn damage_and_reflow(&self, damage: DocumentDamageLevel);
     fn wait_until_safe_to_modify_dom(&self);
-    fn unregister_named_element(&mut self, to_unregister: &JSRef<Element>, id: DOMString);
-    fn register_named_element(&mut self, element: &JSRef<Element>, id: DOMString);
+    fn unregister_named_element(&self, to_unregister: &JSRef<Element>, id: DOMString);
+    fn register_named_element(&self, element: &JSRef<Element>, id: DOMString);
     fn load_anchor_href(&self, href: DOMString);
 }
 
@@ -122,28 +122,28 @@ impl<'a> DocumentHelpers for JSRef<'a, Document> {
 
 
     /// Remove any existing association between the provided id and any elements in this document.
-    fn unregister_named_element(&mut self,
+    fn unregister_named_element(&self,
                                 to_unregister: &JSRef<Element>,
                                 id: DOMString) {
-        let mut is_empty = false;
-        match self.idmap.find_mut(&id) {
-            None => {},
+        let mut idmap = self.idmap.deref().borrow_mut();
+        let is_empty = match idmap.find_mut(&id) {
+            None => false,
             Some(elements) => {
                 let position = elements.iter()
                                        .map(|elem| elem.root())
                                        .position(|element| &*element == to_unregister)
                                        .expect("This element should be in registered.");
                 elements.remove(position);
-                is_empty = elements.is_empty();
+                elements.is_empty()
             }
-        }
+        };
         if is_empty {
-            self.idmap.remove(&id);
+            idmap.remove(&id);
         }
     }
 
     /// Associate an element present in this document with the provided id.
-    fn register_named_element(&mut self,
+    fn register_named_element(&self,
                               element: &JSRef<Element>,
                               id: DOMString) {
         assert!({
@@ -151,10 +151,12 @@ impl<'a> DocumentHelpers for JSRef<'a, Document> {
             node.is_in_doc()
         });
 
+        let mut idmap = self.idmap.deref().borrow_mut();
+
         // FIXME https://github.com/mozilla/rust/issues/13195
         //       Use mangle() when it exists again.
         let root = self.GetDocumentElement().expect("The element is in the document, so there must be a document element.").root();
-        match self.idmap.find_mut(&id) {
+        match idmap.find_mut(&id) {
             Some(elements) => {
                 let new_node: &JSRef<Node> = NodeCast::from_ref(element);
                 let mut head : uint = 0u;
@@ -180,7 +182,7 @@ impl<'a> DocumentHelpers for JSRef<'a, Document> {
         }
         let mut elements = vec!();
         elements.push_unrooted(element);
-        self.idmap.insert(id, elements);
+        idmap.insert(id, elements);
     }
 
     fn load_anchor_href(&self, href: DOMString) {
@@ -214,7 +216,7 @@ impl Document {
             node: Node::new_without_doc(DocumentNodeTypeId),
             reflector_: Reflector::new(),
             window: window.unrooted(),
-            idmap: HashMap::new(),
+            idmap: Traceable::new(RefCell::new(HashMap::new())),
             implementation: Cell::new(None),
             content_type: match content_type {
                 Some(string) => string.clone(),
@@ -418,7 +420,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     // http://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
     fn GetElementById(&self, id: DOMString) -> Option<Temporary<Element>> {
-        match self.idmap.find_equiv(&id) {
+        match self.idmap.deref().borrow().find_equiv(&id) {
             None => None,
             Some(ref elements) => Some(Temporary::new(elements.get(0).clone())),
         }

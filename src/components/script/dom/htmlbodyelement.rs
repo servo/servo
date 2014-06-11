@@ -43,7 +43,7 @@ impl HTMLBodyElement {
 
 pub trait HTMLBodyElementMethods {
     fn GetOnunload(&self) -> Option<EventHandlerNonNull>;
-    fn SetOnunload(&mut self, listener: Option<EventHandlerNonNull>);
+    fn SetOnunload(&self, listener: Option<EventHandlerNonNull>);
 }
 
 impl<'a> HTMLBodyElementMethods for JSRef<'a, HTMLBodyElement> {
@@ -52,9 +52,9 @@ impl<'a> HTMLBodyElementMethods for JSRef<'a, HTMLBodyElement> {
         win.deref().GetOnunload()
     }
 
-    fn SetOnunload(&mut self, listener: Option<EventHandlerNonNull>) {
-        let mut win = window_from_node(self).root();
-        win.SetOnunload(listener)
+    fn SetOnunload(&self, listener: Option<EventHandlerNonNull>) {
+        let win = window_from_node(self).root();
+        win.deref().SetOnunload(listener)
     }
 }
 

@@ -291,7 +291,7 @@ pub fn build_element_from_tag(tag: DOMString, ns: Namespace, document: &JSRef<Do
 }
 
 pub fn parse_html(page: &Page,
-                  document: &mut JSRef<Document>,
+                  document: &JSRef<Document>,
                   url: Url,
                   resource_task: ResourceTask)
                   -> HtmlParserResult {
@@ -485,15 +485,15 @@ pub fn parse_html(page: &Page,
         set_quirks_mode: |mode| {
             debug!("set quirks mode");
             // NOTE: tmp vars are workaround for lifetime issues. Both required.
-            let mut tmp_borrow = doc_cell.borrow_mut();
-            let tmp = &mut *tmp_borrow;
+            let tmp_borrow = doc_cell.borrow_mut();
+            let tmp = &*tmp_borrow;
             tmp.set_quirks_mode(mode);
         },
         encoding_change: |encname| {
             debug!("encoding change");
             // NOTE: tmp vars are workaround for lifetime issues. Both required.
-            let mut tmp_borrow = doc_cell.borrow_mut();
-            let tmp = &mut *tmp_borrow;
+            let tmp_borrow = doc_cell.borrow_mut();
+            let tmp = &*tmp_borrow;
             tmp.set_encoding_name(encname);
         },
         complete_script: |script| {

@@ -1376,9 +1376,9 @@ pub trait NodeMethods {
     fn GetPreviousSibling(&self) -> Option<Temporary<Node>>;
     fn GetNextSibling(&self) -> Option<Temporary<Node>>;
     fn GetNodeValue(&self) -> Option<DOMString>;
-    fn SetNodeValue(&mut self, val: Option<DOMString>) -> ErrorResult;
+    fn SetNodeValue(&self, val: Option<DOMString>) -> ErrorResult;
     fn GetTextContent(&self) -> Option<DOMString>;
-    fn SetTextContent(&mut self, value: Option<DOMString>) -> ErrorResult;
+    fn SetTextContent(&self, value: Option<DOMString>) -> ErrorResult;
     fn InsertBefore(&self, node: &JSRef<Node>, child: Option<JSRef<Node>>) -> Fallible<Temporary<Node>>;
     fn AppendChild(&self, node: &JSRef<Node>) -> Fallible<Temporary<Node>>;
     fn ReplaceChild(&self, node: &JSRef<Node>, child: &JSRef<Node>) -> Fallible<Temporary<Node>>;
@@ -1520,8 +1520,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     }
 
     // http://dom.spec.whatwg.org/#dom-node-nodevalue
-    fn SetNodeValue(&mut self, val: Option<DOMString>)
-                        -> ErrorResult {
+    fn SetNodeValue(&self, val: Option<DOMString>) -> ErrorResult {
         match self.type_id {
             CommentNodeTypeId |
             TextNodeTypeId |
@@ -1560,8 +1559,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     }
 
     // http://dom.spec.whatwg.org/#dom-node-textcontent
-    fn SetTextContent(&mut self, value: Option<DOMString>)
-                          -> ErrorResult {
+    fn SetTextContent(&self, value: Option<DOMString>) -> ErrorResult {
         let value = null_str_as_empty(&value);
         match self.type_id {
             DocumentFragmentNodeTypeId |

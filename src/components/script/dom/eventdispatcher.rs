@@ -111,10 +111,10 @@ pub fn dispatch_event<'a, 'b>(target: &JSRef<'a, EventTarget>,
     /* default action */
     let target = event.GetTarget().root();
     match target {
-        Some(mut target) => {
-            let node: Option<&JSRef<Node>> = NodeCast::to_ref(&mut *target);
+        Some(target) => {
+            let node: Option<&JSRef<Node>> = NodeCast::to_ref(&*target);
             match node {
-                Some(node) =>{
+                Some(node) => {
                     let vtable = vtable_for(node);
                     vtable.handle_event(event);
                 }
