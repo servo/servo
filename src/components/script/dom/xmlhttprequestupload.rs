@@ -5,7 +5,7 @@
 use dom::bindings::codegen::InheritTypes::XMLHttpRequestUploadDerived;
 use dom::bindings::codegen::Bindings::XMLHttpRequestUploadBinding;
 use dom::bindings::js::{Temporary, JSRef};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::reflect_dom_object;
 use dom::eventtarget::{EventTarget, XMLHttpRequestTargetTypeId};
 use dom::window::Window;
 use dom::xmlhttprequest::{XMLHttpRequestUploadTypeId};
@@ -13,28 +13,19 @@ use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 
 #[deriving(Encodable)]
 pub struct XMLHttpRequestUpload {
-    eventtarget: XMLHttpRequestEventTarget
+    pub xmlhttprequesteventtarget: XMLHttpRequestEventTarget
 }
 
 impl XMLHttpRequestUpload {
     pub fn new_inherited() -> XMLHttpRequestUpload {
         XMLHttpRequestUpload {
-            eventtarget:XMLHttpRequestEventTarget::new_inherited(XMLHttpRequestUploadTypeId)
+            xmlhttprequesteventtarget:XMLHttpRequestEventTarget::new_inherited(XMLHttpRequestUploadTypeId)
         }
     }
     pub fn new(window: &JSRef<Window>) -> Temporary<XMLHttpRequestUpload> {
         reflect_dom_object(box XMLHttpRequestUpload::new_inherited(),
                            window,
                            XMLHttpRequestUploadBinding::Wrap)
-    }
-}
-impl Reflectable for XMLHttpRequestUpload {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.eventtarget.reflector()
-    }
-
-    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-        self.eventtarget.mut_reflector()
     }
 }
 

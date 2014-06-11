@@ -7,7 +7,6 @@
 use dom::bindings::codegen::InheritTypes::{CharacterDataDerived, NodeCast};
 use dom::bindings::js::JSRef;
 use dom::bindings::error::{Fallible, ErrorResult, IndexSize};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::node::{CommentNodeTypeId, Node, NodeTypeId, TextNodeTypeId, ProcessingInstructionNodeTypeId, NodeHelpers};
@@ -104,15 +103,5 @@ impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
     fn Remove(&self) {
         let node: &JSRef<Node> = NodeCast::from_ref(self);
         node.remove_self();
-    }
-}
-
-impl Reflectable for CharacterData {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.node.reflector()
-    }
-
-    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-        self.node.mut_reflector()
     }
 }

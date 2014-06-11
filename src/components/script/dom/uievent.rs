@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::UIEventBinding;
 use dom::bindings::codegen::InheritTypes::{EventCast, UIEventDerived};
 use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, OptionalSettable};
 use dom::bindings::error::Fallible;
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::reflect_dom_object;
 use dom::event::{Event, EventMethods, EventTypeId, UIEventTypeId};
 use dom::window::Window;
 use servo_util::str::DOMString;
@@ -95,15 +95,5 @@ impl<'a> UIEventMethods for JSRef<'a, UIEvent> {
         }
         self.view.assign(view);
         self.detail = detail;
-    }
-}
-
-impl Reflectable for UIEvent {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.event.reflector()
-    }
-
-    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-        self.event.mut_reflector()
     }
 }

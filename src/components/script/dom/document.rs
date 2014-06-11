@@ -245,16 +245,6 @@ impl Document {
     }
 }
 
-impl Reflectable for Document {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.node.reflector()
-    }
-
-    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-        self.node.mut_reflector()
-    }
-}
-
 trait PrivateDocumentHelpers {
     fn createNodeList(&self, callback: |node: &JSRef<Node>| -> bool) -> Temporary<NodeList>;
     fn get_html_element(&self) -> Option<Temporary<HTMLHtmlElement>>;

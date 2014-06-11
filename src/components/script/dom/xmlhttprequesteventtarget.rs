@@ -6,7 +6,6 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::codegen::InheritTypes::XMLHttpRequestEventTargetDerived;
 use dom::bindings::js::JSRef;
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, XMLHttpRequestTargetTypeId};
 use dom::xmlhttprequest::XMLHttpRequestId;
 
@@ -30,16 +29,6 @@ impl XMLHttpRequestEventTargetDerived for EventTarget {
         }
     }
 
-}
-
-impl Reflectable for XMLHttpRequestEventTarget {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.eventtarget.reflector()
-    }
-
-    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-        self.eventtarget.mut_reflector()
-    }
 }
 
 pub trait XMLHttpRequestEventTargetMethods {

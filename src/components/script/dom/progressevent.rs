@@ -6,14 +6,14 @@ use dom::bindings::codegen::Bindings::ProgressEventBinding;
 use dom::bindings::codegen::InheritTypes::{EventCast, ProgressEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::reflect_dom_object;
 use dom::event::{Event, EventMethods, ProgressEventTypeId};
 use dom::window::Window;
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
 pub struct ProgressEvent {
-    event: Event,
+    pub event: Event,
     length_computable: bool,
     loaded: u64,
     total: u64
@@ -71,15 +71,5 @@ impl<'a> ProgressEventMethods for JSRef<'a, ProgressEvent> {
     }
     fn Total(&self) -> u64 {
         self.total
-    }
-}
-
-impl Reflectable for ProgressEvent {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.event.reflector()
-    }
-
-    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-        self.event.mut_reflector()
     }
 }

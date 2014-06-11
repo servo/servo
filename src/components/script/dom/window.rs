@@ -7,7 +7,6 @@ use dom::bindings::codegen::Bindings::WindowBinding;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalSettable};
 use dom::bindings::trace::{Traceable, Untraceable};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::browsercontext::BrowserContext;
 use dom::console::Console;
 use dom::document::Document;
@@ -267,16 +266,6 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         unsafe {
             JS_GC(JS_GetRuntime(self.get_cx()));
         }
-    }
-}
-
-impl Reflectable for Window {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.eventtarget.reflector()
-    }
-
-    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-        self.eventtarget.mut_reflector()
     }
 }
 

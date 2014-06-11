@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::MouseEventBinding;
 use dom::bindings::codegen::InheritTypes::{UIEventCast, MouseEventDerived};
 use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, OptionalSettable};
 use dom::bindings::error::Fallible;
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::reflect_dom_object;
 use dom::event::{Event, MouseEventTypeId};
 use dom::eventtarget::EventTarget;
 use dom::uievent::{UIEvent, UIEventMethods};
@@ -16,7 +16,7 @@ use std::cell::Cell;
 
 #[deriving(Encodable)]
 pub struct MouseEvent {
-    pub mouseevent: UIEvent,
+    pub uievent: UIEvent,
     pub screen_x: i32,
     pub screen_y: i32,
     pub client_x: i32,
@@ -38,7 +38,7 @@ impl MouseEventDerived for Event {
 impl MouseEvent {
     pub fn new_inherited() -> MouseEvent {
         MouseEvent {
-            mouseevent: UIEvent::new_inherited(MouseEventTypeId),
+            uievent: UIEvent::new_inherited(MouseEventTypeId),
             screen_x: 0,
             screen_y: 0,
             client_x: 0,
@@ -197,16 +197,5 @@ impl<'a> MouseEventMethods for JSRef<'a, MouseEvent> {
         self.meta_key = metaKeyArg;
         self.button = buttonArg;
         self.related_target.assign(relatedTargetArg);
-    }
-}
-
-
-impl Reflectable for MouseEvent {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.mouseevent.reflector()
-    }
-
-    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-        self.mouseevent.mut_reflector()
     }
 }
