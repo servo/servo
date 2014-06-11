@@ -330,6 +330,7 @@ pub trait DocumentMethods {
     fn Location(&self) -> Temporary<Location>;
     fn Children(&self) -> Temporary<HTMLCollection>;
     fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>>;
+    fn QuerySelectorAll(&self, selectors: DOMString) -> Fallible<Temporary<NodeList>>;
     fn GetOnclick(&self) -> Option<EventHandlerNonNull>;
     fn SetOnclick(&self, listener: Option<EventHandlerNonNull>);
     fn GetOnload(&self) -> Option<EventHandlerNonNull>;
@@ -819,6 +820,12 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>> {
         let root: &JSRef<Node> = NodeCast::from_ref(self);
         root.query_selector(selectors)
+    }
+
+    // http://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
+    fn QuerySelectorAll(&self, selectors: DOMString) -> Fallible<Temporary<NodeList>> {
+        let root: &JSRef<Node> = NodeCast::from_ref(self);
+        root.query_selector_all(selectors)
     }
 
     fn GetOnclick(&self) -> Option<EventHandlerNonNull> {

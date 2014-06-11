@@ -11,6 +11,7 @@ use dom::element::Element;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlcollection::HTMLCollection;
 use dom::node::{DocumentFragmentNodeTypeId, Node, NodeHelpers, window_from_node};
+use dom::nodelist::NodeList;
 use dom::window::{Window, WindowMethods};
 use servo_util::str::DOMString;
 
@@ -49,6 +50,7 @@ impl DocumentFragment {
 pub trait DocumentFragmentMethods {
     fn Children(&self) -> Temporary<HTMLCollection>;
     fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>>;
+    fn QuerySelectorAll(&self, selectors: DOMString) -> Fallible<Temporary<NodeList>>;
 }
 
 impl<'a> DocumentFragmentMethods for JSRef<'a, DocumentFragment> {
@@ -63,4 +65,11 @@ impl<'a> DocumentFragmentMethods for JSRef<'a, DocumentFragment> {
         let root: &JSRef<Node> = NodeCast::from_ref(self);
         root.query_selector(selectors)
     }
+
+    // http://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
+    fn QuerySelectorAll(&self, selectors: DOMString) -> Fallible<Temporary<NodeList>> {
+        let root: &JSRef<Node> = NodeCast::from_ref(self);
+        root.query_selector_all(selectors)
+    }
+
 }

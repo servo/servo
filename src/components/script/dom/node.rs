@@ -399,6 +399,7 @@ pub trait NodeHelpers {
     fn get_content_boxes(&self) -> Vec<Rect<Au>>;
 
     fn query_selector(&self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>>;
+    fn query_selector_all(&self, selectors: DOMString) -> Fallible<Temporary<NodeList>>;
 
     fn remove_self(&self);
 }
@@ -569,9 +570,9 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
             None => return Err(Syntax),
             // Step 3.
             Some(ref selectors) => {
+                let root = self.ancestors().last().unwrap_or(self.clone());
                 for selector in selectors.iter() {
                     assert!(selector.pseudo_element.is_none());
-                    let root = self.ancestors().last().unwrap_or(self.clone());
                     for node in root.traverse_preorder().filter(|node| node.is_element()) {
                         let mut _shareable: bool = false;
                         if matches_compound_selector(selector.compound_selectors.deref(), &node, &mut _shareable) {
@@ -583,6 +584,32 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
             }
         }
         Ok(None)
+    }
+
+    // http://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
+    fn query_selector_all(&self, selectors: DOMString) -> Fallible<Temporary<NodeList>> {
+        // Step 1.
+        let mut nodes = vec!();
+        let root = self.ancestors().last().unwrap_or(self.clone());
+        let namespace = NamespaceMap::new();
+        match parse_selector_list(tokenize(selectors.as_slice()).map(|(token, _)| token).collect(), &namespace) {
+            // Step 2.
+            None => return Err(Syntax),
+            // Step 3.
+            Some(ref selectors) => {
+                for selector in selectors.iter() {
+                    assert!(selector.pseudo_element.is_none());
+                    for node in root.traverse_preorder().filter(|node| node.is_element()) {
+                        let mut _shareable: bool = false;
+                        if matches_compound_selector(selector.compound_selectors.deref(), &node, &mut _shareable) {
+                            nodes.push(node.clone())
+                        }
+                    }
+                }
+            }
+        }
+        let window = window_from_node(self).root();
+        Ok(NodeList::new_simple_list(&window.root_ref(), nodes))
     }
 
     fn ancestors(&self) -> AncestorIterator {

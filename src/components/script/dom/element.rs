@@ -22,6 +22,7 @@ use dom::htmlcollection::HTMLCollection;
 use dom::htmlserializer::serialize;
 use dom::node::{ElementNodeTypeId, Node, NodeHelpers, NodeIterator, document_from_node};
 use dom::node::{window_from_node, LayoutNodeHelpers};
+use dom::nodelist::NodeList;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use layout_interface::ContentChangedDocumentDamage;
 use layout_interface::MatchSelectorsDocumentDamage;
@@ -430,6 +431,7 @@ pub trait ElementMethods {
     fn GetOuterHTML(&self) -> Fallible<DOMString>;
     fn Children(&self) -> Temporary<HTMLCollection>;
     fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>>;
+    fn QuerySelectorAll(&self, selectors: DOMString) -> Fallible<Temporary<NodeList>>;
     fn Remove(&self);
 }
 
@@ -710,6 +712,12 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>> {
         let root: &JSRef<Node> = NodeCast::from_ref(self);
         root.query_selector(selectors)
+    }
+
+    // http://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
+    fn QuerySelectorAll(&self, selectors: DOMString) -> Fallible<Temporary<NodeList>> {
+        let root: &JSRef<Node> = NodeCast::from_ref(self);
+        root.query_selector_all(selectors)
     }
 
     // http://dom.spec.whatwg.org/#dom-childnode-remove
