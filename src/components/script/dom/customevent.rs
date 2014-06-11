@@ -7,7 +7,7 @@ use dom::bindings::codegen::InheritTypes::{EventCast, CustomEventDerived};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::Fallible;
 use dom::bindings::trace::Traceable;
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::reflect_dom_object;
 use dom::event::{Event, EventMethods, EventTypeId, CustomEventTypeId};
 use dom::window::Window;
 use js::jsapi::JSContext;
@@ -16,7 +16,7 @@ use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
 pub struct CustomEvent {
-    event: Event,
+    pub event: Event,
     detail: Traceable<JSVal>
 }
 
@@ -72,15 +72,5 @@ impl<'a> CustomEventMethods for JSRef<'a, CustomEvent> {
         self.detail = Traceable::new(detail);
         let event: &mut JSRef<Event> = EventCast::from_mut_ref(self);
         event.InitEvent(type_, can_bubble, cancelable);
-    }
-}
-
-impl Reflectable for CustomEvent {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.event.reflector()
-    }
-
-    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-        self.event.mut_reflector()
     }
 }

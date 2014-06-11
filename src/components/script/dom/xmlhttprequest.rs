@@ -12,7 +12,7 @@ use dom::bindings::error::{ErrorResult, Fallible, InvalidState, InvalidAccess, N
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalSettable, OptionalRootedRootable};
 use dom::bindings::str::ByteString;
 use dom::bindings::trace::Untraceable;
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflectable, reflect_dom_object};
 use dom::document::Document;
 use dom::event::Event;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, XMLHttpRequestTargetTypeId};
@@ -102,7 +102,7 @@ impl<'a,'b> SyncOrAsync<'a,'b> {
 }
 #[deriving(Encodable)]
 pub struct XMLHttpRequest {
-    eventtarget: XMLHttpRequestEventTarget,
+    pub xmlhttprequesteventtarget: XMLHttpRequestEventTarget,
     ready_state: XMLHttpRequestState,
     timeout: u32,
     with_credentials: bool,
@@ -132,7 +132,7 @@ pub struct XMLHttpRequest {
 impl XMLHttpRequest {
     pub fn new_inherited(owner: &JSRef<Window>) -> XMLHttpRequest {
         let xhr = XMLHttpRequest {
-            eventtarget: XMLHttpRequestEventTarget::new_inherited(XMLHttpRequestTypeId),
+            xmlhttprequesteventtarget: XMLHttpRequestEventTarget::new_inherited(XMLHttpRequestTypeId),
             ready_state: Unsent,
             timeout: 0u32,
             with_credentials: false,
@@ -572,16 +572,6 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
     }
     fn GetResponseXML(&self) -> Option<Temporary<Document>> {
         self.response_xml.get().map(|response| Temporary::new(response))
-    }
-}
-
-impl Reflectable for XMLHttpRequest {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.eventtarget.reflector()
-    }
-
-    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-        self.eventtarget.mut_reflector()
     }
 }
 

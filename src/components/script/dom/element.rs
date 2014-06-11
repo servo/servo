@@ -11,7 +11,6 @@ use dom::bindings::codegen::InheritTypes::{ElementDerived, NodeCast};
 use dom::bindings::js::{JS, JSRef, Temporary, TemporaryPushable};
 use dom::bindings::js::{OptionalSettable, OptionalRootable, Root};
 use dom::bindings::trace::Traceable;
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::bindings::error::{ErrorResult, Fallible, NamespaceError, InvalidCharacter};
 use dom::bindings::utils::{QName, Name, InvalidXMLName, xml_name_type};
 use dom::clientrect::ClientRect;
@@ -51,16 +50,6 @@ impl ElementDerived for EventTarget {
             NodeTargetTypeId(ElementNodeTypeId(_)) => true,
             _ => false
         }
-    }
-}
-
-impl Reflectable for Element {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.node.reflector()
-    }
-
-    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-        self.node.mut_reflector()
     }
 }
 
