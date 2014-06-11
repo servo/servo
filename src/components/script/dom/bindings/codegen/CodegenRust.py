@@ -2078,7 +2078,7 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
     """
     def __init__(self, descriptor):
         args = [
-            Argument('&JS<Window>', 'window'),
+            Argument('&JSRef<Window>', 'window'),
             Argument('&mut JSPageInfo', 'js_info'),
         ]
         CGAbstractMethod.__init__(self, descriptor, 'DefineDOMInterface', 'void', args, pub=True)
@@ -4192,7 +4192,7 @@ class CGDictionary(CGThing):
 class CGRegisterProtos(CGAbstractMethod):
     def __init__(self, config):
         arguments = [
-            Argument('&JS<Window>', 'window'),
+            Argument('&JSRef<Window>', 'window'),
             Argument('&mut JSPageInfo', 'js_info'),
         ]
         CGAbstractMethod.__init__(self, None, 'Register', 'void', arguments,
