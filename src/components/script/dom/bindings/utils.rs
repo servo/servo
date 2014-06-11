@@ -22,13 +22,13 @@ use std::slice;
 use std::str;
 use js::glue::{js_IsObjectProxyClass, js_IsFunctionProxyClass, IsProxyHandlerFamily};
 use js::glue::{GetGlobalForObjectCrossCompartment, UnwrapObject, GetProxyHandlerExtra};
-use js::glue::{IsWrapper, RUST_JSID_TO_STRING, RUST_JSID_IS_INT, RUST_INTERNED_STRING_TO_JSID};
+use js::glue::{IsWrapper, RUST_JSID_TO_STRING, RUST_JSID_IS_INT};
 use js::glue::{RUST_JSID_IS_STRING, RUST_JSID_TO_INT};
 use js::jsapi::{JS_AlreadyHasOwnProperty, JS_NewFunction};
 use js::jsapi::{JS_DefineProperties, JS_ForwardGetPropertyTo};
 use js::jsapi::{JS_GetClass, JS_LinkConstructorAndPrototype, JS_GetStringCharsAndLength};
 use js::jsapi::{JS_ObjectIsRegExp, JS_ObjectIsDate, JSHandleObject};
-use js::jsapi::{JS_InternString, JS_GetFunctionObject};
+use js::jsapi::JS_GetFunctionObject;
 use js::jsapi::{JS_HasPropertyById, JS_GetPrototype};
 use js::jsapi::{JS_GetProperty, JS_HasProperty};
 use js::jsapi::{JS_DefineFunctions, JS_DefineProperty};
@@ -488,32 +488,6 @@ pub fn GetArrayIndexFromId(_cx: *mut JSContext, id: jsid) -> Option<u32> {
     } else {
         IdToInt32(cx, id);
     }*/
-}
-
-fn InternJSString(cx: *mut JSContext, chars: *libc::c_char) -> Option<jsid> {
-    unsafe {
-        let s = JS_InternString(cx, chars);
-        if s.is_not_null() {
-            Some(RUST_INTERNED_STRING_TO_JSID(cx, s))
-        } else {
-            None
-        }
-    }
-}
-
-pub fn InitIds(cx: *mut JSContext, specs: &[JSPropertySpec], ids: &mut [jsid]) -> bool {
-    for (i, spec) in specs.iter().enumerate() {
-        if spec.name.is_null() == true {
-            return true;
-        }
-        match InternJSString(cx, spec.name) {
-            Some(id) => ids[i] = id,
-            None => {
-                return false;
-            }
-        }
-    }
-    true
 }
 
 pub fn FindEnumStringIndex(cx: *mut JSContext,
