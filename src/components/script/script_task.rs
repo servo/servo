@@ -947,7 +947,7 @@ impl ScriptTask {
                                      self.chan.clone(),
                                      self.compositor.dup(),
                                      self.image_cache_task.clone()).root();
-        let mut document = Document::new(&*window, Some(url.clone()), HTMLDocument, None).root();
+        let document = Document::new(&*window, Some(url.clone()), HTMLDocument, None).root();
         window.deref().init_browser_context(&*document);
 
         with_compartment((**cx).ptr, window.reflector().get_jsobject(), || {
@@ -960,7 +960,7 @@ impl ScriptTask {
         //
         // Note: We can parse the next document in parallel with any previous documents.
         let html_parsing_result = hubbub_html_parser::parse_html(&*page,
-                                                                 &mut *document,
+                                                                 &*document,
                                                                  url.clone(),
                                                                  self.resource_task.clone());
 
@@ -998,7 +998,7 @@ impl ScriptTask {
         }
 
         // Kick off the initial reflow of the page.
-        document.content_changed();
+        document.deref().content_changed();
 
         let fragment = url.fragment.as_ref().map(|ref fragment| fragment.to_string());
 
