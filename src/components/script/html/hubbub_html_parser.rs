@@ -502,7 +502,7 @@ pub fn parse_html(page: &Page,
                 match script.get_attribute(Null, "src").root() {
                     Some(src) => {
                         debug!("found script: {:s}", src.deref().Value());
-                        let new_url = parse_url(src.deref().value_ref(), Some(url3.clone()));
+                        let new_url = parse_url(src.deref().value().as_slice(), Some(url3.clone()));
                         js_chan2.send(JSTaskNewFile(new_url));
                     }
                     None => {

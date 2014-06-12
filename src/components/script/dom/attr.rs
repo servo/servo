@@ -5,6 +5,7 @@
 use dom::bindings::codegen::Bindings::AttrBinding;
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::trace::Traceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::element::{Element, AttributeHandlers};
 use dom::node::Node;
@@ -13,7 +14,8 @@ use dom::virtualmethods::vtable_for;
 use servo_util::namespace;
 use servo_util::namespace::Namespace;
 use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS};
-use std::cell::Cell;
+use std::cell::{Ref, Cell, RefCell};
+use std::mem;
 
 pub enum AttrSettingType {
     FirstSetAttr,
@@ -58,7 +60,7 @@ impl AttrValue {
 pub struct Attr {
     pub reflector_: Reflector,
     pub local_name: DOMString,
-    value: AttrValue,
+    value: Traceable<RefCell<AttrValue>>,
     pub name: DOMString,
     pub namespace: Namespace,
     pub prefix: Option<DOMString>,
@@ -80,7 +82,7 @@ impl Attr {
         Attr {
             reflector_: Reflector::new(),
             local_name: local_name,
-            value: value,
+            value: Traceable::new(RefCell::new(value)),
             name: name, //TODO: Intern attribute names
             namespace: namespace,
             prefix: prefix,
@@ -95,7 +97,7 @@ impl Attr {
         reflect_dom_object(box attr, window, AttrBinding::Wrap)
     }
 
-    pub fn set_value(&mut self, set_type: AttrSettingType, value: AttrValue) {
+    pub fn set_value(&self, set_type: AttrSettingType, value: AttrValue) {
         let owner = self.owner.get().root();
         let node: &JSRef<Node> = NodeCast::from_ref(&*owner);
         let namespace_is_null = self.namespace == namespace::Null;
@@ -103,32 +105,28 @@ impl Attr {
         match set_type {
             ReplacedAttr => {
                 if namespace_is_null {
-                    vtable_for(node).before_remove_attr(self.local_name.clone(), self.value.as_slice().to_string());
+                    vtable_for(node).before_remove_attr(self.local_name.clone(), self.value.deref().borrow().as_slice().to_string());
                 }
             }
             FirstSetAttr => {}
         }
 
-        self.value = value;
+        *self.value.deref().borrow_mut() = value;
 
         if namespace_is_null {
-            vtable_for(node).after_set_attr(self.local_name.clone(), self.value.as_slice().to_string());
+            vtable_for(node).after_set_attr(self.local_name.clone(), self.value.deref().borrow().as_slice().to_string());
         }
     }
 
-    pub fn value<'a>(&'a self) -> &'a AttrValue {
-        &self.value
-    }
-
-    pub fn value_ref<'a>(&'a self) -> &'a str {
-        self.value.as_slice()
+    pub fn value<'a>(&'a self) -> Ref<'a, AttrValue> {
+        self.value.deref().borrow()
     }
 }
 
 pub trait AttrMethods {
     fn LocalName(&self) -> DOMString;
     fn Value(&self) -> DOMString;
-    fn SetValue(&mut self, value: DOMString);
+    fn SetValue(&self, value: DOMString);
     fn Name(&self) -> DOMString;
     fn GetNamespaceURI(&self) -> Option<DOMString>;
     fn GetPrefix(&self) -> Option<DOMString>;
@@ -140,10 +138,10 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
     }
 
     fn Value(&self) -> DOMString {
-        self.value.as_slice().to_string()
+        self.value.deref().borrow().as_slice().to_string()
     }
 
-    fn SetValue(&mut self, value: DOMString) {
+    fn SetValue(&self, value: DOMString) {
         let owner = self.owner.get().root();
         let value = owner.deref().parse_attribute(
             &self.namespace, self.deref().local_name.as_slice(), value);
@@ -163,5 +161,17 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
 
     fn GetPrefix(&self) -> Option<DOMString> {
         self.prefix.clone()
+    }
+}
+
+pub trait AttrHelpersForLayout {
+    unsafe fn value_ref_forever(&self) -> &'static str;
+}
+
+impl AttrHelpersForLayout for Attr {
+    unsafe fn value_ref_forever(&self) -> &'static str {
+        // cast to point to T in RefCell<T> directly
+        let value = mem::transmute::<&RefCell<AttrValue>, &AttrValue>(self.value.deref());
+        value.as_slice()
     }
 }

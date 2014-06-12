@@ -365,7 +365,7 @@ impl Page {
                 anchors.find(|node| {
                     let elem: &JSRef<Element> = ElementCast::to_ref(node).unwrap();
                     elem.get_attribute(Null, "name").root().map_or(false, |attr| {
-                        attr.deref().value_ref() == fragid.as_slice()
+                        attr.deref().value().as_slice() == fragid.as_slice()
                     })
                 }).map(|node| Temporary::from_rooted(ElementCast::to_ref(&node).unwrap()))
             }
