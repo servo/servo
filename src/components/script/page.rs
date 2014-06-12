@@ -19,14 +19,12 @@ use layout_interface::UntrustedNodeAddress;
 use script_task::ScriptChan;
 
 use geom::point::Point2D;
-use geom::size::TypedSize2D;
 use js::rust::Cx;
 use servo_msg::compositor_msg::PerformingLayout;
 use servo_msg::compositor_msg::ScriptListener;
-use servo_msg::constellation_msg::ConstellationChan;
+use servo_msg::constellation_msg::{ConstellationChan, WindowSizeData};
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use servo_net::resource_task::ResourceTask;
-use servo_util::geometry::PagePx;
 use servo_util::namespace::Null;
 use servo_util::str::DOMString;
 use std::cell::{Cell, RefCell, Ref, RefMut};
@@ -62,7 +60,7 @@ pub struct Page {
     damage: Traceable<RefCell<Option<DocumentDamage>>>,
 
     /// The current size of the window, in pixels.
-    pub window_size: Untraceable<Cell<TypedSize2D<PagePx, f32>>>,
+    pub window_size: Untraceable<Cell<WindowSizeData>>,
 
     js_info: Traceable<RefCell<Option<JSPageInfo>>>,
 
@@ -75,7 +73,7 @@ pub struct Page {
     next_subpage_id: Untraceable<Cell<SubpageId>>,
 
     /// Pending resize event, if any.
-    pub resize_event: Untraceable<Cell<Option<TypedSize2D<PagePx, f32>>>>,
+    pub resize_event: Untraceable<Cell<Option<WindowSizeData>>>,
 
     /// Pending scroll to fragment event, if any
     pub fragment_node: Cell<Option<JS<Element>>>,
@@ -119,7 +117,8 @@ impl IterablePage for Rc<Page> {
 impl Page {
     pub fn new(id: PipelineId, subpage_id: Option<SubpageId>,
            layout_chan: LayoutChan,
-           window_size: TypedSize2D<PagePx, f32>, resource_task: ResourceTask,
+           window_size: WindowSizeData,
+           resource_task: ResourceTask,
            constellation_chan: ConstellationChan,
            js_context: Rc<Cx>) -> Page {
         let js_info = JSPageInfo {

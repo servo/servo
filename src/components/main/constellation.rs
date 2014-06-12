@@ -6,6 +6,7 @@ use compositing::{CompositorChan, LoadComplete, SetIds, SetLayerClipRect, Shutdo
 
 use collections::hashmap::{HashMap, HashSet};
 use geom::rect::{Rect, TypedRect};
+use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
 use gfx::render_task;
 use libc;
@@ -19,7 +20,7 @@ use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, FailureMsg, Failu
 use servo_msg::constellation_msg::{IFrameSandboxState, IFrameUnsandboxed, InitLoadUrlMsg};
 use servo_msg::constellation_msg::{LoadCompleteMsg, LoadIframeUrlMsg, LoadUrlMsg, Msg, NavigateMsg};
 use servo_msg::constellation_msg::{NavigationType, PipelineId, RendererReadyMsg, ResizedWindowMsg};
-use servo_msg::constellation_msg::SubpageId;
+use servo_msg::constellation_msg::{SubpageId, WindowSizeData};
 use servo_msg::constellation_msg;
 use servo_net::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 use servo_net::resource_task::ResourceTask;
@@ -48,7 +49,7 @@ pub struct Constellation {
     pending_frames: Vec<FrameChange>,
     pending_sizes: HashMap<(PipelineId, SubpageId), TypedRect<PagePx, f32>>,
     pub profiler_chan: ProfilerChan,
-    pub window_size: TypedSize2D<PagePx, f32>,
+    pub window_size: WindowSizeData,
     pub opts: Opts,
 }
 
@@ -261,7 +262,11 @@ impl Constellation {
                 pending_frames: vec!(),
                 pending_sizes: HashMap::new(),
                 profiler_chan: profiler_chan,
-                window_size: TypedSize2D(800_f32, 600_f32),
+                window_size: WindowSizeData {
+                    visible_viewport: TypedSize2D(800_f32, 600_f32),
+                    initial_viewport: TypedSize2D(800_f32, 600_f32),
+                    device_pixel_ratio: ScaleFactor(1.0),
+                },
                 opts: opts_clone,
             };
             constellation.run();
@@ -491,7 +496,11 @@ impl Constellation {
                 if !already_sent.contains(&pipeline.id) {
                     if is_active {
                         let ScriptChan(ref script_chan) = pipeline.script_chan;
-                        script_chan.send(ResizeMsg(pipeline.id, rect.size));
+                        script_chan.send(ResizeMsg(pipeline.id, WindowSizeData {
+                            visible_viewport: rect.size,
+                            initial_viewport: rect.size * ScaleFactor(1.0),
+                            device_pixel_ratio: self.window_size.device_pixel_ratio,
+                        }));
                         self.compositor_chan.send(SetLayerClipRect(pipeline.id,
                                                                    LayerId::null(),
                                                                    rect.to_untyped()));
@@ -788,7 +797,7 @@ impl Constellation {
     }
 
     /// Called when the window is resized.
-    fn handle_resized_window_msg(&mut self, new_size: TypedSize2D<PagePx, f32>) {
+    fn handle_resized_window_msg(&mut self, new_size: WindowSizeData) {
         let mut already_seen = HashSet::new();
         for frame_tree in self.current_frame().iter() {
             debug!("constellation sending resize message to active frame");

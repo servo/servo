@@ -12,6 +12,7 @@ use windowing::{MouseWindowEvent, MouseWindowEventClass, MouseWindowMouseDownEve
 use windowing::{MouseWindowMouseUpEvent, MouseWindowMoveEventClass, NavigationWindowEvent};
 use windowing::{QuitWindowEvent, RefreshWindowEvent, ResizeWindowEvent, ScrollWindowEvent};
 use windowing::{WindowEvent, WindowMethods, WindowNavigateMsg, ZoomWindowEvent};
+use windowing::PinchZoomWindowEvent;
 
 use azure::azure_hl::{SourceSurfaceMethods, Color};
 use azure::azure_hl;
@@ -30,9 +31,9 @@ use png;
 use servo_msg::compositor_msg::{Blank, Epoch, FinishedLoading, IdleRenderState, LayerBufferSet};
 use servo_msg::compositor_msg::{LayerId, ReadyState, RenderState, ScrollPolicy, Scrollable};
 use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, LoadUrlMsg, NavigateMsg};
-use servo_msg::constellation_msg::{PipelineId, ResizedWindowMsg};
+use servo_msg::constellation_msg::{PipelineId, ResizedWindowMsg, WindowSizeData};
 use servo_msg::constellation_msg;
-use servo_util::geometry::{DevicePixel, PagePx, ScreenPx};
+use servo_util::geometry::{DevicePixel, PagePx, ScreenPx, ViewportPx};
 use servo_util::opts::Opts;
 use servo_util::time::{profile, ProfilerChan};
 use servo_util::{time, url};
@@ -64,6 +65,13 @@ pub struct IOCompositor {
     /// The application window size.
     window_size: TypedSize2D<DevicePixel, uint>,
 
+    /// "Mobile-style" zoom that does not reflow the page.
+    viewport_zoom: ScaleFactor<PagePx, ViewportPx, f32>,
+
+    /// "Desktop-style" zoom that resizes the viewport to fit the window.
+    /// See `ViewportPx` docs in util/geom.rs for details.
+    page_zoom: ScaleFactor<ViewportPx, ScreenPx, f32>,
+
     /// The device pixel ratio for this window.
     hidpi_factor: ScaleFactor<ScreenPx, DevicePixel, f32>,
 
@@ -81,9 +89,6 @@ pub struct IOCompositor {
 
     /// Tracks whether we need to re-composite a page.
     recomposite: bool,
-
-    /// Keeps track of the current zoom factor.
-    world_zoom: ScaleFactor<PagePx, ScreenPx, f32>,
 
     /// Tracks whether the zoom action has happend recently.
     zoom_action: bool,
@@ -146,7 +151,8 @@ impl IOCompositor {
             shutting_down: false,
             done: false,
             recomposite: false,
-            world_zoom: ScaleFactor(1.0),
+            page_zoom: ScaleFactor(1.0),
+            viewport_zoom: ScaleFactor(1.0),
             zoom_action: false,
             zoom_time: 0f64,
             ready_state: Blank,
@@ -417,10 +423,17 @@ impl IOCompositor {
         self.window_size.as_f32() / self.device_pixels_per_page_px()
     }
 
-    /// The size of the window in screen px.
     fn send_window_size(&self) {
+        let dppx = self.page_zoom * self.device_pixels_per_screen_px();
+        let initial_viewport = self.window_size.as_f32() / dppx;
+        let visible_viewport = initial_viewport / self.viewport_zoom;
+
         let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(ResizedWindowMsg(self.page_window()));
+        chan.send(ResizedWindowMsg(WindowSizeData {
+            device_pixel_ratio: dppx,
+            initial_viewport: initial_viewport,
+            visible_viewport: visible_viewport,
+        }));
     }
 
     fn set_layer_page_size(&mut self,
@@ -549,6 +562,10 @@ impl IOCompositor {
                 self.on_zoom_window_event(magnification);
             }
 
+            PinchZoomWindowEvent(magnification) => {
+                self.on_pinch_zoom_window_event(magnification);
+            }
+
             NavigationWindowEvent(direction) => {
                 self.on_navigation_window_event(direction);
             }
@@ -647,7 +664,7 @@ impl IOCompositor {
     }
 
     fn device_pixels_per_page_px(&self) -> ScaleFactor<PagePx, DevicePixel, f32> {
-        self.world_zoom * self.device_pixels_per_screen_px()
+        self.viewport_zoom * self.page_zoom * self.device_pixels_per_screen_px()
     }
 
     fn update_zoom_transform(&mut self) {
@@ -656,21 +673,26 @@ impl IOCompositor {
     }
 
     fn on_zoom_window_event(&mut self, magnification: f32) {
+        self.page_zoom = ScaleFactor((self.page_zoom.get() * magnification).max(1.0));
+        self.update_zoom_transform();
+        self.send_window_size();
+    }
+
+    fn on_pinch_zoom_window_event(&mut self, magnification: f32) {
         self.zoom_action = true;
         self.zoom_time = precise_time_s();
-        let old_world_zoom = self.world_zoom;
+        let old_viewport_zoom = self.viewport_zoom;
         let window_size = self.window_size.as_f32();
 
-        // Determine zoom amount
-        self.world_zoom = ScaleFactor((self.world_zoom.get() * magnification).max(1.0));
-        let world_zoom = self.world_zoom;
+        self.viewport_zoom = ScaleFactor((self.viewport_zoom.get() * magnification).max(1.0));
+        let viewport_zoom = self.viewport_zoom;
 
         self.update_zoom_transform();
 
         // Scroll as needed
         let page_delta = TypedPoint2D(
-            window_size.width.get() * (world_zoom.inv() - old_world_zoom.inv()).get() * 0.5,
-            window_size.height.get() * (world_zoom.inv() - old_world_zoom.inv()).get() * 0.5);
+            window_size.width.get() * (viewport_zoom.inv() - old_viewport_zoom.inv()).get() * 0.5,
+            window_size.height.get() * (viewport_zoom.inv() - old_viewport_zoom.inv()).get() * 0.5);
         // TODO: modify delta to snap scroll to pixels.
         let page_cursor = TypedPoint2D(-1f32, -1f32); // Make sure this hits the base layer
         let page_window = self.page_window();

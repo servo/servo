@@ -581,8 +581,12 @@ impl LayoutTask {
             _ => false
         };
 
-        let current_screen_size = Size2D(Au::from_page_px(data.window_size.width),
-                                         Au::from_page_px(data.window_size.height));
+        // TODO: Calculate the "actual viewport":
+        // http://www.w3.org/TR/css-device-adapt/#actual-viewport
+        let viewport_size = data.window_size.initial_viewport;
+
+        let current_screen_size = Size2D(Au::from_frac32_px(viewport_size.width.get()),
+                                         Au::from_frac32_px(viewport_size.height.get()));
         if self.screen_size != current_screen_size {
             all_style_damage = true
         }

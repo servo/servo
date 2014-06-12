@@ -4,8 +4,9 @@
 
 use compositing::*;
 
+use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
-use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, ResizedWindowMsg};
+use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, ResizedWindowMsg, WindowSizeData};
 use servo_util::time::ProfilerChan;
 use servo_util::time;
 
@@ -33,7 +34,11 @@ impl NullCompositor {
         // Tell the constellation about the initial fake size.
         {
             let ConstellationChan(ref chan) = constellation_chan;
-            chan.send(ResizedWindowMsg(TypedSize2D(640_f32, 480_f32)));
+            chan.send(ResizedWindowMsg(WindowSizeData {
+                initial_viewport: TypedSize2D(640_f32, 480_f32),
+                visible_viewport: TypedSize2D(640_f32, 480_f32),
+                device_pixel_ratio: ScaleFactor(1.0),
+            }));
         }
         compositor.handle_message(constellation_chan);
 
