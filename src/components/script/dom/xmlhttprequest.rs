@@ -622,14 +622,14 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
     unsafe fn to_trusted(&mut self) -> TrustedXHRAddress {
         assert!(self.pinned == false);
         self.pinned = true;
-        JS_AddObjectRoot(self.global.root().get_cx(), self.mut_reflector().rootable());
+        JS_AddObjectRoot(self.global.root().get_cx(), self.reflector().rootable());
         TrustedXHRAddress(self.deref() as *XMLHttpRequest as *libc::c_void)
     }
 
     fn release(&mut self) {
         assert!(self.pinned);
         unsafe {
-            JS_RemoveObjectRoot(self.global.root().get_cx(), self.mut_reflector().rootable());
+            JS_RemoveObjectRoot(self.global.root().get_cx(), self.reflector().rootable());
         }
         self.pinned = false;
     }

@@ -1838,7 +1838,7 @@ class CGWrapMethod(CGAbstractMethod):
 
 %s
 
-  raw.mut_reflector().set_jsobject(obj);
+  raw.reflector().set_jsobject(obj);
 
   return raw;""" % CreateBindingJSObject(self.descriptor, "scope")
         else:
@@ -1848,7 +1848,7 @@ class CGWrapMethod(CGAbstractMethod):
     let proto = GetProtoObject(aCx, obj, obj);
     JS_SetPrototype(aCx, obj, proto);
   });
-  raw.mut_reflector().set_jsobject(obj);
+  raw.reflector().set_jsobject(obj);
   return raw;""" % CreateBindingJSObject(self.descriptor)
 
 
