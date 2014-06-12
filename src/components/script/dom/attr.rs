@@ -5,6 +5,7 @@
 use dom::bindings::codegen::Bindings::AttrBinding;
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::trace::Untraceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::element::Element;
 use dom::node::Node;
@@ -13,7 +14,8 @@ use dom::virtualmethods::vtable_for;
 use servo_util::namespace;
 use servo_util::namespace::Namespace;
 use servo_util::str::DOMString;
-use std::cell::Cell;
+use std::cell::{Ref, Cell, RefCell};
+use std::mem;
 
 pub enum AttrSettingType {
     FirstSetAttr,
@@ -24,7 +26,7 @@ pub enum AttrSettingType {
 pub struct Attr {
     pub reflector_: Reflector,
     pub local_name: DOMString,
-    pub value: DOMString,
+    pub value: Untraceable<RefCell<DOMString>>,
     pub name: DOMString,
     pub namespace: Namespace,
     pub prefix: Option<DOMString>,
@@ -50,7 +52,7 @@ impl Attr {
         Attr {
             reflector_: Reflector::new(),
             local_name: local_name,
-            value: value,
+            value: Untraceable::new(RefCell::new(value)),
             name: name, //TODO: Intern attribute names
             namespace: namespace,
             prefix: prefix,
@@ -65,7 +67,7 @@ impl Attr {
         reflect_dom_object(box attr, window, AttrBinding::Wrap)
     }
 
-    pub fn set_value(&mut self, set_type: AttrSettingType, value: DOMString) {
+    pub fn set_value(&self, set_type: AttrSettingType, value: DOMString) {
         let owner = self.owner.get().root();
         let node: &JSRef<Node> = NodeCast::from_ref(&*owner);
         let namespace_is_null = self.namespace == namespace::Null;
@@ -73,28 +75,28 @@ impl Attr {
         match set_type {
             ReplacedAttr => {
                 if namespace_is_null {
-                    vtable_for(node).before_remove_attr(self.local_name.clone(), self.value.clone());
+                    vtable_for(node).before_remove_attr(self.local_name.clone(), self.value.deref().borrow().clone());
                 }
             }
             FirstSetAttr => {}
         }
 
-        self.value = value;
+        *self.value.deref().borrow_mut() = value;
 
         if namespace_is_null {
-            vtable_for(node).after_set_attr(self.local_name.clone(), self.value.clone());
+            vtable_for(node).after_set_attr(self.local_name.clone(), self.value.deref().borrow().clone());
         }
     }
 
-    pub fn value_ref<'a>(&'a self) -> &'a str {
-        self.value.as_slice()
+    pub fn value_ref<'a>(&'a self) -> Ref<'a, DOMString> {
+        self.value.deref().borrow()
     }
 }
 
 pub trait AttrMethods {
     fn LocalName(&self) -> DOMString;
     fn Value(&self) -> DOMString;
-    fn SetValue(&mut self, value: DOMString);
+    fn SetValue(&self, value: DOMString);
     fn Name(&self) -> DOMString;
     fn GetNamespaceURI(&self) -> Option<DOMString>;
     fn GetPrefix(&self) -> Option<DOMString>;
@@ -106,10 +108,10 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
     }
 
     fn Value(&self) -> DOMString {
-        self.value.clone()
+        self.value.deref().borrow().clone()
     }
 
-    fn SetValue(&mut self, value: DOMString) {
+    fn SetValue(&self, value: DOMString) {
         self.set_value(ReplacedAttr, value);
     }
 
@@ -126,5 +128,17 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
 
     fn GetPrefix(&self) -> Option<DOMString> {
         self.prefix.clone()
+    }
+}
+
+pub trait AttrHelpersForLayout {
+    unsafe fn value_ref_forever(&self) -> &'static str;
+}
+
+impl AttrHelpersForLayout for Attr {
+    unsafe fn value_ref_forever(&self) -> &'static str {
+        let value: &DOMString =
+            mem::transmute::<&RefCell<DOMString>, &DOMString>(self.value.deref());
+        value.as_slice()
     }
 }

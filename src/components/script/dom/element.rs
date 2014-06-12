@@ -4,7 +4,7 @@
 
 //! Element nodes.
 
-use dom::attr::{Attr, ReplacedAttr, FirstSetAttr, AttrMethods};
+use dom::attr::{Attr, ReplacedAttr, FirstSetAttr, AttrMethods, AttrHelpersForLayout};
 use dom::attrlist::AttrList;
 use dom::bindings::codegen::Bindings::ElementBinding;
 use dom::bindings::codegen::InheritTypes::{ElementDerived, NodeCast};
@@ -176,7 +176,7 @@ impl RawLayoutElementHelpers for Element {
             name == (*attr).local_name.as_slice() && (*attr).namespace == *namespace
        }).map(|attr| {
             let attr = attr.unsafe_get();
-            mem::transmute((*attr).value.as_slice())
+            (*attr).value_ref_forever()
         })
     }
 }
