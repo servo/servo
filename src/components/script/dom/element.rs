@@ -62,10 +62,6 @@ impl Reflectable for Element {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.node.reflector()
     }
-
-    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-        self.node.mut_reflector()
-    }
 }
 
 #[deriving(Eq,Encodable)]

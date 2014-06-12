@@ -101,8 +101,4 @@ impl Reflectable for UIEvent {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.event.reflector()
     }
-
-    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-        self.event.mut_reflector()
-    }
 }

@@ -41,10 +41,6 @@ impl Reflectable for DOMTokenList {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         &self.reflector_
     }
-
-    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-        &mut self.reflector_
-    }
 }
 
 trait PrivateDOMTokenListHelpers {

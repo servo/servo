@@ -204,8 +204,4 @@ impl Reflectable for MouseEvent {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.mouseevent.reflector()
     }
-
-    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-        self.mouseevent.mut_reflector()
-    }
 }

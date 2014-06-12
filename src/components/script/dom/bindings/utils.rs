@@ -402,7 +402,6 @@ pub fn initialize_global(global: *mut JSObject) {
 
 pub trait Reflectable {
     fn reflector<'a>(&'a self) -> &'a Reflector;
-    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector;
 }
 
 pub fn reflect_dom_object<T: Reflectable>

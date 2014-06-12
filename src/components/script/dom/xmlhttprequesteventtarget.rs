@@ -36,10 +36,6 @@ impl Reflectable for XMLHttpRequestEventTarget {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.eventtarget.reflector()
     }
-
-    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-        self.eventtarget.mut_reflector()
-    }
 }
 
 pub trait XMLHttpRequestEventTargetMethods {

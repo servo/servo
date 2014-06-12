@@ -300,8 +300,4 @@ impl Reflectable for TestBinding {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         &self.reflector
     }
-
-    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-        &mut self.reflector
-    }
 }

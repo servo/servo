@@ -171,12 +171,6 @@ impl<T: Reflectable> Reflectable for JS<T> {
             (*self.unsafe_get()).reflector()
         }
     }
-
-    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-        unsafe {
-            (*self.unsafe_get()).mut_reflector()
-        }
-    }
 }
 
 impl<T: Reflectable> JS<T> {
@@ -499,9 +493,5 @@ impl<'a,T> JSRef<'a,T> {
 impl<'a, T: Reflectable> Reflectable for JSRef<'a, T> {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.deref().reflector()
-    }
-
-    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-        self.deref_mut().mut_reflector()
     }
 }

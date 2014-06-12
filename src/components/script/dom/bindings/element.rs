@@ -48,10 +48,6 @@ macro_rules! generate_cacheable_wrapper_base(
             fn reflector<'a>(&'a self) -> &'a Reflector {
                 self.$parent.reflector()
             }
-
-            fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-                self.$parent.mut_reflector()
-            }
         }
     )
 )

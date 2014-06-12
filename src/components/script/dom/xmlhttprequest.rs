@@ -579,10 +579,6 @@ impl Reflectable for XMLHttpRequest {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.eventtarget.reflector()
     }
-
-    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-        self.eventtarget.mut_reflector()
-    }
 }
 
 impl XMLHttpRequestDerived for EventTarget {
