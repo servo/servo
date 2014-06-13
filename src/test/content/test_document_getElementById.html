@@ -106,6 +106,18 @@
       is(target2, null, "test 8-1, should return null after updated id via Attr.value");
     }
 
+    // Test the assertion with inserting node with child having id into the document (mozilla#2630)
+    // This need not to port to WPF-test because this tests servo's internally flags.
+    {
+      let TEST_ID = "test-9";
+      let a = document.createElement("a");
+      let b = document.createElement("b");
+      a.appendChild(b).id = TEST_ID;
+      gBody.appendChild(a);
+      let result = document.getElementById(TEST_ID);
+      is(result, b, "test 9-0");
+    }
+
     finish();
   </script>
 </body>

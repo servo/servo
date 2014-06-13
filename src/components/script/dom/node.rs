@@ -1137,10 +1137,13 @@ impl Node {
         // Step 8.
         for node in nodes.mut_iter() {
             parent.add_child(node, child);
-            if parent.is_in_doc() {
-                node.flags.deref().borrow_mut().insert(IsInDoc);
-            } else {
-                node.flags.deref().borrow_mut().remove(IsInDoc);
+            let is_in_doc = parent.is_in_doc();
+            for mut kid in node.traverse_preorder() {
+                if is_in_doc {
+                    kid.flags.deref().borrow_mut().insert(IsInDoc);
+                } else {
+                    kid.flags.deref().borrow_mut().remove(IsInDoc);
+                }
             }
         }
 
