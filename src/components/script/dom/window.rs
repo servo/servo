@@ -61,7 +61,7 @@ impl Hash for TimerId {
 
 impl TimerHandle {
     fn cancel(&mut self) {
-        self.cancel_chan.as_ref().map(|chan| chan.send(()));
+        self.cancel_chan.as_ref().map(|chan| chan.send_opt(()).ok());
     }
 }
 
