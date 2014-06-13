@@ -1941,10 +1941,6 @@ impl Reflectable for Node {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.eventtarget.reflector()
     }
-
-    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-        self.eventtarget.mut_reflector()
-    }
 }
 
 pub fn document_from_node<T: NodeBase>(derived: &JSRef<T>) -> Temporary<Document> {

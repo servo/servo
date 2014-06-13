@@ -14,8 +14,9 @@ use servo_util::str::DOMString;
 use collections::hashmap::HashMap;
 use libc;
 use libc::c_uint;
-use std::mem;
+use std::cell::Cell;
 use std::cmp::Eq;
+use std::mem;
 use std::ptr;
 use std::ptr::null;
 use std::slice;
@@ -401,7 +402,6 @@ pub fn initialize_global(global: *mut JSObject) {
 
 pub trait Reflectable {
     fn reflector<'a>(&'a self) -> &'a Reflector;
-    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector;
 }
 
 pub fn reflect_dom_object<T: Reflectable>
@@ -415,31 +415,33 @@ pub fn reflect_dom_object<T: Reflectable>
 #[allow(raw_pointer_deriving)]
 #[deriving(Eq)]
 pub struct Reflector {
-    object: *mut JSObject,
+    object: Cell<*mut JSObject>,
 }
 
 impl Reflector {
     #[inline]
     pub fn get_jsobject(&self) -> *mut JSObject {
-        self.object
+        self.object.get()
     }
 
-    pub fn set_jsobject(&mut self, object: *mut JSObject) {
-        assert!(self.object.is_null());
+    pub fn set_jsobject(&self, object: *mut JSObject) {
+        assert!(self.object.get().is_null());
         assert!(object.is_not_null());
-        self.object = object;
+        self.object.set(object);
     }
 
     /// Return a pointer to the memory location at which the JS reflector object is stored.
     /// Used by Temporary values to root the reflector, as required by the JSAPI rooting
     /// APIs.
-    pub fn rootable<'a>(&'a mut self) -> &'a mut *mut JSObject {
-        &mut self.object
+    pub fn rootable(&self) -> *mut *mut JSObject {
+        &self.object as *Cell<*mut JSObject>
+                     as *mut Cell<*mut JSObject>
+                     as *mut *mut JSObject
     }
 
     pub fn new() -> Reflector {
         Reflector {
-            object: ptr::mut_null(),
+            object: Cell::new(ptr::mut_null()),
         }
     }
 }

@@ -278,10 +278,6 @@ impl Reflectable for EventTarget {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         &self.reflector_
     }
-
-    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-        &mut self.reflector_
-    }
 }
 
 impl<'a> VirtualMethods for JSRef<'a, EventTarget> {
