@@ -24,7 +24,7 @@ impl DOMTokenList {
                          local_name: &'static str) -> DOMTokenList {
         DOMTokenList {
             reflector_: Reflector::new(),
-            element: JS::from_rooted(element.clone()),
+            element: JS::from_rooted(element),
             local_name: local_name,
         }
     }

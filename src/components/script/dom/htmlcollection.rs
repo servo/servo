@@ -42,7 +42,7 @@ impl HTMLCollection {
         HTMLCollection {
             collection: collection,
             reflector_: Reflector::new(),
-            window: window.unrooted(),
+            window: JS::from_rooted(window),
         }
     }
 
@@ -55,7 +55,7 @@ impl HTMLCollection {
 impl HTMLCollection {
     pub fn create(window: &JSRef<Window>, root: &JSRef<Node>,
                   filter: Box<CollectionFilter>) -> Temporary<HTMLCollection> {
-        HTMLCollection::new(window, Live(root.unrooted(), filter))
+        HTMLCollection::new(window, Live(JS::from_rooted(root), filter))
     }
 
     pub fn by_tag_name(window: &JSRef<Window>, root: &JSRef<Node>, tag: DOMString)

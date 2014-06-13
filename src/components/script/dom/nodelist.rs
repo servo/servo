@@ -27,7 +27,7 @@ impl NodeList {
         NodeList {
             list_type: list_type,
             reflector_: Reflector::new(),
-            window: window.unrooted()
+            window: JS::from_rooted(window)
         }
     }
 
@@ -38,11 +38,11 @@ impl NodeList {
     }
 
     pub fn new_simple_list(window: &JSRef<Window>, elements: Vec<JSRef<Node>>) -> Temporary<NodeList> {
-        NodeList::new(window, Simple(elements.iter().map(|element| element.unrooted()).collect()))
+        NodeList::new(window, Simple(elements.iter().map(|element| JS::from_rooted(element)).collect()))
     }
 
     pub fn new_child_list(window: &JSRef<Window>, node: &JSRef<Node>) -> Temporary<NodeList> {
-        NodeList::new(window, Children(node.unrooted()))
+        NodeList::new(window, Children(JS::from_rooted(node)))
     }
 }
 

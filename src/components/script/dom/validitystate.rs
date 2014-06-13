@@ -19,7 +19,7 @@ impl ValidityState {
     pub fn new_inherited(window: &JSRef<Window>) -> ValidityState {
         ValidityState {
             reflector_: Reflector::new(),
-            window: Cell::new(window.unrooted()),
+            window: Cell::new(JS::from_rooted(window)),
             state: 0,
         }
     }

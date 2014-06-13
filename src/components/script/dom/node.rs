@@ -819,7 +819,7 @@ impl NodeIterator {
                    include_start: bool,
                    include_descendants_of_void: bool) -> NodeIterator {
         NodeIterator {
-            start_node: start_node.unrooted(),
+            start_node: JS::from_rooted(start_node),
             current_node: None,
             depth: 0,
             include_start: include_start,
@@ -849,19 +849,19 @@ impl<'a> Iterator<JSRef<'a, Node>> for NodeIterator {
                     Some(self.start_node)
                 } else {
                     self.next_child(&*self.start_node.root())
-                        .map(|child| child.unrooted())
+                        .map(|child| JS::from_rooted(&child))
                 }
             },
             Some(node) => {
                 match self.next_child(&*node) {
                     Some(child) => {
                         self.depth += 1;
-                        Some(child.unrooted())
+                        Some(JS::from_rooted(&child))
                     },
-                    None if node.deref().unrooted() == self.start_node => None,
+                    None if JS::from_rooted(&*node) == self.start_node => None,
                     None => {
                         match node.deref().next_sibling().root() {
-                            Some(sibling) => Some(sibling.deref().unrooted()),
+                            Some(sibling) => Some(JS::from_rooted(&*sibling)),
                             None => {
                                 let mut candidate = node.deref().clone();
                                 while candidate.next_sibling().is_none() {
@@ -869,12 +869,12 @@ impl<'a> Iterator<JSRef<'a, Node>> for NodeIterator {
                                                           .expect("Got to root without reaching start node")
                                                           .root()).clone();
                                     self.depth -= 1;
-                                    if candidate.unrooted() == self.start_node {
+                                    if JS::from_rooted(&candidate) == self.start_node {
                                         break;
                                     }
                                 }
-                                if candidate.unrooted() != self.start_node {
-                                    candidate.next_sibling().map(|node| node.root().unrooted())
+                                if JS::from_rooted(&candidate) != self.start_node {
+                                    candidate.next_sibling().map(|node| JS::from_rooted(node.root().deref()))
                                 } else {
                                     None
                                 }
@@ -940,7 +940,6 @@ impl Node {
             last_child: Cell::new(None),
             next_sibling: Cell::new(None),
             prev_sibling: Cell::new(None),
-
             owner_doc: Cell::new(doc.unrooted()),
             child_list: Cell::new(None),
 
@@ -1243,7 +1242,7 @@ impl Node {
 
         // Step 1.
         let mut document = match maybe_doc {
-            Some(doc) => doc.unrooted().root(),
+            Some(doc) => JS::from_rooted(doc).root(),
             None => node.owner_doc().root()
         };
 
@@ -1304,9 +1303,9 @@ impl Node {
         // Step 3.
         let document = if copy.is_document() {
             let doc: &JSRef<Document> = DocumentCast::to_ref(&*copy).unwrap();
-            doc.unrooted().root()
+            JS::from_rooted(doc).root()
         } else {
-            document.unrooted().root()
+            JS::from_rooted(&*document).root()
         };
         assert!(&*copy.owner_doc().root() == &*document);
 

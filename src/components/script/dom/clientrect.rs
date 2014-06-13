@@ -28,7 +28,7 @@ impl ClientRect {
             left: left.to_nearest_px() as f32,
             right: right.to_nearest_px() as f32,
             reflector_: Reflector::new(),
-            window: window.unrooted(),
+            window: JS::from_rooted(window),
         }
     }
 

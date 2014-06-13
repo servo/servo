@@ -33,7 +33,7 @@ impl FormData {
         FormData {
             data: Traceable::new(RefCell::new(HashMap::new())),
             reflector_: Reflector::new(),
-            window: window.unrooted(),
+            window: JS::from_rooted(window),
             form: form.unrooted(),
         }
     }
@@ -55,7 +55,7 @@ pub trait FormDataMethods {
 impl<'a> FormDataMethods for JSRef<'a, FormData> {
     fn Append(&self, name: DOMString, value: &JSRef<Blob>, filename: Option<DOMString>) {
         let blob = BlobData {
-            blob: value.unrooted(),
+            blob: JS::from_rooted(value),
             name: filename.unwrap_or("default".to_string())
         };
         self.data.deref().borrow_mut().insert(name.clone(), blob);

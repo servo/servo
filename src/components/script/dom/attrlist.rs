@@ -20,8 +20,8 @@ impl AttrList {
     pub fn new_inherited(window: &JSRef<Window>, elem: &JSRef<Element>) -> AttrList {
         AttrList {
             reflector_: Reflector::new(),
-            window: window.unrooted(),
-            owner: elem.unrooted(),
+            window: JS::from_rooted(window),
+            owner: JS::from_rooted(elem),
         }
     }
 
