@@ -75,7 +75,7 @@ pub struct SessionHistoryEntry {
 impl SessionHistoryEntry {
     fn new(document: &JSRef<Document>) -> SessionHistoryEntry {
         SessionHistoryEntry {
-            document: document.unrooted(),
+            document: JS::from_rooted(document),
             children: vec!()
         }
     }

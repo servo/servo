@@ -19,7 +19,7 @@ pub struct Performance {
 
 impl Performance {
     fn new_inherited(window: &JSRef<Window>) -> Performance {
-        let timing = PerformanceTiming::new(window).root().root_ref().unrooted();
+        let timing = JS::from_rooted(&PerformanceTiming::new(window).root().root_ref());
         Performance {
             reflector_: Reflector::new(),
             timing: timing,

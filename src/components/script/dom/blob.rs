@@ -18,7 +18,7 @@ impl Blob {
     pub fn new_inherited(window: &JSRef<Window>) -> Blob {
         Blob {
             reflector_: Reflector::new(),
-            window: window.unrooted()
+            window: JS::from_rooted(window)
         }
     }
 

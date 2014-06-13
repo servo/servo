@@ -28,7 +28,7 @@ pub struct DOMImplementation {
 impl DOMImplementation {
     pub fn new_inherited(owner: &JSRef<Window>) -> DOMImplementation {
         DOMImplementation {
-            owner: owner.unrooted(),
+            owner: JS::from_rooted(owner),
             reflector_: Reflector::new(),
         }
     }

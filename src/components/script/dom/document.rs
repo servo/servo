@@ -215,7 +215,7 @@ impl Document {
         Document {
             node: Node::new_without_doc(DocumentNodeTypeId),
             reflector_: Reflector::new(),
-            window: window.unrooted(),
+            window: JS::from_rooted(window),
             idmap: Traceable::new(RefCell::new(HashMap::new())),
             implementation: Cell::new(None),
             content_type: match content_type {

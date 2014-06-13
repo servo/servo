@@ -571,8 +571,8 @@ impl ScriptTask {
             // Create the root frame.
             let mut frame = page.mut_frame();
             *frame = Some(Frame {
-                document: document.deref().unrooted(),
-                window: window.deref().unrooted(),
+                document: JS::from_rooted(document.deref()),
+                window: JS::from_rooted(window.deref()),
             });
         }
 
@@ -777,12 +777,12 @@ impl ScriptTask {
                                     match *mouse_over_targets {
                                         Some(ref mouse_over_targets) => {
                                             if !target_compare {
-                                                target_compare = !mouse_over_targets.contains(&node.unrooted());
+                                                target_compare = !mouse_over_targets.contains(&JS::from_rooted(&node));
                                             }
                                         }
                                         None => {}
                                     }
-                                    target_list.push(node.unrooted());
+                                    target_list.push(JS::from_rooted(&node));
                                 }
                                 None => {}
                             }
