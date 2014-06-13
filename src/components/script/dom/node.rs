@@ -1241,7 +1241,7 @@ impl Node {
                  clone_children: CloneChildrenFlag) -> Temporary<Node> {
 
         // Step 1.
-        let mut document = match maybe_doc {
+        let document = match maybe_doc {
             Some(doc) => JS::from_rooted(doc).root(),
             None => node.owner_doc().root()
         };
