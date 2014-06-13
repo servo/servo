@@ -45,12 +45,13 @@ interface XMLHttpRequest : XMLHttpRequestEventTarget {
 
   [Throws]
   void setRequestHeader(ByteString name, ByteString value);
+  [SetterThrows]
            attribute unsigned long timeout;
            attribute boolean withCredentials;
   readonly attribute XMLHttpRequestUpload upload;
   [Throws]
   void send(optional /*(ArrayBufferView or Blob or Document or [EnsureUTF16] */ DOMString/* or FormData or URLSearchParams)*/? data = null);
-  // void abort();
+  void abort();
 
   // response
   readonly attribute DOMString responseURL;
