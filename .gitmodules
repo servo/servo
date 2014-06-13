@@ -116,3 +116,6 @@
 [submodule "src/test/wpt/web-platform-tests"]
 	path = src/test/wpt/web-platform-tests
 	url = https://github.com/mozilla-servo/web-platform-tests.git
+[submodule "src/support/phf/rust-phf"]
+	path = src/support/phf/rust-phf
+	url = https://github.com/mozilla-servo/rust-phf.git
