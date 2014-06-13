@@ -8,12 +8,12 @@ use platform::surface::NativeSurfaceAzureMethods;
 
 use azure::AzSkiaGrGLSharedSurfaceRef;
 use layers::platform::surface::NativeSurface;
-use std::cast;
+use std::mem;
 
 impl NativeSurfaceAzureMethods for NativeSurface {
     fn from_azure_surface(surface: AzSkiaGrGLSharedSurfaceRef) -> NativeSurface {
         unsafe {
-            NativeSurface::from_image_khr(cast::transmute(surface))
+            NativeSurface::from_image_khr(mem::transmute(surface))
         }
     }
 }

@@ -98,7 +98,7 @@ impl WindowMethods<Application> for Window {
         impl glut::ReshapeCallback for ReshapeCallbackState {
             fn call(&self, width: c_int, height: c_int) {
                 let tmp = local_window();
-                tmp.event_queue.borrow_mut().push(ResizeWindowEvent(width as uint, height as uint))
+                tmp.event_queue.borrow_mut().push(ResizeWindowEvent(TypedSize2D(width as uint, height as uint)))
             }
         }
         glut::reshape_func(glut_window, box ReshapeCallbackState);
@@ -279,7 +279,7 @@ impl Window {
         alert.add_prompt();
         alert.run();
         let value = alert.prompt_value();
-        if "" == value {    // To avoid crashing on Linux.
+        if "" == value.as_slice() {    // To avoid crashing on Linux.
             self.event_queue.borrow_mut().push(LoadUrlWindowEvent("http://purple.com/".to_string()))
         } else {
             self.event_queue.borrow_mut().push(LoadUrlWindowEvent(value.clone()))
