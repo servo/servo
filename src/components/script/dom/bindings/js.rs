@@ -2,42 +2,42 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/// The DOM is made up of Rust types whose lifetime is entirely controlled by the whims of
-/// the SpiderMonkey garbage collector. The types in this module are designed to ensure
-/// that any interactions with said Rust types only occur on values that will remain alive
-/// the entire time.
-///
-/// Here is a brief overview of the important types:
-/// - JSRef<T>: a freely-copyable reference to a rooted value.
-/// - JS<T>: a pointer to JS-owned memory that can automatically be traced by the GC when
-///          encountered as a field of a Rust structure.
-/// - Temporary<T>: a value that will remain rooted for the duration of its lifetime.
-///
-/// The rule of thumb is as follows:
-/// - All methods return Temporary<T>, to ensure the value remains alive until it is stored
-///   somewhere that is reachable by the GC.
-/// - All functions take &JSRef<T> arguments, to ensure that they will remain uncollected for
-///   the duration of their usage.
-/// - All types contain JS<T> fields and derive the Encodable trait, to ensure that they are
-///   transitively marked as reachable by the GC if the enclosing value is reachable.
-/// - All methods for type T are implemented for JSRef<T>, to ensure that the self value
-///   will not be collected for the duration of the method call.
-///
-/// Both Temporary<T> and JS<T> do not allow access to their inner value without explicitly
-/// creating a stack-based root via the `root` method. This returns a Root<T>, which causes
-/// the JS-owned value to be uncollectable for the duration of the Root type's lifetime.
-/// A JSRef<T> can be obtained from a Root<T> either by dereferencing the Root<T> (`*rooted`)
-/// or explicitly calling the `root_ref` method. These JSRef<T> values are not allowed to
-/// outlive their originating Root<T>, to ensure that all interactions with the enclosed value
-/// only occur when said value is uncollectable, and will cause static lifetime errors if
-/// misused.
-///
-/// Other miscellaneous helper traits:
-/// - OptionalRootable and OptionalRootedRootable: make rooting Option values easy via a `root` method
-/// - ResultRootable: make rooting successful Result values easy
-/// - TemporaryPushable: allows mutating vectors of JS<T> with new elements of JSRef/Temporary
-/// - OptionalSettable: allows assigning Option values of JSRef/Temporary to fields of Option<JS<T>>
-/// - RootedReference: makes obtaining an Option<JSRef<T>> from an Option<Root<T>> easy
+//! The DOM is made up of Rust types whose lifetime is entirely controlled by the whims of
+//! the SpiderMonkey garbage collector. The types in this module are designed to ensure
+//! that any interactions with said Rust types only occur on values that will remain alive
+//! the entire time.
+//!
+//! Here is a brief overview of the important types:
+//! - JSRef<T>: a freely-copyable reference to a rooted value.
+//! - JS<T>: a pointer to JS-owned memory that can automatically be traced by the GC when
+//!          encountered as a field of a Rust structure.
+//! - Temporary<T>: a value that will remain rooted for the duration of its lifetime.
+//!
+//! The rule of thumb is as follows:
+//! - All methods return Temporary<T>, to ensure the value remains alive until it is stored
+//!   somewhere that is reachable by the GC.
+//! - All functions take &JSRef<T> arguments, to ensure that they will remain uncollected for
+//!   the duration of their usage.
+//! - All types contain JS<T> fields and derive the Encodable trait, to ensure that they are
+//!   transitively marked as reachable by the GC if the enclosing value is reachable.
+//! - All methods for type T are implemented for JSRef<T>, to ensure that the self value
+//!   will not be collected for the duration of the method call.
+//!
+//! Both Temporary<T> and JS<T> do not allow access to their inner value without explicitly
+//! creating a stack-based root via the `root` method. This returns a Root<T>, which causes
+//! the JS-owned value to be uncollectable for the duration of the Root type's lifetime.
+//! A JSRef<T> can be obtained from a Root<T> either by dereferencing the Root<T> (`*rooted`)
+//! or explicitly calling the `root_ref` method. These JSRef<T> values are not allowed to
+//! outlive their originating Root<T>, to ensure that all interactions with the enclosed value
+//! only occur when said value is uncollectable, and will cause static lifetime errors if
+//! misused.
+//!
+//! Other miscellaneous helper traits:
+//! - OptionalRootable and OptionalRootedRootable: make rooting Option values easy via a `root` method
+//! - ResultRootable: make rooting successful Result values easy
+//! - TemporaryPushable: allows mutating vectors of JS<T> with new elements of JSRef/Temporary
+//! - OptionalSettable: allows assigning Option values of JSRef/Temporary to fields of Option<JS<T>>
+//! - RootedReference: makes obtaining an Option<JSRef<T>> from an Option<Root<T>> easy
 
 use dom::bindings::utils::{Reflector, Reflectable};
 use dom::node::Node;
