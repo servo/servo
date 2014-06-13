@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::attr::AttrValue;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding;
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, HTMLElementCast, HTMLImageElementDerived};
 use dom::bindings::js::{JS, JSRef, Temporary};
@@ -199,7 +200,7 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
 
     fn Hspace(&self) -> u32 {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
-        from_str::<u32>(element.get_string_attribute("hspace").as_slice()).unwrap()
+        element.get_uint_attribute("hspace")
     }
 
     fn SetHspace(&self, hspace: u32) {
@@ -209,7 +210,7 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
 
     fn Vspace(&self) -> u32 {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
-        from_str::<u32>(element.get_string_attribute("vspace").as_slice()).unwrap()
+        element.get_uint_attribute("vspace")
     }
 
     fn SetVspace(&self, vspace: u32) {
@@ -265,6 +266,13 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLImageElement> {
 
         if "src" == name.as_slice() {
             self.update_image(None, None);
+        }
+    }
+
+    fn parse_plain_attribute(&self, name: &str, value: DOMString) -> AttrValue {
+        match name {
+            "width" | "height" | "hspace" | "vspace" => AttrValue::from_u32(value, 0),
+            _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
 }

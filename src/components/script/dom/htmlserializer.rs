@@ -151,7 +151,7 @@ fn serialize_attr(attr: &JSRef<Attr>, html: &mut String) {
         html.push_str(attr.deref().name.as_slice());
     };
     html.push_str("=\"");
-    escape(attr.deref().value.as_slice(), true, html);
+    escape(attr.deref().value_ref(), true, html);
     html.push_char('"');
 }
 

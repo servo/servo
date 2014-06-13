@@ -28,8 +28,8 @@ interface Element : Node {
            attribute DOMString id;
   [Pure]
            attribute DOMString className;
-  /*[Constant]
-    readonly attribute DOMTokenList? classList;*/
+  [Constant]
+  readonly attribute DOMTokenList classList;
 
   [Constant]
   readonly attribute AttrList attributes;
