@@ -14,7 +14,7 @@ use dom::htmlformelement::HTMLFormElement;
 use dom::node::{ElementNodeTypeId, NodeHelpers, NodeMethods};
 use dom::types::*;
 use html::cssparse::{StylesheetProvenance, UrlProvenance, spawn_css_parser};
-use script_task::Page;
+use page::Page;
 
 use hubbub::hubbub;
 use hubbub::hubbub::{NullNs, HtmlNs, MathMlNs, SvgNs, XLinkNs, XmlNs, XmlNsNs};

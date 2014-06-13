@@ -8,7 +8,7 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::window::Window;
 use servo_util::str::DOMString;
 
-use script_task::{Page};
+use page::Page;
 use std::rc::Rc;
 
 use serialize::{Encoder, Encodable};
