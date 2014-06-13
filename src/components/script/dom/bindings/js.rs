@@ -9,38 +9,38 @@
 //!
 //! Here is a brief overview of the important types:
 //!
-//! - JSRef<T>: a freely-copyable reference to a rooted value.
-//! - JS<T>: a pointer to JS-owned memory that can automatically be traced by the GC when
+//! - `JSRef<T>`: a freely-copyable reference to a rooted value.
+//! - `JS<T>`: a pointer to JS-owned memory that can automatically be traced by the GC when
 //!          encountered as a field of a Rust structure.
-//! - Temporary<T>: a value that will remain rooted for the duration of its lifetime.
+//! - `Temporary<T>`: a value that will remain rooted for the duration of its lifetime.
 //!
 //! The rule of thumb is as follows:
 //!
-//! - All methods return Temporary<T>, to ensure the value remains alive until it is stored
+//! - All methods return `Temporary<T>`, to ensure the value remains alive until it is stored
 //!   somewhere that is reachable by the GC.
-//! - All functions take &JSRef<T> arguments, to ensure that they will remain uncollected for
+//! - All functions take `&JSRef<T>` arguments, to ensure that they will remain uncollected for
 //!   the duration of their usage.
-//! - All types contain JS<T> fields and derive the Encodable trait, to ensure that they are
+//! - All types contain `JS<T>` fields and derive the `Encodable` trait, to ensure that they are
 //!   transitively marked as reachable by the GC if the enclosing value is reachable.
-//! - All methods for type T are implemented for JSRef<T>, to ensure that the self value
+//! - All methods for type `T` are implemented for `JSRef<T>`, to ensure that the self value
 //!   will not be collected for the duration of the method call.
 //!
-//! Both Temporary<T> and JS<T> do not allow access to their inner value without explicitly
-//! creating a stack-based root via the `root` method. This returns a Root<T>, which causes
-//! the JS-owned value to be uncollectable for the duration of the Root type's lifetime.
-//! A JSRef<T> can be obtained from a Root<T> either by dereferencing the Root<T> (`*rooted`)
-//! or explicitly calling the `root_ref` method. These JSRef<T> values are not allowed to
-//! outlive their originating Root<T>, to ensure that all interactions with the enclosed value
+//! Both `Temporary<T>` and `JS<T>` do not allow access to their inner value without explicitly
+//! creating a stack-based root via the `root` method. This returns a `Root<T>`, which causes
+//! the JS-owned value to be uncollectable for the duration of the `Root` object's lifetime.
+//! A `JSRef<T>` can be obtained from a `Root<T>` either by dereferencing the `Root<T>` (`*rooted`)
+//! or explicitly calling the `root_ref` method. These `JSRef<T>` values are not allowed to
+//! outlive their originating `Root<T>`, to ensure that all interactions with the enclosed value
 //! only occur when said value is uncollectable, and will cause static lifetime errors if
 //! misused.
 //!
 //! Other miscellaneous helper traits:
 //!
-//! - OptionalRootable and OptionalRootedRootable: make rooting Option values easy via a `root` method
-//! - ResultRootable: make rooting successful Result values easy
-//! - TemporaryPushable: allows mutating vectors of JS<T> with new elements of JSRef/Temporary
-//! - OptionalSettable: allows assigning Option values of JSRef/Temporary to fields of Option<JS<T>>
-//! - RootedReference: makes obtaining an Option<JSRef<T>> from an Option<Root<T>> easy
+//! - `OptionalRootable` and `OptionalRootedRootable`: make rooting `Option` values easy via a `root` method
+//! - `ResultRootable`: make rooting successful `Result` values easy
+//! - `TemporaryPushable`: allows mutating vectors of `JS<T>` with new elements of `JSRef`/`Temporary`
+//! - `OptionalSettable`: allows assigning `Option` values of `JSRef`/`Temporary` to fields of `Option<JS<T>>`
+//! - `RootedReference`: makes obtaining an `Option<JSRef<T>>` from an `Option<Root<T>>` easy
 
 use dom::bindings::utils::{Reflector, Reflectable};
 use dom::node::Node;
@@ -55,8 +55,8 @@ use std::mem;
 
 /// A type that represents a JS-owned value that is rooted for the lifetime of this value.
 /// Importantly, it requires explicit rooting in order to interact with the inner value.
-/// Can be assigned into JS-owned member fields (ie. JS<T> types) safely via the
-/// `JS<T>::assign` method or `OptionalSettable::assign` (for Option<JS<T>> fields).
+/// Can be assigned into JS-owned member fields (i.e. `JS<T>` types) safely via the
+/// `JS<T>::assign` method or `OptionalSettable::assign` (for `Option<JS<T>>` fields).
 pub struct Temporary<T> {
     inner: JS<T>,
     /// On-stack JS pointer to assuage conservative stack scanner
@@ -70,7 +70,7 @@ impl<T> Eq for Temporary<T> {
 }
 
 impl<T: Reflectable> Temporary<T> {
-    /// Create a new Temporary value from a JS-owned value.
+    /// Create a new `Temporary` value from a JS-owned value.
     pub fn new(inner: JS<T>) -> Temporary<T> {
         Temporary {
             inner: inner,
@@ -78,7 +78,7 @@ impl<T: Reflectable> Temporary<T> {
         }
     }
 
-    /// Create a new Temporary value from a rooted value.
+    /// Create a new `Temporary` value from a rooted value.
     pub fn from_rooted<'a>(root: &JSRef<'a, T>) -> Temporary<T> {
         Temporary::new(root.unrooted())
     }
@@ -122,7 +122,7 @@ impl <T> Clone for JS<T> {
 }
 
 impl JS<Node> {
-    /// Create a new JS-owned value wrapped from an address known to be a Node pointer.
+    /// Create a new JS-owned value wrapped from an address known to be a `Node` pointer.
     pub unsafe fn from_trusted_node_address(inner: TrustedNodeAddress) -> JS<Node> {
         let TrustedNodeAddress(addr) = inner;
         JS {
@@ -210,7 +210,7 @@ impl<From, To> JS<From> {
 }
 
 
-/// Get an Option<JSRef<T>> out of an Option<Root<T>>
+/// Get an `Option<JSRef<T>>` out of an `Option<Root<T>>`
 pub trait RootedReference<T> {
     fn root_ref<'a>(&'a self) -> Option<JSRef<'a, T>>;
 }
@@ -221,7 +221,7 @@ impl<'a, 'b, T: Reflectable> RootedReference<T> for Option<Root<'a, 'b, T>> {
     }
 }
 
-/// Get an Option<Option<JSRef<T>>> out of an Option<Option<Root<T>>>
+/// Get an `Option<Option<JSRef<T>>>` out of an `Option<Option<Root<T>>>`
 pub trait OptionalRootedReference<T> {
     fn root_ref<'a>(&'a self) -> Option<Option<JSRef<'a, T>>>;
 }
@@ -232,7 +232,7 @@ impl<'a, 'b, T: Reflectable> OptionalRootedReference<T> for Option<Option<Root<'
     }
 }
 
-/// Trait that allows extracting a JS<T> value from a variety of rooting-related containers,
+/// Trait that allows extracting a `JS<T>` value from a variety of rooting-related containers,
 /// which in general is an unsafe operation since they can outlive the rooted lifetime of the
 /// original value.
 /*definitely not public*/ trait Assignable<T> {
@@ -257,8 +257,8 @@ impl<T: Reflectable> Assignable<T> for Temporary<T> {
     }
 }
 
-/// Assign an optional rootable value (either of JS<T> or Temporary<T>) to an optional
-/// field of a DOM type (ie. Option<JS<T>>)
+/// Assign an optional rootable value (either of `JS<T>` or `Temporary<T>`) to an optional
+/// field of a DOM type (ie. `Option<JS<T>>`)
 pub trait OptionalSettable<T> {
     fn assign(&self, val: Option<T>);
 }
@@ -270,7 +270,7 @@ impl<T: Assignable<U>, U: Reflectable> OptionalSettable<T> for Cell<Option<JS<U>
 }
 
 
-/// Root a rootable Option type (used for Option<Temporary<T>>)
+/// Root a rootable `Option` type (used for `Option<Temporary<T>>`)
 pub trait OptionalRootable<T> {
     fn root<'a, 'b>(self) -> Option<Root<'a, 'b, T>>;
 }
@@ -292,7 +292,7 @@ impl<'a, T: Reflectable> OptionalUnrootable<T> for Option<JSRef<'a, T>> {
     }
 }
 
-/// Root a rootable Option type (used for Option<JS<T>>)
+/// Root a rootable `Option` type (used for `Option<JS<T>>`)
 pub trait OptionalRootedRootable<T> {
     fn root<'a, 'b>(&self) -> Option<Root<'a, 'b, T>>;
 }
@@ -303,7 +303,7 @@ impl<T: Reflectable> OptionalRootedRootable<T> for Option<JS<T>> {
     }
 }
 
-/// Root a rootable Option<Option> type (used for Option<Option<JS<T>>>)
+/// Root a rootable `Option<Option>` type (used for `Option<Option<JS<T>>>`)
 pub trait OptionalOptionalRootedRootable<T> {
     fn root<'a, 'b>(&self) -> Option<Option<Root<'a, 'b, T>>>;
 }
@@ -315,7 +315,7 @@ impl<T: Reflectable> OptionalOptionalRootedRootable<T> for Option<Option<JS<T>>>
 }
 
 
-/// Root a rootable Result type (any of Temporary<T> or JS<T>)
+/// Root a rootable `Result` type (any of `Temporary<T>` or `JS<T>`)
 pub trait ResultRootable<T,U> {
     fn root<'a, 'b>(self) -> Result<Root<'a, 'b, T>, U>;
 }
@@ -386,8 +386,8 @@ impl RootCollection {
 
 /// A rooted JS value. The JS value is pinned for the duration of this object's lifetime;
 /// roots are additive, so this object's destruction will not invalidate other roots
-/// for the same JS value. Roots cannot outlive the associated RootCollection object.
-/// Attempts to transfer ownership of a Root via moving will trigger dynamic unrooting
+/// for the same JS value. `Root`s cannot outlive the associated `RootCollection` object.
+/// Attempts to transfer ownership of a `Root` via moving will trigger dynamic unrooting
 /// failures due to incorrect ordering.
 pub struct Root<'a, 'b, T> {
     /// List that ensures correct dynamic root ordering
@@ -402,8 +402,8 @@ pub struct Root<'a, 'b, T> {
 
 impl<'a, 'b, T: Reflectable> Root<'a, 'b, T> {
     /// Create a new stack-bounded root for the provided JS-owned value.
-    /// It cannot not outlive its associated RootCollection, and it contains a JSRef
-    /// which cannot outlive this new Root.
+    /// It cannot not outlive its associated `RootCollection`, and it contains a `JSRef`
+    /// which cannot outlive this new `Root`.
     fn new(roots: &'a RootCollection, unrooted: &JS<T>) -> Root<'a, 'b, T> {
         let root = Root {
             root_list: roots,
