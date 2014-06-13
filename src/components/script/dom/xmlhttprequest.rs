@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestRespo
 use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast, XMLHttpRequestDerived};
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{ErrorResult, Fallible, InvalidState, InvalidAccess, Network, Syntax, Security};
-use dom::bindings::js::{JS, JSRef, Temporary, OptionalSettable, OptionalRootedRootable};
+use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootedRootable};
 use dom::bindings::str::ByteString;
 use dom::bindings::trace::Untraceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
@@ -106,7 +106,7 @@ pub struct XMLHttpRequest {
     ready_state: XMLHttpRequestState,
     timeout: u32,
     with_credentials: bool,
-    upload: Cell<Option<JS<XMLHttpRequestUpload>>>,
+    upload: Cell<JS<XMLHttpRequestUpload>>,
     response_url: DOMString,
     status: u16,
     status_text: ByteString,
@@ -136,7 +136,7 @@ impl XMLHttpRequest {
             ready_state: Unsent,
             timeout: 0u32,
             with_credentials: false,
-            upload: Cell::new(None),
+            upload: Cell::new(JS::from_rooted(&XMLHttpRequestUpload::new(owner))),
             response_url: "".to_string(),
             status: 0,
             status_text: ByteString::new(vec!()),
@@ -155,10 +155,9 @@ impl XMLHttpRequest {
             upload_complete: false,
             upload_events: false,
 
-            global: owner.unrooted(),
+            global: JS::from_rooted(owner),
             pinned: false,
         };
-        xhr.upload.assign(Some(XMLHttpRequestUpload::new(owner)));
         xhr
     }
     pub fn new(window: &JSRef<Window>) -> Temporary<XMLHttpRequest> {
@@ -407,7 +406,7 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
         self.with_credentials = with_credentials
     }
     fn Upload(&self) -> Temporary<XMLHttpRequestUpload> {
-        Temporary::new(self.upload.get().get_ref().clone())
+        Temporary::new(self.upload.get())
     }
     fn Send(&mut self, data: Option<DOMString>) -> ErrorResult {
         if self.ready_state != Opened || self.send_flag {
@@ -429,7 +428,7 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
         };
         if !self.sync {
             // Step 8
-            let upload_target = &*self.upload.get().root().unwrap();
+            let upload_target = &*self.upload.get().root();
             let event_target: &JSRef<EventTarget> = EventTargetCast::from_ref(upload_target);
             if event_target.has_handlers() {
                 self.upload_events = true;
@@ -734,10 +733,10 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
 
     fn dispatch_progress_event(&self, upload: bool, type_: DOMString, loaded: u64, total: Option<u64>) {
         let win = &*self.global.root();
-        let upload_target = &*self.upload.get().root().unwrap();
-        let progressevent = ProgressEvent::new(win, type_, false, false,
-                                               total.is_some(), loaded,
-                                               total.unwrap_or(0)).root();
+        let upload_target = &*self.upload.get().root();
+        let mut progressevent = ProgressEvent::new(win, type_, false, false,
+                                                   total.is_some(), loaded,
+                                                   total.unwrap_or(0)).root();
         let target: &JSRef<EventTarget> = if upload {
             EventTargetCast::from_ref(upload_target)
         } else {

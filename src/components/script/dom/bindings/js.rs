@@ -77,7 +77,7 @@ impl<T: Reflectable> Temporary<T> {
 
     /// Create a new Temporary value from a rooted value.
     pub fn from_rooted<'a>(root: &JSRef<'a, T>) -> Temporary<T> {
-        Temporary::new(root.unrooted())
+        Temporary::new(JS::from_rooted(root))
     }
 
     /// Create a stack-bounded root for this value.
@@ -156,7 +156,7 @@ impl<T: Reflectable> JS<T> {
 }
 
 impl<T: Assignable<U>, U: Reflectable> JS<U> {
-    pub fn from_rooted(root: T) -> JS<U> {
+    pub fn from_rooted(root: &T) -> JS<U> {
         unsafe {
             root.get_js()
         }
@@ -279,7 +279,7 @@ pub trait OptionalUnrootable<T> {
 
 impl<'a, T: Reflectable> OptionalUnrootable<T> for Option<JSRef<'a, T>> {
     fn unrooted(&self) -> Option<JS<T>> {
-        self.as_ref().map(|inner| inner.unrooted())
+        self.as_ref().map(|inner| JS::from_rooted(inner))
     }
 }
 

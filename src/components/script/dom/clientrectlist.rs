@@ -18,11 +18,11 @@ pub struct ClientRectList {
 impl ClientRectList {
     pub fn new_inherited(window: &JSRef<Window>,
                          rects: Vec<JSRef<ClientRect>>) -> ClientRectList {
-        let rects = rects.iter().map(|rect| rect.unrooted()).collect();
+        let rects = rects.iter().map(|rect| JS::from_rooted(rect)).collect();
         ClientRectList {
             reflector_: Reflector::new(),
             rects: rects,
-            window: window.unrooted(),
+            window: JS::from_rooted(window),
         }
     }
 

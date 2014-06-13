@@ -20,7 +20,7 @@ pub struct DOMParser {
 impl DOMParser {
     pub fn new_inherited(owner: &JSRef<Window>) -> DOMParser {
         DOMParser {
-            owner: owner.unrooted(),
+            owner: JS::from_rooted(owner),
             reflector_: Reflector::new()
         }
     }
