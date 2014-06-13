@@ -11,7 +11,7 @@
 
 .PHONY: backup-rust
 backup-rust:
-	@if [ ! -z "$(CFG_BUILD_DIR)" ]; then echo "Backing up Rust"; mv $(CFG_BUILD_DIR)src/compiler/rust ../$(CFG_TARGET); else echo "Skipping Rust backup"; fi
+	@if [ -d $(CFG_BUILD_DIR)src/compiler/rust/ ]; then echo "Backing up Rust"; mv $(CFG_BUILD_DIR)src/compiler/rust ../$(CFG_TARGET); else echo "Skipping Rust backup"; fi
 
 .PHONY: restore-rust
 restore-rust:
