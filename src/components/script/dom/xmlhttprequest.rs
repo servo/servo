@@ -734,9 +734,9 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
     fn dispatch_progress_event(&self, upload: bool, type_: DOMString, loaded: u64, total: Option<u64>) {
         let win = &*self.global.root();
         let upload_target = &*self.upload.get().root();
-        let mut progressevent = ProgressEvent::new(win, type_, false, false,
-                                                   total.is_some(), loaded,
-                                                   total.unwrap_or(0)).root();
+        let progressevent = ProgressEvent::new(win, type_, false, false,
+                                               total.is_some(), loaded,
+                                               total.unwrap_or(0)).root();
         let target: &JSRef<EventTarget> = if upload {
             EventTargetCast::from_ref(upload_target)
         } else {
