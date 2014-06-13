@@ -8,12 +8,14 @@
 //! the entire time.
 //!
 //! Here is a brief overview of the important types:
+//!
 //! - JSRef<T>: a freely-copyable reference to a rooted value.
 //! - JS<T>: a pointer to JS-owned memory that can automatically be traced by the GC when
 //!          encountered as a field of a Rust structure.
 //! - Temporary<T>: a value that will remain rooted for the duration of its lifetime.
 //!
 //! The rule of thumb is as follows:
+//!
 //! - All methods return Temporary<T>, to ensure the value remains alive until it is stored
 //!   somewhere that is reachable by the GC.
 //! - All functions take &JSRef<T> arguments, to ensure that they will remain uncollected for
@@ -33,6 +35,7 @@
 //! misused.
 //!
 //! Other miscellaneous helper traits:
+//!
 //! - OptionalRootable and OptionalRootedRootable: make rooting Option values easy via a `root` method
 //! - ResultRootable: make rooting successful Result values easy
 //! - TemporaryPushable: allows mutating vectors of JS<T> with new elements of JSRef/Temporary
