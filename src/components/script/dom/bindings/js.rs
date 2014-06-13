@@ -39,10 +39,10 @@
 /// - OptionalSettable: allows assigning Option values of JSRef/Temporary to fields of Option<JS<T>>
 /// - RootedReference: makes obtaining an Option<JSRef<T>> from an Option<Root<T>> easy
 
-use dom::bindings::utils::{Reflector, Reflectable, cx_for_dom_object};
+use dom::bindings::utils::{Reflector, Reflectable};
 use dom::node::Node;
 use dom::xmlhttprequest::{XMLHttpRequest, TrustedXHRAddress};
-use js::jsapi::{JSObject, JS_AddObjectRoot, JS_RemoveObjectRoot};
+use js::jsapi::JSObject;
 use layout_interface::TrustedNodeAddress;
 use script_task::StackRoots;
 
@@ -56,6 +56,8 @@ use std::mem;
 /// `JS<T>::assign` method or `OptionalSettable::assign` (for Option<JS<T>> fields).
 pub struct Temporary<T> {
     inner: JS<T>,
+    /// On-stack JS pointer to assuage conservative stack scanner
+    js_ptr: *mut JSObject,
 }
 
 impl<T> Eq for Temporary<T> {
@@ -64,25 +66,12 @@ impl<T> Eq for Temporary<T> {
     }
 }
 
-#[unsafe_destructor]
-impl<T: Reflectable> Drop for Temporary<T> {
-    fn drop(&mut self) {
-        let cx = cx_for_dom_object(&self.inner);
-        unsafe {
-            JS_RemoveObjectRoot(cx, self.inner.mut_reflector().rootable());
-        }
-    }
-}
-
 impl<T: Reflectable> Temporary<T> {
     /// Create a new Temporary value from a JS-owned value.
-    pub fn new(mut inner: JS<T>) -> Temporary<T> {
-        let cx = cx_for_dom_object(&inner);
-        unsafe {
-            JS_AddObjectRoot(cx, inner.mut_reflector().rootable());
-        }
+    pub fn new(inner: JS<T>) -> Temporary<T> {
         Temporary {
             inner: inner,
+            js_ptr: inner.reflector().get_jsobject(),
         }
     }
 
