@@ -1,6 +1,6 @@
 # The design of Garbage collected DOM
 
-These are how servo provides an object graph to SpiderMonkey's Garbage Collection.
+These are how Servo provides an object graph to SpiderMonkey's Garbage Collection.
 
 ## Construct
 When Servo creates a Rusty DOM object, the binding code creates a wrapper `JSObject` with SpiderMonkey, is correspond to each Rusty DOM Object. It’s produced and set to the Rusty object in `FooBinding::Wrap`.
@@ -33,6 +33,6 @@ For supporting SpiderMonkey’s exact GC rooting, we introduce [some types](http
 
 - `JS<T>` is used for the DOM typed field in a DOM type structure. GC can trace them recursively while enclosing DOM object (maybe root) is alive.
 - `Temporary<T>` is used as a return value of functions returning DOM type. They are rooted while they are alive. But a retun value gets moved around. It’s breakable for the LIFO ordering constraint. Thus we need introduce `Root<T>`.
-- `Root<T>` contains the pointer to `JSObject` which the represented DOM type has. SpiderMonkey's conservative stack scanner scans its `JSObject` and mark it as GC root.
+- `Root<T>` contains the pointer to `JSObject` which the represented DOM type has. SpiderMonkey's conservative stack scanner scans its pointer and mark a pointed `JSObject` as GC root.
 - `JSRef` is just a reference to the value rooted by `Root<T>`.
 - `RootCollection` is used for dynamic checking about rooting satisfies LIFO ordering, because SpiderMonkey GC requres LIFO order (See also: [Exact Stack Rooting - Storing a GCPointer on the CStack](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey/Internals/GC/Exact_Stack_Rooting)).
