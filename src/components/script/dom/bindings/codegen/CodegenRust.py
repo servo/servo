@@ -1051,54 +1051,27 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
     raise TypeError("Don't know how to declare return value for %s" %
                     returnType)
 
-def isChromeOnly(m):
-    return m.getExtendedAttribute("ChromeOnly")
-
 class PropertyDefiner:
     """
     A common superclass for defining things on prototype objects.
 
     Subclasses should implement generateArray to generate the actual arrays of
-    things we're defining.  They should also set self.chrome to the list of
-    things exposed to chrome and self.regular to the list of things exposed to
-    web pages.  self.chrome must be a superset of self.regular but also include
-    all the ChromeOnly stuff.
+    things we're defining. They should also set self.regular to the list of
+    things exposed to web pages.
     """
     def __init__(self, descriptor, name):
         self.descriptor = descriptor
         self.name = name
-        # self.prefCacheData will store an array of (prefname, bool*)
-        # pairs for our bool var caches.  generateArray will fill it
-        # in as needed.
-        self.prefCacheData = []
-    def hasChromeOnly(self):
-        return len(self.chrome) > len(self.regular)
-    def hasNonChromeOnly(self):
-        return len(self.regular) > 0
-    def variableName(self, chrome):
-        if chrome and self.hasChromeOnly():
-            return "sChrome" + self.name
-        if self.hasNonChromeOnly():
+
+    def variableName(self):
+        if len(self.regular) > 0:
             return "s" + self.name
         return "ptr::null()"
 
     def __str__(self):
         # We only need to generate id arrays for things that will end
         # up used via ResolveProperty or EnumerateProperties.
-        str = self.generateArray(self.regular, self.variableName(False))
-        if self.hasChromeOnly():
-            str += self.generateArray(self.chrome, self.variableName(True))
-        return str
-
-    @staticmethod
-    def getControllingPref(interfaceMember):
-        prefName = interfaceMember.getExtendedAttribute("Pref")
-        if prefName is None:
-            return None
-        # It's a list of strings
-        assert(len(prefName) is 1)
-        assert(prefName[0] is not None)
-        return prefName[0]
+        return self.generateArray(self.regular, self.variableName())
 
     def generatePrefableArray(self, array, name, specTemplate, specTerminator,
                               specType, getDataTuple):
@@ -1151,47 +1124,18 @@ class MethodDefiner(PropertyDefiner):
         methods = [m for m in descriptor.interface.members if
                    m.isMethod() and m.isStatic() == static and
                    not m.isIdentifierLess()]
-        self.chrome = [{"name": m.identifier.name,
-                        "length": methodLength(m),
-                        "flags": "JSPROP_ENUMERATE",
-                        "pref": PropertyDefiner.getControllingPref(m) }
-                       for m in methods]
         self.regular = [{"name": m.identifier.name,
                          "length": methodLength(m),
-                         "flags": "JSPROP_ENUMERATE",
-                         "pref": PropertyDefiner.getControllingPref(m) }
-                        for m in methods if not isChromeOnly(m)]
+                         "flags": "JSPROP_ENUMERATE" }
+                        for m in methods]
 
         # FIXME Check for an existing iterator on the interface first.
         if any(m.isGetter() and m.isIndexed() for m in methods):
-            self.chrome.append({"name": 'iterator',
-                                "methodInfo": False,
-                                "nativeName": "JS_ArrayIterator",
-                                "length": 0,
-                                "flags": "JSPROP_ENUMERATE",
-                                "pref": None })
             self.regular.append({"name": 'iterator',
                                  "methodInfo": False,
                                  "nativeName": "JS_ArrayIterator",
                                  "length": 0,
-                                 "flags": "JSPROP_ENUMERATE",
-                                 "pref": None })
-
-        #if not descriptor.interface.parent and not static:
-        #    self.chrome.append({"name": 'QueryInterface',
-        #                        "methodInfo": False,
-        #                        "length": 1,
-        #                        "flags": "0",
-        #                        "pref": None })
-
-        if static:
-            if not descriptor.interface.hasInterfaceObject():
-                # static methods go on the interface object
-                assert not self.hasChromeOnly() and not self.hasNonChromeOnly()
-        else:
-            if not descriptor.interface.hasInterfacePrototypeObject():
-                # non-static methods go on the interface prototype object
-                assert not self.hasChromeOnly() and not self.hasNonChromeOnly()
+                                 "flags": "JSPROP_ENUMERATE" })
 
     def generateArray(self, array, name):
         if len(array) == 0:
@@ -1222,8 +1166,7 @@ class AttrDefiner(PropertyDefiner):
     def __init__(self, descriptor, name):
         PropertyDefiner.__init__(self, descriptor, name)
         self.name = name
-        self.chrome = [m for m in descriptor.interface.members if m.isAttr()]
-        self.regular = [m for m in self.chrome if not isChromeOnly(m)]
+        self.regular = [m for m in descriptor.interface.members if m.isAttr()]
 
     def generateArray(self, array, name):
         if len(array) == 0:
@@ -1273,8 +1216,7 @@ class ConstDefiner(PropertyDefiner):
     def __init__(self, descriptor, name):
         PropertyDefiner.__init__(self, descriptor, name)
         self.name = name
-        self.chrome = [m for m in descriptor.interface.members if m.isConst()]
-        self.regular = [m for m in self.chrome if not isChromeOnly(m)]
+        self.regular = [m for m in descriptor.interface.members if m.isConst()]
 
     def generateArray(self, array, name):
         if len(array) == 0:
@@ -1898,17 +1840,10 @@ class PropertyArrays():
     def arrayNames():
         return [ "staticMethods", "methods", "attrs", "consts" ]
 
-    @staticmethod
-    def xrayRelevantArrayNames():
-        return [ "methods", "attrs", "consts" ]
-
-    def hasChromeOnly(self):
-        return reduce(lambda b, a: b or getattr(self, a).hasChromeOnly(),
-                      self.arrayNames(), False)
-    def variableNames(self, chrome):
+    def variableNames(self):
         names = {}
         for array in self.arrayNames():
-            names[array] = getattr(self, array).variableName(chrome)
+            names[array] = getattr(self, array).variableName()
         return names
     def __str__(self):
         define = ""
@@ -1942,22 +1877,6 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
         # if we don't need to create anything, why are we generating this?
         assert needInterfaceObject or needInterfacePrototypeObject
 
-        prefCacheData = []
-        for var in self.properties.arrayNames():
-            props = getattr(self.properties, var)
-            prefCacheData.extend(props.prefCacheData)
-        if len(prefCacheData) is not 0:
-            prefCacheData = [
-                CGGeneric('Preferences::AddBoolVarCache(%s, "%s");' % (ptr, pref)) for
-                (pref, ptr) in prefCacheData]
-            prefCache = CGWrapper(CGIndenter(CGList(prefCacheData, "\n")),
-                                  pre=("static bool sPrefCachesInited = false;\n"
-                                       "if (!sPrefCachesInited) {\n"
-                                       "  sPrefCachesInited = true;\n"),
-                                  post="\n}")
-        else:
-            prefCache = None
-            
         getParentProto = ("let parentProto: *mut JSObject = %s;\n" +
                           "if parentProto.is_null() {\n" +
                           "  return ptr::mut_null();\n" +
@@ -1979,7 +1898,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
             domClass = "ptr::null()"
 
         def arrayPtr(name):
-            val = ('%(' + name + ')s') % self.properties.variableNames(False)
+            val = ('%(' + name + ')s') % self.properties.variableNames()
             if val == "ptr::null()":
                 return "None"
             return "Some(%s.as_slice())" % val
@@ -1999,17 +1918,10 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
             arrayPtr("methods"), arrayPtr("attrs"),
             arrayPtr("consts"), arrayPtr("staticMethods"),
             '"' + self.descriptor.interface.identifier.name + '"' if needInterfaceObject else "ptr::null()")
-        if self.properties.hasChromeOnly():
-            accessCheck = "xpc::AccessCheck::isChrome(js::GetObjectCompartment(aGlobal))"
-            chrome = CGIfWrapper(CGGeneric(call % self.properties.variableNames(True)),
-                                 accessCheck)
-            chrome = CGWrapper(chrome, pre="\n\n")
-        else:
-            chrome = None
 
         functionBody = CGList(
-            [CGGeneric(getParentProto), prefCache, chrome,
-             CGGeneric(call % self.properties.variableNames(False))],
+            [CGGeneric(getParentProto),
+             CGGeneric(call % self.properties.variableNames())],
             "\n\n")
         #return CGIndenter(CGWrapper(functionBody, pre="/*", post="*/return ptr::null()")).define()
         return CGIndenter(functionBody).define()
@@ -3953,9 +3865,6 @@ class CGDescriptor(CGThing):
 
         if descriptor.interface.hasInterfaceObject():
             cgThings.append(CGDefineDOMInterfaceMethod(descriptor))
-            if (descriptor.interface.getExtendedAttribute("PrefControlled") is not None):
-                #cgThings.append(CGPrefEnabled(descriptor))
-                pass
 
         if descriptor.concrete:
             if descriptor.proxy:
