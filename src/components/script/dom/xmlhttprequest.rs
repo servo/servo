@@ -12,7 +12,7 @@ use dom::bindings::error::{Error, ErrorResult, Fallible, InvalidState, InvalidAc
 use dom::bindings::error::{Network, Syntax, Security, Abort, Timeout};
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootedRootable};
 use dom::bindings::str::ByteString;
-use dom::bindings::trace::Untraceable;
+use dom::bindings::trace::{Traceable, Untraceable};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::document::Document;
 use dom::event::Event;
@@ -47,7 +47,7 @@ use servo_util::task::spawn_named;
 use servo_util::url::{parse_url, try_parse_url};
 
 use std::ascii::StrAsciiExt;
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::comm::{Sender, Receiver, channel};
 use std::io::{BufReader, MemWriter, Timer};
 use std::from_str::FromStr;
@@ -90,7 +90,7 @@ pub enum XHRProgress {
 }
 
 enum SyncOrAsync<'a, 'b> {
-    Sync(&'b mut JSRef<'a, XMLHttpRequest>),
+    Sync(&'b JSRef<'a, XMLHttpRequest>),
     Async(TrustedXHRAddress, ScriptChan)
 }
 
@@ -98,68 +98,68 @@ enum SyncOrAsync<'a, 'b> {
 #[deriving(Encodable)]
 pub struct XMLHttpRequest {
     eventtarget: XMLHttpRequestEventTarget,
-    ready_state: XMLHttpRequestState,
-    timeout: u32,
-    with_credentials: bool,
+    ready_state: Traceable<Cell<XMLHttpRequestState>>,
+    timeout: Traceable<Cell<u32>>,
+    with_credentials: Traceable<Cell<bool>>,
     upload: Cell<JS<XMLHttpRequestUpload>>,
     response_url: DOMString,
-    status: u16,
-    status_text: ByteString,
-    response: ByteString,
-    response_type: XMLHttpRequestResponseType,
+    status: Traceable<Cell<u16>>,
+    status_text: Traceable<RefCell<ByteString>>,
+    response: Traceable<RefCell<ByteString>>,
+    response_type: Traceable<Cell<XMLHttpRequestResponseType>>,
     response_xml: Cell<Option<JS<Document>>>,
-    response_headers: Untraceable<ResponseHeaderCollection>,
+    response_headers: Untraceable<RefCell<ResponseHeaderCollection>>,
 
     // Associated concepts
-    request_method: Untraceable<Method>,
-    request_url: Untraceable<Url>,
-    request_headers: Untraceable<RequestHeaderCollection>,
+    request_method: Untraceable<RefCell<Method>>,
+    request_url: Untraceable<RefCell<Url>>,
+    request_headers: Untraceable<RefCell<RequestHeaderCollection>>,
     request_body: SendParam,
-    sync: bool,
-    upload_complete: bool,
-    upload_events: bool,
-    send_flag: bool,
+    sync: Traceable<Cell<bool>>,
+    upload_complete: Traceable<Cell<bool>>,
+    upload_events: Traceable<Cell<bool>>,
+    send_flag: Traceable<Cell<bool>>,
 
     global: JS<Window>,
-    pinned_count: uint,
-    timer: Untraceable<Timer>,
-    fetch_time: i64,
-    timeout_pinned: bool,
-    terminate_sender: Untraceable<Option<Sender<Error>>>,
+    pinned_count: Traceable<Cell<uint>>,
+    timer: Untraceable<RefCell<Timer>>,
+    fetch_time: Traceable<Cell<i64>>,
+    timeout_pinned: Traceable<Cell<bool>>,
+    terminate_sender: Untraceable<RefCell<Option<Sender<Error>>>>,
 }
 
 impl XMLHttpRequest {
     pub fn new_inherited(owner: &JSRef<Window>) -> XMLHttpRequest {
         let xhr = XMLHttpRequest {
             eventtarget: XMLHttpRequestEventTarget::new_inherited(XMLHttpRequestTypeId),
-            ready_state: Unsent,
-            timeout: 0u32,
-            with_credentials: false,
+            ready_state: Traceable::new(Cell::new(Unsent)),
+            timeout: Traceable::new(Cell::new(0u32)),
+            with_credentials: Traceable::new(Cell::new(false)),
             upload: Cell::new(JS::from_rooted(&XMLHttpRequestUpload::new(owner))),
             response_url: "".to_string(),
-            status: 0,
-            status_text: ByteString::new(vec!()),
-            response: ByteString::new(vec!()),
-            response_type: _empty,
+            status: Traceable::new(Cell::new(0)),
+            status_text: Traceable::new(RefCell::new(ByteString::new(vec!()))),
+            response: Traceable::new(RefCell::new(ByteString::new(vec!()))),
+            response_type: Traceable::new(Cell::new(_empty)),
             response_xml: Cell::new(None),
-            response_headers: Untraceable::new(ResponseHeaderCollection::new()),
+            response_headers: Untraceable::new(RefCell::new(ResponseHeaderCollection::new())),
 
-            request_method: Untraceable::new(Get),
-            request_url: Untraceable::new(parse_url("", None)),
-            request_headers: Untraceable::new(RequestHeaderCollection::new()),
+            request_method: Untraceable::new(RefCell::new(Get)),
+            request_url: Untraceable::new(RefCell::new(parse_url("", None))),
+            request_headers: Untraceable::new(RefCell::new(RequestHeaderCollection::new())),
             request_body: "".to_string(),
-            sync: false,
-            send_flag: false,
+            sync: Traceable::new(Cell::new(false)),
+            send_flag: Traceable::new(Cell::new(false)),
 
-            upload_complete: false,
-            upload_events: false,
+            upload_complete: Traceable::new(Cell::new(false)),
+            upload_events: Traceable::new(Cell::new(false)),
 
             global: JS::from_rooted(owner),
-            pinned_count: 0,
-            timer: Untraceable::new(Timer::new().unwrap()),
-            fetch_time: 0,
-            timeout_pinned: false,
-            terminate_sender: Untraceable::new(None),
+            pinned_count: Traceable::new(Cell::new(0)),
+            timer: Untraceable::new(RefCell::new(Timer::new().unwrap())),
+            fetch_time: Traceable::new(Cell::new(0)),
+            timeout_pinned: Traceable::new(Cell::new(false)),
+            terminate_sender: Untraceable::new(RefCell::new(None)),
         };
         xhr
     }
@@ -174,17 +174,16 @@ impl XMLHttpRequest {
 
     pub fn handle_xhr_progress(addr: TrustedXHRAddress, progress: XHRProgress) {
         unsafe {
-            let mut xhr = JS::from_trusted_xhr_address(addr).root();
-            xhr.process_partial_response(progress);
+            let xhr = JS::from_trusted_xhr_address(addr).root();
+            xhr.deref().process_partial_response(progress);
         }
     }
 
-    fn fetch(fetch_type: &mut SyncOrAsync, resource_task: ResourceTask,
+    fn fetch(fetch_type: &SyncOrAsync, resource_task: ResourceTask,
              load_data: LoadData, terminate_receiver: Receiver<Error>) -> ErrorResult {
-
-        fn notify_partial_progress(fetch_type: &mut SyncOrAsync, msg: XHRProgress) {
+        fn notify_partial_progress(fetch_type: &SyncOrAsync, msg: XHRProgress) {
             match *fetch_type {
-                Sync(ref mut xhr) => {
+                Sync(ref xhr) => {
                     xhr.process_partial_response(msg);
                 },
                 Async(addr, ref script_chan) => {
@@ -233,17 +232,17 @@ pub trait XMLHttpRequestMethods<'a> {
     fn GetOnreadystatechange(&self) -> Option<EventHandlerNonNull>;
     fn SetOnreadystatechange(&self, listener: Option<EventHandlerNonNull>);
     fn ReadyState(&self) -> u16;
-    fn Open(&mut self, _method: ByteString, _url: DOMString) -> ErrorResult;
-    fn Open_(&mut self, _method: ByteString, _url: DOMString, _async: bool,
+    fn Open(&self, _method: ByteString, _url: DOMString) -> ErrorResult;
+    fn Open_(&self, _method: ByteString, _url: DOMString, _async: bool,
              _username: Option<DOMString>, _password: Option<DOMString>) -> ErrorResult;
-    fn SetRequestHeader(&mut self, name: ByteString, mut value: ByteString) -> ErrorResult;
+    fn SetRequestHeader(&self, name: ByteString, mut value: ByteString) -> ErrorResult;
     fn Timeout(&self) -> u32;
-    fn SetTimeout(&mut self, timeout: u32) -> ErrorResult;
+    fn SetTimeout(&self, timeout: u32) -> ErrorResult;
     fn WithCredentials(&self) -> bool;
-    fn SetWithCredentials(&mut self, with_credentials: bool);
+    fn SetWithCredentials(&self, with_credentials: bool);
     fn Upload(&self) -> Temporary<XMLHttpRequestUpload>;
-    fn Send(&mut self, _data: Option<SendParam>) -> ErrorResult;
-    fn Abort(&mut self);
+    fn Send(&self, _data: Option<SendParam>) -> ErrorResult;
+    fn Abort(&self);
     fn ResponseURL(&self) -> DOMString;
     fn Status(&self) -> u16;
     fn StatusText(&self) -> ByteString;
@@ -251,7 +250,7 @@ pub trait XMLHttpRequestMethods<'a> {
     fn GetAllResponseHeaders(&self) -> ByteString;
     fn OverrideMimeType(&self, _mime: DOMString);
     fn ResponseType(&self) -> XMLHttpRequestResponseType;
-    fn SetResponseType(&mut self, response_type: XMLHttpRequestResponseType) -> ErrorResult;
+    fn SetResponseType(&self, response_type: XMLHttpRequestResponseType) -> ErrorResult;
     fn Response(&self, _cx: *mut JSContext) -> JSVal;
     fn GetResponseText(&self) -> Fallible<DOMString>;
     fn GetResponseXML(&self) -> Option<Temporary<Document>>;
@@ -269,13 +268,12 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
     }
 
     fn ReadyState(&self) -> u16 {
-        self.ready_state as u16
+        self.ready_state.deref().get() as u16
     }
 
-    fn Open(&mut self, method: ByteString, url: DOMString) -> ErrorResult {
+    fn Open(&self, method: ByteString, url: DOMString) -> ErrorResult {
         // Clean up from previous requests, if any:
         self.cancel_timeout();
-
         let uppercase_method = method.as_str().map(|s| {
             let upper = s.to_ascii_upper();
             match upper.as_slice() {
@@ -301,7 +299,7 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
             Some(ExtensionMethod(ref t)) if t.as_slice() == "TRACK" => Err(Security),
             Some(_) if method.is_token() => {
 
-                *self.request_method = maybe_method.unwrap();
+                *self.request_method.deref().borrow_mut() = maybe_method.unwrap();
 
                 // Step 6
                 let parsed_url = match try_parse_url(url.as_slice(), base) {
@@ -309,22 +307,22 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
                     Err(_) => return Err(Syntax) // Step 7
                 };
                 // XXXManishearth Do some handling of username/passwords
-                if self.sync {
+                if self.sync.deref().get() {
                     // FIXME: This should only happen if the global environment is a document environment
-                    if self.timeout != 0 || self.with_credentials || self.response_type != _empty {
+                    if self.timeout.deref().get() != 0 || self.with_credentials.deref().get() || self.response_type.deref().get() != _empty {
                         return Err(InvalidAccess)
                     }
                 }
                 // XXXManishearth abort existing requests
                 // Step 12
-                *self.request_url = parsed_url;
-                *self.request_headers = RequestHeaderCollection::new();
-                self.send_flag = false;
-                self.status_text = ByteString::new(vec!());
-                self.status = 0;
+                *self.request_url.deref().borrow_mut() = parsed_url;
+                *self.request_headers.deref().borrow_mut() = RequestHeaderCollection::new();
+                self.send_flag.deref().set(false);
+                *self.status_text.deref().borrow_mut() = ByteString::new(vec!());
+                self.status.deref().set(0);
 
                 // Step 13
-                if self.ready_state != Opened {
+                if self.ready_state.deref().get() != Opened {
                     self.change_ready_state(Opened);
                 }
                 Ok(())
@@ -334,13 +332,13 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
             _ => Err(Syntax), // Step 3
         }
     }
-    fn Open_(&mut self, method: ByteString, url: DOMString, async: bool,
+    fn Open_(&self, method: ByteString, url: DOMString, async: bool,
                  _username: Option<DOMString>, _password: Option<DOMString>) -> ErrorResult {
-        self.sync = !async;
+        self.sync.deref().set(!async);
         self.Open(method, url)
     }
-    fn SetRequestHeader(&mut self, name: ByteString, mut value: ByteString) -> ErrorResult {
-        if self.ready_state != Opened || self.send_flag {
+    fn SetRequestHeader(&self, name: ByteString, mut value: ByteString) -> ErrorResult {
+        if self.ready_state.deref().get() != Opened || self.send_flag.deref().get() {
             return Err(InvalidState); // Step 1, 2
         }
         if !name.is_token() || !value.is_field_value() {
@@ -365,7 +363,7 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
             },
             None => return Err(Syntax)
         };
-        let collection = self.request_headers.deref_mut();
+        let mut collection = self.request_headers.deref().borrow_mut();
 
 
         // Steps 6,7
@@ -404,20 +402,20 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
         }
     }
     fn Timeout(&self) -> u32 {
-        self.timeout
+        self.timeout.deref().get()
     }
-    fn SetTimeout(&mut self, timeout: u32) -> ErrorResult {
-        if self.sync {
+    fn SetTimeout(&self, timeout: u32) -> ErrorResult {
+        if self.sync.deref().get() {
             // FIXME: Not valid for a worker environment
             Err(InvalidState)
         } else {
-            self.timeout = timeout;
-            if self.send_flag {
+            self.timeout.deref().set(timeout);
+            if self.send_flag.deref().get() {
                 if timeout == 0 {
                     self.cancel_timeout();
                     return Ok(());
                 }
-                let progress = time::now().to_timespec().sec - self.fetch_time;
+                let progress = time::now().to_timespec().sec - self.fetch_time.deref().get();
                 if timeout > (progress * 1000) as u32 {
                     self.set_timeout(timeout - (progress * 1000) as u32);
                 } else {
@@ -429,34 +427,34 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
         }
     }
     fn WithCredentials(&self) -> bool {
-        self.with_credentials
+        self.with_credentials.deref().get()
     }
-    fn SetWithCredentials(&mut self, with_credentials: bool) {
-        self.with_credentials = with_credentials
+    fn SetWithCredentials(&self, with_credentials: bool) {
+        self.with_credentials.deref().set(with_credentials);
     }
     fn Upload(&self) -> Temporary<XMLHttpRequestUpload> {
         Temporary::new(self.upload.get())
     }
-    fn Send(&mut self, data: Option<DOMString>) -> ErrorResult {
-        if self.ready_state != Opened || self.send_flag {
+    fn Send(&self, data: Option<DOMString>) -> ErrorResult {
+        if self.ready_state.deref().get() != Opened || self.send_flag.deref().get() {
             return Err(InvalidState); // Step 1, 2
         }
 
-        let data = match *self.request_method {
+        let data = match *self.request_method.deref().borrow() {
             Get | Head => None, // Step 3
             _ => data
         };
 
         // Step 6
-        self.upload_events = false;
+        self.upload_events.deref().set(false);
         // Step 7
-        self.upload_complete = match data {
+        self.upload_complete.deref().set(match data {
             None => true,
             Some (ref s) if s.len() == 0 => true,
             _ => false
-        };
+        });
         let mut addr = None;
-        if !self.sync {
+        if !self.sync.deref().get() {
             // If one of the event handlers below aborts the fetch,
             // the assertion in release_once() will fail since we haven't pinned it yet.
             // Pin early to avoid dealing with this
@@ -468,39 +466,39 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
             let upload_target = &*self.upload.get().root();
             let event_target: &JSRef<EventTarget> = EventTargetCast::from_ref(upload_target);
             if event_target.has_handlers() {
-                self.upload_events = true;
+                self.upload_events.deref().set(true);
             }
 
             // Step 9
-            self.send_flag = true;
+            self.send_flag.deref().set(true);
             self.dispatch_response_progress_event("loadstart".to_string());
-            if !self.upload_complete {
+            if !self.upload_complete.deref().get() {
                 self.dispatch_upload_progress_event("loadstart".to_string(), Some(0));
             }
         }
 
-        if self.ready_state == Unsent {
+        if self.ready_state.deref().get() == Unsent {
             // The progress events above might have run abort(), in which case we terminate the fetch.
             return Ok(());
         }
 
         let global = self.global.root();
         let resource_task = global.deref().page().resource_task.deref().clone();
-        let mut load_data = LoadData::new((*self.request_url).clone());
+        let mut load_data = LoadData::new(self.request_url.deref().borrow().clone());
         load_data.data = data;
 
         // Default headers
-
-        if self.request_headers.content_type.is_none() {
-            self.request_headers.content_type = Some(MediaType {
+        let request_headers = self.request_headers.deref();
+        if request_headers.borrow().content_type.is_none() {
+            request_headers.borrow_mut().content_type = Some(MediaType {
                 type_: String::from_str("text"),
                 subtype: String::from_str("plain"),
                 parameters: vec!((String::from_str("charset"), String::from_str("UTF-8")))
             });
         }
 
-        if self.request_headers.accept.is_none() {
-            self.request_headers.accept = Some(String::from_str("*/*"))
+        if request_headers.borrow().accept.is_none() {
+            request_headers.borrow_mut().accept = Some(String::from_str("*/*"))
         }
 
         // XXXManishearth this is to be replaced with Origin for CORS (with no path)
@@ -514,48 +512,48 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
             buf.push_str(p.as_slice());
         });
         buf.push_str(referer_url.path.as_slice());
-        self.request_headers.referer = Some(buf);
+        self.request_headers.deref().borrow_mut().referer = Some(buf);
 
-        load_data.headers = (*self.request_headers).clone();
-        load_data.method = (*self.request_method).clone();
+        load_data.headers = (*self.request_headers.deref().borrow()).clone();
+        load_data.method = (*self.request_method.deref().borrow()).clone();
         let (terminate_sender, terminate_receiver) = channel();
-        *self.terminate_sender = Some(terminate_sender);
-        if self.sync {
+        *self.terminate_sender.deref().borrow_mut() = Some(terminate_sender);
+        if self.sync.deref().get() {
             return XMLHttpRequest::fetch(&mut Sync(self), resource_task, load_data, terminate_receiver);
         } else {
             let builder = TaskBuilder::new().named("XHRTask");
-            self.fetch_time = time::now().to_timespec().sec;
+            self.fetch_time.deref().set(time::now().to_timespec().sec);
             let script_chan = global.deref().script_chan.clone();
             builder.spawn(proc() {
                 let _ = XMLHttpRequest::fetch(&mut Async(addr.unwrap(), script_chan), resource_task, load_data, terminate_receiver);
             });
-            let timeout = self.timeout;
+            let timeout = self.timeout.deref().get();
             if timeout > 0 {
                 self.set_timeout(timeout);
             }
         }
         Ok(())
     }
-    fn Abort(&mut self) {
-        self.terminate_sender.as_ref().map(|s| s.send_opt(Abort));
-        match self.ready_state {
-            Opened if self.send_flag => self.process_partial_response(ErroredMsg(Some(Abort))),
+    fn Abort(&self) {
+        self.terminate_sender.deref().borrow().as_ref().map(|s| s.send_opt(Abort));
+        match self.ready_state.deref().get() {
+            Opened if self.send_flag.deref().get() => self.process_partial_response(ErroredMsg(Some(Abort))),
             HeadersReceived | Loading => self.process_partial_response(ErroredMsg(Some(Abort))),
             _ => {}
         };
-        self.ready_state = Unsent;
+        self.ready_state.deref().set(Unsent);
     }
     fn ResponseURL(&self) -> DOMString {
         self.response_url.clone()
     }
     fn Status(&self) -> u16 {
-        self.status
+        self.status.deref().get()
     }
     fn StatusText(&self) -> ByteString {
-        self.status_text.clone()
+        self.status_text.deref().borrow().clone()
     }
     fn GetResponseHeader(&self, name: ByteString) -> Option<ByteString> {
-        self.response_headers.deref().iter().find(|h| {
+        self.response_headers.deref().borrow().iter().find(|h| {
             name.eq_ignore_case(&FromStr::from_str(h.header_name().as_slice()).unwrap())
         }).map(|h| {
             FromStr::from_str(h.header_value().as_slice()).unwrap()
@@ -563,7 +561,7 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
     }
     fn GetAllResponseHeaders(&self) -> ByteString {
         let mut writer = MemWriter::new();
-        self.response_headers.deref().write_all(&mut writer).ok().expect("Writing response headers failed");
+        self.response_headers.deref().borrow().write_all(&mut writer).ok().expect("Writing response headers failed");
         let mut vec = writer.unwrap();
 
         // rust-http appends an extra "\r\n" when using write_all
@@ -576,34 +574,35 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
 
     }
     fn ResponseType(&self) -> XMLHttpRequestResponseType {
-        self.response_type
+        self.response_type.deref().get()
     }
-    fn SetResponseType(&mut self, response_type: XMLHttpRequestResponseType) -> ErrorResult {
-        if self.sync {
+    fn SetResponseType(&self, response_type: XMLHttpRequestResponseType) -> ErrorResult {
+        if self.sync.deref().get() {
             // FIXME: When Workers are implemented, there should be
             // an additional check that this is a document environment
             return Err(InvalidState);
         }
-        match self.ready_state {
+        match self.ready_state.deref().get() {
             Loading | XHRDone => Err(InvalidState),
             _ => {
-                self.response_type = response_type;
+                self.response_type.deref().set(response_type);
                 Ok(())
             }
         }
     }
     fn Response(&self, cx: *mut JSContext) -> JSVal {
-         match self.response_type {
+         match self.response_type.deref().get() {
             _empty | Text => {
-                if self.ready_state == XHRDone || self.ready_state == Loading {
+                let ready_state = self.ready_state.deref().get();
+                if ready_state == XHRDone || ready_state == Loading {
                     self.text_response().to_jsval(cx)
                 } else {
                     "".to_string().to_jsval(cx)
                 }
             },
-            _ if self.ready_state != XHRDone => NullValue(),
+            _ if self.ready_state.deref().get() != XHRDone => NullValue(),
             Json => {
-                let decoded = UTF_8.decode(self.response.as_slice(), DecodeReplace).unwrap().to_string().to_utf16();
+                let decoded = UTF_8.decode(self.response.deref().borrow().as_slice(), DecodeReplace).unwrap().to_string().to_utf16();
                 let mut vp = UndefinedValue();
                 unsafe {
                     JS_ParseJSON(cx, decoded.as_ptr(), decoded.len() as u32, &mut vp);
@@ -612,14 +611,14 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
             }
             _ => {
                 // XXXManishearth handle other response types
-                self.response.to_jsval(cx)
+                self.response.deref().borrow().to_jsval(cx)
             }
         }
     }
     fn GetResponseText(&self) -> Fallible<DOMString> {
-        match self.response_type {
+        match self.response_type.deref().get() {
             _empty | Text => {
-                match self.ready_state {
+                match self.ready_state.deref().get() {
                     Loading | XHRDone => Ok(self.text_response()),
                     _ => Ok("".to_string())
                 }
@@ -659,48 +658,50 @@ impl TrustedXHRAddress {
 
 
 trait PrivateXMLHttpRequestHelpers {
-    unsafe fn to_trusted(&mut self) -> TrustedXHRAddress;
-    fn release_once(&mut self);
-    fn change_ready_state(&mut self, XMLHttpRequestState);
-    fn process_partial_response(&mut self, progress: XHRProgress);
-    fn insert_trusted_header(&mut self, name: String, value: String);
+    unsafe fn to_trusted(&self) -> TrustedXHRAddress;
+    fn release_once(&self);
+    fn change_ready_state(&self, XMLHttpRequestState);
+    fn process_partial_response(&self, progress: XHRProgress);
+    fn insert_trusted_header(&self, name: String, value: String);
     fn dispatch_progress_event(&self, upload: bool, type_: DOMString, loaded: u64, total: Option<u64>);
     fn dispatch_upload_progress_event(&self, type_: DOMString, partial_load: Option<u64>);
     fn dispatch_response_progress_event(&self, type_: DOMString);
     fn text_response(&self) -> DOMString;
-    fn set_timeout(&mut self, timeout:u32);
-    fn cancel_timeout(&mut self);
+    fn set_timeout(&self, timeout:u32);
+    fn cancel_timeout(&self);
 }
 
 impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
     // Creates a trusted address to the object, and roots it. Always pair this with a release()
-    unsafe fn to_trusted(&mut self) -> TrustedXHRAddress {
-        if self.pinned_count == 0 {
+    unsafe fn to_trusted(&self) -> TrustedXHRAddress {
+        if self.pinned_count.deref().get() == 0 {
             JS_AddObjectRoot(self.global.root().get_cx(), self.reflector().rootable());
         }
-        self.pinned_count += 1;
+        let pinned_count = self.pinned_count.deref().get();
+        self.pinned_count.deref().set(pinned_count + 1);
         TrustedXHRAddress(self.deref() as *XMLHttpRequest as *libc::c_void)
     }
 
-    fn release_once(&mut self) {
-        if self.sync {
+    fn release_once(&self) {
+        if self.sync.deref().get() {
             // Lets us call this at various termination cases without having to
             // check self.sync every time, since the pinning mechanism only is
             // meaningful during an async fetch
             return;
         }
-        assert!(self.pinned_count > 0)
-        self.pinned_count -= 1;
-        if self.pinned_count == 0 {
+        assert!(self.pinned_count.deref().get() > 0)
+        let pinned_count = self.pinned_count.deref().get();
+        self.pinned_count.deref().set(pinned_count - 1);
+        if self.pinned_count.deref().get() == 0 {
             unsafe {
                 JS_RemoveObjectRoot(self.global.root().get_cx(), self.reflector().rootable());
             }
         }
     }
 
-    fn change_ready_state(&mut self, rs: XMLHttpRequestState) {
-        assert!(self.ready_state != rs)
-        self.ready_state = rs;
+    fn change_ready_state(&self, rs: XMLHttpRequestState) {
+        assert!(self.ready_state.deref().get() != rs)
+        self.ready_state.deref().set(rs);
         let win = &*self.global.root();
         let event =
             Event::new(win, "readystatechange".to_string(), false, true).root();
@@ -708,7 +709,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         target.dispatch_event_with_target(None, &*event).ok();
     }
 
-    fn process_partial_response(&mut self, progress: XHRProgress) {
+    fn process_partial_response(&self, progress: XHRProgress) {
         match progress {
             HeadersReceivedMsg(headers, status) => {
                 // For synchronous requests, this should not fire any events, and just store data
@@ -716,9 +717,9 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
 
                 // Part of step 13, send() (processing request end of file)
                 // Substep 1
-                self.upload_complete = true;
+                self.upload_complete.deref().set(true);
                 // Substeps 2-4
-                if !self.sync {
+                if !self.sync.deref().get() {
                     self.dispatch_upload_progress_event("progress".to_string(), None);
                     self.dispatch_upload_progress_event("load".to_string(), None);
                     self.dispatch_upload_progress_event("loadend".to_string(), None);
@@ -726,14 +727,16 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                 // Part of step 13, send() (processing response)
                 // XXXManishearth handle errors, if any (substep 1)
                 // Substep 2
-                self.status_text = ByteString::new(status.reason().container_into_owned_bytes());
-                self.status = status.code();
+                *self.status_text.deref().borrow_mut() = ByteString::new(status.reason().container_into_owned_bytes());
+                self.status.deref().set(status.code());
                 match headers {
-                    Some(ref h) => *self.response_headers = h.clone(),
+                    Some(ref h) => {
+                        *self.response_headers.deref().borrow_mut() = h.clone();
+                    }
                     None => {}
                 };
                 // Substep 3
-                if self.ready_state == Opened && !self.sync {
+                if self.ready_state.deref().get() == Opened && !self.sync.deref().get() {
                     self.change_ready_state(HeadersReceived);
                 }
             },
@@ -743,13 +746,13 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                 // XXXManishearth handle errors, if any (substep 1)
 
                 // Substep 2
-                if self.ready_state == HeadersReceived && !self.sync {
+                if self.ready_state.deref().get() == HeadersReceived && !self.sync.deref().get() {
                     self.change_ready_state(Loading);
                 }
                 // Substep 3
-                self.response = partial_response;
+                *self.response.deref().borrow_mut() = partial_response;
                 // Substep 4
-                if !self.sync {
+                if !self.sync.deref().get() {
                     self.dispatch_response_progress_event("progress".to_string());
                 }
             },
@@ -758,9 +761,9 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                 // XXXManishearth handle errors, if any (substep 1)
 
                 // Substep 3
-                if self.ready_state == Loading || self.sync {
+                if self.ready_state.deref().get() == Loading || self.sync.deref().get() {
                     // Subsubsteps 2-4
-                    self.send_flag = false;
+                    self.send_flag.deref().set(false);
                     self.change_ready_state(XHRDone);
 
                     // Subsubsteps 5-7
@@ -772,8 +775,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                 self.release_once();
             },
             ErroredMsg(e) => {
-                self.send_flag = false;
-
+                self.send_flag.deref().set(false);
                 // XXXManishearth set response to NetworkError
                 self.change_ready_state(XHRDone);
                 let errormsg = match e {
@@ -783,8 +785,9 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                     _ => unreachable!()
                 };
 
-                if !self.upload_complete {
-                    self.upload_complete = true;
+                let upload_complete: &Cell<bool> = self.upload_complete.deref();
+                if !upload_complete.get() {
+                    upload_complete.set(true);
                     self.dispatch_upload_progress_event("progress".to_string(), None);
                     self.dispatch_upload_progress_event(errormsg.to_string(), None);
                     self.dispatch_upload_progress_event("loadend".to_string(), None);
@@ -797,8 +800,8 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                 self.release_once();
             },
             TimeoutMsg => {
-                match self.ready_state {
-                    Opened if self.send_flag => self.process_partial_response(ErroredMsg(Some(Timeout))),
+                match self.ready_state.deref().get() {
+                    Opened if self.send_flag.deref().get() => self.process_partial_response(ErroredMsg(Some(Timeout))),
                     Loading | HeadersReceived => self.process_partial_response(ErroredMsg(Some(Timeout))),
                     _ => self.release_once()
                 };
@@ -806,10 +809,10 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         }
     }
 
-    fn insert_trusted_header(&mut self, name: String, value: String) {
+    fn insert_trusted_header(&self, name: String, value: String) {
         // Insert a header without checking spec-compliance
         // Use for hardcoded headers
-        let collection = self.request_headers.deref_mut();
+        let mut collection = self.request_headers.deref().borrow_mut();
         let value_bytes = value.into_bytes();
         let mut reader = BufReader::new(value_bytes.as_slice());
         let maybe_header: Option<Header> = HeaderEnum::value_from_stream(
@@ -841,25 +844,25 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
     }
 
     fn dispatch_response_progress_event(&self, type_: DOMString) {
-        let len = self.response.len() as u64;
-        let total = self.response_headers.deref().content_length.map(|x| {x as u64});
+        let len = self.response.deref().borrow().len() as u64;
+        let total = self.response_headers.deref().borrow().content_length.map(|x| {x as u64});
         self.dispatch_progress_event(false, type_, len, total);
     }
-    fn set_timeout(&mut self, timeout: u32) {
+    fn set_timeout(&self, timeout: u32) {
         // Sets up the object to timeout in a given number of milliseconds
         // This will cancel all previous timeouts
-        let oneshot = self.timer.oneshot(timeout as u64);
+        let oneshot = self.timer.deref().borrow_mut().oneshot(timeout as u64);
         let addr = unsafe {
             self.to_trusted() // This will increment the pin counter by one
         };
-        if self.timeout_pinned {
+        if self.timeout_pinned.deref().get() {
             // Already pinned due to a timeout, no need to pin it again since the old timeout was cancelled above
             self.release_once();
         }
-        self.timeout_pinned = true;
+        self.timeout_pinned.deref().set(true);
         let global = self.global.root();
         let script_chan = global.deref().script_chan.clone();
-        let terminate_sender = (*self.terminate_sender).clone();
+        let terminate_sender = (*self.terminate_sender.deref().borrow()).clone();
         spawn_named("XHR:Timer", proc () {
             match oneshot.recv_opt() {
                 Ok(_) => {
@@ -876,18 +879,18 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         }
     );
     }
-    fn cancel_timeout(&mut self) {
+    fn cancel_timeout(&self) {
         // Cancels timeouts on the object, if any
-        if self.timeout_pinned {
-            self.timeout_pinned = false;
+        if self.timeout_pinned.deref().get() {
+            self.timeout_pinned.deref().set(false);
             self.release_once();
         }
         // oneshot() closes the previous channel, canceling the timeout
-        self.timer.oneshot(0);
+        self.timer.deref().borrow_mut().oneshot(0);
     }
     fn text_response(&self) -> DOMString {
         let mut encoding = UTF_8 as &Encoding:Send;
-        match self.response_headers.content_type {
+        match self.response_headers.deref().borrow().content_type {
             Some(ref x) => {
                 for &(ref name, ref value) in x.parameters.iter() {
                     if name.as_slice().eq_ignore_ascii_case("charset") {
@@ -899,6 +902,6 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         }
         // According to Simon, decode() should never return an error, so unwrap()ing
         // the result should be fine. XXXManishearth have a closer look at this later
-        encoding.decode(self.response.as_slice(), DecodeReplace).unwrap().to_string()
+        encoding.decode(self.response.deref().borrow().as_slice(), DecodeReplace).unwrap().to_string()
     }
 }
