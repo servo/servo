@@ -1655,7 +1655,7 @@ fn cascade_with_cached_declarations(applicable_declarations: &[MatchedProperty],
                 % for style_struct in STYLE_STRUCTS:
                     % for property in style_struct.longhands:
                         % if property.derived_from is None:
-                            ${property.camel_case}Declaration(ref declared_value) => {
+                            ${property.camel_case}Declaration(ref ${'_' if not style_struct.inherited else ''}declared_value) => {
                                 % if style_struct.inherited:
                                     if seen.get_${property.ident}() {
                                         continue
