@@ -7,7 +7,7 @@
 use dom::bindings::codegen::InheritTypes::{CharacterDataDerived, NodeCast};
 use dom::bindings::error::{Fallible, ErrorResult, IndexSize};
 use dom::bindings::js::JSRef;
-use dom::bindings::trace::Untraceable;
+use dom::bindings::trace::Traceable;
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -19,7 +19,7 @@ use std::cell::RefCell;
 #[deriving(Encodable)]
 pub struct CharacterData {
     pub node: Node,
-    pub data: Untraceable<RefCell<DOMString>>,
+    pub data: Traceable<RefCell<DOMString>>,
 }
 
 impl CharacterDataDerived for EventTarget {
@@ -37,7 +37,7 @@ impl CharacterData {
     pub fn new_inherited(id: NodeTypeId, data: DOMString, document: &JSRef<Document>) -> CharacterData {
         CharacterData {
             node: Node::new_inherited(id, document),
-            data: Untraceable::new(RefCell::new(data)),
+            data: Traceable::new(RefCell::new(data)),
         }
     }
 }

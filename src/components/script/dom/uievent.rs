@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::UIEventBinding;
 use dom::bindings::codegen::InheritTypes::{EventCast, UIEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, OptionalSettable};
-use dom::bindings::trace::Untraceable;
+use dom::bindings::trace::Traceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{Event, EventMethods, EventTypeId, UIEventTypeId};
 use dom::window::Window;
@@ -19,7 +19,7 @@ use std::cell::Cell;
 pub struct UIEvent {
     pub event: Event,
     pub view: Cell<Option<JS<Window>>>,
-    pub detail: Untraceable<Cell<i32>>
+    pub detail: Traceable<Cell<i32>>
 }
 
 impl UIEventDerived for Event {
@@ -33,7 +33,7 @@ impl UIEvent {
         UIEvent {
             event: Event::new_inherited(type_id),
             view: Cell::new(None),
-            detail: Untraceable::new(Cell::new(0)),
+            detail: Traceable::new(Cell::new(0)),
         }
     }
 
