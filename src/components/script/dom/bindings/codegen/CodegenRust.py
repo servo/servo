@@ -1126,6 +1126,7 @@ class MethodDefiner(PropertyDefiner):
                    m.isMethod() and m.isStatic() == static and
                    not m.isIdentifierLess()]
         self.regular = [{"name": m.identifier.name,
+                         "methodInfo": not m.isStatic(),
                          "length": methodLength(m),
                          "flags": "JSPROP_ENUMERATE" }
                         for m in methods]
@@ -2368,6 +2369,30 @@ class CGAbstractBindingMethod(CGAbstractExternMethod):
     def generate_code(self):
         assert(False) # Override me
 
+
+class CGAbstractStaticBindingMethod(CGAbstractMethod):
+    """
+    Common class to generate the JSNatives for all our static methods, getters
+    and setters.  This will generate the function declaration and unwrap the
+    global object.  Subclasses are expected to override the generate_code
+    function to do the rest of the work.  This function should return a
+    CGThing which is already properly indented.
+    """
+    def __init__(self, descriptor, name):
+        args = [
+            Argument('*mut JSContext', 'cx'),
+            Argument('libc::c_uint', 'argc'),
+            Argument('*mut JSVal', 'vp'),
+        ]
+        CGAbstractMethod.__init__(self, descriptor, name, "JSBool", args, extern=True)
+
+    def definition_body(self):
+        return self.generate_code()
+
+    def generate_code(self):
+        assert False  # Override me
+
+
 class CGGenericMethod(CGAbstractBindingMethod):
     """
     A class for generating the C++ code for an IDL method..
@@ -2406,6 +2431,21 @@ class CGSpecializedMethod(CGAbstractExternMethod):
     @staticmethod
     def makeNativeName(descriptor, method):
         return MakeNativeName(method.identifier.name)
+
+class CGStaticMethod(CGAbstractStaticBindingMethod):
+    """
+    A class for generating the Rust code for an IDL static method.
+    """
+    def __init__(self, descriptor, method):
+        self.method = method
+        name = method.identifier.name
+        CGAbstractStaticBindingMethod.__init__(self, descriptor, name)
+
+    def generate_code(self):
+        nativeName = CGSpecializedMethod.makeNativeName(self.descriptor,
+                                                        self.method)
+        return CGMethodCall([], nativeName, True, self.descriptor, self.method)
+
 
 class CGGenericGetter(CGAbstractBindingMethod):
     """
@@ -3850,10 +3890,14 @@ class CGDescriptor(CGThing):
             (hasMethod, hasGetter, hasLenientGetter,
              hasSetter, hasLenientSetter) = False, False, False, False, False
             for m in descriptor.interface.members:
-                if m.isMethod() and not m.isStatic() and not m.isIdentifierLess():
-                    cgThings.append(CGSpecializedMethod(descriptor, m))
-                    cgThings.append(CGMemberJITInfo(descriptor, m))
-                    hasMethod = True
+                if m.isMethod() and not m.isIdentifierLess():
+                    if m.isStatic():
+                        assert descriptor.interface.hasInterfaceObject()
+                        cgThings.append(CGStaticMethod(descriptor, m))
+                    elif descriptor.interface.hasInterfacePrototypeObject():
+                        cgThings.append(CGSpecializedMethod(descriptor, m))
+                        cgThings.append(CGMemberJITInfo(descriptor, m))
+                        hasMethod = True
                 elif m.isAttr():
                     cgThings.append(CGSpecializedGetter(descriptor, m))
                     if m.hasLenientThis():
