@@ -1256,10 +1256,11 @@ impl BlockFlow {
         }
 
         // If we got here, then we need a new layer.
-        let size = Size2D(self.base.position.size.width.to_nearest_px() as uint,
-                          self.base.position.size.height.to_nearest_px() as uint);
-        let origin = Point2D(self.base.abs_position.x.to_nearest_px() as uint,
-                             self.base.abs_position.y.to_nearest_px() as uint);
+        let layer_rect = self.base.position.union(&self.base.overflow);
+        let size = Size2D(layer_rect.size.width.to_nearest_px() as uint,
+                          layer_rect.size.height.to_nearest_px() as uint);
+        let origin = Point2D(layer_rect.origin.x.to_nearest_px() as uint,
+                             layer_rect.origin.y.to_nearest_px() as uint);
         let scroll_policy = if self.is_fixed() {
             FixedPosition
         } else {
@@ -1814,15 +1815,25 @@ pub trait WidthAndMarginsComputer {
     fn set_width_constraint_solutions(&self,
                                       block: &mut BlockFlow,
                                       solution: WidthConstraintSolution) {
-        let fragment = block.fragment();
-        fragment.margin.left = solution.margin_left;
-        fragment.margin.right = solution.margin_right;
+        let mut width = Au(0);
+        {
+            let fragment = block.fragment();
+            fragment.margin.left = solution.margin_left;
+            fragment.margin.right = solution.margin_right;
 
-        // The associated fragment has the border box of this flow.
-        // Left border edge.
-        fragment.border_box.origin.x = fragment.margin.left;
-        // Border box width.
-        fragment.border_box.size.width = solution.width + fragment.border_padding.horizontal();
+            // The associated fragment has the border box of this flow.
+            // Left border edge.
+            fragment.border_box.origin.x = fragment.margin.left;
+            // Border box width.
+            width = solution.width + fragment.border_padding.horizontal();
+            fragment.border_box.size.width = width;
+        }
+
+        // We also resize the block itself, to ensure that overflow is not calculated
+        // as the width of our parent. We might be smaller and we might be larger if we
+        // overflow.
+        let flow = flow::mut_base(block);
+        flow.position.size.width = width;
     }
 
     /// Set the x coordinate of the given flow if it is absolutely positioned.
