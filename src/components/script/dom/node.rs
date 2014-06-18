@@ -225,7 +225,7 @@ impl LayoutDataRef {
 pub trait TLayoutData {}
 
 /// The different types of nodes.
-#[deriving(Eq,Encodable)]
+#[deriving(PartialEq,Encodable)]
 pub enum NodeTypeId {
     DoctypeNodeTypeId,
     DocumentFragmentNodeTypeId,
@@ -901,7 +901,7 @@ fn gather_abstract_nodes<'a>(cur: &JSRef<'a, Node>, refs: &mut Vec<JSRef<'a, Nod
 }
 
 /// Specifies whether children must be recursively cloned or not.
-#[deriving(Eq)]
+#[deriving(PartialEq)]
 pub enum CloneChildrenFlag {
     CloneChildren,
     DoNotCloneChildren
@@ -1024,13 +1024,13 @@ impl Node {
                         if node.children().any(|c| c.is_text()) {
                             return Err(HierarchyRequest);
                         }
-                        match node.child_elements().len() {
+                        match node.child_elements().count() {
                             0 => (),
                             // Step 6.1.2
                             1 => {
                                 // FIXME: change to empty() when https://github.com/mozilla/rust/issues/11218
                                 // will be fixed
-                                if parent.child_elements().len() > 0 {
+                                if parent.child_elements().count() > 0 {
                                     return Err(HierarchyRequest);
                                 }
                                 match child {
@@ -1049,7 +1049,7 @@ impl Node {
                     ElementNodeTypeId(_) => {
                         // FIXME: change to empty() when https://github.com/mozilla/rust/issues/11218
                         // will be fixed
-                        if parent.child_elements().len() > 0 {
+                        if parent.child_elements().count() > 0 {
                             return Err(HierarchyRequest);
                         }
                         match child {
@@ -1076,7 +1076,7 @@ impl Node {
                             None => {
                                 // FIXME: change to empty() when https://github.com/mozilla/rust/issues/11218
                                 // will be fixed
-                                if parent.child_elements().len() > 0 {
+                                if parent.child_elements().count() > 0 {
                                     return Err(HierarchyRequest);
                                 }
                             },
@@ -1649,7 +1649,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                         if node.children().any(|c| c.is_text()) {
                             return Err(HierarchyRequest);
                         }
-                        match node.child_elements().len() {
+                        match node.child_elements().count() {
                             0 => (),
                             // Step 6.1.2
                             1 => {
@@ -1837,7 +1837,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
             }
 
             // Step 5.
-            if this.children().len() != node.children().len() {
+            if this.children().count() != node.children().count() {
                 return false;
             }
 
@@ -1953,9 +1953,9 @@ pub fn window_from_node<T: NodeBase>(derived: &JSRef<T>) -> Temporary<Window> {
 }
 
 impl<'a> VirtualMethods for JSRef<'a, Node> {
-    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods:> {
+    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods+> {
         let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        Some(eventtarget as &VirtualMethods:)
+        Some(eventtarget as &VirtualMethods+)
     }
 }
 

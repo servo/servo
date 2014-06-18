@@ -58,7 +58,7 @@ impl<'a> NodeListMethods for JSRef<'a, NodeList> {
             Simple(ref elems) => elems.len() as u32,
             Children(ref node) => {
                 let node = node.root();
-                node.deref().children().len() as u32
+                node.deref().children().count() as u32
             }
         }
     }

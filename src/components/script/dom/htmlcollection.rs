@@ -135,10 +135,10 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
             Live(ref root, ref filter) => {
                 let root = root.root();
                 root.deref().traverse_preorder()
-                    .count(|child| {
+                    .filter(|&child| {
                         let elem: Option<&JSRef<Element>> = ElementCast::to_ref(&child);
                         elem.map_or(false, |elem| filter.filter(elem, &*root))
-                    }) as u32
+                    }).count() as u32
             }
         }
     }
