@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use serialize::{Encoder, Encodable};
-use static_atoms::{StaticAtom, string_to_static_atom, static_atom_to_string};
+use static_atoms::StaticAtom;
 use std::fmt;
 use std::hash::{Hash, Hasher, sip};
 use std::mem;
@@ -14,9 +14,15 @@ use std::str;
 use std::sync::atomics::{AtomicInt, SeqCst};
 use sync::mutex::Mutex;
 use sync::one::{Once, ONCE_INIT};
+use std::rt::heap;
 
 static mut global_string_cache_ptr: *mut StringCache = 0 as *mut StringCache;
 
+static INLINE_SHIFT_BITS: uint = 32;
+static ENTRY_ALIGNMENT: uint = 16;
+
+// NOTE: Deriving Eq here implies that a given string must always
+// be interned the same way.
 #[repr(u8)]
 #[deriving(Eq, TotalEq)]
 enum AtomType {
@@ -27,20 +33,20 @@ enum AtomType {
 
 struct StringCache {
     hasher: sip::SipHasher,
-    buckets: [*InternedString, ..4096],
+    buckets: [*StringCacheEntry, ..4096],
     lock: Mutex,
 }
 
-struct InternedString {
-    next_in_bucket: *InternedString,
+struct StringCacheEntry {
+    next_in_bucket: *StringCacheEntry,
     hash: u64,
     ref_count: AtomicInt,
     string: String,
 }
 
-impl InternedString {
-    fn new(next: *InternedString, hash: u64, string_to_add: &str) -> InternedString {
-        InternedString {
+impl StringCacheEntry {
+    fn new(next: *StringCacheEntry, hash: u64, string_to_add: &str) -> StringCacheEntry {
+        StringCacheEntry {
             next_in_bucket: next,
             hash: hash,
             ref_count: AtomicInt::new(1),
@@ -68,18 +74,21 @@ impl StringCache {
         while ptr != ptr::null() {
             let value = unsafe { &*ptr };
             if value.hash == hash && value.string.as_slice() == string_to_add {
-                break
+                break;
             }
             ptr = value.next_in_bucket;
         }
 
         if ptr == ptr::null() {
-            ptr = unsafe { mem::transmute(box InternedString::new(self.buckets[bucket_index],
-                                                                  hash, string_to_add)) };
-            assert!(ptr as u64 & 0xf == 0);     // Ensure alignment requirements
+            unsafe {
+                ptr = heap::allocate(mem::size_of::<StringCacheEntry>(), ENTRY_ALIGNMENT)
+                        as *StringCacheEntry;
+                mem::overwrite(ptr as *mut StringCacheEntry,
+                            StringCacheEntry::new(self.buckets[bucket_index], hash, string_to_add));
+            }
             self.buckets[bucket_index] = ptr;
         } else {
-            let value: &mut InternedString = unsafe { mem::transmute(ptr) };
+            let value: &mut StringCacheEntry = unsafe { mem::transmute(ptr) };
             value.ref_count.fetch_add(1, SeqCst);
         }
 
@@ -90,14 +99,14 @@ impl StringCache {
     fn remove(&mut self, key: u64) {
         let _guard = self.lock.lock();
 
-        let ptr = key as *InternedString;
-        let value: &mut InternedString = unsafe { mem::transmute(ptr) };
+        let ptr = key as *StringCacheEntry;
+        let value: &mut StringCacheEntry = unsafe { mem::transmute(ptr) };
 
         if value.ref_count.fetch_sub(1, SeqCst) == 1 {
             let bucket_index = (value.hash & (self.buckets.len()-1) as u64) as uint;
 
             let mut current = self.buckets[bucket_index];
-            let mut prev: *mut InternedString = ptr::mut_null();
+            let mut prev: *mut StringCacheEntry = ptr::mut_null();
 
             while current != ptr::null() {
                 if current == ptr {
@@ -108,10 +117,16 @@ impl StringCache {
                     }
                     break;
                 }
-                prev = current as *mut InternedString;
+                prev = current as *mut StringCacheEntry;
                 unsafe { current = (*current).next_in_bucket };
             }
             assert!(current != ptr::null());
+
+            unsafe {
+                ptr::read(ptr as *StringCacheEntry);
+                heap::deallocate(ptr as *mut StringCacheEntry as *mut u8,
+                    mem::size_of::<StringCacheEntry>(), ENTRY_ALIGNMENT);
+            }
         }
     }
 }
@@ -124,7 +139,7 @@ pub struct Atom {
 impl Atom {
     pub fn from_static(atom_id: StaticAtom) -> Atom {
         Atom {
-            data: (atom_id as u64 << 32) | (Static as u64)
+            data: (atom_id as u64 << INLINE_SHIFT_BITS) | (Static as u64)
         }
     }
 
@@ -133,7 +148,7 @@ impl Atom {
     }
 
     pub fn from_slice(string_to_add: &str) -> Atom {
-        match string_to_static_atom(string_to_add) {
+        match from_str::<StaticAtom>(string_to_add) {
             Some(atom_id) => {
                 Atom::from_static(atom_id)
             },
@@ -183,13 +198,18 @@ impl Atom {
     }
 
     #[inline]
-    fn get_type_and_len(&self) -> (AtomType, uint) {
+    fn get_type_and_inline_len(&self) -> (AtomType, uint) {
         let atom_type = self.get_type();
         let len = match atom_type {
             Static | Dynamic => 0,
             Inline => unsafe { mem::transmute((self.data & 0xf0) >> 4) }
         };
         (atom_type, len)
+    }
+
+    #[inline]
+    fn to_ptr_address(&self) -> u64 {
+        self.data & !(Dynamic as u64)
     }
 }
 
@@ -198,8 +218,7 @@ impl Clone for Atom {
         let atom_type = self.get_type();
         match atom_type {
             Dynamic => {
-                let ptr_address = self.data & !(Dynamic as u64);
-                let hash_value = unsafe { &mut *(ptr_address as *mut InternedString) };
+                let hash_value = unsafe { &mut *(self.to_ptr_address() as *mut StringCacheEntry) };
                 hash_value.ref_count.fetch_add(1, SeqCst);
             }
             _ => {}
@@ -212,7 +231,7 @@ impl Clone for Atom {
 
 impl Equiv<StaticAtom> for Atom {
     fn equiv(&self, atom_id: &StaticAtom) -> bool {
-        self.get_type() == Static && self.data >> 32 == *atom_id as u64
+        self.get_type() == Static && self.data >> INLINE_SHIFT_BITS == *atom_id as u64
     }
 }
 
@@ -223,8 +242,7 @@ impl Drop for Atom {
             Dynamic => {
                 unsafe {
                     let string_cache: &mut StringCache = &mut *global_string_cache_ptr;
-                    let ptr_address = self.data & !(Dynamic as u64);
-                    string_cache.remove(ptr_address);
+                    string_cache.remove(self.to_ptr_address());
                 }
             },
             _ => {}
@@ -232,6 +250,7 @@ impl Drop for Atom {
     }
 }
 
+// This allows Atoms to be included in structs that are traceable for the JS GC.
 impl<E, S: Encoder<E>> Encodable<S, E> for Atom {
     fn encode(&self, _: &mut S) -> Result<(), E> {
         Ok(())
@@ -246,22 +265,21 @@ impl fmt::Show for Atom {
 
 impl Str for Atom {
     fn as_slice<'t>(&'t self) -> &'t str {
-        let (atom_type, string_len) = self.get_type_and_len();
+        let (atom_type, string_len) = self.get_type_and_inline_len();
         let ptr = self as *Atom as *u8;
         match atom_type {
             Inline => {
                 unsafe {
                     let data = ptr.offset(1) as *[u8, ..7];
-                    str::raw::from_utf8(*data).slice_to(string_len)
+                    str::raw::from_utf8((*data).slice_to(string_len))
                 }
             },
             Static => {
-                let key: StaticAtom = unsafe { mem::transmute((self.data >> 32) as u32) };
-                static_atom_to_string(key)
+                let key: StaticAtom = unsafe { mem::transmute((self.data >> INLINE_SHIFT_BITS) as u32) };
+                key.as_slice()
             },
             Dynamic => {
-                let ptr_address = self.data & !(Dynamic as u64);
-                let hash_value = unsafe { &*(ptr_address as *InternedString) };
+                let hash_value = unsafe { &*(self.to_ptr_address() as *StringCacheEntry) };
                 hash_value.string.as_slice()
             }
         }
@@ -270,10 +288,6 @@ impl Str for Atom {
 
 impl StrAllocating for Atom {
     fn into_string(self) -> String {
-        self.as_slice().to_string()
-    }
-
-    fn to_string(&self) -> String {
         self.as_slice().to_string()
     }
 
@@ -305,14 +319,15 @@ mod tests {
     use std::task::spawn;
     use super::{Atom, Static, Inline, Dynamic};
     use static_atoms::{DivAtom};
+    use test::Bencher;
 
     #[test]
     fn test_as_slice() {
         let s0 = Atom::from_slice("");
         assert!(s0.as_slice() == "");
 
-        let s1 = Atom::from_slice("fn");
-        assert!(s1.as_slice() == "fn");
+        let s1 = Atom::from_slice("class");
+        assert!(s1.as_slice() == "class");
 
         let i0 = Atom::from_slice("blah");
         assert!(i0.as_slice() == "blah");
@@ -330,37 +345,37 @@ mod tests {
     #[test]
     fn test_types() {
         let s0 = Atom::from_slice("");
-        assert!(s0.get_type_and_len() == (Static, 0));
+        assert!(s0.get_type_and_inline_len() == (Static, 0));
 
         let s1 = Atom::from_slice("id");
-        assert!(s1.get_type_and_len() == (Static, 0));
+        assert!(s1.get_type_and_inline_len() == (Static, 0));
 
         let i0 = Atom::from_slice("z");
-        assert!(i0.get_type_and_len() == (Inline, 1));
+        assert!(i0.get_type_and_inline_len() == (Inline, 1));
 
         let i1 = Atom::from_slice("zz");
-        assert!(i1.get_type_and_len() == (Inline, 2));
+        assert!(i1.get_type_and_inline_len() == (Inline, 2));
 
         let i2 = Atom::from_slice("zzz");
-        assert!(i2.get_type_and_len() == (Inline, 3));
+        assert!(i2.get_type_and_inline_len() == (Inline, 3));
 
         let i3 = Atom::from_slice("zzzz");
-        assert!(i3.get_type_and_len() == (Inline, 4));
+        assert!(i3.get_type_and_inline_len() == (Inline, 4));
 
         let i4 = Atom::from_slice("zzzzz");
-        assert!(i4.get_type_and_len() == (Inline, 5));
+        assert!(i4.get_type_and_inline_len() == (Inline, 5));
 
         let i5 = Atom::from_slice("zzzzzz");
-        assert!(i5.get_type_and_len() == (Inline, 6));
+        assert!(i5.get_type_and_inline_len() == (Inline, 6));
 
         let i6 = Atom::from_slice("zzzzzzz");
-        assert!(i6.get_type_and_len() == (Inline, 7));
+        assert!(i6.get_type_and_inline_len() == (Inline, 7));
 
         let d0 = Atom::from_slice("zzzzzzzz");
-        assert!(d0.get_type_and_len() == (Dynamic, 0));
+        assert!(d0.get_type_and_inline_len() == (Dynamic, 0));
 
         let d1 = Atom::from_slice("zzzzzzzzzzzzz");
-        assert!(d1.get_type_and_len() == (Dynamic, 0));
+        assert!(d1.get_type_and_inline_len() == (Dynamic, 0));
     }
 
     #[test]
@@ -454,5 +469,47 @@ mod tests {
                 let _ = Atom::from_slice("another string");
             });
         }
+    }
+
+    #[bench]
+    fn bench_strings(b: &mut Bencher) {
+        let mut strings0 = vec!();
+        let mut strings1 = vec!();
+
+        for _ in range(0, 1000) {
+            strings0.push("a");
+            strings1.push("b");
+        }
+
+        let mut eq_count = 0;
+
+        b.iter(|| {
+            for (s0, s1) in strings0.iter().zip(strings1.iter()) {
+                if s0 == s1 {
+                    eq_count += 1;
+                }
+            }
+        });
+    }
+
+    #[bench]
+    fn bench_atoms(b: &mut Bencher) {
+        let mut atoms0 = vec!();
+        let mut atoms1 = vec!();
+
+        for _ in range(0, 1000) {
+            atoms0.push(Atom::from_slice("a"));
+            atoms1.push(Atom::from_slice("b"));
+        }
+
+        let mut eq_count = 0;
+
+        b.iter(|| {
+            for (a0, a1) in atoms0.iter().zip(atoms1.iter()) {
+                if a0 == a1 {
+                    eq_count += 1;
+                }
+            }
+        });
     }
 }

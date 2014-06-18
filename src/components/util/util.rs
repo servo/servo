@@ -26,6 +26,9 @@ extern crate sync;
 extern crate std_time = "time";
 extern crate std_url = "url";
 
+#[cfg(test)]
+extern crate test;
+
 #[phase(syntax)]
 extern crate phf_mac;
 extern crate phf;

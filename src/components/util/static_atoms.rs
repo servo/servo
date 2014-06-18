@@ -5,6 +5,7 @@
 //! A list of static atoms that are pre-hashed at compile time.
 
 use phf::PhfOrderedMap;
+use std::from_str::FromStr;
 
 #[repr(u32)]
 #[deriving(Eq, TotalEq)]
@@ -44,16 +45,19 @@ static STATIC_ATOMS: PhfOrderedMap<StaticAtom> = phf_ordered_map!(
     "div" => DivAtom,
 );
 
-#[inline]
-pub fn string_to_static_atom(string: &str) -> Option<StaticAtom> {
-    match STATIC_ATOMS.find(&string) {
-    	None => None,
-    	Some(&k) => Some(k)
+impl FromStr for StaticAtom {
+    #[inline]
+    fn from_str(string: &str) -> Option<StaticAtom> {
+        match STATIC_ATOMS.find(&string) {
+            None => None,
+            Some(&k) => Some(k)
+        }
     }
 }
 
-#[inline]
-pub fn static_atom_to_string(atom_id: StaticAtom) -> &'static str {
-	let (string, _) = STATIC_ATOMS.entries().idx(atom_id as uint).unwrap();
-	string
+impl StaticAtom {
+    pub fn as_slice(&self) -> &'static str {
+        let (string, _) = STATIC_ATOMS.entries().idx(*self as uint).unwrap();
+        string
+    }
 }
