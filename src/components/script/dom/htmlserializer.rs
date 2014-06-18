@@ -22,9 +22,9 @@ use dom::text::Text;
 pub fn serialize(iterator: &mut NodeIterator) -> String {
     let mut html = String::new();
     let mut open_elements: Vec<String> = vec!();
-
+    let depth = iterator.depth;
     for node in *iterator {
-        while open_elements.len() > iterator.depth {
+        while open_elements.len() > depth {
             html.push_str("</");
             html.push_str(open_elements.pop().unwrap().as_slice());
             html.push_str(">");

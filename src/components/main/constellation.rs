@@ -4,7 +4,7 @@
 
 use compositing::{CompositorChan, LoadComplete, SetIds, SetLayerClipRect, ShutdownComplete};
 
-use collections::hashmap::{HashMap, HashSet};
+use std::collections::hashmap::{HashMap, HashSet};
 use geom::rect::{Rect, TypedRect};
 use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;

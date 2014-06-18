@@ -2,16 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use collections::HashMap;
-use rand;
+use std::collections::hashmap::HashMap;
 use rand::Rng;
 use std::hash::{Hash, sip};
+use std::rand::task_rng;
 use std::slice::Items;
 
 #[cfg(test)]
 use std::cell::Cell;
 
-pub trait Cache<K: Eq, V: Clone> {
+pub trait Cache<K: PartialEq, V: Clone> {
     fn insert(&mut self, key: K, value: V);
     fn find(&mut self, key: &K) -> Option<V>;
     fn find_or_create(&mut self, key: &K, blk: |&K| -> V) -> V;
@@ -22,13 +22,13 @@ pub struct MonoCache<K, V> {
     entry: Option<(K,V)>,
 }
 
-impl<K: Clone + Eq, V: Clone> MonoCache<K,V> {
+impl<K: Clone + PartialEq, V: Clone> MonoCache<K,V> {
     pub fn new(_size: uint) -> MonoCache<K,V> {
         MonoCache { entry: None }
     }
 }
 
-impl<K: Clone + Eq, V: Clone> Cache<K,V> for MonoCache<K,V> {
+impl<K: Clone + PartialEq, V: Clone> Cache<K,V> for MonoCache<K,V> {
     fn insert(&mut self, key: K, value: V) {
         self.entry = Some((key, value));
     }
@@ -74,7 +74,7 @@ pub struct HashCache<K, V> {
     entries: HashMap<K, V>,
 }
 
-impl<K: Clone + Eq + TotalEq + Hash, V: Clone> HashCache<K,V> {
+impl<K: Clone + PartialEq + Eq + Hash, V: Clone> HashCache<K,V> {
     pub fn new() -> HashCache<K, V> {
         HashCache {
           entries: HashMap::new(),
@@ -82,7 +82,7 @@ impl<K: Clone + Eq + TotalEq + Hash, V: Clone> HashCache<K,V> {
     }
 }
 
-impl<K: Clone + Eq + TotalEq + Hash, V: Clone> Cache<K,V> for HashCache<K,V> {
+impl<K: Clone + PartialEq + Eq + Hash, V: Clone> Cache<K,V> for HashCache<K,V> {
     fn insert(&mut self, key: K, value: V) {
         self.entries.insert(key, value);
     }
@@ -123,7 +123,7 @@ pub struct LRUCache<K, V> {
     cache_size: uint,
 }
 
-impl<K: Clone + Eq, V: Clone> LRUCache<K,V> {
+impl<K: Clone + PartialEq, V: Clone> LRUCache<K,V> {
     pub fn new(size: uint) -> LRUCache<K, V> {
         LRUCache {
           entries: vec!(),
@@ -146,7 +146,7 @@ impl<K: Clone + Eq, V: Clone> LRUCache<K,V> {
     }
 }
 
-impl<K: Clone + Eq, V: Clone> Cache<K,V> for LRUCache<K,V> {
+impl<K: Clone + PartialEq, V: Clone> Cache<K,V> for LRUCache<K,V> {
     fn insert(&mut self, key: K, val: V) {
         if self.entries.len() == self.cache_size {
             self.entries.remove(0);
@@ -183,9 +183,9 @@ pub struct SimpleHashCache<K,V> {
     k1: u64,
 }
 
-impl<K:Clone+Eq+Hash,V:Clone> SimpleHashCache<K,V> {
+impl<K:Clone+PartialEq+Hash,V:Clone> SimpleHashCache<K,V> {
     pub fn new(cache_size: uint) -> SimpleHashCache<K,V> {
-        let mut r = rand::task_rng();
+        let mut r = task_rng();
         SimpleHashCache {
             entries: Vec::from_elem(cache_size, None),
             k0: r.gen(),
@@ -213,7 +213,7 @@ impl<K:Clone+Eq+Hash,V:Clone> SimpleHashCache<K,V> {
     }
 }
 
-impl<K:Clone+Eq+Hash,V:Clone> Cache<K,V> for SimpleHashCache<K,V> {
+impl<K:Clone+PartialEq+Hash,V:Clone> Cache<K,V> for SimpleHashCache<K,V> {
     fn insert(&mut self, key: K, value: V) {
         let bucket_index = self.bucket_for_key(&key);
         *self.entries.get_mut(bucket_index) = Some((key, value));

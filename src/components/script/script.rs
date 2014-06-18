@@ -13,7 +13,10 @@
 #![feature(globs, macro_rules, struct_variant, phase)]
 
 #![feature(phase)]
-#[phase(syntax, link)]
+
+#![allow(non_snake_case_functions)]
+
+#[phase(plugin, link)]
 extern crate log;
 
 extern crate debug;
@@ -29,7 +32,7 @@ extern crate native;
 extern crate net;
 extern crate serialize;
 extern crate time;
-#[phase(syntax)]
+#[phase(plugin)]
 extern crate servo_macros = "macros";
 extern crate servo_net = "net";
 extern crate servo_util = "util";

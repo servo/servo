@@ -22,7 +22,7 @@ pub enum AttrSettingType {
     ReplacedAttr,
 }
 
-#[deriving(Eq, Clone, Encodable)]
+#[deriving(PartialEq, Clone, Encodable)]
 pub enum AttrValue {
     StringAttrValue(DOMString),
     TokenListAttrValue(DOMString, Vec<(uint, uint)>),

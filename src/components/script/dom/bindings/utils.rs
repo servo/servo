@@ -11,12 +11,12 @@ use dom::browsercontext;
 use dom::window;
 use servo_util::str::DOMString;
 
-use collections::hashmap::HashMap;
+use std::collections::hashmap::HashMap;
 use libc;
 use libc::c_uint;
 use std::cell::Cell;
-use std::cmp::Eq;
 use std::mem;
+use std::cmp::PartialEq;
 use std::ptr;
 use std::ptr::null;
 use std::slice;
@@ -383,7 +383,7 @@ pub fn reflect_dom_object<T: Reflectable>
 }
 
 #[allow(raw_pointer_deriving)]
-#[deriving(Eq)]
+#[deriving(PartialEq)]
 pub struct Reflector {
     object: Cell<*mut JSObject>,
 }
@@ -608,7 +608,7 @@ pub fn cx_for_dom_object<T: Reflectable>(obj: &T) -> *mut JSContext {
 
 /// Check if an element name is valid. See http://www.w3.org/TR/xml/#NT-Name
 /// for details.
-#[deriving(Eq)]
+#[deriving(PartialEq)]
 pub enum XMLName {
     QName,
     Name,

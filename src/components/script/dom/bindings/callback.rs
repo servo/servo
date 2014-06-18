@@ -24,7 +24,7 @@ pub enum ExceptionHandling {
     RethrowExceptions
 }
 
-#[deriving(Clone,Eq,Encodable)]
+#[deriving(Clone,PartialEq,Encodable)]
 pub struct CallbackFunction {
     object: CallbackObject
 }
@@ -39,13 +39,13 @@ impl CallbackFunction {
     }
 }
 
-#[deriving(Clone,Eq,Encodable)]
+#[deriving(Clone,PartialEq,Encodable)]
 pub struct CallbackInterface {
     object: CallbackObject
 }
 
 #[allow(raw_pointer_deriving)]
-#[deriving(Clone,Eq,Encodable)]
+#[deriving(Clone,PartialEq,Encodable)]
 struct CallbackObject {
     callback: Traceable<*mut JSObject>,
 }

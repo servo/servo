@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use collections::hashmap::HashMap;
+use std::collections::hashmap::HashMap;
 use geom::size::Size2D;
 use layers::platform::surface::NativePaintingGraphicsContext;
 use servo_msg::compositor_msg::Tile;
@@ -26,7 +26,7 @@ pub struct BufferMap<T> {
 }
 
 /// A key with which to store buffers. It is based on the size of the buffer.
-#[deriving(TotalEq)]
+#[deriving(Eq)]
 struct BufferKey([uint, ..2]);
 
 impl Hash for BufferKey {
@@ -36,7 +36,7 @@ impl Hash for BufferKey {
     }
 }
 
-impl Eq for BufferKey {
+impl PartialEq for BufferKey {
     fn eq(&self, other: &BufferKey) -> bool {
         let BufferKey(s) = *self;
         let BufferKey(o) = *other;

@@ -10,7 +10,7 @@
 #![feature(globs, macro_rules, phase)]
 
 #![feature(phase)]
-#[phase(syntax, link)]
+#[phase(plugin, link)]
 extern crate log;
 
 extern crate debug;
@@ -21,10 +21,10 @@ extern crate layers;
 extern crate libc;
 extern crate stb_image;
 extern crate png;
-#[phase(syntax)]
+#[phase(plugin)]
 extern crate servo_macros = "macros";
 extern crate servo_net = "net";
-#[phase(syntax, link)]
+#[phase(plugin, link)]
 extern crate servo_util = "util";
 extern crate servo_msg = "msg";
 extern crate style;

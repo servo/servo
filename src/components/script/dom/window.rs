@@ -29,7 +29,7 @@ use js::jsapi::JSContext;
 use js::jsapi::{JS_GC, JS_GetRuntime};
 use js::jsval::JSVal;
 
-use collections::hashmap::HashMap;
+use std::collections::hashmap::HashMap;
 use std::cell::{Cell, RefCell};
 use std::cmp;
 use std::comm::{channel, Sender};
@@ -43,7 +43,7 @@ use time;
 use serialize::{Encoder, Encodable};
 use url::Url;
 
-#[deriving(Eq, Encodable, TotalEq)]
+#[deriving(PartialEq, Encodable, Eq)]
 pub struct TimerId(i32);
 
 #[deriving(Encodable)]

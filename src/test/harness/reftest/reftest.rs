@@ -16,7 +16,7 @@ use std::io;
 use std::io::{File, Reader, Command};
 use std::io::process::ExitStatus;
 use std::os;
-use test::{DynTestName, DynTestFn, TestDesc, TestOpts, TestDescAndFn};
+use test::{AutoColor, DynTestName, DynTestFn, TestDesc, TestOpts, TestDescAndFn};
 use test::run_tests_console;
 use regex::Regex;
 
@@ -45,6 +45,7 @@ fn main() {
         save_metrics: None,
         test_shard: None,
         nocapture: false,
+        color: AutoColor
     };
 
     match run_tests_console(&test_opts, tests) {
@@ -54,7 +55,7 @@ fn main() {
     }
 }
 
-#[deriving(Eq)]
+#[deriving(PartialEq)]
 enum ReftestKind {
     Same,
     Different,

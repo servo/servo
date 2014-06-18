@@ -64,7 +64,7 @@ pub enum PagePx {}
 // See https://bugzilla.mozilla.org/show_bug.cgi?id=177805 for more info.
 //
 // FIXME: Implement Au using Length and ScaleFactor instead of a custom type.
-#[deriving(Clone, Eq, Ord, Zero)]
+#[deriving(Clone, PartialEq, PartialOrd, Zero)]
 pub struct Au(pub i32);
 
 impl Default for Au {
@@ -288,7 +288,7 @@ pub fn to_pt(au: Au) -> f64 {
 /// Returns true if the rect contains the given point. Points on the top or left sides of the rect
 /// are considered inside the rectangle, while points on the right or bottom sides of the rect are
 /// not considered inside the rectangle.
-pub fn rect_contains_point<T:Ord + Add<T,T>>(rect: Rect<T>, point: Point2D<T>) -> bool {
+pub fn rect_contains_point<T:PartialOrd + Add<T,T>>(rect: Rect<T>, point: Point2D<T>) -> bool {
     point.x >= rect.origin.x && point.x < rect.origin.x + rect.size.width &&
         point.y >= rect.origin.y && point.y < rect.origin.y + rect.size.height
 }

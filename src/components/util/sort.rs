@@ -4,7 +4,7 @@
 
 //! In-place sorting.
 
-fn quicksort_helper<T:Ord + Eq>(arr: &mut [T], left: int, right: int) {
+fn quicksort_helper<T:Ord + Eq + PartialOrd + PartialEq>(arr: &mut [T], left: int, right: int) {
     if right <= left {
         return
     }
@@ -68,7 +68,7 @@ fn quicksort_helper<T:Ord + Eq>(arr: &mut [T], left: int, right: int) {
 ///
 /// The algorithm is from Sedgewick and Bentley, "Quicksort is Optimal":
 ///     http://www.cs.princeton.edu/~rs/talks/QuicksortIsOptimal.pdf
-pub fn quicksort<T:Ord + Eq>(arr: &mut [T]) {
+pub fn quicksort<T:Ord + Eq + PartialOrd + PartialEq>(arr: &mut [T]) {
     if arr.len() <= 1 {
         return
     }
@@ -79,8 +79,8 @@ pub fn quicksort<T:Ord + Eq>(arr: &mut [T]) {
 
 #[cfg(test)]
 pub mod test {
-    use rand;
-    use rand::{Rng, task_rng};
+    use std::rand;
+    use std::rand::Rng;
 
     use sort;
 
@@ -89,7 +89,7 @@ pub mod test {
         let mut rng = rand::task_rng();
         for _ in range(0, 50000) {
             let len: uint = rng.gen();
-            let mut v: Vec<int> = rng.gen_vec((len % 32) + 1).iter().map(|&x| x).collect();
+            let mut v: Vec<int> = rng.gen_iter::<int>().take((len % 32) + 1).collect();
             sort::quicksort(v.as_mut_slice());
             for i in range(0, v.len() - 1) {
                 assert!(v.get(i) <= v.get(i + 1))

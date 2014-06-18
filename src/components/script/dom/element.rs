@@ -64,7 +64,7 @@ impl Reflectable for Element {
     }
 }
 
-#[deriving(Eq,Encodable)]
+#[deriving(PartialEq,Encodable)]
 pub enum ElementTypeId {
     HTMLElementTypeId,
     HTMLAnchorElementTypeId,
@@ -773,9 +773,9 @@ pub fn get_attribute_parts(name: DOMString) -> (Option<String>, String) {
 }
 
 impl<'a> VirtualMethods for JSRef<'a, Element> {
-    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods:> {
+    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods+> {
         let node: &JSRef<Node> = NodeCast::from_ref(self);
-        Some(node as &VirtualMethods:)
+        Some(node as &VirtualMethods+)
     }
 
     fn after_set_attr(&self, name: DOMString, value: DOMString) {

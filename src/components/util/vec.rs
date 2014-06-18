@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::cmp::{Ord, Eq};
+use std::cmp::{PartialOrd, PartialEq};
 
 /// FIXME(pcwalton): Workaround for lack of unboxed closures. This is called in
 /// performance-critical code, so a closure is insufficient.
@@ -10,7 +10,7 @@ pub trait Comparator<K,T> {
     fn compare(&self, key: &K, value: &T) -> Ordering;
 }
 
-pub trait BinarySearchMethods<'a, T: TotalOrd + Ord + Eq> {
+pub trait BinarySearchMethods<'a, T: Ord + PartialOrd + PartialEq> {
     fn binary_search(&self, key: &T) -> Option<&'a T>;
     fn binary_search_index(&self, key: &T) -> Option<uint>;
 }
@@ -19,7 +19,7 @@ pub trait FullBinarySearchMethods<T> {
     fn binary_search_index_by<K,C:Comparator<K,T>>(&self, key: &K, cmp: C) -> Option<uint>;
 }
 
-impl<'a, T: TotalOrd + Ord + Eq> BinarySearchMethods<'a, T> for &'a [T] {
+impl<'a, T: Ord + PartialOrd + PartialEq> BinarySearchMethods<'a, T> for &'a [T] {
     fn binary_search(&self, key: &T) -> Option<&'a T> {
         self.binary_search_index(key).map(|i| &self[i])
     }
@@ -55,14 +55,14 @@ impl<'a, T> FullBinarySearchMethods<T> for &'a [T] {
 
 struct DefaultComparator;
 
-impl<T:Eq + Ord + TotalOrd> Comparator<T,T> for DefaultComparator {
+impl<T:PartialEq + PartialOrd + Ord> Comparator<T,T> for DefaultComparator {
     fn compare(&self, key: &T, value: &T) -> Ordering {
         (*key).cmp(value)
     }
 }
 
 #[cfg(test)]
-fn test_find_all_elems<T: Eq + Ord + TotalEq + TotalOrd>(arr: &[T]) {
+fn test_find_all_elems<T: PartialEq + PartialOrd + Eq + Ord>(arr: &[T]) {
     let mut i = 0;
     while i < arr.len() {
         assert!(test_match(&arr[i], arr.binary_search(&arr[i])));
@@ -71,7 +71,7 @@ fn test_find_all_elems<T: Eq + Ord + TotalEq + TotalOrd>(arr: &[T]) {
 }
 
 #[cfg(test)]
-fn test_miss_all_elems<T: Eq + Ord + TotalEq + TotalOrd>(arr: &[T], misses: &[T]) {
+fn test_miss_all_elems<T: PartialEq + PartialOrd + Eq + Ord>(arr: &[T], misses: &[T]) {
     let mut i = 0;
     while i < misses.len() {
         let res = arr.binary_search(&misses[i]);
@@ -82,7 +82,7 @@ fn test_miss_all_elems<T: Eq + Ord + TotalEq + TotalOrd>(arr: &[T], misses: &[T]
 }
 
 #[cfg(test)]
-fn test_match<T: Eq>(b: &T, a: Option<&T>) -> bool {
+fn test_match<T: PartialEq>(b: &T, a: Option<&T>) -> bool {
     match a {
         None => false,
         Some(t) => t == b

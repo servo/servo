@@ -11,7 +11,7 @@ use std::intrinsics;
 use std::mem;
 use std::ptr;
 use std::raw::Slice;
-use std::rt::local_heap;
+use rustrt::local_heap;
 use alloc::heap;
 
 // Generic code for all small vectors

@@ -8,7 +8,7 @@
 
 #![feature(globs, macro_rules, phase, thread_local)]
 
-#[phase(syntax, link)]
+#[phase(plugin, link)]
 extern crate log;
 
 extern crate debug;
@@ -27,11 +27,11 @@ extern crate opengles;
 extern crate png;
 extern crate rustuv;
 extern crate script;
-#[phase(syntax)]
+#[phase(plugin)]
 extern crate servo_macros = "macros";
 extern crate servo_net = "net";
 extern crate servo_msg = "msg";
-#[phase(syntax, link)]
+#[phase(plugin, link)]
 extern crate servo_util = "util";
 extern crate style;
 extern crate sharegl;
@@ -41,6 +41,7 @@ extern crate collections;
 extern crate green;
 extern crate libc;
 extern crate native;
+extern crate rustrt;
 extern crate serialize;
 extern crate sync;
 extern crate time;
@@ -78,7 +79,7 @@ use std::os;
 #[cfg(not(test), target_os="android")]
 use std::str;
 #[cfg(not(test))]
-use std::task::TaskOpts;
+use rustrt::task::TaskOpts;
 #[cfg(not(test))]
 use url::Url;
 

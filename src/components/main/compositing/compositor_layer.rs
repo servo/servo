@@ -122,7 +122,7 @@ impl MaybeQuadtree {
     }
 }
 
-#[deriving(Eq, Clone)]
+#[deriving(PartialEq, Clone)]
 pub enum WantsScrollEventsFlag {
     WantsScrollEvents,
     DoesntWantScrollEvents,
@@ -345,8 +345,8 @@ impl CompositorLayer {
         if old_origin - self.scroll_offset == TypedPoint2D(0f32, 0f32) {
             return false
         }
-
-        self.scroll(self.scroll_offset)
+        let offset = self.scroll_offset;
+        self.scroll(offset)
     }
 
     #[allow(dead_code)]
@@ -616,8 +616,8 @@ impl CompositorLayer {
         if old_origin - self.scroll_offset == TypedPoint2D(0f32, 0f32) {
             return false;
         }
-
-        self.scroll(self.scroll_offset)
+        let offset = self.scroll_offset;
+        self.scroll(offset)
     }
 
     // Returns whether the layer should be vertically flipped.
