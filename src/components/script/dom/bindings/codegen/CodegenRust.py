@@ -3807,8 +3807,10 @@ class CGDescriptor(CGThing):
         cgThings = []
         if descriptor.interface.hasInterfacePrototypeObject():
             cgThings.append(CGGetProtoObjectMethod(descriptor))
-        else:
-            cgThings.append(CGGetConstructorObjectMethod(descriptor))
+        if descriptor.interface.hasInterfaceObject():
+            # https://github.com/mozilla/servo/issues/2665
+            # cgThings.append(CGGetConstructorObjectMethod(descriptor))
+            pass
 
         if descriptor.interface.hasInterfacePrototypeObject():
             (hasMethod, hasGetter, hasLenientGetter,
