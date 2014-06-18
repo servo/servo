@@ -33,7 +33,7 @@ pub enum ProfilerMsg {
 }
 
 #[repr(u32)]
-#[deriving(Eq, Clone, Ord, TotalEq, TotalOrd)]
+#[deriving(PartialEq, Clone, PartialOrd, Eq, Ord)]
 pub enum ProfilerCategory {
     CompositingCategory,
     LayoutQueryCategory,

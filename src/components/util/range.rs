@@ -12,10 +12,10 @@ use std::num::{Bounded, Zero};
 pub trait RangeIndex: Copy
                     + Clone
                     + fmt::Show
+                    + PartialEq
+                    + PartialOrd
                     + Eq
                     + Ord
-                    + TotalEq
-                    + TotalOrd
                     + Add<Self, Self>
                     + Sub<Self, Self>
                     + Neg<Self>
@@ -40,7 +40,7 @@ impl IntRangeIndex<int> for int {
 #[macro_export]
 macro_rules! int_range_index {
     ($(#[$attr:meta])* struct $Self:ident($T:ty)) => (
-        #[deriving(Clone, Eq, Ord, TotalEq, TotalOrd, Show, Zero)]
+        #[deriving(Clone, PartialEq, PartialOrd, Eq, Ord, Show, Zero)]
         $(#[$attr])*
         pub struct $Self(pub $T);
 
