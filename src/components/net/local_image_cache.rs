@@ -32,7 +32,7 @@ pub fn LocalImageCache(image_cache_task: ImageCacheTask) -> LocalImageCache {
 pub struct LocalImageCache {
     image_cache_task: ImageCacheTask,
     round_number: uint,
-    on_image_available: Option<Box<ImageResponder:Send>>,
+    on_image_available: Option<Box<ImageResponder+Send>>,
     state_map: UrlMap<ImageState>
 }
 
@@ -47,7 +47,7 @@ struct ImageState {
 impl LocalImageCache {
     /// The local cache will only do a single remote request for a given
     /// URL in each 'round'. Layout should call this each time it begins
-    pub fn next_round(&mut self, on_image_available: Box<ImageResponder:Send>) {
+    pub fn next_round(&mut self, on_image_available: Box<ImageResponder+Send>) {
         self.round_number += 1;
         self.on_image_available = Some(on_image_available);
     }
@@ -80,12 +80,13 @@ impl LocalImageCache {
     // FIXME: Should return a Future
     pub fn get_image(&mut self, url: &Url) -> Receiver<ImageResponseMsg> {
         {
+            let round_number = self.round_number;
             let state = self.get_state(url);
 
             // Save the previous round number for comparison
             let last_round = state.last_request_round;
             // Set the current round number for this image
-            state.last_request_round = self.round_number;
+            state.last_request_round = round_number;
 
             match state.last_response {
                 ImageReady(ref image) => {
@@ -94,7 +95,7 @@ impl LocalImageCache {
                     return port;
                 }
                 ImageNotReady => {
-                    if last_round == self.round_number {
+                    if last_round == round_number {
                         let (chan, port) = channel();
                         chan.send(ImageNotReady);
                         return port;
