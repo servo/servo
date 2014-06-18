@@ -1902,14 +1902,13 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
             return "Some(%s.as_slice())" % val
 
         call = """return CreateInterfaceObjects2(aCx, aGlobal, aReceiver, parentProto,
-                               %s, %s, %d,
+                               &PrototypeClass, %s, %d,
                                %s,
                                %s,
                                %s,
                                %s,
                                %s,
                                %s);""" % (
-            "&PrototypeClass" if needInterfacePrototypeObject else "ptr::null()",
             "Some(%s)" % constructHook if needInterfaceObject else "None",
             constructArgs,
             domClass,
