@@ -37,7 +37,7 @@ make_dir() {
     if [ ! -d $1 ]
     then
         msg "mkdir -p $1"
-        mkdir -p $1
+        mkdir -p "$1"
     fi
 }
 
