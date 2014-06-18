@@ -1877,10 +1877,8 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
         # if we don't need to create anything, why are we generating this?
         assert needInterfaceObject or needInterfacePrototypeObject
 
-        getParentProto = ("let parentProto: *mut JSObject = %s;\n" +
-                          "if parentProto.is_null() {\n" +
-                          "  return ptr::mut_null();\n" +
-                          "}\n") % getParentProto
+        getParentProto = ("let parentProto: *mut JSObject = %s;\n"
+                          "assert!(parentProto.is_not_null());\n") % getParentProto
 
         if self.descriptor.interface.ctor():
             constructHook = CONSTRUCT_HOOK_NAME
@@ -1953,6 +1951,7 @@ class CGGetPerInterfaceObject(CGAbstractMethod):
   let cachedObject: *mut JSObject = *protoOrIfaceArray.offset(%s as int);
   if cachedObject.is_null() {
     let tmp: *mut JSObject = CreateInterfaceObjects(aCx, aGlobal, aReceiver);
+    assert!(tmp.is_not_null());
     *protoOrIfaceArray.offset(%s as int) = tmp;
     tmp
   } else {
