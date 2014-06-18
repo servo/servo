@@ -25,7 +25,7 @@ use font_list::{FontEntry, FontFamily, FontFamilyMap};
 use platform::font::FontHandle;
 use platform::font_context::FontContextHandle;
 
-use collections::HashMap;
+use std::collections::hashmap::HashMap;
 use libc;
 use libc::{c_int, c_char};
 use std::ptr;

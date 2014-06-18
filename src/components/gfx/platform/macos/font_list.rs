@@ -7,7 +7,7 @@ use font_list::{FontEntry, FontFamily, FontFamilyMap};
 use platform::macos::font::FontHandle;
 use platform::macos::font_context::FontContextHandle;
 
-use collections::hashmap::HashMap;
+use std::collections::hashmap::HashMap;
 use core_foundation::base::TCFType;
 use core_foundation::string::{CFString, CFStringRef};
 use core_text::font_descriptor::{CTFontDescriptor, CTFontDescriptorRef};
