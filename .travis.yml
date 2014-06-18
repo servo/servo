@@ -1,19 +1,19 @@
 language: c
 
+os:
+- linux
+- osx
+
 install:
-  - sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
-  - sudo apt-get update -q
-  - sudo apt-get install -qq --force-yes -y autoconf2.13 gperf libxxf86vm-dev libglfw-dev libstdc++6-4.7-dev
-  - echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | sudo debconf-set-selections
-  - sudo apt-get install ttf-mscorefonts-installer > /dev/null
+- if [ "${TRAVIS_OS_NAME}" = "linux" ]; then  ./travis.linux.install.deps.sh; fi
+- if [ "${TRAVIS_OS_NAME}" = "osx" ]; then ./travis.osx.install.deps.sh; fi
+
 before_script:
   - mkdir -p build
 
-script: |
-  cd build
-  ../configure
-  make -j2
-  make check
+script: 
+- if [ "${TRAVIS_OS_NAME}" = "linux" ]; then  ./travis.linux.script.sh; fi
+- if [ "${TRAVIS_OS_NAME}" = "osx" ]; then ./travis.osx.script.sh; fi
 
 git:
   submodules: true
@@ -25,4 +25,5 @@ branches:
   only:
     - travis
     - master
+
 after_success:
