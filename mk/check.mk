@@ -79,12 +79,18 @@ check-servo: $(foreach lib_crate,$(SERVO_LIB_CRATES),check-servo-$(lib_crate)) s
 	@$(call E, check: servo)
 	$(Q)./servo-test
 
-.PHONY: check-ref
-check-ref: reftest
-	@$(call E, check: reftests with GPU rendering)
-	$(Q)./reftest $(S)src/test/ref/*.list
+.PHONY: check-ref-cpu
+check-ref-cpu: reftest
 	@$(call E, check: reftests with CPU rendering)
 	$(Q)./reftest $(S)src/test/ref/*.list -- -c
+
+.PHONY: check-ref-gpu
+check-ref-gpu: reftest
+	@$(call E, check: reftests with GPU rendering)
+	$(Q)./reftest $(S)src/test/ref/*.list
+
+.PHONY: check-ref
+check-ref: check-ref-cpu check-ref-gpu
 
 .PHONY: check-content
 check-content: contenttest
