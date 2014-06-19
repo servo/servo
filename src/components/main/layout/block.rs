@@ -449,13 +449,13 @@ enum BlockType {
     FloatNonReplacedType,
 }
 
-#[deriving(Clone, Eq)]
+#[deriving(Clone, PartialEq)]
 pub enum MarginsMayCollapseFlag {
     MarginsMayCollapse,
     MarginsMayNotCollapse,
 }
 
-#[deriving(Eq)]
+#[deriving(PartialEq)]
 enum FormattingContextType {
     NonformattingContext,
     BlockFormattingContext,

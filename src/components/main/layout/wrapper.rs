@@ -150,7 +150,7 @@ impl<'ln> Clone for LayoutNode<'ln> {
     }
 }
 
-impl<'a> Eq for LayoutNode<'a> {
+impl<'a> PartialEq for LayoutNode<'a> {
     #[inline]
     fn eq(&self, other: &LayoutNode) -> bool {
         self.node == other.node
@@ -407,7 +407,7 @@ fn get_content(content_list: &content::T) -> String {
     }
 }
 
-#[deriving(Eq, Clone)]
+#[deriving(PartialEq, Clone)]
 pub enum PseudoElementType {
     Normal,
     Before,

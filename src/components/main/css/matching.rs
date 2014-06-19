@@ -66,7 +66,7 @@ impl ApplicableDeclarationsCacheEntry {
     }
 }
 
-impl Eq for ApplicableDeclarationsCacheEntry {
+impl PartialEq for ApplicableDeclarationsCacheEntry {
     fn eq(&self, other: &ApplicableDeclarationsCacheEntry) -> bool {
         let this_as_query = ApplicableDeclarationsCacheQuery::new(self.declarations.as_slice());
         this_as_query.equiv(other)
@@ -169,7 +169,7 @@ pub struct StyleSharingCandidate {
     pub class: Option<DOMString>,
 }
 
-impl Eq for StyleSharingCandidate {
+impl PartialEq for StyleSharingCandidate {
     fn eq(&self, other: &StyleSharingCandidate) -> bool {
         arc_ptr_eq(&self.style, &other.style) &&
             arc_ptr_eq(&self.parent_style, &other.parent_style) &&

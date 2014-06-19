@@ -52,7 +52,7 @@ struct QuadtreeNode<T> {
 
 /// The status of a QuadtreeNode. This determines the behavior of the node
 /// when querying for tile requests.
-#[deriving(Eq)]
+#[deriving(PartialEq)]
 pub enum NodeStatus {
     /// If we have no valid tile, request one; otherwise, don't send a request.
     Normal,
