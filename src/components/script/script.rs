@@ -13,6 +13,9 @@
 #![feature(globs, macro_rules, struct_variant, phase)]
 
 #![feature(phase)]
+
+#![allow(non_snake_case_functions)]
+
 #[phase(plugin, link)]
 extern crate log;
 
