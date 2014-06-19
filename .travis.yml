@@ -1,0 +1,29 @@
+language: c
+
+os:
+- linux
+- osx
+
+install:
+- if [ "${TRAVIS_OS_NAME}" = "linux" ]; then  ./travis.linux.install.deps.sh; fi
+- if [ "${TRAVIS_OS_NAME}" = "osx" ]; then ./travis.osx.install.deps.sh; fi
+
+before_script:
+  - mkdir -p build
+
+script: 
+- if [ "${TRAVIS_OS_NAME}" = "linux" ]; then  ./travis.linux.script.sh; fi
+- if [ "${TRAVIS_OS_NAME}" = "osx" ]; then ./travis.osx.script.sh; fi
+
+git:
+  submodules: true
+
+notifications:
+  email: false
+
+branches:
+  only:
+    - travis
+    - master
+
+after_success:
