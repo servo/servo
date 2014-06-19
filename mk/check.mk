@@ -66,11 +66,11 @@ check-all: $(DEPS_CHECK_TARGETS_ALL) check-servo check-content check-ref tidy
 	@$(call E, check: all)
 else
 .PHONY: check
-check: $(DEPS_CHECK_TARGETS_FAST) check-servo tidy
+check: $(DEPS_CHECK_TARGETS_FAST) check-servo check-content tidy
 	@$(call E, check: all)
 
 .PHONY: check-all
-check-all: $(DEPS_CHECK_TARGETS_ALL) check-servo tidy
+check-all: $(DEPS_CHECK_TARGETS_ALL) check-servo check-content tidy
 	@$(call E, check: all)
 endif
 
