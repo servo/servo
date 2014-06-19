@@ -172,12 +172,6 @@ impl LayoutDataRef {
         }
     }
 
-    pub unsafe fn from_data<T>(data: Box<T>) -> LayoutDataRef {
-        LayoutDataRef {
-            data_cell: RefCell::new(Some(mem::transmute(data))),
-        }
-    }
-
     /// Returns true if there is layout data present.
     #[inline]
     pub fn is_present(&self) -> bool {
