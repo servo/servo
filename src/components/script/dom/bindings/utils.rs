@@ -220,6 +220,7 @@ pub struct NativeProperties {
     pub attrs: Option<&'static [JSPropertySpec]>,
     pub consts: Option<&'static [ConstantSpec]>,
     pub staticMethods: Option<&'static [JSFunctionSpec]>,
+    pub staticAttrs: Option<&'static [JSPropertySpec]>,
 }
 
 pub type NonNullJSNative =
@@ -268,6 +269,11 @@ fn CreateInterfaceObject(cx: *mut JSContext, global: *mut JSObject, receiver: *m
 
         match members.staticMethods {
             Some(staticMethods) => DefineMethods(cx, constructor, staticMethods),
+            _ => (),
+        }
+
+        match members.staticAttrs {
+            Some(staticProperties) => DefineProperties(cx, constructor, staticProperties),
             _ => (),
         }
 
