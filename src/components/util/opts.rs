@@ -61,6 +61,9 @@ pub struct Opts {
     /// may wish to turn this flag on in order to benchmark style recalculation against other
     /// browser engines.
     pub bubble_widths_separately: bool,
+
+    /// Use native threads instead of green threads
+    pub native_threading: bool
 }
 
 fn print_usage(app: &str, opts: &[getopts::OptGroup]) {
@@ -77,21 +80,22 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
     let app_name = args[0].to_str();
     let args = args.tail();
 
-    let opts = vec!(
+    let opts = vec![
         getopts::optflag("c", "cpu", "CPU rendering"),
         getopts::optopt("o", "output", "Output file", "output.png"),
         getopts::optopt("r", "rendering", "Rendering backend", "direct2d|core-graphics|core-graphics-accelerated|cairo|skia."),
         getopts::optopt("s", "size", "Size of tiles", "512"),
         getopts::optopt("", "device-pixel-ratio", "Device pixels per px", ""),
-        getopts::optopt("t", "threads", "Number of render threads", "1"),
         getopts::optflagopt("p", "profile", "Profiler flag and output interval", "10"),
         getopts::optflag("x", "exit", "Exit after load flag"),
-        getopts::optopt("y", "layout-threads", "Number of threads to use for layout", "1"),
+        getopts::optopt("t", "threads", "Number of render threads", "[n-cores]"),
+        getopts::optopt("y", "layout-threads", "Number of layout threads", "1"),
         getopts::optflag("z", "headless", "Headless mode"),
         getopts::optflag("f", "hard-fail", "Exit on task failure instead of displaying about:failure"),
         getopts::optflag("b", "bubble-widths", "Bubble intrinsic widths separately like other engines"),
+        getopts::optflag("n", "native-threading", "Use native threading instead of green threading"),
         getopts::optflag("h", "help", "Print this message")
-    );
+    ];
 
     let opt_match = match getopts::getopts(args, opts.as_slice()) {
         Ok(m) => m,
@@ -144,7 +148,17 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
 
     let n_render_threads: uint = match opt_match.opt_str("t") {
         Some(n_render_threads_str) => from_str(n_render_threads_str.as_slice()).unwrap(),
-        None => 1,      // FIXME: Number of cores.
+        None => {
+            // FIXME (rust/14707): This still isn't exposed publicly via std::rt??
+            // FIXME (rust/14704): Terrible name for this lint, which here is allowing
+            //                     Rust types, not C types
+            #[allow(ctypes)]
+            extern {
+                fn rust_get_num_cpus() -> uint;
+            }
+
+            unsafe { rust_get_num_cpus() as uint }
+        }
     };
 
     // if only flag is present, default to 5 second period
@@ -158,6 +172,8 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
         Some(layout_threads_str) => from_str(layout_threads_str.as_slice()).unwrap(),
         None => cmp::max(rt::default_sched_threads() * 3 / 4, 1),
     };
+
+    let native_threading = opt_match.opt_present("h") || opt_match.opt_present("help");
 
     Some(Opts {
         urls: urls,
@@ -173,5 +189,6 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
         headless: opt_match.opt_present("z"),
         hard_fail: opt_match.opt_present("f"),
         bubble_widths_separately: opt_match.opt_present("b"),
+        native_threading: native_threading
     })
 }
