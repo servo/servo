@@ -862,9 +862,11 @@ impl InlineFragments {
         let new_fragments = mem::replace(&mut self.fragments, vec![])
             .move_iter()
             .skip_while(|fragment| {
-                if fragment.is_whitespace_only() {
-                    debug!("stripping ignorable whitespace from start"); true
-                } else { false }
+                let is_whitespace_only = fragment.is_whitespace_only();
+                if is_whitespace_only {
+                    debug!("stripping ignorable whitespace from start");
+                }
+                is_whitespace_only
             }).collect();
 
         self.fixup(new_fragments);
