@@ -1880,13 +1880,6 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
         getParentProto = ("let parentProto: *mut JSObject = %s;\n"
                           "assert!(parentProto.is_not_null());\n") % getParentProto
 
-        if self.descriptor.interface.ctor():
-            constructHook = CONSTRUCT_HOOK_NAME
-            constructArgs = methodLength(self.descriptor.interface.ctor())
-        else:
-            constructHook = "ThrowingConstructor"
-            constructArgs = 0
-
         if self.descriptor.concrete:
             if self.descriptor.proxy:
                 domClass = "&Class"
@@ -1901,20 +1894,31 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
                 return "None"
             return "Some(%s.as_slice())" % val
 
+        if needInterfaceObject:
+            if self.descriptor.interface.ctor():
+                constructHook = CONSTRUCT_HOOK_NAME
+                constructArgs = methodLength(self.descriptor.interface.ctor())
+            else:
+                constructHook = "ThrowingConstructor"
+                constructArgs = 0
+
+            constructor = 'Some((%s, "%s", %d))' % (
+                constructHook, self.descriptor.interface.identifier.name,
+                constructArgs)
+        else:
+            constructor = 'None'
+
         call = """return CreateInterfaceObjects2(aCx, aGlobal, aReceiver, parentProto,
-                               &PrototypeClass, %s, %d,
-                               %s,
+                               &PrototypeClass, %s,
                                %s,
                                %s,
                                %s,
                                %s,
                                %s);""" % (
-            "Some(%s)" % constructHook if needInterfaceObject else "None",
-            constructArgs,
+            constructor,
             domClass,
             arrayPtr("methods"), arrayPtr("attrs"),
-            arrayPtr("consts"), arrayPtr("staticMethods"),
-            '"' + self.descriptor.interface.identifier.name + '"' if needInterfaceObject else "ptr::null()")
+            arrayPtr("consts"), arrayPtr("staticMethods"))
 
         functionBody = CGList(
             [CGGeneric(getParentProto),
