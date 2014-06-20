@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use resource_task::{Metadata, Payload, Done, LoadResponse, LoadData, LoaderTask, start_sending};
+use resource_task::{Metadata, Payload, Done, LoadResponse, LoadData, LoaderTask, start_sending_opt};
 
 use collections::hashmap::HashSet;
 use http::client::{RequestWriter, NetworkStream};
@@ -19,7 +19,10 @@ pub fn factory() -> LoaderTask {
 }
 
 fn send_error(url: Url, err: String, start_chan: Sender<LoadResponse>) {
-    start_sending(start_chan, Metadata::default(url)).send(Done(Err(err)));
+    match start_sending_opt(start_chan, Metadata::default(url)) {
+        Ok(p) => p.send(Done(Err(err))),
+        _ => {}
+    };
 }
 
 fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
@@ -116,7 +119,10 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
         metadata.headers = Some(*response.headers.clone());
         metadata.status = response.status.clone();
 
-        let progress_chan = start_sending(start_chan, metadata);
+        let progress_chan = match start_sending_opt(start_chan, metadata) {
+            Ok(p) => p,
+            _ => return
+        };
         loop {
             let mut buf = Vec::with_capacity(1024);
 
@@ -124,10 +130,15 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
             match response.read(buf.as_mut_slice()) {
                 Ok(len) => {
                     unsafe { buf.set_len(len); }
-                    progress_chan.send(Payload(buf));
+                    if progress_chan.send_opt(Payload(buf)).is_err() {
+                        // The send errors when the receiver is out of scope,
+                        // which will happen if the fetch has timed out (or has been aborted)
+                        // so we don't need to continue with the loading of the file here.
+                        return;
+                    }
                 }
                 Err(_) => {
-                    progress_chan.send(Done(Ok(())));
+                    let _ = progress_chan.send_opt(Done(Ok(())));
                     break;
                 }
             }

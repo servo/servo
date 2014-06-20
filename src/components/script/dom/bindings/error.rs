@@ -28,7 +28,9 @@ pub enum Error {
     NamespaceError,
     InvalidAccess,
     Security,
-    Network
+    Network,
+    Abort,
+    Timeout
 }
 
 pub type Fallible<T> = Result<T, Error>;

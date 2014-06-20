@@ -51,6 +51,8 @@ impl DOMErrorName {
             error::InvalidAccess => InvalidAccessError,
             error::Security => SecurityError,
             error::Network => NetworkError,
+            error::Abort => AbortError,
+            error::Timeout => TimeoutError,
             error::FailureUnknown => fail!(),
         }
     }

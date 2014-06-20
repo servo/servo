@@ -118,12 +118,20 @@ pub enum ProgressMsg {
 
 /// For use by loaders in responding to a Load message.
 pub fn start_sending(start_chan: Sender<LoadResponse>, metadata: Metadata) -> Sender<ProgressMsg> {
+    start_sending_opt(start_chan, metadata).ok().unwrap()
+}
+
+/// For use by loaders in responding to a Load message.
+pub fn start_sending_opt(start_chan: Sender<LoadResponse>, metadata: Metadata) -> Result<Sender<ProgressMsg>, ()> {
     let (progress_chan, progress_port) = channel();
-    start_chan.send(LoadResponse {
+    let result = start_chan.send_opt(LoadResponse {
         metadata:      metadata,
         progress_port: progress_port,
     });
-    progress_chan
+    match result {
+        Ok(_) => Ok(progress_chan),
+        Err(_) => Err(())
+    }
 }
 
 /// Convenience function for synchronously loading a whole resource.
