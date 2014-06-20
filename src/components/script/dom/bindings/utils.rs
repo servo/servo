@@ -216,7 +216,8 @@ pub fn GetProtoOrIfaceArray(global: *mut JSObject) -> *mut *mut JSObject {
 }
 
 pub fn CreateInterfaceObjects2(cx: *mut JSContext, global: *mut JSObject, receiver: *mut JSObject,
-                               protoProto: *mut JSObject, protoClass: *JSClass,
+                               protoProto: *mut JSObject,
+                               protoClass: &'static JSClass,
                                constructor: JSNative,
                                ctorNargs: u32,
                                domClass: *DOMClass,
@@ -225,32 +226,24 @@ pub fn CreateInterfaceObjects2(cx: *mut JSContext, global: *mut JSObject, receiv
                                constants: Option<&'static [ConstantSpec]>,
                                staticMethods: Option<&'static [JSFunctionSpec]>,
                                name: &str) -> *mut JSObject {
-    let mut proto = ptr::mut_null();
-    if protoClass.is_not_null() {
-        proto = CreateInterfacePrototypeObject(cx, global, protoProto,
+    let proto = CreateInterfacePrototypeObject(cx, global, protoProto,
                                                protoClass, methods,
                                                properties, constants);
 
-        unsafe {
-            JS_SetReservedSlot(proto, DOM_PROTO_INSTANCE_CLASS_SLOT,
-                               PrivateValue(domClass as *libc::c_void));
-        }
+    unsafe {
+        JS_SetReservedSlot(proto, DOM_PROTO_INSTANCE_CLASS_SLOT,
+                           PrivateValue(domClass as *libc::c_void));
     }
 
-    let mut interface = ptr::mut_null();
     if constructor.is_some() {
-        interface = name.to_c_str().with_ref(|s| {
+        name.to_c_str().with_ref(|s| {
             CreateInterfaceObject(cx, global, receiver,
                                   constructor, ctorNargs, proto,
                                   staticMethods, constants, s)
         });
     }
 
-    if protoClass.is_not_null() {
-        proto
-    } else {
-        interface
-    }
+    proto
 }
 
 fn CreateInterfaceObject(cx: *mut JSContext, global: *mut JSObject, receiver: *mut JSObject,
@@ -258,7 +251,7 @@ fn CreateInterfaceObject(cx: *mut JSContext, global: *mut JSObject, receiver: *m
                          ctorNargs: u32, proto: *mut JSObject,
                          staticMethods: Option<&'static [JSFunctionSpec]>,
                          constants: Option<&'static [ConstantSpec]>,
-                         name: *libc::c_char) -> *mut JSObject {
+                         name: *libc::c_char) {
     unsafe {
         let fun = JS_NewFunction(cx, constructorNative, ctorNargs,
                                  JSFUN_CONSTRUCTOR, global, name);
@@ -289,8 +282,6 @@ fn CreateInterfaceObject(cx: *mut JSContext, global: *mut JSObject, receiver: *m
                                       ObjectValue(&*constructor),
                                       None, None, 0) != 0);
         }
-
-        return constructor;
     }
 }
 
@@ -326,7 +317,8 @@ fn DefineProperties(cx: *mut JSContext, obj: *mut JSObject, properties: &'static
 }
 
 fn CreateInterfacePrototypeObject(cx: *mut JSContext, global: *mut JSObject,
-                                  parentProto: *mut JSObject, protoClass: *JSClass,
+                                  parentProto: *mut JSObject,
+                                  protoClass: &'static JSClass,
                                   methods: Option<&'static [JSFunctionSpec]>,
                                   properties: Option<&'static [JSPropertySpec]>,
                                   constants: Option<&'static [ConstantSpec]>) -> *mut JSObject {
