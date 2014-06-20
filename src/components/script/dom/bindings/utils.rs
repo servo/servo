@@ -230,9 +230,6 @@ pub fn CreateInterfaceObjects2(cx: *mut JSContext, global: *mut JSObject, receiv
         proto = CreateInterfacePrototypeObject(cx, global, protoProto,
                                                protoClass, methods,
                                                properties, constants);
-        if proto.is_null() {
-            return ptr::mut_null();
-        }
 
         unsafe {
             JS_SetReservedSlot(proto, DOM_PROTO_INSTANCE_CLASS_SLOT,
@@ -247,9 +244,6 @@ pub fn CreateInterfaceObjects2(cx: *mut JSContext, global: *mut JSObject, receiv
                                   constructor, ctorNargs, proto,
                                   staticMethods, constants, s)
         });
-        if interface.is_null() {
-            return ptr::mut_null();
-        }
     }
 
     if protoClass.is_not_null() {
@@ -268,52 +262,40 @@ fn CreateInterfaceObject(cx: *mut JSContext, global: *mut JSObject, receiver: *m
     unsafe {
         let fun = JS_NewFunction(cx, constructorNative, ctorNargs,
                                  JSFUN_CONSTRUCTOR, global, name);
-        if fun.is_null() {
-            return ptr::mut_null();
-        }
+        assert!(fun.is_not_null());
 
         let constructor = JS_GetFunctionObject(fun);
         assert!(constructor.is_not_null());
 
         match staticMethods {
-            Some(staticMethods) => {
-                if !DefineMethods(cx, constructor, staticMethods) {
-                    return ptr::mut_null();
-                }
-            },
+            Some(staticMethods) => DefineMethods(cx, constructor, staticMethods),
             _ => (),
         }
 
         match constants {
-            Some(constants) => {
-                if !DefineConstants(cx, constructor, constants) {
-                    return ptr::mut_null();
-                }
-            },
+            Some(constants) => DefineConstants(cx, constructor, constants),
             _ => (),
         }
 
-        if proto.is_not_null() && JS_LinkConstructorAndPrototype(cx, constructor, proto) == 0 {
-            return ptr::mut_null();
+        if proto.is_not_null() {
+            assert!(JS_LinkConstructorAndPrototype(cx, constructor, proto) != 0);
         }
 
         let mut alreadyDefined = 0;
-        if JS_AlreadyHasOwnProperty(cx, receiver, name, &mut alreadyDefined) == 0 {
-            return ptr::mut_null();
-        }
+        assert!(JS_AlreadyHasOwnProperty(cx, receiver, name, &mut alreadyDefined) != 0);
 
-        if alreadyDefined == 0 &&
-            JS_DefineProperty(cx, receiver, name, ObjectValue(&*constructor),
-                              None, None, 0) == 0 {
-            return ptr::mut_null();
+        if alreadyDefined == 0 {
+            assert!(JS_DefineProperty(cx, receiver, name,
+                                      ObjectValue(&*constructor),
+                                      None, None, 0) != 0);
         }
 
         return constructor;
     }
 }
 
-fn DefineConstants(cx: *mut JSContext, obj: *mut JSObject, constants: &'static [ConstantSpec]) -> bool {
-    constants.iter().all(|spec| {
+fn DefineConstants(cx: *mut JSContext, obj: *mut JSObject, constants: &'static [ConstantSpec]) {
+    for spec in constants.iter() {
         let jsval = match spec.value {
             NullVal => NullValue(),
             IntVal(i) => Int32Value(i),
@@ -323,23 +305,23 @@ fn DefineConstants(cx: *mut JSContext, obj: *mut JSObject, constants: &'static [
             VoidVal => UndefinedValue(),
         };
         unsafe {
-            JS_DefineProperty(cx, obj, spec.name.as_ptr() as *libc::c_char,
-                              jsval, None, None,
-                              JSPROP_ENUMERATE | JSPROP_READONLY |
-                              JSPROP_PERMANENT) != 0
+            assert!(JS_DefineProperty(cx, obj, spec.name.as_ptr() as *libc::c_char,
+                                      jsval, None, None,
+                                      JSPROP_ENUMERATE | JSPROP_READONLY |
+                                      JSPROP_PERMANENT) != 0);
         }
-    })
-}
-
-fn DefineMethods(cx: *mut JSContext, obj: *mut JSObject, methods: &'static [JSFunctionSpec]) -> bool {
-    unsafe {
-        JS_DefineFunctions(cx, obj, methods.as_ptr()) != 0
     }
 }
 
-fn DefineProperties(cx: *mut JSContext, obj: *mut JSObject, properties: &'static [JSPropertySpec]) -> bool {
+fn DefineMethods(cx: *mut JSContext, obj: *mut JSObject, methods: &'static [JSFunctionSpec]) {
     unsafe {
-        JS_DefineProperties(cx, obj, properties.as_ptr()) != 0
+        assert!(JS_DefineFunctions(cx, obj, methods.as_ptr()) != 0);
+    }
+}
+
+fn DefineProperties(cx: *mut JSContext, obj: *mut JSObject, properties: &'static [JSPropertySpec]) {
+    unsafe {
+        assert!(JS_DefineProperties(cx, obj, properties.as_ptr()) != 0);
     }
 }
 
@@ -350,34 +332,20 @@ fn CreateInterfacePrototypeObject(cx: *mut JSContext, global: *mut JSObject,
                                   constants: Option<&'static [ConstantSpec]>) -> *mut JSObject {
     unsafe {
         let ourProto = JS_NewObjectWithUniqueType(cx, protoClass, parentProto, global);
-        if ourProto.is_null() {
-            return ptr::mut_null();
-        }
+        assert!(ourProto.is_not_null());
 
         match methods {
-            Some(methods) => {
-                if !DefineMethods(cx, ourProto, methods) {
-                    return ptr::mut_null();
-                }
-            },
+            Some(methods) => DefineMethods(cx, ourProto, methods),
             _ => (),
         }
 
         match properties {
-            Some(properties) => {
-                if !DefineProperties(cx, ourProto, properties) {
-                    return ptr::mut_null();
-                }
-            },
+            Some(properties) => DefineProperties(cx, ourProto, properties),
             _ => (),
         }
 
         match constants {
-            Some(constants) => {
-                if !DefineConstants(cx, ourProto, constants) {
-                    return ptr::mut_null();
-                }
-            },
+            Some(constants) => DefineConstants(cx, ourProto, constants),
             _ => (),
         }
 
