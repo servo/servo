@@ -77,6 +77,9 @@ pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: *mut JSObject
 /// but also does not need to be made known to the SpiderMonkey garbage collector.
 /// Use only with types that are not associated with a JS reflector and do not contain
 /// fields of types associated with JS reflectors.
+///
+/// This should really only be used for types that are from other crates,
+/// so we can't implement `Encodable`. See more details: mozilla#2662.
 pub struct Untraceable<T> {
     inner: T,
 }
@@ -110,6 +113,9 @@ impl<T> DerefMut<T> for Untraceable<T> {
 /// Encapsulates a type that can be traced but is boxed in a type we don't control
 /// (such as RefCell). Wrap a field in Traceable and implement the Encodable trait
 /// for that new concrete type to achieve magic compiler-derived trace hooks.
+///
+/// We always prefer this, in case the contained type ever changes to something that should be traced.
+/// See more details: mozilla#2662.
 #[deriving(Eq, Clone)]
 pub struct Traceable<T> {
     inner: T
