@@ -59,7 +59,6 @@ pub extern "C" fn cef_run_message_loop() {
         headless: false,
         hard_fail: false,
         bubble_widths_separately: false,
-        native_threading: false
     };
     native::start(0, 0 as **u8, proc() {
        servo::run(opts);
