@@ -26,6 +26,14 @@ extern crate sync;
 extern crate std_time = "time";
 extern crate std_url = "url";
 
+#[cfg(test)]
+extern crate test;
+
+#[phase(syntax)]
+extern crate phf_mac;
+extern crate phf;
+
+pub mod atom;
 pub mod cache;
 pub mod debug_utils;
 pub mod geometry;
@@ -34,6 +42,7 @@ pub mod opts;
 pub mod range;
 pub mod smallvec;
 pub mod sort;
+pub mod static_atoms;
 pub mod str;
 pub mod task;
 pub mod time;
