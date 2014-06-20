@@ -376,7 +376,7 @@ impl LineBreaker {
     /// Computes the position of a line that has only the provided fragment. Returns the bounding
     /// rect of the line's green zone (whose origin coincides with the line's origin) and the actual
     /// width of the first fragment after splitting.
-    fn initial_line_placement(&self, first_fragment: &Fragment, ceiling: Au, flow: &mut InlineFlow)
+    fn initial_line_placement(&self, first_fragment: &Fragment, ceiling: Au, flow: &InlineFlow)
                               -> (Rect<Au>, Au) {
         debug!("LineBreaker: Trying to place first fragment of line {}", self.lines.len());
 
@@ -439,7 +439,7 @@ impl LineBreaker {
     /// Returns false if and only if we should break the line.
     fn avoid_floats(&mut self,
                     in_fragment: Fragment,
-                    flow: &mut InlineFlow,
+                    flow: &InlineFlow,
                     new_height: Au,
                     line_is_empty: bool)
                     -> bool {
@@ -511,7 +511,7 @@ impl LineBreaker {
 
     /// Tries to append the given fragment to the line, splitting it if necessary. Returns false only if
     /// we should break the line.
-    fn try_append_to_line(&mut self, in_fragment: Fragment, flow: &mut InlineFlow) -> bool {
+    fn try_append_to_line(&mut self, in_fragment: Fragment, flow: &InlineFlow) -> bool {
         let line_is_empty = self.pending_line.range.length() == num::zero();
         if line_is_empty {
             let (line_bounds, _) = self.initial_line_placement(&in_fragment, self.cur_y, flow);
