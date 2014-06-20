@@ -15,7 +15,7 @@ use dom::bindings::error::{ErrorResult, Fallible, NotFound, HierarchyRequest, Sy
 use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, Root, OptionalUnrootable};
 use dom::bindings::js::{OptionalSettable, TemporaryPushable, OptionalRootedRootable};
 use dom::bindings::js::{ResultRootable, OptionalRootable};
-use dom::bindings::trace::Untraceable;
+use dom::bindings::trace::Traceable;
 use dom::bindings::utils;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::characterdata::{CharacterData, CharacterDataMethods};
@@ -87,7 +87,7 @@ pub struct Node {
     pub child_list: Cell<Option<JS<NodeList>>>,
 
     /// A bitfield of flags for node items.
-    flags: Untraceable<RefCell<NodeFlags>>,
+    flags: Traceable<RefCell<NodeFlags>>,
 
     /// Layout information. Only the layout task may touch this data.
     ///
@@ -943,7 +943,7 @@ impl Node {
             owner_doc: Cell::new(doc.unrooted()),
             child_list: Cell::new(None),
 
-            flags: Untraceable::new(RefCell::new(NodeFlags::new(type_id))),
+            flags: Traceable::new(RefCell::new(NodeFlags::new(type_id))),
 
             layout_data: LayoutDataRef::new(),
         }

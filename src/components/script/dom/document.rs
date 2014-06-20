@@ -66,7 +66,7 @@ pub struct Document {
     idmap: Traceable<RefCell<HashMap<DOMString, Vec<JS<Element>>>>>,
     pub implementation: Cell<Option<JS<DOMImplementation>>>,
     pub content_type: DOMString,
-    pub encoding_name: Untraceable<RefCell<DOMString>>,
+    pub encoding_name: Traceable<RefCell<DOMString>>,
     pub is_html_document: bool,
     pub url: Untraceable<Url>,
     pub quirks_mode: Untraceable<Cell<QuirksMode>>,
@@ -231,7 +231,7 @@ impl Document {
             // http://dom.spec.whatwg.org/#concept-document-quirks
             quirks_mode: Untraceable::new(Cell::new(NoQuirks)),
             // http://dom.spec.whatwg.org/#concept-document-encoding
-            encoding_name: Untraceable::new(RefCell::new("utf-8".to_string())),
+            encoding_name: Traceable::new(RefCell::new("utf-8".to_string())),
             is_html_document: is_html_document == HTMLDocument,
         }
     }

@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::EventBinding;
 use dom::bindings::codegen::Bindings::EventBinding::EventConstants;
 use dom::bindings::error::Fallible;
 use dom::bindings::js::{JS, JSRef, Temporary};
-use dom::bindings::trace::Untraceable;
+use dom::bindings::trace::Traceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::eventtarget::EventTarget;
 use dom::window::Window;
@@ -52,16 +52,16 @@ pub struct Event {
     pub reflector_: Reflector,
     pub current_target: Cell<Option<JS<EventTarget>>>,
     pub target: Cell<Option<JS<EventTarget>>>,
-    type_: Untraceable<RefCell<DOMString>>,
-    pub phase: Untraceable<Cell<EventPhase>>,
-    pub canceled: Untraceable<Cell<bool>>,
-    pub stop_propagation: Untraceable<Cell<bool>>,
-    pub stop_immediate: Untraceable<Cell<bool>>,
-    pub cancelable: Untraceable<Cell<bool>>,
-    pub bubbles: Untraceable<Cell<bool>>,
-    pub trusted: Untraceable<Cell<bool>>,
-    pub dispatching: Untraceable<Cell<bool>>,
-    pub initialized: Untraceable<Cell<bool>>,
+    type_: Traceable<RefCell<DOMString>>,
+    pub phase: Traceable<Cell<EventPhase>>,
+    pub canceled: Traceable<Cell<bool>>,
+    pub stop_propagation: Traceable<Cell<bool>>,
+    pub stop_immediate: Traceable<Cell<bool>>,
+    pub cancelable: Traceable<Cell<bool>>,
+    pub bubbles: Traceable<Cell<bool>>,
+    pub trusted: Traceable<Cell<bool>>,
+    pub dispatching: Traceable<Cell<bool>>,
+    pub initialized: Traceable<Cell<bool>>,
     pub timestamp: u64,
 }
 
@@ -72,16 +72,16 @@ impl Event {
             reflector_: Reflector::new(),
             current_target: Cell::new(None),
             target: Cell::new(None),
-            phase: Untraceable::new(Cell::new(PhaseNone)),
-            type_: Untraceable::new(RefCell::new("".to_string())),
-            canceled: Untraceable::new(Cell::new(false)),
-            cancelable: Untraceable::new(Cell::new(true)),
-            bubbles: Untraceable::new(Cell::new(false)),
-            trusted: Untraceable::new(Cell::new(false)),
-            dispatching: Untraceable::new(Cell::new(false)),
-            stop_propagation: Untraceable::new(Cell::new(false)),
-            stop_immediate: Untraceable::new(Cell::new(false)),
-            initialized: Untraceable::new(Cell::new(false)),
+            phase: Traceable::new(Cell::new(PhaseNone)),
+            type_: Traceable::new(RefCell::new("".to_string())),
+            canceled: Traceable::new(Cell::new(false)),
+            cancelable: Traceable::new(Cell::new(true)),
+            bubbles: Traceable::new(Cell::new(false)),
+            trusted: Traceable::new(Cell::new(false)),
+            dispatching: Traceable::new(Cell::new(false)),
+            stop_propagation: Traceable::new(Cell::new(false)),
+            stop_immediate: Traceable::new(Cell::new(false)),
+            initialized: Traceable::new(Cell::new(false)),
             timestamp: time::get_time().sec as u64,
         }
     }
