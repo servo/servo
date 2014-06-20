@@ -19,6 +19,7 @@ git:
   submodules: true
 
 notifications:
+  irc: "irc.mozilla.org#servo"
   email: false
 
 branches:
