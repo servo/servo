@@ -477,33 +477,30 @@ impl LineBreaker {
             true
         } else {
             debug!("LineBreaker: Found a new-line character, so splitting theline.");
-            match in_fragment.find_split_info_by_new_line() {
-                Some((left, right, run)) => {
-                    // TODO(bjz): Remove fragment splitting
-                    let split_fragment = |split: SplitInfo| {
-                        let info = ScannedTextFragmentInfo::new(run.clone(), split.range);
-                        let specific = ScannedTextFragment(info);
-                        let size = Size2D(split.width, in_fragment.border_box.size.height);
-                        in_fragment.transform(size, specific)
-                    };
 
-                    debug!("LineBreaker: Pushing the fragment to the left of the new-line character \
-                           to the line.");
-                    let mut left = split_fragment(left);
-                    left.new_line_pos = vec!();
-                    self.push_fragment_to_line(left);
+            let (left, right, run) = in_fragment.find_split_info_by_new_line()
+                .expect("LineBreaker: This split case makes no sense!");
 
-                    for right in right.move_iter() {
-                        debug!("LineBreaker: Deferring the fragment to the right of the new-line \
-                               character to the line.");
-                        let mut right = split_fragment(right);
-                        right.new_line_pos = in_fragment.new_line_pos.clone();
-                        self.work_list.push_front(right);
-                    }
-                },
-                None => {
-                    error!("LineBreaker: This split case makes no sense!")
-                },
+            // TODO(bjz): Remove fragment splitting
+            let split_fragment = |split: SplitInfo| {
+                let info = ScannedTextFragmentInfo::new(run.clone(), split.range);
+                let specific = ScannedTextFragment(info);
+                let size = Size2D(split.width, in_fragment.border_box.size.height);
+                in_fragment.transform(size, specific)
+            };
+
+            debug!("LineBreaker: Pushing the fragment to the left of the new-line character \
+                   to the line.");
+            let mut left = split_fragment(left);
+            left.new_line_pos = vec![];
+            self.push_fragment_to_line(left);
+
+            for right in right.move_iter() {
+                debug!("LineBreaker: Deferring the fragment to the right of the new-line \
+                       character to the line.");
+                let mut right = split_fragment(right);
+                right.new_line_pos = in_fragment.new_line_pos.clone();
+                self.work_list.push_front(right);
             }
             false
         }
