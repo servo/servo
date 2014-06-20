@@ -515,7 +515,7 @@ pub mod longhands {
 
 
     // CSS 2.1, Section 11 - Visual effects
-    ${single_keyword("overflow", "visible hidden")} // TODO: scroll auto
+    ${single_keyword("overflow", "visible hidden scroll auto")}
 
     ${switch_to_style_struct("InheritedBox")}
 

@@ -76,6 +76,9 @@
 == linebreak_simple_a.html linebreak_simple_b.html
 == linebreak_inline_span_a.html linebreak_inline_span_b.html
 == overconstrained_block.html overconstrained_block_ref.html
+== overflow_auto.html overflow_simple_b.html
+== overflow_scroll.html overflow_simple_b.html
+== overflow_simple_a.html overflow_simple_b.html
 == position_fixed_background_color_a.html position_fixed_background_color_b.html
 == position_fixed_overflow_a.html position_fixed_overflow_b.html
 == noscript.html noscript_ref.html

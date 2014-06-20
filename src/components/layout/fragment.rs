@@ -1395,9 +1395,12 @@ impl Fragment {
         }
     }
 
-    /// Returns true if the contents should be clipped (i.e. if `overflow` is `hidden`).
+    /// Returns true if the contents should be clipped (i.e. if `overflow` is not `visible`).
     pub fn needs_clip(&self) -> bool {
-        self.style().get_box().overflow == overflow::hidden
+        match self.style().get_box().overflow {
+            overflow::visible => true,
+            overflow::hidden | overflow::auto | overflow::scroll => false,
+        }
     }
 
     /// A helper function to return a debug string describing the side offsets for one of the rect
@@ -1475,13 +1478,13 @@ impl ChildDisplayListAccumulator {
            -> ChildDisplayListAccumulator {
         ChildDisplayListAccumulator {
             clip_display_item: match style.get_box().overflow {
-                overflow::hidden => {
+                overflow::hidden | overflow::auto | overflow::scroll => {
                     Some(box ClipDisplayItem {
                         base: BaseDisplayItem::new(bounds, node, level),
                         children: DisplayList::new(),
                     })
-                }
-                _ => None,
+                },
+                overflow::visible => None,
             }
         }
     }
