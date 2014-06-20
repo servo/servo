@@ -639,13 +639,9 @@ pub struct FragmentIterator<'a> {
 impl<'a> Iterator<(&'a Fragment, InlineFragmentContext<'a>)> for FragmentIterator<'a> {
     #[inline]
     fn next(&mut self) -> Option<(&'a Fragment, InlineFragmentContext<'a>)> {
-        match self.iter.next() {
-            None => None,
-            Some((i, fragment)) => Some((
-                fragment,
-                InlineFragmentContext::new(self.ranges, FragmentIndex(i as int)),
-            )),
-        }
+        self.iter.next().map(|(i, fragment)| {
+            (fragment, InlineFragmentContext::new(self.ranges, FragmentIndex(i as int)))
+        })
     }
 }
 
@@ -658,13 +654,9 @@ pub struct MutFragmentIterator<'a> {
 impl<'a> Iterator<(&'a mut Fragment, InlineFragmentContext<'a>)> for MutFragmentIterator<'a> {
     #[inline]
     fn next(&mut self) -> Option<(&'a mut Fragment, InlineFragmentContext<'a>)> {
-        match self.iter.next() {
-            None => None,
-            Some((i, fragment)) => Some((
-                fragment,
-                InlineFragmentContext::new(self.ranges, FragmentIndex(i as int)),
-            )),
-        }
+        self.iter.next().map(|(i, fragment)| {
+            (fragment, InlineFragmentContext::new(self.ranges, FragmentIndex(i as int)))
+        })
     }
 }
 
@@ -868,22 +860,15 @@ impl InlineFragments {
 
     /// Strips ignorable whitespace from the start of a list of fragments.
     pub fn strip_ignorable_whitespace_from_start(&mut self) {
-        if self.is_empty() {
-            return;
-        }
+        if self.is_empty() { return }; // Fast path
 
-        // FIXME(#2264, pcwalton): This is slow because vector shift is broken. :(
-        let mut found_nonwhitespace = false;
-        let mut new_fragments = Vec::new();
-        for fragment in self.fragments.iter() {
-            if !found_nonwhitespace && fragment.is_whitespace_only() {
-                debug!("stripping ignorable whitespace from start");
-                continue;
-            }
-
-            found_nonwhitespace = true;
-            new_fragments.push(fragment.clone())
-        }
+        let new_fragments = mem::replace(&mut self.fragments, vec![])
+            .move_iter()
+            .skip_while(|fragment| {
+                if fragment.is_whitespace_only() {
+                    debug!("stripping ignorable whitespace from start"); true
+                } else { false }
+            }).collect();
 
         self.fixup(new_fragments);
     }
@@ -1358,29 +1343,24 @@ struct InlineFragmentFixupWorkItem {
 pub struct RangeIterator<'a> {
     iter: Items<'a,InlineFragmentRange>,
     index: FragmentIndex,
-    seen_first: bool,
+    is_first: bool,
 }
 
 impl<'a> Iterator<&'a InlineFragmentRange> for RangeIterator<'a> {
     fn next(&mut self) -> Option<&'a InlineFragmentRange> {
-        if self.seen_first {
-            match self.iter.next() {
-                Some(fragment_range) if fragment_range.range.contains(self.index) => {
-                    return Some(fragment_range)
-                }
-                Some(_) | None => return None
-            }
-        }
-
-        loop {
-            match self.iter.next() {
-                None => return None,
-                Some(fragment_range) if fragment_range.range.contains(self.index) => {
-                    self.seen_first = true;
-                    return Some(fragment_range)
-                }
-                Some(_) => {}
-            }
+        if !self.is_first {
+            // Yield the next fragment range if it contains the index
+            self.iter.next().and_then(|frag_range| {
+                if frag_range.range.contains(self.index) { Some(frag_range) } else { None }
+            })
+        } else {
+            // Find the first fragment range that contains the index if it exists
+            let index = self.index;
+            let first = self.iter.by_ref().find(|frag_range| {
+                frag_range.range.contains(index)
+            });
+            self.is_first = false; // We have made our first iteration
+            first
         }
     }
 }
@@ -1403,10 +1383,20 @@ impl<'a> InlineFragmentContext<'a> {
     /// Iterates over all ranges that contain the fragment at context's index, outermost first.
     #[inline(always)]
     pub fn ranges(&self) -> RangeIterator<'a> {
+        // TODO: It would be more straightforward to return an existing iterator
+        // rather defining our own `RangeIterator`, but this requires unboxed
+        // closures in order to satisfy the borrow checker:
+        //
+        // ~~~rust
+        // let index = self.index;
+        // self.ranges.iter()
+        //     .skip_while(|fr| fr.range.contains(index))
+        //     .take_while(|fr| fr.range.contains(index))
+        // ~~~
         RangeIterator {
             iter: self.ranges.iter(),
             index: self.index,
-            seen_first: false,
+            is_first: true,
         }
     }
 }
