@@ -2001,13 +2001,6 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
         return CGAbstractMethod.define(self)
 
     def definition_body(self):
-        if self.descriptor.interface.hasInterfacePrototypeObject():
-            # We depend on GetProtoObject defining an interface constructor
-            # object as needed.
-            getter = "GetProtoObject"
-        else:
-            getter = "GetConstructorObject"
-
         body = ""
         #XXXjdm This self.descriptor.concrete check shouldn't be necessary
         if not self.descriptor.concrete or self.descriptor.proxy:
@@ -2049,10 +2042,13 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
        TRACE_HOOK_NAME,
        self.descriptor.name)
 
-        return (body + """  let cx = (**js_info.js_context).ptr;
+        if self.descriptor.interface.hasInterfaceObject():
+            body += """  let cx = (**js_info.js_context).ptr;
   let global = window.reflector().get_jsobject();
   assert!(global.is_not_null());
-  assert!(%s(cx, global, global).is_not_null());""" % (getter))
+  assert!(GetProtoObject(cx, global, global).is_not_null());"""
+
+        return body
 
 def needCx(returnType, arguments, extendedAttributes, considerTypes):
     return (considerTypes and
@@ -3867,8 +3863,7 @@ class CGDescriptor(CGThing):
                                           CGConstant(m for m in descriptor.interface.members if m.isConst()),
                                           public=True))
 
-        if descriptor.interface.hasInterfaceObject():
-            cgThings.append(CGDefineDOMInterfaceMethod(descriptor))
+        cgThings.append(CGDefineDOMInterfaceMethod(descriptor))
 
         if descriptor.concrete:
             if descriptor.proxy:
@@ -4114,7 +4109,7 @@ class CGRegisterProtos(CGAbstractMethod):
 
     def _registerProtos(self):
         lines = ["  codegen::Bindings::%sBinding::DefineDOMInterface(window, js_info);" % desc.name
-                 for desc in self.config.getDescriptors(hasInterfaceObject=True,
+                 for desc in self.config.getDescriptors(isCallback=False,
                                                         register=True)]
         return '\n'.join(lines) + '\n'
     def definition_body(self):
