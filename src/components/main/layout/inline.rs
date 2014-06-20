@@ -1057,15 +1057,14 @@ impl InlineFlow {
     /// construction.
     ///
     /// `style` is the style of the block.
-    pub fn compute_minimum_ascent_and_descent(&mut self,
+    pub fn compute_minimum_ascent_and_descent(&self,
                                               font_context: &mut FontContext,
-                                              style: &ComputedValues) {
+                                              style: &ComputedValues) -> (Au, Au) {
         let font_style = text::computed_style_to_font_style(style);
         let font_metrics = text::font_metrics_for_style(font_context, &font_style);
         let line_height = text::line_height_from_style(style, style.get_font().font_size);
         let inline_metrics = InlineMetrics::from_font_metrics(&font_metrics, line_height);
-        self.minimum_height_above_baseline = inline_metrics.height_above_baseline;
-        self.minimum_depth_below_baseline = inline_metrics.depth_below_baseline;
+        (inline_metrics.height_above_baseline, inline_metrics.depth_below_baseline)
     }
 }
 
