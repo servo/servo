@@ -3679,7 +3679,7 @@ if found {
 return 1;""" % (getIndexedOrExpando, getNamed)
 
     def definition_body(self):
-        return CGGeneric(self.getBody())
+        return CGIndenter(CGGeneric(self.getBody()))
 
 class CGDOMJSProxyHandler_obj_toString(CGAbstractExternMethod):
     def __init__(self, descriptor):
