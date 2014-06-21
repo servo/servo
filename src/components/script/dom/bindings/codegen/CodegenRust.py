@@ -3706,12 +3706,12 @@ class CGDOMJSProxyHandler_obj_toString(CGAbstractExternMethod):
 JSString* jsresult;
 return xpc_qsStringToJsstring(cx, result, &jsresult) ? jsresult : NULL;""" 
 
-        return """    "%s".to_c_str().with_ref(|s| {
-      _obj_toString(cx, s)
-    })""" % self.descriptor.name
+        return """"%s".to_c_str().with_ref(|s| {
+  _obj_toString(cx, s)
+})""" % self.descriptor.name
 
     def definition_body(self):
-        return CGGeneric(self.getBody())
+        return CGIndenter(CGGeneric(self.getBody()))
 
 class CGAbstractClassHook(CGAbstractExternMethod):
     """
