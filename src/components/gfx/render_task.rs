@@ -291,8 +291,6 @@ impl<C:RenderListener + Send> RenderTask<C> {
             let render_backend = self.opts.render_backend;
             let native_graphics_context = self.compositor.get_graphics_metadata().map(
                 |md| NativePaintingGraphicsContext::from_metadata(&md));
-            let native_graphics_context = native_graphics_context.expect("need native graphics context");
-            let native_graphics_context = Some(native_graphics_context);
             let font_ctx_info = FontContextInfo {
                 backend: self.opts.render_backend,
                 needs_font_list: false,
@@ -309,13 +307,24 @@ impl<C:RenderListener + Send> RenderTask<C> {
                     let render_data = match render_msg {
                         WorkerRender(render_data) => render_data,
                         WorkerUnusedBuffer(buffer) => {
-                            buffer_map.insert(native_graphics_context.get_ref(), buffer);
+                            match native_graphics_context {
+                                None => {}
+                                Some(ref native_graphics_context) => {
+                                    buffer_map.insert(native_graphics_context,
+                                                      buffer);
+                                }
+                            }
                             continue
                         }
                         WorkerExit(tx) => {
                             // Cleanup and tell the RenderTask we're done
-                            buffer_map.clear(native_graphics_context.get_ref());
-                            drop(native_graphics_context.take_unwrap());
+                            match native_graphics_context {
+                                None => {}
+                                Some(native_graphics_context) => {
+                                    buffer_map.clear(
+                                        &native_graphics_context);
+                                }
+                            }
                             tx.send(());
                             break
                         }
