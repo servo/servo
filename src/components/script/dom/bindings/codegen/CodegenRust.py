@@ -1101,9 +1101,9 @@ class PropertyDefiner:
         if specTerminator:
             specs.append(specTerminator)
 
-        return (("static %s: [%s, ..%i] = [\n" +
+        return (("static %s: &'static [%s] = &[\n" +
                  ",\n".join(specs) + "\n" +
-                 "];\n\n") % (name, specType, len(specs)))
+                 "];\n\n") % (name, specType))
 
 # The length of a method is the maximum of the lengths of the
 # argument lists of all its overloads.
@@ -1894,7 +1894,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
             val = ('%(' + name + ')s') % self.properties.variableNames()
             if val == "ptr::null()":
                 return "None"
-            return "Some(%s.as_slice())" % val
+            return "Some(%s)" % val
 
         if needInterfaceObject:
             if self.descriptor.interface.ctor():
