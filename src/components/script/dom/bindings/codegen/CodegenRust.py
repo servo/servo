@@ -1933,12 +1933,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
         call = """return CreateInterfaceObjects2(aCx, aGlobal, aReceiver, parentProto,
                                &PrototypeClass, %s,
                                %s,
-                               sNativeProperties.methods,
-                               sNativeProperties.attrs,
-                               sNativeProperties.consts,
-                               sNativeProperties.staticMethods);""" % (
-            constructor,
-            domClass)
+                               &sNativeProperties);""" % (constructor, domClass)
 
         return CGList([
             CGGeneric(getParentProto),

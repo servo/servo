@@ -230,13 +230,9 @@ pub fn CreateInterfaceObjects2(cx: *mut JSContext, global: *mut JSObject, receiv
                                protoClass: &'static JSClass,
                                constructor: Option<(NonNullJSNative, &'static str, u32)>,
                                domClass: *DOMClass,
-                               methods: Option<&'static [JSFunctionSpec]>,
-                               properties: Option<&'static [JSPropertySpec]>,
-                               constants: Option<&'static [ConstantSpec]>,
-                               staticMethods: Option<&'static [JSFunctionSpec]>) -> *mut JSObject {
+                               members: &'static NativeProperties) -> *mut JSObject {
     let proto = CreateInterfacePrototypeObject(cx, global, protoProto,
-                                               protoClass, methods,
-                                               properties, constants);
+                                               protoClass, members);
 
     unsafe {
         JS_SetReservedSlot(proto, DOM_PROTO_INSTANCE_CLASS_SLOT,
@@ -248,7 +244,7 @@ pub fn CreateInterfaceObjects2(cx: *mut JSContext, global: *mut JSObject, receiv
             name.to_c_str().with_ref(|s| {
                 CreateInterfaceObject(cx, global, receiver,
                                       native, nargs, proto,
-                                      staticMethods, constants, s)
+                                      members, s)
             })
         },
         None => (),
@@ -260,8 +256,7 @@ pub fn CreateInterfaceObjects2(cx: *mut JSContext, global: *mut JSObject, receiv
 fn CreateInterfaceObject(cx: *mut JSContext, global: *mut JSObject, receiver: *mut JSObject,
                          constructorNative: NonNullJSNative,
                          ctorNargs: u32, proto: *mut JSObject,
-                         staticMethods: Option<&'static [JSFunctionSpec]>,
-                         constants: Option<&'static [ConstantSpec]>,
+                         members: &'static NativeProperties,
                          name: *libc::c_char) {
     unsafe {
         let fun = JS_NewFunction(cx, Some(constructorNative), ctorNargs,
@@ -271,12 +266,12 @@ fn CreateInterfaceObject(cx: *mut JSContext, global: *mut JSObject, receiver: *m
         let constructor = JS_GetFunctionObject(fun);
         assert!(constructor.is_not_null());
 
-        match staticMethods {
+        match members.staticMethods {
             Some(staticMethods) => DefineMethods(cx, constructor, staticMethods),
             _ => (),
         }
 
-        match constants {
+        match members.consts {
             Some(constants) => DefineConstants(cx, constructor, constants),
             _ => (),
         }
@@ -330,24 +325,22 @@ fn DefineProperties(cx: *mut JSContext, obj: *mut JSObject, properties: &'static
 fn CreateInterfacePrototypeObject(cx: *mut JSContext, global: *mut JSObject,
                                   parentProto: *mut JSObject,
                                   protoClass: &'static JSClass,
-                                  methods: Option<&'static [JSFunctionSpec]>,
-                                  properties: Option<&'static [JSPropertySpec]>,
-                                  constants: Option<&'static [ConstantSpec]>) -> *mut JSObject {
+                                  members: &'static NativeProperties) -> *mut JSObject {
     unsafe {
         let ourProto = JS_NewObjectWithUniqueType(cx, protoClass, parentProto, global);
         assert!(ourProto.is_not_null());
 
-        match methods {
+        match members.methods {
             Some(methods) => DefineMethods(cx, ourProto, methods),
             _ => (),
         }
 
-        match properties {
+        match members.attrs {
             Some(properties) => DefineProperties(cx, ourProto, properties),
             _ => (),
         }
 
-        match constants {
+        match members.consts {
             Some(constants) => DefineConstants(cx, ourProto, constants),
             _ => (),
         }
