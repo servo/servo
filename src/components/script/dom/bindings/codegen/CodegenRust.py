@@ -1709,19 +1709,21 @@ class CGAbstractMethod(CGThing):
 
     def _returnType(self):
         return (" -> %s" % self.returnType) if self.returnType != "void" else ""
-    def _unsafe_open(self):
-        return "\n  unsafe {\n" if self.unsafe else ""
-    def _unsafe_close(self):
-        return "\n  }\n" if self.unsafe else ""
 
     def define(self):
-        return self.definition_prologue() + "\n" + CGIndenter(self.definition_body()).define() + self.definition_epilogue()
+        body = self.definition_body()
+        if self.unsafe:
+            body = CGWrapper(body, pre="unsafe {\n", post="\n}")
+
+        return CGWrapper(CGIndenter(body),
+                         pre=self.definition_prologue(),
+                         post=self.definition_epilogue()).define()
 
     def definition_prologue(self):
-        return "%sfn %s%s(%s)%s {%s" % (self._decorators(), self.name, self._template(),
-                                        self._argstring(), self._returnType(), self._unsafe_open())
+        return "%sfn %s%s(%s)%s {\n" % (self._decorators(), self.name, self._template(),
+                                          self._argstring(), self._returnType())
     def definition_epilogue(self):
-        return "%s}\n" % self._unsafe_close()
+        return "\n}\n"
     def definition_body(self):
         assert(False) # Override me!
 
@@ -1770,7 +1772,7 @@ class CGWrapMethod(CGAbstractMethod):
 
     def definition_body(self):
         if not self.descriptor.createGlobal:
-            return CGGeneric("""
+            return CGGeneric("""\
 let scope = aScope.reflector().get_jsobject();
 assert!(scope.is_not_null());
 assert!(((*JS_GetClass(scope)).flags & JSCLASS_IS_GLOBAL) != 0);
@@ -1784,7 +1786,7 @@ raw.reflector().set_jsobject(obj);
 
 return raw;""" % CreateBindingJSObject(self.descriptor, "scope"))
         else:
-            return CGGeneric("""
+            return CGGeneric("""\
 %s
 with_compartment(aCx, obj, || {
   let proto = GetProtoObject(aCx, obj, obj);
@@ -1923,7 +1925,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
         return CGList([
             CGGeneric(getParentProto),
             CGGeneric(call % self.properties.variableNames())
-        ], "\n\n")
+        ], "\n")
 
 class CGGetPerInterfaceObject(CGAbstractMethod):
     """
@@ -1968,7 +1970,7 @@ class CGGetProtoObjectMethod(CGGetPerInterfaceObject):
                                          "PrototypeList::", pub=True)
     def definition_body(self):
         return CGList([
-            CGGeneric("""
+            CGGeneric("""\
 /* Get the interface prototype object for this class.  This will create the
    object as needed. */"""),
             CGGetPerInterfaceObject.definition_body(self),
@@ -1983,7 +1985,7 @@ class CGGetConstructorObjectMethod(CGGetPerInterfaceObject):
                                          "constructors::")
     def definition_body(self):
         return CGList([
-            CGGeneric("""
+            CGGeneric("""\
 /* Get the interface object for this class.  This will create the object as
    needed. */"""),
             CGGetPerInterfaceObject.definition_body(self),
@@ -3721,7 +3723,7 @@ class CGAbstractClassHook(CGAbstractExternMethod):
                                         args)
 
     def definition_body_prologue(self):
-        return CGGeneric("""
+        return CGGeneric("""\
 let this: *%s = unwrap::<%s>(obj);
 """ % (self.descriptor.concreteType, self.descriptor.concreteType))
 
@@ -3770,7 +3772,7 @@ class CGClassConstructHook(CGAbstractExternMethod):
         return CGAbstractExternMethod.define(self)
 
     def definition_body(self):
-        preamble = CGGeneric("""
+        preamble = CGGeneric("""\
 let global = global_object_for_js_object(JS_CALLEE(cx, vp).to_object()).root();
 let obj = global.deref().reflector().get_jsobject();
 """)
@@ -4113,9 +4115,9 @@ class CGRegisterProtos(CGAbstractMethod):
 
     def definition_body(self):
         return CGList([
-            CGGeneric("codegen::Bindings::%sBinding::DefineDOMInterface(window, js_info);\n" % desc.name)
+            CGGeneric("codegen::Bindings::%sBinding::DefineDOMInterface(window, js_info);" % desc.name)
             for desc in self.config.getDescriptors(isCallback=False, register=True)
-        ])
+        ], "\n")
 
 class CGBindingRoot(CGThing):
     """
