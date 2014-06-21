@@ -2007,54 +2007,54 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
         return CGAbstractMethod.define(self)
 
     def definition_body(self):
-        body = ""
+        body = CGList([])
         #XXXjdm This self.descriptor.concrete check shouldn't be necessary
         if not self.descriptor.concrete or self.descriptor.proxy:
-            body += """  let traps = ProxyTraps {
-    getPropertyDescriptor: Some(getPropertyDescriptor),
-    getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor),
-    defineProperty: Some(defineProperty),
-    getOwnPropertyNames: ptr::null(),
-    delete_: None,
-    enumerate: ptr::null(),
+            body.append(CGGeneric("""let traps = ProxyTraps {
+  getPropertyDescriptor: Some(getPropertyDescriptor),
+  getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor),
+  defineProperty: Some(defineProperty),
+  getOwnPropertyNames: ptr::null(),
+  delete_: None,
+  enumerate: ptr::null(),
 
-    has: None,
-    hasOwn: Some(hasOwn),
-    get: Some(get),
-    set: None,
-    keys: ptr::null(),
-    iterate: None,
+  has: None,
+  hasOwn: Some(hasOwn),
+  get: Some(get),
+  set: None,
+  keys: ptr::null(),
+  iterate: None,
 
-    call: None,
-    construct: None,
-    nativeCall: ptr::null(),
-    hasInstance: None,
-    typeOf: None,
-    objectClassIs: None,
-    obj_toString: Some(obj_toString),
-    fun_toString: None,
-    //regexp_toShared: ptr::null(),
-    defaultValue: None,
-    iteratorNext: None,
-    finalize: Some(%s),
-    getElementIfPresent: None,
-    getPrototypeOf: None,
-    trace: Some(%s)
-  };
-  js_info.dom_static.proxy_handlers.insert(PrototypeList::id::%s as uint,
-                                           CreateProxyHandler(&traps, &Class as *_ as *_));
+  call: None,
+  construct: None,
+  nativeCall: ptr::null(),
+  hasInstance: None,
+  typeOf: None,
+  objectClassIs: None,
+  obj_toString: Some(obj_toString),
+  fun_toString: None,
+  //regexp_toShared: ptr::null(),
+  defaultValue: None,
+  iteratorNext: None,
+  finalize: Some(%s),
+  getElementIfPresent: None,
+  getPrototypeOf: None,
+  trace: Some(%s)
+};
+js_info.dom_static.proxy_handlers.insert(PrototypeList::id::%s as uint,
+                                         CreateProxyHandler(&traps, &Class as *_ as *_));
 
 """ % (FINALIZE_HOOK_NAME,
        TRACE_HOOK_NAME,
-       self.descriptor.name)
+       self.descriptor.name)))
 
         if self.descriptor.interface.hasInterfaceObject():
-            body += """  let cx = (**js_info.js_context).ptr;
-  let global = window.reflector().get_jsobject();
-  assert!(global.is_not_null());
-  assert!(GetProtoObject(cx, global, global).is_not_null());"""
+            body.append(CGGeneric("""let cx = (**js_info.js_context).ptr;
+let global = window.reflector().get_jsobject();
+assert!(global.is_not_null());
+assert!(GetProtoObject(cx, global, global).is_not_null());"""))
 
-        return CGGeneric(body)
+        return CGIndenter(body)
 
 def needCx(returnType, arguments, extendedAttributes, considerTypes):
     return (considerTypes and
