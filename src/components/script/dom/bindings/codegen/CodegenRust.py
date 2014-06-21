@@ -3496,7 +3496,7 @@ if expando.is_not_null() {
 return 1;"""
 
     def definition_body(self):
-        return CGGeneric(self.getBody())
+        return CGIndenter(CGGeneric(self.getBody()))
 
 class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
     def __init__(self, descriptor):
