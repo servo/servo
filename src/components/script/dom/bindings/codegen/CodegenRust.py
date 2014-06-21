@@ -3554,7 +3554,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
         return set + """return proxyhandler::defineProperty_(%s);""" % ", ".join(a.name for a in self.args)
 
     def definition_body(self):
-        return CGGeneric(self.getBody())
+        return CGIndenter(CGGeneric(self.getBody()))
 
 class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
     def __init__(self, descriptor):
