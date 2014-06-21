@@ -1726,33 +1726,33 @@ class CGAbstractMethod(CGThing):
         assert(False) # Override me!
 
 def CreateBindingJSObject(descriptor, parent=None):
-    create = "  let mut raw: JS<%s> = JS::from_raw(&*aObject);\n" % descriptor.concreteType
+    create = "let mut raw: JS<%s> = JS::from_raw(&*aObject);\n" % descriptor.concreteType
     if descriptor.proxy:
         assert not descriptor.createGlobal
         create += """
-  let js_info = aScope.deref().page().js_info();
-  let handler = js_info.get_ref().dom_static.proxy_handlers.deref().get(&(PrototypeList::id::%s as uint));
-  let mut private = PrivateValue(squirrel_away_unique(aObject) as *libc::c_void);
-  let obj = with_compartment(aCx, proto, || {
-    NewProxyObject(aCx, *handler,
-                   &private,
-                   proto, %s,
-                   ptr::mut_null(), ptr::mut_null())
-  });
-  assert!(obj.is_not_null());
+let js_info = aScope.deref().page().js_info();
+let handler = js_info.get_ref().dom_static.proxy_handlers.deref().get(&(PrototypeList::id::%s as uint));
+let mut private = PrivateValue(squirrel_away_unique(aObject) as *libc::c_void);
+let obj = with_compartment(aCx, proto, || {
+  NewProxyObject(aCx, *handler,
+                 &private,
+                 proto, %s,
+                 ptr::mut_null(), ptr::mut_null())
+});
+assert!(obj.is_not_null());
 
 """ % (descriptor.name, parent)
     else:
         if descriptor.createGlobal:
-            create += "  let obj = CreateDOMGlobal(aCx, &Class.base as *js::Class as *JSClass);\n"
+            create += "let obj = CreateDOMGlobal(aCx, &Class.base as *js::Class as *JSClass);\n"
         else:
-            create += ("  let obj = with_compartment(aCx, proto, || {\n"
-                       "    JS_NewObject(aCx, &Class.base as *js::Class as *JSClass, proto, %s)\n"
-                       "  });\n" % parent)
-        create += """  assert!(obj.is_not_null());
+            create += ("let obj = with_compartment(aCx, proto, || {\n"
+                       "  JS_NewObject(aCx, &Class.base as *js::Class as *JSClass, proto, %s)\n"
+                       "});\n" % parent)
+        create += """assert!(obj.is_not_null());
 
-  JS_SetReservedSlot(obj, DOM_OBJECT_SLOT as u32,
-                     PrivateValue(squirrel_away_unique(aObject) as *libc::c_void));
+JS_SetReservedSlot(obj, DOM_OBJECT_SLOT as u32,
+                   PrivateValue(squirrel_away_unique(aObject) as *libc::c_void));
 """
     return create
 
@@ -1770,28 +1770,28 @@ class CGWrapMethod(CGAbstractMethod):
 
     def definition_body(self):
         if not self.descriptor.createGlobal:
-            return CGGeneric("""
-  let scope = aScope.reflector().get_jsobject();
-  assert!(scope.is_not_null());
-  assert!(((*JS_GetClass(scope)).flags & JSCLASS_IS_GLOBAL) != 0);
+            return CGIndenter(CGGeneric("""
+let scope = aScope.reflector().get_jsobject();
+assert!(scope.is_not_null());
+assert!(((*JS_GetClass(scope)).flags & JSCLASS_IS_GLOBAL) != 0);
 
-  let proto = with_compartment(aCx, scope, || GetProtoObject(aCx, scope, scope));
-  assert!(proto.is_not_null());
+let proto = with_compartment(aCx, scope, || GetProtoObject(aCx, scope, scope));
+assert!(proto.is_not_null());
 
 %s
 
-  raw.reflector().set_jsobject(obj);
+raw.reflector().set_jsobject(obj);
 
-  return raw;""" % CreateBindingJSObject(self.descriptor, "scope"))
+return raw;""" % CreateBindingJSObject(self.descriptor, "scope")))
         else:
-            return CGGeneric("""
+            return CGIndenter(CGGeneric("""
 %s
-  with_compartment(aCx, obj, || {
-    let proto = GetProtoObject(aCx, obj, obj);
-    JS_SetPrototype(aCx, obj, proto);
-  });
-  raw.reflector().set_jsobject(obj);
-  return raw;""" % CreateBindingJSObject(self.descriptor))
+with_compartment(aCx, obj, || {
+  let proto = GetProtoObject(aCx, obj, obj);
+  JS_SetPrototype(aCx, obj, proto);
+});
+raw.reflector().set_jsobject(obj);
+return raw;""" % CreateBindingJSObject(self.descriptor)))
 
 
 class CGIDLInterface(CGThing):
