@@ -4113,13 +4113,11 @@ class CGRegisterProtos(CGAbstractMethod):
                                   unsafe=False, pub=True)
         self.config = config
 
-    def _registerProtos(self):
-        lines = ["  codegen::Bindings::%sBinding::DefineDOMInterface(window, js_info);" % desc.name
-                 for desc in self.config.getDescriptors(isCallback=False,
-                                                        register=True)]
-        return '\n'.join(lines) + '\n'
     def definition_body(self):
-        return CGGeneric(self._registerProtos())
+        return CGIndenter(CGList([
+            CGGeneric("codegen::Bindings::%sBinding::DefineDOMInterface(window, js_info);\n" % desc.name)
+            for desc in self.config.getDescriptors(isCallback=False, register=True)
+        ]))
 
 class CGBindingRoot(CGThing):
     """
