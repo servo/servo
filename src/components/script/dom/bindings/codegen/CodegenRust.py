@@ -1880,13 +1880,6 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
         getParentProto = ("let parentProto: *mut JSObject = %s;\n"
                           "assert!(parentProto.is_not_null());\n") % getParentProto
 
-        if self.descriptor.interface.ctor():
-            constructHook = CONSTRUCT_HOOK_NAME
-            constructArgs = methodLength(self.descriptor.interface.ctor())
-        else:
-            constructHook = "ThrowingConstructor"
-            constructArgs = 0
-
         if self.descriptor.concrete:
             if self.descriptor.proxy:
                 domClass = "&Class"
@@ -1901,20 +1894,31 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
                 return "None"
             return "Some(%s.as_slice())" % val
 
+        if needInterfaceObject:
+            if self.descriptor.interface.ctor():
+                constructHook = CONSTRUCT_HOOK_NAME
+                constructArgs = methodLength(self.descriptor.interface.ctor())
+            else:
+                constructHook = "ThrowingConstructor"
+                constructArgs = 0
+
+            constructor = 'Some((%s, "%s", %d))' % (
+                constructHook, self.descriptor.interface.identifier.name,
+                constructArgs)
+        else:
+            constructor = 'None'
+
         call = """return CreateInterfaceObjects2(aCx, aGlobal, aReceiver, parentProto,
-                               &PrototypeClass, %s, %d,
-                               %s,
+                               &PrototypeClass, %s,
                                %s,
                                %s,
                                %s,
                                %s,
                                %s);""" % (
-            "Some(%s)" % constructHook if needInterfaceObject else "None",
-            constructArgs,
+            constructor,
             domClass,
             arrayPtr("methods"), arrayPtr("attrs"),
-            arrayPtr("consts"), arrayPtr("staticMethods"),
-            '"' + self.descriptor.interface.identifier.name + '"' if needInterfaceObject else "ptr::null()")
+            arrayPtr("consts"), arrayPtr("staticMethods"))
 
         functionBody = CGList(
             [CGGeneric(getParentProto),
@@ -1997,13 +2001,6 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
         return CGAbstractMethod.define(self)
 
     def definition_body(self):
-        if self.descriptor.interface.hasInterfacePrototypeObject():
-            # We depend on GetProtoObject defining an interface constructor
-            # object as needed.
-            getter = "GetProtoObject"
-        else:
-            getter = "GetConstructorObject"
-
         body = ""
         #XXXjdm This self.descriptor.concrete check shouldn't be necessary
         if not self.descriptor.concrete or self.descriptor.proxy:
@@ -2045,10 +2042,13 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
        TRACE_HOOK_NAME,
        self.descriptor.name)
 
-        return (body + """  let cx = (**js_info.js_context).ptr;
+        if self.descriptor.interface.hasInterfaceObject():
+            body += """  let cx = (**js_info.js_context).ptr;
   let global = window.reflector().get_jsobject();
   assert!(global.is_not_null());
-  assert!(%s(cx, global, global).is_not_null());""" % (getter))
+  assert!(GetProtoObject(cx, global, global).is_not_null());"""
+
+        return body
 
 def needCx(returnType, arguments, extendedAttributes, considerTypes):
     return (considerTypes and
@@ -3807,8 +3807,10 @@ class CGDescriptor(CGThing):
         cgThings = []
         if descriptor.interface.hasInterfacePrototypeObject():
             cgThings.append(CGGetProtoObjectMethod(descriptor))
-        else:
-            cgThings.append(CGGetConstructorObjectMethod(descriptor))
+        if descriptor.interface.hasInterfaceObject():
+            # https://github.com/mozilla/servo/issues/2665
+            # cgThings.append(CGGetConstructorObjectMethod(descriptor))
+            pass
 
         if descriptor.interface.hasInterfacePrototypeObject():
             (hasMethod, hasGetter, hasLenientGetter,
@@ -3861,8 +3863,7 @@ class CGDescriptor(CGThing):
                                           CGConstant(m for m in descriptor.interface.members if m.isConst()),
                                           public=True))
 
-        if descriptor.interface.hasInterfaceObject():
-            cgThings.append(CGDefineDOMInterfaceMethod(descriptor))
+        cgThings.append(CGDefineDOMInterfaceMethod(descriptor))
 
         if descriptor.concrete:
             if descriptor.proxy:
@@ -4108,7 +4109,7 @@ class CGRegisterProtos(CGAbstractMethod):
 
     def _registerProtos(self):
         lines = ["  codegen::Bindings::%sBinding::DefineDOMInterface(window, js_info);" % desc.name
-                 for desc in self.config.getDescriptors(hasInterfaceObject=True,
+                 for desc in self.config.getDescriptors(isCallback=False,
                                                         register=True)]
         return '\n'.join(lines) + '\n'
     def definition_body(self):
@@ -5126,13 +5127,7 @@ class GlobalGenRoots():
 
     @staticmethod
     def InterfaceTypes(config):
-
-        def pathToType(descriptor):
-            if descriptor.interface.isCallback():
-                return "dom::bindings::codegen::Bindings::%sBinding" % descriptor.name
-            return "dom::%s" % descriptor.name.lower()
-
-        descriptors = [d.name for d in config.getDescriptors(register=True, hasInterfaceObject=True)]
+        descriptors = [d.name for d in config.getDescriptors(register=True, isCallback=False)]
         curr = CGList([CGGeneric("pub use dom::%s::%s;\n" % (name.lower(), name)) for name in descriptors])
         curr = CGWrapper(curr, pre=AUTOGENERATED_WARNING_COMMENT)
         return curr
@@ -5149,7 +5144,7 @@ class GlobalGenRoots():
     @staticmethod
     def InheritTypes(config):
 
-        descriptors = config.getDescriptors(register=True, hasInterfaceObject=True)
+        descriptors = config.getDescriptors(register=True, isCallback=False)
         allprotos = [CGGeneric("#![allow(unused_imports)]\n"),
                      CGGeneric("use dom::types::*;\n"),
                      CGGeneric("use dom::bindings::js::{JS, JSRef, Temporary};\n"),

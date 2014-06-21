@@ -34,7 +34,7 @@ use js::jsapi::{JS_HasPropertyById, JS_GetPrototype};
 use js::jsapi::{JS_GetProperty, JS_HasProperty};
 use js::jsapi::{JS_DefineFunctions, JS_DefineProperty};
 use js::jsapi::{JS_ValueToString, JS_GetReservedSlot, JS_SetReservedSlot};
-use js::jsapi::{JSContext, JSObject, JSBool, jsid, JSClass, JSNative};
+use js::jsapi::{JSContext, JSObject, JSBool, jsid, JSClass};
 use js::jsapi::{JSFunctionSpec, JSPropertySpec};
 use js::jsapi::{JS_NewGlobalObject, JS_InitStandardClasses};
 use js::jsapi::{JSString};
@@ -215,17 +215,18 @@ pub fn GetProtoOrIfaceArray(global: *mut JSObject) -> *mut *mut JSObject {
     }
 }
 
+pub type NonNullJSNative =
+    unsafe extern "C" fn (arg1: *mut JSContext, arg2: c_uint, arg3: *mut JSVal) -> JSBool;
+
 pub fn CreateInterfaceObjects2(cx: *mut JSContext, global: *mut JSObject, receiver: *mut JSObject,
                                protoProto: *mut JSObject,
                                protoClass: &'static JSClass,
-                               constructor: JSNative,
-                               ctorNargs: u32,
+                               constructor: Option<(NonNullJSNative, &'static str, u32)>,
                                domClass: *DOMClass,
                                methods: Option<&'static [JSFunctionSpec]>,
                                properties: Option<&'static [JSPropertySpec]>,
                                constants: Option<&'static [ConstantSpec]>,
-                               staticMethods: Option<&'static [JSFunctionSpec]>,
-                               name: &str) -> *mut JSObject {
+                               staticMethods: Option<&'static [JSFunctionSpec]>) -> *mut JSObject {
     let proto = CreateInterfacePrototypeObject(cx, global, protoProto,
                                                protoClass, methods,
                                                properties, constants);
@@ -235,25 +236,28 @@ pub fn CreateInterfaceObjects2(cx: *mut JSContext, global: *mut JSObject, receiv
                            PrivateValue(domClass as *libc::c_void));
     }
 
-    if constructor.is_some() {
-        name.to_c_str().with_ref(|s| {
-            CreateInterfaceObject(cx, global, receiver,
-                                  constructor, ctorNargs, proto,
-                                  staticMethods, constants, s)
-        });
+    match constructor {
+        Some((native, name, nargs)) => {
+            name.to_c_str().with_ref(|s| {
+                CreateInterfaceObject(cx, global, receiver,
+                                      native, nargs, proto,
+                                      staticMethods, constants, s)
+            })
+        },
+        None => (),
     }
 
     proto
 }
 
 fn CreateInterfaceObject(cx: *mut JSContext, global: *mut JSObject, receiver: *mut JSObject,
-                         constructorNative: JSNative,
+                         constructorNative: NonNullJSNative,
                          ctorNargs: u32, proto: *mut JSObject,
                          staticMethods: Option<&'static [JSFunctionSpec]>,
                          constants: Option<&'static [ConstantSpec]>,
                          name: *libc::c_char) {
     unsafe {
-        let fun = JS_NewFunction(cx, constructorNative, ctorNargs,
+        let fun = JS_NewFunction(cx, Some(constructorNative), ctorNargs,
                                  JSFUN_CONSTRUCTOR, global, name);
         assert!(fun.is_not_null());
 
