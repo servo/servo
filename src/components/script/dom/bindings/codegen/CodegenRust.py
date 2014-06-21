@@ -3394,12 +3394,12 @@ class CGProxyUnwrap(CGAbstractMethod):
         CGAbstractMethod.__init__(self, descriptor, "UnwrapProxy", '*' + descriptor.concreteType, args, alwaysInline=True)
 
     def definition_body(self):
-        return CGGeneric("""  /*if (xpc::WrapperFactory::IsXrayWrapper(obj)) {
-    obj = js::UnwrapObject(obj);
-  }*/
-  //MOZ_ASSERT(IsProxy(obj));
-  let box_ = GetProxyPrivate(obj).to_private() as *%s;
-  return box_;""" % self.descriptor.concreteType)
+        return CGIndenter(CGGeneric("""/*if (xpc::WrapperFactory::IsXrayWrapper(obj)) {
+  obj = js::UnwrapObject(obj);
+}*/
+//MOZ_ASSERT(IsProxy(obj));
+let box_ = GetProxyPrivate(obj).to_private() as *%s;
+return box_;""" % self.descriptor.concreteType))
 
 class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
     def __init__(self, descriptor):
