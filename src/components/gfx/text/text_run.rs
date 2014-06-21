@@ -206,10 +206,9 @@ impl<'a> TextRun {
     }
 
     pub fn range_is_trimmable_whitespace(&self, range: &Range<CharIndex>) -> bool {
-        for (slice_glyphs, _, _) in self.iter_slices_for_range(range) {
-            if !slice_glyphs.is_whitespace() { return false; }
-        }
-        true
+        self.iter_slices_for_range(range).all(|(slice_glyphs, _, _)| {
+            slice_glyphs.is_whitespace()
+        })
     }
 
     pub fn ascent(&self) -> Au {
@@ -242,13 +241,11 @@ impl<'a> TextRun {
     }
 
     pub fn min_width_for_range(&self, range: &Range<CharIndex>) -> Au {
-        let mut max_piece_width = Au(0);
         debug!("iterating outer range {:?}", range);
-        for (_, offset, slice_range) in self.iter_slices_for_range(range) {
+        self.iter_slices_for_range(range).fold(Au(0), |max_piece_width, (_, offset, slice_range)| {
             debug!("iterated on {:?}[{:?}]", offset, slice_range);
-            max_piece_width = Au::max(max_piece_width, self.advance_for_range(&slice_range));
-        }
-        max_piece_width
+            Au::max(max_piece_width, self.advance_for_range(&slice_range))
+        })
     }
 
     /// Returns the index of the first glyph run containing the given character index.

@@ -293,7 +293,9 @@ impl<'a> FlowConstructor<'a> {
         }
 
         let mut inline_flow = box InlineFlow::from_fragments((*node).clone(), fragments);
-        inline_flow.compute_minimum_ascent_and_descent(self.font_context(), &**node.style());
+        let (ascent, descent) = inline_flow.compute_minimum_ascent_and_descent(self.font_context(), &**node.style());
+        inline_flow.minimum_height_above_baseline = ascent;
+        inline_flow.minimum_depth_below_baseline = descent;
         let mut inline_flow = inline_flow as Box<Flow>;
         TextRunScanner::new().scan_for_runs(self.font_context(), inline_flow);
         let mut inline_flow = FlowRef::new(inline_flow);

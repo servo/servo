@@ -376,7 +376,7 @@ impl LineBreaker {
     /// Computes the position of a line that has only the provided fragment. Returns the bounding
     /// rect of the line's green zone (whose origin coincides with the line's origin) and the actual
     /// width of the first fragment after splitting.
-    fn initial_line_placement(&self, first_fragment: &Fragment, ceiling: Au, flow: &mut InlineFlow)
+    fn initial_line_placement(&self, first_fragment: &Fragment, ceiling: Au, flow: &InlineFlow)
                               -> (Rect<Au>, Au) {
         debug!("LineBreaker: Trying to place first fragment of line {}", self.lines.len());
 
@@ -439,7 +439,7 @@ impl LineBreaker {
     /// Returns false if and only if we should break the line.
     fn avoid_floats(&mut self,
                     in_fragment: Fragment,
-                    flow: &mut InlineFlow,
+                    flow: &InlineFlow,
                     new_height: Au,
                     line_is_empty: bool)
                     -> bool {
@@ -477,33 +477,30 @@ impl LineBreaker {
             true
         } else {
             debug!("LineBreaker: Found a new-line character, so splitting theline.");
-            match in_fragment.find_split_info_by_new_line() {
-                Some((left, right, run)) => {
-                    // TODO(bjz): Remove fragment splitting
-                    let split_fragment = |split: SplitInfo| {
-                        let info = ScannedTextFragmentInfo::new(run.clone(), split.range);
-                        let specific = ScannedTextFragment(info);
-                        let size = Size2D(split.width, in_fragment.border_box.size.height);
-                        in_fragment.transform(size, specific)
-                    };
 
-                    debug!("LineBreaker: Pushing the fragment to the left of the new-line character \
-                           to the line.");
-                    let mut left = split_fragment(left);
-                    left.new_line_pos = vec!();
-                    self.push_fragment_to_line(left);
+            let (left, right, run) = in_fragment.find_split_info_by_new_line()
+                .expect("LineBreaker: This split case makes no sense!");
 
-                    for right in right.move_iter() {
-                        debug!("LineBreaker: Deferring the fragment to the right of the new-line \
-                               character to the line.");
-                        let mut right = split_fragment(right);
-                        right.new_line_pos = in_fragment.new_line_pos.clone();
-                        self.work_list.push_front(right);
-                    }
-                },
-                None => {
-                    error!("LineBreaker: This split case makes no sense!")
-                },
+            // TODO(bjz): Remove fragment splitting
+            let split_fragment = |split: SplitInfo| {
+                let info = ScannedTextFragmentInfo::new(run.clone(), split.range);
+                let specific = ScannedTextFragment(info);
+                let size = Size2D(split.width, in_fragment.border_box.size.height);
+                in_fragment.transform(size, specific)
+            };
+
+            debug!("LineBreaker: Pushing the fragment to the left of the new-line character \
+                   to the line.");
+            let mut left = split_fragment(left);
+            left.new_line_pos = vec![];
+            self.push_fragment_to_line(left);
+
+            for right in right.move_iter() {
+                debug!("LineBreaker: Deferring the fragment to the right of the new-line \
+                       character to the line.");
+                let mut right = split_fragment(right);
+                right.new_line_pos = in_fragment.new_line_pos.clone();
+                self.work_list.push_front(right);
             }
             false
         }
@@ -511,7 +508,7 @@ impl LineBreaker {
 
     /// Tries to append the given fragment to the line, splitting it if necessary. Returns false only if
     /// we should break the line.
-    fn try_append_to_line(&mut self, in_fragment: Fragment, flow: &mut InlineFlow) -> bool {
+    fn try_append_to_line(&mut self, in_fragment: Fragment, flow: &InlineFlow) -> bool {
         let line_is_empty = self.pending_line.range.length() == num::zero();
         if line_is_empty {
             let (line_bounds, _) = self.initial_line_placement(&in_fragment, self.cur_y, flow);
@@ -639,13 +636,9 @@ pub struct FragmentIterator<'a> {
 impl<'a> Iterator<(&'a Fragment, InlineFragmentContext<'a>)> for FragmentIterator<'a> {
     #[inline]
     fn next(&mut self) -> Option<(&'a Fragment, InlineFragmentContext<'a>)> {
-        match self.iter.next() {
-            None => None,
-            Some((i, fragment)) => Some((
-                fragment,
-                InlineFragmentContext::new(self.ranges, FragmentIndex(i as int)),
-            )),
-        }
+        self.iter.next().map(|(i, fragment)| {
+            (fragment, InlineFragmentContext::new(self.ranges, FragmentIndex(i as int)))
+        })
     }
 }
 
@@ -658,13 +651,9 @@ pub struct MutFragmentIterator<'a> {
 impl<'a> Iterator<(&'a mut Fragment, InlineFragmentContext<'a>)> for MutFragmentIterator<'a> {
     #[inline]
     fn next(&mut self) -> Option<(&'a mut Fragment, InlineFragmentContext<'a>)> {
-        match self.iter.next() {
-            None => None,
-            Some((i, fragment)) => Some((
-                fragment,
-                InlineFragmentContext::new(self.ranges, FragmentIndex(i as int)),
-            )),
-        }
+        self.iter.next().map(|(i, fragment)| {
+            (fragment, InlineFragmentContext::new(self.ranges, FragmentIndex(i as int)))
+        })
     }
 }
 
@@ -868,22 +857,17 @@ impl InlineFragments {
 
     /// Strips ignorable whitespace from the start of a list of fragments.
     pub fn strip_ignorable_whitespace_from_start(&mut self) {
-        if self.is_empty() {
-            return;
-        }
+        if self.is_empty() { return }; // Fast path
 
-        // FIXME(#2264, pcwalton): This is slow because vector shift is broken. :(
-        let mut found_nonwhitespace = false;
-        let mut new_fragments = Vec::new();
-        for fragment in self.fragments.iter() {
-            if !found_nonwhitespace && fragment.is_whitespace_only() {
-                debug!("stripping ignorable whitespace from start");
-                continue;
-            }
-
-            found_nonwhitespace = true;
-            new_fragments.push(fragment.clone())
-        }
+        let new_fragments = mem::replace(&mut self.fragments, vec![])
+            .move_iter()
+            .skip_while(|fragment| {
+                let is_whitespace_only = fragment.is_whitespace_only();
+                if is_whitespace_only {
+                    debug!("stripping ignorable whitespace from start");
+                }
+                is_whitespace_only
+            }).collect();
 
         self.fixup(new_fragments);
     }
@@ -1072,15 +1056,14 @@ impl InlineFlow {
     /// construction.
     ///
     /// `style` is the style of the block.
-    pub fn compute_minimum_ascent_and_descent(&mut self,
+    pub fn compute_minimum_ascent_and_descent(&self,
                                               font_context: &mut FontContext,
-                                              style: &ComputedValues) {
+                                              style: &ComputedValues) -> (Au, Au) {
         let font_style = text::computed_style_to_font_style(style);
         let font_metrics = text::font_metrics_for_style(font_context, &font_style);
         let line_height = text::line_height_from_style(style, style.get_font().font_size);
         let inline_metrics = InlineMetrics::from_font_metrics(&font_metrics, line_height);
-        self.minimum_height_above_baseline = inline_metrics.height_above_baseline;
-        self.minimum_depth_below_baseline = inline_metrics.depth_below_baseline;
+        (inline_metrics.height_above_baseline, inline_metrics.depth_below_baseline)
     }
 }
 
@@ -1358,29 +1341,24 @@ struct InlineFragmentFixupWorkItem {
 pub struct RangeIterator<'a> {
     iter: Items<'a,InlineFragmentRange>,
     index: FragmentIndex,
-    seen_first: bool,
+    is_first: bool,
 }
 
 impl<'a> Iterator<&'a InlineFragmentRange> for RangeIterator<'a> {
     fn next(&mut self) -> Option<&'a InlineFragmentRange> {
-        if self.seen_first {
-            match self.iter.next() {
-                Some(fragment_range) if fragment_range.range.contains(self.index) => {
-                    return Some(fragment_range)
-                }
-                Some(_) | None => return None
-            }
-        }
-
-        loop {
-            match self.iter.next() {
-                None => return None,
-                Some(fragment_range) if fragment_range.range.contains(self.index) => {
-                    self.seen_first = true;
-                    return Some(fragment_range)
-                }
-                Some(_) => {}
-            }
+        if !self.is_first {
+            // Yield the next fragment range if it contains the index
+            self.iter.next().and_then(|frag_range| {
+                if frag_range.range.contains(self.index) { Some(frag_range) } else { None }
+            })
+        } else {
+            // Find the first fragment range that contains the index if it exists
+            let index = self.index;
+            let first = self.iter.by_ref().find(|frag_range| {
+                frag_range.range.contains(index)
+            });
+            self.is_first = false; // We have made our first iteration
+            first
         }
     }
 }
@@ -1403,10 +1381,20 @@ impl<'a> InlineFragmentContext<'a> {
     /// Iterates over all ranges that contain the fragment at context's index, outermost first.
     #[inline(always)]
     pub fn ranges(&self) -> RangeIterator<'a> {
+        // TODO: It would be more straightforward to return an existing iterator
+        // rather defining our own `RangeIterator`, but this requires unboxed
+        // closures in order to satisfy the borrow checker:
+        //
+        // ~~~rust
+        // let index = self.index;
+        // self.ranges.iter()
+        //     .skip_while(|fr| fr.range.contains(index))
+        //     .take_while(|fr| fr.range.contains(index))
+        // ~~~
         RangeIterator {
             iter: self.ranges.iter(),
             index: self.index,
-            seen_first: false,
+            is_first: true,
         }
     }
 }
