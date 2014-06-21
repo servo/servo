@@ -94,7 +94,21 @@ impl ByteString {
                         false
                     }
                 },
-                32 | 9 => { // SP | HT
+                32 => { // SP
+                    if prev == LF || prev == SPHT {
+                        prev = SPHT;
+                        true
+                    } else if prev == Other {
+                        // Counts as an Other here, since it's not preceded by a CRLF
+                        // SP is not a CTL, so it can be used anywhere
+                        // though if used immediately after a CR the CR is invalid
+                        // We don't change prev since it's already Other
+                        true
+                    } else {
+                        false
+                    }
+                },
+                9 => { // HT
                     if prev == LF || prev == SPHT {
                         prev = SPHT;
                         true
