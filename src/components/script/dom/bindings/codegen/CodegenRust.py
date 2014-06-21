@@ -1941,25 +1941,25 @@ class CGGetPerInterfaceObject(CGAbstractMethod):
     def definition_body(self):
         return CGGeneric("""
 
-  /* aGlobal and aReceiver are usually the same, but they can be different
-     too. For example a sandbox often has an xray wrapper for a window as the
-     prototype of the sandbox's global. In that case aReceiver is the xray
-     wrapper and aGlobal is the sandbox's global.
-   */
+/* aGlobal and aReceiver are usually the same, but they can be different
+   too. For example a sandbox often has an xray wrapper for a window as the
+   prototype of the sandbox's global. In that case aReceiver is the xray
+   wrapper and aGlobal is the sandbox's global.
+ */
 
-  assert!(((*JS_GetClass(aGlobal)).flags & JSCLASS_DOM_GLOBAL) != 0);
+assert!(((*JS_GetClass(aGlobal)).flags & JSCLASS_DOM_GLOBAL) != 0);
 
-  /* Check to see whether the interface objects are already installed */
-  let protoOrIfaceArray = GetProtoOrIfaceArray(aGlobal);
-  let cachedObject: *mut JSObject = *protoOrIfaceArray.offset(%s as int);
-  if cachedObject.is_null() {
-    let tmp: *mut JSObject = CreateInterfaceObjects(aCx, aGlobal, aReceiver);
-    assert!(tmp.is_not_null());
-    *protoOrIfaceArray.offset(%s as int) = tmp;
-    tmp
-  } else {
-    cachedObject
-  }""" % (self.id, self.id))
+/* Check to see whether the interface objects are already installed */
+let protoOrIfaceArray = GetProtoOrIfaceArray(aGlobal);
+let cachedObject: *mut JSObject = *protoOrIfaceArray.offset(%s as int);
+if cachedObject.is_null() {
+  let tmp: *mut JSObject = CreateInterfaceObjects(aCx, aGlobal, aReceiver);
+  assert!(tmp.is_not_null());
+  *protoOrIfaceArray.offset(%s as int) = tmp;
+  tmp
+} else {
+  cachedObject
+}""" % (self.id, self.id))
 
 class CGGetProtoObjectMethod(CGGetPerInterfaceObject):
     """
@@ -1969,12 +1969,12 @@ class CGGetProtoObjectMethod(CGGetPerInterfaceObject):
         CGGetPerInterfaceObject.__init__(self, descriptor, "GetProtoObject",
                                          "PrototypeList::", pub=True)
     def definition_body(self):
-        return CGList([
+        return CGIndenter(CGList([
             CGGeneric("""
-  /* Get the interface prototype object for this class.  This will create the
-     object as needed. */"""),
+/* Get the interface prototype object for this class.  This will create the
+   object as needed. */"""),
             CGGetPerInterfaceObject.definition_body(self),
-        ])
+        ]))
 
 class CGGetConstructorObjectMethod(CGGetPerInterfaceObject):
     """
@@ -1984,12 +1984,12 @@ class CGGetConstructorObjectMethod(CGGetPerInterfaceObject):
         CGGetPerInterfaceObject.__init__(self, descriptor, "GetConstructorObject",
                                          "constructors::")
     def definition_body(self):
-        return CGList([
+        return CGIndenter(CGList([
             CGGeneric("""
-  /* Get the interface object for this class.  This will create the object as
-     needed. */"""),
+/* Get the interface object for this class.  This will create the object as
+   needed. */"""),
             CGGetPerInterfaceObject.definition_body(self),
-        ])
+        ]))
 
 class CGDefineDOMInterfaceMethod(CGAbstractMethod):
     """
