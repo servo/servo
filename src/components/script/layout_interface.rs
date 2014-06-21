@@ -11,10 +11,10 @@ use dom::node::{Node, LayoutDataRef};
 
 use geom::point::Point2D;
 use geom::rect::Rect;
-use geom::size::TypedSize2D;
 use libc::c_void;
 use script_task::{ScriptChan};
-use servo_util::geometry::{Au, PagePx};
+use servo_msg::constellation_msg::WindowSizeData;
+use servo_util::geometry::Au;
 use std::cmp;
 use std::comm::{channel, Receiver, Sender};
 use style::Stylesheet;
@@ -137,7 +137,7 @@ pub struct Reflow {
     /// The channel through which messages can be sent back to the script task.
     pub script_chan: ScriptChan,
     /// The current window size.
-    pub window_size: TypedSize2D<PagePx, f32>,
+    pub window_size: WindowSizeData,
     /// The channel that we send a notification to.
     pub script_join_chan: Sender<()>,
     /// Unique identifier

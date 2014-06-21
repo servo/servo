@@ -6,7 +6,7 @@
 
 use windowing::{ApplicationMethods, WindowEvent, WindowMethods};
 use windowing::{IdleWindowEvent, ResizeWindowEvent, LoadUrlWindowEvent, MouseWindowEventClass,  MouseWindowMoveEventClass};
-use windowing::{ScrollWindowEvent, ZoomWindowEvent, NavigationWindowEvent, FinishedWindowEvent};
+use windowing::{ScrollWindowEvent, ZoomWindowEvent, PinchZoomWindowEvent, NavigationWindowEvent, FinishedWindowEvent};
 use windowing::{QuitWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent, MouseWindowMouseUpEvent};
 use windowing::RefreshWindowEvent;
 use windowing::{Forward, Back};
@@ -240,19 +240,33 @@ impl Window {
                     MouseWindowMoveEventClass(TypedPoint2D(xpos as f32, ypos as f32)));
             },
             glfw::ScrollEvent(xpos, ypos) => {
-                let dx = (xpos as f32) * 30.0;
-                let dy = (ypos as f32) * 30.0;
+                match (window.get_key(glfw::KeyLeftControl),
+                       window.get_key(glfw::KeyRightControl)) {
+                    (glfw::Press, _) | (_, glfw::Press) => {
+                        // Ctrl-Scrollwheel simulates a "pinch zoom" gesture.
+                        if ypos < 0.0 {
+                            self.event_queue.borrow_mut().push(PinchZoomWindowEvent(1.0/1.1));
+                        } else if ypos > 0.0 {
+                            self.event_queue.borrow_mut().push(PinchZoomWindowEvent(1.1));
+                        }
+                    },
+                    _ => {
+                        let dx = (xpos as f32) * 30.0;
+                        let dy = (ypos as f32) * 30.0;
 
-                let (x, y) = window.get_cursor_pos();
-                //handle hidpi displays, since GLFW returns non-hi-def coordinates.
-                let (backing_size, _) = window.get_framebuffer_size();
-                let (window_size, _) = window.get_size();
-                let hidpi = (backing_size as f32) / (window_size as f32);
-                let x = x as f32 * hidpi;
-                let y = y as f32 * hidpi;
+                        let (x, y) = window.get_cursor_pos();
+                        //handle hidpi displays, since GLFW returns non-hi-def coordinates.
+                        let (backing_size, _) = window.get_framebuffer_size();
+                        let (window_size, _) = window.get_size();
+                        let hidpi = (backing_size as f32) / (window_size as f32);
+                        let x = x as f32 * hidpi;
+                        let y = y as f32 * hidpi;
 
-                self.event_queue.borrow_mut().push(ScrollWindowEvent(TypedPoint2D(dx, dy),
-                                                                     TypedPoint2D(x as i32, y as i32)));
+                        self.event_queue.borrow_mut().push(ScrollWindowEvent(TypedPoint2D(dx, dy),
+                        TypedPoint2D(x as i32, y as i32)));
+                    }
+                }
+
             },
             _ => {}
         }
@@ -298,7 +312,7 @@ impl Window {
                 self.event_queue.borrow_mut().push(ZoomWindowEvent(1.1));
             }
             glfw::KeyMinus if mods.contains(glfw::Control) => { // Ctrl--
-                self.event_queue.borrow_mut().push(ZoomWindowEvent(0.90909090909));
+                self.event_queue.borrow_mut().push(ZoomWindowEvent(1.0/1.1));
             }
             glfw::KeyBackspace if mods.contains(glfw::Shift) => { // Shift-Backspace
                 self.event_queue.borrow_mut().push(NavigationWindowEvent(Forward));

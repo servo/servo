@@ -5,7 +5,6 @@
 use compositing::CompositorChan;
 use layout::layout_task::LayoutTask;
 
-use geom::size::TypedSize2D;
 use gfx::render_task::{PaintPermissionGranted, PaintPermissionRevoked};
 use gfx::render_task::{RenderChan, RenderTask};
 use script::layout_interface::LayoutChan;
@@ -13,9 +12,9 @@ use script::script_task::LoadMsg;
 use script::script_task::{AttachLayoutMsg, NewLayoutInfo, ScriptTask, ScriptChan};
 use script::script_task;
 use servo_msg::constellation_msg::{ConstellationChan, Failure, PipelineId, SubpageId};
+use servo_msg::constellation_msg::WindowSizeData;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
-use servo_util::geometry::PagePx;
 use servo_util::opts::Opts;
 use servo_util::time::ProfilerChan;
 use std::rc::Rc;
@@ -113,7 +112,7 @@ impl Pipeline {
                   image_cache_task: ImageCacheTask,
                   resource_task: ResourceTask,
                   profiler_chan: ProfilerChan,
-                  window_size: TypedSize2D<PagePx, f32>,
+                  window_size: WindowSizeData,
                   opts: Opts,
                   url: Url)
                   -> Pipeline {

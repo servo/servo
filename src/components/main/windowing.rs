@@ -43,6 +43,8 @@ pub enum WindowEvent {
     ScrollWindowEvent(TypedPoint2D<DevicePixel, f32>, TypedPoint2D<DevicePixel, i32>),
     /// Sent when the user zooms.
     ZoomWindowEvent(f32),
+    /// Simulated "pinch zoom" gesture for non-touch platforms (e.g. ctrl-scrollwheel).
+    PinchZoomWindowEvent(f32),
     /// Sent when the user uses chrome navigation (i.e. backspace or shift-backspace).
     NavigationWindowEvent(WindowNavigateMsg),
     /// Sent when rendering is finished.

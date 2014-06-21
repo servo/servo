@@ -32,7 +32,6 @@ use layout_interface;
 use page::{Page, IterablePage, Frame};
 
 use geom::point::Point2D;
-use geom::size::TypedSize2D;
 use js::jsapi::JS_CallFunctionValue;
 use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ, JS_GC};
 use js::jsapi::{JSContext, JSRuntime};
@@ -43,11 +42,11 @@ use js;
 use servo_msg::compositor_msg::{FinishedLoading, LayerId, Loading};
 use servo_msg::compositor_msg::{ScriptListener};
 use servo_msg::constellation_msg::{ConstellationChan, LoadCompleteMsg, LoadUrlMsg, NavigationDirection};
-use servo_msg::constellation_msg::{PipelineId, SubpageId, Failure, FailureMsg};
+use servo_msg::constellation_msg::{PipelineId, SubpageId, Failure, FailureMsg, WindowSizeData};
 use servo_msg::constellation_msg;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
-use servo_util::geometry::{PagePx, to_frac_px};
+use servo_util::geometry::to_frac_px;
 use servo_util::task::send_on_failure;
 use std::cell::RefCell;
 use std::comm::{channel, Sender, Receiver};
@@ -76,13 +75,13 @@ pub enum ScriptMsg {
     /// Sends a DOM event.
     SendEventMsg(PipelineId, Event_),
     /// Window resized.  Sends a DOM event eventually, but first we combine events.
-    ResizeMsg(PipelineId, TypedSize2D<PagePx, f32>),
+    ResizeMsg(PipelineId, WindowSizeData),
     /// Fires a JavaScript timeout.
     FireTimerMsg(PipelineId, TimerId),
     /// Notifies script that reflow is finished.
     ReflowCompleteMsg(PipelineId, uint),
     /// Notifies script that window has been resized but to not take immediate action.
-    ResizeInactiveMsg(PipelineId, TypedSize2D<PagePx, f32>),
+    ResizeInactiveMsg(PipelineId, WindowSizeData),
     /// Notifies the script that a pipeline should be closed.
     ExitPipelineMsg(PipelineId),
     /// Notifies the script that a window associated with a particular pipeline should be closed.
@@ -208,7 +207,7 @@ impl ScriptTask {
                constellation_chan: ConstellationChan,
                resource_task: ResourceTask,
                img_cache_task: ImageCacheTask,
-               window_size: TypedSize2D<PagePx, f32>)
+               window_size: WindowSizeData)
                -> Rc<ScriptTask> {
         let (js_runtime, js_context) = ScriptTask::new_rt_and_cx();
         let page = Page::new(id, None, layout_chan, window_size,
@@ -289,7 +288,7 @@ impl ScriptTask {
                   failure_msg: Failure,
                   resource_task: ResourceTask,
                   image_cache_task: ImageCacheTask,
-                  window_size: TypedSize2D<PagePx, f32>) {
+                  window_size: WindowSizeData) {
         let mut builder = TaskBuilder::new().named("ScriptTask");
         let ConstellationChan(const_chan) = constellation_chan.clone();
         send_on_failure(&mut builder, FailureMsg(failure_msg), const_chan);
@@ -463,7 +462,7 @@ impl ScriptTask {
     }
 
     /// Window was resized, but this script was not active, so don't reflow yet
-    fn handle_resize_inactive_msg(&self, id: PipelineId, new_size: TypedSize2D<PagePx, f32>) {
+    fn handle_resize_inactive_msg(&self, id: PipelineId, new_size: WindowSizeData) {
         let mut page = self.page.borrow_mut();
         let page = page.find(id).expect("Received resize message for PipelineId not associated
             with a page in the page tree. This is a bug.");
