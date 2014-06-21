@@ -168,7 +168,7 @@ class CGMethodCall(CGThing):
             # here for our one signature and not worry about switching
             # on anything.
             signature = signatures[0]
-            self.cgRoot = CGList([ CGIndenter(getPerSignatureCall(signature)) ])
+            self.cgRoot = CGList([getPerSignatureCall(signature)])
             requiredArgs = requiredArgCount(signature)
 
 
@@ -179,7 +179,7 @@ class CGMethodCall(CGThing):
                     "  return 0;\n"
                     "}" % (requiredArgs, methodName))
                 self.cgRoot.prepend(
-                    CGWrapper(CGIndenter(CGGeneric(code)), pre="\n", post="\n"))
+                    CGWrapper(CGGeneric(code), pre="\n", post="\n"))
                     
             return
 
@@ -359,7 +359,7 @@ class CGMethodCall(CGThing):
         #overloadCGThings.append(
         #    CGGeneric('fail!("We have an always-returning default case");\n'
         #              'return 0;'))
-        self.cgRoot = CGWrapper(CGIndenter(CGList(overloadCGThings, "\n")),
+        self.cgRoot = CGWrapper(CGList(overloadCGThings, "\n"),
                                 pre="\n")
 
     def define(self):
@@ -2384,8 +2384,8 @@ class CGSpecializedMethod(CGAbstractExternMethod):
 
     def definition_body(self):
         name = self.method.identifier.name
-        return CGWrapper(CGMethodCall([], MakeNativeName(name), self.method.isStatic(),
-                                      self.descriptor, self.method),
+        return CGWrapper(CGIndenter(CGMethodCall([], MakeNativeName(name), self.method.isStatic(),
+                                                 self.descriptor, self.method)),
                          pre="  let this = JS::from_raw(this);\n" +
                              "  let mut this = this.root();\n")
 
@@ -3780,8 +3780,8 @@ class CGClassConstructHook(CGAbstractExternMethod):
   let obj = global.deref().reflector().get_jsobject();
 """
         nativeName = MakeNativeName(self._ctor.identifier.name)
-        callGenerator = CGMethodCall(["&global.root_ref()"], nativeName, True,
-                                     self.descriptor, self._ctor)
+        callGenerator = CGIndenter(CGMethodCall(["&global.root_ref()"], nativeName, True,
+                                                self.descriptor, self._ctor))
         return preamble + callGenerator.define();
 
 class CGClassFinalizeHook(CGAbstractClassHook):
