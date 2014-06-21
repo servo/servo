@@ -7,7 +7,7 @@ h1, h2, h3, h4,
 h5, h6, noframes, 
 center, dir, 
 hr, menu, pre       { display: block; unicode-bidi: embed }
-    head            { display: none }
+    head, noscript  { display: none }
     table           { display: table }
     tr              { display: table-row }
     thead           { display: table-header-group }
