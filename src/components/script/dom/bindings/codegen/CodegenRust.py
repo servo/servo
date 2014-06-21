@@ -2384,10 +2384,10 @@ class CGSpecializedMethod(CGAbstractExternMethod):
 
     def definition_body(self):
         name = self.method.identifier.name
-        return CGWrapper(CGIndenter(CGMethodCall([], MakeNativeName(name), self.method.isStatic(),
-                                                 self.descriptor, self.method)),
-                         pre="  let this = JS::from_raw(this);\n" +
-                             "  let mut this = this.root();\n")
+        return CGIndenter(CGWrapper(CGMethodCall([], MakeNativeName(name), self.method.isStatic(),
+                                                 self.descriptor, self.method),
+                                    pre="let this = JS::from_raw(this);\n"
+                                        "let mut this = this.root();\n"))
 
 class CGGenericGetter(CGAbstractBindingMethod):
     """
@@ -2435,10 +2435,10 @@ class CGSpecializedGetter(CGAbstractExternMethod):
                                                             getter=True))
         if self.attr.type.nullable() or not infallible:
             nativeName = "Get" + nativeName
-        return CGWrapper(CGIndenter(CGGetterCall([], self.attr.type, nativeName,
-                                                 self.descriptor, self.attr)),
-                         pre="  let this = JS::from_raw(this);\n" +
-                             "  let mut this = this.root();\n")
+        return CGIndenter(CGWrapper(CGGetterCall([], self.attr.type, nativeName,
+                                                 self.descriptor, self.attr),
+                                    pre="let this = JS::from_raw(this);\n"
+                                        "let mut this = this.root();\n"))
 
 class CGGenericSetter(CGAbstractBindingMethod):
     """
@@ -2485,11 +2485,11 @@ class CGSpecializedSetter(CGAbstractExternMethod):
 
     def definition_body(self):
         name = self.attr.identifier.name
-        return CGWrapper(CGIndenter(CGSetterCall([], self.attr.type,
+        return CGIndenter(CGWrapper(CGSetterCall([], self.attr.type,
                                                  "Set" + MakeNativeName(name),
-                                                 self.descriptor, self.attr)),
-                         pre="  let this = JS::from_raw(this);\n" +
-                             "  let mut this = this.root();\n")
+                                                 self.descriptor, self.attr),
+                                    pre="let this = JS::from_raw(this);\n"
+                                        "let mut this = this.root();\n"))
 
 
 class CGMemberJITInfo(CGThing):
