@@ -9,7 +9,7 @@ use dom::document::Document;
 use dom::element::HTMLStyleElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, NodeMethods, ElementNodeTypeId, window_from_node};
+use dom::node::{Node, NodeMethods, NodeHelpers, ElementNodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use html::cssparse::parse_inline_css;
 use layout_interface::{AddStylesheetMsg, LayoutChan};
@@ -49,6 +49,11 @@ pub trait StyleElementHelpers {
 impl<'a> StyleElementHelpers for JSRef<'a, HTMLStyleElement> {
     fn parse_own_css(&self) {
         let node: &JSRef<Node> = NodeCast::from_ref(self);
+
+        if !node.is_in_doc() {
+            return;
+        }
+
         let win = window_from_node(node).root();
         let url = win.deref().page().get_url();
 
@@ -69,6 +74,14 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLStyleElement> {
         match self.super_type() {
             Some(ref s) => s.child_inserted(child),
             _ => (),
+        }
+        self.parse_own_css();
+    }
+
+    fn bind_to_tree(&self) {
+        match self.super_type() {
+            Some(ref s) => s.bind_to_tree(),
+            _ => ()
         }
         self.parse_own_css();
     }
