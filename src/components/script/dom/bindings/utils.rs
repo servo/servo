@@ -215,6 +215,13 @@ pub fn GetProtoOrIfaceArray(global: *mut JSObject) -> *mut *mut JSObject {
     }
 }
 
+pub struct NativeProperties {
+    pub methods: Option<&'static [JSFunctionSpec]>,
+    pub attrs: Option<&'static [JSPropertySpec]>,
+    pub consts: Option<&'static [ConstantSpec]>,
+    pub staticMethods: Option<&'static [JSFunctionSpec]>,
+}
+
 pub type NonNullJSNative =
     unsafe extern "C" fn (arg1: *mut JSContext, arg2: c_uint, arg3: *mut JSVal) -> JSBool;
 
