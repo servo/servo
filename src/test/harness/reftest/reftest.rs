@@ -10,6 +10,7 @@
 extern crate png;
 extern crate std;
 extern crate test;
+extern crate regex;
 
 use std::io;
 use std::io::{File, Reader, Command};
@@ -17,21 +18,24 @@ use std::io::process::ExitStatus;
 use std::os;
 use test::{DynTestName, DynTestFn, TestDesc, TestOpts, TestDescAndFn};
 use test::run_tests_console;
+use regex::Regex;
 
 fn main() {
     let args = os::args();
     let mut parts = args.tail().split(|e| "--" == e.as_slice());
 
-    let files = parts.next().unwrap();  // .split() is never empty
+    let harness_args = parts.next().unwrap();  // .split() is never empty
     let servo_args = parts.next().unwrap_or(&[]);
 
-    if files.len() == 0 {
-        fail!("error: at least one reftest list must be given");
-    }
+    let (manifest, testname) = match harness_args {
+      [] => fail!("error: at least one reftest list must be given"),
+      [ref manifest] => (manifest, None),
+      [ref manifest, ref testname, ..] => (manifest, Some(Regex::new(testname.as_slice()).unwrap())),
+    };
 
-    let tests = parse_lists(files, servo_args);
+    let tests = parse_lists(manifest, servo_args);
     let test_opts = TestOpts {
-        filter: None,
+        filter: testname,
         run_ignored: false,
         logfile: None,
         run_tests: true,
@@ -64,54 +68,52 @@ struct Reftest {
     servo_args: Vec<String>,
 }
 
-fn parse_lists(filenames: &[String], servo_args: &[String]) -> Vec<TestDescAndFn> {
+fn parse_lists(file: &String, servo_args: &[String]) -> Vec<TestDescAndFn> {
     let mut tests = Vec::new();
     let mut next_id = 0;
-    for file in filenames.iter() {
-        let file_path = Path::new(file.clone());
-        let contents = match File::open_mode(&file_path, io::Open, io::Read)
-            .and_then(|mut f| {
-                f.read_to_str()
-            }) {
-                Ok(s) => s,
-                _ => fail!("Could not read file"),
-            };
+    let file_path = Path::new(file.clone());
+    let contents = match File::open_mode(&file_path, io::Open, io::Read)
+       .and_then(|mut f| {
+             f.read_to_str()
+             }) {
+          Ok(s) => s,
+             _ => fail!("Could not read file"),
+       };
 
-        for line in contents.as_slice().lines() {
-            // ignore comments
-            if line.starts_with("#") {
-                continue;
-            }
+    for line in contents.as_slice().lines() {
+       // ignore comments
+       if line.starts_with("#") {
+          continue;
+       }
 
-            let parts: Vec<&str> = line.split(' ').filter(|p| !p.is_empty()).collect();
+       let parts: Vec<&str> = line.split(' ').filter(|p| !p.is_empty()).collect();
 
-            if parts.len() != 3 {
-                fail!("reftest line: '{:s}' doesn't match 'KIND LEFT RIGHT'", line);
-            }
+       if parts.len() != 3 {
+          fail!("reftest line: '{:s}' doesn't match 'KIND LEFT RIGHT'", line);
+       }
 
-            let kind = match parts.get(0) {
-                & "==" => Same,
-                & "!=" => Different,
-                &part => fail!("reftest line: '{:s}' has invalid kind '{:s}'",
-                               line, part)
-            };
-            let src_path = file_path.dir_path();
-            let src_dir = src_path.display().to_str();
-            let file_left =  src_dir.clone().append("/").append(*parts.get(1));
-            let file_right = src_dir.append("/").append(*parts.get(2));
+       let kind = match parts.get(0) {
+          & "==" => Same,
+             & "!=" => Different,
+             &part => fail!("reftest line: '{:s}' has invalid kind '{:s}'",
+                   line, part)
+       };
+       let src_path = file_path.dir_path();
+       let src_dir = src_path.display().to_str();
+       let file_left =  src_dir.clone().append("/").append(*parts.get(1));
+       let file_right = src_dir.append("/").append(*parts.get(2));
 
-            let reftest = Reftest {
-                name: parts.get(1).to_string().append(" / ").append(*parts.get(2)),
-                kind: kind,
-                files: [file_left, file_right],
-                id: next_id,
-                servo_args: servo_args.iter().map(|x| x.clone()).collect(),
-            };
+       let reftest = Reftest {
+name: parts.get(1).to_string().append(" / ").append(*parts.get(2)),
+         kind: kind,
+         files: [file_left, file_right],
+         id: next_id,
+         servo_args: servo_args.iter().map(|x| x.clone()).collect(),
+       };
 
-            next_id += 1;
+       next_id += 1;
 
-            tests.push(make_test(reftest));
-        }
+       tests.push(make_test(reftest));
     }
     tests
 }
