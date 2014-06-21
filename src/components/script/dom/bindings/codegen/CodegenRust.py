@@ -3772,17 +3772,14 @@ class CGClassConstructHook(CGAbstractExternMethod):
         return CGAbstractExternMethod.define(self)
 
     def definition_body(self):
-        return CGGeneric(self.generate_code())
-
-    def generate_code(self):
-        preamble = """
-  let global = global_object_for_js_object(JS_CALLEE(cx, vp).to_object()).root();
-  let obj = global.deref().reflector().get_jsobject();
-"""
+        preamble = CGGeneric("""
+let global = global_object_for_js_object(JS_CALLEE(cx, vp).to_object()).root();
+let obj = global.deref().reflector().get_jsobject();
+""")
         nativeName = MakeNativeName(self._ctor.identifier.name)
-        callGenerator = CGIndenter(CGMethodCall(["&global.root_ref()"], nativeName, True,
-                                                self.descriptor, self._ctor))
-        return preamble + callGenerator.define();
+        callGenerator = CGMethodCall(["&global.root_ref()"], nativeName, True,
+                                     self.descriptor, self._ctor)
+        return CGIndenter(CGList([preamble, callGenerator]))
 
 class CGClassFinalizeHook(CGAbstractClassHook):
     """
