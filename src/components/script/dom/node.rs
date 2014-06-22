@@ -1814,7 +1814,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                 other_element.attrs.borrow().iter().map(|attr| attr.root()).any(|other_attr| {
                     (attr.namespace == other_attr.namespace) &&
                     (attr.local_name == other_attr.local_name) &&
-                    (attr.deref().value_ref() == other_attr.deref().value_ref())
+                    (attr.deref().value().as_slice() == other_attr.deref().value().as_slice())
                 })
             })
         }

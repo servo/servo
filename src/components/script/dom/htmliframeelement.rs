@@ -69,7 +69,7 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
         element.get_attribute(Null, "src").root().and_then(|src| {
             let window = window_from_node(self).root();
-            try_parse_url(src.deref().value_ref(),
+            try_parse_url(src.deref().value().as_slice(),
                           Some(window.deref().page().get_url())).ok()
         })
     }

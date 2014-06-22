@@ -4,7 +4,7 @@
 
 //! Element nodes.
 
-use dom::attr::{Attr, ReplacedAttr, FirstSetAttr, AttrMethods};
+use dom::attr::{Attr, ReplacedAttr, FirstSetAttr, AttrMethods, AttrHelpersForLayout};
 use dom::attr::{AttrValue, StringAttrValue, UIntAttrValue};
 use dom::attrlist::AttrList;
 use dom::bindings::codegen::Bindings::ElementBinding;
@@ -176,7 +176,7 @@ impl RawLayoutElementHelpers for Element {
             name == (*attr).local_name.as_slice() && (*attr).namespace == *namespace
         }).map(|attr| {
             let attr = attr.unsafe_get();
-            mem::transmute((*attr).value_ref())
+            (*attr).value_ref_forever()
         })
     }
 }
@@ -868,7 +868,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
 impl<'a> style::TElement for JSRef<'a, Element> {
     fn get_attr(&self, namespace: &Namespace, attr: &str) -> Option<&'static str> {
         self.get_attribute(namespace.clone(), attr).root().map(|attr| {
-            unsafe { mem::transmute(attr.deref().value_ref()) }
+            unsafe { mem::transmute(attr.deref().value().as_slice()) }
         })
     }
     fn get_link(&self) -> Option<&'static str> {

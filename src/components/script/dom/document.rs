@@ -694,7 +694,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
             let element: &JSRef<Element> = ElementCast::to_ref(node).unwrap();
             element.get_attribute(Null, "name").root().map_or(false, |mut attr| {
-                attr.value_ref() == name.as_slice()
+                attr.value().as_slice() == name.as_slice()
             })
         })
     }
