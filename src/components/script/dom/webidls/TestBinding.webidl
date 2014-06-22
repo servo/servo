@@ -266,4 +266,7 @@ interface TestBinding {
   void passVariadicUnion2((Event or DOMString)... args);
   void passVariadicUnion3((Blob or DOMString)... args);
   void passVariadicAny(any... args);
+
+  static attribute boolean booleanAttributeStatic;
+  static void receiveVoidStatic();
 };

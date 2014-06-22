@@ -296,6 +296,12 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     }
 }
 
+impl TestBinding {
+    pub fn BooleanAttributeStatic() -> bool { false }
+    pub fn SetBooleanAttributeStatic(_: bool) {}
+    pub fn ReceiveVoidStatic() {}
+}
+
 impl Reflectable for TestBinding {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         &self.reflector
