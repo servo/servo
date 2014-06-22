@@ -132,7 +132,11 @@ impl FontListHandle {
     }
 
     pub fn get_last_resort_font_families() -> Vec<String> {
-        vec!("Arial".to_string())
+        vec!(
+            "Fira Sans".to_string(),
+            "DejaVu Sans".to_string(),
+            "Arial".to_string()
+        )
     }
 }
 
