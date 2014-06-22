@@ -432,24 +432,10 @@ impl<'a, 'b, T: Reflectable> Deref<JSRef<'b, T>> for Root<'a, 'b, T> {
     }
 }
 
-impl<'a, 'b, T: Reflectable> DerefMut<JSRef<'b, T>> for Root<'a, 'b, T> {
-    fn deref_mut<'c>(&'c mut self) -> &'c mut JSRef<'b, T> {
-        &mut self.jsref
-    }
-}
-
 impl<'a, T: Reflectable> Deref<T> for JSRef<'a, T> {
     fn deref<'b>(&'b self) -> &'b T {
         unsafe {
             &*self.ptr
-        }
-    }
-}
-
-impl<'a, T: Reflectable> DerefMut<T> for JSRef<'a, T> {
-    fn deref_mut<'b>(&'b mut self) -> &'b mut T {
-        unsafe {
-            &mut *(self.ptr as *mut T)
         }
     }
 }

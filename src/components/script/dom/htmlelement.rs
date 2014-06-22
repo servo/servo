@@ -105,7 +105,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLElement> {
         }
 
         if name.as_slice().starts_with("on") {
-            let mut window = window_from_node(self).root();
+            let window = window_from_node(self).root();
             let (cx, url, reflector) = (window.get_cx(),
                                         window.get_url(),
                                         window.reflector().get_jsobject());

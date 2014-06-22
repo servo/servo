@@ -76,7 +76,7 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
         let win = self.owner.root();
 
         // Step 1.
-        let mut doc = Document::new(&win.root_ref(), None, NonHTMLDocument, None).root();
+        let doc = Document::new(&win.root_ref(), None, NonHTMLDocument, None).root();
         // Step 2-3.
         let maybe_elem = if qname.is_empty() {
             None

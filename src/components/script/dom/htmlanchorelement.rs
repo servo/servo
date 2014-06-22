@@ -58,7 +58,7 @@ impl<'a> PrivateHTMLAnchorElementHelpers for JSRef<'a, HTMLAnchorElement> {
                     let value = href.Value();
                     debug!("clicked on link to {:s}", value);
                     let node: &JSRef<Node> = NodeCast::from_ref(self);
-                    let mut doc = node.owner_doc().root();
+                    let doc = node.owner_doc().root();
                     doc.load_anchor_href(value);
                 }
                 None => ()
