@@ -173,6 +173,7 @@ pub mod dom {
     pub mod validitystate;
     pub mod virtualmethods;
     pub mod window;
+    pub mod worker;
     pub mod xmlhttprequest;
     pub mod xmlhttprequesteventtarget;
     pub mod xmlhttprequestupload;
