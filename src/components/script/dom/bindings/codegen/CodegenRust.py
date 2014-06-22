@@ -2396,11 +2396,16 @@ class CGSpecializedMethod(CGAbstractExternMethod):
         CGAbstractExternMethod.__init__(self, descriptor, name, 'JSBool', args)
 
     def definition_body(self):
-        name = self.method.identifier.name
-        return CGWrapper(CGMethodCall([], MakeNativeName(name), self.method.isStatic(),
+        nativeName = CGSpecializedMethod.makeNativeName(self.descriptor,
+                                                        self.method)
+        return CGWrapper(CGMethodCall([], nativeName, self.method.isStatic(),
                                       self.descriptor, self.method),
                          pre="let this = JS::from_raw(this);\n"
                              "let mut this = this.root();\n")
+
+    @staticmethod
+    def makeNativeName(descriptor, method):
+        return MakeNativeName(method.identifier.name)
 
 class CGGenericGetter(CGAbstractBindingMethod):
     """
@@ -2441,17 +2446,24 @@ class CGSpecializedGetter(CGAbstractExternMethod):
         CGAbstractExternMethod.__init__(self, descriptor, name, "JSBool", args)
 
     def definition_body(self):
-        name = self.attr.identifier.name
-        nativeName = MakeNativeName(name)
-        infallible = ('infallible' in
-                      self.descriptor.getExtendedAttributes(self.attr,
-                                                            getter=True))
-        if self.attr.type.nullable() or not infallible:
-            nativeName = "Get" + nativeName
+        nativeName = CGSpecializedGetter.makeNativeName(self.descriptor,
+                                                        self.attr)
+
         return CGWrapper(CGGetterCall([], self.attr.type, nativeName,
                                       self.descriptor, self.attr),
                          pre="let this = JS::from_raw(this);\n"
                              "let mut this = this.root();\n")
+
+    @staticmethod
+    def makeNativeName(descriptor, attr):
+        nativeName = MakeNativeName(attr.identifier.name)
+        infallible = ('infallible' in
+                      descriptor.getExtendedAttributes(attr, getter=True))
+        if attr.type.nullable() or not infallible:
+            return "Get" + nativeName
+
+        return nativeName
+
 
 class CGGenericSetter(CGAbstractBindingMethod):
     """
@@ -2497,13 +2509,16 @@ class CGSpecializedSetter(CGAbstractExternMethod):
         CGAbstractExternMethod.__init__(self, descriptor, name, "JSBool", args)
 
     def definition_body(self):
-        name = self.attr.identifier.name
-        return CGWrapper(CGSetterCall([], self.attr.type,
-                                      "Set" + MakeNativeName(name),
+        nativeName = CGSpecializedSetter.makeNativeName(self.descriptor,
+                                                        self.attr)
+        return CGWrapper(CGSetterCall([], self.attr.type, nativeName,
                                       self.descriptor, self.attr),
                          pre="let this = JS::from_raw(this);\n"
                              "let mut this = this.root();\n")
 
+    @staticmethod
+    def makeNativeName(descriptor, attr):
+        return "Set" + MakeNativeName(attr.identifier.name)
 
 class CGMemberJITInfo(CGThing):
     """
