@@ -1137,7 +1137,7 @@ impl Node {
         for node in nodes.mut_iter() {
             parent.add_child(node, child);
             let is_in_doc = parent.is_in_doc();
-            for mut kid in node.traverse_preorder() {
+            for kid in node.traverse_preorder() {
                 if is_in_doc {
                     kid.flags.deref().borrow_mut().insert(IsInDoc);
                 } else {
@@ -1248,7 +1248,7 @@ impl Node {
 
         // Step 2.
         // XXXabinader: clone() for each node as trait?
-        let mut copy: Root<Node> = match node.type_id() {
+        let copy: Root<Node> = match node.type_id() {
             DoctypeNodeTypeId => {
                 let doctype: &JSRef<DocumentType> = DocumentTypeCast::to_ref(node).unwrap();
                 let doctype = doctype.deref();

@@ -379,7 +379,7 @@ pub fn parse_html(page: &Page,
                 SvgNs => namespace::SVG,
                 ns => fail!("Not expecting namespace {:?}", ns),
             };
-            let mut element: Root<Element> = build_element_from_tag(tag.name.clone(), namespace, *tmp).root();
+            let element: Root<Element> = build_element_from_tag(tag.name.clone(), namespace, *tmp).root();
 
             debug!("-- attach attrs");
             for attr in tag.attributes.iter() {

@@ -540,11 +540,11 @@ impl ScriptTask {
         let cx = self.js_context.borrow();
         let cx = cx.get_ref();
         // Create the window and document objects.
-        let mut window = Window::new(cx.deref().ptr,
-                                     page.clone(),
-                                     self.chan.clone(),
-                                     self.compositor.dup(),
-                                     self.image_cache_task.clone()).root();
+        let window = Window::new(cx.deref().ptr,
+                                 page.clone(),
+                                 self.chan.clone(),
+                                 self.compositor.dup(),
+                                 self.image_cache_task.clone()).root();
         let document = Document::new(&*window, Some(url.clone()), HTMLDocument, None).root();
         window.deref().init_browser_context(&*document);
 
@@ -679,7 +679,7 @@ impl ScriptTask {
                 };
 
                 match window.root() {
-                    Some(mut window) => {
+                    Some(window) => {
                         // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
                         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#event-type-resize
                         let uievent = UIEvent::new(&window.clone(),

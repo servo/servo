@@ -186,7 +186,7 @@ impl<'a> DocumentHelpers for JSRef<'a, Document> {
     }
 
     fn load_anchor_href(&self, href: DOMString) {
-        let mut window = self.window.root();
+        let window = self.window.root();
         window.load_url(href);
     }
 }
@@ -197,7 +197,7 @@ impl Document {
                             wrap_fn: extern "Rust" fn(*mut JSContext, &JSRef<Window>, Box<Document>) -> JS<Document>)
              -> Temporary<Document> {
         assert!(document.reflector().get_jsobject().is_null());
-        let mut raw_doc = reflect_dom_object(document, window, wrap_fn).root();
+        let raw_doc = reflect_dom_object(document, window, wrap_fn).root();
         assert!(raw_doc.reflector().get_jsobject().is_not_null());
 
         let doc_alias = raw_doc.clone();
@@ -693,7 +693,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             }
 
             let element: &JSRef<Element> = ElementCast::to_ref(node).unwrap();
-            element.get_attribute(Null, "name").root().map_or(false, |mut attr| {
+            element.get_attribute(Null, "name").root().map_or(false, |attr| {
                 attr.value().as_slice() == name.as_slice()
             })
         })
@@ -804,7 +804,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     }
 
     fn Location(&self) -> Temporary<Location> {
-        let mut window = self.window.root();
+        let window = self.window.root();
         window.Location()
     }
 

@@ -76,7 +76,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLBodyElement> {
                   "onbeforeunload", "onhashchange", "onlanguagechange", "onmessage",
                   "onoffline", "ononline", "onpagehide", "onpageshow", "onpopstate",
                   "onstorage", "onresize", "onunload", "onerror"];
-            let mut window = window_from_node(self).root();
+            let window = window_from_node(self).root();
             let (cx, url, reflector) = (window.get_cx(),
                                         window.get_url(),
                                         window.reflector().get_jsobject());

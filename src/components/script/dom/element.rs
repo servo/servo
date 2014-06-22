@@ -794,7 +794,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
             "id" => {
                 let node: &JSRef<Node> = NodeCast::from_ref(self);
                 if node.is_in_doc() {
-                    let mut doc = document_from_node(self).root();
+                    let doc = document_from_node(self).root();
                     doc.register_named_element(self, value.clone());
                 }
             }
@@ -817,7 +817,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
             "id" => {
                 let node: &JSRef<Node> = NodeCast::from_ref(self);
                 if node.is_in_doc() {
-                    let mut doc = document_from_node(self).root();
+                    let doc = document_from_node(self).root();
                     doc.unregister_named_element(self, value);
                 }
             }
