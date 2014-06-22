@@ -82,12 +82,12 @@ check-servo: $(foreach lib_crate,$(SERVO_LIB_CRATES),check-servo-$(lib_crate)) s
 .PHONY: check-ref-cpu
 check-ref-cpu: reftest
 	@$(call E, check: reftests with CPU rendering)
-	$(Q)./reftest $(S)src/test/ref/*.list -- -c
+	$(Q)./reftest $(S)src/test/ref/basic.list $(TESTNAME) -- -c
 
 .PHONY: check-ref-gpu
 check-ref-gpu: reftest
 	@$(call E, check: reftests with GPU rendering)
-	$(Q)./reftest $(S)src/test/ref/*.list
+	$(Q)./reftest $(S)src/test/ref/basic.list $(TESTNAME)
 
 .PHONY: check-ref
 check-ref: check-ref-cpu check-ref-gpu
