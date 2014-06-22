@@ -301,7 +301,6 @@ impl<C:RenderListener + Send> RenderTask<C> {
 
             spawn(proc() {
                 let mut buffer_map = buffer_map;
-                let mut native_graphics_context = native_graphics_context;
                 loop {
                     let render_msg: WorkerMsg = rx.recv();
                     let render_data = match render_msg {
