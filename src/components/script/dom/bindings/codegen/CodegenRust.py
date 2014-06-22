@@ -1064,9 +1064,10 @@ class PropertyDefiner:
         self.name = name
 
     def variableName(self):
-        if len(self.regular) > 0:
-            return "s" + self.name
-        return "ptr::null()"
+        return "s" + self.name
+
+    def length(self):
+        return len(self.regular)
 
     def __str__(self):
         # We only need to generate id arrays for things that will end
@@ -1101,9 +1102,9 @@ class PropertyDefiner:
         if specTerminator:
             specs.append(specTerminator)
 
-        return (("static %s: [%s, ..%i] = [\n" +
+        return (("static %s: &'static [%s] = &[\n" +
                  ",\n".join(specs) + "\n" +
-                 "];\n\n") % (name, specType, len(specs)))
+                 "];\n\n") % (name, specType))
 
 # The length of a method is the maximum of the lengths of the
 # argument lists of all its overloads.
@@ -1853,6 +1854,31 @@ class PropertyArrays():
             define += str(getattr(self, array))
         return define
 
+
+class CGNativeProperties(CGThing):
+    def __init__(self, descriptor, properties):
+        CGThing.__init__(self)
+        self.properties = properties
+
+    def define(self):
+        def getField(array):
+            propertyArray = getattr(self.properties, array)
+            if propertyArray.length() > 0:
+                value = "Some(%s)" % propertyArray.variableName()
+            else:
+                value = "None"
+
+            return CGGeneric(string.Template('${name}: ${value},').substitute({
+                'name': array,
+                'value': value,
+            }))
+
+        nativeProps = CGList([getField(array) for array in self.properties.arrayNames()], '\n')
+        return CGWrapper(CGIndenter(nativeProps),
+                         pre="static sNativeProperties: NativeProperties = NativeProperties {\n",
+                         post="\n};\n").define()
+
+
 class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
     """
     Generate the CreateInterfaceObjects method for an interface descriptor.
@@ -1890,12 +1916,6 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
         else:
             domClass = "ptr::null()"
 
-        def arrayPtr(name):
-            val = ('%(' + name + ')s') % self.properties.variableNames()
-            if val == "ptr::null()":
-                return "None"
-            return "Some(%s.as_slice())" % val
-
         if needInterfaceObject:
             if self.descriptor.interface.ctor():
                 constructHook = CONSTRUCT_HOOK_NAME
@@ -1913,14 +1933,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
         call = """return CreateInterfaceObjects2(aCx, aGlobal, aReceiver, parentProto,
                                &PrototypeClass, %s,
                                %s,
-                               %s,
-                               %s,
-                               %s,
-                               %s);""" % (
-            constructor,
-            domClass,
-            arrayPtr("methods"), arrayPtr("attrs"),
-            arrayPtr("consts"), arrayPtr("staticMethods"))
+                               &sNativeProperties);""" % (constructor, domClass)
 
         return CGList([
             CGGeneric(getParentProto),
@@ -3863,6 +3876,7 @@ class CGDescriptor(CGThing):
 
         properties = PropertyArrays(descriptor)
         cgThings.append(CGGeneric(str(properties)))
+        cgThings.append(CGNativeProperties(descriptor, properties))
         cgThings.append(CGCreateInterfaceObjectsMethod(descriptor, properties))
 
         cgThings.append(CGNamespace.build([descriptor.name + "Constants"],
@@ -4233,6 +4247,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::utils::{ThrowingConstructor,  unwrap, unwrap_jsmanaged}',
             'dom::bindings::utils::VoidVal',
             'dom::bindings::utils::get_dictionary_property',
+            'dom::bindings::utils::NativeProperties',
             'dom::bindings::trace::JSTraceable',
             'dom::bindings::callback::{CallbackContainer,CallbackInterface,CallbackFunction}',
             'dom::bindings::callback::{CallSetup,ExceptionHandling}',
