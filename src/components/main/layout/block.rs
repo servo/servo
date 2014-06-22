@@ -1815,7 +1815,7 @@ pub trait WidthAndMarginsComputer {
     fn set_width_constraint_solutions(&self,
                                       block: &mut BlockFlow,
                                       solution: WidthConstraintSolution) {
-        let mut width = Au(0);
+        let width;
         {
             let fragment = block.fragment();
             fragment.margin.left = solution.margin_left;
