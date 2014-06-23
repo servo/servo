@@ -134,7 +134,7 @@ impl ImageFragmentInfo {
     /// me.
     pub fn new(node: &ThreadSafeLayoutNode,
                image_url: Url,
-               local_image_cache: Arc<Mutex<Box<LocalImageCache>>>)
+               local_image_cache: Arc<Mutex<LocalImageCache>>)
                -> ImageFragmentInfo {
         fn convert_length(node: &ThreadSafeLayoutNode, name: &str) -> Option<Au> {
             let element = node.as_element();

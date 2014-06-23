@@ -85,7 +85,7 @@ pub struct LayoutTask {
     pub image_cache_task: ImageCacheTask,
 
     /// The local image cache.
-    pub local_image_cache: Arc<Mutex<Box<LocalImageCache>>>,
+    pub local_image_cache: Arc<Mutex<LocalImageCache>>,
 
     /// The size of the viewport.
     pub screen_size: Size2D<Au>,
@@ -312,7 +312,7 @@ impl LayoutTask {
            opts: &Opts,
            profiler_chan: ProfilerChan)
            -> LayoutTask {
-        let local_image_cache = Arc::new(Mutex::new(box LocalImageCache(image_cache_task.clone())));
+        let local_image_cache = Arc::new(Mutex::new(LocalImageCache(image_cache_task.clone())));
         let screen_size = Size2D(Au(0), Au(0));
         let parallel_traversal = if opts.layout_threads != 1 {
             Some(WorkQueue::new("LayoutWorker", opts.layout_threads, ptr::mut_null()))

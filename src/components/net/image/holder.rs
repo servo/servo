@@ -22,11 +22,11 @@ pub struct ImageHolder {
     url: Url,
     image: Option<Arc<Box<Image>>>,
     cached_size: Size2D<int>,
-    local_image_cache: Arc<Mutex<Box<LocalImageCache>>>,
+    local_image_cache: Arc<Mutex<LocalImageCache>>,
 }
 
 impl ImageHolder {
-    pub fn new(url: Url, local_image_cache: Arc<Mutex<Box<LocalImageCache>>>) -> ImageHolder {
+    pub fn new(url: Url, local_image_cache: Arc<Mutex<LocalImageCache>>) -> ImageHolder {
         debug!("ImageHolder::new() {}", url.to_str());
         let holder = ImageHolder {
             url: url,

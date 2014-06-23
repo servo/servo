@@ -55,7 +55,7 @@ local_data_key!(style_sharing_candidate_cache: *mut StyleSharingCandidateCache)
 #[deriving(Clone)]
 pub struct LayoutContext {
     /// The local image cache.
-    pub image_cache: Arc<Mutex<Box<LocalImageCache>>>,
+    pub image_cache: Arc<Mutex<LocalImageCache>>,
 
     /// The current screen size.
     pub screen_size: Size2D<Au>,
