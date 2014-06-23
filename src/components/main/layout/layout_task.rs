@@ -43,7 +43,6 @@ use script::layout_interface::{ReflowForDisplay, ReflowMsg};
 use script::script_task::{ReflowCompleteMsg, ScriptChan, SendEventMsg};
 use servo_msg::compositor_msg::Scrollable;
 use servo_msg::constellation_msg::{ConstellationChan, PipelineId, Failure, FailureMsg};
-use servo_net::image::holder::LocalImageCacheHandle;
 use servo_net::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use servo_net::local_image_cache::{ImageResponder, LocalImageCache};
 use servo_util::geometry::Au;
@@ -86,7 +85,7 @@ pub struct LayoutTask {
     pub image_cache_task: ImageCacheTask,
 
     /// The local image cache.
-    pub local_image_cache: LocalImageCacheHandle,
+    pub local_image_cache: Arc<Mutex<LocalImageCache>>,
 
     /// The size of the viewport.
     pub screen_size: Size2D<Au>,
@@ -313,12 +312,7 @@ impl LayoutTask {
            opts: &Opts,
            profiler_chan: ProfilerChan)
            -> LayoutTask {
-        let local_image_cache = box LocalImageCache(image_cache_task.clone());
-        let local_image_cache = unsafe {
-            let cache = Arc::new(Mutex::new(
-                mem::transmute::<Box<LocalImageCache>, *()>(local_image_cache)));
-            LocalImageCacheHandle::new(mem::transmute::<Arc<Mutex<*()>>,Arc<*()>>(cache))
-        };
+        let local_image_cache = Arc::new(Mutex::new(LocalImageCache(image_cache_task.clone())));
         let screen_size = Size2D(Au(0), Au(0));
         let parallel_traversal = if opts.layout_threads != 1 {
             Some(WorkQueue::new("LayoutWorker", opts.layout_threads, ptr::mut_null()))
@@ -570,7 +564,7 @@ impl LayoutTask {
 
         {
             // Reset the image cache.
-            let mut local_image_cache = self.local_image_cache.get().lock();
+            let mut local_image_cache = self.local_image_cache.lock();
             local_image_cache.next_round(self.make_on_image_available_cb());
         }
 

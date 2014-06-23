@@ -14,9 +14,10 @@ use gfx::font_context::{FontContext, FontContextInfo};
 use green::task::GreenTask;
 use script::layout_interface::LayoutChan;
 use servo_msg::constellation_msg::ConstellationChan;
-use servo_net::image::holder::LocalImageCacheHandle;
+use servo_net::local_image_cache::LocalImageCache;
 use servo_util::geometry::Au;
 use servo_util::opts::Opts;
+use sync::{Arc, Mutex};
 use std::mem;
 #[cfg(not(target_os="android"))]
 use std::ptr;
@@ -54,7 +55,7 @@ local_data_key!(style_sharing_candidate_cache: *mut StyleSharingCandidateCache)
 #[deriving(Clone)]
 pub struct LayoutContext {
     /// The local image cache.
-    pub image_cache: LocalImageCacheHandle,
+    pub image_cache: Arc<Mutex<LocalImageCache>>,
 
     /// The current screen size.
     pub screen_size: Size2D<Au>,

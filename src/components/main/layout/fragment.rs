@@ -33,7 +33,8 @@ use gfx::font::FontStyle;
 use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::TextRun;
 use servo_msg::constellation_msg::{ConstellationChan, FrameRectMsg, PipelineId, SubpageId};
-use servo_net::image::holder::{ImageHolder, LocalImageCacheHandle};
+use servo_net::image::holder::ImageHolder;
+use servo_net::local_image_cache::LocalImageCache;
 use servo_util::geometry::Au;
 use servo_util::geometry;
 use servo_util::range::*;
@@ -49,7 +50,7 @@ use style::{ComputedValues, TElement, TNode, cascade_anonymous};
 use style::computed_values::{LengthOrPercentageOrAuto, overflow, LPA_Auto, background_attachment};
 use style::computed_values::{background_repeat, border_style, clear, position, text_align};
 use style::computed_values::{text_decoration, vertical_align, visibility, white_space};
-use sync::Arc;
+use sync::{Arc, Mutex};
 use url::Url;
 
 /// Fragments (`struct Fragment`) are the leaves of the layout tree. They cannot position themselves. In
@@ -133,7 +134,7 @@ impl ImageFragmentInfo {
     /// me.
     pub fn new(node: &ThreadSafeLayoutNode,
                image_url: Url,
-               local_image_cache: LocalImageCacheHandle)
+               local_image_cache: Arc<Mutex<LocalImageCache>>)
                -> ImageFragmentInfo {
         fn convert_length(node: &ThreadSafeLayoutNode, name: &str) -> Option<Au> {
             let element = node.as_element();
