@@ -160,19 +160,6 @@ impl FontHandleMethods for FontHandle {
         }
     }
 
-    fn clone_with_style(&self,
-                        fctx: &FontContextHandle,
-                        style: &UsedFontStyle) -> Result<FontHandle, ()> {
-        match self.source {
-            FontSourceMem(ref buf) => {
-                FontHandleMethods::new_from_buffer(fctx, buf.clone(), style)
-            }
-            FontSourceFile(ref file) => {
-                FontHandle::new_from_file(fctx, file.as_slice(), style)
-            }
-        }
-    }
-
     fn glyph_index(&self,
                        codepoint: char) -> Option<GlyphId> {
         assert!(self.face.is_not_null());

@@ -119,12 +119,6 @@ impl FontHandleMethods for FontHandle {
         return font_weight::Weight900;
     }
 
-    fn clone_with_style(&self, fctx: &FontContextHandle, style: &SpecifiedFontStyle)
-                     -> Result<FontHandle,()> {
-        let new_font = self.ctfont.clone_with_font_size(style.pt_size);
-        return FontHandle::new_from_CTFont(fctx, new_font);
-    }
-
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {
         let characters: [UniChar,  ..1] = [codepoint as UniChar];
         let glyphs: [CGGlyph, ..1] = [0 as CGGlyph];
