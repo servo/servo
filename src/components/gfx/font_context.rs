@@ -54,11 +54,12 @@ impl FontContext {
 
         // TODO: Allow users to specify these.
         let mut generic_fonts = HashMap::with_capacity(5);
-        generic_fonts.insert("serif".to_string(), "Times New Roman".to_string());
-        generic_fonts.insert("sans-serif".to_string(), "Arial".to_string());
-        generic_fonts.insert("cursive".to_string(), "Apple Chancery".to_string());
-        generic_fonts.insert("fantasy".to_string(), "Papyrus".to_string());
-        generic_fonts.insert("monospace".to_string(), "Menlo".to_string());
+        generic_fonts.insert("serif".to_string(), "Liberation Serif".to_string());
+        generic_fonts.insert("sans-serif".to_string(), "Liberation Sans".to_string());
+        generic_fonts.insert("monospace".to_string(), "Liberation Mono".to_string());
+        // TODO: better fallback for these
+        generic_fonts.insert("cursive".to_string(), "Liberation Sans".to_string());
+        generic_fonts.insert("fantasy".to_string(), "Liberation Sans".to_string());
 
         FontContext {
             instance_cache: LRUCache::new(10),
