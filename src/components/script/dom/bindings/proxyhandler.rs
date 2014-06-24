@@ -6,11 +6,13 @@ use dom::bindings::utils::is_dom_proxy;
 use js::jsapi::{JSContext, jsid, JSPropertyDescriptor, JSObject, JSString, jschar};
 use js::jsapi::{JS_GetPropertyDescriptorById, JS_NewUCString, JS_malloc, JS_free};
 use js::jsapi::{JSBool, JS_DefinePropertyById, JS_NewObjectWithGivenProto};
-use js::jsapi::JS_StrictPropertyStub;
+use js::jsapi::{JS_ReportErrorFlagsAndNumber, JS_StrictPropertyStub};
+use js::jsapi::{JSREPORT_WARNING, JSREPORT_STRICT, JSREPORT_STRICT_MODE_ERROR};
 use js::jsval::ObjectValue;
 use js::glue::GetProxyExtra;
 use js::glue::{GetObjectProto, GetObjectParent, SetProxyExtra, GetProxyHandler};
 use js::glue::InvokeGetOwnPropertyDescriptor;
+use js::glue::RUST_js_GetErrorMessage;
 use js::{JSPROP_GETTER, JSPROP_ENUMERATE, JSPROP_READONLY, JSRESOLVE_QUALIFIED};
 
 use libc;
@@ -45,17 +47,18 @@ pub extern fn getPropertyDescriptor(cx: *mut JSContext, proxy: *mut JSObject, id
 
 pub fn defineProperty_(cx: *mut JSContext, proxy: *mut JSObject, id: jsid,
                        desc: *JSPropertyDescriptor) -> JSBool {
+    static JSMSG_GETTER_ONLY: libc::c_uint = 160;
+
     unsafe {
         //FIXME: Workaround for https://github.com/mozilla/rust/issues/13385
         let setter: *libc::c_void = mem::transmute((*desc).setter);
         let setter_stub: *libc::c_void = mem::transmute(JS_StrictPropertyStub);
         if ((*desc).attrs & JSPROP_GETTER) != 0 && setter == setter_stub {
-            /*return JS_ReportErrorFlagsAndNumber(cx,
-            JSREPORT_WARNING | JSREPORT_STRICT |
-            JSREPORT_STRICT_MODE_ERROR,
-            js_GetErrorMessage, NULL,
-            JSMSG_GETTER_ONLY);*/
-            return 0;
+            return JS_ReportErrorFlagsAndNumber(cx,
+                                                JSREPORT_WARNING | JSREPORT_STRICT |
+                                                JSREPORT_STRICT_MODE_ERROR,
+                                                Some(RUST_js_GetErrorMessage), ptr::mut_null(),
+                                                JSMSG_GETTER_ONLY);
         }
 
         let expando = EnsureExpandoObject(cx, proxy);
