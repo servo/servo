@@ -5,7 +5,7 @@
 extern crate freetype;
 
 use font::{FontHandleMethods, FontMetrics, FontTableMethods};
-use font::{FontTableTag, FractionalPixel, SpecifiedFontStyle, UsedFontStyle};
+use font::{FontTableTag, FractionalPixel, SpecifiedFontStyle};
 use servo_util::geometry::Au;
 use servo_util::geometry;
 use platform::font_context::FontContextHandle;
@@ -156,19 +156,6 @@ impl FontHandleMethods for FontHandle {
                 } else {
                     default_weight
                 }
-            }
-        }
-    }
-
-    fn clone_with_style(&self,
-                        fctx: &FontContextHandle,
-                        style: &UsedFontStyle) -> Result<FontHandle, ()> {
-        match self.source {
-            FontSourceMem(ref buf) => {
-                FontHandleMethods::new_from_buffer(fctx, buf.clone(), style)
-            }
-            FontSourceFile(ref file) => {
-                FontHandle::new_from_file(fctx, file.as_slice(), style)
             }
         }
     }

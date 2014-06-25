@@ -43,8 +43,6 @@ pub trait FontHandleMethods {
     fn is_italic(&self) -> bool;
     fn boldness(&self) -> font_weight::T;
 
-    fn clone_with_style(&self, fctx: &FontContextHandle, style: &UsedFontStyle)
-                     -> Result<FontHandle, ()>;
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId>;
     fn glyph_h_advance(&self, GlyphId) -> Option<FractionalPixel>;
     fn get_metrics(&self) -> FontMetrics;
@@ -251,19 +249,6 @@ impl<'a> Font {
             shape_cache: HashCache::new(),
             glyph_advance_cache: HashCache::new(),
         }
-    }
-
-    pub fn new_from_existing_handle(fctx: &FontContext, handle: &FontHandle,
-                                style: &SpecifiedFontStyle, backend: BackendType)
-                                -> Result<Rc<RefCell<Font>>,()> {
-
-        // TODO(Issue #179): convert between specified and used font style here?
-        let styled_handle = match handle.clone_with_style(&fctx.handle, style) {
-            Ok(result) => result,
-            Err(()) => return Err(())
-        };
-
-        return Ok(Rc::new(RefCell::new(Font::new_from_adopted_handle(fctx, styled_handle, style, backend))));
     }
 
     fn make_shaper(&'a mut self) -> &'a Shaper {
