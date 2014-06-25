@@ -64,6 +64,7 @@
 [submodule "src/platform/linux/fontconfig"]
 	path = src/platform/linux/fontconfig
 	url = https://github.com/mozilla-servo/fontconfig.git
+	ignore = dirty
 [submodule "src/support/skia/skia"]
 	path = src/support/skia/skia
 	url = https://github.com/mozilla-servo/skia.git
@@ -94,6 +95,7 @@
 [submodule "src/platform/android/libexpat"]
 	path = src/platform/android/libexpat
 	url = https://github.com/mozilla-servo/libexpat.git
+	ignore = dirty
 [submodule "src/platform/android/libfreetype2"]
 	path = src/platform/android/libfreetype2
 	url = https://github.com/mozilla-servo/libfreetype2.git
