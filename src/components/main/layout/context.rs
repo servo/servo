@@ -52,6 +52,7 @@ static mut STYLE_SHARING_CANDIDATE_CACHE: *mut StyleSharingCandidateCache =
 local_data_key!(style_sharing_candidate_cache: *mut StyleSharingCandidateCache)
 
 /// Data shared by all layout workers.
+#[allow(raw_pointer_deriving)]
 #[deriving(Clone)]
 pub struct LayoutContext {
     /// The local image cache.
