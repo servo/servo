@@ -36,7 +36,7 @@ pub enum MediaQueryType {
     MediaType(MediaType),
 }
 
-#[deriving(Eq)]
+#[deriving(PartialEq)]
 pub enum MediaType {
     Screen,
     Print,

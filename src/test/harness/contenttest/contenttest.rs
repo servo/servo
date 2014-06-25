@@ -12,7 +12,7 @@ extern crate getopts;
 extern crate regex;
 extern crate test;
 
-use test::{TestOpts, run_tests_console, TestDesc, TestDescAndFn, DynTestFn, DynTestName};
+use test::{AutoColor, TestOpts, run_tests_console, TestDesc, TestDescAndFn, DynTestFn, DynTestName};
 use getopts::{getopts, reqopt};
 use std::{os, str};
 use std::io::fs;
@@ -63,7 +63,8 @@ fn test_options(config: Config) -> TestOpts {
         save_metrics: None,
         test_shard: None,
         logfile: None,
-        nocapture: false
+        nocapture: false,
+        color: AutoColor
     }
 }
 

@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::ast::*;
-use collections::hashmap::HashMap;
+use std::collections::hashmap::HashMap;
 use servo_util::namespace::Namespace;
 use errors::log_css_error;
 
@@ -36,7 +36,7 @@ pub fn parse_namespace_rule(rule: AtRule, namespaces: &mut NamespaceMap) {
         match component_value {
             Ident(value) => {
                 if prefix.is_some() { syntax_error!() }
-                prefix = Some(value.into_owned());
+                prefix = Some(value.into_string());
             },
             URL(value) | String(value) => {
                 if ns.is_some() { syntax_error!() }

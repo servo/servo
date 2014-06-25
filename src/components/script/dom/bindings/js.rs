@@ -63,7 +63,7 @@ pub struct Temporary<T> {
     js_ptr: *mut JSObject,
 }
 
-impl<T> Eq for Temporary<T> {
+impl<T> PartialEq for Temporary<T> {
     fn eq(&self, other: &Temporary<T>) -> bool {
         self.inner == other.inner
     }
@@ -106,7 +106,7 @@ pub struct JS<T> {
     ptr: *T
 }
 
-impl<T> Eq for JS<T> {
+impl<T> PartialEq for JS<T> {
     fn eq(&self, other: &JS<T>) -> bool {
         self.ptr == other.ptr
     }
@@ -455,7 +455,7 @@ impl<'a, T> Clone for JSRef<'a, T> {
     }
 }
 
-impl<'a, T> Eq for JSRef<'a, T> {
+impl<'a, T> PartialEq for JSRef<'a, T> {
     fn eq(&self, other: &JSRef<T>) -> bool {
         self.ptr == other.ptr
     }

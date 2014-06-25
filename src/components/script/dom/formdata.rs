@@ -11,7 +11,7 @@ use dom::blob::Blob;
 use dom::htmlformelement::HTMLFormElement;
 use dom::window::Window;
 use servo_util::str::DOMString;
-use collections::hashmap::HashMap;
+use std::collections::hashmap::HashMap;
 use std::cell::RefCell;
 
 #[deriving(Encodable)]

@@ -240,9 +240,9 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLImageElement> {
-    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods:> {
+    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods+> {
         let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_ref(self);
-        Some(htmlelement as &VirtualMethods:)
+        Some(htmlelement as &VirtualMethods+)
     }
 
     fn after_set_attr(&self, name: DOMString, value: DOMString) {

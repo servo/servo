@@ -61,13 +61,13 @@ use url::Url;
 // use SendParam = dom::bindings::codegen::UnionTypes::StringOrFormData;
 pub type SendParam = DOMString;
 
-#[deriving(Eq,Encodable)]
+#[deriving(PartialEq,Encodable)]
 pub enum XMLHttpRequestId {
     XMLHttpRequestTypeId,
     XMLHttpRequestUploadTypeId
 }
 
-#[deriving(Eq, Encodable)]
+#[deriving(PartialEq, Encodable)]
 enum XMLHttpRequestState {
     Unsent = 0u16,
     Opened = 1u16,
@@ -889,7 +889,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         self.timer.deref().borrow_mut().oneshot(0);
     }
     fn text_response(&self) -> DOMString {
-        let mut encoding = UTF_8 as &Encoding:Send;
+        let mut encoding = UTF_8 as &Encoding+Send;
         match self.response_headers.deref().borrow().content_type {
             Some(ref x) => {
                 for &(ref name, ref value) in x.parameters.iter() {

@@ -10,7 +10,7 @@
 #![feature(macro_rules)]
 
 #![feature(phase)]
-#[phase(syntax, link)]
+#[phase(plugin, link)]
 extern crate log;
 
 extern crate debug;
@@ -21,6 +21,7 @@ extern crate geom;
 extern crate getopts;
 extern crate native;
 extern crate rand;
+extern crate rustrt;
 extern crate serialize;
 extern crate sync;
 extern crate std_time = "time";

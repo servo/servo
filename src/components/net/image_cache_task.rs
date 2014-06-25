@@ -55,7 +55,7 @@ pub enum ImageResponseMsg {
     ImageFailed
 }
 
-impl Eq for ImageResponseMsg {
+impl PartialEq for ImageResponseMsg {
     fn eq(&self, other: &ImageResponseMsg) -> bool {
         match (self, other) {
             (&ImageReady(..), &ImageReady(..)) => fail!("unimplemented comparison"),

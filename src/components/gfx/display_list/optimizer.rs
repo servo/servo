@@ -6,7 +6,7 @@ use display_list::{BorderDisplayItemClass, ClipDisplayItem, ClipDisplayItemClass
 use display_list::{DisplayList, ImageDisplayItemClass, LineDisplayItemClass};
 use display_list::{PseudoDisplayItemClass, SolidColorDisplayItemClass, TextDisplayItemClass};
 
-use collections::deque::Deque;
+use std::collections::Deque;
 use collections::dlist::DList;
 use geom::rect::Rect;
 use servo_util::geometry::Au;

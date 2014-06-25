@@ -8,12 +8,12 @@
 //! higher-level API on top of this could allow safe fork-join parallelism.
 
 use native;
-use rand;
 use rand::{Rng, XorShiftRng};
 use std::mem;
+use std::rand::weak_rng;
 use std::sync::atomics::{AtomicUint, SeqCst};
 use std::sync::deque::{Abort, BufferPool, Data, Empty, Stealer, Worker};
-use std::task::TaskOpts;
+use rustrt::task::TaskOpts;
 
 /// A unit of work.
 ///
@@ -217,7 +217,7 @@ impl<QueueData: Send, WorkData: Send> WorkQueue<QueueData, WorkData> {
                 port: worker_port,
                 chan: supervisor_chan.clone(),
                 other_deques: vec!(),
-                rng: rand::weak_rng(),
+                rng: weak_rng(),
             });
         }
 

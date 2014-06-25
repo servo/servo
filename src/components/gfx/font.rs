@@ -96,7 +96,7 @@ pub struct FontMetrics {
 // the instance's properties.
 //
 // For now, the cases are differentiated with a typedef
-#[deriving(Clone, Eq)]
+#[deriving(Clone, PartialEq)]
 pub struct FontStyle {
     pub pt_size: f64,
     pub weight: font_weight::T,
@@ -114,7 +114,7 @@ pub type UsedFontStyle = FontStyle;
 // It's used to swizzle/unswizzle gfx::Font instances when
 // communicating across tasks, such as the display list between layout
 // and render tasks.
-#[deriving(Clone, Eq)]
+#[deriving(Clone, PartialEq)]
 pub struct FontDescriptor {
     pub style: UsedFontStyle,
     pub selector: FontSelector,
@@ -130,7 +130,7 @@ impl FontDescriptor {
 }
 
 // A FontSelector is a platform-specific strategy for serializing face names.
-#[deriving(Clone, Eq)]
+#[deriving(Clone, PartialEq)]
 pub enum FontSelector {
     SelectorPlatformIdentifier(String),
 }

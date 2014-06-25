@@ -4,7 +4,7 @@
 
 //! In-place sorting.
 
-fn quicksort_helper<T:Ord + Eq>(arr: &mut [T], left: int, right: int) {
+fn quicksort_helper<T:PartialOrd + PartialEq>(arr: &mut [T], left: int, right: int) {
     if right <= left {
         return
     }
@@ -68,7 +68,7 @@ fn quicksort_helper<T:Ord + Eq>(arr: &mut [T], left: int, right: int) {
 ///
 /// The algorithm is from Sedgewick and Bentley, "Quicksort is Optimal":
 ///     http://www.cs.princeton.edu/~rs/talks/QuicksortIsOptimal.pdf
-pub fn quicksort<T:Ord + Eq>(arr: &mut [T]) {
+pub fn quicksort<T:PartialOrd + PartialEq>(arr: &mut [T]) {
     if arr.len() <= 1 {
         return
     }

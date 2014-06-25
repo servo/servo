@@ -895,7 +895,7 @@ impl LayoutTask {
     // to the script task, and ultimately cause the image to be
     // re-requested. We probably don't need to go all the way back to
     // the script task for this.
-    fn make_on_image_available_cb(&self) -> Box<ImageResponder:Send> {
+    fn make_on_image_available_cb(&self) -> Box<ImageResponder+Send> {
         // This has a crazy signature because the image cache needs to
         // make multiple copies of the callback, and the dom event
         // channel is not a copyable type, so this is actually a
@@ -903,7 +903,7 @@ impl LayoutTask {
         box LayoutImageResponder {
             id: self.id.clone(),
             script_chan: self.script_chan.clone(),
-        } as Box<ImageResponder:Send>
+        } as Box<ImageResponder+Send>
     }
 
     /// Handles a message to destroy layout data. Layout data must be destroyed on *this* task

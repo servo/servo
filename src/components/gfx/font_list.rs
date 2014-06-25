@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use collections::hashmap::HashMap;
+use std::collections::hashmap::HashMap;
 use font::SpecifiedFontStyle;
 use gfx_font::FontHandleMethods;
 use platform::font::FontHandle;

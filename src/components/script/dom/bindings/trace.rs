@@ -116,7 +116,7 @@ impl<T> DerefMut<T> for Untraceable<T> {
 ///
 /// We always prefer this, in case the contained type ever changes to something that should be traced.
 /// See more details: mozilla#2662.
-#[deriving(Eq, Clone)]
+#[deriving(PartialEq, Clone)]
 pub struct Traceable<T> {
     inner: T
 }

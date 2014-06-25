@@ -219,7 +219,7 @@ impl TextRunScanner {
                 let run = if clump.length() != CharIndex(0) && run_str.len() > 0 {
                     Some(Arc::new(box TextRun::new(
                         &mut *fontgroup.borrow().fonts.get(0).borrow_mut(),
-                        run_str.into_owned(), decoration)))
+                        run_str.to_string(), decoration)))
                 } else {
                     None
                 };

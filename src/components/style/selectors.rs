@@ -17,21 +17,21 @@ use namespaces::NamespaceMap;
 
 
 // Only used in tests
-impl Eq for Arc<CompoundSelector> {
+impl PartialEq for Arc<CompoundSelector> {
     fn eq(&self, other: &Arc<CompoundSelector>) -> bool {
         **self == **other
     }
 }
 
 
-#[deriving(Eq, Clone)]
+#[deriving(PartialEq, Clone)]
 pub struct Selector {
     pub compound_selectors: Arc<CompoundSelector>,
     pub pseudo_element: Option<PseudoElement>,
     pub specificity: u32,
 }
 
-#[deriving(Eq, Clone)]
+#[deriving(PartialEq, Clone)]
 pub enum PseudoElement {
     Before,
     After,
@@ -40,13 +40,13 @@ pub enum PseudoElement {
 }
 
 
-#[deriving(Eq, Clone)]
+#[deriving(PartialEq, Clone)]
 pub struct CompoundSelector {
     pub simple_selectors: Vec<SimpleSelector>,
     pub next: Option<(Box<CompoundSelector>, Combinator)>,  // c.next is left of c
 }
 
-#[deriving(Eq, Clone)]
+#[deriving(PartialEq, Clone)]
 pub enum Combinator {
     Child,  //  >
     Descendant,  // space
@@ -54,7 +54,7 @@ pub enum Combinator {
     LaterSibling,  // ~
 }
 
-#[deriving(Eq, Clone)]
+#[deriving(PartialEq, Clone)]
 pub enum SimpleSelector {
     IDSelector(String),
     ClassSelector(String),
@@ -90,14 +90,14 @@ pub enum SimpleSelector {
     // ...
 }
 
-#[deriving(Eq, Clone)]
+#[deriving(PartialEq, Clone)]
 pub struct AttrSelector {
     pub name: String,
     pub lower_name: String,
     pub namespace: NamespaceConstraint,
 }
 
-#[deriving(Eq, Clone)]
+#[deriving(PartialEq, Clone)]
 pub enum NamespaceConstraint {
     AnyNamespace,
     SpecificNamespace(Namespace),

@@ -14,7 +14,7 @@ extern crate collections;
 extern crate geom;
 extern crate http;
 extern crate png;
-#[phase(syntax, link)]
+#[phase(plugin, link)]
 extern crate log;
 extern crate serialize;
 extern crate servo_util = "util";

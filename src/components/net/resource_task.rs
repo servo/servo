@@ -108,7 +108,7 @@ pub struct LoadResponse {
 }
 
 /// Messages sent in response to a `Load` message
-#[deriving(Eq,Show)]
+#[deriving(PartialEq,Show)]
 pub enum ProgressMsg {
     /// Binary data - there may be multiple of these
     Payload(Vec<u8>),
