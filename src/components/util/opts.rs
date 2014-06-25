@@ -173,7 +173,7 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
         None => cmp::max(rt::default_sched_threads() * 3 / 4, 1),
     };
 
-    let native_threading = opt_match.opt_present("h") || opt_match.opt_present("help");
+    let native_threading = opt_match.opt_present("n");
 
     Some(Opts {
         urls: urls,
