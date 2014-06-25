@@ -3,26 +3,29 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::FormDataBinding;
+use dom::bindings::codegen::InheritTypes::FileCast;
+use dom::bindings::codegen::UnionTypes::FileOrString::{FileOrString, eFile, eString};
 use dom::bindings::error::{Fallible};
-use dom::bindings::js::{JS, JSRef, Temporary, OptionalUnrootable};
+use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::trace::Traceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::blob::Blob;
+use dom::file::File;
 use dom::htmlformelement::HTMLFormElement;
 use dom::window::Window;
 use servo_util::str::DOMString;
-use collections::hashmap::HashMap;
 use std::cell::RefCell;
+use collections::hashmap::HashMap;
 
-#[deriving(Encodable)]
+#[deriving(Encodable, Clone)]
 pub enum FormDatum {
     StringData(DOMString),
-    BlobData { blob: JS<Blob>, name: DOMString }
+    FileData(JS<File>)
 }
 
 #[deriving(Encodable)]
 pub struct FormData {
-    pub data: Traceable<RefCell<HashMap<DOMString, FormDatum>>>,
+    pub data: Traceable<RefCell<HashMap<DOMString, Vec<FormDatum>>>>,
     pub reflector_: Reflector,
     pub window: JS<Window>,
     pub form: Option<JS<HTMLFormElement>>
@@ -34,7 +37,7 @@ impl FormData {
             data: Traceable::new(RefCell::new(HashMap::new())),
             reflector_: Reflector::new(),
             window: JS::from_rooted(window),
-            form: form.unrooted(),
+            form: form.map(|f| JS::from_rooted(&f)),
         }
     }
 
@@ -50,24 +53,71 @@ impl FormData {
 pub trait FormDataMethods {
     fn Append(&self, name: DOMString, value: &JSRef<Blob>, filename: Option<DOMString>);
     fn Append_(&self, name: DOMString, value: DOMString);
+    fn Delete(&self, name: DOMString);
+    fn Get(&self, name: DOMString) -> Option<FileOrString>;
+    fn Has(&self, name: DOMString) -> bool;
+    fn Set(&self, name: DOMString, value: &JSRef<Blob>, filename: Option<DOMString>);
+    fn Set_(&self, name: DOMString, value: DOMString);
 }
 
 impl<'a> FormDataMethods for JSRef<'a, FormData> {
     fn Append(&self, name: DOMString, value: &JSRef<Blob>, filename: Option<DOMString>) {
-        let blob = BlobData {
-            blob: JS::from_rooted(value),
-            name: filename.unwrap_or("default".to_string())
-        };
-        self.data.deref().borrow_mut().insert(name.clone(), blob);
+        let file = FileData(JS::from_rooted(&self.get_file_from_blob(value, filename)));
+        self.data.deref().borrow_mut().insert_or_update_with(name.clone(), vec!(file.clone()),
+                                        |_k, v| {v.push(file.clone());});
     }
 
     fn Append_(&self, name: DOMString, value: DOMString) {
-        self.data.deref().borrow_mut().insert(name, StringData(value));
+        self.data.deref().borrow_mut().insert_or_update_with(name, vec!(StringData(value.clone())),
+                                        |_k, v| {v.push(StringData(value.clone()));});
+    }
+
+    fn Delete(&self, name: DOMString) {
+        self.data.deref().borrow_mut().remove(&name);
+    }
+
+    fn Get(&self, name: DOMString) -> Option<FileOrString> {
+        if self.data.deref().borrow().contains_key_equiv(&name) {
+            match self.data.deref().borrow().get(&name).get(0).clone() {
+                StringData(ref s) => Some(eString(s.clone())),
+                FileData(ref f) => {
+                    Some(eFile(f.clone()))
+                }
+            }
+        } else {
+            None
+        }
+    }
+
+    fn Has(&self, name: DOMString) -> bool {
+        self.data.deref().borrow().contains_key_equiv(&name)
+    }
+
+    fn Set(&self, name: DOMString, value: &JSRef<Blob>, filename: Option<DOMString>) {
+        let file = FileData(JS::from_rooted(&self.get_file_from_blob(value, filename)));
+        self.data.deref().borrow_mut().insert(name, vec!(file));
+    }
+
+    fn Set_(&self, name: DOMString, value: DOMString) {
+        self.data.deref().borrow_mut().insert(name, vec!(StringData(value)));
     }
 }
 
 impl Reflectable for FormData {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         &self.reflector_
+    }
+}
+
+trait PrivateFormDataHelpers{
+  fn get_file_from_blob(&self, value: &JSRef<Blob>, filename: Option<DOMString>) -> Temporary<File>;
+}
+
+impl PrivateFormDataHelpers for FormData {
+    fn get_file_from_blob(&self, value: &JSRef<Blob>, filename: Option<DOMString>) -> Temporary<File> {
+        let global = self.window.root();
+        let f: Option<&JSRef<File>> = FileCast::to_ref(value);
+        let name = filename.unwrap_or(f.map(|inner| inner.name.clone()).unwrap_or("blob".to_string()));
+        File::new(&*global, value, name)
     }
 }
