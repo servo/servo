@@ -30,9 +30,6 @@ pub struct LayerBuffer {
 
     /// NB: stride is in pixels, like OpenGL GL_UNPACK_ROW_LENGTH.
     pub stride: uint,
-
-    /// Used by the RenderTask to route buffers to the correct graphics context for recycling
-    pub render_idx: uint
 }
 
 /// A set of layer buffers. This is an atomic unit used to switch between the front and back
