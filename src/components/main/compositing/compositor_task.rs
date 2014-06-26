@@ -18,7 +18,7 @@ use servo_msg::compositor_msg::{RenderListener, RenderState, ScriptListener, Scr
 use servo_msg::constellation_msg::{ConstellationChan, PipelineId};
 use servo_util::memory::MemoryProfilerChan;
 use servo_util::opts::Opts;
-use servo_util::time::ProfilerChan;
+use servo_util::time::TimeProfilerChan;
 use std::comm::{channel, Sender, Receiver};
 
 use url::Url;
@@ -225,7 +225,7 @@ impl CompositorTask {
     pub fn create(opts: Opts,
                   port: Receiver<Msg>,
                   constellation_chan: ConstellationChan,
-                  profiler_chan: ProfilerChan,
+                  time_profiler_chan: TimeProfilerChan,
                   memory_profiler_chan: MemoryProfilerChan) {
 
         let compositor = CompositorTask::new(opts.headless);
@@ -236,13 +236,13 @@ impl CompositorTask {
                                                  opts,
                                                  port,
                                                  constellation_chan.clone(),
-                                                 profiler_chan,
+                                                 time_profiler_chan,
                                                  memory_profiler_chan)
             }
             Headless => {
                 headless::NullCompositor::create(port,
                                                  constellation_chan.clone(),
-                                                 profiler_chan,
+                                                 time_profiler_chan,
                                                  memory_profiler_chan)
             }
         };

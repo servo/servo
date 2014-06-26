@@ -49,7 +49,7 @@ use servo_util::geometry::Au;
 use servo_util::geometry;
 use servo_util::opts::Opts;
 use servo_util::smallvec::{SmallVec, SmallVec1};
-use servo_util::time::{ProfilerChan, profile};
+use servo_util::time::{TimeProfilerChan, profile};
 use servo_util::time;
 use servo_util::task::send_on_failure;
 use servo_util::workqueue::WorkQueue;
@@ -98,8 +98,8 @@ pub struct LayoutTask {
     /// The workers that we use for parallel operation.
     pub parallel_traversal: Option<WorkQueue<*mut LayoutContext,UnsafeFlow>>,
 
-    /// The channel on which messages can be sent to the profiler.
-    pub profiler_chan: ProfilerChan,
+    /// The channel on which messages can be sent to the time profiler.
+    pub time_profiler_chan: TimeProfilerChan,
 
     /// The command-line options.
     pub opts: Opts,
@@ -279,7 +279,7 @@ impl LayoutTask {
                   render_chan: RenderChan,
                   img_cache_task: ImageCacheTask,
                   opts: Opts,
-                  profiler_chan: ProfilerChan,
+                  time_profiler_chan: TimeProfilerChan,
                   shutdown_chan: Sender<()>) {
         let mut builder = TaskBuilder::new().named("LayoutTask");
         let ConstellationChan(con_chan) = constellation_chan.clone();
@@ -294,7 +294,7 @@ impl LayoutTask {
                                                  render_chan,
                                                  img_cache_task,
                                                  &opts,
-                                                 profiler_chan);
+                                                 time_profiler_chan);
                 layout.start();
             }
             shutdown_chan.send(());
@@ -310,7 +310,7 @@ impl LayoutTask {
            render_chan: RenderChan,
            image_cache_task: ImageCacheTask,
            opts: &Opts,
-           profiler_chan: ProfilerChan)
+           time_profiler_chan: TimeProfilerChan)
            -> LayoutTask {
         let local_image_cache = Arc::new(Mutex::new(LocalImageCache(image_cache_task.clone())));
         let screen_size = Size2D(Au(0), Au(0));
@@ -334,7 +334,7 @@ impl LayoutTask {
             display_list: None,
             stylist: box new_stylist(),
             parallel_traversal: parallel_traversal,
-            profiler_chan: profiler_chan,
+            time_profiler_chan: time_profiler_chan,
             opts: opts.clone(),
             dirty: Rect::zero(),
         }
@@ -352,7 +352,7 @@ impl LayoutTask {
         let font_context_info = FontContextInfo {
             backend: self.opts.render_backend,
             needs_font_list: true,
-            profiler_chan: self.profiler_chan.clone(),
+            time_profiler_chan: self.time_profiler_chan.clone(),
         };
 
         LayoutContext {
@@ -374,13 +374,13 @@ impl LayoutTask {
         match self.port.recv() {
             AddStylesheetMsg(sheet) => self.handle_add_stylesheet(sheet),
             ReflowMsg(data) => {
-                profile(time::LayoutPerformCategory, self.profiler_chan.clone(), || {
+                profile(time::LayoutPerformCategory, self.time_profiler_chan.clone(), || {
                     self.handle_reflow(data);
                 });
             }
             QueryMsg(query) => {
                 let mut query = Some(query);
-                profile(time::LayoutQueryCategory, self.profiler_chan.clone(), || {
+                profile(time::LayoutQueryCategory, self.time_profiler_chan.clone(), || {
                     self.handle_query(query.take_unwrap());
                 });
             }
@@ -529,7 +529,7 @@ impl LayoutTask {
                 // NOTE: this currently computes borders, so any pruning should separate that
                 // operation out.
                 parallel::traverse_flow_tree_preorder(layout_root,
-                                                      self.profiler_chan.clone(),
+                                                      self.time_profiler_chan.clone(),
                                                       layout_context,
                                                       traversal);
             }
@@ -600,7 +600,7 @@ impl LayoutTask {
         };
 
         let mut layout_root = profile(time::LayoutStyleRecalcCategory,
-                                      self.profiler_chan.clone(),
+                                      self.time_profiler_chan.clone(),
                                       || {
             // Perform CSS selector matching and flow construction.
             match self.parallel_traversal {
@@ -630,7 +630,7 @@ impl LayoutTask {
         self.verify_flow_tree(&mut layout_root);
 
         // Propagate damage.
-        profile(time::LayoutDamagePropagateCategory, self.profiler_chan.clone(), || {
+        profile(time::LayoutDamagePropagateCategory, self.time_profiler_chan.clone(), || {
             layout_root.get_mut().traverse_preorder(&mut PropagateDamageTraversal {
                 all_style_damage: all_style_damage
             });
@@ -639,7 +639,7 @@ impl LayoutTask {
 
         // Perform the primary layout passes over the flow tree to compute the locations of all
         // the boxes.
-        profile(time::LayoutMainCategory, self.profiler_chan.clone(), || {
+        profile(time::LayoutMainCategory, self.time_profiler_chan.clone(), || {
             match self.parallel_traversal {
                 None => {
                     // Sequential mode.
@@ -654,7 +654,7 @@ impl LayoutTask {
 
         // Build the display list if necessary, and send it to the renderer.
         if data.goal == ReflowForDisplay {
-            profile(time::LayoutDispListBuildCategory, self.profiler_chan.clone(), || {
+            profile(time::LayoutDispListBuildCategory, self.time_profiler_chan.clone(), || {
                 layout_ctx.dirty = flow::base(layout_root.get()).position.clone();
 
                 match self.parallel_traversal {
@@ -666,7 +666,7 @@ impl LayoutTask {
                     }
                     Some(ref mut traversal) => {
                         parallel::build_display_list_for_subtree(&mut layout_root,
-                                                                 self.profiler_chan.clone(),
+                                                                 self.time_profiler_chan.clone(),
                                                                  &mut layout_ctx,
                                                                  traversal);
                     }

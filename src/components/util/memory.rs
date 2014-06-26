@@ -53,8 +53,8 @@ impl MemoryProfiler {
                 });
             }
             None => {
-                // No-op to handle profiler messages when the memory profiler
-                // is inactive.
+                // No-op to handle messages when the memory profiler is
+                // inactive.
                 spawn_named("Memory profiler", proc() {
                     loop {
                         match port.recv_opt() {

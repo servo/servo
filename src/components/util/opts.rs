@@ -41,9 +41,9 @@ pub struct Opts {
     /// platform default setting.
     pub device_pixels_per_px: Option<ScaleFactor<ScreenPx, DevicePixel, f32>>,
 
-    /// `None` to disable the profiler or `Some` with an interval in seconds to enable it and cause
-    /// it to produce output on that interval (`-p`).
-    pub profiler_period: Option<f64>,
+    /// `None` to disable the time profiler or `Some` with an interval in seconds to enable it and
+    /// cause it to produce output on that interval (`-p`).
+    pub time_profiler_period: Option<f64>,
 
     /// `None` to disable the memory profiler or `Some` with an interval in seconds to enable it 
     /// and cause it to produce output on that interval (`-m`).
@@ -153,7 +153,7 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
     };
 
     // If only the flag is present, default to a 5 second period for both profilers.
-    let profiler_period = opt_match.opt_default("p", "5").map(|period| {
+    let time_profiler_period = opt_match.opt_default("p", "5").map(|period| {
         from_str(period.as_slice()).unwrap()
     });
     let memory_profiler_period = opt_match.opt_default("m", "5").map(|period| {
@@ -174,7 +174,7 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
         cpu_painting: cpu_painting,
         tile_size: tile_size,
         device_pixels_per_px: device_pixels_per_px,
-        profiler_period: profiler_period,
+        time_profiler_period: time_profiler_period,
         memory_profiler_period: memory_profiler_period,
         layout_threads: layout_threads,
         exit_after_load: opt_match.opt_present("x"),

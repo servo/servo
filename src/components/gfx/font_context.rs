@@ -11,7 +11,7 @@ use platform::font_context::FontContextHandle;
 use azure::azure_hl::BackendType;
 use collections::hashmap::HashMap;
 use servo_util::cache::{Cache, LRUCache};
-use servo_util::time::ProfilerChan;
+use servo_util::time::TimeProfilerChan;
 
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -25,8 +25,8 @@ pub struct FontContextInfo {
     /// Whether we need a font list.
     pub needs_font_list: bool,
 
-    /// A channel up to the profiler.
-    pub profiler_chan: ProfilerChan,
+    /// A channel up to the time profiler.
+    pub time_profiler_chan: TimeProfilerChan,
 }
 
 pub trait FontContextHandleMethods {
@@ -40,14 +40,14 @@ pub struct FontContext {
     pub handle: FontContextHandle,
     pub backend: BackendType,
     pub generic_fonts: HashMap<String,String>,
-    pub profiler_chan: ProfilerChan,
+    pub time_profiler_chan: TimeProfilerChan,
 }
 
 impl FontContext {
     pub fn new(info: FontContextInfo) -> FontContext {
         let handle = FontContextHandle::new();
         let font_list = if info.needs_font_list {
-            Some(FontList::new(&handle, info.profiler_chan.clone()))
+            Some(FontList::new(&handle, info.time_profiler_chan.clone()))
         } else {
             None
         };
@@ -67,7 +67,7 @@ impl FontContext {
             handle: handle,
             backend: info.backend,
             generic_fonts: generic_fonts,
-            profiler_chan: info.profiler_chan.clone(),
+            time_profiler_chan: info.time_profiler_chan.clone(),
         }
     }
 

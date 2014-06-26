@@ -36,7 +36,7 @@ use servo_msg::constellation_msg;
 use servo_util::geometry::{DevicePixel, PagePx, ScreenPx, ViewportPx};
 use servo_util::memory::MemoryProfilerChan;
 use servo_util::opts::Opts;
-use servo_util::time::{profile, ProfilerChan};
+use servo_util::time::{profile, TimeProfilerChan};
 use servo_util::{memory, time, url};
 use std::io::timer::sleep;
 use std::path::Path;
@@ -114,8 +114,8 @@ pub struct IOCompositor {
     /// The channel on which messages can be sent to the constellation.
     constellation_chan: ConstellationChan,
 
-    /// The channel on which messages can be sent to the profiler.
-    profiler_chan: ProfilerChan,
+    /// The channel on which messages can be sent to the time profiler.
+    time_profiler_chan: TimeProfilerChan,
 
     /// The channel on which messages can be sent to the memory profiler.
     memory_profiler_chan: MemoryProfilerChan,
@@ -129,7 +129,7 @@ impl IOCompositor {
                opts: Opts,
                port: Receiver<Msg>,
                constellation_chan: ConstellationChan,
-               profiler_chan: ProfilerChan,
+               time_profiler_chan: TimeProfilerChan,
                memory_profiler_chan: MemoryProfilerChan) -> IOCompositor {
         let window: Rc<Window> = WindowMethods::new(app, opts.output_file.is_none());
 
@@ -164,7 +164,7 @@ impl IOCompositor {
             load_complete: false,
             compositor_layer: None,
             constellation_chan: constellation_chan,
-            profiler_chan: profiler_chan,
+            time_profiler_chan: time_profiler_chan,
             memory_profiler_chan: memory_profiler_chan,
             fragment_point: None
         }
@@ -174,13 +174,13 @@ impl IOCompositor {
                   opts: Opts,
                   port: Receiver<Msg>,
                   constellation_chan: ConstellationChan,
-                  profiler_chan: ProfilerChan,
+                  time_profiler_chan: TimeProfilerChan,
                   memory_profiler_chan: MemoryProfilerChan) {
         let mut compositor = IOCompositor::new(app,
                                                opts,
                                                port,
                                                constellation_chan,
-                                               profiler_chan,
+                                               time_profiler_chan,
                                                memory_profiler_chan);
         compositor.update_zoom_transform();
 
@@ -240,8 +240,8 @@ impl IOCompositor {
         }
 
         // Tell the profiler and memory profiler to shut down.
-        let ProfilerChan(ref profiler_chan) = self.profiler_chan;
-        profiler_chan.send(time::ExitMsg);
+        let TimeProfilerChan(ref time_profiler_chan) = self.time_profiler_chan;
+        time_profiler_chan.send(time::ExitMsg);
 
         let MemoryProfilerChan(ref memory_profiler_chan) = self.memory_profiler_chan;
         memory_profiler_chan.send(memory::ExitMsg);
@@ -743,7 +743,7 @@ impl IOCompositor {
     }
 
     fn composite(&mut self) {
-        profile(time::CompositingCategory, self.profiler_chan.clone(), || {
+        profile(time::CompositingCategory, self.time_profiler_chan.clone(), || {
             debug!("compositor: compositing");
             // Adjust the layer dimensions as necessary to correspond to the size of the window.
             self.scene.size = self.window_size.as_f32().to_untyped();

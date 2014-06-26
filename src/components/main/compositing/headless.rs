@@ -9,7 +9,7 @@ use geom::size::TypedSize2D;
 use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, ResizedWindowMsg, WindowSizeData};
 use servo_util::memory::MemoryProfilerChan;
 use servo_util::memory;
-use servo_util::time::ProfilerChan;
+use servo_util::time::TimeProfilerChan;
 use servo_util::time;
 
 /// Starts the compositor, which listens for messages on the specified port.
@@ -30,7 +30,7 @@ impl NullCompositor {
 
     pub fn create(port: Receiver<Msg>,
                   constellation_chan: ConstellationChan,
-                  profiler_chan: ProfilerChan,
+                  time_profiler_chan: TimeProfilerChan,
                   memory_profiler_chan: MemoryProfilerChan) {
         let compositor = NullCompositor::new(port);
 
@@ -54,7 +54,7 @@ impl NullCompositor {
             }
         }
 
-        profiler_chan.send(time::ExitMsg);
+        time_profiler_chan.send(time::ExitMsg);
         memory_profiler_chan.send(memory::ExitMsg);
     }
 

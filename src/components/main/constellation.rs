@@ -27,7 +27,7 @@ use servo_net::resource_task::ResourceTask;
 use servo_net::resource_task;
 use servo_util::geometry::PagePx;
 use servo_util::opts::Opts;
-use servo_util::time::ProfilerChan;
+use servo_util::time::TimeProfilerChan;
 use servo_util::url::parse_url;
 use servo_util::task::spawn_named;
 use std::cell::RefCell;
@@ -48,7 +48,7 @@ pub struct Constellation {
     next_pipeline_id: PipelineId,
     pending_frames: Vec<FrameChange>,
     pending_sizes: HashMap<(PipelineId, SubpageId), TypedRect<PagePx, f32>>,
-    pub profiler_chan: ProfilerChan,
+    pub time_profiler_chan: TimeProfilerChan,
     pub window_size: WindowSizeData,
     pub opts: Opts,
 }
@@ -244,7 +244,7 @@ impl Constellation {
                  opts: &Opts,
                  resource_task: ResourceTask,
                  image_cache_task: ImageCacheTask,
-                 profiler_chan: ProfilerChan)
+                 time_profiler_chan: TimeProfilerChan)
                  -> ConstellationChan {
         let (constellation_port, constellation_chan) = ConstellationChan::new();
         let constellation_chan_clone = constellation_chan.clone();
@@ -261,7 +261,7 @@ impl Constellation {
                 next_pipeline_id: PipelineId(0),
                 pending_frames: vec!(),
                 pending_sizes: HashMap::new(),
-                profiler_chan: profiler_chan,
+                time_profiler_chan: time_profiler_chan,
                 window_size: WindowSizeData {
                     visible_viewport: TypedSize2D(800_f32, 600_f32),
                     initial_viewport: TypedSize2D(800_f32, 600_f32),
@@ -424,7 +424,7 @@ impl Constellation {
                                         self.compositor_chan.clone(),
                                         self.image_cache_task.clone(),
                                         self.resource_task.clone(),
-                                        self.profiler_chan.clone(),
+                                        self.time_profiler_chan.clone(),
                                         self.window_size,
                                         self.opts.clone(),
                                         parse_url("about:failure", None));
@@ -451,7 +451,7 @@ impl Constellation {
                                         self.compositor_chan.clone(),
                                         self.image_cache_task.clone(),
                                         self.resource_task.clone(),
-                                        self.profiler_chan.clone(),
+                                        self.time_profiler_chan.clone(),
                                         self.window_size,
                                         self.opts.clone(),
                                         url);
@@ -576,7 +576,7 @@ impl Constellation {
                                   self.chan.clone(),
                                   self.compositor_chan.clone(),
                                   self.image_cache_task.clone(),
-                                  self.profiler_chan.clone(),
+                                  self.time_profiler_chan.clone(),
                                   self.opts.clone(),
                                   source_pipeline.clone(),
                                   url)
@@ -589,7 +589,7 @@ impl Constellation {
                              self.compositor_chan.clone(),
                              self.image_cache_task.clone(),
                              self.resource_task.clone(),
-                             self.profiler_chan.clone(),
+                             self.time_profiler_chan.clone(),
                              self.window_size,
                              self.opts.clone(),
                              url)
@@ -645,7 +645,7 @@ impl Constellation {
                                         self.compositor_chan.clone(),
                                         self.image_cache_task.clone(),
                                         self.resource_task.clone(),
-                                        self.profiler_chan.clone(),
+                                        self.time_profiler_chan.clone(),
                                         self.window_size,
                                         self.opts.clone(),
                                         url);

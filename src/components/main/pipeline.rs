@@ -16,7 +16,7 @@ use servo_msg::constellation_msg::WindowSizeData;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_util::opts::Opts;
-use servo_util::time::ProfilerChan;
+use servo_util::time::TimeProfilerChan;
 use std::rc::Rc;
 use url::Url;
 
@@ -49,7 +49,7 @@ impl Pipeline {
                        constellation_chan: ConstellationChan,
                        compositor_chan: CompositorChan,
                        image_cache_task: ImageCacheTask,
-                       profiler_chan: ProfilerChan,
+                       time_profiler_chan: TimeProfilerChan,
                        opts: Opts,
                        script_pipeline: Rc<Pipeline>,
                        url: Url)
@@ -70,7 +70,7 @@ impl Pipeline {
                            constellation_chan.clone(),
                            failure.clone(),
                            opts.clone(),
-                           profiler_chan.clone(),
+                           time_profiler_chan.clone(),
                            render_shutdown_chan);
 
         LayoutTask::create(id,
@@ -82,7 +82,7 @@ impl Pipeline {
                            render_chan.clone(),
                            image_cache_task.clone(),
                            opts.clone(),
-                           profiler_chan,
+                           time_profiler_chan,
                            layout_shutdown_chan);
 
         let new_layout_info = NewLayoutInfo {
@@ -111,7 +111,7 @@ impl Pipeline {
                   compositor_chan: CompositorChan,
                   image_cache_task: ImageCacheTask,
                   resource_task: ResourceTask,
-                  profiler_chan: ProfilerChan,
+                  time_profiler_chan: TimeProfilerChan,
                   window_size: WindowSizeData,
                   opts: Opts,
                   url: Url)
@@ -152,7 +152,7 @@ impl Pipeline {
                            constellation_chan.clone(),
                            failure.clone(),
                            opts.clone(),
-                           profiler_chan.clone(),
+                           time_profiler_chan.clone(),
                            render_shutdown_chan);
 
         LayoutTask::create(id,
@@ -164,7 +164,7 @@ impl Pipeline {
                            render_chan.clone(),
                            image_cache_task,
                            opts.clone(),
-                           profiler_chan,
+                           time_profiler_chan,
                            layout_shutdown_chan);
 
         pipeline
