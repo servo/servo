@@ -7,6 +7,8 @@ use compositing::*;
 use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
 use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, ResizedWindowMsg, WindowSizeData};
+use servo_util::memory::MemoryProfilerChan;
+use servo_util::memory;
 use servo_util::time::ProfilerChan;
 use servo_util::time;
 
@@ -28,7 +30,8 @@ impl NullCompositor {
 
     pub fn create(port: Receiver<Msg>,
                   constellation_chan: ConstellationChan,
-                  profiler_chan: ProfilerChan) {
+                  profiler_chan: ProfilerChan,
+                  memory_profiler_chan: MemoryProfilerChan) {
         let compositor = NullCompositor::new(port);
 
         // Tell the constellation about the initial fake size.
@@ -52,6 +55,7 @@ impl NullCompositor {
         }
 
         profiler_chan.send(time::ExitMsg);
+        memory_profiler_chan.send(memory::ExitMsg);
     }
 
     fn handle_message(&self, constellation_chan: ConstellationChan) {

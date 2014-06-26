@@ -64,6 +64,8 @@ use servo_net::image_cache_task::{ImageCacheTask, SyncImageCacheTask};
 use servo_net::resource_task::ResourceTask;
 #[cfg(not(test))]
 use servo_util::time::Profiler;
+#[cfg(not(test))]
+use servo_util::memory::MemoryProfiler;
 
 #[cfg(not(test))]
 use servo_util::opts;
@@ -169,6 +171,7 @@ pub fn run(opts: opts::Opts) {
 
     let (compositor_port, compositor_chan) = CompositorChan::new();
     let profiler_chan = Profiler::create(opts.profiler_period);
+    let memory_profiler_chan = MemoryProfiler::create(opts.memory_profiler_period);
 
     let opts_clone = opts.clone();
     let profiler_chan_clone = profiler_chan.clone();
@@ -217,7 +220,8 @@ pub fn run(opts: opts::Opts) {
     CompositorTask::create(opts,
                            compositor_port,
                            constellation_chan,
-                           profiler_chan);
+                           profiler_chan,
+                           memory_profiler_chan);
 
     pool.shutdown();
 }
