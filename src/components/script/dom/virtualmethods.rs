@@ -8,6 +8,7 @@ use dom::bindings::codegen::InheritTypes::HTMLAnchorElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLBodyElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLButtonElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLFieldSetElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLIFrameElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLImageElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLObjectElementCast;
@@ -18,6 +19,7 @@ use dom::element::ElementTypeId;
 use dom::element::HTMLAnchorElementTypeId;
 use dom::element::HTMLBodyElementTypeId;
 use dom::element::HTMLButtonElementTypeId;
+use dom::element::HTMLFieldSetElementTypeId;
 use dom::element::HTMLIFrameElementTypeId;
 use dom::element::HTMLImageElementTypeId;
 use dom::element::HTMLObjectElementTypeId;
@@ -27,6 +29,7 @@ use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlbuttonelement::HTMLButtonElement;
 use dom::htmlelement::HTMLElement;
+use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlobjectelement::HTMLObjectElement;
@@ -121,6 +124,10 @@ pub fn vtable_for<'a>(node: &'a JSRef<Node>) -> &'a VirtualMethods+ {
         }
         ElementNodeTypeId(HTMLButtonElementTypeId) => {
             let element: &JSRef<HTMLButtonElement> = HTMLButtonElementCast::to_ref(node).unwrap();
+            element as &VirtualMethods+
+        }
+        ElementNodeTypeId(HTMLFieldSetElementTypeId) => {
+            let element: &JSRef<HTMLFieldSetElement> = HTMLFieldSetElementCast::to_ref(node).unwrap();
             element as &VirtualMethods+
         }
         ElementNodeTypeId(HTMLImageElementTypeId) => {
