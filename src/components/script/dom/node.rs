@@ -16,6 +16,8 @@ use dom::bindings::codegen::InheritTypes::{CommentCast, DocumentCast, DocumentTy
 use dom::bindings::codegen::InheritTypes::{ElementCast, TextCast, NodeCast, ElementDerived};
 use dom::bindings::codegen::InheritTypes::{CharacterDataCast, NodeBase, NodeDerived};
 use dom::bindings::codegen::InheritTypes::{ProcessingInstructionCast, EventTargetCast};
+use dom::bindings::codegen::InheritTypes::{HTMLLegendElementDerived, HTMLFieldSetElementDerived};
+use dom::bindings::codegen::InheritTypes::HTMLOptGroupElementDerived;
 use dom::bindings::error::{ErrorResult, Fallible, NotFound, HierarchyRequest, Syntax};
 use dom::bindings::global::{GlobalRef, Window};
 use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, Root, OptionalUnrootable};
@@ -123,8 +125,10 @@ bitflags! {
     flags NodeFlags: u8 {
         #[doc = "Specifies whether this node is in a document."]
         static IsInDoc = 0x01,
-        #[doc = "Specifies whether this node is hover state for this node"]
-        static InHoverState = 0x02
+        #[doc = "Specifies whether this node is in hover state."]
+        static InHoverState = 0x02,
+        #[doc = "Specifies whether this node is in disabled state."]
+        static InDisabledState = 0x04
     }
 }
 
@@ -383,6 +387,9 @@ pub trait NodeHelpers {
     fn get_hover_state(&self) -> bool;
     fn set_hover_state(&self, state: bool);
 
+    fn get_disabled_state(&self) -> bool;
+    fn set_disabled_state(&self, state: bool);
+
     fn dump(&self);
     fn dump_indent(&self, indent: uint);
     fn debug_str(&self) -> String;
@@ -497,6 +504,18 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
             self.flags.deref().borrow_mut().insert(InHoverState);
         } else {
             self.flags.deref().borrow_mut().remove(InHoverState);
+        }
+    }
+
+    fn get_disabled_state(&self) -> bool {
+        self.flags.deref().borrow().contains(InDisabledState)
+    }
+
+    fn set_disabled_state(&self, state: bool) {
+        if state {
+            self.flags.deref().borrow_mut().insert(InDisabledState);
+        } else {
+            self.flags.deref().borrow_mut().remove(InDisabledState);
         }
     }
 
@@ -728,11 +747,15 @@ impl LayoutNodeHelpers for JS<Node> {
 
 pub trait RawLayoutNodeHelpers {
     unsafe fn get_hover_state_for_layout(&self) -> bool;
+    unsafe fn get_disabled_state_for_layout(&self) -> bool;
 }
 
 impl RawLayoutNodeHelpers for Node {
     unsafe fn get_hover_state_for_layout(&self) -> bool {
         self.flags.deref().borrow().contains(InHoverState)
+    }
+    unsafe fn get_disabled_state_for_layout(&self) -> bool {
+        self.flags.deref().borrow().contains(InDisabledState)
     }
 }
 
@@ -1964,5 +1987,49 @@ impl<'a> style::TNode<JSRef<'a, Element>> for JSRef<'a, Node> {
             // FIXME: https://github.com/mozilla/servo/issues/1558
             style::AnyNamespace => false,
         }
+    }
+}
+
+pub trait DisabledStateHelpers {
+    fn check_ancestors_disabled_state_for_form_control(&self);
+    fn check_parent_disabled_state_for_option(&self);
+    fn check_disabled_attribute(&self);
+}
+
+impl<'a> DisabledStateHelpers for JSRef<'a, Node> {
+    fn check_ancestors_disabled_state_for_form_control(&self) {
+        if self.get_disabled_state() { return; }
+        for ancestor in self.ancestors().filter(|ancestor| ancestor.is_htmlfieldsetelement()) {
+            if !ancestor.get_disabled_state() { continue; }
+            if ancestor.is_parent_of(self) {
+                self.set_disabled_state(true);
+                return;
+            }
+            match ancestor.children().find(|child| child.is_htmllegendelement()) {
+                Some(ref legend) => {
+                    // XXXabinader: should we save previous ancestor to avoid this iteration?
+                    if self.ancestors().any(|ancestor| ancestor == *legend) { continue; }
+                },
+                None => ()
+            }
+            self.set_disabled_state(true);
+            return;
+        }
+    }
+
+    fn check_parent_disabled_state_for_option(&self) {
+        if self.get_disabled_state() { return; }
+        match self.parent_node().root() {
+            Some(ref parent) if parent.is_htmloptgroupelement() && parent.get_disabled_state() => {
+                self.set_disabled_state(true);
+            },
+            _ => ()
+        }
+    }
+
+    fn check_disabled_attribute(&self) {
+        let elem: &JSRef<'a, Element> = ElementCast::to_ref(self).unwrap();
+        let has_disabled_attrib = elem.has_attribute("disabled");
+        self.set_disabled_state(has_disabled_attrib);
     }
 }

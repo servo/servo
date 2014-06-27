@@ -12,13 +12,14 @@ use dom::bindings::js::OptionalRootable;
 use dom::bindings::utils::Reflectable;
 use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
 use dom::document::{Document, HTMLDocument, DocumentHelpers};
-use dom::element::{Element};
+use dom::element::{Element, HTMLButtonElementTypeId, HTMLInputElementTypeId};
+use dom::element::{HTMLSelectElementTypeId, HTMLTextAreaElementTypeId, HTMLOptionElementTypeId};
 use dom::event::{Event_, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent};
 use dom::event::Event;
 use dom::uievent::UIEvent;
 use dom::eventtarget::{EventTarget, EventTargetHelpers};
 use dom::node;
-use dom::node::{Node, NodeHelpers};
+use dom::node::{ElementNodeTypeId, Node, NodeHelpers};
 use dom::window::{TimerId, Window, WindowHelpers};
 use dom::xmlhttprequest::{TrustedXHRAddress, XMLHttpRequest, XHRProgress};
 use html::hubbub_html_parser::HtmlParserResult;
@@ -189,6 +190,24 @@ impl<'a> Drop for ScriptMemoryFailsafe<'a> {
                 *owner.js_context.borrow_mut() = None;
             }
             None => (),
+        }
+    }
+}
+
+trait PrivateScriptTaskHelpers {
+    fn click_event_filter_by_disabled_state(&self) -> bool;
+}
+
+impl<'a> PrivateScriptTaskHelpers for JSRef<'a, Node> {
+    fn click_event_filter_by_disabled_state(&self) -> bool {
+        match self.type_id {
+            ElementNodeTypeId(HTMLButtonElementTypeId) |
+            ElementNodeTypeId(HTMLInputElementTypeId) |
+            // ElementNodeTypeId(HTMLKeygenElementTypeId) |
+            ElementNodeTypeId(HTMLOptionElementTypeId) |
+            ElementNodeTypeId(HTMLSelectElementTypeId) |
+            ElementNodeTypeId(HTMLTextAreaElementTypeId) if self.get_disabled_state() => true,
+            _ => false
         }
     }
 }
@@ -691,6 +710,8 @@ impl ScriptTask {
                         match maybe_node {
                             Some(node) => {
                                 debug!("clicked on {:s}", node.debug_str());
+                                // Prevent click event if form control element is disabled.
+                                if node.click_event_filter_by_disabled_state() { return; }
                                 match *page.frame() {
                                     Some(ref frame) => {
                                         let window = frame.window.root();

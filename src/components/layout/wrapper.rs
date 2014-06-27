@@ -398,6 +398,12 @@ impl<'le> TElement for LayoutElement<'le> {
     fn get_id(&self) -> Option<Atom> {
         unsafe { self.element.get_attr_atom_for_layout(&namespace::Null, "id") }
     }
+
+    fn get_disabled_state(&self) -> bool {
+        unsafe {
+            self.element.node.get_disabled_state_for_layout()
+        }
+    }
 }
 
 fn get_content(content_list: &content::T) -> String {

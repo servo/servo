@@ -778,6 +778,12 @@ fn matches_simple_selector<E:TElement,
             let elem = element.as_element();
             elem.get_hover_state()
         },
+        // http://www.whatwg.org/html/#selector-disabled
+        Disabled => {
+            *shareable = false;
+            let elem = element.as_element();
+            elem.get_disabled_state()
+        },
         FirstChild => {
             *shareable = false;
             matches_first_child(element)
