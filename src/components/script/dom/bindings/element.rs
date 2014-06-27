@@ -23,12 +23,6 @@ macro_rules! generate_cacheable_wrapper_htmltablecellelement(
     )
 )
 
-macro_rules! generate_cacheable_wrapper_node(
-    ($name: path, $wrap: path) => (
-        generate_cacheable_wrapper_base!($name, $wrap, node)
-    )
-)
-
 macro_rules! generate_cacheable_wrapper_base(
     ($name: path, $wrap: path, $parent: ident) => (
         impl Reflectable for $name {
@@ -38,10 +32,6 @@ macro_rules! generate_cacheable_wrapper_base(
         }
     )
 )
-
-generate_cacheable_wrapper_node!(DocumentFragment, DocumentFragmentBinding::Wrap)
-
-generate_cacheable_wrapper_node!(DocumentType, DocumentTypeBinding::Wrap)
 
 generate_cacheable_wrapper_htmlelement!(HTMLHeadElement, HTMLHeadElementBinding::Wrap)
 
