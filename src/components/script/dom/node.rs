@@ -32,7 +32,10 @@ use dom::document::{Document, DocumentHelpers, HTMLDocument, NonHTMLDocument};
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
 use dom::element::{AttributeHandlers, Element, ElementTypeId};
-use dom::element::{HTMLAnchorElementTypeId, ElementHelpers};
+use dom::element::{HTMLAnchorElementTypeId, HTMLButtonElementTypeId, ElementHelpers};
+use dom::element::{HTMLInputElementTypeId, HTMLSelectElementTypeId};
+use dom::element::{HTMLTextAreaElementTypeId, HTMLOptGroupElementTypeId};
+use dom::element::{HTMLOptionElementTypeId, HTMLFieldSetElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::nodelist::{NodeList};
 use dom::processinginstruction::ProcessingInstruction;
@@ -128,7 +131,9 @@ bitflags! {
         #[doc = "Specifies whether this node is in hover state."]
         static InHoverState = 0x02,
         #[doc = "Specifies whether this node is in disabled state."]
-        static InDisabledState = 0x04
+        static InDisabledState = 0x04,
+        #[doc = "Specifies whether this node is in enabled state."]
+        static InEnabledState = 0x08
     }
 }
 
@@ -390,6 +395,9 @@ pub trait NodeHelpers {
     fn get_disabled_state(&self) -> bool;
     fn set_disabled_state(&self, state: bool);
 
+    fn get_enabled_state(&self) -> bool;
+    fn set_enabled_state(&self, state: bool);
+
     fn dump(&self);
     fn dump_indent(&self, indent: uint);
     fn debug_str(&self) -> String;
@@ -516,6 +524,18 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
             self.flags.deref().borrow_mut().insert(InDisabledState);
         } else {
             self.flags.deref().borrow_mut().remove(InDisabledState);
+        }
+    }
+
+    fn get_enabled_state(&self) -> bool {
+        self.flags.deref().borrow().contains(InEnabledState)
+    }
+
+    fn set_enabled_state(&self, state: bool) {
+        if state {
+            self.flags.deref().borrow_mut().insert(InEnabledState);
+        } else {
+            self.flags.deref().borrow_mut().remove(InEnabledState);
         }
     }
 
@@ -748,6 +768,7 @@ impl LayoutNodeHelpers for JS<Node> {
 pub trait RawLayoutNodeHelpers {
     unsafe fn get_hover_state_for_layout(&self) -> bool;
     unsafe fn get_disabled_state_for_layout(&self) -> bool;
+    unsafe fn get_enabled_state_for_layout(&self) -> bool;
 }
 
 impl RawLayoutNodeHelpers for Node {
@@ -756,6 +777,9 @@ impl RawLayoutNodeHelpers for Node {
     }
     unsafe fn get_disabled_state_for_layout(&self) -> bool {
         self.flags.deref().borrow().contains(InDisabledState)
+    }
+    unsafe fn get_enabled_state_for_layout(&self) -> bool {
+        self.flags.deref().borrow().contains(InEnabledState)
     }
 }
 
@@ -949,7 +973,7 @@ impl Node {
     }
 
     fn new_(type_id: NodeTypeId, doc: Option<JSRef<Document>>) -> Node {
-        Node {
+        let node = Node {
             eventtarget: EventTarget::new_inherited(NodeTargetTypeId(type_id)),
             type_id: type_id,
 
@@ -964,7 +988,22 @@ impl Node {
             flags: Traceable::new(RefCell::new(NodeFlags::new(type_id))),
 
             layout_data: LayoutDataRef::new(),
+        };
+        match type_id {
+            // The following elements are enabled by default.
+            ElementNodeTypeId(HTMLButtonElementTypeId) |
+            ElementNodeTypeId(HTMLInputElementTypeId) |
+            ElementNodeTypeId(HTMLSelectElementTypeId) |
+            ElementNodeTypeId(HTMLTextAreaElementTypeId) |
+            ElementNodeTypeId(HTMLOptGroupElementTypeId) |
+            ElementNodeTypeId(HTMLOptionElementTypeId) |
+            //ElementNodeTypeId(HTMLMenuItemElementTypeId) |
+            ElementNodeTypeId(HTMLFieldSetElementTypeId) => {
+                node.flags.deref().borrow_mut().insert(InEnabledState);
+            },
+            _ => ()
         }
+        node
     }
 
     // http://dom.spec.whatwg.org/#concept-node-adopt
@@ -2003,6 +2042,7 @@ impl<'a> DisabledStateHelpers for JSRef<'a, Node> {
             if !ancestor.get_disabled_state() { continue; }
             if ancestor.is_parent_of(self) {
                 self.set_disabled_state(true);
+                self.set_enabled_state(false);
                 return;
             }
             match ancestor.children().find(|child| child.is_htmllegendelement()) {
@@ -2013,6 +2053,7 @@ impl<'a> DisabledStateHelpers for JSRef<'a, Node> {
                 None => ()
             }
             self.set_disabled_state(true);
+            self.set_enabled_state(false);
             return;
         }
     }
@@ -2022,6 +2063,7 @@ impl<'a> DisabledStateHelpers for JSRef<'a, Node> {
         match self.parent_node().root() {
             Some(ref parent) if parent.is_htmloptgroupelement() && parent.get_disabled_state() => {
                 self.set_disabled_state(true);
+                self.set_enabled_state(false);
             },
             _ => ()
         }
@@ -2031,5 +2073,6 @@ impl<'a> DisabledStateHelpers for JSRef<'a, Node> {
         let elem: &JSRef<'a, Element> = ElementCast::to_ref(self).unwrap();
         let has_disabled_attrib = elem.has_attribute("disabled");
         self.set_disabled_state(has_disabled_attrib);
+        self.set_enabled_state(!has_disabled_attrib);
     }
 }
