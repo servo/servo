@@ -20,7 +20,7 @@ use layout::wrapper::{layout_node_to_unsafe_layout_node, layout_node_from_unsafe
 use layout::wrapper::{ThreadSafeLayoutNode, UnsafeLayoutNode};
 
 use gfx::display_list::OpaqueNode;
-use servo_util::time::{ProfilerChan, profile};
+use servo_util::time::{TimeProfilerChan, profile};
 use servo_util::time;
 use servo_util::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
 use std::mem;
@@ -526,14 +526,14 @@ pub fn recalc_style_for_subtree(root_node: &LayoutNode,
 }
 
 pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
-                                   profiler_chan: ProfilerChan,
+                                   time_profiler_chan: TimeProfilerChan,
                                    layout_context: &mut LayoutContext,
                                    queue: &mut WorkQueue<*mut LayoutContext,UnsafeFlow>) {
     unsafe {
         queue.data = mem::transmute(layout_context)
     }
 
-    profile(time::LayoutParallelWarmupCategory, profiler_chan, || {
+    profile(time::LayoutParallelWarmupCategory, time_profiler_chan, || {
         queue.push(WorkUnit {
             fun: assign_widths,
             data: mut_owned_flow_to_unsafe_flow(root),
@@ -546,14 +546,14 @@ pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
 }
 
 pub fn build_display_list_for_subtree(root: &mut FlowRef,
-                                      profiler_chan: ProfilerChan,
+                                      time_profiler_chan: TimeProfilerChan,
                                       layout_context: &mut LayoutContext,
                                       queue: &mut WorkQueue<*mut LayoutContext,UnsafeFlow>) {
     unsafe {
         queue.data = mem::transmute(layout_context)
     }
 
-    profile(time::LayoutParallelWarmupCategory, profiler_chan, || {
+    profile(time::LayoutParallelWarmupCategory, time_profiler_chan, || {
         queue.push(WorkUnit {
             fun: compute_absolute_position,
             data: mut_owned_flow_to_unsafe_flow(root),

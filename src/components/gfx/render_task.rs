@@ -27,7 +27,7 @@ use servo_util::geometry;
 use servo_util::opts::Opts;
 use servo_util::smallvec::{SmallVec, SmallVec1};
 use servo_util::task::send_on_failure;
-use servo_util::time::{ProfilerChan, profile};
+use servo_util::time::{TimeProfilerChan, profile};
 use servo_util::time;
 use std::comm::{Receiver, Sender, channel};
 use std::task::TaskBuilder;
@@ -108,8 +108,8 @@ pub struct RenderTask<C> {
     font_ctx: Box<FontContext>,
     opts: Opts,
 
-    /// A channel to the profiler.
-    profiler_chan: ProfilerChan,
+    /// A channel to the time profiler.
+    time_profiler_chan: TimeProfilerChan,
 
     /// The graphics context to use.
     graphics_context: GraphicsContext,
@@ -161,7 +161,7 @@ impl<C:RenderListener + Send> RenderTask<C> {
                   constellation_chan: ConstellationChan,
                   failure_msg: Failure,
                   opts: Opts,
-                  profiler_chan: ProfilerChan,
+                  time_profiler_chan: TimeProfilerChan,
                   shutdown_chan: Sender<()>) {
         let mut builder = TaskBuilder::new().named("RenderTask");
         let ConstellationChan(c) = constellation_chan.clone();
@@ -182,10 +182,10 @@ impl<C:RenderListener + Send> RenderTask<C> {
                     font_ctx: box FontContext::new(FontContextInfo {
                         backend: opts.render_backend.clone(),
                         needs_font_list: false,
-                        profiler_chan: profiler_chan.clone(),
+                        time_profiler_chan: time_profiler_chan.clone(),
                     }),
                     opts: opts,
-                    profiler_chan: profiler_chan,
+                    time_profiler_chan: time_profiler_chan,
 
                     graphics_context: if cpu_painting {
                         CpuGraphicsContext
@@ -280,7 +280,7 @@ impl<C:RenderListener + Send> RenderTask<C> {
     /// FIXME(pcwalton): We will probably want to eventually send all layers belonging to a page in
     /// one transaction, to avoid the user seeing inconsistent states.
     fn render(&mut self, tiles: Vec<BufferRequest>, scale: f32, layer_id: LayerId) {
-        time::profile(time::RenderingCategory, self.profiler_chan.clone(), || {
+        time::profile(time::RenderingCategory, self.time_profiler_chan.clone(), || {
             // FIXME: Try not to create a new array here.
             let mut new_buffers = vec!();
 
@@ -345,7 +345,7 @@ impl<C:RenderListener + Send> RenderTask<C> {
                     ctx.clear();
 
                     // Draw the display list.
-                    profile(time::RenderingDrawingCategory, self.profiler_chan.clone(), || {
+                    profile(time::RenderingDrawingCategory, self.time_profiler_chan.clone(), || {
                         display_list.draw_into_context(&mut ctx);
                         ctx.draw_target.flush();
                     });

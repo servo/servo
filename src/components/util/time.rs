@@ -14,18 +14,18 @@ use task::{spawn_named};
 
 // front-end representation of the profiler used to communicate with the profiler
 #[deriving(Clone)]
-pub struct ProfilerChan(pub Sender<ProfilerMsg>);
+pub struct TimeProfilerChan(pub Sender<TimeProfilerMsg>);
 
-impl ProfilerChan {
-    pub fn send(&self, msg: ProfilerMsg) {
-        let ProfilerChan(ref c) = *self;
+impl TimeProfilerChan {
+    pub fn send(&self, msg: TimeProfilerMsg) {
+        let TimeProfilerChan(ref c) = *self;
         c.send(msg);
     }
 }
 
-pub enum ProfilerMsg {
+pub enum TimeProfilerMsg {
     /// Normal message used for reporting time
-    TimeMsg(ProfilerCategory, f64),
+    TimeMsg(TimeProfilerCategory, f64),
     /// Message used to force print the profiling metrics
     PrintMsg,
     /// Tells the profiler to shut down.
@@ -34,7 +34,7 @@ pub enum ProfilerMsg {
 
 #[repr(u32)]
 #[deriving(Eq, Clone, Ord, TotalEq, TotalOrd)]
-pub enum ProfilerCategory {
+pub enum TimeProfilerCategory {
     CompositingCategory,
     LayoutQueryCategory,
     LayoutPerformCategory,
@@ -54,14 +54,14 @@ pub enum ProfilerCategory {
     NumBuckets,
 }
 
-impl ProfilerCategory {
+impl TimeProfilerCategory {
     // convenience function to not have to cast every time
     pub fn num_buckets() -> uint {
         NumBuckets as uint
     }
 
-    // enumeration of all ProfilerCategory types
-    fn empty_buckets() -> ProfilerBuckets {
+    // enumeration of all TimeProfilerCategory types
+    fn empty_buckets() -> TimeProfilerBuckets {
         let mut buckets = TreeMap::new();
         buckets.insert(CompositingCategory, vec!());
         buckets.insert(LayoutQueryCategory, vec!());
@@ -100,23 +100,23 @@ impl ProfilerCategory {
     }
 }
 
-type ProfilerBuckets = TreeMap<ProfilerCategory, Vec<f64>>;
+type TimeProfilerBuckets = TreeMap<TimeProfilerCategory, Vec<f64>>;
 
 // back end of the profiler that handles data aggregation and performance metrics
-pub struct Profiler {
-    pub port: Receiver<ProfilerMsg>,
-    buckets: ProfilerBuckets,
-    pub last_msg: Option<ProfilerMsg>,
+pub struct TimeProfiler {
+    pub port: Receiver<TimeProfilerMsg>,
+    buckets: TimeProfilerBuckets,
+    pub last_msg: Option<TimeProfilerMsg>,
 }
 
-impl Profiler {
-    pub fn create(period: Option<f64>) -> ProfilerChan {
+impl TimeProfiler {
+    pub fn create(period: Option<f64>) -> TimeProfilerChan {
         let (chan, port) = channel();
         match period {
             Some(period) => {
                 let period = (period * 1000f64) as u64;
                 let chan = chan.clone();
-                spawn_named("Profiler timer", proc() {
+                spawn_named("Time profiler timer", proc() {
                     loop {
                         sleep(period);
                         if chan.send_opt(PrintMsg).is_err() {
@@ -124,15 +124,15 @@ impl Profiler {
                         }
                     }
                 });
-                // Spawn the profiler
-                spawn_named("Profiler", proc() {
-                    let mut profiler = Profiler::new(port);
+                // Spawn the time profiler.
+                spawn_named("Time profiler", proc() {
+                    let mut profiler = TimeProfiler::new(port);
                     profiler.start();
                 });
             }
             None => {
-                // no-op to handle profiler messages when the profiler is inactive
-                spawn_named("Profiler", proc() {
+                // No-op to handle messages when the time profiler is inactive.
+                spawn_named("Time profiler", proc() {
                     loop {
                         match port.recv_opt() {
                             Err(_) | Ok(ExitMsg) => break,
@@ -143,13 +143,13 @@ impl Profiler {
             }
         }
 
-        ProfilerChan(chan)
+        TimeProfilerChan(chan)
     }
 
-    pub fn new(port: Receiver<ProfilerMsg>) -> Profiler {
-        Profiler {
+    pub fn new(port: Receiver<TimeProfilerMsg>) -> TimeProfiler {
+        TimeProfiler {
             port: port,
-            buckets: ProfilerCategory::empty_buckets(),
+            buckets: TimeProfilerCategory::empty_buckets(),
             last_msg: None,
         }
     }
@@ -168,7 +168,7 @@ impl Profiler {
         }
     }
 
-    fn handle_msg(&mut self, msg: ProfilerMsg) -> bool {
+    fn handle_msg(&mut self, msg: TimeProfilerMsg) -> bool {
         match msg {
             TimeMsg(category, t) => self.buckets.find_mut(&category).unwrap().push(t),
             PrintMsg => match self.last_msg {
@@ -210,15 +210,15 @@ impl Profiler {
 }
 
 
-pub fn profile<T>(category: ProfilerCategory,
-                  profiler_chan: ProfilerChan,
+pub fn profile<T>(category: TimeProfilerCategory,
+                  time_profiler_chan: TimeProfilerChan,
                   callback: || -> T)
                   -> T {
     let start_time = precise_time_ns();
     let val = callback();
     let end_time = precise_time_ns();
     let ms = (end_time - start_time) as f64 / 1000000f64;
-    profiler_chan.send(TimeMsg(category, ms));
+    time_profiler_chan.send(TimeMsg(category, ms));
     return val;
 }
 
@@ -236,6 +236,6 @@ pub fn time<T>(msg: &str, callback: || -> T) -> T{
 // ensure that the order of the buckets matches the order of the enum categories
 #[test]
 fn check_order() {
-    let buckets = ProfilerCategory::empty_buckets();
+    let buckets = TimeProfilerCategory::empty_buckets();
     assert!(buckets.len() == NumBuckets as uint);
 }

@@ -41,9 +41,13 @@ pub struct Opts {
     /// platform default setting.
     pub device_pixels_per_px: Option<ScaleFactor<ScreenPx, DevicePixel, f32>>,
 
-    /// `None` to disable the profiler or `Some` with an interval in seconds to enable it and cause
-    /// it to produce output on that interval (`-p`).
-    pub profiler_period: Option<f64>,
+    /// `None` to disable the time profiler or `Some` with an interval in seconds to enable it and
+    /// cause it to produce output on that interval (`-p`).
+    pub time_profiler_period: Option<f64>,
+
+    /// `None` to disable the memory profiler or `Some` with an interval in seconds to enable it 
+    /// and cause it to produce output on that interval (`-m`).
+    pub memory_profiler_period: Option<f64>,
 
     /// The number of threads to use for layout (`-y`). Defaults to 1, which results in a recursive
     /// sequential algorithm.
@@ -85,6 +89,7 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
         getopts::optopt("", "device-pixel-ratio", "Device pixels per px", ""),
         getopts::optopt("t", "threads", "Number of render threads", "1"),
         getopts::optflagopt("p", "profile", "Profiler flag and output interval", "10"),
+        getopts::optflagopt("m", "memory-profile", "Memory profiler flag and output interval", "10"),
         getopts::optflag("x", "exit", "Exit after load flag"),
         getopts::optopt("y", "layout-threads", "Number of threads to use for layout", "1"),
         getopts::optflag("z", "headless", "Headless mode"),
@@ -147,8 +152,11 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
         None => 1,      // FIXME: Number of cores.
     };
 
-    // if only flag is present, default to 5 second period
-    let profiler_period = opt_match.opt_default("p", "5").map(|period| {
+    // If only the flag is present, default to a 5 second period for both profilers.
+    let time_profiler_period = opt_match.opt_default("p", "5").map(|period| {
+        from_str(period.as_slice()).unwrap()
+    });
+    let memory_profiler_period = opt_match.opt_default("m", "5").map(|period| {
         from_str(period.as_slice()).unwrap()
     });
 
@@ -166,7 +174,8 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
         cpu_painting: cpu_painting,
         tile_size: tile_size,
         device_pixels_per_px: device_pixels_per_px,
-        profiler_period: profiler_period,
+        time_profiler_period: time_profiler_period,
+        memory_profiler_period: memory_profiler_period,
         layout_threads: layout_threads,
         exit_after_load: opt_match.opt_present("x"),
         output_file: opt_match.opt_str("o"),

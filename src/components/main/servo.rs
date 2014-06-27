@@ -63,7 +63,9 @@ use servo_net::image_cache_task::{ImageCacheTask, SyncImageCacheTask};
 #[cfg(not(test))]
 use servo_net::resource_task::ResourceTask;
 #[cfg(not(test))]
-use servo_util::time::Profiler;
+use servo_util::time::TimeProfiler;
+#[cfg(not(test))]
+use servo_util::memory::MemoryProfiler;
 
 #[cfg(not(test))]
 use servo_util::opts;
@@ -168,10 +170,11 @@ pub fn run(opts: opts::Opts) {
     let mut pool = green::SchedPool::new(pool_config);
 
     let (compositor_port, compositor_chan) = CompositorChan::new();
-    let profiler_chan = Profiler::create(opts.profiler_period);
+    let time_profiler_chan = TimeProfiler::create(opts.time_profiler_period);
+    let memory_profiler_chan = MemoryProfiler::create(opts.memory_profiler_period);
 
     let opts_clone = opts.clone();
-    let profiler_chan_clone = profiler_chan.clone();
+    let time_profiler_chan_clone = time_profiler_chan.clone();
 
     let (result_chan, result_port) = channel();
     pool.spawn(TaskOpts::new(), proc() {
@@ -190,7 +193,7 @@ pub fn run(opts: opts::Opts) {
                                                       opts,
                                                       resource_task,
                                                       image_cache_task,
-                                                      profiler_chan_clone);
+                                                      time_profiler_chan_clone);
 
         // Send the URL command to the constellation.
         for filename in opts.urls.iter() {
@@ -217,7 +220,8 @@ pub fn run(opts: opts::Opts) {
     CompositorTask::create(opts,
                            compositor_port,
                            constellation_chan,
-                           profiler_chan);
+                           time_profiler_chan,
+                           memory_profiler_chan);
 
     pool.shutdown();
 }
