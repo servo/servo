@@ -166,8 +166,9 @@ pub mod dom {
     pub mod performance;
     pub mod performancetiming;
     pub mod progressevent;
-    pub mod uievent;
     pub mod text;
+    pub mod uievent;
+    pub mod urlsearchparams;
     pub mod validitystate;
     pub mod virtualmethods;
     pub mod window;
