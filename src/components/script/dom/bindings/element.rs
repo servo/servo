@@ -5,13 +5,6 @@
 use dom::types::*;
 use dom::bindings::utils::{Reflectable, Reflector};
 
-// generate_cacheable_wrapper
-macro_rules! generate_cacheable_wrapper(
-    ($name: path, $wrap: path) => (
-        generate_cacheable_wrapper_base!($name, $wrap, element)
-    )
-)
-
 macro_rules! generate_cacheable_wrapper_htmlelement(
     ($name: path, $wrap: path) => (
         generate_cacheable_wrapper_base!($name, $wrap, htmlelement)
@@ -182,5 +175,3 @@ generate_cacheable_wrapper_htmlelement!(HTMLUListElement, HTMLUListElementBindin
 generate_cacheable_wrapper_htmlelement!(HTMLUnknownElement, HTMLUnknownElementBinding::Wrap)
 
 generate_cacheable_wrapper_htmlmediaelement!(HTMLVideoElement, HTMLVideoElementBinding::Wrap)
-
-generate_cacheable_wrapper!(HTMLElement, HTMLElementBinding::Wrap)

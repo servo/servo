@@ -8,7 +8,7 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLFrameSetElementDeriv
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::codegen::InheritTypes::{HTMLElementDerived, HTMLBodyElementDerived};
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::Reflectable;
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::{Element, ElementTypeId, HTMLElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, NodeTargetTypeId};
@@ -114,5 +114,11 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLElement> {
                                                   name.as_slice().slice_from(2),
                                                   value);
         }
+    }
+}
+
+impl Reflectable for HTMLElement {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        self.element.reflector()
     }
 }
