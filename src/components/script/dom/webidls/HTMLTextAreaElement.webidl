@@ -9,7 +9,7 @@ interface HTMLTextAreaElement : HTMLElement {
   //         attribute boolean autofocus;
   //         attribute unsigned long cols;
   //         attribute DOMString dirName;
-  //         attribute boolean disabled;
+           attribute boolean disabled;
   //readonly attribute HTMLFormElement? form;
   //         attribute DOMString inputMode;
   //         attribute long maxLength;
