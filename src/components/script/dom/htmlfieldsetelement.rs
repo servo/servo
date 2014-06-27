@@ -5,6 +5,7 @@
 use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLFieldSetElementDerived, NodeCast};
 use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::{Element, HTMLFieldSetElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -64,5 +65,11 @@ impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
     fn Validity(&self) -> Temporary<ValidityState> {
         let window = window_from_node(self).root();
         ValidityState::new(&*window)
+    }
+}
+
+impl Reflectable for HTMLFieldSetElement {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        self.htmlelement.reflector()
     }
 }

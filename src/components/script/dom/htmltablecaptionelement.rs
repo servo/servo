@@ -5,6 +5,7 @@
 use dom::bindings::codegen::Bindings::HTMLTableCaptionElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTableCaptionElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::HTMLTableCaptionElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -37,4 +38,10 @@ impl HTMLTableCaptionElement {
 }
 
 pub trait HTMLTableCaptionElementMethods {
+}
+
+impl Reflectable for HTMLTableCaptionElement {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        self.htmlelement.reflector()
+    }
 }

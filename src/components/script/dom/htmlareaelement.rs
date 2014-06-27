@@ -5,6 +5,7 @@
 use dom::bindings::codegen::Bindings::HTMLAreaElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLAreaElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::HTMLAreaElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -37,4 +38,10 @@ impl HTMLAreaElement {
 }
 
 pub trait HTMLAreaElementMethods {
+}
+
+impl Reflectable for HTMLAreaElement {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        self.htmlelement.reflector()
+    }
 }

@@ -4,6 +4,7 @@
 
 use dom::bindings::codegen::InheritTypes::HTMLTableCellElementDerived;
 use dom::bindings::js::JSRef;
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::{ElementTypeId, HTMLTableDataCellElementTypeId, HTMLTableHeaderCellElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -35,4 +36,10 @@ impl HTMLTableCellElement {
 }
 
 pub trait HTMLTableCellElementMethods {
+}
+
+impl Reflectable for HTMLTableCellElement {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        self.htmlelement.reflector()
+    }
 }

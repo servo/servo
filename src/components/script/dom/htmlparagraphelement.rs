@@ -5,6 +5,7 @@
 use dom::bindings::codegen::Bindings::HTMLParagraphElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLParagraphElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::HTMLParagraphElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -37,4 +38,10 @@ impl HTMLParagraphElement {
 }
 
 pub trait HTMLParagraphElementMethods {
+}
+
+impl Reflectable for HTMLParagraphElement {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        self.htmlelement.reflector()
+    }
 }

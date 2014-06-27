@@ -5,6 +5,7 @@
 use dom::bindings::codegen::Bindings::HTMLOListElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLOListElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::HTMLOListElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -37,4 +38,10 @@ impl HTMLOListElement {
 }
 
 pub trait HTMLOListElementMethods {
+}
+
+impl Reflectable for HTMLOListElement {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        self.htmlelement.reflector()
+    }
 }

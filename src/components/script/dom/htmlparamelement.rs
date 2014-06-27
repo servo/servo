@@ -5,6 +5,7 @@
 use dom::bindings::codegen::Bindings::HTMLParamElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLParamElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::HTMLParamElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -37,4 +38,10 @@ impl HTMLParamElement {
 }
 
 pub trait HTMLParamElementMethods {
+}
+
+impl Reflectable for HTMLParamElement {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        self.htmlelement.reflector()
+    }
 }

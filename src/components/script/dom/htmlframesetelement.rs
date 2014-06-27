@@ -5,6 +5,7 @@
 use dom::bindings::codegen::Bindings::HTMLFrameSetElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLFrameSetElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::HTMLFrameSetElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -37,4 +38,10 @@ impl HTMLFrameSetElement {
 }
 
 pub trait HTMLFrameSetElementMethods {
+}
+
+impl Reflectable for HTMLFrameSetElement {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        self.htmlelement.reflector()
+    }
 }

@@ -6,6 +6,7 @@ use dom::bindings::codegen::Bindings::HTMLScriptElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLScriptElementDerived;
 use dom::bindings::codegen::InheritTypes::ElementCast;
 use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::{HTMLScriptElementTypeId, Element, AttributeHandlers};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -45,5 +46,11 @@ impl<'a> HTMLScriptElementMethods for JSRef<'a, HTMLScriptElement> {
     fn Src(&self) -> DOMString {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
         element.get_url_attribute("src")
+    }
+}
+
+impl Reflectable for HTMLScriptElement {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        self.htmlelement.reflector()
     }
 }

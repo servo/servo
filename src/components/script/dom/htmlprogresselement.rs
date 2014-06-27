@@ -5,6 +5,7 @@
 use dom::bindings::codegen::Bindings::HTMLProgressElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLProgressElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::HTMLProgressElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -37,4 +38,10 @@ impl HTMLProgressElement {
 }
 
 pub trait HTMLProgressElementMethods {
+}
+
+impl Reflectable for HTMLProgressElement {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        self.htmlelement.reflector()
+    }
 }

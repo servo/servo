@@ -5,6 +5,7 @@
 use dom::bindings::codegen::Bindings::HTMLSourceElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLSourceElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::HTMLSourceElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -37,4 +38,10 @@ impl HTMLSourceElement {
 }
 
 pub trait HTMLSourceElementMethods {
+}
+
+impl Reflectable for HTMLSourceElement {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        self.htmlelement.reflector()
+    }
 }

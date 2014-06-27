@@ -5,6 +5,7 @@
 use dom::bindings::codegen::Bindings::HTMLTableRowElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTableRowElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::HTMLTableRowElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -37,4 +38,10 @@ impl HTMLTableRowElement {
 }
 
 pub trait HTMLTableRowElementMethods {
+}
+
+impl Reflectable for HTMLTableRowElement {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        self.htmlelement.reflector()
+    }
 }

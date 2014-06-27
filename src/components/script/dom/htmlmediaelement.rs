@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::js::{JSRef};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::bindings::codegen::InheritTypes::HTMLMediaElementDerived;
 use dom::document::Document;
 use dom::element::{ElementTypeId, HTMLAudioElementTypeId, HTMLVideoElementTypeId};
@@ -35,4 +36,10 @@ impl HTMLMediaElement {
 }
 
 pub trait HTMLMediaElementMethods {
+}
+
+impl Reflectable for HTMLMediaElement {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        self.htmlelement.reflector()
+    }
 }

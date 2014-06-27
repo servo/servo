@@ -5,6 +5,7 @@
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLButtonElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::HTMLButtonElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -45,5 +46,11 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
     fn Validity(&self) -> Temporary<ValidityState> {
         let window = window_from_node(self).root();
         ValidityState::new(&*window)
+    }
+}
+
+impl Reflectable for HTMLButtonElement {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        self.htmlelement.reflector()
     }
 }

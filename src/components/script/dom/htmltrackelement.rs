@@ -5,6 +5,7 @@
 use dom::bindings::codegen::Bindings::HTMLTrackElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTrackElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::HTMLTrackElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -37,4 +38,10 @@ impl HTMLTrackElement {
 }
 
 pub trait HTMLTrackElementMethods {
+}
+
+impl Reflectable for HTMLTrackElement {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        self.htmlelement.reflector()
+    }
 }

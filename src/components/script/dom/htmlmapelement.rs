@@ -5,6 +5,7 @@
 use dom::bindings::codegen::Bindings::HTMLMapElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLMapElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::HTMLMapElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -37,4 +38,10 @@ impl HTMLMapElement {
 }
 
 pub trait HTMLMapElementMethods {
+}
+
+impl Reflectable for HTMLMapElement {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        self.htmlelement.reflector()
+    }
 }

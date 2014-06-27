@@ -5,6 +5,7 @@
 use dom::bindings::codegen::Bindings::HTMLModElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLModElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::HTMLModElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -37,4 +38,10 @@ impl HTMLModElement {
 }
 
 pub trait HTMLModElementMethods {
+}
+
+impl Reflectable for HTMLModElement {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        self.htmlelement.reflector()
+    }
 }

@@ -6,6 +6,7 @@ use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLIFrameElementDerived, HTMLElementCast};
 use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
 use dom::bindings::trace::Traceable;
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::{HTMLIFrameElementTypeId, Element};
 use dom::element::AttributeHandlers;
@@ -204,5 +205,11 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
             }
             _ => ()
         }
+    }
+}
+
+impl Reflectable for HTMLIFrameElement {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        self.htmlelement.reflector()
     }
 }

@@ -5,6 +5,7 @@
 use dom::bindings::codegen::Bindings::HTMLPreElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLPreElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::HTMLPreElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -37,4 +38,10 @@ impl HTMLPreElement {
 }
 
 pub trait HTMLPreElementMethods {
+}
+
+impl Reflectable for HTMLPreElement {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        self.htmlelement.reflector()
+    }
 }

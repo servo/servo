@@ -5,6 +5,7 @@
 use dom::bindings::codegen::Bindings::HTMLTitleElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTitleElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::HTMLTitleElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -37,4 +38,10 @@ impl HTMLTitleElement {
 }
 
 pub trait HTMLTitleElementMethods {
+}
+
+impl Reflectable for HTMLTitleElement {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        self.htmlelement.reflector()
+    }
 }

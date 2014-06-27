@@ -5,6 +5,7 @@
 use dom::bindings::codegen::Bindings::HTMLTimeElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTimeElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::HTMLTimeElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -37,4 +38,10 @@ impl HTMLTimeElement {
 }
 
 pub trait HTMLTimeElementMethods {
+}
+
+impl Reflectable for HTMLTimeElement {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        self.htmlelement.reflector()
+    }
 }

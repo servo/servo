@@ -5,6 +5,7 @@
 use dom::bindings::codegen::Bindings::HTMLDirectoryElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLDirectoryElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::HTMLDirectoryElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -37,4 +38,10 @@ impl HTMLDirectoryElement {
 }
 
 pub trait HTMLDirectoryElementMethods {
+}
+
+impl Reflectable for HTMLDirectoryElement {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        self.htmlelement.reflector()
+    }
 }

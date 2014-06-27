@@ -5,6 +5,7 @@
 use dom::bindings::codegen::Bindings::HTMLOptGroupElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLOptGroupElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::HTMLOptGroupElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -37,4 +38,10 @@ impl HTMLOptGroupElement {
 }
 
 pub trait HTMLOptGroupElementMethods {
+}
+
+impl Reflectable for HTMLOptGroupElement {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        self.htmlelement.reflector()
+    }
 }

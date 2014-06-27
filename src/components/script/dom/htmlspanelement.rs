@@ -5,6 +5,7 @@
 use dom::bindings::codegen::Bindings::HTMLSpanElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLSpanElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::HTMLSpanElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -37,4 +38,10 @@ impl HTMLSpanElement {
 }
 
 pub trait HTMLSpanElementMethods {
+}
+
+impl Reflectable for HTMLSpanElement {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        self.htmlelement.reflector()
+    }
 }
