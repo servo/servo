@@ -11,12 +11,6 @@ macro_rules! generate_cacheable_wrapper_htmlelement(
     )
 )
 
-macro_rules! generate_cacheable_wrapper_htmltablecellelement(
-    ($name: path, $wrap: path) => (
-        generate_cacheable_wrapper_base!($name, $wrap, htmltablecellelement)
-    )
-)
-
 macro_rules! generate_cacheable_wrapper_base(
     ($name: path, $wrap: path, $parent: ident) => (
         impl Reflectable for $name {
@@ -131,10 +125,6 @@ generate_cacheable_wrapper_htmlelement!(HTMLTableElement, HTMLTableElementBindin
 generate_cacheable_wrapper_htmlelement!(HTMLTableCaptionElement, HTMLTableCaptionElementBinding::Wrap)
 
 generate_cacheable_wrapper_htmlelement!(HTMLTableCellElement, HTMLTableCellElementBinding::Wrap)
-
-generate_cacheable_wrapper_htmltablecellelement!(HTMLTableDataCellElement, HTMLTableDataCellElementBinding::Wrap)
-
-generate_cacheable_wrapper_htmltablecellelement!(HTMLTableHeaderCellElement, HTMLTableHeaderCellElementBinding::Wrap)
 
 generate_cacheable_wrapper_htmlelement!(HTMLTableColElement, HTMLTableColElementBinding::Wrap)
 
