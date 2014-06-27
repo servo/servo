@@ -11,12 +11,6 @@ macro_rules! generate_cacheable_wrapper_htmlelement(
     )
 )
 
-macro_rules! generate_cacheable_wrapper_htmlmediaelement(
-    ($name: path, $wrap: path) => (
-        generate_cacheable_wrapper_base!($name, $wrap, htmlmediaelement)
-    )
-)
-
 macro_rules! generate_cacheable_wrapper_htmltablecellelement(
     ($name: path, $wrap: path) => (
         generate_cacheable_wrapper_base!($name, $wrap, htmltablecellelement)
@@ -40,8 +34,6 @@ generate_cacheable_wrapper_htmlelement!(HTMLAnchorElement, HTMLAnchorElementBind
 generate_cacheable_wrapper_htmlelement!(HTMLAppletElement, HTMLAppletElementBinding::Wrap)
 
 generate_cacheable_wrapper_htmlelement!(HTMLAreaElement, HTMLAreaElementBinding::Wrap)
-
-generate_cacheable_wrapper_htmlmediaelement!(HTMLAudioElement, HTMLAudioElementBinding::Wrap)
 
 generate_cacheable_wrapper_htmlelement!(HTMLBaseElement, HTMLBaseElementBinding::Wrap)
 
@@ -163,5 +155,3 @@ generate_cacheable_wrapper_htmlelement!(HTMLTrackElement, HTMLTrackElementBindin
 generate_cacheable_wrapper_htmlelement!(HTMLUListElement, HTMLUListElementBinding::Wrap)
 
 generate_cacheable_wrapper_htmlelement!(HTMLUnknownElement, HTMLUnknownElementBinding::Wrap)
-
-generate_cacheable_wrapper_htmlmediaelement!(HTMLVideoElement, HTMLVideoElementBinding::Wrap)
