@@ -6,6 +6,7 @@ use dom::bindings::codegen::InheritTypes::CommentDerived;
 use dom::bindings::codegen::Bindings::CommentBinding;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::Fallible;
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -44,4 +45,10 @@ impl Comment {
 }
 
 pub trait CommentMethods {
+}
+
+impl Reflectable for Comment {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        self.characterdata.reflector()
+    }
 }

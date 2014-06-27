@@ -12,12 +12,6 @@ macro_rules! generate_cacheable_wrapper(
     )
 )
 
-macro_rules! generate_cacheable_wrapper_characterdata(
-    ($name: path, $wrap: path) => (
-        generate_cacheable_wrapper_base!($name, $wrap, characterdata)
-    )
-)
-
 macro_rules! generate_cacheable_wrapper_htmlelement(
     ($name: path, $wrap: path) => (
         generate_cacheable_wrapper_base!($name, $wrap, htmlelement)
@@ -52,15 +46,9 @@ macro_rules! generate_cacheable_wrapper_base(
     )
 )
 
-generate_cacheable_wrapper_characterdata!(Comment, CommentBinding::Wrap)
-
 generate_cacheable_wrapper_node!(DocumentFragment, DocumentFragmentBinding::Wrap)
 
 generate_cacheable_wrapper_node!(DocumentType, DocumentTypeBinding::Wrap)
-
-generate_cacheable_wrapper_characterdata!(Text, TextBinding::Wrap)
-
-generate_cacheable_wrapper_characterdata!(ProcessingInstruction, ProcessingInstruction::Wrap)
 
 generate_cacheable_wrapper_htmlelement!(HTMLHeadElement, HTMLHeadElementBinding::Wrap)
 
