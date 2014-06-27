@@ -392,6 +392,12 @@ impl<'le> TElement for LayoutElement<'le> {
             self.element.node.get_hover_state_for_layout()
         }
     }
+
+    fn get_disabled_state(&self) -> bool {
+        unsafe {
+            self.element.node.get_disabled_state_for_layout()
+        }
+    }
 }
 
 fn get_content(content_list: &content::T) -> String {
