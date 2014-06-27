@@ -18,6 +18,7 @@ use dom::bindings::codegen::InheritTypes::HTMLOptGroupElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLOptionElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLSelectElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLStyleElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLTextAreaElementCast;
 use dom::bindings::js::JSRef;
 use dom::element::Element;
 use dom::element::ElementTypeId;
@@ -34,6 +35,7 @@ use dom::element::HTMLOptGroupElementTypeId;
 use dom::element::HTMLOptionElementTypeId;
 use dom::element::HTMLSelectElementTypeId;
 use dom::element::HTMLStyleElementTypeId;
+use dom::element::HTMLTextAreaElementTypeId;
 use dom::event::Event;
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlbodyelement::HTMLBodyElement;
@@ -49,6 +51,7 @@ use dom::htmloptgroupelement::HTMLOptGroupElement;
 use dom::htmloptionelement::HTMLOptionElement;
 use dom::htmlselectelement::HTMLSelectElement;
 use dom::htmlstyleelement::HTMLStyleElement;
+use dom::htmltextareaelement::HTMLTextAreaElement;
 use dom::node::{Node, NodeHelpers, ElementNodeTypeId};
 use servo_util::str::DOMString;
 
@@ -179,6 +182,10 @@ pub fn vtable_for<'a>(node: &'a JSRef<Node>) -> &'a VirtualMethods {
         }
         ElementNodeTypeId(HTMLStyleElementTypeId) => {
             let element: &JSRef<HTMLStyleElement> = HTMLStyleElementCast::to_ref(node).unwrap();
+            element as &VirtualMethods
+        }
+        ElementNodeTypeId(HTMLTextAreaElementTypeId) => {
+            let element: &JSRef<HTMLTextAreaElement> = HTMLTextAreaElementCast::to_ref(node).unwrap();
             element as &VirtualMethods
         }
         ElementNodeTypeId(ElementTypeId) => {
