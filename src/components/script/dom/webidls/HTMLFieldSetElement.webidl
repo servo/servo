@@ -5,7 +5,7 @@
 
 // http://www.whatwg.org/html/#htmlfieldsetelement
 interface HTMLFieldSetElement : HTMLElement {
-  //         attribute boolean disabled;
+           attribute boolean disabled;
   //readonly attribute HTMLFormElement? form;
   //         attribute DOMString name;
 
