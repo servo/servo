@@ -785,6 +785,12 @@ fn matches_simple_selector<E:TElement,
             let elem = element.as_element();
             elem.get_disabled_state()
         },
+        // http://www.whatwg.org/html/#selector-enabled
+        Enabled => {
+            *shareable = false;
+            let elem = element.as_element();
+            elem.get_enabled_state()
+        },
         FirstChild => {
             *shareable = false;
             matches_first_child(element)

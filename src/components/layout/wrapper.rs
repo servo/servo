@@ -398,6 +398,19 @@ impl<'le> TElement for LayoutElement<'le> {
             self.element.node.get_disabled_state_for_layout()
         }
     }
+
+    fn get_enabled_state(&self) -> bool {
+        unsafe {
+            match self.element.node.type_id {
+                ElementNodeTypeId(HTMLAnchorElementTypeId) |
+                ElementNodeTypeId(HTMLAreaElementTypeId) |
+                ElementNodeTypeId(HTMLLinkElementTypeId) => {
+                    self.element.get_attr_val_for_layout(&namespace::Null, "href").is_some()
+                },
+                _ => !self.element.node.get_disabled_state_for_layout()
+            }
+        }
+    }
 }
 
 fn get_content(content_list: &content::T) -> String {

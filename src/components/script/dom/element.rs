@@ -923,4 +923,8 @@ impl<'a> style::TElement for JSRef<'a, Element> {
         let node: &JSRef<Node> = NodeCast::from_ref(self);
         node.get_disabled_state()
     }
+    fn get_enabled_state(&self) -> bool {
+        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        node.get_enabled_state()
+    }
 }

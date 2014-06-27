@@ -26,7 +26,7 @@ use dom::document::{Document, DocumentMethods, DocumentHelpers, HTMLDocument, No
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
 use dom::element::{AttributeHandlers, Element, ElementHelpers, ElementMethods, ElementTypeId};
-use dom::element::{HTMLAnchorElementTypeId, HTMLAreaElementTypeId, HTMLLinkElementTypeId};
+use dom::element::HTMLAnchorElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::nodelist::{NodeList};
 use dom::processinginstruction::{ProcessingInstruction, ProcessingInstructionMethods};
@@ -38,7 +38,6 @@ use html::hubbub_html_parser::build_element_from_tag;
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery, ContentBoxesResponse,
                        LayoutChan, ReapLayoutDataMsg, TrustedNodeAddress, UntrustedNodeAddress};
 use servo_util::geometry::Au;
-use servo_util::namespace::Null;
 use servo_util::str::{DOMString, null_str_as_empty};
 use style::{parse_selector_list, matches_compound_selector, NamespaceMap};
 
@@ -123,7 +122,9 @@ bitflags! {
         #[doc = "Specifies whether this node is in hover state."]
         static InHoverState = 0x02,
         #[doc = "Specifies whether this node is in disabled state."]
-        static InDisabledState = 0x04
+        static InDisabledState = 0x04,
+        #[doc = "Specifies whether this node is in enabled state."]
+        static InEnabledState = 0x08
     }
 }
 
@@ -385,6 +386,9 @@ pub trait NodeHelpers {
     fn get_disabled_state(&self) -> bool;
     fn set_disabled_state(&self, state: bool);
 
+    fn get_enabled_state(&self) -> bool;
+    fn set_enabled_state(&self, state: bool);
+
     fn dump(&self);
     fn dump_indent(&self, indent: uint);
     fn debug_str(&self) -> String;
@@ -511,6 +515,18 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
             self.flags.deref().borrow_mut().insert(InDisabledState);
         } else {
             self.flags.deref().borrow_mut().remove(InDisabledState);
+        }
+    }
+
+    fn get_enabled_state(&self) -> bool {
+        self.flags.deref().borrow().contains(InEnabledState)
+    }
+
+    fn set_enabled_state(&self, state: bool) {
+        if state {
+            self.flags.deref().borrow_mut().insert(InEnabledState);
+        } else {
+            self.flags.deref().borrow_mut().remove(InEnabledState);
         }
     }
 
@@ -2029,6 +2045,7 @@ impl<'a> DisabledStateHelpers for JSRef<'a, Node> {
             if !ancestor.get_disabled_state() { continue; }
             if ancestor.is_parent_of(self) {
                 self.set_disabled_state(true);
+                self.set_enabled_state(false);
                 return;
             }
             match ancestor.children().find(|child| child.is_htmllegendelement()) {
@@ -2039,6 +2056,7 @@ impl<'a> DisabledStateHelpers for JSRef<'a, Node> {
                 None => ()
             }
             self.set_disabled_state(true);
+            self.set_enabled_state(false);
             return;
         }
     }
@@ -2048,6 +2066,7 @@ impl<'a> DisabledStateHelpers for JSRef<'a, Node> {
         for ancestor in self.ancestors().filter(|ancestor| ancestor.is_htmloptgroupelement()) {
             if ancestor.get_disabled_state() {
                 self.set_disabled_state(true);
+                self.set_enabled_state(false);
                 return;
             }
         }
@@ -2058,5 +2077,6 @@ impl<'a> DisabledStateHelpers for JSRef<'a, Node> {
         let elem: &JSRef<'a, Element> = ElementCast::to_ref(self).unwrap();
         let has_disabled_attrib = elem.has_attribute("disabled");
         self.set_disabled_state(has_disabled_attrib);
+        self.set_enabled_state(!has_disabled_attrib);
     }
 }
