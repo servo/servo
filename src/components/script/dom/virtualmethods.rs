@@ -16,6 +16,7 @@ use dom::bindings::codegen::InheritTypes::HTMLInputElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLObjectElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLOptGroupElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLOptionElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLSelectElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLStyleElementCast;
 use dom::bindings::js::JSRef;
 use dom::element::Element;
@@ -31,6 +32,7 @@ use dom::element::HTMLInputElementTypeId;
 use dom::element::HTMLObjectElementTypeId;
 use dom::element::HTMLOptGroupElementTypeId;
 use dom::element::HTMLOptionElementTypeId;
+use dom::element::HTMLSelectElementTypeId;
 use dom::element::HTMLStyleElementTypeId;
 use dom::event::Event;
 use dom::htmlanchorelement::HTMLAnchorElement;
@@ -45,6 +47,7 @@ use dom::htmlinputelement::HTMLInputElement;
 use dom::htmlobjectelement::HTMLObjectElement;
 use dom::htmloptgroupelement::HTMLOptGroupElement;
 use dom::htmloptionelement::HTMLOptionElement;
+use dom::htmlselectelement::HTMLSelectElement;
 use dom::htmlstyleelement::HTMLStyleElement;
 use dom::node::{Node, NodeHelpers, ElementNodeTypeId};
 use servo_util::str::DOMString;
@@ -168,6 +171,10 @@ pub fn vtable_for<'a>(node: &'a JSRef<Node>) -> &'a VirtualMethods {
         }
         ElementNodeTypeId(HTMLOptionElementTypeId) => {
             let element: &JSRef<HTMLOptionElement> = HTMLOptionElementCast::to_ref(node).unwrap();
+            element as &VirtualMethods
+        }
+        ElementNodeTypeId(HTMLSelectElementTypeId) => {
+            let element: &JSRef<HTMLSelectElement> = HTMLSelectElementCast::to_ref(node).unwrap();
             element as &VirtualMethods
         }
         ElementNodeTypeId(HTMLStyleElementTypeId) => {
