@@ -7,43 +7,43 @@ use dom::bindings::utils::{Reflectable, Reflector};
 
 // generate_cacheable_wrapper
 macro_rules! generate_cacheable_wrapper(
-    ($name: path, $wrap: path) => (
-        generate_cacheable_wrapper_base!($name, $wrap, element)
+    ($name: path) => (
+        generate_cacheable_wrapper_base!($name, element)
     )
 )
 
 macro_rules! generate_cacheable_wrapper_characterdata(
-    ($name: path, $wrap: path) => (
-        generate_cacheable_wrapper_base!($name, $wrap, characterdata)
+    ($name: path) => (
+        generate_cacheable_wrapper_base!($name, characterdata)
     )
 )
 
 macro_rules! generate_cacheable_wrapper_htmlelement(
-    ($name: path, $wrap: path) => (
-        generate_cacheable_wrapper_base!($name, $wrap, htmlelement)
+    ($name: path) => (
+        generate_cacheable_wrapper_base!($name, htmlelement)
     )
 )
 
 macro_rules! generate_cacheable_wrapper_htmlmediaelement(
-    ($name: path, $wrap: path) => (
-        generate_cacheable_wrapper_base!($name, $wrap, htmlmediaelement)
+    ($name: path) => (
+        generate_cacheable_wrapper_base!($name, htmlmediaelement)
     )
 )
 
 macro_rules! generate_cacheable_wrapper_htmltablecellelement(
-    ($name: path, $wrap: path) => (
-        generate_cacheable_wrapper_base!($name, $wrap, htmltablecellelement)
+    ($name: path) => (
+        generate_cacheable_wrapper_base!($name, htmltablecellelement)
     )
 )
 
 macro_rules! generate_cacheable_wrapper_node(
-    ($name: path, $wrap: path) => (
-        generate_cacheable_wrapper_base!($name, $wrap, node)
+    ($name: path) => (
+        generate_cacheable_wrapper_base!($name, node)
     )
 )
 
 macro_rules! generate_cacheable_wrapper_base(
-    ($name: path, $wrap: path, $parent: ident) => (
+    ($name: path, $parent: ident) => (
         impl Reflectable for $name {
             fn reflector<'a>(&'a self) -> &'a Reflector {
                 self.$parent.reflector()
@@ -52,147 +52,147 @@ macro_rules! generate_cacheable_wrapper_base(
     )
 )
 
-generate_cacheable_wrapper_characterdata!(Comment, CommentBinding::Wrap)
+generate_cacheable_wrapper_characterdata!(Comment)
 
-generate_cacheable_wrapper_node!(DocumentFragment, DocumentFragmentBinding::Wrap)
+generate_cacheable_wrapper_node!(DocumentFragment)
 
-generate_cacheable_wrapper_node!(DocumentType, DocumentTypeBinding::Wrap)
+generate_cacheable_wrapper_node!(DocumentType)
 
-generate_cacheable_wrapper_characterdata!(Text, TextBinding::Wrap)
+generate_cacheable_wrapper_characterdata!(Text)
 
-generate_cacheable_wrapper_characterdata!(ProcessingInstruction, ProcessingInstruction::Wrap)
+generate_cacheable_wrapper_characterdata!(ProcessingInstruction)
 
-generate_cacheable_wrapper_htmlelement!(HTMLHeadElement, HTMLHeadElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLHeadElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLAnchorElement, HTMLAnchorElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLAnchorElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLAppletElement, HTMLAppletElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLAppletElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLAreaElement, HTMLAreaElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLAreaElement)
 
-generate_cacheable_wrapper_htmlmediaelement!(HTMLAudioElement, HTMLAudioElementBinding::Wrap)
+generate_cacheable_wrapper_htmlmediaelement!(HTMLAudioElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLBaseElement, HTMLBaseElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLBaseElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLBodyElement, HTMLBodyElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLBodyElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLButtonElement, HTMLButtonElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLButtonElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLCanvasElement, HTMLCanvasElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLCanvasElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLDataListElement, HTMLDataListElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLDataListElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLDListElement, HTMLDListElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLDListElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLFormElement, HTMLFormElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLFormElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLFrameElement, HTMLFrameElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLFrameElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLFrameSetElement, HTMLFrameSetElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLFrameSetElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLBRElement, HTMLBRElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLBRElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLHRElement, HTMLHRElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLHRElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLHtmlElement, HTMLHtmlElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLHtmlElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLDataElement, HTMLDataElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLDataElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLDirectoryElement, HTMLDirectoryElementBinding::Wrap)
-generate_cacheable_wrapper_htmlelement!(HTMLDivElement, HTMLDivElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLDirectoryElement)
+generate_cacheable_wrapper_htmlelement!(HTMLDivElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLEmbedElement, HTMLEmbedElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLEmbedElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLFieldSetElement, HTMLFieldSetElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLFieldSetElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLFontElement, HTMLFontElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLFontElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLHeadingElement, HTMLHeadingElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLHeadingElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLIFrameElement, HTMLIFrameElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLIFrameElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLImageElement, HTMLImageElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLImageElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLInputElement, HTMLInputElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLInputElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLLabelElement, HTMLLabelElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLLabelElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLLegendElement, HTMLLegendElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLLegendElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLLIElement, HTMLLIElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLLIElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLLinkElement, HTMLLinkElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLLinkElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLMapElement, HTMLMapElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLMapElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLMediaElement, HTMLMediaElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLMediaElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLMetaElement, HTMLMetaElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLMetaElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLMeterElement, HTMLMeterElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLMeterElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLModElement, HTMLModElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLModElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLObjectElement, HTMLObjectElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLObjectElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLOListElement, HTMLOListElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLOListElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLOptGroupElement, HTMLOptGroupElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLOptGroupElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLOptionElement, HTMLOptionElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLOptionElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLOutputElement, HTMLOutputElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLOutputElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLParagraphElement, HTMLParagraphElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLParagraphElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLParamElement, HTMLParamElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLParamElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLPreElement, HTMLPreElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLPreElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLProgressElement, HTMLProgressElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLProgressElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLQuoteElement, HTMLQuoteElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLQuoteElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLScriptElement, HTMLScriptElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLScriptElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLSelectElement, HTMLSelectElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLSelectElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLSourceElement, HTMLSourceElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLSourceElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLSpanElement, HTMLSpanElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLSpanElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLStyleElement, HTMLStyleElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLStyleElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLTableElement, HTMLTableElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLTableElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLTableCaptionElement, HTMLTableCaptionElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLTableCaptionElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLTableCellElement, HTMLTableCellElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLTableCellElement)
 
-generate_cacheable_wrapper_htmltablecellelement!(HTMLTableDataCellElement, HTMLTableDataCellElementBinding::Wrap)
+generate_cacheable_wrapper_htmltablecellelement!(HTMLTableDataCellElement)
 
-generate_cacheable_wrapper_htmltablecellelement!(HTMLTableHeaderCellElement, HTMLTableHeaderCellElementBinding::Wrap)
+generate_cacheable_wrapper_htmltablecellelement!(HTMLTableHeaderCellElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLTableColElement, HTMLTableColElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLTableColElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLTableRowElement, HTMLTableRowElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLTableRowElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLTableSectionElement, HTMLTableSectionElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLTableSectionElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLTemplateElement, HTMLTemplateElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLTemplateElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLTextAreaElement, HTMLTextAreaElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLTextAreaElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLTitleElement, HTMLTitleElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLTitleElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLTimeElement, HTMLTimeElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLTimeElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLTrackElement, HTMLTrackElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLTrackElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLUListElement, HTMLUListElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLUListElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLUnknownElement, HTMLUnknownElementBinding::Wrap)
+generate_cacheable_wrapper_htmlelement!(HTMLUnknownElement)
 
-generate_cacheable_wrapper_htmlmediaelement!(HTMLVideoElement, HTMLVideoElementBinding::Wrap)
+generate_cacheable_wrapper_htmlmediaelement!(HTMLVideoElement)
 
-generate_cacheable_wrapper!(HTMLElement, HTMLElementBinding::Wrap)
+generate_cacheable_wrapper!(HTMLElement)
