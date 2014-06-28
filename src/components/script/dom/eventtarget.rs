@@ -22,22 +22,22 @@ use std::cell::RefCell;
 use std::ptr;
 use url::Url;
 
-use collections::hashmap::HashMap;
+use std::collections::hashmap::HashMap;
 
-#[deriving(Eq,Encodable)]
+#[deriving(PartialEq,Encodable)]
 pub enum ListenerPhase {
     Capturing,
     Bubbling,
 }
 
-#[deriving(Eq,Encodable)]
+#[deriving(PartialEq,Encodable)]
 pub enum EventTargetTypeId {
     NodeTargetTypeId(NodeTypeId),
     WindowTypeId,
     XMLHttpRequestTargetTypeId(XMLHttpRequestId)
 }
 
-#[deriving(Eq, Encodable)]
+#[deriving(PartialEq, Encodable)]
 pub enum EventListenerType {
     Additive(EventListener),
     Inline(EventListener),
@@ -51,7 +51,7 @@ impl EventListenerType {
     }
 }
 
-#[deriving(Eq,Encodable)]
+#[deriving(PartialEq,Encodable)]
 pub struct EventListenerEntry {
     pub phase: ListenerPhase,
     pub listener: EventListenerType
@@ -281,7 +281,7 @@ impl Reflectable for EventTarget {
 }
 
 impl<'a> VirtualMethods for JSRef<'a, EventTarget> {
-    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods:> {
+    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods+> {
         None
     }
 }

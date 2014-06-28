@@ -15,7 +15,7 @@ use dom::htmlformelement::HTMLFormElement;
 use dom::window::Window;
 use servo_util::str::DOMString;
 use std::cell::RefCell;
-use collections::hashmap::HashMap;
+use std::collections::hashmap::HashMap;
 
 #[deriving(Encodable, Clone)]
 pub enum FormDatum {

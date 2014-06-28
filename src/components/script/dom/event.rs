@@ -35,7 +35,7 @@ pub enum EventPhase {
     PhaseBubbling  = EventConstants::BUBBLING_PHASE,
 }
 
-#[deriving(Eq, Encodable)]
+#[deriving(PartialEq, Encodable)]
 pub enum EventTypeId {
     CustomEventTypeId,
     HTMLEventTypeId,

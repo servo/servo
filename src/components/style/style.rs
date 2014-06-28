@@ -13,7 +13,7 @@
 #![feature(globs, macro_rules)]
 
 #![feature(phase)]
-#[phase(syntax, link)] extern crate log;
+#[phase(plugin, link)] extern crate log;
 
 extern crate debug;
 extern crate collections;
@@ -25,7 +25,7 @@ extern crate url;
 extern crate cssparser;
 extern crate encoding;
 
-#[phase(syntax)]
+#[phase(plugin)]
 extern crate servo_macros = "macros";
 extern crate servo_util = "util";
 

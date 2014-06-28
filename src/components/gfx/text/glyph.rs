@@ -7,7 +7,7 @@ use servo_util::range;
 use servo_util::range::{Range, RangeIndex, IntRangeIndex, EachIndex};
 use servo_util::geometry::Au;
 
-use std::cmp::{Ord, Eq};
+use std::cmp::{PartialOrd, PartialEq};
 use std::num::{NumCast, Zero};
 use std::mem;
 use std::u16;
@@ -87,7 +87,7 @@ impl GlyphEntry {
 pub type GlyphId = u32;
 
 // TODO: unify with bit flags?
-#[deriving(Eq)]
+#[deriving(PartialEq)]
 pub enum BreakType {
     BreakTypeNone,
     BreakTypeNormal,
@@ -270,7 +270,7 @@ impl DetailedGlyph {
     }
 }
 
-#[deriving(Eq, Clone, TotalEq)]
+#[deriving(PartialEq, Clone, Eq)]
 struct DetailedGlyphRecord {
     // source string offset/GlyphEntry offset in the TextRun
     entry_offset: CharIndex,
@@ -278,13 +278,13 @@ struct DetailedGlyphRecord {
     detail_offset: int,
 }
 
-impl Ord for DetailedGlyphRecord {
+impl PartialOrd for DetailedGlyphRecord {
     fn lt(&self, other: &DetailedGlyphRecord) -> bool {
         self.entry_offset < other.entry_offset
     }
 }
 
-impl TotalOrd for DetailedGlyphRecord {
+impl Ord for DetailedGlyphRecord {
     fn cmp(&self, other: &DetailedGlyphRecord) -> Ordering {
         self.entry_offset.cmp(&other.entry_offset)
     }

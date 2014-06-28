@@ -61,14 +61,13 @@ macro_rules! lazy_init(
 
 #[cfg(test)]
 mod tests {
-    extern crate collections;
-
+    use std::collections::hashmap::HashMap;
     lazy_init! {
         static ref NUMBER: uint = times_two(3);
         static ref VEC: [Box<uint>, ..3] = [box 1, box 2, box 3];
         static ref OWNED_STRING: String = "hello".to_string();
-        static ref HASHMAP: collections::HashMap<uint, &'static str> = {
-            let mut m = collections::HashMap::new();
+        static ref HASHMAP: HashMap<uint, &'static str> = {
+            let mut m = HashMap::new();
             m.insert(0u, "abc");
             m.insert(1, "def");
             m.insert(2, "ghi");

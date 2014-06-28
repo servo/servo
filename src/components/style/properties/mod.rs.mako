@@ -154,7 +154,7 @@ pub mod longhands {
             ${caller.body()}
             pub mod computed_value {
                 #[allow(non_camel_case_types)]
-                #[deriving(Eq, Clone, FromPrimitive)]
+                #[deriving(PartialEq, Clone, FromPrimitive)]
                 pub enum T {
                     % for value in values.split():
                         ${to_rust_ident(value)},
@@ -398,7 +398,7 @@ pub mod longhands {
         }
         pub mod computed_value {
             use super::super::{Au, CSSFloat};
-            #[deriving(Eq, Clone)]
+            #[deriving(PartialEq, Clone)]
             pub enum T {
                 Normal,
                 Length(Au),
@@ -486,7 +486,7 @@ pub mod longhands {
         pub mod computed_value {
             use super::super::{Au, CSSFloat};
             #[allow(non_camel_case_types)]
-            #[deriving(Eq, Clone)]
+            #[deriving(PartialEq, Clone)]
             pub enum T {
                 % for keyword in vertical_align_keywords:
                     ${to_rust_ident(keyword)},
@@ -529,12 +529,12 @@ pub mod longhands {
     <%self:longhand name="content">
             pub use to_computed_value = super::computed_as_specified;
             pub mod computed_value {
-                #[deriving(Eq, Clone)]
+                #[deriving(PartialEq, Clone)]
                 pub enum Content {
                     StringContent(String),
                 }
                 #[allow(non_camel_case_types)]
-                #[deriving(Eq, Clone)]
+                #[deriving(PartialEq, Clone)]
                 pub enum T {
                     normal,
                     none,
@@ -605,7 +605,7 @@ pub mod longhands {
             pub mod computed_value {
                 use super::super::super::common_types::computed::LengthOrPercentage;
 
-                #[deriving(Eq, Clone)]
+                #[deriving(PartialEq, Clone)]
                 pub struct T {
                     pub horizontal: LengthOrPercentage,
                     pub vertical: LengthOrPercentage,
@@ -703,7 +703,7 @@ pub mod longhands {
     <%self:longhand name="font-family">
         pub use to_computed_value = super::computed_as_specified;
         pub mod computed_value {
-            #[deriving(Eq, Clone)]
+            #[deriving(PartialEq, Clone)]
             pub enum FontFamily {
                 FamilyName(String),
                 // Generic
@@ -816,7 +816,7 @@ pub mod longhands {
             }
         }
         pub mod computed_value {
-            #[deriving(Eq, Clone)]
+            #[deriving(PartialEq, Clone)]
             pub enum T {
                 % for weight in range(100, 901, 100):
                     Weight${weight},
@@ -905,7 +905,7 @@ pub mod longhands {
 
     <%self:longhand name="text-decoration">
         pub use to_computed_value = super::computed_as_specified;
-        #[deriving(Eq, Clone)]
+        #[deriving(PartialEq, Clone)]
         pub struct SpecifiedValue {
             pub underline: bool,
             pub overline: bool,
@@ -957,7 +957,7 @@ pub mod longhands {
 
         pub use to_computed_value = super::computed_as_specified;
 
-        #[deriving(Clone, Eq)]
+        #[deriving(Clone, PartialEq)]
         pub struct SpecifiedValue {
             pub underline: Option<RGBA>,
             pub overline: Option<RGBA>,
@@ -1562,7 +1562,7 @@ impl PropertyDeclaration {
 pub mod style_structs {
     use super::longhands;
     % for style_struct in STYLE_STRUCTS:
-        #[deriving(Eq, Clone)]
+        #[deriving(PartialEq, Clone)]
         pub struct ${style_struct.name} {
             % for longhand in style_struct.longhands:
                 pub ${longhand.ident}: longhands::${longhand.ident}::computed_value::T,

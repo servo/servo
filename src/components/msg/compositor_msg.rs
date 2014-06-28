@@ -48,13 +48,13 @@ impl LayerBufferSet {
 }
 
 /// The status of the renderer.
-#[deriving(Eq, Clone)]
+#[deriving(PartialEq, Clone)]
 pub enum RenderState {
     IdleRenderState,
     RenderingRenderState,
 }
 
-#[deriving(Eq, Clone)]
+#[deriving(PartialEq, Clone)]
 pub enum ReadyState {
     /// Informs the compositor that nothing has been done yet. Used for setting status
     Blank,
@@ -67,7 +67,7 @@ pub enum ReadyState {
 }
 
 /// A newtype struct for denoting the age of messages; prevents race conditions.
-#[deriving(Eq)]
+#[deriving(PartialEq)]
 pub struct Epoch(pub uint);
 
 impl Epoch {
@@ -77,7 +77,7 @@ impl Epoch {
     }
 }
 
-#[deriving(Clone, Eq)]
+#[deriving(Clone, PartialEq)]
 pub struct LayerId(pub uint, pub uint);
 
 impl Show for LayerId {
@@ -95,7 +95,7 @@ impl LayerId {
 }
 
 /// The scrolling policy of a layer.
-#[deriving(Eq)]
+#[deriving(PartialEq)]
 pub enum ScrollPolicy {
     /// These layers scroll when the parent receives a scrolling message.
     Scrollable,

@@ -2,11 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use collections::hashmap::HashMap;
+use collections::hash::Writer;
+use std::collections::hashmap::HashMap;
 use std::ascii::StrAsciiExt;
 use std::hash::Hash;
 use std::hash::sip::SipState;
-use num::div_rem;
+use std::num::div_rem;
 use sync::Arc;
 
 use servo_util::namespace;
@@ -49,12 +50,12 @@ impl<'a> Hash for LowercaseAsciiString<'a> {
             // `Ascii` type's invariants by using `to_ascii_nocheck`, but it's OK as we simply
             // convert to a byte afterward.
             unsafe {
-                state.write_u8(b.to_ascii_nocheck().to_lowercase().to_byte()).unwrap()
+                state.write(&[b.to_ascii_nocheck().to_lowercase().to_byte()])
             };
         }
         // Terminate the string with a non-UTF-8 character, to match what the built-in string
         // `ToBytes` implementation does. (See `libstd/to_bytes.rs`.)
-        state.write_u8(0xff).unwrap();
+        state.write(&[0xff]);
     }
 }
 
@@ -497,7 +498,7 @@ impl MatchedProperty {
     }
 }
 
-impl Eq for MatchedProperty {
+impl PartialEq for MatchedProperty {
     #[inline]
     fn eq(&self, other: &MatchedProperty) -> bool {
         let this_rank = (self.specificity, self.source_order);
@@ -506,12 +507,23 @@ impl Eq for MatchedProperty {
     }
 }
 
-impl Ord for MatchedProperty {
+impl Eq for MatchedProperty {}
+
+impl PartialOrd for MatchedProperty {
     #[inline]
     fn lt(&self, other: &MatchedProperty) -> bool {
         let this_rank = (self.specificity, self.source_order);
         let other_rank = (other.specificity, other.source_order);
         this_rank < other_rank
+    }
+}
+
+impl Ord for MatchedProperty {
+    #[inline]
+    fn cmp(&self, other: &MatchedProperty) -> Ordering {
+        let this_rank = (self.specificity, self.source_order);
+        let other_rank = (other.specificity, other.source_order);
+        this_rank.cmp(&other_rank)
     }
 }
 

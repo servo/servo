@@ -228,7 +228,7 @@ impl ToJSValConvertible for DOMString {
     }
 }
 
-#[deriving(Eq)]
+#[deriving(PartialEq)]
 pub enum StringificationBehavior {
     Default,
     Empty,

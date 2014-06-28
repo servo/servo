@@ -380,7 +380,7 @@ pub trait MutableOwnedFlowUtils {
     fn set_abs_descendants(&mut self, abs_descendants: AbsDescendants);
 }
 
-#[deriving(Eq, Show)]
+#[deriving(PartialEq, Show)]
 pub enum FlowClass {
     BlockFlowClass,
     InlineFlowClass,

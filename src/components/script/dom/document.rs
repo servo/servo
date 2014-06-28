@@ -46,13 +46,13 @@ use servo_util::namespace;
 use servo_util::namespace::{Namespace, Null};
 use servo_util::str::{DOMString, null_str_as_empty_ref};
 
-use collections::hashmap::HashMap;
+use std::collections::hashmap::HashMap;
 use js::jsapi::JSContext;
 use std::ascii::StrAsciiExt;
 use std::cell::{Cell, RefCell};
 use url::{Url, from_str};
 
-#[deriving(Eq,Encodable)]
+#[deriving(PartialEq,Encodable)]
 pub enum IsHTMLDocument {
     HTMLDocument,
     NonHTMLDocument,

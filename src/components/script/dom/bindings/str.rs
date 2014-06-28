@@ -7,7 +7,7 @@ use std::hash::{Hash, sip};
 use std::path::BytesContainer;
 use std::str;
 
-#[deriving(Encodable,Clone,TotalEq,Eq)]
+#[deriving(Encodable,Clone,Eq,PartialEq)]
 pub struct ByteString(Vec<u8>);
 
 impl ByteString {
@@ -66,7 +66,7 @@ impl ByteString {
 
     pub fn is_field_value(&self) -> bool {
         // Classifications of characters necessary for the [CRLF] (SP|HT) rule
-        #[deriving(Eq)]
+        #[deriving(PartialEq)]
         enum PreviousCharacter {
             Other,
             CR,

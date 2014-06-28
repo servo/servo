@@ -87,7 +87,7 @@ pub struct HitTestResponse(pub UntrustedNodeAddress);
 pub struct MouseOverResponse(pub Vec<UntrustedNodeAddress>);
 
 /// Determines which part of the
-#[deriving(Eq, Ord, TotalEq, TotalOrd, Encodable)]
+#[deriving(PartialEq, PartialOrd, Eq, Ord, Encodable)]
 pub enum DocumentDamageLevel {
     /// Reflow, but do not perform CSS selector matching.
     ReflowDocumentDamage,
@@ -116,7 +116,7 @@ pub struct DocumentDamage {
 }
 
 /// Why we're doing reflow.
-#[deriving(Eq)]
+#[deriving(PartialEq)]
 pub enum ReflowGoal {
     /// We're reflowing in order to send a display list to the screen.
     ReflowForDisplay,

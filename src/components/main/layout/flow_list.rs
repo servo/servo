@@ -82,7 +82,7 @@ unsafe fn link_with_prev(mut next: FlowRef, prev: Option<FlowRef>) -> Link {
     Some(next)
 }
 
-impl Container for FlowList {
+impl Collection for FlowList {
     /// O(1)
     #[inline]
     fn is_empty(&self) -> bool {

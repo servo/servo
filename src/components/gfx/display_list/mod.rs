@@ -19,7 +19,7 @@ use render_context::RenderContext;
 use text::glyph::CharIndex;
 use text::TextRun;
 
-use collections::deque::Deque;
+use std::collections::Deque;
 use collections::dlist::DList;
 use collections::dlist;
 use geom::{Point2D, Rect, SideOffsets2D, Size2D};
@@ -41,7 +41,7 @@ pub mod optimizer;
 /// Because the script task's GC does not trace layout, node data cannot be safely stored in layout
 /// data structures. Also, layout code tends to be faster when the DOM is not being accessed, for
 /// locality reasons. Using `OpaqueNode` enforces this invariant.
-#[deriving(Clone, Eq)]
+#[deriving(Clone, PartialEq)]
 pub struct OpaqueNode(pub uintptr_t);
 
 impl OpaqueNode {
@@ -53,7 +53,7 @@ impl OpaqueNode {
 }
 
 /// "Steps" as defined by CSS 2.1 § E.2.
-#[deriving(Clone, Eq)]
+#[deriving(Clone, PartialEq)]
 pub enum StackingLevel {
     /// The border and backgrounds for the root of this stacking context: steps 1 and 2.
     BackgroundAndBordersStackingLevel,

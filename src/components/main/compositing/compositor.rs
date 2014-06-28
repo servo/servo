@@ -386,9 +386,10 @@ impl IOCompositor {
 
             self.root_layer.remove_all_children();
 
+            let new_layer_id = new_layer.id;
             assert!(new_layer.add_child_if_necessary(self.root_layer.clone(),
                                                      root_pipeline_id,
-                                                     new_layer.id,
+                                                     new_layer_id,
                                                      layer_id,
                                                      Rect(Point2D(0f32, 0f32), size),
                                                      size,
@@ -414,13 +415,14 @@ impl IOCompositor {
                                                        scroll_policy: ScrollPolicy) {
         match self.compositor_layer {
             Some(ref mut compositor_layer) => {
+                let compositor_layer_id = compositor_layer.id;
+                let page_size = compositor_layer.page_size.unwrap();
                 assert!(compositor_layer.add_child_if_necessary(self.root_layer.clone(),
                                                                 pipeline_id,
-                                                                compositor_layer.id,
+                                                                compositor_layer_id,
                                                                 layer_id,
                                                                 rect,
-                                                                compositor_layer.page_size
-                                                                                .unwrap(),
+                                                                page_size,
                                                                 scroll_policy))
             }
             None => fail!("Compositor: Received new layer without initialized pipeline"),

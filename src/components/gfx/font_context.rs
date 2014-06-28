@@ -9,7 +9,7 @@ use platform::font::FontHandle;
 use platform::font_context::FontContextHandle;
 
 use azure::azure_hl::BackendType;
-use collections::hashmap::HashMap;
+use std::collections::hashmap::HashMap;
 use servo_util::cache::{Cache, LRUCache};
 use servo_util::time::TimeProfilerChan;
 
