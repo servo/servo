@@ -6,11 +6,11 @@
 
 #![deny(unsafe_block)]
 
-use layout::block::BlockFlow;
-use layout::construct::FlowConstructor;
-use layout::context::LayoutContext;
-use layout::flow::{TableCaptionFlowClass, FlowClass, Flow};
-use layout::wrapper::ThreadSafeLayoutNode;
+use block::BlockFlow;
+use construct::FlowConstructor;
+use context::LayoutContext;
+use flow::{TableCaptionFlowClass, FlowClass, Flow};
+use wrapper::ThreadSafeLayoutNode;
 
 use std::fmt;
 

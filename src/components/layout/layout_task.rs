@@ -9,17 +9,17 @@ use css::matching::{ApplicableDeclarations, ApplicableDeclarationsCache, MatchMe
 use css::matching::{StyleSharingCandidateCache};
 use css::select::new_stylist;
 use css::node_style::StyledNode;
-use layout::construct::{FlowConstructionResult, NoConstructionResult};
-use layout::context::LayoutContext;
-use layout::flow::{Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
-use layout::flow::{PreorderFlowTraversal, PostorderFlowTraversal};
-use layout::flow;
-use layout::flow_ref::FlowRef;
-use layout::incremental::RestyleDamage;
-use layout::parallel::UnsafeFlow;
-use layout::parallel;
-use layout::util::{LayoutDataAccess, LayoutDataWrapper, OpaqueNodeMethods, ToGfxColor};
-use layout::wrapper::{LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
+use construct::{FlowConstructionResult, NoConstructionResult};
+use context::LayoutContext;
+use flow::{Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
+use flow::{PreorderFlowTraversal, PostorderFlowTraversal};
+use flow;
+use flow_ref::FlowRef;
+use incremental::RestyleDamage;
+use parallel::UnsafeFlow;
+use parallel;
+use util::{LayoutDataAccess, LayoutDataWrapper, OpaqueNodeMethods, ToGfxColor};
+use wrapper::{LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
 
 use collections::dlist::DList;
 use geom::point::Point2D;

@@ -5,15 +5,15 @@
 #![deny(unsafe_block)]
 
 use css::node_style::StyledNode;
-use layout::context::LayoutContext;
-use layout::floats::{FloatLeft, Floats, PlacementInfo};
-use layout::flow::{BaseFlow, FlowClass, Flow, InlineFlowClass};
-use layout::flow;
-use layout::fragment::{Fragment, ScannedTextFragment, ScannedTextFragmentInfo, SplitInfo};
-use layout::model::IntrinsicWidths;
-use layout::model;
-use layout::text;
-use layout::wrapper::ThreadSafeLayoutNode;
+use context::LayoutContext;
+use floats::{FloatLeft, Floats, PlacementInfo};
+use flow::{BaseFlow, FlowClass, Flow, InlineFlowClass};
+use flow;
+use fragment::{Fragment, ScannedTextFragment, ScannedTextFragmentInfo, SplitInfo};
+use model::IntrinsicWidths;
+use model;
+use text;
+use wrapper::ThreadSafeLayoutNode;
 
 use collections::{Deque, RingBuf};
 use geom::{Point2D, Rect, SideOffsets2D, Size2D};

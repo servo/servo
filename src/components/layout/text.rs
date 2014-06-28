@@ -6,8 +6,8 @@
 
 #![deny(unsafe_block)]
 
-use layout::flow::Flow;
-use layout::fragment::{Fragment, ScannedTextFragment, ScannedTextFragmentInfo, UnscannedTextFragment};
+use flow::Flow;
+use fragment::{Fragment, ScannedTextFragment, ScannedTextFragmentInfo, UnscannedTextFragment};
 
 use gfx::font::{FontMetrics, FontStyle};
 use gfx::font_context::FontContext;

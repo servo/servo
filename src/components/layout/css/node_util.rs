@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use layout::incremental::RestyleDamage;
-use layout::util::LayoutDataAccess;
-use layout::wrapper::{TLayoutNode, ThreadSafeLayoutNode};
-use layout::wrapper::{After, AfterBlock, Before, BeforeBlock, Normal};
+use incremental::RestyleDamage;
+use util::LayoutDataAccess;
+use wrapper::{TLayoutNode, ThreadSafeLayoutNode};
+use wrapper::{After, AfterBlock, Before, BeforeBlock, Normal};
 use std::mem;
 use style::ComputedValues;
 use sync::Arc;

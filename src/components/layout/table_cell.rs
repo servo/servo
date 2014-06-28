@@ -6,13 +6,13 @@
 
 #![deny(unsafe_block)]
 
-use layout::block::{BlockFlow, MarginsMayNotCollapse, WidthAndMarginsComputer};
-use layout::context::LayoutContext;
-use layout::flow::{TableCellFlowClass, FlowClass, Flow};
-use layout::fragment::Fragment;
-use layout::model::{MaybeAuto};
-use layout::table::InternalTable;
-use layout::wrapper::ThreadSafeLayoutNode;
+use block::{BlockFlow, MarginsMayNotCollapse, WidthAndMarginsComputer};
+use context::LayoutContext;
+use flow::{TableCellFlowClass, FlowClass, Flow};
+use fragment::Fragment;
+use model::{MaybeAuto};
+use table::InternalTable;
+use wrapper::ThreadSafeLayoutNode;
 
 use servo_util::geometry::Au;
 use std::fmt;

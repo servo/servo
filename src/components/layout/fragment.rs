@@ -7,17 +7,17 @@
 #![deny(unsafe_block)]
 
 use css::node_style::StyledNode;
-use layout::construct::FlowConstructor;
-use layout::context::LayoutContext;
-use layout::floats::{ClearBoth, ClearLeft, ClearRight, ClearType};
-use layout::flow::Flow;
-use layout::flow;
-use layout::inline::{InlineFragmentContext, InlineMetrics};
-use layout::model::{Auto, IntrinsicWidths, MaybeAuto, Specified, specified};
-use layout::model;
-use layout::text;
-use layout::util::{OpaqueNodeMethods, ToGfxColor};
-use layout::wrapper::{TLayoutNode, ThreadSafeLayoutNode};
+use construct::FlowConstructor;
+use context::LayoutContext;
+use floats::{ClearBoth, ClearLeft, ClearRight, ClearType};
+use flow::Flow;
+use flow;
+use inline::{InlineFragmentContext, InlineMetrics};
+use model::{Auto, IntrinsicWidths, MaybeAuto, Specified, specified};
+use model;
+use text;
+use util::{OpaqueNodeMethods, ToGfxColor};
+use wrapper::{TLayoutNode, ThreadSafeLayoutNode};
 
 use geom::{Point2D, Rect, Size2D, SideOffsets2D};
 use geom::approxeq::ApproxEq;

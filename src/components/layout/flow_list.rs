@@ -5,8 +5,8 @@
 //! A variant of `DList` specialized to store `Flow`s without an extra
 //! indirection.
 
-use layout::flow::{Flow, base, mut_base};
-use layout::flow_ref::FlowRef;
+use flow::{Flow, base, mut_base};
+use flow_ref::FlowRef;
 
 use std::mem;
 use std::ptr;

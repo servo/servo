@@ -5,8 +5,8 @@
 // Style retrieval from DOM elements.
 
 use css::node_util::NodeUtil;
-use layout::incremental::RestyleDamage;
-use layout::wrapper::ThreadSafeLayoutNode;
+use incremental::RestyleDamage;
+use wrapper::ThreadSafeLayoutNode;
 
 use style::ComputedValues;
 use sync::Arc;

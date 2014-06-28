@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use layout::construct::{ConstructionResult, NoConstructionResult};
-use layout::incremental::RestyleDamage;
-use layout::parallel::DomParallelInfo;
-use layout::wrapper::{LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
+use construct::{ConstructionResult, NoConstructionResult};
+use incremental::RestyleDamage;
+use parallel::DomParallelInfo;
+use wrapper::{LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
 
 use gfx::display_list::OpaqueNode;
 use gfx;

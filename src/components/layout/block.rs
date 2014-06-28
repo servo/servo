@@ -14,18 +14,18 @@
 
 #![deny(unsafe_block)]
 
-use layout::construct::FlowConstructor;
-use layout::context::LayoutContext;
-use layout::floats::{ClearBoth, ClearLeft, ClearRight, FloatKind, Floats, PlacementInfo};
-use layout::flow::{BaseFlow, BlockFlowClass, FlowClass, Flow, ImmutableFlowUtils};
-use layout::flow::{MutableFlowUtils, PreorderFlowTraversal, PostorderFlowTraversal, mut_base};
-use layout::flow;
-use layout::fragment::{Fragment, ImageFragment, ScannedTextFragment};
-use layout::model::{Auto, IntrinsicWidths, MarginCollapseInfo, MarginsCollapse};
-use layout::model::{MarginsCollapseThrough, MaybeAuto, NoCollapsibleMargins, Specified, specified};
-use layout::model::{specified_or_none};
-use layout::model;
-use layout::wrapper::ThreadSafeLayoutNode;
+use construct::FlowConstructor;
+use context::LayoutContext;
+use floats::{ClearBoth, ClearLeft, ClearRight, FloatKind, Floats, PlacementInfo};
+use flow::{BaseFlow, BlockFlowClass, FlowClass, Flow, ImmutableFlowUtils};
+use flow::{MutableFlowUtils, PreorderFlowTraversal, PostorderFlowTraversal, mut_base};
+use flow;
+use fragment::{Fragment, ImageFragment, ScannedTextFragment};
+use model::{Auto, IntrinsicWidths, MarginCollapseInfo, MarginsCollapse};
+use model::{MarginsCollapseThrough, MaybeAuto, NoCollapsibleMargins, Specified, specified};
+use model::{specified_or_none};
+use model;
+use wrapper::ThreadSafeLayoutNode;
 use style::ComputedValues;
 use style::computed_values::{clear, position};
 

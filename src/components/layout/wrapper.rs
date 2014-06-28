@@ -34,7 +34,7 @@
 //!     `html_element_in_html_document_for_layout()`.
 
 use css::node_style::StyledNode;
-use layout::util::LayoutDataWrapper;
+use util::LayoutDataWrapper;
 
 use script::dom::bindings::codegen::InheritTypes::{HTMLIFrameElementDerived};
 use script::dom::bindings::codegen::InheritTypes::{HTMLImageElementDerived, TextDerived};

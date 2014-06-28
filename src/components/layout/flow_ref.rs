@@ -6,8 +6,8 @@
 ///
 /// Eventually, with dynamically sized types in Rust, much of this code will be superfluous.
 
-use layout::flow::Flow;
-use layout::flow;
+use flow::Flow;
+use flow;
 
 use std::mem;
 use std::ptr;

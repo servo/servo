@@ -6,16 +6,16 @@
 
 #![deny(unsafe_block)]
 
-use layout::block::BlockFlow;
-use layout::block::WidthAndMarginsComputer;
-use layout::construct::FlowConstructor;
-use layout::context::LayoutContext;
-use layout::flow::{TableRowFlowClass, FlowClass, Flow, ImmutableFlowUtils};
-use layout::flow;
-use layout::fragment::Fragment;
-use layout::table::InternalTable;
-use layout::model::{MaybeAuto, Specified, Auto};
-use layout::wrapper::ThreadSafeLayoutNode;
+use block::BlockFlow;
+use block::WidthAndMarginsComputer;
+use construct::FlowConstructor;
+use context::LayoutContext;
+use flow::{TableRowFlowClass, FlowClass, Flow, ImmutableFlowUtils};
+use flow;
+use fragment::Fragment;
+use table::InternalTable;
+use model::{MaybeAuto, Specified, Auto};
+use wrapper::ThreadSafeLayoutNode;
 
 use servo_util::geometry::Au;
 use servo_util::geometry;

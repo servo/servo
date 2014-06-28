@@ -6,15 +6,15 @@
 
 #![deny(unsafe_block)]
 
-use layout::block::{BlockFlow, MarginsMayNotCollapse, WidthAndMarginsComputer};
-use layout::block::{WidthConstraintInput, WidthConstraintSolution};
-use layout::construct::FlowConstructor;
-use layout::context::LayoutContext;
-use layout::floats::FloatKind;
-use layout::flow::{TableFlowClass, FlowClass, Flow, ImmutableFlowUtils};
-use layout::fragment::Fragment;
-use layout::table_wrapper::{TableLayout, FixedLayout, AutoLayout};
-use layout::wrapper::ThreadSafeLayoutNode;
+use block::{BlockFlow, MarginsMayNotCollapse, WidthAndMarginsComputer};
+use block::{WidthConstraintInput, WidthConstraintSolution};
+use construct::FlowConstructor;
+use context::LayoutContext;
+use floats::FloatKind;
+use flow::{TableFlowClass, FlowClass, Flow, ImmutableFlowUtils};
+use fragment::Fragment;
+use table_wrapper::{TableLayout, FixedLayout, AutoLayout};
+use wrapper::ThreadSafeLayoutNode;
 
 use servo_util::geometry::Au;
 use servo_util::geometry;

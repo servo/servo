@@ -5,11 +5,11 @@
 // High-level interface to CSS selector matching.
 
 use css::node_style::StyledNode;
-use layout::construct::FlowConstructor;
-use layout::context::LayoutContext;
-use layout::extra::LayoutAuxMethods;
-use layout::util::{LayoutDataAccess, LayoutDataWrapper};
-use layout::wrapper::{LayoutElement, LayoutNode, PostorderNodeMutTraversal, ThreadSafeLayoutNode};
+use construct::FlowConstructor;
+use context::LayoutContext;
+use extra::LayoutAuxMethods;
+use util::{LayoutDataAccess, LayoutDataWrapper};
+use wrapper::{LayoutElement, LayoutNode, PostorderNodeMutTraversal, ThreadSafeLayoutNode};
 
 use gfx::font_context::FontContext;
 use servo_util::cache::{Cache, LRUCache, SimpleHashCache};

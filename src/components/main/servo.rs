@@ -23,6 +23,7 @@ extern crate glfw;
 extern crate glut;
 extern crate js;
 extern crate layers;
+extern crate layout;
 extern crate opengles;
 extern crate png;
 extern crate rustuv;
@@ -87,43 +88,8 @@ use url::Url;
 #[path="compositing/compositor_task.rs"]
 pub mod compositing;
 
-pub mod css {
-    mod node_util;
-
-    pub mod select;
-    pub mod matching;
-    pub mod node_style;
-}
-
 pub mod constellation;
 pub mod pipeline;
-
-pub mod layout {
-    pub mod block;
-    pub mod construct;
-    pub mod context;
-    pub mod floats;
-    pub mod flow;
-    pub mod flow_list;
-    pub mod flow_ref;
-    pub mod fragment;
-    pub mod layout_task;
-    pub mod inline;
-    pub mod model;
-    pub mod parallel;
-    pub mod table_wrapper;
-    pub mod table;
-    pub mod table_caption;
-    pub mod table_colgroup;
-    pub mod table_rowgroup;
-    pub mod table_row;
-    pub mod table_cell;
-    pub mod text;
-    pub mod util;
-    pub mod incremental;
-    pub mod wrapper;
-    pub mod extra;
-}
 
 pub mod windowing;
 

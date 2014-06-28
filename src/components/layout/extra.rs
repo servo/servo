@@ -4,8 +4,8 @@
 
 //! Code for managing the layout data in the DOM.
 
-use layout::util::{PrivateLayoutData, LayoutDataAccess, LayoutDataWrapper};
-use layout::wrapper::LayoutNode;
+use util::{PrivateLayoutData, LayoutDataAccess, LayoutDataWrapper};
+use wrapper::LayoutNode;
 use script::dom::node::SharedLayoutData;
 use script::layout_interface::LayoutChan;
 

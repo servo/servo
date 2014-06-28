@@ -7,17 +7,17 @@
 //! This code is highly unsafe. Keep this file small and easy to audit.
 
 use css::matching::{ApplicableDeclarations, CannotShare, MatchMethods, StyleWasShared};
-use layout::construct::FlowConstructor;
-use layout::context::LayoutContext;
-use layout::extra::LayoutAuxMethods;
-use layout::flow::{Flow, MutableFlowUtils, PreorderFlowTraversal, PostorderFlowTraversal};
-use layout::flow;
-use layout::flow_ref::FlowRef;
-use layout::layout_task::{AssignHeightsAndStoreOverflowTraversal, AssignWidthsTraversal};
-use layout::layout_task::{BubbleWidthsTraversal};
-use layout::util::{LayoutDataAccess, LayoutDataWrapper, OpaqueNodeMethods};
-use layout::wrapper::{layout_node_to_unsafe_layout_node, layout_node_from_unsafe_layout_node, LayoutNode, PostorderNodeMutTraversal};
-use layout::wrapper::{ThreadSafeLayoutNode, UnsafeLayoutNode};
+use construct::FlowConstructor;
+use context::LayoutContext;
+use extra::LayoutAuxMethods;
+use flow::{Flow, MutableFlowUtils, PreorderFlowTraversal, PostorderFlowTraversal};
+use flow;
+use flow_ref::FlowRef;
+use layout_task::{AssignHeightsAndStoreOverflowTraversal, AssignWidthsTraversal};
+use layout_task::{BubbleWidthsTraversal};
+use util::{LayoutDataAccess, LayoutDataWrapper, OpaqueNodeMethods};
+use wrapper::{layout_node_to_unsafe_layout_node, layout_node_from_unsafe_layout_node, LayoutNode, PostorderNodeMutTraversal};
+use wrapper::{ThreadSafeLayoutNode, UnsafeLayoutNode};
 
 use gfx::display_list::OpaqueNode;
 use servo_util::time::{TimeProfilerChan, profile};

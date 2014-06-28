@@ -26,24 +26,24 @@
 ///   similar methods.
 
 use css::node_style::StyledNode;
-use layout::block::BlockFlow;
-use layout::context::LayoutContext;
-use layout::floats::Floats;
-use layout::flow_list::{FlowList, Link, FlowListIterator, MutFlowListIterator};
-use layout::flow_ref::FlowRef;
-use layout::fragment::{Fragment, TableRowFragment, TableCellFragment};
-use layout::incremental::RestyleDamage;
-use layout::inline::InlineFlow;
-use layout::model::{CollapsibleMargins, IntrinsicWidths, MarginCollapseInfo};
-use layout::parallel::FlowParallelInfo;
-use layout::table_wrapper::TableWrapperFlow;
-use layout::table::TableFlow;
-use layout::table_colgroup::TableColGroupFlow;
-use layout::table_rowgroup::TableRowGroupFlow;
-use layout::table_row::TableRowFlow;
-use layout::table_caption::TableCaptionFlow;
-use layout::table_cell::TableCellFlow;
-use layout::wrapper::ThreadSafeLayoutNode;
+use block::BlockFlow;
+use context::LayoutContext;
+use floats::Floats;
+use flow_list::{FlowList, Link, FlowListIterator, MutFlowListIterator};
+use flow_ref::FlowRef;
+use fragment::{Fragment, TableRowFragment, TableCellFragment};
+use incremental::RestyleDamage;
+use inline::InlineFlow;
+use model::{CollapsibleMargins, IntrinsicWidths, MarginCollapseInfo};
+use parallel::FlowParallelInfo;
+use table_wrapper::TableWrapperFlow;
+use table::TableFlow;
+use table_colgroup::TableColGroupFlow;
+use table_rowgroup::TableRowGroupFlow;
+use table_row::TableRowFlow;
+use table_caption::TableCaptionFlow;
+use table_cell::TableCellFlow;
+use wrapper::ThreadSafeLayoutNode;
 
 use collections::dlist::DList;
 use geom::point::Point2D;

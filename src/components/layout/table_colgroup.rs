@@ -6,11 +6,11 @@
 
 #![deny(unsafe_block)]
 
-use layout::context::LayoutContext;
-use layout::flow::{BaseFlow, TableColGroupFlowClass, FlowClass, Flow};
-use layout::fragment::{Fragment, TableColumnFragment};
-use layout::model::{MaybeAuto};
-use layout::wrapper::ThreadSafeLayoutNode;
+use context::LayoutContext;
+use flow::{BaseFlow, TableColGroupFlowClass, FlowClass, Flow};
+use fragment::{Fragment, TableColumnFragment};
+use model::{MaybeAuto};
+use wrapper::ThreadSafeLayoutNode;
 
 use servo_util::geometry::Au;
 use std::fmt;
