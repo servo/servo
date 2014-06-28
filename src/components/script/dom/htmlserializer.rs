@@ -62,7 +62,7 @@ pub fn serialize(iterator: &mut NodeIterator) -> String {
         html.push_str(open_elements.pop().unwrap().as_slice());
         html.push_str(">");
     }
-    html.into_owned()
+    html
 }
 
 fn serialize_comment(comment: &JSRef<Comment>, html: &mut String) {

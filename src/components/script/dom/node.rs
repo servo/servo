@@ -1539,7 +1539,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                         content.push_str(text.deref().characterdata.data.deref().borrow().as_slice());
                     }
                 }
-                Some(content.into_owned())
+                Some(content)
             }
             CommentNodeTypeId |
             TextNodeTypeId |
