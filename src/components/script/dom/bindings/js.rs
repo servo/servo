@@ -60,7 +60,7 @@ use std::mem;
 pub struct Temporary<T> {
     inner: JS<T>,
     /// On-stack JS pointer to assuage conservative stack scanner
-    js_ptr: *mut JSObject,
+    _js_ptr: *mut JSObject,
 }
 
 impl<T> PartialEq for Temporary<T> {
@@ -74,7 +74,7 @@ impl<T: Reflectable> Temporary<T> {
     pub fn new(inner: JS<T>) -> Temporary<T> {
         Temporary {
             inner: inner,
-            js_ptr: inner.reflector().get_jsobject(),
+            _js_ptr: inner.reflector().get_jsobject(),
         }
     }
 
