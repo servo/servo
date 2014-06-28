@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::HTMLBodyElementBinding;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLElementCast};
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::Reflectable;
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::HTMLBodyElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId, EventTargetHelpers};
@@ -90,5 +90,11 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLBodyElement> {
                                                   name.as_slice().slice_from(2),
                                                   value);
         }
+    }
+}
+
+impl Reflectable for HTMLBodyElement {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        self.htmlelement.reflector()
     }
 }

@@ -5,6 +5,7 @@
 use dom::bindings::codegen::Bindings::HTMLOutputElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLOutputElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::HTMLOutputElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -45,5 +46,11 @@ impl<'a> HTMLOutputElementMethods for JSRef<'a, HTMLOutputElement> {
     fn Validity(&self) -> Temporary<ValidityState> {
         let window = window_from_node(self).root();
         ValidityState::new(&*window)
+    }
+}
+
+impl Reflectable for HTMLOutputElement {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        self.htmlelement.reflector()
     }
 }

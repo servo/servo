@@ -5,6 +5,7 @@
 use dom::bindings::codegen::Bindings::HTMLUnknownElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLUnknownElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::HTMLUnknownElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -37,4 +38,10 @@ impl HTMLUnknownElement {
 }
 
 pub trait HTMLUnknownElementMethods {
+}
+
+impl Reflectable for HTMLUnknownElement {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        self.htmlelement.reflector()
+    }
 }

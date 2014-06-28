@@ -5,6 +5,7 @@
 use dom::bindings::codegen::Bindings::HTMLStyleElementBinding;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLStyleElementDerived, NodeCast};
 use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::HTMLStyleElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -84,5 +85,11 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLStyleElement> {
             _ => ()
         }
         self.parse_own_css();
+    }
+}
+
+impl Reflectable for HTMLStyleElement {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        self.htmlelement.reflector()
     }
 }

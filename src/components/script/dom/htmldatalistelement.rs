@@ -5,6 +5,7 @@
 use dom::bindings::codegen::Bindings::HTMLDataListElementBinding;
 use dom::bindings::codegen::InheritTypes::{HTMLDataListElementDerived, NodeCast};
 use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::{Element, HTMLDataListElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -53,5 +54,11 @@ impl<'a> HTMLDataListElementMethods for JSRef<'a, HTMLDataListElement> {
         let filter = box HTMLDataListOptionsFilter;
         let window = window_from_node(node).root();
         HTMLCollection::create(&*window, node, filter)
+    }
+}
+
+impl Reflectable for HTMLDataListElement {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        self.htmlelement.reflector()
     }
 }

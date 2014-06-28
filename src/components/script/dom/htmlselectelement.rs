@@ -7,6 +7,7 @@ use dom::bindings::codegen::InheritTypes::HTMLSelectElementDerived;
 use dom::bindings::codegen::UnionTypes::HTMLElementOrLong::HTMLElementOrLong;
 use dom::bindings::codegen::UnionTypes::HTMLOptionElementOrHTMLOptGroupElement::HTMLOptionElementOrHTMLOptGroupElement;
 use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::HTMLSelectElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -52,5 +53,11 @@ impl<'a> HTMLSelectElementMethods for JSRef<'a, HTMLSelectElement> {
 
     // Note: this function currently only exists for test_union.html.
     fn Add(&self, _element: HTMLOptionElementOrHTMLOptGroupElement, _before: Option<HTMLElementOrLong>) {
+    }
+}
+
+impl Reflectable for HTMLSelectElement {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        self.htmlelement.reflector()
     }
 }

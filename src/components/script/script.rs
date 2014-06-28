@@ -44,7 +44,6 @@ extern crate url;
 pub mod dom {
     pub mod bindings {
         pub mod js;
-        pub mod element;
         pub mod utils;
         pub mod callback;
         pub mod error;

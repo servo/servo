@@ -7,6 +7,7 @@ use dom::bindings::codegen::Bindings::HTMLObjectElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLObjectElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::{Element, HTMLObjectElementTypeId};
 use dom::element::AttributeHandlers;
@@ -101,5 +102,11 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLObjectElement> {
             let url = Some(window.deref().get_url());
             self.process_data_url(window.deref().image_cache_task.clone(), url);
         }
+    }
+}
+
+impl Reflectable for HTMLObjectElement {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        self.htmlelement.reflector()
     }
 }

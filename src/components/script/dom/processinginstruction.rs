@@ -5,6 +5,7 @@
 use dom::bindings::codegen::Bindings::ProcessingInstructionBinding;
 use dom::bindings::codegen::InheritTypes::ProcessingInstructionDerived;
 use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -45,5 +46,11 @@ pub trait ProcessingInstructionMethods {
 impl<'a> ProcessingInstructionMethods for JSRef<'a, ProcessingInstruction> {
     fn Target(&self) -> DOMString {
         self.target.clone()
+    }
+}
+
+impl Reflectable for ProcessingInstruction {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        self.characterdata.reflector()
     }
 }

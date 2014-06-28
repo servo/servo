@@ -6,6 +6,7 @@ use dom::bindings::codegen::Bindings::HTMLAnchorElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLAnchorElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
 use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::{Document, DocumentHelpers};
 use dom::attr::AttrMethods;
 use dom::element::{Element, AttributeHandlers, HTMLAnchorElementTypeId};
@@ -81,5 +82,11 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLAnchorElement> {
             None => {}
         }
         self.handle_event_impl(event);
+    }
+}
+
+impl Reflectable for HTMLAnchorElement {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        self.htmlelement.reflector()
     }
 }

@@ -5,6 +5,7 @@
 use dom::bindings::codegen::InheritTypes::{DocumentTypeDerived, NodeCast};
 use dom::bindings::codegen::Bindings::DocumentTypeBinding;
 use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::node::{Node, DoctypeNodeTypeId, NodeHelpers};
@@ -76,5 +77,11 @@ impl<'a> DocumentTypeMethods for JSRef<'a, DocumentType> {
     fn Remove(&self) {
         let node: &JSRef<Node> = NodeCast::from_ref(self);
         node.remove_self();
+    }
+}
+
+impl Reflectable for DocumentType {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        self.node.reflector()
     }
 }
