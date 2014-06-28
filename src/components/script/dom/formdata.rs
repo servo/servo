@@ -25,10 +25,10 @@ pub enum FormDatum {
 
 #[deriving(Encodable)]
 pub struct FormData {
-    pub data: Traceable<RefCell<HashMap<DOMString, Vec<FormDatum>>>>,
-    pub reflector_: Reflector,
-    pub window: JS<Window>,
-    pub form: Option<JS<HTMLFormElement>>
+    data: Traceable<RefCell<HashMap<DOMString, Vec<FormDatum>>>>,
+    reflector_: Reflector,
+    window: JS<Window>,
+    form: Option<JS<HTMLFormElement>>
 }
 
 impl FormData {

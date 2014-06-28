@@ -11,9 +11,9 @@ use dom::window::Window;
 
 #[deriving(Encodable)]
 pub struct AttrList {
-    pub reflector_: Reflector,
-    pub window: JS<Window>,
-    pub owner: JS<Element>,
+    reflector_: Reflector,
+    window: JS<Window>,
+    owner: JS<Element>,
 }
 
 impl AttrList {

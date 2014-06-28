@@ -32,9 +32,9 @@ pub enum CollectionTypeId {
 
 #[deriving(Encodable)]
 pub struct HTMLCollection {
-    pub collection: CollectionTypeId,
-    pub reflector_: Reflector,
-    pub window: JS<Window>,
+    collection: CollectionTypeId,
+    reflector_: Reflector,
+    window: JS<Window>,
 }
 
 impl HTMLCollection {

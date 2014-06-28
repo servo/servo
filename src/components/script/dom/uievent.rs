@@ -18,8 +18,8 @@ use std::cell::Cell;
 #[deriving(Encodable)]
 pub struct UIEvent {
     pub event: Event,
-    pub view: Cell<Option<JS<Window>>>,
-    pub detail: Traceable<Cell<i32>>
+    view: Cell<Option<JS<Window>>>,
+    detail: Traceable<Cell<i32>>
 }
 
 impl UIEventDerived for Event {

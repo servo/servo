@@ -10,9 +10,9 @@ use std::cell::Cell;
 
 #[deriving(Encodable)]
 pub struct ValidityState {
-    pub reflector_: Reflector,
-    pub window: Cell<JS<Window>>,
-    pub state: u8,
+    reflector_: Reflector,
+    window: Cell<JS<Window>>,
+    state: u8,
 }
 
 impl ValidityState {

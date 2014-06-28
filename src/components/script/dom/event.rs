@@ -48,7 +48,7 @@ pub enum EventTypeId {
 #[deriving(Encodable)]
 pub struct Event {
     pub type_id: EventTypeId,
-    pub reflector_: Reflector,
+    reflector_: Reflector,
     pub current_target: Cell<Option<JS<EventTarget>>>,
     pub target: Cell<Option<JS<EventTarget>>>,
     type_: Traceable<RefCell<DOMString>>,
@@ -61,7 +61,7 @@ pub struct Event {
     pub trusted: Traceable<Cell<bool>>,
     pub dispatching: Traceable<Cell<bool>>,
     pub initialized: Traceable<Cell<bool>>,
-    pub timestamp: u64,
+    timestamp: u64,
 }
 
 impl Event {

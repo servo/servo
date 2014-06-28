@@ -16,9 +16,9 @@ pub enum NodeListType {
 
 #[deriving(Encodable)]
 pub struct NodeList {
-    pub list_type: NodeListType,
-    pub reflector_: Reflector,
-    pub window: JS<Window>
+    list_type: NodeListType,
+    reflector_: Reflector,
+    window: JS<Window>
 }
 
 impl NodeList {
