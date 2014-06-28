@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use compositing::{CompositorChan, LoadComplete, SetIds, SetLayerClipRect, ShutdownComplete};
-
+use compositor_task::{CompositorChan, LoadComplete, ShutdownComplete, SetLayerClipRect, SetIds};
 use std::collections::hashmap::{HashMap, HashSet};
 use geom::rect::{Rect, TypedRect};
 use geom::scale_factor::ScaleFactor;

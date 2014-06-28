@@ -4,6 +4,8 @@
 
 pub use windowing;
 
+use compositor;
+use headless;
 use constellation::SendableFrameTree;
 use windowing::{ApplicationMethods, WindowMethods};
 use platform::Application;
@@ -25,12 +27,6 @@ use url::Url;
 
 #[cfg(target_os="linux")]
 use azure::azure_hl;
-
-mod quadtree;
-mod compositor_layer;
-
-mod compositor;
-mod headless;
 
 /// The implementation of the layers-based compositor.
 #[deriving(Clone)]
@@ -214,11 +210,11 @@ impl CompositorTask {
     ///
     /// FIXME(pcwalton): Probably could be less platform-specific, using the metadata abstraction.
     #[cfg(target_os="linux")]
-    fn create_graphics_context() -> NativeCompositingGraphicsContext {
+    pub fn create_graphics_context() -> NativeCompositingGraphicsContext {
         NativeCompositingGraphicsContext::from_display(azure_hl::current_display())
     }
     #[cfg(not(target_os="linux"))]
-    fn create_graphics_context() -> NativeCompositingGraphicsContext {
+    pub fn create_graphics_context() -> NativeCompositingGraphicsContext {
         NativeCompositingGraphicsContext::new()
     }
 

@@ -2,11 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use compositor_task::{Msg, CompositorTask, Exit, ChangeReadyState, SetUnRenderedColor};
+use compositor_task::{SetIds, GetGraphicsMetadata, CreateRootCompositorLayerIfNecessary};
+use compositor_task::{CreateDescendantCompositorLayerIfNecessary, SetLayerPageSize};
+use compositor_task::{SetLayerClipRect, Paint, ScrollFragmentPoint, LoadComplete};
+use compositor_task::{ShutdownComplete, ChangeRenderState};
 use constellation::SendableFrameTree;
-use compositing::compositor_layer::CompositorLayer;
-use compositing::*;
+use compositor_layer::CompositorLayer;
 use pipeline::CompositionPipeline;
 use platform::{Application, Window};
+use windowing;
 use windowing::{FinishedWindowEvent, IdleWindowEvent, LoadUrlWindowEvent, MouseWindowClickEvent};
 use windowing::{MouseWindowEvent, MouseWindowEventClass, MouseWindowMouseDownEvent};
 use windowing::{MouseWindowMouseUpEvent, MouseWindowMoveEventClass, NavigationWindowEvent};

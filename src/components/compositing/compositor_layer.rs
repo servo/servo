@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use compositing::quadtree::{Quadtree, Normal, Hidden};
+use quadtree::{Quadtree, Normal, Hidden};
 use pipeline::CompositionPipeline;
 use windowing::{MouseWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent};
 use windowing::{MouseWindowMouseUpEvent};
