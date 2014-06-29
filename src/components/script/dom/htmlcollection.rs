@@ -103,7 +103,7 @@ impl HTMLCollection {
             }
         }
         let filter = ClassNameFilter {
-            classes: split_html_space_chars(classes.as_slice()).map(|class| class.into_owned()).collect()
+            classes: split_html_space_chars(classes.as_slice()).map(|class| class.to_string()).collect()
         };
         HTMLCollection::create(window, root, box filter)
     }

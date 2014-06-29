@@ -157,8 +157,8 @@ pub struct SharedLayoutData {
 /// Encapsulates the abstract layout data.
 pub struct LayoutData {
     chan: Option<LayoutChan>,
-    shared_data: SharedLayoutData,
-    data: *(),
+    _shared_data: SharedLayoutData,
+    _data: *(),
 }
 
 pub struct LayoutDataRef {
@@ -1539,7 +1539,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                         content.push_str(text.deref().characterdata.data.deref().borrow().as_slice());
                     }
                 }
-                Some(content.into_owned())
+                Some(content)
             }
             CommentNodeTypeId |
             TextNodeTypeId |
