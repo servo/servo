@@ -577,13 +577,11 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
         self.response_type.deref().get()
     }
     fn SetResponseType(&self, response_type: XMLHttpRequestResponseType) -> ErrorResult {
-        if self.sync.deref().get() {
-            // FIXME: When Workers are implemented, there should be
-            // an additional check that this is a document environment
-            return Err(InvalidState);
-        }
+        // FIXME: When Workers are implemented, there should be
+        // an additional check that this is a document environment
         match self.ready_state.deref().get() {
             Loading | XHRDone => Err(InvalidState),
+            _ if self.sync.deref().get() => Err(InvalidAccess),
             _ => {
                 self.response_type.deref().set(response_type);
                 Ok(())
