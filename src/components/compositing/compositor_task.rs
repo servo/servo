@@ -188,6 +188,8 @@ pub enum Msg {
     SetIds(SendableFrameTree, Sender<()>, ConstellationChan),
     /// The load of a page for a given URL has completed.
     LoadComplete(PipelineId, Url),
+    //Log a string to a file
+    LogString(String)
 }
 
 pub enum CompositorMode {

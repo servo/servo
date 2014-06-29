@@ -145,7 +145,8 @@ pub trait WindowMethods {
 impl<'a> WindowMethods for JSRef<'a, Window> {
     fn Alert(&self, s: DOMString) {
         // Right now, just print to the console
-        println!("ALERT: {:s}", s);
+        let alert_str = format!("ALERT: {:s}", s);
+        self.page.dump(&alert_str);
     }
 
     fn Close(&self) {

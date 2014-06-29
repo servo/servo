@@ -55,6 +55,7 @@ pub enum Msg {
     FailureMsg(Failure),
     InitLoadUrlMsg(Url),
     LoadCompleteMsg(PipelineId, Url),
+    LogStringMsg(String),
     FrameRectMsg(PipelineId, SubpageId, Rect<f32>),
     LoadUrlMsg(PipelineId, Url),
     LoadIframeUrlMsg(Url, PipelineId, SubpageId, IFrameSandboxState),

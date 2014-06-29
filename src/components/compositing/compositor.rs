@@ -5,7 +5,7 @@
 use compositor_data::CompositorData;
 use compositor_task::{Msg, CompositorTask, Exit, ChangeReadyState, SetIds, LayerProperties};
 use compositor_task::{GetGraphicsMetadata, CreateOrUpdateRootLayer, CreateOrUpdateDescendantLayer};
-use compositor_task::{SetLayerClipRect, Paint, ScrollFragmentPoint, LoadComplete};
+use compositor_task::{SetLayerClipRect, Paint, ScrollFragmentPoint, LoadComplete, LogString};
 use compositor_task::{ShutdownComplete, ChangeRenderState};
 use constellation::SendableFrameTree;
 use events;
@@ -45,6 +45,7 @@ use servo_util::memory::MemoryProfilerChan;
 use servo_util::opts::Opts;
 use servo_util::time::{profile, TimeProfilerChan};
 use servo_util::{memory, time, url};
+use std::io::{File, IoResult};
 use std::io::timer::sleep;
 use std::collections::hashmap::HashMap;
 use std::path::Path;
@@ -121,7 +122,9 @@ pub struct IOCompositor {
     memory_profiler_chan: MemoryProfilerChan,
 
     /// Pending scroll to fragment event, if any
-    fragment_point: Option<Point2D<f32>>
+    fragment_point: Option<Point2D<f32>>,
+
+    log_file: Option<IoResult<File>>
 }
 
 #[deriving(PartialEq)]
@@ -139,6 +142,9 @@ impl IOCompositor {
                time_profiler_chan: TimeProfilerChan,
                memory_profiler_chan: MemoryProfilerChan) -> IOCompositor {
         let window: Rc<Window> = WindowMethods::new(app, opts.output_file.is_none());
+
+        let log_file = opts.dump_file.clone().and_then(|path| {
+            Some(File::create(&Path::new(path)))});
 
         // Create an initial layer tree.
         //
@@ -169,7 +175,8 @@ impl IOCompositor {
             constellation_chan: constellation_chan,
             time_profiler_chan: time_profiler_chan,
             memory_profiler_chan: memory_profiler_chan,
-            fragment_point: None
+            fragment_point: None,
+            log_file: log_file
         }
     }
 
@@ -315,6 +322,18 @@ impl IOCompositor {
 
                 (Ok(LoadComplete(..)), NotShuttingDown) => {
                     self.load_complete = true;
+                }
+
+                (Ok(LogString(log_string)), NotShuttingDown) => {
+                    debug!("{:s}", "Compositor got log string");
+                    match self.log_file {
+                        Some(ref mut file) => {
+                            file.write(log_string.as_bytes()).and_then(|_| {
+                                file.flush()
+                            }).unwrap_or_else(|_| fail!("Writing to log failed"));;
+                        },
+                        None => {}
+                    }
                 }
 
                 // When we are shutting_down, we need to avoid performing operations

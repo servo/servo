@@ -57,6 +57,7 @@ pub extern "C" fn cef_run_message_loop() {
         //layout_threads: cmp::max(rt::default_sched_threads() * 3 / 4, 1),
         exit_after_load: false,
         output_file: None,
+        dump_file: None,
         headless: false,
         hard_fail: false,
         bubble_widths_separately: false,

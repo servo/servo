@@ -48,6 +48,7 @@ use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_util::geometry::to_frac_px;
 use servo_util::task::send_on_failure;
+use servo_util::opts::Opts;
 use std::cell::RefCell;
 use std::comm::{channel, Sender, Receiver};
 use std::mem::replace;
@@ -158,7 +159,9 @@ pub struct ScriptTask {
     /// The JSContext.
     js_context: RefCell<Option<Rc<Cx>>>,
 
-    mouse_over_targets: RefCell<Option<Vec<JS<Node>>>>
+    mouse_over_targets: RefCell<Option<Vec<JS<Node>>>>,
+
+    opts: Opts
 }
 
 /// In the event of task failure, all data on the stack runs its destructor. However, there
@@ -207,13 +210,16 @@ impl ScriptTask {
                constellation_chan: ConstellationChan,
                resource_task: ResourceTask,
                img_cache_task: ImageCacheTask,
+               opts: Opts,
                window_size: WindowSizeData)
                -> Rc<ScriptTask> {
         let (js_runtime, js_context) = ScriptTask::new_rt_and_cx();
-        let page = Page::new(id, None, layout_chan, window_size,
+        let dump_to_file = opts.dump_file.is_some();
+        let page = Page::new(id, None,
+                             layout_chan, window_size,
                              resource_task.clone(),
                              constellation_chan.clone(),
-                             js_context.clone());
+                             js_context.clone(), dump_to_file);
         Rc::new(ScriptTask {
             page: RefCell::new(Rc::new(page)),
 
@@ -227,7 +233,8 @@ impl ScriptTask {
 
             js_runtime: js_runtime,
             js_context: RefCell::new(Some(js_context)),
-            mouse_over_targets: RefCell::new(None)
+            mouse_over_targets: RefCell::new(None),
+            opts: opts
         })
     }
 
@@ -286,6 +293,7 @@ impl ScriptTask {
                   chan: ScriptChan,
                   constellation_chan: ConstellationChan,
                   failure_msg: Failure,
+                  opts: Opts,
                   resource_task: ResourceTask,
                   image_cache_task: ImageCacheTask,
                   window_size: WindowSizeData) {
@@ -301,6 +309,7 @@ impl ScriptTask {
                                               constellation_chan,
                                               resource_task,
                                               image_cache_task,
+                                              opts,
                                               window_size);
             let mut failsafe = ScriptMemoryFailsafe::new(&*script_task);
             script_task.start();
@@ -399,12 +408,15 @@ impl ScriptTask {
         let parent_page = page.find(old_pipeline_id).expect("ScriptTask: received a layout
             whose parent has a PipelineId which does not correspond to a pipeline in the script
             task's page tree. This is a bug.");
+        let dump_to_file = self.opts.dump_file.is_some();
         let new_page = {
             let window_size = parent_page.window_size.deref().get();
-            Page::new(new_pipeline_id, Some(subpage_id), layout_chan, window_size,
+            Page::new(new_pipeline_id, Some(subpage_id),
+                      layout_chan, window_size,
                       parent_page.resource_task.deref().clone(),
                       self.constellation_chan.clone(),
-                      self.js_context.borrow().get_ref().clone())
+                      self.js_context.borrow().get_ref().clone(),
+                      dump_to_file)
         };
         parent_page.children.deref().borrow_mut().push(Rc::new(new_page));
     }
