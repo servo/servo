@@ -14,7 +14,7 @@ use servo_util::str::DOMString;
 use std::collections::hashmap::HashMap;
 use libc;
 use libc::c_uint;
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::mem;
 use std::cmp::PartialEq;
 use std::ptr;
@@ -52,13 +52,13 @@ use js;
 #[allow(raw_pointer_deriving)]
 #[deriving(Encodable)]
 pub struct GlobalStaticData {
-    pub proxy_handlers: Untraceable<HashMap<uint, *libc::c_void>>,
+    pub proxy_handlers: Untraceable<RefCell<HashMap<uint, *libc::c_void>>>,
     pub windowproxy_handler: Untraceable<*libc::c_void>,
 }
 
 pub fn GlobalStaticData() -> GlobalStaticData {
     GlobalStaticData {
-        proxy_handlers: Untraceable::new(HashMap::new()),
+        proxy_handlers: Untraceable::new(RefCell::new(HashMap::new())),
         windowproxy_handler: Untraceable::new(browsercontext::new_window_proxy_handler()),
     }
 }

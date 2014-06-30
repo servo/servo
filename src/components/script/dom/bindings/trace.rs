@@ -104,12 +104,6 @@ impl<T> Deref<T> for Untraceable<T> {
     }
 }
 
-impl<T> DerefMut<T> for Untraceable<T> {
-    fn deref_mut<'a>(&'a mut self) -> &'a mut T {
-        &mut self.inner
-    }
-}
-
 /// Encapsulates a type that can be traced but is boxed in a type we don't control
 /// (such as RefCell). Wrap a field in Traceable and implement the Encodable trait
 /// for that new concrete type to achieve magic compiler-derived trace hooks.
@@ -132,12 +126,6 @@ impl<T> Traceable<T> {
 impl<T> Deref<T> for Traceable<T> {
     fn deref<'a>(&'a self) -> &'a T {
         &self.inner
-    }
-}
-
-impl<T> DerefMut<T> for Traceable<T> {
-    fn deref_mut<'a>(&'a mut self) -> &'a mut T {
-        &mut self.inner
     }
 }
 

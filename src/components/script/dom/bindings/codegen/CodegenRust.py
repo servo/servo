@@ -1757,7 +1757,8 @@ def CreateBindingJSObject(descriptor, parent=None):
         assert not descriptor.createGlobal
         create += """
 let js_info = aScope.deref().page().js_info();
-let handler = js_info.get_ref().dom_static.proxy_handlers.deref().get(&(PrototypeList::id::%s as uint));
+let mut handlers = js_info.get_ref().dom_static.proxy_handlers.deref().borrow_mut();
+let handler = handlers.get(&(PrototypeList::id::%s as uint));
 let mut private = PrivateValue(squirrel_away_unique(aObject) as *libc::c_void);
 let obj = with_compartment(aCx, proto, || {
   NewProxyObject(aCx, *handler,
@@ -2080,7 +2081,8 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
   getPrototypeOf: None,
   trace: Some(%s)
 };
-js_info.dom_static.proxy_handlers.insert(PrototypeList::id::%s as uint,
+let mut handlers = js_info.dom_static.proxy_handlers.deref().borrow_mut();
+handlers.insert(PrototypeList::id::%s as uint,
                                          CreateProxyHandler(&traps, &Class as *_ as *_));
 
 """ % (FINALIZE_HOOK_NAME,
