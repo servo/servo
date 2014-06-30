@@ -19,6 +19,9 @@ use layout::context::LayoutContext;
 use layout::floats::{ClearBoth, ClearLeft, ClearRight, FloatKind, Floats, PlacementInfo};
 use layout::flow::{BaseFlow, BlockFlowClass, FlowClass, Flow, ImmutableFlowUtils};
 use layout::flow::{MutableFlowUtils, PreorderFlowTraversal, PostorderFlowTraversal, mut_base};
+use layout::flow::{HasLeftFloatedDescendants, HasRightFloatedDescendants};
+use layout::flow::{ImpactedByLeftFloats, ImpactedByRightFloats};
+use layout::flow::{LayersNeededForDescendants, NeedsLayer};
 use layout::flow;
 use layout::fragment::{Fragment, ImageFragment, ScannedTextFragment};
 use layout::model::{Auto, IntrinsicWidths, MarginCollapseInfo, MarginsCollapse};
@@ -475,12 +478,12 @@ enum FormattingContextType {
 fn propagate_layer_flag_from_child(layers_needed_for_descendants: &mut bool, kid: &mut Flow) {
     if kid.is_absolute_containing_block() {
         let kid_base = flow::mut_base(kid);
-        if kid_base.flags.needs_layer() {
+        if kid_base.flags.contains(NeedsLayer) {
             *layers_needed_for_descendants = true
         }
     } else {
         let kid_base = flow::mut_base(kid);
-        if kid_base.flags.layers_needed_for_descendants() {
+        if kid_base.flags.contains(LayersNeededForDescendants) {
             *layers_needed_for_descendants = true
         }
     }
@@ -918,7 +921,7 @@ impl BlockFlow {
 
         // Mark ourselves for layerization if that will be necessary to paint in the proper order
         // (CSS 2.1, Appendix E).
-        self.base.flags.set_layers_needed_for_descendants(layers_needed_for_descendants);
+        self.base.flags.set(LayersNeededForDescendants, layers_needed_for_descendants);
 
         // Collect various offsets needed by absolutely positioned descendants.
         self.collect_static_y_offsets_from_kids();
@@ -951,7 +954,7 @@ impl BlockFlow {
 
             // Fixed position layers get layers.
             if self.is_fixed() {
-                self.base.flags.set_needs_layer(true)
+                self.base.flags.insert(NeedsLayer);
             }
 
             // Store the content height for use in calculating the absolute flow's dimensions
@@ -1245,7 +1248,7 @@ impl BlockFlow {
                                              RootOfStackingContextLevel);
 
         if !self.base.absolute_position_info.layers_needed_for_positioned_flows &&
-                !self.base.flags.needs_layer() {
+                !self.base.flags.contains(NeedsLayer) {
             // We didn't need a layer.
             //
             // TODO(#781, pcwalton): `z-index`.
@@ -1299,8 +1302,8 @@ impl BlockFlow {
                                                 content_width: Au,
                                                 opt_col_widths: Option<Vec<Au>>) {
         // Keep track of whether floats could impact each child.
-        let mut left_floats_impact_child = self.base.flags.impacted_by_left_floats();
-        let mut right_floats_impact_child = self.base.flags.impacted_by_right_floats();
+        let mut left_floats_impact_child = self.base.flags.contains(ImpactedByLeftFloats);
+        let mut right_floats_impact_child = self.base.flags.contains(ImpactedByRightFloats);
 
         let absolute_static_x_offset = if self.is_positioned() {
             // This flow is the containing block. The static X offset will be the left padding
@@ -1355,11 +1358,11 @@ impl BlockFlow {
             {
                 let kid_base = flow::mut_base(kid);
                 left_floats_impact_child = left_floats_impact_child ||
-                    kid_base.flags.has_left_floated_descendants();
+                    kid_base.flags.contains(HasLeftFloatedDescendants);
                 right_floats_impact_child = right_floats_impact_child ||
-                    kid_base.flags.has_right_floated_descendants();
-                kid_base.flags.set_impacted_by_left_floats(left_floats_impact_child);
-                kid_base.flags.set_impacted_by_right_floats(right_floats_impact_child);
+                    kid_base.flags.contains(HasRightFloatedDescendants);
+                kid_base.flags.set(ImpactedByLeftFloats, left_floats_impact_child);
+                kid_base.flags.set(ImpactedByRightFloats, right_floats_impact_child);
             }
 
             // Handle tables.
@@ -1425,8 +1428,8 @@ impl Flow for BlockFlow {
     /// TODO(pcwalton): Inline blocks.
     fn bubble_widths(&mut self, _: &mut LayoutContext) {
         let mut flags = self.base.flags;
-        flags.set_has_left_floated_descendants(false);
-        flags.set_has_right_floated_descendants(false);
+        flags.remove(HasLeftFloatedDescendants);
+        flags.remove(HasRightFloatedDescendants);
 
         // Find the maximum width from children.
         let mut intrinsic_widths = IntrinsicWidths::new();
@@ -1456,8 +1459,8 @@ impl Flow for BlockFlow {
 
         match self.fragment.style().get_box().float {
             float::none => {}
-            float::left => flags.set_has_left_floated_descendants(true),
-            float::right => flags.set_has_right_floated_descendants(true),
+            float::left => flags.insert(HasLeftFloatedDescendants),
+            float::right => flags.insert(HasRightFloatedDescendants),
         }
         self.base.flags = flags
     }
@@ -1482,8 +1485,8 @@ impl Flow for BlockFlow {
             self.base.floats = Floats::new();
 
             // The root element is never impacted by floats.
-            self.base.flags.set_impacted_by_left_floats(false);
-            self.base.flags.set_impacted_by_right_floats(false);
+            self.base.flags.remove(ImpactedByLeftFloats);
+            self.base.flags.remove(ImpactedByRightFloats);
         }
 
         // Our width was set to the width of the containing block by the flow's parent. Now compute
@@ -1498,8 +1501,8 @@ impl Flow for BlockFlow {
         match self.formatting_context_type() {
             NonformattingContext => {}
             BlockFormattingContext => {
-                self.base.flags.set_impacted_by_left_floats(false);
-                self.base.flags.set_impacted_by_right_floats(false);
+                self.base.flags.remove(ImpactedByLeftFloats);
+                self.base.flags.remove(ImpactedByRightFloats);
 
                 // We can't actually compute the width of this block now, because floats might
                 // affect it. Speculate that its width is equal to the width computed above minus
@@ -1513,8 +1516,8 @@ impl Flow for BlockFlow {
                 }
             }
             OtherFormattingContext => {
-                self.base.flags.set_impacted_by_left_floats(false);
-                self.base.flags.set_impacted_by_right_floats(false);
+                self.base.flags.remove(ImpactedByLeftFloats);
+                self.base.flags.remove(ImpactedByRightFloats);
             }
         }
 
@@ -1608,7 +1611,7 @@ impl Flow for BlockFlow {
         let mut absolute_position_info = self.base.absolute_position_info;
         absolute_position_info.relative_containing_block_size = self.fragment.content_box().size;
         absolute_position_info.layers_needed_for_positioned_flows =
-            self.base.flags.layers_needed_for_descendants();
+            self.base.flags.contains(LayersNeededForDescendants);
 
         // Process children.
         let this_position = self.base.abs_position;
