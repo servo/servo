@@ -39,7 +39,7 @@ they are designed to be useful in other Rust projects.
 * `support/stb-image`: A minimalist image decoding library. This is a temporary stopgap for image
   decoding until a higher-performance solution is available.
 
-## Platform-specfic bindings
+## Platform-specific bindings
 
 ### Linux
 
