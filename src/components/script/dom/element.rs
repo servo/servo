@@ -233,7 +233,7 @@ pub trait AttributeHandlers {
     fn parse_attribute(&self, namespace: &Namespace, local_name: &str,
                        value: DOMString) -> AttrValue;
 
-    fn remove_attribute(&self, namespace: Namespace, name: &str) -> ErrorResult;
+    fn remove_attribute(&self, namespace: Namespace, name: &str);
     fn notify_attribute_changed(&self, local_name: DOMString);
     fn has_class(&self, name: &str) -> bool;
 
@@ -316,7 +316,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         }
     }
 
-    fn remove_attribute(&self, namespace: Namespace, name: &str) -> ErrorResult {
+    fn remove_attribute(&self, namespace: Namespace, name: &str) {
         let (_, local_name) = get_attribute_parts(name);
 
         let idx = self.deref().attrs.borrow().iter().map(|attr| attr.root()).position(|attr| {
@@ -340,8 +340,6 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
                 self.deref().attrs.borrow_mut().remove(idx);
             }
         };
-
-        Ok(())
     }
 
     fn notify_attribute_changed(&self, local_name: DOMString) {
@@ -439,8 +437,8 @@ pub trait ElementMethods {
     fn GetAttributeNS(&self, namespace: Option<DOMString>, local_name: DOMString) -> Option<DOMString>;
     fn SetAttribute(&self, name: DOMString, value: DOMString) -> ErrorResult;
     fn SetAttributeNS(&self, namespace_url: Option<DOMString>, name: DOMString, value: DOMString) -> ErrorResult;
-    fn RemoveAttribute(&self, name: DOMString) -> ErrorResult;
-    fn RemoveAttributeNS(&self, namespace: Option<DOMString>, localname: DOMString) -> ErrorResult;
+    fn RemoveAttribute(&self, name: DOMString);
+    fn RemoveAttributeNS(&self, namespace: Option<DOMString>, localname: DOMString);
     fn HasAttribute(&self, name: DOMString) -> bool;
     fn HasAttributeNS(&self, namespace: Option<DOMString>, local_name: DOMString) -> bool;
     fn GetElementsByTagName(&self, localname: DOMString) -> Temporary<HTMLCollection>;
@@ -650,8 +648,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     }
 
     // http://dom.spec.whatwg.org/#dom-element-removeattribute
-    fn RemoveAttribute(&self,
-                       name: DOMString) -> ErrorResult {
+    fn RemoveAttribute(&self, name: DOMString) {
         let name = if self.html_element_in_html_document() {
             name.as_slice().to_ascii_lower()
         } else {
@@ -663,7 +660,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     // http://dom.spec.whatwg.org/#dom-element-removeattributens
     fn RemoveAttributeNS(&self,
                          namespace: Option<DOMString>,
-                         localname: DOMString) -> ErrorResult {
+                         localname: DOMString) {
         let namespace = Namespace::from_str(null_str_as_empty_ref(&namespace));
         self.remove_attribute(namespace, localname.as_slice())
     }
