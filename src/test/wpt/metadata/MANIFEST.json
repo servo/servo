@@ -44,6 +44,30 @@
         "ref_url": "/2dcontext/transformations/canvas_transformations_scale_001-ref.htm"
       }, 
       {
+        "url": "/custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag.html", 
+        "path": "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag.html", 
+        "ref_type": "==", 
+        "ref_url": "/custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag-ref.html"
+      }, 
+      {
+        "url": "/custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag.html", 
+        "path": "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag.html", 
+        "ref_type": "==", 
+        "ref_url": "/custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag-ref.html"
+      }, 
+      {
+        "url": "/custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension.html", 
+        "path": "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension.html", 
+        "ref_type": "==", 
+        "ref_url": "/custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension-ref.html"
+      }, 
+      {
+        "url": "/custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension.html", 
+        "path": "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension.html", 
+        "ref_type": "==", 
+        "ref_url": "/custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension-ref.html"
+      }, 
+      {
         "url": "/html/dom/elements/global-attributes/dir_auto-EN-L.html", 
         "path": "html/dom/elements/global-attributes/dir_auto-EN-L.html", 
         "ref_type": "==", 
@@ -408,6 +432,12 @@
         "path": "html/semantics/embedded-content/the-video-element/video_initially_paused.html", 
         "ref_type": "==", 
         "ref_url": "/html/semantics/embedded-content/the-video-element/video_initially_paused-ref.html"
+      }, 
+      {
+        "url": "/html/semantics/forms/the-input-element/image01.html", 
+        "path": "html/semantics/forms/the-input-element/image01.html", 
+        "ref_type": "==", 
+        "ref_url": "/html/semantics/forms/the-input-element/image01-ref.html"
       }, 
       {
         "url": "/html/semantics/forms/the-textarea-element/textarea-newline-bidi.html", 
@@ -2018,6 +2048,208 @@
         "ref_url": "/webvtt/rendering/cues-with-video/processing-model/too_many_cues_wrapped-ref.html"
       }
     ], 
+    "stub": [
+      {
+        "url": "/service-workers/stub-3.1-service-worker-obj.html", 
+        "path": "service-workers/stub-3.1-service-worker-obj.html"
+      }, 
+      {
+        "url": "/service-workers/stub-3.1.1-service-worker-scope.html", 
+        "path": "service-workers/stub-3.1.1-service-worker-scope.html"
+      }, 
+      {
+        "url": "/service-workers/stub-3.1.2-service-worker-url.html", 
+        "path": "service-workers/stub-3.1.2-service-worker-url.html"
+      }, 
+      {
+        "url": "/service-workers/stub-3.1.3-service-worker-state.html", 
+        "path": "service-workers/stub-3.1.3-service-worker-state.html"
+      }, 
+      {
+        "url": "/service-workers/stub-3.1.4-service-worker-on-state-change.html", 
+        "path": "service-workers/stub-3.1.4-service-worker-on-state-change.html"
+      }, 
+      {
+        "url": "/service-workers/stub-3.2-navigator-service-worker.html", 
+        "path": "service-workers/stub-3.2-navigator-service-worker.html"
+      }, 
+      {
+        "url": "/service-workers/stub-3.2.1-navigator-service-worker-installing.html", 
+        "path": "service-workers/stub-3.2.1-navigator-service-worker-installing.html"
+      }, 
+      {
+        "url": "/service-workers/stub-3.2.10-navigator-service-worker-oncontrollerchange.html", 
+        "path": "service-workers/stub-3.2.10-navigator-service-worker-oncontrollerchange.html"
+      }, 
+      {
+        "url": "/service-workers/stub-3.2.11-navigator-service-worker-onreloadpage.html", 
+        "path": "service-workers/stub-3.2.11-navigator-service-worker-onreloadpage.html"
+      }, 
+      {
+        "url": "/service-workers/stub-3.2.12-navigator-service-worker-onerror.html", 
+        "path": "service-workers/stub-3.2.12-navigator-service-worker-onerror.html"
+      }, 
+      {
+        "url": "/service-workers/stub-3.2.2-navigator-service-worker-waiting.html", 
+        "path": "service-workers/stub-3.2.2-navigator-service-worker-waiting.html"
+      }, 
+      {
+        "url": "/service-workers/stub-3.2.3-navigator-service-worker-active.html", 
+        "path": "service-workers/stub-3.2.3-navigator-service-worker-active.html"
+      }, 
+      {
+        "url": "/service-workers/stub-3.2.4-navigator-service-worker-controller.html", 
+        "path": "service-workers/stub-3.2.4-navigator-service-worker-controller.html"
+      }, 
+      {
+        "url": "/service-workers/stub-3.2.5-navigator-service-worker-ready.html", 
+        "path": "service-workers/stub-3.2.5-navigator-service-worker-ready.html"
+      }, 
+      {
+        "url": "/service-workers/stub-3.2.6-navigator-service-worker-getAll.html", 
+        "path": "service-workers/stub-3.2.6-navigator-service-worker-getAll.html"
+      }, 
+      {
+        "url": "/service-workers/stub-3.2.7-navigator-service-worker-register.html", 
+        "path": "service-workers/stub-3.2.7-navigator-service-worker-register.html"
+      }, 
+      {
+        "url": "/service-workers/stub-3.2.8-navigator-service-worker-unregister.html", 
+        "path": "service-workers/stub-3.2.8-navigator-service-worker-unregister.html"
+      }, 
+      {
+        "url": "/service-workers/stub-3.2.9-navigator-service-worker-onupdatefound.html", 
+        "path": "service-workers/stub-3.2.9-navigator-service-worker-onupdatefound.html"
+      }, 
+      {
+        "url": "/service-workers/stub-4.1-service-worker-global-scope.html", 
+        "path": "service-workers/stub-4.1-service-worker-global-scope.html"
+      }, 
+      {
+        "url": "/service-workers/stub-4.1.1-service-worker-global-scope-caches.html", 
+        "path": "service-workers/stub-4.1.1-service-worker-global-scope-caches.html"
+      }, 
+      {
+        "url": "/service-workers/stub-4.1.2-service-worker-global-scope-clients.html", 
+        "path": "service-workers/stub-4.1.2-service-worker-global-scope-clients.html"
+      }, 
+      {
+        "url": "/service-workers/stub-4.1.3-service-worker-global-scope-scope.html", 
+        "path": "service-workers/stub-4.1.3-service-worker-global-scope-scope.html"
+      }, 
+      {
+        "url": "/service-workers/stub-4.1.4-service-worker-global-scope-fetch.html", 
+        "path": "service-workers/stub-4.1.4-service-worker-global-scope-fetch.html"
+      }, 
+      {
+        "url": "/service-workers/stub-4.1.5-service-worker-global-scope-update.html", 
+        "path": "service-workers/stub-4.1.5-service-worker-global-scope-update.html"
+      }, 
+      {
+        "url": "/service-workers/stub-4.1.6-service-worker-global-scope-unregister.html", 
+        "path": "service-workers/stub-4.1.6-service-worker-global-scope-unregister.html"
+      }, 
+      {
+        "url": "/service-workers/stub-4.1.7-service-worker-global-scope-onmessage.html", 
+        "path": "service-workers/stub-4.1.7-service-worker-global-scope-onmessage.html"
+      }, 
+      {
+        "url": "/service-workers/stub-4.2-client.html", 
+        "path": "service-workers/stub-4.2-client.html"
+      }, 
+      {
+        "url": "/service-workers/stub-4.3-service-worker-clients.html", 
+        "path": "service-workers/stub-4.3-service-worker-clients.html"
+      }, 
+      {
+        "url": "/service-workers/stub-4.3.1-get-serviced-method.html", 
+        "path": "service-workers/stub-4.3.1-get-serviced-method.html"
+      }, 
+      {
+        "url": "/service-workers/stub-4.3.2-reloadall-method.html", 
+        "path": "service-workers/stub-4.3.2-reloadall-method.html"
+      }, 
+      {
+        "url": "/service-workers/stub-4.4-request-objects.html", 
+        "path": "service-workers/stub-4.4-request-objects.html"
+      }, 
+      {
+        "url": "/service-workers/stub-4.5-response-objects.html", 
+        "path": "service-workers/stub-4.5-response-objects.html"
+      }, 
+      {
+        "url": "/service-workers/stub-4.5.2-response.html", 
+        "path": "service-workers/stub-4.5.2-response.html"
+      }, 
+      {
+        "url": "/service-workers/stub-4.5.4-opaque-response.html", 
+        "path": "service-workers/stub-4.5.4-opaque-response.html"
+      }, 
+      {
+        "url": "/service-workers/stub-4.6-cache-objects.html", 
+        "path": "service-workers/stub-4.6-cache-objects.html"
+      }, 
+      {
+        "url": "/service-workers/stub-4.6.1-cache-lifetimes.html", 
+        "path": "service-workers/stub-4.6.1-cache-lifetimes.html"
+      }, 
+      {
+        "url": "/service-workers/stub-4.6.2-cache.html", 
+        "path": "service-workers/stub-4.6.2-cache.html"
+      }, 
+      {
+        "url": "/service-workers/stub-4.6.3-cache-storage.html", 
+        "path": "service-workers/stub-4.6.3-cache-storage.html"
+      }, 
+      {
+        "url": "/service-workers/stub-4.7.1-install-phase-event.html", 
+        "path": "service-workers/stub-4.7.1-install-phase-event.html"
+      }, 
+      {
+        "url": "/service-workers/stub-4.7.1.1-wait-until-method.html", 
+        "path": "service-workers/stub-4.7.1.1-wait-until-method.html"
+      }, 
+      {
+        "url": "/service-workers/stub-4.7.2-install-event.html", 
+        "path": "service-workers/stub-4.7.2-install-event.html"
+      }, 
+      {
+        "url": "/service-workers/stub-4.7.2.1-install-event-section.html", 
+        "path": "service-workers/stub-4.7.2.1-install-event-section.html"
+      }, 
+      {
+        "url": "/service-workers/stub-4.7.2.2-replace-method.html", 
+        "path": "service-workers/stub-4.7.2.2-replace-method.html"
+      }, 
+      {
+        "url": "/service-workers/stub-4.7.3-activate-event.html", 
+        "path": "service-workers/stub-4.7.3-activate-event.html"
+      }, 
+      {
+        "url": "/service-workers/stub-4.7.4.1-fetch-event-section.html", 
+        "path": "service-workers/stub-4.7.4.1-fetch-event-section.html"
+      }, 
+      {
+        "url": "/service-workers/stub-4.7.4.2-respond-with-method.html", 
+        "path": "service-workers/stub-4.7.4.2-respond-with-method.html"
+      }, 
+      {
+        "url": "/service-workers/stub-4.7.4.3-default-method.html", 
+        "path": "service-workers/stub-4.7.4.3-default-method.html"
+      }, 
+      {
+        "url": "/service-workers/stub-4.7.4.4-is-reload-attribute.html", 
+        "path": "service-workers/stub-4.7.4.4-is-reload-attribute.html"
+      }, 
+      {
+        "url": "/service-workers/stub-5.1-origin-relativity.html", 
+        "path": "service-workers/stub-5.1-origin-relativity.html"
+      }, 
+      {
+        "url": "/service-workers/stub-5.2-cross-origin-resources.html", 
+        "path": "service-workers/stub-5.2-cross-origin-resources.html"
+      }
+    ], 
     "testharness": [
       {
         "url": "/2dcontext/compositing/2d.composite.canvas.copy.html", 
@@ -3516,8 +3748,16 @@
         "path": "2dcontext/fill-and-stroke-styles/2d.pattern.repeat.unrecognised.html"
       }, 
       {
+        "url": "/2dcontext/fill-and-stroke-styles/2d.pattern.repeat.unrecognisednull.html", 
+        "path": "2dcontext/fill-and-stroke-styles/2d.pattern.repeat.unrecognisednull.html"
+      }, 
+      {
         "url": "/2dcontext/fill-and-stroke-styles/2d.strokeStyle.default.html", 
         "path": "2dcontext/fill-and-stroke-styles/2d.strokeStyle.default.html"
+      }, 
+      {
+        "url": "/2dcontext/hit-regions/addHitRegions-NotSupportedError-01.html", 
+        "path": "2dcontext/hit-regions/addHitRegions-NotSupportedError-01.html"
       }, 
       {
         "url": "/2dcontext/line-styles/2d.line.cap.butt.html", 
@@ -5068,6 +5308,10 @@
         "path": "DOMEvents/throwing-in-listener-when-all-have-not-run-yet.html"
       }, 
       {
+        "url": "/FileAPI/Blob-XHR-revoke.html", 
+        "path": "FileAPI/Blob-XHR-revoke.html"
+      }, 
+      {
         "url": "/FileAPI/Blob-close.html", 
         "path": "FileAPI/Blob-close.html"
       }, 
@@ -5208,8 +5452,32 @@
         "path": "IndexedDB/idbcursor_advance_index5.htm"
       }, 
       {
+        "url": "/IndexedDB/idbcursor_advance_index6.htm", 
+        "path": "IndexedDB/idbcursor_advance_index6.htm"
+      }, 
+      {
+        "url": "/IndexedDB/idbcursor_advance_index7.htm", 
+        "path": "IndexedDB/idbcursor_advance_index7.htm"
+      }, 
+      {
+        "url": "/IndexedDB/idbcursor_advance_index8.htm", 
+        "path": "IndexedDB/idbcursor_advance_index8.htm"
+      }, 
+      {
         "url": "/IndexedDB/idbcursor_advance_objectstore.htm", 
         "path": "IndexedDB/idbcursor_advance_objectstore.htm"
+      }, 
+      {
+        "url": "/IndexedDB/idbcursor_advance_objectstore2.htm", 
+        "path": "IndexedDB/idbcursor_advance_objectstore2.htm"
+      }, 
+      {
+        "url": "/IndexedDB/idbcursor_advance_objectstore3.htm", 
+        "path": "IndexedDB/idbcursor_advance_objectstore3.htm"
+      }, 
+      {
+        "url": "/IndexedDB/idbcursor_advance_objectstore4.htm", 
+        "path": "IndexedDB/idbcursor_advance_objectstore4.htm"
       }, 
       {
         "url": "/IndexedDB/idbcursor_continue_index.htm", 
@@ -5507,6 +5775,10 @@
       {
         "url": "/IndexedDB/idbindex_count3.htm", 
         "path": "IndexedDB/idbindex_count3.htm"
+      }, 
+      {
+        "url": "/IndexedDB/idbindex_count4.htm", 
+        "path": "IndexedDB/idbindex_count4.htm"
       }, 
       {
         "url": "/IndexedDB/idbindex_get.htm", 
@@ -5957,6 +6229,10 @@
         "path": "XMLHttpRequest/abort-upload-event-loadend.htm"
       }, 
       {
+        "url": "/XMLHttpRequest/anonymous-mode-unsupported.htm", 
+        "path": "XMLHttpRequest/anonymous-mode-unsupported.htm"
+      }, 
+      {
         "url": "/XMLHttpRequest/data-uri-basic.htm", 
         "path": "XMLHttpRequest/data-uri-basic.htm"
       }, 
@@ -5995,6 +6271,10 @@
       {
         "url": "/XMLHttpRequest/event-upload-progress.htm", 
         "path": "XMLHttpRequest/event-upload-progress.htm"
+      }, 
+      {
+        "url": "/XMLHttpRequest/formdata-blob.htm", 
+        "path": "XMLHttpRequest/formdata-blob.htm"
       }, 
       {
         "url": "/XMLHttpRequest/formdata.htm", 
@@ -6201,6 +6481,10 @@
         "path": "XMLHttpRequest/response-data-progress.htm"
       }, 
       {
+        "url": "/XMLHttpRequest/response-invalid-responsetype.htm", 
+        "path": "XMLHttpRequest/response-invalid-responsetype.htm"
+      }, 
+      {
         "url": "/XMLHttpRequest/response-json.htm", 
         "path": "XMLHttpRequest/response-json.htm"
       }, 
@@ -6329,12 +6613,12 @@
         "path": "XMLHttpRequest/send-entity-body-none.htm"
       }, 
       {
-        "url": "/XMLHttpRequest/send-network-error-async-events.htm", 
-        "path": "XMLHttpRequest/send-network-error-async-events.htm"
+        "url": "/XMLHttpRequest/send-network-error-async-events.sub.htm", 
+        "path": "XMLHttpRequest/send-network-error-async-events.sub.htm"
       }, 
       {
-        "url": "/XMLHttpRequest/send-network-error-sync-events.htm", 
-        "path": "XMLHttpRequest/send-network-error-sync-events.htm"
+        "url": "/XMLHttpRequest/send-network-error-sync-events.sub.htm", 
+        "path": "XMLHttpRequest/send-network-error-sync-events.sub.htm"
       }, 
       {
         "url": "/XMLHttpRequest/send-no-response-event-loadend.htm", 
@@ -6490,10 +6774,6 @@
         "path": "XMLHttpRequest/timeout-sync.htm"
       }, 
       {
-        "url": "/XMLHttpRequest/withcredentials-anonymous.htm", 
-        "path": "XMLHttpRequest/withcredentials-anonymous.htm"
-      }, 
-      {
         "url": "/XMLHttpRequest/withcredentials-set.htm", 
         "path": "XMLHttpRequest/withcredentials-set.htm"
       }, 
@@ -6578,16 +6858,16 @@
         "path": "ambient-light/DeviceLight_tests.html"
       }, 
       {
+        "url": "/animation-timing/callback-invoked.html", 
+        "path": "animation-timing/callback-invoked.html"
+      }, 
+      {
+        "url": "/animation-timing/cancel-invoked.html", 
+        "path": "animation-timing/cancel-invoked.html"
+      }, 
+      {
         "url": "/animation-timing/idlharness.html", 
         "path": "animation-timing/idlharness.html"
-      }, 
-      {
-        "url": "/battery-status/battery-created.html", 
-        "path": "battery-status/battery-created.html"
-      }, 
-      {
-        "url": "/battery-status/battery-full.html", 
-        "path": "battery-status/battery-full.html"
       }, 
       {
         "url": "/battery-status/battery-interface-idlharness.html", 
@@ -6655,7 +6935,8 @@
       }, 
       {
         "url": "/cors/status-async.htm", 
-        "path": "cors/status-async.htm"
+        "path": "cors/status-async.htm", 
+        "timeout": "long"
       }, 
       {
         "url": "/cors/status-preflight.htm", 
@@ -6740,6 +7021,158 @@
       {
         "url": "/custom-elements/custom-element-lifecycle/types-of-callbacks/detached-callback-with-browsing-context-test.html", 
         "path": "custom-elements/custom-element-lifecycle/types-of-callbacks/detached-callback-with-browsing-context-test.html"
+      }, 
+      {
+        "url": "/custom-elements/instantiating-custom-elements/changing-is-attribute.html", 
+        "path": "custom-elements/instantiating-custom-elements/changing-is-attribute.html"
+      }, 
+      {
+        "url": "/custom-elements/instantiating-custom-elements/custom-element-constructor-is-attribute.html", 
+        "path": "custom-elements/instantiating-custom-elements/custom-element-constructor-is-attribute.html"
+      }, 
+      {
+        "url": "/custom-elements/instantiating-custom-elements/custom-element-constructor-local-name.html", 
+        "path": "custom-elements/instantiating-custom-elements/custom-element-constructor-local-name.html"
+      }, 
+      {
+        "url": "/custom-elements/instantiating-custom-elements/custom-element-constructor-namespace.html", 
+        "path": "custom-elements/instantiating-custom-elements/custom-element-constructor-namespace.html"
+      }, 
+      {
+        "url": "/custom-elements/instantiating-custom-elements/custom-element-constructor-node-document.html", 
+        "path": "custom-elements/instantiating-custom-elements/custom-element-constructor-node-document.html"
+      }, 
+      {
+        "url": "/custom-elements/instantiating-custom-elements/custom-element-constructor-prototype.html", 
+        "path": "custom-elements/instantiating-custom-elements/custom-element-constructor-prototype.html"
+      }, 
+      {
+        "url": "/custom-elements/instantiating-custom-elements/custom-element-prototype.html", 
+        "path": "custom-elements/instantiating-custom-elements/custom-element-prototype.html"
+      }, 
+      {
+        "url": "/custom-elements/instantiating-custom-elements/custom-element-type-is-attribute.html", 
+        "path": "custom-elements/instantiating-custom-elements/custom-element-type-is-attribute.html"
+      }, 
+      {
+        "url": "/custom-elements/instantiating-custom-elements/custom-element-type-local-name-and-is-attribute.html", 
+        "path": "custom-elements/instantiating-custom-elements/custom-element-type-local-name-and-is-attribute.html"
+      }, 
+      {
+        "url": "/custom-elements/instantiating-custom-elements/custom-element-type-local-name.html", 
+        "path": "custom-elements/instantiating-custom-elements/custom-element-type-local-name.html"
+      }, 
+      {
+        "url": "/custom-elements/instantiating-custom-elements/extensions-to-document-interface/create-element-interface-type-is-a-local-name.html", 
+        "path": "custom-elements/instantiating-custom-elements/extensions-to-document-interface/create-element-interface-type-is-a-local-name.html"
+      }, 
+      {
+        "url": "/custom-elements/instantiating-custom-elements/extensions-to-document-interface/create-element-interface-type-is-a-type-extension.html", 
+        "path": "custom-elements/instantiating-custom-elements/extensions-to-document-interface/create-element-interface-type-is-a-type-extension.html"
+      }, 
+      {
+        "url": "/custom-elements/instantiating-custom-elements/extensions-to-document-interface/create-element-is-attribute.html", 
+        "path": "custom-elements/instantiating-custom-elements/extensions-to-document-interface/create-element-is-attribute.html"
+      }, 
+      {
+        "url": "/custom-elements/instantiating-custom-elements/extensions-to-document-interface/create-element-namespace.html", 
+        "path": "custom-elements/instantiating-custom-elements/extensions-to-document-interface/create-element-namespace.html"
+      }, 
+      {
+        "url": "/custom-elements/instantiating-custom-elements/extensions-to-document-interface/create-element-type-extension-is-a-type.html", 
+        "path": "custom-elements/instantiating-custom-elements/extensions-to-document-interface/create-element-type-extension-is-a-type.html"
+      }, 
+      {
+        "url": "/custom-elements/instantiating-custom-elements/extensions-to-document-interface/create-element-type-extension-unresolved.html", 
+        "path": "custom-elements/instantiating-custom-elements/extensions-to-document-interface/create-element-type-extension-unresolved.html"
+      }, 
+      {
+        "url": "/custom-elements/instantiating-custom-elements/extensions-to-document-interface/create-element-type-is-a-local-name.html", 
+        "path": "custom-elements/instantiating-custom-elements/extensions-to-document-interface/create-element-type-is-a-local-name.html"
+      }, 
+      {
+        "url": "/custom-elements/instantiating-custom-elements/extensions-to-document-interface/created-callback-create-element-ns.html", 
+        "path": "custom-elements/instantiating-custom-elements/extensions-to-document-interface/created-callback-create-element-ns.html"
+      }, 
+      {
+        "url": "/custom-elements/instantiating-custom-elements/extensions-to-document-interface/created-callback-create-element.html", 
+        "path": "custom-elements/instantiating-custom-elements/extensions-to-document-interface/created-callback-create-element.html"
+      }, 
+      {
+        "url": "/custom-elements/instantiating-custom-elements/non-configurable-constructor-property.html", 
+        "path": "custom-elements/instantiating-custom-elements/non-configurable-constructor-property.html"
+      }, 
+      {
+        "url": "/custom-elements/instantiating-custom-elements/prototype-is-interface-prototype-object.html", 
+        "path": "custom-elements/instantiating-custom-elements/prototype-is-interface-prototype-object.html"
+      }, 
+      {
+        "url": "/custom-elements/registering-custom-elements/definition-construction-algorithm-default-namespace.html", 
+        "path": "custom-elements/registering-custom-elements/definition-construction-algorithm-default-namespace.html"
+      }, 
+      {
+        "url": "/custom-elements/registering-custom-elements/definition-construction-algorithm-duplicate-definition.html", 
+        "path": "custom-elements/registering-custom-elements/definition-construction-algorithm-duplicate-definition.html"
+      }, 
+      {
+        "url": "/custom-elements/registering-custom-elements/definition-construction-algorithm-invalid-type.html", 
+        "path": "custom-elements/registering-custom-elements/definition-construction-algorithm-invalid-type.html"
+      }, 
+      {
+        "url": "/custom-elements/registering-custom-elements/definition-construction-algorithm-local-name-lowercased.html", 
+        "path": "custom-elements/registering-custom-elements/definition-construction-algorithm-local-name-lowercased.html"
+      }, 
+      {
+        "url": "/custom-elements/registering-custom-elements/definition-construction-algorithm-name-is-null.html", 
+        "path": "custom-elements/registering-custom-elements/definition-construction-algorithm-name-is-null.html"
+      }, 
+      {
+        "url": "/custom-elements/registering-custom-elements/definition-construction-algorithm-no-interface-for-name.html", 
+        "path": "custom-elements/registering-custom-elements/definition-construction-algorithm-no-interface-for-name.html"
+      }, 
+      {
+        "url": "/custom-elements/registering-custom-elements/definition-construction-algorithm-svg-namespace-name-is-null.html", 
+        "path": "custom-elements/registering-custom-elements/definition-construction-algorithm-svg-namespace-name-is-null.html"
+      }, 
+      {
+        "url": "/custom-elements/registering-custom-elements/definition-construction-algorithm-svg-namespace.html", 
+        "path": "custom-elements/registering-custom-elements/definition-construction-algorithm-svg-namespace.html"
+      }, 
+      {
+        "url": "/custom-elements/registering-custom-elements/definition-construction-algorithm-type-name-lowercased.html", 
+        "path": "custom-elements/registering-custom-elements/definition-construction-algorithm-type-name-lowercased.html"
+      }, 
+      {
+        "url": "/custom-elements/registering-custom-elements/element-registration-algorithm-no-registry.html", 
+        "path": "custom-elements/registering-custom-elements/element-registration-algorithm-no-registry.html"
+      }, 
+      {
+        "url": "/custom-elements/registering-custom-elements/extensions-to-document-interface/custom-element-name.html", 
+        "path": "custom-elements/registering-custom-elements/extensions-to-document-interface/custom-element-name.html"
+      }, 
+      {
+        "url": "/custom-elements/registering-custom-elements/extensions-to-document-interface/custom-element-prototype.html", 
+        "path": "custom-elements/registering-custom-elements/extensions-to-document-interface/custom-element-prototype.html"
+      }, 
+      {
+        "url": "/custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-matching-query-selector-all.html", 
+        "path": "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-matching-query-selector-all.html"
+      }, 
+      {
+        "url": "/custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-matching-query-selector.html", 
+        "path": "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-matching-query-selector.html"
+      }, 
+      {
+        "url": "/custom-elements/registering-custom-elements/unresolved-elements-interface-html-element.html", 
+        "path": "custom-elements/registering-custom-elements/unresolved-elements-interface-html-element.html"
+      }, 
+      {
+        "url": "/custom-elements/registering-custom-elements/unresolved-elements-interface-html-unknown-element.html", 
+        "path": "custom-elements/registering-custom-elements/unresolved-elements-interface-html-unknown-element.html"
+      }, 
+      {
+        "url": "/custom-elements/registering-custom-elements/unresolved-elements-interface-svg-element.html", 
+        "path": "custom-elements/registering-custom-elements/unresolved-elements-interface-svg-element.html"
       }, 
       {
         "url": "/dom/collections/HTMLCollection-empty-name.html", 
@@ -6855,7 +7288,8 @@
       }, 
       {
         "url": "/dom/nodes/Document-characterSet-normalization.html", 
-        "path": "dom/nodes/Document-characterSet-normalization.html"
+        "path": "dom/nodes/Document-characterSet-normalization.html", 
+        "timeout": "long"
       }, 
       {
         "url": "/dom/nodes/Document-contentType/contentType/contenttype_bmp.html", 
@@ -7635,6 +8069,10 @@
         "path": "eventsource/format-utf-8.htm"
       }, 
       {
+        "url": "/eventsource/interfaces.html", 
+        "path": "eventsource/interfaces.html"
+      }, 
+      {
         "url": "/eventsource/request-accept.htm", 
         "path": "eventsource/request-accept.htm"
       }, 
@@ -7660,7 +8098,8 @@
       }, 
       {
         "url": "/eventsource/shared-worker/eventsource-constructor-non-same-origin.htm", 
-        "path": "eventsource/shared-worker/eventsource-constructor-non-same-origin.htm"
+        "path": "eventsource/shared-worker/eventsource-constructor-non-same-origin.htm", 
+        "timeout": "long"
       }, 
       {
         "url": "/eventsource/shared-worker/eventsource-constructor-url-bogus.htm", 
@@ -7707,20 +8146,24 @@
         "path": "hr-time/test_cross_frame_start.html"
       }, 
       {
-        "url": "/html-imports/link-import-null.html", 
-        "path": "html-imports/link-import-null.html"
+        "url": "/html-imports/document/document-method-changes.html", 
+        "path": "html-imports/document/document-method-changes.html"
       }, 
       {
-        "url": "/html-imports/link-import-rel.html", 
-        "path": "html-imports/link-import-rel.html"
+        "url": "/html-imports/html-link-element/import-attribute.html", 
+        "path": "html-imports/html-link-element/import-attribute.html"
       }, 
       {
-        "url": "/html-imports/link-import.html", 
-        "path": "html-imports/link-import.html"
+        "url": "/html-media-capture/capture_fallback_file_upload.html", 
+        "path": "html-media-capture/capture_fallback_file_upload.html"
       }, 
       {
-        "url": "/html-imports/loading-import.html", 
-        "path": "html-imports/loading-import.html"
+        "url": "/html-media-capture/capture_reflect.html", 
+        "path": "html-media-capture/capture_reflect.html"
+      }, 
+      {
+        "url": "/html-media-capture/idlharness.html", 
+        "path": "html-media-capture/idlharness.html"
       }, 
       {
         "url": "/html/browsers/browsing-the-web/read-media/pageload-image.html", 
@@ -7812,6 +8255,50 @@
         "path": "html/browsers/history/the-location-interface/security_location_0.sub.htm"
       }, 
       {
+        "url": "/html/browsers/offline/application-cache-api/api_status_idle.html", 
+        "path": "html/browsers/offline/application-cache-api/api_status_idle.html"
+      }, 
+      {
+        "url": "/html/browsers/offline/application-cache-api/api_status_uncached.html", 
+        "path": "html/browsers/offline/application-cache-api/api_status_uncached.html"
+      }, 
+      {
+        "url": "/html/browsers/offline/application-cache-api/api_swapcache_error.html", 
+        "path": "html/browsers/offline/application-cache-api/api_swapcache_error.html"
+      }, 
+      {
+        "url": "/html/browsers/offline/application-cache-api/api_update.html", 
+        "path": "html/browsers/offline/application-cache-api/api_update.html"
+      }, 
+      {
+        "url": "/html/browsers/offline/application-cache-api/api_update_error.html", 
+        "path": "html/browsers/offline/application-cache-api/api_update_error.html"
+      }, 
+      {
+        "url": "/html/browsers/offline/browser-state/navigator_online_online.html", 
+        "path": "html/browsers/offline/browser-state/navigator_online_online.html"
+      }, 
+      {
+        "url": "/html/browsers/offline/introduction-4/event_cached.html", 
+        "path": "html/browsers/offline/introduction-4/event_cached.html"
+      }, 
+      {
+        "url": "/html/browsers/offline/introduction-4/event_checking.html", 
+        "path": "html/browsers/offline/introduction-4/event_checking.html"
+      }, 
+      {
+        "url": "/html/browsers/offline/introduction-4/event_noupdate.html", 
+        "path": "html/browsers/offline/introduction-4/event_noupdate.html"
+      }, 
+      {
+        "url": "/html/browsers/offline/introduction-4/event_progress.html", 
+        "path": "html/browsers/offline/introduction-4/event_progress.html"
+      }, 
+      {
+        "url": "/html/browsers/offline/manifest_url_check.html", 
+        "path": "html/browsers/offline/manifest_url_check.html"
+      }, 
+      {
         "url": "/html/browsers/the-window-object/accessing-other-browsing-contexts/indexed-browsing-contexts-01.html", 
         "path": "html/browsers/the-window-object/accessing-other-browsing-contexts/indexed-browsing-contexts-01.html"
       }, 
@@ -7830,6 +8317,10 @@
       {
         "url": "/html/browsers/the-window-object/named-access-on-the-window-object/window-null-names.html", 
         "path": "html/browsers/the-window-object/named-access-on-the-window-object/window-null-names.html"
+      }, 
+      {
+        "url": "/html/browsers/the-window-object/security-window/window-security.sub.html", 
+        "path": "html/browsers/the-window-object/security-window/window-security.sub.html"
       }, 
       {
         "url": "/html/browsers/the-window-object/window-indexed-properties-strict.html", 
@@ -8046,6 +8537,22 @@
       {
         "url": "/html/dom/documents/resource-metadata-management/document-compatmode-06.xhtml", 
         "path": "html/dom/documents/resource-metadata-management/document-compatmode-06.xhtml"
+      }, 
+      {
+        "url": "/html/dom/documents/resource-metadata-management/document-cookie.html", 
+        "path": "html/dom/documents/resource-metadata-management/document-cookie.html"
+      }, 
+      {
+        "url": "/html/dom/documents/resource-metadata-management/document-lastModified-01.html", 
+        "path": "html/dom/documents/resource-metadata-management/document-lastModified-01.html"
+      }, 
+      {
+        "url": "/html/dom/documents/resource-metadata-management/document-lastModified.html", 
+        "path": "html/dom/documents/resource-metadata-management/document-lastModified.html"
+      }, 
+      {
+        "url": "/html/dom/documents/resource-metadata-management/document-readyState.html", 
+        "path": "html/dom/documents/resource-metadata-management/document-readyState.html"
       }, 
       {
         "url": "/html/dom/dynamic-markup-insertion/closing-the-input-stream/document.close-01.xhtml", 
@@ -8444,6 +8951,10 @@
         "path": "html/dom/elements/global-attributes/classlist-nonstring.html"
       }, 
       {
+        "url": "/html/dom/elements/global-attributes/data_unicode_attr.html", 
+        "path": "html/dom/elements/global-attributes/data_unicode_attr.html"
+      }, 
+      {
         "url": "/html/dom/elements/global-attributes/dataset-delete.html", 
         "path": "html/dom/elements/global-attributes/dataset-delete.html"
       }, 
@@ -8474,6 +8985,10 @@
       {
         "url": "/html/dom/elements/global-attributes/id-attribute.html", 
         "path": "html/dom/elements/global-attributes/id-attribute.html"
+      }, 
+      {
+        "url": "/html/dom/elements/global-attributes/id-name-specialcase.html", 
+        "path": "html/dom/elements/global-attributes/id-name-specialcase.html"
       }, 
       {
         "url": "/html/dom/elements/global-attributes/id-name.html", 
@@ -8702,8 +9217,8 @@
         "path": "html/infrastructure/urls/terminology-0/document-base-url.html"
       }, 
       {
-        "url": "/html/infrastructure/urls/terminology-0/multiple-base.html", 
-        "path": "html/infrastructure/urls/terminology-0/multiple-base.html"
+        "url": "/html/infrastructure/urls/terminology-0/multiple-base.sub.html", 
+        "path": "html/infrastructure/urls/terminology-0/multiple-base.sub.html"
       }, 
       {
         "url": "/html/obsolete/requirements-for-implementations/other-elements-attributes-and-apis/document-color-01.html", 
@@ -8752,6 +9267,55 @@
       {
         "url": "/html/rendering/bindings/the-progress-element-0/progress.html", 
         "path": "html/rendering/bindings/the-progress-element-0/progress.html"
+      }, 
+      {
+        "url": "/html/rendering/replaced-elements/svg-embedded-sizing/svg-in-iframe-auto.html", 
+        "path": "html/rendering/replaced-elements/svg-embedded-sizing/svg-in-iframe-auto.html", 
+        "timeout": "long"
+      }, 
+      {
+        "url": "/html/rendering/replaced-elements/svg-embedded-sizing/svg-in-iframe-fixed.html", 
+        "path": "html/rendering/replaced-elements/svg-embedded-sizing/svg-in-iframe-fixed.html", 
+        "timeout": "long"
+      }, 
+      {
+        "url": "/html/rendering/replaced-elements/svg-embedded-sizing/svg-in-iframe-percentage.html", 
+        "path": "html/rendering/replaced-elements/svg-embedded-sizing/svg-in-iframe-percentage.html", 
+        "timeout": "long"
+      }, 
+      {
+        "url": "/html/rendering/replaced-elements/svg-embedded-sizing/svg-in-img-auto.html", 
+        "path": "html/rendering/replaced-elements/svg-embedded-sizing/svg-in-img-auto.html", 
+        "timeout": "long"
+      }, 
+      {
+        "url": "/html/rendering/replaced-elements/svg-embedded-sizing/svg-in-img-fixed.html", 
+        "path": "html/rendering/replaced-elements/svg-embedded-sizing/svg-in-img-fixed.html", 
+        "timeout": "long"
+      }, 
+      {
+        "url": "/html/rendering/replaced-elements/svg-embedded-sizing/svg-in-img-percentage.html", 
+        "path": "html/rendering/replaced-elements/svg-embedded-sizing/svg-in-img-percentage.html", 
+        "timeout": "long"
+      }, 
+      {
+        "url": "/html/rendering/replaced-elements/svg-embedded-sizing/svg-in-object-auto.html", 
+        "path": "html/rendering/replaced-elements/svg-embedded-sizing/svg-in-object-auto.html", 
+        "timeout": "long"
+      }, 
+      {
+        "url": "/html/rendering/replaced-elements/svg-embedded-sizing/svg-in-object-fixed.html", 
+        "path": "html/rendering/replaced-elements/svg-embedded-sizing/svg-in-object-fixed.html", 
+        "timeout": "long"
+      }, 
+      {
+        "url": "/html/rendering/replaced-elements/svg-embedded-sizing/svg-in-object-percentage.html", 
+        "path": "html/rendering/replaced-elements/svg-embedded-sizing/svg-in-object-percentage.html", 
+        "timeout": "long"
+      }, 
+      {
+        "url": "/html/rendering/replaced-elements/svg-inline-sizing/svg-inline.html", 
+        "path": "html/rendering/replaced-elements/svg-inline-sizing/svg-inline.html"
       }, 
       {
         "url": "/html/semantics/disabled-elements/disabledElement.html", 
@@ -9067,6 +9631,10 @@
         "path": "html/semantics/embedded-content/media-elements/interfaces/TextTrackCueList/length.html"
       }, 
       {
+        "url": "/html/semantics/embedded-content/media-elements/interfaces/TextTrackList/getTrackById.html", 
+        "path": "html/semantics/embedded-content/media-elements/interfaces/TextTrackList/getTrackById.html"
+      }, 
+      {
         "url": "/html/semantics/embedded-content/media-elements/interfaces/TextTrackList/getter.html", 
         "path": "html/semantics/embedded-content/media-elements/interfaces/TextTrackList/getter.html"
       }, 
@@ -9361,6 +9929,10 @@
       {
         "url": "/html/semantics/embedded-content/media-elements/src_reflects_attribute_not_source_elements.html", 
         "path": "html/semantics/embedded-content/media-elements/src_reflects_attribute_not_source_elements.html"
+      }, 
+      {
+        "url": "/html/semantics/embedded-content/media-elements/synchronising-multiple-media-elements/media-controllers/task-source.html", 
+        "path": "html/semantics/embedded-content/media-elements/synchronising-multiple-media-elements/media-controllers/task-source.html"
       }, 
       {
         "url": "/html/semantics/embedded-content/media-elements/track/track-element/cloneNode.html", 
@@ -9692,44 +10264,44 @@
         "path": "html/semantics/embedded-content/the-canvas-element/security.dataURI.html"
       }, 
       {
-        "url": "/html/semantics/embedded-content/the-canvas-element/security.drawImage.canvas.html", 
-        "path": "html/semantics/embedded-content/the-canvas-element/security.drawImage.canvas.html"
+        "url": "/html/semantics/embedded-content/the-canvas-element/security.drawImage.canvas.sub.html", 
+        "path": "html/semantics/embedded-content/the-canvas-element/security.drawImage.canvas.sub.html"
       }, 
       {
-        "url": "/html/semantics/embedded-content/the-canvas-element/security.drawImage.image.html", 
-        "path": "html/semantics/embedded-content/the-canvas-element/security.drawImage.image.html"
+        "url": "/html/semantics/embedded-content/the-canvas-element/security.drawImage.image.sub.html", 
+        "path": "html/semantics/embedded-content/the-canvas-element/security.drawImage.image.sub.html"
       }, 
       {
-        "url": "/html/semantics/embedded-content/the-canvas-element/security.pattern.canvas.fillStyle.html", 
-        "path": "html/semantics/embedded-content/the-canvas-element/security.pattern.canvas.fillStyle.html"
+        "url": "/html/semantics/embedded-content/the-canvas-element/security.pattern.canvas.fillStyle.sub.html", 
+        "path": "html/semantics/embedded-content/the-canvas-element/security.pattern.canvas.fillStyle.sub.html"
       }, 
       {
-        "url": "/html/semantics/embedded-content/the-canvas-element/security.pattern.canvas.strokeStyle.html", 
-        "path": "html/semantics/embedded-content/the-canvas-element/security.pattern.canvas.strokeStyle.html"
+        "url": "/html/semantics/embedded-content/the-canvas-element/security.pattern.canvas.strokeStyle.sub.html", 
+        "path": "html/semantics/embedded-content/the-canvas-element/security.pattern.canvas.strokeStyle.sub.html"
       }, 
       {
-        "url": "/html/semantics/embedded-content/the-canvas-element/security.pattern.canvas.timing.html", 
-        "path": "html/semantics/embedded-content/the-canvas-element/security.pattern.canvas.timing.html"
+        "url": "/html/semantics/embedded-content/the-canvas-element/security.pattern.canvas.timing.sub.html", 
+        "path": "html/semantics/embedded-content/the-canvas-element/security.pattern.canvas.timing.sub.html"
       }, 
       {
         "url": "/html/semantics/embedded-content/the-canvas-element/security.pattern.create.html", 
         "path": "html/semantics/embedded-content/the-canvas-element/security.pattern.create.html"
       }, 
       {
-        "url": "/html/semantics/embedded-content/the-canvas-element/security.pattern.cross.html", 
-        "path": "html/semantics/embedded-content/the-canvas-element/security.pattern.cross.html"
+        "url": "/html/semantics/embedded-content/the-canvas-element/security.pattern.cross.sub.html", 
+        "path": "html/semantics/embedded-content/the-canvas-element/security.pattern.cross.sub.html"
       }, 
       {
-        "url": "/html/semantics/embedded-content/the-canvas-element/security.pattern.image.fillStyle.html", 
-        "path": "html/semantics/embedded-content/the-canvas-element/security.pattern.image.fillStyle.html"
+        "url": "/html/semantics/embedded-content/the-canvas-element/security.pattern.image.fillStyle.sub.html", 
+        "path": "html/semantics/embedded-content/the-canvas-element/security.pattern.image.fillStyle.sub.html"
       }, 
       {
-        "url": "/html/semantics/embedded-content/the-canvas-element/security.pattern.image.strokeStyle.html", 
-        "path": "html/semantics/embedded-content/the-canvas-element/security.pattern.image.strokeStyle.html"
+        "url": "/html/semantics/embedded-content/the-canvas-element/security.pattern.image.strokeStyle.sub.html", 
+        "path": "html/semantics/embedded-content/the-canvas-element/security.pattern.image.strokeStyle.sub.html"
       }, 
       {
-        "url": "/html/semantics/embedded-content/the-canvas-element/security.reset.html", 
-        "path": "html/semantics/embedded-content/the-canvas-element/security.reset.html"
+        "url": "/html/semantics/embedded-content/the-canvas-element/security.reset.sub.html", 
+        "path": "html/semantics/embedded-content/the-canvas-element/security.reset.sub.html"
       }, 
       {
         "url": "/html/semantics/embedded-content/the-canvas-element/size.attributes.default.html", 
@@ -10156,6 +10728,18 @@
         "path": "html/semantics/forms/the-form-element/form-nameditem.html"
       }, 
       {
+        "url": "/html/semantics/forms/the-input-element/button.html", 
+        "path": "html/semantics/forms/the-input-element/button.html"
+      }, 
+      {
+        "url": "/html/semantics/forms/the-input-element/checkbox.html", 
+        "path": "html/semantics/forms/the-input-element/checkbox.html"
+      }, 
+      {
+        "url": "/html/semantics/forms/the-input-element/checked.xhtml", 
+        "path": "html/semantics/forms/the-input-element/checked.xhtml"
+      }, 
+      {
         "url": "/html/semantics/forms/the-input-element/color.html", 
         "path": "html/semantics/forms/the-input-element/color.html"
       }, 
@@ -10196,12 +10780,12 @@
         "path": "html/semantics/forms/the-input-element/input-type-checkbox.html"
       }, 
       {
-        "url": "/html/semantics/forms/the-input-element/mobiles.html", 
-        "path": "html/semantics/forms/the-input-element/mobiles.html"
-      }, 
-      {
         "url": "/html/semantics/forms/the-input-element/month.html", 
         "path": "html/semantics/forms/the-input-element/month.html"
+      }, 
+      {
+        "url": "/html/semantics/forms/the-input-element/number.html", 
+        "path": "html/semantics/forms/the-input-element/number.html"
       }, 
       {
         "url": "/html/semantics/forms/the-input-element/password.html", 
@@ -10210,6 +10794,14 @@
       {
         "url": "/html/semantics/forms/the-input-element/pattern_attribute.html", 
         "path": "html/semantics/forms/the-input-element/pattern_attribute.html"
+      }, 
+      {
+        "url": "/html/semantics/forms/the-input-element/radio-groupname-case.html", 
+        "path": "html/semantics/forms/the-input-element/radio-groupname-case.html"
+      }, 
+      {
+        "url": "/html/semantics/forms/the-input-element/radio.html", 
+        "path": "html/semantics/forms/the-input-element/radio.html"
       }, 
       {
         "url": "/html/semantics/forms/the-input-element/range-2.html", 
@@ -10222,6 +10814,10 @@
       {
         "url": "/html/semantics/forms/the-input-element/required_attribute.html", 
         "path": "html/semantics/forms/the-input-element/required_attribute.html"
+      }, 
+      {
+        "url": "/html/semantics/forms/the-input-element/reset.html", 
+        "path": "html/semantics/forms/the-input-element/reset.html"
       }, 
       {
         "url": "/html/semantics/forms/the-input-element/search_input.html", 
@@ -10260,6 +10856,14 @@
         "path": "html/semantics/forms/the-input-element/week.html"
       }, 
       {
+        "url": "/html/semantics/forms/the-label-element/label-attributes.html", 
+        "path": "html/semantics/forms/the-label-element/label-attributes.html"
+      }, 
+      {
+        "url": "/html/semantics/forms/the-label-element/labelable-elements.html", 
+        "path": "html/semantics/forms/the-label-element/labelable-elements.html"
+      }, 
+      {
         "url": "/html/semantics/forms/the-meter-element/meter.html", 
         "path": "html/semantics/forms/the-meter-element/meter.html"
       }, 
@@ -10296,8 +10900,8 @@
         "path": "html/semantics/forms/the-textarea-element/textarea-type.html"
       }, 
       {
-        "url": "/html/semantics/grouping-content/the-blockquote-element/grouping-blockquote.html", 
-        "path": "html/semantics/grouping-content/the-blockquote-element/grouping-blockquote.html"
+        "url": "/html/semantics/grouping-content/the-blockquote-element/grouping-blockquote.sub.html", 
+        "path": "html/semantics/grouping-content/the-blockquote-element/grouping-blockquote.sub.html"
       }, 
       {
         "url": "/html/semantics/grouping-content/the-dd-element/grouping-dd.html", 
@@ -10456,6 +11060,10 @@
         "path": "html/semantics/scripting-1/the-script-element/script-text.html"
       }, 
       {
+        "url": "/html/semantics/scripting-1/the-script-element/script-text.xhtml", 
+        "path": "html/semantics/scripting-1/the-script-element/script-text.xhtml"
+      }, 
+      {
         "url": "/html/semantics/scripting-1/the-template-element/additions-to-parsing-xhtml-documents/node-document.html", 
         "path": "html/semantics/scripting-1/the-template-element/additions-to-parsing-xhtml-documents/node-document.html"
       }, 
@@ -10494,82 +11102,6 @@
       {
         "url": "/html/semantics/scripting-1/the-template-element/innerhtml-on-templates/innerhtml.html", 
         "path": "html/semantics/scripting-1/the-template-element/innerhtml-on-templates/innerhtml.html"
-      }, 
-      {
-        "url": "/html/semantics/scripting-1/the-template-element/parsing-html-templates/additions-to-foster-parenting/template-is-a-foster-parent-element.html", 
-        "path": "html/semantics/scripting-1/the-template-element/parsing-html-templates/additions-to-foster-parenting/template-is-a-foster-parent-element.html"
-      }, 
-      {
-        "url": "/html/semantics/scripting-1/the-template-element/parsing-html-templates/additions-to-foster-parenting/template-is-not-a-foster-parent-element.html", 
-        "path": "html/semantics/scripting-1/the-template-element/parsing-html-templates/additions-to-foster-parenting/template-is-not-a-foster-parent-element.html"
-      }, 
-      {
-        "url": "/html/semantics/scripting-1/the-template-element/parsing-html-templates/additions-to-the-in-body-insertion-mode/generating-of-implied-end-tags.html", 
-        "path": "html/semantics/scripting-1/the-template-element/parsing-html-templates/additions-to-the-in-body-insertion-mode/generating-of-implied-end-tags.html"
-      }, 
-      {
-        "url": "/html/semantics/scripting-1/the-template-element/parsing-html-templates/additions-to-the-in-body-insertion-mode/ignore-body-token.html", 
-        "path": "html/semantics/scripting-1/the-template-element/parsing-html-templates/additions-to-the-in-body-insertion-mode/ignore-body-token.html"
-      }, 
-      {
-        "url": "/html/semantics/scripting-1/the-template-element/parsing-html-templates/additions-to-the-in-body-insertion-mode/ignore-frameset-token.html", 
-        "path": "html/semantics/scripting-1/the-template-element/parsing-html-templates/additions-to-the-in-body-insertion-mode/ignore-frameset-token.html"
-      }, 
-      {
-        "url": "/html/semantics/scripting-1/the-template-element/parsing-html-templates/additions-to-the-in-body-insertion-mode/ignore-head-token.html", 
-        "path": "html/semantics/scripting-1/the-template-element/parsing-html-templates/additions-to-the-in-body-insertion-mode/ignore-head-token.html"
-      }, 
-      {
-        "url": "/html/semantics/scripting-1/the-template-element/parsing-html-templates/additions-to-the-in-body-insertion-mode/ignore-html-token.html", 
-        "path": "html/semantics/scripting-1/the-template-element/parsing-html-templates/additions-to-the-in-body-insertion-mode/ignore-html-token.html"
-      }, 
-      {
-        "url": "/html/semantics/scripting-1/the-template-element/parsing-html-templates/additions-to-the-in-body-insertion-mode/start-tag-body.html", 
-        "path": "html/semantics/scripting-1/the-template-element/parsing-html-templates/additions-to-the-in-body-insertion-mode/start-tag-body.html"
-      }, 
-      {
-        "url": "/html/semantics/scripting-1/the-template-element/parsing-html-templates/additions-to-the-in-body-insertion-mode/start-tag-html.html", 
-        "path": "html/semantics/scripting-1/the-template-element/parsing-html-templates/additions-to-the-in-body-insertion-mode/start-tag-html.html"
-      }, 
-      {
-        "url": "/html/semantics/scripting-1/the-template-element/parsing-html-templates/additions-to-the-in-body-insertion-mode/template-end-tag-without-start-one.html", 
-        "path": "html/semantics/scripting-1/the-template-element/parsing-html-templates/additions-to-the-in-body-insertion-mode/template-end-tag-without-start-one.html"
-      }, 
-      {
-        "url": "/html/semantics/scripting-1/the-template-element/parsing-html-templates/additions-to-the-in-frameset-insertion-mode/end-tag-frameset.html", 
-        "path": "html/semantics/scripting-1/the-template-element/parsing-html-templates/additions-to-the-in-frameset-insertion-mode/end-tag-frameset.html"
-      }, 
-      {
-        "url": "/html/semantics/scripting-1/the-template-element/parsing-html-templates/additions-to-the-in-head-insertion-mode/generating-of-implied-end-tags.html", 
-        "path": "html/semantics/scripting-1/the-template-element/parsing-html-templates/additions-to-the-in-head-insertion-mode/generating-of-implied-end-tags.html"
-      }, 
-      {
-        "url": "/html/semantics/scripting-1/the-template-element/parsing-html-templates/additions-to-the-in-head-insertion-mode/template-end-tag-without-start-one.html", 
-        "path": "html/semantics/scripting-1/the-template-element/parsing-html-templates/additions-to-the-in-head-insertion-mode/template-end-tag-without-start-one.html"
-      }, 
-      {
-        "url": "/html/semantics/scripting-1/the-template-element/parsing-html-templates/additions-to-the-in-table-insertion-mode/end-tag-table.html", 
-        "path": "html/semantics/scripting-1/the-template-element/parsing-html-templates/additions-to-the-in-table-insertion-mode/end-tag-table.html"
-      }, 
-      {
-        "url": "/html/semantics/scripting-1/the-template-element/parsing-html-templates/appending-to-a-template/template-child-nodes.html", 
-        "path": "html/semantics/scripting-1/the-template-element/parsing-html-templates/appending-to-a-template/template-child-nodes.html"
-      }, 
-      {
-        "url": "/html/semantics/scripting-1/the-template-element/parsing-html-templates/clearing-the-stack-back-to-a-given-context/clearing-stack-back-to-a-table-body-context.html", 
-        "path": "html/semantics/scripting-1/the-template-element/parsing-html-templates/clearing-the-stack-back-to-a-given-context/clearing-stack-back-to-a-table-body-context.html"
-      }, 
-      {
-        "url": "/html/semantics/scripting-1/the-template-element/parsing-html-templates/clearing-the-stack-back-to-a-given-context/clearing-stack-back-to-a-table-context.html", 
-        "path": "html/semantics/scripting-1/the-template-element/parsing-html-templates/clearing-the-stack-back-to-a-given-context/clearing-stack-back-to-a-table-context.html"
-      }, 
-      {
-        "url": "/html/semantics/scripting-1/the-template-element/parsing-html-templates/clearing-the-stack-back-to-a-given-context/clearing-stack-back-to-a-table-row-context.html", 
-        "path": "html/semantics/scripting-1/the-template-element/parsing-html-templates/clearing-the-stack-back-to-a-given-context/clearing-stack-back-to-a-table-row-context.html"
-      }, 
-      {
-        "url": "/html/semantics/scripting-1/the-template-element/parsing-html-templates/creating-an-element-for-the-token/template-owner-document.html", 
-        "path": "html/semantics/scripting-1/the-template-element/parsing-html-templates/creating-an-element-for-the-token/template-owner-document.html"
       }, 
       {
         "url": "/html/semantics/scripting-1/the-template-element/serializing-html-templates/outerhtml.html", 
@@ -10996,6 +11528,82 @@
         "path": "html/syntax/parsing/named-character-references.html"
       }, 
       {
+        "url": "/html/syntax/parsing/template/additions-to-foster-parenting/template-is-a-foster-parent-element.html", 
+        "path": "html/syntax/parsing/template/additions-to-foster-parenting/template-is-a-foster-parent-element.html"
+      }, 
+      {
+        "url": "/html/syntax/parsing/template/additions-to-foster-parenting/template-is-not-a-foster-parent-element.html", 
+        "path": "html/syntax/parsing/template/additions-to-foster-parenting/template-is-not-a-foster-parent-element.html"
+      }, 
+      {
+        "url": "/html/syntax/parsing/template/additions-to-the-in-body-insertion-mode/generating-of-implied-end-tags.html", 
+        "path": "html/syntax/parsing/template/additions-to-the-in-body-insertion-mode/generating-of-implied-end-tags.html"
+      }, 
+      {
+        "url": "/html/syntax/parsing/template/additions-to-the-in-body-insertion-mode/ignore-body-token.html", 
+        "path": "html/syntax/parsing/template/additions-to-the-in-body-insertion-mode/ignore-body-token.html"
+      }, 
+      {
+        "url": "/html/syntax/parsing/template/additions-to-the-in-body-insertion-mode/ignore-frameset-token.html", 
+        "path": "html/syntax/parsing/template/additions-to-the-in-body-insertion-mode/ignore-frameset-token.html"
+      }, 
+      {
+        "url": "/html/syntax/parsing/template/additions-to-the-in-body-insertion-mode/ignore-head-token.html", 
+        "path": "html/syntax/parsing/template/additions-to-the-in-body-insertion-mode/ignore-head-token.html"
+      }, 
+      {
+        "url": "/html/syntax/parsing/template/additions-to-the-in-body-insertion-mode/ignore-html-token.html", 
+        "path": "html/syntax/parsing/template/additions-to-the-in-body-insertion-mode/ignore-html-token.html"
+      }, 
+      {
+        "url": "/html/syntax/parsing/template/additions-to-the-in-body-insertion-mode/start-tag-body.html", 
+        "path": "html/syntax/parsing/template/additions-to-the-in-body-insertion-mode/start-tag-body.html"
+      }, 
+      {
+        "url": "/html/syntax/parsing/template/additions-to-the-in-body-insertion-mode/start-tag-html.html", 
+        "path": "html/syntax/parsing/template/additions-to-the-in-body-insertion-mode/start-tag-html.html"
+      }, 
+      {
+        "url": "/html/syntax/parsing/template/additions-to-the-in-body-insertion-mode/template-end-tag-without-start-one.html", 
+        "path": "html/syntax/parsing/template/additions-to-the-in-body-insertion-mode/template-end-tag-without-start-one.html"
+      }, 
+      {
+        "url": "/html/syntax/parsing/template/additions-to-the-in-frameset-insertion-mode/end-tag-frameset.html", 
+        "path": "html/syntax/parsing/template/additions-to-the-in-frameset-insertion-mode/end-tag-frameset.html"
+      }, 
+      {
+        "url": "/html/syntax/parsing/template/additions-to-the-in-head-insertion-mode/generating-of-implied-end-tags.html", 
+        "path": "html/syntax/parsing/template/additions-to-the-in-head-insertion-mode/generating-of-implied-end-tags.html"
+      }, 
+      {
+        "url": "/html/syntax/parsing/template/additions-to-the-in-head-insertion-mode/template-end-tag-without-start-one.html", 
+        "path": "html/syntax/parsing/template/additions-to-the-in-head-insertion-mode/template-end-tag-without-start-one.html"
+      }, 
+      {
+        "url": "/html/syntax/parsing/template/additions-to-the-in-table-insertion-mode/end-tag-table.html", 
+        "path": "html/syntax/parsing/template/additions-to-the-in-table-insertion-mode/end-tag-table.html"
+      }, 
+      {
+        "url": "/html/syntax/parsing/template/appending-to-a-template/template-child-nodes.html", 
+        "path": "html/syntax/parsing/template/appending-to-a-template/template-child-nodes.html"
+      }, 
+      {
+        "url": "/html/syntax/parsing/template/clearing-the-stack-back-to-a-given-context/clearing-stack-back-to-a-table-body-context.html", 
+        "path": "html/syntax/parsing/template/clearing-the-stack-back-to-a-given-context/clearing-stack-back-to-a-table-body-context.html"
+      }, 
+      {
+        "url": "/html/syntax/parsing/template/clearing-the-stack-back-to-a-given-context/clearing-stack-back-to-a-table-context.html", 
+        "path": "html/syntax/parsing/template/clearing-the-stack-back-to-a-given-context/clearing-stack-back-to-a-table-context.html"
+      }, 
+      {
+        "url": "/html/syntax/parsing/template/clearing-the-stack-back-to-a-given-context/clearing-stack-back-to-a-table-row-context.html", 
+        "path": "html/syntax/parsing/template/clearing-the-stack-back-to-a-given-context/clearing-stack-back-to-a-table-row-context.html"
+      }, 
+      {
+        "url": "/html/syntax/parsing/template/creating-an-element-for-the-token/template-owner-document.html", 
+        "path": "html/syntax/parsing/template/creating-an-element-for-the-token/template-owner-document.html"
+      }, 
+      {
         "url": "/html/syntax/serializing-html-fragments/outerHTML.html", 
         "path": "html/syntax/serializing-html-fragments/outerHTML.html"
       }, 
@@ -11392,48 +12000,8 @@
         "path": "navigation-timing/test_unique_performance_objects.html"
       }, 
       {
-        "url": "/old-tests/submission/Infraware/Offline_Application_Cache/api_self_applicationcache.html", 
-        "path": "old-tests/submission/Infraware/Offline_Application_Cache/api_self_applicationcache.html"
-      }, 
-      {
-        "url": "/old-tests/submission/Infraware/Offline_Application_Cache/api_status_idle.html", 
-        "path": "old-tests/submission/Infraware/Offline_Application_Cache/api_status_idle.html"
-      }, 
-      {
-        "url": "/old-tests/submission/Infraware/Offline_Application_Cache/api_status_uncached.html", 
-        "path": "old-tests/submission/Infraware/Offline_Application_Cache/api_status_uncached.html"
-      }, 
-      {
-        "url": "/old-tests/submission/Infraware/Offline_Application_Cache/api_swapcache_error.html", 
-        "path": "old-tests/submission/Infraware/Offline_Application_Cache/api_swapcache_error.html"
-      }, 
-      {
-        "url": "/old-tests/submission/Infraware/Offline_Application_Cache/api_update.html", 
-        "path": "old-tests/submission/Infraware/Offline_Application_Cache/api_update.html"
-      }, 
-      {
-        "url": "/old-tests/submission/Infraware/Offline_Application_Cache/api_update_error.html", 
-        "path": "old-tests/submission/Infraware/Offline_Application_Cache/api_update_error.html"
-      }, 
-      {
-        "url": "/old-tests/submission/Infraware/Offline_Application_Cache/api_window_applicationcache.html", 
-        "path": "old-tests/submission/Infraware/Offline_Application_Cache/api_window_applicationcache.html"
-      }, 
-      {
-        "url": "/old-tests/submission/Infraware/Offline_Application_Cache/event_checking.html", 
-        "path": "old-tests/submission/Infraware/Offline_Application_Cache/event_checking.html"
-      }, 
-      {
-        "url": "/old-tests/submission/Infraware/Offline_Application_Cache/event_noupdate.html", 
-        "path": "old-tests/submission/Infraware/Offline_Application_Cache/event_noupdate.html"
-      }, 
-      {
-        "url": "/old-tests/submission/Infraware/Offline_Application_Cache/manifest_url_check.html", 
-        "path": "old-tests/submission/Infraware/Offline_Application_Cache/manifest_url_check.html"
-      }, 
-      {
-        "url": "/old-tests/submission/Infraware/Offline_Application_Cache/navigator_online_online.html", 
-        "path": "old-tests/submission/Infraware/Offline_Application_Cache/navigator_online_online.html"
+        "url": "/notifications/interfaces.html", 
+        "path": "notifications/interfaces.html"
       }, 
       {
         "url": "/old-tests/submission/Microsoft/dragdrop/dragdrop_004.htm", 
@@ -12192,12 +12760,48 @@
         "path": "progress-events/tests/submissions/Samsung/firing-events-http-no-content-length.html"
       }, 
       {
-        "url": "/progress-events/tests/submissions/Samsung/security-consideration.html", 
-        "path": "progress-events/tests/submissions/Samsung/security-consideration.html"
+        "url": "/progress-events/tests/submissions/Samsung/security-consideration.sub.html", 
+        "path": "progress-events/tests/submissions/Samsung/security-consideration.sub.html"
       }, 
       {
         "url": "/proximity/ProximityEvent_tests.html", 
         "path": "proximity/ProximityEvent_tests.html"
+      }, 
+      {
+        "url": "/proximity/idlharness.html", 
+        "path": "proximity/idlharness.html"
+      }, 
+      {
+        "url": "/quirks-mode/blocks-ignore-line-height.html", 
+        "path": "quirks-mode/blocks-ignore-line-height.html"
+      }, 
+      {
+        "url": "/quirks-mode/hashless-hex-color.html", 
+        "path": "quirks-mode/hashless-hex-color.html"
+      }, 
+      {
+        "url": "/quirks-mode/line-height-calculation.html", 
+        "path": "quirks-mode/line-height-calculation.html"
+      }, 
+      {
+        "url": "/quirks-mode/percentage-height-calculation.html", 
+        "path": "quirks-mode/percentage-height-calculation.html"
+      }, 
+      {
+        "url": "/quirks-mode/table-cell-nowrap-minimum-width-calculation.html", 
+        "path": "quirks-mode/table-cell-nowrap-minimum-width-calculation.html"
+      }, 
+      {
+        "url": "/quirks-mode/table-cell-width-calculation.html", 
+        "path": "quirks-mode/table-cell-width-calculation.html"
+      }, 
+      {
+        "url": "/quirks-mode/unitless-length.html", 
+        "path": "quirks-mode/unitless-length.html"
+      }, 
+      {
+        "url": "/resource-timing/test_resource_timing.html", 
+        "path": "resource-timing/test_resource_timing.html"
       }, 
       {
         "url": "/selectors-api/level1-additional.html", 
@@ -12214,6 +12818,18 @@
       {
         "url": "/selectors-api/tests/submissions/Opera/level2-baseline.html", 
         "path": "selectors-api/tests/submissions/Opera/level2-baseline.html"
+      }, 
+      {
+        "url": "/selectors/attribute-selectors/attribute-case/cssom.html", 
+        "path": "selectors/attribute-selectors/attribute-case/cssom.html"
+      }, 
+      {
+        "url": "/selectors/attribute-selectors/attribute-case/semantics.html", 
+        "path": "selectors/attribute-selectors/attribute-case/semantics.html"
+      }, 
+      {
+        "url": "/selectors/attribute-selectors/attribute-case/syntax.html", 
+        "path": "selectors/attribute-selectors/attribute-case/syntax.html"
       }, 
       {
         "url": "/shadow-dom/elements-and-dom-objects/extensions-to-element-interface/attributes/test-001.html", 
@@ -12256,12 +12872,12 @@
         "path": "shadow-dom/elements-and-dom-objects/extensions-to-event-interface/event-path-002.html"
       }, 
       {
-        "url": "/shadow-dom/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/test-007.html", 
-        "path": "shadow-dom/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/test-007.html"
+        "url": "/shadow-dom/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/activeElement-confirm-return-null.html", 
+        "path": "shadow-dom/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/activeElement-confirm-return-null.html"
       }, 
       {
-        "url": "/shadow-dom/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/test-008.html", 
-        "path": "shadow-dom/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/test-008.html"
+        "url": "/shadow-dom/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/test-007.html", 
+        "path": "shadow-dom/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/test-007.html"
       }, 
       {
         "url": "/shadow-dom/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/test-009.html", 
@@ -12492,16 +13108,16 @@
         "path": "shadow-dom/shadow-trees/composition/test-001.html"
       }, 
       {
+        "url": "/shadow-dom/shadow-trees/content-pseudo-element/test-001.html", 
+        "path": "shadow-dom/shadow-trees/content-pseudo-element/test-001.html"
+      }, 
+      {
+        "url": "/shadow-dom/shadow-trees/content-pseudo-element/test-002.html", 
+        "path": "shadow-dom/shadow-trees/content-pseudo-element/test-002.html"
+      }, 
+      {
         "url": "/shadow-dom/shadow-trees/custom-pseudo-elements/test-001.html", 
         "path": "shadow-dom/shadow-trees/custom-pseudo-elements/test-001.html"
-      }, 
-      {
-        "url": "/shadow-dom/shadow-trees/distributed-pseudo-element/test-001.html", 
-        "path": "shadow-dom/shadow-trees/distributed-pseudo-element/test-001.html"
-      }, 
-      {
-        "url": "/shadow-dom/shadow-trees/distributed-pseudo-element/test-002.html", 
-        "path": "shadow-dom/shadow-trees/distributed-pseudo-element/test-002.html"
       }, 
       {
         "url": "/shadow-dom/shadow-trees/hosting-multiple-shadow-trees/test-001.html", 
@@ -12824,6 +13440,14 @@
         "path": "vibration/silent-ignore.html"
       }, 
       {
+        "url": "/web-animations/animation-timeline/animation-timeline.html", 
+        "path": "web-animations/animation-timeline/animation-timeline.html"
+      }, 
+      {
+        "url": "/web-animations/animation-timeline/idlharness.html", 
+        "path": "web-animations/animation-timeline/idlharness.html"
+      }, 
+      {
         "url": "/webaudio/the-audio-api/the-audiobuffer-interface/idl-test.html", 
         "path": "webaudio/the-audio-api/the-audiobuffer-interface/idl-test.html"
       }, 
@@ -12908,28 +13532,28 @@
         "path": "webmessaging/MessageEvent_properties.htm"
       }, 
       {
-        "url": "/webmessaging/Transferred_objects_unusable.htm", 
-        "path": "webmessaging/Transferred_objects_unusable.htm"
+        "url": "/webmessaging/Transferred_objects_unusable.sub.htm", 
+        "path": "webmessaging/Transferred_objects_unusable.sub.htm"
       }, 
       {
-        "url": "/webmessaging/event.data.htm", 
-        "path": "webmessaging/event.data.htm"
+        "url": "/webmessaging/event.data.sub.htm", 
+        "path": "webmessaging/event.data.sub.htm"
       }, 
       {
-        "url": "/webmessaging/event.origin.htm", 
-        "path": "webmessaging/event.origin.htm"
+        "url": "/webmessaging/event.origin.sub.htm", 
+        "path": "webmessaging/event.origin.sub.htm"
       }, 
       {
-        "url": "/webmessaging/event.ports.htm", 
-        "path": "webmessaging/event.ports.htm"
+        "url": "/webmessaging/event.ports.sub.htm", 
+        "path": "webmessaging/event.ports.sub.htm"
       }, 
       {
         "url": "/webmessaging/event.source.htm", 
         "path": "webmessaging/event.source.htm"
       }, 
       {
-        "url": "/webmessaging/event.source.xorigin.htm", 
-        "path": "webmessaging/event.source.xorigin.htm"
+        "url": "/webmessaging/event.source.xorigin.sub.htm", 
+        "path": "webmessaging/event.source.xorigin.sub.htm"
       }, 
       {
         "url": "/webmessaging/message-channels/001.html", 
@@ -12948,12 +13572,12 @@
         "path": "webmessaging/message-channels/004.html"
       }, 
       {
-        "url": "/webmessaging/postMessage_ArrayBuffer.htm", 
-        "path": "webmessaging/postMessage_ArrayBuffer.htm"
+        "url": "/webmessaging/postMessage_ArrayBuffer.sub.htm", 
+        "path": "webmessaging/postMessage_ArrayBuffer.sub.htm"
       }, 
       {
-        "url": "/webmessaging/postMessage_Date.htm", 
-        "path": "webmessaging/postMessage_Date.htm"
+        "url": "/webmessaging/postMessage_Date.sub.htm", 
+        "path": "webmessaging/postMessage_Date.sub.htm"
       }, 
       {
         "url": "/webmessaging/postMessage_Document.htm", 
@@ -12968,16 +13592,16 @@
         "path": "webmessaging/postMessage_MessagePorts_sorigin.htm"
       }, 
       {
-        "url": "/webmessaging/postMessage_MessagePorts_xorigin.htm", 
-        "path": "webmessaging/postMessage_MessagePorts_xorigin.htm"
+        "url": "/webmessaging/postMessage_MessagePorts_xorigin.sub.htm", 
+        "path": "webmessaging/postMessage_MessagePorts_xorigin.sub.htm"
       }, 
       {
-        "url": "/webmessaging/postMessage_arrays.htm", 
-        "path": "webmessaging/postMessage_arrays.htm"
+        "url": "/webmessaging/postMessage_arrays.sub.htm", 
+        "path": "webmessaging/postMessage_arrays.sub.htm"
       }, 
       {
-        "url": "/webmessaging/postMessage_asterisk_xorigin.htm", 
-        "path": "webmessaging/postMessage_asterisk_xorigin.htm"
+        "url": "/webmessaging/postMessage_asterisk_xorigin.sub.htm", 
+        "path": "webmessaging/postMessage_asterisk_xorigin.sub.htm"
       }, 
       {
         "url": "/webmessaging/postMessage_dup_transfer_objects.htm", 
@@ -12988,24 +13612,24 @@
         "path": "webmessaging/postMessage_invalid_targetOrigin.htm"
       }, 
       {
-        "url": "/webmessaging/postMessage_objects.htm", 
-        "path": "webmessaging/postMessage_objects.htm"
+        "url": "/webmessaging/postMessage_objects.sub.htm", 
+        "path": "webmessaging/postMessage_objects.sub.htm"
       }, 
       {
-        "url": "/webmessaging/postMessage_origin_mismatch.htm", 
-        "path": "webmessaging/postMessage_origin_mismatch.htm"
+        "url": "/webmessaging/postMessage_origin_mismatch.sub.htm", 
+        "path": "webmessaging/postMessage_origin_mismatch.sub.htm"
       }, 
       {
-        "url": "/webmessaging/postMessage_origin_mismatch_xorigin.htm", 
-        "path": "webmessaging/postMessage_origin_mismatch_xorigin.htm"
+        "url": "/webmessaging/postMessage_origin_mismatch_xorigin.sub.htm", 
+        "path": "webmessaging/postMessage_origin_mismatch_xorigin.sub.htm"
       }, 
       {
         "url": "/webmessaging/postMessage_solidus_sorigin.htm", 
         "path": "webmessaging/postMessage_solidus_sorigin.htm"
       }, 
       {
-        "url": "/webmessaging/postMessage_solidus_xorigin.htm", 
-        "path": "webmessaging/postMessage_solidus_xorigin.htm"
+        "url": "/webmessaging/postMessage_solidus_xorigin.sub.htm", 
+        "path": "webmessaging/postMessage_solidus_xorigin.sub.htm"
       }, 
       {
         "url": "/webmessaging/with-ports/001.html", 
@@ -13034,6 +13658,10 @@
       {
         "url": "/webmessaging/with-ports/007.html", 
         "path": "webmessaging/with-ports/007.html"
+      }, 
+      {
+        "url": "/webmessaging/with-ports/010.html", 
+        "path": "webmessaging/with-ports/010.html"
       }, 
       {
         "url": "/webmessaging/with-ports/011.html", 
@@ -13685,6 +14313,10 @@
         "path": "websockets/eventhandlers.html"
       }, 
       {
+        "url": "/websockets/interfaces.html", 
+        "path": "websockets/interfaces.html"
+      }, 
+      {
         "url": "/websockets/interfaces/CloseEvent/001.html", 
         "path": "websockets/interfaces/CloseEvent/001.html"
       }, 
@@ -14218,6 +14850,10 @@
       {
         "url": "/webstorage/storage_session_setitem_quotaexceedederr.html", 
         "path": "webstorage/storage_session_setitem_quotaexceedederr.html"
+      }, 
+      {
+        "url": "/webvtt/interfaces.html", 
+        "path": "webvtt/interfaces.html"
       }, 
       {
         "url": "/webvtt/webvtt-api-for-browsers/vttcue-interface/align.html", 
@@ -14868,6 +15504,10 @@
         "path": "workers/semantics/reporting-errors/003.html"
       }, 
       {
+        "url": "/workers/semantics/reporting-errors/004.html", 
+        "path": "workers/semantics/reporting-errors/004.html"
+      }, 
+      {
         "url": "/workers/semantics/run-a-worker/001.html", 
         "path": "workers/semantics/run-a-worker/001.html"
       }, 
@@ -14986,8 +15626,16 @@
         "path": "battery-status/battery-charging-manual.html"
       }, 
       {
+        "url": "/battery-status/battery-created-manual.html", 
+        "path": "battery-status/battery-created-manual.html"
+      }, 
+      {
         "url": "/battery-status/battery-discharging-manual.html", 
         "path": "battery-status/battery-discharging-manual.html"
+      }, 
+      {
+        "url": "/battery-status/battery-full-manual.html", 
+        "path": "battery-status/battery-full-manual.html"
       }, 
       {
         "url": "/battery-status/battery-plugged-in-manual.html", 
@@ -15088,6 +15736,74 @@
       {
         "url": "/html-longdesc/reflected-changing-longdesc-manual.html", 
         "path": "html-longdesc/reflected-changing-longdesc-manual.html"
+      }, 
+      {
+        "url": "/html/browsers/offline/application-cache-api/api_status_checking-manual.html", 
+        "path": "html/browsers/offline/application-cache-api/api_status_checking-manual.html"
+      }, 
+      {
+        "url": "/html/browsers/offline/application-cache-api/api_status_downloading-manual.html", 
+        "path": "html/browsers/offline/application-cache-api/api_status_downloading-manual.html"
+      }, 
+      {
+        "url": "/html/browsers/offline/application-cache-api/api_status_obsolete-manual.html", 
+        "path": "html/browsers/offline/application-cache-api/api_status_obsolete-manual.html"
+      }, 
+      {
+        "url": "/html/browsers/offline/application-cache-api/api_status_updateready-manual.html", 
+        "path": "html/browsers/offline/application-cache-api/api_status_updateready-manual.html"
+      }, 
+      {
+        "url": "/html/browsers/offline/application-cache-api/api_swapcache-manual.html", 
+        "path": "html/browsers/offline/application-cache-api/api_swapcache-manual.html"
+      }, 
+      {
+        "url": "/html/browsers/offline/browser-state/navigator_online_event-manual.html", 
+        "path": "html/browsers/offline/browser-state/navigator_online_event-manual.html"
+      }, 
+      {
+        "url": "/html/browsers/offline/introduction-4/event_downloading-manual.html", 
+        "path": "html/browsers/offline/introduction-4/event_downloading-manual.html"
+      }, 
+      {
+        "url": "/html/browsers/offline/introduction-4/event_error-manual.html", 
+        "path": "html/browsers/offline/introduction-4/event_error-manual.html"
+      }, 
+      {
+        "url": "/html/browsers/offline/introduction-4/event_obsolete-manual.html", 
+        "path": "html/browsers/offline/introduction-4/event_obsolete-manual.html"
+      }, 
+      {
+        "url": "/html/browsers/offline/introduction-4/event_updateready-manual.html", 
+        "path": "html/browsers/offline/introduction-4/event_updateready-manual.html"
+      }, 
+      {
+        "url": "/html/browsers/offline/introduction-4/event_updateready_swapcache-manual.html", 
+        "path": "html/browsers/offline/introduction-4/event_updateready_swapcache-manual.html"
+      }, 
+      {
+        "url": "/html/browsers/offline/manifest_main_empty-manual.html", 
+        "path": "html/browsers/offline/manifest_main_empty-manual.html"
+      }, 
+      {
+        "url": "/html/browsers/offline/manifest_notchanged_online-manual.html", 
+        "path": "html/browsers/offline/manifest_notchanged_online-manual.html"
+      }, 
+      {
+        "url": "/html/browsers/offline/manifest_section_empty-manual.html", 
+        "path": "html/browsers/offline/manifest_section_empty-manual.html"
+      }, 
+      {
+        "url": "/html/browsers/offline/manifest_section_many-manual.html", 
+        "path": "html/browsers/offline/manifest_section_many-manual.html"
+      }, 
+      {
+        "url": "/html/browsers/offline/section_network_offline-manual.html", 
+        "path": "html/browsers/offline/section_network_offline-manual.html"
+      }, 
+      {
+        "url": "/html/browsers/offline/section_network_online-manual.html", 
+        "path": "html/browsers/offline/section_network_online-manual.html"
       }, 
       {
         "url": "/html/editing/dnd/datastore/015-manual.html", 
@@ -15310,6 +16026,10 @@
         "path": "html/semantics/forms/attributes-common-to-form-controls/dirname-rtl-manual.html"
       }, 
       {
+        "url": "/html/semantics/forms/the-input-element/file-manual.html", 
+        "path": "html/semantics/forms/the-input-element/file-manual.html"
+      }, 
+      {
         "url": "/html/semantics/grouping-content/the-li-element/grouping-li-novalue-MANUAL.html", 
         "path": "html/semantics/grouping-content/the-li-element/grouping-li-novalue-MANUAL.html"
       }, 
@@ -15320,54 +16040,6 @@
       {
         "url": "/mediacapture-streams/stream-api/mediastream/mediastream-id-manual.html", 
         "path": "mediacapture-streams/stream-api/mediastream/mediastream-id-manual.html"
-      }, 
-      {
-        "url": "/old-tests/submission/Infraware/Offline_Application_Cache/api_status_checking-manual.html", 
-        "path": "old-tests/submission/Infraware/Offline_Application_Cache/api_status_checking-manual.html"
-      }, 
-      {
-        "url": "/old-tests/submission/Infraware/Offline_Application_Cache/api_status_downloading-manual.html", 
-        "path": "old-tests/submission/Infraware/Offline_Application_Cache/api_status_downloading-manual.html"
-      }, 
-      {
-        "url": "/old-tests/submission/Infraware/Offline_Application_Cache/api_status_obsolete-manual.html", 
-        "path": "old-tests/submission/Infraware/Offline_Application_Cache/api_status_obsolete-manual.html"
-      }, 
-      {
-        "url": "/old-tests/submission/Infraware/Offline_Application_Cache/api_status_updateready-manual.html", 
-        "path": "old-tests/submission/Infraware/Offline_Application_Cache/api_status_updateready-manual.html"
-      }, 
-      {
-        "url": "/old-tests/submission/Infraware/Offline_Application_Cache/api_swapcache-manual.html", 
-        "path": "old-tests/submission/Infraware/Offline_Application_Cache/api_swapcache-manual.html"
-      }, 
-      {
-        "url": "/old-tests/submission/Infraware/Offline_Application_Cache/event_cached-manual.html", 
-        "path": "old-tests/submission/Infraware/Offline_Application_Cache/event_cached-manual.html"
-      }, 
-      {
-        "url": "/old-tests/submission/Infraware/Offline_Application_Cache/event_downloading-manual.html", 
-        "path": "old-tests/submission/Infraware/Offline_Application_Cache/event_downloading-manual.html"
-      }, 
-      {
-        "url": "/old-tests/submission/Infraware/Offline_Application_Cache/event_error-manual.html", 
-        "path": "old-tests/submission/Infraware/Offline_Application_Cache/event_error-manual.html"
-      }, 
-      {
-        "url": "/old-tests/submission/Infraware/Offline_Application_Cache/event_obsolete-manual.html", 
-        "path": "old-tests/submission/Infraware/Offline_Application_Cache/event_obsolete-manual.html"
-      }, 
-      {
-        "url": "/old-tests/submission/Infraware/Offline_Application_Cache/event_progress-manual.html", 
-        "path": "old-tests/submission/Infraware/Offline_Application_Cache/event_progress-manual.html"
-      }, 
-      {
-        "url": "/old-tests/submission/Infraware/Offline_Application_Cache/event_updateready-manual.html", 
-        "path": "old-tests/submission/Infraware/Offline_Application_Cache/event_updateready-manual.html"
-      }, 
-      {
-        "url": "/old-tests/submission/Infraware/Offline_Application_Cache/event_updateready_swapcache-manual.html", 
-        "path": "old-tests/submission/Infraware/Offline_Application_Cache/event_updateready_swapcache-manual.html"
       }, 
       {
         "url": "/page-visibility/test_minimize-manual.html", 
@@ -16616,12 +17288,20 @@
         "path": "XMLHttpRequest/resources/headers.py"
       }, 
       {
+        "url": "/XMLHttpRequest/resources/image.gif", 
+        "path": "XMLHttpRequest/resources/image.gif"
+      }, 
+      {
         "url": "/XMLHttpRequest/resources/infinite-redirects.py", 
         "path": "XMLHttpRequest/resources/infinite-redirects.py"
       }, 
       {
         "url": "/XMLHttpRequest/resources/inspect-headers.py", 
         "path": "XMLHttpRequest/resources/inspect-headers.py"
+      }, 
+      {
+        "url": "/XMLHttpRequest/resources/invalid-utf8-html.py", 
+        "path": "XMLHttpRequest/resources/invalid-utf8-html.py"
       }, 
       {
         "url": "/XMLHttpRequest/resources/nocors/folder.txt", 
@@ -16634,6 +17314,10 @@
       {
         "url": "/XMLHttpRequest/resources/requri.py", 
         "path": "XMLHttpRequest/resources/requri.py"
+      }, 
+      {
+        "url": "/XMLHttpRequest/resources/shift-jis-html.py", 
+        "path": "XMLHttpRequest/resources/shift-jis-html.py"
       }, 
       {
         "url": "/XMLHttpRequest/resources/status.py", 
@@ -16650,6 +17334,10 @@
       {
         "url": "/XMLHttpRequest/resources/well-formed.xml", 
         "path": "XMLHttpRequest/resources/well-formed.xml"
+      }, 
+      {
+        "url": "/XMLHttpRequest/resources/win-1252-xml.py", 
+        "path": "XMLHttpRequest/resources/win-1252-xml.py"
       }, 
       {
         "url": "/XMLHttpRequest/resources/workerxhr-origin-referrer.js", 
@@ -16750,6 +17438,22 @@
       {
         "url": "/cors/support.js", 
         "path": "cors/support.js"
+      }, 
+      {
+        "url": "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag-ref.html", 
+        "path": "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag-ref.html"
+      }, 
+      {
+        "url": "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag-ref.html", 
+        "path": "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag-ref.html"
+      }, 
+      {
+        "url": "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension-ref.html", 
+        "path": "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension-ref.html"
+      }, 
+      {
+        "url": "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension-ref.html", 
+        "path": "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension-ref.html"
       }, 
       {
         "url": "/custom-elements/testcommon.js", 
@@ -17012,8 +17716,8 @@
         "path": "fonts/CanvasTest.ttf"
       }, 
       {
-        "url": "/html-imports/resources/fake.css", 
-        "path": "html-imports/resources/fake.css"
+        "url": "/html-imports/html-link-element/resources/hello.css", 
+        "path": "html-imports/html-link-element/resources/hello.css"
       }, 
       {
         "url": "/html-longdesc/picture.png", 
@@ -17022,6 +17726,10 @@
       {
         "url": "/html-longdesc/rebased/picture2.png", 
         "path": "html-longdesc/rebased/picture2.png"
+      }, 
+      {
+        "url": "/html-media-capture/support/upload.txt", 
+        "path": "html-media-capture/support/upload.txt"
       }, 
       {
         "url": "/html/browsers/browsing-the-web/history-traversal/contains.json", 
@@ -17048,12 +17756,52 @@
         "path": "html/browsers/offline/manifests/contains.json"
       }, 
       {
+        "url": "/html/browsers/offline/resources/css/clock.css", 
+        "path": "html/browsers/offline/resources/css/clock.css"
+      }, 
+      {
+        "url": "/html/browsers/offline/resources/css/offline.css", 
+        "path": "html/browsers/offline/resources/css/offline.css"
+      }, 
+      {
+        "url": "/html/browsers/offline/resources/css/online.css", 
+        "path": "html/browsers/offline/resources/css/online.css"
+      }, 
+      {
+        "url": "/html/browsers/offline/resources/css/result.css", 
+        "path": "html/browsers/offline/resources/css/result.css"
+      }, 
+      {
+        "url": "/html/browsers/offline/resources/js/clock.js", 
+        "path": "html/browsers/offline/resources/js/clock.js"
+      }, 
+      {
+        "url": "/html/browsers/offline/resources/manifest/clock.manifest", 
+        "path": "html/browsers/offline/resources/manifest/clock.manifest"
+      }, 
+      {
+        "url": "/html/browsers/offline/resources/manifest/section_empty.manifest", 
+        "path": "html/browsers/offline/resources/manifest/section_empty.manifest"
+      }, 
+      {
+        "url": "/html/browsers/offline/resources/manifest/section_many.manifest", 
+        "path": "html/browsers/offline/resources/manifest/section_many.manifest"
+      }, 
+      {
+        "url": "/html/browsers/offline/resources/manifest/url_check.manifest", 
+        "path": "html/browsers/offline/resources/manifest/url_check.manifest"
+      }, 
+      {
         "url": "/html/browsers/windows/auxiliary-browsing-contexts/contains.json", 
         "path": "html/browsers/windows/auxiliary-browsing-contexts/contains.json"
       }, 
       {
         "url": "/html/browsers/windows/nested-browsing-contexts/contains.json", 
         "path": "html/browsers/windows/nested-browsing-contexts/contains.json"
+      }, 
+      {
+        "url": "/html/dom/documents/resource-metadata-management/document-lastModified.html.headers", 
+        "path": "html/dom/documents/resource-metadata-management/document-lastModified.html.headers"
       }, 
       {
         "url": "/html/dom/dynamic-markup-insertion/document-write/005.js", 
@@ -17604,6 +18352,22 @@
         "path": "html/rendering/replaced-elements/attributes-for-embedded-content-and-images/object_border-ref.xhtml"
       }, 
       {
+        "url": "/html/rendering/replaced-elements/resources/svg-sizing.js", 
+        "path": "html/rendering/replaced-elements/resources/svg-sizing.js"
+      }, 
+      {
+        "url": "/html/rendering/replaced-elements/svg-embedded-sizing/svg-embedded-sizing.js", 
+        "path": "html/rendering/replaced-elements/svg-embedded-sizing/svg-embedded-sizing.js"
+      }, 
+      {
+        "url": "/html/rendering/replaced-elements/svg-inline-sizing/svg-inline.js", 
+        "path": "html/rendering/replaced-elements/svg-inline-sizing/svg-inline.js"
+      }, 
+      {
+        "url": "/html/rendering/replaced-elements/tools/gen-svgsizing-tests.py", 
+        "path": "html/rendering/replaced-elements/tools/gen-svgsizing-tests.py"
+      }, 
+      {
         "url": "/html/semantics/document-metadata/styling/support/alternate.css", 
         "path": "html/semantics/document-metadata/styling/support/alternate.css"
       }, 
@@ -17892,6 +18656,10 @@
         "path": "html/semantics/forms/the-input-element/contains.json"
       }, 
       {
+        "url": "html/semantics/forms/the-input-element/image01-ref.html", 
+        "path": "html/semantics/forms/the-input-element/image01-ref.html"
+      }, 
+      {
         "url": "html/semantics/forms/the-textarea-element/textarea-newline-bidi-ref.html", 
         "path": "html/semantics/forms/the-textarea-element/textarea-newline-bidi-ref.html"
       }, 
@@ -17978,10 +18746,6 @@
       {
         "url": "/html/semantics/scripting-1/the-script-element/log.py", 
         "path": "html/semantics/scripting-1/the-script-element/log.py"
-      }, 
-      {
-        "url": "/html/semantics/scripting-1/the-script-element/script-text.xhtml", 
-        "path": "html/semantics/scripting-1/the-script-element/script-text.xhtml"
       }, 
       {
         "url": "html/semantics/scripting-1/the-template-element/additions-to-the-css-user-agent-style-sheet/css-user-agent-style-sheet-test-001-ref.html", 
@@ -18412,78 +19176,6 @@
         "path": "notifications/README.md"
       }, 
       {
-        "url": "/old-tests/submission/Infraware/Forms/contents/Forms/css/result.css", 
-        "path": "old-tests/submission/Infraware/Forms/contents/Forms/css/result.css"
-      }, 
-      {
-        "url": "/old-tests/submission/Infraware/Forms/contents/Forms/resources/Thumbs.db", 
-        "path": "old-tests/submission/Infraware/Forms/contents/Forms/resources/Thumbs.db"
-      }, 
-      {
-        "url": "/old-tests/submission/Infraware/Forms/contents/Forms/resources/logo.png", 
-        "path": "old-tests/submission/Infraware/Forms/contents/Forms/resources/logo.png"
-      }, 
-      {
-        "url": "/old-tests/submission/Infraware/Forms/resources/WebIDLParser.js", 
-        "path": "old-tests/submission/Infraware/Forms/resources/WebIDLParser.js"
-      }, 
-      {
-        "url": "/old-tests/submission/Infraware/Forms/resources/idlharness.js", 
-        "path": "old-tests/submission/Infraware/Forms/resources/idlharness.js"
-      }, 
-      {
-        "url": "/old-tests/submission/Infraware/Forms/resources/readme.md", 
-        "path": "old-tests/submission/Infraware/Forms/resources/readme.md"
-      }, 
-      {
-        "url": "/old-tests/submission/Infraware/Forms/resources/testharness.css", 
-        "path": "old-tests/submission/Infraware/Forms/resources/testharness.css"
-      }, 
-      {
-        "url": "/old-tests/submission/Infraware/Forms/resources/testharness.js", 
-        "path": "old-tests/submission/Infraware/Forms/resources/testharness.js"
-      }, 
-      {
-        "url": "/old-tests/submission/Infraware/Forms/resources/testharnessreport.js", 
-        "path": "old-tests/submission/Infraware/Forms/resources/testharnessreport.js"
-      }, 
-      {
-        "url": "/old-tests/submission/Infraware/Offline_Application_Cache/css/clock.css", 
-        "path": "old-tests/submission/Infraware/Offline_Application_Cache/css/clock.css"
-      }, 
-      {
-        "url": "/old-tests/submission/Infraware/Offline_Application_Cache/css/offline.css", 
-        "path": "old-tests/submission/Infraware/Offline_Application_Cache/css/offline.css"
-      }, 
-      {
-        "url": "/old-tests/submission/Infraware/Offline_Application_Cache/css/online.css", 
-        "path": "old-tests/submission/Infraware/Offline_Application_Cache/css/online.css"
-      }, 
-      {
-        "url": "/old-tests/submission/Infraware/Offline_Application_Cache/css/result.css", 
-        "path": "old-tests/submission/Infraware/Offline_Application_Cache/css/result.css"
-      }, 
-      {
-        "url": "/old-tests/submission/Infraware/Offline_Application_Cache/js/clock.js", 
-        "path": "old-tests/submission/Infraware/Offline_Application_Cache/js/clock.js"
-      }, 
-      {
-        "url": "/old-tests/submission/Infraware/Offline_Application_Cache/manifest/clock.manifest", 
-        "path": "old-tests/submission/Infraware/Offline_Application_Cache/manifest/clock.manifest"
-      }, 
-      {
-        "url": "/old-tests/submission/Infraware/Offline_Application_Cache/manifest/section_empty.manifest", 
-        "path": "old-tests/submission/Infraware/Offline_Application_Cache/manifest/section_empty.manifest"
-      }, 
-      {
-        "url": "/old-tests/submission/Infraware/Offline_Application_Cache/manifest/section_many.manifest", 
-        "path": "old-tests/submission/Infraware/Offline_Application_Cache/manifest/section_many.manifest"
-      }, 
-      {
-        "url": "/old-tests/submission/Infraware/Offline_Application_Cache/manifest/url_check.manifest", 
-        "path": "old-tests/submission/Infraware/Offline_Application_Cache/manifest/url_check.manifest"
-      }, 
-      {
         "url": "/old-tests/submission/Infraware/Session_History/contents/Session_History/css/result.css", 
         "path": "old-tests/submission/Infraware/Session_History/contents/Session_History/css/result.css"
       }, 
@@ -18648,6 +19340,14 @@
         "path": "pointerevents/README.md"
       }, 
       {
+        "url": "/pointerevents/pointerevent_styles.css", 
+        "path": "pointerevents/pointerevent_styles.css"
+      }, 
+      {
+        "url": "/pointerevents/pointerevent_support.js", 
+        "path": "pointerevents/pointerevent_support.js"
+      }, 
+      {
         "url": "/progress-events/tests/submissions/Samsung/resources/img.jpg", 
         "path": "progress-events/tests/submissions/Samsung/resources/img.jpg"
       }, 
@@ -18664,8 +19364,28 @@
         "path": "proximity/UserProximityEvent_tests.js"
       }, 
       {
-        "url": "/proximity/manifest.txt", 
-        "path": "proximity/manifest.txt"
+        "url": "quirks-mode/font-element-text-decoration-color/001-ref.html", 
+        "path": "quirks-mode/font-element-text-decoration-color/001-ref.html"
+      }, 
+      {
+        "url": "/resource-timing/resources/resource_timing_test0.css", 
+        "path": "resource-timing/resources/resource_timing_test0.css"
+      }, 
+      {
+        "url": "/resource-timing/resources/resource_timing_test0.js", 
+        "path": "resource-timing/resources/resource_timing_test0.js"
+      }, 
+      {
+        "url": "/resource-timing/resources/resource_timing_test0.png", 
+        "path": "resource-timing/resources/resource_timing_test0.png"
+      }, 
+      {
+        "url": "/resource-timing/resources/resource_timing_test0.xml", 
+        "path": "resource-timing/resources/resource_timing_test0.xml"
+      }, 
+      {
+        "url": "/resource-timing/resources/webperftestharness.js", 
+        "path": "resource-timing/resources/webperftestharness.js"
       }, 
       {
         "url": "/selectors-api/level1-lib.js", 
@@ -18682,6 +19402,10 @@
       {
         "url": "/selectors-api/tests/submissions/Opera/selectors.js", 
         "path": "selectors-api/tests/submissions/Opera/selectors.js"
+      }, 
+      {
+        "url": "/service-workers/specgen.json", 
+        "path": "service-workers/specgen.json"
       }, 
       {
         "url": "/shadow-dom/LICENSE", 
@@ -18778,6 +19502,10 @@
       {
         "url": "/vibration/manifest.txt", 
         "path": "vibration/manifest.txt"
+      }, 
+      {
+        "url": "/web-animations/README.md", 
+        "path": "web-animations/README.md"
       }, 
       {
         "url": "/webaudio/README.md", 
@@ -19988,10 +20716,6 @@
         "path": "webvtt/rendering/cues-with-video/processing-model/support/one_line_cue_plus_wrapped_cue.vtt"
       }, 
       {
-        "url": "/webvtt/rendering/cues-with-video/processing-model/support/refTestWait.js", 
-        "path": "webvtt/rendering/cues-with-video/processing-model/support/refTestWait.js"
-      }, 
-      {
         "url": "/webvtt/rendering/cues-with-video/processing-model/support/size_50.vtt", 
         "path": "webvtt/rendering/cues-with-video/processing-model/support/size_50.vtt"
       }, 
@@ -20490,5 +21214,5 @@
     ]
   }, 
   "local_changes": [], 
-  "rev": "bf76c8a5b5e28b07681fb20cf8eaced7c5bcf5c9"
+  "rev": "b84bb353b62cef1aba499f3a5531f261ef3afeb3"
 }

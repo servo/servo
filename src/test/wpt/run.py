@@ -31,7 +31,7 @@ def run_tests(**kwargs):
 def set_defaults(args):
     args.metadata_root = args.metadata_root if args.metadata_root else wptsubdir("metadata")
     args.tests_root = args.tests_root if args.tests_root else wptsubdir("web-platform-tests")
-    args.include = args.include if args.include else ["/dom"]
+    args.include = args.include if args.include else ["/dom", "/XMLHttpRequest"]
     args.binary = args.binary if args.binary else os.path.join(servo_root, "build", "servo")
     args.product = "servo"
     return vars(args)
