@@ -1395,14 +1395,6 @@ impl Fragment {
         }
     }
 
-    /// Returns true if the contents should be clipped (i.e. if `overflow` is not `visible`).
-    pub fn needs_clip(&self) -> bool {
-        match self.style().get_box().overflow {
-            overflow::visible => true,
-            overflow::hidden | overflow::auto | overflow::scroll => false,
-        }
-    }
-
     /// A helper function to return a debug string describing the side offsets for one of the rect
     /// box model properties (border, padding, or margin).
     fn side_offsets_debug_fmt(&self, name: &str,
