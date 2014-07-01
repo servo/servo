@@ -27,6 +27,10 @@ use text::glyph::{CharIndex, GlyphStore, GlyphId};
 use text::shaping::ShaperMethods;
 use text::{Shaper, TextRun};
 
+#[cfg(target_os="linux")]
+#[cfg(target_os="android")]
+use azure::scaled_font::NativeFont;
+
 // FontHandle encapsulates access to the platform's font API,
 // e.g. quartz, FreeType. It provides access to metrics and tables
 // needed by the text shaper as well as access to the underlying font
@@ -305,7 +309,7 @@ impl<'a> Font {
     fn create_azure_font(&self) -> ScaledFont {
         let freetype_font = self.handle.face;
         let size = self.style.pt_size as AzFloat;
-        ScaledFont::new(self.backend, freetype_font, size)
+        ScaledFont::new(self.backend, NativeFont(freetype_font), size)
     }
 }
 
