@@ -178,7 +178,7 @@ fn parse_lists(file: &str, servo_args: &[String], render_mode: RenderMode) -> Ve
         }
 
         let reftest = Reftest {
-            name: test_line.file_left.to_string().append(" / ").append(test_line.file_right),
+            name: format!("{} {} {}", test_line.file_left, test_line.kind, test_line.file_right),
             kind: kind,
             files: [file_left, file_right],
             id: next_id,
