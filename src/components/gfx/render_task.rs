@@ -18,6 +18,9 @@ use geom::size::Size2D;
 use layers::platform::surface::{NativePaintingGraphicsContext, NativeSurface};
 use layers::platform::surface::{NativeSurfaceMethods};
 use layers;
+use native;
+use rustrt::task;
+use rustrt::task::TaskOpts;
 use servo_msg::compositor_msg::{Epoch, IdleRenderState, LayerBuffer, LayerBufferSet, LayerId};
 use servo_msg::compositor_msg::{LayerMetadata, RenderListener, RenderingRenderState, ScrollPolicy};
 use servo_msg::constellation_msg::{ConstellationChan, Failure, FailureMsg, PipelineId};
@@ -26,11 +29,9 @@ use servo_msg::platform::surface::NativeSurfaceAzureMethods;
 use servo_util::geometry;
 use servo_util::opts::Opts;
 use servo_util::smallvec::{SmallVec, SmallVec1};
-use servo_util::task::send_on_failure;
 use servo_util::time::{TimeProfilerChan, profile};
 use servo_util::time;
 use std::comm::{Receiver, Sender, channel};
-use std::task::TaskBuilder;
 use sync::Arc;
 
 /// Information about a layer that layout sends to the painting task.
@@ -163,11 +164,19 @@ impl<C:RenderListener + Send> RenderTask<C> {
                   opts: Opts,
                   time_profiler_chan: TimeProfilerChan,
                   shutdown_chan: Sender<()>) {
-        let mut builder = TaskBuilder::new().named("RenderTask");
-        let ConstellationChan(c) = constellation_chan.clone();
-        send_on_failure(&mut builder, FailureMsg(failure_msg), c);
-        builder.spawn(proc() {
 
+        let ConstellationChan(c) = constellation_chan.clone();
+        let mut task_opts = TaskOpts::new();
+        task_opts.name = Some("RenderTask".into_maybe_owned());
+        task_opts.on_exit = Some(proc(result: task::Result) {
+            match result {
+                Ok(()) => {},
+                Err(..) => {
+                    c.send(FailureMsg(failure_msg));
+                }
+            }
+        });
+        native::task::spawn_opts(task_opts, proc() {
             { // Ensures RenderTask and graphics context are destroyed before shutdown msg
                 let native_graphics_context = compositor.get_graphics_metadata().map(
                     |md| NativePaintingGraphicsContext::from_metadata(&md));
