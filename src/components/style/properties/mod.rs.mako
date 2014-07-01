@@ -515,7 +515,8 @@ pub mod longhands {
 
 
     // CSS 2.1, Section 11 - Visual effects
-    ${single_keyword("overflow", "visible hidden")} // TODO: scroll auto
+    // FIXME: Implement scrolling for `scroll` and `auto` (#2742).
+    ${single_keyword("overflow", "visible hidden scroll auto")}
 
     ${switch_to_style_struct("InheritedBox")}
 

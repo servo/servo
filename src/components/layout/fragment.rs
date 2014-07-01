@@ -1395,11 +1395,6 @@ impl Fragment {
         }
     }
 
-    /// Returns true if the contents should be clipped (i.e. if `overflow` is `hidden`).
-    pub fn needs_clip(&self) -> bool {
-        self.style().get_box().overflow == overflow::hidden
-    }
-
     /// A helper function to return a debug string describing the side offsets for one of the rect
     /// box model properties (border, padding, or margin).
     fn side_offsets_debug_fmt(&self, name: &str,
@@ -1475,13 +1470,13 @@ impl ChildDisplayListAccumulator {
            -> ChildDisplayListAccumulator {
         ChildDisplayListAccumulator {
             clip_display_item: match style.get_box().overflow {
-                overflow::hidden => {
+                overflow::hidden | overflow::auto | overflow::scroll => {
                     Some(box ClipDisplayItem {
                         base: BaseDisplayItem::new(bounds, node, level),
                         children: DisplayList::new(),
                     })
-                }
-                _ => None,
+                },
+                overflow::visible => None,
             }
         }
     }
