@@ -5,7 +5,7 @@
 use std::collections::hashmap::HashMap;
 use geom::size::Size2D;
 use layers::platform::surface::NativePaintingGraphicsContext;
-use servo_msg::compositor_msg::Tile;
+use layers::quadtree::Tile;
 use std::hash::Hash;
 use std::hash::sip::SipState;
 use std::mem;

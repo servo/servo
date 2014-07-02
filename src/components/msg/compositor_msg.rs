@@ -5,47 +5,13 @@
 use azure::azure_hl::Color;
 use geom::point::Point2D;
 use geom::rect::Rect;
-use geom::size::Size2D;
-use layers::platform::surface::{NativeGraphicsMetadata, NativePaintingGraphicsContext};
-use layers::platform::surface::{NativeSurface, NativeSurfaceMethods};
+use layers::platform::surface::NativeGraphicsMetadata;
+use layers::layers::LayerBufferSet;
 use serialize::{Encoder, Encodable};
 use std::fmt::{Formatter, Show};
 use std::fmt;
 
 use constellation_msg::PipelineId;
-
-pub struct LayerBuffer {
-    /// The native surface which can be shared between threads or processes. On Mac this is an
-    /// `IOSurface`; on Linux this is an X Pixmap; on Android this is an `EGLImageKHR`.
-    pub native_surface: NativeSurface,
-
-    /// The rect in the containing RenderLayer that this represents.
-    pub rect: Rect<f32>,
-
-    /// The rect in pixels that will be drawn to the screen.
-    pub screen_pos: Rect<uint>,
-
-    /// The scale at which this tile is rendered
-    pub resolution: f32,
-
-    /// NB: stride is in pixels, like OpenGL GL_UNPACK_ROW_LENGTH.
-    pub stride: uint,
-}
-
-/// A set of layer buffers. This is an atomic unit used to switch between the front and back
-/// buffers.
-pub struct LayerBufferSet {
-    pub buffers: Vec<Box<LayerBuffer>>
-}
-
-impl LayerBufferSet {
-    /// Notes all buffer surfaces will leak if not destroyed via a call to `destroy`.
-    pub fn mark_will_leak(&mut self) {
-        for buffer in self.buffers.mut_iter() {
-            buffer.native_surface.mark_will_leak()
-        }
-    }
-}
 
 /// The status of the renderer.
 #[deriving(PartialEq, Clone)]
@@ -160,41 +126,3 @@ impl<E, S: Encoder<E>> Encodable<S, E> for Box<ScriptListener> {
         Ok(())
     }
 }
-
-/// The interface used by the quadtree and buffer map to get info about layer buffers.
-pub trait Tile {
-    /// Returns the amount of memory used by the tile
-    fn get_mem(&self) -> uint;
-    /// Returns true if the tile is displayable at the given scale
-    fn is_valid(&self, f32) -> bool;
-    /// Returns the Size2D of the tile
-    fn get_size_2d(&self) -> Size2D<uint>;
-
-    /// Marks the layer buffer as not leaking. See comments on
-    /// `NativeSurfaceMethods::mark_wont_leak` for how this is used.
-    fn mark_wont_leak(&mut self);
-
-    /// Destroys the layer buffer. Painting task only.
-    fn destroy(self, graphics_context: &NativePaintingGraphicsContext);
-}
-
-impl Tile for Box<LayerBuffer> {
-    fn get_mem(&self) -> uint {
-        // This works for now, but in the future we may want a better heuristic
-        self.screen_pos.size.width * self.screen_pos.size.height
-    }
-    fn is_valid(&self, scale: f32) -> bool {
-        (self.resolution - scale).abs() < 1.0e-6
-    }
-    fn get_size_2d(&self) -> Size2D<uint> {
-        self.screen_pos.size
-    }
-    fn mark_wont_leak(&mut self) {
-        self.native_surface.mark_wont_leak()
-    }
-    fn destroy(self, graphics_context: &NativePaintingGraphicsContext) {
-        let mut this = self;
-        this.native_surface.destroy(graphics_context)
-    }
-}
-

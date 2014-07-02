@@ -49,8 +49,7 @@ pub use constellation::Constellation;
 
 mod compositor_task;
 
-mod quadtree;
-mod compositor_layer;
+mod compositor_data;
 
 mod compositor;
 mod headless;

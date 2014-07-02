@@ -17,11 +17,12 @@ use geom::rect::Rect;
 use geom::size::Size2D;
 use layers::platform::surface::{NativePaintingGraphicsContext, NativeSurface};
 use layers::platform::surface::{NativeSurfaceMethods};
+use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
 use layers;
 use native;
 use rustrt::task;
 use rustrt::task::TaskOpts;
-use servo_msg::compositor_msg::{Epoch, IdleRenderState, LayerBuffer, LayerBufferSet, LayerId};
+use servo_msg::compositor_msg::{Epoch, IdleRenderState, LayerId};
 use servo_msg::compositor_msg::{LayerMetadata, RenderListener, RenderingRenderState, ScrollPolicy};
 use servo_msg::constellation_msg::{ConstellationChan, Failure, FailureMsg, PipelineId};
 use servo_msg::constellation_msg::{RendererReadyMsg};
@@ -55,23 +56,6 @@ pub enum Msg {
     PaintPermissionGranted,
     PaintPermissionRevoked,
     ExitMsg(Option<Sender<()>>),
-}
-
-/// A request from the compositor to the renderer for tiles that need to be (re)displayed.
-#[deriving(Clone)]
-pub struct BufferRequest {
-    // The rect in pixels that will be drawn to the screen
-    screen_rect: Rect<uint>,
-
-    // The rect in page coordinates that this tile represents
-    page_rect: Rect<f32>,
-}
-
-pub fn BufferRequest(screen_rect: Rect<uint>, page_rect: Rect<f32>) -> BufferRequest {
-    BufferRequest {
-        screen_rect: screen_rect,
-        page_rect: page_rect,
-    }
 }
 
 #[deriving(Clone)]
