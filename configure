@@ -522,8 +522,7 @@ CFG_SUBMODULES="\
     support/geom/rust-geom \
     support/layers/rust-layers \
     support/opengles/rust-opengles \
-    support/sharegl/sharegl \
-    support/phf/rust-phf"
+    support/sharegl/sharegl"
 
 if [ $CFG_OSTYPE = "apple-darwin" ]
 then
@@ -535,6 +534,7 @@ CFG_SUBMODULES="\
     support/glfw/glfw \
     support/glfw/glfw-rs \
     platform/macos/rust-cocoa \
+    support/phf/rust-phf \
     ${CFG_SUBMODULES}"
 fi
 
@@ -547,6 +547,7 @@ CFG_SUBMODULES="\
     support/glfw/glfw-rs \
     platform/linux/rust-fontconfig \
     platform/linux/rust-freetype \
+    support/phf/rust-phf \
     ${CFG_SUBMODULES}"
 fi
 
