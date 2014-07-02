@@ -118,9 +118,11 @@ impl FontHandleMethods for FontHandle {
 
     // an identifier usable by FontContextHandle to recreate this FontHandle.
     fn face_identifier(&self) -> String {
-        /* FT_Get_Postscript_Name seems like a better choice here, but it
-           doesn't give usable results for fontconfig when deserializing. */
-        unsafe { str::raw::from_c_str((*self.face).family_name) }
+        match self.source {
+            FontSourceFile(ref path) => path.clone(),
+            _ => unreachable!(),        // This will be handled when the rest of the font
+                                        // refactor is complete. For now, it can never be hit.
+        }
     }
     fn family_name(&self) -> String {
         unsafe { str::raw::from_c_str((*self.face).family_name) }

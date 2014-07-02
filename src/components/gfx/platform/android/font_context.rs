@@ -5,7 +5,6 @@
 use font::UsedFontStyle;
 use platform::font::FontHandle;
 use font_context::FontContextHandleMethods;
-use platform::font_list::path_from_identifier;
 
 use freetype::freetype::FTErrorMethods;
 use freetype::freetype::FT_Add_Default_Modules;
@@ -65,7 +64,7 @@ impl FontContextHandle {
 
             let ptr = libc::malloc(mem::size_of::<struct_FT_MemoryRec_>() as size_t);
             let allocator: &mut struct_FT_MemoryRec_ = mem::transmute(ptr);
-            mem::overwrite(allocator, struct_FT_MemoryRec_ {
+            ptr::write(allocator, struct_FT_MemoryRec_ {
                 user: ptr::null(),
                 alloc: ft_alloc,
                 free: ft_free,
@@ -87,13 +86,10 @@ impl FontContextHandle {
 }
 
 impl FontContextHandleMethods for FontContextHandle {
-    fn create_font_from_identifier(&self, name: String, style: UsedFontStyle)
+    fn create_font_from_identifier(&self, name: &str, style: Option<&UsedFontStyle>)
                                 -> Result<FontHandle, ()> {
         debug!("Creating font handle for {:s}", name);
-        path_from_identifier(name, &style).and_then(|file_name| {
-            debug!("Opening font face {:s}", file_name);
-            FontHandle::new_from_file(self, file_name.as_slice(), Some(&style))
-        })
+        FontHandle::new_from_file(self, name.as_slice(), style)
     }
 }
 

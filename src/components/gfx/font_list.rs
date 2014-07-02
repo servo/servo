@@ -4,10 +4,11 @@
 
 use std::collections::hashmap::HashMap;
 use font::SpecifiedFontStyle;
+use font_context::FontContextHandleMethods;
 use gfx_font::FontHandleMethods;
 use platform::font::FontHandle;
 use platform::font_context::FontContextHandle;
-use platform::font_list::FontListHandle;
+use platform::font_list;
 use style::computed_values::{font_weight, font_style};
 
 use servo_util::time::{TimeProfilerChan, profile};
@@ -15,16 +16,9 @@ use servo_util::time;
 
 pub type FontFamilyMap = HashMap<String, FontFamily>;
 
-trait FontListHandleMethods {
-    fn get_available_families(&self, fctx: &FontContextHandle) -> FontFamilyMap;
-    fn load_variations_for_family(&self, family: &mut FontFamily);
-    fn get_last_resort_font_families() -> Vec<String>;
-}
-
 /// The platform-independent font list abstraction.
 pub struct FontList {
     family_map: FontFamilyMap,
-    handle: FontListHandle,
     time_profiler_chan: TimeProfilerChan,
 }
 
@@ -32,9 +26,7 @@ impl FontList {
     pub fn new(fctx: &FontContextHandle,
            time_profiler_chan: TimeProfilerChan)
            -> FontList {
-        let handle = FontListHandle::new(fctx);
         let mut list = FontList {
-            handle: handle,
             family_map: HashMap::new(),
             time_profiler_chan: time_profiler_chan.clone(),
         };
@@ -48,11 +40,16 @@ impl FontList {
         //
         // Should font families with entries be invalidated/refreshed too?
         profile(time::GfxRegenAvailableFontsCategory, self.time_profiler_chan.clone(), || {
-            self.family_map = self.handle.get_available_families();
+            self.family_map.clear();
+            font_list::get_available_families(|family_name| {
+                debug!("Creating new FontFamily for family: {:s}", family_name);
+                let new_family = FontFamily::new(family_name.as_slice());
+                self.family_map.insert(family_name, new_family);
+            });
         });
     }
 
-    pub fn find_font_in_family<'a>(&'a mut self,
+    pub fn find_font_in_family<'a>(&'a mut self, fctx: &FontContextHandle,
                                    family_name: &String,
                                    style: &SpecifiedFontStyle) -> Option<&'a FontEntry> {
         // TODO(Issue #188): look up localized font family names if canonical name not found
@@ -63,7 +60,7 @@ impl FontList {
             let s: &'a mut FontFamily = self.family_map.get_mut(family_name);
             // TODO(Issue #192: handle generic font families, like 'serif' and 'sans-serif'.
             // if such family exists, try to match style to a font
-            let result = s.find_font_for_style(&mut self.handle, style);
+            let result = s.find_font_for_style(fctx, style);
             if result.is_some() {
                 return result;
             }
@@ -76,7 +73,7 @@ impl FontList {
     }
 
     pub fn get_last_resort_font_families() -> Vec<String> {
-        FontListHandle::get_last_resort_font_families()
+        font_list::get_last_resort_font_families()
     }
 }
 
@@ -94,17 +91,24 @@ impl FontFamily {
         }
     }
 
-    fn load_family_variations(&mut self, list: &FontListHandle) {
+    fn load_family_variations(&mut self, fctx: &FontContextHandle) {
         if self.entries.len() > 0 {
             return
         }
-        list.load_variations_for_family(self);
+        let mut entries = vec!();
+        font_list::load_variations_for_family(self.family_name.as_slice(), |file_path| {
+            let font_handle = fctx.create_font_from_identifier(file_path.as_slice(), None).unwrap();
+            debug!("Creating new FontEntry for face: {:s}", font_handle.face_name());
+            let entry = FontEntry::new(font_handle);
+            entries.push(entry);
+        });
+        self.entries = entries;
         assert!(self.entries.len() > 0)
     }
 
-    pub fn find_font_for_style<'a>(&'a mut self, list: &FontListHandle, style: &SpecifiedFontStyle)
+    pub fn find_font_for_style<'a>(&'a mut self, fctx: &FontContextHandle, style: &SpecifiedFontStyle)
                                -> Option<&'a FontEntry> {
-        self.load_family_variations(list);
+        self.load_family_variations(fctx);
 
         // TODO(Issue #189): optimize lookup for
         // regular/bold/italic/bolditalic with fixed offsets and a
