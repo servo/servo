@@ -18,6 +18,7 @@ interface URLUtils {
   //         attribute ScalarValueString port;
   //         attribute ScalarValueString pathname;
   //         attribute ScalarValueString search;
+  readonly attribute DOMString search;
   //         attribute URLSearchParams searchParams;
   //         attribute ScalarValueString hash;
 };

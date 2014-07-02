@@ -6,13 +6,13 @@ use dom::bindings::codegen::Bindings::LocationBinding;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::window::Window;
+use page::Page;
+
 use servo_util::str::DOMString;
 
-use page::Page;
-use std::rc::Rc;
-
 use serialize::{Encoder, Encodable};
-
+use std::rc::Rc;
+use url::query_to_str;
 
 #[deriving(Encodable)]
 pub struct Location {
@@ -37,11 +37,21 @@ impl Location {
 
 pub trait LocationMethods {
     fn Href(&self) -> DOMString;
+    fn Search(&self) -> DOMString;
 }
 
 impl<'a> LocationMethods for JSRef<'a, Location> {
     fn Href(&self) -> DOMString {
         self.page.get_url().to_str()
+    }
+
+    fn Search(&self) -> DOMString {
+        let query = query_to_str(&self.page.get_url().query);
+        if query.as_slice() == "" {
+            query
+        } else {
+            "?".to_string().append(query.as_slice())
+        }
     }
 }
 
