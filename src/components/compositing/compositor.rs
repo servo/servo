@@ -31,7 +31,7 @@ use layers::platform::surface::NativeCompositingGraphicsContext;
 use layers::rendergl;
 use layers::rendergl::RenderContext;
 use layers::scene::Scene;
-use layers::layers::ContainerLayer;
+use layers::layers::Layer;
 use opengles::gl2;
 use png;
 use servo_msg::compositor_msg::{Blank, Epoch, FinishedLoading, IdleRenderState};
@@ -375,8 +375,8 @@ impl IOCompositor {
 
         if layer_id != root_layer_id {
             let root_pipeline_id = root_pipeline.id;
-            let new_root = Rc::new(ContainerLayer::new(Some(size), self.opts.tile_size,
-                                                       CompositorData::new_root(root_pipeline,
+            let new_root = Rc::new(Layer::new(size, self.opts.tile_size,
+                                              CompositorData::new_root(root_pipeline,
                                                                                 size, self.opts.cpu_painting)));
             new_root.extra_data.borrow_mut().unrendered_color = unrendered_color;
 
