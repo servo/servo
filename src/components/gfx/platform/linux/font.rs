@@ -264,7 +264,7 @@ impl<'a> FontHandle {
     }
 
     pub fn new_from_file(fctx: &FontContextHandle, file: &str,
-                         style: &SpecifiedFontStyle) -> Result<FontHandle, ()> {
+                         maybe_style: Option<&SpecifiedFontStyle>) -> Result<FontHandle, ()> {
         unsafe {
             let ft_ctx: FT_Library = fctx.ctx.ctx;
             if ft_ctx.is_null() { return Err(()); }
@@ -278,7 +278,13 @@ impl<'a> FontHandle {
             if face.is_null() {
                 return Err(());
             }
-            if FontHandle::set_char_size(face, style.pt_size).is_ok() {
+
+            let ok = match maybe_style {
+                Some(style) => FontHandle::set_char_size(face, style.pt_size).is_ok(),
+                None => true,
+            };
+
+            if ok {
                 Ok(FontHandle {
                     source: FontSourceFile(file.to_str()),
                     face: face,
@@ -287,30 +293,6 @@ impl<'a> FontHandle {
             } else {
                 Err(())
             }
-        }
-    }
-
-    pub fn new_from_file_unstyled(fctx: &FontContextHandle, file: String)
-                               -> Result<FontHandle, ()> {
-        unsafe {
-            let ft_ctx: FT_Library = fctx.ctx.ctx;
-            if ft_ctx.is_null() { return Err(()); }
-
-            let mut face: FT_Face = ptr::null();
-            let face_index = 0 as FT_Long;
-            file.to_c_str().with_ref(|file_str| {
-                FT_New_Face(ft_ctx, file_str,
-                            face_index, &mut face);
-            });
-            if face.is_null() {
-                return Err(());
-            }
-
-            Ok(FontHandle {
-                source: FontSourceFile(file),
-                face: face,
-                handle: fctx.clone()
-            })
         }
     }
 
