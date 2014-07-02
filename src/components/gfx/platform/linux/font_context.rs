@@ -92,7 +92,7 @@ impl FontContextHandleMethods for FontContextHandle {
         debug!("Creating font handle for {:s}", name);
         path_from_identifier(name, &style).and_then(|file_name| {
             debug!("Opening font face {:s}", file_name);
-            FontHandle::new_from_file(self, file_name.as_slice(), &style)
+            FontHandle::new_from_file(self, file_name.as_slice(), Some(&style))
         })
     }
 }
