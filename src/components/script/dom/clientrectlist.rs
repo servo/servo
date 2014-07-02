@@ -10,9 +10,9 @@ use dom::window::Window;
 
 #[deriving(Encodable)]
 pub struct ClientRectList {
-    pub reflector_: Reflector,
-    pub rects: Vec<JS<ClientRect>>,
-    pub window: JS<Window>,
+    reflector_: Reflector,
+    rects: Vec<JS<ClientRect>>,
+    window: JS<Window>,
 }
 
 impl ClientRectList {

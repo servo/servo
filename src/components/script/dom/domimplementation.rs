@@ -21,8 +21,8 @@ use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
 pub struct DOMImplementation {
-    pub owner: JS<Window>,
-    pub reflector_: Reflector,
+    owner: JS<Window>,
+    reflector_: Reflector,
 }
 
 impl DOMImplementation {

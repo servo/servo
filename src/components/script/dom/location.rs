@@ -16,8 +16,8 @@ use url::query_to_str;
 
 #[deriving(Encodable)]
 pub struct Location {
-    pub reflector_: Reflector, //XXXjdm cycle: window->Location->window
-    pub page: Rc<Page>,
+    reflector_: Reflector, //XXXjdm cycle: window->Location->window
+    page: Rc<Page>,
 }
 
 impl Location {

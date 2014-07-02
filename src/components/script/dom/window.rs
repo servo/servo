@@ -48,9 +48,9 @@ pub struct TimerId(i32);
 
 #[deriving(Encodable)]
 pub struct TimerHandle {
-    pub handle: TimerId,
+    handle: TimerId,
     pub data: TimerData,
-    pub cancel_chan: Untraceable<Option<Sender<()>>>,
+    cancel_chan: Untraceable<Option<Sender<()>>>,
 }
 
 impl Hash for TimerId {
@@ -68,18 +68,18 @@ impl TimerHandle {
 
 #[deriving(Encodable)]
 pub struct Window {
-    pub eventtarget: EventTarget,
+    eventtarget: EventTarget,
     pub script_chan: ScriptChan,
-    pub console: Cell<Option<JS<Console>>>,
-    pub location: Cell<Option<JS<Location>>>,
-    pub navigator: Cell<Option<JS<Navigator>>>,
+    console: Cell<Option<JS<Console>>>,
+    location: Cell<Option<JS<Location>>>,
+    navigator: Cell<Option<JS<Navigator>>>,
     pub image_cache_task: ImageCacheTask,
     pub active_timers: Traceable<RefCell<HashMap<TimerId, TimerHandle>>>,
-    pub next_timer_handle: Traceable<Cell<i32>>,
-    pub compositor: Untraceable<Box<ScriptListener>>,
+    next_timer_handle: Traceable<Cell<i32>>,
+    compositor: Untraceable<Box<ScriptListener>>,
     pub browser_context: Traceable<RefCell<Option<BrowserContext>>>,
     pub page: Rc<Page>,
-    pub performance: Cell<Option<JS<Performance>>>,
+    performance: Cell<Option<JS<Performance>>>,
     pub navigationStart: u64,
     pub navigationStartPrecise: f64,
 }

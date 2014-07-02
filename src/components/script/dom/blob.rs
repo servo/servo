@@ -17,9 +17,9 @@ pub enum BlobType {
 
 #[deriving(Encodable)]
 pub struct Blob {
-    pub reflector_: Reflector,
-    pub window: JS<Window>,
-    pub type_: BlobType
+    reflector_: Reflector,
+    window: JS<Window>,
+    type_: BlobType
 }
 
 impl Blob {

@@ -9,9 +9,9 @@ use dom::window::Window;
 
 #[deriving(Encodable)]
 pub struct PerformanceTiming {
-    pub reflector_: Reflector,
-    pub navigationStart: u64,
-    pub navigationStartPrecise: f64,
+    reflector_: Reflector,
+    navigationStart: u64,
+    navigationStartPrecise: f64,
 }
 
 impl PerformanceTiming {

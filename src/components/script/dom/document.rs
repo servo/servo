@@ -61,15 +61,15 @@ pub enum IsHTMLDocument {
 #[deriving(Encodable)]
 pub struct Document {
     pub node: Node,
-    pub reflector_: Reflector,
+    reflector_: Reflector,
     pub window: JS<Window>,
     idmap: Traceable<RefCell<HashMap<DOMString, Vec<JS<Element>>>>>,
-    pub implementation: Cell<Option<JS<DOMImplementation>>>,
-    pub content_type: DOMString,
+    implementation: Cell<Option<JS<DOMImplementation>>>,
+    content_type: DOMString,
     pub encoding_name: Traceable<RefCell<DOMString>>,
     pub is_html_document: bool,
-    pub url: Untraceable<Url>,
-    pub quirks_mode: Untraceable<Cell<QuirksMode>>,
+    url: Untraceable<Url>,
+    quirks_mode: Untraceable<Cell<QuirksMode>>,
 }
 
 impl DocumentDerived for EventTarget {

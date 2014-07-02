@@ -60,7 +60,7 @@ pub struct EventListenerEntry {
 #[deriving(Encodable)]
 pub struct EventTarget {
     pub type_id: EventTargetTypeId,
-    pub reflector_: Reflector,
+    reflector_: Reflector,
     handlers: Traceable<RefCell<HashMap<DOMString, Vec<EventListenerEntry>>>>,
 }
 

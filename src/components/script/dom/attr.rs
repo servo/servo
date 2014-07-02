@@ -58,7 +58,7 @@ impl AttrValue {
 
 #[deriving(Encodable)]
 pub struct Attr {
-    pub reflector_: Reflector,
+    reflector_: Reflector,
     pub local_name: DOMString,
     value: Traceable<RefCell<AttrValue>>,
     pub name: DOMString,
@@ -66,7 +66,7 @@ pub struct Attr {
     pub prefix: Option<DOMString>,
 
     /// the element that owns this attribute.
-    pub owner: Cell<JS<Element>>,
+    owner: Cell<JS<Element>>,
 }
 
 impl Reflectable for Attr {
