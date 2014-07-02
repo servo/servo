@@ -553,7 +553,7 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
         self.status_text.deref().borrow().clone()
     }
     fn GetResponseHeader(&self, name: ByteString) -> Option<ByteString> {
-        self.response_headers.deref().borrow().iter().find(|h| {
+        self.filter_response_headers().iter().find(|h| {
             name.eq_ignore_case(&FromStr::from_str(h.header_name().as_slice()).unwrap())
         }).map(|h| {
             FromStr::from_str(h.header_value().as_slice()).unwrap()
@@ -561,7 +561,7 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
     }
     fn GetAllResponseHeaders(&self) -> ByteString {
         let mut writer = MemWriter::new();
-        self.response_headers.deref().borrow().write_all(&mut writer).ok().expect("Writing response headers failed");
+        self.filter_response_headers().write_all(&mut writer).ok().expect("Writing response headers failed");
         let mut vec = writer.unwrap();
 
         // rust-http appends an extra "\r\n" when using write_all
@@ -577,13 +577,11 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
         self.response_type.deref().get()
     }
     fn SetResponseType(&self, response_type: XMLHttpRequestResponseType) -> ErrorResult {
-        if self.sync.deref().get() {
-            // FIXME: When Workers are implemented, there should be
-            // an additional check that this is a document environment
-            return Err(InvalidState);
-        }
+        // FIXME: When Workers are implemented, there should be
+        // an additional check that this is a document environment
         match self.ready_state.deref().get() {
             Loading | XHRDone => Err(InvalidState),
+            _ if self.sync.deref().get() => Err(InvalidAccess),
             _ => {
                 self.response_type.deref().set(response_type);
                 Ok(())
@@ -669,6 +667,7 @@ trait PrivateXMLHttpRequestHelpers {
     fn text_response(&self) -> DOMString;
     fn set_timeout(&self, timeout:u32);
     fn cancel_timeout(&self);
+    fn filter_response_headers(&self) -> ResponseHeaderCollection;
 }
 
 impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
@@ -903,5 +902,17 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         // According to Simon, decode() should never return an error, so unwrap()ing
         // the result should be fine. XXXManishearth have a closer look at this later
         encoding.decode(self.response.deref().borrow().as_slice(), DecodeReplace).unwrap().to_string()
+    }
+    fn filter_response_headers(&self) -> ResponseHeaderCollection {
+        // http://fetch.spec.whatwg.org/#concept-response-header-list
+        let mut headers = ResponseHeaderCollection::new();
+        for header in self.response_headers.deref().borrow().iter() {
+            match header.header_name().as_slice().to_ascii_lower().as_slice() {
+                "set-cookie" | "set-cookie2" => {},
+                // XXXManishearth additional CORS filtering goes here
+                _ => headers.insert(header)
+            };
+        }
+        headers
     }
 }
