@@ -32,6 +32,12 @@ use std::mem;
 use std::slice::Items;
 use style::computed_values::border_style;
 use sync::Arc;
+use std::num::Zero;
+use std::ptr;
+
+use azure::AzFloat;
+use azure::scaled_font::ScaledFont;
+use azure::azure_hl::ColorPattern;
 
 pub mod optimizer;
 
@@ -49,6 +55,80 @@ impl OpaqueNode {
     pub fn id(&self) -> uintptr_t {
         let OpaqueNode(pointer) = *self;
         pointer
+    }
+}
+
+trait ScaledFontExtensionMethods {
+    fn draw_text_into_context(&self,
+                              rctx: &RenderContext,
+                              run: &Box<TextRun>,
+                              range: &Range<CharIndex>,
+                              baseline_origin: Point2D<Au>,
+                              color: Color);
+}
+
+impl ScaledFontExtensionMethods for ScaledFont {
+    fn draw_text_into_context(&self,
+                              rctx: &RenderContext,
+                              run: &Box<TextRun>,
+                              range: &Range<CharIndex>,
+                              baseline_origin: Point2D<Au>,
+                              color: Color) {
+        use libc::types::common::c99::{uint16_t, uint32_t};
+        use azure::{struct__AzDrawOptions,
+                    struct__AzGlyph,
+                    struct__AzGlyphBuffer,
+                    struct__AzPoint};
+        use azure::azure::{AzDrawTargetFillGlyphs};
+
+        let target = rctx.get_draw_target();
+        let pattern = ColorPattern::new(color);
+        let azure_pattern = pattern.azure_color_pattern;
+        assert!(azure_pattern.is_not_null());
+
+        let options = struct__AzDrawOptions {
+            mAlpha: 1f64 as AzFloat,
+            fields: 0x0200 as uint16_t
+        };
+
+        let mut origin = baseline_origin.clone();
+        let mut azglyphs = vec!();
+        azglyphs.reserve(range.length().to_uint());
+
+        for (glyphs, _offset, slice_range) in run.iter_slices_for_range(range) {
+            for (_i, glyph) in glyphs.iter_glyphs_for_char_range(&slice_range) {
+                let glyph_advance = glyph.advance();
+                let glyph_offset = glyph.offset().unwrap_or(Zero::zero());
+
+                let azglyph = struct__AzGlyph {
+                    mIndex: glyph.id() as uint32_t,
+                    mPosition: struct__AzPoint {
+                        x: (origin.x + glyph_offset.x).to_nearest_px() as AzFloat,
+                        y: (origin.y + glyph_offset.y).to_nearest_px() as AzFloat
+                    }
+                };
+                origin = Point2D(origin.x + glyph_advance, origin.y);
+                azglyphs.push(azglyph)
+            };
+        }
+
+        let azglyph_buf_len = azglyphs.len();
+        if azglyph_buf_len == 0 { return; } // Otherwise the Quartz backend will assert.
+
+        let glyphbuf = struct__AzGlyphBuffer {
+            mGlyphs: azglyphs.as_ptr(),
+            mNumGlyphs: azglyph_buf_len as uint32_t
+        };
+
+        unsafe {
+            // TODO(Issue #64): this call needs to move into azure_hl.rs
+            AzDrawTargetFillGlyphs(target.azure_draw_target,
+                                   self.get_ref(),
+                                   &glyphbuf,
+                                   azure_pattern,
+                                   &options,
+                                   ptr::null());
+        }
     }
 }
 
@@ -510,25 +590,27 @@ impl DisplayItem {
 
                 // FIXME(pcwalton): Allocating? Why?
                 let text_run = text.text_run.clone();
-                let font = render_context.font_ctx.get_font_by_descriptor(&text_run.font_descriptor).unwrap();
 
-                let font_metrics = {
-                    font.borrow().metrics.clone()
-                };
+                let font = render_context.font_ctx.get_render_font_from_template(
+                                            &text_run.font_template,
+                                            text_run.pt_size,
+                                            render_context.opts.render_backend);
+                let font = font.borrow();
+
                 let origin = text.base.bounds.origin;
-                let baseline_origin = Point2D(origin.x, origin.y + font_metrics.ascent);
+                let baseline_origin = Point2D(origin.x, origin.y + text_run.font_metrics.ascent);
                 {
-                    font.borrow_mut().draw_text_into_context(render_context,
-                                                             &*text.text_run,
-                                                             &text.range,
-                                                             baseline_origin,
-                                                             text.text_color);
+                    font.draw_text_into_context(render_context,
+                                                &*text.text_run,
+                                                &text.range,
+                                                baseline_origin,
+                                                text.text_color);
                 }
                 let width = text.base.bounds.size.width;
-                let underline_size = font_metrics.underline_size;
-                let underline_offset = font_metrics.underline_offset;
-                let strikeout_size = font_metrics.strikeout_size;
-                let strikeout_offset = font_metrics.strikeout_offset;
+                let underline_size = text_run.font_metrics.underline_size;
+                let underline_offset = text_run.font_metrics.underline_offset;
+                let strikeout_size = text_run.font_metrics.strikeout_size;
+                let strikeout_offset = text_run.font_metrics.strikeout_offset;
 
                 for underline_color in text.text_decorations.underline.iter() {
                     let underline_y = baseline_origin.y - underline_offset;

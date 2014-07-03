@@ -18,7 +18,7 @@ pub fn get_available_families(callback: |String|) {
     }
 }
 
-pub fn load_variations_for_family(family_name: &str, callback: |String|) {
+pub fn get_variations_for_family(family_name: &str, callback: |String|) {
     debug!("Looking for faces of family: {:s}", family_name);
 
     let family_collection =

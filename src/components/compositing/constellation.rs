@@ -22,6 +22,7 @@ use servo_msg::constellation_msg::{NavigationType, PipelineId, RendererReadyMsg,
 use servo_msg::constellation_msg::{SubpageId, WindowSizeData};
 use servo_msg::constellation_msg;
 use servo_net::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
+use gfx::font_cache_task::FontCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_net::resource_task;
 use servo_util::geometry::PagePx;
@@ -43,6 +44,7 @@ pub struct Constellation {
     pub resource_task: ResourceTask,
     pub image_cache_task: ImageCacheTask,
     pipelines: HashMap<PipelineId, Rc<Pipeline>>,
+    font_cache_task: FontCacheTask,
     navigation_context: NavigationContext,
     next_pipeline_id: PipelineId,
     pending_frames: Vec<FrameChange>,
@@ -243,6 +245,7 @@ impl Constellation {
                  opts: &Opts,
                  resource_task: ResourceTask,
                  image_cache_task: ImageCacheTask,
+                 font_cache_task: FontCacheTask,
                  time_profiler_chan: TimeProfilerChan)
                  -> ConstellationChan {
         let (constellation_port, constellation_chan) = ConstellationChan::new();
@@ -255,6 +258,7 @@ impl Constellation {
                 compositor_chan: compositor_chan,
                 resource_task: resource_task,
                 image_cache_task: image_cache_task,
+                font_cache_task: font_cache_task,
                 pipelines: HashMap::new(),
                 navigation_context: NavigationContext::new(),
                 next_pipeline_id: PipelineId(0),
@@ -368,6 +372,7 @@ impl Constellation {
         }
         self.image_cache_task.exit();
         self.resource_task.send(resource_task::Exit);
+        self.font_cache_task.exit();
         self.compositor_chan.send(ShutdownComplete);
     }
 
@@ -422,6 +427,7 @@ impl Constellation {
                                         self.chan.clone(),
                                         self.compositor_chan.clone(),
                                         self.image_cache_task.clone(),
+                                        self.font_cache_task.clone(),
                                         self.resource_task.clone(),
                                         self.time_profiler_chan.clone(),
                                         self.window_size,
@@ -449,6 +455,7 @@ impl Constellation {
                                         self.chan.clone(),
                                         self.compositor_chan.clone(),
                                         self.image_cache_task.clone(),
+                                        self.font_cache_task.clone(),
                                         self.resource_task.clone(),
                                         self.time_profiler_chan.clone(),
                                         self.window_size,
@@ -575,6 +582,7 @@ impl Constellation {
                                   self.chan.clone(),
                                   self.compositor_chan.clone(),
                                   self.image_cache_task.clone(),
+                                  self.font_cache_task.clone(),
                                   self.time_profiler_chan.clone(),
                                   self.opts.clone(),
                                   source_pipeline.clone(),
@@ -587,6 +595,7 @@ impl Constellation {
                              self.chan.clone(),
                              self.compositor_chan.clone(),
                              self.image_cache_task.clone(),
+                             self.font_cache_task.clone(),
                              self.resource_task.clone(),
                              self.time_profiler_chan.clone(),
                              self.window_size,
@@ -643,6 +652,7 @@ impl Constellation {
                                         self.chan.clone(),
                                         self.compositor_chan.clone(),
                                         self.image_cache_task.clone(),
+                                        self.font_cache_task.clone(),
                                         self.resource_task.clone(),
                                         self.time_profiler_chan.clone(),
                                         self.window_size,

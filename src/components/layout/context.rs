@@ -9,7 +9,8 @@ use css::matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
 use geom::rect::Rect;
 use geom::size::Size2D;
 use gfx::display_list::OpaqueNode;
-use gfx::font_context::{FontContext, FontContextInfo};
+use gfx::font_context::FontContext;
+use gfx::font_cache_task::FontCacheTask;
 #[cfg(not(target_os="android"))]
 use green::task::GreenTask;
 use script::layout_interface::LayoutChan;
@@ -67,8 +68,8 @@ pub struct LayoutContext {
     /// A channel up to the layout task.
     pub layout_chan: LayoutChan,
 
-    /// Information needed to construct a font context.
-    pub font_context_info: FontContextInfo,
+    /// Interface to the font cache task.
+    pub font_cache_task: FontCacheTask,
 
     /// The CSS selector stylist.
     ///
@@ -105,7 +106,7 @@ impl LayoutContext {
 
         unsafe {
             if FONT_CONTEXT == ptr::mut_null() {
-                let context = box FontContext::new(self.font_context_info.clone());
+                let context = box FontContext::new(self.font_cache_task.clone());
                 FONT_CONTEXT = mem::transmute(context)
             }
             mem::transmute(FONT_CONTEXT)
@@ -172,7 +173,7 @@ impl LayoutContext {
             match opt {
                 Some(c) => context = mem::transmute(c),
                 None => {
-                    context = mem::transmute(box FontContext::new(self.font_context_info.clone()))
+                    context = mem::transmute(box FontContext::new(self.font_cache_task.clone()))
                 }
             }
             font_context.replace(Some(context));

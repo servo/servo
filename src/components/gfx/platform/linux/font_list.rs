@@ -40,7 +40,7 @@ pub fn get_available_families(callback: |String|) {
     }
 }
 
-pub fn load_variations_for_family(family_name: &str, callback: |String|) {
+pub fn get_variations_for_family(family_name: &str, callback: |String|) {
     debug!("getting variations for {}", family_name);
     unsafe {
         let config = FcConfigGetCurrent();
