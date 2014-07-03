@@ -30,7 +30,7 @@ pub struct FontContextInfo {
 }
 
 pub trait FontContextHandleMethods {
-    fn create_font_from_identifier(&self, String, UsedFontStyle) -> Result<FontHandle, ()>;
+    fn create_font_from_identifier(&self, &str, Option<&UsedFontStyle>) -> Result<FontHandle, ()>;
 }
 
 pub struct FontContext {
@@ -128,7 +128,7 @@ impl FontContext {
 
             let result = match self.font_list {
                 Some(ref mut fl) => {
-                    let font_in_family = fl.find_font_in_family(&transformed_family_name, style);
+                    let font_in_family = fl.find_font_in_family(&self.handle, &transformed_family_name, style);
                     match font_in_family {
                         Some(font_entry) => {
                             let font_id =
@@ -164,7 +164,7 @@ impl FontContext {
                 let font_desc = match self.font_list {
                     Some(ref mut font_list) => {
                         let font_desc = {
-                            let font_entry = font_list.find_font_in_family(family, style);
+                            let font_entry = font_list.find_font_in_family(&self.handle, family, style);
                             match font_entry {
                                 Some(v) => {
                                     let font_id =
@@ -207,8 +207,8 @@ impl FontContext {
         return match &desc.selector {
             // TODO(Issue #174): implement by-platform-name font selectors.
             &SelectorPlatformIdentifier(ref identifier) => {
-                let result_handle = self.handle.create_font_from_identifier((*identifier).clone(),
-                                                                            desc.style.clone());
+                let result_handle = self.handle.create_font_from_identifier(identifier.as_slice(),
+                                                                            Some(&desc.style));
                 result_handle.and_then(|handle| {
                     Ok(
                         Rc::new(

@@ -2,63 +2,36 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use font::FontHandleMethods;
-use font_list::{FontEntry, FontFamily, FontFamilyMap};
-use platform::macos::font::FontHandle;
-use platform::macos::font_context::FontContextHandle;
-
-use std::collections::hashmap::HashMap;
 use core_foundation::base::TCFType;
 use core_foundation::string::{CFString, CFStringRef};
 use core_text::font_descriptor::{CTFontDescriptor, CTFontDescriptorRef};
 use core_text;
 use std::mem;
 
-pub struct FontListHandle {
-    fctx: FontContextHandle,
+pub fn get_available_families(callback: |String|) {
+    let family_names = core_text::font_collection::get_family_names();
+    for strref in family_names.iter() {
+        let family_name_ref: CFStringRef = unsafe { mem::transmute(strref) };
+        let family_name_cf: CFString = unsafe { TCFType::wrap_under_get_rule(family_name_ref) };
+        let family_name = family_name_cf.to_str();
+        callback(family_name);
+    }
 }
 
-impl FontListHandle {
-    pub fn new(fctx: &FontContextHandle) -> FontListHandle {
-        FontListHandle {
-            fctx: fctx.clone()
-        }
+pub fn load_variations_for_family(family_name: &str, callback: |String|) {
+    debug!("Looking for faces of family: {:s}", family_name);
+
+    let family_collection =
+        core_text::font_collection::create_for_family(family_name.as_slice());
+    let family_descriptors = family_collection.get_descriptors();
+    for descref in family_descriptors.iter() {
+        let descref: CTFontDescriptorRef = unsafe { mem::transmute(descref) };
+        let desc: CTFontDescriptor = unsafe { TCFType::wrap_under_get_rule(descref) };
+        let postscript_name = desc.font_name();
+        callback(postscript_name);
     }
+}
 
-    pub fn get_available_families(&self) -> FontFamilyMap {
-        let family_names = core_text::font_collection::get_family_names();
-        let mut family_map: FontFamilyMap = HashMap::new();
-        for strref in family_names.iter() {
-            let family_name_ref: CFStringRef = unsafe { mem::transmute(strref) };
-            let family_name_cf: CFString = unsafe { TCFType::wrap_under_get_rule(family_name_ref) };
-            let family_name = family_name_cf.to_str();
-            debug!("Creating new FontFamily for family: {:s}", family_name);
-
-            let new_family = FontFamily::new(family_name.as_slice());
-            family_map.insert(family_name, new_family);
-        }
-        family_map
-    }
-
-    pub fn load_variations_for_family(&self, family: &mut FontFamily) {
-        debug!("Looking for faces of family: {:s}", family.family_name);
-
-        let family_collection =
-            core_text::font_collection::create_for_family(family.family_name.as_slice());
-        let family_descriptors = family_collection.get_descriptors();
-        for descref in family_descriptors.iter() {
-            let descref: CTFontDescriptorRef = unsafe { mem::transmute(descref) };
-            let desc: CTFontDescriptor = unsafe { TCFType::wrap_under_get_rule(descref) };
-            let font = core_text::font::new_from_descriptor(&desc, 0.0);
-            let handle = FontHandle::new_from_CTFont(&self.fctx, font).unwrap();
-
-            debug!("Creating new FontEntry for face: {:s}", handle.face_name());
-            let entry = FontEntry::new(handle);
-            family.entries.push(entry)
-        }
-    }
-
-    pub fn get_last_resort_font_families() -> Vec<String> {
-        vec!("Arial Unicode MS".to_string(), "Arial".to_string())
-    }
+pub fn get_last_resort_font_families() -> Vec<String> {
+    vec!("Arial Unicode MS".to_string(), "Arial".to_string())
 }
