@@ -413,7 +413,7 @@ then
     rm -rf ${CFG_BUILD_DIR}/rust_snapshot
     make_dir ${CFG_BUILD_DIR}/rust_snapshot
     make_dir ${CFG_BUILD_DIR}/src/compiler/rust
-    SNAPSHOT_URL="http://servo-rust.s3.amazonaws.com/$(cat ${CFG_SRC_DIR}/src/compiler/rust-snapshot-hash)-${DEFAULT_TARGET}.tar.gz"
+    SNAPSHOT_URL="https://servo-rust.s3.amazonaws.com/$(cat ${CFG_SRC_DIR}/src/compiler/rust-snapshot-hash)-${DEFAULT_TARGET}.tar.gz"
     step_msg "Fetching snapshot from ${SNAPSHOT_URL}"
     curl -o ${CFG_BUILD_DIR}/rust_snapshot/snapshot.tgz ${SNAPSHOT_URL}
     tar -zxf ${CFG_BUILD_DIR}/rust_snapshot/snapshot.tgz -C ${CFG_BUILD_DIR}/rust_snapshot/
