@@ -534,7 +534,6 @@ CFG_SUBMODULES="\
     support/glfw/glfw \
     support/glfw/glfw-rs \
     platform/macos/rust-cocoa \
-    support/phf/rust-phf \
     ${CFG_SUBMODULES}"
 fi
 
@@ -547,7 +546,6 @@ CFG_SUBMODULES="\
     support/glfw/glfw-rs \
     platform/linux/rust-fontconfig \
     platform/linux/rust-freetype \
-    support/phf/rust-phf \
     ${CFG_SUBMODULES}"
 fi
 
@@ -738,9 +736,6 @@ do
             # needed because Azure's configure wants "--enable-skia"
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --enable-skia"
             ENABLE_DEBUG="$CFG_ENABLE_DEBUG_SKIA"
-            ;;
-        support/phf/rust-phf)
-            ENABLE_DEBUG=""
             ;;
         *)
             ;;
