@@ -86,7 +86,7 @@ check-ref-cpu: reftest
 
 .PHONY: check-ref-cpu-sequential
 check-ref-cpu-sequential: reftest
-	@$(call E, check: reftests with CPU rendering  (using single thread))
+	@$(call E, check: reftests with CPU rendering (using single thread))
 	$(Q)./reftest $(S)src/test/ref/basic.list $(TESTNAME) -- -c -t 1 -y 1
 
 .PHONY: check-ref-gpu
