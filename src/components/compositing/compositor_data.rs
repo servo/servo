@@ -159,7 +159,8 @@ impl CompositorData {
                                   rect: Rect<f32>,
                                   page_size: Size2D<f32>,
                                   scroll_policy: ScrollPolicy) -> bool {
-        if layer.extra_data.borrow().pipeline.id != pipeline_id || layer.extra_data.borrow().id != parent_layer_id {
+        if layer.extra_data.borrow().pipeline.id != pipeline_id ||
+           layer.extra_data.borrow().id != parent_layer_id {
             return layer.children().any(|kid| {
                 CompositorData::add_child_if_necessary(kid,
                                                        pipeline_id,
@@ -179,16 +180,17 @@ impl CompositorData {
             return true
         }
 
+        let new_compositor_data = CompositorData::new(layer.extra_data.borrow().pipeline.clone(),
+                                                      child_layer_id,
+                                                      rect,
+                                                      Some(page_size),
+                                                      layer.extra_data.borrow().cpu_painting,
+                                                      DoesntWantScrollEvents,
+                                                      scroll_policy,
+                                                      false);
         let new_kid = Rc::new(ContainerLayer::new(Some(page_size),
                                                   ContainerLayer::tile_size(layer.clone()),
-                                                  CompositorData::new(layer.extra_data.borrow().pipeline.clone(),
-                                                                      child_layer_id,
-                                                                      rect,
-                                                                      Some(page_size),
-                                                                      layer.extra_data.borrow().cpu_painting,
-                                                                      DoesntWantScrollEvents,
-                                                                      scroll_policy,
-                                                                      false)));
+                                                  new_compositor_data));
 
         new_kid.extra_data.borrow_mut().scissor = Some(rect);
         new_kid.common.borrow_mut().origin = rect.origin;
@@ -270,7 +272,9 @@ impl CompositorData {
 
     /// Actually scrolls the descendants of a layer that scroll. This is called by
     /// `handle_scroll_event` above when it determines that a layer wants to scroll.
-    fn scroll(layer: Rc<ContainerLayer<CompositorData>>, scroll_offset: TypedPoint2D<PagePx, f32>) -> bool {
+    fn scroll(layer: Rc<ContainerLayer<CompositorData>>,
+              scroll_offset: TypedPoint2D<PagePx, f32>)
+              -> bool {
         let mut result = false;
 
         // Only scroll this layer if it's not fixed-positioned.
@@ -295,7 +299,8 @@ impl CompositorData {
     // Takes in a MouseWindowEvent, determines if it should be passed to children, and
     // sends the event off to the appropriate pipeline. NB: the cursor position is in
     // page coordinates.
-    pub fn send_mouse_event(layer: Rc<ContainerLayer<CompositorData>>, event: MouseWindowEvent, cursor: TypedPoint2D<PagePx, f32>) {
+    pub fn send_mouse_event(layer: Rc<ContainerLayer<CompositorData>>,
+                            event: MouseWindowEvent, cursor: TypedPoint2D<PagePx, f32>) {
         let cursor = cursor - layer.extra_data.borrow().scroll_offset;
         for child in layer.children() {
             if child.extra_data.borrow().hidden {
@@ -327,7 +332,8 @@ impl CompositorData {
         let _ = chan.send_opt(SendEventMsg(layer.extra_data.borrow().pipeline.id.clone(), message));
     }
 
-    pub fn send_mouse_move_event(layer: Rc<ContainerLayer<CompositorData>>, cursor: TypedPoint2D<PagePx, f32>) {
+    pub fn send_mouse_move_event(layer: Rc<ContainerLayer<CompositorData>>,
+                                 cursor: TypedPoint2D<PagePx, f32>) {
         let message = MouseMoveEvent(cursor.to_untyped());
         let ScriptChan(ref chan) = layer.extra_data.borrow().pipeline.script_chan;
         let _ = chan.send_opt(SendEventMsg(layer.extra_data.borrow().pipeline.id.clone(), message));
@@ -340,18 +346,24 @@ impl CompositorData {
                               window_rect: Rect<f32>,
                               scale: f32)
                               -> bool {
-        let (request, unused) = ContainerLayer::get_tile_rects_page(layer.clone(), window_rect, scale);
+        let (request, unused) = ContainerLayer::get_tile_rects_page(layer.clone(),
+                                                                    window_rect,
+                                                                    scale);
         let redisplay = !unused.is_empty();
         if redisplay {
             // Send back unused tiles.
-            let _ = layer.extra_data.borrow().pipeline.render_chan.send_opt(UnusedBufferMsg(unused));
+            let msg = UnusedBufferMsg(unused);
+            let _ = layer.extra_data.borrow().pipeline.render_chan.send_opt(msg);
         }
         if !request.is_empty() {
             // Ask for tiles.
             //
             // FIXME(#2003, pcwalton): We may want to batch these up in the case in which
             // one page has multiple layers, to avoid the user seeing inconsistent states.
-            let msg = ReRenderMsg(request, scale, layer.extra_data.borrow().id, layer.extra_data.borrow().epoch);
+            let msg = ReRenderMsg(request,
+                                  scale,
+                                  layer.extra_data.borrow().id,
+                                  layer.extra_data.borrow().epoch);
             let _ = layer.extra_data.borrow().pipeline.render_chan.send_opt(msg);
         }
 
@@ -373,7 +385,10 @@ impl CompositorData {
                             // to make the child_rect appear in coordinates local to it.
                             let child_rect = Rect(new_rect.origin.sub(&scissor.origin),
                                                   new_rect.size);
-                            CompositorData::get_buffer_request(kid.clone(), graphics_context, child_rect, scale)
+                            CompositorData::get_buffer_request(kid.clone(),
+                                                               graphics_context,
+                                                               child_rect,
+                                                               scale)
                         }
                         None => {
                             false // Layer is offscreen
@@ -400,7 +415,9 @@ impl CompositorData {
                              new_rect: Rect<f32>)
                              -> bool {
         debug!("compositor_data: starting set_clipping_rect()");
-        match CompositorData::find_child_with_layer_and_pipeline_id(layer.clone(), pipeline_id, layer_id) {
+        match CompositorData::find_child_with_layer_and_pipeline_id(layer.clone(),
+                                                                    pipeline_id,
+                                                                    layer_id) {
             Some(child_node) => {
                 debug!("compositor_data: node found for set_clipping_rect()");
                 child_node.common.borrow_mut().origin = new_rect.origin;
@@ -408,11 +425,13 @@ impl CompositorData {
                 child_node.extra_data.borrow_mut().scissor = Some(new_rect);
                 match old_rect {
                     Some(old_rect) => {
-                        ContainerLayer::set_status_page(layer.clone(), old_rect, Normal, false); // Rect is unhidden
+                        // Rect is unhidden
+                        ContainerLayer::set_status_page(layer.clone(), old_rect, Normal, false);
                     }
                     None => {} // Nothing to do
                 }
-                ContainerLayer::set_status_page(layer.clone(), new_rect, Hidden, false); // Hide the new rect
+                // Hide the new rect
+                ContainerLayer::set_status_page(layer.clone(), new_rect, Hidden, false);
 
                 // If possible, unhide child
                 let mut child_data = child_node.extra_data.borrow_mut();
@@ -423,7 +442,10 @@ impl CompositorData {
             }
             None => {
                 layer.children()
-                    .any(|kid| CompositorData::set_clipping_rect(kid.clone(), pipeline_id, layer_id, new_rect))
+                    .any(|kid| CompositorData::set_clipping_rect(kid.clone(),
+                                                                 pipeline_id,
+                                                                 layer_id,
+                                                                 new_rect))
 
             }
         }
@@ -440,8 +462,13 @@ impl CompositorData {
                   epoch: Epoch)
                   -> bool {
         debug!("compositor_data: starting resize()");
-        if layer.extra_data.borrow().pipeline.id != pipeline_id || layer.extra_data.borrow().id != layer_id {
-            return CompositorData::resize_helper(layer.clone(), pipeline_id, layer_id, new_size, epoch)
+        if layer.extra_data.borrow().pipeline.id != pipeline_id ||
+           layer.extra_data.borrow().id != layer_id {
+            return CompositorData::resize_helper(layer.clone(),
+                                                 pipeline_id,
+                                                 layer_id,
+                                                 new_size,
+                                                 epoch)
         }
 
         debug!("compositor_data: layer found for resize()");
@@ -457,7 +484,10 @@ impl CompositorData {
 
         // Call scroll for bounds checking if the page shrunk. Use (-1, -1) as the cursor position
         // to make sure the scroll isn't propagated downwards.
-        CompositorData::handle_scroll_event(layer.clone(), TypedPoint2D(0f32, 0f32), TypedPoint2D(-1f32, -1f32), window_size);
+        CompositorData::handle_scroll_event(layer.clone(),
+                                            TypedPoint2D(0f32, 0f32),
+                                            TypedPoint2D(-1f32, -1f32),
+                                            window_size);
         layer.extra_data.borrow_mut().hidden = false;
         CompositorData::set_occlusions(layer.clone());
         true
@@ -470,7 +500,8 @@ impl CompositorData {
                 window_size: TypedSize2D<PagePx, f32>)
                 -> bool {
         // Search children for the right layer to move.
-        if layer.extra_data.borrow().pipeline.id != pipeline_id || layer.extra_data.borrow().id != layer_id {
+        if layer.extra_data.borrow().pipeline.id != pipeline_id ||
+           layer.extra_data.borrow().id != layer_id {
             return layer.children().any(|kid| {
                 CompositorData::move(kid.clone(), pipeline_id, layer_id, origin, window_size)
             });
@@ -541,7 +572,8 @@ impl CompositorData {
                                              layer_id: LayerId)
                                              -> Option<Rc<ContainerLayer<CompositorData>>> {
         for kid in layer.children() {
-            if pipeline_id == kid.extra_data.borrow().pipeline.id && layer_id == kid.extra_data.borrow().id {
+            if pipeline_id == kid.extra_data.borrow().pipeline.id &&
+               layer_id == kid.extra_data.borrow().id {
                 return Some(kid);
             }
         }
@@ -557,7 +589,9 @@ impl CompositorData {
                      -> bool {
         debug!("compositor_data: starting resize_helper()");
 
-        let found = match CompositorData::find_child_with_layer_and_pipeline_id(layer.clone(), pipeline_id, layer_id) {
+        let found = match CompositorData::find_child_with_layer_and_pipeline_id(layer.clone(),
+                                                                                pipeline_id,
+                                                                                layer_id) {
             Some(child) => {
                 debug!("compositor_data: layer found for resize_helper()");
                 child.extra_data.borrow_mut().epoch = epoch;
@@ -565,7 +599,8 @@ impl CompositorData {
 
                 let unused_buffers = ContainerLayer::resize(child.clone(), new_size);
                 if !unused_buffers.is_empty() {
-                    let _ = child.extra_data.borrow().pipeline.render_chan.send_opt(UnusedBufferMsg(unused_buffers));
+                    let msg = UnusedBufferMsg(unused_buffers);
+                    let _ = child.extra_data.borrow().pipeline.render_chan.send_opt(msg);
                 }
 
                 let scissor_clone = child.extra_data.borrow().scissor.clone();
@@ -601,7 +636,8 @@ impl CompositorData {
 
     // Collect buffers from the quadtree. This method IS NOT recursive, so child layers
     // are not rebuilt directly from this method.
-    pub fn build_layer_tree(layer: Rc<ContainerLayer<CompositorData>>, graphics_context: &NativeCompositingGraphicsContext) {
+    pub fn build_layer_tree(layer: Rc<ContainerLayer<CompositorData>>,
+                            graphics_context: &NativeCompositingGraphicsContext) {
         // Clear all old textures.
         layer.tiles.borrow_mut().clear();
 
@@ -652,7 +688,8 @@ impl CompositorData {
                        epoch: Epoch)
                        -> Option<Box<LayerBufferSet>> {
         debug!("compositor_data: starting add_buffers()");
-        if layer.extra_data.borrow().pipeline.id != pipeline_id || layer.extra_data.borrow().id != layer_id {
+        if layer.extra_data.borrow().pipeline.id != pipeline_id ||
+           layer.extra_data.borrow().id != layer_id {
             // ID does not match ours, so recurse on descendents (including hidden children).
             for child_layer in layer.children() {
                 match CompositorData::add_buffers(child_layer.clone(),
@@ -677,7 +714,8 @@ impl CompositorData {
                    layer.extra_data.borrow().epoch,
                    epoch,
                    layer.extra_data.borrow().pipeline.id);
-            let _ = layer.extra_data.borrow().pipeline.render_chan.send_opt(UnusedBufferMsg(new_buffers.buffers));
+            let msg = UnusedBufferMsg(new_buffers.buffers);
+            let _ = layer.extra_data.borrow().pipeline.render_chan.send_opt(msg);
             return None
         }
 
@@ -687,7 +725,8 @@ impl CompositorData {
                 unused_tiles.push_all_move(ContainerLayer::add_tile_pixel(layer.clone(), buffer));
             }
             if !unused_tiles.is_empty() { // send back unused buffers
-                let _ = layer.extra_data.borrow().pipeline.render_chan.send_opt(UnusedBufferMsg(unused_tiles));
+                let msg = UnusedBufferMsg(unused_tiles);
+                let _ = layer.extra_data.borrow().pipeline.render_chan.send_opt(msg);
             }
         }
 
@@ -759,10 +798,18 @@ impl CompositorData {
         }
     }
 
-    pub fn set_unrendered_color(layer: Rc<ContainerLayer<CompositorData>>, pipeline_id: PipelineId, layer_id: LayerId, color: Color) -> bool {
-        if layer.extra_data.borrow().pipeline.id != pipeline_id || layer.extra_data.borrow().id != layer_id {
+    pub fn set_unrendered_color(layer: Rc<ContainerLayer<CompositorData>>,
+                                pipeline_id: PipelineId,
+                                layer_id: LayerId,
+                                color: Color)
+                                -> bool {
+        if layer.extra_data.borrow().pipeline.id != pipeline_id ||
+           layer.extra_data.borrow().id != layer_id {
             for child_layer in layer.children() {
-                if CompositorData::set_unrendered_color(child_layer.clone(), pipeline_id, layer_id, color) {
+                if CompositorData::set_unrendered_color(child_layer.clone(),
+                                                        pipeline_id,
+                                                        layer_id,
+                                                        color) {
                     return true;
                 }
             }
