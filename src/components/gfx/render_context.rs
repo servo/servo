@@ -50,7 +50,7 @@ impl<'a> RenderContext<'a>  {
 
     pub fn draw_solid_color(&self, bounds: &Rect<Au>, color: Color) {
         self.draw_target.make_current();
-        self.draw_target.fill_rect(&bounds.to_azure_rect(), &ColorPattern(color), None);
+        self.draw_target.fill_rect(&bounds.to_azure_rect(), &ColorPattern::new(color), None);
     }
 
     pub fn draw_border(&self,
@@ -115,8 +115,8 @@ impl<'a> RenderContext<'a>  {
         let source_rect = Rect(Point2D(0 as AzFloat, 0 as AzFloat),
                                Size2D(image.width as AzFloat, image.height as AzFloat));
         let dest_rect = bounds.to_azure_rect();
-        let draw_surface_options = DrawSurfaceOptions(Linear, true);
-        let draw_options = DrawOptions(1.0f64 as AzFloat, 0);
+        let draw_surface_options = DrawSurfaceOptions::new(Linear, true);
+        let draw_options = DrawOptions::new(1.0f64 as AzFloat, 0);
         draw_target_ref.draw_surface(azure_surface,
                                      dest_rect,
                                      source_rect,
@@ -125,12 +125,12 @@ impl<'a> RenderContext<'a>  {
     }
 
     pub fn clear(&self) {
-        let pattern = ColorPattern(Color(0.0, 0.0, 0.0, 0.0));
+        let pattern = ColorPattern::new(Color::new(0.0, 0.0, 0.0, 0.0));
         let rect = Rect(Point2D(self.page_rect.origin.x as AzFloat,
                                 self.page_rect.origin.y as AzFloat),
                         Size2D(self.screen_rect.size.width as AzFloat,
                                self.screen_rect.size.height as AzFloat));
-        let mut draw_options = DrawOptions(1.0, 0);
+        let mut draw_options = DrawOptions::new(1.0, 0);
         draw_options.set_composition_op(SourceOp);
         self.draw_target.make_current();
         self.draw_target.fill_rect(&rect, &pattern, Some(&draw_options));
@@ -206,7 +206,7 @@ impl<'a> RenderContext<'a>  {
         let right_top    = left_top + Point2D(bounds.size.width, 0.0);
         let left_bottom  = left_top + Point2D(0.0, bounds.size.height);
         let right_bottom = left_top + Point2D(bounds.size.width, bounds.size.height);
-        let draw_opts    = DrawOptions(1.0, 0);
+        let draw_opts    = DrawOptions::new(1.0, 0);
         let path_builder = self.draw_target.create_path_builder();
          match direction {
              Top    => {
@@ -235,7 +235,7 @@ impl<'a> RenderContext<'a>  {
              }
          }
          let path = path_builder.finish();
-         self.draw_target.fill(&path, &ColorPattern(color), &draw_opts);
+         self.draw_target.fill(&path, &ColorPattern::new(color), &draw_opts);
 
      }
 
@@ -246,8 +246,8 @@ impl<'a> RenderContext<'a>  {
                                   color:     Color,
                                   dash_size: DashSize) {
         let rect = bounds.to_azure_rect();
-        let draw_opts = DrawOptions(1 as AzFloat, 0 as uint16_t);
-        let mut stroke_opts = StrokeOptions(0 as AzFloat, 10 as AzFloat);
+        let draw_opts = DrawOptions::new(1 as AzFloat, 0 as uint16_t);
+        let mut stroke_opts = StrokeOptions::new(0 as AzFloat, 10 as AzFloat);
         let mut dash: [AzFloat, ..2] = [0 as AzFloat, 0 as AzFloat];
 
         stroke_opts.set_cap_style(AZ_CAP_BUTT as u8);
@@ -294,7 +294,7 @@ impl<'a> RenderContext<'a>  {
 
         self.draw_target.stroke_line(start,
                                      end,
-                                     &ColorPattern(color),
+                                     &ColorPattern::new(color),
                                      &stroke_opts,
                                      &draw_opts);
     }
@@ -321,7 +321,7 @@ impl<'a> RenderContext<'a>  {
     }
 
     fn scale_color(&self, color: Color, scale_factor: f32) -> Color {
-        return Color(color.r * scale_factor, color.g * scale_factor, color.b * scale_factor, color.a);
+        return Color::new(color.r * scale_factor, color.g * scale_factor, color.b * scale_factor, color.a);
     }
 
     fn draw_double_border_segment(&self, direction: Direction, bounds: &Rect<Au>, border: SideOffsets2D<f32>, color: Color) {

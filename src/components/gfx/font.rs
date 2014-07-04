@@ -330,7 +330,7 @@ impl Font {
 
         let target = rctx.get_draw_target();
         let azfontref = self.get_azure_font();
-        let pattern = ColorPattern(color);
+        let pattern = ColorPattern::new(color);
         let azure_pattern = pattern.azure_color_pattern;
         assert!(azure_pattern.is_not_null());
 
