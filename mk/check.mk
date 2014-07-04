@@ -81,16 +81,26 @@ check-servo: $(foreach lib_crate,$(SERVO_LIB_CRATES),check-servo-$(lib_crate)) s
 
 .PHONY: check-ref-cpu
 check-ref-cpu: reftest
-	@$(call E, check: reftests with CPU rendering)
-	$(Q)./reftest $(S)src/test/ref/basic.list $(TESTNAME) -- -c
+	@$(call E, check: reftests with CPU rendering (using multiple threads))
+	$(Q)./reftest $(S)src/test/ref/basic.list $(TESTNAME) -- -c -t 4 -y 4
+
+.PHONY: check-ref-cpu-sequential
+check-ref-cpu-sequential: reftest
+	@$(call E, check: reftests with CPU rendering  (using single thread))
+	$(Q)./reftest $(S)src/test/ref/basic.list $(TESTNAME) -- -c -t 1 -y 1
 
 .PHONY: check-ref-gpu
 check-ref-gpu: reftest
-	@$(call E, check: reftests with GPU rendering)
-	$(Q)./reftest $(S)src/test/ref/basic.list $(TESTNAME)
+	@$(call E, check: reftests with GPU rendering (using multiple threads))
+	$(Q)./reftest $(S)src/test/ref/basic.list $(TESTNAME) -t 4 -y 4
+
+.PHONY: check-ref-gpu-sequential
+check-ref-gpu-sequential: reftest
+	@$(call E, check: reftests with GPU rendering (using single thread))
+	$(Q)./reftest $(S)src/test/ref/basic.list $(TESTNAME) -t 1 -y 1
 
 .PHONY: check-ref
-check-ref: check-ref-cpu check-ref-gpu
+check-ref: check-ref-cpu check-ref-gpu check-ref-cpu-sequential check-ref-gpu-sequential
 
 .PHONY: check-content
 check-content: contenttest
