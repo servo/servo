@@ -47,15 +47,15 @@ extern crate core_text;
 pub use compositor_task::{CompositorChan, CompositorTask};
 pub use constellation::Constellation;
 
-mod compositor_task;
+pub mod compositor_task;
 
 mod compositor_data;
 
 mod compositor;
 mod headless;
 
-mod pipeline;
-mod constellation;
+pub mod pipeline;
+pub mod constellation;
 
 mod windowing;
 

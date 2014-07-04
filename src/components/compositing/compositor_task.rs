@@ -6,7 +6,7 @@ pub use windowing;
 
 use compositor;
 use headless;
-use constellation::SendableFrameTree;
+pub use constellation::SendableFrameTree;
 use windowing::{ApplicationMethods, WindowMethods};
 use platform::Application;
 
