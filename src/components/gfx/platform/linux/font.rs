@@ -37,7 +37,7 @@ fn fixed_to_float_ft(f: i32) -> f64 {
 }
 
 pub struct FontTable {
-    bogus: ()
+    _bogus: ()
 }
 
 impl FontTableMethods for FontTable {

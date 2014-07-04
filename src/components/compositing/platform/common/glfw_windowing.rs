@@ -85,22 +85,20 @@ macro_rules! glfw_callback(
 
 /// The type of a window.
 pub struct Window {
-    pub glfw: glfw::Glfw,
+    glfw: glfw::Glfw,
 
-    pub glfw_window: glfw::Window,
-    pub events: Receiver<(f64, glfw::WindowEvent)>,
+    glfw_window: glfw::Window,
+    events: Receiver<(f64, glfw::WindowEvent)>,
 
-    pub event_queue: RefCell<Vec<WindowEvent>>,
+    event_queue: RefCell<Vec<WindowEvent>>,
 
-    pub drag_origin: Point2D<c_int>,
+    mouse_down_button: Cell<Option<glfw::MouseButton>>,
+    mouse_down_point: Cell<Point2D<c_int>>,
 
-    pub mouse_down_button: Cell<Option<glfw::MouseButton>>,
-    pub mouse_down_point: Cell<Point2D<c_int>>,
+    ready_state: Cell<ReadyState>,
+    render_state: Cell<RenderState>,
 
-    pub ready_state: Cell<ReadyState>,
-    pub render_state: Cell<RenderState>,
-
-    pub last_title_set_time: Cell<Timespec>,
+    last_title_set_time: Cell<Timespec>,
 }
 
 impl WindowMethods<Application> for Window {
@@ -120,8 +118,6 @@ impl WindowMethods<Application> for Window {
             events: events,
 
             event_queue: RefCell::new(vec!()),
-
-            drag_origin: Point2D(0 as c_int, 0),
 
             mouse_down_button: Cell::new(None),
             mouse_down_point: Cell::new(Point2D(0 as c_int, 0)),

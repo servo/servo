@@ -306,13 +306,13 @@ fn parse_one_simple_selector(iter: &mut Iter, namespaces: &NamespaceMap, inside_
                          -> SimpleSelectorParseResult {
     match iter.peek() {
         Some(&IDHash(_)) => match iter.next() {
-            Some(IDHash(id)) => SimpleSelectorResult(IDSelector(id.into_owned())),
+            Some(IDHash(id)) => SimpleSelectorResult(IDSelector(id)),
             _ => fail!("Implementation error, this should not happen."),
         },
         Some(&Delim('.')) => {
             iter.next();
             match iter.next() {
-                Some(Ident(class)) => SimpleSelectorResult(ClassSelector(class.into_owned())),
+                Some(Ident(class)) => SimpleSelectorResult(ClassSelector(class)),
                 _ => InvalidSimpleSelector,
             }
         }
@@ -455,16 +455,16 @@ fn parse_attribute_selector(content: Vec<ComponentValue>, namespaces: &Namespace
     }};)
     let result = match iter.next() {
         None => AttrExists(attr),  // [foo]
-        Some(Delim('=')) => AttrEqual(attr, (get_value!()).into_owned()),  // [foo=bar]
-        Some(IncludeMatch) => AttrIncludes(attr, (get_value!()).into_owned()),  // [foo~=bar]
+        Some(Delim('=')) => AttrEqual(attr, (get_value!())),  // [foo=bar]
+        Some(IncludeMatch) => AttrIncludes(attr, (get_value!())),  // [foo~=bar]
         Some(DashMatch) => {
             let value = get_value!();
             let dashing_value = format!("{}-", value);
-            AttrDashMatch(attr, value.into_owned(), dashing_value)  // [foo|=bar]
+            AttrDashMatch(attr, value, dashing_value)  // [foo|=bar]
         },
-        Some(PrefixMatch) => AttrPrefixMatch(attr, (get_value!()).into_owned()),  // [foo^=bar]
-        Some(SubstringMatch) => AttrSubstringMatch(attr, (get_value!()).into_owned()),  // [foo*=bar]
-        Some(SuffixMatch) => AttrSuffixMatch(attr, (get_value!()).into_owned()),  // [foo$=bar]
+        Some(PrefixMatch) => AttrPrefixMatch(attr, (get_value!())),  // [foo^=bar]
+        Some(SubstringMatch) => AttrSubstringMatch(attr, (get_value!())),  // [foo*=bar]
+        Some(SuffixMatch) => AttrSuffixMatch(attr, (get_value!())),  // [foo$=bar]
         _ => return None
     };
     skip_whitespace(iter);
@@ -551,7 +551,7 @@ fn parse_negation(arguments: Vec<ComponentValue>, namespaces: &NamespaceMap)
 #[inline]
 fn get_next_ident(iter: &mut Iter) -> String {
     match iter.next() {
-        Some(Ident(value)) => value.into_owned(),
+        Some(Ident(value)) => value,
         _ => fail!("Implementation error, this should not happen."),
     }
 }

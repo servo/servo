@@ -42,7 +42,7 @@ pub struct Constellation {
     pub compositor_chan: CompositorChan,
     pub resource_task: ResourceTask,
     pub image_cache_task: ImageCacheTask,
-    pub pipelines: HashMap<PipelineId, Rc<Pipeline>>,
+    pipelines: HashMap<PipelineId, Rc<Pipeline>>,
     navigation_context: NavigationContext,
     next_pipeline_id: PipelineId,
     pending_frames: Vec<FrameChange>,
