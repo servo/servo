@@ -135,8 +135,8 @@ impl IOCompositor {
 
         // Create an initial layer tree.
         //
-        // TODO: There should be no initial layer tree until the renderer creates one from the display
-        // list. This is only here because we don't have that logic in the renderer yet.
+        // TODO: There should be no initial layer tree until the renderer creates one from the
+        // display list. This is only here because we don't have that logic in the renderer yet.
         let window_size = window.framebuffer_size();
         let hidpi_factor = window.hidpi_factor();
 
@@ -285,7 +285,10 @@ impl IOCompositor {
 
                 (Ok(CreateRootCompositorLayerIfNecessary(pipeline_id, layer_id, size, color)),
                  false) => {
-                    self.create_root_compositor_layer_if_necessary(pipeline_id, layer_id, size, color);
+                    self.create_root_compositor_layer_if_necessary(pipeline_id,
+                                                                   layer_id,
+                                                                   size,
+                                                                   color);
                 }
 
                 (Ok(CreateDescendantCompositorLayerIfNecessary(pipeline_id,
@@ -336,7 +339,10 @@ impl IOCompositor {
 
     fn set_unrendered_color(&mut self, pipeline_id: PipelineId, layer_id: LayerId, color: Color) {
         match self.scene.root {
-            Some(ref layer) => CompositorData::set_unrendered_color(layer.clone(), pipeline_id, layer_id, color),
+            Some(ref layer) => CompositorData::set_unrendered_color(layer.clone(),
+                                                                    pipeline_id,
+                                                                    layer_id,
+                                                                    color),
             None => false,
         };
     }
@@ -361,7 +367,8 @@ impl IOCompositor {
                                                  unrendered_color: Color) {
         let (root_pipeline, root_layer_id) = match self.scene.root {
             Some(ref root_layer) if root_layer.extra_data.borrow().pipeline.id == id => {
-                (root_layer.extra_data.borrow().pipeline.clone(), CompositorData::id_of_first_child(root_layer.clone()))
+                (root_layer.extra_data.borrow().pipeline.clone(),
+                 CompositorData::id_of_first_child(root_layer.clone()))
             }
             _ => {
                 match self.root_pipeline {
@@ -375,9 +382,12 @@ impl IOCompositor {
 
         if layer_id != root_layer_id {
             let root_pipeline_id = root_pipeline.id;
-            let new_root = Rc::new(Layer::new(size, self.opts.tile_size,
-                                              CompositorData::new_root(root_pipeline,
-                                                                                size, self.opts.cpu_painting)));
+            let new_compositor_data = CompositorData::new_root(root_pipeline,
+                                                               size,
+                                                               self.opts.cpu_painting);
+            let new_root = Rc::new(Layer::new(size,
+                                              self.opts.tile_size,
+                                              new_compositor_data));
             new_root.extra_data.borrow_mut().unrendered_color = unrendered_color;
 
             let parent_layer_id = new_root.extra_data.borrow().id;
@@ -448,7 +458,12 @@ impl IOCompositor {
         let page_window = self.page_window();
         let (ask, move): (bool, bool) = match self.scene.root {
             Some(ref layer) => {
-                CompositorData::resize(layer.clone(), pipeline_id, layer_id, new_size, page_window, epoch);
+                CompositorData::resize(layer.clone(),
+                                       pipeline_id,
+                                       layer_id,
+                                       new_size,
+                                       page_window,
+                                       epoch);
                 let move = self.fragment_point.take().map_or(false, |point| {
                     CompositorData::move(layer.clone(), pipeline_id, layer_id, point, page_window)
                 });
@@ -470,7 +485,10 @@ impl IOCompositor {
                            new_rect: Rect<f32>) {
         let ask: bool = match self.scene.root {
             Some(ref layer) => {
-                assert!(CompositorData::set_clipping_rect(layer.clone(), pipeline_id, layer_id, new_rect));
+                assert!(CompositorData::set_clipping_rect(layer.clone(),
+                                                          pipeline_id,
+                                                          layer_id,
+                                                          new_rect));
                 true
             }
             None => {
@@ -519,8 +537,10 @@ impl IOCompositor {
                                 point: Point2D<f32>) {
         let page_window = self.page_window();
         let (ask, move): (bool, bool) = match self.scene.root {
-            Some(ref layer) if layer.extra_data.borrow().pipeline.id == pipeline_id && !layer.extra_data.borrow().hidden => {
-                (true, CompositorData::move(layer.clone(), pipeline_id, layer_id, point, page_window))
+            Some(ref layer) if layer.extra_data.borrow().pipeline.id == pipeline_id &&
+                               !layer.extra_data.borrow().hidden => {
+                (true,
+                 CompositorData::move(layer.clone(), pipeline_id, layer_id, point, page_window))
             }
             Some(_) | None => {
                 self.fragment_point = Some(point);
@@ -615,7 +635,8 @@ impl IOCompositor {
         self.load_complete = false;
         let root_pipeline_id = match self.scene.root {
             Some(ref layer) => layer.extra_data.borrow().pipeline.id.clone(),
-            None => fail!("Compositor: Received LoadUrlWindowEvent without initialized compositor layers"),
+            None => fail!("Compositor: Received LoadUrlWindowEvent without initialized compositor \
+                           layers"),
         };
 
         let msg = LoadUrlMsg(root_pipeline_id, url::parse_url(url_string.as_slice(), None));
@@ -652,7 +673,10 @@ impl IOCompositor {
         let page_window = self.page_window();
         let mut scroll = false;
         for layer in self.scene.root.mut_iter() {
-            scroll = CompositorData::handle_scroll_event(layer.clone(), page_delta, page_cursor, page_window) || scroll;
+            scroll = CompositorData::handle_scroll_event(layer.clone(),
+                                                         page_delta,
+                                                         page_cursor,
+                                                         page_window) || scroll;
         }
         self.recomposite_if(scroll);
         self.ask_for_tiles();
@@ -703,7 +727,10 @@ impl IOCompositor {
         let page_window = self.page_window();
 
         for layer in self.scene.root.mut_iter() {
-            CompositorData::handle_scroll_event(layer.clone(), page_delta, page_cursor, page_window);
+            CompositorData::handle_scroll_event(layer.clone(),
+                                                page_delta,
+                                                page_cursor,
+                                                page_window);
         }
 
         self.recomposite = true;
@@ -728,8 +755,8 @@ impl IOCompositor {
                 let recomposite = CompositorData::get_buffer_request(layer.clone(),
                                                                      &self.graphics_context,
                                                                      rect,
-                                                                     scale.get()) || self.recomposite;
-                self.recomposite = recomposite;
+                                                                     scale.get());
+                self.recomposite = self.recomposite || recomposite;
             } else {
                 debug!("Compositor: root layer is hidden!");
             }
@@ -771,8 +798,9 @@ impl IOCompositor {
                 let dst_start = y * stride;
                 let src_start = (height - y - 1) * stride;
                 unsafe {
+                    let src_slice = orig_pixels.slice(src_start, src_start + stride);
                     pixels.mut_slice(dst_start, dst_start + stride)
-                        .copy_memory(orig_pixels.slice(src_start, src_start + stride).slice_to(stride));
+                          .copy_memory(src_slice.slice_to(stride));
                 }
             }
             let img = png::Image {
