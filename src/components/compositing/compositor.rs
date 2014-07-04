@@ -698,7 +698,7 @@ impl IOCompositor {
 
     fn update_zoom_transform(&mut self) {
         let scale = self.device_pixels_per_page_px();
-        self.scene.set_transform(identity().scale(scale.get(), scale.get(), 1f32));
+        self.scene.transform = identity().scale(scale.get(), scale.get(), 1f32);
     }
 
     fn on_zoom_window_event(&mut self, magnification: f32) {
