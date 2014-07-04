@@ -401,8 +401,7 @@ impl CompositorData {
 
         layer.children().filter(|x| !x.extra_data.borrow().hidden)
             .map(transform)
-            .fold(false, |a, b| a || b) || redisplay
-
+            .any(|b| b) || redisplay
     }
 
     // Move the sublayer to an absolute position in page coordinates relative to its parent,
