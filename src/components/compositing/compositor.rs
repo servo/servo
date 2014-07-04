@@ -85,11 +85,9 @@ pub struct IOCompositor {
     /// Tracks whether the renderer has finished its first rendering
     composite_ready: bool,
 
-    /// Tracks whether we are in the process of shutting down.
-    shutting_down: bool,
-
-    /// Tracks whether we should close compositor.
-    done: bool,
+    /// Tracks whether we are in the process of shutting down, or have shut down and should close
+    /// the compositor.
+    shutdown_state: ShutdownState,
 
     /// Tracks whether we need to re-composite a page.
     recomposite: bool,
@@ -124,6 +122,13 @@ pub struct IOCompositor {
     fragment_point: Option<Point2D<f32>>
 }
 
+#[deriving(PartialEq)]
+enum ShutdownState {
+    NotShuttingDown,
+    ShuttingDown,
+    FinishedShuttingDown,
+}
+
 impl IOCompositor {
     fn new(app: &Application,
                opts: Opts,
@@ -151,8 +156,7 @@ impl IOCompositor {
             hidpi_factor: hidpi_factor,
             graphics_context: CompositorTask::create_graphics_context(),
             composite_ready: false,
-            shutting_down: false,
-            done: false,
+            shutdown_state: NotShuttingDown,
             recomposite: false,
             page_zoom: ScaleFactor(1.0),
             viewport_zoom: ScaleFactor(1.0),
@@ -190,11 +194,11 @@ impl IOCompositor {
         self.send_window_size();
 
         // Enter the main event loop.
-        while !self.done {
+        while self.shutdown_state != FinishedShuttingDown {
             // Check for new messages coming from the rendering task.
             self.handle_message();
 
-            if self.done {
+            if self.shutdown_state == FinishedShuttingDown {
                 // We have exited the compositor and passing window
                 // messages to script may crash.
                 debug!("Exiting the compositor due to a request from script.");
@@ -246,7 +250,10 @@ impl IOCompositor {
 
     fn handle_message(&mut self) {
         loop {
-            match (self.port.try_recv(), self.shutting_down) {
+            match (self.port.try_recv(), self.shutdown_state) {
+                (_, FinishedShuttingDown) =>
+                    fail!("compositor shouldn't be handling messages after shutting down"),
+
                 (Err(_), _) => break,
 
                 (Ok(Exit(chan)), _) => {
@@ -254,24 +261,25 @@ impl IOCompositor {
                     let ConstellationChan(ref con_chan) = self.constellation_chan;
                     con_chan.send(ExitMsg);
                     chan.send(());
-                    self.shutting_down = true;
+                    self.shutdown_state = ShuttingDown;
                 }
 
                 (Ok(ShutdownComplete), _) => {
                     debug!("constellation completed shutdown");
-                    self.done = true;
+                    self.shutdown_state = FinishedShuttingDown;
+                    break;
                 }
 
-                (Ok(ChangeReadyState(ready_state)), false) => {
+                (Ok(ChangeReadyState(ready_state)), NotShuttingDown) => {
                     self.window.set_ready_state(ready_state);
                     self.ready_state = ready_state;
                 }
 
-                (Ok(ChangeRenderState(render_state)), false) => {
+                (Ok(ChangeRenderState(render_state)), NotShuttingDown) => {
                     self.change_render_state(render_state);
                 }
 
-                (Ok(SetUnRenderedColor(pipeline_id, layer_id, color)), false) => {
+                (Ok(SetUnRenderedColor(pipeline_id, layer_id, color)), NotShuttingDown) => {
                     self.set_unrendered_color(pipeline_id, layer_id, color);
                 }
 
@@ -279,12 +287,12 @@ impl IOCompositor {
                     self.set_ids(frame_tree, response_chan, new_constellation_chan);
                 }
 
-                (Ok(GetGraphicsMetadata(chan)), false) => {
+                (Ok(GetGraphicsMetadata(chan)), NotShuttingDown) => {
                     chan.send(Some(azure_hl::current_graphics_metadata()));
                 }
 
                 (Ok(CreateRootCompositorLayerIfNecessary(pipeline_id, layer_id, size, color)),
-                 false) => {
+                 NotShuttingDown) => {
                     self.create_root_compositor_layer_if_necessary(pipeline_id,
                                                                    layer_id,
                                                                    size,
@@ -295,37 +303,38 @@ impl IOCompositor {
                                                                  layer_id,
                                                                  rect,
                                                                  scroll_behavior)),
-                 false) => {
+                 NotShuttingDown) => {
                     self.create_descendant_compositor_layer_if_necessary(pipeline_id,
                                                                          layer_id,
                                                                          rect,
                                                                          scroll_behavior);
                 }
 
-                (Ok(SetLayerPageSize(pipeline_id, layer_id, new_size, epoch)), false) => {
+                (Ok(SetLayerPageSize(pipeline_id, layer_id, new_size, epoch)), NotShuttingDown) => {
                     self.set_layer_page_size(pipeline_id, layer_id, new_size, epoch);
                 }
 
-                (Ok(SetLayerClipRect(pipeline_id, layer_id, new_rect)), false) => {
+                (Ok(SetLayerClipRect(pipeline_id, layer_id, new_rect)), NotShuttingDown) => {
                     self.set_layer_clip_rect(pipeline_id, layer_id, new_rect);
                 }
 
-                (Ok(Paint(pipeline_id, layer_id, new_layer_buffer_set, epoch)), false) => {
+                (Ok(Paint(pipeline_id, layer_id, new_layer_buffer_set, epoch)),
+                 NotShuttingDown) => {
                     self.paint(pipeline_id, layer_id, new_layer_buffer_set, epoch);
                 }
 
-                (Ok(ScrollFragmentPoint(pipeline_id, layer_id, point)), false) => {
+                (Ok(ScrollFragmentPoint(pipeline_id, layer_id, point)), NotShuttingDown) => {
                     self.scroll_fragment_to_point(pipeline_id, layer_id, point);
                 }
 
-                (Ok(LoadComplete(..)), false) => {
+                (Ok(LoadComplete(..)), NotShuttingDown) => {
                     self.load_complete = true;
                 }
 
                 // When we are shutting_down, we need to avoid performing operations
                 // such as Paint that may crash because we have begun tearing down
                 // the rest of our resources.
-                (_, true) => { }
+                (_, ShuttingDown) => { }
             }
         }
     }
@@ -601,7 +610,7 @@ impl IOCompositor {
                     debug!("shutting down the constellation for FinishedWindowEvent");
                     let ConstellationChan(ref chan) = self.constellation_chan;
                     chan.send(ExitMsg);
-                    self.shutting_down = true;
+                    self.shutdown_state = ShuttingDown;
                 }
             }
 
@@ -609,7 +618,7 @@ impl IOCompositor {
                 debug!("shutting down the constellation for QuitWindowEvent");
                 let ConstellationChan(ref chan) = self.constellation_chan;
                 chan.send(ExitMsg);
-                self.shutting_down = true;
+                self.shutdown_state = ShuttingDown;
             }
         }
     }
@@ -815,7 +824,7 @@ impl IOCompositor {
             debug!("shutting down the constellation after generating an output file");
             let ConstellationChan(ref chan) = self.constellation_chan;
             chan.send(ExitMsg);
-            self.shutting_down = true;
+            self.shutdown_state = ShuttingDown;
         }
 
         self.window.present();
