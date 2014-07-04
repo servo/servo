@@ -14,7 +14,7 @@ use geom::rect::{Rect, TypedRect};
 use geom::size::{Size2D, TypedSize2D};
 use gfx::render_task::{ReRenderMsg, UnusedBufferMsg};
 use gfx;
-use layers::layers::{ContainerLayer, Flip, LayerBuffer, LayerBufferSet, NoFlip, TextureLayer};
+use layers::layers::{Layer, Flip, LayerBuffer, LayerBufferSet, NoFlip, TextureLayer};
 use layers::quadtree::{Tile, Normal, Hidden};
 use layers::platform::surface::{NativeCompositingGraphicsContext, NativeSurfaceMethods};
 use layers::texturegl::{Texture, TextureTarget};
@@ -139,8 +139,8 @@ impl CompositorData {
     }
 
 
-    pub fn id_of_first_child(layer: Rc<ContainerLayer<CompositorData>>) -> LayerId {
-        layer.children().next().expect("no first child!").extra_data.borrow().id
+    pub fn id_of_first_child(layer: Rc<Layer<CompositorData>>) -> LayerId {
+        layer.children().iter().next().expect("no first child!").extra_data.borrow().id
     }
 
     /// Adds a child layer to the layer with the given ID and the given pipeline, if it doesn't
@@ -152,7 +152,7 @@ impl CompositorData {
     ///   * True if the layer was not added because it already existed;
     ///   * False if the layer could not be added because no suitable parent layer with the given
     ///     ID and pipeline could be found.
-    pub fn add_child_if_necessary(layer: Rc<ContainerLayer<CompositorData>>,
+    pub fn add_child_if_necessary(layer: Rc<Layer<CompositorData>>,
                                   pipeline_id: PipelineId,
                                   parent_layer_id: LayerId,
                                   child_layer_id: LayerId,
@@ -161,8 +161,8 @@ impl CompositorData {
                                   scroll_policy: ScrollPolicy) -> bool {
         if layer.extra_data.borrow().pipeline.id != pipeline_id ||
            layer.extra_data.borrow().id != parent_layer_id {
-            return layer.children().any(|kid| {
-                CompositorData::add_child_if_necessary(kid,
+            return layer.children().iter().any(|kid| {
+                CompositorData::add_child_if_necessary(kid.clone(),
                                                        pipeline_id,
                                                        parent_layer_id,
                                                        child_layer_id,
@@ -173,7 +173,7 @@ impl CompositorData {
         }
 
         // See if we've already made this child layer.
-        if layer.children().any(|kid| {
+        if layer.children().iter().any(|kid| {
                     kid.extra_data.borrow().pipeline.id == pipeline_id &&
                     kid.extra_data.borrow().id == child_layer_id
                 }) {
@@ -188,15 +188,15 @@ impl CompositorData {
                                                       DoesntWantScrollEvents,
                                                       scroll_policy,
                                                       false);
-        let new_kid = Rc::new(ContainerLayer::new(Some(page_size),
-                                                  ContainerLayer::tile_size(layer.clone()),
-                                                  new_compositor_data));
+        let new_kid = Rc::new(Layer::new(page_size,
+                                         Layer::tile_size(layer.clone()),
+                                         new_compositor_data));
 
         new_kid.extra_data.borrow_mut().scissor = Some(rect);
-        new_kid.common.borrow_mut().origin = rect.origin;
+        *new_kid.origin.borrow_mut() = rect.origin;
 
         // Place the kid's layer in the container passed in.
-        ContainerLayer::add_child_end(layer.clone(), new_kid.clone());
+        Layer::add_child(layer.clone(), new_kid.clone());
 
         true
     }
@@ -205,7 +205,7 @@ impl CompositorData {
     /// specified amount in page coordinates. This also takes in a cursor position to see if the
     /// mouse is over child layers first. If a layer successfully scrolled, returns true; otherwise
     /// returns false, so a parent layer can scroll instead.
-    pub fn handle_scroll_event(layer: Rc<ContainerLayer<CompositorData>>,
+    pub fn handle_scroll_event(layer: Rc<Layer<CompositorData>>,
                                delta: TypedPoint2D<PagePx, f32>,
                                cursor: TypedPoint2D<PagePx, f32>,
                                window_size: TypedSize2D<PagePx, f32>)
@@ -223,7 +223,7 @@ impl CompositorData {
 
         // Allow children to scroll.
         let cursor = cursor - layer.extra_data.borrow().scroll_offset;
-        for child in layer.children() {
+        for child in layer.children().iter() {
             match child.extra_data.borrow().scissor {
                 None => {
                     error!("CompositorData: unable to perform cursor hit test for layer");
@@ -272,7 +272,7 @@ impl CompositorData {
 
     /// Actually scrolls the descendants of a layer that scroll. This is called by
     /// `handle_scroll_event` above when it determines that a layer wants to scroll.
-    fn scroll(layer: Rc<ContainerLayer<CompositorData>>,
+    fn scroll(layer: Rc<Layer<CompositorData>>,
               scroll_offset: TypedPoint2D<PagePx, f32>)
               -> bool {
         let mut result = false;
@@ -283,13 +283,12 @@ impl CompositorData {
             layer.extra_data.borrow_mut().scroll_offset = scroll_offset;
 
             let scroll_offset = layer.extra_data.borrow().scroll_offset.clone();
-            layer.common.borrow_mut().set_transform(
-                identity().translate(scroll_offset.x.get(), scroll_offset.y.get(), 0.0));
+            *layer.transform.borrow_mut() = identity().translate(scroll_offset.x.get(), scroll_offset.y.get(), 0.0);
 
             result = true
         }
 
-        for child in layer.children() {
+        for child in layer.children().iter() {
             result = CompositorData::scroll(child.clone(), scroll_offset) || result;
         }
 
@@ -299,10 +298,10 @@ impl CompositorData {
     // Takes in a MouseWindowEvent, determines if it should be passed to children, and
     // sends the event off to the appropriate pipeline. NB: the cursor position is in
     // page coordinates.
-    pub fn send_mouse_event(layer: Rc<ContainerLayer<CompositorData>>,
+    pub fn send_mouse_event(layer: Rc<Layer<CompositorData>>,
                             event: MouseWindowEvent, cursor: TypedPoint2D<PagePx, f32>) {
         let cursor = cursor - layer.extra_data.borrow().scroll_offset;
-        for child in layer.children() {
+        for child in layer.children().iter() {
             if child.extra_data.borrow().hidden {
                 continue;
             }
@@ -332,7 +331,7 @@ impl CompositorData {
         let _ = chan.send_opt(SendEventMsg(layer.extra_data.borrow().pipeline.id.clone(), message));
     }
 
-    pub fn send_mouse_move_event(layer: Rc<ContainerLayer<CompositorData>>,
+    pub fn send_mouse_move_event(layer: Rc<Layer<CompositorData>>,
                                  cursor: TypedPoint2D<PagePx, f32>) {
         let message = MouseMoveEvent(cursor.to_untyped());
         let ScriptChan(ref chan) = layer.extra_data.borrow().pipeline.script_chan;
@@ -341,14 +340,12 @@ impl CompositorData {
 
     // Given the current window size, determine which tiles need to be (re-)rendered and sends them
     // off the the appropriate renderer. Returns true if and only if the scene should be repainted.
-    pub fn get_buffer_request(layer: Rc<ContainerLayer<CompositorData>>,
+    pub fn get_buffer_request(layer: Rc<Layer<CompositorData>>,
                               graphics_context: &NativeCompositingGraphicsContext,
                               window_rect: Rect<f32>,
                               scale: f32)
                               -> bool {
-        let (request, unused) = ContainerLayer::get_tile_rects_page(layer.clone(),
-                                                                    window_rect,
-                                                                    scale);
+        let (request, unused) = Layer::get_tile_rects_page(layer.clone(), window_rect, scale);
         let redisplay = !unused.is_empty();
         if redisplay {
             // Send back unused tiles.
@@ -371,7 +368,7 @@ impl CompositorData {
             CompositorData::build_layer_tree(layer.clone(), graphics_context);
         }
 
-        let get_child_buffer_request = |kid: Rc<ContainerLayer<CompositorData>>| -> bool {
+        let get_child_buffer_request = |kid: &Rc<Layer<CompositorData>>| -> bool {
             match kid.extra_data.borrow().scissor {
                 Some(scissor) => {
                     let mut new_rect = window_rect;
@@ -399,7 +396,7 @@ impl CompositorData {
             }
         };
 
-        layer.children().filter(|x| !x.extra_data.borrow().hidden)
+        layer.children().iter().filter(|x| !x.extra_data.borrow().hidden)
             .map(get_child_buffer_request)
             .any(|b| b) || redisplay
     }
@@ -408,7 +405,7 @@ impl CompositorData {
     // and clip the layer to the specified size in page coordinates.
     // If the layer is hidden and has a defined page size, unhide it.
     // This method returns false if the specified layer is not found.
-    pub fn set_clipping_rect(layer: Rc<ContainerLayer<CompositorData>>,
+    pub fn set_clipping_rect(layer: Rc<Layer<CompositorData>>,
                              pipeline_id: PipelineId,
                              layer_id: LayerId,
                              new_rect: Rect<f32>)
@@ -419,18 +416,18 @@ impl CompositorData {
                                                                     layer_id) {
             Some(child_node) => {
                 debug!("compositor_data: node found for set_clipping_rect()");
-                child_node.common.borrow_mut().origin = new_rect.origin;
+                *child_node.origin.borrow_mut() = new_rect.origin;
                 let old_rect = child_node.extra_data.borrow().scissor.clone();
                 child_node.extra_data.borrow_mut().scissor = Some(new_rect);
                 match old_rect {
                     Some(old_rect) => {
                         // Rect is unhidden
-                        ContainerLayer::set_status_page(layer.clone(), old_rect, Normal, false);
+                        Layer::set_status_page(layer.clone(), old_rect, Normal, false);
                     }
                     None => {} // Nothing to do
                 }
                 // Hide the new rect
-                ContainerLayer::set_status_page(layer.clone(), new_rect, Hidden, false);
+                Layer::set_status_page(layer.clone(), new_rect, Hidden, false);
 
                 // If possible, unhide child
                 let mut child_data = child_node.extra_data.borrow_mut();
@@ -440,7 +437,7 @@ impl CompositorData {
                 true
             }
             None => {
-                layer.children()
+                layer.children().iter()
                     .any(|kid| CompositorData::set_clipping_rect(kid.clone(),
                                                                  pipeline_id,
                                                                  layer_id,
@@ -453,7 +450,7 @@ impl CompositorData {
     // Set the layer's page size. This signals that the renderer is ready for BufferRequests.
     // If the layer is hidden and has a defined clipping rect, unhide it.
     // This method returns false if the specified layer is not found.
-    pub fn resize(layer: Rc<ContainerLayer<CompositorData>>,
+    pub fn resize(layer: Rc<Layer<CompositorData>>,
                   pipeline_id: PipelineId,
                   layer_id: LayerId,
                   new_size: Size2D<f32>,
@@ -474,7 +471,7 @@ impl CompositorData {
         layer.extra_data.borrow_mut().epoch = epoch;
         layer.extra_data.borrow_mut().page_size = Some(new_size);
 
-        let unused_buffers = ContainerLayer::resize(layer.clone(), new_size);
+        let unused_buffers = Layer::resize(layer.clone(), new_size);
         if !unused_buffers.is_empty() {
             let _ = layer.extra_data.borrow().pipeline
                     .render_chan
@@ -492,7 +489,7 @@ impl CompositorData {
         true
     }
 
-    pub fn move(layer: Rc<ContainerLayer<CompositorData>>,
+    pub fn move(layer: Rc<Layer<CompositorData>>,
                 pipeline_id: PipelineId,
                 layer_id: LayerId,
                 origin: Point2D<f32>,
@@ -501,7 +498,7 @@ impl CompositorData {
         // Search children for the right layer to move.
         if layer.extra_data.borrow().pipeline.id != pipeline_id ||
            layer.extra_data.borrow().id != layer_id {
-            return layer.children().any(|kid| {
+            return layer.children().iter().any(|kid| {
                 CompositorData::move(kid.clone(), pipeline_id, layer_id, origin, window_size)
             });
         }
@@ -566,21 +563,21 @@ impl CompositorData {
 
 
 
-    fn find_child_with_layer_and_pipeline_id(layer: Rc<ContainerLayer<CompositorData>>,
+    fn find_child_with_layer_and_pipeline_id(layer: Rc<Layer<CompositorData>>,
                                              pipeline_id: PipelineId,
                                              layer_id: LayerId)
-                                             -> Option<Rc<ContainerLayer<CompositorData>>> {
-        for kid in layer.children() {
+                                             -> Option<Rc<Layer<CompositorData>>> {
+        for kid in layer.children().iter() {
             if pipeline_id == kid.extra_data.borrow().pipeline.id &&
                layer_id == kid.extra_data.borrow().id {
-                return Some(kid);
+                return Some(kid.clone());
             }
         }
         return None
     }
 
     // A helper method to resize sublayers.
-    fn resize_helper(layer: Rc<ContainerLayer<CompositorData>>,
+    fn resize_helper(layer: Rc<Layer<CompositorData>>,
                      pipeline_id: PipelineId,
                      layer_id: LayerId,
                      new_size: Size2D<f32>,
@@ -596,7 +593,7 @@ impl CompositorData {
                 child.extra_data.borrow_mut().epoch = epoch;
                 child.extra_data.borrow_mut().page_size = Some(new_size);
 
-                let unused_buffers = ContainerLayer::resize(child.clone(), new_size);
+                let unused_buffers = Layer::resize(child.clone(), new_size);
                 if !unused_buffers.is_empty() {
                     let msg = UnusedBufferMsg(unused_buffers);
                     let _ = child.extra_data.borrow().pipeline.render_chan.send_opt(msg);
@@ -628,20 +625,20 @@ impl CompositorData {
 
         // If we got here, the layer's ID does not match ours, so recurse on descendents (including
         // hidden children).
-        layer.children().any(|kid| {
+        layer.children().iter().any(|kid| {
             CompositorData::resize_helper(kid.clone(), pipeline_id, layer_id, new_size, epoch)
         })
     }
 
     // Collect buffers from the quadtree. This method IS NOT recursive, so child layers
     // are not rebuilt directly from this method.
-    pub fn build_layer_tree(layer: Rc<ContainerLayer<CompositorData>>,
+    pub fn build_layer_tree(layer: Rc<Layer<CompositorData>>,
                             graphics_context: &NativeCompositingGraphicsContext) {
         // Clear all old textures.
         layer.tiles.borrow_mut().clear();
 
         // Add new tiles.
-        ContainerLayer::do_for_all_tiles(layer.clone(), |buffer: &Box<LayerBuffer>| {
+        Layer::do_for_all_tiles(layer.clone(), |buffer: &Box<LayerBuffer>| {
             debug!("osmain: compositing buffer rect {}", buffer.rect);
 
             let size = Size2D(buffer.screen_pos.size.width as int,
@@ -679,7 +676,7 @@ impl CompositorData {
     //
     // If the epoch of the message does not match the layer's epoch, the message is ignored, the
     // layer buffer set is consumed, and None is returned.
-    pub fn add_buffers(layer: Rc<ContainerLayer<CompositorData>>,
+    pub fn add_buffers(layer: Rc<Layer<CompositorData>>,
                        graphics_context: &NativeCompositingGraphicsContext,
                        pipeline_id: PipelineId,
                        layer_id: LayerId,
@@ -690,7 +687,7 @@ impl CompositorData {
         if layer.extra_data.borrow().pipeline.id != pipeline_id ||
            layer.extra_data.borrow().id != layer_id {
             // ID does not match ours, so recurse on descendents (including hidden children).
-            for child_layer in layer.children() {
+            for child_layer in layer.children().iter() {
                 match CompositorData::add_buffers(child_layer.clone(),
                                                   graphics_context,
                                                   pipeline_id,
@@ -721,7 +718,7 @@ impl CompositorData {
         {
             let mut unused_tiles = vec!();
             for buffer in new_buffers.buffers.move_iter().rev() {
-                unused_tiles.push_all_move(ContainerLayer::add_tile_pixel(layer.clone(), buffer));
+                unused_tiles.push_all_move(Layer::add_tile_pixel(layer.clone(), buffer));
             }
             if !unused_tiles.is_empty() { // send back unused buffers
                 let msg = UnusedBufferMsg(unused_tiles);
@@ -735,19 +732,19 @@ impl CompositorData {
 
     // Recursively sets occluded portions of quadtrees to Hidden, so that they do not ask for
     // tile requests. If layers are moved, resized, or deleted, these portions may be updated.
-    fn set_occlusions(layer: Rc<ContainerLayer<CompositorData>>) {
-        for kid in layer.children() {
+    fn set_occlusions(layer: Rc<Layer<CompositorData>>) {
+        for kid in layer.children().iter() {
             if !kid.extra_data.borrow().hidden {
                 match kid.extra_data.borrow().scissor {
                     None => {} // Nothing to do
                     Some(rect) => {
-                        ContainerLayer::set_status_page(layer.clone(), rect, Hidden, false);
+                        Layer::set_status_page(layer.clone(), rect, Hidden, false);
                     }
                 }
             }
         }
 
-        for kid in layer.children() {
+        for kid in layer.children().iter() {
             if !kid.extra_data.borrow().hidden {
                 CompositorData::set_occlusions(kid.clone());
             }
@@ -756,8 +753,8 @@ impl CompositorData {
 
     /// Destroys all quadtree tiles, sending the buffers back to the renderer to be destroyed or
     /// reused.
-    fn clear(layer: Rc<ContainerLayer<CompositorData>>) {
-        let mut tiles = ContainerLayer::collect_tiles(layer.clone());
+    fn clear(layer: Rc<Layer<CompositorData>>) {
+        let mut tiles = Layer::collect_tiles(layer.clone());
 
         if !tiles.is_empty() {
             // We have no way of knowing without a race whether the render task is even up and
@@ -773,9 +770,9 @@ impl CompositorData {
 
     /// Destroys tiles for this layer and all descendent layers, sending the buffers back to the
     /// renderer to be destroyed or reused.
-    pub fn clear_all_tiles(layer: Rc<ContainerLayer<CompositorData>>) {
+    pub fn clear_all_tiles(layer: Rc<Layer<CompositorData>>) {
         CompositorData::clear(layer.clone());
-        for kid in layer.children() {
+        for kid in layer.children().iter() {
             CompositorData::clear_all_tiles(kid.clone());
         }
     }
@@ -785,26 +782,26 @@ impl CompositorData {
     /// otherwise, you will leak tiles.
     ///
     /// This is used during shutdown, when we know the render task is going away.
-    pub fn forget_all_tiles(layer: Rc<ContainerLayer<CompositorData>>) {
-        let tiles = ContainerLayer::collect_tiles(layer.clone());
+    pub fn forget_all_tiles(layer: Rc<Layer<CompositorData>>) {
+        let tiles = Layer::collect_tiles(layer.clone());
         for tile in tiles.move_iter() {
             let mut tile = tile;
             tile.mark_wont_leak()
         }
 
-        for kid in layer.children() {
+        for kid in layer.children().iter() {
             CompositorData::forget_all_tiles(kid.clone());
         }
     }
 
-    pub fn set_unrendered_color(layer: Rc<ContainerLayer<CompositorData>>,
+    pub fn set_unrendered_color(layer: Rc<Layer<CompositorData>>,
                                 pipeline_id: PipelineId,
                                 layer_id: LayerId,
                                 color: Color)
                                 -> bool {
         if layer.extra_data.borrow().pipeline.id != pipeline_id ||
            layer.extra_data.borrow().id != layer_id {
-            for child_layer in layer.children() {
+            for child_layer in layer.children().iter() {
                 if CompositorData::set_unrendered_color(child_layer.clone(),
                                                         pipeline_id,
                                                         layer_id,
