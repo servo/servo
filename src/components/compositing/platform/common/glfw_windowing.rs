@@ -92,8 +92,6 @@ pub struct Window {
 
     event_queue: RefCell<Vec<WindowEvent>>,
 
-    drag_origin: Point2D<c_int>,
-
     mouse_down_button: Cell<Option<glfw::MouseButton>>,
     mouse_down_point: Cell<Point2D<c_int>>,
 
@@ -120,8 +118,6 @@ impl WindowMethods<Application> for Window {
             events: events,
 
             event_queue: RefCell::new(vec!()),
-
-            drag_origin: Point2D(0 as c_int, 0),
 
             mouse_down_button: Cell::new(None),
             mouse_down_point: Cell::new(Point2D(0 as c_int, 0)),

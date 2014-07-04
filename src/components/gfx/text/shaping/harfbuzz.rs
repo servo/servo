@@ -53,7 +53,6 @@ pub struct ShapedGlyphData {
 }
 
 pub struct ShapedGlyphEntry {
-    cluster: int,
     codepoint: GlyphId,
     advance: Au,
     offset: Option<Point2D<Au>>,
@@ -123,7 +122,6 @@ impl ShapedGlyphData {
             };
 
             ShapedGlyphEntry {
-                cluster: (*glyph_info_i).cluster as int,
                 codepoint: (*glyph_info_i).codepoint as GlyphId,
                 advance: x_advance,
                 offset: offset,

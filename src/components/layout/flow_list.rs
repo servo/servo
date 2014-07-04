@@ -33,7 +33,6 @@ pub struct FlowList {
 /// Double-ended FlowList iterator
 pub struct FlowListIterator<'a> {
     head: &'a Link,
-    tail: Rawlink,
     nelem: uint,
 }
 
@@ -41,7 +40,6 @@ pub struct FlowListIterator<'a> {
 pub struct MutFlowListIterator<'a> {
     list: &'a mut FlowList,
     head: Rawlink,
-    tail: Rawlink,
     nelem: uint,
 }
 
@@ -57,13 +55,6 @@ impl Rawlink {
     /// Like Option::Some for Rawlink
     pub fn some(n: &Flow) -> Rawlink {
         unsafe { mem::transmute(n) }
-    }
-
-    fn from_optional_flow_ref(flow_ref: &Option<FlowRef>) -> Rawlink {
-        match *flow_ref {
-            None => Rawlink::none(),
-            Some(ref flow_ref) => Rawlink::some(flow_ref.get()),
-        }
     }
 
     pub unsafe fn resolve_mut(&self) -> Option<&mut Flow> {
@@ -204,7 +195,6 @@ impl FlowList {
         FlowListIterator {
             nelem: self.len(),
             head: &self.list_head,
-            tail: Rawlink::from_optional_flow_ref(&self.list_tail)
         }
     }
 
@@ -218,7 +208,6 @@ impl FlowList {
         MutFlowListIterator {
             nelem: self.len(),
             head: head_raw,
-            tail: Rawlink::from_optional_flow_ref(&self.list_tail),
             list: self
         }
     }

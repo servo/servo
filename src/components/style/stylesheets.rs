@@ -22,9 +22,6 @@ pub struct Stylesheet {
     /// List of rules in the order they were found (important for
     /// cascading order)
     pub rules: Vec<CSSRule>,
-    namespaces: NamespaceMap,
-    encoding: EncodingRef,
-    base_url: Url,
 }
 
 
@@ -120,7 +117,7 @@ impl Stylesheet {
             }
             state = next_state;
         }
-        Stylesheet{ rules: rules, namespaces: namespaces, encoding: encoding, base_url: base_url }
+        Stylesheet{ rules: rules }
     }
 }
 
