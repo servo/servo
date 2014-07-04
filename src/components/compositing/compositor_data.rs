@@ -371,7 +371,7 @@ impl CompositorData {
             CompositorData::build_layer_tree(layer.clone(), graphics_context);
         }
 
-        let transform = |kid: Rc<ContainerLayer<CompositorData>>| -> bool {
+        let get_child_buffer_request = |kid: Rc<ContainerLayer<CompositorData>>| -> bool {
             match kid.extra_data.borrow().scissor {
                 Some(scissor) => {
                     let mut new_rect = window_rect;
@@ -400,7 +400,7 @@ impl CompositorData {
         };
 
         layer.children().filter(|x| !x.extra_data.borrow().hidden)
-            .map(transform)
+            .map(get_child_buffer_request)
             .any(|b| b) || redisplay
     }
 
