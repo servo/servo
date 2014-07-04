@@ -556,7 +556,8 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
         self.filter_response_headers().iter().find(|h| {
             name.eq_ignore_case(&FromStr::from_str(h.header_name().as_slice()).unwrap())
         }).map(|h| {
-            FromStr::from_str(h.header_value().as_slice()).unwrap()
+            // rust-http doesn't decode properly, we'll convert it back to bytes here
+            ByteString::new(h.header_value().as_slice().chars().map(|c| { assert!(c <= '\u00FF'); c as u8 }).collect())
         })
     }
     fn GetAllResponseHeaders(&self) -> ByteString {
