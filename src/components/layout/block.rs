@@ -76,7 +76,7 @@ impl FloatedBlockInfo {
 /// The solutions for the heights-and-margins constraint equation.
 struct HeightConstraintSolution {
     top: Au,
-    bottom: Au,
+    _bottom: Au,
     height: Au,
     margin_top: Au,
     margin_bottom: Au
@@ -87,7 +87,7 @@ impl HeightConstraintSolution {
            -> HeightConstraintSolution {
         HeightConstraintSolution {
             top: top,
-            bottom: bottom,
+            _bottom: bottom,
             height: height,
             margin_top: margin_top,
             margin_bottom: margin_bottom,

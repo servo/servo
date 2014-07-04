@@ -950,9 +950,10 @@ pub struct cef_scheme_registrar {
   // per unique |scheme_name| value. If |scheme_name| is already registered or
   // if an error occurs this function will return false (0).
   ///
-  add_custom_scheme: extern "C" fn(registrar: *mut cef_scheme_registrar,
-                               scheme_name: *cef_string_t,
-                               is_standard: c_int, is_local: c_int, is_display_isolated: c_int),
+  _add_custom_scheme: extern "C" fn(registrar: *mut cef_scheme_registrar,
+                                    scheme_name: *cef_string_t,
+                                    is_standard: c_int, is_local: c_int,
+                                    is_display_isolated: c_int),
 }
 
 ///

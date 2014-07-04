@@ -38,7 +38,7 @@ pub struct FlowListIterator<'a> {
 
 /// Double-ended mutable FlowList iterator
 pub struct MutFlowListIterator<'a> {
-    list: &'a mut FlowList,
+    _list: &'a mut FlowList,
     head: Rawlink,
     nelem: uint,
 }
@@ -208,7 +208,7 @@ impl FlowList {
         MutFlowListIterator {
             nelem: self.len(),
             head: head_raw,
-            list: self
+            _list: self
         }
     }
 }

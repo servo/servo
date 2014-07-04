@@ -109,7 +109,7 @@ pub fn WrapCallThisObject<T: Reflectable>(cx: *mut JSContext,
 
 pub struct CallSetup {
     cx: *mut JSContext,
-    handling: ExceptionHandling
+    _handling: ExceptionHandling
 }
 
 impl CallSetup {
@@ -118,7 +118,7 @@ impl CallSetup {
         let cx = win.deref().get_cx();
         CallSetup {
             cx: cx,
-            handling: handling
+            _handling: handling
         }
     }
 
