@@ -16,25 +16,26 @@ use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::htmltitleelement::HTMLTitleElement;
 use dom::node::{Node, NodeMethods};
 use dom::text::Text;
-use dom::window::{Window, WindowMethods};
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
 pub struct DOMImplementation {
-    owner: JS<Window>,
+    document: JS<Document>,
     reflector_: Reflector,
 }
 
 impl DOMImplementation {
-    pub fn new_inherited(owner: &JSRef<Window>) -> DOMImplementation {
+    pub fn new_inherited(document: &JSRef<Document>) -> DOMImplementation {
         DOMImplementation {
-            owner: JS::from_rooted(owner),
+            document: JS::from_rooted(document),
             reflector_: Reflector::new(),
         }
     }
 
-    pub fn new(owner: &JSRef<Window>) -> Temporary<DOMImplementation> {
-        reflect_dom_object(box DOMImplementation::new_inherited(owner), owner,
+    pub fn new(document: &JSRef<Document>) -> Temporary<DOMImplementation> {
+        let window = document.window.root();
+        reflect_dom_object(box DOMImplementation::new_inherited(document),
+                           &*window,
                            DOMImplementationBinding::Wrap)
     }
 }
@@ -63,8 +64,7 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
             Name => Err(NamespaceError),
             // Step 3.
             QName => {
-                let owner = self.owner.root();
-                let document = owner.deref().Document().root();
+                let document = self.document.root();
                 Ok(DocumentType::new(qname, Some(pubid), Some(sysid), &*document))
             }
         }
@@ -73,7 +73,8 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
     // http://dom.spec.whatwg.org/#dom-domimplementation-createdocument
     fn CreateDocument(&self, namespace: Option<DOMString>, qname: DOMString,
                       maybe_doctype: Option<JSRef<DocumentType>>) -> Fallible<Temporary<Document>> {
-        let win = self.owner.root();
+        let doc = self.document.root();
+        let win = doc.window.root();
 
         // Step 1.
         let doc = Document::new(&win.root_ref(), None, NonHTMLDocument, None).root();
@@ -117,10 +118,11 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
 
     // http://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
     fn CreateHTMLDocument(&self, title: Option<DOMString>) -> Temporary<Document> {
-        let owner = self.owner.root();
+        let document = self.document.root();
+        let win = document.window.root();
 
         // Step 1-2.
-        let doc = Document::new(&owner.root_ref(), None, HTMLDocument, None).root();
+        let doc = Document::new(&win.root_ref(), None, HTMLDocument, None).root();
         let doc_node: &JSRef<Node> = NodeCast::from_ref(&*doc);
 
         {
