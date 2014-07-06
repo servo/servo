@@ -32,7 +32,8 @@ pub struct LoadData {
     pub url: Url,
     pub method: Method,
     pub headers: RequestHeaderCollection,
-    pub data: Option<Vec<u8>>
+    pub data: Option<Vec<u8>>,
+    pub cors: Option<ResourceCORSData>
 }
 
 impl LoadData {
@@ -41,9 +42,18 @@ impl LoadData {
             url: url,
             method: Get,
             headers: RequestHeaderCollection::new(),
-            data: None
+            data: None,
+            cors: None
         }
     }
+}
+
+#[deriving(Clone)]
+pub struct ResourceCORSData {
+    /// CORS Preflight flag
+    pub preflight: bool,
+    /// Origin of CORS Request
+    pub origin: Url
 }
 
 /// Metadata about a loaded resource, such as is obtained from HTTP headers.

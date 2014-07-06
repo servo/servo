@@ -42,7 +42,8 @@ use js::jsval::{JSVal, NullValue, UndefinedValue};
 use libc;
 use libc::c_void;
 
-use net::resource_task::{ResourceTask, Load, LoadData, Payload, Done};
+use net::resource_task::{ResourceTask, ResourceCORSData, Load, LoadData, Payload, Done};
+use cors::{allow_cross_origin_request, CORSRequest, CORSMode, ForcedPreflightMode};
 use script_task::{ScriptChan, XHRProgressMsg};
 use servo_util::str::DOMString;
 use servo_util::task::spawn_named;
@@ -180,7 +181,8 @@ impl XMLHttpRequest {
     }
 
     fn fetch(fetch_type: &SyncOrAsync, resource_task: ResourceTask,
-             load_data: LoadData, terminate_receiver: Receiver<Error>) -> ErrorResult {
+             mut load_data: LoadData, terminate_receiver: Receiver<Error>,
+             cors_request: Result<Option<CORSRequest>,()>) -> ErrorResult {
         fn notify_partial_progress(fetch_type: &SyncOrAsync, msg: XHRProgress) {
             match *fetch_type {
                 Sync(ref xhr) => {
@@ -193,6 +195,22 @@ impl XMLHttpRequest {
             }
         }
 
+        match cors_request {
+            Err(_) => return Err(Network), // Happens in case of cross-origin non-http URIs
+            Ok(Some(ref req)) => {
+                let response = req.http_fetch();
+                if response.network_error {
+                    return Err(Network)
+                } else {
+                    load_data.cors = Some(ResourceCORSData {
+                        preflight: req.preflight_flag,
+                        origin: req.origin.clone()
+                    })
+                }
+            },
+            _ => {}
+        }
+
         // Step 10, 13
         let (start_chan, start_port) = channel();
         resource_task.send(Load(load_data, start_chan));
@@ -201,6 +219,17 @@ impl XMLHttpRequest {
             Ok(e) => return Err(e),
             _ => {}
         }
+        match cors_request {
+            Ok(Some(ref req)) => {
+                    match response.metadata.headers {
+                        Some(ref h) if allow_cross_origin_request(req, h) => {},
+                        _ => return Err(Network)
+                    }
+            },
+            _ => {}
+        }
+        // XXXManishearth Clear cache entries in case of a network error
+
         notify_partial_progress(fetch_type, HeadersReceivedMsg(
             response.metadata.headers.clone(), response.metadata.status.clone()));
         let mut buf = vec!();
@@ -514,23 +543,48 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
             request_headers.borrow_mut().accept = Some(String::from_str("*/*"))
         }
 
-        // XXXManishearth this is to be replaced with Origin for CORS (with no path)
-        let referer_url = self.global.root().root_ref().get_url();
-        self.request_headers.deref().borrow_mut().referer =
-            Some(referer_url.serialize_no_fragment());
-
         load_data.headers = (*self.request_headers.deref().borrow()).clone();
         load_data.method = (*self.request_method.deref().borrow()).clone();
         let (terminate_sender, terminate_receiver) = channel();
         *self.terminate_sender.deref().borrow_mut() = Some(terminate_sender);
+
+        // CORS stuff
+        let referer_url = self.global.root().root_ref().get_url();
+        let mode = if self.upload_events.deref().get() {
+            ForcedPreflightMode
+        } else {
+            CORSMode
+        };
+        let cors_request = CORSRequest::maybe_new(referer_url.clone(), load_data.url.clone(), mode,
+                                                  load_data.method.clone(), load_data.headers.clone());
+        match cors_request {
+            Ok(None) => {
+                let mut buf = String::new();
+                buf.push_str(referer_url.scheme.as_slice());
+                buf.push_str("://".as_slice());
+                referer_url.serialize_host().map(|ref h| buf.push_str(h.as_slice()));
+                referer_url.port().as_ref().map(|&p| {
+                    buf.push_str(":".as_slice());
+                    buf.push_str(p);
+                });
+                referer_url.serialize_path().map(|ref h| buf.push_str(h.as_slice()));
+                self.request_headers.deref().borrow_mut().referer = Some(buf);
+            },
+            Ok(Some(ref req)) => self.insert_trusted_header("origin".to_string(),
+                                                            format!("{}", req.origin)),
+            _ => {}
+        }
+
         if self.sync.deref().get() {
-            return XMLHttpRequest::fetch(&mut Sync(self), resource_task, load_data, terminate_receiver);
+            return XMLHttpRequest::fetch(&mut Sync(self), resource_task, load_data,
+                                         terminate_receiver, cors_request);
         } else {
             let builder = TaskBuilder::new().named("XHRTask");
             self.fetch_time.deref().set(time::now().to_timespec().sec);
             let script_chan = global.root_ref().script_chan().clone();
             builder.spawn(proc() {
-                let _ = XMLHttpRequest::fetch(&mut Async(addr.unwrap(), script_chan), resource_task, load_data, terminate_receiver);
+                let _ = XMLHttpRequest::fetch(&mut Async(addr.unwrap(), script_chan),
+                                              resource_task, load_data, terminate_receiver, cors_request);
             });
             let timeout = self.timeout.deref().get();
             if timeout > 0 {

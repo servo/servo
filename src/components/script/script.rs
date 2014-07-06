@@ -42,6 +42,8 @@ extern crate sync;
 extern crate servo_msg = "msg";
 extern crate url = "url_";
 
+
+pub mod cors;
 pub mod dom {
     pub mod bindings {
         pub mod global;
