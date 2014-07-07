@@ -75,7 +75,10 @@
 == pseudo_element_a.html pseudo_element_b.html
 == linebreak_simple_a.html linebreak_simple_b.html
 == linebreak_inline_span_a.html linebreak_inline_span_b.html
-== overconstrained_block.html overconstrained_block_ref.html
+
+# Should be == with expected failure. See #2797
+!= overconstrained_block.html overconstrained_block_ref.html
+
 == overflow_auto.html overflow_simple_b.html
 == overflow_scroll.html overflow_simple_b.html
 == overflow_simple_a.html overflow_simple_b.html

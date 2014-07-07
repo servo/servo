@@ -8,11 +8,13 @@ pub use std::ascii::StrAsciiExt;
 use serialize::{Encodable, Encoder};
 
 pub use servo_util::url::parse_url;
+use servo_util::logical_geometry::{WritingMode, LogicalMargin};
 use sync::Arc;
 pub use url::Url;
 
 pub use cssparser::*;
 pub use cssparser::ast::*;
+pub use geom::SideOffsets2D;
 
 use errors::{ErrorLoggerIterator, log_css_error};
 pub use parsing_utils::*;
@@ -1590,8 +1592,6 @@ impl PropertyDeclaration {
 
 pub mod style_structs {
     use super::longhands;
-    use super::computed_values;
-    use servo_util::logical_geometry::WritingMode;
 
     % for style_struct in STYLE_STRUCTS:
         #[deriving(PartialEq, Clone)]
@@ -1601,42 +1601,6 @@ pub mod style_structs {
             % endfor
         }
     % endfor
-
-    impl InheritedBox {
-        /// Return a WritingMode bitflags from the relevant CSS properties.
-        pub fn get_writing_mode(&self) -> WritingMode {
-            use servo_util::logical_geometry;
-            let mut flags = WritingMode::empty();
-            match self.direction {
-                computed_values::direction::ltr => {},
-                computed_values::direction::rtl => {
-                    flags.insert(logical_geometry::FlagRTL);
-                },
-            }
-            match self.writing_mode {
-                computed_values::writing_mode::horizontal_tb => {},
-                computed_values::writing_mode::vertical_rl => {
-                    flags.insert(logical_geometry::FlagVertical);
-                },
-                computed_values::writing_mode::vertical_lr => {
-                    flags.insert(logical_geometry::FlagVertical);
-                    flags.insert(logical_geometry::FlagVerticalLR);
-                },
-            }
-            match self.text_orientation {
-                computed_values::text_orientation::sideways_right => {},
-                computed_values::text_orientation::sideways_left => {
-                    flags.insert(logical_geometry::FlagSidewaysLeft);
-                },
-                computed_values::text_orientation::sideways => {
-                    if flags.intersects(logical_geometry::FlagVerticalLR) {
-                        flags.insert(logical_geometry::FlagSidewaysLeft);
-                    }
-                },
-            }
-            flags
-        }
-    }
 }
 
 #[deriving(Clone)]
@@ -1645,6 +1609,7 @@ pub struct ComputedValues {
         ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
     % endfor
     shareable: bool,
+    pub writing_mode: WritingMode,
 }
 
 impl ComputedValues {
@@ -1662,13 +1627,131 @@ impl ComputedValues {
         }
     }
 
+    #[inline]
+    pub fn content_isize(&self) -> computed_values::LengthOrPercentageOrAuto {
+        let box_style = self.get_box();
+        if self.writing_mode.is_vertical() { box_style.height } else { box_style.width }
+    }
+
+    #[inline]
+    pub fn content_bsize(&self) -> computed_values::LengthOrPercentageOrAuto {
+        let box_style = self.get_box();
+        if self.writing_mode.is_vertical() { box_style.width } else { box_style.height }
+    }
+
+    #[inline]
+    pub fn min_isize(&self) -> computed_values::LengthOrPercentage {
+        let box_style = self.get_box();
+        if self.writing_mode.is_vertical() { box_style.min_height } else { box_style.min_width }
+    }
+
+    #[inline]
+    pub fn min_bsize(&self) -> computed_values::LengthOrPercentage {
+        let box_style = self.get_box();
+        if self.writing_mode.is_vertical() { box_style.min_width } else { box_style.min_height }
+    }
+
+    #[inline]
+    pub fn max_isize(&self) -> computed_values::LengthOrPercentageOrNone {
+        let box_style = self.get_box();
+        if self.writing_mode.is_vertical() { box_style.max_height } else { box_style.max_width }
+    }
+
+    #[inline]
+    pub fn max_bsize(&self) -> computed_values::LengthOrPercentageOrNone {
+        let box_style = self.get_box();
+        if self.writing_mode.is_vertical() { box_style.max_width } else { box_style.max_height }
+    }
+
+    #[inline]
+    pub fn logical_padding(&self) -> LogicalMargin<computed_values::LengthOrPercentage> {
+        let padding_style = self.get_padding();
+        LogicalMargin::from_physical(self.writing_mode, SideOffsets2D::new(
+            padding_style.padding_top,
+            padding_style.padding_right,
+            padding_style.padding_bottom,
+            padding_style.padding_left,
+        ))
+    }
+
+    #[inline]
+    pub fn logical_border_width(&self) -> LogicalMargin<Au> {
+        let border_style = self.get_border();
+        LogicalMargin::from_physical(self.writing_mode, SideOffsets2D::new(
+            border_style.border_top_width,
+            border_style.border_right_width,
+            border_style.border_bottom_width,
+            border_style.border_left_width,
+        ))
+    }
+
+    #[inline]
+    pub fn logical_margin(&self) -> LogicalMargin<computed_values::LengthOrPercentageOrAuto> {
+        let margin_style = self.get_margin();
+        LogicalMargin::from_physical(self.writing_mode, SideOffsets2D::new(
+            margin_style.margin_top,
+            margin_style.margin_right,
+            margin_style.margin_bottom,
+            margin_style.margin_left,
+        ))
+    }
+
+    #[inline]
+    pub fn logical_position(&self) -> LogicalMargin<computed_values::LengthOrPercentageOrAuto> {
+        // FIXME(SimonSapin): should be the writing mode of the containing block, maybe?
+        let position_style = self.get_positionoffsets();
+        LogicalMargin::from_physical(self.writing_mode, SideOffsets2D::new(
+            position_style.top,
+            position_style.right,
+            position_style.bottom,
+            position_style.left,
+        ))
+    }
+
     % for style_struct in STYLE_STRUCTS:
+        #[inline]
         pub fn get_${style_struct.name.lower()}
                 <'a>(&'a self) -> &'a style_structs::${style_struct.name} {
             &*self.${style_struct.ident}
         }
     % endfor
 }
+
+
+/// Return a WritingMode bitflags from the relevant CSS properties.
+fn get_writing_mode(inheritedbox_style: &style_structs::InheritedBox) -> WritingMode {
+    use servo_util::logical_geometry;
+    let mut flags = WritingMode::empty();
+    match inheritedbox_style.direction {
+        computed_values::direction::ltr => {},
+        computed_values::direction::rtl => {
+            flags.insert(logical_geometry::FlagRTL);
+        },
+    }
+    match inheritedbox_style.writing_mode {
+        computed_values::writing_mode::horizontal_tb => {},
+        computed_values::writing_mode::vertical_rl => {
+            flags.insert(logical_geometry::FlagVertical);
+        },
+        computed_values::writing_mode::vertical_lr => {
+            flags.insert(logical_geometry::FlagVertical);
+            flags.insert(logical_geometry::FlagVerticalLR);
+        },
+    }
+    match inheritedbox_style.text_orientation {
+        computed_values::text_orientation::sideways_right => {},
+        computed_values::text_orientation::sideways_left => {
+            flags.insert(logical_geometry::FlagSidewaysLeft);
+        },
+        computed_values::text_orientation::sideways => {
+            if flags.intersects(logical_geometry::FlagVerticalLR) {
+                flags.insert(logical_geometry::FlagSidewaysLeft);
+            }
+        },
+    }
+    flags
+}
+
 
 /// The initial values for all style structs as defined by the specification.
 lazy_init! {
@@ -1681,7 +1764,14 @@ lazy_init! {
             }),
         % endfor
         shareable: true,
+        writing_mode: WritingMode::empty()
     };
+}
+
+
+#[test]
+fn initial_writing_mode_is_empty() {
+    assert_eq!(get_writing_mode(INITIAL_VALUES.get_inheritedbox()), WritingMode::empty())
 }
 
 
@@ -1780,6 +1870,7 @@ fn cascade_with_cached_declarations(applicable_declarations: &[MatchedProperty],
     }
 
     ComputedValues {
+        writing_mode: get_writing_mode(&*style_inheritedbox),
         % for style_struct in STYLE_STRUCTS:
             ${style_struct.ident}: style_${style_struct.ident},
         % endfor
@@ -1998,6 +2089,7 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
     }
 
     (ComputedValues {
+        writing_mode: get_writing_mode(&*style_inheritedbox),
         % for style_struct in STYLE_STRUCTS:
             ${style_struct.ident}: style_${style_struct.ident},
         % endfor
@@ -2023,6 +2115,7 @@ pub fn cascade_anonymous(parent_style: &ComputedValues) -> ComputedValues {
                 .${style_struct.ident}.clone(),
         % endfor
         shareable: false,
+        writing_mode: parent_style.writing_mode,
     };
     {
         let border = result.border.make_unique_experimental();

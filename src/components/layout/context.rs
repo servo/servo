@@ -6,8 +6,7 @@
 
 use css::matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
 
-use geom::rect::Rect;
-use geom::size::Size2D;
+use geom::{Rect, Size2D};
 use gfx::display_list::OpaqueNode;
 use gfx::font_context::FontContext;
 use gfx::font_cache_task::FontCacheTask;

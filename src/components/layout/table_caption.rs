@@ -47,18 +47,18 @@ impl Flow for TableCaptionFlow {
         &mut self.block_flow
     }
 
-    fn bubble_widths(&mut self, ctx: &mut LayoutContext) {
-        self.block_flow.bubble_widths(ctx);
+    fn bubble_isizes(&mut self, ctx: &mut LayoutContext) {
+        self.block_flow.bubble_isizes(ctx);
     }
 
-    fn assign_widths(&mut self, ctx: &mut LayoutContext) {
-        debug!("assign_widths({}): assigning width for flow", "table_caption");
-        self.block_flow.assign_widths(ctx);
+    fn assign_isizes(&mut self, ctx: &mut LayoutContext) {
+        debug!("assign_isizes({}): assigning isize for flow", "table_caption");
+        self.block_flow.assign_isizes(ctx);
     }
 
-    fn assign_height(&mut self, ctx: &mut LayoutContext) {
-        debug!("assign_height: assigning height for table_caption");
-        self.block_flow.assign_height(ctx);
+    fn assign_bsize(&mut self, ctx: &mut LayoutContext) {
+        debug!("assign_bsize: assigning bsize for table_caption");
+        self.block_flow.assign_bsize(ctx);
     }
 
     fn compute_absolute_position(&mut self) {

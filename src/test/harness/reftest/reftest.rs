@@ -82,8 +82,8 @@ fn parse_lists(file: &String, servo_args: &[String]) -> Vec<TestDescAndFn> {
        };
 
     for line in contents.as_slice().lines() {
-       // ignore comments
-       if line.starts_with("#") {
+       // ignore comments or empty lines
+       if line.starts_with("#") || line.is_empty() {
           continue;
        }
 

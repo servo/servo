@@ -5,6 +5,7 @@
 /// Geometry in flow-relative space.
 
 use geom::{Size2D, Point2D, SideOffsets2D, Rect};
+use std::cmp::{min, max};
 use std::fmt::{Show, Formatter, FormatError};
 use std::num::Zero;
 
@@ -395,6 +396,20 @@ impl<T: Copy + Sub<T, T>> LogicalPoint<T> {
     }
 }
 
+impl<T: Add<T,T>> LogicalPoint<T> {
+    /// This doesn’t really makes sense,
+    /// but happens when dealing with mutliple origins.
+    #[inline]
+    pub fn add_point(&self, other: &LogicalPoint<T>) -> LogicalPoint<T> {
+        self.debug_writing_mode.check_debug(other.debug_writing_mode);
+        LogicalPoint {
+            debug_writing_mode: self.debug_writing_mode,
+            i: self.i + other.i,
+            b: self.b + other.b,
+        }
+    }
+}
+
 impl<T: Add<T,T>> Add<LogicalSize<T>, LogicalPoint<T>> for LogicalPoint<T> {
     #[inline]
     fn add(&self, other: &LogicalSize<T>) -> LogicalPoint<T> {
@@ -471,6 +486,11 @@ impl<T: Copy> LogicalMargin<T> {
             istart: istart,
             debug_writing_mode: DebugWritingMode::new(mode),
         }
+    }
+
+    #[inline]
+    pub fn new_all_same(mode: WritingMode, value: T) -> LogicalMargin<T> {
+        LogicalMargin::new(mode, value, value, value, value)
     }
 
     #[inline]
@@ -737,6 +757,18 @@ impl<T: Copy> LogicalRect<T> {
             debug_writing_mode: DebugWritingMode::new(mode),
         }
     }
+
+    #[inline]
+    pub fn from_point_size(mode: WritingMode, start: LogicalPoint<T>, size: LogicalSize<T>)
+                           -> LogicalRect<T> {
+        start.debug_writing_mode.check(mode);
+        size.debug_writing_mode.check(mode);
+        LogicalRect {
+            start: start,
+            size: size,
+            debug_writing_mode: DebugWritingMode::new(mode),
+        }
+    }
 }
 
 impl<T: Copy + Add<T, T> + Sub<T, T>> LogicalRect<T> {
@@ -832,6 +864,41 @@ impl<T: Copy + Add<T, T> + Sub<T, T>> LogicalRect<T> {
         } else {
             LogicalRect::from_physical(
                 mode_to, self.to_physical(mode_from, container_size), container_size)
+        }
+    }
+
+    pub fn translate(&self, offset: &LogicalPoint<T>) -> LogicalRect<T> {
+        LogicalRect {
+            start: self.start + LogicalSize {
+                isize: offset.i,
+                bsize: offset.b,
+                debug_writing_mode: offset.debug_writing_mode,
+            },
+            size: self.size,
+            debug_writing_mode: self.debug_writing_mode,
+        }
+    }
+}
+
+impl<T: Copy + Ord + Add<T, T> + Sub<T, T>> LogicalRect<T> {
+    #[inline]
+    pub fn union(&self, other: &LogicalRect<T>) -> LogicalRect<T> {
+        self.debug_writing_mode.check_debug(other.debug_writing_mode);
+
+        let istart = min(self.start.i, other.start.i);
+        let bstart = min(self.start.b, other.start.b);
+        LogicalRect {
+            start: LogicalPoint {
+                i: istart,
+                b: bstart,
+                debug_writing_mode: self.debug_writing_mode,
+            },
+            size: LogicalSize {
+                isize: max(self.iend(), other.iend()) - istart,
+                bsize: max(self.bend(), other.bend()) - bstart,
+                debug_writing_mode: self.debug_writing_mode,
+            },
+            debug_writing_mode: self.debug_writing_mode,
         }
     }
 }

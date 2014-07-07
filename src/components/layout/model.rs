@@ -14,6 +14,7 @@ use style::computed_values::{LPA_Auto, LPA_Length, LPA_Percentage, LP_Length, LP
 use style::ComputedValues;
 use servo_util::geometry::Au;
 use servo_util::geometry;
+use servo_util::logical_geometry::LogicalMargin;
 use std::fmt;
 
 /// A collapsible margin. See CSS 2.1 § 8.3.1.
@@ -58,12 +59,12 @@ impl AdjoiningMargins {
     }
 }
 
-/// Represents the top and bottom margins of a flow with collapsible margins. See CSS 2.1 § 8.3.1.
+/// Represents the bstart and bend margins of a flow with collapsible margins. See CSS 2.1 § 8.3.1.
 pub enum CollapsibleMargins {
     /// Margins may not collapse with this flow.
     NoCollapsibleMargins(Au, Au),
 
-    /// Both the top and bottom margins (specified here in that order) may collapse, but the
+    /// Both the bstart and bend margins (specified here in that order) may collapse, but the
     /// margins do not collapse through this flow.
     MarginsCollapse(AdjoiningMargins, AdjoiningMargins),
 
@@ -85,7 +86,7 @@ enum FinalMarginState {
 
 pub struct MarginCollapseInfo {
     pub state: MarginCollapseState,
-    pub top_margin: AdjoiningMargins,
+    pub bstart_margin: AdjoiningMargins,
     pub margin_in: AdjoiningMargins,
 }
 
@@ -94,42 +95,42 @@ impl MarginCollapseInfo {
     pub fn new() -> MarginCollapseInfo {
         MarginCollapseInfo {
             state: AccumulatingCollapsibleTopMargin,
-            top_margin: AdjoiningMargins::new(),
+            bstart_margin: AdjoiningMargins::new(),
             margin_in: AdjoiningMargins::new(),
         }
     }
 
-    pub fn initialize_top_margin(&mut self,
+    pub fn initialize_bstart_margin(&mut self,
                                  fragment: &Fragment,
-                                 can_collapse_top_margin_with_kids: bool) {
-        if !can_collapse_top_margin_with_kids {
+                                 can_collapse_bstart_margin_with_kids: bool) {
+        if !can_collapse_bstart_margin_with_kids {
             self.state = AccumulatingMarginIn
         }
 
-        self.top_margin = AdjoiningMargins::from_margin(fragment.margin.top)
+        self.bstart_margin = AdjoiningMargins::from_margin(fragment.margin.bstart)
     }
 
     pub fn finish_and_compute_collapsible_margins(mut self,
                                                   fragment: &Fragment,
-                                                  can_collapse_bottom_margin_with_kids: bool)
+                                                  can_collapse_bend_margin_with_kids: bool)
                                                   -> (CollapsibleMargins, Au) {
         let state = match self.state {
             AccumulatingCollapsibleTopMargin => {
-                match fragment.style().get_box().height {
+                match fragment.style().content_bsize() {
                     LPA_Auto | LPA_Length(Au(0)) | LPA_Percentage(0.) => {
-                        match fragment.style().get_box().min_height {
+                        match fragment.style().min_bsize() {
                             LP_Length(Au(0)) | LP_Percentage(0.) => {
                                 MarginsCollapseThroughFinalMarginState
                             },
                             _ => {
-                                // If the fragment has non-zero min-height, margins may not
+                                // If the fragment has non-zero min-bsize, margins may not
                                 // collapse through it.
                                 BottomMarginCollapsesFinalMarginState
                             }
                         }
                     },
                     _ => {
-                        // If the fragment has an explicitly specified height, margins may not
+                        // If the fragment has an explicitly specified bsize, margins may not
                         // collapse through it.
                         BottomMarginCollapsesFinalMarginState
                     }
@@ -138,31 +139,31 @@ impl MarginCollapseInfo {
             AccumulatingMarginIn => BottomMarginCollapsesFinalMarginState,
         };
 
-        // Different logic is needed here depending on whether this flow can collapse its bottom
+        // Different logic is needed here depending on whether this flow can collapse its bend
         // margin with its children.
-        let bottom_margin = fragment.margin.bottom;
-        if !can_collapse_bottom_margin_with_kids {
+        let bend_margin = fragment.margin.bend;
+        if !can_collapse_bend_margin_with_kids {
             match state {
                 MarginsCollapseThroughFinalMarginState => {
-                    let advance = self.top_margin.collapse();
-                    self.margin_in.union(AdjoiningMargins::from_margin(bottom_margin));
-                    (MarginsCollapse(self.top_margin, self.margin_in), advance)
+                    let advance = self.bstart_margin.collapse();
+                    self.margin_in.union(AdjoiningMargins::from_margin(bend_margin));
+                    (MarginsCollapse(self.bstart_margin, self.margin_in), advance)
                 }
                 BottomMarginCollapsesFinalMarginState => {
                     let advance = self.margin_in.collapse();
-                    self.margin_in.union(AdjoiningMargins::from_margin(bottom_margin));
-                    (MarginsCollapse(self.top_margin, self.margin_in), advance)
+                    self.margin_in.union(AdjoiningMargins::from_margin(bend_margin));
+                    (MarginsCollapse(self.bstart_margin, self.margin_in), advance)
                 }
             }
         } else {
             match state {
                 MarginsCollapseThroughFinalMarginState => {
-                    self.top_margin.union(AdjoiningMargins::from_margin(bottom_margin));
-                    (MarginsCollapseThrough(self.top_margin), Au(0))
+                    self.bstart_margin.union(AdjoiningMargins::from_margin(bend_margin));
+                    (MarginsCollapseThrough(self.bstart_margin), Au(0))
                 }
                 BottomMarginCollapsesFinalMarginState => {
-                    self.margin_in.union(AdjoiningMargins::from_margin(bottom_margin));
-                    (MarginsCollapse(self.top_margin, self.margin_in), Au(0))
+                    self.margin_in.union(AdjoiningMargins::from_margin(bend_margin));
+                    (MarginsCollapse(self.bstart_margin, self.margin_in), Au(0))
                 }
             }
         }
@@ -170,66 +171,66 @@ impl MarginCollapseInfo {
 
     pub fn current_float_ceiling(&mut self) -> Au {
         match self.state {
-            AccumulatingCollapsibleTopMargin => self.top_margin.collapse(),
+            AccumulatingCollapsibleTopMargin => self.bstart_margin.collapse(),
             AccumulatingMarginIn => self.margin_in.collapse(),
         }
     }
 
-    /// Adds the child's potentially collapsible top margin to the current margin state and
+    /// Adds the child's potentially collapsible bstart margin to the current margin state and
     /// advances the Y offset by the appropriate amount to handle that margin. Returns the amount
     /// that should be added to the Y offset during block layout.
-    pub fn advance_top_margin(&mut self, child_collapsible_margins: &CollapsibleMargins) -> Au {
+    pub fn advance_bstart_margin(&mut self, child_collapsible_margins: &CollapsibleMargins) -> Au {
         match (self.state, *child_collapsible_margins) {
-            (AccumulatingCollapsibleTopMargin, NoCollapsibleMargins(top, _)) => {
+            (AccumulatingCollapsibleTopMargin, NoCollapsibleMargins(bstart, _)) => {
                 self.state = AccumulatingMarginIn;
-                top
+                bstart
             }
-            (AccumulatingCollapsibleTopMargin, MarginsCollapse(top, _)) => {
-                self.top_margin.union(top);
+            (AccumulatingCollapsibleTopMargin, MarginsCollapse(bstart, _)) => {
+                self.bstart_margin.union(bstart);
                 self.state = AccumulatingMarginIn;
                 Au(0)
             }
-            (AccumulatingMarginIn, NoCollapsibleMargins(top, _)) => {
+            (AccumulatingMarginIn, NoCollapsibleMargins(bstart, _)) => {
                 let previous_margin_value = self.margin_in.collapse();
                 self.margin_in = AdjoiningMargins::new();
-                previous_margin_value + top
+                previous_margin_value + bstart
             }
-            (AccumulatingMarginIn, MarginsCollapse(top, _)) => {
-                self.margin_in.union(top);
+            (AccumulatingMarginIn, MarginsCollapse(bstart, _)) => {
+                self.margin_in.union(bstart);
                 let margin_value = self.margin_in.collapse();
                 self.margin_in = AdjoiningMargins::new();
                 margin_value
             }
             (_, MarginsCollapseThrough(_)) => {
-                // For now, we ignore this; this will be handled by `advance_bottom_margin` below.
+                // For now, we ignore this; this will be handled by `advance_bend_margin` below.
                 Au(0)
             }
         }
     }
 
-    /// Adds the child's potentially collapsible bottom margin to the current margin state and
+    /// Adds the child's potentially collapsible bend margin to the current margin state and
     /// advances the Y offset by the appropriate amount to handle that margin. Returns the amount
     /// that should be added to the Y offset during block layout.
-    pub fn advance_bottom_margin(&mut self, child_collapsible_margins: &CollapsibleMargins) -> Au {
+    pub fn advance_bend_margin(&mut self, child_collapsible_margins: &CollapsibleMargins) -> Au {
         match (self.state, *child_collapsible_margins) {
             (AccumulatingCollapsibleTopMargin, NoCollapsibleMargins(..)) |
             (AccumulatingCollapsibleTopMargin, MarginsCollapse(..)) => {
                 // Can't happen because the state will have been replaced with
                 // `AccumulatingMarginIn` above.
-                fail!("should not be accumulating collapsible top margins anymore!")
+                fail!("should not be accumulating collapsible bstart margins anymore!")
             }
             (AccumulatingCollapsibleTopMargin, MarginsCollapseThrough(margin)) => {
-                self.top_margin.union(margin);
+                self.bstart_margin.union(margin);
                 Au(0)
             }
-            (AccumulatingMarginIn, NoCollapsibleMargins(_, bottom)) => {
+            (AccumulatingMarginIn, NoCollapsibleMargins(_, bend)) => {
                 assert_eq!(self.margin_in.most_positive, Au(0));
                 assert_eq!(self.margin_in.most_negative, Au(0));
-                bottom
+                bend
             }
-            (AccumulatingMarginIn, MarginsCollapse(_, bottom)) |
-            (AccumulatingMarginIn, MarginsCollapseThrough(bottom)) => {
-                self.margin_in.union(bottom);
+            (AccumulatingMarginIn, MarginsCollapse(_, bend)) |
+            (AccumulatingMarginIn, MarginsCollapseThrough(bend)) => {
+                self.margin_in.union(bend);
                 Au(0)
             }
         }
@@ -241,38 +242,38 @@ pub enum MarginCollapseState {
     AccumulatingMarginIn,
 }
 
-/// Intrinsic widths, which consist of minimum and preferred.
-pub struct IntrinsicWidths {
-    /// The *minimum width* of the content.
-    pub minimum_width: Au,
-    /// The *preferred width* of the content.
-    pub preferred_width: Au,
+/// Intrinsic isizes, which consist of minimum and preferred.
+pub struct IntrinsicISizes {
+    /// The *minimum isize* of the content.
+    pub minimum_isize: Au,
+    /// The *preferred isize* of the content.
+    pub preferred_isize: Au,
     /// The estimated sum of borders, padding, and margins. Some calculations use this information
-    /// when computing intrinsic widths.
-    pub surround_width: Au,
+    /// when computing intrinsic isizes.
+    pub surround_isize: Au,
 }
 
-impl fmt::Show for IntrinsicWidths {
+impl fmt::Show for IntrinsicISizes {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "min={}, pref={}, surr={}", self.minimum_width, self.preferred_width, self.surround_width)
+        write!(f, "min={}, pref={}, surr={}", self.minimum_isize, self.preferred_isize, self.surround_isize)
     }
 }
 
-impl IntrinsicWidths {
-    pub fn new() -> IntrinsicWidths {
-        IntrinsicWidths {
-            minimum_width: Au(0),
-            preferred_width: Au(0),
-            surround_width: Au(0),
+impl IntrinsicISizes {
+    pub fn new() -> IntrinsicISizes {
+        IntrinsicISizes {
+            minimum_isize: Au(0),
+            preferred_isize: Au(0),
+            surround_isize: Au(0),
         }
     }
 
-    pub fn total_minimum_width(&self) -> Au {
-        self.minimum_width + self.surround_width
+    pub fn total_minimum_isize(&self) -> Au {
+        self.minimum_isize + self.surround_isize
     }
 
-    pub fn total_preferred_width(&self) -> Au {
-        self.preferred_width + self.surround_width
+    pub fn total_preferred_isize(&self) -> Au {
+        self.preferred_isize + self.surround_isize
     }
 }
 
@@ -323,21 +324,13 @@ pub fn specified(length: computed::LengthOrPercentage, containing_length: Au) ->
 }
 
 #[inline]
-pub fn border_from_style(style: &ComputedValues) -> SideOffsets2D<Au> {
-    let border_style = style.get_border();
-    SideOffsets2D::new(border_style.border_top_width,
-                       border_style.border_right_width,
-                       border_style.border_bottom_width,
-                       border_style.border_left_width)
-}
-
-#[inline]
-pub fn padding_from_style(style: &ComputedValues, containing_block_width: Au)
-                          -> SideOffsets2D<Au> {
+pub fn padding_from_style(style: &ComputedValues, containing_block_isize: Au)
+                          -> LogicalMargin<Au> {
     let padding_style = style.get_padding();
-    SideOffsets2D::new(specified(padding_style.padding_top, containing_block_width),
-                       specified(padding_style.padding_right, containing_block_width),
-                       specified(padding_style.padding_bottom, containing_block_width),
-                       specified(padding_style.padding_left, containing_block_width))
+    LogicalMargin::from_physical(style.writing_mode, SideOffsets2D::new(
+        specified(padding_style.padding_top, containing_block_isize),
+        specified(padding_style.padding_right, containing_block_isize),
+        specified(padding_style.padding_bottom, containing_block_isize),
+        specified(padding_style.padding_left, containing_block_isize)))
 }
 

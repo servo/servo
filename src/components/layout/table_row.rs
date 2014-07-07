@@ -7,7 +7,7 @@
 #![deny(unsafe_block)]
 
 use block::BlockFlow;
-use block::WidthAndMarginsComputer;
+use block::ISizeAndMarginsComputer;
 use construct::FlowConstructor;
 use context::LayoutContext;
 use flow::{TableRowFlowClass, FlowClass, Flow, ImmutableFlowUtils};
@@ -25,14 +25,14 @@ use std::fmt;
 pub struct TableRowFlow {
     pub block_flow: BlockFlow,
 
-    /// Column widths.
-    pub col_widths: Vec<Au>,
+    /// Column isizes.
+    pub col_isizes: Vec<Au>,
 
-    /// Column min widths.
-    pub col_min_widths: Vec<Au>,
+    /// Column min isizes.
+    pub col_min_isizes: Vec<Au>,
 
-    /// Column pref widths.
-    pub col_pref_widths: Vec<Au>,
+    /// Column pref isizes.
+    pub col_pref_isizes: Vec<Au>,
 }
 
 impl TableRowFlow {
@@ -41,9 +41,9 @@ impl TableRowFlow {
                                   -> TableRowFlow {
         TableRowFlow {
             block_flow: BlockFlow::from_node_and_fragment(node, fragment),
-            col_widths: vec!(),
-            col_min_widths: vec!(),
-            col_pref_widths: vec!(),
+            col_isizes: vec!(),
+            col_min_isizes: vec!(),
+            col_pref_isizes: vec!(),
         }
     }
 
@@ -52,9 +52,9 @@ impl TableRowFlow {
                      -> TableRowFlow {
         TableRowFlow {
             block_flow: BlockFlow::from_node(constructor, node),
-            col_widths: vec!(),
-            col_min_widths: vec!(),
-            col_pref_widths: vec!(),
+            col_isizes: vec!(),
+            col_min_isizes: vec!(),
+            col_pref_isizes: vec!(),
         }
     }
 
@@ -63,68 +63,68 @@ impl TableRowFlow {
     }
 
     fn initialize_offsets(&mut self) -> (Au, Au, Au) {
-        // TODO: If border-collapse: collapse, top_offset, bottom_offset, and left_offset
+        // TODO: If border-collapse: collapse, bstart_offset, bend_offset, and istart_offset
         // should be updated. Currently, they are set as Au(0).
         (Au(0), Au(0), Au(0))
     }
 
-    /// Assign height for table-row flow.
+    /// Assign bsize for table-row flow.
     ///
     /// TODO(pcwalton): This doesn't handle floats and positioned elements right.
     ///
     /// inline(always) because this is only ever called by in-order or non-in-order top-level
     /// methods
     #[inline(always)]
-    fn assign_height_table_row_base(&mut self, layout_context: &mut LayoutContext) {
-        let (top_offset, _, _) = self.initialize_offsets();
+    fn assign_bsize_table_row_base(&mut self, layout_context: &mut LayoutContext) {
+        let (bstart_offset, _, _) = self.initialize_offsets();
 
-        let /* mut */ cur_y = top_offset;
+        let /* mut */ cur_y = bstart_offset;
 
-        // Per CSS 2.1 § 17.5.3, find max_y = max( computed `height`, minimum height of all cells )
+        // Per CSS 2.1 § 17.5.3, find max_y = max( computed `bsize`, minimum bsize of all cells )
         let mut max_y = Au::new(0);
         for kid in self.block_flow.base.child_iter() {
-            kid.assign_height_for_inorder_child_if_necessary(layout_context);
+            kid.assign_bsize_for_inorder_child_if_necessary(layout_context);
 
             {
                 let child_fragment = kid.as_table_cell().fragment();
-                // TODO: Percentage height
-                let child_specified_height = MaybeAuto::from_style(child_fragment.style().get_box().height,
+                // TODO: Percentage bsize
+                let child_specified_bsize = MaybeAuto::from_style(child_fragment.style().content_bsize(),
                                                                    Au::new(0)).specified_or_zero();
                 max_y =
                     geometry::max(max_y,
-                                  child_specified_height + child_fragment.border_padding.vertical());
+                                  child_specified_bsize + child_fragment.border_padding.bstart_end());
             }
             let child_node = flow::mut_base(kid);
-            child_node.position.origin.y = cur_y;
-            max_y = geometry::max(max_y, child_node.position.size.height);
+            child_node.position.start.b = cur_y;
+            max_y = geometry::max(max_y, child_node.position.size.bsize);
         }
 
-        let mut height = max_y;
-        // TODO: Percentage height
-        height = match MaybeAuto::from_style(self.block_flow.fragment.style().get_box().height, Au(0)) {
-            Auto => height,
-            Specified(value) => geometry::max(value, height)
+        let mut bsize = max_y;
+        // TODO: Percentage bsize
+        bsize = match MaybeAuto::from_style(self.block_flow.fragment.style().content_bsize(), Au(0)) {
+            Auto => bsize,
+            Specified(value) => geometry::max(value, bsize)
         };
-        // cur_y = cur_y + height;
+        // cur_y = cur_y + bsize;
 
-        // Assign the height of own fragment
+        // Assign the bsize of own fragment
         //
         // FIXME(pcwalton): Take `cur_y` into account.
         let mut position = self.block_flow.fragment.border_box;
-        position.size.height = height;
+        position.size.bsize = bsize;
         self.block_flow.fragment.border_box = position;
-        self.block_flow.base.position.size.height = height;
+        self.block_flow.base.position.size.bsize = bsize;
 
-        // Assign the height of kid fragments, which is the same value as own height.
+        // Assign the bsize of kid fragments, which is the same value as own bsize.
         for kid in self.block_flow.base.child_iter() {
             {
                 let kid_fragment = kid.as_table_cell().mut_fragment();
                 let mut position = kid_fragment.border_box;
-                position.size.height = height;
+                position.size.bsize = bsize;
                 kid_fragment.border_box = position;
             }
             let child_node = flow::mut_base(kid);
-            child_node.position.size.height = height;
+            child_node.position.size.bsize = bsize;
         }
     }
 
@@ -147,70 +147,70 @@ impl Flow for TableRowFlow {
         &mut self.block_flow
     }
 
-    fn col_widths<'a>(&'a mut self) -> &'a mut Vec<Au> {
-        &mut self.col_widths
+    fn col_isizes<'a>(&'a mut self) -> &'a mut Vec<Au> {
+        &mut self.col_isizes
     }
 
-    fn col_min_widths<'a>(&'a self) -> &'a Vec<Au> {
-        &self.col_min_widths
+    fn col_min_isizes<'a>(&'a self) -> &'a Vec<Au> {
+        &self.col_min_isizes
     }
 
-    fn col_pref_widths<'a>(&'a self) -> &'a Vec<Au> {
-        &self.col_pref_widths
+    fn col_pref_isizes<'a>(&'a self) -> &'a Vec<Au> {
+        &self.col_pref_isizes
     }
 
-    /// Recursively (bottom-up) determines the context's preferred and minimum widths. When called
-    /// on this context, all child contexts have had their min/pref widths set. This function must
-    /// decide min/pref widths based on child context widths and dimensions of any fragments it is
+    /// Recursively (bottom-up) determines the context's preferred and minimum isizes. When called
+    /// on this context, all child contexts have had their min/pref isizes set. This function must
+    /// decide min/pref isizes based on child context isizes and dimensions of any fragments it is
     /// responsible for flowing.
-    /// Min/pref widths set by this function are used in automatic table layout calculation.
-    /// The specified column widths of children cells are used in fixed table layout calculation.
-    fn bubble_widths(&mut self, _: &mut LayoutContext) {
-        let mut min_width = Au(0);
-        let mut pref_width = Au(0);
-        /* find the specified widths from child table-cell contexts */
+    /// Min/pref isizes set by this function are used in automatic table layout calculation.
+    /// The specified column isizes of children cells are used in fixed table layout calculation.
+    fn bubble_isizes(&mut self, _: &mut LayoutContext) {
+        let mut min_isize = Au(0);
+        let mut pref_isize = Au(0);
+        /* find the specified isizes from child table-cell contexts */
         for kid in self.block_flow.base.child_iter() {
             assert!(kid.is_table_cell());
 
-            // collect the specified column widths of cells. These are used in fixed table layout calculation.
+            // collect the specified column isizes of cells. These are used in fixed table layout calculation.
             {
                 let child_fragment = kid.as_table_cell().fragment();
-                let child_specified_width = MaybeAuto::from_style(child_fragment.style().get_box().width,
+                let child_specified_isize = MaybeAuto::from_style(child_fragment.style().content_isize(),
                                                                   Au::new(0)).specified_or_zero();
-                self.col_widths.push(child_specified_width);
+                self.col_isizes.push(child_specified_isize);
             }
 
-            // collect min_width & pref_width of children cells for automatic table layout calculation.
+            // collect min_isize & pref_isize of children cells for automatic table layout calculation.
             let child_base = flow::mut_base(kid);
-            self.col_min_widths.push(child_base.intrinsic_widths.minimum_width);
-            self.col_pref_widths.push(child_base.intrinsic_widths.preferred_width);
-            min_width = min_width + child_base.intrinsic_widths.minimum_width;
-            pref_width = pref_width + child_base.intrinsic_widths.preferred_width;
+            self.col_min_isizes.push(child_base.intrinsic_isizes.minimum_isize);
+            self.col_pref_isizes.push(child_base.intrinsic_isizes.preferred_isize);
+            min_isize = min_isize + child_base.intrinsic_isizes.minimum_isize;
+            pref_isize = pref_isize + child_base.intrinsic_isizes.preferred_isize;
         }
-        self.block_flow.base.intrinsic_widths.minimum_width = min_width;
-        self.block_flow.base.intrinsic_widths.preferred_width = geometry::max(min_width,
-                                                                              pref_width);
+        self.block_flow.base.intrinsic_isizes.minimum_isize = min_isize;
+        self.block_flow.base.intrinsic_isizes.preferred_isize = geometry::max(min_isize,
+                                                                              pref_isize);
     }
 
-    /// Recursively (top-down) determines the actual width of child contexts and fragments. When called
-    /// on this context, the context has had its width set by the parent context.
-    fn assign_widths(&mut self, ctx: &mut LayoutContext) {
-        debug!("assign_widths({}): assigning width for flow", "table_row");
+    /// Recursively (top-down) determines the actual isize of child contexts and fragments. When called
+    /// on this context, the context has had its isize set by the parent context.
+    fn assign_isizes(&mut self, ctx: &mut LayoutContext) {
+        debug!("assign_isizes({}): assigning isize for flow", "table_row");
 
         // The position was set to the containing block by the flow's parent.
-        let containing_block_width = self.block_flow.base.position.size.width;
-        // FIXME: In case of border-collapse: collapse, left_content_edge should be border-left
-        let left_content_edge = Au::new(0);
+        let containing_block_isize = self.block_flow.base.position.size.isize;
+        // FIXME: In case of border-collapse: collapse, istart_content_edge should be border-istart
+        let istart_content_edge = Au::new(0);
 
-        let width_computer = InternalTable;
-        width_computer.compute_used_width(&mut self.block_flow, ctx, containing_block_width);
+        let isize_computer = InternalTable;
+        isize_computer.compute_used_isize(&mut self.block_flow, ctx, containing_block_isize);
 
-        self.block_flow.propagate_assigned_width_to_children(left_content_edge, Au(0), Some(self.col_widths.clone()));
+        self.block_flow.propagate_assigned_isize_to_children(istart_content_edge, Au(0), Some(self.col_isizes.clone()));
     }
 
-    fn assign_height(&mut self, ctx: &mut LayoutContext) {
-        debug!("assign_height: assigning height for table_row");
-        self.assign_height_table_row_base(ctx);
+    fn assign_bsize(&mut self, ctx: &mut LayoutContext) {
+        debug!("assign_bsize: assigning bsize for table_row");
+        self.assign_bsize_table_row_base(ctx);
     }
 
     fn compute_absolute_position(&mut self) {
