@@ -409,7 +409,7 @@ impl CompositorData {
                              new_rect: Rect<f32>)
                              -> bool {
         debug!("compositor_data: starting set_clipping_rect()");
-        match CompositorData::find_child_with_layer_and_pipeline_id(layer.clone(),
+        match CompositorData::find_child_with_pipeline_and_layer_id(layer.clone(),
                                                                     pipeline_id,
                                                                     layer_id) {
             Some(child_node) => {
@@ -561,7 +561,7 @@ impl CompositorData {
 
 
 
-    fn find_child_with_layer_and_pipeline_id(layer: Rc<Layer<CompositorData>>,
+    fn find_child_with_pipeline_and_layer_id(layer: Rc<Layer<CompositorData>>,
                                              pipeline_id: PipelineId,
                                              layer_id: LayerId)
                                              -> Option<Rc<Layer<CompositorData>>> {
@@ -604,7 +604,7 @@ impl CompositorData {
                      -> bool {
         debug!("compositor_data: starting resize_helper()");
 
-        let found = match CompositorData::find_child_with_layer_and_pipeline_id(layer.clone(),
+        let found = match CompositorData::find_child_with_pipeline_and_layer_id(layer.clone(),
                                                                                 pipeline_id,
                                                                                 layer_id) {
             Some(child) => {
