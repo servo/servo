@@ -230,12 +230,11 @@ impl CompositorData {
                 }
                 Some(rect) => {
                     let rect: TypedRect<PagePx, f32> = Rect::from_untyped(&rect);
-                    if cursor.x >= rect.origin.x && cursor.x < rect.origin.x + rect.size.width
-                        && cursor.y >= rect.origin.y && cursor.y < rect.origin.y + rect.size.height
-                        && CompositorData::handle_scroll_event(child.clone(),
-                                                               delta,
-                                                               cursor - rect.origin,
-                                                               rect.size) {
+                    if rect.contains(&cursor) &&
+                       CompositorData::handle_scroll_event(child.clone(),
+                                                           delta,
+                                                           cursor - rect.origin,
+                                                           rect.size) {
                         return true
                     }
                 }
@@ -312,8 +311,7 @@ impl CompositorData {
                 }
                 Some(rect) => {
                     let rect: TypedRect<PagePx, f32> = Rect::from_untyped(&rect);
-                    if cursor.x >= rect.origin.x && cursor.x < rect.origin.x + rect.size.width
-                        && cursor.y >= rect.origin.y && cursor.y < rect.origin.y + rect.size.height {
+                    if rect.contains(&cursor) {
                         CompositorData::send_mouse_event(child.clone(), event, cursor - rect.origin);
                         return;
                     }
