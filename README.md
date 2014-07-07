@@ -29,7 +29,7 @@ sudo apt-get install autoconf2.13 curl freeglut3-dev libtool \
     msttcorefonts gperf g++ automake cmake
 ```
 
-On Fedora Core:
+On Fedora:
 
 ``` sh
 sudo yum install autoconf213 curl freeglut-devel libtool \
