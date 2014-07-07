@@ -43,7 +43,7 @@ fn parse_css(provenance: StylesheetProvenance) -> Stylesheet {
         }
         InlineProvenance(base_url, data) => {
             debug!("cssparse: loading inline stylesheet {:s}", data);
-            Stylesheet::from_str(data.as_slice(), base_url, environment_encoding)
+            Stylesheet::from_str(data.as_slice(), base_url)
         }
     }
 }

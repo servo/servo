@@ -128,7 +128,7 @@ pub trait SmallVec<T> : SmallVecPrivate<T> {
         }
         unsafe {
             let end: &mut T = mem::transmute(self.end());
-            mem::overwrite(end, value);
+            ptr::write(end, value);
             let len = self.len();
             self.set_len(len + 1)
         }

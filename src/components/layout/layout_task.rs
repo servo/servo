@@ -312,7 +312,7 @@ impl LayoutTask {
            opts: &Opts,
            time_profiler_chan: TimeProfilerChan)
            -> LayoutTask {
-        let local_image_cache = Arc::new(Mutex::new(LocalImageCache(image_cache_task.clone())));
+        let local_image_cache = Arc::new(Mutex::new(LocalImageCache::new(image_cache_task.clone())));
         let screen_size = Size2D(Au(0), Au(0));
         let parallel_traversal = if opts.layout_threads != 1 {
             Some(WorkQueue::new("LayoutWorker", opts.layout_threads, ptr::mut_null()))

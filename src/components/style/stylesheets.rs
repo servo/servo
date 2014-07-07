@@ -53,12 +53,12 @@ impl Stylesheet {
             bytes: &[u8], base_url: Url, protocol_encoding_label: Option<&str>,
             environment_encoding: Option<EncodingRef>) -> Stylesheet {
         // TODO: bytes.as_slice could be bytes.container_as_bytes()
-        let (string, used_encoding) = decode_stylesheet_bytes(
+        let (string, _) = decode_stylesheet_bytes(
             bytes.as_slice(), protocol_encoding_label, environment_encoding);
-        Stylesheet::from_str(string.as_slice(), base_url, used_encoding)
+        Stylesheet::from_str(string.as_slice(), base_url)
     }
 
-    pub fn from_str(css: &str, base_url: Url, encoding: EncodingRef) -> Stylesheet {
+    pub fn from_str(css: &str, base_url: Url) -> Stylesheet {
         static STATE_CHARSET: uint = 1;
         static STATE_IMPORTS: uint = 2;
         static STATE_NAMESPACES: uint = 3;

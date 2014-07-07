@@ -101,7 +101,7 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
     let opt_match = match getopts::getopts(args, opts.as_slice()) {
         Ok(m) => m,
         Err(f) => {
-            args_fail(f.to_err_msg().as_slice());
+            args_fail(format!("{}", f).as_slice());
             return None;
         }
     };
