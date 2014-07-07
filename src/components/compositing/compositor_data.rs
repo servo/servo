@@ -675,33 +675,9 @@ impl CompositorData {
     // layer buffer set is consumed, and None is returned.
     pub fn add_buffers(layer: Rc<Layer<CompositorData>>,
                        graphics_context: &NativeCompositingGraphicsContext,
-                       pipeline_id: PipelineId,
-                       layer_id: LayerId,
-                       mut new_buffers: Box<LayerBufferSet>,
+                       new_buffers: Box<LayerBufferSet>,
                        epoch: Epoch)
-                       -> Option<Box<LayerBufferSet>> {
-        debug!("compositor_data: starting add_buffers()");
-        if layer.extra_data.borrow().pipeline.id != pipeline_id ||
-           layer.extra_data.borrow().id != layer_id {
-            // ID does not match ours, so recurse on descendents (including hidden children).
-            for child_layer in layer.children().iter() {
-                match CompositorData::add_buffers(child_layer.clone(),
-                                                  graphics_context,
-                                                  pipeline_id,
-                                                  layer_id,
-                                                  new_buffers,
-                                                  epoch) {
-                    None => return None,
-                    Some(buffers) => new_buffers = buffers,
-                }
-            }
-
-            // Not found. Give the caller the buffers back.
-            return Some(new_buffers)
-        }
-
-        debug!("compositor_data: layers found for add_buffers()");
-
+                       -> bool {
         if layer.extra_data.borrow().epoch != epoch {
             debug!("add_buffers: compositor epoch mismatch: {:?} != {:?}, id: {:?}",
                    layer.extra_data.borrow().epoch,
@@ -709,7 +685,7 @@ impl CompositorData {
                    layer.extra_data.borrow().pipeline.id);
             let msg = UnusedBufferMsg(new_buffers.buffers);
             let _ = layer.extra_data.borrow().pipeline.render_chan.send_opt(msg);
-            return None
+            return false;
         }
 
         {
@@ -724,7 +700,7 @@ impl CompositorData {
         }
 
         CompositorData::build_layer_tree(layer.clone(), graphics_context);
-        None
+        return true;
     }
 
     // Recursively sets occluded portions of quadtrees to Hidden, so that they do not ask for

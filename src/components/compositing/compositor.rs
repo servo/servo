@@ -530,14 +530,24 @@ impl IOCompositor {
         new_layer_buffer_set.mark_will_leak();
 
         match self.scene.root {
-            Some(ref layer) => {
-                assert!(CompositorData::add_buffers(layer.clone(),
-                                                     &self.graphics_context,
-                                                     pipeline_id,
-                                                     layer_id,
-                                                     new_layer_buffer_set,
-                                                     epoch).is_none());
-                self.recomposite = true;
+            Some(ref root_layer) => {
+                match CompositorData::find_layer_with_pipeline_and_layer_id(root_layer.clone(),
+                                                                            pipeline_id,
+                                                                            layer_id) {
+                    Some(ref layer) => {
+                        assert!(CompositorData::add_buffers(layer.clone(),
+                                                            &self.graphics_context,
+                                                            new_layer_buffer_set,
+                                                            epoch));
+                        self.recomposite = true;
+                    }
+                    None => {
+                        // FIXME: This may potentially be triggered by a race condition where a
+                        // buffers are being rendered but the layer is removed before rendering
+                        // completes.
+                        fail!("compositor given paint command for non-existent layer");
+                    }
+                }
             }
             None => {
                 fail!("compositor given paint command with no root layer initialized");
