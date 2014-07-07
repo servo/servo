@@ -413,8 +413,9 @@ impl IOCompositor {
                                                            Scrollable));
 
             // Release all tiles from the layer before dropping it.
-            for layer in self.scene.root.mut_iter() {
-                CompositorData::clear_all_tiles(layer.clone());
+            match self.scene.root {
+                Some(ref mut layer) => CompositorData::clear_all_tiles(layer.clone()),
+                None => { }
             }
             self.scene.root = Some(new_root);
         }
@@ -685,11 +686,14 @@ impl IOCompositor {
         let page_cursor = cursor.as_f32() / scale;
         let page_window = self.page_window();
         let mut scroll = false;
-        for layer in self.scene.root.mut_iter() {
-            scroll = CompositorData::handle_scroll_event(layer.clone(),
-                                                         page_delta,
-                                                         page_cursor,
-                                                         page_window) || scroll;
+        match self.scene.root {
+            Some(ref mut layer) => {
+                scroll = CompositorData::handle_scroll_event(layer.clone(),
+                                                             page_delta,
+                                                             page_cursor,
+                                                             page_window) || scroll;
+            }
+            None => { }
         }
         self.recomposite_if(scroll);
         self.ask_for_tiles();
@@ -739,11 +743,14 @@ impl IOCompositor {
         let page_cursor = TypedPoint2D(-1f32, -1f32); // Make sure this hits the base layer
         let page_window = self.page_window();
 
-        for layer in self.scene.root.mut_iter() {
-            CompositorData::handle_scroll_event(layer.clone(),
-                                                page_delta,
-                                                page_cursor,
-                                                page_window);
+        match self.scene.root {
+            Some(ref mut layer) => {
+                CompositorData::handle_scroll_event(layer.clone(),
+                                                    page_delta,
+                                                    page_cursor,
+                                                    page_window);
+            }
+            None => { }
         }
 
         self.recomposite = true;
@@ -762,17 +769,19 @@ impl IOCompositor {
     fn ask_for_tiles(&mut self) {
         let scale = self.device_pixels_per_page_px();
         let page_window = self.page_window();
-        for layer in self.scene.root.mut_iter() {
-            if !layer.extra_data.borrow().hidden {
+        match self.scene.root {
+            Some(ref mut layer) if !layer.extra_data.borrow().hidden => {
                 let rect = Rect(Point2D(0f32, 0f32), page_window.to_untyped());
                 let recomposite = CompositorData::get_buffer_request(layer.clone(),
                                                                      &self.graphics_context,
                                                                      rect,
                                                                      scale.get());
                 self.recomposite = self.recomposite || recomposite;
-            } else {
+            }
+            Some(_) => {
                 debug!("Compositor: root layer is hidden!");
             }
+            None => { }
         }
     }
 
