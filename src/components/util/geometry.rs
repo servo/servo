@@ -16,6 +16,7 @@ use std::fmt;
 /// One hardware pixel.
 ///
 /// This unit corresponds to the smallest addressable element of the display hardware.
+#[deriving(Encodable)]
 pub enum DevicePixel {}
 
 /// A normalized "pixel" at the default resolution for the display.
@@ -42,6 +43,7 @@ pub enum ScreenPx {}
 ///
 /// At the default zoom level of 100%, one PagePx is equal to one ScreenPx.  However, if the
 /// document is zoomed in or out then this scale may be larger or smaller.
+#[deriving(Encodable)]
 pub enum ViewportPx {}
 
 /// One CSS "px" in the root coordinate system for the content document.
@@ -50,6 +52,7 @@ pub enum ViewportPx {}
 /// This is the mobile-style "pinch zoom" that enlarges content without reflowing it.  When the
 /// viewport zoom is not equal to 1.0, then the layout viewport is no longer the same physical size
 /// as the viewable area.
+#[deriving(Encodable)]
 pub enum PagePx {}
 
 // In summary, the hierarchy of pixel units and the factors to convert from one to the next:

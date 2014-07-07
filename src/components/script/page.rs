@@ -60,7 +60,7 @@ pub struct Page {
     damage: Traceable<RefCell<Option<DocumentDamage>>>,
 
     /// The current size of the window, in pixels.
-    pub window_size: Untraceable<Cell<WindowSizeData>>,
+    pub window_size: Traceable<Cell<WindowSizeData>>,
 
     js_info: Traceable<RefCell<Option<JSPageInfo>>>,
 
@@ -70,7 +70,7 @@ pub struct Page {
     /// when reloading.
     url: Untraceable<RefCell<Option<(Url, bool)>>>,
 
-    next_subpage_id: Untraceable<Cell<SubpageId>>,
+    next_subpage_id: Traceable<Cell<SubpageId>>,
 
     /// Pending resize event, if any.
     pub resize_event: Untraceable<Cell<Option<WindowSizeData>>>,
@@ -132,10 +132,10 @@ impl Page {
             layout_chan: Untraceable::new(layout_chan),
             layout_join_port: Untraceable::new(RefCell::new(None)),
             damage: Traceable::new(RefCell::new(None)),
-            window_size: Untraceable::new(Cell::new(window_size)),
+            window_size: Traceable::new(Cell::new(window_size)),
             js_info: Traceable::new(RefCell::new(Some(js_info))),
             url: Untraceable::new(RefCell::new(None)),
-            next_subpage_id: Untraceable::new(Cell::new(SubpageId(0))),
+            next_subpage_id: Traceable::new(Cell::new(SubpageId(0))),
             resize_event: Untraceable::new(Cell::new(None)),
             fragment_node: Cell::new(None),
             last_reflow_id: Traceable::new(Cell::new(0)),
