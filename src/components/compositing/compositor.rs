@@ -404,13 +404,20 @@ impl IOCompositor {
             new_root.extra_data.borrow_mut().unrendered_color = unrendered_color;
 
             let parent_layer_id = new_root.extra_data.borrow().id;
-            assert!(CompositorData::add_child_if_necessary(new_root.clone(),
-                                                           root_pipeline_id,
-                                                           parent_layer_id,
+            match CompositorData::find_layer_with_layer_and_pipeline_id(new_root.clone(),
+                                                                        root_pipeline_id,
+                                                                        parent_layer_id) {
+                Some(ref mut parent_layer) => {
+                    CompositorData::add_child_if_necessary(parent_layer.clone(),
                                                            layer_id,
                                                            Rect(Point2D(0f32, 0f32), size),
                                                            size,
-                                                           Scrollable));
+                                                           Scrollable);
+                }
+                None => {
+                    fail!("Compositor: couldn't find parent layer");
+                }
+            }
 
             // Release all tiles from the layer before dropping it.
             match self.scene.root {
@@ -429,19 +436,26 @@ impl IOCompositor {
                                                        rect: Rect<f32>,
                                                        scroll_policy: ScrollPolicy) {
         match self.scene.root {
-            Some(ref root) => {
-                let parent_layer_id = root.extra_data.borrow().id;
-                let page_size = root.extra_data.borrow().page_size.unwrap();
-                assert!(CompositorData::add_child_if_necessary(root.clone(),
-                                                               pipeline_id,
-                                                               parent_layer_id,
+            Some(ref root_layer) => {
+                let parent_layer_id = root_layer.extra_data.borrow().id;
+                match CompositorData::find_layer_with_pipeline_and_layer_id(root_layer.clone(),
+                                                                            pipeline_id,
+                                                                            parent_layer_id) {
+                    Some(ref mut parent_layer) => {
+                        let page_size = root_layer.extra_data.borrow().page_size.unwrap();
+                        CompositorData::add_child_if_necessary(parent_layer.clone(),
                                                                layer_id,
                                                                rect,
                                                                page_size,
-                                                               scroll_policy))
+                                                               scroll_policy);
+                    }
+                    None => {
+                        fail!("Compositor: couldn't find parent layer");
+                    }
+                }
             }
-            None => fail!("Compositor: Received new layer without initialized pipeline"),
-        };
+            None => fail!("Compositor: Received new layer without initialized pipeline")
+        }
 
         self.ask_for_tiles();
     }

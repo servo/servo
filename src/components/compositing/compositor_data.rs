@@ -146,38 +146,18 @@ impl CompositorData {
     /// Adds a child layer to the layer with the given ID and the given pipeline, if it doesn't
     /// exist yet. The child layer will have the same pipeline, tile size, memory limit, and CPU
     /// painting status as its parent.
-    ///
-    /// Returns:
-    ///   * True if the layer was added;
-    ///   * True if the layer was not added because it already existed;
-    ///   * False if the layer could not be added because no suitable parent layer with the given
-    ///     ID and pipeline could be found.
     pub fn add_child_if_necessary(layer: Rc<Layer<CompositorData>>,
-                                  pipeline_id: PipelineId,
-                                  parent_layer_id: LayerId,
                                   child_layer_id: LayerId,
                                   rect: Rect<f32>,
                                   page_size: Size2D<f32>,
-                                  scroll_policy: ScrollPolicy) -> bool {
-        if layer.extra_data.borrow().pipeline.id != pipeline_id ||
-           layer.extra_data.borrow().id != parent_layer_id {
-            return layer.children().iter().any(|kid| {
-                CompositorData::add_child_if_necessary(kid.clone(),
-                                                       pipeline_id,
-                                                       parent_layer_id,
-                                                       child_layer_id,
-                                                       rect,
-                                                       page_size,
-                                                       scroll_policy)
-            })
-        }
-
+                                  scroll_policy: ScrollPolicy) {
         // See if we've already made this child layer.
+        let pipeline_id = layer.extra_data.borrow().pipeline.id;
         if layer.children().iter().any(|kid| {
                     kid.extra_data.borrow().pipeline.id == pipeline_id &&
                     kid.extra_data.borrow().id == child_layer_id
                 }) {
-            return true
+            return;
         }
 
         let new_compositor_data = CompositorData::new(layer.extra_data.borrow().pipeline.clone(),
@@ -197,8 +177,6 @@ impl CompositorData {
 
         // Place the kid's layer in the container passed in.
         Layer::add_child(layer.clone(), new_kid.clone());
-
-        true
     }
 
     /// Move the layer's descendants that don't want scroll events and scroll by a relative
