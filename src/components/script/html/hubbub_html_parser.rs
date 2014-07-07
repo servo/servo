@@ -369,7 +369,7 @@ pub fn parse_html(page: &Page,
             }
         },
         create_element: |tag: Box<hubbub::Tag>| {
-            debug!("create element {:?}", tag.name.clone());
+            debug!("create element {}", tag.name);
             // NOTE: tmp vars are workaround for lifetime issues. Both required.
             let tmp_borrow = doc_cell.borrow();
             let tmp = &*tmp_borrow;
