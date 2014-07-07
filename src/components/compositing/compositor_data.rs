@@ -338,11 +338,11 @@ impl CompositorData {
 
     // Given the current window size, determine which tiles need to be (re-)rendered and sends them
     // off the the appropriate renderer. Returns true if and only if the scene should be repainted.
-    pub fn get_buffer_request(layer: Rc<Layer<CompositorData>>,
-                              graphics_context: &NativeCompositingGraphicsContext,
-                              window_rect: Rect<f32>,
-                              scale: f32)
-                              -> bool {
+    pub fn send_buffer_requests_recursively(layer: Rc<Layer<CompositorData>>,
+                                            graphics_context: &NativeCompositingGraphicsContext,
+                                            window_rect: Rect<f32>,
+                                            scale: f32)
+                                            -> bool {
         let (request, unused) = Layer::get_tile_rects_page(layer.clone(), window_rect, scale);
         let redisplay = !unused.is_empty();
         if redisplay {
@@ -366,7 +366,7 @@ impl CompositorData {
             CompositorData::build_layer_tree(layer.clone(), graphics_context);
         }
 
-        let get_child_buffer_request = |kid: &Rc<Layer<CompositorData>>| -> bool {
+        let send_child_buffer_request = |kid: &Rc<Layer<CompositorData>>| -> bool {
             match kid.extra_data.borrow().scissor {
                 Some(scissor) => {
                     let mut new_rect = window_rect;
@@ -380,10 +380,10 @@ impl CompositorData {
                             // to make the child_rect appear in coordinates local to it.
                             let child_rect = Rect(new_rect.origin.sub(&scissor.origin),
                                                   new_rect.size);
-                            CompositorData::get_buffer_request(kid.clone(),
-                                                               graphics_context,
-                                                               child_rect,
-                                                               scale)
+                            CompositorData::send_buffer_requests_recursively(kid.clone(),
+                                                                             graphics_context,
+                                                                             child_rect,
+                                                                             scale)
                         }
                         None => {
                             false // Layer is offscreen
@@ -395,7 +395,7 @@ impl CompositorData {
         };
 
         layer.children().iter().filter(|x| !x.extra_data.borrow().hidden)
-            .map(get_child_buffer_request)
+            .map(send_child_buffer_request)
             .any(|b| b) || redisplay
     }
 

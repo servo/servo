@@ -772,7 +772,8 @@ impl IOCompositor {
         match self.scene.root {
             Some(ref mut layer) if !layer.extra_data.borrow().hidden => {
                 let rect = Rect(Point2D(0f32, 0f32), page_window.to_untyped());
-                let recomposite = CompositorData::get_buffer_request(layer.clone(),
+                let recomposite =
+                    CompositorData::send_buffer_requests_recursively(layer.clone(),
                                                                      &self.graphics_context,
                                                                      rect,
                                                                      scale.get());
