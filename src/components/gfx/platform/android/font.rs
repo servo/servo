@@ -39,9 +39,7 @@ fn fixed_to_float_ft(f: i32) -> f64 {
     fixed_to_float(6, f)
 }
 
-pub struct FontTable {
-    _bogus: ()
-}
+pub struct FontTable;
 
 impl FontTableMethods for FontTable {
     fn with_buffer(&self, _blk: |*u8, uint|) {
@@ -95,28 +93,28 @@ impl FontHandleMethods for FontHandle {
             Err(()) => Err(())
         };
 
-         fn create_face_from_buffer(lib: FT_Library, cbuf: *u8, cbuflen: uint, pt_size: Option<f64>)
-                                    -> Result<FT_Face, ()> {
-             unsafe {
-                 let mut face: FT_Face = ptr::null();
-                 let face_index = 0 as FT_Long;
-                 let result = FT_New_Memory_Face(lib, cbuf, cbuflen as FT_Long,
-                                                 face_index, &mut face);
+        fn create_face_from_buffer(lib: FT_Library, cbuf: *u8, cbuflen: uint, pt_size: Option<f64>)
+                                   -> Result<FT_Face, ()> {
+            unsafe {
+                let mut face: FT_Face = ptr::null();
+                let face_index = 0 as FT_Long;
+                let result = FT_New_Memory_Face(lib, cbuf, cbuflen as FT_Long,
+                                                face_index, &mut face);
 
-                 if !result.succeeded() || face.is_null() {
-                     return Err(());
-                 }
-                 let is_ok = match pt_size {
-                    Some(s) => FontHandle::set_char_size(face, s).is_ok(),
-                    None => true,
-                 };
-                 if is_ok {
-                     Ok(face)
-                 } else {
-                     Err(())
-                 }
-             }
-         }
+                if !result.succeeded() || face.is_null() {
+                    return Err(());
+                }
+                match pt_size {
+                    Some(s) => {
+                        match FontHandle::set_char_size(face, s) {
+                            Ok(_) => Ok(face),
+                            Err(_) => Err(()),
+                        }
+                    }
+                    None => Ok(face),
+                }
+            }
+        }
     }
     fn get_template(&self) -> Arc<FontTemplateData> {
         self.font_data.clone()

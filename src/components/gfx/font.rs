@@ -109,8 +109,6 @@ pub struct Font {
 
 impl Font {
     pub fn shape_text(&mut self, text: String, is_whitespace: bool) -> Arc<GlyphStore> {
-
-        //FIXME (ksh8281)
         self.make_shaper();
         let shaper = &self.shaper;
         self.shape_cache.find_or_create(&text, |txt| {
