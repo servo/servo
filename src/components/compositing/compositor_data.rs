@@ -574,6 +574,27 @@ impl CompositorData {
         return None
     }
 
+    pub fn find_layer_with_pipeline_and_layer_id(layer: Rc<Layer<CompositorData>>,
+                                                 pipeline_id: PipelineId,
+                                                 layer_id: LayerId)
+                                                 -> Option<Rc<Layer<CompositorData>>> {
+        if layer.extra_data.borrow().pipeline.id == pipeline_id &&
+           layer.extra_data.borrow().id == layer_id {
+            return Some(layer.clone());
+        }
+
+        for kid in layer.children().iter() {
+            match CompositorData::find_layer_with_pipeline_and_layer_id(kid.clone(),
+                                                                        pipeline_id,
+                                                                        layer_id) {
+                v @ Some(_) => { return v; }
+                None => { }
+            }
+        }
+
+        return None;
+    }
+
     // A helper method to resize sublayers.
     fn resize_helper(layer: Rc<Layer<CompositorData>>,
                      pipeline_id: PipelineId,
