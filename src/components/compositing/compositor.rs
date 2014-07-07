@@ -394,7 +394,6 @@ impl IOCompositor {
         };
 
         if layer_id != root_layer_id {
-            let root_pipeline_id = root_pipeline.id;
             let new_compositor_data = CompositorData::new_root(root_pipeline,
                                                                size,
                                                                self.opts.cpu_painting);
@@ -403,21 +402,11 @@ impl IOCompositor {
                                               new_compositor_data));
             new_root.extra_data.borrow_mut().unrendered_color = unrendered_color;
 
-            let parent_layer_id = new_root.extra_data.borrow().id;
-            match CompositorData::find_layer_with_layer_and_pipeline_id(new_root.clone(),
-                                                                        root_pipeline_id,
-                                                                        parent_layer_id) {
-                Some(ref mut parent_layer) => {
-                    CompositorData::add_child_if_necessary(parent_layer.clone(),
-                                                           layer_id,
-                                                           Rect(Point2D(0f32, 0f32), size),
-                                                           size,
-                                                           Scrollable);
-                }
-                None => {
-                    fail!("Compositor: couldn't find parent layer");
-                }
-            }
+            CompositorData::add_child_if_necessary(new_root.clone(),
+                                                   layer_id,
+                                                   Rect(Point2D(0f32, 0f32), size),
+                                                   size,
+                                                   Scrollable);
 
             // Release all tiles from the layer before dropping it.
             match self.scene.root {
