@@ -20,20 +20,22 @@ pub trait ImageResponder {
     fn respond(&self) -> proc(ImageResponseMsg):Send;
 }
 
-pub fn LocalImageCache(image_cache_task: ImageCacheTask) -> LocalImageCache {
-    LocalImageCache {
-        image_cache_task: image_cache_task,
-        round_number: 1,
-        on_image_available: None,
-        state_map: url_map()
-    }
-}
-
 pub struct LocalImageCache {
     image_cache_task: ImageCacheTask,
     round_number: uint,
     on_image_available: Option<Box<ImageResponder+Send>>,
     state_map: UrlMap<ImageState>
+}
+
+impl LocalImageCache {
+    pub fn new(image_cache_task: ImageCacheTask) -> LocalImageCache {
+        LocalImageCache {
+            image_cache_task: image_cache_task,
+            round_number: 1,
+            on_image_available: None,
+            state_map: url_map()
+        }
+    }
 }
 
 #[deriving(Clone)]

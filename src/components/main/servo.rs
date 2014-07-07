@@ -31,7 +31,7 @@ use compositing::{CompositorChan, CompositorTask, Constellation};
 use servo_msg::constellation_msg::{ConstellationChan, InitLoadUrlMsg};
 
 #[cfg(not(test))]
-use servo_net::image_cache_task::{ImageCacheTask, SyncImageCacheTask};
+use servo_net::image_cache_task::ImageCacheTask;
 #[cfg(not(test))]
 use servo_net::resource_task::ResourceTask;
 #[cfg(not(test))]
@@ -111,9 +111,9 @@ pub fn run(opts: opts::Opts) {
         // image load or we risk emitting an output file missing the
         // image.
         let image_cache_task = if opts.output_file.is_some() {
-                SyncImageCacheTask(resource_task.clone())
+                ImageCacheTask::new_sync(resource_task.clone())
             } else {
-                ImageCacheTask(resource_task.clone())
+                ImageCacheTask::new(resource_task.clone())
             };
         let constellation_chan = Constellation::start(compositor_chan,
                                                       opts,

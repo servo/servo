@@ -13,6 +13,7 @@ extern "C" {
     fn tc_deletearray(mem: *mut c_void);
 }
 
+#[allow(experimental)]
 pub fn newarray0<T>(nmem: size_t) -> *mut T {
     let mem = newarray::<T>(nmem) as *mut T;
     unsafe {
@@ -27,6 +28,7 @@ pub fn newarray<T>(nmem: size_t) -> *mut T {
     }
 }
 
+#[allow(experimental)]
 pub fn new0<T>(nmem: size_t) -> *mut T {
     let mem = new(nmem * mem::size_of::<T>() as u64) as *mut T;
     unsafe {
