@@ -813,26 +813,8 @@ impl CompositorData {
         }
     }
 
-    pub fn set_unrendered_color(layer: Rc<Layer<CompositorData>>,
-                                pipeline_id: PipelineId,
-                                layer_id: LayerId,
-                                color: Color)
-                                -> bool {
-        if layer.extra_data.borrow().pipeline.id != pipeline_id ||
-           layer.extra_data.borrow().id != layer_id {
-            for child_layer in layer.children().iter() {
-                if CompositorData::set_unrendered_color(child_layer.clone(),
-                                                        pipeline_id,
-                                                        layer_id,
-                                                        color) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
+    pub fn set_unrendered_color(layer: Rc<Layer<CompositorData>>, color: Color) {
         layer.extra_data.borrow_mut().unrendered_color = color;
-        return true;
     }
 }
 

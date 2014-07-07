@@ -348,12 +348,16 @@ impl IOCompositor {
 
     fn set_unrendered_color(&mut self, pipeline_id: PipelineId, layer_id: LayerId, color: Color) {
         match self.scene.root {
-            Some(ref layer) => CompositorData::set_unrendered_color(layer.clone(),
-                                                                    pipeline_id,
-                                                                    layer_id,
-                                                                    color),
-            None => false,
-        };
+            Some(ref root_layer) => {
+                match CompositorData::find_layer_with_pipeline_and_layer_id(root_layer.clone(),
+                                                                            pipeline_id,
+                                                                            layer_id) {
+                    Some(ref layer) => CompositorData::set_unrendered_color(layer.clone(), color),
+                    None => { }
+                }
+            }
+            None => { }
+        }
     }
 
     fn set_ids(&mut self,
