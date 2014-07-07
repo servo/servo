@@ -23,7 +23,7 @@ use servo_util::namespace;
 use servo_util::namespace::{Namespace, Null};
 use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS};
 use servo_util::task::spawn_named;
-use servo_util::url::parse_url;
+use servo_util::url::try_parse_url;
 use std::ascii::StrAsciiExt;
 use std::mem;
 use std::cell::RefCell;
@@ -421,8 +421,10 @@ pub fn parse_html(page: &Page,
                                     s.as_slice().eq_ignore_ascii_case("stylesheet")
                                 }) => {
                             debug!("found CSS stylesheet: {:s}", *href);
-                            let url = parse_url(href.as_slice(), Some(url2.clone()));
-                            css_chan2.send(CSSTaskNewFile(UrlProvenance(url, resource_task.clone())));
+                            match try_parse_url(href.as_slice(), Some(url2.clone())) {
+                                Ok(url) => css_chan2.send(CSSTaskNewFile(UrlProvenance(url, resource_task.clone()))),
+                                Err(e) => debug!("Parsing url {:s} failed: {:s}", *href, e)
+                            };
                         }
                         _ => {}
                     }
@@ -502,8 +504,10 @@ pub fn parse_html(page: &Page,
                 match script.get_attribute(Null, "src").root() {
                     Some(src) => {
                         debug!("found script: {:s}", src.deref().Value());
-                        let new_url = parse_url(src.deref().value().as_slice(), Some(url3.clone()));
-                        js_chan2.send(JSTaskNewFile(new_url));
+                        match try_parse_url(src.deref().value().as_slice(), Some(url3.clone())) {
+                                Ok(new_url) => js_chan2.send(JSTaskNewFile(new_url)),
+                                Err(e) => debug!("Parsing url {:s} failed: {:s}", src.deref().Value(), e)
+                        };
                     }
                     None => {
                         let mut data = String::new();
