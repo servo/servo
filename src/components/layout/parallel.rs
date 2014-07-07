@@ -26,7 +26,7 @@ use servo_util::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
 use std::mem;
 use std::ptr;
 use std::sync::atomics::{AtomicInt, Relaxed, SeqCst};
-use style::{Stylist, TNode};
+use style::TNode;
 
 #[allow(dead_code)]
 fn static_assertion(node: UnsafeLayoutNode) {
@@ -215,98 +215,98 @@ impl<'a> ParallelPostorderFlowTraversal for AssignHeightsAndStoreOverflowTravers
 
 fn recalc_style_for_node(unsafe_layout_node: UnsafeLayoutNode,
                          proxy: &mut WorkerProxy<*mut LayoutContext,UnsafeLayoutNode>) {
-    unsafe {
-        let layout_context: &mut LayoutContext = mem::transmute(*proxy.user_data());
+    let layout_context = unsafe { &mut **proxy.user_data() };
 
-        // Get a real layout node.
-        let node: LayoutNode = layout_node_from_unsafe_layout_node(&unsafe_layout_node);
+    // Get a real layout node.
+    let node: LayoutNode = layout_node_from_unsafe_layout_node(&unsafe_layout_node);
 
-        // Initialize layout data.
-        //
-        // FIXME(pcwalton): Stop allocating here. Ideally this should just be done by the HTML
-        // parser.
-        node.initialize_layout_data(layout_context.layout_chan.clone());
+    // Initialize layout data.
+    //
+    // FIXME(pcwalton): Stop allocating here. Ideally this should just be done by the HTML
+    // parser.
+    node.initialize_layout_data(layout_context.layout_chan.clone());
 
-        // Get the parent node.
-        let opaque_node: OpaqueNode = OpaqueNodeMethods::from_layout_node(&node);
-        let parent_opt = if opaque_node == layout_context.reflow_root {
-            None
-        } else {
-            node.parent_node()
-        };
+    // Get the parent node.
+    let opaque_node: OpaqueNode = OpaqueNodeMethods::from_layout_node(&node);
+    let parent_opt = if opaque_node == layout_context.reflow_root {
+        None
+    } else {
+        node.parent_node()
+    };
 
-        // First, check to see whether we can share a style with someone.
-        let style_sharing_candidate_cache = layout_context.style_sharing_candidate_cache();
-        let sharing_result = node.share_style_if_possible(style_sharing_candidate_cache,
-                                                          parent_opt.clone());
+    // First, check to see whether we can share a style with someone.
+    let style_sharing_candidate_cache = layout_context.style_sharing_candidate_cache();
+    let sharing_result = unsafe {
+        node.share_style_if_possible(style_sharing_candidate_cache,
+                                     parent_opt.clone())
+    };
 
-        // Otherwise, match and cascade selectors.
-        match sharing_result {
-            CannotShare(mut shareable) => {
-                let mut applicable_declarations = ApplicableDeclarations::new();
+    // Otherwise, match and cascade selectors.
+    match sharing_result {
+        CannotShare(mut shareable) => {
+            let mut applicable_declarations = ApplicableDeclarations::new();
 
-                if node.is_element() {
-                    // Perform the CSS selector matching.
-                    let stylist: &Stylist = mem::transmute(layout_context.stylist);
-                    node.match_node(stylist, &mut applicable_declarations, &mut shareable);
-                }
+            if node.is_element() {
+                // Perform the CSS selector matching.
+                let stylist = unsafe { &*layout_context.stylist };
+                node.match_node(stylist, &mut applicable_declarations, &mut shareable);
+            }
 
-                // Perform the CSS cascade.
+            // Perform the CSS cascade.
+            unsafe {
                 node.cascade_node(parent_opt,
                                   &applicable_declarations,
                                   layout_context.applicable_declarations_cache());
-
-                // Add ourselves to the LRU cache.
-                if shareable {
-                    style_sharing_candidate_cache.insert_if_possible(&node);
-                }
             }
-            StyleWasShared(index) => style_sharing_candidate_cache.touch(index),
-        }
 
-        // Prepare for flow construction by counting the node's children and storing that count.
-        let mut child_count = 0;
-        for _ in node.children() {
-            child_count += 1;
-        }
-        if child_count != 0 {
-            let mut layout_data_ref = node.mutate_layout_data();
-            match &mut *layout_data_ref {
-                &Some(ref mut layout_data) => {
-                    layout_data.data.parallel.children_count.store(child_count as int, Relaxed)
-                }
-                &None => fail!("no layout data"),
+            // Add ourselves to the LRU cache.
+            if shareable {
+                style_sharing_candidate_cache.insert_if_possible(&node);
             }
         }
-
-        // It's *very* important that this block is in a separate scope to the block above,
-        // to avoid a data race that can occur (github issue #2308). The block above issues
-        // a borrow on the node layout data. That borrow must be dropped before the child
-        // nodes are actually pushed into the work queue. Otherwise, it's possible for a child
-        // node to get into construct_flows() and move up it's parent hierarchy, which can call
-        // borrow on the layout data before it is dropped from the block above.
-        if child_count != 0 {
-            // Enqueue kids.
-            for kid in node.children() {
-                proxy.push(WorkUnit {
-                    fun: recalc_style_for_node,
-                    data: layout_node_to_unsafe_layout_node(&kid),
-                });
-            }
-            return
-        }
-
-        // If we got here, we're a leaf. Start construction of flows for this node.
-        construct_flows(unsafe_layout_node, proxy)
+        StyleWasShared(index) => style_sharing_candidate_cache.touch(index),
     }
+
+    // Prepare for flow construction by counting the node's children and storing that count.
+    let mut child_count = 0;
+    for _ in node.children() {
+        child_count += 1;
+    }
+    if child_count != 0 {
+        let mut layout_data_ref = node.mutate_layout_data();
+        match &mut *layout_data_ref {
+            &Some(ref mut layout_data) => {
+                layout_data.data.parallel.children_count.store(child_count as int, Relaxed)
+            }
+            &None => fail!("no layout data"),
+        }
+    }
+
+    // It's *very* important that this block is in a separate scope to the block above,
+    // to avoid a data race that can occur (github issue #2308). The block above issues
+    // a borrow on the node layout data. That borrow must be dropped before the child
+    // nodes are actually pushed into the work queue. Otherwise, it's possible for a child
+    // node to get into construct_flows() and move up it's parent hierarchy, which can call
+    // borrow on the layout data before it is dropped from the block above.
+    if child_count != 0 {
+        // Enqueue kids.
+        for kid in node.children() {
+            proxy.push(WorkUnit {
+                fun: recalc_style_for_node,
+                data: layout_node_to_unsafe_layout_node(&kid),
+            });
+        }
+        return
+    }
+
+    // If we got here, we're a leaf. Start construction of flows for this node.
+    construct_flows(unsafe_layout_node, proxy)
 }
 
 fn construct_flows(mut unsafe_layout_node: UnsafeLayoutNode,
                    proxy: &mut WorkerProxy<*mut LayoutContext,UnsafeLayoutNode>) {
     loop {
-        let layout_context: &mut LayoutContext = unsafe {
-            mem::transmute(*proxy.user_data())
-        };
+        let layout_context = unsafe { &mut **proxy.user_data() };
 
         // Get a real layout node.
         let node: LayoutNode = layout_node_from_unsafe_layout_node(&unsafe_layout_node);
@@ -373,9 +373,7 @@ fn construct_flows(mut unsafe_layout_node: UnsafeLayoutNode,
 
 fn assign_widths(unsafe_flow: UnsafeFlow,
                  proxy: &mut WorkerProxy<*mut LayoutContext,UnsafeFlow>) {
-    let layout_context: &mut LayoutContext = unsafe {
-        mem::transmute(*proxy.user_data())
-    };
+    let layout_context = unsafe { &mut **proxy.user_data() };
     let mut assign_widths_traversal = AssignWidthsTraversal {
         layout_context: layout_context,
     };
@@ -384,9 +382,7 @@ fn assign_widths(unsafe_flow: UnsafeFlow,
 
 fn assign_heights_and_store_overflow(unsafe_flow: UnsafeFlow,
                                      proxy: &mut WorkerProxy<*mut LayoutContext,UnsafeFlow>) {
-    let layout_context: &mut LayoutContext = unsafe {
-        mem::transmute(*proxy.user_data())
-    };
+    let layout_context = unsafe { &mut **proxy.user_data() };
     let mut assign_heights_traversal = AssignHeightsAndStoreOverflowTraversal {
         layout_context: layout_context,
     };
@@ -449,9 +445,7 @@ fn compute_absolute_position(unsafe_flow: UnsafeFlow,
 
 fn build_display_list(mut unsafe_flow: UnsafeFlow,
                       proxy: &mut WorkerProxy<*mut LayoutContext,UnsafeFlow>) {
-    let layout_context: &mut LayoutContext = unsafe {
-        mem::transmute(*proxy.user_data())
-    };
+    let layout_context = unsafe { &mut **proxy.user_data() };
 
     loop {
         unsafe {
@@ -510,9 +504,7 @@ fn build_display_list(mut unsafe_flow: UnsafeFlow,
 pub fn recalc_style_for_subtree(root_node: &LayoutNode,
                                 layout_context: &mut LayoutContext,
                                 queue: &mut WorkQueue<*mut LayoutContext,UnsafeLayoutNode>) {
-    unsafe {
-        queue.data = mem::transmute(layout_context)
-    }
+    queue.data = layout_context as *mut _;
 
     // Enqueue the root node.
     queue.push(WorkUnit {
@@ -529,9 +521,7 @@ pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
                                    time_profiler_chan: TimeProfilerChan,
                                    layout_context: &mut LayoutContext,
                                    queue: &mut WorkQueue<*mut LayoutContext,UnsafeFlow>) {
-    unsafe {
-        queue.data = mem::transmute(layout_context)
-    }
+    queue.data = layout_context as *mut _;
 
     profile(time::LayoutParallelWarmupCategory, time_profiler_chan, || {
         queue.push(WorkUnit {
@@ -549,9 +539,7 @@ pub fn build_display_list_for_subtree(root: &mut FlowRef,
                                       time_profiler_chan: TimeProfilerChan,
                                       layout_context: &mut LayoutContext,
                                       queue: &mut WorkQueue<*mut LayoutContext,UnsafeFlow>) {
-    unsafe {
-        queue.data = mem::transmute(layout_context)
-    }
+    queue.data = layout_context as *mut _;
 
     profile(time::LayoutParallelWarmupCategory, time_profiler_chan, || {
         queue.push(WorkUnit {
