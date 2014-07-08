@@ -146,38 +146,18 @@ impl CompositorData {
     /// Adds a child layer to the layer with the given ID and the given pipeline, if it doesn't
     /// exist yet. The child layer will have the same pipeline, tile size, memory limit, and CPU
     /// painting status as its parent.
-    ///
-    /// Returns:
-    ///   * True if the layer was added;
-    ///   * True if the layer was not added because it already existed;
-    ///   * False if the layer could not be added because no suitable parent layer with the given
-    ///     ID and pipeline could be found.
     pub fn add_child_if_necessary(layer: Rc<Layer<CompositorData>>,
-                                  pipeline_id: PipelineId,
-                                  parent_layer_id: LayerId,
                                   child_layer_id: LayerId,
                                   rect: Rect<f32>,
                                   page_size: Size2D<f32>,
-                                  scroll_policy: ScrollPolicy) -> bool {
-        if layer.extra_data.borrow().pipeline.id != pipeline_id ||
-           layer.extra_data.borrow().id != parent_layer_id {
-            return layer.children().iter().any(|kid| {
-                CompositorData::add_child_if_necessary(kid.clone(),
-                                                       pipeline_id,
-                                                       parent_layer_id,
-                                                       child_layer_id,
-                                                       rect,
-                                                       page_size,
-                                                       scroll_policy)
-            })
-        }
-
+                                  scroll_policy: ScrollPolicy) {
         // See if we've already made this child layer.
+        let pipeline_id = layer.extra_data.borrow().pipeline.id;
         if layer.children().iter().any(|kid| {
                     kid.extra_data.borrow().pipeline.id == pipeline_id &&
                     kid.extra_data.borrow().id == child_layer_id
                 }) {
-            return true
+            return;
         }
 
         let new_compositor_data = CompositorData::new(layer.extra_data.borrow().pipeline.clone(),
@@ -197,8 +177,6 @@ impl CompositorData {
 
         // Place the kid's layer in the container passed in.
         Layer::add_child(layer.clone(), new_kid.clone());
-
-        true
     }
 
     /// Move the layer's descendants that don't want scroll events and scroll by a relative
@@ -338,11 +316,11 @@ impl CompositorData {
 
     // Given the current window size, determine which tiles need to be (re-)rendered and sends them
     // off the the appropriate renderer. Returns true if and only if the scene should be repainted.
-    pub fn get_buffer_request(layer: Rc<Layer<CompositorData>>,
-                              graphics_context: &NativeCompositingGraphicsContext,
-                              window_rect: Rect<f32>,
-                              scale: f32)
-                              -> bool {
+    pub fn send_buffer_requests_recursively(layer: Rc<Layer<CompositorData>>,
+                                            graphics_context: &NativeCompositingGraphicsContext,
+                                            window_rect: Rect<f32>,
+                                            scale: f32)
+                                            -> bool {
         let (request, unused) = Layer::get_tile_rects_page(layer.clone(), window_rect, scale);
         let redisplay = !unused.is_empty();
         if redisplay {
@@ -366,7 +344,7 @@ impl CompositorData {
             CompositorData::build_layer_tree(layer.clone(), graphics_context);
         }
 
-        let get_child_buffer_request = |kid: &Rc<Layer<CompositorData>>| -> bool {
+        let send_child_buffer_request = |kid: &Rc<Layer<CompositorData>>| -> bool {
             match kid.extra_data.borrow().scissor {
                 Some(scissor) => {
                     let mut new_rect = window_rect;
@@ -380,10 +358,10 @@ impl CompositorData {
                             // to make the child_rect appear in coordinates local to it.
                             let child_rect = Rect(new_rect.origin.sub(&scissor.origin),
                                                   new_rect.size);
-                            CompositorData::get_buffer_request(kid.clone(),
-                                                               graphics_context,
-                                                               child_rect,
-                                                               scale)
+                            CompositorData::send_buffer_requests_recursively(kid.clone(),
+                                                                             graphics_context,
+                                                                             child_rect,
+                                                                             scale)
                         }
                         None => {
                             false // Layer is offscreen
@@ -395,7 +373,7 @@ impl CompositorData {
         };
 
         layer.children().iter().filter(|x| !x.extra_data.borrow().hidden)
-            .map(get_child_buffer_request)
+            .map(send_child_buffer_request)
             .any(|b| b) || redisplay
     }
 
@@ -409,7 +387,7 @@ impl CompositorData {
                              new_rect: Rect<f32>)
                              -> bool {
         debug!("compositor_data: starting set_clipping_rect()");
-        match CompositorData::find_child_with_layer_and_pipeline_id(layer.clone(),
+        match CompositorData::find_child_with_pipeline_and_layer_id(layer.clone(),
                                                                     pipeline_id,
                                                                     layer_id) {
             Some(child_node) => {
@@ -561,7 +539,7 @@ impl CompositorData {
 
 
 
-    fn find_child_with_layer_and_pipeline_id(layer: Rc<Layer<CompositorData>>,
+    fn find_child_with_pipeline_and_layer_id(layer: Rc<Layer<CompositorData>>,
                                              pipeline_id: PipelineId,
                                              layer_id: LayerId)
                                              -> Option<Rc<Layer<CompositorData>>> {
@@ -574,6 +552,27 @@ impl CompositorData {
         return None
     }
 
+    pub fn find_layer_with_pipeline_and_layer_id(layer: Rc<Layer<CompositorData>>,
+                                                 pipeline_id: PipelineId,
+                                                 layer_id: LayerId)
+                                                 -> Option<Rc<Layer<CompositorData>>> {
+        if layer.extra_data.borrow().pipeline.id == pipeline_id &&
+           layer.extra_data.borrow().id == layer_id {
+            return Some(layer.clone());
+        }
+
+        for kid in layer.children().iter() {
+            match CompositorData::find_layer_with_pipeline_and_layer_id(kid.clone(),
+                                                                        pipeline_id,
+                                                                        layer_id) {
+                v @ Some(_) => { return v; }
+                None => { }
+            }
+        }
+
+        return None;
+    }
+
     // A helper method to resize sublayers.
     fn resize_helper(layer: Rc<Layer<CompositorData>>,
                      pipeline_id: PipelineId,
@@ -583,7 +582,7 @@ impl CompositorData {
                      -> bool {
         debug!("compositor_data: starting resize_helper()");
 
-        let found = match CompositorData::find_child_with_layer_and_pipeline_id(layer.clone(),
+        let found = match CompositorData::find_child_with_pipeline_and_layer_id(layer.clone(),
                                                                                 pipeline_id,
                                                                                 layer_id) {
             Some(child) => {
@@ -676,33 +675,9 @@ impl CompositorData {
     // layer buffer set is consumed, and None is returned.
     pub fn add_buffers(layer: Rc<Layer<CompositorData>>,
                        graphics_context: &NativeCompositingGraphicsContext,
-                       pipeline_id: PipelineId,
-                       layer_id: LayerId,
-                       mut new_buffers: Box<LayerBufferSet>,
+                       new_buffers: Box<LayerBufferSet>,
                        epoch: Epoch)
-                       -> Option<Box<LayerBufferSet>> {
-        debug!("compositor_data: starting add_buffers()");
-        if layer.extra_data.borrow().pipeline.id != pipeline_id ||
-           layer.extra_data.borrow().id != layer_id {
-            // ID does not match ours, so recurse on descendents (including hidden children).
-            for child_layer in layer.children().iter() {
-                match CompositorData::add_buffers(child_layer.clone(),
-                                                  graphics_context,
-                                                  pipeline_id,
-                                                  layer_id,
-                                                  new_buffers,
-                                                  epoch) {
-                    None => return None,
-                    Some(buffers) => new_buffers = buffers,
-                }
-            }
-
-            // Not found. Give the caller the buffers back.
-            return Some(new_buffers)
-        }
-
-        debug!("compositor_data: layers found for add_buffers()");
-
+                       -> bool {
         if layer.extra_data.borrow().epoch != epoch {
             debug!("add_buffers: compositor epoch mismatch: {:?} != {:?}, id: {:?}",
                    layer.extra_data.borrow().epoch,
@@ -710,7 +685,7 @@ impl CompositorData {
                    layer.extra_data.borrow().pipeline.id);
             let msg = UnusedBufferMsg(new_buffers.buffers);
             let _ = layer.extra_data.borrow().pipeline.render_chan.send_opt(msg);
-            return None
+            return false;
         }
 
         {
@@ -725,7 +700,7 @@ impl CompositorData {
         }
 
         CompositorData::build_layer_tree(layer.clone(), graphics_context);
-        None
+        return true;
     }
 
     // Recursively sets occluded portions of quadtrees to Hidden, so that they do not ask for
@@ -792,26 +767,8 @@ impl CompositorData {
         }
     }
 
-    pub fn set_unrendered_color(layer: Rc<Layer<CompositorData>>,
-                                pipeline_id: PipelineId,
-                                layer_id: LayerId,
-                                color: Color)
-                                -> bool {
-        if layer.extra_data.borrow().pipeline.id != pipeline_id ||
-           layer.extra_data.borrow().id != layer_id {
-            for child_layer in layer.children().iter() {
-                if CompositorData::set_unrendered_color(child_layer.clone(),
-                                                        pipeline_id,
-                                                        layer_id,
-                                                        color) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
+    pub fn set_unrendered_color(layer: Rc<Layer<CompositorData>>, color: Color) {
         layer.extra_data.borrow_mut().unrendered_color = color;
-        return true;
     }
 }
 

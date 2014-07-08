@@ -348,12 +348,16 @@ impl IOCompositor {
 
     fn set_unrendered_color(&mut self, pipeline_id: PipelineId, layer_id: LayerId, color: Color) {
         match self.scene.root {
-            Some(ref layer) => CompositorData::set_unrendered_color(layer.clone(),
-                                                                    pipeline_id,
-                                                                    layer_id,
-                                                                    color),
-            None => false,
-        };
+            Some(ref root_layer) => {
+                match CompositorData::find_layer_with_pipeline_and_layer_id(root_layer.clone(),
+                                                                            pipeline_id,
+                                                                            layer_id) {
+                    Some(ref layer) => CompositorData::set_unrendered_color(layer.clone(), color),
+                    None => { }
+                }
+            }
+            None => { }
+        }
     }
 
     fn set_ids(&mut self,
@@ -390,7 +394,6 @@ impl IOCompositor {
         };
 
         if layer_id != root_layer_id {
-            let root_pipeline_id = root_pipeline.id;
             let new_compositor_data = CompositorData::new_root(root_pipeline,
                                                                size,
                                                                self.opts.cpu_painting);
@@ -399,18 +402,16 @@ impl IOCompositor {
                                               new_compositor_data));
             new_root.extra_data.borrow_mut().unrendered_color = unrendered_color;
 
-            let parent_layer_id = new_root.extra_data.borrow().id;
-            assert!(CompositorData::add_child_if_necessary(new_root.clone(),
-                                                           root_pipeline_id,
-                                                           parent_layer_id,
-                                                           layer_id,
-                                                           Rect(Point2D(0f32, 0f32), size),
-                                                           size,
-                                                           Scrollable));
+            CompositorData::add_child_if_necessary(new_root.clone(),
+                                                   layer_id,
+                                                   Rect(Point2D(0f32, 0f32), size),
+                                                   size,
+                                                   Scrollable);
 
             // Release all tiles from the layer before dropping it.
-            for layer in self.scene.root.mut_iter() {
-                CompositorData::clear_all_tiles(layer.clone());
+            match self.scene.root {
+                Some(ref mut layer) => CompositorData::clear_all_tiles(layer.clone()),
+                None => { }
             }
             self.scene.root = Some(new_root);
         }
@@ -424,19 +425,26 @@ impl IOCompositor {
                                                        rect: Rect<f32>,
                                                        scroll_policy: ScrollPolicy) {
         match self.scene.root {
-            Some(ref root) => {
-                let parent_layer_id = root.extra_data.borrow().id;
-                let page_size = root.extra_data.borrow().page_size.unwrap();
-                assert!(CompositorData::add_child_if_necessary(root.clone(),
-                                                               pipeline_id,
-                                                               parent_layer_id,
+            Some(ref root_layer) => {
+                let parent_layer_id = root_layer.extra_data.borrow().id;
+                match CompositorData::find_layer_with_pipeline_and_layer_id(root_layer.clone(),
+                                                                            pipeline_id,
+                                                                            parent_layer_id) {
+                    Some(ref mut parent_layer) => {
+                        let page_size = root_layer.extra_data.borrow().page_size.unwrap();
+                        CompositorData::add_child_if_necessary(parent_layer.clone(),
                                                                layer_id,
                                                                rect,
                                                                page_size,
-                                                               scroll_policy))
+                                                               scroll_policy);
+                    }
+                    None => {
+                        fail!("Compositor: couldn't find parent layer");
+                    }
+                }
             }
-            None => fail!("Compositor: Received new layer without initialized pipeline"),
-        };
+            None => fail!("Compositor: Received new layer without initialized pipeline")
+        }
 
         self.ask_for_tiles();
     }
@@ -522,14 +530,24 @@ impl IOCompositor {
         new_layer_buffer_set.mark_will_leak();
 
         match self.scene.root {
-            Some(ref layer) => {
-                assert!(CompositorData::add_buffers(layer.clone(),
-                                                     &self.graphics_context,
-                                                     pipeline_id,
-                                                     layer_id,
-                                                     new_layer_buffer_set,
-                                                     epoch).is_none());
-                self.recomposite = true;
+            Some(ref root_layer) => {
+                match CompositorData::find_layer_with_pipeline_and_layer_id(root_layer.clone(),
+                                                                            pipeline_id,
+                                                                            layer_id) {
+                    Some(ref layer) => {
+                        assert!(CompositorData::add_buffers(layer.clone(),
+                                                            &self.graphics_context,
+                                                            new_layer_buffer_set,
+                                                            epoch));
+                        self.recomposite = true;
+                    }
+                    None => {
+                        // FIXME: This may potentially be triggered by a race condition where a
+                        // buffers are being rendered but the layer is removed before rendering
+                        // completes.
+                        fail!("compositor given paint command for non-existent layer");
+                    }
+                }
             }
             None => {
                 fail!("compositor given paint command with no root layer initialized");
@@ -681,11 +699,14 @@ impl IOCompositor {
         let page_cursor = cursor.as_f32() / scale;
         let page_window = self.page_window();
         let mut scroll = false;
-        for layer in self.scene.root.mut_iter() {
-            scroll = CompositorData::handle_scroll_event(layer.clone(),
-                                                         page_delta,
-                                                         page_cursor,
-                                                         page_window) || scroll;
+        match self.scene.root {
+            Some(ref mut layer) => {
+                scroll = CompositorData::handle_scroll_event(layer.clone(),
+                                                             page_delta,
+                                                             page_cursor,
+                                                             page_window) || scroll;
+            }
+            None => { }
         }
         self.recomposite_if(scroll);
         self.ask_for_tiles();
@@ -735,11 +756,14 @@ impl IOCompositor {
         let page_cursor = TypedPoint2D(-1f32, -1f32); // Make sure this hits the base layer
         let page_window = self.page_window();
 
-        for layer in self.scene.root.mut_iter() {
-            CompositorData::handle_scroll_event(layer.clone(),
-                                                page_delta,
-                                                page_cursor,
-                                                page_window);
+        match self.scene.root {
+            Some(ref mut layer) => {
+                CompositorData::handle_scroll_event(layer.clone(),
+                                                    page_delta,
+                                                    page_cursor,
+                                                    page_window);
+            }
+            None => { }
         }
 
         self.recomposite = true;
@@ -758,17 +782,20 @@ impl IOCompositor {
     fn ask_for_tiles(&mut self) {
         let scale = self.device_pixels_per_page_px();
         let page_window = self.page_window();
-        for layer in self.scene.root.mut_iter() {
-            if !layer.extra_data.borrow().hidden {
+        match self.scene.root {
+            Some(ref mut layer) if !layer.extra_data.borrow().hidden => {
                 let rect = Rect(Point2D(0f32, 0f32), page_window.to_untyped());
-                let recomposite = CompositorData::get_buffer_request(layer.clone(),
+                let recomposite =
+                    CompositorData::send_buffer_requests_recursively(layer.clone(),
                                                                      &self.graphics_context,
                                                                      rect,
                                                                      scale.get());
                 self.recomposite = self.recomposite || recomposite;
-            } else {
+            }
+            Some(_) => {
                 debug!("Compositor: root layer is hidden!");
             }
+            None => { }
         }
     }
 
