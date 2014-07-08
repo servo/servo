@@ -8,6 +8,7 @@ use compositor_task::{GetGraphicsMetadata, CreateOrUpdateRootLayer, CreateOrUpda
 use compositor_task::{SetLayerClipRect, Paint, ScrollFragmentPoint, LoadComplete};
 use compositor_task::{ShutdownComplete, ChangeRenderState};
 use constellation::SendableFrameTree;
+use events;
 use pipeline::CompositionPipeline;
 use platform::{Application, Window};
 use windowing;
@@ -444,11 +445,11 @@ impl IOCompositor {
         let needs_recomposite = match self.scene.root {
             Some(ref mut root_layer) => {
                 self.fragment_point.take().map_or(false, |fragment_point| {
-                    CompositorData::move(root_layer.clone(),
-                                         pipeline_id,
-                                         layer_id,
-                                         fragment_point,
-                                         page_window)
+                    events::move(root_layer.clone(),
+                                 pipeline_id,
+                                 layer_id,
+                                 fragment_point,
+                                 page_window)
                 })
             }
             None => fail!("Compositor: Tried to scroll to fragment without root layer."),
@@ -528,7 +529,7 @@ impl IOCompositor {
             Some(ref layer) if layer.extra_data.borrow().pipeline.id == pipeline_id &&
                                !layer.extra_data.borrow().hidden => {
                 (true,
-                 CompositorData::move(layer.clone(), pipeline_id, layer_id, point, page_window))
+                 events::move(layer.clone(), pipeline_id, layer_id, point, page_window))
             }
             Some(_) | None => {
                 self.fragment_point = Some(point);
@@ -640,14 +641,14 @@ impl IOCompositor {
             MouseWindowMouseUpEvent(_, p) => p / scale,
         };
         for layer in self.scene.root.iter() {
-            CompositorData::send_mouse_event(layer.clone(), mouse_window_event, point);
+            events::send_mouse_event(layer.clone(), mouse_window_event, point);
         }
     }
 
     fn on_mouse_window_move_event_class(&self, cursor: TypedPoint2D<DevicePixel, f32>) {
         let scale = self.device_pixels_per_page_px();
         for layer in self.scene.root.iter() {
-            CompositorData::send_mouse_move_event(layer.clone(), cursor / scale);
+            events::send_mouse_move_event(layer.clone(), cursor / scale);
         }
     }
 
@@ -662,10 +663,10 @@ impl IOCompositor {
         let mut scroll = false;
         match self.scene.root {
             Some(ref mut layer) => {
-                scroll = CompositorData::handle_scroll_event(layer.clone(),
-                                                             page_delta,
-                                                             page_cursor,
-                                                             page_window) || scroll;
+                scroll = events::handle_scroll_event(layer.clone(),
+                                                     page_delta,
+                                                     page_cursor,
+                                                     page_window) || scroll;
             }
             None => { }
         }
@@ -719,10 +720,10 @@ impl IOCompositor {
 
         match self.scene.root {
             Some(ref mut layer) => {
-                CompositorData::handle_scroll_event(layer.clone(),
-                                                    page_delta,
-                                                    page_cursor,
-                                                    page_window);
+                events::handle_scroll_event(layer.clone(),
+                                            page_delta,
+                                            page_cursor,
+                                            page_window);
             }
             None => { }
         }
