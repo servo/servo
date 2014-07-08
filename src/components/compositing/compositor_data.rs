@@ -13,7 +13,7 @@ use geom::rect::Rect;
 use geom::size::{Size2D, TypedSize2D};
 use gfx::render_task::{ReRenderMsg, UnusedBufferMsg};
 use layers::layers::{Layer, Flip, LayerBuffer, LayerBufferSet, NoFlip, TextureLayer};
-use layers::quadtree::{Tile, Normal, Hidden};
+use layers::quadtree::Tile;
 use layers::platform::surface::{NativeCompositingGraphicsContext, NativeSurfaceMethods};
 use layers::texturegl::{Texture, TextureTarget};
 use servo_msg::compositor_msg::{Epoch, FixedPosition, LayerId};
@@ -208,14 +208,7 @@ impl CompositorData {
                                                                     layer_id) {
             Some(child_node) => {
                 debug!("compositor_data: node found for set_clipping_rect()");
-                let old_rect = child_node.bounds.borrow().clone();
                 *child_node.bounds.borrow_mut() = new_rect;
-
-                // Rect is unhidden
-                Layer::set_status_page(layer.clone(), old_rect, Normal, false);
-
-                // Hide the new rect
-                Layer::set_status_page(layer.clone(), new_rect, Hidden, false);
 
                 // If possible, unhide child
                 let mut child_data = child_node.extra_data.borrow_mut();
@@ -246,7 +239,6 @@ impl CompositorData {
               new_size: Size2D<f32>) {
         debug!("compositor_data: starting resize_helper()");
 
-        debug!("compositor_data: layer found for resize_helper()");
         layer.extra_data.borrow_mut().page_size = Some(new_size);
 
         let unused_buffers = Layer::resize(layer.clone(), new_size);
@@ -262,9 +254,6 @@ impl CompositorData {
                                             TypedPoint2D(0f32, 0f32),
                                             TypedPoint2D(-1f32, -1f32),
                                             size);
-        layer.extra_data.borrow_mut().hidden = false;
-
-        CompositorData::set_occlusions(layer.clone());
     }
 
     // Returns whether the layer should be vertically flipped.
@@ -403,22 +392,6 @@ impl CompositorData {
 
         CompositorData::build_layer_tree(layer.clone(), graphics_context);
         return true;
-    }
-
-    // Recursively sets occluded portions of quadtrees to Hidden, so that they do not ask for
-    // tile requests. If layers are moved, resized, or deleted, these portions may be updated.
-    fn set_occlusions(layer: Rc<Layer<CompositorData>>) {
-        for kid in layer.children().iter() {
-            if !kid.extra_data.borrow().hidden {
-                Layer::set_status_page(layer.clone(), *kid.bounds.borrow(), Hidden, false);
-            }
-        }
-
-        for kid in layer.children().iter() {
-            if !kid.extra_data.borrow().hidden {
-                CompositorData::set_occlusions(kid.clone());
-            }
-        }
     }
 
     /// Destroys all quadtree tiles, sending the buffers back to the renderer to be destroyed or
