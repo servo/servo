@@ -60,20 +60,13 @@ pub fn handle_scroll_event(layer: Rc<Layer<CompositorData>>,
     // Allow children to scroll.
     let cursor = cursor - layer.extra_data.borrow().scroll_offset;
     for child in layer.children().iter() {
-        match child.extra_data.borrow().scissor {
-            None => {
-                error!("CompositorData: unable to perform cursor hit test for layer");
-            }
-            Some(rect) => {
-                let rect: TypedRect<PagePx, f32> = Rect::from_untyped(&rect);
-                if rect.contains(&cursor) &&
-                   handle_scroll_event(child.clone(),
-                                       delta,
-                                       cursor - rect.origin,
-                                       rect.size) {
-                    return true
-                }
-            }
+        let rect: TypedRect<PagePx, f32> = Rect::from_untyped(&*child.bounds.borrow());
+        if rect.contains(&cursor) &&
+           handle_scroll_event(child.clone(),
+                               delta,
+                               cursor - rect.origin,
+                               rect.size) {
+            return true
         }
     }
 
@@ -141,17 +134,10 @@ pub fn send_mouse_event(layer: Rc<Layer<CompositorData>>,
             continue;
         }
 
-        match child.extra_data.borrow().scissor {
-            None => {
-                error!("CompositorData: unable to perform cursor hit test for layer");
-            }
-            Some(rect) => {
-                let rect: TypedRect<PagePx, f32> = Rect::from_untyped(&rect);
-                if rect.contains(&cursor) {
-                    send_mouse_event(child.clone(), event, cursor - rect.origin);
-                    return;
-                }
-            }
+        let rect: TypedRect<PagePx, f32> = Rect::from_untyped(&*child.bounds.borrow());
+        if rect.contains(&cursor) {
+            send_mouse_event(child.clone(), event, cursor - rect.origin);
+            return;
         }
     }
 
@@ -215,4 +201,3 @@ pub fn move(layer: Rc<Layer<CompositorData>>,
     let offset = layer.extra_data.borrow().scroll_offset.clone();
     scroll(layer.clone(), offset)
 }
-

@@ -372,7 +372,8 @@ impl IOCompositor {
                                                                self.opts.cpu_painting,
                                                                layer_properties.background_color);
             let size = layer_properties.rect.size;
-            let new_root = Rc::new(Layer::new(size,
+            let new_root = Rc::new(Layer::new(layer_properties.rect,
+                                              size,
                                               self.opts.tile_size,
                                               new_compositor_data));
 
