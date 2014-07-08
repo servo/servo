@@ -27,7 +27,7 @@ use geom::rect::Rect;
 use geom::size::Size2D;
 use gfx::display_list::{ClipDisplayItemClass, ContentStackingLevel, DisplayItem};
 use gfx::display_list::{DisplayItemIterator, DisplayList, OpaqueNode};
-use gfx::font_context::{FontContext, FontContextInfo};
+use gfx::font_context::FontContext;
 use gfx::render_task::{RenderMsg, RenderChan, RenderLayer};
 use gfx::{render_task, color};
 use script::dom::bindings::js::JS;
@@ -44,6 +44,7 @@ use script::script_task::{ReflowCompleteMsg, ScriptChan, SendEventMsg};
 use servo_msg::compositor_msg::Scrollable;
 use servo_msg::constellation_msg::{ConstellationChan, PipelineId, Failure, FailureMsg};
 use servo_net::image_cache_task::{ImageCacheTask, ImageResponseMsg};
+use gfx::font_cache_task::{FontCacheTask};
 use servo_net::local_image_cache::{ImageResponder, LocalImageCache};
 use servo_util::geometry::Au;
 use servo_util::geometry;
@@ -83,6 +84,9 @@ pub struct LayoutTask {
 
     /// The channel on which messages can be sent to the image cache.
     pub image_cache_task: ImageCacheTask,
+
+    /// Public interface to the font cache task.
+    pub font_cache_task: FontCacheTask,
 
     /// The local image cache.
     pub local_image_cache: Arc<Mutex<LocalImageCache>>,
@@ -278,6 +282,7 @@ impl LayoutTask {
                   script_chan: ScriptChan,
                   render_chan: RenderChan,
                   img_cache_task: ImageCacheTask,
+                  font_cache_task: FontCacheTask,
                   opts: Opts,
                   time_profiler_chan: TimeProfilerChan,
                   shutdown_chan: Sender<()>) {
@@ -293,6 +298,7 @@ impl LayoutTask {
                                                  script_chan,
                                                  render_chan,
                                                  img_cache_task,
+                                                 font_cache_task,
                                                  &opts,
                                                  time_profiler_chan);
                 layout.start();
@@ -309,6 +315,7 @@ impl LayoutTask {
            script_chan: ScriptChan,
            render_chan: RenderChan,
            image_cache_task: ImageCacheTask,
+           font_cache_task: FontCacheTask,
            opts: &Opts,
            time_profiler_chan: TimeProfilerChan)
            -> LayoutTask {
@@ -328,6 +335,7 @@ impl LayoutTask {
             script_chan: script_chan,
             render_chan: render_chan,
             image_cache_task: image_cache_task.clone(),
+            font_cache_task: font_cache_task,
             local_image_cache: local_image_cache,
             screen_size: screen_size,
 
@@ -349,18 +357,12 @@ impl LayoutTask {
 
     // Create a layout context for use in building display lists, hit testing, &c.
     fn build_layout_context(&self, reflow_root: &LayoutNode, url: &Url) -> LayoutContext {
-        let font_context_info = FontContextInfo {
-            backend: self.opts.render_backend,
-            needs_font_list: true,
-            time_profiler_chan: self.time_profiler_chan.clone(),
-        };
-
         LayoutContext {
             image_cache: self.local_image_cache.clone(),
             screen_size: self.screen_size.clone(),
             constellation_chan: self.constellation_chan.clone(),
             layout_chan: self.chan.clone(),
-            font_context_info: font_context_info,
+            font_cache_task: self.font_cache_task.clone(),
             stylist: &*self.stylist,
             url: (*url).clone(),
             reflow_root: OpaqueNodeMethods::from_layout_node(reflow_root),
@@ -594,7 +596,7 @@ impl LayoutTask {
         // FIXME(pcwalton): This is a pretty bogus thing to do. Essentially this is a workaround
         // for libgreen having slow TLS.
         let mut font_context_opt = if self.parallel_traversal.is_none() {
-            Some(box FontContext::new(layout_ctx.font_context_info.clone()))
+            Some(box FontContext::new(layout_ctx.font_cache_task.clone()))
         } else {
             None
         };

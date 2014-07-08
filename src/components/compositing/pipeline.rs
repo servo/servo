@@ -14,6 +14,7 @@ use script::script_task;
 use servo_msg::constellation_msg::{ConstellationChan, Failure, PipelineId, SubpageId};
 use servo_msg::constellation_msg::WindowSizeData;
 use servo_net::image_cache_task::ImageCacheTask;
+use gfx::font_cache_task::FontCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_util::opts::Opts;
 use servo_util::time::TimeProfilerChan;
@@ -49,6 +50,7 @@ impl Pipeline {
                        constellation_chan: ConstellationChan,
                        compositor_chan: CompositorChan,
                        image_cache_task: ImageCacheTask,
+                       font_cache_task: FontCacheTask,
                        time_profiler_chan: TimeProfilerChan,
                        opts: Opts,
                        script_pipeline: Rc<Pipeline>,
@@ -68,6 +70,7 @@ impl Pipeline {
                            render_port,
                            compositor_chan.clone(),
                            constellation_chan.clone(),
+                           font_cache_task.clone(),
                            failure.clone(),
                            opts.clone(),
                            time_profiler_chan.clone(),
@@ -81,6 +84,7 @@ impl Pipeline {
                            script_pipeline.script_chan.clone(),
                            render_chan.clone(),
                            image_cache_task.clone(),
+                           font_cache_task.clone(),
                            opts.clone(),
                            time_profiler_chan,
                            layout_shutdown_chan);
@@ -110,6 +114,7 @@ impl Pipeline {
                   constellation_chan: ConstellationChan,
                   compositor_chan: CompositorChan,
                   image_cache_task: ImageCacheTask,
+                  font_cache_task: FontCacheTask,
                   resource_task: ResourceTask,
                   time_profiler_chan: TimeProfilerChan,
                   window_size: WindowSizeData,
@@ -150,6 +155,7 @@ impl Pipeline {
                            render_port,
                            compositor_chan.clone(),
                            constellation_chan.clone(),
+                           font_cache_task.clone(),
                            failure.clone(),
                            opts.clone(),
                            time_profiler_chan.clone(),
@@ -163,6 +169,7 @@ impl Pipeline {
                            script_chan.clone(),
                            render_chan.clone(),
                            image_cache_task,
+                           font_cache_task,
                            opts.clone(),
                            time_profiler_chan,
                            layout_shutdown_chan);

@@ -20,6 +20,7 @@ extern crate servo_msg = "msg";
 #[phase(plugin, link)]
 extern crate servo_util = "util";
 extern crate green;
+extern crate gfx;
 extern crate libc;
 extern crate native;
 extern crate rustrt;
@@ -34,6 +35,8 @@ use servo_msg::constellation_msg::{ConstellationChan, InitLoadUrlMsg};
 use servo_net::image_cache_task::ImageCacheTask;
 #[cfg(not(test))]
 use servo_net::resource_task::new_resource_task;
+#[cfg(not(test))]
+use gfx::font_cache_task::FontCacheTask;
 #[cfg(not(test))]
 use servo_util::time::TimeProfiler;
 #[cfg(not(test))]
@@ -115,10 +118,12 @@ pub fn run(opts: opts::Opts) {
             } else {
                 ImageCacheTask::new(resource_task.clone())
             };
+        let font_cache_task = FontCacheTask::new();
         let constellation_chan = Constellation::start(compositor_chan,
                                                       opts,
                                                       resource_task,
                                                       image_cache_task,
+                                                      font_cache_task,
                                                       time_profiler_chan_clone);
 
         // Send the URL command to the constellation.

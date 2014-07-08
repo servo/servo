@@ -7,7 +7,7 @@
 use buffer_map::BufferMap;
 use display_list::optimizer::DisplayListOptimizer;
 use display_list::DisplayList;
-use font_context::{FontContext, FontContextInfo};
+use font_context::FontContext;
 use render_context::RenderContext;
 
 use azure::azure_hl::{B8G8R8A8, Color, DrawTarget, StolenGLResources};
@@ -34,6 +34,7 @@ use servo_util::time::{TimeProfilerChan, profile};
 use servo_util::time;
 use std::comm::{Receiver, Sender, channel};
 use sync::Arc;
+use font_cache_task::FontCacheTask;
 
 /// Information about a layer that layout sends to the painting task.
 pub struct RenderLayer {
@@ -144,12 +145,15 @@ impl<C:RenderListener + Send> RenderTask<C> {
                   port: Receiver<Msg>,
                   compositor: C,
                   constellation_chan: ConstellationChan,
+                  font_cache_task: FontCacheTask,
                   failure_msg: Failure,
                   opts: Opts,
                   time_profiler_chan: TimeProfilerChan,
                   shutdown_chan: Sender<()>) {
 
         let ConstellationChan(c) = constellation_chan.clone();
+        let fc = font_cache_task.clone();
+
         let mut task_opts = TaskOpts::new();
         task_opts.name = Some("RenderTask".into_maybe_owned());
         task_opts.on_exit = Some(proc(result: task::Result) {
@@ -172,11 +176,7 @@ impl<C:RenderListener + Send> RenderTask<C> {
                     port: port,
                     compositor: compositor,
                     constellation_chan: constellation_chan,
-                    font_ctx: box FontContext::new(FontContextInfo {
-                        backend: opts.render_backend.clone(),
-                        needs_font_list: false,
-                        time_profiler_chan: time_profiler_chan.clone(),
-                    }),
+                    font_ctx: box FontContext::new(fc.clone()),
                     opts: opts,
                     time_profiler_chan: time_profiler_chan,
 

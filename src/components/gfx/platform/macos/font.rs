@@ -10,25 +10,25 @@ extern crate core_text;
 
 use font::{FontHandleMethods, FontMetrics, FontTableMethods};
 use font::FontTableTag;
-use font::{FractionalPixel, SpecifiedFontStyle};
+use font::FractionalPixel;
 use servo_util::geometry::{Au, px_to_pt};
 use servo_util::geometry;
 use platform::macos::font_context::FontContextHandle;
 use text::glyph::GlyphId;
 use style::computed_values::font_weight;
+use platform::font_template::FontTemplateData;
 
 use core_foundation::base::CFIndex;
 use core_foundation::data::CFData;
 use core_foundation::string::UniChar;
-use core_graphics::data_provider::CGDataProvider;
-use core_graphics::font::{CGFont, CGGlyph};
+use core_graphics::font::CGGlyph;
 use core_graphics::geometry::CGRect;
 use core_text::font::CTFont;
 use core_text::font_descriptor::{SymbolicTraitAccessors, TraitAccessors};
 use core_text::font_descriptor::{kCTFontDefaultOrientation};
-use core_text;
 
 use std::ptr;
+use sync::Arc;
 
 pub struct FontTable {
     data: CFData,
@@ -52,43 +52,30 @@ impl FontTableMethods for FontTable {
 }
 
 pub struct FontHandle {
-    cgfont: Option<CGFont>,
+    pub font_data: Arc<FontTemplateData>,
     pub ctfont: CTFont,
 }
 
-impl FontHandle {
-    pub fn new_from_CTFont(_: &FontContextHandle, ctfont: CTFont) -> Result<FontHandle, ()> {
-        Ok(FontHandle {
-            cgfont: None,
-            ctfont: ctfont,
+impl FontHandleMethods for FontHandle {
+    fn new_from_template(_fctx: &FontContextHandle,
+                       template: Arc<FontTemplateData>,
+                       pt_size: Option<f64>)
+                        -> Result<FontHandle, ()> {
+        let size = match pt_size {
+            Some(s) => s,
+            None => 0.0
+        };
+        let ct_result = core_text::font::new_from_name(template.identifier.as_slice(), size);
+        ct_result.and_then(|ctfont| {
+            Ok(FontHandle {
+                font_data: template.clone(),
+                ctfont: ctfont,
+            })
         })
     }
 
-    pub fn get_CGFont(&mut self) -> CGFont {
-        match self.cgfont {
-            Some(ref font) => font.clone(),
-            None => {
-                let cgfont = self.ctfont.copy_to_CGFont();
-                self.cgfont = Some(cgfont.clone());
-                cgfont
-            }
-        }
-    }
-}
-
-impl FontHandleMethods for FontHandle {
-    fn new_from_buffer(_: &FontContextHandle, buf: Vec<u8>, style: &SpecifiedFontStyle)
-                    -> Result<FontHandle, ()> {
-        let fontprov = CGDataProvider::from_buffer(buf.as_slice());
-        let cgfont = CGFont::from_data_provider(fontprov);
-        let ctfont = core_text::font::new_from_CGFont(&cgfont, style.pt_size);
-
-        let result = Ok(FontHandle {
-            cgfont: Some(cgfont),
-            ctfont: ctfont,
-        });
-
-        return result;
+    fn get_template(&self) -> Arc<FontTemplateData> {
+        self.font_data.clone()
     }
 
     fn family_name(&self) -> String {
@@ -181,10 +168,6 @@ impl FontHandleMethods for FontHandle {
         result.and_then(|data| {
             Some(FontTable::wrap(data))
         })
-    }
-
-    fn face_identifier(&self) -> String {
-        self.ctfont.postscript_name()
     }
 }
 

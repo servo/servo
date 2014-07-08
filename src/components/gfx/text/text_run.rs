@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use font::{Font, FontDescriptor, RunMetrics, FontStyle, FontMetrics};
+use font::{Font, RunMetrics, FontMetrics};
 use servo_util::geometry::Au;
 use servo_util::range::Range;
 use servo_util::vec::{Comparator, FullBinarySearchMethods};
@@ -10,14 +10,16 @@ use std::slice::Items;
 use style::computed_values::text_decoration;
 use sync::Arc;
 use text::glyph::{CharIndex, GlyphStore};
+use font::FontHandleMethods;
+use platform::font_template::FontTemplateData;
 
 /// A single "paragraph" of text in one font size and style.
 #[deriving(Clone)]
 pub struct TextRun {
     pub text: Arc<String>,
-    pub font_descriptor: FontDescriptor,
+    pub font_template: Arc<FontTemplateData>,
+    pub pt_size: f64,
     pub font_metrics: FontMetrics,
-    pub font_style: FontStyle,
     pub decoration: text_decoration::T,
     /// The glyph runs that make up this text run.
     pub glyphs: Arc<Vec<GlyphRun>>,
@@ -119,12 +121,11 @@ impl<'a> Iterator<Range<CharIndex>> for LineIterator<'a> {
 impl<'a> TextRun {
     pub fn new(font: &mut Font, text: String, decoration: text_decoration::T) -> TextRun {
         let glyphs = TextRun::break_and_shape(font, text.as_slice());
-
         let run = TextRun {
             text: Arc::new(text),
-            font_style: font.style.clone(),
             font_metrics: font.metrics.clone(),
-            font_descriptor: font.get_descriptor(),
+            font_template: font.handle.get_template(),
+            pt_size: font.pt_size,
             decoration: decoration,
             glyphs: Arc::new(glyphs),
         };
@@ -133,7 +134,6 @@ impl<'a> TextRun {
 
     pub fn break_and_shape(font: &mut Font, text: &str) -> Vec<GlyphRun> {
         // TODO(Issue #230): do a better job. See Gecko's LineBreaker.
-
         let mut glyphs = vec!();
         let (mut byte_i, mut char_i) = (0u, CharIndex(0));
         let mut cur_slice_is_whitespace = false;

@@ -5,17 +5,18 @@
 extern crate freetype;
 
 use font::{FontHandleMethods, FontMetrics, FontTableMethods};
-use font::{FontTableTag, FractionalPixel, SpecifiedFontStyle};
+use font::{FontTableTag, FractionalPixel};
 use servo_util::geometry::Au;
 use servo_util::geometry;
 use platform::font_context::FontContextHandle;
 use text::glyph::GlyphId;
 use text::util::{float_to_fixed, fixed_to_float};
 use style::computed_values::font_weight;
+use platform::font_template::FontTemplateData;
 
 use freetype::freetype::{FT_Get_Char_Index, FT_Get_Postscript_Name};
 use freetype::freetype::{FT_Load_Glyph, FT_Set_Char_Size};
-use freetype::freetype::{FT_New_Face, FT_Get_Sfnt_Table};
+use freetype::freetype::{FT_Get_Sfnt_Table};
 use freetype::freetype::{FT_New_Memory_Face, FT_Done_Face};
 use freetype::freetype::{FTErrorMethods, FT_F26Dot6, FT_Face, FT_FaceRec};
 use freetype::freetype::{FT_GlyphSlot, FT_Library, FT_Long, FT_ULong};
@@ -28,6 +29,8 @@ use std::mem;
 use std::ptr;
 use std::str;
 
+use sync::Arc;
+
 fn float_to_fixed_ft(f: f64) -> i32 {
     float_to_fixed(6, f)
 }
@@ -36,9 +39,7 @@ fn fixed_to_float_ft(f: i32) -> f64 {
     fixed_to_float(6, f)
 }
 
-pub struct FontTable {
-    _bogus: ()
-}
+pub struct FontTable;
 
 impl FontTableMethods for FontTable {
     fn with_buffer(&self, _blk: |*u8, uint|) {
@@ -46,15 +47,10 @@ impl FontTableMethods for FontTable {
     }
 }
 
-pub enum FontSource {
-    FontSourceMem(Vec<u8>),
-    FontSourceFile(String)
-}
-
 pub struct FontHandle {
     // The font binary. This must stay valid for the lifetime of the font,
     // if the font is created using FT_Memory_Face.
-    pub source: FontSource,
+    pub font_data: Arc<FontTemplateData>,
     pub face: FT_Face,
     pub handle: FontContextHandle
 }
@@ -72,14 +68,15 @@ impl Drop for FontHandle {
 }
 
 impl FontHandleMethods for FontHandle {
-    fn new_from_buffer(fctx: &FontContextHandle,
-                       buf: Vec<u8>,
-                       style: &SpecifiedFontStyle)
+    fn new_from_template(fctx: &FontContextHandle,
+                       template: Arc<FontTemplateData>,
+                       pt_size: Option<f64>)
                         -> Result<FontHandle, ()> {
         let ft_ctx: FT_Library = fctx.ctx.ctx;
         if ft_ctx.is_null() { return Err(()); }
 
-        let face_result = create_face_from_buffer(ft_ctx, buf.as_ptr(), buf.len(), style.pt_size);
+        let bytes = &template.deref().bytes;
+        let face_result = create_face_from_buffer(ft_ctx, bytes.as_ptr(), bytes.len(), pt_size);
 
         // TODO: this could be more simply written as result::chain
         // and moving buf into the struct ctor, but cant' move out of
@@ -88,7 +85,7 @@ impl FontHandleMethods for FontHandle {
             Ok(face) => {
               let handle = FontHandle {
                   face: face,
-                  source: FontSourceMem(buf),
+                  font_data: template.clone(),
                   handle: fctx.clone()
               };
               Ok(handle)
@@ -96,33 +93,31 @@ impl FontHandleMethods for FontHandle {
             Err(()) => Err(())
         };
 
-         fn create_face_from_buffer(lib: FT_Library, cbuf: *u8, cbuflen: uint, pt_size: f64)
-                                    -> Result<FT_Face, ()> {
-             unsafe {
-                 let mut face: FT_Face = ptr::null();
-                 let face_index = 0 as FT_Long;
-                 let result = FT_New_Memory_Face(lib, cbuf, cbuflen as FT_Long,
-                                                 face_index, &mut face);
+        fn create_face_from_buffer(lib: FT_Library, cbuf: *u8, cbuflen: uint, pt_size: Option<f64>)
+                                   -> Result<FT_Face, ()> {
+            unsafe {
+                let mut face: FT_Face = ptr::null();
+                let face_index = 0 as FT_Long;
+                let result = FT_New_Memory_Face(lib, cbuf, cbuflen as FT_Long,
+                                                face_index, &mut face);
 
-                 if !result.succeeded() || face.is_null() {
-                     return Err(());
-                 }
-                 if FontHandle::set_char_size(face, pt_size).is_ok() {
-                     Ok(face)
-                 } else {
-                     Err(())
-                 }
-             }
-         }
-    }
-
-    // an identifier usable by FontContextHandle to recreate this FontHandle.
-    fn face_identifier(&self) -> String {
-        match self.source {
-            FontSourceFile(ref path) => path.clone(),
-            _ => unreachable!(),        // This will be handled when the rest of the font
-                                        // refactor is complete. For now, it can never be hit.
+                if !result.succeeded() || face.is_null() {
+                    return Err(());
+                }
+                match pt_size {
+                    Some(s) => {
+                        match FontHandle::set_char_size(face, s) {
+                            Ok(_) => Ok(face),
+                            Err(_) => Err(()),
+                        }
+                    }
+                    None => Ok(face),
+                }
+            }
         }
+    }
+    fn get_template(&self) -> Arc<FontTemplateData> {
+        self.font_data.clone()
     }
     fn family_name(&self) -> String {
         unsafe { str::raw::from_c_str((*self.face).family_name) }
@@ -262,39 +257,6 @@ impl<'a> FontHandle {
         unsafe {
             let result = FT_Set_Char_Size(face, char_width, char_height, h_dpi, v_dpi);
             if result.succeeded() { Ok(()) } else { Err(()) }
-        }
-    }
-
-    pub fn new_from_file(fctx: &FontContextHandle, file: &str,
-                         maybe_style: Option<&SpecifiedFontStyle>) -> Result<FontHandle, ()> {
-        unsafe {
-            let ft_ctx: FT_Library = fctx.ctx.ctx;
-            if ft_ctx.is_null() { return Err(()); }
-
-            let mut face: FT_Face = ptr::null();
-            let face_index = 0 as FT_Long;
-            file.to_c_str().with_ref(|file_str| {
-                FT_New_Face(ft_ctx, file_str,
-                            face_index, &mut face);
-            });
-            if face.is_null() {
-                return Err(());
-            }
-
-            let ok = match maybe_style {
-                Some(style) => FontHandle::set_char_size(face, style.pt_size).is_ok(),
-                None => true,
-            };
-
-            if ok {
-                Ok(FontHandle {
-                    source: FontSourceFile(file.to_str()),
-                    face: face,
-                    handle: fctx.clone()
-                })
-            } else {
-                Err(())
-            }
         }
     }
 

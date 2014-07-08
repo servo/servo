@@ -2,10 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use font::UsedFontStyle;
-use platform::font::FontHandle;
-use font_context::FontContextHandleMethods;
-
 use freetype::freetype::FTErrorMethods;
 use freetype::freetype::FT_Add_Default_Modules;
 use freetype::freetype::FT_Done_FreeType;
@@ -84,12 +80,3 @@ impl FontContextHandle {
         }
     }
 }
-
-impl FontContextHandleMethods for FontContextHandle {
-    fn create_font_from_identifier(&self, name: &str, style: Option<&UsedFontStyle>)
-                                -> Result<FontHandle, ()> {
-        debug!("Creating font handle for {:s}", name);
-        FontHandle::new_from_file(self, name.as_slice(), style)
-    }
-}
-

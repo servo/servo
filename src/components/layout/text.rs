@@ -142,8 +142,8 @@ impl TextRunScanner {
                     // TODO(#177): Text run creation must account for the renderability of text by
                     // font group fonts. This is probably achieved by creating the font group above
                     // and then letting `FontGroup` decide which `Font` to stick into the text run.
-                    let fontgroup = font_context.get_resolved_font_for_style(&font_style);
-                    let run = box fontgroup.borrow().create_textrun(
+                    let fontgroup = font_context.get_layout_font_group_for_style(&font_style);
+                    let run = box fontgroup.create_textrun(
                         transformed_text.clone(), decoration);
 
                     debug!("TextRunScanner: pushing single text fragment in range: {} ({})",
@@ -164,7 +164,7 @@ impl TextRunScanner {
                 // and then letting `FontGroup` decide which `Font` to stick into the text run.
                 let in_fragment = &in_fragments[self.clump.begin().to_uint()];
                 let font_style = in_fragment.font_style();
-                let fontgroup = font_context.get_resolved_font_for_style(&font_style);
+                let fontgroup = font_context.get_layout_font_group_for_style(&font_style);
                 let decoration = in_fragment.text_decoration();
 
                 // TODO(#115): Use the actual CSS `white-space` property of the relevant style.
@@ -218,7 +218,7 @@ impl TextRunScanner {
                 let clump = self.clump;
                 let run = if clump.length() != CharIndex(0) && run_str.len() > 0 {
                     Some(Arc::new(box TextRun::new(
-                        &mut *fontgroup.borrow().fonts.get(0).borrow_mut(),
+                        &mut *fontgroup.fonts.get(0).borrow_mut(),
                         run_str.to_string(), decoration)))
                 } else {
                     None
@@ -258,8 +258,8 @@ impl TextRunScanner {
 #[inline]
 pub fn font_metrics_for_style(font_context: &mut FontContext, font_style: &FontStyle)
                               -> FontMetrics {
-    let fontgroup = font_context.get_resolved_font_for_style(font_style);
-    fontgroup.borrow().fonts.get(0).borrow().metrics.clone()
+    let fontgroup = font_context.get_layout_font_group_for_style(font_style);
+    fontgroup.fonts.get(0).borrow().metrics.clone()
 }
 
 /// Converts a computed style to a font style used for rendering.

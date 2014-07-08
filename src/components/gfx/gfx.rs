@@ -45,12 +45,6 @@ extern crate harfbuzz;
 #[cfg(target_os="macos")] extern crate core_graphics;
 #[cfg(target_os="macos")] extern crate core_text;
 
-pub use gfx_font = font;
-pub use gfx_font_context = font_context;
-pub use gfx_font_list = font_list;
-pub use servo_gfx_font = font;
-pub use servo_gfx_font_list = font_list;
-
 pub use render_context::RenderContext;
 
 // Private rendering modules
@@ -65,7 +59,8 @@ pub mod render_task;
 // Fonts
 pub mod font;
 pub mod font_context;
-pub mod font_list;
+pub mod font_cache_task;
+pub mod font_template;
 
 // Misc.
 mod buffer_map;
