@@ -92,23 +92,22 @@ impl RenderListener for CompositorChan {
                               metadata.position.size.height as f32);
             let rect = Rect(origin, size);
             if first {
-                self.chan.send(CreateRootCompositorLayerIfNecessary(pipeline_id,
-                                                                    metadata.id,
-                                                                    size,
-                                                                    metadata.background_color));
+                self.chan.send(CreateOrUpdateRootLayer(pipeline_id,
+                                                       metadata.id,
+                                                       epoch,
+                                                       size,
+                                                       metadata.background_color));
                 first = false
             } else {
                 self.chan
-                    .send(CreateDescendantCompositorLayerIfNecessary(pipeline_id,
-                                                                     metadata.id,
-                                                                     rect,
-                                                                     metadata.scroll_policy));
+                    .send(CreateOrUpdateDescendantLayer(pipeline_id,
+                                                        metadata.id,
+                                                        epoch,
+                                                        rect,
+                                                        metadata.scroll_policy,
+                                                        metadata.background_color));
             }
 
-            self.chan.send(SetUnRenderedColor(pipeline_id,
-                                              metadata.id,
-                                              metadata.background_color));
-            self.chan.send(SetLayerPageSize(pipeline_id, metadata.id, size, epoch));
             self.chan.send(SetLayerClipRect(pipeline_id, metadata.id, rect));
         }
     }
@@ -161,12 +160,10 @@ pub enum Msg {
 
     /// Tells the compositor to create the root layer for a pipeline if necessary (i.e. if no layer
     /// with that ID exists).
-    CreateRootCompositorLayerIfNecessary(PipelineId, LayerId, Size2D<f32>, Color),
+    CreateOrUpdateRootLayer(PipelineId, LayerId, Epoch, Size2D<f32>, Color),
     /// Tells the compositor to create a descendant layer for a pipeline if necessary (i.e. if no
     /// layer with that ID exists).
-    CreateDescendantCompositorLayerIfNecessary(PipelineId, LayerId, Rect<f32>, ScrollPolicy),
-    /// Alerts the compositor that the specified layer has changed size.
-    SetLayerPageSize(PipelineId, LayerId, Size2D<f32>, Epoch),
+    CreateOrUpdateDescendantLayer(PipelineId, LayerId, Epoch, Rect<f32>, ScrollPolicy, Color),
     /// Alerts the compositor that the specified layer's clipping rect has changed.
     SetLayerClipRect(PipelineId, LayerId, Rect<f32>),
     /// Scroll a page in a window
@@ -179,8 +176,6 @@ pub enum Msg {
     ChangeRenderState(RenderState),
     /// Sets the channel to the current layout and render tasks, along with their id
     SetIds(SendableFrameTree, Sender<()>, ConstellationChan),
-    /// Sets the color of unrendered content for a layer.
-    SetUnRenderedColor(PipelineId, LayerId, Color),
     /// The load of a page for a given URL has completed.
     LoadComplete(PipelineId, Url),
 }

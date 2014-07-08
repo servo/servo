@@ -2,9 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use compositor_task::{Msg, Exit, ChangeReadyState, SetUnRenderedColor};
-use compositor_task::{SetIds, GetGraphicsMetadata, CreateRootCompositorLayerIfNecessary};
-use compositor_task::{CreateDescendantCompositorLayerIfNecessary, SetLayerPageSize};
+use compositor_task::{Msg, Exit, ChangeReadyState, SetIds};
+use compositor_task::{GetGraphicsMetadata, CreateOrUpdateRootLayer, CreateOrUpdateDescendantLayer};
 use compositor_task::{SetLayerClipRect, Paint, ScrollFragmentPoint, LoadComplete};
 use compositor_task::{ShutdownComplete, ChangeRenderState};
 
@@ -89,11 +88,11 @@ impl NullCompositor {
                 // we'll notice and think about whether it needs a response, like
                 // SetIds.
 
-                CreateRootCompositorLayerIfNecessary(..) |
-                CreateDescendantCompositorLayerIfNecessary(..) | SetLayerPageSize(..) |
+                CreateOrUpdateRootLayer(..) |
+                CreateOrUpdateDescendantLayer(..) |
                 SetLayerClipRect(..) | Paint(..) |
                 ChangeReadyState(..) | ChangeRenderState(..) | ScrollFragmentPoint(..) |
-                SetUnRenderedColor(..) | LoadComplete(..) => ()
+                LoadComplete(..) => ()
             }
         }
     }
