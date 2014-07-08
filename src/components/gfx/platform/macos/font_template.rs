@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use core_graphics::data_provider::CGDataProvider;
+use core_graphics::font::CGFont;
 use core_text::font::CTFont;
 use core_text;
 
@@ -15,10 +17,20 @@ pub struct FontTemplateData {
 }
 
 impl FontTemplateData {
-    pub fn new(identifier: &str) -> FontTemplateData {
-        let ctfont_result = core_text::font::new_from_name(identifier.as_slice(), 0.0);
+    pub fn new(identifier: &str, font_data: Option<Vec<u8>>) -> FontTemplateData {
+        let ctfont = match font_data {
+            Some(bytes) => {
+                let fontprov = CGDataProvider::from_buffer(bytes.as_slice());
+                let cgfont = CGFont::from_data_provider(fontprov);
+                core_text::font::new_from_CGFont(&cgfont, 0.0)
+            },
+            None => {
+                core_text::font::new_from_name(identifier.as_slice(), 0.0).unwrap()
+            }
+        };
+
         FontTemplateData {
-            ctfont: ctfont_result.unwrap(),
+            ctfont: ctfont,
             identifier: identifier.to_string(),
         }
     }

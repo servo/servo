@@ -60,6 +60,8 @@ use std::mem;
 use std::ptr;
 use std::task::TaskBuilder;
 use style::{AuthorOrigin, Stylesheet, Stylist};
+use style::CSSFontFaceRule;
+use style::TtfFormat;
 use sync::{Arc, Mutex};
 use url::Url;
 
@@ -450,7 +452,26 @@ impl LayoutTask {
     }
 
     fn handle_add_stylesheet(&mut self, sheet: Stylesheet) {
-        self.stylist.add_stylesheet(sheet, AuthorOrigin)
+        // Find all font-face rules and notify the font cache of them.
+        // GWTODO: Need to handle unloading web fonts (when we handle unloading stylesheets!)
+        // GWTODO: Need to handle font-face nested within media rules.
+        for rule in sheet.rules.iter() {
+            match rule {
+                &CSSFontFaceRule(ref font_face_rule) => {
+                    for source in font_face_rule.sources.iter() {
+                        match source.format {
+                            TtfFormat => {
+                                self.font_cache_task.add_web_font(source.url.clone(), font_face_rule.family.as_slice());
+                            },
+                            _ => {}
+                        }
+                    }
+                },
+                _ => {}
+            }            
+        }
+
+        self.stylist.add_stylesheet(sheet, AuthorOrigin);
     }
 
     /// Retrieves the flow tree root from the root node.
