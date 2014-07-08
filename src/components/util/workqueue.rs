@@ -48,8 +48,6 @@ enum SupervisorMsg<QueueData, WorkData> {
 struct WorkerInfo<QueueData, WorkData> {
     /// The communication channel to the workers.
     chan: Sender<WorkerMsg<QueueData, WorkData>>,
-    /// The buffer pool for this deque.
-    pool: BufferPool<WorkUnit<QueueData, WorkData>>,
     /// The worker end of the deque, if we have it.
     deque: Option<Worker<WorkUnit<QueueData, WorkData>>>,
     /// The thief end of the work-stealing deque.
@@ -208,7 +206,6 @@ impl<QueueData: Send, WorkData: Send> WorkQueue<QueueData, WorkData> {
             let (worker, thief) = pool.deque();
             infos.push(WorkerInfo {
                 chan: worker_chan,
-                pool: pool,
                 deque: Some(worker),
                 thief: thief,
             });

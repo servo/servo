@@ -187,12 +187,14 @@ pub mod computed {
         // TODO, as needed: root font size, viewport size, etc.
     }
 
+    #[allow(non_snake_case_functions)]
     #[inline]
     pub fn compute_Au(value: specified::Length, context: &Context) -> Au {
         compute_Au_with_font_size(value, context.font_size)
     }
 
     /// A special version of `compute_Au` used for `font-size`.
+    #[allow(non_snake_case_functions)]
     #[inline]
     pub fn compute_Au_with_font_size(value: specified::Length, reference_font_size: Au) -> Au {
         match value {
@@ -210,6 +212,7 @@ pub mod computed {
         LP_Length(Au),
         LP_Percentage(CSSFloat),
     }
+    #[allow(non_snake_case_functions)]
     pub fn compute_LengthOrPercentage(value: specified::LengthOrPercentage, context: &Context)
                                    -> LengthOrPercentage {
         match value {
@@ -224,6 +227,7 @@ pub mod computed {
         LPA_Percentage(CSSFloat),
         LPA_Auto,
     }
+    #[allow(non_snake_case_functions)]
     pub fn compute_LengthOrPercentageOrAuto(value: specified::LengthOrPercentageOrAuto,
                                             context: &Context) -> LengthOrPercentageOrAuto {
         match value {
@@ -239,6 +243,7 @@ pub mod computed {
         LPN_Percentage(CSSFloat),
         LPN_None,
     }
+    #[allow(non_snake_case_functions)]
     pub fn compute_LengthOrPercentageOrNone(value: specified::LengthOrPercentageOrNone,
                                             context: &Context) -> LengthOrPercentageOrNone {
         match value {

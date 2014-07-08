@@ -33,7 +33,7 @@ use servo_msg::constellation_msg::{ConstellationChan, InitLoadUrlMsg};
 #[cfg(not(test))]
 use servo_net::image_cache_task::ImageCacheTask;
 #[cfg(not(test))]
-use servo_net::resource_task::ResourceTask;
+use servo_net::resource_task::new_resource_task;
 #[cfg(not(test))]
 use servo_util::time::TimeProfiler;
 #[cfg(not(test))]
@@ -106,7 +106,7 @@ pub fn run(opts: opts::Opts) {
     pool.spawn(TaskOpts::new(), proc() {
         let opts = &opts_clone;
         // Create a Servo instance.
-        let resource_task = ResourceTask();
+        let resource_task = new_resource_task();
         // If we are emitting an output file, then we need to block on
         // image load or we risk emitting an output file missing the
         // image.
