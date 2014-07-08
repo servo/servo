@@ -10,14 +10,6 @@ use png;
 // reference count them.
 pub type Image = png::Image;
 
-pub fn Image(width: u32, height: u32, color_type: png::ColorType, data: Vec<u8>) -> Image {
-    png::Image {
-        width: width,
-        height: height,
-        color_type: color_type,
-        pixels: data,
-    }
-}
 
 static TEST_IMAGE: &'static [u8] = include_bin!("test.jpeg");
 
@@ -62,7 +54,12 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
             stb_image::ImageU8(mut image) => {
                 assert!(image.depth == 4);
                 byte_swap(png::RGBA8, image.data.as_mut_slice());
-                Some(Image(image.width as u32, image.height as u32, png::RGBA8, image.data))
+                Some(png::Image {
+                    width: image.width as u32,
+                    height: image.height as u32,
+                    color_type: png::RGBA8,
+                    pixels: image.data
+                })
             }
             stb_image::ImageF32(_image) => fail!("HDR images not implemented"),
             stb_image::Error(_) => None

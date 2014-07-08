@@ -8,6 +8,7 @@
 use i = std::mem::init;
 use std::cmp;
 use std::intrinsics;
+use std::kinds::marker::ContravariantLifetime;
 use std::mem;
 use std::ptr;
 use std::raw::Slice;
@@ -85,7 +86,7 @@ pub trait SmallVec<T> : SmallVecPrivate<T> {
         SmallVecIterator {
             ptr: self.begin(),
             end: self.end(),
-            lifetime: None,
+            lifetime: ContravariantLifetime::<'a>,
         }
     }
 
@@ -94,7 +95,7 @@ pub trait SmallVec<T> : SmallVecPrivate<T> {
             SmallVecMutIterator {
                 ptr: mem::transmute(self.begin()),
                 end: mem::transmute(self.end()),
-                lifetime: None,
+                lifetime: ContravariantLifetime::<'a>,
             }
         }
     }
@@ -116,7 +117,7 @@ pub trait SmallVec<T> : SmallVecPrivate<T> {
                 allocation: ptr_opt,
                 cap: inline_size,
                 iter: iter,
-                lifetime: None,
+                lifetime: ContravariantLifetime::<'a>,
             }
         }
     }
@@ -247,7 +248,7 @@ pub trait SmallVec<T> : SmallVecPrivate<T> {
 pub struct SmallVecIterator<'a,T> {
     ptr: *T,
     end: *T,
-    lifetime: Option<&'a T>
+    lifetime: ContravariantLifetime<'a>
 }
 
 impl<'a,T> Iterator<&'a T> for SmallVecIterator<'a,T> {
@@ -271,7 +272,7 @@ impl<'a,T> Iterator<&'a T> for SmallVecIterator<'a,T> {
 pub struct SmallVecMutIterator<'a,T> {
     ptr: *mut T,
     end: *mut T,
-    lifetime: Option<&'a mut T>
+    lifetime: ContravariantLifetime<'a>,
 }
 
 impl<'a,T> Iterator<&'a mut T> for SmallVecMutIterator<'a,T> {
@@ -296,7 +297,7 @@ pub struct SmallVecMoveIterator<'a,T> {
     allocation: Option<*mut u8>,
     cap: uint,
     iter: SmallVecIterator<'static,T>,
-    lifetime: Option<&'a T>,
+    lifetime: ContravariantLifetime<'a>,
 }
 
 impl<'a,T> Iterator<T> for SmallVecMoveIterator<'a,T> {

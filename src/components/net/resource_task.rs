@@ -165,7 +165,7 @@ each URL scheme
 type LoaderTaskFactory = extern "Rust" fn() -> LoaderTask;
 
 /// Create a ResourceTask with the default loaders
-pub fn ResourceTask() -> ResourceTask {
+pub fn new_resource_task() -> ResourceTask {
     let loaders = vec!(
         ("file".to_string(), file_loader::factory),
         ("http".to_string(), http_loader::factory),
@@ -180,7 +180,7 @@ fn create_resource_task_with_loaders(loaders: Vec<(String, LoaderTaskFactory)>) 
     builder.spawn(proc() {
         let (chan, port) = channel();
         setup_chan.send(chan);
-        ResourceManager(port, loaders).start();
+        ResourceManager::new(port, loaders).start();
     });
     setup_port.recv()
 }
@@ -192,11 +192,13 @@ struct ResourceManager {
 }
 
 
-fn ResourceManager(from_client: Receiver<ControlMsg>,
-                   loaders: Vec<(String, LoaderTaskFactory)>) -> ResourceManager {
-    ResourceManager {
-        from_client : from_client,
-        loaders : loaders,
+impl ResourceManager {
+    fn new(from_client: Receiver<ControlMsg>, loaders: Vec<(String, LoaderTaskFactory)>)
+           -> ResourceManager {
+        ResourceManager {
+            from_client : from_client,
+            loaders : loaders,
+        }
     }
 }
 
@@ -244,13 +246,13 @@ impl ResourceManager {
 
 #[test]
 fn test_exit() {
-    let resource_task = ResourceTask();
+    let resource_task = new_resource_task();
     resource_task.send(Exit);
 }
 
 #[test]
 fn test_bad_scheme() {
-    let resource_task = ResourceTask();
+    let resource_task = new_resource_task();
     let (start_chan, start) = channel();
     resource_task.send(Load(LoadData::new(FromStr::from_str("bogus://whatever").unwrap()), start_chan));
     let response = start.recv();

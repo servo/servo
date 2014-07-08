@@ -1365,14 +1365,17 @@ mod property_bit_field {
             self.storage[bit / uint::BITS] &= !(1 << (bit % uint::BITS))
         }
         % for i, property in enumerate(LONGHANDS):
+            #[allow(non_snake_case_functions)]
             #[inline]
             pub fn get_${property.ident}(&self) -> bool {
                 self.get(${i})
             }
+            #[allow(non_snake_case_functions)]
             #[inline]
             pub fn set_${property.ident}(&mut self) {
                 self.set(${i})
             }
+            #[allow(non_snake_case_functions)]
             #[inline]
             pub fn clear_${property.ident}(&mut self) {
                 self.clear(${i})
