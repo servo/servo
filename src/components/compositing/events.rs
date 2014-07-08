@@ -46,11 +46,6 @@ pub fn handle_scroll_event(layer: Rc<Layer<CompositorData>>,
                            cursor: TypedPoint2D<PagePx, f32>,
                            window_size: TypedSize2D<PagePx, f32>)
                            -> bool {
-    // If this layer is hidden, neither it nor its children will scroll.
-    if layer.extra_data.borrow().hidden {
-        return false
-    }
-
     // If this layer doesn't want scroll events, neither it nor its children can handle scroll
     // events.
     if layer.extra_data.borrow().wants_scroll_events != WantsScrollEvents {
@@ -130,10 +125,6 @@ pub fn send_mouse_event(layer: Rc<Layer<CompositorData>>,
                         event: MouseWindowEvent, cursor: TypedPoint2D<PagePx, f32>) {
     let cursor = cursor - layer.extra_data.borrow().scroll_offset;
     for child in layer.children().iter() {
-        if child.extra_data.borrow().hidden {
-            continue;
-        }
-
         let rect: TypedRect<PagePx, f32> = Rect::from_untyped(&*child.bounds.borrow());
         if rect.contains(&cursor) {
             send_mouse_event(child.clone(), event, cursor - rect.origin);

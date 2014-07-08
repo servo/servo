@@ -43,12 +43,7 @@ pub struct CompositorData {
 
     /// The size of the underlying page in page coordinates. This is an option
     /// because we may not know the size of the page until layout is finished completely.
-    /// if we have no size yet, the layer is hidden until a size message is recieved.
     pub page_size: Option<Size2D<f32>>,
-
-    /// When set to true, this layer is ignored by its parents. This is useful for
-    /// soft deletion or when waiting on a page size.
-    pub hidden: bool,
 
     /// The behavior of this layer when a scroll message is received.
     pub wants_scroll_events: WantsScrollEventsFlag,
@@ -88,7 +83,6 @@ impl CompositorData {
             id: layer_id,
             scroll_offset: TypedPoint2D(0f32, 0f32),
             page_size: page_size,
-            hidden: false,
             wants_scroll_events: wants_scroll_events,
             scroll_policy: scroll_policy,
             cpu_painting: cpu_painting,
@@ -188,14 +182,11 @@ impl CompositorData {
             }
         };
 
-        layer.children().iter().filter(|x| !x.extra_data.borrow().hidden)
-            .map(send_child_buffer_request)
-            .any(|b| b) || redisplay
+        layer.children().iter().map(send_child_buffer_request).any(|b| b) || redisplay
     }
 
     // Move the sublayer to an absolute position in page coordinates relative to its parent,
     // and clip the layer to the specified size in page coordinates.
-    // If the layer is hidden and has a defined page size, unhide it.
     // This method returns false if the specified layer is not found.
     pub fn set_clipping_rect(layer: Rc<Layer<CompositorData>>,
                              pipeline_id: PipelineId,
@@ -209,12 +200,6 @@ impl CompositorData {
             Some(child_node) => {
                 debug!("compositor_data: node found for set_clipping_rect()");
                 *child_node.bounds.borrow_mut() = new_rect;
-
-                // If possible, unhide child
-                let mut child_data = child_node.extra_data.borrow_mut();
-                if child_data.hidden && child_data.page_size.is_some() {
-                    child_data.hidden = false;
-                }
                 true
             }
             None => {

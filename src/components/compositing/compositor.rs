@@ -527,8 +527,7 @@ impl IOCompositor {
                                 point: Point2D<f32>) {
         let page_window = self.page_window();
         let (ask, move): (bool, bool) = match self.scene.root {
-            Some(ref layer) if layer.extra_data.borrow().pipeline.id == pipeline_id &&
-                               !layer.extra_data.borrow().hidden => {
+            Some(ref layer) if layer.extra_data.borrow().pipeline.id == pipeline_id => {
                 (true,
                  events::move(layer.clone(), pipeline_id, layer_id, point, page_window))
             }
@@ -746,7 +745,7 @@ impl IOCompositor {
         let scale = self.device_pixels_per_page_px();
         let page_window = self.page_window();
         match self.scene.root {
-            Some(ref mut layer) if !layer.extra_data.borrow().hidden => {
+            Some(ref mut layer) => {
                 let rect = Rect(Point2D(0f32, 0f32), page_window.to_untyped());
                 let recomposite =
                     CompositorData::send_buffer_requests_recursively(layer.clone(),
@@ -754,9 +753,6 @@ impl IOCompositor {
                                                                      rect,
                                                                      scale.get());
                 self.recomposite = self.recomposite || recomposite;
-            }
-            Some(_) => {
-                debug!("Compositor: root layer is hidden!");
             }
             None => { }
         }
