@@ -54,6 +54,7 @@ they are designed to be useful in other Rust projects.
 * `platform/macos/rust-core-graphics`: Bindings to Core Graphics/Quartz.
 * `platform/macos/rust-core-text`: Bindings to Core Text.
 * `platform/macos/rust-io-surface`: Bindings to the `IOSurface` library.
+* `platform/macos/rust-task_info`: Bindings to `task_info()`.
 
 ## Tests
 

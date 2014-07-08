@@ -10,6 +10,8 @@ use std::io::File;
 #[cfg(target_os="linux")]
 use std::os::page_size;
 use task::spawn_named;
+#[cfg(target_os="macos")]
+use task_info::task_basic_info::{virtual_size,resident_size};
 
 pub struct MemoryProfilerChan(pub Sender<MemoryProfilerMsg>);
 
@@ -98,7 +100,7 @@ impl MemoryProfiler {
         }
     }
 
-    fn print_measurement(path: &str, nbytes: Option<i64>) {
+    fn print_measurement(path: &str, nbytes: Option<u64>) {
         match nbytes {
             Some(nbytes) => {
                 let mebi = 1024f64 * 1024f64;
@@ -124,35 +126,45 @@ macro_rules! option_try(
 )
 
 #[cfg(target_os="linux")]
-fn get_proc_self_statm_field(field: uint) -> Option<i64> {
+fn get_proc_self_statm_field(field: uint) -> Option<u64> {
     let mut f = File::open(&Path::new("/proc/self/statm"));
     match f.read_to_str() {
         Ok(contents) => {
             let s = option_try!(contents.as_slice().words().nth(field));
-            let npages: i64 = option_try!(from_str(s));
-            Some(npages * (page_size() as i64))
+            let npages: u64 = option_try!(from_str(s));
+            Some(npages * (page_size() as u64))
         }
         Err(_) => None
     }
 }
 
 #[cfg(target_os="linux")]
-fn get_vsize() -> Option<i64> {
+fn get_vsize() -> Option<u64> {
     get_proc_self_statm_field(0)
 }
 
-#[cfg(not(target_os="linux"))]
-fn get_vsize() -> Option<i64> {
-    None
-}
-
 #[cfg(target_os="linux")]
-fn get_resident() -> Option<i64> {
+fn get_resident() -> Option<u64> {
     get_proc_self_statm_field(1)
 }
 
-#[cfg(not(target_os="linux"))]
-fn get_resident() -> Option<i64> {
+#[cfg(target_os="macos")]
+fn get_vsize() -> Option<u64> {
+    virtual_size()
+}
+
+#[cfg(target_os="macos")]
+fn get_resident() -> Option<u64> {
+    resident_size()
+}
+
+#[cfg(not(target_os="linux"), not(target_os = "macos"))]
+fn get_vsize() -> Option<u64> {
+    None
+}
+
+#[cfg(not(target_os="linux"), not(target_os = "macos"))]
+fn get_resident() -> Option<u64> {
     None
 }
 

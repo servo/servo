@@ -1,0 +1,32 @@
+VPATH=%VPATH%
+
+CC=gcc
+RUSTC ?= rustc
+AR ?= ar
+RUSTFLAGS ?=
+CFLAGS=-Wall
+
+RUST_SRC = $(shell find $(VPATH)/. -type f -name '*.rs')
+
+.PHONY: all
+all: libtask_info.dummy
+
+libtask_info.dummy: task_info.rc $(RUST_SRC) libtask_info.a
+	$(RUSTC) $(RUSTFLAGS) $< --out-dir .
+	touch $@
+
+task_info-test: task_info.rc $(RUST_SRC) libtask_info.a
+	$(RUSTC) $(RUSTFLAGS) $< -o $@ --test
+
+libtask_info.a: task_info.o
+	$(AR) rcs libtask_info.a task_info.o
+
+task_info.o: task_info.c
+	$(CC) $(CFLAGS) $< -o $@ -c
+
+check: task_info-test
+	./task_info-test
+
+.PHONY: clean
+clean:
+	rm -f task_info-test *.a *.o *.so *.dylib *.rlib *.dll *.dummy task_info-test

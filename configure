@@ -534,6 +534,7 @@ CFG_SUBMODULES="\
     support/glfw/glfw \
     support/glfw/glfw-rs \
     platform/macos/rust-cocoa \
+    platform/macos/rust-task_info \
     ${CFG_SUBMODULES}"
 fi
 
