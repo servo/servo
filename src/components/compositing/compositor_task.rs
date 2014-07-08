@@ -61,6 +61,31 @@ impl ScriptListener for CompositorChan {
     }
 }
 
+pub struct LayerProperties {
+    pub pipeline_id: PipelineId,
+    pub epoch: Epoch,
+    pub id: LayerId,
+    pub rect: Rect<f32>,
+    pub background_color: Color,
+    pub scroll_policy: ScrollPolicy,
+}
+
+impl LayerProperties {
+    fn new(pipeline_id: PipelineId, epoch: Epoch, metadata: &LayerMetadata) -> LayerProperties {
+        LayerProperties {
+            pipeline_id: pipeline_id,
+            epoch: epoch,
+            id: metadata.id,
+            rect: Rect(Point2D(metadata.position.origin.x as f32,
+                               metadata.position.origin.y as f32),
+                       Size2D(metadata.position.size.width as f32,
+                              metadata.position.size.height as f32)),
+           background_color: metadata.background_color,
+           scroll_policy: metadata.scroll_policy,
+        }
+    }
+}
+
 /// Implementation of the abstract `RenderListener` interface.
 impl RenderListener for CompositorChan {
     fn get_graphics_metadata(&self) -> Option<NativeGraphicsMetadata> {
@@ -86,29 +111,15 @@ impl RenderListener for CompositorChan {
         // `position: fixed` but will not be sufficient to handle `overflow: scroll` or transforms.
         let mut first = true;
         for metadata in metadata.iter() {
-            let origin = Point2D(metadata.position.origin.x as f32,
-                                 metadata.position.origin.y as f32);
-            let size = Size2D(metadata.position.size.width as f32,
-                              metadata.position.size.height as f32);
-            let rect = Rect(origin, size);
+            let layer_properties = LayerProperties::new(pipeline_id, epoch, metadata);
             if first {
-                self.chan.send(CreateOrUpdateRootLayer(pipeline_id,
-                                                       metadata.id,
-                                                       epoch,
-                                                       size,
-                                                       metadata.background_color));
+                self.chan.send(CreateOrUpdateRootLayer(layer_properties));
                 first = false
             } else {
-                self.chan
-                    .send(CreateOrUpdateDescendantLayer(pipeline_id,
-                                                        metadata.id,
-                                                        epoch,
-                                                        rect,
-                                                        metadata.scroll_policy,
-                                                        metadata.background_color));
+                self.chan.send(CreateOrUpdateDescendantLayer(layer_properties));
             }
 
-            self.chan.send(SetLayerClipRect(pipeline_id, metadata.id, rect));
+            self.chan.send(SetLayerClipRect(pipeline_id, metadata.id, layer_properties.rect));
         }
     }
 
@@ -160,10 +171,10 @@ pub enum Msg {
 
     /// Tells the compositor to create the root layer for a pipeline if necessary (i.e. if no layer
     /// with that ID exists).
-    CreateOrUpdateRootLayer(PipelineId, LayerId, Epoch, Size2D<f32>, Color),
+    CreateOrUpdateRootLayer(LayerProperties),
     /// Tells the compositor to create a descendant layer for a pipeline if necessary (i.e. if no
     /// layer with that ID exists).
-    CreateOrUpdateDescendantLayer(PipelineId, LayerId, Epoch, Rect<f32>, ScrollPolicy, Color),
+    CreateOrUpdateDescendantLayer(LayerProperties),
     /// Alerts the compositor that the specified layer's clipping rect has changed.
     SetLayerClipRect(PipelineId, LayerId, Rect<f32>),
     /// Scroll a page in a window

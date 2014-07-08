@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use compositor_task::LayerProperties;
 use pipeline::CompositionPipeline;
 use windowing::{MouseWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent};
 use windowing::{MouseWindowMouseUpEvent};
@@ -146,27 +147,23 @@ impl CompositorData {
     /// exist yet. The child layer will have the same pipeline, tile size, memory limit, and CPU
     /// painting status as its parent.
     pub fn add_child(layer: Rc<Layer<CompositorData>>,
-                     child_layer_id: LayerId,
-                     epoch: Epoch,
-                     rect: Rect<f32>,
-                     page_size: Size2D<f32>,
-                     scroll_policy: ScrollPolicy,
-                     unrendered_color: Color) {
+                     layer_properties: LayerProperties,
+                     page_size: Size2D<f32>) {
         let new_compositor_data = CompositorData::new(layer.extra_data.borrow().pipeline.clone(),
-                                                      child_layer_id,
-                                                      epoch,
-                                                      rect,
+                                                      layer_properties.id,
+                                                      layer_properties.epoch,
+                                                      layer_properties.rect,
                                                       Some(page_size),
                                                       layer.extra_data.borrow().cpu_painting,
                                                       DoesntWantScrollEvents,
-                                                      scroll_policy,
-                                                      unrendered_color);
+                                                      layer_properties.scroll_policy,
+                                                      layer_properties.background_color);
         let new_kid = Rc::new(Layer::new(page_size,
                                          Layer::tile_size(layer.clone()),
                                          new_compositor_data));
 
-        new_kid.extra_data.borrow_mut().scissor = Some(rect);
-        *new_kid.origin.borrow_mut() = rect.origin;
+        new_kid.extra_data.borrow_mut().scissor = Some(layer_properties.rect);
+        *new_kid.origin.borrow_mut() = layer_properties.rect.origin;
 
         // Place the kid's layer in the container passed in.
         Layer::add_child(layer.clone(), new_kid.clone());
@@ -416,13 +413,10 @@ impl CompositorData {
         }
     }
 
-    pub fn update_layer(layer: Rc<Layer<CompositorData>>,
-                    epoch: Epoch,
-                    rect: Rect<f32>,
-                    unrendered_color: Color) {
-        layer.extra_data.borrow_mut().epoch = epoch;
-        layer.extra_data.borrow_mut().unrendered_color = unrendered_color;
-        CompositorData::resize(layer.clone(), rect.size);
+    pub fn update_layer(layer: Rc<Layer<CompositorData>>, layer_properties: LayerProperties) {
+        layer.extra_data.borrow_mut().epoch = layer_properties.epoch;
+        layer.extra_data.borrow_mut().unrendered_color = layer_properties.background_color;
+        CompositorData::resize(layer.clone(), layer_properties.rect.size);
     }
 
     // Resize and unhide a pre-existing layer. A new layer's size is set during creation.
