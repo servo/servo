@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use compositor_task::LayerProperties;
 use pipeline::CompositionPipeline;
 use windowing::{MouseWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent};
 use windowing::{MouseWindowMouseUpEvent};
@@ -13,7 +14,6 @@ use geom::point::{Point2D, TypedPoint2D};
 use geom::rect::{Rect, TypedRect};
 use geom::size::{Size2D, TypedSize2D};
 use gfx::render_task::{ReRenderMsg, UnusedBufferMsg};
-use gfx;
 use layers::layers::{Layer, Flip, LayerBuffer, LayerBufferSet, NoFlip, TextureLayer};
 use layers::quadtree::{Tile, Normal, Hidden};
 use layers::platform::surface::{NativeCompositingGraphicsContext, NativeSurfaceMethods};
@@ -103,77 +103,67 @@ impl Clampable for f32 {
 impl CompositorData {
     pub fn new(pipeline: CompositionPipeline,
                layer_id: LayerId,
+               epoch: Epoch,
                bounds: Rect<f32>,
                page_size: Option<Size2D<f32>>,
                cpu_painting: bool,
                wants_scroll_events: WantsScrollEventsFlag,
                scroll_policy: ScrollPolicy,
-               hidden: bool) -> CompositorData {
+               unrendered_color: Color)
+               -> CompositorData {
         CompositorData {
             pipeline: pipeline,
             id: layer_id,
             scroll_offset: TypedPoint2D(0f32, 0f32),
             bounds: bounds,
             page_size: page_size,
-            hidden: hidden,
+            hidden: false,
             wants_scroll_events: wants_scroll_events,
             scroll_policy: scroll_policy,
             cpu_painting: cpu_painting,
-            unrendered_color: gfx::color::rgba(0.0, 0.0, 0.0, 0.0),
+            unrendered_color: unrendered_color,
             scissor: None,
-            epoch: Epoch(0),
+            epoch: epoch,
         }
     }
 
     pub fn new_root(pipeline: CompositionPipeline,
+                    epoch: Epoch,
                     page_size: Size2D<f32>,
-                    cpu_painting: bool) -> CompositorData {
+                    cpu_painting: bool,
+                    unrendered_color: Color) -> CompositorData {
         CompositorData::new(pipeline,
                             LayerId::null(),
+                            epoch,
                             Rect(Point2D(0f32, 0f32), page_size),
                             Some(page_size),
                             cpu_painting,
                             WantsScrollEvents,
                             FixedPosition,
-                            false)
-    }
-
-
-    pub fn id_of_first_child(layer: Rc<Layer<CompositorData>>) -> LayerId {
-        layer.children().iter().next().expect("no first child!").extra_data.borrow().id
+                            unrendered_color)
     }
 
     /// Adds a child layer to the layer with the given ID and the given pipeline, if it doesn't
     /// exist yet. The child layer will have the same pipeline, tile size, memory limit, and CPU
     /// painting status as its parent.
-    pub fn add_child_if_necessary(layer: Rc<Layer<CompositorData>>,
-                                  child_layer_id: LayerId,
-                                  rect: Rect<f32>,
-                                  page_size: Size2D<f32>,
-                                  scroll_policy: ScrollPolicy) {
-        // See if we've already made this child layer.
-        let pipeline_id = layer.extra_data.borrow().pipeline.id;
-        if layer.children().iter().any(|kid| {
-                    kid.extra_data.borrow().pipeline.id == pipeline_id &&
-                    kid.extra_data.borrow().id == child_layer_id
-                }) {
-            return;
-        }
-
+    pub fn add_child(layer: Rc<Layer<CompositorData>>,
+                     layer_properties: LayerProperties,
+                     page_size: Size2D<f32>) {
         let new_compositor_data = CompositorData::new(layer.extra_data.borrow().pipeline.clone(),
-                                                      child_layer_id,
-                                                      rect,
+                                                      layer_properties.id,
+                                                      layer_properties.epoch,
+                                                      layer_properties.rect,
                                                       Some(page_size),
                                                       layer.extra_data.borrow().cpu_painting,
                                                       DoesntWantScrollEvents,
-                                                      scroll_policy,
-                                                      false);
+                                                      layer_properties.scroll_policy,
+                                                      layer_properties.background_color);
         let new_kid = Rc::new(Layer::new(page_size,
                                          Layer::tile_size(layer.clone()),
                                          new_compositor_data));
 
-        new_kid.extra_data.borrow_mut().scissor = Some(rect);
-        *new_kid.origin.borrow_mut() = rect.origin;
+        new_kid.extra_data.borrow_mut().scissor = Some(layer_properties.rect);
+        *new_kid.origin.borrow_mut() = layer_properties.rect.origin;
 
         // Place the kid's layer in the container passed in.
         Layer::add_child(layer.clone(), new_kid.clone());
@@ -423,46 +413,42 @@ impl CompositorData {
         }
     }
 
-    // Set the layer's page size. This signals that the renderer is ready for BufferRequests.
-    // If the layer is hidden and has a defined clipping rect, unhide it.
-    // This method returns false if the specified layer is not found.
-    pub fn resize(layer: Rc<Layer<CompositorData>>,
-                  pipeline_id: PipelineId,
-                  layer_id: LayerId,
-                  new_size: Size2D<f32>,
-                  window_size: TypedSize2D<PagePx, f32>,
-                  epoch: Epoch)
-                  -> bool {
-        debug!("compositor_data: starting resize()");
-        if layer.extra_data.borrow().pipeline.id != pipeline_id ||
-           layer.extra_data.borrow().id != layer_id {
-            return CompositorData::resize_helper(layer.clone(),
-                                                 pipeline_id,
-                                                 layer_id,
-                                                 new_size,
-                                                 epoch)
-        }
+    pub fn update_layer(layer: Rc<Layer<CompositorData>>, layer_properties: LayerProperties) {
+        layer.extra_data.borrow_mut().epoch = layer_properties.epoch;
+        layer.extra_data.borrow_mut().unrendered_color = layer_properties.background_color;
+        CompositorData::resize(layer.clone(), layer_properties.rect.size);
+    }
 
-        debug!("compositor_data: layer found for resize()");
-        layer.extra_data.borrow_mut().epoch = epoch;
+    // Resize and unhide a pre-existing layer. A new layer's size is set during creation.
+    fn resize(layer: Rc<Layer<CompositorData>>,
+              new_size: Size2D<f32>) {
+        debug!("compositor_data: starting resize_helper()");
+
+        debug!("compositor_data: layer found for resize_helper()");
         layer.extra_data.borrow_mut().page_size = Some(new_size);
 
         let unused_buffers = Layer::resize(layer.clone(), new_size);
         if !unused_buffers.is_empty() {
-            let _ = layer.extra_data.borrow().pipeline
-                    .render_chan
-                    .send_opt(UnusedBufferMsg(unused_buffers));
+            let msg = UnusedBufferMsg(unused_buffers);
+            let _ = layer.extra_data.borrow().pipeline.render_chan.send_opt(msg);
         }
 
-        // Call scroll for bounds checking if the page shrunk. Use (-1, -1) as the cursor position
-        // to make sure the scroll isn't propagated downwards.
-        CompositorData::handle_scroll_event(layer.clone(),
-                                            TypedPoint2D(0f32, 0f32),
-                                            TypedPoint2D(-1f32, -1f32),
-                                            window_size);
-        layer.extra_data.borrow_mut().hidden = false;
+        let scissor_clone = layer.extra_data.borrow().scissor.clone();
+        match scissor_clone {
+            Some(scissor) => {
+                // Call scroll for bounds checking if the page shrunk. Use (-1, -1) as the
+                // cursor position to make sure the scroll isn't propagated downwards.
+                let size: TypedSize2D<PagePx, f32> = Size2D::from_untyped(&scissor.size);
+                CompositorData::handle_scroll_event(layer.clone(),
+                                                    TypedPoint2D(0f32, 0f32),
+                                                    TypedPoint2D(-1f32, -1f32),
+                                                    size);
+                layer.extra_data.borrow_mut().hidden = false;
+            }
+            None => {} // Nothing to do
+        }
+
         CompositorData::set_occlusions(layer.clone());
-        true
     }
 
     pub fn move(layer: Rc<Layer<CompositorData>>,
@@ -537,8 +523,6 @@ impl CompositorData {
         (NoFlip, TextureTarget2D)
     }
 
-
-
     fn find_child_with_pipeline_and_layer_id(layer: Rc<Layer<CompositorData>>,
                                              pipeline_id: PipelineId,
                                              layer_id: LayerId)
@@ -571,60 +555,6 @@ impl CompositorData {
         }
 
         return None;
-    }
-
-    // A helper method to resize sublayers.
-    fn resize_helper(layer: Rc<Layer<CompositorData>>,
-                     pipeline_id: PipelineId,
-                     layer_id: LayerId,
-                     new_size: Size2D<f32>,
-                     epoch: Epoch)
-                     -> bool {
-        debug!("compositor_data: starting resize_helper()");
-
-        let found = match CompositorData::find_child_with_pipeline_and_layer_id(layer.clone(),
-                                                                                pipeline_id,
-                                                                                layer_id) {
-            Some(child) => {
-                debug!("compositor_data: layer found for resize_helper()");
-                child.extra_data.borrow_mut().epoch = epoch;
-                child.extra_data.borrow_mut().page_size = Some(new_size);
-
-                let unused_buffers = Layer::resize(child.clone(), new_size);
-                if !unused_buffers.is_empty() {
-                    let msg = UnusedBufferMsg(unused_buffers);
-                    let _ = child.extra_data.borrow().pipeline.render_chan.send_opt(msg);
-                }
-
-                let scissor_clone = child.extra_data.borrow().scissor.clone();
-                match scissor_clone {
-                    Some(scissor) => {
-                        // Call scroll for bounds checking if the page shrunk. Use (-1, -1) as the
-                        // cursor position to make sure the scroll isn't propagated downwards.
-                        let size: TypedSize2D<PagePx, f32> = Size2D::from_untyped(&scissor.size);
-                        CompositorData::handle_scroll_event(child.clone(),
-                                                            TypedPoint2D(0f32, 0f32),
-                                                            TypedPoint2D(-1f32, -1f32),
-                                                            size);
-                        child.extra_data.borrow_mut().hidden = false;
-                    }
-                    None => {} // Nothing to do
-                }
-                true
-            }
-            None => false,
-        };
-
-        if found { // Boolean flag to get around double borrow of self
-            CompositorData::set_occlusions(layer.clone());
-            return true
-        }
-
-        // If we got here, the layer's ID does not match ours, so recurse on descendents (including
-        // hidden children).
-        layer.children().iter().any(|kid| {
-            CompositorData::resize_helper(kid.clone(), pipeline_id, layer_id, new_size, epoch)
-        })
     }
 
     // Collect buffers from the quadtree. This method IS NOT recursive, so child layers
@@ -765,10 +695,6 @@ impl CompositorData {
         for kid in layer.children().iter() {
             CompositorData::forget_all_tiles(kid.clone());
         }
-    }
-
-    pub fn set_unrendered_color(layer: Rc<Layer<CompositorData>>, color: Color) {
-        layer.extra_data.borrow_mut().unrendered_color = color;
     }
 }
 
