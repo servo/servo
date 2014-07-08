@@ -368,16 +368,13 @@ impl IOCompositor {
             };
             let new_compositor_data = CompositorData::new_root(root_pipeline,
                                                                layer_properties.epoch,
-                                                               layer_properties.rect.size,
                                                                self.opts.cpu_painting,
                                                                layer_properties.background_color);
-            let size = layer_properties.rect.size;
             let new_root = Rc::new(Layer::new(layer_properties.rect,
-                                              size,
                                               self.opts.tile_size,
                                               new_compositor_data));
 
-            CompositorData::add_child(new_root.clone(), layer_properties, size);
+            CompositorData::add_child(new_root.clone(), layer_properties);
 
             // Release all tiles from the layer before dropping it.
             match self.scene.root {
@@ -409,8 +406,7 @@ impl IOCompositor {
                                                                             layer_properties.pipeline_id,
                                                                             parent_layer_id) {
                     Some(ref mut parent_layer) => {
-                        let page_size = root_layer.extra_data.borrow().page_size.unwrap();
-                        CompositorData::add_child(parent_layer.clone(), layer_properties, page_size);
+                        CompositorData::add_child(parent_layer.clone(), layer_properties);
                     }
                     None => {
                         fail!("Compositor: couldn't find parent layer");

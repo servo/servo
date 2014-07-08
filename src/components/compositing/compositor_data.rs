@@ -41,10 +41,6 @@ pub struct CompositorData {
     /// top left corner of the page.
     pub scroll_offset: TypedPoint2D<PagePx, f32>,
 
-    /// The size of the underlying page in page coordinates. This is an option
-    /// because we may not know the size of the page until layout is finished completely.
-    pub page_size: Option<Size2D<f32>>,
-
     /// The behavior of this layer when a scroll message is received.
     pub wants_scroll_events: WantsScrollEventsFlag,
 
@@ -72,7 +68,6 @@ impl CompositorData {
     pub fn new(pipeline: CompositionPipeline,
                layer_id: LayerId,
                epoch: Epoch,
-               page_size: Option<Size2D<f32>>,
                cpu_painting: bool,
                wants_scroll_events: WantsScrollEventsFlag,
                scroll_policy: ScrollPolicy,
@@ -82,7 +77,6 @@ impl CompositorData {
             pipeline: pipeline,
             id: layer_id,
             scroll_offset: TypedPoint2D(0f32, 0f32),
-            page_size: page_size,
             wants_scroll_events: wants_scroll_events,
             scroll_policy: scroll_policy,
             cpu_painting: cpu_painting,
@@ -93,13 +87,11 @@ impl CompositorData {
 
     pub fn new_root(pipeline: CompositionPipeline,
                     epoch: Epoch,
-                    page_size: Size2D<f32>,
                     cpu_painting: bool,
                     unrendered_color: Color) -> CompositorData {
         CompositorData::new(pipeline,
                             LayerId::null(),
                             epoch,
-                            Some(page_size),
                             cpu_painting,
                             WantsScrollEvents,
                             FixedPosition,
@@ -110,18 +102,15 @@ impl CompositorData {
     /// exist yet. The child layer will have the same pipeline, tile size, memory limit, and CPU
     /// painting status as its parent.
     pub fn add_child(layer: Rc<Layer<CompositorData>>,
-                     layer_properties: LayerProperties,
-                     page_size: Size2D<f32>) {
+                     layer_properties: LayerProperties) {
         let new_compositor_data = CompositorData::new(layer.extra_data.borrow().pipeline.clone(),
                                                       layer_properties.id,
                                                       layer_properties.epoch,
-                                                      Some(page_size),
                                                       layer.extra_data.borrow().cpu_painting,
                                                       DoesntWantScrollEvents,
                                                       layer_properties.scroll_policy,
                                                       layer_properties.background_color);
         let new_kid = Rc::new(Layer::new(layer_properties.rect,
-                                         page_size,
                                          Layer::tile_size(layer.clone()),
                                          new_compositor_data));
 
@@ -210,23 +199,15 @@ impl CompositorData {
                                                                  new_rect))
 
             }
+
         }
     }
 
     pub fn update_layer(layer: Rc<Layer<CompositorData>>, layer_properties: LayerProperties) {
         layer.extra_data.borrow_mut().epoch = layer_properties.epoch;
         layer.extra_data.borrow_mut().unrendered_color = layer_properties.background_color;
-        CompositorData::resize(layer.clone(), layer_properties.rect.size);
-    }
 
-    // Resize and unhide a pre-existing layer. A new layer's size is set during creation.
-    fn resize(layer: Rc<Layer<CompositorData>>,
-              new_size: Size2D<f32>) {
-        debug!("compositor_data: starting resize_helper()");
-
-        layer.extra_data.borrow_mut().page_size = Some(new_size);
-
-        let unused_buffers = Layer::resize(layer.clone(), new_size);
+        let unused_buffers = Layer::resize(layer.clone(), layer_properties.rect.size);
         if !unused_buffers.is_empty() {
             let msg = UnusedBufferMsg(unused_buffers);
             let _ = layer.extra_data.borrow().pipeline.render_chan.send_opt(msg);
