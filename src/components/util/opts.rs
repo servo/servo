@@ -45,9 +45,12 @@ pub struct Opts {
     /// cause it to produce output on that interval (`-p`).
     pub time_profiler_period: Option<f64>,
 
-    /// `None` to disable the memory profiler or `Some` with an interval in seconds to enable it 
+    /// `None` to disable the memory profiler or `Some` with an interval in seconds to enable it
     /// and cause it to produce output on that interval (`-m`).
     pub memory_profiler_period: Option<f64>,
+
+    /// Enable experimental web features (`-e`).
+    pub enable_experimental: bool,
 
     /// The number of threads to use for layout (`-y`). Defaults to 1, which results in a recursive
     /// sequential algorithm.
@@ -87,6 +90,7 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
         getopts::optopt("r", "rendering", "Rendering backend", "direct2d|core-graphics|core-graphics-accelerated|cairo|skia."),
         getopts::optopt("s", "size", "Size of tiles", "512"),
         getopts::optopt("", "device-pixel-ratio", "Device pixels per px", ""),
+        getopts::optflag("e", "experimental", "Enable experimental web features"),
         getopts::optopt("t", "threads", "Number of render threads", "1"),
         getopts::optflagopt("p", "profile", "Profiler flag and output interval", "10"),
         getopts::optflagopt("m", "memory-profile", "Memory profiler flag and output interval", "10"),
@@ -176,6 +180,7 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
         device_pixels_per_px: device_pixels_per_px,
         time_profiler_period: time_profiler_period,
         memory_profiler_period: memory_profiler_period,
+        enable_experimental: opt_match.opt_present("e"),
         layout_threads: layout_threads,
         exit_after_load: opt_match.opt_present("x"),
         output_file: opt_match.opt_str("o"),
@@ -183,4 +188,18 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
         hard_fail: opt_match.opt_present("f"),
         bubble_widths_separately: opt_match.opt_present("b"),
     })
+}
+
+static mut EXPERIMENTAL_ENABLED: bool = false;
+
+pub fn set_experimental_enabled(new_value: bool) {
+    unsafe {
+        EXPERIMENTAL_ENABLED = new_value;
+    }
+}
+
+pub fn experimental_enabled() -> bool {
+    unsafe {
+        EXPERIMENTAL_ENABLED
+    }
 }
