@@ -5,6 +5,7 @@
 /// Geometry in flow-relative space.
 
 use geom::{Size2D, Point2D, SideOffsets2D, Rect};
+use std::cmp::{min, max};
 use std::fmt::{Show, Formatter, FormatError};
 use std::num::Zero;
 
@@ -130,15 +131,15 @@ impl Show for DebugWritingMode {
 /// A 2D size in flow-relative dimensions
 #[deriving(PartialEq, Eq, Clone)]
 pub struct LogicalSize<T> {
-    pub isize: T,  // inline-size (a.k.a. logical width)
-    pub bsize: T,  // block-size (a.k.a. logical height)
+    pub inline: T,  // inline-size, a.k.a. logical width, a.k.a. measure
+    pub block: T,  // block-size, a.k.a. logical height, a.k.a. extent
     debug_writing_mode: DebugWritingMode,
 }
 
 impl<T: Show> Show for LogicalSize<T> {
     fn fmt(&self, formatter: &mut Formatter) -> Result<(), FormatError> {
         write!(formatter, "LogicalSize[{}, {}, {}]",
-               self.debug_writing_mode, self.isize, self.bsize)
+               self.debug_writing_mode, self.inline, self.block)
     }
 }
 
@@ -147,24 +148,24 @@ impl<T: Zero> LogicalSize<T> {
     #[inline]
     pub fn zero(mode: WritingMode) -> LogicalSize<T> {
         LogicalSize {
-            isize: Zero::zero(),
-            bsize: Zero::zero(),
+            inline: Zero::zero(),
+            block: Zero::zero(),
             debug_writing_mode: DebugWritingMode::new(mode),
         }
     }
 
     #[inline]
     pub fn is_zero(&self) -> bool {
-        self.isize.is_zero() && self.bsize.is_zero()
+        self.inline.is_zero() && self.block.is_zero()
     }
 }
 
 impl<T: Copy> LogicalSize<T> {
     #[inline]
-    pub fn new(mode: WritingMode, isize: T, bsize: T) -> LogicalSize<T> {
+    pub fn new(mode: WritingMode, inline: T, block: T) -> LogicalSize<T> {
         LogicalSize {
-            isize: isize,
-            bsize: bsize,
+            inline: inline,
+            block: block,
             debug_writing_mode: DebugWritingMode::new(mode),
         }
     }
@@ -182,9 +183,9 @@ impl<T: Copy> LogicalSize<T> {
     pub fn width(&self, mode: WritingMode) -> T {
         self.debug_writing_mode.check(mode);
         if mode.is_vertical() {
-            self.bsize
+            self.block
         } else {
-            self.isize
+            self.inline
         }
     }
 
@@ -192,9 +193,9 @@ impl<T: Copy> LogicalSize<T> {
     pub fn set_width(&mut self, mode: WritingMode, width: T) {
         self.debug_writing_mode.check(mode);
         if mode.is_vertical() {
-            self.bsize = width
+            self.block = width
         } else {
-            self.isize = width
+            self.inline = width
         }
     }
 
@@ -202,9 +203,9 @@ impl<T: Copy> LogicalSize<T> {
     pub fn height(&self, mode: WritingMode) -> T {
         self.debug_writing_mode.check(mode);
         if mode.is_vertical() {
-            self.isize
+            self.inline
         } else {
-            self.bsize
+            self.block
         }
     }
 
@@ -212,9 +213,9 @@ impl<T: Copy> LogicalSize<T> {
     pub fn set_height(&mut self, mode: WritingMode, height: T) {
         self.debug_writing_mode.check(mode);
         if mode.is_vertical() {
-            self.isize = height
+            self.inline = height
         } else {
-            self.bsize = height
+            self.block = height
         }
     }
 
@@ -222,9 +223,9 @@ impl<T: Copy> LogicalSize<T> {
     pub fn to_physical(&self, mode: WritingMode) -> Size2D<T> {
         self.debug_writing_mode.check(mode);
         if mode.is_vertical() {
-            Size2D { width: self.bsize, height: self.isize }
+            Size2D { width: self.block, height: self.inline }
         } else {
-            Size2D { width: self.isize, height: self.bsize }
+            Size2D { width: self.inline, height: self.block }
         }
     }
 
@@ -245,8 +246,8 @@ impl<T: Add<T, T>> Add<LogicalSize<T>, LogicalSize<T>> for LogicalSize<T> {
         self.debug_writing_mode.check_debug(other.debug_writing_mode);
         LogicalSize {
             debug_writing_mode: self.debug_writing_mode,
-            isize: self.isize + other.isize,
-            bsize: self.bsize + other.bsize,
+            inline: self.inline + other.inline,
+            block: self.block + other.block,
         }
     }
 }
@@ -257,8 +258,8 @@ impl<T: Sub<T, T>> Sub<LogicalSize<T>, LogicalSize<T>> for LogicalSize<T> {
         self.debug_writing_mode.check_debug(other.debug_writing_mode);
         LogicalSize {
             debug_writing_mode: self.debug_writing_mode,
-            isize: self.isize - other.isize,
-            bsize: self.bsize - other.bsize,
+            inline: self.inline - other.inline,
+            block: self.block - other.block,
         }
     }
 }
@@ -395,14 +396,28 @@ impl<T: Copy + Sub<T, T>> LogicalPoint<T> {
     }
 }
 
+impl<T: Add<T,T>> LogicalPoint<T> {
+    /// This doesn’t really makes sense,
+    /// but happens when dealing with mutliple origins.
+    #[inline]
+    pub fn add_point(&self, other: &LogicalPoint<T>) -> LogicalPoint<T> {
+        self.debug_writing_mode.check_debug(other.debug_writing_mode);
+        LogicalPoint {
+            debug_writing_mode: self.debug_writing_mode,
+            i: self.i + other.i,
+            b: self.b + other.b,
+        }
+    }
+}
+
 impl<T: Add<T,T>> Add<LogicalSize<T>, LogicalPoint<T>> for LogicalPoint<T> {
     #[inline]
     fn add(&self, other: &LogicalSize<T>) -> LogicalPoint<T> {
         self.debug_writing_mode.check_debug(other.debug_writing_mode);
         LogicalPoint {
             debug_writing_mode: self.debug_writing_mode,
-            i: self.i + other.isize,
-            b: self.b + other.bsize,
+            i: self.i + other.inline,
+            b: self.b + other.block,
         }
     }
 }
@@ -413,8 +428,8 @@ impl<T: Sub<T,T>> Sub<LogicalSize<T>, LogicalPoint<T>> for LogicalPoint<T> {
         self.debug_writing_mode.check_debug(other.debug_writing_mode);
         LogicalPoint {
             debug_writing_mode: self.debug_writing_mode,
-            i: self.i - other.isize,
-            b: self.b - other.bsize,
+            i: self.i - other.inline,
+            b: self.b - other.block,
         }
     }
 }
@@ -426,17 +441,20 @@ impl<T: Sub<T,T>> Sub<LogicalSize<T>, LogicalPoint<T>> for LogicalPoint<T> {
 /// A positive "margin" can be added to a rectangle to obtain a bigger rectangle.
 #[deriving(PartialEq, Eq, Clone)]
 pub struct LogicalMargin<T> {
-    pub bstart: T,
-    pub iend: T,
-    pub bend: T,
-    pub istart: T,
+    pub block_start: T,
+    pub inline_end: T,
+    pub block_end: T,
+    pub inline_start: T,
     debug_writing_mode: DebugWritingMode,
 }
 
 impl<T: Show> Show for LogicalMargin<T> {
     fn fmt(&self, formatter: &mut Formatter) -> Result<(), FormatError> {
-        write!(formatter, "LogicalMargin[{}, bstart: {}, iend: {}, bend: {}, istart: {}]",
-               self.debug_writing_mode, self.bstart, self.iend, self.bend, self.istart)
+        write!(formatter,
+               "LogicalMargin[{}, block_start: {}, inline_end: {}, \
+                              block_end: {}, inline_start: {}]",
+               self.debug_writing_mode, self.block_start,
+               self.inline_end, self.block_end, self.inline_start)
     }
 }
 
@@ -444,77 +462,83 @@ impl<T: Zero> LogicalMargin<T> {
     #[inline]
     pub fn zero(mode: WritingMode) -> LogicalMargin<T> {
         LogicalMargin {
-            bstart: Zero::zero(),
-            iend: Zero::zero(),
-            bend: Zero::zero(),
-            istart: Zero::zero(),
+            block_start: Zero::zero(),
+            inline_end: Zero::zero(),
+            block_end: Zero::zero(),
+            inline_start: Zero::zero(),
             debug_writing_mode: DebugWritingMode::new(mode),
         }
     }
 
     #[inline]
     pub fn is_zero(&self) -> bool {
-        self.bstart.is_zero() &&
-        self.iend.is_zero() &&
-        self.bend.is_zero() &&
-        self.istart.is_zero()
+        self.block_start.is_zero() &&
+        self.inline_end.is_zero() &&
+        self.block_end.is_zero() &&
+        self.inline_start.is_zero()
     }
 }
 
 impl<T: Copy> LogicalMargin<T> {
     #[inline]
-    pub fn new(mode: WritingMode, bstart: T, iend: T, bend: T, istart: T) -> LogicalMargin<T> {
+    pub fn new(mode: WritingMode, block_start: T, inline_end: T, block_end: T, inline_start: T)
+               -> LogicalMargin<T> {
         LogicalMargin {
-            bstart: bstart,
-            iend: iend,
-            bend: bend,
-            istart: istart,
+            block_start: block_start,
+            inline_end: inline_end,
+            block_end: block_end,
+            inline_start: inline_start,
             debug_writing_mode: DebugWritingMode::new(mode),
         }
     }
 
     #[inline]
+    pub fn new_all_same(mode: WritingMode, value: T) -> LogicalMargin<T> {
+        LogicalMargin::new(mode, value, value, value, value)
+    }
+
+    #[inline]
     pub fn from_physical(mode: WritingMode, offsets: SideOffsets2D<T>) -> LogicalMargin<T> {
-        let bstart;
-        let iend;
-        let bend;
-        let istart;
+        let block_start;
+        let inline_end;
+        let block_end;
+        let inline_start;
         if mode.is_vertical() {
             if mode.is_vertical_lr() {
-                bstart = offsets.left;
-                bend = offsets.right;
+                block_start = offsets.left;
+                block_end = offsets.right;
             } else {
-                bstart = offsets.right;
-                bend = offsets.left;
+                block_start = offsets.right;
+                block_end = offsets.left;
             }
             if mode.is_inline_tb() {
-                istart = offsets.top;
-                iend = offsets.bottom;
+                inline_start = offsets.top;
+                inline_end = offsets.bottom;
             } else {
-                istart = offsets.bottom;
-                iend = offsets.top;
+                inline_start = offsets.bottom;
+                inline_end = offsets.top;
             }
         } else {
-            bstart = offsets.top;
-            bend = offsets.bottom;
+            block_start = offsets.top;
+            block_end = offsets.bottom;
             if mode.is_bidi_ltr() {
-                istart = offsets.left;
-                iend = offsets.right;
+                inline_start = offsets.left;
+                inline_end = offsets.right;
             } else {
-                istart = offsets.right;
-                iend = offsets.left;
+                inline_start = offsets.right;
+                inline_end = offsets.left;
             }
         }
-        LogicalMargin::new(mode, bstart, iend, bend, istart)
+        LogicalMargin::new(mode, block_start, inline_end, block_end, inline_start)
     }
 
     #[inline]
     pub fn top(&self, mode: WritingMode) -> T {
         self.debug_writing_mode.check(mode);
         if mode.is_vertical() {
-            if mode.is_inline_tb() { self.istart } else { self.iend }
+            if mode.is_inline_tb() { self.inline_start } else { self.inline_end }
         } else {
-            self.bstart
+            self.block_start
         }
     }
 
@@ -522,9 +546,9 @@ impl<T: Copy> LogicalMargin<T> {
     pub fn set_top(&mut self, mode: WritingMode, top: T) {
         self.debug_writing_mode.check(mode);
         if mode.is_vertical() {
-            if mode.is_inline_tb() { self.istart = top } else { self.iend = top }
+            if mode.is_inline_tb() { self.inline_start = top } else { self.inline_end = top }
         } else {
-            self.bstart = top
+            self.block_start = top
         }
     }
 
@@ -532,9 +556,9 @@ impl<T: Copy> LogicalMargin<T> {
     pub fn right(&self, mode: WritingMode) -> T {
         self.debug_writing_mode.check(mode);
         if mode.is_vertical() {
-            if mode.is_vertical_lr() { self.bend } else { self.bstart }
+            if mode.is_vertical_lr() { self.block_end } else { self.block_start }
         } else {
-            if mode.is_bidi_ltr() { self.iend } else { self.istart }
+            if mode.is_bidi_ltr() { self.inline_end } else { self.inline_start }
         }
     }
 
@@ -542,9 +566,9 @@ impl<T: Copy> LogicalMargin<T> {
     pub fn set_right(&mut self, mode: WritingMode, right: T) {
         self.debug_writing_mode.check(mode);
         if mode.is_vertical() {
-            if mode.is_vertical_lr() { self.bend = right } else { self.bstart = right }
+            if mode.is_vertical_lr() { self.block_end = right } else { self.block_start = right }
         } else {
-            if mode.is_bidi_ltr() { self.iend = right } else { self.istart = right }
+            if mode.is_bidi_ltr() { self.inline_end = right } else { self.inline_start = right }
         }
     }
 
@@ -552,9 +576,9 @@ impl<T: Copy> LogicalMargin<T> {
     pub fn bottom(&self, mode: WritingMode) -> T {
         self.debug_writing_mode.check(mode);
         if mode.is_vertical() {
-            if mode.is_inline_tb() { self.iend } else { self.istart }
+            if mode.is_inline_tb() { self.inline_end } else { self.inline_start }
         } else {
-            self.bend
+            self.block_end
         }
     }
 
@@ -562,9 +586,9 @@ impl<T: Copy> LogicalMargin<T> {
     pub fn set_bottom(&mut self, mode: WritingMode, bottom: T) {
         self.debug_writing_mode.check(mode);
         if mode.is_vertical() {
-            if mode.is_inline_tb() { self.iend = bottom } else { self.istart = bottom }
+            if mode.is_inline_tb() { self.inline_end = bottom } else { self.inline_start = bottom }
         } else {
-            self.bend = bottom
+            self.block_end = bottom
         }
     }
 
@@ -572,9 +596,9 @@ impl<T: Copy> LogicalMargin<T> {
     pub fn left(&self, mode: WritingMode) -> T {
         self.debug_writing_mode.check(mode);
         if mode.is_vertical() {
-            if mode.is_vertical_lr() { self.bstart } else { self.bend }
+            if mode.is_vertical_lr() { self.block_start } else { self.block_end }
         } else {
-            if mode.is_bidi_ltr() { self.istart } else { self.iend }
+            if mode.is_bidi_ltr() { self.inline_start } else { self.inline_end }
         }
     }
 
@@ -582,9 +606,9 @@ impl<T: Copy> LogicalMargin<T> {
     pub fn set_left(&mut self, mode: WritingMode, left: T) {
         self.debug_writing_mode.check(mode);
         if mode.is_vertical() {
-            if mode.is_vertical_lr() { self.bstart = left } else { self.bend = left }
+            if mode.is_vertical_lr() { self.block_start = left } else { self.block_end = left }
         } else {
-            if mode.is_bidi_ltr() { self.istart = left } else { self.iend = left }
+            if mode.is_bidi_ltr() { self.inline_start = left } else { self.inline_end = left }
         }
     }
 
@@ -597,28 +621,28 @@ impl<T: Copy> LogicalMargin<T> {
         let left;
         if mode.is_vertical() {
             if mode.is_vertical_lr() {
-                left = self.bstart;
-                right = self.bend;
+                left = self.block_start;
+                right = self.block_end;
             } else {
-                right = self.bstart;
-                left = self.bend;
+                right = self.block_start;
+                left = self.block_end;
             }
             if mode.is_inline_tb() {
-                top = self.istart;
-                bottom = self.iend;
+                top = self.inline_start;
+                bottom = self.inline_end;
             } else {
-                bottom = self.istart;
-                top = self.iend;
+                bottom = self.inline_start;
+                top = self.inline_end;
             }
         } else {
-            top = self.bstart;
-            bottom = self.bend;
+            top = self.block_start;
+            bottom = self.block_end;
             if mode.is_bidi_ltr() {
-                left = self.istart;
-                right = self.iend;
+                left = self.inline_start;
+                right = self.inline_end;
             } else {
-                right = self.istart;
-                left = self.iend;
+                right = self.inline_start;
+                left = self.inline_end;
             }
         }
         SideOffsets2D::new(top, right, bottom, left)
@@ -637,22 +661,22 @@ impl<T: Copy> LogicalMargin<T> {
 
 impl<T: Add<T, T>> LogicalMargin<T> {
     #[inline]
-    pub fn istart_end(&self) -> T {
-        self.istart + self.iend
+    pub fn inline_start_end(&self) -> T {
+        self.inline_start + self.inline_end
     }
 
     #[inline]
-    pub fn bstart_end(&self) -> T {
-        self.bstart + self.bend
+    pub fn block_start_end(&self) -> T {
+        self.block_start + self.block_end
     }
 
     #[inline]
     pub fn top_bottom(&self, mode: WritingMode) -> T {
         self.debug_writing_mode.check(mode);
         if mode.is_vertical() {
-            self.istart_end()
+            self.inline_start_end()
         } else {
-            self.bstart_end()
+            self.block_start_end()
         }
     }
 
@@ -660,9 +684,9 @@ impl<T: Add<T, T>> LogicalMargin<T> {
     pub fn left_right(&self, mode: WritingMode) -> T {
         self.debug_writing_mode.check(mode);
         if mode.is_vertical() {
-            self.bstart_end()
+            self.block_start_end()
         } else {
-            self.istart_end()
+            self.inline_start_end()
         }
     }
 }
@@ -673,10 +697,10 @@ impl<T: Add<T, T>> Add<LogicalMargin<T>, LogicalMargin<T>> for LogicalMargin<T> 
         self.debug_writing_mode.check_debug(other.debug_writing_mode);
         LogicalMargin {
             debug_writing_mode: self.debug_writing_mode,
-            bstart: self.bstart + other.bstart,
-            iend: self.iend + other.iend,
-            bend: self.bend + other.bend,
-            istart: self.istart + other.istart,
+            block_start: self.block_start + other.block_start,
+            inline_end: self.inline_end + other.inline_end,
+            block_end: self.block_end + other.block_end,
+            inline_start: self.inline_start + other.inline_start,
         }
     }
 }
@@ -687,10 +711,10 @@ impl<T: Sub<T, T>> Sub<LogicalMargin<T>, LogicalMargin<T>> for LogicalMargin<T> 
         self.debug_writing_mode.check_debug(other.debug_writing_mode);
         LogicalMargin {
             debug_writing_mode: self.debug_writing_mode,
-            bstart: self.bstart - other.bstart,
-            iend: self.iend - other.iend,
-            bend: self.bend - other.bend,
-            istart: self.istart - other.istart,
+            block_start: self.block_start - other.block_start,
+            inline_end: self.inline_end - other.inline_end,
+            block_end: self.block_end - other.block_end,
+            inline_start: self.inline_start - other.inline_start,
         }
     }
 }
@@ -706,9 +730,11 @@ pub struct LogicalRect<T> {
 
 impl<T: Show> Show for LogicalRect<T> {
     fn fmt(&self, formatter: &mut Formatter) -> Result<(), FormatError> {
-        write!(formatter, "LogicalRect[{}, istart: {}, bstart: {}, isize: {}, bsize: {}]",
+        write!(formatter,
+               "LogicalRect[{}, inline_start: {}, block_start: {}, \
+                            inline: {}, block: {}]",
                self.debug_writing_mode, self.start.i, self.start.b,
-               self.size.isize, self.size.bsize)
+               self.size.inline, self.size.block)
     }
 }
 
@@ -730,10 +756,23 @@ impl<T: Zero> LogicalRect<T> {
 
 impl<T: Copy> LogicalRect<T> {
     #[inline]
-    pub fn new(mode: WritingMode, istart: T, bstart: T, isize: T, bsize: T) -> LogicalRect<T> {
+    pub fn new(mode: WritingMode, inline_start: T, block_start: T, inline: T, block: T)
+               -> LogicalRect<T> {
         LogicalRect {
-            start: LogicalPoint::new(mode, istart, bstart),
-            size: LogicalSize::new(mode, isize, bsize),
+            start: LogicalPoint::new(mode, inline_start, block_start),
+            size: LogicalSize::new(mode, inline, block),
+            debug_writing_mode: DebugWritingMode::new(mode),
+        }
+    }
+
+    #[inline]
+    pub fn from_point_size(mode: WritingMode, start: LogicalPoint<T>, size: LogicalSize<T>)
+                           -> LogicalRect<T> {
+        start.debug_writing_mode.check(mode);
+        size.debug_writing_mode.check(mode);
+        LogicalRect {
+            start: start,
+            size: size,
             debug_writing_mode: DebugWritingMode::new(mode),
         }
     }
@@ -743,48 +782,48 @@ impl<T: Copy + Add<T, T> + Sub<T, T>> LogicalRect<T> {
     #[inline]
     pub fn from_physical(mode: WritingMode, rect: Rect<T>, container_size: Size2D<T>)
                          -> LogicalRect<T> {
-        let istart;
-        let bstart;
-        let isize;
-        let bsize;
+        let inline_start;
+        let block_start;
+        let inline;
+        let block;
         if mode.is_vertical() {
-            isize = rect.size.height;
-            bsize = rect.size.width;
+            inline = rect.size.height;
+            block = rect.size.width;
             if mode.is_vertical_lr() {
-                bstart = rect.origin.x;
+                block_start = rect.origin.x;
             } else {
-                bstart = container_size.width - (rect.origin.x + rect.size.width);
+                block_start = container_size.width - (rect.origin.x + rect.size.width);
             }
             if mode.is_inline_tb() {
-                istart = rect.origin.y;
+                inline_start = rect.origin.y;
             } else {
-                istart = container_size.height - (rect.origin.y + rect.size.height);
+                inline_start = container_size.height - (rect.origin.y + rect.size.height);
             }
         } else {
-            isize = rect.size.width;
-            bsize = rect.size.height;
-            bstart = rect.origin.y;
+            inline = rect.size.width;
+            block = rect.size.height;
+            block_start = rect.origin.y;
             if mode.is_bidi_ltr() {
-                istart = rect.origin.x;
+                inline_start = rect.origin.x;
             } else {
-                istart = container_size.width - (rect.origin.x + rect.size.width);
+                inline_start = container_size.width - (rect.origin.x + rect.size.width);
             }
         }
         LogicalRect {
-            start: LogicalPoint::new(mode, istart, bstart),
-            size: LogicalSize::new(mode, isize, bsize),
+            start: LogicalPoint::new(mode, inline_start, block_start),
+            size: LogicalSize::new(mode, inline, block),
             debug_writing_mode: DebugWritingMode::new(mode),
         }
     }
 
     #[inline]
-    pub fn iend(&self) -> T {
-        self.start.i + self.size.isize
+    pub fn inline_end(&self) -> T {
+        self.start.i + self.size.inline
     }
 
     #[inline]
-    pub fn bend(&self) -> T {
-        self.start.b + self.size.bsize
+    pub fn block_end(&self) -> T {
+        self.start.b + self.size.block
     }
 
     #[inline]
@@ -795,26 +834,26 @@ impl<T: Copy + Add<T, T> + Sub<T, T>> LogicalRect<T> {
         let width;
         let height;
         if mode.is_vertical() {
-            width = self.size.bsize;
-            height = self.size.isize;
+            width = self.size.block;
+            height = self.size.inline;
             if mode.is_vertical_lr() {
                 x = self.start.b;
             } else {
-                x = container_size.width - self.bend();
+                x = container_size.width - self.block_end();
             }
             if mode.is_inline_tb() {
                 y = self.start.i;
             } else {
-                y = container_size.height - self.iend();
+                y = container_size.height - self.inline_end();
             }
         } else {
-            width = self.size.isize;
-            height = self.size.bsize;
+            width = self.size.inline;
+            height = self.size.block;
             y = self.start.b;
             if mode.is_bidi_ltr() {
                 x = self.start.i;
             } else {
-                x = container_size.width - self.iend();
+                x = container_size.width - self.inline_end();
             }
         }
         Rect {
@@ -834,6 +873,41 @@ impl<T: Copy + Add<T, T> + Sub<T, T>> LogicalRect<T> {
                 mode_to, self.to_physical(mode_from, container_size), container_size)
         }
     }
+
+    pub fn translate(&self, offset: &LogicalPoint<T>) -> LogicalRect<T> {
+        LogicalRect {
+            start: self.start + LogicalSize {
+                inline: offset.i,
+                block: offset.b,
+                debug_writing_mode: offset.debug_writing_mode,
+            },
+            size: self.size,
+            debug_writing_mode: self.debug_writing_mode,
+        }
+    }
+}
+
+impl<T: Copy + Ord + Add<T, T> + Sub<T, T>> LogicalRect<T> {
+    #[inline]
+    pub fn union(&self, other: &LogicalRect<T>) -> LogicalRect<T> {
+        self.debug_writing_mode.check_debug(other.debug_writing_mode);
+
+        let inline_start = min(self.start.i, other.start.i);
+        let block_start = min(self.start.b, other.start.b);
+        LogicalRect {
+            start: LogicalPoint {
+                i: inline_start,
+                b: block_start,
+                debug_writing_mode: self.debug_writing_mode,
+            },
+            size: LogicalSize {
+                inline: max(self.inline_end(), other.inline_end()) - inline_start,
+                block: max(self.block_end(), other.block_end()) - block_start,
+                debug_writing_mode: self.debug_writing_mode,
+            },
+            debug_writing_mode: self.debug_writing_mode,
+        }
+    }
 }
 
 impl<T: Add<T, T> + Sub<T, T>> Add<LogicalMargin<T>, LogicalRect<T>> for LogicalRect<T> {
@@ -844,13 +918,13 @@ impl<T: Add<T, T> + Sub<T, T>> Add<LogicalMargin<T>, LogicalRect<T>> for Logical
             start: LogicalPoint {
                 // Growing a rectangle on the start side means pushing its
                 // start point on the negative direction.
-                i: self.start.i - other.istart,
-                b: self.start.b - other.bstart,
+                i: self.start.i - other.inline_start,
+                b: self.start.b - other.block_start,
                 debug_writing_mode: self.debug_writing_mode,
             },
             size: LogicalSize {
-                isize: self.size.isize + other.istart_end(),
-                bsize: self.size.bsize + other.bstart_end(),
+                inline: self.size.inline + other.inline_start_end(),
+                block: self.size.block + other.block_start_end(),
                 debug_writing_mode: self.debug_writing_mode,
             },
             debug_writing_mode: self.debug_writing_mode,
@@ -867,13 +941,13 @@ impl<T: Add<T, T> + Sub<T, T>> Sub<LogicalMargin<T>, LogicalRect<T>> for Logical
             start: LogicalPoint {
                 // Shrinking a rectangle on the start side means pushing its
                 // start point on the positive direction.
-                i: self.start.i + other.istart,
-                b: self.start.b + other.bstart,
+                i: self.start.i + other.inline_start,
+                b: self.start.b + other.block_start,
                 debug_writing_mode: self.debug_writing_mode,
             },
             size: LogicalSize {
-                isize: self.size.isize - other.istart_end(),
-                bsize: self.size.bsize - other.bstart_end(),
+                inline: self.size.inline - other.inline_start_end(),
+                block: self.size.block - other.block_start_end(),
                 debug_writing_mode: self.debug_writing_mode,
             },
             debug_writing_mode: self.debug_writing_mode,

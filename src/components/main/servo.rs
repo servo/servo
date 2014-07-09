@@ -97,6 +97,7 @@ pub extern "C" fn android_start(argc: int, argv: **u8) -> int {
 
 #[cfg(not(test))]
 pub fn run(opts: opts::Opts) {
+    ::servo_util::opts::set_experimental_enabled(opts.enable_experimental);
     RegisterBindings::RegisterProxyHandlers();
 
     let mut pool_config = green::PoolConfig::new();

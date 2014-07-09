@@ -35,7 +35,7 @@ def to_rust_ident(name):
     return name
 
 class Longhand(object):
-    def __init__(self, name, derived_from=None):
+    def __init__(self, name, derived_from=None, experimental=False):
         self.name = name
         self.ident = to_rust_ident(name)
         self.camel_case, _ = re.subn(
@@ -43,6 +43,7 @@ class Longhand(object):
             lambda m: m.group(1).upper(),
             self.ident.strip("_").capitalize())
         self.style_struct = THIS_STYLE_STRUCT
+        self.experimental = experimental
         if derived_from is None:
             self.derived_from = None
         else:
@@ -94,12 +95,12 @@ pub mod longhands {
         value
     }
 
-    <%def name="raw_longhand(name, no_super=False, derived_from=None)">
+    <%def name="raw_longhand(name, no_super=False, derived_from=None, experimental=False)">
     <%
         if derived_from is not None:
             derived_from = derived_from.split()
 
-        property = Longhand(name, derived_from=derived_from)
+        property = Longhand(name, derived_from=derived_from, experimental=experimental)
         THIS_STYLE_STRUCT.longhands.append(property)
         LONGHANDS.append(property)
         LONGHANDS_BY_NAME[name] = property
@@ -128,8 +129,9 @@ pub mod longhands {
         }
     </%def>
 
-    <%def name="longhand(name, no_super=False, derived_from=None)">
-        <%self:raw_longhand name="${name}" derived_from="${derived_from}">
+    <%def name="longhand(name, no_super=False, derived_from=None, experimental=False)">
+        <%self:raw_longhand name="${name}" derived_from="${derived_from}"
+                            experimental="${experimental}">
             ${caller.body()}
             % if derived_from is None:
                 pub fn parse_specified(_input: &[ComponentValue], _base_url: &Url)
@@ -140,8 +142,9 @@ pub mod longhands {
         </%self:raw_longhand>
     </%def>
 
-    <%def name="single_component_value(name, derived_from=None)">
-        <%self:longhand name="${name}" derived_from="${derived_from}">
+    <%def name="single_component_value(name, derived_from=None, experimental=False)">
+        <%self:longhand name="${name}" derived_from="${derived_from}"
+                        experimental="${experimental}">
             ${caller.body()}
             pub fn parse(input: &[ComponentValue], base_url: &Url) -> Option<SpecifiedValue> {
                 one_component_value(input).and_then(|c| from_component_value(c, base_url))
@@ -149,8 +152,8 @@ pub mod longhands {
         </%self:longhand>
     </%def>
 
-    <%def name="single_keyword_computed(name, values)">
-        <%self:single_component_value name="${name}">
+    <%def name="single_keyword_computed(name, values, experimental=False)">
+        <%self:single_component_value name="${name}" experimental="${experimental}">
             ${caller.body()}
             pub mod computed_value {
                 #[allow(non_camel_case_types)]
@@ -179,9 +182,10 @@ pub mod longhands {
         </%self:single_component_value>
     </%def>
 
-    <%def name="single_keyword(name, values)">
+    <%def name="single_keyword(name, values, experimental=False)">
         <%self:single_keyword_computed name="${name}"
-                                       values="${values}">
+                                       values="${values}"
+                                       experimental="${experimental}">
             // The computed value is the same as the specified value.
             pub use to_computed_value = super::computed_as_specified;
         </%self:single_keyword_computed>
@@ -323,7 +327,7 @@ pub mod longhands {
 
     ${new_style_struct("InheritedBox", is_inherited=True)}
 
-    ${single_keyword("direction", "ltr rtl")}
+    ${single_keyword("direction", "ltr rtl", experimental=True)}
 
     // CSS 2.1, Section 10 - Visual formatting model details
 
@@ -1041,11 +1045,11 @@ pub mod longhands {
     // http://dev.w3.org/csswg/css-writing-modes/
     ${switch_to_style_struct("InheritedBox")}
 
-    ${single_keyword("writing-mode", "horizontal-tb vertical-rl vertical-lr")}
+    ${single_keyword("writing-mode", "horizontal-tb vertical-rl vertical-lr", experimental=True)}
 
     // FIXME(SimonSapin): Add 'mixed' and 'upright' (needs vertical text support)
     // FIXME(SimonSapin): initial (first) value should be 'mixed', when that's implemented
-    ${single_keyword("text-orientation", "sideways sideways-left sideways-right")}
+    ${single_keyword("text-orientation", "sideways sideways-left sideways-right", experimental=True)}
 }
 
 
@@ -1436,6 +1440,10 @@ pub fn parse_property_declaration_list<I: Iterator<Node>>(input: I, base_url: &U
                 match PropertyDeclaration::parse(n.as_slice(), v.as_slice(), list, base_url, seen) {
                     UnknownProperty => log_css_error(l, format!(
                         "Unsupported property: {}:{}", n, v.iter().to_css()).as_slice()),
+                    ExperimentalProperty => log_css_error(l, format!(
+                        "Experimental property, use `servo --enable_experimental` \
+                         or `servo -e` to enable: {}:{}",
+                        n, v.iter().to_css()).as_slice()),
                     InvalidValue => log_css_error(l, format!(
                         "Invalid value: {}:{}", n, v.iter().to_css()).as_slice()),
                     ValidOrIgnoredDeclaration => (),
@@ -1486,6 +1494,7 @@ pub enum PropertyDeclaration {
 
 pub enum PropertyDeclarationParseResult {
     UnknownProperty,
+    ExperimentalProperty,
     InvalidValue,
     ValidOrIgnoredDeclaration,
 }
@@ -1502,6 +1511,11 @@ impl PropertyDeclaration {
             % for property in LONGHANDS:
                 % if property.derived_from is None:
                     "${property.name}" => {
+                        % if property.experimental:
+                            if !::servo_util::opts::experimental_enabled() {
+                                return ExperimentalProperty
+                            }
+                        % endif
                         if seen.get_${property.ident}() {
                             return ValidOrIgnoredDeclaration
                         }
