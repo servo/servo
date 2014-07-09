@@ -396,7 +396,6 @@ pub trait NodeHelpers {
     fn query_selector_all(&self, selectors: DOMString) -> Fallible<Temporary<NodeList>>;
 
     fn remove_self(&self);
-    fn matches(&self, selectors: DOMString) -> Fallible<bool>;
 }
 
 impl<'a> NodeHelpers for JSRef<'a, Node> {
@@ -648,28 +647,6 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
             Some(ref parent) => parent.remove_child(self),
             None => ()
         }
-    }
-
-    // http://dom.spec.whatwg.org/#dom-element-matches
-    fn matches(&self, selectors: DOMString) -> Fallible<bool> {
-        assert!(self.is_element());
-        // Step 1.
-        let namespace = NamespaceMap::new();
-        match parse_selector_list(tokenize(selectors.as_slice()).map(|(token, _)| token).collect(), &namespace) {
-            // Step 2.
-            None => return Err(Syntax),
-            // Step 3.
-            Some(ref selectors) => {
-                for selector in selectors.iter() {
-                    assert!(selector.pseudo_element.is_none());
-                    let mut _shareable: bool = false;
-                    if matches_compound_selector(selector.compound_selectors.deref(), self, &mut _shareable) {
-                        return Ok(true);
-                    }
-                }
-            }
-        }
-        Ok(false)
     }
 }
 

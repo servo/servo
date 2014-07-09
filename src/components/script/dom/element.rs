@@ -451,7 +451,6 @@ pub trait ElementMethods {
     fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>>;
     fn QuerySelectorAll(&self, selectors: DOMString) -> Fallible<Temporary<NodeList>>;
     fn Remove(&self);
-    fn Matches(&self, selectors: DOMString) -> Fallible<bool>;
 }
 
 impl<'a> ElementMethods for JSRef<'a, Element> {
@@ -757,12 +756,6 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     fn Remove(&self) {
         let node: &JSRef<Node> = NodeCast::from_ref(self);
         node.remove_self();
-    }
-
-    // http://dom.spec.whatwg.org/#dom-element-matches
-    fn Matches(&self, selectors: DOMString) -> Fallible<bool> {
-        let root: &JSRef<Node> = NodeCast::from_ref(self);
-        root.matches(selectors)
     }
 }
 
