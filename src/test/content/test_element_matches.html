@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="harness.js"></script>
+</head>
+<body>
+  <div id="foo"></div>
+
+  <script>
+    let test = document.getElementById("foo");
+
+    is(test.matches("#foo"), true, "test-1");
+    is(test.matches("#not-foo"), false, "test-2");
+
+    finish();
+  </script>
+</body>
+</html>
