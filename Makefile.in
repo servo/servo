@@ -390,10 +390,12 @@ ifeq ($(CFG_OSTYPE),apple-darwin)
 
 package: servo
 	mkdir -p Servo.app/Contents/MacOS/src/platform/macos/rust-cocoa
+	mkdir -p Servo.app/Contents/MacOS/src/platform/macos/rust-task_info
 	mkdir -p Servo.app/Contents/MacOS/src/support/azure/rust-azure
 	cp $(S)Info.plist Servo.app/Contents/
 	cp servo Servo.app/Contents/MacOS/
 	cp $(B)src/platform/macos/rust-cocoa/lib*.dylib Servo.app/Contents/MacOS/src/platform/macos/rust-cocoa/
+	cp $(B)src/platform/macos/rust-task_info/lib*.dylib Servo.app/Contents/MacOS/src/platform/macos/rust-task_info/
 	cp $(B)src/support/azure/rust-azure/lib*.dylib Servo.app/Contents/MacOS/src/support/azure/rust-azure/
 
 else ifeq ($(CFG_OSTYPE),linux-androideabi)

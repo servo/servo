@@ -24,6 +24,8 @@ extern crate rand;
 extern crate rustrt;
 extern crate serialize;
 extern crate sync;
+#[cfg(target_os="macos")]
+extern crate task_info;
 extern crate std_time = "time";
 extern crate std_url = "url";
 
