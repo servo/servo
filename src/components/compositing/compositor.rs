@@ -46,6 +46,7 @@ use servo_util::opts::Opts;
 use servo_util::time::{profile, TimeProfilerChan};
 use servo_util::{memory, time, url};
 use std::io::timer::sleep;
+use std::collections::hashmap::HashMap;
 use std::path::Path;
 use std::rc::Rc;
 use time::precise_time_s;
@@ -744,15 +745,17 @@ impl IOCompositor {
         match self.scene.root {
             Some(ref mut layer) => {
                 let rect = Rect(Point2D(0f32, 0f32), page_window.to_untyped());
-                let mut requests = Vec::new();
+                let mut request_map = HashMap::new();
                 let recomposite =
-                    CompositorData::get_buffer_requests_recursively(&mut requests,
+                    CompositorData::get_buffer_requests_recursively(&mut request_map,
                                                                     layer.clone(),
                                                                     &self.graphics_context,
                                                                     rect,
                                                                     scale.get());
-                for (chan, request) in requests.move_iter() {
-                    let _ = chan.send_opt(ReRenderMsg(request));
+                for (_pipeline_id, requests) in request_map.move_iter() {
+                    for (chan, request) in requests.move_iter() {
+                        let _ = chan.send_opt(ReRenderMsg(request));
+                    }
                 }
                 self.recomposite = self.recomposite || recomposite;
             }

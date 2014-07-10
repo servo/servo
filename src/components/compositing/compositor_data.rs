@@ -20,6 +20,7 @@ use servo_msg::compositor_msg::{Epoch, FixedPosition, LayerId};
 use servo_msg::compositor_msg::ScrollPolicy;
 use servo_msg::constellation_msg::PipelineId;
 use servo_util::geometry::PagePx;
+use std::collections::hashmap::HashMap;
 use std::rc::Rc;
 
 #[cfg(target_os="macos")]
@@ -120,7 +121,9 @@ impl CompositorData {
 
     // Given the current window size, determine which tiles need to be (re-)rendered and sends them
     // off the the appropriate renderer. Returns true if and only if the scene should be repainted.
-    pub fn get_buffer_requests_recursively(requests: &mut Vec<(RenderChan, ReRenderRequest)>,
+    pub fn get_buffer_requests_recursively(requests: &mut HashMap<PipelineId,
+                                                                  Vec<(RenderChan,
+                                                                       ReRenderRequest)>>,
                                            layer: Rc<Layer<CompositorData>>,
                                            graphics_context: &NativeCompositingGraphicsContext,
                                            window_rect: Rect<f32>,
@@ -138,13 +141,16 @@ impl CompositorData {
             //
             // FIXME(#2003, pcwalton): We may want to batch these up in the case in which
             // one page has multiple layers, to avoid the user seeing inconsistent states.
+            let pipeline_id = layer.extra_data.borrow().pipeline.id;
+            let chan = layer.extra_data.borrow().pipeline.render_chan.clone();
             let msg = ReRenderRequest {
                 buffer_requests: request,
                 scale: scale,
                 layer_id: layer.extra_data.borrow().id,
                 epoch: layer.extra_data.borrow().epoch,
             };
-            requests.push((layer.extra_data.borrow().pipeline.render_chan.clone(), msg));
+            let vec = requests.find_or_insert(pipeline_id, Vec::new());
+            vec.push((chan, msg));
         }
 
         if redisplay {
