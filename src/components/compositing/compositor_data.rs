@@ -12,7 +12,7 @@ use geom::point::TypedPoint2D;
 use geom::rect::Rect;
 use geom::size::{Size2D, TypedSize2D};
 use gfx::render_task;
-use gfx::render_task::{ReRenderMsg, RenderChan, UnusedBufferMsg};
+use gfx::render_task::{ReRenderMsg, ReRenderRequest, RenderChan, UnusedBufferMsg};
 use layers::layers::{Layer, Flip, LayerBuffer, LayerBufferSet, NoFlip, TextureLayer};
 use layers::quadtree::Tile;
 use layers::platform::surface::{NativeCompositingGraphicsContext, NativeSurfaceMethods};
@@ -139,10 +139,12 @@ impl CompositorData {
             //
             // FIXME(#2003, pcwalton): We may want to batch these up in the case in which
             // one page has multiple layers, to avoid the user seeing inconsistent states.
-            let msg = ReRenderMsg(request,
-                                  scale,
-                                  layer.extra_data.borrow().id,
-                                  layer.extra_data.borrow().epoch);
+            let msg = ReRenderMsg(ReRenderRequest {
+                buffer_requests: request,
+                scale: scale,
+                layer_id: layer.extra_data.borrow().id,
+                epoch: layer.extra_data.borrow().epoch,
+            });
             requests.push((layer.extra_data.borrow().pipeline.render_chan.clone(), msg));
         }
 

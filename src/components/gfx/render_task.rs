@@ -50,9 +50,16 @@ pub struct RenderLayer {
     pub scroll_policy: ScrollPolicy,
 }
 
+pub struct ReRenderRequest {
+    pub buffer_requests: Vec<BufferRequest>,
+    pub scale: f32,
+    pub layer_id: LayerId,
+    pub epoch: Epoch,
+}
+
 pub enum Msg {
     RenderMsg(SmallVec1<RenderLayer>),
-    ReRenderMsg(Vec<BufferRequest>, f32, LayerId, Epoch),
+    ReRenderMsg(ReRenderRequest),
     UnusedBufferMsg(Vec<Box<LayerBuffer>>),
     PaintPermissionGranted,
     PaintPermissionRevoked,
@@ -230,9 +237,9 @@ impl<C:RenderListener + Send> RenderTask<C> {
                                       self.epoch,
                                       self.render_layers.as_slice());
                 }
-                ReRenderMsg(tiles, scale, layer_id, epoch) => {
+                ReRenderMsg(ReRenderRequest { buffer_requests, scale, layer_id, epoch }) => {
                     if self.epoch == epoch {
-                        self.render(tiles, scale, layer_id);
+                        self.render(buffer_requests, scale, layer_id);
                     } else {
                         debug!("renderer epoch mismatch: {:?} != {:?}", self.epoch, epoch);
                     }
