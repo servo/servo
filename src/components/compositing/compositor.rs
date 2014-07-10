@@ -743,11 +743,16 @@ impl IOCompositor {
         match self.scene.root {
             Some(ref mut layer) => {
                 let rect = Rect(Point2D(0f32, 0f32), page_window.to_untyped());
+                let mut requests = Vec::new();
                 let recomposite =
-                    CompositorData::send_buffer_requests_recursively(layer.clone(),
-                                                                     &self.graphics_context,
-                                                                     rect,
-                                                                     scale.get());
+                    CompositorData::get_buffer_requests_recursively(&mut requests,
+                                                                    layer.clone(),
+                                                                    &self.graphics_context,
+                                                                    rect,
+                                                                    scale.get());
+                for (chan, msg) in requests.move_iter() {
+                    let _ = chan.send_opt(msg);
+                }
                 self.recomposite = self.recomposite || recomposite;
             }
             None => { }

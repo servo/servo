@@ -11,7 +11,8 @@ use geom::matrix::identity;
 use geom::point::TypedPoint2D;
 use geom::rect::Rect;
 use geom::size::{Size2D, TypedSize2D};
-use gfx::render_task::{ReRenderMsg, UnusedBufferMsg};
+use gfx::render_task;
+use gfx::render_task::{ReRenderMsg, RenderChan, UnusedBufferMsg};
 use layers::layers::{Layer, Flip, LayerBuffer, LayerBufferSet, NoFlip, TextureLayer};
 use layers::quadtree::Tile;
 use layers::platform::surface::{NativeCompositingGraphicsContext, NativeSurfaceMethods};
@@ -120,11 +121,12 @@ impl CompositorData {
 
     // Given the current window size, determine which tiles need to be (re-)rendered and sends them
     // off the the appropriate renderer. Returns true if and only if the scene should be repainted.
-    pub fn send_buffer_requests_recursively(layer: Rc<Layer<CompositorData>>,
-                                            graphics_context: &NativeCompositingGraphicsContext,
-                                            window_rect: Rect<f32>,
-                                            scale: f32)
-                                            -> bool {
+    pub fn get_buffer_requests_recursively(requests: &mut Vec<(RenderChan, render_task::Msg)>,
+                                           layer: Rc<Layer<CompositorData>>,
+                                           graphics_context: &NativeCompositingGraphicsContext,
+                                           window_rect: Rect<f32>,
+                                           scale: f32)
+                                           -> bool {
         let (request, unused) = Layer::get_tile_rects_page(layer.clone(), window_rect, scale);
         let redisplay = !unused.is_empty();
         if redisplay {
@@ -141,14 +143,14 @@ impl CompositorData {
                                   scale,
                                   layer.extra_data.borrow().id,
                                   layer.extra_data.borrow().epoch);
-            let _ = layer.extra_data.borrow().pipeline.render_chan.send_opt(msg);
+            requests.push((layer.extra_data.borrow().pipeline.render_chan.clone(), msg));
         }
 
         if redisplay {
             CompositorData::build_layer_tree(layer.clone(), graphics_context);
         }
 
-        let send_child_buffer_request = |kid: &Rc<Layer<CompositorData>>| -> bool {
+        let get_child_buffer_request = |kid: &Rc<Layer<CompositorData>>| -> bool {
             let mut new_rect = window_rect;
             let offset = kid.extra_data.borrow().scroll_offset.to_untyped();
             new_rect.origin.x = new_rect.origin.x - offset.x;
@@ -160,10 +162,11 @@ impl CompositorData {
                     // to make the child_rect appear in coordinates local to it.
                     let child_rect = Rect(new_rect.origin.sub(&kid.bounds.borrow().origin),
                                           new_rect.size);
-                    CompositorData::send_buffer_requests_recursively(kid.clone(),
-                                                                     graphics_context,
-                                                                     child_rect,
-                                                                     scale)
+                    CompositorData::get_buffer_requests_recursively(requests,
+                                                                    kid.clone(),
+                                                                    graphics_context,
+                                                                    child_rect,
+                                                                    scale)
                 }
                 None => {
                     false // Layer is offscreen
@@ -171,7 +174,7 @@ impl CompositorData {
             }
         };
 
-        layer.children().iter().map(send_child_buffer_request).any(|b| b) || redisplay
+        layer.children().iter().map(get_child_buffer_request).any(|b| b) || redisplay
     }
 
     // Move the sublayer to an absolute position in page coordinates relative to its parent,
