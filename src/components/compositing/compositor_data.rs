@@ -11,8 +11,7 @@ use geom::matrix::identity;
 use geom::point::TypedPoint2D;
 use geom::rect::Rect;
 use geom::size::{Size2D, TypedSize2D};
-use gfx::render_task;
-use gfx::render_task::{ReRenderMsg, ReRenderRequest, RenderChan, UnusedBufferMsg};
+use gfx::render_task::{ReRenderRequest, RenderChan, UnusedBufferMsg};
 use layers::layers::{Layer, Flip, LayerBuffer, LayerBufferSet, NoFlip, TextureLayer};
 use layers::quadtree::Tile;
 use layers::platform::surface::{NativeCompositingGraphicsContext, NativeSurfaceMethods};
@@ -121,7 +120,7 @@ impl CompositorData {
 
     // Given the current window size, determine which tiles need to be (re-)rendered and sends them
     // off the the appropriate renderer. Returns true if and only if the scene should be repainted.
-    pub fn get_buffer_requests_recursively(requests: &mut Vec<(RenderChan, render_task::Msg)>,
+    pub fn get_buffer_requests_recursively(requests: &mut Vec<(RenderChan, ReRenderRequest)>,
                                            layer: Rc<Layer<CompositorData>>,
                                            graphics_context: &NativeCompositingGraphicsContext,
                                            window_rect: Rect<f32>,
@@ -139,12 +138,12 @@ impl CompositorData {
             //
             // FIXME(#2003, pcwalton): We may want to batch these up in the case in which
             // one page has multiple layers, to avoid the user seeing inconsistent states.
-            let msg = ReRenderMsg(ReRenderRequest {
+            let msg = ReRenderRequest {
                 buffer_requests: request,
                 scale: scale,
                 layer_id: layer.extra_data.borrow().id,
                 epoch: layer.extra_data.borrow().epoch,
-            });
+            };
             requests.push((layer.extra_data.borrow().pipeline.render_chan.clone(), msg));
         }
 

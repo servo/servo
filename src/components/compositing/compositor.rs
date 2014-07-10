@@ -26,6 +26,7 @@ use geom::point::{Point2D, TypedPoint2D};
 use geom::rect::Rect;
 use geom::size::TypedSize2D;
 use geom::scale_factor::ScaleFactor;
+use gfx::render_task::ReRenderMsg;
 use layers::layers::LayerBufferSet;
 use layers::platform::surface::NativeCompositingGraphicsContext;
 use layers::rendergl;
@@ -750,8 +751,8 @@ impl IOCompositor {
                                                                     &self.graphics_context,
                                                                     rect,
                                                                     scale.get());
-                for (chan, msg) in requests.move_iter() {
-                    let _ = chan.send_opt(msg);
+                for (chan, request) in requests.move_iter() {
+                    let _ = chan.send_opt(ReRenderMsg(request));
                 }
                 self.recomposite = self.recomposite || recomposite;
             }
