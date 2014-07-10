@@ -8,12 +8,12 @@ use pipeline::CompositionPipeline;
 
 use azure::azure_hl::Color;
 use geom::matrix::identity;
-use geom::point::{Point2D, TypedPoint2D};
+use geom::point::TypedPoint2D;
 use geom::rect::Rect;
 use geom::size::{Size2D, TypedSize2D};
 use gfx::render_task::{ReRenderMsg, UnusedBufferMsg};
 use layers::layers::{Layer, Flip, LayerBuffer, LayerBufferSet, NoFlip, TextureLayer};
-use layers::quadtree::{Tile, Normal, Hidden};
+use layers::quadtree::Tile;
 use layers::platform::surface::{NativeCompositingGraphicsContext, NativeSurfaceMethods};
 use layers::texturegl::{Texture, TextureTarget};
 use servo_msg::compositor_msg::{Epoch, FixedPosition, LayerId};
@@ -41,18 +41,6 @@ pub struct CompositorData {
     /// top left corner of the page.
     pub scroll_offset: TypedPoint2D<PagePx, f32>,
 
-    /// The bounds of this layer in terms of its parent (a.k.a. the scissor box).
-    pub bounds: Rect<f32>,
-
-    /// The size of the underlying page in page coordinates. This is an option
-    /// because we may not know the size of the page until layout is finished completely.
-    /// if we have no size yet, the layer is hidden until a size message is recieved.
-    pub page_size: Option<Size2D<f32>>,
-
-    /// When set to true, this layer is ignored by its parents. This is useful for
-    /// soft deletion or when waiting on a page size.
-    pub hidden: bool,
-
     /// The behavior of this layer when a scroll message is received.
     pub wants_scroll_events: WantsScrollEventsFlag,
 
@@ -64,8 +52,6 @@ pub struct CompositorData {
 
     /// The color to use for the unrendered-content void
     pub unrendered_color: Color,
-
-    pub scissor: Option<Rect<f32>>,
 
     /// A monotonically increasing counter that keeps track of the current epoch.
     /// add_buffer() calls that don't match the current epoch will be ignored.
@@ -82,8 +68,6 @@ impl CompositorData {
     pub fn new(pipeline: CompositionPipeline,
                layer_id: LayerId,
                epoch: Epoch,
-               bounds: Rect<f32>,
-               page_size: Option<Size2D<f32>>,
                cpu_painting: bool,
                wants_scroll_events: WantsScrollEventsFlag,
                scroll_policy: ScrollPolicy,
@@ -93,28 +77,21 @@ impl CompositorData {
             pipeline: pipeline,
             id: layer_id,
             scroll_offset: TypedPoint2D(0f32, 0f32),
-            bounds: bounds,
-            page_size: page_size,
-            hidden: false,
             wants_scroll_events: wants_scroll_events,
             scroll_policy: scroll_policy,
             cpu_painting: cpu_painting,
             unrendered_color: unrendered_color,
-            scissor: None,
             epoch: epoch,
         }
     }
 
     pub fn new_root(pipeline: CompositionPipeline,
                     epoch: Epoch,
-                    page_size: Size2D<f32>,
                     cpu_painting: bool,
                     unrendered_color: Color) -> CompositorData {
         CompositorData::new(pipeline,
                             LayerId::null(),
                             epoch,
-                            Rect(Point2D(0f32, 0f32), page_size),
-                            Some(page_size),
                             cpu_painting,
                             WantsScrollEvents,
                             FixedPosition,
@@ -125,23 +102,17 @@ impl CompositorData {
     /// exist yet. The child layer will have the same pipeline, tile size, memory limit, and CPU
     /// painting status as its parent.
     pub fn add_child(layer: Rc<Layer<CompositorData>>,
-                     layer_properties: LayerProperties,
-                     page_size: Size2D<f32>) {
+                     layer_properties: LayerProperties) {
         let new_compositor_data = CompositorData::new(layer.extra_data.borrow().pipeline.clone(),
                                                       layer_properties.id,
                                                       layer_properties.epoch,
-                                                      layer_properties.rect,
-                                                      Some(page_size),
                                                       layer.extra_data.borrow().cpu_painting,
                                                       DoesntWantScrollEvents,
                                                       layer_properties.scroll_policy,
                                                       layer_properties.background_color);
-        let new_kid = Rc::new(Layer::new(page_size,
+        let new_kid = Rc::new(Layer::new(layer_properties.rect,
                                          Layer::tile_size(layer.clone()),
                                          new_compositor_data));
-
-        new_kid.extra_data.borrow_mut().scissor = Some(layer_properties.rect);
-        *new_kid.origin.borrow_mut() = layer_properties.rect.origin;
 
         // Place the kid's layer in the container passed in.
         Layer::add_child(layer.clone(), new_kid.clone());
@@ -178,41 +149,33 @@ impl CompositorData {
         }
 
         let send_child_buffer_request = |kid: &Rc<Layer<CompositorData>>| -> bool {
-            match kid.extra_data.borrow().scissor {
-                Some(scissor) => {
-                    let mut new_rect = window_rect;
-                    let offset = kid.extra_data.borrow().scroll_offset.to_untyped();
-                    new_rect.origin.x = new_rect.origin.x - offset.x;
-                    new_rect.origin.y = new_rect.origin.y - offset.y;
-                    match new_rect.intersection(&scissor) {
-                        Some(new_rect) => {
-                            // Child layers act as if they are rendered at (0,0), so we
-                            // subtract the layer's (x,y) coords in its containing page
-                            // to make the child_rect appear in coordinates local to it.
-                            let child_rect = Rect(new_rect.origin.sub(&scissor.origin),
-                                                  new_rect.size);
-                            CompositorData::send_buffer_requests_recursively(kid.clone(),
-                                                                             graphics_context,
-                                                                             child_rect,
-                                                                             scale)
-                        }
-                        None => {
-                            false // Layer is offscreen
-                        }
-                    }
+            let mut new_rect = window_rect;
+            let offset = kid.extra_data.borrow().scroll_offset.to_untyped();
+            new_rect.origin.x = new_rect.origin.x - offset.x;
+            new_rect.origin.y = new_rect.origin.y - offset.y;
+            match new_rect.intersection(&*kid.bounds.borrow()) {
+                Some(new_rect) => {
+                    // Child layers act as if they are rendered at (0,0), so we
+                    // subtract the layer's (x,y) coords in its containing page
+                    // to make the child_rect appear in coordinates local to it.
+                    let child_rect = Rect(new_rect.origin.sub(&kid.bounds.borrow().origin),
+                                          new_rect.size);
+                    CompositorData::send_buffer_requests_recursively(kid.clone(),
+                                                                     graphics_context,
+                                                                     child_rect,
+                                                                     scale)
                 }
-                None => fail!("child layer not clipped!"),
+                None => {
+                    false // Layer is offscreen
+                }
             }
         };
 
-        layer.children().iter().filter(|x| !x.extra_data.borrow().hidden)
-            .map(send_child_buffer_request)
-            .any(|b| b) || redisplay
+        layer.children().iter().map(send_child_buffer_request).any(|b| b) || redisplay
     }
 
     // Move the sublayer to an absolute position in page coordinates relative to its parent,
     // and clip the layer to the specified size in page coordinates.
-    // If the layer is hidden and has a defined page size, unhide it.
     // This method returns false if the specified layer is not found.
     pub fn set_clipping_rect(layer: Rc<Layer<CompositorData>>,
                              pipeline_id: PipelineId,
@@ -225,24 +188,7 @@ impl CompositorData {
                                                                     layer_id) {
             Some(child_node) => {
                 debug!("compositor_data: node found for set_clipping_rect()");
-                *child_node.origin.borrow_mut() = new_rect.origin;
-                let old_rect = child_node.extra_data.borrow().scissor.clone();
-                child_node.extra_data.borrow_mut().scissor = Some(new_rect);
-                match old_rect {
-                    Some(old_rect) => {
-                        // Rect is unhidden
-                        Layer::set_status_page(layer.clone(), old_rect, Normal, false);
-                    }
-                    None => {} // Nothing to do
-                }
-                // Hide the new rect
-                Layer::set_status_page(layer.clone(), new_rect, Hidden, false);
-
-                // If possible, unhide child
-                let mut child_data = child_node.extra_data.borrow_mut();
-                if child_data.hidden && child_data.page_size.is_some() {
-                    child_data.hidden = false;
-                }
+                *child_node.bounds.borrow_mut() = new_rect;
                 true
             }
             None => {
@@ -253,45 +199,27 @@ impl CompositorData {
                                                                  new_rect))
 
             }
+
         }
     }
 
     pub fn update_layer(layer: Rc<Layer<CompositorData>>, layer_properties: LayerProperties) {
         layer.extra_data.borrow_mut().epoch = layer_properties.epoch;
         layer.extra_data.borrow_mut().unrendered_color = layer_properties.background_color;
-        CompositorData::resize(layer.clone(), layer_properties.rect.size);
-    }
 
-    // Resize and unhide a pre-existing layer. A new layer's size is set during creation.
-    fn resize(layer: Rc<Layer<CompositorData>>,
-              new_size: Size2D<f32>) {
-        debug!("compositor_data: starting resize_helper()");
-
-        debug!("compositor_data: layer found for resize_helper()");
-        layer.extra_data.borrow_mut().page_size = Some(new_size);
-
-        let unused_buffers = Layer::resize(layer.clone(), new_size);
+        let unused_buffers = Layer::resize(layer.clone(), layer_properties.rect.size);
         if !unused_buffers.is_empty() {
             let msg = UnusedBufferMsg(unused_buffers);
             let _ = layer.extra_data.borrow().pipeline.render_chan.send_opt(msg);
         }
 
-        let scissor_clone = layer.extra_data.borrow().scissor.clone();
-        match scissor_clone {
-            Some(scissor) => {
-                // Call scroll for bounds checking if the page shrunk. Use (-1, -1) as the
-                // cursor position to make sure the scroll isn't propagated downwards.
-                let size: TypedSize2D<PagePx, f32> = Size2D::from_untyped(&scissor.size);
-                events::handle_scroll_event(layer.clone(),
+        // Call scroll for bounds checking if the page shrunk. Use (-1, -1) as the
+        // cursor position to make sure the scroll isn't propagated downwards.
+        let size: TypedSize2D<PagePx, f32> = Size2D::from_untyped(&layer.bounds.borrow().size);
+        events::handle_scroll_event(layer.clone(),
                                             TypedPoint2D(0f32, 0f32),
                                             TypedPoint2D(-1f32, -1f32),
                                             size);
-                layer.extra_data.borrow_mut().hidden = false;
-            }
-            None => {} // Nothing to do
-        }
-
-        CompositorData::set_occlusions(layer.clone());
     }
 
     // Returns whether the layer should be vertically flipped.
@@ -430,27 +358,6 @@ impl CompositorData {
 
         CompositorData::build_layer_tree(layer.clone(), graphics_context);
         return true;
-    }
-
-    // Recursively sets occluded portions of quadtrees to Hidden, so that they do not ask for
-    // tile requests. If layers are moved, resized, or deleted, these portions may be updated.
-    fn set_occlusions(layer: Rc<Layer<CompositorData>>) {
-        for kid in layer.children().iter() {
-            if !kid.extra_data.borrow().hidden {
-                match kid.extra_data.borrow().scissor {
-                    None => {} // Nothing to do
-                    Some(rect) => {
-                        Layer::set_status_page(layer.clone(), rect, Hidden, false);
-                    }
-                }
-            }
-        }
-
-        for kid in layer.children().iter() {
-            if !kid.extra_data.borrow().hidden {
-                CompositorData::set_occlusions(kid.clone());
-            }
-        }
     }
 
     /// Destroys all quadtree tiles, sending the buffers back to the renderer to be destroyed or

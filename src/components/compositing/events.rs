@@ -46,11 +46,6 @@ pub fn handle_scroll_event(layer: Rc<Layer<CompositorData>>,
                            cursor: TypedPoint2D<PagePx, f32>,
                            window_size: TypedSize2D<PagePx, f32>)
                            -> bool {
-    // If this layer is hidden, neither it nor its children will scroll.
-    if layer.extra_data.borrow().hidden {
-        return false
-    }
-
     // If this layer doesn't want scroll events, neither it nor its children can handle scroll
     // events.
     if layer.extra_data.borrow().wants_scroll_events != WantsScrollEvents {
@@ -60,20 +55,13 @@ pub fn handle_scroll_event(layer: Rc<Layer<CompositorData>>,
     // Allow children to scroll.
     let cursor = cursor - layer.extra_data.borrow().scroll_offset;
     for child in layer.children().iter() {
-        match child.extra_data.borrow().scissor {
-            None => {
-                error!("CompositorData: unable to perform cursor hit test for layer");
-            }
-            Some(rect) => {
-                let rect: TypedRect<PagePx, f32> = Rect::from_untyped(&rect);
-                if rect.contains(&cursor) &&
-                   handle_scroll_event(child.clone(),
-                                       delta,
-                                       cursor - rect.origin,
-                                       rect.size) {
-                    return true
-                }
-            }
+        let rect: TypedRect<PagePx, f32> = Rect::from_untyped(&*child.bounds.borrow());
+        if rect.contains(&cursor) &&
+           handle_scroll_event(child.clone(),
+                               delta,
+                               cursor - rect.origin,
+                               rect.size) {
+            return true
         }
     }
 
@@ -83,11 +71,7 @@ pub fn handle_scroll_event(layer: Rc<Layer<CompositorData>>,
     layer.extra_data.borrow_mut().scroll_offset = old_origin + delta;
 
     // bounds checking
-    let page_size = match layer.extra_data.borrow().page_size {
-        Some(size) => size,
-        None => fail!("CompositorData: tried to scroll with no page size set"),
-    };
-
+    let page_size = layer.bounds.borrow().size;
     let window_size = window_size.to_untyped();
     let scroll_offset = layer.extra_data.borrow().scroll_offset.to_untyped();
 
@@ -137,21 +121,10 @@ pub fn send_mouse_event(layer: Rc<Layer<CompositorData>>,
                         event: MouseWindowEvent, cursor: TypedPoint2D<PagePx, f32>) {
     let cursor = cursor - layer.extra_data.borrow().scroll_offset;
     for child in layer.children().iter() {
-        if child.extra_data.borrow().hidden {
-            continue;
-        }
-
-        match child.extra_data.borrow().scissor {
-            None => {
-                error!("CompositorData: unable to perform cursor hit test for layer");
-            }
-            Some(rect) => {
-                let rect: TypedRect<PagePx, f32> = Rect::from_untyped(&rect);
-                if rect.contains(&cursor) {
-                    send_mouse_event(child.clone(), event, cursor - rect.origin);
-                    return;
-                }
-            }
+        let rect: TypedRect<PagePx, f32> = Rect::from_untyped(&*child.bounds.borrow());
+        if rect.contains(&cursor) {
+            send_mouse_event(child.clone(), event, cursor - rect.origin);
+            return;
         }
     }
 
@@ -195,10 +168,7 @@ pub fn move(layer: Rc<Layer<CompositorData>>,
     layer.extra_data.borrow_mut().scroll_offset = Point2D::from_untyped(&(origin * -1.0));
 
     // bounds checking
-    let page_size = match layer.extra_data.borrow().page_size {
-        Some(size) => size,
-        None => fail!("CompositorData: tried to scroll with no page size set"),
-    };
+    let page_size = layer.bounds.borrow().size;
     let window_size = window_size.to_untyped();
     let scroll_offset = layer.extra_data.borrow().scroll_offset.to_untyped();
 
@@ -215,4 +185,3 @@ pub fn move(layer: Rc<Layer<CompositorData>>,
     let offset = layer.extra_data.borrow().scroll_offset.clone();
     scroll(layer.clone(), offset)
 }
-
