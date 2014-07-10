@@ -388,7 +388,7 @@ impl Window {
                script_chan: ScriptChan,
                compositor: Box<ScriptListener>,
                image_cache_task: ImageCacheTask)
-               -> JS<Window> {
+               -> Temporary<Window> {
         let win = box Window {
             eventtarget: EventTarget::new_inherited(WindowTypeId),
             script_chan: script_chan,

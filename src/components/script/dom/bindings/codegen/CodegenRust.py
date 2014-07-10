@@ -1792,7 +1792,7 @@ class CGWrapMethod(CGAbstractMethod):
         else:
             args = [Argument('*mut JSContext', 'aCx'),
                     Argument("Box<%s>" % descriptor.concreteType, 'aObject', mutable=True)]
-        retval = 'JS<%s>' % descriptor.concreteType
+        retval = 'Temporary<%s>' % descriptor.concreteType
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', retval, args, pub=True)
 
     def definition_body(self):
@@ -1809,7 +1809,7 @@ assert!(proto.is_not_null());
 
 raw.reflector().set_jsobject(obj);
 
-return raw;""" % CreateBindingJSObject(self.descriptor, "scope"))
+Temporary::new(raw)""" % CreateBindingJSObject(self.descriptor, "scope"))
         else:
             return CGGeneric("""\
 %s
@@ -1818,7 +1818,8 @@ with_compartment(aCx, obj, || {
   JS_SetPrototype(aCx, obj, proto);
 });
 raw.reflector().set_jsobject(obj);
-return raw;""" % CreateBindingJSObject(self.descriptor))
+
+Temporary::new(raw)""" % CreateBindingJSObject(self.descriptor))
 
 
 class CGIDLInterface(CGThing):

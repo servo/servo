@@ -377,9 +377,9 @@ pub trait Reflectable {
 pub fn reflect_dom_object<T: Reflectable>
         (obj:     Box<T>,
          window:  &JSRef<window::Window>,
-         wrap_fn: extern "Rust" fn(*mut JSContext, &JSRef<window::Window>, Box<T>) -> JS<T>)
+         wrap_fn: extern "Rust" fn(*mut JSContext, &JSRef<window::Window>, Box<T>) -> Temporary<T>)
          -> Temporary<T> {
-    Temporary::new(wrap_fn(window.deref().get_cx(), window, obj))
+    wrap_fn(window.get_cx(), window, obj)
 }
 
 #[allow(raw_pointer_deriving)]
