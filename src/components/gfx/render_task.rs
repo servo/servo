@@ -290,9 +290,6 @@ impl<C:RenderListener + Send> RenderTask<C> {
     }
 
     /// Renders one layer and sends the tiles back to the layer.
-    ///
-    /// FIXME(pcwalton): We will probably want to eventually send all layers belonging to a page in
-    /// one transaction, to avoid the user seeing inconsistent states.
     fn render(&mut self,
               replies: &mut Vec<(LayerId, Box<LayerBufferSet>)>,
               tiles: Vec<BufferRequest>,

@@ -138,9 +138,6 @@ impl CompositorData {
         }
         if !request.is_empty() {
             // Ask for tiles.
-            //
-            // FIXME(#2003, pcwalton): We may want to batch these up in the case in which
-            // one page has multiple layers, to avoid the user seeing inconsistent states.
             let pipeline_id = layer.extra_data.borrow().pipeline.id;
             let msg = ReRenderRequest {
                 buffer_requests: request,
