@@ -96,10 +96,11 @@ impl RenderListener for CompositorChan {
 
     fn paint(&self,
              pipeline_id: PipelineId,
-             layer_id: LayerId,
-             layer_buffer_set: Box<LayerBufferSet>,
-             epoch: Epoch) {
-        self.chan.send(Paint(pipeline_id, layer_id, layer_buffer_set, epoch))
+             epoch: Epoch,
+             replies: Vec<(LayerId, Box<LayerBufferSet>)>) {
+        for (layer_id, layer_buffer_set) in replies.move_iter() {
+            self.chan.send(Paint(pipeline_id, layer_id, layer_buffer_set, epoch))
+        }
     }
 
     fn initialize_layers_for_pipeline(&self,

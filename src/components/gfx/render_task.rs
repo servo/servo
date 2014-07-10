@@ -256,9 +256,7 @@ impl<C:RenderListener + Send> RenderTask<C> {
                     }
 
                     debug!("render_task: returning surfaces");
-                    for (layer_id, layer_buffer_set) in replies.move_iter() {
-                        self.compositor.paint(self.id, layer_id, layer_buffer_set, self.epoch);
-                    }
+                    self.compositor.paint(self.id, self.epoch, replies);
                 }
                 UnusedBufferMsg(unused_buffers) => {
                     for buffer in unused_buffers.move_iter().rev() {
