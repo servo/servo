@@ -245,13 +245,19 @@ impl<C:RenderListener + Send> RenderTask<C> {
                         continue;
                     }
 
+                    let mut replies = Vec::new();
                     for ReRenderRequest { buffer_requests, scale, layer_id, epoch }
                           in requests.move_iter() {
                         if self.epoch == epoch {
-                            self.render(buffer_requests, scale, layer_id);
+                            self.render(&mut replies, buffer_requests, scale, layer_id);
                         } else {
                             debug!("renderer epoch mismatch: {:?} != {:?}", self.epoch, epoch);
                         }
+                    }
+
+                    debug!("render_task: returning surfaces");
+                    for (layer_id, layer_buffer_set) in replies.move_iter() {
+                        self.compositor.paint(self.id, layer_id, layer_buffer_set, self.epoch);
                     }
                 }
                 UnusedBufferMsg(unused_buffers) => {
@@ -289,7 +295,11 @@ impl<C:RenderListener + Send> RenderTask<C> {
     ///
     /// FIXME(pcwalton): We will probably want to eventually send all layers belonging to a page in
     /// one transaction, to avoid the user seeing inconsistent states.
-    fn render(&mut self, tiles: Vec<BufferRequest>, scale: f32, layer_id: LayerId) {
+    fn render(&mut self,
+              replies: &mut Vec<(LayerId, Box<LayerBufferSet>)>,
+              tiles: Vec<BufferRequest>,
+              scale: f32,
+              layer_id: LayerId) {
         time::profile(time::RenderingCategory, self.time_profiler_chan.clone(), || {
             // FIXME: Try not to create a new array here.
             let mut new_buffers = vec!();
@@ -434,8 +444,7 @@ impl<C:RenderListener + Send> RenderTask<C> {
                 buffers: new_buffers,
             };
 
-            debug!("render_task: returning surface");
-            self.compositor.paint(self.id, render_layer.id, layer_buffer_set, self.epoch);
+            replies.push((render_layer.id, layer_buffer_set));
             self.compositor.set_render_state(IdleRenderState);
         })
     }
