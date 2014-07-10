@@ -26,6 +26,7 @@ use geom::point::{Point2D, TypedPoint2D};
 use geom::rect::Rect;
 use geom::size::TypedSize2D;
 use geom::scale_factor::ScaleFactor;
+use gfx::render_task::ReRenderMsg;
 use layers::layers::LayerBufferSet;
 use layers::platform::surface::NativeCompositingGraphicsContext;
 use layers::rendergl;
@@ -45,6 +46,7 @@ use servo_util::opts::Opts;
 use servo_util::time::{profile, TimeProfilerChan};
 use servo_util::{memory, time, url};
 use std::io::timer::sleep;
+use std::collections::hashmap::HashMap;
 use std::path::Path;
 use std::rc::Rc;
 use time::precise_time_s;
@@ -301,9 +303,10 @@ impl IOCompositor {
                     self.set_layer_clip_rect(pipeline_id, layer_id, new_rect);
                 }
 
-                (Ok(Paint(pipeline_id, layer_id, new_layer_buffer_set, epoch)),
-                 NotShuttingDown) => {
-                    self.paint(pipeline_id, layer_id, new_layer_buffer_set, epoch);
+                (Ok(Paint(pipeline_id, epoch, replies)), NotShuttingDown) => {
+                    for (layer_id, new_layer_buffer_set) in replies.move_iter() {
+                        self.paint(pipeline_id, layer_id, new_layer_buffer_set, epoch);
+                    }
                 }
 
                 (Ok(ScrollFragmentPoint(pipeline_id, layer_id, point)), NotShuttingDown) => {
@@ -743,11 +746,16 @@ impl IOCompositor {
         match self.scene.root {
             Some(ref mut layer) => {
                 let rect = Rect(Point2D(0f32, 0f32), page_window.to_untyped());
+                let mut request_map = HashMap::new();
                 let recomposite =
-                    CompositorData::send_buffer_requests_recursively(layer.clone(),
-                                                                     &self.graphics_context,
-                                                                     rect,
-                                                                     scale.get());
+                    CompositorData::get_buffer_requests_recursively(&mut request_map,
+                                                                    layer.clone(),
+                                                                    &self.graphics_context,
+                                                                    rect,
+                                                                    scale.get());
+                for (_pipeline_id, (chan, requests)) in request_map.move_iter() {
+                    let _ = chan.send_opt(ReRenderMsg(requests));
+                }
                 self.recomposite = self.recomposite || recomposite;
             }
             None => { }

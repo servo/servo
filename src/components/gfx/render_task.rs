@@ -50,9 +50,16 @@ pub struct RenderLayer {
     pub scroll_policy: ScrollPolicy,
 }
 
+pub struct ReRenderRequest {
+    pub buffer_requests: Vec<BufferRequest>,
+    pub scale: f32,
+    pub layer_id: LayerId,
+    pub epoch: Epoch,
+}
+
 pub enum Msg {
     RenderMsg(SmallVec1<RenderLayer>),
-    ReRenderMsg(Vec<BufferRequest>, f32, LayerId, Epoch),
+    ReRenderMsg(Vec<ReRenderRequest>),
     UnusedBufferMsg(Vec<Box<LayerBuffer>>),
     PaintPermissionGranted,
     PaintPermissionRevoked,
@@ -230,12 +237,26 @@ impl<C:RenderListener + Send> RenderTask<C> {
                                       self.epoch,
                                       self.render_layers.as_slice());
                 }
-                ReRenderMsg(tiles, scale, layer_id, epoch) => {
-                    if self.epoch == epoch {
-                        self.render(tiles, scale, layer_id);
-                    } else {
-                        debug!("renderer epoch mismatch: {:?} != {:?}", self.epoch, epoch);
+                ReRenderMsg(requests) => {
+                    if !self.paint_permission {
+                        debug!("render_task: render ready msg");
+                        let ConstellationChan(ref mut c) = self.constellation_chan;
+                        c.send(RendererReadyMsg(self.id));
+                        continue;
                     }
+
+                    let mut replies = Vec::new();
+                    for ReRenderRequest { buffer_requests, scale, layer_id, epoch }
+                          in requests.move_iter() {
+                        if self.epoch == epoch {
+                            self.render(&mut replies, buffer_requests, scale, layer_id);
+                        } else {
+                            debug!("renderer epoch mismatch: {:?} != {:?}", self.epoch, epoch);
+                        }
+                    }
+
+                    debug!("render_task: returning surfaces");
+                    self.compositor.paint(self.id, self.epoch, replies);
                 }
                 UnusedBufferMsg(unused_buffers) => {
                     for buffer in unused_buffers.move_iter().rev() {
@@ -269,10 +290,11 @@ impl<C:RenderListener + Send> RenderTask<C> {
     }
 
     /// Renders one layer and sends the tiles back to the layer.
-    ///
-    /// FIXME(pcwalton): We will probably want to eventually send all layers belonging to a page in
-    /// one transaction, to avoid the user seeing inconsistent states.
-    fn render(&mut self, tiles: Vec<BufferRequest>, scale: f32, layer_id: LayerId) {
+    fn render(&mut self,
+              replies: &mut Vec<(LayerId, Box<LayerBufferSet>)>,
+              tiles: Vec<BufferRequest>,
+              scale: f32,
+              layer_id: LayerId) {
         time::profile(time::RenderingCategory, self.time_profiler_chan.clone(), || {
             // FIXME: Try not to create a new array here.
             let mut new_buffers = vec!();
@@ -417,14 +439,7 @@ impl<C:RenderListener + Send> RenderTask<C> {
                 buffers: new_buffers,
             };
 
-            debug!("render_task: returning surface");
-            if self.paint_permission {
-                self.compositor.paint(self.id, render_layer.id, layer_buffer_set, self.epoch);
-            } else {
-                debug!("render_task: RendererReadyMsg send");
-                let ConstellationChan(ref mut c) = self.constellation_chan;
-                c.send(RendererReadyMsg(self.id));
-            }
+            replies.push((render_layer.id, layer_buffer_set));
             self.compositor.set_render_state(IdleRenderState);
         })
     }
