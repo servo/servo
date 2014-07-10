@@ -753,9 +753,7 @@ impl IOCompositor {
                                                                     rect,
                                                                     scale.get());
                 for (_pipeline_id, (chan, requests)) in request_map.move_iter() {
-                    for request in requests.move_iter() {
-                        let _ = chan.send_opt(ReRenderMsg(request));
-                    }
+                    let _ = chan.send_opt(ReRenderMsg(requests));
                 }
                 self.recomposite = self.recomposite || recomposite;
             }

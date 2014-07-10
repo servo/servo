@@ -59,7 +59,7 @@ pub struct ReRenderRequest {
 
 pub enum Msg {
     RenderMsg(SmallVec1<RenderLayer>),
-    ReRenderMsg(ReRenderRequest),
+    ReRenderMsg(Vec<ReRenderRequest>),
     UnusedBufferMsg(Vec<Box<LayerBuffer>>),
     PaintPermissionGranted,
     PaintPermissionRevoked,
@@ -237,11 +237,14 @@ impl<C:RenderListener + Send> RenderTask<C> {
                                       self.epoch,
                                       self.render_layers.as_slice());
                 }
-                ReRenderMsg(ReRenderRequest { buffer_requests, scale, layer_id, epoch }) => {
-                    if self.epoch == epoch {
-                        self.render(buffer_requests, scale, layer_id);
-                    } else {
-                        debug!("renderer epoch mismatch: {:?} != {:?}", self.epoch, epoch);
+                ReRenderMsg(requests) => {
+                    for ReRenderRequest { buffer_requests, scale, layer_id, epoch }
+                          in requests.move_iter() {
+                        if self.epoch == epoch {
+                            self.render(buffer_requests, scale, layer_id);
+                        } else {
+                            debug!("renderer epoch mismatch: {:?} != {:?}", self.epoch, epoch);
+                        }
                     }
                 }
                 UnusedBufferMsg(unused_buffers) => {
