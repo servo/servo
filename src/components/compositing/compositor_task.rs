@@ -98,9 +98,7 @@ impl RenderListener for CompositorChan {
              pipeline_id: PipelineId,
              epoch: Epoch,
              replies: Vec<(LayerId, Box<LayerBufferSet>)>) {
-        for (layer_id, layer_buffer_set) in replies.move_iter() {
-            self.chan.send(Paint(pipeline_id, layer_id, layer_buffer_set, epoch))
-        }
+        self.chan.send(Paint(pipeline_id, epoch, replies));
     }
 
     fn initialize_layers_for_pipeline(&self,
@@ -181,7 +179,7 @@ pub enum Msg {
     /// Scroll a page in a window
     ScrollFragmentPoint(PipelineId, LayerId, Point2D<f32>),
     /// Requests that the compositor paint the given layer buffer set for the given page size.
-    Paint(PipelineId, LayerId, Box<LayerBufferSet>, Epoch),
+    Paint(PipelineId, Epoch, Vec<(LayerId, Box<LayerBufferSet>)>),
     /// Alerts the compositor to the current status of page loading.
     ChangeReadyState(ReadyState),
     /// Alerts the compositor to the current status of rendering.

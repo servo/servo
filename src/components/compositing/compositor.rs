@@ -303,9 +303,10 @@ impl IOCompositor {
                     self.set_layer_clip_rect(pipeline_id, layer_id, new_rect);
                 }
 
-                (Ok(Paint(pipeline_id, layer_id, new_layer_buffer_set, epoch)),
-                 NotShuttingDown) => {
-                    self.paint(pipeline_id, layer_id, new_layer_buffer_set, epoch);
+                (Ok(Paint(pipeline_id, epoch, replies)), NotShuttingDown) => {
+                    for (layer_id, new_layer_buffer_set) in replies.move_iter() {
+                        self.paint(pipeline_id, layer_id, new_layer_buffer_set, epoch);
+                    }
                 }
 
                 (Ok(ScrollFragmentPoint(pipeline_id, layer_id, point)), NotShuttingDown) => {
