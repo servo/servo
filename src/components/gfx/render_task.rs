@@ -238,6 +238,13 @@ impl<C:RenderListener + Send> RenderTask<C> {
                                       self.render_layers.as_slice());
                 }
                 ReRenderMsg(requests) => {
+                    if !self.paint_permission {
+                        debug!("render_task: render ready msg");
+                        let ConstellationChan(ref mut c) = self.constellation_chan;
+                        c.send(RendererReadyMsg(self.id));
+                        continue;
+                    }
+
                     for ReRenderRequest { buffer_requests, scale, layer_id, epoch }
                           in requests.move_iter() {
                         if self.epoch == epoch {
@@ -428,13 +435,7 @@ impl<C:RenderListener + Send> RenderTask<C> {
             };
 
             debug!("render_task: returning surface");
-            if self.paint_permission {
-                self.compositor.paint(self.id, render_layer.id, layer_buffer_set, self.epoch);
-            } else {
-                debug!("render_task: RendererReadyMsg send");
-                let ConstellationChan(ref mut c) = self.constellation_chan;
-                c.send(RendererReadyMsg(self.id));
-            }
+            self.compositor.paint(self.id, render_layer.id, layer_buffer_set, self.epoch);
             self.compositor.set_render_state(IdleRenderState);
         })
     }
