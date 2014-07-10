@@ -4,11 +4,14 @@
 
 //! Memory profiling functions.
 
+use libc::{c_char,c_int,c_void,size_t};
 use std::io::timer::sleep;
 #[cfg(target_os="linux")]
 use std::io::File;
+use std::mem::size_of;
 #[cfg(target_os="linux")]
 use std::os::page_size;
+use std::ptr::mut_null;
 use task::spawn_named;
 #[cfg(target_os="macos")]
 use task_info::task_basic_info::{virtual_size,resident_size};
@@ -104,20 +107,56 @@ impl MemoryProfiler {
         match nbytes {
             Some(nbytes) => {
                 let mebi = 1024f64 * 1024f64;
-                println!("{:12s}: {:12.2f}", path, (nbytes as f64) / mebi);
+                println!("{:16s}: {:12.2f}", path, (nbytes as f64) / mebi);
             }
             None => {
-                println!("{:12s}: {:>12s}", path, "???");
+                println!("{:16s}: {:>12s}", path, "???");
             }
         }
     }
 
     fn handle_print_msg(&self) {
-        println!("{:12s}: {:12s}", "_category_", "_size (MiB)_");
-        MemoryProfiler::print_measurement("vsize",    get_vsize());
-        MemoryProfiler::print_measurement("resident", get_resident());
+        println!("{:16s}: {:12s}", "_category_", "_size (MiB)_");
+
+        // Virtual and physical memory usage, as reported by the OS.
+        MemoryProfiler::print_measurement("vsize",          get_vsize());
+        MemoryProfiler::print_measurement("resident",       get_resident());
+
+        // The descriptions of the jemalloc measurements are taken directly
+        // from the jemalloc documentation.
+
+        // Total number of bytes allocated by the application.
+        MemoryProfiler::print_measurement("heap-allocated", get_jemalloc_stat("stats.allocated"));
+
+        // Total number of bytes in active pages allocated by the application.
+        // This is a multiple of the page size, and greater than or equal to
+        // |stats.allocated|.
+        MemoryProfiler::print_measurement("heap-active",    get_jemalloc_stat("stats.active"));
+
+        // Total number of bytes in chunks mapped on behalf of the application.
+        // This is a multiple of the chunk size, and is at least as large as
+        // |stats.active|. This does not include inactive chunks.
+        MemoryProfiler::print_measurement("heap-mapped",    get_jemalloc_stat("stats.mapped"));
+
         println!("");
     }
+}
+
+extern {
+    fn je_mallctl(name: *c_char, oldp: *mut c_void, oldlenp: *mut size_t,
+                  newp: *mut c_void, newlen: size_t) -> c_int;
+}
+
+fn get_jemalloc_stat(name: &'static str) -> Option<u64> {
+    let mut old: size_t = 0;
+    let c_name = name.to_c_str();
+    let oldp = &mut old as *mut _ as *mut c_void;
+    let mut oldlen = size_of::<size_t>() as size_t;
+    let rv: c_int;
+    unsafe {
+        rv = je_mallctl(c_name.unwrap(), oldp, &mut oldlen, mut_null(), 0);
+    }
+    if rv == 0 { Some(old) } else { None }
 }
 
 // Like std::macros::try!, but for Option<>.
