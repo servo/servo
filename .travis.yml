@@ -24,7 +24,6 @@ notifications:
     on_success: change
     on_failure: change
     use_notice: true
-  email: false
 
 branches:
   only:
