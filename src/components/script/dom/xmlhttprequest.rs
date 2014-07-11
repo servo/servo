@@ -18,13 +18,14 @@ use dom::document::Document;
 use dom::event::Event;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, XMLHttpRequestTargetTypeId};
 use dom::progressevent::ProgressEvent;
+use dom::urlsearchparams::URLSearchParamsHelpers;
 use dom::window::Window;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use dom::xmlhttprequestupload::XMLHttpRequestUpload;
 
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
-use encoding::types::{DecodeReplace, Encoding};
+use encoding::types::{DecodeReplace, Encoding, EncodeReplace};
 
 use ResponseHeaderCollection = http::headers::response::HeaderCollection;
 use RequestHeaderCollection = http::headers::request::HeaderCollection;
@@ -56,10 +57,9 @@ use std::task::TaskBuilder;
 use time;
 use url::Url;
 
-// As send() start accepting more and more parameter types,
-// change this to the appropriate type from UnionTypes, eg
-// use SendParam = dom::bindings::codegen::UnionTypes::StringOrFormData;
-pub type SendParam = DOMString;
+use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams::{eString, eURLSearchParams, StringOrURLSearchParams};
+pub type SendParam = StringOrURLSearchParams;
+
 
 #[deriving(PartialEq,Encodable)]
 pub enum XMLHttpRequestId {
@@ -114,7 +114,7 @@ pub struct XMLHttpRequest {
     request_method: Untraceable<RefCell<Method>>,
     request_url: Untraceable<RefCell<Url>>,
     request_headers: Untraceable<RefCell<RequestHeaderCollection>>,
-    request_body: SendParam,
+    request_body_len: Traceable<Cell<uint>>,
     sync: Traceable<Cell<bool>>,
     upload_complete: Traceable<Cell<bool>>,
     upload_events: Traceable<Cell<bool>>,
@@ -147,7 +147,7 @@ impl XMLHttpRequest {
             request_method: Untraceable::new(RefCell::new(Get)),
             request_url: Untraceable::new(RefCell::new(parse_url("", None))),
             request_headers: Untraceable::new(RefCell::new(RequestHeaderCollection::new())),
-            request_body: "".to_string(),
+            request_body_len: Traceable::new(Cell::new(0)),
             sync: Traceable::new(Cell::new(false)),
             send_flag: Traceable::new(Cell::new(false)),
 
@@ -241,7 +241,7 @@ pub trait XMLHttpRequestMethods<'a> {
     fn WithCredentials(&self) -> bool;
     fn SetWithCredentials(&self, with_credentials: bool);
     fn Upload(&self) -> Temporary<XMLHttpRequestUpload>;
-    fn Send(&self, _data: Option<SendParam>) -> ErrorResult;
+    fn Send(&self, data: Option<SendParam>) -> ErrorResult;
     fn Abort(&self);
     fn ResponseURL(&self) -> DOMString;
     fn Status(&self) -> u16;
@@ -435,7 +435,7 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
     fn Upload(&self) -> Temporary<XMLHttpRequestUpload> {
         Temporary::new(self.upload.get())
     }
-    fn Send(&self, data: Option<DOMString>) -> ErrorResult {
+    fn Send(&self, data: Option<SendParam>) -> ErrorResult {
         if self.ready_state.deref().get() != Opened || self.send_flag.deref().get() {
             return Err(InvalidState); // Step 1, 2
         }
@@ -444,13 +444,15 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
             Get | Head => None, // Step 3
             _ => data
         };
+        let extracted = data.map(|d| d.extract());
+        self.request_body_len.set(extracted.as_ref().map(|e| e.len()).unwrap_or(0));
 
         // Step 6
         self.upload_events.deref().set(false);
         // Step 7
-        self.upload_complete.deref().set(match data {
+        self.upload_complete.deref().set(match extracted {
             None => true,
-            Some (ref s) if s.len() == 0 => true,
+            Some (ref v) if v.len() == 0 => true,
             _ => false
         });
         let mut addr = None;
@@ -485,16 +487,27 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
         let global = self.global.root();
         let resource_task = global.deref().page().resource_task.deref().clone();
         let mut load_data = LoadData::new(self.request_url.deref().borrow().clone());
-        load_data.data = data;
+        load_data.data = extracted;
 
         // Default headers
         let request_headers = self.request_headers.deref();
         if request_headers.borrow().content_type.is_none() {
-            request_headers.borrow_mut().content_type = Some(MediaType {
-                type_: String::from_str("text"),
-                subtype: String::from_str("plain"),
-                parameters: vec!((String::from_str("charset"), String::from_str("UTF-8")))
-            });
+            let parameters = vec!((String::from_str("charset"), String::from_str("UTF-8")));
+            request_headers.borrow_mut().content_type = match data {
+                Some(eString(_)) =>
+                    Some(MediaType {
+                        type_: String::from_str("text"),
+                        subtype: String::from_str("plain"),
+                        parameters: parameters
+                    }),
+                Some(eURLSearchParams(_)) =>
+                    Some(MediaType {
+                        type_: String::from_str("application"),
+                        subtype: String::from_str("x-www-form-urlencoded"),
+                        parameters: parameters
+                    }),
+                None => None
+            }
         }
 
         if request_headers.borrow().accept.is_none() {
@@ -839,7 +852,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
     fn dispatch_upload_progress_event(&self, type_: DOMString, partial_load: Option<u64>) {
         // If partial_load is None, loading has completed and we can just use the value from the request body
 
-        let total = self.request_body.len() as u64;
+        let total = self.request_body_len.get() as u64;
         self.dispatch_progress_event(true, type_, partial_load.unwrap_or(total), Some(total));
     }
 
@@ -915,5 +928,19 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
             };
         }
         headers
+    }
+}
+
+trait Extractable {
+    fn extract(&self) -> Vec<u8>;
+}
+impl Extractable for SendParam {
+    fn extract(&self) -> Vec<u8> {
+        // http://fetch.spec.whatwg.org/#concept-fetchbodyinit-extract
+        let encoding = UTF_8 as &Encoding+Send;
+        match *self {
+            eString(ref s) => encoding.encode(s.as_slice(), EncodeReplace).unwrap(),
+            eURLSearchParams(ref usp) => usp.root().serialize(None) // Default encoding is UTF8
+        }
     }
 }

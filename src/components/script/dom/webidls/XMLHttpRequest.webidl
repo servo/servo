@@ -13,6 +13,9 @@
  * http://www.openwebfoundation.org/legal/the-owf-1-0-agreements/owfa-1-0.
  */
 
+// http://fetch.spec.whatwg.org/#fetchbodyinit
+typedef (/*ArrayBuffer or ArrayBufferView or Blob or FormData or */DOMString or URLSearchParams) FetchBodyInit;
+
 enum XMLHttpRequestResponseType {
   "",
   "arraybuffer",
@@ -50,7 +53,7 @@ interface XMLHttpRequest : XMLHttpRequestEventTarget {
            attribute boolean withCredentials;
   readonly attribute XMLHttpRequestUpload upload;
   [Throws]
-  void send(optional /*(ArrayBufferView or Blob or Document or [EnsureUTF16] */ DOMString/* or FormData or URLSearchParams)*/? data = null);
+  void send(optional /*Document or*/ FetchBodyInit? data = null);
   void abort();
 
   // response
