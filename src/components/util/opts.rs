@@ -45,7 +45,7 @@ pub struct Opts {
     /// cause it to produce output on that interval (`-p`).
     pub time_profiler_period: Option<f64>,
 
-    /// `None` to disable the memory profiler or `Some` with an interval in seconds to enable it 
+    /// `None` to disable the memory profiler or `Some` with an interval in seconds to enable it
     /// and cause it to produce output on that interval (`-m`).
     pub memory_profiler_period: Option<f64>,
 

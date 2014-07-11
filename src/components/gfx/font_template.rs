@@ -37,7 +37,7 @@ impl PartialEq for FontTemplateDescriptor {
 }
 
 /// This describes all the information needed to create
-/// font instance handles. It contains a unique 
+/// font instance handles. It contains a unique
 /// FontTemplateData structure that is platform specific.
 pub struct FontTemplate {
     identifier: String,

@@ -9,36 +9,53 @@
 
 #!/usr/bin/env python
 
-import fileinput, sys, os
-from licenseck import *
+import os
+import sys
+from licenseck import check_license
 
 err = 0
+
 
 def report_error_name_no(name, no, s):
     global err
     print("%s:%d: %s" % (name, no, s))
-    err=1
+    err = 1
 
-def report_err(s):
-    report_error_name_no(fileinput.filename(), fileinput.filelineno(), s)
-
-def report_warn(s):
-    print("%s:%d: %s" % (fileinput.filename(),
-                         fileinput.filelineno(),
-                         s))
 
 def do_license_check(name, contents):
     if not check_license(name, contents):
         report_error_name_no(name, 1, "incorrect license")
 
+
+def do_whitespace_check(name, contents):
+    for idx, line in enumerate(contents):
+        if line[-1] == "\n":
+            line = line[:-1]
+        else:
+            report_error_name_no(name, idx + 1, "No newline at EOF")
+
+        if line.endswith(' '):
+            report_error_name_no(name, idx + 1, "trailing whitespace")
+
+        if '\t' in line:
+            report_error_name_no(name, idx + 1, "tab on line")
+
+        if '\r' in line:
+            report_error_name_no(name, idx + 1, "CR on line")
+
+
 exceptions = [
-    "src/support", # Upstream
-    "src/platform", # Upstream
-    "src/compiler", # Upstream
-    "src/components/main/dom/bindings/codegen", # Generated and upstream code combined with our own. Could use cleanup
-    "src/components/script/dom/bindings/codegen", # Generated and upstream code combined with our own. Could use cleanup
-    "src/test/wpt/web-platform-tests", # Upstream
+    # Upstream
+    "src/support",
+    "src/platform",
+    "src/compiler",
+    "src/test/wpt/web-platform-tests",
+
+    # Generated and upstream code combined with our own. Could use cleanup
+    "src/components/script/dom/bindings/codegen",
+    "src/components/style/properties/mod.rs",
 ]
+
 
 def should_check(name):
     if ".#" in name:
@@ -55,6 +72,7 @@ def should_check(name):
             return False
     return True
 
+
 file_names = []
 for root, dirs, files in os.walk(sys.argv[1]):
     for myfile in files:
@@ -62,20 +80,10 @@ for root, dirs, files in os.walk(sys.argv[1]):
         if should_check(file_name):
             file_names.append(file_name)
 
-current_name = ""
-current_contents = ""
-
-for line in fileinput.input(file_names):
-    if fileinput.isfirstline() and current_name != "":
-        do_license_check(current_name, current_contents)
-
-    if fileinput.isfirstline():
-        current_name = fileinput.filename()
-        current_contents = ""
-
-    current_contents += line
-
-if current_name != "":
-    do_license_check(current_name, current_contents)
+for path in file_names:
+    with open(path, "r") as fp:
+        lines = fp.readlines()
+        do_license_check(path, "".join(lines))
+        do_whitespace_check(path, lines)
 
 sys.exit(err)

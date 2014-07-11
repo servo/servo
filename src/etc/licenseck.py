@@ -14,24 +14,18 @@ license0="""\
 """
 
 license1="""\
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 """
 
 license2="""\
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this file,
-# You can obtain one at http://mozilla.org/MPL/2.0/.
-"""
-
-license3="""\
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 """
 
-license4 = """\
+license3 = """\
 // Copyright 2013 The Servo Project Developers. See the COPYRIGHT
 // file at the top-level directory of this distribution.
 //
@@ -42,7 +36,7 @@ license4 = """\
 // except according to those terms.
 """
 
-license5 = """\
+license4 = """\
 # Copyright 2013 The Servo Project Developers. See the COPYRIGHT
 # file at the top-level directory of this distribution.
 #
@@ -53,7 +47,7 @@ license5 = """\
 # except according to those terms.
 """
 
-licenses = [license0, license1, license2, license3, license4, license5]
+licenses = [license0, license1, license2, license3, license4]
 
 exceptions = [
     "rust-http-client/http_parser.c", # BSD, Joyent
