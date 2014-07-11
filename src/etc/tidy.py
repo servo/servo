@@ -19,14 +19,6 @@ def report_error_name_no(name, no, s):
     print("%s:%d: %s" % (name, no, s))
     err=1
 
-def report_err(s):
-    report_error_name_no(fileinput.filename(), fileinput.filelineno(), s)
-
-def report_warn(s):
-    print("%s:%d: %s" % (fileinput.filename(),
-                         fileinput.filelineno(),
-                         s))
-
 def do_license_check(name, contents):
     if not check_license(name, contents):
         report_error_name_no(name, 1, "incorrect license")
