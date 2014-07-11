@@ -522,7 +522,8 @@ CFG_SUBMODULES="\
     support/geom/rust-geom \
     support/layers/rust-layers \
     support/opengles/rust-opengles \
-    support/sharegl/sharegl"
+    support/sharegl/sharegl \
+    support/phf/rust-phf"
 
 if [ $CFG_OSTYPE = "apple-darwin" ]
 then
@@ -737,6 +738,9 @@ do
             # needed because Azure's configure wants "--enable-skia"
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --enable-skia"
             ENABLE_DEBUG="$CFG_ENABLE_DEBUG_SKIA"
+            ;;
+        support/phf/rust-phf)
+            ENABLE_DEBUG=""
             ;;
         *)
             ;;
