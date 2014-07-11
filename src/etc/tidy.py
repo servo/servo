@@ -31,6 +31,9 @@ def do_whitespace_check(name, contents):
     for idx, line in enumerate(contents):
         if line[-1] == "\n":
             line = line[:-1]
+        else:
+            report_error_name_no(name, idx + 1, "No newline at EOF")
+
         if line.endswith(' '):
             report_error_name_no(name, idx + 1, "trailing whitespace")
 
