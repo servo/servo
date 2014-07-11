@@ -549,8 +549,7 @@ impl ScriptTask {
         window.deref().init_browser_context(&*document);
 
         with_compartment((**cx).ptr, window.reflector().get_jsobject(), || {
-            let mut js_info = page.mut_js_info();
-            RegisterBindings::Register(&*window, js_info.get_mut_ref());
+            RegisterBindings::Register(&*window);
         });
 
         self.compositor.set_ready_state(Loading);

@@ -19,6 +19,7 @@ extern crate servo_net = "net";
 extern crate servo_msg = "msg";
 #[phase(plugin, link)]
 extern crate servo_util = "util";
+extern crate script;
 extern crate green;
 extern crate gfx;
 extern crate libc;
@@ -30,6 +31,8 @@ extern crate url;
 use compositing::{CompositorChan, CompositorTask, Constellation};
 #[cfg(not(test))]
 use servo_msg::constellation_msg::{ConstellationChan, InitLoadUrlMsg};
+#[cfg(not(test))]
+use script::dom::bindings::codegen::RegisterBindings;
 
 #[cfg(not(test))]
 use servo_net::image_cache_task::ImageCacheTask;
@@ -94,6 +97,8 @@ pub extern "C" fn android_start(argc: int, argv: **u8) -> int {
 
 #[cfg(not(test))]
 pub fn run(opts: opts::Opts) {
+    RegisterBindings::RegisterProxyHandlers();
+
     let mut pool_config = green::PoolConfig::new();
     pool_config.event_loop_factory = rustuv::event_loop;
     let mut pool = green::SchedPool::new(pool_config);
