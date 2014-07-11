@@ -105,7 +105,7 @@ impl FontCache {
                                 self.web_families.insert(family_name.clone(), family);
                             }
                             let family = self.web_families.get_mut(&family_name);
-                            family.add_template(format!("{}", url).as_slice(), Some(bytes));                           
+                            family.add_template(format!("{}", url).as_slice(), Some(bytes));
                         },
                         Err(msg) => {
                             fail!(msg);
