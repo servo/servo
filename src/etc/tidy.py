@@ -9,7 +9,7 @@
 
 #!/usr/bin/env python
 
-import fileinput, sys, os
+import sys, os
 from licenseck import check_license
 
 err = 0
@@ -54,20 +54,9 @@ for root, dirs, files in os.walk(sys.argv[1]):
         if should_check(file_name):
             file_names.append(file_name)
 
-current_name = ""
-current_contents = ""
-
-for line in fileinput.input(file_names):
-    if fileinput.isfirstline() and current_name != "":
-        do_license_check(current_name, current_contents)
-
-    if fileinput.isfirstline():
-        current_name = fileinput.filename()
-        current_contents = ""
-
-    current_contents += line
-
-if current_name != "":
-    do_license_check(current_name, current_contents)
+for path in file_names:
+    with open(path, "r") as fp:
+        lines = fp.readlines()
+        do_license_check(path, "".join(lines))
 
 sys.exit(err)
