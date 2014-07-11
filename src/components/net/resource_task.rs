@@ -234,10 +234,10 @@ impl ResourceManager {
         for scheme_loader in self.loaders.iter() {
             match *scheme_loader {
                 (ref scheme, ref loader_factory) => {
-	            if (*scheme) == load_data.url.scheme {
+                    if (*scheme) == load_data.url.scheme {
                         return Some((*loader_factory)());
                     }
-	        }
+                }
             }
         }
         return None;

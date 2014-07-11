@@ -37,6 +37,9 @@ def do_whitespace_check(name, contents):
         if line.endswith(' '):
             report_error_name_no(name, idx + 1, "trailing whitespace")
 
+        if '\t' in line:
+            report_error_name_no(name, idx + 1, "tab on line")
+
 
 exceptions = [
     # Upstream

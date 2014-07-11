@@ -47,7 +47,7 @@ impl ScriptListener for CompositorChan {
                              pipeline_id: PipelineId,
                              layer_id: LayerId,
                              point: Point2D<f32>) {
-	    self.chan.send(ScrollFragmentPoint(pipeline_id, layer_id, point));
+        self.chan.send(ScrollFragmentPoint(pipeline_id, layer_id, point));
     }
 
     fn close(&self) {
