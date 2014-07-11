@@ -40,6 +40,9 @@ def do_whitespace_check(name, contents):
         if '\t' in line:
             report_error_name_no(name, idx + 1, "tab on line")
 
+        if '\r' in line:
+            report_error_name_no(name, idx + 1, "CR on line")
+
 
 exceptions = [
     # Upstream
