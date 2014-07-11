@@ -5,7 +5,7 @@
 use std::collections::hashmap::HashMap;
 use geom::size::Size2D;
 use layers::platform::surface::NativePaintingGraphicsContext;
-use layers::quadtree::Tile;
+use layers::layers::Tile;
 use std::hash::Hash;
 use std::hash::sip::SipState;
 use std::mem;
