@@ -10,7 +10,7 @@
 #!/usr/bin/env python
 
 import fileinput, sys, os
-from licenseck import *
+from licenseck import check_license
 
 err = 0
 
