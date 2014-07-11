@@ -34,8 +34,8 @@ def set_defaults(args):
     args.include = args.include if args.include else ["/dom", "/XMLHttpRequest"]
     args.binary = args.binary if args.binary else os.path.join(servo_root, "build", "servo")
     args.product = "servo"
-    args.debug_args = ""
-    args.interactive = ""
+    args.debug_args = None
+    args.interactive = False
     return vars(args)
 
 def main():
