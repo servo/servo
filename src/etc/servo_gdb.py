@@ -12,7 +12,7 @@
 # To load these, you need to add something like the following
 # to your .gdbinit file.
 #python
-#import sys 
+#import sys
 #sys.path.insert(0, '/home/<path to git checkout>/servo/src/etc')
 #import servo_gdb
 #servo_gdb.register_printers(None)

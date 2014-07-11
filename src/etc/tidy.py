@@ -27,6 +27,14 @@ def do_license_check(name, contents):
         report_error_name_no(name, 1, "incorrect license")
 
 
+def do_whitespace_check(name, contents):
+    for idx, line in enumerate(contents):
+        if line[-1] == "\n":
+            line = line[:-1]
+        if line.endswith(' '):
+            report_error_name_no(name, idx + 1, "trailing whitespace")
+
+
 exceptions = [
     # Upstream
     "src/support",
@@ -36,6 +44,7 @@ exceptions = [
 
     # Generated and upstream code combined with our own. Could use cleanup
     "src/components/script/dom/bindings/codegen",
+    "src/components/style/properties/mod.rs",
 ]
 
 
@@ -66,5 +75,6 @@ for path in file_names:
     with open(path, "r") as fp:
         lines = fp.readlines()
         do_license_check(path, "".join(lines))
+        do_whitespace_check(path, lines)
 
 sys.exit(err)
