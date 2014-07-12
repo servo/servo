@@ -47,7 +47,6 @@ use servo_util::namespace::{Namespace, Null};
 use servo_util::str::{DOMString, null_str_as_empty_ref};
 
 use std::collections::hashmap::HashMap;
-use js::jsapi::JSContext;
 use std::ascii::StrAsciiExt;
 use std::cell::{Cell, RefCell};
 use url::{Url, from_str};
@@ -192,20 +191,6 @@ impl<'a> DocumentHelpers for JSRef<'a, Document> {
 }
 
 impl Document {
-    pub fn reflect_document(document: Box<Document>,
-                            window: &JSRef<Window>,
-                            wrap_fn: extern "Rust" fn(*mut JSContext, &JSRef<Window>, Box<Document>) -> JS<Document>)
-             -> Temporary<Document> {
-        assert!(document.reflector().get_jsobject().is_null());
-        let raw_doc = reflect_dom_object(document, window, wrap_fn).root();
-        assert!(raw_doc.reflector().get_jsobject().is_not_null());
-
-        let doc_alias = raw_doc.clone();
-        let node: &JSRef<Node> = NodeCast::from_ref(&doc_alias);
-        node.set_owner_doc(&*raw_doc);
-        Temporary::from_rooted(&*raw_doc)
-    }
-
     pub fn new_inherited(window: &JSRef<Window>,
                          url: Option<Url>,
                          is_html_document: IsHTMLDocument,
@@ -243,7 +228,12 @@ impl Document {
 
     pub fn new(window: &JSRef<Window>, url: Option<Url>, doctype: IsHTMLDocument, content_type: Option<DOMString>) -> Temporary<Document> {
         let document = Document::new_inherited(window, url, doctype, content_type);
-        Document::reflect_document(box document, window, DocumentBinding::Wrap)
+        let document = reflect_dom_object(box document, window,
+                                          DocumentBinding::Wrap).root();
+
+        let node: &JSRef<Node> = NodeCast::from_ref(&*document);
+        node.set_owner_doc(&*document);
+        Temporary::from_rooted(&*document)
     }
 }
 

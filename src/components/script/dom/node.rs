@@ -907,13 +907,10 @@ impl Node {
     pub fn reflect_node<N: Reflectable+NodeBase>
             (node:      Box<N>,
              document:  &JSRef<Document>,
-             wrap_fn:   extern "Rust" fn(*mut JSContext, &JSRef<Window>, Box<N>) -> JS<N>)
+             wrap_fn:   extern "Rust" fn(*mut JSContext, &JSRef<Window>, Box<N>) -> Temporary<N>)
              -> Temporary<N> {
-        assert!(node.reflector().get_jsobject().is_null());
-        let window = document.deref().window.root();
-        let node = reflect_dom_object(node, &window.root_ref(), wrap_fn).root();
-        assert!(node.deref().reflector().get_jsobject().is_not_null());
-        Temporary::from_rooted(&*node)
+        let window = document.window.root();
+        reflect_dom_object(node, &*window, wrap_fn)
     }
 
     pub fn new_inherited(type_id: NodeTypeId, doc: &JSRef<Document>) -> Node {
