@@ -549,7 +549,7 @@ impl ScriptTask {
         window.deref().init_browser_context(&*document);
 
         with_compartment((**cx).ptr, window.reflector().get_jsobject(), || {
-            RegisterBindings::Register(&*window);
+            RegisterBindings::Register(window.get_cx(), window.reflector().get_jsobject());
         });
 
         self.compositor.set_ready_state(Loading);
