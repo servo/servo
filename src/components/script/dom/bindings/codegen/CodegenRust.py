@@ -1821,8 +1821,11 @@ Temporary::new(raw)""" % CreateBindingJSObject(self.descriptor, "scope"))
 with_compartment(aCx, obj, || {
   let proto = GetProtoObject(aCx, obj, obj);
   JS_SetPrototype(aCx, obj, proto);
+
+  raw.reflector().set_jsobject(obj);
+
+  RegisterBindings::Register(aCx, obj);
 });
-raw.reflector().set_jsobject(obj);
 
 Temporary::new(raw)""" % CreateBindingJSObject(self.descriptor))
 
