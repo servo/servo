@@ -17,6 +17,7 @@
 
 extern crate debug;
 extern crate collections;
+extern crate geom;
 extern crate num;
 extern crate serialize;
 extern crate sync;

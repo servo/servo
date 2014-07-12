@@ -6,8 +6,8 @@
 
 #![deny(unsafe_block)]
 
-use block::{BlockFlow, MarginsMayNotCollapse, WidthAndMarginsComputer};
-use block::{WidthConstraintInput, WidthConstraintSolution};
+use block::{BlockFlow, MarginsMayNotCollapse, ISizeAndMarginsComputer};
+use block::{ISizeConstraintInput, ISizeConstraintSolution};
 use construct::FlowConstructor;
 use context::LayoutContext;
 use floats::FloatKind;
@@ -27,14 +27,14 @@ use style::computed_values::table_layout;
 pub struct TableFlow {
     pub block_flow: BlockFlow,
 
-    /// Column widths
-    pub col_widths: Vec<Au>,
+    /// Column isizes
+    pub col_isizes: Vec<Au>,
 
-    /// Column min widths.
-    pub col_min_widths: Vec<Au>,
+    /// Column min isizes.
+    pub col_min_isizes: Vec<Au>,
 
-    /// Column pref widths.
-    pub col_pref_widths: Vec<Au>,
+    /// Column pref isizes.
+    pub col_pref_isizes: Vec<Au>,
 
     /// Table-layout property
     pub table_layout: TableLayout,
@@ -53,9 +53,9 @@ impl TableFlow {
         };
         TableFlow {
             block_flow: block_flow,
-            col_widths: vec!(),
-            col_min_widths: vec!(),
-            col_pref_widths: vec!(),
+            col_isizes: vec!(),
+            col_min_isizes: vec!(),
+            col_pref_isizes: vec!(),
             table_layout: table_layout
         }
     }
@@ -72,9 +72,9 @@ impl TableFlow {
         };
         TableFlow {
             block_flow: block_flow,
-            col_widths: vec!(),
-            col_min_widths: vec!(),
-            col_pref_widths: vec!(),
+            col_isizes: vec!(),
+            col_min_isizes: vec!(),
+            col_pref_isizes: vec!(),
             table_layout: table_layout
         }
     }
@@ -92,41 +92,41 @@ impl TableFlow {
         };
         TableFlow {
             block_flow: block_flow,
-            col_widths: vec!(),
-            col_min_widths: vec!(),
-            col_pref_widths: vec!(),
+            col_isizes: vec!(),
+            col_min_isizes: vec!(),
+            col_pref_isizes: vec!(),
             table_layout: table_layout
         }
     }
 
-    /// Update the corresponding value of self_widths if a value of kid_widths has larger value
-    /// than one of self_widths.
-    pub fn update_col_widths(self_widths: &mut Vec<Au>, kid_widths: &Vec<Au>) -> Au {
-        let mut sum_widths = Au(0);
-        let mut kid_widths_it = kid_widths.iter();
-        for self_width in self_widths.mut_iter() {
-            match kid_widths_it.next() {
-                Some(kid_width) => {
-                    if *self_width < *kid_width {
-                        *self_width = *kid_width;
+    /// Update the corresponding value of self_isizes if a value of kid_isizes has larger value
+    /// than one of self_isizes.
+    pub fn update_col_isizes(self_isizes: &mut Vec<Au>, kid_isizes: &Vec<Au>) -> Au {
+        let mut sum_isizes = Au(0);
+        let mut kid_isizes_it = kid_isizes.iter();
+        for self_isize in self_isizes.mut_iter() {
+            match kid_isizes_it.next() {
+                Some(kid_isize) => {
+                    if *self_isize < *kid_isize {
+                        *self_isize = *kid_isize;
                     }
                 },
                 None => {}
             }
-            sum_widths = sum_widths + *self_width;
+            sum_isizes = sum_isizes + *self_isize;
         }
-        sum_widths
+        sum_isizes
     }
 
-    /// Assign height for table flow.
+    /// Assign bsize for table flow.
     ///
     /// TODO(#2014, pcwalton): This probably doesn't handle margin collapse right.
     ///
     /// inline(always) because this is only ever called by in-order or non-in-order top-level
     /// methods
     #[inline(always)]
-    fn assign_height_table_base(&mut self, layout_context: &mut LayoutContext) {
-        self.block_flow.assign_height_block_base(layout_context, MarginsMayNotCollapse);
+    fn assign_bsize_table_base(&mut self, layout_context: &mut LayoutContext) {
+        self.block_flow.assign_bsize_block_base(layout_context, MarginsMayNotCollapse);
     }
 
     pub fn build_display_list_table(&mut self, layout_context: &LayoutContext) {
@@ -148,130 +148,130 @@ impl Flow for TableFlow {
         &mut self.block_flow
     }
 
-    fn col_widths<'a>(&'a mut self) -> &'a mut Vec<Au> {
-        &mut self.col_widths
+    fn col_isizes<'a>(&'a mut self) -> &'a mut Vec<Au> {
+        &mut self.col_isizes
     }
 
-    fn col_min_widths<'a>(&'a self) -> &'a Vec<Au> {
-        &self.col_min_widths
+    fn col_min_isizes<'a>(&'a self) -> &'a Vec<Au> {
+        &self.col_min_isizes
     }
 
-    fn col_pref_widths<'a>(&'a self) -> &'a Vec<Au> {
-        &self.col_pref_widths
+    fn col_pref_isizes<'a>(&'a self) -> &'a Vec<Au> {
+        &self.col_pref_isizes
     }
 
-    /// The specified column widths are set from column group and the first row for the fixed
+    /// The specified column isizes are set from column group and the first row for the fixed
     /// table layout calculation.
-    /// The maximum min/pref widths of each column are set from the rows for the automatic
+    /// The maximum min/pref isizes of each column are set from the rows for the automatic
     /// table layout calculation.
-    fn bubble_widths(&mut self, _: &mut LayoutContext) {
-        let mut min_width = Au(0);
-        let mut pref_width = Au(0);
+    fn bubble_isizes(&mut self, _: &mut LayoutContext) {
+        let mut min_isize = Au(0);
+        let mut pref_isize = Au(0);
         let mut did_first_row = false;
 
         for kid in self.block_flow.base.child_iter() {
             assert!(kid.is_proper_table_child());
 
             if kid.is_table_colgroup() {
-                self.col_widths.push_all(kid.as_table_colgroup().widths.as_slice());
-                self.col_min_widths = self.col_widths.clone();
-                self.col_pref_widths = self.col_widths.clone();
+                self.col_isizes.push_all(kid.as_table_colgroup().isizes.as_slice());
+                self.col_min_isizes = self.col_isizes.clone();
+                self.col_pref_isizes = self.col_isizes.clone();
             } else if kid.is_table_rowgroup() || kid.is_table_row() {
-                // read column widths from table-row-group/table-row, and assign
-                // width=0 for the columns not defined in column-group
-                // FIXME: need to read widths from either table-header-group OR
+                // read column isizes from table-row-group/table-row, and assign
+                // isize=0 for the columns not defined in column-group
+                // FIXME: need to read isizes from either table-header-group OR
                 // first table-row
                 match self.table_layout {
                     FixedLayout => {
-                        let kid_col_widths = kid.col_widths();
+                        let kid_col_isizes = kid.col_isizes();
                         if !did_first_row {
                             did_first_row = true;
-                            let mut child_widths = kid_col_widths.iter();
-                            for col_width in self.col_widths.mut_iter() {
-                                match child_widths.next() {
-                                    Some(child_width) => {
-                                        if *col_width == Au::new(0) {
-                                            *col_width = *child_width;
+                            let mut child_isizes = kid_col_isizes.iter();
+                            for col_isize in self.col_isizes.mut_iter() {
+                                match child_isizes.next() {
+                                    Some(child_isize) => {
+                                        if *col_isize == Au::new(0) {
+                                            *col_isize = *child_isize;
                                         }
                                     },
                                     None => break
                                 }
                             }
                         }
-                        let num_child_cols = kid_col_widths.len();
-                        let num_cols = self.col_widths.len();
+                        let num_child_cols = kid_col_isizes.len();
+                        let num_cols = self.col_isizes.len();
                         debug!("table until the previous row has {} column(s) and this row has {} column(s)",
                                num_cols, num_child_cols);
                         for i in range(num_cols, num_child_cols) {
-                            self.col_widths.push( *kid_col_widths.get(i) );
+                            self.col_isizes.push( *kid_col_isizes.get(i) );
                         }
                     },
                     AutoLayout => {
-                        min_width = TableFlow::update_col_widths(&mut self.col_min_widths, kid.col_min_widths());
-                        pref_width = TableFlow::update_col_widths(&mut self.col_pref_widths, kid.col_pref_widths());
+                        min_isize = TableFlow::update_col_isizes(&mut self.col_min_isizes, kid.col_min_isizes());
+                        pref_isize = TableFlow::update_col_isizes(&mut self.col_pref_isizes, kid.col_pref_isizes());
 
-                        // update the number of column widths from table-rows.
-                        let num_cols = self.col_min_widths.len();
-                        let num_child_cols = kid.col_min_widths().len();
+                        // update the number of column isizes from table-rows.
+                        let num_cols = self.col_min_isizes.len();
+                        let num_child_cols = kid.col_min_isizes().len();
                         debug!("table until the previous row has {} column(s) and this row has {} column(s)",
                                num_cols, num_child_cols);
                         for i in range(num_cols, num_child_cols) {
-                            self.col_widths.push(Au::new(0));
-                            let new_kid_min = *kid.col_min_widths().get(i);
-                            self.col_min_widths.push( new_kid_min );
-                            let new_kid_pref = *kid.col_pref_widths().get(i);
-                            self.col_pref_widths.push( new_kid_pref );
-                            min_width = min_width + new_kid_min;
-                            pref_width = pref_width + new_kid_pref;
+                            self.col_isizes.push(Au::new(0));
+                            let new_kid_min = *kid.col_min_isizes().get(i);
+                            self.col_min_isizes.push( new_kid_min );
+                            let new_kid_pref = *kid.col_pref_isizes().get(i);
+                            self.col_pref_isizes.push( new_kid_pref );
+                            min_isize = min_isize + new_kid_min;
+                            pref_isize = pref_isize + new_kid_pref;
                         }
                     }
                 }
             }
         }
-        self.block_flow.base.intrinsic_widths.minimum_width = min_width;
-        self.block_flow.base.intrinsic_widths.preferred_width =
-            geometry::max(min_width, pref_width);
+        self.block_flow.base.intrinsic_isizes.minimum_isize = min_isize;
+        self.block_flow.base.intrinsic_isizes.preferred_isize =
+            geometry::max(min_isize, pref_isize);
     }
 
-    /// Recursively (top-down) determines the actual width of child contexts and fragments. When
-    /// called on this context, the context has had its width set by the parent context.
-    fn assign_widths(&mut self, ctx: &mut LayoutContext) {
-        debug!("assign_widths({}): assigning width for flow", "table");
+    /// Recursively (top-down) determines the actual isize of child contexts and fragments. When
+    /// called on this context, the context has had its isize set by the parent context.
+    fn assign_isizes(&mut self, ctx: &mut LayoutContext) {
+        debug!("assign_isizes({}): assigning isize for flow", "table");
 
         // The position was set to the containing block by the flow's parent.
-        let containing_block_width = self.block_flow.base.position.size.width;
+        let containing_block_isize = self.block_flow.base.position.size.isize;
 
-        let mut num_unspecified_widths = 0;
-        let mut total_column_width = Au::new(0);
-        for col_width in self.col_widths.iter() {
-            if *col_width == Au::new(0) {
-                num_unspecified_widths += 1;
+        let mut num_unspecified_isizes = 0;
+        let mut total_column_isize = Au::new(0);
+        for col_isize in self.col_isizes.iter() {
+            if *col_isize == Au::new(0) {
+                num_unspecified_isizes += 1;
             } else {
-                total_column_width = total_column_width.add(col_width);
+                total_column_isize = total_column_isize.add(col_isize);
             }
         }
 
-        let width_computer = InternalTable;
-        width_computer.compute_used_width(&mut self.block_flow, ctx, containing_block_width);
+        let isize_computer = InternalTable;
+        isize_computer.compute_used_isize(&mut self.block_flow, ctx, containing_block_isize);
 
-        let left_content_edge = self.block_flow.fragment.border_padding.left;
-        let padding_and_borders = self.block_flow.fragment.border_padding.horizontal();
-        let content_width = self.block_flow.fragment.border_box.size.width - padding_and_borders;
+        let istart_content_edge = self.block_flow.fragment.border_padding.istart;
+        let padding_and_borders = self.block_flow.fragment.border_padding.istart_end();
+        let content_isize = self.block_flow.fragment.border_box.size.isize - padding_and_borders;
 
         match self.table_layout {
             FixedLayout => {
                 // In fixed table layout, we distribute extra space among the unspecified columns if there are
                 // any, or among all the columns if all are specified.
-                if (total_column_width < content_width) && (num_unspecified_widths == 0) {
-                    let ratio = content_width.to_f64().unwrap() / total_column_width.to_f64().unwrap();
-                    for col_width in self.col_widths.mut_iter() {
-                        *col_width = (*col_width).scale_by(ratio);
+                if (total_column_isize < content_isize) && (num_unspecified_isizes == 0) {
+                    let ratio = content_isize.to_f64().unwrap() / total_column_isize.to_f64().unwrap();
+                    for col_isize in self.col_isizes.mut_iter() {
+                        *col_isize = (*col_isize).scale_by(ratio);
                     }
-                } else if num_unspecified_widths != 0 {
-                    let extra_column_width = (content_width - total_column_width) / Au::new(num_unspecified_widths);
-                    for col_width in self.col_widths.mut_iter() {
-                        if *col_width == Au(0) {
-                            *col_width = extra_column_width;
+                } else if num_unspecified_isizes != 0 {
+                    let extra_column_isize = (content_isize - total_column_isize) / Au::new(num_unspecified_isizes);
+                    for col_isize in self.col_isizes.mut_iter() {
+                        if *col_isize == Au(0) {
+                            *col_isize = extra_column_isize;
                         }
                     }
                 }
@@ -279,12 +279,12 @@ impl Flow for TableFlow {
             _ => {}
         }
 
-        self.block_flow.propagate_assigned_width_to_children(left_content_edge, content_width, Some(self.col_widths.clone()));
+        self.block_flow.propagate_assigned_isize_to_children(istart_content_edge, content_isize, Some(self.col_isizes.clone()));
     }
 
-    fn assign_height(&mut self, ctx: &mut LayoutContext) {
-        debug!("assign_height: assigning height for table");
-        self.assign_height_table_base(ctx);
+    fn assign_bsize(&mut self, ctx: &mut LayoutContext) {
+        debug!("assign_bsize: assigning bsize for table");
+        self.assign_bsize_table_base(ctx);
     }
 
     fn compute_absolute_position(&mut self) {
@@ -300,25 +300,25 @@ impl fmt::Show for TableFlow {
 }
 
 /// Table, TableRowGroup, TableRow, TableCell types.
-/// Their widths are calculated in the same way and do not have margins.
+/// Their isizes are calculated in the same way and do not have margins.
 pub struct InternalTable;
 
-impl WidthAndMarginsComputer for InternalTable {
-    /// Compute the used value of width, taking care of min-width and max-width.
+impl ISizeAndMarginsComputer for InternalTable {
+    /// Compute the used value of isize, taking care of min-isize and max-isize.
     ///
-    /// CSS Section 10.4: Minimum and Maximum widths
-    fn compute_used_width(&self,
+    /// CSS Section 10.4: Minimum and Maximum isizes
+    fn compute_used_isize(&self,
                           block: &mut BlockFlow,
                           ctx: &mut LayoutContext,
-                          parent_flow_width: Au) {
-        let input = self.compute_width_constraint_inputs(block, parent_flow_width, ctx);
-        let solution = self.solve_width_constraints(block, &input);
-        self.set_width_constraint_solutions(block, solution);
+                          parent_flow_isize: Au) {
+        let input = self.compute_isize_constraint_inputs(block, parent_flow_isize, ctx);
+        let solution = self.solve_isize_constraints(block, &input);
+        self.set_isize_constraint_solutions(block, solution);
     }
 
-    /// Solve the width and margins constraints for this block flow.
-    fn solve_width_constraints(&self, _: &mut BlockFlow, input: &WidthConstraintInput)
-                               -> WidthConstraintSolution {
-        WidthConstraintSolution::new(input.available_width, Au::new(0), Au::new(0))
+    /// Solve the isize and margins constraints for this block flow.
+    fn solve_isize_constraints(&self, _: &mut BlockFlow, input: &ISizeConstraintInput)
+                               -> ISizeConstraintSolution {
+        ISizeConstraintSolution::new(input.available_isize, Au::new(0), Au::new(0))
     }
 }

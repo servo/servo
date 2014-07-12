@@ -26,8 +26,8 @@ pub struct TableColGroupFlow {
     /// The table column fragments
     pub cols: Vec<Fragment>,
 
-    /// The specified widths of table columns
-    pub widths: Vec<Au>,
+    /// The specified isizes of table columns
+    pub isizes: Vec<Au>,
 }
 
 impl TableColGroupFlow {
@@ -38,7 +38,7 @@ impl TableColGroupFlow {
             base: BaseFlow::new((*node).clone()),
             fragment: Some(fragment),
             cols: fragments,
-            widths: vec!(),
+            isizes: vec!(),
         }
     }
 }
@@ -52,10 +52,10 @@ impl Flow for TableColGroupFlow {
         self
     }
 
-    fn bubble_widths(&mut self, _: &mut LayoutContext) {
+    fn bubble_isizes(&mut self, _: &mut LayoutContext) {
         for fragment in self.cols.iter() {
-            // get the specified value from width property
-            let width = MaybeAuto::from_style(fragment.style().get_box().width,
+            // get the specified value from isize property
+            let isize = MaybeAuto::from_style(fragment.style().content_isize(),
                                               Au::new(0)).specified_or_zero();
 
             let span: int = match fragment.specific {
@@ -63,18 +63,18 @@ impl Flow for TableColGroupFlow {
                 _ => fail!("Other fragment come out in TableColGroupFlow. {:?}", fragment.specific)
             };
             for _ in range(0, span) {
-                self.widths.push(width);
+                self.isizes.push(isize);
             }
         }
     }
 
-    /// Table column widths are assigned in table flow and propagated to table row or rowgroup flow.
-    /// Therefore, table colgroup flow does not need to assign its width.
-    fn assign_widths(&mut self, _ctx: &mut LayoutContext) {
+    /// Table column isizes are assigned in table flow and propagated to table row or rowgroup flow.
+    /// Therefore, table colgroup flow does not need to assign its isize.
+    fn assign_isizes(&mut self, _ctx: &mut LayoutContext) {
     }
 
-    /// Table column do not have height.
-    fn assign_height(&mut self, _ctx: &mut LayoutContext) {
+    /// Table column do not have bsize.
+    fn assign_bsize(&mut self, _ctx: &mut LayoutContext) {
     }
 }
 
