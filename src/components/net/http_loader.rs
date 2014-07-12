@@ -78,7 +78,7 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
         match load_data.data {
             Some(ref data) => {
                 writer.headers.content_length = Some(data.len());
-                match writer.write(data.clone().into_bytes().as_slice()) {
+                match writer.write(data.as_slice()) {
                     Err(e) => {
                         send_error(url, e.desc.to_string(), start_chan);
                         return;
