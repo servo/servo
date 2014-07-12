@@ -60,6 +60,7 @@ Window implements GlobalEventHandlers;
 Window implements WindowEventHandlers;
 
 // http://www.whatwg.org/html/#windowtimers
+[NoInterfaceObject/*, Exposed=Window,Worker*/]
 interface WindowTimers {
   //long setTimeout(Function handler, optional long timeout = 0, any... arguments);
   //long setTimeout(DOMString handler, optional long timeout = 0, any... arguments);
