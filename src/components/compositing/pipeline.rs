@@ -147,7 +147,7 @@ impl Pipeline {
                            script_chan.clone(),
                            constellation_chan.clone(),
                            failure.clone(),
-                           opts.clone(),
+                           opts.dump_file.is_some(),
                            resource_task,
                            image_cache_task.clone(),
                            window_size);

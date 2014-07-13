@@ -143,8 +143,9 @@ impl IOCompositor {
                memory_profiler_chan: MemoryProfilerChan) -> IOCompositor {
         let window: Rc<Window> = WindowMethods::new(app, opts.output_file.is_none());
 
-        let log_file = opts.dump_file.clone().and_then(|path| {
-            Some(File::create(&Path::new(path)))});
+        let log_file = opts.dump_file.as_ref().map(|path| {
+            File::create(&Path::new(path.clone()))
+        });
 
         // Create an initial layer tree.
         //
