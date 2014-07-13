@@ -1763,12 +1763,10 @@ def CreateBindingJSObject(descriptor, parent=None):
     if descriptor.proxy:
         assert not descriptor.createGlobal
         create += """
-let js_info = aScope.deref().page().js_info();
-let mut handlers = js_info.get_ref().dom_static.proxy_handlers.deref().borrow_mut();
-let handler = handlers.get(&(PrototypeList::id::%s as uint));
+let handler = RegisterBindings::proxy_handlers[PrototypeList::proxies::%s as uint];
 let mut private = PrivateValue(squirrel_away_unique(aObject) as *libc::c_void);
 let obj = with_compartment(aCx, proto, || {
-  NewProxyObject(aCx, *handler,
+  NewProxyObject(aCx, handler,
                  &private,
                  proto, %s,
                  ptr::mut_null(), ptr::mut_null())
@@ -2039,26 +2037,21 @@ class CGGetConstructorObjectMethod(CGGetPerInterfaceObject):
             CGGetPerInterfaceObject.definition_body(self),
         ])
 
-class CGDefineDOMInterfaceMethod(CGAbstractMethod):
+
+class CGDefineProxyHandler(CGAbstractMethod):
     """
-    A method for resolve hooks to try to lazily define the interface object for
-    a given interface.
+    A method to create and cache the proxy trap for a given interface.
     """
     def __init__(self, descriptor):
-        args = [
-            Argument('&JSRef<Window>', 'window'),
-            Argument('&mut JSPageInfo', 'js_info'),
-        ]
-        CGAbstractMethod.__init__(self, descriptor, 'DefineDOMInterface', 'void', args, pub=True)
+        assert descriptor.proxy
+        CGAbstractMethod.__init__(self, descriptor, 'DefineProxyHandler', '*libc::c_void', [], pub=True)
 
     def define(self):
         return CGAbstractMethod.define(self)
 
     def definition_body(self):
-        body = CGList([])
-        #XXXjdm This self.descriptor.concrete check shouldn't be necessary
-        if not self.descriptor.concrete or self.descriptor.proxy:
-            body.append(CGGeneric("""let traps = ProxyTraps {
+        body = """\
+let traps = ProxyTraps {
   getPropertyDescriptor: Some(getPropertyDescriptor),
   getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor),
   defineProperty: Some(defineProperty),
@@ -2089,21 +2082,35 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
   getPrototypeOf: None,
   trace: Some(%s)
 };
-let mut handlers = js_info.dom_static.proxy_handlers.deref().borrow_mut();
-handlers.insert(PrototypeList::id::%s as uint,
-                                         CreateProxyHandler(&traps, &Class as *_ as *_));
 
+CreateProxyHandler(&traps, &Class as *_ as *_)
 """ % (FINALIZE_HOOK_NAME,
-       TRACE_HOOK_NAME,
-       self.descriptor.name)))
+       TRACE_HOOK_NAME)
+        return CGGeneric(body)
 
-        if self.descriptor.interface.hasInterfaceObject():
-            body.append(CGGeneric("""let cx = (**js_info.js_context).ptr;
+
+
+class CGDefineDOMInterfaceMethod(CGAbstractMethod):
+    """
+    A method for resolve hooks to try to lazily define the interface object for
+    a given interface.
+    """
+    def __init__(self, descriptor):
+        assert descriptor.interface.hasInterfaceObject()
+        args = [
+            Argument('&JSRef<Window>', 'window'),
+        ]
+        CGAbstractMethod.__init__(self, descriptor, 'DefineDOMInterface', 'void', args, pub=True)
+
+    def define(self):
+        return CGAbstractMethod.define(self)
+
+    def definition_body(self):
+        return CGGeneric("""\
+let cx = window.get_cx();
 let global = window.reflector().get_jsobject();
 assert!(global.is_not_null());
-assert!(GetProtoObject(cx, global, global).is_not_null());"""))
-
-        return body
+assert!(GetProtoObject(cx, global, global).is_not_null());""")
 
 def needCx(returnType, arguments, extendedAttributes, considerTypes):
     return (considerTypes and
@@ -4019,7 +4026,11 @@ class CGDescriptor(CGThing):
                                           CGConstant(m for m in descriptor.interface.members if m.isConst()),
                                           public=True))
 
-        cgThings.append(CGDefineDOMInterfaceMethod(descriptor))
+        if descriptor.interface.hasInterfaceObject():
+            cgThings.append(CGDefineDOMInterfaceMethod(descriptor))
+
+        if descriptor.proxy:
+            cgThings.append(CGDefineProxyHandler(descriptor))
 
         if descriptor.concrete:
             if descriptor.proxy:
@@ -4257,7 +4268,6 @@ class CGRegisterProtos(CGAbstractMethod):
     def __init__(self, config):
         arguments = [
             Argument('&JSRef<Window>', 'window'),
-            Argument('&mut JSPageInfo', 'js_info'),
         ]
         CGAbstractMethod.__init__(self, None, 'Register', 'void', arguments,
                                   unsafe=False, pub=True)
@@ -4265,9 +4275,36 @@ class CGRegisterProtos(CGAbstractMethod):
 
     def definition_body(self):
         return CGList([
-            CGGeneric("codegen::Bindings::%sBinding::DefineDOMInterface(window, js_info);" % desc.name)
-            for desc in self.config.getDescriptors(isCallback=False, register=True)
+            CGGeneric("codegen::Bindings::%sBinding::DefineDOMInterface(window);" % desc.name)
+            for desc in self.config.getDescriptors(hasInterfaceObject=True, register=True)
         ], "\n")
+
+
+class CGRegisterProxyHandlersMethod(CGAbstractMethod):
+    def __init__(self, descriptors):
+        CGAbstractMethod.__init__(self, None, 'RegisterProxyHandlers', 'void', [],
+                                  unsafe=True, pub=True)
+        self.descriptors = descriptors
+
+    def definition_body(self):
+        return CGList([
+            CGGeneric("proxy_handlers[proxies::%s as uint] = codegen::Bindings::%sBinding::DefineProxyHandler();" % (desc.name, desc.name))
+            for desc in self.descriptors
+        ], "\n")
+
+
+class CGRegisterProxyHandlers(CGThing):
+    def __init__(self, config):
+        descriptors = config.getDescriptors(proxy=True)
+        length = len(descriptors)
+        self.root = CGList([
+            CGGeneric("pub static mut proxy_handlers: [*libc::c_void, ..%d] = [0 as *libc::c_void, ..%d];" % (length, length)),
+            CGRegisterProxyHandlersMethod(descriptors),
+        ], "\n")
+
+    def define(self):
+        return self.root.define()
+
 
 class CGBindingRoot(CGThing):
     """
@@ -4393,6 +4430,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::conversions::{Default, Empty}',
             'dom::bindings::codegen::*',
             'dom::bindings::codegen::Bindings::*',
+            'dom::bindings::codegen::RegisterBindings',
             'dom::bindings::codegen::UnionTypes::*',
             'dom::bindings::error::{FailureUnknown, Fallible, Error, ErrorResult}',
             'dom::bindings::error::throw_dom_exception',
@@ -5244,22 +5282,30 @@ class GlobalGenRoots():
     def PrototypeList(config):
         # Prototype ID enum.
         protos = [d.name for d in config.getDescriptors(hasInterfacePrototypeObject=True)]
+        proxies = [d.name for d in config.getDescriptors(proxy=True)]
 
         return CGList([
             CGGeneric(AUTOGENERATED_WARNING_COMMENT),
             CGGeneric("pub static MAX_PROTO_CHAIN_LENGTH: uint = %d;\n\n" % config.maxProtoChainLength),
             CGNamespacedEnum('id', 'ID', protos, [0], deriving="PartialEq"),
+            CGNamespacedEnum('proxies', 'Proxy', proxies, [0], deriving="PartialEq"),
         ])
 
 
     @staticmethod
     def RegisterBindings(config):
         # TODO - Generate the methods we want
-        return CGImports(CGRegisterProtos(config), [], [
+        code = CGList([
+            CGRegisterProtos(config),
+            CGRegisterProxyHandlers(config),
+        ], "\n")
+
+        return CGImports(code, [], [
             'dom::bindings::codegen',
+            'dom::bindings::codegen::PrototypeList::proxies',
             'dom::bindings::js::{JS, JSRef}',
             'dom::window::Window',
-            'page::JSPageInfo',
+            'libc',
         ])
 
     @staticmethod
