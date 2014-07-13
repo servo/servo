@@ -1821,8 +1821,11 @@ Temporary::new(raw)""" % CreateBindingJSObject(self.descriptor, "scope"))
 with_compartment(aCx, obj, || {
   let proto = GetProtoObject(aCx, obj, obj);
   JS_SetPrototype(aCx, obj, proto);
+
+  raw.reflector().set_jsobject(obj);
+
+  RegisterBindings::Register(aCx, obj);
 });
-raw.reflector().set_jsobject(obj);
 
 Temporary::new(raw)""" % CreateBindingJSObject(self.descriptor))
 
@@ -2098,7 +2101,8 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
     def __init__(self, descriptor):
         assert descriptor.interface.hasInterfaceObject()
         args = [
-            Argument('&JSRef<Window>', 'window'),
+            Argument('*mut JSContext', 'cx'),
+            Argument('*mut JSObject', 'global'),
         ]
         CGAbstractMethod.__init__(self, descriptor, 'DefineDOMInterface', 'void', args, pub=True)
 
@@ -2107,8 +2111,6 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
 
     def definition_body(self):
         return CGGeneric("""\
-let cx = window.get_cx();
-let global = window.reflector().get_jsobject();
 assert!(global.is_not_null());
 assert!(GetProtoObject(cx, global, global).is_not_null());""")
 
@@ -4267,7 +4269,8 @@ class CGDictionary(CGThing):
 class CGRegisterProtos(CGAbstractMethod):
     def __init__(self, config):
         arguments = [
-            Argument('&JSRef<Window>', 'window'),
+            Argument('*mut JSContext', 'cx'),
+            Argument('*mut JSObject', 'global'),
         ]
         CGAbstractMethod.__init__(self, None, 'Register', 'void', arguments,
                                   unsafe=False, pub=True)
@@ -4275,7 +4278,7 @@ class CGRegisterProtos(CGAbstractMethod):
 
     def definition_body(self):
         return CGList([
-            CGGeneric("codegen::Bindings::%sBinding::DefineDOMInterface(window);" % desc.name)
+            CGGeneric("codegen::Bindings::%sBinding::DefineDOMInterface(cx, global);" % desc.name)
             for desc in self.config.getDescriptors(hasInterfaceObject=True, register=True)
         ], "\n")
 
@@ -5303,8 +5306,8 @@ class GlobalGenRoots():
         return CGImports(code, [], [
             'dom::bindings::codegen',
             'dom::bindings::codegen::PrototypeList::proxies',
-            'dom::bindings::js::{JS, JSRef}',
-            'dom::window::Window',
+            'js::jsapi::JSContext',
+            'js::jsapi::JSObject',
             'libc',
         ])
 

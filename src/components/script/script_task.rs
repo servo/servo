@@ -5,7 +5,6 @@
 //! The script task is the task that owns the DOM in memory, runs JavaScript, and spawns parsing
 //! and layout tasks.
 
-use dom::bindings::codegen::RegisterBindings;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, EventCast};
 use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, OptionalSettable};
 use dom::bindings::js::OptionalRootable;
@@ -547,10 +546,6 @@ impl ScriptTask {
                                  self.image_cache_task.clone()).root();
         let document = Document::new(&*window, Some(url.clone()), HTMLDocument, None).root();
         window.deref().init_browser_context(&*document);
-
-        with_compartment((**cx).ptr, window.reflector().get_jsobject(), || {
-            RegisterBindings::Register(&*window);
-        });
 
         self.compositor.set_ready_state(Loading);
         // Parse HTML.
