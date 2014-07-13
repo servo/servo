@@ -329,8 +329,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     // http://dom.spec.whatwg.org/#dom-document-implementation
     fn Implementation(&self) -> Temporary<DOMImplementation> {
         if self.implementation.get().is_none() {
-            let window = self.window.root();
-            self.implementation.assign(Some(DOMImplementation::new(&*window)));
+            self.implementation.assign(Some(DOMImplementation::new(self)));
         }
         Temporary::new(self.implementation.get().get_ref().clone())
     }
