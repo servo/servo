@@ -36,6 +36,7 @@ use http::method::{Method, Get, Head, Connect, Trace, ExtensionMethod};
 use http::status::Status;
 
 use js::jsapi::{JS_AddObjectRoot, JS_ParseJSON, JS_RemoveObjectRoot, JSContext};
+use js::jsapi::JS_ClearPendingException;
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 
 use libc;
@@ -617,7 +618,10 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
                 let decoded = UTF_8.decode(self.response.deref().borrow().as_slice(), DecodeReplace).unwrap().to_string().to_utf16();
                 let mut vp = UndefinedValue();
                 unsafe {
-                    JS_ParseJSON(cx, decoded.as_ptr(), decoded.len() as u32, &mut vp);
+                    if JS_ParseJSON(cx, decoded.as_ptr(), decoded.len() as u32, &mut vp) == 0 {
+                        JS_ClearPendingException(cx);
+                        return NullValue();
+                    }
                 }
                 vp
             }
