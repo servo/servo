@@ -438,7 +438,8 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             QName => {}
         }
 
-        let (prefix_from_qname, local_name_from_qname) = get_attribute_parts(qualified_name);
+        let (prefix_from_qname,
+             local_name_from_qname) = get_attribute_parts(qualified_name.as_slice());
         match (&ns, prefix_from_qname.clone(), local_name_from_qname.as_slice()) {
             // throw if prefix is not null and namespace is null
             (&namespace::Null, Some(_), _) => {

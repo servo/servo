@@ -230,7 +230,7 @@ pub trait AttributeHandlers {
     fn parse_attribute(&self, namespace: &Namespace, local_name: &str,
                        value: DOMString) -> AttrValue;
 
-    fn remove_attribute(&self, namespace: Namespace, name: DOMString) -> ErrorResult;
+    fn remove_attribute(&self, namespace: Namespace, name: &str) -> ErrorResult;
     fn notify_attribute_changed(&self, local_name: DOMString);
     fn has_class(&self, name: &str) -> bool;
 
@@ -313,8 +313,8 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         }
     }
 
-    fn remove_attribute(&self, namespace: Namespace, name: DOMString) -> ErrorResult {
-        let (_, local_name) = get_attribute_parts(name.clone());
+    fn remove_attribute(&self, namespace: Namespace, name: &str) -> ErrorResult {
+        let (_, local_name) = get_attribute_parts(name);
 
         let idx = self.deref().attrs.borrow().iter().map(|attr| attr.root()).position(|attr| {
             attr.local_name == local_name
@@ -603,7 +603,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         }
 
         // Step 4.
-        let (prefix, local_name) = get_attribute_parts(name.clone());
+        let (prefix, local_name) = get_attribute_parts(name.as_slice());
         match prefix {
             Some(ref prefix_str) => {
                 // Step 5.
@@ -651,7 +651,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         } else {
             name
         };
-        self.remove_attribute(namespace::Null, name)
+        self.remove_attribute(namespace::Null, name.as_slice())
     }
 
     // http://dom.spec.whatwg.org/#dom-element-removeattributens
@@ -659,7 +659,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
                          namespace: Option<DOMString>,
                          localname: DOMString) -> ErrorResult {
         let namespace = Namespace::from_str(null_str_as_empty_ref(&namespace));
-        self.remove_attribute(namespace, localname)
+        self.remove_attribute(namespace, localname.as_slice())
     }
 
     // http://dom.spec.whatwg.org/#dom-element-hasattribute
@@ -759,14 +759,14 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     }
 }
 
-pub fn get_attribute_parts(name: DOMString) -> (Option<String>, String) {
+pub fn get_attribute_parts(name: &str) -> (Option<String>, String) {
     //FIXME: Throw for XML-invalid names
     //FIXME: Throw for XMLNS-invalid names
-    let (prefix, local_name) = if name.as_slice().contains(":")  {
-        let mut parts = name.as_slice().splitn(':', 1);
+    let (prefix, local_name) = if name.contains(":")  {
+        let mut parts = name.splitn(':', 1);
         (Some(parts.next().unwrap().to_string()), parts.next().unwrap().to_string())
     } else {
-        (None, name)
+        (None, name.to_string())
     };
 
     (prefix, local_name)
