@@ -35,10 +35,10 @@ interface WindowEventHandlers {
 // whether an ErrorEvent was fired. We don't do that, and until we do we'll
 // need to distinguish between onerror on Window or on nodes.
 
-[NoInterfaceObject]
+/*[NoInterfaceObject]
 interface OnErrorEventHandlerForNodes {
            attribute EventHandler onerror;
-};
+};*/
 
 [NoInterfaceObject]
 interface OnErrorEventHandlerForWindow {
