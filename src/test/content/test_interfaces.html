@@ -1,0 +1,197 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Interfaces exposed on the window</title>
+<script src="harness.js"></script>
+<script>
+// This is a list of all interfaces that are exposed to every webpage.
+// Please only add things to this list with great care and proper review
+// from the associated module peers.
+
+// IMPORTANT: Do not change this list without review from
+//            a JavaScript Engine peer!
+var ecmaGlobals = [
+  "Array",
+  "ArrayBuffer",
+  "Boolean",
+  "DataView",
+  "Date",
+  "Error",
+  "EvalError",
+  "Float32Array",
+  "Float64Array",
+  "Function",
+  "Infinity",
+  "Int16Array",
+  "Int32Array",
+  "Int8Array",
+  "InternalError",
+  "Iterator",
+  "JSON",
+  "Map",
+  "Math",
+  "NaN",
+  "Number",
+  "Object",
+  "Proxy",
+  "RangeError",
+  "ReferenceError",
+  "RegExp",
+  "Set",
+  "StopIteration",
+  "String",
+  "SyntaxError",
+  "TypeError",
+  "Uint16Array",
+  "Uint32Array",
+  "Uint8Array",
+  "Uint8ClampedArray",
+  "URIError",
+  "WeakMap",
+];
+
+// IMPORTANT: Do not change the list below without review from a DOM peer!
+var interfaceNamesInGlobalScope = [
+  "Attr",
+  "Blob",
+  "CharacterData",
+  "ClientRect", // #2814
+  "ClientRectList", // #2814
+  "Comment",
+  "Console",
+  "CustomEvent",
+  "Document",
+  "DocumentFragment",
+  "DocumentType",
+  "DOMException",
+  "DOMImplementation",
+  "DOMParser",
+  "DOMTokenList",
+  "Element",
+  "Event",
+  "EventTarget",
+  "File",
+  "FormData",
+  "HTMLAnchorElement",
+  "HTMLAppletElement",
+  "HTMLAreaElement",
+  "HTMLAudioElement",
+  "HTMLBaseElement",
+  "HTMLBodyElement",
+  "HTMLBRElement",
+  "HTMLButtonElement",
+  "HTMLCanvasElement",
+  "HTMLCollection",
+  "HTMLDataElement",
+  "HTMLDataListElement",
+  "HTMLDirectoryElement",
+  "HTMLDivElement",
+  "HTMLDListElement",
+  "HTMLElement",
+  "HTMLEmbedElement",
+  "HTMLFieldSetElement",
+  "HTMLFontElement",
+  "HTMLFormElement",
+  "HTMLFrameElement",
+  "HTMLFrameSetElement",
+  "HTMLHeadElement",
+  "HTMLHeadingElement",
+  "HTMLHRElement",
+  "HTMLHtmlElement",
+  "HTMLIFrameElement",
+  "HTMLImageElement",
+  "HTMLInputElement",
+  "HTMLLabelElement",
+  "HTMLLegendElement",
+  "HTMLLIElement",
+  "HTMLLinkElement",
+  "HTMLMapElement",
+  "HTMLMediaElement",
+  "HTMLMetaElement",
+  "HTMLMeterElement",
+  "HTMLModElement",
+  "HTMLObjectElement",
+  "HTMLOListElement",
+  "HTMLOptGroupElement",
+  "HTMLOptionElement",
+  "HTMLOutputElement",
+  "HTMLParagraphElement",
+  "HTMLParamElement",
+  "HTMLPreElement",
+  "HTMLProgressElement",
+  "HTMLQuoteElement",
+  "HTMLScriptElement",
+  "HTMLSelectElement",
+  "HTMLSourceElement",
+  "HTMLSpanElement",
+  "HTMLStyleElement",
+  "HTMLTableCaptionElement",
+  "HTMLTableCellElement",
+  "HTMLTableColElement",
+  "HTMLTableDataCellElement",
+  "HTMLTableElement",
+  "HTMLTableHeaderCellElement",
+  "HTMLTableRowElement",
+  "HTMLTableSectionElement",
+  "HTMLTemplateElement",
+  "HTMLTextAreaElement",
+  "HTMLTimeElement",
+  "HTMLTitleElement",
+  "HTMLTrackElement",
+  "HTMLUListElement",
+  "HTMLUnknownElement",
+  "HTMLVideoElement",
+  "Location",
+  "MouseEvent",
+  "Navigator",
+  "Node",
+  "NodeList",
+  "Performance",
+  "PerformanceTiming",
+  "ProcessingInstruction",
+  "ProgressEvent",
+  "TestBinding", // XXX
+  "Text",
+  "UIEvent",
+  "URLSearchParams",
+  "ValidityState",
+  "Window",
+  "XMLHttpRequest",
+  "XMLHttpRequestUpload",
+];
+
+function createInterfaceMap() {
+  var interfaceMap = {};
+
+  function addInterfaces(interfaces)
+  {
+    for (var entry of interfaces) {
+      interfaceMap[entry] = true;
+    }
+  }
+
+  addInterfaces(ecmaGlobals);
+  addInterfaces(interfaceNamesInGlobalScope);
+  return interfaceMap;
+}
+
+var interfaceMap = createInterfaceMap();
+for (var name of Object.getOwnPropertyNames(window)) {
+  if (!/^[A-Z]/.test(name)) {
+    continue;
+  }
+  is_in(name, interfaceMap,
+        "If this is failing: DANGER, are you sure you want to expose the new " +
+        "interface " + name + " to all webpages as a property on the window? " +
+        "Do not make a change to this file without review from jdm or Ms2ger " +
+        "for that specific change!");
+  if (name in interfaceMap) {
+    delete interfaceMap[name];
+  }
+}
+for (var name of Object.keys(interfaceMap)) {
+  is_in(name, window, name + " should be defined on the global scope");
+}
+is(Object.keys(interfaceMap).length, 0,
+   "The following interface(s) are not enumerated: " + Object.keys(interfaceMap).join(", "));
+finish();
+</script>

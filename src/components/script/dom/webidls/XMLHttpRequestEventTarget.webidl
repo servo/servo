@@ -13,7 +13,7 @@
  * http://www.openwebfoundation.org/legal/the-owf-1-0-agreements/owfa-1-0.
  */
 
-/* https://github.com/mozilla/servo/issues/1223:  [NoInterfaceObject] */
+[NoInterfaceObject]
 interface XMLHttpRequestEventTarget : EventTarget {
   // event handlers
   attribute EventHandler onloadstart;
