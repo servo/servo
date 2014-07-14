@@ -18,22 +18,19 @@ pub enum NodeListType {
 pub struct NodeList {
     list_type: NodeListType,
     reflector_: Reflector,
-    window: JS<Window>
 }
 
 impl NodeList {
-    pub fn new_inherited(window: &JSRef<Window>,
-                         list_type: NodeListType) -> NodeList {
+    pub fn new_inherited(list_type: NodeListType) -> NodeList {
         NodeList {
             list_type: list_type,
             reflector_: Reflector::new(),
-            window: JS::from_rooted(window)
         }
     }
 
     pub fn new(window: &JSRef<Window>,
                list_type: NodeListType) -> Temporary<NodeList> {
-        reflect_dom_object(box NodeList::new_inherited(window, list_type),
+        reflect_dom_object(box NodeList::new_inherited(list_type),
                            window, NodeListBinding::Wrap)
     }
 
