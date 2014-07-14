@@ -32,6 +32,7 @@ use style;
 use servo_util::namespace;
 use servo_util::namespace::{Namespace, Null};
 use servo_util::str::{DOMString, null_str_as_empty_ref, split_html_space_chars};
+use servo_util::atom::Atom;
 
 use std::ascii::StrAsciiExt;
 use std::cell::{Cell, RefCell};
@@ -40,7 +41,7 @@ use std::mem;
 #[deriving(Encodable)]
 pub struct Element {
     pub node: Node,
-    pub local_name: DOMString,     // TODO: This should be an atom, not a DOMString.
+    pub local_name: Atom,
     pub namespace: Namespace,
     pub prefix: Option<DOMString>,
     pub attrs: RefCell<Vec<JS<Attr>>>,
@@ -145,7 +146,7 @@ impl Element {
     pub fn new_inherited(type_id: ElementTypeId, local_name: DOMString, namespace: Namespace, prefix: Option<DOMString>, document: &JSRef<Document>) -> Element {
         Element {
             node: Node::new_inherited(ElementNodeTypeId(type_id), document),
-            local_name: local_name,
+            local_name: Atom::from_slice(local_name.as_slice()),
             namespace: namespace,
             prefix: prefix,
             attrs: RefCell::new(vec!()),
@@ -460,7 +461,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     }
 
     fn LocalName(&self) -> DOMString {
-        self.local_name.clone()
+        self.local_name.as_slice().to_string()
     }
 
     // http://dom.spec.whatwg.org/#dom-element-prefix

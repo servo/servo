@@ -129,7 +129,7 @@ fn serialize_elem(elem: &JSRef<Element>, open_elements: &mut Vec<String>, html: 
     }
 
     if !elem.deref().is_void() {
-        open_elements.push(elem.deref().local_name.clone());
+        open_elements.push(elem.deref().local_name.as_slice().to_string());
     }
 }
 

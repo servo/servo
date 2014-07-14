@@ -10,6 +10,7 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::element::{Element, AttributeHandlers};
 use dom::node::{Node, NodeHelpers};
 use dom::window::Window;
+use servo_util::atom::Atom;
 use servo_util::namespace::Namespace;
 use servo_util::str::{DOMString, split_html_space_chars};
 
@@ -60,7 +61,7 @@ impl HTMLCollection {
     pub fn by_tag_name(window: &JSRef<Window>, root: &JSRef<Node>, tag: DOMString)
                        -> Temporary<HTMLCollection> {
         struct TagNameFilter {
-            tag: DOMString
+            tag: Atom
         }
         impl CollectionFilter for TagNameFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
@@ -68,7 +69,7 @@ impl HTMLCollection {
             }
         }
         let filter = TagNameFilter {
-            tag: tag
+            tag: Atom::from_slice(tag.as_slice())
         };
         HTMLCollection::create(window, root, box filter)
     }
@@ -76,7 +77,7 @@ impl HTMLCollection {
     pub fn by_tag_name_ns(window: &JSRef<Window>, root: &JSRef<Node>, tag: DOMString,
                           namespace: Namespace) -> Temporary<HTMLCollection> {
         struct TagNameNSFilter {
-            tag: DOMString,
+            tag: Atom,
             namespace: Namespace
         }
         impl CollectionFilter for TagNameNSFilter {
@@ -85,7 +86,7 @@ impl HTMLCollection {
             }
         }
         let filter = TagNameNSFilter {
-            tag: tag,
+            tag: Atom::from_slice(tag.as_slice()),
             namespace: namespace
         };
         HTMLCollection::create(window, root, box filter)
