@@ -176,11 +176,13 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
         }
     }
 
-    fn bind_to_tree(&self) {
+    fn bind_to_tree(&self, tree_in_doc: bool) {
         match self.super_type() {
-            Some(ref s) => s.bind_to_tree(),
+            Some(ref s) => s.bind_to_tree(tree_in_doc),
             _ => (),
         }
+
+        if !tree_in_doc { return; }
 
         match self.get_url() {
             Some(url) => {

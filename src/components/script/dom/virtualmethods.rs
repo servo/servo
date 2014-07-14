@@ -60,18 +60,20 @@ pub trait VirtualMethods {
         }
     }
 
-    /// Called when a Node is appended to a tree that is part of a Document.
-    fn bind_to_tree(&self) {
+    /// Called when a Node is appended to a tree, where 'tree_in_doc' indicates
+    /// whether the tree is part of a Document.
+    fn bind_to_tree(&self, tree_in_doc: bool) {
         match self.super_type() {
-            Some(ref s) => s.bind_to_tree(),
+            Some(ref s) => s.bind_to_tree(tree_in_doc),
             _ => (),
         }
     }
 
-    /// Called when a Node is removed from a tree that is part of a Document.
-    fn unbind_from_tree(&self) {
+    /// Called when a Node is removed from a tree, where 'tree_in_doc'
+    /// indicates whether the tree is part of a Document.
+    fn unbind_from_tree(&self, tree_in_doc: bool) {
         match self.super_type() {
-            Some(ref s) => s.unbind_from_tree(),
+            Some(ref s) => s.unbind_from_tree(tree_in_doc),
             _ => (),
         }
     }
