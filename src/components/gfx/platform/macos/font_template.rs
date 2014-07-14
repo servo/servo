@@ -12,7 +12,7 @@ use core_text;
 /// CTFont object is cached here for use by the
 /// render functions that create CGFont references.
 pub struct FontTemplateData {
-    pub ctfont: CTFont,
+    pub ctfont: Option<CTFont>,
     pub identifier: String,
 }
 
@@ -21,11 +21,14 @@ impl FontTemplateData {
         let ctfont = match font_data {
             Some(bytes) => {
                 let fontprov = CGDataProvider::from_buffer(bytes.as_slice());
-                let cgfont = CGFont::from_data_provider(fontprov);
-                core_text::font::new_from_CGFont(&cgfont, 0.0)
+                let cgfont_result = CGFont::from_data_provider(fontprov);
+                match cgfont_result {
+                    Ok(cgfont) => Some(core_text::font::new_from_CGFont(&cgfont, 0.0)),
+                    Err(_) => None
+                }
             },
             None => {
-                core_text::font::new_from_name(identifier.as_slice(), 0.0).unwrap()
+                Some(core_text::font::new_from_name(identifier.as_slice(), 0.0).unwrap())
             }
         };
 

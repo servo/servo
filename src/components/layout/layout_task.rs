@@ -61,7 +61,6 @@ use std::ptr;
 use std::task::TaskBuilder;
 use style::{AuthorOrigin, Stylesheet, Stylist};
 use style::CSSFontFaceRule;
-use style::TtfFormat;
 use sync::{Arc, Mutex};
 use url::Url;
 
@@ -455,20 +454,16 @@ impl LayoutTask {
         // Find all font-face rules and notify the font cache of them.
         // GWTODO: Need to handle unloading web fonts (when we handle unloading stylesheets!)
         // GWTODO: Need to handle font-face nested within media rules.
-        // GWTODO: Don't rely on format hint here. Should determine file format from data.
         for rule in sheet.rules.iter() {
             match rule {
                 &CSSFontFaceRule(ref font_face_rule) => {
+                    let mut font_urls = vec!();
                     for source_line in font_face_rule.source_lines.iter() {
                         for source in source_line.sources.iter() {
-                            match source.format_hint {
-                                TtfFormat => {
-                                    self.font_cache_task.add_web_font(source.url.clone(), font_face_rule.family.as_slice());
-                                },
-                                _ => {}
-                            }                            
+                            font_urls.push(source.url.clone());
                         }
                     }
+                    self.font_cache_task.add_web_font(font_urls, font_face_rule.family.as_slice());
                 },
                 _ => {}
             }

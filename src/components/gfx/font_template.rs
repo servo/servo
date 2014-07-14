@@ -44,6 +44,7 @@ pub struct FontTemplate {
     descriptor: Option<FontTemplateDescriptor>,
     weak_ref: Option<Weak<FontTemplateData>>,
     strong_ref: Option<Arc<FontTemplateData>>,      // GWTODO: Add code path to unset the strong_ref for web fonts!
+    is_valid: bool,
 }
 
 /// Holds all of the template information for a font that
@@ -71,6 +72,7 @@ impl FontTemplate {
             descriptor: None,
             weak_ref: maybe_weak_ref,
             strong_ref: maybe_strong_ref,
+            is_valid: true,
         }
     }
 
@@ -95,27 +97,44 @@ impl FontTemplate {
                 }
             },
             None => {
-                let data = self.get_data();
-                let handle: Result<FontHandle, ()> = FontHandleMethods::new_from_template(fctx, data.clone(), None);
-                match handle {
-                    Ok(handle) => {
-                        let actual_desc = FontTemplateDescriptor::new(handle.boldness(),
-                                            handle.is_italic());
-                        let desc_match = actual_desc == *requested_desc;
+                match self.is_valid {
+                    true => {
+                        let data = self.get_data();
+                        let handle: Result<FontHandle, ()> = FontHandleMethods::new_from_template(fctx, data.clone(), None);
+                        match handle {
+                            Ok(handle) => {
+                                let actual_desc = FontTemplateDescriptor::new(handle.boldness(),
+                                                    handle.is_italic());
+                                let desc_match = actual_desc == *requested_desc;
 
-                        self.descriptor = Some(actual_desc);
-                        if desc_match {
-                            Some(data)
-                        } else {
-                            None
+                                self.descriptor = Some(actual_desc);
+                                self.is_valid = true;
+                                if desc_match {
+                                    Some(data)
+                                } else {
+                                    None
+                                }
+                            }
+                            Err(()) => {
+                                self.is_valid = false;
+                                debug!("Unable to create a font from template {}", self.identifier);
+                                None
+                            }
                         }
-                    }
-                    Err(()) => {
-                        debug!("Unable to create a font from template {}", self.identifier);
+                    },
+                    false => {
                         None
                     }
                 }
             }
+        }
+    }
+
+    /// Get the data for creating a font.
+    pub fn get(&mut self) -> Option<Arc<FontTemplateData>> {
+        match self.is_valid {
+            true => Some(self.get_data()),
+            false => None
         }
     }
 

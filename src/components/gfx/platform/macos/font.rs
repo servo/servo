@@ -65,13 +65,17 @@ impl FontHandleMethods for FontHandle {
             Some(s) => s,
             None => 0.0
         };
-        let ct_result = core_text::font::new_from_name(template.identifier.as_slice(), size);
-        ct_result.and_then(|ctfont| {
-            Ok(FontHandle {
-                font_data: template.clone(),
-                ctfont: ctfont,
-            })
-        })
+        match template.ctfont {
+            Some(ref ctfont) => {
+                Ok(FontHandle {
+                    font_data: template.clone(),
+                    ctfont: ctfont.clone_with_font_size(size),
+                })
+            }
+            None => {
+                Err(())
+            }
+        }
     }
 
     fn get_template(&self) -> Arc<FontTemplateData> {

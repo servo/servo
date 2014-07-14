@@ -42,6 +42,16 @@ impl FontFamily {
             }
         }
 
+        // If a request is made for a font family that exists,
+        // pick the first valid font in the family if we failed
+        // to find an exact match for the descriptor.
+        for template in self.templates.mut_iter() {
+            let maybe_template = template.get();
+            if maybe_template.is_some() {
+                return maybe_template;
+            }
+        }
+
         None
     }
 
@@ -60,7 +70,7 @@ impl FontFamily {
 /// Commands that the FontContext sends to the font cache task.
 pub enum Command {
     GetFontTemplate(String, FontTemplateDescriptor, Sender<Reply>),
-    AddWebFont(Url, String, Sender<()>),
+    AddWebFont(Vec<Url>, String, Sender<()>),
     Exit(Sender<()>),
 }
 
@@ -88,7 +98,6 @@ impl FontCache {
             match msg {
                 GetFontTemplate(family, descriptor, result) => {
                     let maybe_font_template = self.get_font_template(&family, &descriptor);
-
                     let font_template = match maybe_font_template {
                         Some(font_template) => font_template,
                         None => self.get_last_resort_template(&descriptor),
@@ -96,19 +105,21 @@ impl FontCache {
 
                     result.send(GetFontTemplateReply(font_template));
                 }
-                AddWebFont(url, family_name, result) => {
-                    let maybe_resource = load_whole_resource(&self.resource_task, url.clone());
-                    match maybe_resource {
-                        Ok((_, bytes)) => {
-                            if !self.web_families.contains_key(&family_name) {
-                                let family = FontFamily::new();
-                                self.web_families.insert(family_name.clone(), family);
+                AddWebFont(urls, family_name, result) => {
+                    for url in urls.iter() {
+                        let maybe_resource = load_whole_resource(&self.resource_task, url.clone());
+                        match maybe_resource {
+                            Ok((_, bytes)) => {
+                                if !self.web_families.contains_key(&family_name) {
+                                    let family = FontFamily::new();
+                                    self.web_families.insert(family_name.clone(), family);
+                                }
+                                let family = self.web_families.get_mut(&family_name);
+                                family.add_template(format!("{}", url).as_slice(), Some(bytes));
+                            },
+                            Err(msg) => {
+                                fail!(msg);
                             }
-                            let family = self.web_families.get_mut(&family_name);
-                            family.add_template(format!("{}", url).as_slice(), Some(bytes));
-                        },
-                        Err(msg) => {
-                            fail!(msg);
                         }
                     }
                     result.send(());
@@ -166,7 +177,7 @@ impl FontCache {
         }
     }
 
-    fn find_font_in_web_family<'a>(&'a mut self, family_name: &String, desc: &FontTemplateDescriptor) 
+    fn find_font_in_web_family<'a>(&'a mut self, family_name: &String, desc: &FontTemplateDescriptor)
                                 -> Option<Arc<FontTemplateData>> {
         if self.web_families.contains_key(family_name) {
             let family = self.web_families.get_mut(family_name);
@@ -253,9 +264,9 @@ impl FontCacheTask {
         }
     }
 
-    pub fn add_web_font(&mut self, url: Url, family: &str) {
+    pub fn add_web_font(&mut self, urls: Vec<Url>, family: &str) {
         let (response_chan, response_port) = channel();
-        self.chan.send(AddWebFont(url, family.to_string(), response_chan));
+        self.chan.send(AddWebFont(urls, family.to_string(), response_chan));
         response_port.recv();
     }
 

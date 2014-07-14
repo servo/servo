@@ -22,7 +22,7 @@ pub enum FontFaceFormat {
 
 pub struct FontFaceSource {
     pub url: Url,
-    pub format_hint: FontFaceFormat,
+    pub format_hints: Vec<FontFaceFormat>,
 }
 
 pub struct FontFaceSourceLine {
@@ -35,7 +35,6 @@ pub struct FontFaceRule {
 }
 
 pub fn parse_font_face_rule(rule: AtRule, parent_rules: &mut Vec<CSSRule>, base_url: &Url) {
-
     let mut maybe_family = None;
     let mut source_lines = vec!();
 
@@ -79,84 +78,95 @@ pub fn parse_font_face_rule(rule: AtRule, parent_rules: &mut Vec<CSSRule>, base_
                         'outer: loop {
 
                             // url() or local() should be next
-                            let url = match iter.next() {
+                            let maybe_url = match iter.next() {
                                 Some(&URL(ref string_value)) => {
-                                    parse_url(string_value.as_slice(), Some(base_url.clone()))
+                                    Some(parse_url(string_value.as_slice(), Some(base_url.clone())))
+                                },
+                                Some(&Function(ref string_value, ref _values)) => {
+                                    match string_value.as_slice() {
+                                        "local" => {
+                                            log_css_error(location, "local font face is not supported yet - skipping");
+                                            None
+                                        },
+                                        _ => {
+                                            log_css_error(location, format!("Unexpected token {}", string_value).as_slice());
+                                            syntax_error = true;
+                                            break;
+                                        }
+                                    }
                                 },
                                 _ => {
-                                    log_css_error(location, "Unsupported declaration (local font face is not supported yet)");
+                                    log_css_error(location, "Unsupported declaration type");
                                     syntax_error = true;
                                     break;
                                 }
                             };
 
-                            // optional format, or comma to start loop again
                             let mut next_token = iter.next();
-                            match next_token {
-                                Some(&Function(ref string_value, ref values)) => {
-                                    match string_value.as_slice() {
-                                        "format" => {
-                                            let maybe_format_hint_string = one_component_value(
-                                                                            values.as_slice()).and_then(|c| {
-                                                match c {
-                                                    &String(ref s) => Some(s.as_slice().to_ascii_lower()),
-                                                    _ => None,
-                                                }
-                                            });
-                                            
-                                            match maybe_format_hint_string {
-                                                Some(ref format_hint_string) => {
-                                                    let format_hints: Vec<&str> = format_hint_string.as_slice().split(',').collect();
 
-                                                    for format_hint in format_hints.iter() {
-                                                        let format_hint = format_hint.trim();
-                                                        
-                                                        let hint = match format_hint.as_slice() {
-                                                            "embedded-opentype" => EotFormat,
-                                                            "woff" => WoffFormat,
-                                                            "truetype" | "opentype" => TtfFormat,
-                                                            "svg" => SvgFormat,
-                                                            _ => UnknownFormat,
-                                                        };
+                            match maybe_url {
+                                Some(url) => {
+                                    let mut source = FontFaceSource {
+                                        url: url,
+                                        format_hints: vec!(),
+                                    };
 
-                                                        if hint == UnknownFormat {
-                                                            log_css_error(location, 
-                                                                    format!("Unknown font format {}", format_hint).as_slice());
-                                                            syntax_error = true;
-                                                            break 'outer;
+                                    // optional format, or comma to start loop again
+                                    match next_token {
+                                        Some(&Function(ref string_value, ref values)) => {
+                                            match string_value.as_slice() {
+                                                "format" => {
+                                                    let mut format_iter = values.as_slice().skip_whitespace();
+
+                                                    loop {
+                                                        let fmt_token = format_iter.next();
+                                                        match fmt_token {
+                                                            Some(&String(ref format_hint)) => {
+                                                                let hint = match format_hint.as_slice() {
+                                                                    "embedded-opentype" => EotFormat,
+                                                                    "woff" => WoffFormat,
+                                                                    "truetype" | "opentype" => TtfFormat,
+                                                                    "svg" => SvgFormat,
+                                                                    _ => UnknownFormat,
+                                                                };
+                                                                source.format_hints.push(hint);
+                                                            },
+                                                            _ => {
+                                                                log_css_error(location, "Unexpected token");
+                                                                syntax_error = true;
+                                                                break 'outer;
+                                                            }
                                                         }
 
-                                                        let source = FontFaceSource {
-                                                            url: url.clone(),
-                                                            format_hint: hint,
-                                                        };
-                                                        sources.push(source);
+                                                        let comma_token = format_iter.next();
+                                                        match comma_token {
+                                                            Some(&Comma) => {},
+                                                            None => {
+                                                                break;
+                                                            }
+                                                            _ => {
+                                                                log_css_error(location, "Unexpected token");
+                                                                syntax_error = true;
+                                                                break 'outer;
+                                                            }
+                                                        }
                                                     }
                                                 },
-                                                None => {
-                                                    log_css_error(location, 
+                                                _ => {
+                                                    log_css_error(location,
                                                                     format!("Unsupported token {}", string_value).as_slice());
                                                     syntax_error = true;
-                                                    break;                                                   
+                                                    break;
                                                 }
                                             }
+                                            next_token = iter.next();
                                         },
-                                        _ => {
-                                            log_css_error(location, 
-                                                            format!("Unsupported token {}", string_value).as_slice());
-                                            syntax_error = true;
-                                            break;
-                                        }
+                                        _ => {}
                                     }
-                                    next_token = iter.next();
-                                },
-                                _ => {
-                                    let source = FontFaceSource {
-                                        url: url,
-                                        format_hint: UnknownFormat,
-                                    };
+
                                     sources.push(source);
-                                }
+                                },
+                                None => {},
                             }
 
                             // after url or optional format, comes comma or end
@@ -171,9 +181,7 @@ pub fn parse_font_face_rule(rule: AtRule, parent_rules: &mut Vec<CSSRule>, base_
                             }
                         }
 
-                        if !syntax_error {
-                            assert!(sources.len() > 0);
-
+                        if !syntax_error && sources.len() > 0 {
                             let source_line = FontFaceSourceLine {
                                 sources: sources
                             };
