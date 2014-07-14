@@ -3,29 +3,26 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::ValidityStateBinding;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::window::Window;
-use std::cell::Cell;
 
 #[deriving(Encodable)]
 pub struct ValidityState {
     reflector_: Reflector,
-    window: Cell<JS<Window>>,
     state: u8,
 }
 
 impl ValidityState {
-    pub fn new_inherited(window: &JSRef<Window>) -> ValidityState {
+    pub fn new_inherited() -> ValidityState {
         ValidityState {
             reflector_: Reflector::new(),
-            window: Cell::new(JS::from_rooted(window)),
             state: 0,
         }
     }
 
     pub fn new(window: &JSRef<Window>) -> Temporary<ValidityState> {
-        reflect_dom_object(box ValidityState::new_inherited(window),
+        reflect_dom_object(box ValidityState::new_inherited(),
                            window,
                            ValidityStateBinding::Wrap)
     }
