@@ -121,3 +121,6 @@
 [submodule "src/support/phf/rust-phf"]
 	path = src/support/phf/rust-phf
 	url = https://github.com/mozilla-servo/rust-phf.git
+[submodule "src/support/stringcache/string-cache"]
+	path = src/support/stringcache/string-cache
+	url = https://github.com/mozilla-servo/string-cache.git

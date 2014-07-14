@@ -523,7 +523,8 @@ CFG_SUBMODULES="\
     support/layers/rust-layers \
     support/opengles/rust-opengles \
     support/sharegl/sharegl \
-    support/phf/rust-phf"
+    support/phf/rust-phf \
+    support/stringcache/string-cache"
 
 if [ $CFG_OSTYPE = "apple-darwin" ]
 then
