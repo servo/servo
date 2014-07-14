@@ -34,20 +34,18 @@ pub enum CollectionTypeId {
 pub struct HTMLCollection {
     collection: CollectionTypeId,
     reflector_: Reflector,
-    window: JS<Window>,
 }
 
 impl HTMLCollection {
-    pub fn new_inherited(window: &JSRef<Window>, collection: CollectionTypeId) -> HTMLCollection {
+    pub fn new_inherited(collection: CollectionTypeId) -> HTMLCollection {
         HTMLCollection {
             collection: collection,
             reflector_: Reflector::new(),
-            window: JS::from_rooted(window),
         }
     }
 
     pub fn new(window: &JSRef<Window>, collection: CollectionTypeId) -> Temporary<HTMLCollection> {
-        reflect_dom_object(box HTMLCollection::new_inherited(window, collection),
+        reflect_dom_object(box HTMLCollection::new_inherited(collection),
                            window, HTMLCollectionBinding::Wrap)
     }
 }
