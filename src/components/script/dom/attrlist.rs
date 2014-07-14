@@ -12,21 +12,19 @@ use dom::window::Window;
 #[deriving(Encodable)]
 pub struct AttrList {
     reflector_: Reflector,
-    window: JS<Window>,
     owner: JS<Element>,
 }
 
 impl AttrList {
-    pub fn new_inherited(window: &JSRef<Window>, elem: &JSRef<Element>) -> AttrList {
+    pub fn new_inherited(elem: &JSRef<Element>) -> AttrList {
         AttrList {
             reflector_: Reflector::new(),
-            window: JS::from_rooted(window),
             owner: JS::from_rooted(elem),
         }
     }
 
     pub fn new(window: &JSRef<Window>, elem: &JSRef<Element>) -> Temporary<AttrList> {
-        reflect_dom_object(box AttrList::new_inherited(window, elem),
+        reflect_dom_object(box AttrList::new_inherited(elem),
                            window, AttrListBinding::Wrap)
     }
 }
