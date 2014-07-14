@@ -3917,7 +3917,6 @@ class CGClassConstructHook(CGAbstractExternMethod):
     def definition_body(self):
         preamble = CGGeneric("""\
 let global = global_object_for_js_object(JS_CALLEE(cx, vp).to_object()).root();
-let obj = global.deref().reflector().get_jsobject();
 """)
         nativeName = MakeNativeName(self._ctor.identifier.name)
         callGenerator = CGMethodCall(["&global.root_ref()"], nativeName, True,
