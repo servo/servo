@@ -591,12 +591,8 @@ pub fn global_object_for_js_object(obj: *mut JSObject) -> JS<window::Window> {
 }
 
 fn cx_for_dom_reflector(obj: *mut JSObject) -> *mut JSContext {
-    let win = global_object_for_js_object(obj).root();
-    let js_info = win.deref().page().js_info();
-    match *js_info {
-        Some(ref info) => info.js_context.deref().deref().ptr,
-        None => fail!("no JS context for DOM global")
-    }
+    let global = global_object_for_js_object(obj).root();
+    global.get_cx()
 }
 
 pub fn cx_for_dom_object<T: Reflectable>(obj: &T) -> *mut JSContext {
