@@ -18,9 +18,9 @@ use std::num::ToStrRadix;
 use std::ascii::OwnedStrAsciiExt;
 
 #[deriving(Encodable)]
-pub struct URLSearchParams{
-    pub data: Traceable<RefCell<HashMap<DOMString, Vec<DOMString>>>>,
-    pub reflector_: Reflector,
+pub struct URLSearchParams {
+    data: Traceable<RefCell<HashMap<DOMString, Vec<DOMString>>>>,
+    reflector_: Reflector,
 }
 
 impl URLSearchParams {

@@ -21,8 +21,8 @@ use std::cell::Cell;
 
 #[deriving(Encodable)]
 pub struct TestBinding {
-    pub reflector: Reflector,
-    pub global: Cell<JS<Window>>,
+    reflector: Reflector,
+    global: Cell<JS<Window>>,
 }
 
 pub trait TestBindingMethods {

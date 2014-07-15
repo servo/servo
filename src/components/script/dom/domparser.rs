@@ -13,8 +13,8 @@ use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
 pub struct DOMParser {
-    pub window: JS<Window>, //XXXjdm Document instead?
-    pub reflector_: Reflector
+    window: JS<Window>, //XXXjdm Document instead?
+    reflector_: Reflector
 }
 
 impl DOMParser {
