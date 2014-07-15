@@ -4,10 +4,13 @@
 
 use dom::bindings::error::{Fallible, Security, Syntax};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::Temporary;
+use dom::bindings::js::{Temporary, RootCollection};
 use dom::bindings::utils::{Reflectable, Reflector};
+use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use dom::eventtarget::EventTarget;
+use script_task::StackRootTLS;
 
+use servo_net::resource_task::load_whole_resource;
 use servo_util::str::DOMString;
 use servo_util::url::try_parse_url;
 
@@ -27,8 +30,27 @@ impl Worker {
         };
 
         let name = format!("Web Worker at {}", worker_url);
+        let resource_task = global.page().resource_task.deref().clone();
         TaskBuilder::new().named(name).spawn(proc() {
-            println!("Spawned!");
+            let roots = RootCollection::new();
+            let _stack_roots_tls = StackRootTLS::new(&roots);
+
+            let (filename, source) = match load_whole_resource(&resource_task, worker_url.clone()) {
+                Err(_) => {
+                    println!("error loading script {}", worker_url);
+                    return;
+                }
+                Ok((metadata, bytes)) => {
+                    (metadata.final_url, String::from_utf8(bytes).unwrap())
+                }
+            };
+
+            let (cx, global) = DedicatedWorkerGlobalScope::init();
+            let global = global.root();
+            match cx.evaluate_script(global.reflector().get_jsobject(), source, filename.to_str(), 1) {
+                Ok(_) => (),
+                Err(_) => println!("evaluate_script failed")
+            }
         });
         Err(Security)
     }

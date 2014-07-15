@@ -115,10 +115,10 @@ impl ScriptChan {
     }
 }
 
-struct StackRootTLS;
+pub struct StackRootTLS;
 
 impl StackRootTLS {
-    fn new(roots: &RootCollection) -> StackRootTLS {
+    pub fn new(roots: &RootCollection) -> StackRootTLS {
         StackRoots.replace(Some(roots as *RootCollection));
         StackRootTLS
     }
@@ -210,6 +210,21 @@ impl ScriptTask {
                window_size: WindowSizeData)
                -> Rc<ScriptTask> {
         let (js_runtime, js_context) = ScriptTask::new_rt_and_cx();
+        unsafe {
+            // JS_SetWrapObjectCallbacks clobbers the existing wrap callback,
+            // and JSCompartment::wrap crashes if that happens. The only way
+            // to retrieve the default callback is as the result of
+            // JS_SetWrapObjectCallbacks, which is why we call it twice.
+            let callback = JS_SetWrapObjectCallbacks((*js_runtime).ptr,
+                                                     None,
+                                                     Some(wrap_for_same_compartment),
+                                                     None);
+            JS_SetWrapObjectCallbacks((*js_runtime).ptr,
+                                      callback,
+                                      Some(wrap_for_same_compartment),
+                                      Some(pre_wrap));
+        }
+
         let page = Page::new(id, None, layout_chan, window_size,
                              resource_task.clone(),
                              constellation_chan.clone(),
@@ -231,26 +246,12 @@ impl ScriptTask {
         })
     }
 
-    fn new_rt_and_cx() -> (js::rust::rt, Rc<Cx>) {
+    pub fn new_rt_and_cx() -> (js::rust::rt, Rc<Cx>) {
         let js_runtime = js::rust::rt();
         assert!({
             let ptr: *mut JSRuntime = (*js_runtime).ptr;
             ptr.is_not_null()
         });
-        unsafe {
-            // JS_SetWrapObjectCallbacks clobbers the existing wrap callback,
-            // and JSCompartment::wrap crashes if that happens. The only way
-            // to retrieve the default callback is as the result of
-            // JS_SetWrapObjectCallbacks, which is why we call it twice.
-            let callback = JS_SetWrapObjectCallbacks((*js_runtime).ptr,
-                                                     None,
-                                                     Some(wrap_for_same_compartment),
-                                                     None);
-            JS_SetWrapObjectCallbacks((*js_runtime).ptr,
-                                      callback,
-                                      Some(wrap_for_same_compartment),
-                                      Some(pre_wrap));
-        }
 
         let js_context = js_runtime.cx();
         assert!({

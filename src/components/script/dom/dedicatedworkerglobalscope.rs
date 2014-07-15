@@ -10,8 +10,12 @@ use dom::eventtarget::EventTarget;
 use dom::eventtarget::WorkerGlobalScopeTypeId;
 use dom::workerglobalscope::DedicatedGlobalScope;
 use dom::workerglobalscope::WorkerGlobalScope;
+use script_task::ScriptTask;
 
 use js::jsapi::JSContext;
+use js::rust::Cx;
+
+use std::rc::Rc;
 
 #[deriving(Encodable)]
 pub struct DedicatedWorkerGlobalScope {
@@ -28,6 +32,12 @@ impl DedicatedWorkerGlobalScope {
     pub fn new(cx: *mut JSContext) -> Temporary<DedicatedWorkerGlobalScope> {
         let scope = box DedicatedWorkerGlobalScope::new_inherited();
         DedicatedWorkerGlobalScopeBinding::Wrap(cx, scope)
+    }
+
+    pub fn init() -> (Rc<Cx>, Temporary<DedicatedWorkerGlobalScope>) {
+        let (_js_runtime, js_context) = ScriptTask::new_rt_and_cx();
+        let global = DedicatedWorkerGlobalScope::new(js_context.ptr);
+        (js_context, global)
     }
 }
 
