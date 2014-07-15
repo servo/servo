@@ -69,8 +69,8 @@ pub mod dom {
     pub mod blob;
     pub mod browsercontext;
     pub mod characterdata;
-    pub mod clientrect;
-    pub mod clientrectlist;
+    pub mod domrect;
+    pub mod domrectlist;
     pub mod comment;
     pub mod console;
     pub mod customevent;

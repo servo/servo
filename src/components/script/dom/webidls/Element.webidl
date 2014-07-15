@@ -53,8 +53,8 @@ interface Element : Node {
 
 // http://dev.w3.org/csswg/cssom-view/#extensions-to-the-element-interface
 partial interface Element {
-  ClientRectList getClientRects();
-  ClientRect getBoundingClientRect();
+  DOMRectList getDOMRects();
+  DOMRect getBoundingDOMRect();
 };
 
 // http://domparsing.spec.whatwg.org/#extensions-to-the-element-interface

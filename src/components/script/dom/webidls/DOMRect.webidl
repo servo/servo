@@ -4,7 +4,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-interface ClientRect {
+interface DOMRect {
   readonly attribute float top;
   readonly attribute float right;
   readonly attribute float bottom;
