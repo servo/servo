@@ -34,8 +34,7 @@ pub enum Msg {
     /// Clients must wait for a response before shutting down the ResourceTask
     Exit(Sender<()>),
 
-    // FIXME: We can probably get rid of this Cell now
-    /// Used be the prefetch tasks to post back image binaries
+    /// Used by the prefetch tasks to post back image binaries
     StorePrefetchedImageData(Url, Result<Vec<u8>, ()>),
 
     /// Used by the decoder tasks to post decoded images back to the cache
