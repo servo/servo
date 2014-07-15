@@ -37,7 +37,7 @@ extern crate servo_util = "util";
 
 extern crate libc;
 extern crate time;
-extern crate url;
+extern crate url = "url_";
 
 #[cfg(target_os="macos")]
 extern crate core_graphics;

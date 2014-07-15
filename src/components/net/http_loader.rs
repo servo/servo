@@ -56,7 +56,7 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
             return;
         }
 
-        info!("requesting {:s}", url.to_str());
+        info!("requesting {:s}", url.serialize());
 
         let request = RequestWriter::<NetworkStream>::new(load_data.method.clone(), url.clone());
         let mut writer = match request {
@@ -106,7 +106,7 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
         if 3 == (response.status.code() / 100) {
             match response.headers.location {
                 Some(new_url) => {
-                    info!("redirecting to {:s}", new_url.to_str());
+                    info!("redirecting to {:s}", new_url.serialize());
                     url = new_url;
                     continue;
                 }

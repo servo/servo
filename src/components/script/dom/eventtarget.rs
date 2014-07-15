@@ -171,7 +171,7 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
                                     scope: *mut JSObject,
                                     ty: &str,
                                     source: DOMString) {
-        let url = url.to_str().to_c_str();
+        let url = url.serialize().to_c_str();
         let name = ty.to_c_str();
         let lineno = 0; //XXXjdm need to get a real number here
 

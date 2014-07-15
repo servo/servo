@@ -25,7 +25,7 @@ use dom::xmlhttprequestupload::XMLHttpRequestUpload;
 
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
-use encoding::types::{DecodeReplace, Encoding, EncodeReplace};
+use encoding::types::{DecodeReplace, Encoding, EncodingRef, EncodeReplace};
 
 use ResponseHeaderCollection = http::headers::response::HeaderCollection;
 use RequestHeaderCollection = http::headers::request::HeaderCollection;
@@ -517,16 +517,8 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
 
         // XXXManishearth this is to be replaced with Origin for CORS (with no path)
         let referer_url = self.global.root().root_ref().get_url();
-        let mut buf = String::new();
-        buf.push_str(referer_url.scheme.as_slice());
-        buf.push_str("://".as_slice());
-        buf.push_str(referer_url.host.as_slice());
-        referer_url.port.as_ref().map(|p| {
-            buf.push_str(":".as_slice());
-            buf.push_str(p.as_slice());
-        });
-        buf.push_str(referer_url.path.as_slice());
-        self.request_headers.deref().borrow_mut().referer = Some(buf);
+        self.request_headers.deref().borrow_mut().referer =
+            Some(referer_url.serialize_no_fragment());
 
         load_data.headers = (*self.request_headers.deref().borrow()).clone();
         load_data.method = (*self.request_method.deref().borrow()).clone();
@@ -910,7 +902,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         self.timer.deref().borrow_mut().oneshot(0);
     }
     fn text_response(&self) -> DOMString {
-        let mut encoding = UTF_8 as &Encoding+Send;
+        let mut encoding = UTF_8 as EncodingRef;
         match self.response_headers.deref().borrow().content_type {
             Some(ref x) => {
                 for &(ref name, ref value) in x.parameters.iter() {
@@ -945,7 +937,7 @@ trait Extractable {
 impl Extractable for SendParam {
     fn extract(&self) -> Vec<u8> {
         // http://fetch.spec.whatwg.org/#concept-fetchbodyinit-extract
-        let encoding = UTF_8 as &Encoding+Send;
+        let encoding = UTF_8 as EncodingRef;
         match *self {
             eString(ref s) => encoding.encode(s.as_slice(), EncodeReplace).unwrap(),
             eURLSearchParams(ref usp) => usp.root().serialize(None) // Default encoding is UTF8

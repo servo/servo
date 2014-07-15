@@ -67,14 +67,15 @@ impl DedicatedWorkerGlobalScope {
                             resource_task: ResourceTask,
                             script_chan: ScriptChan) {
         let mut task_opts = TaskOpts::new();
-        task_opts.name = Some(format!("Web Worker at {}", worker_url).into_maybe_owned());
+        task_opts.name = Some(format!("Web Worker at {}", worker_url.serialize())
+                              .into_maybe_owned());
         native::task::spawn_opts(task_opts, proc() {
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
 
-            let (filename, source) = match load_whole_resource(&resource_task, worker_url.clone()) {
+            let (url, source) = match load_whole_resource(&resource_task, worker_url.clone()) {
                 Err(_) => {
-                    println!("error loading script {}", worker_url);
+                    println!("error loading script {}", worker_url.serialize());
                     return;
                 }
                 Ok((metadata, bytes)) => {
@@ -87,7 +88,7 @@ impl DedicatedWorkerGlobalScope {
                 worker_url, js_context.clone(), receiver, resource_task,
                 script_chan).root();
             match js_context.evaluate_script(
-                global.reflector().get_jsobject(), source, filename.to_str(), 1) {
+                global.reflector().get_jsobject(), source, url.serialize(), 1) {
                 Ok(_) => (),
                 Err(_) => println!("evaluate_script failed")
             }

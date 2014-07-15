@@ -10,7 +10,6 @@ use servo_util::url::{UrlMap, url_map};
 use std::comm::{channel, Receiver, Sender};
 use std::mem::replace;
 use std::task::spawn;
-use std::to_str::ToStr;
 use std::result;
 use sync::{Arc, Mutex};
 use serialize::{Encoder, Encodable};
@@ -248,7 +247,7 @@ impl ImageCache {
 
                 spawn(proc() {
                     let url = url_clone;
-                    debug!("image_cache_task: started fetch for {:s}", url.to_str());
+                    debug!("image_cache_task: started fetch for {:s}", url.serialize());
 
                     let image = load_image_data(url.clone(), resource_task.clone());
 
@@ -258,7 +257,7 @@ impl ImageCache {
                         Err(())
                     };
                     to_cache.send(StorePrefetchedImageData(url.clone(), result));
-                    debug!("image_cache_task: ended fetch for {:s}", (url.clone()).to_str());
+                    debug!("image_cache_task: ended fetch for {:s}", url.serialize());
                 });
 
                 self.set_state(url, Prefetching(DoNotDecode));
@@ -317,7 +316,7 @@ impl ImageCache {
 
                 spawn(proc() {
                     let url = url_clone;
-                    debug!("image_cache_task: started image decode for {:s}", url.to_str());
+                    debug!("image_cache_task: started image decode for {:s}", url.serialize());
                     let image = load_from_memory(data.as_slice());
                     let image = if image.is_some() {
                         Some(Arc::new(box image.unwrap()))
@@ -325,7 +324,7 @@ impl ImageCache {
                         None
                     };
                     to_cache.send(StoreImage(url.clone(), image));
-                    debug!("image_cache_task: ended image decode for {:s}", url.to_str());
+                    debug!("image_cache_task: ended image decode for {:s}", url.serialize());
                 });
 
                 self.set_state(url, Decoding);

@@ -19,8 +19,6 @@ use url::Url;
 use StatusOk = http::status::Ok;
 use http::status::Status;
 
-#[cfg(test)]
-use std::from_str::FromStr;
 
 pub enum ControlMsg {
     /// Request the data associated with a particular URL
@@ -220,7 +218,7 @@ impl ResourceManager {
     fn load(&self, load_data: LoadData, start_chan: Sender<LoadResponse>) {
         match self.get_loader_factory(&load_data) {
             Some(loader_factory) => {
-                debug!("resource_task: loading url: {:s}", load_data.url.to_str());
+                debug!("resource_task: loading url: {:s}", load_data.url.serialize());
                 loader_factory(load_data, start_chan);
             }
             None => {
@@ -254,7 +252,8 @@ fn test_exit() {
 fn test_bad_scheme() {
     let resource_task = new_resource_task();
     let (start_chan, start) = channel();
-    resource_task.send(Load(LoadData::new(FromStr::from_str("bogus://whatever").unwrap()), start_chan));
+    let url = Url::parse("bogus://whatever").unwrap();
+    resource_task.send(Load(LoadData::new(url), start_chan));
     let response = start.recv();
     match response.progress_port.recv() {
       Done(result) => { assert!(result.is_err()) }
@@ -281,7 +280,8 @@ fn should_delegate_to_scheme_loader() {
     let loader_factories = vec!(("snicklefritz".to_string(), snicklefritz_loader_factory));
     let resource_task = create_resource_task_with_loaders(loader_factories);
     let (start_chan, start) = channel();
-    resource_task.send(Load(LoadData::new(FromStr::from_str("snicklefritz://heya").unwrap()), start_chan));
+    let url = Url::parse("snicklefritz://heya").unwrap();
+    resource_task.send(Load(LoadData::new(url), start_chan));
 
     let response = start.recv();
     let progress = response.progress_port;

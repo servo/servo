@@ -50,7 +50,7 @@ use servo_util::str::{DOMString, null_str_as_empty_ref};
 use std::collections::hashmap::HashMap;
 use std::ascii::StrAsciiExt;
 use std::cell::{Cell, RefCell};
-use url::{Url, from_str};
+use url::Url;
 
 #[deriving(PartialEq,Encodable)]
 pub enum IsHTMLDocument {
@@ -196,7 +196,7 @@ impl Document {
                          url: Option<Url>,
                          is_html_document: IsHTMLDocument,
                          content_type: Option<DOMString>) -> Document {
-        let url = url.unwrap_or_else(|| from_str("about:blank").unwrap());
+        let url = url.unwrap_or_else(|| Url::parse("about:blank").unwrap());
 
         Document {
             node: Node::new_without_doc(DocumentNodeTypeId),
@@ -337,7 +337,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     // http://dom.spec.whatwg.org/#dom-document-url
     fn URL(&self) -> DOMString {
-        self.url().to_str()
+        self.url().serialize()
     }
 
     // http://dom.spec.whatwg.org/#dom-document-documenturi

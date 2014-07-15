@@ -27,7 +27,7 @@ pub struct ImageHolder {
 
 impl ImageHolder {
     pub fn new(url: Url, local_image_cache: Arc<Mutex<LocalImageCache>>) -> ImageHolder {
-        debug!("ImageHolder::new() {}", url.to_str());
+        debug!("ImageHolder::new() {}", url.serialize());
         let holder = ImageHolder {
             url: url,
             image: None,
@@ -61,7 +61,7 @@ impl ImageHolder {
 
     /// Query and update the current image size.
     pub fn get_size(&mut self) -> Option<Size2D<int>> {
-        debug!("get_size() {}", self.url.to_str());
+        debug!("get_size() {}", self.url.serialize());
         self.get_image().map(|img| {
             self.cached_size = Size2D(img.width as int,
                                       img.height as int);
@@ -70,12 +70,12 @@ impl ImageHolder {
     }
 
     pub fn get_image_if_present(&self) -> Option<Arc<Box<Image>>> {
-        debug!("get_image_if_present() {}", self.url.to_str());
+        debug!("get_image_if_present() {}", self.url.serialize());
         self.image.clone()
     }
 
     pub fn get_image(&mut self) -> Option<Arc<Box<Image>>> {
-        debug!("get_image() {}", self.url.to_str());
+        debug!("get_image() {}", self.url.serialize());
 
         // If this is the first time we've called this function, load
         // the image and store it for the future
@@ -90,10 +90,10 @@ impl ImageHolder {
                     self.image = Some(image);
                 }
                 ImageNotReady => {
-                    debug!("image not ready for {:s}", self.url.to_str());
+                    debug!("image not ready for {:s}", self.url.serialize());
                 }
                 ImageFailed => {
-                    debug!("image decoding failed for {:s}", self.url.to_str());
+                    debug!("image decoding failed for {:s}", self.url.serialize());
                 }
             }
         }

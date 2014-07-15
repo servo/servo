@@ -8,6 +8,8 @@ use serialize::base64::FromBase64;
 
 use http::headers::test_utils::from_stream_with_str;
 use http::headers::content_type::MediaType;
+use url::{percent_decode, OtherSchemeData};
+
 
 pub fn factory() -> LoaderTask {
     proc(url, start_chan) {
@@ -25,7 +27,18 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
     let mut metadata = Metadata::default(url.clone());
 
     // Split out content type and data.
-    let parts: Vec<&str> = url.path.as_slice().splitn(',', 1).collect();
+    let mut scheme_data = match url.scheme_data {
+        OtherSchemeData(scheme_data) => scheme_data,
+        _ => fail!("Expected a non-relative scheme URL.")
+    };
+    match url.query {
+        Some(query) => {
+            scheme_data.push_str("?");
+            scheme_data.push_str(query.as_slice());
+        },
+        None => ()
+    }
+    let parts: Vec<&str> = scheme_data.as_slice().splitn(',', 1).collect();
     if parts.len() != 2 {
         start_sending(start_chan, metadata).send(Done(Err("invalid data uri".to_string())));
         return;
@@ -59,10 +72,9 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
             }
         }
     } else {
-        // FIXME: Since the %-decoded URL is already a str, we can't
-        // handle UTF8-incompatible encodings.
-        let bytes: &[u8] = (*parts.get(1)).as_bytes();
-        progress_chan.send(Payload(bytes.iter().map(|&x| x).collect()));
+        let mut bytes = Vec::new();
+        percent_decode(parts.get(1).as_bytes(), &mut bytes);
+        progress_chan.send(Payload(bytes));
         progress_chan.send(Done(Ok(())));
     }
 }
@@ -72,11 +84,11 @@ fn assert_parse(url:          &'static str,
                 content_type: Option<(String, String)>,
                 charset:      Option<String>,
                 data:         Option<Vec<u8>>) {
-    use std::from_str::FromStr;
     use std::comm;
+    use url::Url;
 
     let (start_chan, start_port) = comm::channel();
-    load(LoadData::new(FromStr::from_str(url).unwrap()), start_chan);
+    load(LoadData::new(Url::parse(url).unwrap()), start_chan);
 
     let response = start_port.recv();
     assert_eq!(&response.metadata.content_type, &content_type);

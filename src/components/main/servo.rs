@@ -26,7 +26,7 @@ extern crate gfx;
 extern crate libc;
 extern crate native;
 extern crate rustrt;
-extern crate url;
+extern crate url = "url_";
 
 #[cfg(not(test))]
 use compositing::{CompositorChan, CompositorTask, Constellation};
@@ -58,8 +58,6 @@ use std::os;
 use std::str;
 #[cfg(not(test))]
 use rustrt::task::TaskOpts;
-#[cfg(not(test))]
-use url::Url;
 
 
 #[cfg(not(test), target_os="linux")]
@@ -136,14 +134,7 @@ pub fn run(opts: opts::Opts) {
 
         // Send the URL command to the constellation.
         for filename in opts.urls.iter() {
-            let url = if filename.as_slice().starts_with("data:") {
-                // As a hack for easier command-line testing,
-                // assume that data URLs are not URL-encoded.
-                Url::new("data".to_string(), None, "".to_string(), None,
-                    filename.as_slice().slice_from(5).to_string(), vec!(), None)
-            } else {
-                parse_url(filename.as_slice(), None)
-            };
+            let url = parse_url(filename.as_slice(), None);
 
             let ConstellationChan(ref chan) = constellation_chan;
             chan.send(InitLoadUrlMsg(url));

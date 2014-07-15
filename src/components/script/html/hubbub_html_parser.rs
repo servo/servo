@@ -133,7 +133,7 @@ fn js_script_listener(to_parent: Sender<HtmlDiscoveryMessage>,
             Ok(JSTaskNewFile(url)) => {
                 match load_whole_resource(&resource_task, url.clone()) {
                     Err(_) => {
-                        error!("error loading script {:s}", url.to_str());
+                        error!("error loading script {:s}", url.serialize());
                     }
                     Ok((metadata, bytes)) => {
                         result_vec.push(JSFile {
@@ -541,7 +541,7 @@ pub fn parse_html(page: &Page,
                 parser.parse_chunk(data.as_slice());
             }
             Done(Err(err)) => {
-                fail!("Failed to load page URL {:s}, error: {:s}", url.to_str(), err);
+                fail!("Failed to load page URL {:s}, error: {:s}", url.serialize(), err);
             }
             Done(..) => {
                 break;

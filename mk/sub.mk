@@ -95,6 +95,11 @@ DEPS_rust-url += \
 	rust-encoding \
 	$(NULL)
 
+DEPS_rust-http += \
+	rust-encoding \
+	rust-url \
+	$(NULL)
+
 # Platform-specific dependencies
 ifeq ($(CFG_OSTYPE),apple-darwin)
 DEPS_rust-azure += \

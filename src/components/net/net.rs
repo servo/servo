@@ -20,7 +20,7 @@ extern crate serialize;
 extern crate servo_util = "util";
 extern crate stb_image;
 extern crate sync;
-extern crate url;
+extern crate url = "url_";
 
 /// Image handling.
 ///
