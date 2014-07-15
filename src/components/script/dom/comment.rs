@@ -38,8 +38,8 @@ impl Comment {
         Node::reflect_node(box node, document, CommentBinding::Wrap)
     }
 
-    pub fn Constructor(owner: &JSRef<Window>, data: DOMString) -> Fallible<Temporary<Comment>> {
-        let document = owner.Document().root();
+    pub fn Constructor(global: &JSRef<Window>, data: DOMString) -> Fallible<Temporary<Comment>> {
+        let document = global.Document().root();
         Ok(Comment::new(data, &*document))
     }
 }

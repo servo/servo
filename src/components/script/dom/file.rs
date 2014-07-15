@@ -17,9 +17,9 @@ pub struct File {
 }
 
 impl File {
-    pub fn new_inherited(window: &JSRef<Window>, _file_bits: &JSRef<Blob>, name: DOMString) -> File {
+    pub fn new_inherited(global: &JSRef<Window>, _file_bits: &JSRef<Blob>, name: DOMString) -> File {
         File {
-            blob: Blob::new_inherited(window),
+            blob: Blob::new_inherited(global),
             name: name,
             type_: FileTypeId
         }
@@ -27,9 +27,9 @@ impl File {
         // the relevant subfields of file_bits should be copied over
     }
 
-    pub fn new(window: &JSRef<Window>, file_bits: &JSRef<Blob>, name: DOMString) -> Temporary<File> {
-        reflect_dom_object(box File::new_inherited(window, file_bits, name),
-                           window,
+    pub fn new(global: &JSRef<Window>, file_bits: &JSRef<Blob>, name: DOMString) -> Temporary<File> {
+        reflect_dom_object(box File::new_inherited(global, file_bits, name),
+                           global,
                            FileBinding::Wrap)
     }
 }

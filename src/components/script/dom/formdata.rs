@@ -45,8 +45,8 @@ impl FormData {
         reflect_dom_object(box FormData::new_inherited(form, window), window, FormDataBinding::Wrap)
     }
 
-    pub fn Constructor(window: &JSRef<Window>, form: Option<JSRef<HTMLFormElement>>) -> Fallible<Temporary<FormData>> {
-        Ok(FormData::new(form, window))
+    pub fn Constructor(global: &JSRef<Window>, form: Option<JSRef<HTMLFormElement>>) -> Fallible<Temporary<FormData>> {
+        Ok(FormData::new(form, global))
     }
 }
 
@@ -115,9 +115,9 @@ trait PrivateFormDataHelpers{
 
 impl PrivateFormDataHelpers for FormData {
     fn get_file_from_blob(&self, value: &JSRef<Blob>, filename: Option<DOMString>) -> Temporary<File> {
-        let global = self.window.root();
+        let window = self.window.root();
         let f: Option<&JSRef<File>> = FileCast::to_ref(value);
         let name = filename.unwrap_or(f.map(|inner| inner.name.clone()).unwrap_or("blob".to_string()));
-        File::new(&*global, value, name)
+        File::new(&*window, value, name)
     }
 }

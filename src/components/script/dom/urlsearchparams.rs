@@ -31,12 +31,12 @@ impl URLSearchParams {
         }
     }
 
-    pub fn new(window: &JSRef<Window>) -> Temporary<URLSearchParams> {
-        reflect_dom_object(box URLSearchParams::new_inherited(), window, URLSearchParamsBinding::Wrap)
+    pub fn new(global: &JSRef<Window>) -> Temporary<URLSearchParams> {
+        reflect_dom_object(box URLSearchParams::new_inherited(), global, URLSearchParamsBinding::Wrap)
     }
 
-    pub fn Constructor(window: &JSRef<Window>, init: Option<StringOrURLSearchParams>) -> Fallible<Temporary<URLSearchParams>> {
-        let usp = URLSearchParams::new(window).root();
+    pub fn Constructor(global: &JSRef<Window>, init: Option<StringOrURLSearchParams>) -> Fallible<Temporary<URLSearchParams>> {
+        let usp = URLSearchParams::new(global).root();
         match init {
             Some(eString(_s)) => {
                 // XXXManishearth we need to parse the input here

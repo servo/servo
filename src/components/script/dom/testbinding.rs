@@ -22,7 +22,7 @@ use std::cell::Cell;
 #[deriving(Encodable)]
 pub struct TestBinding {
     pub reflector: Reflector,
-    pub window: Cell<JS<Window>>,
+    pub global: Cell<JS<Window>>,
 }
 
 pub trait TestBindingMethods {
@@ -279,20 +279,20 @@ pub trait TestBindingMethods {
 
 impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn InterfaceAttribute(&self) -> Temporary<Blob> {
-        let window = self.window.get().root();
-        Blob::new(&*window)
+        let global = self.global.get().root();
+        Blob::new(&*global)
     }
     fn GetInterfaceAttributeNullable(&self) -> Option<Temporary<Blob>> {
-        let window = self.window.get().root();
-        Some(Blob::new(&*window))
+        let global = self.global.get().root();
+        Some(Blob::new(&*global))
     }
     fn ReceiveInterface(&self) -> Temporary<Blob> {
-        let window = self.window.get().root();
-        Blob::new(&*window)
+        let global = self.global.get().root();
+        Blob::new(&*global)
     }
     fn ReceiveNullableInterface(&self) -> Option<Temporary<Blob>> {
-        let window = self.window.get().root();
-        Some(Blob::new(&*window))
+        let global = self.global.get().root();
+        Some(Blob::new(&*global))
     }
 }
 

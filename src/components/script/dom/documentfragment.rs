@@ -40,8 +40,8 @@ impl DocumentFragment {
         Node::reflect_node(box node, document, DocumentFragmentBinding::Wrap)
     }
 
-    pub fn Constructor(owner: &JSRef<Window>) -> Fallible<Temporary<DocumentFragment>> {
-        let document = owner.Document();
+    pub fn Constructor(global: &JSRef<Window>) -> Fallible<Temporary<DocumentFragment>> {
+        let document = global.Document();
         let document = document.root();
 
         Ok(DocumentFragment::new(&document.root_ref()))

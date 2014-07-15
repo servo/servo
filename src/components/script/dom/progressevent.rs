@@ -34,21 +34,21 @@ impl ProgressEvent {
             total: total
         }
     }
-    pub fn new(window: &JSRef<Window>, type_: DOMString,
+    pub fn new(global: &JSRef<Window>, type_: DOMString,
                can_bubble: bool, cancelable: bool,
                length_computable: bool, loaded: u64, total: u64) -> Temporary<ProgressEvent> {
         let ev = reflect_dom_object(box ProgressEvent::new_inherited(length_computable, loaded, total),
-                                    window,
+                                    global,
                                     ProgressEventBinding::Wrap).root();
         let event: &JSRef<Event> = EventCast::from_ref(&*ev);
         event.InitEvent(type_, can_bubble, cancelable);
         Temporary::from_rooted(&*ev)
     }
-    pub fn Constructor(owner: &JSRef<Window>,
+    pub fn Constructor(global: &JSRef<Window>,
                        type_: DOMString,
                        init: &ProgressEventBinding::ProgressEventInit)
                        -> Fallible<Temporary<ProgressEvent>> {
-        let ev = ProgressEvent::new(owner, type_, init.parent.bubbles, init.parent.cancelable,
+        let ev = ProgressEvent::new(global, type_, init.parent.bubbles, init.parent.cancelable,
                                     init.lengthComputable, init.loaded, init.total);
         Ok(ev)
     }

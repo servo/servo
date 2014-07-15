@@ -83,10 +83,11 @@ impl MouseEvent {
         Temporary::from_rooted(&*ev)
     }
 
-    pub fn Constructor(owner: &JSRef<Window>,
+    pub fn Constructor(global: &JSRef<Window>,
                        type_: DOMString,
                        init: &MouseEventBinding::MouseEventInit) -> Fallible<Temporary<MouseEvent>> {
-        let event = MouseEvent::new(owner, type_, init.parent.parent.bubbles,
+        let event = MouseEvent::new(global, type_,
+                                    init.parent.parent.bubbles,
                                     init.parent.parent.cancelable,
                                     init.parent.view.root_ref(),
                                     init.parent.detail,

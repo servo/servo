@@ -18,27 +18,27 @@ pub enum BlobType {
 #[deriving(Encodable)]
 pub struct Blob {
     reflector_: Reflector,
-    window: JS<Window>,
+    global: JS<Window>,
     type_: BlobType
 }
 
 impl Blob {
-    pub fn new_inherited(window: &JSRef<Window>) -> Blob {
+    pub fn new_inherited(global: &JSRef<Window>) -> Blob {
         Blob {
             reflector_: Reflector::new(),
-            window: JS::from_rooted(window),
+            global: JS::from_rooted(global),
             type_: BlobTypeId
         }
     }
 
-    pub fn new(window: &JSRef<Window>) -> Temporary<Blob> {
-        reflect_dom_object(box Blob::new_inherited(window),
-                           window,
+    pub fn new(global: &JSRef<Window>) -> Temporary<Blob> {
+        reflect_dom_object(box Blob::new_inherited(global),
+                           global,
                            BlobBinding::Wrap)
     }
 
-    pub fn Constructor(window: &JSRef<Window>) -> Fallible<Temporary<Blob>> {
-        Ok(Blob::new(window))
+    pub fn Constructor(global: &JSRef<Window>) -> Fallible<Temporary<Blob>> {
+        Ok(Blob::new(global))
     }
 }
 

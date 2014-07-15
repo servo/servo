@@ -20,8 +20,8 @@ impl Console {
         }
     }
 
-    pub fn new(window: &JSRef<Window>) -> Temporary<Console> {
-        reflect_dom_object(box Console::new_inherited(), window, ConsoleBinding::Wrap)
+    pub fn new(global: &JSRef<Window>) -> Temporary<Console> {
+        reflect_dom_object(box Console::new_inherited(), global, ConsoleBinding::Wrap)
     }
 }
 

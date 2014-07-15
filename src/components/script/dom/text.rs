@@ -38,8 +38,8 @@ impl Text {
         Node::reflect_node(box node, document, TextBinding::Wrap)
     }
 
-    pub fn Constructor(owner: &JSRef<Window>, text: DOMString) -> Fallible<Temporary<Text>> {
-        let document = owner.Document().root();
+    pub fn Constructor(global: &JSRef<Window>, text: DOMString) -> Fallible<Temporary<Text>> {
+        let document = global.Document().root();
         Ok(Text::new(text, &*document))
     }
 }

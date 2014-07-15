@@ -72,12 +72,12 @@ impl DOMException {
         }
     }
 
-    pub fn new(window: &JSRef<Window>, code: DOMErrorName) -> Temporary<DOMException> {
-        reflect_dom_object(box DOMException::new_inherited(code), window, DOMExceptionBinding::Wrap)
+    pub fn new(global: &JSRef<Window>, code: DOMErrorName) -> Temporary<DOMException> {
+        reflect_dom_object(box DOMException::new_inherited(code), global, DOMExceptionBinding::Wrap)
     }
 
-    pub fn new_from_error(window: &JSRef<Window>, code: Error) -> Temporary<DOMException> {
-        DOMException::new(window, DOMErrorName::from_error(code))
+    pub fn new_from_error(global: &JSRef<Window>, code: Error) -> Temporary<DOMException> {
+        DOMException::new(global, DOMErrorName::from_error(code))
     }
 }
 

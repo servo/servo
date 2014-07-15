@@ -222,8 +222,8 @@ impl Document {
     }
 
     // http://dom.spec.whatwg.org/#dom-document
-    pub fn Constructor(owner: &JSRef<Window>) -> Fallible<Temporary<Document>> {
-        Ok(Document::new(owner, None, NonHTMLDocument, None))
+    pub fn Constructor(global: &JSRef<Window>) -> Fallible<Temporary<Document>> {
+        Ok(Document::new(global, None, NonHTMLDocument, None))
     }
 
     pub fn new(window: &JSRef<Window>, url: Option<Url>, doctype: IsHTMLDocument, content_type: Option<DOMString>) -> Temporary<Document> {

@@ -85,17 +85,17 @@ impl Event {
         }
     }
 
-    pub fn new_uninitialized(window: &JSRef<Window>) -> Temporary<Event> {
+    pub fn new_uninitialized(global: &JSRef<Window>) -> Temporary<Event> {
         reflect_dom_object(box Event::new_inherited(HTMLEventTypeId),
-                           window,
+                           global,
                            EventBinding::Wrap)
     }
 
-    pub fn new(window: &JSRef<Window>,
+    pub fn new(global: &JSRef<Window>,
                type_: DOMString,
                can_bubble: bool,
                cancelable: bool) -> Temporary<Event> {
-        let event = Event::new_uninitialized(window).root();
+        let event = Event::new_uninitialized(global).root();
         event.deref().InitEvent(type_, can_bubble, cancelable);
         Temporary::from_rooted(&*event)
     }

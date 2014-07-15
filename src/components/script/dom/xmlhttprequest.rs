@@ -130,13 +130,13 @@ pub struct XMLHttpRequest {
 }
 
 impl XMLHttpRequest {
-    pub fn new_inherited(owner: &JSRef<Window>) -> XMLHttpRequest {
+    pub fn new_inherited(global: &JSRef<Window>) -> XMLHttpRequest {
         let xhr = XMLHttpRequest {
             eventtarget: XMLHttpRequestEventTarget::new_inherited(XMLHttpRequestTypeId),
             ready_state: Traceable::new(Cell::new(Unsent)),
             timeout: Traceable::new(Cell::new(0u32)),
             with_credentials: Traceable::new(Cell::new(false)),
-            upload: Cell::new(JS::from_rooted(&XMLHttpRequestUpload::new(owner))),
+            upload: Cell::new(JS::from_rooted(&XMLHttpRequestUpload::new(global))),
             response_url: "".to_string(),
             status: Traceable::new(Cell::new(0)),
             status_text: Traceable::new(RefCell::new(ByteString::new(vec!()))),
@@ -155,7 +155,7 @@ impl XMLHttpRequest {
             upload_complete: Traceable::new(Cell::new(false)),
             upload_events: Traceable::new(Cell::new(false)),
 
-            global: JS::from_rooted(owner),
+            global: JS::from_rooted(global),
             pinned_count: Traceable::new(Cell::new(0)),
             timer: Untraceable::new(RefCell::new(Timer::new().unwrap())),
             fetch_time: Traceable::new(Cell::new(0)),
@@ -164,13 +164,13 @@ impl XMLHttpRequest {
         };
         xhr
     }
-    pub fn new(window: &JSRef<Window>) -> Temporary<XMLHttpRequest> {
-        reflect_dom_object(box XMLHttpRequest::new_inherited(window),
-                           window,
+    pub fn new(global: &JSRef<Window>) -> Temporary<XMLHttpRequest> {
+        reflect_dom_object(box XMLHttpRequest::new_inherited(global),
+                           global,
                            XMLHttpRequestBinding::Wrap)
     }
-    pub fn Constructor(owner: &JSRef<Window>) -> Fallible<Temporary<XMLHttpRequest>> {
-        Ok(XMLHttpRequest::new(owner))
+    pub fn Constructor(global: &JSRef<Window>) -> Fallible<Temporary<XMLHttpRequest>> {
+        Ok(XMLHttpRequest::new(global))
     }
 
     pub fn handle_xhr_progress(addr: TrustedXHRAddress, progress: XHRProgress) {
@@ -719,9 +719,10 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
     fn change_ready_state(&self, rs: XMLHttpRequestState) {
         assert!(self.ready_state.deref().get() != rs)
         self.ready_state.deref().set(rs);
-        let win = &*self.global.root();
-        let event =
-            Event::new(win, "readystatechange".to_string(), false, true).root();
+        let global = self.global.root();
+        let event = Event::new(&*global,
+                               "readystatechange".to_string(),
+                               false, true).root();
         let target: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
         target.dispatch_event_with_target(None, &*event).ok();
     }
@@ -839,9 +840,10 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
     }
 
     fn dispatch_progress_event(&self, upload: bool, type_: DOMString, loaded: u64, total: Option<u64>) {
-        let win = &*self.global.root();
+        let global = self.global.root();
         let upload_target = &*self.upload.get().root();
-        let progressevent = ProgressEvent::new(win, type_, false, false,
+        let progressevent = ProgressEvent::new(&*global,
+                                               type_, false, false,
                                                total.is_some(), loaded,
                                                total.unwrap_or(0)).root();
         let target: &JSRef<EventTarget> = if upload {
