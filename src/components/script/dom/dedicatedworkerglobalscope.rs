@@ -12,7 +12,6 @@ use dom::workerglobalscope::DedicatedGlobalScope;
 use dom::workerglobalscope::WorkerGlobalScope;
 use script_task::ScriptTask;
 
-use js::jsapi::JSContext;
 use js::rust::Cx;
 
 use std::rc::Rc;
@@ -23,21 +22,24 @@ pub struct DedicatedWorkerGlobalScope {
 }
 
 impl DedicatedWorkerGlobalScope {
-    pub fn new_inherited() -> DedicatedWorkerGlobalScope {
+    pub fn new_inherited(cx: Rc<Cx>) -> DedicatedWorkerGlobalScope {
         DedicatedWorkerGlobalScope {
-            workerglobalscope: WorkerGlobalScope::new_inherited(DedicatedGlobalScope),
+            workerglobalscope: WorkerGlobalScope::new_inherited(DedicatedGlobalScope, cx),
         }
     }
 
-    pub fn new(cx: *mut JSContext) -> Temporary<DedicatedWorkerGlobalScope> {
-        let scope = box DedicatedWorkerGlobalScope::new_inherited();
-        DedicatedWorkerGlobalScopeBinding::Wrap(cx, scope)
+    pub fn new(cx: Rc<Cx>) -> Temporary<DedicatedWorkerGlobalScope> {
+        let scope = box DedicatedWorkerGlobalScope::new_inherited(cx.clone());
+        DedicatedWorkerGlobalScopeBinding::Wrap(cx.ptr, scope)
     }
 
-    pub fn init() -> (Rc<Cx>, Temporary<DedicatedWorkerGlobalScope>) {
+    pub fn init() -> Temporary<DedicatedWorkerGlobalScope> {
         let (_js_runtime, js_context) = ScriptTask::new_rt_and_cx();
-        let global = DedicatedWorkerGlobalScope::new(js_context.ptr);
-        (js_context, global)
+        DedicatedWorkerGlobalScope::new(js_context.clone())
+    }
+
+    pub fn get_rust_cx<'a>(&'a self) -> &'a Rc<Cx> {
+        self.workerglobalscope.get_rust_cx()
     }
 }
 

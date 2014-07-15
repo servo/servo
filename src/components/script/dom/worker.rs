@@ -45,9 +45,9 @@ impl Worker {
                 }
             };
 
-            let (cx, global) = DedicatedWorkerGlobalScope::init();
-            let global = global.root();
-            match cx.evaluate_script(global.reflector().get_jsobject(), source, filename.to_str(), 1) {
+            let global = DedicatedWorkerGlobalScope::init().root();
+            match global.get_rust_cx().evaluate_script(
+                global.reflector().get_jsobject(), source, filename.to_str(), 1) {
                 Ok(_) => (),
                 Err(_) => println!("evaluate_script failed")
             }

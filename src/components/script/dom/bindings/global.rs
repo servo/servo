@@ -35,7 +35,7 @@ impl<'a> GlobalRef<'a> {
     pub fn get_cx(&self) -> *mut JSContext {
         match *self {
             Window(ref window) => window.get_cx(),
-            Worker(_) => fail!("NYI"),
+            Worker(ref worker) => worker.get_cx(),
         }
     }
 
