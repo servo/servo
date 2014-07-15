@@ -723,8 +723,7 @@ impl Constellation {
 
         for current_frame in self.current_frame().iter() {
             // Messages originating in the current frame are not navigations;
-            // TODO(tkuehn): In fact, this kind of message might be provably
-            // impossible to occur.
+            // they may come from a page load in a subframe.
             if current_frame.contains(pipeline_id) {
                 for frame in current_frame.iter() {
                     frame.pipeline.grant_paint_permission();
