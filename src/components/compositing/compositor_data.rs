@@ -359,7 +359,7 @@ impl CompositorData {
 
             let (pending_buffer_requests, scale) = layer.flush_pending_buffer_requests();
             if !pending_buffer_requests.is_empty() {
-                let mut requests = vec!();
+                let mut requests = Vec::new();
                 requests.push(ReRenderRequest {
                     buffer_requests: pending_buffer_requests,
                     scale: scale,
