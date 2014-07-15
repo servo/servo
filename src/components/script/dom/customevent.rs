@@ -4,8 +4,8 @@
 
 use dom::bindings::codegen::Bindings::CustomEventBinding;
 use dom::bindings::codegen::InheritTypes::{EventCast, CustomEventDerived};
-use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::Fallible;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::trace::Traceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{Event, EventMethods, EventTypeId, CustomEventTypeId};

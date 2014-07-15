@@ -4,9 +4,9 @@
 
 use dom::bindings::codegen::Bindings::DOMImplementationBinding;
 use dom::bindings::codegen::InheritTypes::NodeCast;
+use dom::bindings::error::{Fallible, InvalidCharacter, NamespaceError};
 use dom::bindings::js::{JS, JSRef, Root, Temporary, OptionalRootable};
 use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
-use dom::bindings::error::{Fallible, InvalidCharacter, NamespaceError};
 use dom::bindings::utils::{QName, Name, InvalidXMLName, xml_name_type};
 use dom::document::{Document, HTMLDocument, NonHTMLDocument, DocumentMethods};
 use dom::documenttype::DocumentType;
