@@ -6,6 +6,7 @@
 //! and layout tasks.
 
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, EventCast};
+use dom::bindings::global::Window;
 use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, OptionalSettable};
 use dom::bindings::js::OptionalRootable;
 use dom::bindings::utils::Reflectable;
@@ -621,7 +622,7 @@ impl ScriptTask {
         // We have no concept of a document loader right now, so just dispatch the
         // "load" event as soon as we've finished executing all scripts parsed during
         // the initial load.
-        let event = Event::new(&*window, "load".to_string(), false, false).root();
+        let event = Event::new(&Window(*window), "load".to_string(), false, false).root();
         let doctarget: &JSRef<EventTarget> = EventTargetCast::from_ref(&*document);
         let wintarget: &JSRef<EventTarget> = EventTargetCast::from_ref(&*window);
         let _ = wintarget.dispatch_event_with_target(Some((*doctarget).clone()),
@@ -719,7 +720,7 @@ impl ScriptTask {
                                     Some(ref frame) => {
                                         let window = frame.window.root();
                                         let event =
-                                            Event::new(&*window,
+                                            Event::new(&Window(*window),
                                                        "click".to_string(),
                                                        true, true).root();
                                         let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(&node);

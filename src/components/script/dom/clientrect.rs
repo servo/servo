@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::ClientRectBinding;
+use dom::bindings::global::Window;
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::window::Window;
@@ -36,7 +37,7 @@ impl ClientRect {
                top: Au, bottom: Au,
                left: Au, right: Au) -> Temporary<ClientRect> {
         let rect = ClientRect::new_inherited(window, top, bottom, left, right);
-        reflect_dom_object(box rect, window, ClientRectBinding::Wrap)
+        reflect_dom_object(box rect, &Window(*window), ClientRectBinding::Wrap)
     }
 }
 

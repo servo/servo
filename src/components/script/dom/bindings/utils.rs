@@ -5,7 +5,8 @@
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
 use dom::bindings::conversions::{FromJSValConvertible, IDLInterface};
-use dom::bindings::js::{JS, JSRef, Temporary, Root};
+use dom::bindings::global::{GlobalRef, GlobalField, WindowField};
+use dom::bindings::js::{JS, Temporary, Root};
 use dom::bindings::trace::Untraceable;
 use dom::browsercontext;
 use dom::window;
@@ -373,10 +374,10 @@ pub trait Reflectable {
 
 pub fn reflect_dom_object<T: Reflectable>
         (obj:     Box<T>,
-         window:  &JSRef<window::Window>,
-         wrap_fn: extern "Rust" fn(*mut JSContext, &JSRef<window::Window>, Box<T>) -> Temporary<T>)
+         global:  &GlobalRef,
+         wrap_fn: extern "Rust" fn(*mut JSContext, &GlobalRef, Box<T>) -> Temporary<T>)
          -> Temporary<T> {
-    wrap_fn(window.get_cx(), window, obj)
+    wrap_fn(global.get_cx(), global, obj)
 }
 
 #[allow(raw_pointer_deriving)]
@@ -580,23 +581,23 @@ pub extern fn outerize_global(_cx: *mut JSContext, obj: JSHandleObject) -> *mut 
 }
 
 /// Returns the global object of the realm that the given JS object was created in.
-pub fn global_object_for_js_object(obj: *mut JSObject) -> JS<window::Window> {
+pub fn global_object_for_js_object(obj: *mut JSObject) -> GlobalField {
     unsafe {
         let global = GetGlobalForObjectCrossCompartment(obj);
         let clasp = JS_GetClass(global);
         assert!(((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)) != 0);
-        FromJSValConvertible::from_jsval(ptr::mut_null(), ObjectOrNullValue(global), ())
-            .ok().expect("found DOM global that doesn't unwrap to Window")
+        match FromJSValConvertible::from_jsval(ptr::mut_null(), ObjectOrNullValue(global), ()) {
+            Ok(window) => return WindowField(window),
+            Err(_) => (),
+        }
+
+        fail!("found DOM global that doesn't unwrap to Window")
     }
 }
 
 fn cx_for_dom_reflector(obj: *mut JSObject) -> *mut JSContext {
-    let win = global_object_for_js_object(obj).root();
-    let js_info = win.deref().page().js_info();
-    match *js_info {
-        Some(ref info) => info.js_context.deref().deref().ptr,
-        None => fail!("no JS context for DOM global")
-    }
+    let global = global_object_for_js_object(obj).root();
+    global.root_ref().get_cx()
 }
 
 pub fn cx_for_dom_object<T: Reflectable>(obj: &T) -> *mut JSContext {

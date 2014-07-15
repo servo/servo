@@ -1792,7 +1792,7 @@ class CGWrapMethod(CGAbstractMethod):
     def __init__(self, descriptor):
         assert descriptor.interface.hasInterfacePrototypeObject()
         if not descriptor.createGlobal:
-            args = [Argument('*mut JSContext', 'aCx'), Argument('&JSRef<Window>', 'aScope'),
+            args = [Argument('*mut JSContext', 'aCx'), Argument('&GlobalRef', 'aScope'),
                     Argument("Box<%s>" % descriptor.concreteType, 'aObject', mutable=True)]
         else:
             args = [Argument('*mut JSContext', 'aCx'),
@@ -2185,7 +2185,7 @@ class CGCallGenerator(CGThing):
                 "    Ok(result) => result,\n"
                 "    Err(e) => {\n"
                 "%s"
-                "        throw_dom_exception(cx, &*global, e);\n"
+                "        throw_dom_exception(cx, &global.root_ref(), e);\n"
                 "        return%s;\n"
                 "    },\n"
                 "};\n" % (glob, errorResult)))
@@ -4405,6 +4405,7 @@ class CGBindingRoot(CGThing):
             'js::rust::with_compartment',
             'dom::types::*',
             'dom::bindings',
+            'dom::bindings::global::GlobalRef',
             'dom::bindings::js::{JS, JSRef, Root, RootedReference, Temporary}',
             'dom::bindings::js::{OptionalRootable, OptionalRootedRootable, ResultRootable}',
             'dom::bindings::js::{OptionalRootedReference, OptionalOptionalRootedRootable}',

@@ -4,14 +4,15 @@
 
 use dom::bindings::codegen::InheritTypes::CommentDerived;
 use dom::bindings::codegen::Bindings::CommentBinding;
-use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::Fallible;
+use dom::bindings::global::GlobalRef;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::node::{CommentNodeTypeId, Node};
-use dom::window::{Window, WindowMethods};
+use dom::window::WindowMethods;
 use servo_util::str::DOMString;
 
 /// An HTML comment.
@@ -38,8 +39,8 @@ impl Comment {
         Node::reflect_node(box node, document, CommentBinding::Wrap)
     }
 
-    pub fn Constructor(owner: &JSRef<Window>, data: DOMString) -> Fallible<Temporary<Comment>> {
-        let document = owner.Document().root();
+    pub fn Constructor(global: &GlobalRef, data: DOMString) -> Fallible<Temporary<Comment>> {
+        let document = global.as_window().Document().root();
         Ok(Comment::new(data, &*document))
     }
 }

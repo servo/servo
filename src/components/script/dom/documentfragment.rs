@@ -6,6 +6,7 @@ use dom::bindings::codegen::InheritTypes::{DocumentFragmentDerived, NodeCast};
 use dom::bindings::codegen::Bindings::DocumentFragmentBinding;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::Fallible;
+use dom::bindings::global::GlobalRef;
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::Element;
@@ -13,7 +14,7 @@ use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlcollection::HTMLCollection;
 use dom::node::{DocumentFragmentNodeTypeId, Node, NodeHelpers, window_from_node};
 use dom::nodelist::NodeList;
-use dom::window::{Window, WindowMethods};
+use dom::window::WindowMethods;
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
@@ -40,8 +41,8 @@ impl DocumentFragment {
         Node::reflect_node(box node, document, DocumentFragmentBinding::Wrap)
     }
 
-    pub fn Constructor(owner: &JSRef<Window>) -> Fallible<Temporary<DocumentFragment>> {
-        let document = owner.Document();
+    pub fn Constructor(global: &GlobalRef) -> Fallible<Temporary<DocumentFragment>> {
+        let document = global.as_window().Document();
         let document = document.root();
 
         Ok(DocumentFragment::new(&document.root_ref()))

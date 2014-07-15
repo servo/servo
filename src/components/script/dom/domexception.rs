@@ -6,9 +6,9 @@ use dom::bindings::codegen::Bindings::DOMExceptionBinding;
 use dom::bindings::codegen::Bindings::DOMExceptionBinding::DOMExceptionConstants;
 use dom::bindings::error;
 use dom::bindings::error::Error;
+use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::window::Window;
 use servo_util::str::DOMString;
 
 #[repr(uint)]
@@ -72,12 +72,12 @@ impl DOMException {
         }
     }
 
-    pub fn new(window: &JSRef<Window>, code: DOMErrorName) -> Temporary<DOMException> {
-        reflect_dom_object(box DOMException::new_inherited(code), window, DOMExceptionBinding::Wrap)
+    pub fn new(global: &GlobalRef, code: DOMErrorName) -> Temporary<DOMException> {
+        reflect_dom_object(box DOMException::new_inherited(code), global, DOMExceptionBinding::Wrap)
     }
 
-    pub fn new_from_error(window: &JSRef<Window>, code: Error) -> Temporary<DOMException> {
-        DOMException::new(window, DOMErrorName::from_error(code))
+    pub fn new_from_error(global: &GlobalRef, code: Error) -> Temporary<DOMException> {
+        DOMException::new(global, DOMErrorName::from_error(code))
     }
 }
 

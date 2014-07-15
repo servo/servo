@@ -5,6 +5,7 @@
 use dom::bindings::codegen::Bindings::EventHandlerBinding::{OnErrorEventHandlerNonNull, EventHandlerNonNull};
 use dom::bindings::codegen::Bindings::WindowBinding;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
+use dom::bindings::global;
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalSettable};
 use dom::bindings::trace::{Traceable, Untraceable};
 use dom::bindings::utils::{Reflectable, Reflector};
@@ -169,7 +170,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
 
     fn Console(&self) -> Temporary<Console> {
         if self.console.get().is_none() {
-            let console = Console::new(self);
+            let console = Console::new(&global::Window(*self));
             self.console.assign(Some(console));
         }
         Temporary::new(self.console.get().get_ref().clone())

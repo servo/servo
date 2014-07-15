@@ -4,14 +4,15 @@
 
 use dom::bindings::codegen::Bindings::TextBinding;
 use dom::bindings::codegen::InheritTypes::TextDerived;
-use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::Fallible;
+use dom::bindings::global::GlobalRef;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::node::{Node, TextNodeTypeId};
-use dom::window::{Window, WindowMethods};
+use dom::window::WindowMethods;
 use servo_util::str::DOMString;
 
 /// An HTML text node.
@@ -38,8 +39,8 @@ impl Text {
         Node::reflect_node(box node, document, TextBinding::Wrap)
     }
 
-    pub fn Constructor(owner: &JSRef<Window>, text: DOMString) -> Fallible<Temporary<Text>> {
-        let document = owner.Document().root();
+    pub fn Constructor(global: &GlobalRef, text: DOMString) -> Fallible<Temporary<Text>> {
+        let document = global.as_window().Document().root();
         Ok(Text::new(text, &*document))
     }
 }

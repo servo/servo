@@ -5,6 +5,7 @@
 use dom::bindings::codegen::Bindings::UIEventBinding;
 use dom::bindings::codegen::InheritTypes::{EventCast, UIEventDerived};
 use dom::bindings::error::Fallible;
+use dom::bindings::global::{GlobalRef, Window};
 use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, OptionalSettable};
 use dom::bindings::trace::Traceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
@@ -39,7 +40,7 @@ impl UIEvent {
 
     pub fn new_uninitialized(window: &JSRef<Window>) -> Temporary<UIEvent> {
         reflect_dom_object(box UIEvent::new_inherited(UIEventTypeId),
-                           window,
+                           &Window(*window),
                            UIEventBinding::Wrap)
     }
 
@@ -54,10 +55,10 @@ impl UIEvent {
         Temporary::from_rooted(&*ev)
     }
 
-    pub fn Constructor(owner: &JSRef<Window>,
+    pub fn Constructor(global: &GlobalRef,
                        type_: DOMString,
                        init: &UIEventBinding::UIEventInit) -> Fallible<Temporary<UIEvent>> {
-        let event = UIEvent::new(owner, type_,
+        let event = UIEvent::new(global.as_window(), type_,
                                  init.parent.bubbles, init.parent.cancelable,
                                  init.view.root_ref(), init.detail);
         Ok(event)

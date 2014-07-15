@@ -12,6 +12,7 @@ use dom::bindings::codegen::InheritTypes::{CharacterDataCast, NodeBase, NodeDeri
 use dom::bindings::codegen::InheritTypes::{ProcessingInstructionCast, EventTargetCast};
 use dom::bindings::codegen::Bindings::NodeBinding::NodeConstants;
 use dom::bindings::error::{ErrorResult, Fallible, NotFound, HierarchyRequest, Syntax};
+use dom::bindings::global::{GlobalRef, Window};
 use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, Root, OptionalUnrootable};
 use dom::bindings::js::{OptionalSettable, TemporaryPushable, OptionalRootedRootable};
 use dom::bindings::js::{ResultRootable, OptionalRootable};
@@ -907,10 +908,10 @@ impl Node {
     pub fn reflect_node<N: Reflectable+NodeBase>
             (node:      Box<N>,
              document:  &JSRef<Document>,
-             wrap_fn:   extern "Rust" fn(*mut JSContext, &JSRef<Window>, Box<N>) -> Temporary<N>)
+             wrap_fn:   extern "Rust" fn(*mut JSContext, &GlobalRef, Box<N>) -> Temporary<N>)
              -> Temporary<N> {
         let window = document.window.root();
-        reflect_dom_object(node, &*window, wrap_fn)
+        reflect_dom_object(node, &Window(*window), wrap_fn)
     }
 
     pub fn new_inherited(type_id: NodeTypeId, doc: &JSRef<Document>) -> Node {

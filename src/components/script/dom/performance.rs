@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::PerformanceBinding;
+use dom::bindings::global::Window;
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::performancetiming::{PerformanceTiming, PerformanceTimingMethods};
@@ -27,7 +28,8 @@ impl Performance {
 
     pub fn new(window: &JSRef<Window>) -> Temporary<Performance> {
         let performance = Performance::new_inherited(window);
-        reflect_dom_object(box performance, window, PerformanceBinding::Wrap)
+        reflect_dom_object(box performance, &Window(*window),
+                           PerformanceBinding::Wrap)
     }
 }
 

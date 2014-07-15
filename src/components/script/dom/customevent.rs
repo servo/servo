@@ -4,12 +4,12 @@
 
 use dom::bindings::codegen::Bindings::CustomEventBinding;
 use dom::bindings::codegen::InheritTypes::{EventCast, CustomEventDerived};
-use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::Fallible;
+use dom::bindings::global::GlobalRef;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::trace::Traceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{Event, EventMethods, EventTypeId, CustomEventTypeId};
-use dom::window::Window;
 use js::jsapi::JSContext;
 use js::jsval::{JSVal, NullValue};
 use servo_util::str::DOMString;
@@ -43,20 +43,20 @@ impl CustomEvent {
         }
     }
 
-    pub fn new_uninitialized(window: &JSRef<Window>) -> Temporary<CustomEvent> {
+    pub fn new_uninitialized(global: &GlobalRef) -> Temporary<CustomEvent> {
         reflect_dom_object(box CustomEvent::new_inherited(CustomEventTypeId),
-                           window,
+                           global,
                            CustomEventBinding::Wrap)
     }
-    pub fn new(window: &JSRef<Window>, type_: DOMString, bubbles: bool, cancelable: bool, detail: JSVal) -> Temporary<CustomEvent> {
-        let ev = CustomEvent::new_uninitialized(window).root();
-        ev.deref().InitCustomEvent(window.deref().get_cx(), type_, bubbles, cancelable, detail);
+    pub fn new(global: &GlobalRef, type_: DOMString, bubbles: bool, cancelable: bool, detail: JSVal) -> Temporary<CustomEvent> {
+        let ev = CustomEvent::new_uninitialized(global).root();
+        ev.deref().InitCustomEvent(global.get_cx(), type_, bubbles, cancelable, detail);
         Temporary::from_rooted(&*ev)
     }
-    pub fn Constructor(owner: &JSRef<Window>,
+    pub fn Constructor(global: &GlobalRef,
                        type_: DOMString,
                        init: &CustomEventBinding::CustomEventInit) -> Fallible<Temporary<CustomEvent>>{
-        Ok(CustomEvent::new(owner, type_, init.parent.bubbles, init.parent.cancelable, init.detail))
+        Ok(CustomEvent::new(global, type_, init.parent.bubbles, init.parent.cancelable, init.detail))
     }
 }
 

@@ -6,13 +6,13 @@ use dom::bindings::codegen::Bindings::FormDataBinding;
 use dom::bindings::codegen::InheritTypes::FileCast;
 use dom::bindings::codegen::UnionTypes::FileOrString::{FileOrString, eFile, eString};
 use dom::bindings::error::{Fallible};
+use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::trace::Traceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::blob::Blob;
 use dom::file::File;
 use dom::htmlformelement::HTMLFormElement;
-use dom::window::Window;
 use servo_util::str::DOMString;
 use std::cell::RefCell;
 use std::collections::hashmap::HashMap;
@@ -27,26 +27,27 @@ pub enum FormDatum {
 pub struct FormData {
     data: Traceable<RefCell<HashMap<DOMString, Vec<FormDatum>>>>,
     reflector_: Reflector,
-    window: JS<Window>,
+    global: GlobalField,
     form: Option<JS<HTMLFormElement>>
 }
 
 impl FormData {
-    pub fn new_inherited(form: Option<JSRef<HTMLFormElement>>, window: &JSRef<Window>) -> FormData {
+    pub fn new_inherited(form: Option<JSRef<HTMLFormElement>>, global: &GlobalRef) -> FormData {
         FormData {
             data: Traceable::new(RefCell::new(HashMap::new())),
             reflector_: Reflector::new(),
-            window: JS::from_rooted(window),
+            global: GlobalField::from_rooted(global),
             form: form.map(|f| JS::from_rooted(&f)),
         }
     }
 
-    pub fn new(form: Option<JSRef<HTMLFormElement>>, window: &JSRef<Window>) -> Temporary<FormData> {
-        reflect_dom_object(box FormData::new_inherited(form, window), window, FormDataBinding::Wrap)
+    pub fn new(form: Option<JSRef<HTMLFormElement>>, global: &GlobalRef) -> Temporary<FormData> {
+        reflect_dom_object(box FormData::new_inherited(form, global),
+                           global, FormDataBinding::Wrap)
     }
 
-    pub fn Constructor(window: &JSRef<Window>, form: Option<JSRef<HTMLFormElement>>) -> Fallible<Temporary<FormData>> {
-        Ok(FormData::new(form, window))
+    pub fn Constructor(global: &GlobalRef, form: Option<JSRef<HTMLFormElement>>) -> Fallible<Temporary<FormData>> {
+        Ok(FormData::new(form, global))
     }
 }
 
@@ -115,9 +116,9 @@ trait PrivateFormDataHelpers{
 
 impl PrivateFormDataHelpers for FormData {
     fn get_file_from_blob(&self, value: &JSRef<Blob>, filename: Option<DOMString>) -> Temporary<File> {
-        let global = self.window.root();
+        let global = self.global.root();
         let f: Option<&JSRef<File>> = FileCast::to_ref(value);
         let name = filename.unwrap_or(f.map(|inner| inner.name.clone()).unwrap_or("blob".to_string()));
-        File::new(&*global, value, name)
+        File::new(&global.root_ref(), value, name)
     }
 }

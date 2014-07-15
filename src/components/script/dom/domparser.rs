@@ -4,34 +4,35 @@
 
 use dom::bindings::codegen::Bindings::DOMParserBinding;
 use dom::bindings::codegen::Bindings::DOMParserBinding::SupportedTypeValues::{Text_html, Text_xml};
+use dom::bindings::error::{Fallible, FailureUnknown};
+use dom::bindings::global::{GlobalRef, Window};
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
-use dom::bindings::error::{Fallible, FailureUnknown};
 use dom::document::{Document, HTMLDocument, NonHTMLDocument};
 use dom::window::Window;
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
 pub struct DOMParser {
-    pub owner: JS<Window>, //XXXjdm Document instead?
-    pub reflector_: Reflector
+    window: JS<Window>, //XXXjdm Document instead?
+    reflector_: Reflector
 }
 
 impl DOMParser {
-    pub fn new_inherited(owner: &JSRef<Window>) -> DOMParser {
+    pub fn new_inherited(window: &JSRef<Window>) -> DOMParser {
         DOMParser {
-            owner: JS::from_rooted(owner),
+            window: JS::from_rooted(window),
             reflector_: Reflector::new()
         }
     }
 
-    pub fn new(owner: &JSRef<Window>) -> Temporary<DOMParser> {
-        reflect_dom_object(box DOMParser::new_inherited(owner), owner,
+    pub fn new(window: &JSRef<Window>) -> Temporary<DOMParser> {
+        reflect_dom_object(box DOMParser::new_inherited(window), &Window(*window),
                            DOMParserBinding::Wrap)
     }
 
-    pub fn Constructor(owner: &JSRef<Window>) -> Fallible<Temporary<DOMParser>> {
-        Ok(DOMParser::new(owner))
+    pub fn Constructor(global: &GlobalRef) -> Fallible<Temporary<DOMParser>> {
+        Ok(DOMParser::new(global.as_window()))
     }
 }
 
@@ -45,13 +46,13 @@ impl<'a> DOMParserMethods for JSRef<'a, DOMParser> {
                        _s: DOMString,
                        ty: DOMParserBinding::SupportedType)
                        -> Fallible<Temporary<Document>> {
-        let owner = self.owner.root();
+        let window = self.window.root();
         match ty {
             Text_html => {
-                Ok(Document::new(&owner.root_ref(), None, HTMLDocument, Some("text/html".to_string())))
+                Ok(Document::new(&window.root_ref(), None, HTMLDocument, Some("text/html".to_string())))
             }
             Text_xml => {
-                Ok(Document::new(&owner.root_ref(), None, NonHTMLDocument, Some("text/xml".to_string())))
+                Ok(Document::new(&window.root_ref(), None, NonHTMLDocument, Some("text/xml".to_string())))
             }
             _ => {
                 Err(FailureUnknown)

@@ -5,11 +5,11 @@
 use dom::bindings::codegen::Bindings::EventBinding;
 use dom::bindings::codegen::Bindings::EventBinding::EventConstants;
 use dom::bindings::error::Fallible;
+use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::trace::Traceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::eventtarget::EventTarget;
-use dom::window::Window;
 use servo_msg::constellation_msg::WindowSizeData;
 use servo_util::str::DOMString;
 use std::cell::{Cell, RefCell};
@@ -85,22 +85,22 @@ impl Event {
         }
     }
 
-    pub fn new_uninitialized(window: &JSRef<Window>) -> Temporary<Event> {
+    pub fn new_uninitialized(global: &GlobalRef) -> Temporary<Event> {
         reflect_dom_object(box Event::new_inherited(HTMLEventTypeId),
-                           window,
+                           global,
                            EventBinding::Wrap)
     }
 
-    pub fn new(window: &JSRef<Window>,
+    pub fn new(global: &GlobalRef,
                type_: DOMString,
                can_bubble: bool,
                cancelable: bool) -> Temporary<Event> {
-        let event = Event::new_uninitialized(window).root();
+        let event = Event::new_uninitialized(global).root();
         event.deref().InitEvent(type_, can_bubble, cancelable);
         Temporary::from_rooted(&*event)
     }
 
-    pub fn Constructor(global: &JSRef<Window>,
+    pub fn Constructor(global: &GlobalRef,
                        type_: DOMString,
                        init: &EventBinding::EventInit) -> Fallible<Temporary<Event>> {
         Ok(Event::new(global, type_, init.bubbles, init.cancelable))
