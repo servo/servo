@@ -50,10 +50,7 @@ pub trait StyleElementHelpers {
 impl<'a> StyleElementHelpers for JSRef<'a, HTMLStyleElement> {
     fn parse_own_css(&self) {
         let node: &JSRef<Node> = NodeCast::from_ref(self);
-
-        if !node.is_in_doc() {
-            return;
-        }
+        assert!(node.is_in_doc());
 
         let win = window_from_node(node).root();
         let url = win.deref().page().get_url();
@@ -76,7 +73,11 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLStyleElement> {
             Some(ref s) => s.child_inserted(child),
             _ => (),
         }
-        self.parse_own_css();
+
+        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        if node.is_in_doc() {
+            self.parse_own_css();
+        }
     }
 
     fn bind_to_tree(&self, tree_in_doc: bool) {
@@ -84,7 +85,10 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLStyleElement> {
             Some(ref s) => s.bind_to_tree(tree_in_doc),
             _ => ()
         }
-        self.parse_own_css();
+
+        if tree_in_doc {
+            self.parse_own_css();
+        }
     }
 }
 
