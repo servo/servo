@@ -120,7 +120,7 @@ pub struct RenderTask<C> {
     epoch: Epoch,
 
     /// A data structure to store unused LayerBuffers
-    buffer_map: BufferMap<Box<LayerBuffer>>,
+    buffer_map: BufferMap,
 }
 
 // If we implement this as a function, we get borrowck errors from borrowing
@@ -380,6 +380,7 @@ impl<C:RenderListener + Send> RenderTask<C> {
                                 buffer.screen_pos = tile.screen_rect;
                                 buffer.resolution = scale;
                                 buffer.native_surface.mark_wont_leak();
+                                buffer.painted_with_cpu = true;
                                 buffer
                             }
                             None => {
@@ -397,7 +398,8 @@ impl<C:RenderListener + Send> RenderTask<C> {
                                     rect: tile.page_rect,
                                     screen_pos: tile.screen_rect,
                                     resolution: scale,
-                                    stride: (width * 4) as uint
+                                    stride: (width * 4) as uint,
+                                    painted_with_cpu: true,
                                 }
                             }
                         };
@@ -427,7 +429,8 @@ impl<C:RenderListener + Send> RenderTask<C> {
                             rect: tile.page_rect,
                             screen_pos: tile.screen_rect,
                             resolution: scale,
-                            stride: (width * 4) as uint
+                            stride: (width * 4) as uint,
+                            painted_with_cpu: false,
                         }
                     }
                 };

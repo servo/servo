@@ -7,28 +7,18 @@ use events;
 use pipeline::CompositionPipeline;
 
 use azure::azure_hl::Color;
-use geom::matrix::identity;
 use geom::point::TypedPoint2D;
 use geom::rect::Rect;
 use geom::size::{Size2D, TypedSize2D};
 use gfx::render_task::{ReRenderRequest, ReRenderMsg, RenderChan, UnusedBufferMsg};
-use layers::layers::{Layer, Flip, LayerBuffer, LayerBufferSet, NoFlip, TextureLayer, Tile};
+use layers::layers::{Layer, LayerBufferSet};
 use layers::platform::surface::{NativeCompositingGraphicsContext, NativeSurfaceMethods};
-use layers::texturegl::{Texture, TextureTarget};
 use servo_msg::compositor_msg::{Epoch, FixedPosition, LayerId};
 use servo_msg::compositor_msg::ScrollPolicy;
 use servo_msg::constellation_msg::PipelineId;
 use servo_util::geometry::PagePx;
 use std::collections::hashmap::HashMap;
 use std::rc::Rc;
-
-#[cfg(target_os="macos")]
-#[cfg(target_os="android")]
-use layers::layers::VerticalFlip;
-#[cfg(not(target_os="macos"))]
-use layers::texturegl::TextureTarget2D;
-#[cfg(target_os="macos")]
-use layers::texturegl::TextureTargetRectangle;
 
 pub struct CompositorData {
     /// This layer's pipeline. BufferRequests and mouse events will be sent through this.
@@ -149,7 +139,7 @@ impl CompositorData {
         }
 
         if redisplay {
-            CompositorData::build_layer_tree(layer.clone(), graphics_context);
+            layer.create_textures(graphics_context);
         }
 
         let get_child_buffer_request = |kid: &Rc<Layer<CompositorData>>| -> bool {
@@ -223,34 +213,6 @@ impl CompositorData {
                                             size);
     }
 
-    // Returns whether the layer should be vertically flipped.
-    #[cfg(target_os="macos")]
-    fn texture_flip_and_target(cpu_painting: bool, size: Size2D<uint>) -> (Flip, TextureTarget) {
-        let flip = if cpu_painting {
-            NoFlip
-        } else {
-            VerticalFlip
-        };
-
-        (flip, TextureTargetRectangle(size))
-    }
-
-    #[cfg(target_os="android")]
-    fn texture_flip_and_target(cpu_painting: bool, size: Size2D<uint>) -> (Flip, TextureTarget) {
-        let flip = if cpu_painting {
-            NoFlip
-        } else {
-            VerticalFlip
-        };
-
-        (flip, TextureTarget2D)
-    }
-
-    #[cfg(target_os="linux")]
-    fn texture_flip_and_target(_: bool, _: Size2D<uint>) -> (Flip, TextureTarget) {
-        (NoFlip, TextureTarget2D)
-    }
-
     fn find_child_with_pipeline_and_layer_id(layer: Rc<Layer<CompositorData>>,
                                              pipeline_id: PipelineId,
                                              layer_id: LayerId)
@@ -285,46 +247,6 @@ impl CompositorData {
         return None;
     }
 
-    // Collect buffers from the layer. This method IS NOT recursive, so child layers
-    // are not rebuilt directly from this method.
-    pub fn build_layer_tree(layer: Rc<Layer<CompositorData>>,
-                            graphics_context: &NativeCompositingGraphicsContext) {
-        // Clear all old textures.
-        layer.tiles.borrow_mut().clear();
-
-        // Add new tiles.
-        layer.do_for_all_tiles(|buffer: &Box<LayerBuffer>| {
-            debug!("osmain: compositing buffer rect {}", buffer.rect);
-
-            let size = Size2D(buffer.screen_pos.size.width as int,
-                              buffer.screen_pos.size.height as int);
-
-            debug!("osmain: adding new texture layer");
-
-            // Determine, in a platform-specific way, whether we should flip the texture
-            // and which target to use.
-            let (flip, target) =
-                    CompositorData::texture_flip_and_target(layer.extra_data.borrow().cpu_painting,
-                                                            buffer.screen_pos.size);
-
-            // Make a new texture and bind the layer buffer's surface to it.
-            let texture = Texture::new(target);
-            debug!("COMPOSITOR binding to native surface {:d}",
-                   buffer.native_surface.get_id() as int);
-            buffer.native_surface.bind_to_texture(graphics_context, &texture, size);
-
-            // Set the layer's transform.
-            let rect = buffer.rect;
-            let transform = identity().translate(rect.origin.x, rect.origin.y, 0.0);
-            let transform = transform.scale(rect.size.width, rect.size.height, 1.0);
-
-            // Make a texture layer and add it.
-            let texture_layer = Rc::new(TextureLayer::new(texture, buffer.screen_pos.size,
-                                                          flip, transform));
-            layer.tiles.borrow_mut().push(texture_layer);
-        });
-    }
-
     // Add LayerBuffers to the specified layer. Returns the layer buffer set back if the layer that
     // matches the given pipeline ID was not found; otherwise returns None and consumes the layer
     // buffer set.
@@ -348,12 +270,12 @@ impl CompositorData {
 
         {
             for buffer in new_buffers.buffers.move_iter().rev() {
-                layer.add_tile_pixel(buffer);
+                layer.add_buffer(buffer);
             }
 
-            let unused_tiles = layer.collect_unused_tiles();
-            if !unused_tiles.is_empty() { // send back unused buffers
-                let msg = UnusedBufferMsg(unused_tiles);
+            let unused_buffers = layer.collect_unused_buffers();
+            if !unused_buffers.is_empty() { // send back unused buffers
+                let msg = UnusedBufferMsg(unused_buffers);
                 let _ = layer.extra_data.borrow().pipeline.render_chan.send_opt(msg);
             }
 
@@ -370,24 +292,24 @@ impl CompositorData {
             }
         }
 
-        CompositorData::build_layer_tree(layer.clone(), graphics_context);
+        layer.create_textures(graphics_context);
         return true;
     }
 
     /// Destroys all layer tiles, sending the buffers back to the renderer to be destroyed or
     /// reused.
     fn clear(layer: Rc<Layer<CompositorData>>) {
-        let mut tiles = layer.collect_tiles();
+        let mut buffers = layer.collect_buffers();
 
-        if !tiles.is_empty() {
+        if !buffers.is_empty() {
             // We have no way of knowing without a race whether the render task is even up and
-            // running, but mark the tiles as not leaking. If the render task died, then the
-            // tiles are going to be cleaned up.
-            for tile in tiles.mut_iter() {
-                tile.mark_wont_leak()
+            // running, but mark the buffers as not leaking. If the render task died, then the
+            // buffers are going to be cleaned up.
+            for buffer in buffers.mut_iter() {
+                buffer.mark_wont_leak()
             }
 
-            let _ = layer.extra_data.borrow().pipeline.render_chan.send_opt(UnusedBufferMsg(tiles));
+            let _ = layer.extra_data.borrow().pipeline.render_chan.send_opt(UnusedBufferMsg(buffers));
         }
     }
 
@@ -406,7 +328,7 @@ impl CompositorData {
     ///
     /// This is used during shutdown, when we know the render task is going away.
     pub fn forget_all_tiles(layer: Rc<Layer<CompositorData>>) {
-        let tiles = layer.collect_tiles();
+        let tiles = layer.collect_buffers();
         for tile in tiles.move_iter() {
             let mut tile = tile;
             tile.mark_wont_leak()
