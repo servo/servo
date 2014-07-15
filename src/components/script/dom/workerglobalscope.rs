@@ -3,12 +3,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::trace::Untraceable;
+use dom::bindings::global;
+use dom::bindings::js::{JS, JSRef, Temporary, OptionalSettable};
 use dom::bindings::utils::{Reflectable, Reflector};
+use dom::console::Console;
 use dom::eventtarget::{EventTarget, WorkerGlobalScopeTypeId};
 
 use js::jsapi::JSContext;
 use js::rust::Cx;
 
+use std::cell::Cell;
 use std::rc::Rc;
 
 #[deriving(PartialEq,Encodable)]
@@ -20,6 +24,7 @@ pub enum WorkerGlobalScopeId {
 pub struct WorkerGlobalScope {
     pub eventtarget: EventTarget,
     js_context: Untraceable<Rc<Cx>>,
+    console: Cell<Option<JS<Console>>>,
 }
 
 impl WorkerGlobalScope {
@@ -28,6 +33,7 @@ impl WorkerGlobalScope {
         WorkerGlobalScope {
             eventtarget: EventTarget::new_inherited(WorkerGlobalScopeTypeId(type_id)),
             js_context: Untraceable::new(cx),
+            console: Cell::new(None),
         }
     }
 
@@ -40,6 +46,17 @@ impl WorkerGlobalScope {
 }
 
 pub trait WorkerGlobalScopeMethods {
+    fn Console(&self) -> Temporary<Console>;
+}
+
+impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
+    fn Console(&self) -> Temporary<Console> {
+        if self.console.get().is_none() {
+            let console = Console::new(&global::Worker(*self));
+            self.console.assign(Some(console));
+        }
+        Temporary::new(self.console.get().get_ref().clone())
+    }
 }
 
 impl Reflectable for WorkerGlobalScope {
