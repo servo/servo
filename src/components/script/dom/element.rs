@@ -317,7 +317,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         let (_, local_name) = get_attribute_parts(name);
 
         let idx = self.deref().attrs.borrow().iter().map(|attr| attr.root()).position(|attr| {
-            attr.local_name == local_name
+            attr.local_name.as_slice() == local_name
         });
 
         match idx {
@@ -331,7 +331,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
                 if namespace == namespace::Null {
                     let removed_raw_value = self.deref().attrs.borrow().get(idx).root().Value();
                     vtable_for(NodeCast::from_ref(self))
-                        .before_remove_attr(local_name.clone(), removed_raw_value);
+                        .before_remove_attr(local_name.to_string(), removed_raw_value);
                 }
 
                 self.deref().attrs.borrow_mut().remove(idx);
@@ -630,14 +630,16 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         }
 
         // Step 8.
-        if namespace == namespace::XMLNS && "xmlns" != name.as_slice() && Some("xmlns".to_string()) != prefix {
+        if namespace == namespace::XMLNS && "xmlns" != name.as_slice() && Some("xmlns") != prefix {
             return Err(NamespaceError);
         }
 
         // Step 9.
         let value = self.parse_attribute(&namespace, local_name.as_slice(), value);
-        self.do_set_attribute(local_name.clone(), value, name, namespace.clone(), prefix, |attr| {
-            attr.deref().local_name == local_name &&
+        self.do_set_attribute(local_name.to_string(), value, name.to_string(),
+                              namespace.clone(), prefix.map(|s| s.to_string()),
+                              |attr| {
+            attr.deref().local_name.as_slice() == local_name &&
             attr.deref().namespace == namespace
         });
         Ok(())
@@ -759,14 +761,14 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     }
 }
 
-pub fn get_attribute_parts(name: &str) -> (Option<String>, String) {
+pub fn get_attribute_parts<'a>(name: &'a str) -> (Option<&'a str>, &'a str) {
     //FIXME: Throw for XML-invalid names
     //FIXME: Throw for XMLNS-invalid names
     let (prefix, local_name) = if name.contains(":")  {
         let mut parts = name.splitn(':', 1);
-        (Some(parts.next().unwrap().to_string()), parts.next().unwrap().to_string())
+        (Some(parts.next().unwrap()), parts.next().unwrap())
     } else {
-        (None, name.to_string())
+        (None, name)
     };
 
     (prefix, local_name)
