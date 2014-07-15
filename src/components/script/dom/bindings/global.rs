@@ -43,9 +43,11 @@ impl<'a> GlobalRef<'a> {
     pub fn page<'b>(&'b self) -> &'b Page {
         self.as_window().page()
     }
+
     pub fn get_url(&self) -> Url {
         self.as_window().get_url()
     }
+
     pub fn script_chan<'b>(&'b self) -> &'b ScriptChan {
         &self.as_window().script_chan
     }
