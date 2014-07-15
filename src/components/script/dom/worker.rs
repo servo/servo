@@ -11,6 +11,8 @@ use dom::eventtarget::EventTarget;
 use servo_util::str::DOMString;
 use servo_util::url::try_parse_url;
 
+use std::task::TaskBuilder;
+
 #[deriving(Encodable)]
 pub struct Worker {
     eventtarget: EventTarget,
@@ -19,11 +21,15 @@ pub struct Worker {
 impl Worker {
     pub fn Constructor(global: &GlobalRef, scriptURL: DOMString) -> Fallible<Temporary<Worker>> {
         // Step 2-4.
-        let _worker_url = match try_parse_url(scriptURL.as_slice(), Some(global.get_url())) {
+        let worker_url = match try_parse_url(scriptURL.as_slice(), Some(global.get_url())) {
             Ok(url) => url,
             Err(_) => return Err(Syntax),
         };
 
+        let name = format!("Web Worker at {}", worker_url);
+        TaskBuilder::new().named(name).spawn(proc() {
+            println!("Spawned!");
+        });
         Err(Security)
     }
 }
