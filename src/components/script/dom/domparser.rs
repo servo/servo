@@ -5,6 +5,7 @@
 use dom::bindings::codegen::Bindings::DOMParserBinding;
 use dom::bindings::codegen::Bindings::DOMParserBinding::SupportedTypeValues::{Text_html, Text_xml};
 use dom::bindings::error::{Fallible, FailureUnknown};
+use dom::bindings::global::{GlobalRef, Window};
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
 use dom::document::{Document, HTMLDocument, NonHTMLDocument};
@@ -26,12 +27,12 @@ impl DOMParser {
     }
 
     pub fn new(window: &JSRef<Window>) -> Temporary<DOMParser> {
-        reflect_dom_object(box DOMParser::new_inherited(window), window,
+        reflect_dom_object(box DOMParser::new_inherited(window), &Window(*window),
                            DOMParserBinding::Wrap)
     }
 
-    pub fn Constructor(global: &JSRef<Window>) -> Fallible<Temporary<DOMParser>> {
-        Ok(DOMParser::new(global))
+    pub fn Constructor(global: &GlobalRef) -> Fallible<Temporary<DOMParser>> {
+        Ok(DOMParser::new(global.as_window()))
     }
 }
 

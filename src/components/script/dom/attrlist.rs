@@ -4,6 +4,7 @@
 
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::AttrListBinding;
+use dom::bindings::global::Window;
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::element::Element;
@@ -25,7 +26,7 @@ impl AttrList {
 
     pub fn new(window: &JSRef<Window>, elem: &JSRef<Element>) -> Temporary<AttrList> {
         reflect_dom_object(box AttrList::new_inherited(elem),
-                           window, AttrListBinding::Wrap)
+                           &Window(*window), AttrListBinding::Wrap)
     }
 }
 

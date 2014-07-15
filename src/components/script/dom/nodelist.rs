@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::NodeListBinding;
+use dom::bindings::global::Window;
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::node::{Node, NodeHelpers};
@@ -31,7 +32,7 @@ impl NodeList {
     pub fn new(window: &JSRef<Window>,
                list_type: NodeListType) -> Temporary<NodeList> {
         reflect_dom_object(box NodeList::new_inherited(list_type),
-                           window, NodeListBinding::Wrap)
+                           &Window(*window), NodeListBinding::Wrap)
     }
 
     pub fn new_simple_list(window: &JSRef<Window>, elements: Vec<JSRef<Node>>) -> Temporary<NodeList> {

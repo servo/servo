@@ -43,6 +43,7 @@ extern crate url;
 
 pub mod dom {
     pub mod bindings {
+        pub mod global;
         pub mod js;
         pub mod utils;
         pub mod callback;

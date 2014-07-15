@@ -6,6 +6,7 @@ use dom::bindings::codegen::Bindings::FormDataBinding;
 use dom::bindings::codegen::InheritTypes::FileCast;
 use dom::bindings::codegen::UnionTypes::FileOrString::{FileOrString, eFile, eString};
 use dom::bindings::error::{Fallible};
+use dom::bindings::global::{GlobalRef, Window};
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::trace::Traceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
@@ -42,11 +43,12 @@ impl FormData {
     }
 
     pub fn new(form: Option<JSRef<HTMLFormElement>>, window: &JSRef<Window>) -> Temporary<FormData> {
-        reflect_dom_object(box FormData::new_inherited(form, window), window, FormDataBinding::Wrap)
+        reflect_dom_object(box FormData::new_inherited(form, window),
+                           &Window(*window), FormDataBinding::Wrap)
     }
 
-    pub fn Constructor(global: &JSRef<Window>, form: Option<JSRef<HTMLFormElement>>) -> Fallible<Temporary<FormData>> {
-        Ok(FormData::new(form, global))
+    pub fn Constructor(global: &GlobalRef, form: Option<JSRef<HTMLFormElement>>) -> Fallible<Temporary<FormData>> {
+        Ok(FormData::new(form, global.as_window()))
     }
 }
 
@@ -118,6 +120,6 @@ impl PrivateFormDataHelpers for FormData {
         let window = self.window.root();
         let f: Option<&JSRef<File>> = FileCast::to_ref(value);
         let name = filename.unwrap_or(f.map(|inner| inner.name.clone()).unwrap_or("blob".to_string()));
-        File::new(&*window, value, name)
+        File::new(&Window(*window), value, name)
     }
 }

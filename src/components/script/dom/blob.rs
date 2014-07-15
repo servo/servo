@@ -3,11 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::InheritTypes::FileDerived;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::global::{GlobalRef, GlobalField};
+use dom::bindings::js::Temporary;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::error::Fallible;
 use dom::bindings::codegen::Bindings::BlobBinding;
-use dom::window::Window;
 
 #[deriving(Encodable)]
 pub enum BlobType {
@@ -18,26 +18,26 @@ pub enum BlobType {
 #[deriving(Encodable)]
 pub struct Blob {
     reflector_: Reflector,
-    global: JS<Window>,
+    global: GlobalField,
     type_: BlobType
 }
 
 impl Blob {
-    pub fn new_inherited(global: &JSRef<Window>) -> Blob {
+    pub fn new_inherited(global: &GlobalRef) -> Blob {
         Blob {
             reflector_: Reflector::new(),
-            global: JS::from_rooted(global),
+            global: GlobalField::from_rooted(global),
             type_: BlobTypeId
         }
     }
 
-    pub fn new(global: &JSRef<Window>) -> Temporary<Blob> {
+    pub fn new(global: &GlobalRef) -> Temporary<Blob> {
         reflect_dom_object(box Blob::new_inherited(global),
                            global,
                            BlobBinding::Wrap)
     }
 
-    pub fn Constructor(global: &JSRef<Window>) -> Fallible<Temporary<Blob>> {
+    pub fn Constructor(global: &GlobalRef) -> Fallible<Temporary<Blob>> {
         Ok(Blob::new(global))
     }
 }

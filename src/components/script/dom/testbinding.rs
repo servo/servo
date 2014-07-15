@@ -7,11 +7,11 @@ use dom::bindings::codegen::Bindings::TestBindingBinding::TestEnumValues::_empty
 use dom::bindings::codegen::UnionTypes::BlobOrString::BlobOrString;
 use dom::bindings::codegen::UnionTypes::EventOrString::{EventOrString, eString};
 use dom::bindings::codegen::UnionTypes::HTMLElementOrLong::{HTMLElementOrLong, eLong};
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::global::GlobalField;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::str::ByteString;
 use dom::bindings::utils::{Reflector, Reflectable};
 use dom::blob::Blob;
-use dom::window::Window;
 use servo_util::str::DOMString;
 
 use js::jsapi::JSContext;
@@ -20,7 +20,7 @@ use js::jsval::{JSVal, NullValue};
 #[deriving(Encodable)]
 pub struct TestBinding {
     reflector: Reflector,
-    global: JS<Window>,
+    global: GlobalField,
 }
 
 pub trait TestBindingMethods {
@@ -278,19 +278,19 @@ pub trait TestBindingMethods {
 impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn InterfaceAttribute(&self) -> Temporary<Blob> {
         let global = self.global.root();
-        Blob::new(&*global)
+        Blob::new(&global.root_ref())
     }
     fn GetInterfaceAttributeNullable(&self) -> Option<Temporary<Blob>> {
         let global = self.global.root();
-        Some(Blob::new(&*global))
+        Some(Blob::new(&global.root_ref()))
     }
     fn ReceiveInterface(&self) -> Temporary<Blob> {
         let global = self.global.root();
-        Blob::new(&*global)
+        Blob::new(&global.root_ref())
     }
     fn ReceiveNullableInterface(&self) -> Option<Temporary<Blob>> {
         let global = self.global.root();
-        Some(Blob::new(&*global))
+        Some(Blob::new(&global.root_ref()))
     }
 }
 

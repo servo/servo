@@ -115,7 +115,7 @@ pub struct CallSetup {
 impl CallSetup {
     pub fn new<T: CallbackContainer>(callback: &T, handling: ExceptionHandling) -> CallSetup {
         let global = global_object_for_js_object(callback.callback()).root();
-        let cx = global.deref().get_cx();
+        let cx = global.root_ref().get_cx();
         CallSetup {
             cx: cx,
             _handling: handling

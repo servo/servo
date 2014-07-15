@@ -4,6 +4,7 @@
 
 use dom::bindings::codegen::InheritTypes::{ElementCast, NodeCast};
 use dom::bindings::codegen::Bindings::HTMLCollectionBinding;
+use dom::bindings::global::Window;
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::element::{Element, AttributeHandlers};
@@ -46,7 +47,7 @@ impl HTMLCollection {
 
     pub fn new(window: &JSRef<Window>, collection: CollectionTypeId) -> Temporary<HTMLCollection> {
         reflect_dom_object(box HTMLCollection::new_inherited(collection),
-                           window, HTMLCollectionBinding::Wrap)
+                           &Window(*window), HTMLCollectionBinding::Wrap)
     }
 }
 

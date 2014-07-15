@@ -5,10 +5,10 @@
 use dom::bindings::codegen::Bindings::ProgressEventBinding;
 use dom::bindings::codegen::InheritTypes::{EventCast, ProgressEventDerived};
 use dom::bindings::error::Fallible;
+use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{Event, EventMethods, ProgressEventTypeId};
-use dom::window::Window;
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
@@ -34,7 +34,7 @@ impl ProgressEvent {
             total: total
         }
     }
-    pub fn new(global: &JSRef<Window>, type_: DOMString,
+    pub fn new(global: &GlobalRef, type_: DOMString,
                can_bubble: bool, cancelable: bool,
                length_computable: bool, loaded: u64, total: u64) -> Temporary<ProgressEvent> {
         let ev = reflect_dom_object(box ProgressEvent::new_inherited(length_computable, loaded, total),
@@ -44,7 +44,7 @@ impl ProgressEvent {
         event.InitEvent(type_, can_bubble, cancelable);
         Temporary::from_rooted(&*ev)
     }
-    pub fn Constructor(global: &JSRef<Window>,
+    pub fn Constructor(global: &GlobalRef,
                        type_: DOMString,
                        init: &ProgressEventBinding::ProgressEventInit)
                        -> Fallible<Temporary<ProgressEvent>> {

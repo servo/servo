@@ -4,6 +4,7 @@
 
 use dom::attr::{Attr, TokenListAttrValue};
 use dom::bindings::codegen::Bindings::DOMTokenListBinding;
+use dom::bindings::global::Window;
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable};
 use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
 use dom::element::{Element, AttributeHandlers};
@@ -33,7 +34,7 @@ impl DOMTokenList {
                local_name: &'static str) -> Temporary<DOMTokenList> {
         let window = window_from_node(element).root();
         reflect_dom_object(box DOMTokenList::new_inherited(element, local_name),
-                           &*window, DOMTokenListBinding::Wrap)
+                           &Window(*window), DOMTokenListBinding::Wrap)
     }
 }
 
