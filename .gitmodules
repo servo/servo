@@ -124,3 +124,6 @@
 [submodule "src/support/stringcache/string-cache"]
 	path = src/support/stringcache/string-cache
 	url = https://github.com/mozilla-servo/string-cache.git
+[submodule "src/support/url/rust-url"]
+	path = src/support/url/rust-url
+	url = https://github.com/mozilla-servo/rust-url.git

@@ -91,6 +91,10 @@ DEPS_rust-png += \
 	libpng \
 	$(NULL)
 
+DEPS_rust-url += \
+	rust-encoding \
+	$(NULL)
+
 # Platform-specific dependencies
 ifeq ($(CFG_OSTYPE),apple-darwin)
 DEPS_rust-azure += \
