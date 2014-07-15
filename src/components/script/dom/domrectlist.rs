@@ -2,26 +2,26 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::ClientRectListBinding;
-use dom::bindings::codegen::Bindings::ClientRectListBinding::ClientRectListMethods;
+use dom::bindings::codegen::Bindings::DOMRectListBinding;
+use dom::bindings::codegen::Bindings::DOMRectListBinding::DOMRectListMethods;
 use dom::bindings::global::Window;
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::clientrect::ClientRect;
+use dom::domrect::DOMRect;
 use dom::window::Window;
 
 #[deriving(Encodable)]
-pub struct ClientRectList {
+pub struct DOMRectList {
     reflector_: Reflector,
-    rects: Vec<JS<ClientRect>>,
+    rects: Vec<JS<DOMRect>>,
     window: JS<Window>,
 }
 
-impl ClientRectList {
+impl DOMRectList {
     pub fn new_inherited(window: &JSRef<Window>,
-                         rects: Vec<JSRef<ClientRect>>) -> ClientRectList {
+                         rects: Vec<JSRef<DOMRect>>) -> DOMRectList {
         let rects = rects.iter().map(|rect| JS::from_rooted(rect)).collect();
-        ClientRectList {
+        DOMRectList {
             reflector_: Reflector::new(),
             rects: rects,
             window: JS::from_rooted(window),
@@ -29,18 +29,18 @@ impl ClientRectList {
     }
 
     pub fn new(window: &JSRef<Window>,
-               rects: Vec<JSRef<ClientRect>>) -> Temporary<ClientRectList> {
-        reflect_dom_object(box ClientRectList::new_inherited(window, rects),
-                           &Window(*window), ClientRectListBinding::Wrap)
+               rects: Vec<JSRef<DOMRect>>) -> Temporary<DOMRectList> {
+        reflect_dom_object(box DOMRectList::new_inherited(window, rects),
+                           &Window(*window), DOMRectListBinding::Wrap)
     }
 }
 
-impl<'a> ClientRectListMethods for JSRef<'a, ClientRectList> {
+impl<'a> DOMRectListMethods for JSRef<'a, DOMRectList> {
     fn Length(&self) -> u32 {
         self.rects.len() as u32
     }
 
-    fn Item(&self, index: u32) -> Option<Temporary<ClientRect>> {
+    fn Item(&self, index: u32) -> Option<Temporary<DOMRect>> {
         let rects = &self.rects;
         if index < rects.len() as u32 {
             Some(Temporary::new(rects[index as uint].clone()))
@@ -49,13 +49,13 @@ impl<'a> ClientRectListMethods for JSRef<'a, ClientRectList> {
         }
     }
 
-    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Temporary<ClientRect>> {
+    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Temporary<DOMRect>> {
         *found = index < self.rects.len() as u32;
         self.Item(index)
     }
 }
 
-impl Reflectable for ClientRectList {
+impl Reflectable for DOMRectList {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         &self.reflector_
     }

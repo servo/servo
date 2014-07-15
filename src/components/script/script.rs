@@ -80,8 +80,8 @@ pub mod dom {
     pub mod browsercontext;
     pub mod canvasrenderingcontext2d;
     pub mod characterdata;
-    pub mod clientrect;
-    pub mod clientrectlist;
+    pub mod domrect;
+    pub mod domrectlist;
     pub mod comment;
     pub mod console;
     pub mod customevent;
