@@ -102,7 +102,7 @@ pub struct XMLHttpRequest {
     ready_state: Traceable<Cell<XMLHttpRequestState>>,
     timeout: Traceable<Cell<u32>>,
     with_credentials: Traceable<Cell<bool>>,
-    upload: Cell<JS<XMLHttpRequestUpload>>,
+    upload: JS<XMLHttpRequestUpload>,
     response_url: DOMString,
     status: Traceable<Cell<u16>>,
     status_text: Traceable<RefCell<ByteString>>,
@@ -136,7 +136,7 @@ impl XMLHttpRequest {
             ready_state: Traceable::new(Cell::new(Unsent)),
             timeout: Traceable::new(Cell::new(0u32)),
             with_credentials: Traceable::new(Cell::new(false)),
-            upload: Cell::new(JS::from_rooted(&XMLHttpRequestUpload::new(global))),
+            upload: JS::from_rooted(&XMLHttpRequestUpload::new(global)),
             response_url: "".to_string(),
             status: Traceable::new(Cell::new(0)),
             status_text: Traceable::new(RefCell::new(ByteString::new(vec!()))),
@@ -434,7 +434,7 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
         self.with_credentials.deref().set(with_credentials);
     }
     fn Upload(&self) -> Temporary<XMLHttpRequestUpload> {
-        Temporary::new(self.upload.get())
+        Temporary::new(self.upload)
     }
     fn Send(&self, data: Option<SendParam>) -> ErrorResult {
         if self.ready_state.deref().get() != Opened || self.send_flag.deref().get() {
@@ -466,7 +466,7 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
             }
 
             // Step 8
-            let upload_target = &*self.upload.get().root();
+            let upload_target = &*self.upload.root();
             let event_target: &JSRef<EventTarget> = EventTargetCast::from_ref(upload_target);
             if event_target.has_handlers() {
                 self.upload_events.deref().set(true);
@@ -841,7 +841,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
 
     fn dispatch_progress_event(&self, upload: bool, type_: DOMString, loaded: u64, total: Option<u64>) {
         let global = self.global.root();
-        let upload_target = &*self.upload.get().root();
+        let upload_target = &*self.upload.root();
         let progressevent = ProgressEvent::new(&*global,
                                                type_, false, false,
                                                total.is_some(), loaded,

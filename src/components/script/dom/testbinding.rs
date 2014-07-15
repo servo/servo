@@ -17,12 +17,10 @@ use servo_util::str::DOMString;
 use js::jsapi::JSContext;
 use js::jsval::{JSVal, NullValue};
 
-use std::cell::Cell;
-
 #[deriving(Encodable)]
 pub struct TestBinding {
     reflector: Reflector,
-    global: Cell<JS<Window>>,
+    global: JS<Window>,
 }
 
 pub trait TestBindingMethods {
@@ -279,19 +277,19 @@ pub trait TestBindingMethods {
 
 impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn InterfaceAttribute(&self) -> Temporary<Blob> {
-        let global = self.global.get().root();
+        let global = self.global.root();
         Blob::new(&*global)
     }
     fn GetInterfaceAttributeNullable(&self) -> Option<Temporary<Blob>> {
-        let global = self.global.get().root();
+        let global = self.global.root();
         Some(Blob::new(&*global))
     }
     fn ReceiveInterface(&self) -> Temporary<Blob> {
-        let global = self.global.get().root();
+        let global = self.global.root();
         Blob::new(&*global)
     }
     fn ReceiveNullableInterface(&self) -> Option<Temporary<Blob>> {
-        let global = self.global.get().root();
+        let global = self.global.root();
         Some(Blob::new(&*global))
     }
 }
