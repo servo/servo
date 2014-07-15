@@ -40,7 +40,7 @@ impl Text {
 
     pub fn Constructor(owner: &JSRef<Window>, text: DOMString) -> Fallible<Temporary<Text>> {
         let document = owner.Document().root();
-        Ok(Text::new(text.clone(), &*document))
+        Ok(Text::new(text, &*document))
     }
 }
 
