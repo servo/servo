@@ -159,6 +159,7 @@ pub mod dom {
     pub mod htmlvideoelement;
     pub mod htmlunknownelement;
     pub mod location;
+    pub mod messageevent;
     pub mod mouseevent;
     pub mod navigator;
     pub mod node;
