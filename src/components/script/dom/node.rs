@@ -233,7 +233,7 @@ pub enum NodeTypeId {
 
 trait PrivateNodeHelpers {
     fn node_inserted(&self);
-    fn node_removed(&self);
+    fn node_removed(&self, parent_in_doc: bool);
     fn add_child(&self, new_child: &JSRef<Node>, before: Option<JSRef<Node>>);
     fn remove_child(&self, child: &JSRef<Node>);
 }
@@ -243,11 +243,10 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
     fn node_inserted(&self) {
         assert!(self.parent_node().is_some());
         let document = document_from_node(self).root();
+        let is_in_doc = self.is_in_doc();
 
-        if self.is_in_doc() {
-            for node in self.traverse_preorder() {
-                vtable_for(&node).bind_to_tree();
-            }
+        for node in self.traverse_preorder() {
+            vtable_for(&node).bind_to_tree(is_in_doc);
         }
 
         let parent = self.parent_node().root();
@@ -257,13 +256,12 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
     }
 
     // http://dom.spec.whatwg.org/#node-is-removed
-    fn node_removed(&self) {
+    fn node_removed(&self, parent_in_doc: bool) {
         assert!(self.parent_node().is_none());
         let document = document_from_node(self).root();
 
         for node in self.traverse_preorder() {
-            // XXX how about if the node wasn't in the tree in the first place?
-            vtable_for(&node).unbind_from_tree();
+            vtable_for(&node).unbind_from_tree(parent_in_doc);
         }
 
         document.deref().content_changed();
@@ -1187,8 +1185,9 @@ impl Node {
         // Step 6: mutation records.
 
         // Step 7.
+        let parent_in_doc = parent.is_in_doc();
         for removedNode in removedNodes.iter() {
-            removedNode.node_removed();
+            removedNode.node_removed(parent_in_doc);
         }
         for addedNode in addedNodes.iter() {
             addedNode.node_inserted();
@@ -1224,7 +1223,7 @@ impl Node {
         // Step 9.
         match suppress_observers {
             Suppressed => (),
-            Unsuppressed => node.node_removed(),
+            Unsuppressed => node.node_removed(parent.is_in_doc()),
         }
     }
 
@@ -1713,7 +1712,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 
         // Step 12-14.
         // Step 13: mutation records.
-        child.node_removed();
+        child.node_removed(self.is_in_doc());
         if node.type_id() == DocumentFragmentNodeTypeId {
             for child_node in node.children() {
                 child_node.node_inserted();
