@@ -5,7 +5,7 @@
 use std::collections::hashmap::HashMap;
 use geom::size::Size2D;
 use layers::platform::surface::NativePaintingGraphicsContext;
-use layers::layers::Tile;
+use layers::layers::LayerBuffer;
 use std::hash::Hash;
 use std::hash::sip::SipState;
 use std::mem;
@@ -13,9 +13,9 @@ use std::mem;
 /// This is a struct used to store buffers when they are not in use.
 /// The render task can quickly query for a particular size of buffer when it
 /// needs it.
-pub struct BufferMap<T> {
+pub struct BufferMap {
     /// A HashMap that stores the Buffers.
-    map: HashMap<BufferKey, BufferValue<T>>,
+    map: HashMap<BufferKey, BufferValue>,
     /// The current amount of memory stored by the BufferMap's buffers.
     mem: uint,
     /// The maximum allowed memory. Unused buffers will be deleted
@@ -52,16 +52,16 @@ impl BufferKey {
 }
 
 /// A helper struct to keep track of buffers in the HashMap
-struct BufferValue<T> {
+struct BufferValue {
     /// An array of buffers, all the same size
-    buffers: Vec<T>,
+    buffers: Vec<Box<LayerBuffer>>,
     /// The counter when this size was last requested
     last_action: uint,
 }
 
-impl<T: Tile> BufferMap<T> {
+impl BufferMap {
     // Creates a new BufferMap with a given buffer limit.
-    pub fn new(max_mem: uint) -> BufferMap<T> {
+    pub fn new(max_mem: uint) -> BufferMap {
         BufferMap {
             map: HashMap::new(),
             mem: 0u,
@@ -71,7 +71,7 @@ impl<T: Tile> BufferMap<T> {
     }
 
     /// Insert a new buffer into the map.
-    pub fn insert(&mut self, graphics_context: &NativePaintingGraphicsContext, new_buffer: T) {
+    pub fn insert(&mut self, graphics_context: &NativePaintingGraphicsContext, new_buffer: Box<LayerBuffer>) {
         let new_key = BufferKey::get(new_buffer.get_size_2d());
 
         // If all our buffers are the same size and we're already at our
@@ -118,7 +118,7 @@ impl<T: Tile> BufferMap<T> {
     }
 
     // Try to find a buffer for the given size.
-    pub fn find(&mut self, size: Size2D<uint>) -> Option<T> {
+    pub fn find(&mut self, size: Size2D<uint>) -> Option<Box<LayerBuffer>> {
         let mut flag = false; // True if key needs to be popped after retrieval.
         let key = BufferKey::get(size);
         let ret = match self.map.find_mut(&key) {
