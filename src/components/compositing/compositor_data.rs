@@ -11,8 +11,9 @@ use geom::matrix::identity;
 use geom::point::TypedPoint2D;
 use geom::rect::Rect;
 use geom::size::{Size2D, TypedSize2D};
-use gfx::render_task::{ReRenderRequest, ReRenderMsg, RenderChan, UnusedBufferMsg};
-use layers::layers::{Layer, Flip, LayerBuffer, LayerBufferSet, NoFlip, TextureLayer, Tile};
+use gfx::render_task::{ReRenderRequest, RenderChan, UnusedBufferMsg};
+use layers::layers::{Layer, Flip, LayerBuffer, LayerBufferSet, NoFlip, TextureLayer};
+use layers::quadtree::Tile;
 use layers::platform::surface::{NativeCompositingGraphicsContext, NativeSurfaceMethods};
 use layers::texturegl::{Texture, TextureTarget};
 use servo_msg::compositor_msg::{Epoch, FixedPosition, LayerId};
@@ -111,9 +112,11 @@ impl CompositorData {
                                                       layer_properties.scroll_policy,
                                                       layer_properties.background_color);
         let new_kid = Rc::new(Layer::new(layer_properties.rect,
-                                         layer.tile_size,
+                                         Layer::tile_size(layer.clone()),
                                          new_compositor_data));
-        layer.add_child(new_kid.clone());
+
+        // Place the kid's layer in the container passed in.
+        Layer::add_child(layer.clone(), new_kid.clone());
     }
 
     // Given the current window size, determine which tiles need to be (re-)rendered and sends them
@@ -126,7 +129,7 @@ impl CompositorData {
                                            window_rect: Rect<f32>,
                                            scale: f32)
                                            -> bool {
-        let (request, unused) = layer.get_tile_rects_page(window_rect, scale);
+        let (request, unused) = Layer::get_tile_rects_page(layer.clone(), window_rect, scale);
         let redisplay = !unused.is_empty();
         if redisplay {
             // Send back unused tiles.
@@ -204,6 +207,7 @@ impl CompositorData {
                                                                  new_rect))
 
             }
+
         }
     }
 
@@ -211,8 +215,11 @@ impl CompositorData {
         layer.extra_data.borrow_mut().epoch = layer_properties.epoch;
         layer.extra_data.borrow_mut().unrendered_color = layer_properties.background_color;
 
-        layer.resize(layer_properties.rect.size);
-        layer.contents_changed();
+        let unused_buffers = Layer::resize(layer.clone(), layer_properties.rect.size);
+        if !unused_buffers.is_empty() {
+            let msg = UnusedBufferMsg(unused_buffers);
+            let _ = layer.extra_data.borrow().pipeline.render_chan.send_opt(msg);
+        }
 
         // Call scroll for bounds checking if the page shrunk. Use (-1, -1) as the
         // cursor position to make sure the scroll isn't propagated downwards.
@@ -285,7 +292,7 @@ impl CompositorData {
         return None;
     }
 
-    // Collect buffers from the layer. This method IS NOT recursive, so child layers
+    // Collect buffers from the quadtree. This method IS NOT recursive, so child layers
     // are not rebuilt directly from this method.
     pub fn build_layer_tree(layer: Rc<Layer<CompositorData>>,
                             graphics_context: &NativeCompositingGraphicsContext) {
@@ -293,7 +300,7 @@ impl CompositorData {
         layer.tiles.borrow_mut().clear();
 
         // Add new tiles.
-        layer.do_for_all_tiles(|buffer: &Box<LayerBuffer>| {
+        Layer::do_for_all_tiles(layer.clone(), |buffer: &Box<LayerBuffer>| {
             debug!("osmain: compositing buffer rect {}", buffer.rect);
 
             let size = Size2D(buffer.screen_pos.size.width as int,
@@ -347,26 +354,13 @@ impl CompositorData {
         }
 
         {
+            let mut unused_tiles = vec!();
             for buffer in new_buffers.buffers.move_iter().rev() {
-                layer.add_tile_pixel(buffer);
+                unused_tiles.push_all_move(Layer::add_tile_pixel(layer.clone(), buffer));
             }
-
-            let unused_tiles = layer.collect_unused_tiles();
             if !unused_tiles.is_empty() { // send back unused buffers
                 let msg = UnusedBufferMsg(unused_tiles);
                 let _ = layer.extra_data.borrow().pipeline.render_chan.send_opt(msg);
-            }
-
-            let (pending_buffer_requests, scale) = layer.flush_pending_buffer_requests();
-            if !pending_buffer_requests.is_empty() {
-                let mut requests = Vec::new();
-                requests.push(ReRenderRequest {
-                    buffer_requests: pending_buffer_requests,
-                    scale: scale,
-                    layer_id: layer.extra_data.borrow().id,
-                    epoch: layer.extra_data.borrow().epoch,
-                });
-                let _ = layer.extra_data.borrow().pipeline.render_chan.send_opt(ReRenderMsg(requests));
             }
         }
 
@@ -374,10 +368,10 @@ impl CompositorData {
         return true;
     }
 
-    /// Destroys all layer tiles, sending the buffers back to the renderer to be destroyed or
+    /// Destroys all quadtree tiles, sending the buffers back to the renderer to be destroyed or
     /// reused.
     fn clear(layer: Rc<Layer<CompositorData>>) {
-        let mut tiles = layer.collect_tiles();
+        let mut tiles = Layer::collect_tiles(layer.clone());
 
         if !tiles.is_empty() {
             // We have no way of knowing without a race whether the render task is even up and
@@ -406,7 +400,7 @@ impl CompositorData {
     ///
     /// This is used during shutdown, when we know the render task is going away.
     pub fn forget_all_tiles(layer: Rc<Layer<CompositorData>>) {
-        let tiles = layer.collect_tiles();
+        let tiles = Layer::collect_tiles(layer.clone());
         for tile in tiles.move_iter() {
             let mut tile = tile;
             tile.mark_wont_leak()
