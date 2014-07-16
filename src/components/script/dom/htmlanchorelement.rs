@@ -72,6 +72,32 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLAnchorElement> {
         Some(htmlelement as &VirtualMethods)
     }
 
+    fn after_set_attr(&self, name: DOMString, value: DOMString) {
+        match self.super_type() {
+            Some(ref s) => s.after_set_attr(name.clone(), value.clone()),
+            _ => (),
+        }
+
+        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        match name.as_slice() {
+            "href" => node.set_enabled_state(true),
+            _ => ()
+        }
+    }
+
+    fn before_remove_attr(&self, name: DOMString, value: DOMString) {
+        match self.super_type() {
+            Some(ref s) => s.before_remove_attr(name.clone(), value.clone()),
+            _ => (),
+        }
+
+        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        match name.as_slice() {
+            "href" => node.set_enabled_state(false),
+            _ => ()
+        }
+    }
+
     fn handle_event(&self, event: &JSRef<Event>) {
         match self.super_type() {
             Some(s) => {
