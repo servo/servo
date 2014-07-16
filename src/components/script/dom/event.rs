@@ -40,6 +40,7 @@ pub enum EventTypeId {
     CustomEventTypeId,
     HTMLEventTypeId,
     KeyEventTypeId,
+    MessageEventTypeId,
     MouseEventTypeId,
     ProgressEventTypeId,
     UIEventTypeId
