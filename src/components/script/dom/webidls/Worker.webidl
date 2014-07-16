@@ -15,6 +15,7 @@ interface Worker : EventTarget {
   //void terminate();
 
   //void postMessage(any message/*, optional sequence<Transferable> transfer*/);
+  void postMessage(DOMString message);
   //         attribute EventHandler onmessage;
 };
 Worker implements AbstractWorker;

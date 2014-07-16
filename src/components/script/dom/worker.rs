@@ -5,7 +5,8 @@
 use dom::bindings::codegen::Bindings::WorkerBinding;
 use dom::bindings::error::{Fallible, Syntax};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::Temporary;
+use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::trace::Untraceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use dom::eventtarget::{EventTarget, WorkerTypeId};
@@ -16,17 +17,19 @@ use servo_util::url::try_parse_url;
 #[deriving(Encodable)]
 pub struct Worker {
     eventtarget: EventTarget,
+    sender: Untraceable<Sender<DOMString>>,
 }
 
 impl Worker {
-    pub fn new_inherited() -> Worker {
+    pub fn new_inherited(sender: Sender<DOMString>) -> Worker {
         Worker {
             eventtarget: EventTarget::new_inherited(WorkerTypeId),
+            sender: Untraceable::new(sender),
         }
     }
 
-    pub fn new(global: &GlobalRef) -> Temporary<Worker> {
-        reflect_dom_object(box Worker::new_inherited(),
+    pub fn new(global: &GlobalRef, sender: Sender<DOMString>) -> Temporary<Worker> {
+        reflect_dom_object(box Worker::new_inherited(sender),
                            global,
                            WorkerBinding::Wrap)
     }
@@ -39,13 +42,22 @@ impl Worker {
             Err(_) => return Err(Syntax),
         };
 
+        let (sender, receiver) = channel();
         let resource_task = global.resource_task();
-        DedicatedWorkerGlobalScope::run_worker_scope(worker_url, resource_task, global.script_chan().clone());
-        Ok(Worker::new(global))
+        DedicatedWorkerGlobalScope::run_worker_scope(
+            worker_url, receiver, resource_task, global.script_chan().clone());
+        Ok(Worker::new(global, sender))
     }
 }
 
 pub trait WorkerMethods {
+    fn PostMessage(&self, message: DOMString);
+}
+
+impl<'a> WorkerMethods for JSRef<'a, Worker> {
+    fn PostMessage(&self, message: DOMString) {
+        self.sender.send(message);
+    }
 }
 
 impl Reflectable for Worker {
