@@ -61,3 +61,7 @@ clean-servo: clean-gfx clean-util clean-embedding clean-net clean-script clean-m
 	@$(call E, "cleaning servo")
 	$(Q)rm -f servo servo-test $(foreach lib_crate,$(SERVO_LIB_CRATES),servo-test-$(lib_crate)) libservo*.so libservo*.a
 	$(Q)cd $(BINDINGS_SRC) && rm -f *.pkl *.rs
+
+clean-rust-snapshot-archives:
+	@$(call E, "cleaning rust snapshot archives")
+	$(Q)cd $(B)/rust_snapshot/ && rm -rf *.tgz
