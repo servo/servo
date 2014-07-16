@@ -46,10 +46,15 @@ impl WorkerGlobalScope {
 }
 
 pub trait WorkerGlobalScopeMethods {
+    fn Self(&self) -> Temporary<WorkerGlobalScope>;
     fn Console(&self) -> Temporary<Console>;
 }
 
 impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
+    fn Self(&self) -> Temporary<WorkerGlobalScope> {
+        Temporary::from_rooted(self)
+    }
+
     fn Console(&self) -> Temporary<Console> {
         if self.console.get().is_none() {
             let console = Console::new(&global::Worker(*self));
