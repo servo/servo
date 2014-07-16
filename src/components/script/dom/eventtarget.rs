@@ -35,6 +35,7 @@ pub enum ListenerPhase {
 pub enum EventTargetTypeId {
     NodeTargetTypeId(NodeTypeId),
     WindowTypeId,
+    WorkerTypeId,
     WorkerGlobalScopeTypeId(WorkerGlobalScopeId),
     XMLHttpRequestTargetTypeId(XMLHttpRequestId)
 }

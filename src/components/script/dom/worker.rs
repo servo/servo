@@ -2,12 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::error::{Fallible, Security, Syntax};
+use dom::bindings::codegen::Bindings::WorkerBinding;
+use dom::bindings::error::{Fallible, Syntax};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Temporary, RootCollection};
-use dom::bindings::utils::{Reflectable, Reflector};
+use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
-use dom::eventtarget::EventTarget;
+use dom::eventtarget::{EventTarget, WorkerTypeId};
 use script_task::StackRootTLS;
 
 use servo_net::resource_task::load_whole_resource;
@@ -22,6 +23,18 @@ pub struct Worker {
 }
 
 impl Worker {
+    pub fn new_inherited() -> Worker {
+        Worker {
+            eventtarget: EventTarget::new_inherited(WorkerTypeId),
+        }
+    }
+
+    pub fn new(global: &GlobalRef) -> Temporary<Worker> {
+        reflect_dom_object(box Worker::new_inherited(),
+                           global,
+                           WorkerBinding::Wrap)
+    }
+
     pub fn Constructor(global: &GlobalRef, scriptURL: DOMString) -> Fallible<Temporary<Worker>> {
         // Step 2-4.
         let worker_url = match try_parse_url(scriptURL.as_slice(), Some(global.get_url())) {
@@ -52,7 +65,8 @@ impl Worker {
                 Err(_) => println!("evaluate_script failed")
             }
         });
-        Err(Security)
+
+        Ok(Worker::new(global))
     }
 }
 
