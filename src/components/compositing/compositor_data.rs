@@ -10,9 +10,9 @@ use azure::azure_hl::Color;
 use geom::point::TypedPoint2D;
 use geom::rect::Rect;
 use geom::size::{Size2D, TypedSize2D};
-use gfx::render_task::{ReRenderRequest, ReRenderMsg, RenderChan, UnusedBufferMsg};
+use gfx::render_task::{ReRenderRequest, RenderChan, UnusedBufferMsg};
 use layers::layers::{Layer, LayerBufferSet};
-use layers::platform::surface::{NativeCompositingGraphicsContext, NativeSurfaceMethods};
+use layers::platform::surface::NativeSurfaceMethods;
 use servo_msg::compositor_msg::{Epoch, FixedPosition, LayerId};
 use servo_msg::compositor_msg::ScrollPolicy;
 use servo_msg::constellation_msg::PipelineId;
@@ -112,7 +112,6 @@ impl CompositorData {
                                                                   (RenderChan,
                                                                    Vec<ReRenderRequest>)>,
                                            layer: Rc<Layer<CompositorData>>,
-                                           graphics_context: &NativeCompositingGraphicsContext,
                                            window_rect: Rect<f32>,
                                            scale: f32)
                                            -> bool {
@@ -138,10 +137,6 @@ impl CompositorData {
             vec.push(msg);
         }
 
-        if redisplay {
-            layer.create_textures(graphics_context);
-        }
-
         let get_child_buffer_request = |kid: &Rc<Layer<CompositorData>>| -> bool {
             let mut new_rect = window_rect;
             let offset = kid.extra_data.borrow().scroll_offset.to_untyped();
@@ -156,7 +151,6 @@ impl CompositorData {
                                           new_rect.size);
                     CompositorData::get_buffer_requests_recursively(requests,
                                                                     kid.clone(),
-                                                                    graphics_context,
                                                                     child_rect,
                                                                     scale)
                 }
@@ -254,7 +248,6 @@ impl CompositorData {
     // If the epoch of the message does not match the layer's epoch, the message is ignored, the
     // layer buffer set is consumed, and None is returned.
     pub fn add_buffers(layer: Rc<Layer<CompositorData>>,
-                       graphics_context: &NativeCompositingGraphicsContext,
                        new_buffers: Box<LayerBufferSet>,
                        epoch: Epoch)
                        -> bool {
@@ -278,21 +271,8 @@ impl CompositorData {
                 let msg = UnusedBufferMsg(unused_buffers);
                 let _ = layer.extra_data.borrow().pipeline.render_chan.send_opt(msg);
             }
-
-            let (pending_buffer_requests, scale) = layer.flush_pending_buffer_requests();
-            if !pending_buffer_requests.is_empty() {
-                let mut requests = Vec::new();
-                requests.push(ReRenderRequest {
-                    buffer_requests: pending_buffer_requests,
-                    scale: scale,
-                    layer_id: layer.extra_data.borrow().id,
-                    epoch: layer.extra_data.borrow().epoch,
-                });
-                let _ = layer.extra_data.borrow().pipeline.render_chan.send_opt(ReRenderMsg(requests));
-            }
         }
 
-        layer.create_textures(graphics_context);
         return true;
     }
 
