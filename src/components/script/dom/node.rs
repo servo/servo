@@ -1273,7 +1273,7 @@ impl Node {
             ElementNodeTypeId(..) => {
                 let element: &JSRef<Element> = ElementCast::to_ref(node).unwrap();
                 let element = element.deref();
-                let element = build_element_from_tag(element.local_name.as_slice().into_string(),
+                let element = build_element_from_tag(element.local_name.as_slice().to_string(),
                     element.namespace.clone(), &*document);
                 NodeCast::from_temporary(element)
             },

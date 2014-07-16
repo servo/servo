@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// Provides a wrapper around the Atom type in the string cache
-// crate. It's needed so that it can implement the Encodable
-// trait which is required by Servo.
+//! Provides a wrapper around the Atom type in the string cache
+//! crate. It's needed so that it can implement the Encodable
+//! trait which is required by Servo.
 
 use serialize::{Encoder, Encodable};
 use std::fmt;
@@ -17,9 +17,9 @@ pub struct Atom {
 
 impl Atom {
     #[inline(always)]
-    pub fn from_slice(string_to_add: &str) -> Atom {
+    pub fn from_slice(slice: &str) -> Atom {
         Atom {
-            atom: atom::Atom::from_slice(string_to_add)
+            atom: atom::Atom::from_slice(slice)
         }
     }
 }
