@@ -402,6 +402,7 @@ probe CFG_CLANG            clang++
 CFG_BUILD_DIR="${CFG_BUILD_HOME}${CFG_TARGET}/"
 make_dir "${CFG_BUILD_DIR}"
 SNAPSHOT_VERSION=$(cat ${CFG_SRC_DIR}/src/compiler/rust-snapshot-hash | rev | cut -d/ -f1 | rev)
+SNAPSHOT_HASH=$(cat ${CFG_SRC_DIR}/src/compiler/rust-snapshot-hash | cut -d/ -f1)
 if [ $CFG_OSTYPE = "linux-androideabi" ]
 then
 CFG_TREE_RUST=1 # We don't yet have Android snapshots
@@ -410,14 +411,17 @@ if [ -z "$CFG_TREE_RUST" ]
 then
     if ! [ -f ${CFG_BUILD_DIR}/rust_snapshot/${SNAPSHOT_VERSION}-${DEFAULT_TARGET}/bin/rustc -a -f ${CFG_BUILD_DIR}/src/compiler/rust-snapshot-hash-stamp -a -z "$(diff ${CFG_BUILD_DIR}/src/compiler/rust-snapshot-hash-stamp ${CFG_SRC_DIR}/src/compiler/rust-snapshot-hash)" ]
     then
-    rm -rf ${CFG_BUILD_DIR}/rust_snapshot
-    make_dir ${CFG_BUILD_DIR}/rust_snapshot
-    make_dir ${CFG_BUILD_DIR}/src/compiler/rust
-    SNAPSHOT_URL="https://servo-rust.s3.amazonaws.com/$(cat ${CFG_SRC_DIR}/src/compiler/rust-snapshot-hash)-${DEFAULT_TARGET}.tar.gz"
-    step_msg "Fetching snapshot from ${SNAPSHOT_URL}"
-    curl -o ${CFG_BUILD_DIR}/rust_snapshot/snapshot.tgz ${SNAPSHOT_URL}
-    tar -zxf ${CFG_BUILD_DIR}/rust_snapshot/snapshot.tgz -C ${CFG_BUILD_DIR}/rust_snapshot/
-    cp -f ${CFG_SRC_DIR}/src/compiler/rust-snapshot-hash ${CFG_BUILD_DIR}/src/compiler/rust-snapshot-hash-stamp
+        make_dir ${CFG_BUILD_DIR}/rust_snapshot
+        make_dir ${CFG_BUILD_DIR}/src/compiler/rust
+        if [ ! -f ${CFG_BUILD_DIR}/rust_snapshot/snapshot-${SNAPSHOT_HASH}.tgz ]
+        then
+            SNAPSHOT_URL="https://servo-rust.s3.amazonaws.com/$(cat ${CFG_SRC_DIR}/src/compiler/rust-snapshot-hash)-${DEFAULT_TARGET}.tar.gz"
+            step_msg "Fetching snapshot from ${SNAPSHOT_URL}"
+            curl -o ${CFG_BUILD_DIR}/rust_snapshot/snapshot-${SNAPSHOT_HASH}.tgz ${SNAPSHOT_URL}
+        fi
+        rm -rf ${CFG_BUILD_DIR}/rust_snapshot/${SNAPSHOT_VERSION}-${DEFAULT_TARGET}
+        tar -zxf ${CFG_BUILD_DIR}/rust_snapshot/snapshot-${SNAPSHOT_HASH}.tgz -C ${CFG_BUILD_DIR}/rust_snapshot/
+        cp -f ${CFG_SRC_DIR}/src/compiler/rust-snapshot-hash ${CFG_BUILD_DIR}/src/compiler/rust-snapshot-hash-stamp
     fi
     CFG_LOCAL_RUST_ROOT=${CFG_BUILD_DIR}/rust_snapshot/${SNAPSHOT_VERSION}-${DEFAULT_TARGET}
 fi
