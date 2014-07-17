@@ -28,20 +28,22 @@ pub struct DedicatedWorkerGlobalScope {
 }
 
 impl DedicatedWorkerGlobalScope {
-    pub fn new_inherited(cx: Rc<Cx>,
+    pub fn new_inherited(worker_url: Url,
+                         cx: Rc<Cx>,
                          resource_task: ResourceTask)
                          -> DedicatedWorkerGlobalScope {
         DedicatedWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
-                DedicatedGlobalScope, cx, resource_task),
+                DedicatedGlobalScope, worker_url, cx, resource_task),
         }
     }
 
-    pub fn new(cx: Rc<Cx>,
+    pub fn new(worker_url: Url,
+               cx: Rc<Cx>,
                resource_task: ResourceTask)
                -> Temporary<DedicatedWorkerGlobalScope> {
         let scope = box DedicatedWorkerGlobalScope::new_inherited(
-            cx.clone(), resource_task);
+            worker_url, cx.clone(), resource_task);
         DedicatedWorkerGlobalScopeBinding::Wrap(cx.ptr, scope)
     }
 }
@@ -66,7 +68,7 @@ impl DedicatedWorkerGlobalScope {
 
             let (_js_runtime, js_context) = ScriptTask::new_rt_and_cx();
             let global = DedicatedWorkerGlobalScope::new(
-                js_context.clone(), resource_task).root();
+                worker_url, js_context.clone(), resource_task).root();
             match js_context.evaluate_script(
                 global.reflector().get_jsobject(), source, filename.to_str(), 1) {
                 Ok(_) => (),

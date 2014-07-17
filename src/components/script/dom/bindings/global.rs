@@ -55,7 +55,10 @@ impl<'a> GlobalRef<'a> {
     }
 
     pub fn get_url(&self) -> Url {
-        self.as_window().get_url()
+        match *self {
+            Window(ref window) => window.get_url(),
+            Worker(ref worker) => worker.get_url().clone(),
+        }
     }
 
     pub fn script_chan<'b>(&'b self) -> &'b ScriptChan {

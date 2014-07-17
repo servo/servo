@@ -16,6 +16,7 @@ use js::rust::Cx;
 
 use std::cell::Cell;
 use std::rc::Rc;
+use url::Url;
 
 #[deriving(PartialEq,Encodable)]
 pub enum WorkerGlobalScopeId {
@@ -25,6 +26,7 @@ pub enum WorkerGlobalScopeId {
 #[deriving(Encodable)]
 pub struct WorkerGlobalScope {
     pub eventtarget: EventTarget,
+    worker_url: Untraceable<Url>,
     js_context: Untraceable<Rc<Cx>>,
     resource_task: Untraceable<ResourceTask>,
     console: Cell<Option<JS<Console>>>,
@@ -32,10 +34,12 @@ pub struct WorkerGlobalScope {
 
 impl WorkerGlobalScope {
     pub fn new_inherited(type_id: WorkerGlobalScopeId,
+                         worker_url: Url,
                          cx: Rc<Cx>,
                          resource_task: ResourceTask) -> WorkerGlobalScope {
         WorkerGlobalScope {
             eventtarget: EventTarget::new_inherited(WorkerGlobalScopeTypeId(type_id)),
+            worker_url: Untraceable::new(worker_url),
             js_context: Untraceable::new(cx),
             resource_task: Untraceable::new(resource_task),
             console: Cell::new(None),
@@ -48,6 +52,10 @@ impl WorkerGlobalScope {
 
     pub fn resource_task<'a>(&'a self) -> &'a ResourceTask {
         &*self.resource_task
+    }
+
+    pub fn get_url<'a>(&'a self) -> &'a Url {
+        &*self.worker_url
     }
 }
 
