@@ -4,17 +4,23 @@
 
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding;
 use dom::bindings::codegen::InheritTypes::DedicatedWorkerGlobalScopeDerived;
-use dom::bindings::js::Temporary;
+use dom::bindings::js::{Temporary, RootCollection};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::eventtarget::EventTarget;
 use dom::eventtarget::WorkerGlobalScopeTypeId;
 use dom::workerglobalscope::DedicatedGlobalScope;
 use dom::workerglobalscope::WorkerGlobalScope;
-use script_task::ScriptTask;
+use script_task::{ScriptTask, ScriptChan};
+use script_task::StackRootTLS;
+
+use servo_net::resource_task::{ResourceTask, load_whole_resource};
 
 use js::rust::Cx;
 
 use std::rc::Rc;
+use native;
+use rustrt::task::TaskOpts;
+use url::Url;
 
 #[deriving(Encodable)]
 pub struct DedicatedWorkerGlobalScope {
@@ -22,24 +28,58 @@ pub struct DedicatedWorkerGlobalScope {
 }
 
 impl DedicatedWorkerGlobalScope {
-    pub fn new_inherited(cx: Rc<Cx>) -> DedicatedWorkerGlobalScope {
+    pub fn new_inherited(worker_url: Url,
+                         cx: Rc<Cx>,
+                         resource_task: ResourceTask,
+                         script_chan: ScriptChan)
+                         -> DedicatedWorkerGlobalScope {
         DedicatedWorkerGlobalScope {
-            workerglobalscope: WorkerGlobalScope::new_inherited(DedicatedGlobalScope, cx),
+            workerglobalscope: WorkerGlobalScope::new_inherited(
+                DedicatedGlobalScope, worker_url, cx, resource_task,
+                script_chan),
         }
     }
 
-    pub fn new(cx: Rc<Cx>) -> Temporary<DedicatedWorkerGlobalScope> {
-        let scope = box DedicatedWorkerGlobalScope::new_inherited(cx.clone());
+    pub fn new(worker_url: Url,
+               cx: Rc<Cx>,
+               resource_task: ResourceTask,
+               script_chan: ScriptChan)
+               -> Temporary<DedicatedWorkerGlobalScope> {
+        let scope = box DedicatedWorkerGlobalScope::new_inherited(
+            worker_url, cx.clone(), resource_task, script_chan);
         DedicatedWorkerGlobalScopeBinding::Wrap(cx.ptr, scope)
     }
+}
 
-    pub fn init() -> Temporary<DedicatedWorkerGlobalScope> {
-        let (_js_runtime, js_context) = ScriptTask::new_rt_and_cx();
-        DedicatedWorkerGlobalScope::new(js_context.clone())
-    }
+impl DedicatedWorkerGlobalScope {
+    pub fn run_worker_scope(worker_url: Url, resource_task: ResourceTask,
+                            script_chan: ScriptChan) {
+        let mut task_opts = TaskOpts::new();
+        task_opts.name = Some(format!("Web Worker at {}", worker_url).into_maybe_owned());
+        native::task::spawn_opts(task_opts, proc() {
+            let roots = RootCollection::new();
+            let _stack_roots_tls = StackRootTLS::new(&roots);
 
-    pub fn get_rust_cx<'a>(&'a self) -> &'a Rc<Cx> {
-        self.workerglobalscope.get_rust_cx()
+            let (filename, source) = match load_whole_resource(&resource_task, worker_url.clone()) {
+                Err(_) => {
+                    println!("error loading script {}", worker_url);
+                    return;
+                }
+                Ok((metadata, bytes)) => {
+                    (metadata.final_url, String::from_utf8(bytes).unwrap())
+                }
+            };
+
+            let (_js_runtime, js_context) = ScriptTask::new_rt_and_cx();
+            let global = DedicatedWorkerGlobalScope::new(
+                worker_url, js_context.clone(), resource_task,
+                script_chan).root();
+            match js_context.evaluate_script(
+                global.reflector().get_jsobject(), source, filename.to_str(), 1) {
+                Ok(_) => (),
+                Err(_) => println!("evaluate_script failed")
+            }
+        });
     }
 }
 

@@ -5,18 +5,13 @@
 use dom::bindings::codegen::Bindings::WorkerBinding;
 use dom::bindings::error::{Fallible, Syntax};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{Temporary, RootCollection};
+use dom::bindings::js::Temporary;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use dom::eventtarget::{EventTarget, WorkerTypeId};
-use script_task::StackRootTLS;
 
-use servo_net::resource_task::load_whole_resource;
 use servo_util::str::DOMString;
 use servo_util::url::try_parse_url;
-
-use native;
-use rustrt::task::TaskOpts;
 
 #[deriving(Encodable)]
 pub struct Worker {
@@ -44,32 +39,8 @@ impl Worker {
             Err(_) => return Err(Syntax),
         };
 
-        let resource_task = global.page().resource_task.deref().clone();
-
-        let mut task_opts = TaskOpts::new();
-        task_opts.name = Some(format!("Web Worker at {}", worker_url).into_maybe_owned());
-        native::task::spawn_opts(task_opts, proc() {
-            let roots = RootCollection::new();
-            let _stack_roots_tls = StackRootTLS::new(&roots);
-
-            let (filename, source) = match load_whole_resource(&resource_task, worker_url.clone()) {
-                Err(_) => {
-                    println!("error loading script {}", worker_url);
-                    return;
-                }
-                Ok((metadata, bytes)) => {
-                    (metadata.final_url, String::from_utf8(bytes).unwrap())
-                }
-            };
-
-            let global = DedicatedWorkerGlobalScope::init().root();
-            match global.get_rust_cx().evaluate_script(
-                global.reflector().get_jsobject(), source, filename.to_str(), 1) {
-                Ok(_) => (),
-                Err(_) => println!("evaluate_script failed")
-            }
-        });
-
+        let resource_task = global.resource_task();
+        DedicatedWorkerGlobalScope::run_worker_scope(worker_url, resource_task, global.script_chan().clone());
         Ok(Worker::new(global))
     }
 }

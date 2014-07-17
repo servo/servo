@@ -8,8 +8,9 @@ use dom::bindings::js::{JS, JSRef, Root};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::workerglobalscope::WorkerGlobalScope;
 use dom::window::Window;
-use page::Page;
 use script_task::ScriptChan;
+
+use servo_net::resource_task::ResourceTask;
 
 use js::jsapi::JSContext;
 
@@ -46,16 +47,25 @@ impl<'a> GlobalRef<'a> {
         }
     }
 
-    pub fn page<'b>(&'b self) -> &'b Page {
-        self.as_window().page()
+    pub fn resource_task(&self) -> ResourceTask {
+        match *self {
+            Window(ref window) => window.page().resource_task.deref().clone(),
+            Worker(ref worker) => worker.resource_task().clone(),
+        }
     }
 
     pub fn get_url(&self) -> Url {
-        self.as_window().get_url()
+        match *self {
+            Window(ref window) => window.get_url(),
+            Worker(ref worker) => worker.get_url().clone(),
+        }
     }
 
     pub fn script_chan<'b>(&'b self) -> &'b ScriptChan {
-        &self.as_window().script_chan
+        match *self {
+            Window(ref window) => &window.script_chan,
+            Worker(ref worker) => worker.script_chan(),
+        }
     }
 }
 

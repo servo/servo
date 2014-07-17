@@ -486,7 +486,7 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
         }
 
         let global = self.global.root();
-        let resource_task = global.root_ref().page().resource_task.deref().clone();
+        let resource_task = global.root_ref().resource_task();
         let mut load_data = LoadData::new(self.request_url.deref().borrow().clone());
         load_data.data = extracted;
 

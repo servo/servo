@@ -8,12 +8,16 @@ use dom::bindings::js::{JS, JSRef, Temporary, OptionalSettable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::console::Console;
 use dom::eventtarget::{EventTarget, WorkerGlobalScopeTypeId};
+use script_task::ScriptChan;
+
+use servo_net::resource_task::ResourceTask;
 
 use js::jsapi::JSContext;
 use js::rust::Cx;
 
 use std::cell::Cell;
 use std::rc::Rc;
+use url::Url;
 
 #[deriving(PartialEq,Encodable)]
 pub enum WorkerGlobalScopeId {
@@ -23,25 +27,43 @@ pub enum WorkerGlobalScopeId {
 #[deriving(Encodable)]
 pub struct WorkerGlobalScope {
     pub eventtarget: EventTarget,
+    worker_url: Untraceable<Url>,
     js_context: Untraceable<Rc<Cx>>,
+    resource_task: Untraceable<ResourceTask>,
+    script_chan: ScriptChan,
     console: Cell<Option<JS<Console>>>,
 }
 
 impl WorkerGlobalScope {
     pub fn new_inherited(type_id: WorkerGlobalScopeId,
-                         cx: Rc<Cx>) -> WorkerGlobalScope {
+                         worker_url: Url,
+                         cx: Rc<Cx>,
+                         resource_task: ResourceTask,
+                         script_chan: ScriptChan) -> WorkerGlobalScope {
         WorkerGlobalScope {
             eventtarget: EventTarget::new_inherited(WorkerGlobalScopeTypeId(type_id)),
+            worker_url: Untraceable::new(worker_url),
             js_context: Untraceable::new(cx),
+            resource_task: Untraceable::new(resource_task),
+            script_chan: script_chan,
             console: Cell::new(None),
         }
     }
 
-    pub fn get_rust_cx<'a>(&'a self) -> &'a Rc<Cx> {
-        &*self.js_context
-    }
     pub fn get_cx(&self) -> *mut JSContext {
         self.js_context.ptr
+    }
+
+    pub fn resource_task<'a>(&'a self) -> &'a ResourceTask {
+        &*self.resource_task
+    }
+
+    pub fn get_url<'a>(&'a self) -> &'a Url {
+        &*self.worker_url
+    }
+
+    pub fn script_chan<'a>(&'a self) -> &'a ScriptChan {
+        &self.script_chan
     }
 }
 
