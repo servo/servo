@@ -28,14 +28,20 @@ pub struct DedicatedWorkerGlobalScope {
 }
 
 impl DedicatedWorkerGlobalScope {
-    pub fn new_inherited(cx: Rc<Cx>) -> DedicatedWorkerGlobalScope {
+    pub fn new_inherited(cx: Rc<Cx>,
+                         resource_task: ResourceTask)
+                         -> DedicatedWorkerGlobalScope {
         DedicatedWorkerGlobalScope {
-            workerglobalscope: WorkerGlobalScope::new_inherited(DedicatedGlobalScope, cx),
+            workerglobalscope: WorkerGlobalScope::new_inherited(
+                DedicatedGlobalScope, cx, resource_task),
         }
     }
 
-    pub fn new(cx: Rc<Cx>) -> Temporary<DedicatedWorkerGlobalScope> {
-        let scope = box DedicatedWorkerGlobalScope::new_inherited(cx.clone());
+    pub fn new(cx: Rc<Cx>,
+               resource_task: ResourceTask)
+               -> Temporary<DedicatedWorkerGlobalScope> {
+        let scope = box DedicatedWorkerGlobalScope::new_inherited(
+            cx.clone(), resource_task);
         DedicatedWorkerGlobalScopeBinding::Wrap(cx.ptr, scope)
     }
 }

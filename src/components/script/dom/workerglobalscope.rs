@@ -9,6 +9,8 @@ use dom::bindings::utils::{Reflectable, Reflector};
 use dom::console::Console;
 use dom::eventtarget::{EventTarget, WorkerGlobalScopeTypeId};
 
+use servo_net::resource_task::ResourceTask;
+
 use js::jsapi::JSContext;
 use js::rust::Cx;
 
@@ -24,15 +26,18 @@ pub enum WorkerGlobalScopeId {
 pub struct WorkerGlobalScope {
     pub eventtarget: EventTarget,
     js_context: Untraceable<Rc<Cx>>,
+    resource_task: Untraceable<ResourceTask>,
     console: Cell<Option<JS<Console>>>,
 }
 
 impl WorkerGlobalScope {
     pub fn new_inherited(type_id: WorkerGlobalScopeId,
-                         cx: Rc<Cx>) -> WorkerGlobalScope {
+                         cx: Rc<Cx>,
+                         resource_task: ResourceTask) -> WorkerGlobalScope {
         WorkerGlobalScope {
             eventtarget: EventTarget::new_inherited(WorkerGlobalScopeTypeId(type_id)),
             js_context: Untraceable::new(cx),
+            resource_task: Untraceable::new(resource_task),
             console: Cell::new(None),
         }
     }
