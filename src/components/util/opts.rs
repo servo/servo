@@ -57,6 +57,7 @@ pub struct Opts {
     pub exit_after_load: bool,
 
     pub output_file: Option<String>,
+    pub dump_file: Option<String>,
     pub headless: bool,
     pub hard_fail: bool,
 
@@ -84,6 +85,7 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
     let opts = vec!(
         getopts::optflag("c", "cpu", "CPU rendering"),
         getopts::optopt("o", "output", "Output file", "output.png"),
+        getopts::optopt("d", "dump", "File to dump output (e.g. from window.alert) to", "dump.txt"),
         getopts::optopt("r", "rendering", "Rendering backend", "direct2d|core-graphics|core-graphics-accelerated|cairo|skia."),
         getopts::optopt("s", "size", "Size of tiles", "512"),
         getopts::optopt("", "device-pixel-ratio", "Device pixels per px", ""),
@@ -179,6 +181,7 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
         layout_threads: layout_threads,
         exit_after_load: opt_match.opt_present("x"),
         output_file: opt_match.opt_str("o"),
+        dump_file: opt_match.opt_str("d"),
         headless: opt_match.opt_present("z"),
         hard_fail: opt_match.opt_present("f"),
         bubble_widths_separately: opt_match.opt_present("b"),

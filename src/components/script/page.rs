@@ -23,7 +23,7 @@ use js::rust::Cx;
 use servo_msg::compositor_msg::PerformingLayout;
 use servo_msg::compositor_msg::ScriptListener;
 use servo_msg::constellation_msg::{ConstellationChan, WindowSizeData};
-use servo_msg::constellation_msg::{PipelineId, SubpageId};
+use servo_msg::constellation_msg::{LogStringMsg, PipelineId, SubpageId};
 use servo_net::resource_task::ResourceTask;
 use servo_util::namespace::Null;
 use servo_util::str::DOMString;
@@ -43,6 +43,9 @@ pub struct Page {
 
     /// Subpage id associated with this page, if any.
     pub subpage_id: Option<SubpageId>,
+
+    /// Boolean indicating whether to dump log messages to a file
+    dump_to_file: bool,
 
     /// Unique id for last reflow request; used for confirming completion reply.
     pub last_reflow_id: Traceable<Cell<uint>>,
@@ -116,11 +119,12 @@ impl IterablePage for Rc<Page> {
 
 impl Page {
     pub fn new(id: PipelineId, subpage_id: Option<SubpageId>,
-           layout_chan: LayoutChan,
-           window_size: WindowSizeData,
-           resource_task: ResourceTask,
-           constellation_chan: ConstellationChan,
-           js_context: Rc<Cx>) -> Page {
+               layout_chan: LayoutChan,
+               window_size: WindowSizeData,
+               resource_task: ResourceTask,
+               constellation_chan: ConstellationChan,
+               js_context: Rc<Cx>,
+               dump_to_file: bool) -> Page {
         let js_info = JSPageInfo {
             dom_static: GlobalStaticData(),
             js_context: Untraceable::new(js_context),
@@ -128,6 +132,7 @@ impl Page {
         Page {
             id: id,
             subpage_id: subpage_id,
+            dump_to_file: dump_to_file,
             frame: Traceable::new(RefCell::new(None)),
             layout_chan: Untraceable::new(layout_chan),
             layout_join_port: Untraceable::new(RefCell::new(None)),
@@ -413,6 +418,15 @@ impl Page {
             }
         };
         address
+    }
+
+    pub fn dump(&self, s:&String) {
+        if self.dump_to_file {
+            let ConstellationChan(ref chan) = *self.constellation_chan;
+            chan.send(LogStringMsg(s.clone()));
+        } else {
+            println!("{:s}", *s);
+        }
     }
 }
 

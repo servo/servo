@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use compositor_task::{CompositorChan, LoadComplete, ShutdownComplete, SetLayerClipRect, SetIds};
+use compositor_task::{CompositorChan, LoadComplete, LogString, ShutdownComplete, SetLayerClipRect, SetIds};
 use std::collections::hashmap::{HashMap, HashSet};
 use geom::rect::{Rect, TypedRect};
 use geom::scale_factor::ScaleFactor;
@@ -17,7 +17,7 @@ use script::script_task::ScriptChan;
 use servo_msg::compositor_msg::LayerId;
 use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, FailureMsg, Failure, FrameRectMsg};
 use servo_msg::constellation_msg::{IFrameSandboxState, IFrameUnsandboxed, InitLoadUrlMsg};
-use servo_msg::constellation_msg::{LoadCompleteMsg, LoadIframeUrlMsg, LoadUrlMsg, Msg, NavigateMsg};
+use servo_msg::constellation_msg::{LoadCompleteMsg, LoadIframeUrlMsg, LoadUrlMsg, LogStringMsg, Msg, NavigateMsg};
 use servo_msg::constellation_msg::{NavigationType, PipelineId, RendererReadyMsg, ResizedWindowMsg};
 use servo_msg::constellation_msg::{SubpageId, WindowSizeData};
 use servo_msg::constellation_msg;
@@ -347,6 +347,10 @@ impl Constellation {
             LoadCompleteMsg(pipeline_id, url) => {
                 debug!("constellation got load complete message");
                 self.compositor_chan.send(LoadComplete(pipeline_id, url));
+            }
+            LogStringMsg(log_string) => {
+                debug!("constellation got log string message");
+                self.compositor_chan.send(LogString(log_string));
             }
             // Handle a forward or back request
             NavigateMsg(direction) => {

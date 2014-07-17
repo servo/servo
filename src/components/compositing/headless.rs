@@ -4,7 +4,7 @@
 
 use compositor_task::{Msg, Exit, ChangeReadyState, SetIds};
 use compositor_task::{GetGraphicsMetadata, CreateOrUpdateRootLayer, CreateOrUpdateDescendantLayer};
-use compositor_task::{SetLayerClipRect, Paint, ScrollFragmentPoint, LoadComplete};
+use compositor_task::{SetLayerClipRect, Paint, ScrollFragmentPoint, LoadComplete, LogString};
 use compositor_task::{ShutdownComplete, ChangeRenderState};
 
 use geom::scale_factor::ScaleFactor;
@@ -82,6 +82,11 @@ impl NullCompositor {
 
                 SetIds(_, response_chan, _) => {
                     response_chan.send(());
+                }
+
+                LogString(log_string) => {
+                    debug!("{:s}", "Compositor got log string");
+                    println!("{:s}", log_string);
                 }
 
                 // Explicitly list ignored messages so that when we add a new one,
