@@ -1050,9 +1050,6 @@ impl BlockFlow {
             floats = flow::mut_base(kid).floats.clone();
         }
 
-        // Floats establish a block formatting context, so we discard the output floats here.
-        drop(floats);
-
         let top_offset = self.fragment.margin.top + self.fragment.border_padding.top;
         let mut cur_y = top_offset;
 
@@ -1065,7 +1062,12 @@ impl BlockFlow {
             cur_y = cur_y + child_base.position.size.height;
         }
 
-        let content_height = cur_y - top_offset;
+        // Intrinsic height should include floating descendants with a margin
+        // below the element's bottom edge (see CSS Section 10.6.7).
+        let content_height = geometry::max(cur_y - top_offset, floats.clearance(ClearBoth));
+
+        // Floats establish a block formatting context, so we discard the output floats here.
+        drop(floats);
 
         // The associated fragment has the border box of this flow.
         self.fragment.border_box.origin.y = self.fragment.margin.top;

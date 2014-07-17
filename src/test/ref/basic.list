@@ -83,3 +83,4 @@
 == position_fixed_overflow_a.html position_fixed_overflow_b.html
 == noscript.html noscript_ref.html
 == pseudo_inherit.html pseudo_inherit_ref.html
+== float_intrinsic_height.html float_intrinsic_height_ref.html
