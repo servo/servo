@@ -37,9 +37,6 @@ impl WorkerGlobalScope {
         }
     }
 
-    pub fn get_rust_cx<'a>(&'a self) -> &'a Rc<Cx> {
-        &*self.js_context
-    }
     pub fn get_cx(&self) -> *mut JSContext {
         self.js_context.ptr
     }

@@ -38,15 +38,6 @@ impl DedicatedWorkerGlobalScope {
         let scope = box DedicatedWorkerGlobalScope::new_inherited(cx.clone());
         DedicatedWorkerGlobalScopeBinding::Wrap(cx.ptr, scope)
     }
-
-    pub fn init() -> Temporary<DedicatedWorkerGlobalScope> {
-        let (_js_runtime, js_context) = ScriptTask::new_rt_and_cx();
-        DedicatedWorkerGlobalScope::new(js_context.clone())
-    }
-
-    pub fn get_rust_cx<'a>(&'a self) -> &'a Rc<Cx> {
-        self.workerglobalscope.get_rust_cx()
-    }
 }
 
 impl DedicatedWorkerGlobalScope {
@@ -67,8 +58,9 @@ impl DedicatedWorkerGlobalScope {
                 }
             };
 
-            let global = DedicatedWorkerGlobalScope::init().root();
-            match global.get_rust_cx().evaluate_script(
+            let (_js_runtime, js_context) = ScriptTask::new_rt_and_cx();
+            let global = DedicatedWorkerGlobalScope::new(js_context.clone()).root();
+            match js_context.evaluate_script(
                 global.reflector().get_jsobject(), source, filename.to_str(), 1) {
                 Ok(_) => (),
                 Err(_) => println!("evaluate_script failed")
