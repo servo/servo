@@ -153,7 +153,7 @@ impl IOCompositor {
             opts: opts,
             context: rendergl::init_render_context(),
             root_pipeline: None,
-            scene: Scene(window_size.as_f32().to_untyped(), identity()),
+            scene: Scene::new(window_size.as_f32().to_untyped(), identity()),
             window_size: window_size,
             hidpi_factor: hidpi_factor,
             graphics_context: CompositorTask::create_graphics_context(),
