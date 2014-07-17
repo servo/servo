@@ -15,7 +15,8 @@ use servo_net::resource_task::load_whole_resource;
 use servo_util::str::DOMString;
 use servo_util::url::try_parse_url;
 
-use std::task::TaskBuilder;
+use native;
+use rustrt::task::TaskOpts;
 
 #[deriving(Encodable)]
 pub struct Worker {
@@ -42,9 +43,11 @@ impl Worker {
             Err(_) => return Err(Syntax),
         };
 
-        let name = format!("Web Worker at {}", worker_url);
         let resource_task = global.page().resource_task.deref().clone();
-        TaskBuilder::new().named(name).spawn(proc() {
+
+        let mut task_opts = TaskOpts::new();
+        task_opts.name = Some(format!("Web Worker at {}", worker_url).into_maybe_owned());
+        native::task::spawn_opts(task_opts, proc() {
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
 
