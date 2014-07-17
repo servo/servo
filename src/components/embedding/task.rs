@@ -7,6 +7,6 @@ use types::cef_thread_id_t;
 
 //FIXME: this should check the current servo task I guess?
 #[no_mangle]
-pub extern "C" fn cef_currently_on(tid: cef_thread_id_t) -> c_int {
+pub extern "C" fn cef_currently_on(_tid: cef_thread_id_t) -> c_int {
     1
 }
