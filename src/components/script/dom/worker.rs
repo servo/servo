@@ -40,7 +40,7 @@ impl Worker {
         };
 
         let resource_task = global.resource_task();
-        DedicatedWorkerGlobalScope::run_worker_scope(worker_url, resource_task);
+        DedicatedWorkerGlobalScope::run_worker_scope(worker_url, resource_task, global.script_chan().clone());
         Ok(Worker::new(global))
     }
 }

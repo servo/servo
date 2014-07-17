@@ -8,6 +8,7 @@ use dom::bindings::js::{JS, JSRef, Temporary, OptionalSettable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::console::Console;
 use dom::eventtarget::{EventTarget, WorkerGlobalScopeTypeId};
+use script_task::ScriptChan;
 
 use servo_net::resource_task::ResourceTask;
 
@@ -29,6 +30,7 @@ pub struct WorkerGlobalScope {
     worker_url: Untraceable<Url>,
     js_context: Untraceable<Rc<Cx>>,
     resource_task: Untraceable<ResourceTask>,
+    script_chan: ScriptChan,
     console: Cell<Option<JS<Console>>>,
 }
 
@@ -36,12 +38,14 @@ impl WorkerGlobalScope {
     pub fn new_inherited(type_id: WorkerGlobalScopeId,
                          worker_url: Url,
                          cx: Rc<Cx>,
-                         resource_task: ResourceTask) -> WorkerGlobalScope {
+                         resource_task: ResourceTask,
+                         script_chan: ScriptChan) -> WorkerGlobalScope {
         WorkerGlobalScope {
             eventtarget: EventTarget::new_inherited(WorkerGlobalScopeTypeId(type_id)),
             worker_url: Untraceable::new(worker_url),
             js_context: Untraceable::new(cx),
             resource_task: Untraceable::new(resource_task),
+            script_chan: script_chan,
             console: Cell::new(None),
         }
     }
@@ -56,6 +60,10 @@ impl WorkerGlobalScope {
 
     pub fn get_url<'a>(&'a self) -> &'a Url {
         &*self.worker_url
+    }
+
+    pub fn script_chan<'a>(&'a self) -> &'a ScriptChan {
+        &self.script_chan
     }
 }
 
