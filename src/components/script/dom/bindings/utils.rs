@@ -5,7 +5,7 @@
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
 use dom::bindings::conversions::{FromJSValConvertible, IDLInterface};
-use dom::bindings::global::{GlobalRef, GlobalField, WindowField};
+use dom::bindings::global::{GlobalRef, GlobalField, WindowField, WorkerField};
 use dom::bindings::js::{JS, Temporary, Root};
 use dom::bindings::trace::Untraceable;
 use dom::browsercontext;
@@ -591,7 +591,12 @@ pub fn global_object_for_js_object(obj: *mut JSObject) -> GlobalField {
             Err(_) => (),
         }
 
-        fail!("found DOM global that doesn't unwrap to Window")
+        match FromJSValConvertible::from_jsval(ptr::mut_null(), ObjectOrNullValue(global), ()) {
+            Ok(worker) => return WorkerField(worker),
+            Err(_) => (),
+        }
+
+        fail!("found DOM global that doesn't unwrap to Window or WorkerGlobalScope")
     }
 }
 

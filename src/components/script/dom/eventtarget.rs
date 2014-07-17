@@ -12,6 +12,7 @@ use dom::bindings::utils::{Reflectable, Reflector};
 use dom::event::Event;
 use dom::eventdispatcher::dispatch_event;
 use dom::node::NodeTypeId;
+use dom::workerglobalscope::WorkerGlobalScopeId;
 use dom::xmlhttprequest::XMLHttpRequestId;
 use dom::virtualmethods::VirtualMethods;
 use js::jsapi::{JS_CompileUCFunction, JS_GetFunctionObject, JS_CloneFunctionObject};
@@ -34,6 +35,8 @@ pub enum ListenerPhase {
 pub enum EventTargetTypeId {
     NodeTargetTypeId(NodeTypeId),
     WindowTypeId,
+    WorkerTypeId,
+    WorkerGlobalScopeTypeId(WorkerGlobalScopeId),
     XMLHttpRequestTargetTypeId(XMLHttpRequestId)
 }
 
