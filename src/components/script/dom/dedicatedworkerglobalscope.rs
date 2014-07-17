@@ -65,7 +65,8 @@ impl DedicatedWorkerGlobalScope {
             };
 
             let (_js_runtime, js_context) = ScriptTask::new_rt_and_cx();
-            let global = DedicatedWorkerGlobalScope::new(js_context.clone()).root();
+            let global = DedicatedWorkerGlobalScope::new(
+                js_context.clone(), resource_task).root();
             match js_context.evaluate_script(
                 global.reflector().get_jsobject(), source, filename.to_str(), 1) {
                 Ok(_) => (),

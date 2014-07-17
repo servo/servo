@@ -39,7 +39,7 @@ impl Worker {
             Err(_) => return Err(Syntax),
         };
 
-        let resource_task = global.page().resource_task.deref().clone();
+        let resource_task = global.resource_task();
         DedicatedWorkerGlobalScope::run_worker_scope(worker_url, resource_task);
         Ok(Worker::new(global))
     }

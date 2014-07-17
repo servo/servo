@@ -45,6 +45,10 @@ impl WorkerGlobalScope {
     pub fn get_cx(&self) -> *mut JSContext {
         self.js_context.ptr
     }
+
+    pub fn resource_task<'a>(&'a self) -> &'a ResourceTask {
+        &*self.resource_task
+    }
 }
 
 pub trait WorkerGlobalScopeMethods {
