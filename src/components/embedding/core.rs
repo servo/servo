@@ -46,7 +46,7 @@ pub extern "C" fn cef_shutdown() {
 #[no_mangle]
 pub extern "C" fn cef_run_message_loop() {
     let mut urls = Vec::new();
-    urls.push("http://www.w3c-test.org".to_string());
+    urls.push("http://s27.postimg.org/vqbtrolyr/servo.jpg".to_string());
     let opts = opts::Opts {
         urls: urls,
         render_backend: azure::azure_hl::SkiaBackend,
