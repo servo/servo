@@ -5,7 +5,7 @@
 use dom::bindings::callback::CallbackContainer;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
-use dom::bindings::error::{Fallible, InvalidState};
+use dom::bindings::error::{Fallible, InvalidState, report_pending_exception};
 use dom::bindings::js::JSRef;
 use dom::bindings::trace::Traceable;
 use dom::bindings::utils::{Reflectable, Reflector};
@@ -181,19 +181,25 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
         static arg_names: [*c_char, ..1] = [&arg_name as *c_char];
 
         let source = source.to_utf16();
-        let handler =
-            name.with_ref(|name| {
-            url.with_ref(|url| { unsafe {
-                let fun = JS_CompileUCFunction(cx, ptr::mut_null(), name,
-                                               nargs, &arg_names as **i8 as *mut *i8, source.as_ptr(),
-                                               source.len() as size_t,
-                                               url, lineno);
-                assert!(fun.is_not_null());
-                JS_GetFunctionObject(fun)
-            }})});
-        let funobj = unsafe { JS_CloneFunctionObject(cx, handler, scope) };
+        let handler = name.with_ref(|name| {
+            url.with_ref(|url| {
+                unsafe {
+                    JS_CompileUCFunction(cx, ptr::mut_null(), name,
+                                         nargs, &arg_names as **i8 as *mut *i8,
+                                         source.as_ptr(), source.len() as size_t, url, lineno)
+                }
+            })
+        });
+        if handler.is_null() {
+            report_pending_exception(cx, self.reflector().get_jsobject());
+            return;
+        }
+
+        let funobj = unsafe {
+            JS_CloneFunctionObject(cx, JS_GetFunctionObject(handler), scope)
+        };
         assert!(funobj.is_not_null());
-        self.set_event_handler_common(ty, Some(EventHandlerNonNull::new(funobj)))
+        self.set_event_handler_common(ty, Some(EventHandlerNonNull::new(funobj)));
     }
 
     fn set_event_handler_common<T: CallbackContainer>(

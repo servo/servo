@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title></title>
+  <meta charset="UTF-8">
+  <script src="harness.js"></script>
+</head>
+<body>
+  <a id="a" onclick="{">link</a>
+  <script>
+    var a = document.getElementById("a");
+    is(a.onclick, null, "invalid onclick attribute");
+
+    document.body.setAttribute("onx", "{");
+    document.body.setAttribute("ony", "}");
+
+    is(document.body.getAttribute("onx"), "{");
+    is(document.body.getAttribute("ony"), "}");
+
+    finish();
+  </script>
+</body>
+</html>
