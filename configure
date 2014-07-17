@@ -419,6 +419,7 @@ then
             step_msg "Fetching snapshot from ${SNAPSHOT_URL}"
             curl -o ${CFG_BUILD_DIR}/rust_snapshot/snapshot-${SNAPSHOT_HASH}.tgz ${SNAPSHOT_URL}
         fi
+        rm -rf ${CFG_BUILD_DIR}/rust_snapshot/${SNAPSHOT_VERSION}-${DEFAULT_TARGET}
         tar -zxf ${CFG_BUILD_DIR}/rust_snapshot/snapshot-${SNAPSHOT_HASH}.tgz -C ${CFG_BUILD_DIR}/rust_snapshot/
         cp -f ${CFG_SRC_DIR}/src/compiler/rust-snapshot-hash ${CFG_BUILD_DIR}/src/compiler/rust-snapshot-hash-stamp
     fi
