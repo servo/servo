@@ -278,9 +278,10 @@ impl BSizeConstraintSolution {
     }
 }
 
-/// Performs bsize calculations potentially multiple times, taking `bsize`, `min-bsize`, and
-/// `max-bsize` into account. After each call to `next()`, the caller must call `.try()` with the
-/// current calculated value of `bsize`.
+/// Performs bsize calculations potentially multiple times, taking
+/// (assuming an horizontal writing mode) `height`, `min-height`, and `max-height`
+/// into account. After each call to `next()`, the caller must call `.try()` with the
+/// current calculated value of `height`.
 ///
 /// See CSS 2.1 § 10.7.
 struct CandidateBSizeIterator {
@@ -297,9 +298,11 @@ impl CandidateBSizeIterator {
     /// absolutely-positioned containing blocks.
     pub fn new(style: &ComputedValues, block_container_bsize: Option<Au>)
                -> CandidateBSizeIterator {
-        // Per CSS 2.1 § 10.7, percentages in `min-bsize` and `max-bsize` refer to the bsize of
-        // the containing block. If that is not determined yet by the time we need to resolve
-        // `min-bsize` and `max-bsize`, percentage values are ignored.
+        // Per CSS 2.1 § 10.7, (assuming an horizontal writing mode,)
+        // percentages in `min-height` and `max-height` refer to the height of
+        // the containing block.
+        // If that is not determined yet by the time we need to resolve
+        // `min-height` and `max-height`, percentage values are ignored.
 
         let bsize = match (style.content_bsize(), block_container_bsize) {
             (LPA_Percentage(percent), Some(block_container_bsize)) => {

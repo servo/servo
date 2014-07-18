@@ -180,7 +180,8 @@ impl Flow for TableRowGroupFlow {
 
         // The position was set to the containing block by the flow's parent.
         let containing_block_isize = self.block_flow.base.position.size.isize;
-        // FIXME: In case of border-collapse: collapse, istart_content_edge should be border-istart
+        // FIXME: In case of border-collapse: collapse, istart_content_edge should be
+        // the border width on the inline-start side.
         let istart_content_edge = Au::new(0);
         let content_isize = containing_block_isize;
 
