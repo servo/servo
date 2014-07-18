@@ -29,7 +29,9 @@ extern crate sync;
 extern crate task_info;
 extern crate std_time = "time";
 extern crate std_url = "url";
+extern crate string_cache;
 
+pub mod atom;
 pub mod cache;
 pub mod debug_utils;
 pub mod geometry;
