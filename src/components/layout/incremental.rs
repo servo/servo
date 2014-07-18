@@ -11,12 +11,12 @@ bitflags! {
         #[doc = "Currently unused; need to decide how this propagates."]
         static Repaint = 0x01,
 
-        #[doc = "Recompute intrinsic isizes (minimum and preferred)."]
+        #[doc = "Recompute intrinsic inline_sizes (minimum and preferred)."]
         #[doc = "Propagates down the flow tree because the computation is"]
         #[doc = "bottom-up."]
         static BubbleISizes = 0x02,
 
-        #[doc = "Recompute actual isizes and bsizes."]
+        #[doc = "Recompute actual inline_sizes and block_sizes."]
         #[doc = "Propagates up the flow tree because the computation is"]
         #[doc = "top-down."]
         static Reflow = 0x04

@@ -57,22 +57,22 @@ impl fmt::Show for Float {
 struct FloatList {
     /// Information about each of the floats here.
     floats: Vec<Float>,
-    /// Cached copy of the maximum bstart offset of the float.
-    max_bstart: Au,
+    /// Cached copy of the maximum block-start offset of the float.
+    max_block_start: Au,
 }
 
 impl FloatList {
     fn new() -> FloatList {
         FloatList {
             floats: vec!(),
-            max_bstart: Au(0),
+            max_block_start: Au(0),
         }
     }
 }
 
 impl fmt::Show for FloatList {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "max_bstart={} floats={:?}", self.max_bstart, self.floats)
+        write!(f, "max_block_start={} floats={:?}", self.max_block_start, self.floats)
     }
 }
 
@@ -119,22 +119,22 @@ impl FloatListRef {
 pub struct PlacementInfo {
     /// The dimensions of the float.
     pub size: LogicalSize<Au>,
-    /// The minimum bstart of the float, as determined by earlier elements.
+    /// The minimum block-start of the float, as determined by earlier elements.
     pub ceiling: Au,
-    /// The maximum iend position of the float, generally determined by the containing block.
-    pub max_isize: Au,
+    /// The maximum inline-end position of the float, generally determined by the containing block.
+    pub max_inline_size: Au,
     /// The kind of float.
     pub kind: FloatKind
 }
 
 impl fmt::Show for PlacementInfo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "size={} ceiling={} max_isize={} kind={:?}", self.size, self.ceiling, self.max_isize, self.kind)
+        write!(f, "size={} ceiling={} max_inline_size={} kind={:?}", self.size, self.ceiling, self.max_inline_size, self.kind)
     }
 }
 
-fn range_intersect(bstart_1: Au, bend_1: Au, bstart_2: Au, bend_2: Au) -> (Au, Au) {
-    (max(bstart_1, bstart_2), min(bend_1, bend_2))
+fn range_intersect(block_start_1: Au, block_end_1: Au, block_start_2: Au, block_end_2: Au) -> (Au, Au) {
+    (max(block_start_1, block_start_2), min(block_end_1, block_end_2))
 }
 
 /// Encapsulates information about floats. This is optimized to avoid allocation if there are
@@ -189,27 +189,27 @@ impl Floats {
         }
     }
 
-    /// Returns a rectangle that encloses the region from bstart to bstart + bsize, with isize small
+    /// Returns a rectangle that encloses the region from block-start to block-start + block-size, with inline-size small
     /// enough that it doesn't collide with any floats. max_x is the x-coordinate beyond which
-    /// floats have no effect. (Generally this is the containing block isize.)
-    pub fn available_rect(&self, bstart: Au, bsize: Au, max_x: Au) -> Option<LogicalRect<Au>> {
+    /// floats have no effect. (Generally this is the containing block inline-size.)
+    pub fn available_rect(&self, block_start: Au, block_size: Au, max_x: Au) -> Option<LogicalRect<Au>> {
         let list = match self.list.get() {
             None => return None,
             Some(list) => list,
         };
 
-        let bstart = bstart - self.offset.bsize;
+        let block_start = block_start - self.offset.block;
 
-        debug!("available_rect: trying to find space at {}", bstart);
+        debug!("available_rect: trying to find space at {}", block_start);
 
-        // Relevant dimensions for the iend-most istart float
-        let mut max_istart = Au(0) - self.offset.isize;
-        let mut l_bstart = None;
-        let mut l_bend = None;
-        // Relevant dimensions for the istart-most iend float
-        let mut min_iend = max_x - self.offset.isize;
-        let mut r_bstart = None;
-        let mut r_bend = None;
+        // Relevant dimensions for the inline-end-most inline-start float
+        let mut max_inline_start = Au(0) - self.offset.inline;
+        let mut l_block_start = None;
+        let mut l_block_end = None;
+        // Relevant dimensions for the inline-start-most inline-end float
+        let mut min_inline_end = max_x - self.offset.inline;
+        let mut r_block_start = None;
+        let mut r_block_end = None;
 
         // Find the float collisions for the given vertical range.
         for float in list.floats.iter() {
@@ -219,24 +219,24 @@ impl Floats {
 
             debug!("float_pos: {}, float_size: {}", float_pos, float_size);
             match float.kind {
-                FloatLeft if float_pos.i + float_size.isize > max_istart &&
-                        float_pos.b + float_size.bsize > bstart && float_pos.b < bstart + bsize => {
-                    max_istart = float_pos.i + float_size.isize;
+                FloatLeft if float_pos.i + float_size.inline > max_inline_start &&
+                        float_pos.b + float_size.block > block_start && float_pos.b < block_start + block_size => {
+                    max_inline_start = float_pos.i + float_size.inline;
 
-                    l_bstart = Some(float_pos.b);
-                    l_bend = Some(float_pos.b + float_size.bsize);
+                    l_block_start = Some(float_pos.b);
+                    l_block_end = Some(float_pos.b + float_size.block);
 
-                    debug!("available_rect: collision with istart float: new max_istart is {}",
-                            max_istart);
+                    debug!("available_rect: collision with inline_start float: new max_inline_start is {}",
+                            max_inline_start);
                 }
-                FloatRight if float_pos.i < min_iend &&
-                       float_pos.b + float_size.bsize > bstart && float_pos.b < bstart + bsize => {
-                    min_iend = float_pos.i;
+                FloatRight if float_pos.i < min_inline_end &&
+                       float_pos.b + float_size.block > block_start && float_pos.b < block_start + block_size => {
+                    min_inline_end = float_pos.i;
 
-                    r_bstart = Some(float_pos.b);
-                    r_bend = Some(float_pos.b + float_size.bsize);
-                    debug!("available_rect: collision with iend float: new min_iend is {}",
-                            min_iend);
+                    r_block_start = Some(float_pos.b);
+                    r_block_end = Some(float_pos.b + float_size.block);
+                    debug!("available_rect: collision with inline_end float: new min_inline_end is {}",
+                            min_inline_end);
                 }
                 FloatLeft | FloatRight => {}
             }
@@ -244,28 +244,28 @@ impl Floats {
 
         // Extend the vertical range of the rectangle to the closest floats.
         // If there are floats on both sides, take the intersection of the
-        // two areas. Also make sure we never return a bstart smaller than the
+        // two areas. Also make sure we never return a block-start smaller than the
         // given upper bound.
-        let (bstart, bend) = match (r_bstart, r_bend, l_bstart, l_bend) {
-            (Some(r_bstart), Some(r_bend), Some(l_bstart), Some(l_bend)) =>
-                range_intersect(max(bstart, r_bstart), r_bend, max(bstart, l_bstart), l_bend),
+        let (block_start, block_end) = match (r_block_start, r_block_end, l_block_start, l_block_end) {
+            (Some(r_block_start), Some(r_block_end), Some(l_block_start), Some(l_block_end)) =>
+                range_intersect(max(block_start, r_block_start), r_block_end, max(block_start, l_block_start), l_block_end),
 
-            (None, None, Some(l_bstart), Some(l_bend)) => (max(bstart, l_bstart), l_bend),
-            (Some(r_bstart), Some(r_bend), None, None) => (max(bstart, r_bstart), r_bend),
+            (None, None, Some(l_block_start), Some(l_block_end)) => (max(block_start, l_block_start), l_block_end),
+            (Some(r_block_start), Some(r_block_end), None, None) => (max(block_start, r_block_start), r_block_end),
             (None, None, None, None) => return None,
             _ => fail!("Reached unreachable state when computing float area")
         };
 
         // FIXME(eatkinson): This assertion is too strong and fails in some cases. It is OK to
-        // return negative isizes since we check against that iend away, but we should still
+        // return negative inline-sizes since we check against that inline-end away, but we should still
         // undersrtand why they occur and add a stronger assertion here.
-        // assert!(max_istart < min_iend);
+        // assert!(max_inline-start < min_inline-end);
 
-        assert!(bstart <= bend, "Float position error");
+        assert!(block_start <= block_end, "Float position error");
 
         Some(LogicalRect::new(
-            self.writing_mode, max_istart + self.offset.isize, bstart + self.offset.bsize,
-            min_iend - max_istart, bend - bstart
+            self.writing_mode, max_inline_start + self.offset.inline, block_start + self.offset.block,
+            min_inline_end - max_inline_start, block_end - block_start
         ))
     }
 
@@ -276,8 +276,8 @@ impl Floats {
             let list = self.list.get_mut();
             new_info = PlacementInfo {
                 size: info.size,
-                ceiling: max(info.ceiling, list.max_bstart + self.offset.bsize),
-                max_isize: info.max_isize,
+                ceiling: max(info.ceiling, list.max_block_start + self.offset.block),
+                max_inline_size: info.max_inline_size,
                 kind: info.kind
             }
         }
@@ -295,31 +295,31 @@ impl Floats {
 
         let list = self.list.get_mut();
         list.floats.push(new_float);
-        list.max_bstart = max(list.max_bstart, new_float.bounds.start.b);
+        list.max_block_start = max(list.max_block_start, new_float.bounds.start.b);
     }
 
-    /// Given the bstart 3 sides of the rectangle, finds the largest bsize that will result in the
-    /// rectangle not colliding with any floats. Returns None if that bsize is infinite.
-    fn max_bsize_for_bounds(&self, istart: Au, bstart: Au, isize: Au) -> Option<Au> {
+    /// Given the block-start 3 sides of the rectangle, finds the largest block-size that will result in the
+    /// rectangle not colliding with any floats. Returns None if that block-size is infinite.
+    fn max_block_size_for_bounds(&self, inline_start: Au, block_start: Au, inline_size: Au) -> Option<Au> {
         let list = match self.list.get() {
             None => return None,
             Some(list) => list,
         };
 
-        let bstart = bstart - self.offset.bsize;
-        let istart = istart - self.offset.isize;
-        let mut max_bsize = None;
+        let block_start = block_start - self.offset.block;
+        let inline_start = inline_start - self.offset.inline;
+        let mut max_block_size = None;
 
         for float in list.floats.iter() {
-            if float.bounds.start.b + float.bounds.size.bsize > bstart &&
-                   float.bounds.start.i + float.bounds.size.isize > istart &&
-                   float.bounds.start.i < istart + isize {
+            if float.bounds.start.b + float.bounds.size.block > block_start &&
+                   float.bounds.start.i + float.bounds.size.inline > inline_start &&
+                   float.bounds.start.i < inline_start + inline_size {
                let new_y = float.bounds.start.b;
-               max_bsize = Some(min(max_bsize.unwrap_or(new_y), new_y));
+               max_block_size = Some(min(max_block_size.unwrap_or(new_y), new_y));
             }
         }
 
-        max_bsize.map(|h| h + self.offset.bsize)
+        max_block_size.map(|h| h + self.offset.block)
     }
 
     /// Given placement information, finds the closest place a fragment can be positioned without
@@ -335,15 +335,15 @@ impl Floats {
                         self.writing_mode,
                         Au(0),
                         info.ceiling,
-                        info.max_isize,
+                        info.max_inline_size,
                         Au(i32::MAX))
                 }
                 FloatRight => {
                     return LogicalRect::new(
                         self.writing_mode,
-                        info.max_isize - info.size.isize,
+                        info.max_inline_size - info.size.inline,
                         info.ceiling,
-                        info.max_isize,
+                        info.max_inline_size,
                         Au(i32::MAX))
                 }
             }
@@ -352,7 +352,7 @@ impl Floats {
         // Can't go any higher than previous floats or previous elements in the document.
         let mut float_b = info.ceiling;
         loop {
-            let maybe_location = self.available_rect(float_b, info.size.bsize, info.max_isize);
+            let maybe_location = self.available_rect(float_b, info.size.block, info.max_inline_size);
             debug!("place_float: Got available rect: {:?} for y-pos: {}", maybe_location, float_b);
             match maybe_location {
                 // If there are no floats blocking us, return the current location
@@ -364,52 +364,52 @@ impl Floats {
                                 self.writing_mode,
                                 Au(0),
                                 float_b,
-                                info.max_isize,
+                                info.max_inline_size,
                                 Au(i32::MAX))
                         }
                         FloatRight => {
                             LogicalRect::new(
                                 self.writing_mode,
-                                info.max_isize - info.size.isize,
+                                info.max_inline_size - info.size.inline,
                                 float_b,
-                                info.max_isize,
+                                info.max_inline_size,
                                 Au(i32::MAX))
                         }
                     }
                 }
                 Some(rect) => {
-                    assert!(rect.start.b + rect.size.bsize != float_b,
+                    assert!(rect.start.b + rect.size.block != float_b,
                             "Non-terminating float placement");
 
                     // Place here if there is enough room
-                    if rect.size.isize >= info.size.isize {
-                        let bsize = self.max_bsize_for_bounds(rect.start.i,
+                    if rect.size.inline >= info.size.inline {
+                        let block_size = self.max_block_size_for_bounds(rect.start.i,
                                                                 rect.start.b,
-                                                                rect.size.isize);
-                        let bsize = bsize.unwrap_or(Au(i32::MAX));
+                                                                rect.size.inline);
+                        let block_size = block_size.unwrap_or(Au(i32::MAX));
                         return match info.kind {
                             FloatLeft => {
                                 LogicalRect::new(
                                     self.writing_mode,
                                     rect.start.i,
                                     float_b,
-                                    rect.size.isize,
-                                    bsize)
+                                    rect.size.inline,
+                                    block_size)
                             }
                             FloatRight => {
                                 LogicalRect::new(
                                     self.writing_mode,
-                                    rect.start.i + rect.size.isize - info.size.isize,
+                                    rect.start.i + rect.size.inline - info.size.inline,
                                     float_b,
-                                    rect.size.isize,
-                                    bsize)
+                                    rect.size.inline,
+                                    block_size)
                             }
                         }
                     }
 
                     // Try to place at the next-lowest location.
                     // Need to be careful of fencepost errors.
-                    float_b = rect.start.b + rect.size.bsize;
+                    float_b = rect.start.b + rect.size.block;
                 }
             }
         }
@@ -427,7 +427,7 @@ impl Floats {
                 (ClearLeft, FloatLeft) |
                 (ClearRight, FloatRight) |
                 (ClearBoth, _) => {
-                    let b = self.offset.bsize + float.bounds.start.b + float.bounds.size.bsize;
+                    let b = self.offset.block + float.bounds.start.b + float.bounds.size.block;
                     clearance = max(clearance, b);
                 }
                 _ => {}

@@ -294,7 +294,7 @@ pub fn computed_style_to_font_style(style: &ComputedValues) -> FontStyle {
     }
 }
 
-/// Returns the line bsize needed by the given computed style and font size.
+/// Returns the line block-size needed by the given computed style and font size.
 ///
 /// FIXME(pcwalton): I believe this should not take a separate `font-size` parameter.
 pub fn line_height_from_style(style: &ComputedValues, font_size: Au) -> Au {

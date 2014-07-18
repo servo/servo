@@ -123,54 +123,54 @@ pub trait Flow: fmt::Show + ToStr + Share {
         fail!("called as_table_cell() on a non-tablecell flow")
     }
 
-    /// If this is a table row or table rowgroup or table flow, returns column isizes.
+    /// If this is a table row or table rowgroup or table flow, returns column inline-sizes.
     /// Fails otherwise.
-    fn col_isizes<'a>(&'a mut self) -> &'a mut Vec<Au> {
-        fail!("called col_isizes() on an other flow than table-row/table-rowgroup/table")
+    fn col_inline_sizes<'a>(&'a mut self) -> &'a mut Vec<Au> {
+        fail!("called col_inline_sizes() on an other flow than table-row/table-rowgroup/table")
     }
 
-    /// If this is a table row flow or table rowgroup flow or table flow, returns column min isizes.
+    /// If this is a table row flow or table rowgroup flow or table flow, returns column min inline-sizes.
     /// Fails otherwise.
-    fn col_min_isizes<'a>(&'a self) -> &'a Vec<Au> {
-        fail!("called col_min_isizes() on an other flow than table-row/table-rowgroup/table")
+    fn col_min_inline_sizes<'a>(&'a self) -> &'a Vec<Au> {
+        fail!("called col_min_inline_sizes() on an other flow than table-row/table-rowgroup/table")
     }
 
-    /// If this is a table row flow or table rowgroup flow or table flow, returns column min isizes.
+    /// If this is a table row flow or table rowgroup flow or table flow, returns column min inline-sizes.
     /// Fails otherwise.
-    fn col_pref_isizes<'a>(&'a self) -> &'a Vec<Au> {
-        fail!("called col_pref_isizes() on an other flow than table-row/table-rowgroup/table")
+    fn col_pref_inline_sizes<'a>(&'a self) -> &'a Vec<Au> {
+        fail!("called col_pref_inline_sizes() on an other flow than table-row/table-rowgroup/table")
     }
 
     // Main methods
 
-    /// Pass 1 of reflow: computes minimum and preferred isizes.
+    /// Pass 1 of reflow: computes minimum and preferred inline-sizes.
     ///
-    /// Recursively (bottom-up) determine the flow's minimum and preferred isizes. When called on
-    /// this flow, all child flows have had their minimum and preferred isizes set. This function
-    /// must decide minimum/preferred isizes based on its children's isizes and the dimensions of
+    /// Recursively (bottom-up) determine the flow's minimum and preferred inline-sizes. When called on
+    /// this flow, all child flows have had their minimum and preferred inline-sizes set. This function
+    /// must decide minimum/preferred inline-sizes based on its children's inline-sizes and the dimensions of
     /// any boxes it is responsible for flowing.
-    fn bubble_isizes(&mut self, _ctx: &mut LayoutContext) {
-        fail!("bubble_isizes not yet implemented")
+    fn bubble_inline_sizes(&mut self, _ctx: &mut LayoutContext) {
+        fail!("bubble_inline_sizes not yet implemented")
     }
 
-    /// Pass 2 of reflow: computes isize.
-    fn assign_isizes(&mut self, _ctx: &mut LayoutContext) {
-        fail!("assign_isizes not yet implemented")
+    /// Pass 2 of reflow: computes inline-size.
+    fn assign_inline_sizes(&mut self, _ctx: &mut LayoutContext) {
+        fail!("assign_inline_sizes not yet implemented")
     }
 
-    /// Pass 3a of reflow: computes bsize.
-    fn assign_bsize(&mut self, _ctx: &mut LayoutContext) {
-        fail!("assign_bsize not yet implemented")
+    /// Pass 3a of reflow: computes block-size.
+    fn assign_block_size(&mut self, _ctx: &mut LayoutContext) {
+        fail!("assign_block_size not yet implemented")
     }
 
-    /// Assigns bsizes in-order; or, if this is a float, places the float. The default
-    /// implementation simply assigns bsizes if this flow is impacted by floats. Returns true if
+    /// Assigns block-sizes in-order; or, if this is a float, places the float. The default
+    /// implementation simply assigns block-sizes if this flow is impacted by floats. Returns true if
     /// this child was impacted by floats or false otherwise.
-    fn assign_bsize_for_inorder_child_if_necessary(&mut self, layout_context: &mut LayoutContext)
+    fn assign_block_size_for_inorder_child_if_necessary(&mut self, layout_context: &mut LayoutContext)
                                                     -> bool {
         let impacted = base(&*self).flags.impacted_by_floats();
         if impacted {
-            self.assign_bsize(layout_context);
+            self.assign_block_size(layout_context);
         }
         impacted
     }
@@ -191,7 +191,7 @@ pub trait Flow: fmt::Show + ToStr + Share {
         false
     }
 
-    fn compute_collapsible_bstart_margin(&mut self,
+    fn compute_collapsible_block_start_margin(&mut self,
                                       _layout_context: &mut LayoutContext,
                                       _margin_collapse_info: &mut MarginCollapseInfo) {
         // The default implementation is a no-op.
@@ -441,11 +441,11 @@ bitfield!(FlowFlags, has_left_floated_descendants, set_has_left_floated_descenda
 bitfield!(FlowFlags, has_right_floated_descendants, set_has_right_floated_descendants, 0b0000_0010)
 
 // Whether this flow is impacted by floats to the left in the same block formatting context (i.e.
-// its bsize depends on some prior flows with `float: left`).
+// its block-size depends on some prior flows with `float: left`).
 bitfield!(FlowFlags, impacted_by_left_floats, set_impacted_by_left_floats, 0b0000_0100)
 
 // Whether this flow is impacted by floats to the right in the same block formatting context (i.e.
-// its bsize depends on some prior flows with `float: right`).
+// its block-size depends on some prior flows with `float: right`).
 bitfield!(FlowFlags, impacted_by_right_floats, set_impacted_by_right_floats, 0b0000_1000)
 
 /// The bitmask of flags that represent the text alignment field.
@@ -605,7 +605,7 @@ pub struct AbsolutePositionInfo {
 
 impl AbsolutePositionInfo {
     pub fn new(writing_mode: WritingMode) -> AbsolutePositionInfo {
-        // FIXME(pcwalton): The initial relative containing block size should be equal to the size
+        // FIXME(pcwalton): The initial relative containing block-size should be equal to the size
         // of the root layer.
         AbsolutePositionInfo {
             relative_containing_block_size: LogicalSize::zero(writing_mode),
@@ -632,7 +632,7 @@ pub struct BaseFlow {
     /* layout computations */
     // TODO: min/pref and position are used during disjoint phases of
     // layout; maybe combine into a single enum to save space.
-    pub intrinsic_isizes: IntrinsicISizes,
+    pub intrinsic_inline_sizes: IntrinsicISizes,
 
     /// The upper left corner of the box representing this flow, relative to the box representing
     /// its parent flow.
@@ -716,7 +716,7 @@ impl BaseFlow {
             next_sibling: None,
             prev_sibling: None,
 
-            intrinsic_isizes: IntrinsicISizes::new(),
+            intrinsic_inline_sizes: IntrinsicISizes::new(),
             position: LogicalRect::zero(writing_mode),
             overflow: LogicalRect::zero(writing_mode),
 

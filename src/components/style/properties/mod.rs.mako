@@ -1628,37 +1628,37 @@ impl ComputedValues {
     }
 
     #[inline]
-    pub fn content_isize(&self) -> computed_values::LengthOrPercentageOrAuto {
+    pub fn content_inline_size(&self) -> computed_values::LengthOrPercentageOrAuto {
         let box_style = self.get_box();
         if self.writing_mode.is_vertical() { box_style.height } else { box_style.width }
     }
 
     #[inline]
-    pub fn content_bsize(&self) -> computed_values::LengthOrPercentageOrAuto {
+    pub fn content_block_size(&self) -> computed_values::LengthOrPercentageOrAuto {
         let box_style = self.get_box();
         if self.writing_mode.is_vertical() { box_style.width } else { box_style.height }
     }
 
     #[inline]
-    pub fn min_isize(&self) -> computed_values::LengthOrPercentage {
+    pub fn min_inline_size(&self) -> computed_values::LengthOrPercentage {
         let box_style = self.get_box();
         if self.writing_mode.is_vertical() { box_style.min_height } else { box_style.min_width }
     }
 
     #[inline]
-    pub fn min_bsize(&self) -> computed_values::LengthOrPercentage {
+    pub fn min_block_size(&self) -> computed_values::LengthOrPercentage {
         let box_style = self.get_box();
         if self.writing_mode.is_vertical() { box_style.min_width } else { box_style.min_height }
     }
 
     #[inline]
-    pub fn max_isize(&self) -> computed_values::LengthOrPercentageOrNone {
+    pub fn max_inline_size(&self) -> computed_values::LengthOrPercentageOrNone {
         let box_style = self.get_box();
         if self.writing_mode.is_vertical() { box_style.max_height } else { box_style.max_width }
     }
 
     #[inline]
-    pub fn max_bsize(&self) -> computed_values::LengthOrPercentageOrNone {
+    pub fn max_block_size(&self) -> computed_values::LengthOrPercentageOrNone {
         let box_style = self.get_box();
         if self.writing_mode.is_vertical() { box_style.max_width } else { box_style.max_height }
     }

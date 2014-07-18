@@ -38,15 +38,15 @@ impl TableCellFlow {
         &mut self.block_flow.fragment
     }
 
-    /// Assign bsize for table-cell flow.
+    /// Assign block-size for table-cell flow.
     ///
     /// TODO(#2015, pcwalton): This doesn't handle floats right.
     ///
     /// inline(always) because this is only ever called by in-order or non-in-order top-level
     /// methods
     #[inline(always)]
-    fn assign_bsize_table_cell_base(&mut self, layout_context: &mut LayoutContext) {
-        self.block_flow.assign_bsize_block_base(layout_context, MarginsMayNotCollapse)
+    fn assign_block_size_table_cell_base(&mut self, layout_context: &mut LayoutContext) {
+        self.block_flow.assign_block_size_block_base(layout_context, MarginsMayNotCollapse)
     }
 
     pub fn build_display_list_table_cell(&mut self, layout_context: &LayoutContext) {
@@ -68,45 +68,45 @@ impl Flow for TableCellFlow {
         &mut self.block_flow
     }
 
-    /// Minimum/preferred isizes set by this function are used in automatic table layout calculation.
-    fn bubble_isizes(&mut self, ctx: &mut LayoutContext) {
-        self.block_flow.bubble_isizes(ctx);
-        let specified_isize = MaybeAuto::from_style(self.block_flow.fragment.style().content_isize(),
+    /// Minimum/preferred inline-sizes set by this function are used in automatic table layout calculation.
+    fn bubble_inline_sizes(&mut self, ctx: &mut LayoutContext) {
+        self.block_flow.bubble_inline_sizes(ctx);
+        let specified_inline_size = MaybeAuto::from_style(self.block_flow.fragment.style().content_inline_size(),
                                                     Au::new(0)).specified_or_zero();
-        if self.block_flow.base.intrinsic_isizes.minimum_isize < specified_isize {
-            self.block_flow.base.intrinsic_isizes.minimum_isize = specified_isize;
+        if self.block_flow.base.intrinsic_inline_sizes.minimum_inline_size < specified_inline_size {
+            self.block_flow.base.intrinsic_inline_sizes.minimum_inline_size = specified_inline_size;
         }
-        if self.block_flow.base.intrinsic_isizes.preferred_isize <
-            self.block_flow.base.intrinsic_isizes.minimum_isize {
-            self.block_flow.base.intrinsic_isizes.preferred_isize =
-                self.block_flow.base.intrinsic_isizes.minimum_isize;
+        if self.block_flow.base.intrinsic_inline_sizes.preferred_inline_size <
+            self.block_flow.base.intrinsic_inline_sizes.minimum_inline_size {
+            self.block_flow.base.intrinsic_inline_sizes.preferred_inline_size =
+                self.block_flow.base.intrinsic_inline_sizes.minimum_inline_size;
         }
     }
 
-    /// Recursively (top-down) determines the actual isize of child contexts and fragments. When
-    /// called on this context, the context has had its isize set by the parent table row.
-    fn assign_isizes(&mut self, ctx: &mut LayoutContext) {
-        debug!("assign_isizes({}): assigning isize for flow", "table_cell");
+    /// Recursively (top-down) determines the actual inline-size of child contexts and fragments. When
+    /// called on this context, the context has had its inline-size set by the parent table row.
+    fn assign_inline_sizes(&mut self, ctx: &mut LayoutContext) {
+        debug!("assign_inline_sizes({}): assigning inline_size for flow", "table_cell");
 
-        // The position was set to the column isize by the parent flow, table row flow.
-        let containing_block_isize = self.block_flow.base.position.size.isize;
+        // The position was set to the column inline-size by the parent flow, table row flow.
+        let containing_block_inline_size = self.block_flow.base.position.size.inline;
 
-        let isize_computer = InternalTable;
-        isize_computer.compute_used_isize(&mut self.block_flow, ctx, containing_block_isize);
+        let inline_size_computer = InternalTable;
+        inline_size_computer.compute_used_inline_size(&mut self.block_flow, ctx, containing_block_inline_size);
 
-        let istart_content_edge = self.block_flow.fragment.border_box.start.i +
-            self.block_flow.fragment.border_padding.istart;
-        let padding_and_borders = self.block_flow.fragment.border_padding.istart_end();
-        let content_isize = self.block_flow.fragment.border_box.size.isize - padding_and_borders;
+        let inline_start_content_edge = self.block_flow.fragment.border_box.start.i +
+            self.block_flow.fragment.border_padding.inline_start;
+        let padding_and_borders = self.block_flow.fragment.border_padding.inline_start_end();
+        let content_inline_size = self.block_flow.fragment.border_box.size.inline - padding_and_borders;
 
-        self.block_flow.propagate_assigned_isize_to_children(istart_content_edge,
-                                                             content_isize,
+        self.block_flow.propagate_assigned_inline_size_to_children(inline_start_content_edge,
+                                                             content_inline_size,
                                                              None);
     }
 
-    fn assign_bsize(&mut self, ctx: &mut LayoutContext) {
-        debug!("assign_bsize: assigning bsize for table_cell");
-        self.assign_bsize_table_cell_base(ctx);
+    fn assign_block_size(&mut self, ctx: &mut LayoutContext) {
+        debug!("assign_block_size: assigning block_size for table_cell");
+        self.assign_block_size_table_cell_base(ctx);
     }
 
     fn compute_absolute_position(&mut self) {

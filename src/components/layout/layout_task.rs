@@ -171,8 +171,8 @@ impl PreorderFlowTraversal for FlowTreeVerificationTraversal {
     }
 }
 
-/// The bubble-isizes traversal, the first part of layout computation. This computes preferred
-/// and intrinsic isizes and bubbles them up the tree.
+/// The bubble-inline-sizes traversal, the first part of layout computation. This computes preferred
+/// and intrinsic inline-sizes and bubbles them up the tree.
 pub struct BubbleISizesTraversal<'a> {
     pub layout_context: &'a mut LayoutContext,
 }
@@ -180,7 +180,7 @@ pub struct BubbleISizesTraversal<'a> {
 impl<'a> PostorderFlowTraversal for BubbleISizesTraversal<'a> {
     #[inline]
     fn process(&mut self, flow: &mut Flow) -> bool {
-        flow.bubble_isizes(self.layout_context);
+        flow.bubble_inline_sizes(self.layout_context);
         true
     }
 
@@ -193,7 +193,7 @@ impl<'a> PostorderFlowTraversal for BubbleISizesTraversal<'a> {
     */
 }
 
-/// The assign-isizes traversal. In Gecko this corresponds to `Reflow`.
+/// The assign-inline-sizes traversal. In Gecko this corresponds to `Reflow`.
 pub struct AssignISizesTraversal<'a> {
     pub layout_context: &'a mut LayoutContext,
 }
@@ -201,13 +201,13 @@ pub struct AssignISizesTraversal<'a> {
 impl<'a> PreorderFlowTraversal for AssignISizesTraversal<'a> {
     #[inline]
     fn process(&mut self, flow: &mut Flow) -> bool {
-        flow.assign_isizes(self.layout_context);
+        flow.assign_inline_sizes(self.layout_context);
         true
     }
 }
 
-/// The assign-bsizes-and-store-overflow traversal, the last (and most expensive) part of layout
-/// computation. Determines the final bsizes for all layout objects, computes positions, and
+/// The assign-block-sizes-and-store-overflow traversal, the last (and most expensive) part of layout
+/// computation. Determines the final block-sizes for all layout objects, computes positions, and
 /// computes overflow regions. In Gecko this corresponds to `FinishAndStoreOverflow`.
 pub struct AssignBSizesAndStoreOverflowTraversal<'a> {
     pub layout_context: &'a mut LayoutContext,
@@ -216,7 +216,7 @@ pub struct AssignBSizesAndStoreOverflowTraversal<'a> {
 impl<'a> PostorderFlowTraversal for AssignBSizesAndStoreOverflowTraversal<'a> {
     #[inline]
     fn process(&mut self, flow: &mut Flow) -> bool {
-        flow.assign_bsize(self.layout_context);
+        flow.assign_block_size(self.layout_context);
         // Skip store-overflow for absolutely positioned flows. That will be
         // done in a separate traversal.
         if !flow.is_store_overflow_delayed() {
@@ -482,7 +482,7 @@ impl LayoutTask {
     fn solve_constraints(&mut self,
                          layout_root: &mut Flow,
                          layout_context: &mut LayoutContext) {
-        if layout_context.opts.bubble_isizes_separately {
+        if layout_context.opts.bubble_inline_sizes_separately {
             let mut traversal = BubbleISizesTraversal {
                 layout_context: layout_context,
             };
@@ -518,7 +518,7 @@ impl LayoutTask {
     fn solve_constraints_parallel(&mut self,
                                   layout_root: &mut FlowRef,
                                   layout_context: &mut LayoutContext) {
-        if layout_context.opts.bubble_isizes_separately {
+        if layout_context.opts.bubble_inline_sizes_separately {
             let mut traversal = BubbleISizesTraversal {
                 layout_context: layout_context,
             };

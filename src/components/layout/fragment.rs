@@ -121,10 +121,10 @@ pub enum SpecificFragmentInfo {
 pub struct ImageFragmentInfo {
     /// The image held within this fragment.
     pub image: ImageHolder,
-    pub computed_isize: Option<Au>,
-    pub computed_bsize: Option<Au>,
-    pub dom_isize: Option<Au>,
-    pub dom_bsize: Option<Au>,
+    pub computed_inline_size: Option<Au>,
+    pub computed_block_size: Option<Au>,
+    pub dom_inline_size: Option<Au>,
+    pub dom_block_size: Option<Au>,
     pub writing_mode_is_vertical: bool,
 }
 
@@ -150,44 +150,44 @@ impl ImageFragmentInfo {
         let dom_height = convert_length(node, "height");
         ImageFragmentInfo {
             image: ImageHolder::new(image_url, local_image_cache),
-            computed_isize: None,
-            computed_bsize: None,
-            dom_isize: if is_vertical { dom_height } else { dom_width },
-            dom_bsize: if is_vertical { dom_width } else { dom_height },
+            computed_inline_size: None,
+            computed_block_size: None,
+            dom_inline_size: if is_vertical { dom_height } else { dom_width },
+            dom_block_size: if is_vertical { dom_width } else { dom_height },
             writing_mode_is_vertical: is_vertical,
         }
     }
 
-    /// Returns the calculated isize of the image, accounting for the isize attribute.
-    pub fn computed_isize(&self) -> Au {
-        self.computed_isize.expect("image isize is not computed yet!")
+    /// Returns the calculated inline-size of the image, accounting for the inline-size attribute.
+    pub fn computed_inline_size(&self) -> Au {
+        self.computed_inline_size.expect("image inline_size is not computed yet!")
     }
 
-    /// Returns the calculated bsize of the image, accounting for the bsize attribute.
-    pub fn computed_bsize(&self) -> Au {
-        self.computed_bsize.expect("image bsize is not computed yet!")
+    /// Returns the calculated block-size of the image, accounting for the block-size attribute.
+    pub fn computed_block_size(&self) -> Au {
+        self.computed_block_size.expect("image block_size is not computed yet!")
     }
 
-    /// Returns the original isize of the image.
-    pub fn image_isize(&mut self) -> Au {
+    /// Returns the original inline-size of the image.
+    pub fn image_inline_size(&mut self) -> Au {
         let size = self.image.get_size().unwrap_or(Size2D::zero());
         Au::from_px(if self.writing_mode_is_vertical { size.height } else { size.width })
     }
 
-    /// Returns the original bsize of the image.
-    pub fn image_bsize(&mut self) -> Au {
+    /// Returns the original block-size of the image.
+    pub fn image_block_size(&mut self) -> Au {
         let size = self.image.get_size().unwrap_or(Size2D::zero());
         Au::from_px(if self.writing_mode_is_vertical { size.width } else { size.height })
     }
 
-    // Return used value for isize or bsize.
+    // Return used value for inline-size or block-size.
     //
-    // `dom_length`: isize or bsize as specified in the `img` tag.
-    // `style_length`: isize as given in the CSS
+    // `dom_length`: inline-size or block-size as specified in the `img` tag.
+    // `style_length`: inline-size as given in the CSS
     pub fn style_length(style_length: LengthOrPercentageOrAuto,
                         dom_length: Option<Au>,
-                        container_isize: Au) -> MaybeAuto {
-        match (MaybeAuto::from_style(style_length,container_isize),dom_length) {
+                        container_inline_size: Au) -> MaybeAuto {
+        match (MaybeAuto::from_style(style_length,container_inline_size),dom_length) {
             (Specified(length),_) => {
                 Specified(length)
             },
@@ -250,20 +250,20 @@ pub struct SplitInfo {
     // TODO(bjz): this should only need to be a single character index, but both values are
     // currently needed for splitting in the `inline::try_append_*` functions.
     pub range: Range<CharIndex>,
-    pub isize: Au,
+    pub inline_size: Au,
 }
 
 impl SplitInfo {
     fn new(range: Range<CharIndex>, info: &ScannedTextFragmentInfo) -> SplitInfo {
         SplitInfo {
             range: range,
-            isize: info.run.advance_for_range(&range),
+            inline_size: info.run.advance_for_range(&range),
         }
     }
 }
 
 /// Data for an unscanned text fragment. Unscanned text fragments are the results of flow construction that
-/// have not yet had their isize determined.
+/// have not yet had their inline-size determined.
 #[deriving(Clone)]
 pub struct UnscannedTextFragmentInfo {
     /// The text inside the fragment.
@@ -410,9 +410,9 @@ impl Fragment {
         }
     }
 
-    /// Uses the style only to estimate the intrinsic isizes. These may be modified for text or
+    /// Uses the style only to estimate the intrinsic inline-sizes. These may be modified for text or
     /// replaced elements.
-    fn style_specified_intrinsic_isize(&self) -> IntrinsicISizes {
+    fn style_specified_intrinsic_inline_size(&self) -> IntrinsicISizes {
         let (use_margins, use_padding) = match self.specific {
             GenericFragment | IframeFragment(_) | ImageFragment(_) => (true, true),
             TableFragment | TableCellFragment => (false, true),
@@ -425,33 +425,33 @@ impl Fragment {
         };
 
         let style = self.style();
-        let isize = MaybeAuto::from_style(style.content_isize(), Au::new(0)).specified_or_zero();
+        let inline_size = MaybeAuto::from_style(style.content_inline_size(), Au::new(0)).specified_or_zero();
 
         let margin = style.logical_margin();
-        let (margin_istart, margin_iend) = if use_margins {
-            (MaybeAuto::from_style(margin.istart, Au(0)).specified_or_zero(),
-             MaybeAuto::from_style(margin.iend, Au(0)).specified_or_zero())
+        let (margin_inline_start, margin_inline_end) = if use_margins {
+            (MaybeAuto::from_style(margin.inline_start, Au(0)).specified_or_zero(),
+             MaybeAuto::from_style(margin.inline_end, Au(0)).specified_or_zero())
         } else {
             (Au(0), Au(0))
         };
 
         let padding = style.logical_padding();
-        let (padding_istart, padding_iend) = if use_padding {
-            (model::specified(padding.istart, Au(0)),
-             model::specified(padding.iend, Au(0)))
+        let (padding_inline_start, padding_inline_end) = if use_padding {
+            (model::specified(padding.inline_start, Au(0)),
+             model::specified(padding.inline_end, Au(0)))
         } else {
             (Au(0), Au(0))
         };
 
         // FIXME(#2261, pcwalton): This won't work well for inlines: is this OK?
         let border = self.border_width(None);
-        let surround_isize = margin_istart + margin_iend + padding_istart + padding_iend +
-                border.istart_end();
+        let surround_inline_size = margin_inline_start + margin_inline_end + padding_inline_start + padding_inline_end +
+                border.inline_start_end();
 
         IntrinsicISizes {
-            minimum_isize: isize,
-            preferred_isize: isize,
-            surround_isize: surround_isize,
+            minimum_inline_size: inline_size,
+            preferred_inline_size: inline_size,
+            surround_inline_size: surround_inline_size,
         }
     }
 
@@ -459,8 +459,8 @@ impl Fragment {
         text::line_height_from_style(self.style(), font_size)
     }
 
-    /// Returns the sum of the isizes of all the borders of this fragment. This is private because
-    /// it should only be called during intrinsic isize computation or computation of
+    /// Returns the sum of the inline-sizes of all the borders of this fragment. This is private because
+    /// it should only be called during intrinsic inline-size computation or computation of
     /// `border_padding`. Other consumers of this information should simply consult that field.
     #[inline]
     fn border_width(&self, inline_fragment_context: Option<InlineFragmentContext>)
@@ -474,25 +474,25 @@ impl Fragment {
         }
     }
 
-    /// Computes the border, padding, and vertical margins from the containing block isize and the
+    /// Computes the border, padding, and vertical margins from the containing block inline-size and the
     /// style. After this call, the `border_padding` and the vertical direction of the `margin`
     /// field will be correct.
     pub fn compute_border_padding_margins(&mut self,
-                                          containing_block_isize: Au,
+                                          containing_block_inline_size: Au,
                                           inline_fragment_context: Option<InlineFragmentContext>) {
         // Compute vertical margins. Note that this value will be ignored by layout if the style
         // specifies `auto`.
         match self.specific {
             TableFragment | TableCellFragment | TableRowFragment | TableColumnFragment(_) => {
-                self.margin.bstart = Au(0);
-                self.margin.bend = Au(0)
+                self.margin.block_start = Au(0);
+                self.margin.block_end = Au(0)
             }
             _ => {
-                // NB: Percentages are relative to containing block isize (not bsize) per CSS 2.1.
+                // NB: Percentages are relative to containing block inline-size (not block-size) per CSS 2.1.
                 let margin = self.style().logical_margin();
-                self.margin.bstart = MaybeAuto::from_style(margin.bstart, containing_block_isize)
+                self.margin.block_start = MaybeAuto::from_style(margin.block_start, containing_block_inline_size)
                     .specified_or_zero();
-                self.margin.bend = MaybeAuto::from_style(margin.bend, containing_block_isize)
+                self.margin.block_end = MaybeAuto::from_style(margin.block_end, containing_block_inline_size)
                     .specified_or_zero()
             }
         }
@@ -506,7 +506,7 @@ impl Fragment {
             TableWrapperFragment => LogicalMargin::zero(self.style.writing_mode),
             _ => {
                 match inline_fragment_context {
-                    None => model::padding_from_style(self.style(), containing_block_isize),
+                    None => model::padding_from_style(self.style(), containing_block_inline_size),
                     Some(inline_fragment_context) => {
                         let zero = LogicalMargin::zero(self.style.writing_mode);
                         inline_fragment_context.ranges()
@@ -527,15 +527,15 @@ impl Fragment {
         fn from_style(style: &ComputedValues, container_size: &LogicalSize<Au>)
                       -> LogicalSize<Au> {
             let offsets = style.logical_position();
-            let offset_i = if offsets.istart != LPA_Auto {
-                MaybeAuto::from_style(offsets.istart, container_size.isize).specified_or_zero()
+            let offset_i = if offsets.inline_start != LPA_Auto {
+                MaybeAuto::from_style(offsets.inline_start, container_size.inline).specified_or_zero()
             } else {
-                -MaybeAuto::from_style(offsets.iend, container_size.isize).specified_or_zero()
+                -MaybeAuto::from_style(offsets.inline_end, container_size.inline).specified_or_zero()
             };
-            let offset_b = if offsets.bstart != LPA_Auto {
-                MaybeAuto::from_style(offsets.bstart, container_size.isize).specified_or_zero()
+            let offset_b = if offsets.block_start != LPA_Auto {
+                MaybeAuto::from_style(offsets.block_start, container_size.inline).specified_or_zero()
             } else {
-                -MaybeAuto::from_style(offsets.bend, container_size.isize).specified_or_zero()
+                -MaybeAuto::from_style(offsets.block_end, container_size.inline).specified_or_zero()
             };
             LogicalSize::new(style.writing_mode, offset_i, offset_b)
         }
@@ -608,16 +608,16 @@ impl Fragment {
         self.style().get_text().text_decoration
     }
 
-    /// Returns the istart offset from margin edge to content edge.
+    /// Returns the inline-start offset from margin edge to content edge.
     ///
     /// FIXME(#2262, pcwalton): I think this method is pretty bogus, because it won't work for
     /// inlines.
-    pub fn istart_offset(&self) -> Au {
+    pub fn inline_start_offset(&self) -> Au {
         match self.specific {
-            TableWrapperFragment => self.margin.istart,
-            TableFragment | TableCellFragment | TableRowFragment => self.border_padding.istart,
+            TableWrapperFragment => self.margin.inline_start,
+            TableFragment | TableCellFragment | TableRowFragment => self.border_padding.inline_start,
             TableColumnFragment(_) => Au(0),
-            _ => self.margin.istart + self.border_padding.istart,
+            _ => self.margin.inline_start + self.border_padding.inline_start,
         }
     }
 
@@ -799,7 +799,7 @@ impl Fragment {
             self.style.writing_mode,
             fragment_bounds.start.i,
             fragment_bounds.start.b + ascent,
-            fragment_bounds.size.isize,
+            fragment_bounds.size.inline,
             Au(0)
         ).to_physical(self.style.writing_mode, container_size);
 
@@ -922,8 +922,8 @@ impl Fragment {
 
                 let mut bounds = absolute_fragment_bounds.clone();
                 let mut border_padding = self.border_padding.clone();
-                border_padding.bstart = Au::new(0);
-                border_padding.bend = Au::new(0);
+                border_padding.block_start = Au::new(0);
+                border_padding.block_end = Au::new(0);
                 let border_padding = border_padding.to_physical(self.style.writing_mode);
                 bounds.origin.x = bounds.origin.x + border_padding.left;
                 bounds.origin.y = bounds.origin.y + border_padding.top;
@@ -1003,7 +1003,7 @@ impl Fragment {
         // problematic if iframes are outside the area we're computing the display list for, since
         // they won't be able to reflow at all until the user scrolls to them. Perhaps we should
         // separate this into two parts: first we should send the size only to the constellation
-        // once that's computed during assign-bsizes, and second we should should send the origin
+        // once that's computed during assign-block-sizes, and second we should should send the origin
         // to the constellation here during display list construction. This should work because
         // layout for the iframe only needs to know size, and origin is only relevant if the
         // iframe is actually going to be displayed.
@@ -1017,31 +1017,31 @@ impl Fragment {
         accumulator
     }
 
-    /// Returns the intrinsic isizes of this fragment.
-    pub fn intrinsic_isizes(&mut self, inline_fragment_context: Option<InlineFragmentContext>)
+    /// Returns the intrinsic inline-sizes of this fragment.
+    pub fn intrinsic_inline_sizes(&mut self, inline_fragment_context: Option<InlineFragmentContext>)
                             -> IntrinsicISizes {
-        let mut result = self.style_specified_intrinsic_isize();
+        let mut result = self.style_specified_intrinsic_inline_size();
 
         match self.specific {
             GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment | TableColumnFragment(_) | TableRowFragment |
             TableWrapperFragment => {}
             ImageFragment(ref mut image_fragment_info) => {
-                let image_isize = image_fragment_info.image_isize();
-                result.minimum_isize = geometry::max(result.minimum_isize, image_isize);
-                result.preferred_isize = geometry::max(result.preferred_isize, image_isize);
+                let image_inline_size = image_fragment_info.image_inline_size();
+                result.minimum_inline_size = geometry::max(result.minimum_inline_size, image_inline_size);
+                result.preferred_inline_size = geometry::max(result.preferred_inline_size, image_inline_size);
             }
             ScannedTextFragment(ref text_fragment_info) => {
                 let range = &text_fragment_info.range;
-                let min_line_isize = text_fragment_info.run.min_width_for_range(range);
+                let min_line_inline_size = text_fragment_info.run.min_width_for_range(range);
 
-                let mut max_line_isize = Au::new(0);
+                let mut max_line_inline_size = Au::new(0);
                 for line_range in text_fragment_info.run.iter_natural_lines_for_range(range) {
                     let line_metrics = text_fragment_info.run.metrics_for_range(&line_range);
-                    max_line_isize = Au::max(max_line_isize, line_metrics.advance_width);
+                    max_line_inline_size = Au::max(max_line_inline_size, line_metrics.advance_width);
                 }
 
-                result.minimum_isize = geometry::max(result.minimum_isize, min_line_isize);
-                result.preferred_isize = geometry::max(result.preferred_isize, max_line_isize);
+                result.minimum_inline_size = geometry::max(result.minimum_inline_size, min_line_inline_size);
+                result.preferred_inline_size = geometry::max(result.preferred_inline_size, max_line_inline_size);
             }
             UnscannedTextFragment(..) => fail!("Unscanned text fragments should have been scanned by now!"),
         }
@@ -1051,10 +1051,10 @@ impl Fragment {
             None => {}
             Some(context) => {
                 for range in context.ranges() {
-                    let border_width = range.border().istart_end();
-                    let padding_isize = range.padding().istart_end();
-                    result.minimum_isize = result.minimum_isize + border_width + padding_isize;
-                    result.preferred_isize = result.preferred_isize + border_width + padding_isize;
+                    let border_width = range.border().inline_start_end();
+                    let padding_inline_size = range.padding().inline_start_end();
+                    result.minimum_inline_size = result.minimum_inline_size + border_width + padding_inline_size;
+                    result.preferred_inline_size = result.preferred_inline_size + border_width + padding_inline_size;
                 }
             }
         }
@@ -1064,33 +1064,33 @@ impl Fragment {
 
 
     /// TODO: What exactly does this function return? Why is it Au(0) for GenericFragment?
-    pub fn content_isize(&self) -> Au {
+    pub fn content_inline_size(&self) -> Au {
         match self.specific {
             GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment | TableRowFragment |
             TableWrapperFragment => Au(0),
             ImageFragment(ref image_fragment_info) => {
-                image_fragment_info.computed_isize()
+                image_fragment_info.computed_inline_size()
             }
             ScannedTextFragment(ref text_fragment_info) => {
                 let (range, run) = (&text_fragment_info.range, &text_fragment_info.run);
                 let text_bounds = run.metrics_for_range(range).bounding_box;
                 text_bounds.size.width
             }
-            TableColumnFragment(_) => fail!("Table column fragments do not have isize"),
+            TableColumnFragment(_) => fail!("Table column fragments do not have inline_size"),
             UnscannedTextFragment(_) => fail!("Unscanned text fragments should have been scanned by now!"),
         }
     }
 
-    /// Returns, and computes, the bsize of this fragment.
-    pub fn content_bsize(&self) -> Au {
+    /// Returns, and computes, the block-size of this fragment.
+    pub fn content_block_size(&self) -> Au {
         match self.specific {
             GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment | TableRowFragment |
             TableWrapperFragment => Au(0),
             ImageFragment(ref image_fragment_info) => {
-                image_fragment_info.computed_bsize()
+                image_fragment_info.computed_block_size()
             }
             ScannedTextFragment(ref text_fragment_info) => {
-                // Compute the bsize based on the line-bsize and font size.
+                // Compute the block-size based on the line-block-size and font size.
                 //
                 // FIXME(pcwalton): Shouldn't we use the value of the `font-size` property below
                 // instead of the bounding box of the text run?
@@ -1099,7 +1099,7 @@ impl Fragment {
                 let em_size = text_bounds.size.height;
                 self.calculate_line_height(em_size)
             }
-            TableColumnFragment(_) => fail!("Table column fragments do not have bsize"),
+            TableColumnFragment(_) => fail!("Table column fragments do not have block_size"),
             UnscannedTextFragment(_) => fail!("Unscanned text fragments should have been scanned by now!"),
         }
     }
@@ -1112,10 +1112,10 @@ impl Fragment {
     pub fn content_box(&self) -> LogicalRect<Au> {
         LogicalRect::new(
             self.style.writing_mode,
-            self.border_box.start.i + self.border_padding.istart,
-            self.border_box.start.b + self.border_padding.bstart,
-            self.border_box.size.isize - self.border_padding.istart_end(),
-            self.border_box.size.bsize - self.border_padding.bstart_end(),
+            self.border_box.start.i + self.border_padding.inline_start,
+            self.border_box.start.b + self.border_padding.block_start,
+            self.border_box.size.inline - self.border_padding.inline_start_end(),
+            self.border_box.size.block - self.border_padding.block_start_end(),
         )
     }
 
@@ -1138,101 +1138,101 @@ impl Fragment {
                 let mut new_line_pos = self.new_line_pos.clone();
                 let cur_new_line_pos = new_line_pos.shift().unwrap();
 
-                let istart_range = Range::new(text_fragment_info.range.begin(), cur_new_line_pos);
-                let iend_range = Range::new(text_fragment_info.range.begin() + cur_new_line_pos + CharIndex(1),
+                let inline_start_range = Range::new(text_fragment_info.range.begin(), cur_new_line_pos);
+                let inline_end_range = Range::new(text_fragment_info.range.begin() + cur_new_line_pos + CharIndex(1),
                                              text_fragment_info.range.length() - (cur_new_line_pos + CharIndex(1)));
 
-                // Left fragment is for istart text of first founded new-line character.
-                let istart_fragment = SplitInfo::new(istart_range, text_fragment_info);
+                // Left fragment is for inline-start text of first founded new-line character.
+                let inline_start_fragment = SplitInfo::new(inline_start_range, text_fragment_info);
 
-                // Right fragment is for iend text of first founded new-line character.
-                let iend_fragment = if iend_range.length() > CharIndex(0) {
-                    Some(SplitInfo::new(iend_range, text_fragment_info))
+                // Right fragment is for inline-end text of first founded new-line character.
+                let inline_end_fragment = if inline_end_range.length() > CharIndex(0) {
+                    Some(SplitInfo::new(inline_end_range, text_fragment_info))
                 } else {
                     None
                 };
 
-                Some((istart_fragment, iend_fragment, text_fragment_info.run.clone()))
+                Some((inline_start_fragment, inline_end_fragment, text_fragment_info.run.clone()))
             }
         }
     }
 
-    /// Attempts to find the split positions of a text fragment so that its isize is
-    /// no more than `max_isize`.
+    /// Attempts to find the split positions of a text fragment so that its inline-size is
+    /// no more than `max_inline-size`.
     ///
     /// A return value of `None` indicates that the fragment could not be split.
-    /// Otherwise the information pertaining to the split is returned. The istart
-    /// and iend split information are both optional due to the possibility of
+    /// Otherwise the information pertaining to the split is returned. The inline-start
+    /// and inline-end split information are both optional due to the possibility of
     /// them being whitespace.
     //
     // TODO(bjz): The text run should be removed in the future, but it is currently needed for
     // the current method of fragment splitting in the `inline::try_append_*` functions.
-    pub fn find_split_info_for_isize(&self, start: CharIndex, max_isize: Au, starts_line: bool)
+    pub fn find_split_info_for_inline_size(&self, start: CharIndex, max_inline_size: Au, starts_line: bool)
             -> Option<(Option<SplitInfo>, Option<SplitInfo>, Arc<Box<TextRun>> /* TODO(bjz): remove */)> {
         match self.specific {
             GenericFragment | IframeFragment(_) | ImageFragment(_) | TableFragment | TableCellFragment |
             TableRowFragment | TableWrapperFragment => None,
-            TableColumnFragment(_) => fail!("Table column fragments do not have isize"),
+            TableColumnFragment(_) => fail!("Table column fragments do not have inline_size"),
             UnscannedTextFragment(_) => fail!("Unscanned text fragments should have been scanned by now!"),
             ScannedTextFragment(ref text_fragment_info) => {
                 let mut pieces_processed_count: uint = 0;
-                let mut remaining_isize: Au = max_isize;
-                let mut istart_range = Range::new(text_fragment_info.range.begin() + start, CharIndex(0));
-                let mut iend_range: Option<Range<CharIndex>> = None;
+                let mut remaining_inline_size: Au = max_inline_size;
+                let mut inline_start_range = Range::new(text_fragment_info.range.begin() + start, CharIndex(0));
+                let mut inline_end_range: Option<Range<CharIndex>> = None;
 
-                debug!("split_to_isize: splitting text fragment (strlen={}, range={}, avail_isize={})",
+                debug!("split_to_inline_size: splitting text fragment (strlen={}, range={}, avail_inline_size={})",
                        text_fragment_info.run.text.len(),
                        text_fragment_info.range,
-                       max_isize);
+                       max_inline_size);
 
                 for (glyphs, offset, slice_range) in text_fragment_info.run.iter_slices_for_range(
                         &text_fragment_info.range) {
-                    debug!("split_to_isize: considering slice (offset={}, range={}, \
-                                                               remain_isize={})",
+                    debug!("split_to_inline_size: considering slice (offset={}, range={}, \
+                                                               remain_inline_size={})",
                            offset,
                            slice_range,
-                           remaining_isize);
+                           remaining_inline_size);
 
                     let metrics = text_fragment_info.run.metrics_for_slice(glyphs, &slice_range);
                     let advance = metrics.advance_width;
 
                     let should_continue;
-                    if advance <= remaining_isize {
+                    if advance <= remaining_inline_size {
                         should_continue = true;
 
                         if starts_line && pieces_processed_count == 0 && glyphs.is_whitespace() {
-                            debug!("split_to_isize: case=skipping leading trimmable whitespace");
-                            istart_range.shift_by(slice_range.length());
+                            debug!("split_to_inline_size: case=skipping leading trimmable whitespace");
+                            inline_start_range.shift_by(slice_range.length());
                         } else {
-                            debug!("split_to_isize: case=enlarging span");
-                            remaining_isize = remaining_isize - advance;
-                            istart_range.extend_by(slice_range.length());
+                            debug!("split_to_inline_size: case=enlarging span");
+                            remaining_inline_size = remaining_inline_size - advance;
+                            inline_start_range.extend_by(slice_range.length());
                         }
                     } else {
-                        // The advance is more than the remaining isize.
+                        // The advance is more than the remaining inline-size.
                         should_continue = false;
                         let slice_begin = offset + slice_range.begin();
                         let slice_end = offset + slice_range.end();
 
                         if glyphs.is_whitespace() {
                             // If there are still things after the trimmable whitespace, create the
-                            // iend chunk.
+                            // inline-end chunk.
                             if slice_end < text_fragment_info.range.end() {
-                                debug!("split_to_isize: case=skipping trimmable trailing \
+                                debug!("split_to_inline_size: case=skipping trimmable trailing \
                                         whitespace, then split remainder");
-                                let iend_range_end = text_fragment_info.range.end() - slice_end;
-                                iend_range = Some(Range::new(slice_end, iend_range_end));
+                                let inline_end_range_end = text_fragment_info.range.end() - slice_end;
+                                inline_end_range = Some(Range::new(slice_end, inline_end_range_end));
                             } else {
-                                debug!("split_to_isize: case=skipping trimmable trailing \
+                                debug!("split_to_inline_size: case=skipping trimmable trailing \
                                         whitespace");
                             }
                         } else if slice_begin < text_fragment_info.range.end() {
-                            // There are still some things istart over at the end of the line. Create
-                            // the iend chunk.
-                            let iend_range_end = text_fragment_info.range.end() - slice_begin;
-                            iend_range = Some(Range::new(slice_begin, iend_range_end));
-                            debug!("split_to_isize: case=splitting remainder with iend range={:?}",
-                                   iend_range);
+                            // There are still some things inline-start over at the end of the line. Create
+                            // the inline-end chunk.
+                            let inline_end_range_end = text_fragment_info.range.end() - slice_begin;
+                            inline_end_range = Some(Range::new(slice_begin, inline_end_range_end));
+                            debug!("split_to_inline_size: case=splitting remainder with inline_end range={:?}",
+                                   inline_end_range);
                         }
                     }
 
@@ -1243,19 +1243,19 @@ impl Fragment {
                     }
                 }
 
-                let istart_is_some = istart_range.length() > CharIndex(0);
+                let inline_start_is_some = inline_start_range.length() > CharIndex(0);
 
-                if (pieces_processed_count == 1 || !istart_is_some) && !starts_line {
+                if (pieces_processed_count == 1 || !inline_start_is_some) && !starts_line {
                     None
                 } else {
-                    let istart = if istart_is_some {
-                        Some(SplitInfo::new(istart_range, text_fragment_info))
+                    let inline_start = if inline_start_is_some {
+                        Some(SplitInfo::new(inline_start_range, text_fragment_info))
                     } else {
                          None
                     };
-                    let iend = iend_range.map(|iend_range| SplitInfo::new(iend_range, text_fragment_info));
+                    let inline_end = inline_end_range.map(|inline_end_range| SplitInfo::new(inline_end_range, text_fragment_info));
 
-                    Some((istart, iend, text_fragment_info.run.clone()))
+                    Some((inline_start, inline_end, text_fragment_info.run.clone()))
                 }
             }
         }
@@ -1269,121 +1269,121 @@ impl Fragment {
         }
     }
 
-    /// Assigns replaced isize, padding, and margins for this fragment only if it is replaced
+    /// Assigns replaced inline-size, padding, and margins for this fragment only if it is replaced
     /// content per CSS 2.1 § 10.3.2.
-    pub fn assign_replaced_isize_if_necessary(&mut self,
-                                              container_isize: Au,
+    pub fn assign_replaced_inline_size_if_necessary(&mut self,
+                                              container_inline_size: Au,
                                               inline_fragment_context:
                                                 Option<InlineFragmentContext>) {
         match self.specific {
             GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment | TableRowFragment |
             TableWrapperFragment => return,
-            TableColumnFragment(_) => fail!("Table column fragments do not have isize"),
+            TableColumnFragment(_) => fail!("Table column fragments do not have inline_size"),
             UnscannedTextFragment(_) => fail!("Unscanned text fragments should have been scanned by now!"),
             ImageFragment(_) | ScannedTextFragment(_) => {}
         };
 
-        self.compute_border_padding_margins(container_isize, inline_fragment_context);
+        self.compute_border_padding_margins(container_inline_size, inline_fragment_context);
 
-        let style_isize = self.style().content_isize();
-        let style_bsize = self.style().content_bsize();
-        let noncontent_isize = self.border_padding.istart_end();
+        let style_inline_size = self.style().content_inline_size();
+        let style_block_size = self.style().content_block_size();
+        let noncontent_inline_size = self.border_padding.inline_start_end();
 
         match self.specific {
             ScannedTextFragment(_) => {
-                // Scanned text fragments will have already had their content isizes assigned by this
+                // Scanned text fragments will have already had their content inline-sizes assigned by this
                 // point.
-                self.border_box.size.isize = self.border_box.size.isize + noncontent_isize
+                self.border_box.size.inline = self.border_box.size.inline + noncontent_inline_size
             }
             ImageFragment(ref mut image_fragment_info) => {
                 // TODO(ksh8281): compute border,margin
-                let isize = ImageFragmentInfo::style_length(style_isize,
-                                                       image_fragment_info.dom_isize,
-                                                       container_isize);
-                let bsize = ImageFragmentInfo::style_length(style_bsize,
-                                                        image_fragment_info.dom_bsize,
+                let inline_size = ImageFragmentInfo::style_length(style_inline_size,
+                                                       image_fragment_info.dom_inline_size,
+                                                       container_inline_size);
+                let block_size = ImageFragmentInfo::style_length(style_block_size,
+                                                        image_fragment_info.dom_block_size,
                                                         Au(0));
 
-                let isize = match (isize,bsize) {
-                    (Auto, Auto) => image_fragment_info.image_isize(),
+                let inline_size = match (inline_size,block_size) {
+                    (Auto, Auto) => image_fragment_info.image_inline_size(),
                     (Auto,Specified(h)) => {
                         let scale = image_fragment_info.
-                            image_bsize().to_f32().unwrap() / h.to_f32().unwrap();
-                        Au::new((image_fragment_info.image_isize().to_f32().unwrap() / scale) as i32)
+                            image_block_size().to_f32().unwrap() / h.to_f32().unwrap();
+                        Au::new((image_fragment_info.image_inline_size().to_f32().unwrap() / scale) as i32)
                     },
                     (Specified(w), _) => w,
                 };
 
-                self.border_box.size.isize = isize + noncontent_isize;
-                image_fragment_info.computed_isize = Some(isize);
+                self.border_box.size.inline = inline_size + noncontent_inline_size;
+                image_fragment_info.computed_inline_size = Some(inline_size);
             }
             _ => fail!("this case should have been handled above"),
         }
     }
 
-    /// Assign bsize for this fragment if it is replaced content. The isize must have been assigned
+    /// Assign block-size for this fragment if it is replaced content. The inline-size must have been assigned
     /// first.
     ///
     /// Ideally, this should follow CSS 2.1 § 10.6.2.
-    pub fn assign_replaced_bsize_if_necessary(&mut self) {
+    pub fn assign_replaced_block_size_if_necessary(&mut self) {
         match self.specific {
             GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment | TableRowFragment |
             TableWrapperFragment => return,
-            TableColumnFragment(_) => fail!("Table column fragments do not have bsize"),
+            TableColumnFragment(_) => fail!("Table column fragments do not have block_size"),
             UnscannedTextFragment(_) => fail!("Unscanned text fragments should have been scanned by now!"),
             ImageFragment(_) | ScannedTextFragment(_) => {}
         }
 
-        let style_isize = self.style().content_isize();
-        let style_bsize = self.style().content_bsize();
-        let noncontent_bsize = self.border_padding.bstart_end();
+        let style_inline_size = self.style().content_inline_size();
+        let style_block_size = self.style().content_block_size();
+        let noncontent_block_size = self.border_padding.block_start_end();
 
         match self.specific {
             ImageFragment(ref mut image_fragment_info) => {
                 // TODO(ksh8281): compute border,margin,padding
-                let isize = image_fragment_info.computed_isize();
-                // FIXME(ksh8281): we shouldn't assign bsize this way
-                // we don't know about size of parent's bsize
-                let bsize = ImageFragmentInfo::style_length(style_bsize,
-                                                        image_fragment_info.dom_bsize,
+                let inline_size = image_fragment_info.computed_inline_size();
+                // FIXME(ksh8281): we shouldn't assign block-size this way
+                // we don't know about size of parent's block-size
+                let block_size = ImageFragmentInfo::style_length(style_block_size,
+                                                        image_fragment_info.dom_block_size,
                                                         Au(0));
 
-                let bsize = match (style_isize, image_fragment_info.dom_isize, bsize) {
+                let block_size = match (style_inline_size, image_fragment_info.dom_inline_size, block_size) {
                     (LPA_Auto, None, Auto) => {
-                        image_fragment_info.image_bsize()
+                        image_fragment_info.image_block_size()
                     },
                     (_,_,Auto) => {
-                        let scale = image_fragment_info.image_isize().to_f32().unwrap()
-                            / isize.to_f32().unwrap();
-                        Au::new((image_fragment_info.image_bsize().to_f32().unwrap() / scale) as i32)
+                        let scale = image_fragment_info.image_inline_size().to_f32().unwrap()
+                            / inline_size.to_f32().unwrap();
+                        Au::new((image_fragment_info.image_block_size().to_f32().unwrap() / scale) as i32)
                     },
                     (_,_,Specified(h)) => {
                         h
                     }
                 };
 
-                image_fragment_info.computed_bsize = Some(bsize);
-                self.border_box.size.bsize = bsize + noncontent_bsize
+                image_fragment_info.computed_block_size = Some(block_size);
+                self.border_box.size.block = block_size + noncontent_block_size
             }
             ScannedTextFragment(_) => {
-                // Scanned text fragments' content bsizes are calculated by the text run scanner
+                // Scanned text fragments' content block-sizes are calculated by the text run scanner
                 // during flow construction.
-                self.border_box.size.bsize = self.border_box.size.bsize + noncontent_bsize
+                self.border_box.size.block = self.border_box.size.block + noncontent_block_size
             }
             _ => fail!("should have been handled above"),
         }
     }
 
-    /// Calculates bsize above baseline, depth below baseline, and ascent for this fragment when
+    /// Calculates block-size above baseline, depth below baseline, and ascent for this fragment when
     /// used in an inline formatting context. See CSS 2.1 § 10.8.1.
     pub fn inline_metrics(&self) -> InlineMetrics {
         match self.specific {
             ImageFragment(ref image_fragment_info) => {
-                let computed_bsize = image_fragment_info.computed_bsize();
+                let computed_block_size = image_fragment_info.computed_block_size();
                 InlineMetrics {
-                    bsize_above_baseline: computed_bsize + self.border_padding.bstart_end(),
+                    block_size_above_baseline: computed_block_size + self.border_padding.block_start_end(),
                     depth_below_baseline: Au(0),
-                    ascent: computed_bsize + self.border_padding.bend,
+                    ascent: computed_block_size + self.border_padding.block_end,
                 }
             }
             ScannedTextFragment(ref text_fragment) => {
@@ -1394,9 +1394,9 @@ impl Fragment {
             }
             _ => {
                 InlineMetrics {
-                    bsize_above_baseline: self.border_box.size.bsize,
+                    block_size_above_baseline: self.border_box.size.block,
                     depth_below_baseline: Au(0),
-                    ascent: self.border_box.size.bsize,
+                    ascent: self.border_box.size.block,
                 }
             }
         }
@@ -1420,18 +1420,18 @@ impl Fragment {
                                             iframe_fragment: &IframeFragmentInfo,
                                             offset: LogicalPoint<Au>,
                                             layout_context: &LayoutContext) {
-        let istart = offset.i + self.margin.istart + self.border_padding.istart;
-        let bstart = offset.b + self.margin.bstart + self.border_padding.bstart;
-        let isize = self.content_box().size.isize;
-        let bsize = self.content_box().size.bsize;
+        let inline_start = offset.i + self.margin.inline_start + self.border_padding.inline_start;
+        let block_start = offset.b + self.margin.block_start + self.border_padding.block_start;
+        let inline_size = self.content_box().size.inline;
+        let block_size = self.content_box().size.block;
         // FIXME(#2795): Get the real container size
         let container_size = Size2D::zero();
         let rect = LogicalRect::new(
             self.style.writing_mode,
-            geometry::to_frac_px(istart) as f32,
-            geometry::to_frac_px(bstart) as f32,
-            geometry::to_frac_px(isize) as f32,
-            geometry::to_frac_px(bsize) as f32
+            geometry::to_frac_px(inline_start) as f32,
+            geometry::to_frac_px(block_start) as f32,
+            geometry::to_frac_px(inline_size) as f32,
+            geometry::to_frac_px(block_size) as f32
         ).to_physical(self.style.writing_mode, container_size);
 
         debug!("finalizing position and size of iframe for {:?},{:?}",

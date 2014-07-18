@@ -191,7 +191,7 @@ trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
 
         }
 
-        // If there were no more children, start assigning bsizes.
+        // If there were no more children, start assigning block-sizes.
         if !had_children {
             bottom_up_func(unsafe_flow, proxy)
         }
@@ -206,8 +206,8 @@ impl<'a> ParallelPreorderFlowTraversal for AssignISizesTraversal<'a> {
                     proxy: &mut WorkerProxy<*mut LayoutContext,UnsafeFlow>) {
         self.run_parallel_helper(unsafe_flow,
                                  proxy,
-                                 assign_isizes,
-                                 assign_bsizes_and_store_overflow)
+                                 assign_inline_sizes,
+                                 assign_block_sizes_and_store_overflow)
     }
 }
 
@@ -371,22 +371,22 @@ fn construct_flows(mut unsafe_layout_node: UnsafeLayoutNode,
     }
 }
 
-fn assign_isizes(unsafe_flow: UnsafeFlow,
+fn assign_inline_sizes(unsafe_flow: UnsafeFlow,
                  proxy: &mut WorkerProxy<*mut LayoutContext,UnsafeFlow>) {
     let layout_context = unsafe { &mut **proxy.user_data() };
-    let mut assign_isizes_traversal = AssignISizesTraversal {
+    let mut assign_inline_sizes_traversal = AssignISizesTraversal {
         layout_context: layout_context,
     };
-    assign_isizes_traversal.run_parallel(unsafe_flow, proxy)
+    assign_inline_sizes_traversal.run_parallel(unsafe_flow, proxy)
 }
 
-fn assign_bsizes_and_store_overflow(unsafe_flow: UnsafeFlow,
+fn assign_block_sizes_and_store_overflow(unsafe_flow: UnsafeFlow,
                                      proxy: &mut WorkerProxy<*mut LayoutContext,UnsafeFlow>) {
     let layout_context = unsafe { &mut **proxy.user_data() };
-    let mut assign_bsizes_traversal = AssignBSizesAndStoreOverflowTraversal {
+    let mut assign_block_sizes_traversal = AssignBSizesAndStoreOverflowTraversal {
         layout_context: layout_context,
     };
-    assign_bsizes_traversal.run_parallel(unsafe_flow, proxy)
+    assign_block_sizes_traversal.run_parallel(unsafe_flow, proxy)
 }
 
 fn compute_absolute_position(unsafe_flow: UnsafeFlow,
@@ -525,7 +525,7 @@ pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
 
     profile(time::LayoutParallelWarmupCategory, time_profiler_chan, || {
         queue.push(WorkUnit {
-            fun: assign_isizes,
+            fun: assign_inline_sizes,
             data: mut_owned_flow_to_unsafe_flow(root),
         })
     });

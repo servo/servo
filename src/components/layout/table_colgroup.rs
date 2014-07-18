@@ -26,8 +26,8 @@ pub struct TableColGroupFlow {
     /// The table column fragments
     pub cols: Vec<Fragment>,
 
-    /// The specified isizes of table columns
-    pub isizes: Vec<Au>,
+    /// The specified inline-sizes of table columns
+    pub inline_sizes: Vec<Au>,
 }
 
 impl TableColGroupFlow {
@@ -38,7 +38,7 @@ impl TableColGroupFlow {
             base: BaseFlow::new((*node).clone()),
             fragment: Some(fragment),
             cols: fragments,
-            isizes: vec!(),
+            inline_sizes: vec!(),
         }
     }
 }
@@ -52,10 +52,10 @@ impl Flow for TableColGroupFlow {
         self
     }
 
-    fn bubble_isizes(&mut self, _: &mut LayoutContext) {
+    fn bubble_inline_sizes(&mut self, _: &mut LayoutContext) {
         for fragment in self.cols.iter() {
-            // get the specified value from isize property
-            let isize = MaybeAuto::from_style(fragment.style().content_isize(),
+            // get the specified value from inline-size property
+            let inline_size = MaybeAuto::from_style(fragment.style().content_inline_size(),
                                               Au::new(0)).specified_or_zero();
 
             let span: int = match fragment.specific {
@@ -63,18 +63,18 @@ impl Flow for TableColGroupFlow {
                 _ => fail!("Other fragment come out in TableColGroupFlow. {:?}", fragment.specific)
             };
             for _ in range(0, span) {
-                self.isizes.push(isize);
+                self.inline_sizes.push(inline_size);
             }
         }
     }
 
-    /// Table column isizes are assigned in table flow and propagated to table row or rowgroup flow.
-    /// Therefore, table colgroup flow does not need to assign its isize.
-    fn assign_isizes(&mut self, _ctx: &mut LayoutContext) {
+    /// Table column inline-sizes are assigned in table flow and propagated to table row or rowgroup flow.
+    /// Therefore, table colgroup flow does not need to assign its inline-size.
+    fn assign_inline_sizes(&mut self, _ctx: &mut LayoutContext) {
     }
 
-    /// Table column do not have bsize.
-    fn assign_bsize(&mut self, _ctx: &mut LayoutContext) {
+    /// Table column do not have block-size.
+    fn assign_block_size(&mut self, _ctx: &mut LayoutContext) {
     }
 }
 

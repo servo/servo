@@ -50,7 +50,7 @@ use sync::Arc;
 
 /// Information specific to floated blocks.
 pub struct FloatedBlockInfo {
-    pub containing_isize: Au,
+    pub containing_inline_size: Au,
 
     /// Offset relative to where the parent tried to position this flow
     pub rel_pos: LogicalPoint<Au>,
@@ -65,7 +65,7 @@ pub struct FloatedBlockInfo {
 impl FloatedBlockInfo {
     pub fn new(float_kind: FloatKind, writing_mode: WritingMode) -> FloatedBlockInfo {
         FloatedBlockInfo {
-            containing_isize: Au(0),
+            containing_inline_size: Au(0),
             rel_pos: LogicalPoint::new(writing_mode, Au(0), Au(0)),
             index: None,
             float_kind: float_kind,
@@ -73,24 +73,24 @@ impl FloatedBlockInfo {
     }
 }
 
-/// The solutions for the bsizes-and-margins constraint equation.
+/// The solutions for the block-size-and-margins constraint equation.
 struct BSizeConstraintSolution {
-    bstart: Au,
-    _bend: Au,
-    bsize: Au,
-    margin_bstart: Au,
-    margin_bend: Au
+    block_start: Au,
+    _block_end: Au,
+    block_size: Au,
+    margin_block_start: Au,
+    margin_block_end: Au
 }
 
 impl BSizeConstraintSolution {
-    fn new(bstart: Au, bend: Au, bsize: Au, margin_bstart: Au, margin_bend: Au)
+    fn new(block_start: Au, block_end: Au, block_size: Au, margin_block_start: Au, margin_block_end: Au)
            -> BSizeConstraintSolution {
         BSizeConstraintSolution {
-            bstart: bstart,
-            _bend: bend,
-            bsize: bsize,
-            margin_bstart: margin_bstart,
-            margin_bend: margin_bend,
+            block_start: block_start,
+            _block_end: block_end,
+            block_size: block_size,
+            margin_block_start: margin_block_start,
+            margin_block_end: margin_block_end,
         }
     }
 
@@ -98,57 +98,57 @@ impl BSizeConstraintSolution {
     ///
     /// CSS Section 10.6.4
     /// Constraint equation:
-    /// bstart + bend + bsize + margin-bstart + margin-bend
-    /// = absolute containing block bsize - (vertical padding and border)
-    /// [aka available_bsize]
+    /// block-start + block-end + block-size + margin-block-start + margin-block-end
+    /// = absolute containing block block-size - (vertical padding and border)
+    /// [aka available_block-size]
     ///
     /// Return the solution for the equation.
-    fn solve_vertical_constraints_abs_nonreplaced(bsize: MaybeAuto,
-                                                  bstart_margin: MaybeAuto,
-                                                  bend_margin: MaybeAuto,
-                                                  bstart: MaybeAuto,
-                                                  bend: MaybeAuto,
-                                                  content_bsize: Au,
-                                                  available_bsize: Au,
+    fn solve_vertical_constraints_abs_nonreplaced(block_size: MaybeAuto,
+                                                  block_start_margin: MaybeAuto,
+                                                  block_end_margin: MaybeAuto,
+                                                  block_start: MaybeAuto,
+                                                  block_end: MaybeAuto,
+                                                  content_block_size: Au,
+                                                  available_block_size: Au,
                                                   static_b_offset: Au)
                                                   -> BSizeConstraintSolution {
-        // Distance from the bstart edge of the Absolute Containing Block to the
-        // bstart margin edge of a hypothetical box that would have been the
+        // Distance from the block-start edge of the Absolute Containing Block to the
+        // block-start margin edge of a hypothetical box that would have been the
         // first box of the element.
-        let static_position_bstart = static_b_offset;
+        let static_position_block_start = static_b_offset;
 
-        let (bstart, bend, bsize, margin_bstart, margin_bend) = match (bstart, bend, bsize) {
+        let (block_start, block_end, block_size, margin_block_start, margin_block_end) = match (block_start, block_end, block_size) {
             (Auto, Auto, Auto) => {
-                let margin_bstart = bstart_margin.specified_or_zero();
-                let margin_bend = bend_margin.specified_or_zero();
-                let bstart = static_position_bstart;
-                // Now it is the same situation as bstart Specified and bend
-                // and bsize Auto.
+                let margin_block_start = block_start_margin.specified_or_zero();
+                let margin_block_end = block_end_margin.specified_or_zero();
+                let block_start = static_position_block_start;
+                // Now it is the same situation as block-start Specified and block-end
+                // and block-size Auto.
 
-                let bsize = content_bsize;
-                let sum = bstart + bsize + margin_bstart + margin_bend;
-                (bstart, available_bsize - sum, bsize, margin_bstart, margin_bend)
+                let block_size = content_block_size;
+                let sum = block_start + block_size + margin_block_start + margin_block_end;
+                (block_start, available_block_size - sum, block_size, margin_block_start, margin_block_end)
             }
-            (Specified(bstart), Specified(bend), Specified(bsize)) => {
-                match (bstart_margin, bend_margin) {
+            (Specified(block_start), Specified(block_end), Specified(block_size)) => {
+                match (block_start_margin, block_end_margin) {
                     (Auto, Auto) => {
-                        let total_margin_val = available_bsize - bstart - bend - bsize;
-                        (bstart, bend, bsize,
+                        let total_margin_val = available_block_size - block_start - block_end - block_size;
+                        (block_start, block_end, block_size,
                          total_margin_val.scale_by(0.5),
                          total_margin_val.scale_by(0.5))
                     }
-                    (Specified(margin_bstart), Auto) => {
-                        let sum = bstart + bend + bsize + margin_bstart;
-                        (bstart, bend, bsize, margin_bstart, available_bsize - sum)
+                    (Specified(margin_block_start), Auto) => {
+                        let sum = block_start + block_end + block_size + margin_block_start;
+                        (block_start, block_end, block_size, margin_block_start, available_block_size - sum)
                     }
-                    (Auto, Specified(margin_bend)) => {
-                        let sum = bstart + bend + bsize + margin_bend;
-                        (bstart, bend, bsize, available_bsize - sum, margin_bend)
+                    (Auto, Specified(margin_block_end)) => {
+                        let sum = block_start + block_end + block_size + margin_block_end;
+                        (block_start, block_end, block_size, available_block_size - sum, margin_block_end)
                     }
-                    (Specified(margin_bstart), Specified(margin_bend)) => {
-                        // Values are over-constrained. Ignore value for 'bend'.
-                        let sum = bstart + bsize + margin_bstart + margin_bend;
-                        (bstart, available_bsize - sum, bsize, margin_bstart, margin_bend)
+                    (Specified(margin_block_start), Specified(margin_block_end)) => {
+                        // Values are over-constrained. Ignore value for 'block-end'.
+                        let sum = block_start + block_size + margin_block_start + margin_block_end;
+                        (block_start, available_block_size - sum, block_size, margin_block_start, margin_block_end)
                     }
                 }
             }
@@ -156,147 +156,147 @@ impl BSizeConstraintSolution {
             // For the rest of the cases, auto values for margin are set to 0
 
             // If only one is Auto, solve for it
-            (Auto, Specified(bend), Specified(bsize)) => {
-                let margin_bstart = bstart_margin.specified_or_zero();
-                let margin_bend = bend_margin.specified_or_zero();
-                let sum = bend + bsize + margin_bstart + margin_bend;
-                (available_bsize - sum, bend, bsize, margin_bstart, margin_bend)
+            (Auto, Specified(block_end), Specified(block_size)) => {
+                let margin_block_start = block_start_margin.specified_or_zero();
+                let margin_block_end = block_end_margin.specified_or_zero();
+                let sum = block_end + block_size + margin_block_start + margin_block_end;
+                (available_block_size - sum, block_end, block_size, margin_block_start, margin_block_end)
             }
-            (Specified(bstart), Auto, Specified(bsize)) => {
-                let margin_bstart = bstart_margin.specified_or_zero();
-                let margin_bend = bend_margin.specified_or_zero();
-                let sum = bstart + bsize + margin_bstart + margin_bend;
-                (bstart, available_bsize - sum, bsize, margin_bstart, margin_bend)
+            (Specified(block_start), Auto, Specified(block_size)) => {
+                let margin_block_start = block_start_margin.specified_or_zero();
+                let margin_block_end = block_end_margin.specified_or_zero();
+                let sum = block_start + block_size + margin_block_start + margin_block_end;
+                (block_start, available_block_size - sum, block_size, margin_block_start, margin_block_end)
             }
-            (Specified(bstart), Specified(bend), Auto) => {
-                let margin_bstart = bstart_margin.specified_or_zero();
-                let margin_bend = bend_margin.specified_or_zero();
-                let sum = bstart + bend + margin_bstart + margin_bend;
-                (bstart, bend, available_bsize - sum, margin_bstart, margin_bend)
+            (Specified(block_start), Specified(block_end), Auto) => {
+                let margin_block_start = block_start_margin.specified_or_zero();
+                let margin_block_end = block_end_margin.specified_or_zero();
+                let sum = block_start + block_end + margin_block_start + margin_block_end;
+                (block_start, block_end, available_block_size - sum, margin_block_start, margin_block_end)
             }
 
-            // If bsize is auto, then bsize is content bsize. Solve for the
+            // If block-size is auto, then block-size is content block-size. Solve for the
             // non-auto value.
-            (Specified(bstart), Auto, Auto) => {
-                let margin_bstart = bstart_margin.specified_or_zero();
-                let margin_bend = bend_margin.specified_or_zero();
-                let bsize = content_bsize;
-                let sum = bstart + bsize + margin_bstart + margin_bend;
-                (bstart, available_bsize - sum, bsize, margin_bstart, margin_bend)
+            (Specified(block_start), Auto, Auto) => {
+                let margin_block_start = block_start_margin.specified_or_zero();
+                let margin_block_end = block_end_margin.specified_or_zero();
+                let block_size = content_block_size;
+                let sum = block_start + block_size + margin_block_start + margin_block_end;
+                (block_start, available_block_size - sum, block_size, margin_block_start, margin_block_end)
             }
-            (Auto, Specified(bend), Auto) => {
-                let margin_bstart = bstart_margin.specified_or_zero();
-                let margin_bend = bend_margin.specified_or_zero();
-                let bsize = content_bsize;
-                let sum = bend + bsize + margin_bstart + margin_bend;
-                (available_bsize - sum, bend, bsize, margin_bstart, margin_bend)
+            (Auto, Specified(block_end), Auto) => {
+                let margin_block_start = block_start_margin.specified_or_zero();
+                let margin_block_end = block_end_margin.specified_or_zero();
+                let block_size = content_block_size;
+                let sum = block_end + block_size + margin_block_start + margin_block_end;
+                (available_block_size - sum, block_end, block_size, margin_block_start, margin_block_end)
             }
 
-            (Auto, Auto, Specified(bsize)) => {
-                let margin_bstart = bstart_margin.specified_or_zero();
-                let margin_bend = bend_margin.specified_or_zero();
-                let bstart = static_position_bstart;
-                let sum = bstart + bsize + margin_bstart + margin_bend;
-                (bstart, available_bsize - sum, bsize, margin_bstart, margin_bend)
+            (Auto, Auto, Specified(block_size)) => {
+                let margin_block_start = block_start_margin.specified_or_zero();
+                let margin_block_end = block_end_margin.specified_or_zero();
+                let block_start = static_position_block_start;
+                let sum = block_start + block_size + margin_block_start + margin_block_end;
+                (block_start, available_block_size - sum, block_size, margin_block_start, margin_block_end)
             }
         };
-        BSizeConstraintSolution::new(bstart, bend, bsize, margin_bstart, margin_bend)
+        BSizeConstraintSolution::new(block_start, block_end, block_size, margin_block_start, margin_block_end)
     }
 
     /// Solve the vertical constraint equation for absolute replaced elements.
     ///
-    /// Assumption: The used value for bsize has already been calculated.
+    /// Assumption: The used value for block-size has already been calculated.
     ///
     /// CSS Section 10.6.5
     /// Constraint equation:
-    /// bstart + bend + bsize + margin-bstart + margin-bend
-    /// = absolute containing block bsize - (vertical padding and border)
-    /// [aka available_bsize]
+    /// block-start + block-end + block-size + margin-block-start + margin-block-end
+    /// = absolute containing block block-size - (vertical padding and border)
+    /// [aka available_block-size]
     ///
     /// Return the solution for the equation.
-    fn solve_vertical_constraints_abs_replaced(bsize: Au,
-                                               bstart_margin: MaybeAuto,
-                                               bend_margin: MaybeAuto,
-                                               bstart: MaybeAuto,
-                                               bend: MaybeAuto,
+    fn solve_vertical_constraints_abs_replaced(block_size: Au,
+                                               block_start_margin: MaybeAuto,
+                                               block_end_margin: MaybeAuto,
+                                               block_start: MaybeAuto,
+                                               block_end: MaybeAuto,
                                                _: Au,
-                                               available_bsize: Au,
+                                               available_block_size: Au,
                                                static_b_offset: Au)
                                                -> BSizeConstraintSolution {
-        // Distance from the bstart edge of the Absolute Containing Block to the
-        // bstart margin edge of a hypothetical box that would have been the
+        // Distance from the block-start edge of the Absolute Containing Block to the
+        // block-start margin edge of a hypothetical box that would have been the
         // first box of the element.
-        let static_position_bstart = static_b_offset;
+        let static_position_block_start = static_b_offset;
 
-        let (bstart, bend, bsize, margin_bstart, margin_bend) = match (bstart, bend) {
+        let (block_start, block_end, block_size, margin_block_start, margin_block_end) = match (block_start, block_end) {
             (Auto, Auto) => {
-                let margin_bstart = bstart_margin.specified_or_zero();
-                let margin_bend = bend_margin.specified_or_zero();
-                let bstart = static_position_bstart;
-                let sum = bstart + bsize + margin_bstart + margin_bend;
-                (bstart, available_bsize - sum, bsize, margin_bstart, margin_bend)
+                let margin_block_start = block_start_margin.specified_or_zero();
+                let margin_block_end = block_end_margin.specified_or_zero();
+                let block_start = static_position_block_start;
+                let sum = block_start + block_size + margin_block_start + margin_block_end;
+                (block_start, available_block_size - sum, block_size, margin_block_start, margin_block_end)
             }
-            (Specified(bstart), Specified(bend)) => {
-                match (bstart_margin, bend_margin) {
+            (Specified(block_start), Specified(block_end)) => {
+                match (block_start_margin, block_end_margin) {
                     (Auto, Auto) => {
-                        let total_margin_val = available_bsize - bstart - bend - bsize;
-                        (bstart, bend, bsize,
+                        let total_margin_val = available_block_size - block_start - block_end - block_size;
+                        (block_start, block_end, block_size,
                          total_margin_val.scale_by(0.5),
                          total_margin_val.scale_by(0.5))
                     }
-                    (Specified(margin_bstart), Auto) => {
-                        let sum = bstart + bend + bsize + margin_bstart;
-                        (bstart, bend, bsize, margin_bstart, available_bsize - sum)
+                    (Specified(margin_block_start), Auto) => {
+                        let sum = block_start + block_end + block_size + margin_block_start;
+                        (block_start, block_end, block_size, margin_block_start, available_block_size - sum)
                     }
-                    (Auto, Specified(margin_bend)) => {
-                        let sum = bstart + bend + bsize + margin_bend;
-                        (bstart, bend, bsize, available_bsize - sum, margin_bend)
+                    (Auto, Specified(margin_block_end)) => {
+                        let sum = block_start + block_end + block_size + margin_block_end;
+                        (block_start, block_end, block_size, available_block_size - sum, margin_block_end)
                     }
-                    (Specified(margin_bstart), Specified(margin_bend)) => {
-                        // Values are over-constrained. Ignore value for 'bend'.
-                        let sum = bstart + bsize + margin_bstart + margin_bend;
-                        (bstart, available_bsize - sum, bsize, margin_bstart, margin_bend)
+                    (Specified(margin_block_start), Specified(margin_block_end)) => {
+                        // Values are over-constrained. Ignore value for 'block-end'.
+                        let sum = block_start + block_size + margin_block_start + margin_block_end;
+                        (block_start, available_block_size - sum, block_size, margin_block_start, margin_block_end)
                     }
                 }
             }
 
             // If only one is Auto, solve for it
-            (Auto, Specified(bend)) => {
-                let margin_bstart = bstart_margin.specified_or_zero();
-                let margin_bend = bend_margin.specified_or_zero();
-                let sum = bend + bsize + margin_bstart + margin_bend;
-                (available_bsize - sum, bend, bsize, margin_bstart, margin_bend)
+            (Auto, Specified(block_end)) => {
+                let margin_block_start = block_start_margin.specified_or_zero();
+                let margin_block_end = block_end_margin.specified_or_zero();
+                let sum = block_end + block_size + margin_block_start + margin_block_end;
+                (available_block_size - sum, block_end, block_size, margin_block_start, margin_block_end)
             }
-            (Specified(bstart), Auto) => {
-                let margin_bstart = bstart_margin.specified_or_zero();
-                let margin_bend = bend_margin.specified_or_zero();
-                let sum = bstart + bsize + margin_bstart + margin_bend;
-                (bstart, available_bsize - sum, bsize, margin_bstart, margin_bend)
+            (Specified(block_start), Auto) => {
+                let margin_block_start = block_start_margin.specified_or_zero();
+                let margin_block_end = block_end_margin.specified_or_zero();
+                let sum = block_start + block_size + margin_block_start + margin_block_end;
+                (block_start, available_block_size - sum, block_size, margin_block_start, margin_block_end)
             }
         };
-        BSizeConstraintSolution::new(bstart, bend, bsize, margin_bstart, margin_bend)
+        BSizeConstraintSolution::new(block_start, block_end, block_size, margin_block_start, margin_block_end)
     }
 }
 
-/// Performs bsize calculations potentially multiple times, taking
+/// Performs block-size calculations potentially multiple times, taking
 /// (assuming an horizontal writing mode) `height`, `min-height`, and `max-height`
 /// into account. After each call to `next()`, the caller must call `.try()` with the
 /// current calculated value of `height`.
 ///
 /// See CSS 2.1 § 10.7.
 struct CandidateBSizeIterator {
-    bsize: MaybeAuto,
-    max_bsize: Option<Au>,
-    min_bsize: Au,
+    block_size: MaybeAuto,
+    max_block_size: Option<Au>,
+    min_block_size: Au,
     candidate_value: Au,
     status: CandidateBSizeIteratorStatus,
 }
 
 impl CandidateBSizeIterator {
-    /// Creates a new candidate bsize iterator. `block_container_bsize` is `None` if the bsize
+    /// Creates a new candidate block-size iterator. `block_container_block-size` is `None` if the block-size
     /// of the block container has not been determined yet. It will always be `Some` in the case of
     /// absolutely-positioned containing blocks.
-    pub fn new(style: &ComputedValues, block_container_bsize: Option<Au>)
+    pub fn new(style: &ComputedValues, block_container_block_size: Option<Au>)
                -> CandidateBSizeIterator {
         // Per CSS 2.1 § 10.7, (assuming an horizontal writing mode,)
         // percentages in `min-height` and `max-height` refer to the height of
@@ -304,32 +304,32 @@ impl CandidateBSizeIterator {
         // If that is not determined yet by the time we need to resolve
         // `min-height` and `max-height`, percentage values are ignored.
 
-        let bsize = match (style.content_bsize(), block_container_bsize) {
-            (LPA_Percentage(percent), Some(block_container_bsize)) => {
-                Specified(block_container_bsize.scale_by(percent))
+        let block_size = match (style.content_block_size(), block_container_block_size) {
+            (LPA_Percentage(percent), Some(block_container_block_size)) => {
+                Specified(block_container_block_size.scale_by(percent))
             }
             (LPA_Percentage(_), None) | (LPA_Auto, _) => Auto,
             (LPA_Length(length), _) => Specified(length),
         };
-        let max_bsize = match (style.max_bsize(), block_container_bsize) {
-            (LPN_Percentage(percent), Some(block_container_bsize)) => {
-                Some(block_container_bsize.scale_by(percent))
+        let max_block_size = match (style.max_block_size(), block_container_block_size) {
+            (LPN_Percentage(percent), Some(block_container_block_size)) => {
+                Some(block_container_block_size.scale_by(percent))
             }
             (LPN_Percentage(_), None) | (LPN_None, _) => None,
             (LPN_Length(length), _) => Some(length),
         };
-        let min_bsize = match (style.min_bsize(), block_container_bsize) {
-            (LP_Percentage(percent), Some(block_container_bsize)) => {
-                block_container_bsize.scale_by(percent)
+        let min_block_size = match (style.min_block_size(), block_container_block_size) {
+            (LP_Percentage(percent), Some(block_container_block_size)) => {
+                block_container_block_size.scale_by(percent)
             }
             (LP_Percentage(_), None) => Au(0),
             (LP_Length(length), _) => length,
         };
 
         CandidateBSizeIterator {
-            bsize: bsize,
-            max_bsize: max_bsize,
-            min_bsize: min_bsize,
+            block_size: block_size,
+            max_block_size: max_block_size,
+            min_block_size: min_block_size,
             candidate_value: Au(0),
             status: InitialCandidateBSizeStatus,
         }
@@ -339,16 +339,16 @@ impl CandidateBSizeIterator {
         self.status = match self.status {
             InitialCandidateBSizeStatus => TryingBSizeCandidateBSizeStatus,
             TryingBSizeCandidateBSizeStatus => {
-                match self.max_bsize {
-                    Some(max_bsize) if self.candidate_value > max_bsize => {
+                match self.max_block_size {
+                    Some(max_block_size) if self.candidate_value > max_block_size => {
                         TryingMaxCandidateBSizeStatus
                     }
-                    _ if self.candidate_value < self.min_bsize => TryingMinCandidateBSizeStatus,
+                    _ if self.candidate_value < self.min_block_size => TryingMinCandidateBSizeStatus,
                     _ => FoundCandidateBSizeStatus,
                 }
             }
             TryingMaxCandidateBSizeStatus => {
-                if self.candidate_value < self.min_bsize {
+                if self.candidate_value < self.min_block_size {
                     TryingMinCandidateBSizeStatus
                 } else {
                     FoundCandidateBSizeStatus
@@ -360,12 +360,12 @@ impl CandidateBSizeIterator {
         };
 
         match self.status {
-            TryingBSizeCandidateBSizeStatus => Some((self.bsize, &mut self.candidate_value)),
+            TryingBSizeCandidateBSizeStatus => Some((self.block_size, &mut self.candidate_value)),
             TryingMaxCandidateBSizeStatus => {
-                Some((Specified(self.max_bsize.unwrap()), &mut self.candidate_value))
+                Some((Specified(self.max_block_size.unwrap()), &mut self.candidate_value))
             }
             TryingMinCandidateBSizeStatus => {
-                Some((Specified(self.min_bsize), &mut self.candidate_value))
+                Some((Specified(self.min_block_size), &mut self.candidate_value))
             }
             FoundCandidateBSizeStatus => None,
             InitialCandidateBSizeStatus => fail!(),
@@ -381,14 +381,14 @@ enum CandidateBSizeIteratorStatus {
     FoundCandidateBSizeStatus,
 }
 
-// A helper function used in bsize calculation.
+// A helper function used in block-size calculation.
 fn translate_including_floats(cur_b: &mut Au, delta: Au, floats: &mut Floats) {
     *cur_b = *cur_b + delta;
     let writing_mode = floats.writing_mode;
     floats.translate(LogicalSize::new(writing_mode, Au(0), -delta));
 }
 
-/// The real assign-bsizes traversal for flows with position 'absolute'.
+/// The real assign-block-sizes traversal for flows with position 'absolute'.
 ///
 /// This is a traversal of an Absolute Flow tree.
 /// - Relatively positioned flows and the Root flow start new Absolute flow trees.
@@ -416,7 +416,7 @@ impl<'a> PreorderFlowTraversal for AbsoluteAssignBSizesTraversal<'a> {
 
 
         let AbsoluteAssignBSizesTraversal(ref ctx) = *self;
-        block_flow.calculate_abs_bsize_and_margins(*ctx);
+        block_flow.calculate_abs_block_size_and_margins(*ctx);
         true
     }
 }
@@ -467,7 +467,7 @@ enum FormattingContextType {
 }
 
 // Propagates the `layers_needed_for_descendants` flag appropriately from a child. This is called
-// as part of bsize assignment.
+// as part of block-size assignment.
 //
 // If any fixed descendants of kids are present, this kid needs a layer.
 //
@@ -505,9 +505,9 @@ pub struct BlockFlow {
     /// Static y offset of an absolute flow from its CB.
     pub static_b_offset: Au,
 
-    /// The isize of the last float prior to this block. This is used to speculatively lay out
+    /// The inline-size of the last float prior to this block. This is used to speculatively lay out
     /// block formatting contexts.
-    previous_float_isize: Option<Au>,
+    previous_float_inline_size: Option<Au>,
 
     /// Additional floating flow members.
     pub float: Option<Box<FloatedBlockInfo>>
@@ -520,7 +520,7 @@ impl BlockFlow {
             fragment: Fragment::new(constructor, node),
             is_root: false,
             static_b_offset: Au::new(0),
-            previous_float_isize: None,
+            previous_float_inline_size: None,
             float: None
         }
     }
@@ -531,7 +531,7 @@ impl BlockFlow {
             fragment: fragment,
             is_root: false,
             static_b_offset: Au::new(0),
-            previous_float_isize: None,
+            previous_float_inline_size: None,
             float: None
         }
     }
@@ -545,7 +545,7 @@ impl BlockFlow {
             fragment: Fragment::new(constructor, node),
             is_root: false,
             static_b_offset: Au::new(0),
-            previous_float_isize: None,
+            previous_float_inline_size: None,
             float: Some(box FloatedBlockInfo::new(float_kind, base.writing_mode)),
             base: base,
         }
@@ -553,7 +553,7 @@ impl BlockFlow {
 
     /// Return the type of this block.
     ///
-    /// This determines the algorithm used to calculate isize, bsize, and the
+    /// This determines the algorithm used to calculate inline-size, block-size, and the
     /// relevant margins for this Block.
     fn block_type(&self) -> BlockType {
         if self.is_absolutely_positioned() {
@@ -577,33 +577,33 @@ impl BlockFlow {
         }
     }
 
-    /// Compute the used value of isize for this Block.
-    fn compute_used_isize(&mut self, ctx: &mut LayoutContext, containing_block_isize: Au) {
+    /// Compute the used value of inline-size for this Block.
+    fn compute_used_inline_size(&mut self, ctx: &mut LayoutContext, containing_block_inline_size: Au) {
         let block_type = self.block_type();
         match block_type {
             AbsoluteReplacedType => {
-                let isize_computer = AbsoluteReplaced;
-                isize_computer.compute_used_isize(self, ctx, containing_block_isize);
+                let inline_size_computer = AbsoluteReplaced;
+                inline_size_computer.compute_used_inline_size(self, ctx, containing_block_inline_size);
             }
             AbsoluteNonReplacedType => {
-                let isize_computer = AbsoluteNonReplaced;
-                isize_computer.compute_used_isize(self, ctx, containing_block_isize);
+                let inline_size_computer = AbsoluteNonReplaced;
+                inline_size_computer.compute_used_inline_size(self, ctx, containing_block_inline_size);
             }
             FloatReplacedType => {
-                let isize_computer = FloatReplaced;
-                isize_computer.compute_used_isize(self, ctx, containing_block_isize);
+                let inline_size_computer = FloatReplaced;
+                inline_size_computer.compute_used_inline_size(self, ctx, containing_block_inline_size);
             }
             FloatNonReplacedType => {
-                let isize_computer = FloatNonReplaced;
-                isize_computer.compute_used_isize(self, ctx, containing_block_isize);
+                let inline_size_computer = FloatNonReplaced;
+                inline_size_computer.compute_used_inline_size(self, ctx, containing_block_inline_size);
             }
             BlockReplacedType => {
-                let isize_computer = BlockReplaced;
-                isize_computer.compute_used_isize(self, ctx, containing_block_isize);
+                let inline_size_computer = BlockReplaced;
+                inline_size_computer.compute_used_inline_size(self, ctx, containing_block_inline_size);
             }
             BlockNonReplacedType => {
-                let isize_computer = BlockNonReplaced;
-                isize_computer.compute_used_isize(self, ctx, containing_block_isize);
+                let inline_size_computer = BlockNonReplaced;
+                inline_size_computer.compute_used_inline_size(self, ctx, containing_block_inline_size);
             }
         }
     }
@@ -644,7 +644,7 @@ impl BlockFlow {
     /// Traverse all your direct absolute descendants, who will then traverse
     /// their direct absolute descendants.
     /// Also, set the static y offsets for each descendant (using the value
-    /// which was bubbled up during normal assign-bsize).
+    /// which was bubbled up during normal assign-block-size).
     ///
     /// Return true if the traversal is to continue or false to stop.
     fn traverse_preorder_absolute_flows<T:PreorderFlowTraversal>(&mut self,
@@ -659,14 +659,14 @@ impl BlockFlow {
             return false
         }
 
-        let cb_bstart_edge_offset = flow.generated_containing_block_rect().start.b;
+        let cb_block_start_edge_offset = flow.generated_containing_block_rect().start.b;
         let mut descendant_offset_iter = mut_base(flow).abs_descendants.iter_with_offset();
         // Pass in the respective static y offset for each descendant.
         for (ref mut descendant_link, ref y_offset) in descendant_offset_iter {
             let block = descendant_link.as_block();
             // The stored y_offset is wrt to the flow box.
             // Translate it to the CB (which is the padding box).
-            block.static_b_offset = **y_offset - cb_bstart_edge_offset;
+            block.static_b_offset = **y_offset - cb_block_start_edge_offset;
             if !block.traverse_preorder_absolute_flows(traversal) {
                 return false
             }
@@ -707,13 +707,13 @@ impl BlockFlow {
         }
     }
 
-    /// Return shrink-to-fit isize.
+    /// Return shrink-to-fit inline-size.
     ///
-    /// This is where we use the preferred isizes and minimum isizes
-    /// calculated in the bubble-isizes traversal.
-    fn get_shrink_to_fit_isize(&self, available_isize: Au) -> Au {
-        geometry::min(self.base.intrinsic_isizes.preferred_isize,
-                      geometry::max(self.base.intrinsic_isizes.minimum_isize, available_isize))
+    /// This is where we use the preferred inline-sizes and minimum inline-sizes
+    /// calculated in the bubble-inline-sizes traversal.
+    fn get_shrink_to_fit_inline_size(&self, available_inline_size: Au) -> Au {
+        geometry::min(self.base.intrinsic_inline_sizes.preferred_inline_size,
+                      geometry::max(self.base.intrinsic_inline_sizes.minimum_inline_size, available_inline_size))
     }
 
     /// Collect and update static y-offsets bubbled up by kids.
@@ -722,7 +722,7 @@ impl BlockFlow {
     /// direct descendants and all fixed descendants, in tree order.
     ///
     /// Assume that this is called in a bottom-up traversal (specifically, the
-    /// assign-bsize traversal). So, kids have their flow origin already set.
+    /// assign-block-size traversal). So, kids have their flow origin already set.
     /// In the case of absolute flow kids, they have their hypothetical box
     /// position already set.
     fn collect_static_b_offsets_from_kids(&mut self) {
@@ -736,7 +736,7 @@ impl BlockFlow {
                     // would be the CB for them.
                     gives_abs_offsets = false;
                     // Give the offset for the current absolute flow alone.
-                    abs_descendant_y_offsets.push(kid_block.get_hypothetical_bstart_edge());
+                    abs_descendant_y_offsets.push(kid_block.get_hypothetical_block_start_edge());
                 } else if kid_block.is_positioned() {
                     // It won't contribute any offsets because it would be the CB
                     // for the descendants.
@@ -768,43 +768,43 @@ impl BlockFlow {
             return
         }
 
-        let (bstart_margin_value, bend_margin_value) = match self.base.collapsible_margins {
+        let (block_start_margin_value, block_end_margin_value) = match self.base.collapsible_margins {
             MarginsCollapseThrough(margin) => (Au(0), margin.collapse()),
-            MarginsCollapse(bstart_margin, bend_margin) => {
-                (bstart_margin.collapse(), bend_margin.collapse())
+            MarginsCollapse(block_start_margin, block_end_margin) => {
+                (block_start_margin.collapse(), block_end_margin.collapse())
             }
-            NoCollapsibleMargins(bstart, bend) => (bstart, bend),
+            NoCollapsibleMargins(block_start, block_end) => (block_start, block_end),
         };
 
         // Shift all kids down (or up, if margins are negative) if necessary.
-        if bstart_margin_value != Au(0) {
+        if block_start_margin_value != Au(0) {
             for kid in self.base.child_iter() {
                 let kid_base = flow::mut_base(kid);
-                kid_base.position.start.b = kid_base.position.start.b + bstart_margin_value
+                kid_base.position.start.b = kid_base.position.start.b + block_start_margin_value
             }
         }
 
-        self.base.position.size.bsize = self.base.position.size.bsize + bstart_margin_value +
-            bend_margin_value;
-        self.fragment.border_box.size.bsize = self.fragment.border_box.size.bsize + bstart_margin_value +
-            bend_margin_value;
+        self.base.position.size.block = self.base.position.size.block + block_start_margin_value +
+            block_end_margin_value;
+        self.fragment.border_box.size.block = self.fragment.border_box.size.block + block_start_margin_value +
+            block_end_margin_value;
     }
 
-    /// Assign bsize for current flow.
+    /// Assign block-size for current flow.
     ///
     /// * Collapse margins for flow's children and set in-flow child flows' y-coordinates now that
-    ///   we know their bsizes.
-    /// * Calculate and set the bsize of the current flow.
-    /// * Calculate bsize, vertical margins, and y-coordinate for the flow's box. Ideally, this
+    ///   we know their block-sizes.
+    /// * Calculate and set the block-size of the current flow.
+    /// * Calculate block-size, vertical margins, and y-coordinate for the flow's box. Ideally, this
     ///   should be calculated using CSS § 10.6.7.
     ///
-    /// For absolute flows, we store the calculated content bsize for the flow. We defer the
+    /// For absolute flows, we store the calculated content block-size for the flow. We defer the
     /// calculation of the other values until a later traversal.
     ///
     /// `inline(always)` because this is only ever called by in-order or non-in-order top-level
     /// methods
     #[inline(always)]
-    pub fn assign_bsize_block_base(&mut self,
+    pub fn assign_block_size_block_base(&mut self,
                                     layout_context: &mut LayoutContext,
                                     margins_may_collapse: MarginsMayCollapseFlag) {
         // Our current border-box position.
@@ -821,18 +821,18 @@ impl BlockFlow {
 
         let mut margin_collapse_info = MarginCollapseInfo::new();
         self.base.floats.translate(LogicalSize::new(
-            self.fragment.style.writing_mode, -self.fragment.istart_offset(), Au(0)));
+            self.fragment.style.writing_mode, -self.fragment.inline_start_offset(), Au(0)));
 
-        // The sum of our bstart border and bstart padding.
-        let bstart_offset = self.fragment.border_padding.bstart;
-        translate_including_floats(&mut cur_b, bstart_offset, &mut self.base.floats);
+        // The sum of our block-start border and block-start padding.
+        let block_start_offset = self.fragment.border_padding.block_start;
+        translate_including_floats(&mut cur_b, block_start_offset, &mut self.base.floats);
 
-        let can_collapse_bstart_margin_with_kids =
+        let can_collapse_block_start_margin_with_kids =
             margins_may_collapse == MarginsMayCollapse &&
             !self.is_absolutely_positioned() &&
-            self.fragment.border_padding.bstart == Au(0);
-        margin_collapse_info.initialize_bstart_margin(&self.fragment,
-                                                   can_collapse_bstart_margin_with_kids);
+            self.fragment.border_padding.block_start == Au(0);
+        margin_collapse_info.initialize_block_start_margin(&self.fragment,
+                                                   can_collapse_block_start_margin_with_kids);
 
         // At this point, `cur_b` is at the content edge of our box. Now iterate over children.
         let mut floats = self.base.floats.clone();
@@ -840,9 +840,9 @@ impl BlockFlow {
         for kid in self.base.child_iter() {
             if kid.is_absolutely_positioned() {
                 // Assume that the *hypothetical box* for an absolute flow starts immediately after
-                // the bend border edge of the previous flow.
+                // the block-end border edge of the previous flow.
                 flow::mut_base(kid).position.start.b = cur_b;
-                kid.assign_bsize_for_inorder_child_if_necessary(layout_context);
+                kid.assign_block_size_for_inorder_child_if_necessary(layout_context);
                 propagate_layer_flag_from_child(&mut layers_needed_for_descendants, kid);
 
                 // Skip the collapsing and float processing for absolute flow kids and continue
@@ -850,7 +850,7 @@ impl BlockFlow {
                 continue
             }
 
-            // Assign bsize now for the child if it was impacted by floats and we couldn't before.
+            // Assign block-size now for the child if it was impacted by floats and we couldn't before.
             flow::mut_base(kid).floats = floats.clone();
             if kid.is_float() {
                 // FIXME(pcwalton): Using `position.start.b` to mean the float ceiling is a
@@ -860,7 +860,7 @@ impl BlockFlow {
                 propagate_layer_flag_from_child(&mut layers_needed_for_descendants, kid);
 
                 let kid_was_impacted_by_floats =
-                    kid.assign_bsize_for_inorder_child_if_necessary(layout_context);
+                    kid.assign_block_size_for_inorder_child_if_necessary(layout_context);
                 assert!(kid_was_impacted_by_floats);    // As it was a float itself...
 
                 let kid_base = flow::mut_base(kid);
@@ -883,13 +883,13 @@ impl BlockFlow {
 
             // Lay the child out if this was an in-order traversal.
             let kid_was_impacted_by_floats =
-                kid.assign_bsize_for_inorder_child_if_necessary(layout_context);
+                kid.assign_block_size_for_inorder_child_if_necessary(layout_context);
 
             // Mark flows for layerization if necessary to handle painting order correctly.
             propagate_layer_flag_from_child(&mut layers_needed_for_descendants, kid);
 
             // Handle any (possibly collapsed) top margin.
-            let delta = margin_collapse_info.advance_bstart_margin(
+            let delta = margin_collapse_info.advance_block_start_margin(
                 &flow::base(kid).collapsible_margins);
             translate_including_floats(&mut cur_b, delta, &mut floats);
 
@@ -906,7 +906,7 @@ impl BlockFlow {
             flow::mut_base(kid).position.start.b = cur_b;
 
             // Now pull out the child's outgoing floats. We didn't do this immediately after the
-            // `assign_bsize_for_inorder_child_if_necessary` call because clearance on a block
+            // `assign_block-size_for_inorder_child_if_necessary` call because clearance on a block
             // operates on the floats that come *in*, not the floats that go *out*.
             if kid_was_impacted_by_floats {
                 floats = flow::mut_base(kid).floats.clone()
@@ -915,10 +915,10 @@ impl BlockFlow {
             // Move past the child's border box. Do not use the `translate_including_floats`
             // function here because the child has already translated floats past its border box.
             let kid_base = flow::mut_base(kid);
-            cur_b = cur_b + kid_base.position.size.bsize;
+            cur_b = cur_b + kid_base.position.size.block;
 
-            // Handle any (possibly collapsed) bend margin.
-            let delta = margin_collapse_info.advance_bend_margin(&kid_base.collapsible_margins);
+            // Handle any (possibly collapsed) block-end margin.
+            let delta = margin_collapse_info.advance_block_end_margin(&kid_base.collapsible_margins);
             translate_including_floats(&mut cur_b, delta, &mut floats);
         }
 
@@ -929,15 +929,15 @@ impl BlockFlow {
         // Collect various offsets needed by absolutely positioned descendants.
         self.collect_static_b_offsets_from_kids();
 
-        // Add in our bend margin and compute our collapsible margins.
-        let can_collapse_bend_margin_with_kids =
+        // Add in our block-end margin and compute our collapsible margins.
+        let can_collapse_block_end_margin_with_kids =
             margins_may_collapse == MarginsMayCollapse &&
             !self.is_absolutely_positioned() &&
-            self.fragment.border_padding.bend == Au(0);
+            self.fragment.border_padding.block_end == Au(0);
         let (collapsible_margins, delta) =
             margin_collapse_info.finish_and_compute_collapsible_margins(
             &self.fragment,
-            can_collapse_bend_margin_with_kids);
+            can_collapse_block_end_margin_with_kids);
         self.base.collapsible_margins = collapsible_margins;
         translate_including_floats(&mut cur_b, delta, &mut floats);
 
@@ -945,60 +945,60 @@ impl BlockFlow {
         // is not correct behavior according to CSS 2.1 § 10.5. Instead I think we should treat the
         // root element as having `overflow: scroll` and use the layers-based scrolling
         // infrastructure to make it scrollable.
-        let mut bsize = cur_b - bstart_offset;
+        let mut block_size = cur_b - block_start_offset;
         if self.is_root() {
             let screen_size = LogicalSize::from_physical(
                 self.fragment.style.writing_mode, layout_context.screen_size);
-            bsize = Au::max(screen_size.bsize, bsize)
+            block_size = Au::max(screen_size.block, block_size)
         }
 
         if self.is_absolutely_positioned() {
-            // The content bsize includes all the floats per CSS 2.1 § 10.6.7. The easiest way to
+            // The content block-size includes all the floats per CSS 2.1 § 10.6.7. The easiest way to
             // handle this is to just treat this as clearance.
-            bsize = bsize + floats.clearance(ClearBoth);
+            block_size = block_size + floats.clearance(ClearBoth);
 
             // Fixed position layers get layers.
             if self.is_fixed() {
                 self.base.flags.set_needs_layer(true)
             }
 
-            // Store the content bsize for use in calculating the absolute flow's dimensions
+            // Store the content block-size for use in calculating the absolute flow's dimensions
             // later.
-            self.fragment.border_box.size.bsize = bsize;
+            self.fragment.border_box.size.block = block_size;
             return
         }
 
-        let mut candidate_bsize_iterator = CandidateBSizeIterator::new(self.fragment.style(),
+        let mut candidate_block_size_iterator = CandidateBSizeIterator::new(self.fragment.style(),
                                                                          None);
-        for (candidate_bsize, new_candidate_bsize) in candidate_bsize_iterator {
-            *new_candidate_bsize = match candidate_bsize {
-                Auto => bsize,
+        for (candidate_block_size, new_candidate_block_size) in candidate_block_size_iterator {
+            *new_candidate_block_size = match candidate_block_size {
+                Auto => block_size,
                 Specified(value) => value
             }
         }
 
-        // Adjust `cur_b` as necessary to account for the explicitly-specified bsize.
-        bsize = candidate_bsize_iterator.candidate_value;
-        let delta = bsize - (cur_b - bstart_offset);
+        // Adjust `cur_b` as necessary to account for the explicitly-specified block-size.
+        block_size = candidate_block_size_iterator.candidate_value;
+        let delta = block_size - (cur_b - block_start_offset);
         translate_including_floats(&mut cur_b, delta, &mut floats);
 
-        // Compute content bsize and noncontent bsize.
-        let bend_offset = self.fragment.border_padding.bend;
-        translate_including_floats(&mut cur_b, bend_offset, &mut floats);
+        // Compute content block-size and noncontent block-size.
+        let block_end_offset = self.fragment.border_padding.block_end;
+        translate_including_floats(&mut cur_b, block_end_offset, &mut floats);
 
-        // Now that `cur_b` is at the bend of the border box, compute the final border box
+        // Now that `cur_b` is at the block-end of the border box, compute the final border box
         // position.
-        self.fragment.border_box.size.bsize = cur_b;
+        self.fragment.border_box.size.block = cur_b;
         self.fragment.border_box.start.b = Au(0);
-        self.base.position.size.bsize = cur_b;
+        self.base.position.size.block = cur_b;
 
         self.base.floats = floats.clone();
         self.adjust_fragments_for_collapsed_margins_if_root();
 
         if self.is_root_of_absolute_flow_tree() {
-            // Assign bsizes for all flows in this Absolute flow tree.
-            // This is preorder because the bsize of an absolute flow may depend on
-            // the bsize of its CB, which may also be an absolute flow.
+            // Assign block-sizes for all flows in this Absolute flow tree.
+            // This is preorder because the block-size of an absolute flow may depend on
+            // the block-size of its CB, which may also be an absolute flow.
             self.traverse_preorder_absolute_flows(&mut AbsoluteAssignBSizesTraversal(
                     layout_context));
             // Store overflow for all absolute descendants.
@@ -1015,25 +1015,25 @@ impl BlockFlow {
     /// This does not give any information about any float descendants because they do not affect
     /// elements outside of the subtree rooted at this float.
     ///
-    /// This function is called on a kid flow by a parent. Therefore, `assign_bsize_float` was
+    /// This function is called on a kid flow by a parent. Therefore, `assign_block-size_float` was
     /// already called on this kid flow by the traversal function. So, the values used are
     /// well-defined.
     pub fn place_float(&mut self) {
-        let bsize = self.fragment.border_box.size.bsize;
+        let block_size = self.fragment.border_box.size.block;
         let clearance = match self.fragment.clear() {
             None => Au(0),
             Some(clear) => self.base.floats.clearance(clear),
         };
 
-        let margin_bsize = self.fragment.margin.bstart_end();
+        let margin_block_size = self.fragment.margin.block_start_end();
         let info = PlacementInfo {
             size: LogicalSize::new(
                 self.fragment.style.writing_mode,
-                self.base.position.size.isize + self.fragment.margin.istart_end() +
-                    self.fragment.border_padding.istart_end(),
-                bsize + margin_bsize),
+                self.base.position.size.inline + self.fragment.margin.inline_start_end() +
+                    self.fragment.border_padding.inline_start_end(),
+                block_size + margin_block_size),
             ceiling: clearance + self.base.position.start.b,
-            max_isize: self.float.get_ref().containing_isize,
+            max_inline_size: self.float.get_ref().containing_inline_size,
             kind: self.float.get_ref().float_kind,
         };
 
@@ -1044,55 +1044,55 @@ impl BlockFlow {
         self.float.get_mut_ref().rel_pos = self.base.floats.last_float_pos().unwrap();
     }
 
-    /// Assign bsize for current flow.
+    /// Assign block-size for current flow.
     ///
     /// + Set in-flow child flows' y-coordinates now that we know their
-    /// bsizes. This _doesn't_ do any margin collapsing for its children.
-    /// + Calculate bsize and y-coordinate for the flow's box. Ideally, this
+    /// block-sizes. This _doesn't_ do any margin collapsing for its children.
+    /// + Calculate block-size and y-coordinate for the flow's box. Ideally, this
     /// should be calculated using CSS Section 10.6.7
     ///
-    /// It does not calculate the bsize of the flow itself.
-    pub fn assign_bsize_float(&mut self, ctx: &mut LayoutContext) {
+    /// It does not calculate the block-size of the flow itself.
+    pub fn assign_block_size_float(&mut self, ctx: &mut LayoutContext) {
         let mut floats = Floats::new(self.fragment.style.writing_mode);
         for kid in self.base.child_iter() {
             flow::mut_base(kid).floats = floats.clone();
-            kid.assign_bsize_for_inorder_child_if_necessary(ctx);
+            kid.assign_block_size_for_inorder_child_if_necessary(ctx);
             floats = flow::mut_base(kid).floats.clone();
         }
 
         // Floats establish a block formatting context, so we discard the output floats here.
         drop(floats);
 
-        let bstart_offset = self.fragment.margin.bstart + self.fragment.border_padding.bstart;
-        let mut cur_b = bstart_offset;
+        let block_start_offset = self.fragment.margin.block_start + self.fragment.border_padding.block_start;
+        let mut cur_b = block_start_offset;
 
-        // cur_b is now at the bstart content edge
+        // cur_b is now at the block-start content edge
 
         for kid in self.base.child_iter() {
             let child_base = flow::mut_base(kid);
             child_base.position.start.b = cur_b;
-            // cur_b is now at the bend margin edge of kid
-            cur_b = cur_b + child_base.position.size.bsize;
+            // cur_b is now at the block-end margin edge of kid
+            cur_b = cur_b + child_base.position.size.block;
         }
 
-        let content_bsize = cur_b - bstart_offset;
+        let content_block_size = cur_b - block_start_offset;
 
         // The associated fragment has the border box of this flow.
-        self.fragment.border_box.start.b = self.fragment.margin.bstart;
+        self.fragment.border_box.start.b = self.fragment.margin.block_start;
 
-        // Calculate content bsize, taking `min-bsize` and `max-bsize` into account.
-        let mut candidate_bsize_iterator = CandidateBSizeIterator::new(self.fragment.style(), None);
-        for (candidate_bsize, new_candidate_bsize) in candidate_bsize_iterator {
-            *new_candidate_bsize = match candidate_bsize {
-                Auto => content_bsize,
+        // Calculate content block-size, taking `min-block-size` and `max-block-size` into account.
+        let mut candidate_block_size_iterator = CandidateBSizeIterator::new(self.fragment.style(), None);
+        for (candidate_block_size, new_candidate_block_size) in candidate_block_size_iterator {
+            *new_candidate_block_size = match candidate_block_size {
+                Auto => content_block_size,
                 Specified(value) => value,
             }
         }
 
-        let content_bsize = candidate_bsize_iterator.candidate_value;
-        let noncontent_bsize = self.fragment.border_padding.bstart_end();
-        debug!("assign_bsize_float -- bsize: {}", content_bsize + noncontent_bsize);
-        self.fragment.border_box.size.bsize = content_bsize + noncontent_bsize;
+        let content_block_size = candidate_block_size_iterator.candidate_value;
+        let noncontent_block_size = self.fragment.border_padding.block_start_end();
+        debug!("assign_block_size_float -- block_size: {}", content_block_size + noncontent_block_size);
+        self.fragment.border_box.size.block = content_block_size + noncontent_block_size;
     }
 
     fn build_display_list_block_common(&mut self,
@@ -1166,91 +1166,91 @@ impl BlockFlow {
                                               DisplayList::new()).flatten(FloatStackingLevel)
     }
 
-    /// Calculate and set the bsize, offsets, etc. for absolutely positioned flow.
+    /// Calculate and set the block-size, offsets, etc. for absolutely positioned flow.
     ///
     /// The layout for its in-flow children has been done during normal layout.
     /// This is just the calculation of:
-    /// + bsize for the flow
+    /// + block-size for the flow
     /// + y-coordinate of the flow wrt its Containing Block.
-    /// + bsize, vertical margins, and y-coordinate for the flow's box.
-    fn calculate_abs_bsize_and_margins(&mut self, ctx: &LayoutContext) {
-        let containing_block_bsize = self.containing_block_size(ctx.screen_size).bsize;
+    /// + block-size, vertical margins, and y-coordinate for the flow's box.
+    fn calculate_abs_block_size_and_margins(&mut self, ctx: &LayoutContext) {
+        let containing_block_block_size = self.containing_block_size(ctx.screen_size).block;
         let static_b_offset = self.static_b_offset;
 
-        // This is the stored content bsize value from assign-bsize
-        let content_bsize = self.fragment.content_box().size.bsize;
+        // This is the stored content block-size value from assign-block-size
+        let content_block_size = self.fragment.content_box().size.block;
 
         let mut solution = None;
         {
-            // Non-auto margin-bstart and margin-bend values have already been
-            // calculated during assign-isize.
+            // Non-auto margin-block-start and margin-block-end values have already been
+            // calculated during assign-inline-size.
             let margin = self.fragment.style().logical_margin();
-            let margin_bstart = match margin.bstart {
+            let margin_block_start = match margin.block_start {
                 LPA_Auto => Auto,
-                _ => Specified(self.fragment.margin.bstart)
+                _ => Specified(self.fragment.margin.block_start)
             };
-            let margin_bend = match margin.bend {
+            let margin_block_end = match margin.block_end {
                 LPA_Auto => Auto,
-                _ => Specified(self.fragment.margin.bend)
+                _ => Specified(self.fragment.margin.block_end)
             };
 
-            let bstart;
-            let bend;
+            let block_start;
+            let block_end;
             {
                 let position = self.fragment.style().logical_position();
-                bstart = MaybeAuto::from_style(position.bstart, containing_block_bsize);
-                bend = MaybeAuto::from_style(position.bend, containing_block_bsize);
+                block_start = MaybeAuto::from_style(position.block_start, containing_block_block_size);
+                block_end = MaybeAuto::from_style(position.block_end, containing_block_block_size);
             }
 
-            let available_bsize = containing_block_bsize - self.fragment.border_padding.bstart_end();
+            let available_block_size = containing_block_block_size - self.fragment.border_padding.block_start_end();
             if self.is_replaced_content() {
-                // Calculate used value of bsize just like we do for inline replaced elements.
-                // TODO: Pass in the containing block bsize when Fragment's
-                // assign-bsize can handle it correctly.
-                self.fragment.assign_replaced_bsize_if_necessary();
-                // TODO: Right now, this content bsize value includes the
-                // margin because of erroneous bsize calculation in fragment.
+                // Calculate used value of block-size just like we do for inline replaced elements.
+                // TODO: Pass in the containing block block-size when Fragment's
+                // assign-block-size can handle it correctly.
+                self.fragment.assign_replaced_block_size_if_necessary();
+                // TODO: Right now, this content block-size value includes the
+                // margin because of erroneous block-size calculation in fragment.
                 // Check this when that has been fixed.
-                let bsize_used_val = self.fragment.border_box.size.bsize;
+                let block_size_used_val = self.fragment.border_box.size.block;
                 solution = Some(BSizeConstraintSolution::solve_vertical_constraints_abs_replaced(
-                        bsize_used_val,
-                        margin_bstart,
-                        margin_bend,
-                        bstart,
-                        bend,
-                        content_bsize,
-                        available_bsize,
+                        block_size_used_val,
+                        margin_block_start,
+                        margin_block_end,
+                        block_start,
+                        block_end,
+                        content_block_size,
+                        available_block_size,
                         static_b_offset));
             } else {
                 let style = self.fragment.style();
-                let mut candidate_bsize_iterator =
-                    CandidateBSizeIterator::new(style, Some(containing_block_bsize));
+                let mut candidate_block_size_iterator =
+                    CandidateBSizeIterator::new(style, Some(containing_block_block_size));
 
-                for (bsize_used_val, new_candidate_bsize) in candidate_bsize_iterator {
+                for (block_size_used_val, new_candidate_block_size) in candidate_block_size_iterator {
                     solution =
                         Some(BSizeConstraintSolution::solve_vertical_constraints_abs_nonreplaced(
-                            bsize_used_val,
-                            margin_bstart,
-                            margin_bend,
-                            bstart,
-                            bend,
-                            content_bsize,
-                            available_bsize,
+                            block_size_used_val,
+                            margin_block_start,
+                            margin_block_end,
+                            block_start,
+                            block_end,
+                            content_block_size,
+                            available_block_size,
                             static_b_offset));
 
-                    *new_candidate_bsize = solution.unwrap().bsize
+                    *new_candidate_block_size = solution.unwrap().block_size
                 }
             }
         }
 
         let solution = solution.unwrap();
-        self.fragment.margin.bstart = solution.margin_bstart;
-        self.fragment.margin.bend = solution.margin_bend;
+        self.fragment.margin.block_start = solution.margin_block_start;
+        self.fragment.margin.block_end = solution.margin_block_end;
         self.fragment.border_box.start.b = Au(0);
-        self.fragment.border_box.size.bsize = solution.bsize + self.fragment.border_padding.bstart_end();
+        self.fragment.border_box.size.block = solution.block_size + self.fragment.border_padding.block_start_end();
 
-        self.base.position.start.b = solution.bstart + self.fragment.margin.bstart;
-        self.base.position.size.bsize = solution.bsize + self.fragment.border_padding.bstart_end();
+        self.base.position.start.b = solution.block_start + self.fragment.margin.block_start;
+        self.base.position.size.block = solution.block_size + self.fragment.border_padding.block_start_end();
     }
 
     /// Add display items for Absolutely Positioned flow.
@@ -1273,8 +1273,8 @@ impl BlockFlow {
 
         // If we got here, then we need a new layer.
         let layer_rect = self.base.position.union(&self.base.overflow);
-        let size = Size2D(layer_rect.size.isize.to_nearest_px() as uint,
-                          layer_rect.size.bsize.to_nearest_px() as uint);
+        let size = Size2D(layer_rect.size.inline.to_nearest_px() as uint,
+                          layer_rect.size.block.to_nearest_px() as uint);
         let origin = Point2D(layer_rect.start.i.to_nearest_px() as uint,
                              layer_rect.start.b.to_nearest_px() as uint);
         let scroll_policy = if self.is_fixed() {
@@ -1293,53 +1293,53 @@ impl BlockFlow {
         self.base.layers.push_back(new_layer)
     }
 
-    /// Return the bstart outer edge of the hypothetical box for an absolute flow.
+    /// Return the block-start outer edge of the hypothetical box for an absolute flow.
     ///
     /// This is wrt its parent flow box.
     ///
-    /// During normal layout assign-bsize, the absolute flow's position is
+    /// During normal layout assign-block-size, the absolute flow's position is
     /// roughly set to its static position (the position it would have had in
     /// the normal flow).
-    fn get_hypothetical_bstart_edge(&self) -> Au {
+    fn get_hypothetical_block_start_edge(&self) -> Au {
         self.base.position.start.b
     }
 
-    /// Assigns the computed istart content edge and isize to all the children of this block flow.
+    /// Assigns the computed inline-start content edge and inline-size to all the children of this block flow.
     /// Also computes whether each child will be impacted by floats.
     ///
-    /// `#[inline(always)]` because this is called only from block or table isize assignment and
+    /// `#[inline(always)]` because this is called only from block or table inline-size assignment and
     /// the code for block layout is significantly simpler.
     #[inline(always)]
-    pub fn propagate_assigned_isize_to_children(&mut self,
-                                                istart_content_edge: Au,
-                                                content_isize: Au,
-                                                opt_col_isizes: Option<Vec<Au>>) {
+    pub fn propagate_assigned_inline_size_to_children(&mut self,
+                                                inline_start_content_edge: Au,
+                                                content_inline_size: Au,
+                                                opt_col_inline_sizes: Option<Vec<Au>>) {
         // Keep track of whether floats could impact each child.
-        let mut istart_floats_impact_child = self.base.flags.impacted_by_left_floats();
-        let mut iend_floats_impact_child = self.base.flags.impacted_by_right_floats();
+        let mut inline_start_floats_impact_child = self.base.flags.impacted_by_left_floats();
+        let mut inline_end_floats_impact_child = self.base.flags.impacted_by_right_floats();
 
         let absolute_static_i_offset = if self.is_positioned() {
-            // This flow is the containing block. The static X offset will be the istart padding
+            // This flow is the containing block. The static X offset will be the inline-start padding
             // edge.
-            self.fragment.border_padding.istart
-                - self.fragment.style().logical_border_width().istart
+            self.fragment.border_padding.inline_start
+                - self.fragment.style().logical_border_width().inline_start
         } else {
-            // For kids, the istart margin edge will be at our istart content edge. The current static
-            // offset is at our istart margin edge. So move in to the istart content edge.
-            self.base.absolute_static_i_offset + istart_content_edge
+            // For kids, the inline-start margin edge will be at our inline-start content edge. The current static
+            // offset is at our inline-start margin edge. So move in to the inline-start content edge.
+            self.base.absolute_static_i_offset + inline_start_content_edge
         };
 
-        let fixed_static_i_offset = self.base.fixed_static_i_offset + istart_content_edge;
+        let fixed_static_i_offset = self.base.fixed_static_i_offset + inline_start_content_edge;
         let flags = self.base.flags.clone();
 
         // This value is used only for table cells.
-        let mut istart_margin_edge = istart_content_edge;
+        let mut inline_start_margin_edge = inline_start_content_edge;
 
-        // The isize of the last float, if there was one. This is used for estimating the isizes of
-        // block formatting contexts. (We estimate that the isize of any block formatting context
-        // that we see will be based on the isize of the containing block as well as the last float
+        // The inline-size of the last float, if there was one. This is used for estimating the inline-sizes of
+        // block formatting contexts. (We estimate that the inline-size of any block formatting context
+        // that we see will be based on the inline-size of the containing block as well as the last float
         // seen before it.)
-        let mut last_float_isize = None;
+        let mut last_float_inline_size = None;
 
         for (i, kid) in self.base.child_iter().enumerate() {
             if kid.is_block_flow() {
@@ -1348,45 +1348,45 @@ impl BlockFlow {
                 kid_block.base.fixed_static_i_offset = fixed_static_i_offset;
 
                 if kid_block.is_float() {
-                    last_float_isize = Some(kid_block.base.intrinsic_isizes.preferred_isize)
+                    last_float_inline_size = Some(kid_block.base.intrinsic_inline_sizes.preferred_inline_size)
                 } else {
-                    kid_block.previous_float_isize = last_float_isize
+                    kid_block.previous_float_inline_size = last_float_inline_size
                 }
             }
 
-            // The istart margin edge of the child flow is at our istart content edge, and its isize
-            // is our content isize.
-            flow::mut_base(kid).position.start.i = istart_content_edge;
-            flow::mut_base(kid).position.size.isize = content_isize;
+            // The inline-start margin edge of the child flow is at our inline-start content edge, and its inline-size
+            // is our content inline-size.
+            flow::mut_base(kid).position.start.i = inline_start_content_edge;
+            flow::mut_base(kid).position.size.inline = content_inline_size;
 
             // Determine float impaction.
             match kid.float_clearance() {
                 clear::none => {}
-                clear::left => istart_floats_impact_child = false,
-                clear::right => iend_floats_impact_child = false,
+                clear::left => inline_start_floats_impact_child = false,
+                clear::right => inline_end_floats_impact_child = false,
                 clear::both => {
-                    istart_floats_impact_child = false;
-                    iend_floats_impact_child = false;
+                    inline_start_floats_impact_child = false;
+                    inline_end_floats_impact_child = false;
                 }
             }
             {
                 let kid_base = flow::mut_base(kid);
-                istart_floats_impact_child = istart_floats_impact_child ||
+                inline_start_floats_impact_child = inline_start_floats_impact_child ||
                     kid_base.flags.has_left_floated_descendants();
-                iend_floats_impact_child = iend_floats_impact_child ||
+                inline_end_floats_impact_child = inline_end_floats_impact_child ||
                     kid_base.flags.has_right_floated_descendants();
-                kid_base.flags.set_impacted_by_left_floats(istart_floats_impact_child);
-                kid_base.flags.set_impacted_by_right_floats(iend_floats_impact_child);
+                kid_base.flags.set_impacted_by_left_floats(inline_start_floats_impact_child);
+                kid_base.flags.set_impacted_by_right_floats(inline_end_floats_impact_child);
             }
 
             // Handle tables.
-            match opt_col_isizes {
-                Some(ref col_isizes) => {
-                    propagate_column_isizes_to_child(kid,
+            match opt_col_inline_sizes {
+                Some(ref col_inline_sizes) => {
+                    propagate_column_inline_sizes_to_child(kid,
                                                      i,
-                                                     content_isize,
-                                                     col_isizes.as_slice(),
-                                                     &mut istart_margin_edge)
+                                                     content_inline_size,
+                                                     col_inline_sizes.as_slice(),
+                                                     &mut inline_start_margin_edge)
                 }
                 None => {}
             }
@@ -1432,44 +1432,44 @@ impl Flow for BlockFlow {
         self.fragment.style().get_box().clear
     }
 
-    /// Pass 1 of reflow: computes minimum and preferred isizes.
+    /// Pass 1 of reflow: computes minimum and preferred inline-sizes.
     ///
-    /// Recursively (bottom-up) determine the flow's minimum and preferred isizes. When called on
-    /// this flow, all child flows have had their minimum and preferred isizes set. This function
-    /// must decide minimum/preferred isizes based on its children's isizes and the dimensions of
+    /// Recursively (bottom-up) determine the flow's minimum and preferred inline-sizes. When called on
+    /// this flow, all child flows have had their minimum and preferred inline-sizes set. This function
+    /// must decide minimum/preferred inline-sizes based on its children's inline-sizes and the dimensions of
     /// any fragments it is responsible for flowing.
     ///
     /// TODO(pcwalton): Inline blocks.
-    fn bubble_isizes(&mut self, _: &mut LayoutContext) {
+    fn bubble_inline_sizes(&mut self, _: &mut LayoutContext) {
         let mut flags = self.base.flags;
         flags.set_has_left_floated_descendants(false);
         flags.set_has_right_floated_descendants(false);
 
-        // Find the maximum isize from children.
-        let mut intrinsic_isizes = IntrinsicISizes::new();
+        // Find the maximum inline-size from children.
+        let mut intrinsic_inline_sizes = IntrinsicISizes::new();
         for child_ctx in self.base.child_iter() {
             assert!(child_ctx.is_block_flow() ||
                     child_ctx.is_inline_flow() ||
                     child_ctx.is_table_kind());
 
             let child_base = flow::mut_base(child_ctx);
-            intrinsic_isizes.minimum_isize =
-                geometry::max(intrinsic_isizes.minimum_isize,
-                              child_base.intrinsic_isizes.total_minimum_isize());
-            intrinsic_isizes.preferred_isize =
-                geometry::max(intrinsic_isizes.preferred_isize,
-                              child_base.intrinsic_isizes.total_preferred_isize());
+            intrinsic_inline_sizes.minimum_inline_size =
+                geometry::max(intrinsic_inline_sizes.minimum_inline_size,
+                              child_base.intrinsic_inline_sizes.total_minimum_inline_size());
+            intrinsic_inline_sizes.preferred_inline_size =
+                geometry::max(intrinsic_inline_sizes.preferred_inline_size,
+                              child_base.intrinsic_inline_sizes.total_preferred_inline_size());
 
             flags.union_floated_descendants_flags(child_base.flags);
         }
 
-        let fragment_intrinsic_isizes = self.fragment.intrinsic_isizes(None);
-        intrinsic_isizes.minimum_isize = geometry::max(intrinsic_isizes.minimum_isize,
-                                                       fragment_intrinsic_isizes.minimum_isize);
-        intrinsic_isizes.preferred_isize = geometry::max(intrinsic_isizes.preferred_isize,
-                                                         fragment_intrinsic_isizes.preferred_isize);
-        intrinsic_isizes.surround_isize = fragment_intrinsic_isizes.surround_isize;
-        self.base.intrinsic_isizes = intrinsic_isizes;
+        let fragment_intrinsic_inline_sizes = self.fragment.intrinsic_inline_sizes(None);
+        intrinsic_inline_sizes.minimum_inline_size = geometry::max(intrinsic_inline_sizes.minimum_inline_size,
+                                                       fragment_intrinsic_inline_sizes.minimum_inline_size);
+        intrinsic_inline_sizes.preferred_inline_size = geometry::max(intrinsic_inline_sizes.preferred_inline_size,
+                                                         fragment_intrinsic_inline_sizes.preferred_inline_size);
+        intrinsic_inline_sizes.surround_inline_size = fragment_intrinsic_inline_sizes.surround_inline_size;
+        self.base.intrinsic_inline_sizes = intrinsic_inline_sizes;
 
         match self.fragment.style().get_box().float {
             float::none => {}
@@ -1479,13 +1479,13 @@ impl Flow for BlockFlow {
         self.base.flags = flags
     }
 
-    /// Recursively (top-down) determines the actual isize of child contexts and fragments. When
-    /// called on this context, the context has had its isize set by the parent context.
+    /// Recursively (top-down) determines the actual inline-size of child contexts and fragments. When
+    /// called on this context, the context has had its inline-size set by the parent context.
     ///
-    /// Dual fragments consume some isize first, and the remainder is assigned to all child (block)
+    /// Dual fragments consume some inline-size first, and the remainder is assigned to all child (block)
     /// contexts.
-    fn assign_isizes(&mut self, layout_context: &mut LayoutContext) {
-        debug!("assign_isizes({}): assigning isize for flow",
+    fn assign_inline_sizes(&mut self, layout_context: &mut LayoutContext) {
+        debug!("assign_inline_sizes({}): assigning inline_size for flow",
                if self.is_float() {
                    "float"
                } else {
@@ -1495,8 +1495,8 @@ impl Flow for BlockFlow {
         if self.is_root() {
             debug!("Setting root position");
             self.base.position.start = LogicalPoint::zero(self.base.writing_mode);
-            self.base.position.size.isize = LogicalSize::from_physical(
-                self.base.writing_mode, layout_context.screen_size).isize;
+            self.base.position.size.inline = LogicalSize::from_physical(
+                self.base.writing_mode, layout_context.screen_size).inline;
             self.base.floats = Floats::new(self.base.writing_mode);
 
             // The root element is never impacted by floats.
@@ -1504,12 +1504,12 @@ impl Flow for BlockFlow {
             self.base.flags.set_impacted_by_right_floats(false);
         }
 
-        // Our isize was set to the isize of the containing block by the flow's parent. Now compute
+        // Our inline-size was set to the inline-size of the containing block by the flow's parent. Now compute
         // the real value.
-        let containing_block_isize = self.base.position.size.isize;
-        self.compute_used_isize(layout_context, containing_block_isize);
+        let containing_block_inline_size = self.base.position.size.inline;
+        self.compute_used_inline_size(layout_context, containing_block_inline_size);
         if self.is_float() {
-            self.float.get_mut_ref().containing_isize = containing_block_isize;
+            self.float.get_mut_ref().containing_inline_size = containing_block_inline_size;
         }
 
         // Formatting contexts are never impacted by floats.
@@ -1519,14 +1519,14 @@ impl Flow for BlockFlow {
                 self.base.flags.set_impacted_by_left_floats(false);
                 self.base.flags.set_impacted_by_right_floats(false);
 
-                // We can't actually compute the isize of this block now, because floats might
-                // affect it. Speculate that its isize is equal to the isize computed above minus
-                // the isize of the previous float.
-                match self.previous_float_isize {
+                // We can't actually compute the inline-size of this block now, because floats might
+                // affect it. Speculate that its inline-size is equal to the inline-size computed above minus
+                // the inline-size of the previous float.
+                match self.previous_float_inline_size {
                     None => {}
-                    Some(previous_float_isize) => {
-                        self.fragment.border_box.size.isize =
-                            self.fragment.border_box.size.isize - previous_float_isize
+                    Some(previous_float_inline_size) => {
+                        self.fragment.border_box.size.inline =
+                            self.fragment.border_box.size.inline - previous_float_inline_size
                     }
                 }
             }
@@ -1536,25 +1536,25 @@ impl Flow for BlockFlow {
             }
         }
 
-        // Move in from the istart border edge
-        let istart_content_edge = self.fragment.border_box.start.i + self.fragment.border_padding.istart;
-        let padding_and_borders = self.fragment.border_padding.istart_end();
-        let content_isize = self.fragment.border_box.size.isize - padding_and_borders;
+        // Move in from the inline-start border edge
+        let inline_start_content_edge = self.fragment.border_box.start.i + self.fragment.border_padding.inline_start;
+        let padding_and_borders = self.fragment.border_padding.inline_start_end();
+        let content_inline_size = self.fragment.border_box.size.inline - padding_and_borders;
 
         if self.is_float() {
-            self.base.position.size.isize = content_isize;
+            self.base.position.size.inline = content_inline_size;
         }
 
-        self.propagate_assigned_isize_to_children(istart_content_edge, content_isize, None);
+        self.propagate_assigned_inline_size_to_children(inline_start_content_edge, content_inline_size, None);
     }
 
-    /// Assigns bsizes in-order; or, if this is a float, places the float. The default
-    /// implementation simply assigns bsizes if this flow is impacted by floats. Returns true if
+    /// Assigns block-sizes in-order; or, if this is a float, places the float. The default
+    /// implementation simply assigns block-sizes if this flow is impacted by floats. Returns true if
     /// this child was impacted by floats or false otherwise.
     ///
-    /// This is called on child flows by the parent. Hence, we can assume that `assign_bsize` has
+    /// This is called on child flows by the parent. Hence, we can assume that `assign_block-size` has
     /// already been called on the child (because of the bottom-up traversal).
-    fn assign_bsize_for_inorder_child_if_necessary(&mut self, layout_context: &mut LayoutContext)
+    fn assign_block_size_for_inorder_child_if_necessary(&mut self, layout_context: &mut LayoutContext)
                                                     -> bool {
         if self.is_float() {
             self.place_float();
@@ -1563,21 +1563,21 @@ impl Flow for BlockFlow {
 
         let impacted = self.base.flags.impacted_by_floats();
         if impacted {
-            self.assign_bsize(layout_context);
+            self.assign_block_size(layout_context);
         }
         impacted
     }
 
-    fn assign_bsize(&mut self, ctx: &mut LayoutContext) {
-        // Assign bsize for fragment if it is an image fragment.
-        self.fragment.assign_replaced_bsize_if_necessary();
+    fn assign_block_size(&mut self, ctx: &mut LayoutContext) {
+        // Assign block-size for fragment if it is an image fragment.
+        self.fragment.assign_replaced_block_size_if_necessary();
 
         if self.is_float() {
-            debug!("assign_bsize_float: assigning bsize for float");
-            self.assign_bsize_float(ctx);
+            debug!("assign_block_size_float: assigning block_size for float");
+            self.assign_block_size_float(ctx);
         } else {
-            debug!("assign_bsize: assigning bsize for block");
-            self.assign_bsize_block_base(ctx, MarginsMayCollapse);
+            debug!("assign_block_size: assigning block_size for block");
+            self.assign_block_size_block_base(ctx, MarginsMayCollapse);
         }
     }
 
@@ -1709,70 +1709,70 @@ impl fmt::Show for BlockFlow {
     }
 }
 
-/// The inputs for the isizes-and-margins constraint equation.
+/// The inputs for the inline-sizes-and-margins constraint equation.
 pub struct ISizeConstraintInput {
-    pub computed_isize: MaybeAuto,
-    pub istart_margin: MaybeAuto,
-    pub iend_margin: MaybeAuto,
-    pub istart: MaybeAuto,
-    pub iend: MaybeAuto,
-    pub available_isize: Au,
+    pub computed_inline_size: MaybeAuto,
+    pub inline_start_margin: MaybeAuto,
+    pub inline_end_margin: MaybeAuto,
+    pub inline_start: MaybeAuto,
+    pub inline_end: MaybeAuto,
+    pub available_inline_size: Au,
     pub static_i_offset: Au,
 }
 
 impl ISizeConstraintInput {
-    pub fn new(computed_isize: MaybeAuto,
-               istart_margin: MaybeAuto,
-               iend_margin: MaybeAuto,
-               istart: MaybeAuto,
-               iend: MaybeAuto,
-               available_isize: Au,
+    pub fn new(computed_inline_size: MaybeAuto,
+               inline_start_margin: MaybeAuto,
+               inline_end_margin: MaybeAuto,
+               inline_start: MaybeAuto,
+               inline_end: MaybeAuto,
+               available_inline_size: Au,
                static_i_offset: Au)
            -> ISizeConstraintInput {
         ISizeConstraintInput {
-            computed_isize: computed_isize,
-            istart_margin: istart_margin,
-            iend_margin: iend_margin,
-            istart: istart,
-            iend: iend,
-            available_isize: available_isize,
+            computed_inline_size: computed_inline_size,
+            inline_start_margin: inline_start_margin,
+            inline_end_margin: inline_end_margin,
+            inline_start: inline_start,
+            inline_end: inline_end,
+            available_inline_size: available_inline_size,
             static_i_offset: static_i_offset,
         }
     }
 }
 
-/// The solutions for the isizes-and-margins constraint equation.
+/// The solutions for the inline-size-and-margins constraint equation.
 pub struct ISizeConstraintSolution {
-    pub istart: Au,
-    pub iend: Au,
-    pub isize: Au,
-    pub margin_istart: Au,
-    pub margin_iend: Au
+    pub inline_start: Au,
+    pub inline_end: Au,
+    pub inline_size: Au,
+    pub margin_inline_start: Au,
+    pub margin_inline_end: Au
 }
 
 impl ISizeConstraintSolution {
-    pub fn new(isize: Au, margin_istart: Au, margin_iend: Au) -> ISizeConstraintSolution {
+    pub fn new(inline_size: Au, margin_inline_start: Au, margin_inline_end: Au) -> ISizeConstraintSolution {
         ISizeConstraintSolution {
-            istart: Au(0),
-            iend: Au(0),
-            isize: isize,
-            margin_istart: margin_istart,
-            margin_iend: margin_iend,
+            inline_start: Au(0),
+            inline_end: Au(0),
+            inline_size: inline_size,
+            margin_inline_start: margin_inline_start,
+            margin_inline_end: margin_inline_end,
         }
     }
 
-    fn for_absolute_flow(istart: Au,
-                         iend: Au,
-                         isize: Au,
-                         margin_istart: Au,
-                         margin_iend: Au)
+    fn for_absolute_flow(inline_start: Au,
+                         inline_end: Au,
+                         inline_size: Au,
+                         margin_inline_start: Au,
+                         margin_inline_end: Au)
                          -> ISizeConstraintSolution {
         ISizeConstraintSolution {
-            istart: istart,
-            iend: iend,
-            isize: isize,
-            margin_istart: margin_istart,
-            margin_iend: margin_iend,
+            inline_start: inline_start,
+            inline_end: inline_end,
+            inline_size: inline_size,
+            margin_inline_start: margin_inline_start,
+            margin_inline_end: margin_inline_end,
         }
     }
 }
@@ -1784,17 +1784,17 @@ pub trait ISizeAndMarginsComputer {
     /// Compute the inputs for the ISize constraint equation.
     ///
     /// This is called only once to compute the initial inputs. For
-    /// calculation involving min-isize and max-isize, we don't need to
+    /// calculation involving min-inline-size and max-inline-size, we don't need to
     /// recompute these.
-    fn compute_isize_constraint_inputs(&self,
+    fn compute_inline_size_constraint_inputs(&self,
                                        block: &mut BlockFlow,
-                                       parent_flow_isize: Au,
+                                       parent_flow_inline_size: Au,
                                        ctx: &mut LayoutContext)
                                        -> ISizeConstraintInput {
-        let containing_block_isize = self.containing_block_isize(block, parent_flow_isize, ctx);
-        let computed_isize = self.initial_computed_isize(block, parent_flow_isize, ctx);
+        let containing_block_inline_size = self.containing_block_inline_size(block, parent_flow_inline_size, ctx);
+        let computed_inline_size = self.initial_computed_inline_size(block, parent_flow_inline_size, ctx);
 
-        block.fragment.compute_border_padding_margins(containing_block_isize, None);
+        block.fragment.compute_border_padding_margins(containing_block_inline_size, None);
 
         let style = block.fragment.style();
 
@@ -1804,180 +1804,180 @@ pub trait ISizeAndMarginsComputer {
         let margin = style.logical_margin();
         let position = style.logical_position();
 
-        let available_isize = containing_block_isize - block.fragment.border_padding.istart_end();
+        let available_inline_size = containing_block_inline_size - block.fragment.border_padding.inline_start_end();
         return ISizeConstraintInput::new(
-            computed_isize,
-            MaybeAuto::from_style(margin.istart, containing_block_isize),
-            MaybeAuto::from_style(margin.iend, containing_block_isize),
-            MaybeAuto::from_style(position.istart, containing_block_isize),
-            MaybeAuto::from_style(position.iend, containing_block_isize),
-            available_isize,
+            computed_inline_size,
+            MaybeAuto::from_style(margin.inline_start, containing_block_inline_size),
+            MaybeAuto::from_style(margin.inline_end, containing_block_inline_size),
+            MaybeAuto::from_style(position.inline_start, containing_block_inline_size),
+            MaybeAuto::from_style(position.inline_end, containing_block_inline_size),
+            available_inline_size,
             block.static_i_offset());
     }
 
-    /// Set the used values for isize and margins got from the relevant constraint equation.
+    /// Set the used values for inline-size and margins got from the relevant constraint equation.
     ///
     /// This is called only once.
     ///
     /// Set:
-    /// + used values for content isize, istart margin, and iend margin for this flow's box.
+    /// + used values for content inline-size, inline-start margin, and inline-end margin for this flow's box.
     /// + x-coordinate of this flow's box.
     /// + x-coordinate of the flow wrt its Containing Block (if this is an absolute flow).
-    fn set_isize_constraint_solutions(&self,
+    fn set_inline_size_constraint_solutions(&self,
                                       block: &mut BlockFlow,
                                       solution: ISizeConstraintSolution) {
-        let isize;
+        let inline_size;
         {
             let fragment = block.fragment();
-            fragment.margin.istart = solution.margin_istart;
-            fragment.margin.iend = solution.margin_iend;
+            fragment.margin.inline_start = solution.margin_inline_start;
+            fragment.margin.inline_end = solution.margin_inline_end;
 
             // The associated fragment has the border box of this flow.
             // Left border edge.
-            fragment.border_box.start.i = fragment.margin.istart;
-            // Border box isize.
-            isize = solution.isize + fragment.border_padding.istart_end();
-            fragment.border_box.size.isize = isize;
+            fragment.border_box.start.i = fragment.margin.inline_start;
+            // Border box inline-size.
+            inline_size = solution.inline_size + fragment.border_padding.inline_start_end();
+            fragment.border_box.size.inline = inline_size;
         }
 
         // We also resize the block itself, to ensure that overflow is not calculated
-        // as the isize of our parent. We might be smaller and we might be larger if we
+        // as the inline-size of our parent. We might be smaller and we might be larger if we
         // overflow.
         let flow = flow::mut_base(block);
-        flow.position.size.isize = isize;
+        flow.position.size.inline = inline_size;
     }
 
     /// Set the x coordinate of the given flow if it is absolutely positioned.
     fn set_flow_x_coord_if_necessary(&self, _: &mut BlockFlow, _: ISizeConstraintSolution) {}
 
-    /// Solve the isize and margins constraints for this block flow.
-    fn solve_isize_constraints(&self,
+    /// Solve the inline-size and margins constraints for this block flow.
+    fn solve_inline_size_constraints(&self,
                                block: &mut BlockFlow,
                                input: &ISizeConstraintInput)
                                -> ISizeConstraintSolution;
 
-    fn initial_computed_isize(&self,
+    fn initial_computed_inline_size(&self,
                               block: &mut BlockFlow,
-                              parent_flow_isize: Au,
+                              parent_flow_inline_size: Au,
                               ctx: &mut LayoutContext)
                               -> MaybeAuto {
-        MaybeAuto::from_style(block.fragment().style().content_isize(),
-                              self.containing_block_isize(block, parent_flow_isize, ctx))
+        MaybeAuto::from_style(block.fragment().style().content_inline_size(),
+                              self.containing_block_inline_size(block, parent_flow_inline_size, ctx))
     }
 
-    fn containing_block_isize(&self,
+    fn containing_block_inline_size(&self,
                               _: &mut BlockFlow,
-                              parent_flow_isize: Au,
+                              parent_flow_inline_size: Au,
                               _: &mut LayoutContext)
                               -> Au {
-        parent_flow_isize
+        parent_flow_inline_size
     }
 
-    /// Compute the used value of isize, taking care of min-isize and max-isize.
+    /// Compute the used value of inline-size, taking care of min-inline-size and max-inline-size.
     ///
-    /// CSS Section 10.4: Minimum and Maximum isizes
-    fn compute_used_isize(&self,
+    /// CSS Section 10.4: Minimum and Maximum inline-sizes
+    fn compute_used_inline_size(&self,
                           block: &mut BlockFlow,
                           ctx: &mut LayoutContext,
-                          parent_flow_isize: Au) {
-        let mut input = self.compute_isize_constraint_inputs(block, parent_flow_isize, ctx);
+                          parent_flow_inline_size: Au) {
+        let mut input = self.compute_inline_size_constraint_inputs(block, parent_flow_inline_size, ctx);
 
-        let containing_block_isize = self.containing_block_isize(block, parent_flow_isize, ctx);
+        let containing_block_inline_size = self.containing_block_inline_size(block, parent_flow_inline_size, ctx);
 
-        let mut solution = self.solve_isize_constraints(block, &input);
+        let mut solution = self.solve_inline_size_constraints(block, &input);
 
-        // If the tentative used isize is greater than 'max-isize', isize should be recalculated,
-        // but this time using the computed value of 'max-isize' as the computed value for 'isize'.
-        match specified_or_none(block.fragment().style().max_isize(), containing_block_isize) {
-            Some(max_isize) if max_isize < solution.isize => {
-                input.computed_isize = Specified(max_isize);
-                solution = self.solve_isize_constraints(block, &input);
+        // If the tentative used inline-size is greater than 'max-inline-size', inline-size should be recalculated,
+        // but this time using the computed value of 'max-inline-size' as the computed value for 'inline-size'.
+        match specified_or_none(block.fragment().style().max_inline_size(), containing_block_inline_size) {
+            Some(max_inline_size) if max_inline_size < solution.inline_size => {
+                input.computed_inline_size = Specified(max_inline_size);
+                solution = self.solve_inline_size_constraints(block, &input);
             }
             _ => {}
         }
 
-        // If the resulting isize is smaller than 'min-isize', isize should be recalculated,
-        // but this time using the value of 'min-isize' as the computed value for 'isize'.
-        let computed_min_isize = specified(block.fragment().style().min_isize(),
-                                           containing_block_isize);
-        if computed_min_isize > solution.isize {
-            input.computed_isize = Specified(computed_min_isize);
-            solution = self.solve_isize_constraints(block, &input);
+        // If the resulting inline-size is smaller than 'min-inline-size', inline-size should be recalculated,
+        // but this time using the value of 'min-inline-size' as the computed value for 'inline-size'.
+        let computed_min_inline_size = specified(block.fragment().style().min_inline_size(),
+                                           containing_block_inline_size);
+        if computed_min_inline_size > solution.inline_size {
+            input.computed_inline_size = Specified(computed_min_inline_size);
+            solution = self.solve_inline_size_constraints(block, &input);
         }
 
-        self.set_isize_constraint_solutions(block, solution);
+        self.set_inline_size_constraint_solutions(block, solution);
         self.set_flow_x_coord_if_necessary(block, solution);
     }
 
-    /// Computes istart and iend margins and isize.
+    /// Computes inline-start and inline-end margins and inline-size.
     ///
     /// This is used by both replaced and non-replaced Blocks.
     ///
     /// CSS 2.1 Section 10.3.3.
-    /// Constraint Equation: margin-istart + margin-iend + isize = available_isize
-    /// where available_isize = CB isize - (horizontal border + padding)
-    fn solve_block_isize_constraints(&self,
+    /// Constraint Equation: margin-inline-start + margin-inline-end + inline-size = available_inline-size
+    /// where available_inline-size = CB inline-size - (horizontal border + padding)
+    fn solve_block_inline_size_constraints(&self,
                                      _: &mut BlockFlow,
                                      input: &ISizeConstraintInput)
                                      -> ISizeConstraintSolution {
-        let (computed_isize, istart_margin, iend_margin, available_isize) = (input.computed_isize,
-                                                                            input.istart_margin,
-                                                                            input.iend_margin,
-                                                                            input.available_isize);
+        let (computed_inline_size, inline_start_margin, inline_end_margin, available_inline_size) = (input.computed_inline_size,
+                                                                            input.inline_start_margin,
+                                                                            input.inline_end_margin,
+                                                                            input.available_inline_size);
 
-        // If isize is not 'auto', and isize + margins > available_isize, all
+        // If inline-size is not 'auto', and inline-size + margins > available_inline-size, all
         // 'auto' margins are treated as 0.
-        let (istart_margin, iend_margin) = match computed_isize {
-            Auto => (istart_margin, iend_margin),
-            Specified(isize) => {
-                let istart = istart_margin.specified_or_zero();
-                let iend = iend_margin.specified_or_zero();
+        let (inline_start_margin, inline_end_margin) = match computed_inline_size {
+            Auto => (inline_start_margin, inline_end_margin),
+            Specified(inline_size) => {
+                let inline_start = inline_start_margin.specified_or_zero();
+                let inline_end = inline_end_margin.specified_or_zero();
 
-                if (istart + iend + isize) > available_isize {
-                    (Specified(istart), Specified(iend))
+                if (inline_start + inline_end + inline_size) > available_inline_size {
+                    (Specified(inline_start), Specified(inline_end))
                 } else {
-                    (istart_margin, iend_margin)
+                    (inline_start_margin, inline_end_margin)
                 }
             }
         };
 
-        // Invariant: istart_margin + isize + iend_margin == available_isize
-        let (istart_margin, isize, iend_margin) = match (istart_margin, computed_isize, iend_margin) {
+        // Invariant: inline-start_margin + inline-size + inline-end_margin == available_inline-size
+        let (inline_start_margin, inline_size, inline_end_margin) = match (inline_start_margin, computed_inline_size, inline_end_margin) {
             // If all have a computed value other than 'auto', the system is
             // over-constrained so we discard the end margin.
-            (Specified(margin_start), Specified(isize), Specified(_margin_end)) =>
-                (margin_start, isize, available_isize - (margin_start + isize)),
+            (Specified(margin_start), Specified(inline_size), Specified(_margin_end)) =>
+                (margin_start, inline_size, available_inline_size - (margin_start + inline_size)),
 
             // If exactly one value is 'auto', solve for it
-            (Auto, Specified(isize), Specified(margin_end)) =>
-                (available_isize - (isize + margin_end), isize, margin_end),
+            (Auto, Specified(inline_size), Specified(margin_end)) =>
+                (available_inline_size - (inline_size + margin_end), inline_size, margin_end),
             (Specified(margin_start), Auto, Specified(margin_end)) =>
-                (margin_start, available_isize - (margin_start + margin_end), margin_end),
-            (Specified(margin_start), Specified(isize), Auto) =>
-                (margin_start, isize, available_isize - (margin_start + isize)),
+                (margin_start, available_inline_size - (margin_start + margin_end), margin_end),
+            (Specified(margin_start), Specified(inline_size), Auto) =>
+                (margin_start, inline_size, available_inline_size - (margin_start + inline_size)),
 
-            // If isize is set to 'auto', any other 'auto' value becomes '0',
-            // and isize is solved for
+            // If inline-size is set to 'auto', any other 'auto' value becomes '0',
+            // and inline-size is solved for
             (Auto, Auto, Specified(margin_end)) =>
-                (Au::new(0), available_isize - margin_end, margin_end),
+                (Au::new(0), available_inline_size - margin_end, margin_end),
             (Specified(margin_start), Auto, Auto) =>
-                (margin_start, available_isize - margin_start, Au::new(0)),
+                (margin_start, available_inline_size - margin_start, Au::new(0)),
             (Auto, Auto, Auto) =>
-                (Au::new(0), available_isize, Au::new(0)),
+                (Au::new(0), available_inline_size, Au::new(0)),
 
-            // If istart and iend margins are auto, they become equal
-            (Auto, Specified(isize), Auto) => {
-                let margin = (available_isize - isize).scale_by(0.5);
-                (margin, isize, margin)
+            // If inline-start and inline-end margins are auto, they become equal
+            (Auto, Specified(inline_size), Auto) => {
+                let margin = (available_inline_size - inline_size).scale_by(0.5);
+                (margin, inline_size, margin)
             }
         };
-        ISizeConstraintSolution::new(isize, istart_margin, iend_margin)
+        ISizeConstraintSolution::new(inline_size, inline_start_margin, inline_end_margin)
     }
 }
 
 /// The different types of Blocks.
 ///
-/// They mainly differ in the way isize and bsizes and margins are calculated
+/// They mainly differ in the way inline-size and block-sizes and margins are calculated
 /// for them.
 struct AbsoluteNonReplaced;
 struct AbsoluteReplaced;
@@ -1991,22 +1991,22 @@ impl ISizeAndMarginsComputer for AbsoluteNonReplaced {
     ///
     /// CSS Section 10.3.7
     /// Constraint equation:
-    /// istart + iend + isize + margin-istart + margin-iend
-    /// = absolute containing block isize - (horizontal padding and border)
-    /// [aka available_isize]
+    /// inline-start + inline-end + inline-size + margin-inline-start + margin-inline-end
+    /// = absolute containing block inline-size - (horizontal padding and border)
+    /// [aka available_inline-size]
     ///
     /// Return the solution for the equation.
-    fn solve_isize_constraints(&self,
+    fn solve_inline_size_constraints(&self,
                                block: &mut BlockFlow,
                                input: &ISizeConstraintInput)
                                -> ISizeConstraintSolution {
         let &ISizeConstraintInput {
-            computed_isize,
-            istart_margin,
-            iend_margin,
-            istart,
-            iend,
-            available_isize,
+            computed_inline_size,
+            inline_start_margin,
+            inline_end_margin,
+            inline_start,
+            inline_end,
+            available_inline_size,
             static_i_offset,
             ..
         } = input;
@@ -2015,122 +2015,122 @@ impl ISizeAndMarginsComputer for AbsoluteNonReplaced {
         // when right-to-left is implemented.
         // Assume direction is 'ltr' for now
 
-        // Distance from the istart edge of the Absolute Containing Block to the
-        // istart margin edge of a hypothetical box that would have been the
+        // Distance from the inline-start edge of the Absolute Containing Block to the
+        // inline-start margin edge of a hypothetical box that would have been the
         // first box of the element.
-        let static_position_istart = static_i_offset;
+        let static_position_inline_start = static_i_offset;
 
-        let (istart, iend, isize, margin_istart, margin_iend) = match (istart, iend, computed_isize) {
+        let (inline_start, inline_end, inline_size, margin_inline_start, margin_inline_end) = match (inline_start, inline_end, computed_inline_size) {
             (Auto, Auto, Auto) => {
-                let margin_start = istart_margin.specified_or_zero();
-                let margin_end = iend_margin.specified_or_zero();
-                let istart = static_position_istart;
-                // Now it is the same situation as istart Specified and iend
-                // and isize Auto.
+                let margin_start = inline_start_margin.specified_or_zero();
+                let margin_end = inline_end_margin.specified_or_zero();
+                let inline_start = static_position_inline_start;
+                // Now it is the same situation as inline-start Specified and inline-end
+                // and inline-size Auto.
 
-                // Set iend to zero to calculate isize
-                let isize = block.get_shrink_to_fit_isize(
-                    available_isize - (istart + margin_start + margin_end));
-                let sum = istart + isize + margin_start + margin_end;
-                (istart, available_isize - sum, isize, margin_start, margin_end)
+                // Set inline-end to zero to calculate inline-size
+                let inline_size = block.get_shrink_to_fit_inline_size(
+                    available_inline_size - (inline_start + margin_start + margin_end));
+                let sum = inline_start + inline_size + margin_start + margin_end;
+                (inline_start, available_inline_size - sum, inline_size, margin_start, margin_end)
             }
-            (Specified(istart), Specified(iend), Specified(isize)) => {
-                match (istart_margin, iend_margin) {
+            (Specified(inline_start), Specified(inline_end), Specified(inline_size)) => {
+                match (inline_start_margin, inline_end_margin) {
                     (Auto, Auto) => {
-                        let total_margin_val = available_isize - istart - iend - isize;
+                        let total_margin_val = available_inline_size - inline_start - inline_end - inline_size;
                         if total_margin_val < Au(0) {
-                            // margin-istart becomes 0 because direction is 'ltr'.
+                            // margin-inline-start becomes 0 because direction is 'ltr'.
                             // TODO: Handle 'rtl' when it is implemented.
-                            (istart, iend, isize, Au(0), total_margin_val)
+                            (inline_start, inline_end, inline_size, Au(0), total_margin_val)
                         } else {
                             // Equal margins
-                            (istart, iend, isize,
+                            (inline_start, inline_end, inline_size,
                              total_margin_val.scale_by(0.5),
                              total_margin_val.scale_by(0.5))
                         }
                     }
                     (Specified(margin_start), Auto) => {
-                        let sum = istart + iend + isize + margin_start;
-                        (istart, iend, isize, margin_start, available_isize - sum)
+                        let sum = inline_start + inline_end + inline_size + margin_start;
+                        (inline_start, inline_end, inline_size, margin_start, available_inline_size - sum)
                     }
                     (Auto, Specified(margin_end)) => {
-                        let sum = istart + iend + isize + margin_end;
-                        (istart, iend, isize, available_isize - sum, margin_end)
+                        let sum = inline_start + inline_end + inline_size + margin_end;
+                        (inline_start, inline_end, inline_size, available_inline_size - sum, margin_end)
                     }
                     (Specified(margin_start), Specified(margin_end)) => {
                         // Values are over-constrained.
-                        // Ignore value for 'iend' cos direction is 'ltr'.
+                        // Ignore value for 'inline-end' cos direction is 'ltr'.
                         // TODO: Handle 'rtl' when it is implemented.
-                        let sum = istart + isize + margin_start + margin_end;
-                        (istart, available_isize - sum, isize, margin_start, margin_end)
+                        let sum = inline_start + inline_size + margin_start + margin_end;
+                        (inline_start, available_inline_size - sum, inline_size, margin_start, margin_end)
                     }
                 }
             }
             // For the rest of the cases, auto values for margin are set to 0
 
             // If only one is Auto, solve for it
-            (Auto, Specified(iend), Specified(isize)) => {
-                let margin_start = istart_margin.specified_or_zero();
-                let margin_end = iend_margin.specified_or_zero();
-                let sum = iend + isize + margin_start + margin_end;
-                (available_isize - sum, iend, isize, margin_start, margin_end)
+            (Auto, Specified(inline_end), Specified(inline_size)) => {
+                let margin_start = inline_start_margin.specified_or_zero();
+                let margin_end = inline_end_margin.specified_or_zero();
+                let sum = inline_end + inline_size + margin_start + margin_end;
+                (available_inline_size - sum, inline_end, inline_size, margin_start, margin_end)
             }
-            (Specified(istart), Auto, Specified(isize)) => {
-                let margin_start = istart_margin.specified_or_zero();
-                let margin_end = iend_margin.specified_or_zero();
-                let sum = istart + isize + margin_start + margin_end;
-                (istart, available_isize - sum, isize, margin_start, margin_end)
+            (Specified(inline_start), Auto, Specified(inline_size)) => {
+                let margin_start = inline_start_margin.specified_or_zero();
+                let margin_end = inline_end_margin.specified_or_zero();
+                let sum = inline_start + inline_size + margin_start + margin_end;
+                (inline_start, available_inline_size - sum, inline_size, margin_start, margin_end)
             }
-            (Specified(istart), Specified(iend), Auto) => {
-                let margin_start = istart_margin.specified_or_zero();
-                let margin_end = iend_margin.specified_or_zero();
-                let sum = istart + iend + margin_start + margin_end;
-                (istart, iend, available_isize - sum, margin_start, margin_end)
+            (Specified(inline_start), Specified(inline_end), Auto) => {
+                let margin_start = inline_start_margin.specified_or_zero();
+                let margin_end = inline_end_margin.specified_or_zero();
+                let sum = inline_start + inline_end + margin_start + margin_end;
+                (inline_start, inline_end, available_inline_size - sum, margin_start, margin_end)
             }
 
-            // If isize is auto, then isize is shrink-to-fit. Solve for the
+            // If inline-size is auto, then inline-size is shrink-to-fit. Solve for the
             // non-auto value.
-            (Specified(istart), Auto, Auto) => {
-                let margin_start = istart_margin.specified_or_zero();
-                let margin_end = iend_margin.specified_or_zero();
-                // Set iend to zero to calculate isize
-                let isize = block.get_shrink_to_fit_isize(
-                    available_isize - (istart + margin_start + margin_end));
-                let sum = istart + isize + margin_start + margin_end;
-                (istart, available_isize - sum, isize, margin_start, margin_end)
+            (Specified(inline_start), Auto, Auto) => {
+                let margin_start = inline_start_margin.specified_or_zero();
+                let margin_end = inline_end_margin.specified_or_zero();
+                // Set inline-end to zero to calculate inline-size
+                let inline_size = block.get_shrink_to_fit_inline_size(
+                    available_inline_size - (inline_start + margin_start + margin_end));
+                let sum = inline_start + inline_size + margin_start + margin_end;
+                (inline_start, available_inline_size - sum, inline_size, margin_start, margin_end)
             }
-            (Auto, Specified(iend), Auto) => {
-                let margin_start = istart_margin.specified_or_zero();
-                let margin_end = iend_margin.specified_or_zero();
-                // Set istart to zero to calculate isize
-                let isize = block.get_shrink_to_fit_isize(
-                    available_isize - (iend + margin_start + margin_end));
-                let sum = iend + isize + margin_start + margin_end;
-                (available_isize - sum, iend, isize, margin_start, margin_end)
+            (Auto, Specified(inline_end), Auto) => {
+                let margin_start = inline_start_margin.specified_or_zero();
+                let margin_end = inline_end_margin.specified_or_zero();
+                // Set inline-start to zero to calculate inline-size
+                let inline_size = block.get_shrink_to_fit_inline_size(
+                    available_inline_size - (inline_end + margin_start + margin_end));
+                let sum = inline_end + inline_size + margin_start + margin_end;
+                (available_inline_size - sum, inline_end, inline_size, margin_start, margin_end)
             }
 
-            (Auto, Auto, Specified(isize)) => {
-                let margin_start = istart_margin.specified_or_zero();
-                let margin_end = iend_margin.specified_or_zero();
-                // Setting 'istart' to static position because direction is 'ltr'.
+            (Auto, Auto, Specified(inline_size)) => {
+                let margin_start = inline_start_margin.specified_or_zero();
+                let margin_end = inline_end_margin.specified_or_zero();
+                // Setting 'inline-start' to static position because direction is 'ltr'.
                 // TODO: Handle 'rtl' when it is implemented.
-                let istart = static_position_istart;
-                let sum = istart + isize + margin_start + margin_end;
-                (istart, available_isize - sum, isize, margin_start, margin_end)
+                let inline_start = static_position_inline_start;
+                let sum = inline_start + inline_size + margin_start + margin_end;
+                (inline_start, available_inline_size - sum, inline_size, margin_start, margin_end)
             }
         };
-        ISizeConstraintSolution::for_absolute_flow(istart, iend, isize, margin_istart, margin_iend)
+        ISizeConstraintSolution::for_absolute_flow(inline_start, inline_end, inline_size, margin_inline_start, margin_inline_end)
     }
 
-    fn containing_block_isize(&self, block: &mut BlockFlow, _: Au, ctx: &mut LayoutContext) -> Au {
-        block.containing_block_size(ctx.screen_size).isize
+    fn containing_block_inline_size(&self, block: &mut BlockFlow, _: Au, ctx: &mut LayoutContext) -> Au {
+        block.containing_block_size(ctx.screen_size).inline
     }
 
     fn set_flow_x_coord_if_necessary(&self,
                                      block: &mut BlockFlow,
                                      solution: ISizeConstraintSolution) {
         // Set the x-coordinate of the absolute flow wrt to its containing block.
-        block.base.position.start.i = solution.istart;
+        block.base.position.start.i = solution.inline_start;
     }
 }
 
@@ -2142,20 +2142,20 @@ impl ISizeAndMarginsComputer for AbsoluteReplaced {
     ///
     /// CSS Section 10.3.8
     /// Constraint equation:
-    /// istart + iend + isize + margin-istart + margin-iend
-    /// = absolute containing block isize - (horizontal padding and border)
-    /// [aka available_isize]
+    /// inline-start + inline-end + inline-size + margin-inline-start + margin-inline-end
+    /// = absolute containing block inline-size - (horizontal padding and border)
+    /// [aka available_inline-size]
     ///
     /// Return the solution for the equation.
-    fn solve_isize_constraints(&self, _: &mut BlockFlow, input: &ISizeConstraintInput)
+    fn solve_inline_size_constraints(&self, _: &mut BlockFlow, input: &ISizeConstraintInput)
                                -> ISizeConstraintSolution {
         let &ISizeConstraintInput {
-            computed_isize,
-            istart_margin,
-            iend_margin,
-            istart,
-            iend,
-            available_isize,
+            computed_inline_size,
+            inline_start_margin,
+            inline_end_margin,
+            inline_start,
+            inline_end,
+            available_inline_size,
             static_i_offset,
             ..
         } = input;
@@ -2165,134 +2165,134 @@ impl ISizeAndMarginsComputer for AbsoluteReplaced {
         // Assume direction is 'ltr' for now
         // TODO: Handle all the cases for 'rtl' direction.
 
-        let isize = match computed_isize {
+        let inline_size = match computed_inline_size {
             Specified(w) => w,
             _ => fail!("{} {}",
-                       "The used value for isize for absolute replaced flow",
+                       "The used value for inline_size for absolute replaced flow",
                        "should have already been calculated by now.")
         };
 
-        // Distance from the istart edge of the Absolute Containing Block to the
-        // istart margin edge of a hypothetical box that would have been the
+        // Distance from the inline-start edge of the Absolute Containing Block to the
+        // inline-start margin edge of a hypothetical box that would have been the
         // first box of the element.
-        let static_position_istart = static_i_offset;
+        let static_position_inline_start = static_i_offset;
 
-        let (istart, iend, isize, margin_istart, margin_iend) = match (istart, iend) {
+        let (inline_start, inline_end, inline_size, margin_inline_start, margin_inline_end) = match (inline_start, inline_end) {
             (Auto, Auto) => {
-                let istart = static_position_istart;
-                let margin_start = istart_margin.specified_or_zero();
-                let margin_end = iend_margin.specified_or_zero();
-                let sum = istart + isize + margin_start + margin_end;
-                (istart, available_isize - sum, isize, margin_start, margin_end)
+                let inline_start = static_position_inline_start;
+                let margin_start = inline_start_margin.specified_or_zero();
+                let margin_end = inline_end_margin.specified_or_zero();
+                let sum = inline_start + inline_size + margin_start + margin_end;
+                (inline_start, available_inline_size - sum, inline_size, margin_start, margin_end)
             }
             // If only one is Auto, solve for it
-            (Auto, Specified(iend)) => {
-                let margin_start = istart_margin.specified_or_zero();
-                let margin_end = iend_margin.specified_or_zero();
-                let sum = iend + isize + margin_start + margin_end;
-                (available_isize - sum, iend, isize, margin_start, margin_end)
+            (Auto, Specified(inline_end)) => {
+                let margin_start = inline_start_margin.specified_or_zero();
+                let margin_end = inline_end_margin.specified_or_zero();
+                let sum = inline_end + inline_size + margin_start + margin_end;
+                (available_inline_size - sum, inline_end, inline_size, margin_start, margin_end)
             }
-            (Specified(istart), Auto) => {
-                let margin_start = istart_margin.specified_or_zero();
-                let margin_end = iend_margin.specified_or_zero();
-                let sum = istart + isize + margin_start + margin_end;
-                (istart, available_isize - sum, isize, margin_start, margin_end)
+            (Specified(inline_start), Auto) => {
+                let margin_start = inline_start_margin.specified_or_zero();
+                let margin_end = inline_end_margin.specified_or_zero();
+                let sum = inline_start + inline_size + margin_start + margin_end;
+                (inline_start, available_inline_size - sum, inline_size, margin_start, margin_end)
             }
-            (Specified(istart), Specified(iend)) => {
-                match (istart_margin, iend_margin) {
+            (Specified(inline_start), Specified(inline_end)) => {
+                match (inline_start_margin, inline_end_margin) {
                     (Auto, Auto) => {
-                        let total_margin_val = available_isize - istart - iend - isize;
+                        let total_margin_val = available_inline_size - inline_start - inline_end - inline_size;
                         if total_margin_val < Au(0) {
-                            // margin-istart becomes 0 because direction is 'ltr'.
-                            (istart, iend, isize, Au(0), total_margin_val)
+                            // margin-inline-start becomes 0 because direction is 'ltr'.
+                            (inline_start, inline_end, inline_size, Au(0), total_margin_val)
                         } else {
                             // Equal margins
-                            (istart, iend, isize,
+                            (inline_start, inline_end, inline_size,
                              total_margin_val.scale_by(0.5),
                              total_margin_val.scale_by(0.5))
                         }
                     }
                     (Specified(margin_start), Auto) => {
-                        let sum = istart + iend + isize + margin_start;
-                        (istart, iend, isize, margin_start, available_isize - sum)
+                        let sum = inline_start + inline_end + inline_size + margin_start;
+                        (inline_start, inline_end, inline_size, margin_start, available_inline_size - sum)
                     }
                     (Auto, Specified(margin_end)) => {
-                        let sum = istart + iend + isize + margin_end;
-                        (istart, iend, isize, available_isize - sum, margin_end)
+                        let sum = inline_start + inline_end + inline_size + margin_end;
+                        (inline_start, inline_end, inline_size, available_inline_size - sum, margin_end)
                     }
                     (Specified(margin_start), Specified(margin_end)) => {
                         // Values are over-constrained.
-                        // Ignore value for 'iend' cos direction is 'ltr'.
-                        let sum = istart + isize + margin_start + margin_end;
-                        (istart, available_isize - sum, isize, margin_start, margin_end)
+                        // Ignore value for 'inline-end' cos direction is 'ltr'.
+                        let sum = inline_start + inline_size + margin_start + margin_end;
+                        (inline_start, available_inline_size - sum, inline_size, margin_start, margin_end)
                     }
                 }
             }
         };
-        ISizeConstraintSolution::for_absolute_flow(istart, iend, isize, margin_istart, margin_iend)
+        ISizeConstraintSolution::for_absolute_flow(inline_start, inline_end, inline_size, margin_inline_start, margin_inline_end)
     }
 
-    /// Calculate used value of isize just like we do for inline replaced elements.
-    fn initial_computed_isize(&self,
+    /// Calculate used value of inline-size just like we do for inline replaced elements.
+    fn initial_computed_inline_size(&self,
                               block: &mut BlockFlow,
                               _: Au,
                               ctx: &mut LayoutContext)
                               -> MaybeAuto {
-        let containing_block_isize = block.containing_block_size(ctx.screen_size).isize;
+        let containing_block_inline_size = block.containing_block_size(ctx.screen_size).inline;
         let fragment = block.fragment();
-        fragment.assign_replaced_isize_if_necessary(containing_block_isize, None);
+        fragment.assign_replaced_inline_size_if_necessary(containing_block_inline_size, None);
         // For replaced absolute flow, the rest of the constraint solving will
-        // take isize to be specified as the value computed here.
-        Specified(fragment.content_isize())
+        // take inline-size to be specified as the value computed here.
+        Specified(fragment.content_inline_size())
     }
 
-    fn containing_block_isize(&self, block: &mut BlockFlow, _: Au, ctx: &mut LayoutContext) -> Au {
-        block.containing_block_size(ctx.screen_size).isize
+    fn containing_block_inline_size(&self, block: &mut BlockFlow, _: Au, ctx: &mut LayoutContext) -> Au {
+        block.containing_block_size(ctx.screen_size).inline
     }
 
     fn set_flow_x_coord_if_necessary(&self, block: &mut BlockFlow, solution: ISizeConstraintSolution) {
         // Set the x-coordinate of the absolute flow wrt to its containing block.
-        block.base.position.start.i = solution.istart;
+        block.base.position.start.i = solution.inline_start;
     }
 }
 
 impl ISizeAndMarginsComputer for BlockNonReplaced {
-    /// Compute istart and iend margins and isize.
-    fn solve_isize_constraints(&self,
+    /// Compute inline-start and inline-end margins and inline-size.
+    fn solve_inline_size_constraints(&self,
                                block: &mut BlockFlow,
                                input: &ISizeConstraintInput)
                                -> ISizeConstraintSolution {
-        self.solve_block_isize_constraints(block, input)
+        self.solve_block_inline_size_constraints(block, input)
     }
 }
 
 impl ISizeAndMarginsComputer for BlockReplaced {
-    /// Compute istart and iend margins and isize.
+    /// Compute inline-start and inline-end margins and inline-size.
     ///
     /// ISize has already been calculated. We now calculate the margins just
     /// like for non-replaced blocks.
-    fn solve_isize_constraints(&self,
+    fn solve_inline_size_constraints(&self,
                                block: &mut BlockFlow,
                                input: &ISizeConstraintInput)
                                -> ISizeConstraintSolution {
-        match input.computed_isize {
+        match input.computed_inline_size {
             Specified(_) => {},
-            Auto => fail!("BlockReplaced: isize should have been computed by now")
+            Auto => fail!("BlockReplaced: inline_size should have been computed by now")
         };
-        self.solve_block_isize_constraints(block, input)
+        self.solve_block_inline_size_constraints(block, input)
     }
 
-    /// Calculate used value of isize just like we do for inline replaced elements.
-    fn initial_computed_isize(&self,
+    /// Calculate used value of inline-size just like we do for inline replaced elements.
+    fn initial_computed_inline_size(&self,
                               block: &mut BlockFlow,
-                              parent_flow_isize: Au,
+                              parent_flow_inline_size: Au,
                               _: &mut LayoutContext)
                               -> MaybeAuto {
         let fragment = block.fragment();
-        fragment.assign_replaced_isize_if_necessary(parent_flow_isize, None);
+        fragment.assign_replaced_inline_size_if_necessary(parent_flow_inline_size, None);
         // For replaced block flow, the rest of the constraint solving will
-        // take isize to be specified as the value computed here.
-        Specified(fragment.content_isize())
+        // take inline-size to be specified as the value computed here.
+        Specified(fragment.content_inline_size())
     }
 
 }
@@ -2300,89 +2300,89 @@ impl ISizeAndMarginsComputer for BlockReplaced {
 impl ISizeAndMarginsComputer for FloatNonReplaced {
     /// CSS Section 10.3.5
     ///
-    /// If isize is computed as 'auto', the used value is the 'shrink-to-fit' isize.
-    fn solve_isize_constraints(&self,
+    /// If inline-size is computed as 'auto', the used value is the 'shrink-to-fit' inline-size.
+    fn solve_inline_size_constraints(&self,
                                block: &mut BlockFlow,
                                input: &ISizeConstraintInput)
                                -> ISizeConstraintSolution {
-        let (computed_isize, istart_margin, iend_margin, available_isize) = (input.computed_isize,
-                                                                            input.istart_margin,
-                                                                            input.iend_margin,
-                                                                            input.available_isize);
-        let margin_istart = istart_margin.specified_or_zero();
-        let margin_iend = iend_margin.specified_or_zero();
-        let available_isize_float = available_isize - margin_istart - margin_iend;
-        let shrink_to_fit = block.get_shrink_to_fit_isize(available_isize_float);
-        let isize = computed_isize.specified_or_default(shrink_to_fit);
-        debug!("assign_isizes_float -- isize: {}", isize);
-        ISizeConstraintSolution::new(isize, margin_istart, margin_iend)
+        let (computed_inline_size, inline_start_margin, inline_end_margin, available_inline_size) = (input.computed_inline_size,
+                                                                            input.inline_start_margin,
+                                                                            input.inline_end_margin,
+                                                                            input.available_inline_size);
+        let margin_inline_start = inline_start_margin.specified_or_zero();
+        let margin_inline_end = inline_end_margin.specified_or_zero();
+        let available_inline_size_float = available_inline_size - margin_inline_start - margin_inline_end;
+        let shrink_to_fit = block.get_shrink_to_fit_inline_size(available_inline_size_float);
+        let inline_size = computed_inline_size.specified_or_default(shrink_to_fit);
+        debug!("assign_inline_sizes_float -- inline_size: {}", inline_size);
+        ISizeConstraintSolution::new(inline_size, margin_inline_start, margin_inline_end)
     }
 }
 
 impl ISizeAndMarginsComputer for FloatReplaced {
     /// CSS Section 10.3.5
     ///
-    /// If isize is computed as 'auto', the used value is the 'shrink-to-fit' isize.
-    fn solve_isize_constraints(&self, _: &mut BlockFlow, input: &ISizeConstraintInput)
+    /// If inline-size is computed as 'auto', the used value is the 'shrink-to-fit' inline-size.
+    fn solve_inline_size_constraints(&self, _: &mut BlockFlow, input: &ISizeConstraintInput)
                                -> ISizeConstraintSolution {
-        let (computed_isize, istart_margin, iend_margin) = (input.computed_isize,
-                                                           input.istart_margin,
-                                                           input.iend_margin);
-        let margin_istart = istart_margin.specified_or_zero();
-        let margin_iend = iend_margin.specified_or_zero();
-        let isize = match computed_isize {
+        let (computed_inline_size, inline_start_margin, inline_end_margin) = (input.computed_inline_size,
+                                                           input.inline_start_margin,
+                                                           input.inline_end_margin);
+        let margin_inline_start = inline_start_margin.specified_or_zero();
+        let margin_inline_end = inline_end_margin.specified_or_zero();
+        let inline_size = match computed_inline_size {
             Specified(w) => w,
-            Auto => fail!("FloatReplaced: isize should have been computed by now")
+            Auto => fail!("FloatReplaced: inline_size should have been computed by now")
         };
-        debug!("assign_isizes_float -- isize: {}", isize);
-        ISizeConstraintSolution::new(isize, margin_istart, margin_iend)
+        debug!("assign_inline_sizes_float -- inline_size: {}", inline_size);
+        ISizeConstraintSolution::new(inline_size, margin_inline_start, margin_inline_end)
     }
 
-    /// Calculate used value of isize just like we do for inline replaced elements.
-    fn initial_computed_isize(&self,
+    /// Calculate used value of inline-size just like we do for inline replaced elements.
+    fn initial_computed_inline_size(&self,
                               block: &mut BlockFlow,
-                              parent_flow_isize: Au,
+                              parent_flow_inline_size: Au,
                               _: &mut LayoutContext)
                               -> MaybeAuto {
         let fragment = block.fragment();
-        fragment.assign_replaced_isize_if_necessary(parent_flow_isize, None);
+        fragment.assign_replaced_inline_size_if_necessary(parent_flow_inline_size, None);
         // For replaced block flow, the rest of the constraint solving will
-        // take isize to be specified as the value computed here.
-        Specified(fragment.content_isize())
+        // take inline-size to be specified as the value computed here.
+        Specified(fragment.content_inline_size())
     }
 }
 
-fn propagate_column_isizes_to_child(kid: &mut Flow,
+fn propagate_column_inline_sizes_to_child(kid: &mut Flow,
                                     child_index: uint,
-                                    content_isize: Au,
-                                    column_isizes: &[Au],
-                                    istart_margin_edge: &mut Au) {
-    // If kid is table_rowgroup or table_row, the column isizes info should be copied from its
+                                    content_inline_size: Au,
+                                    column_inline_sizes: &[Au],
+                                    inline_start_margin_edge: &mut Au) {
+    // If kid is table_rowgroup or table_row, the column inline-sizes info should be copied from its
     // parent.
     //
     // FIXME(pcwalton): This seems inefficient. Reference count it instead?
-    let isize = if kid.is_table() || kid.is_table_rowgroup() || kid.is_table_row() {
-        *kid.col_isizes() = column_isizes.iter().map(|&x| x).collect();
+    let inline_size = if kid.is_table() || kid.is_table_rowgroup() || kid.is_table_row() {
+        *kid.col_inline_sizes() = column_inline_sizes.iter().map(|&x| x).collect();
 
-        // ISize of kid flow is our content isize.
-        content_isize
+        // ISize of kid flow is our content inline-size.
+        content_inline_size
     } else if kid.is_table_cell() {
-        // If kid is table_cell, the x offset and isize for each cell should be
-        // calculated from parent's column isizes info.
-        *istart_margin_edge = if child_index == 0 {
+        // If kid is table_cell, the x offset and inline-size for each cell should be
+        // calculated from parent's column inline-sizes info.
+        *inline_start_margin_edge = if child_index == 0 {
             Au(0)
         } else {
-            *istart_margin_edge + column_isizes[child_index - 1]
+            *inline_start_margin_edge + column_inline_sizes[child_index - 1]
         };
 
-        column_isizes[child_index]
+        column_inline_sizes[child_index]
     } else {
-        // ISize of kid flow is our content isize.
-        content_isize
+        // ISize of kid flow is our content inline-size.
+        content_inline_size
     };
 
     let kid_base = flow::mut_base(kid);
-    kid_base.position.start.i = *istart_margin_edge;
-    kid_base.position.size.isize = isize;
+    kid_base.position.start.i = *inline_start_margin_edge;
+    kid_base.position.size.inline = inline_size;
 }
 

@@ -27,14 +27,14 @@ use style::computed_values::table_layout;
 pub struct TableFlow {
     pub block_flow: BlockFlow,
 
-    /// Column isizes
-    pub col_isizes: Vec<Au>,
+    /// Column inline-sizes
+    pub col_inline_sizes: Vec<Au>,
 
-    /// Column min isizes.
-    pub col_min_isizes: Vec<Au>,
+    /// Column min inline-sizes.
+    pub col_min_inline_sizes: Vec<Au>,
 
-    /// Column pref isizes.
-    pub col_pref_isizes: Vec<Au>,
+    /// Column pref inline-sizes.
+    pub col_pref_inline_sizes: Vec<Au>,
 
     /// Table-layout property
     pub table_layout: TableLayout,
@@ -53,9 +53,9 @@ impl TableFlow {
         };
         TableFlow {
             block_flow: block_flow,
-            col_isizes: vec!(),
-            col_min_isizes: vec!(),
-            col_pref_isizes: vec!(),
+            col_inline_sizes: vec!(),
+            col_min_inline_sizes: vec!(),
+            col_pref_inline_sizes: vec!(),
             table_layout: table_layout
         }
     }
@@ -72,9 +72,9 @@ impl TableFlow {
         };
         TableFlow {
             block_flow: block_flow,
-            col_isizes: vec!(),
-            col_min_isizes: vec!(),
-            col_pref_isizes: vec!(),
+            col_inline_sizes: vec!(),
+            col_min_inline_sizes: vec!(),
+            col_pref_inline_sizes: vec!(),
             table_layout: table_layout
         }
     }
@@ -92,41 +92,41 @@ impl TableFlow {
         };
         TableFlow {
             block_flow: block_flow,
-            col_isizes: vec!(),
-            col_min_isizes: vec!(),
-            col_pref_isizes: vec!(),
+            col_inline_sizes: vec!(),
+            col_min_inline_sizes: vec!(),
+            col_pref_inline_sizes: vec!(),
             table_layout: table_layout
         }
     }
 
-    /// Update the corresponding value of self_isizes if a value of kid_isizes has larger value
-    /// than one of self_isizes.
-    pub fn update_col_isizes(self_isizes: &mut Vec<Au>, kid_isizes: &Vec<Au>) -> Au {
-        let mut sum_isizes = Au(0);
-        let mut kid_isizes_it = kid_isizes.iter();
-        for self_isize in self_isizes.mut_iter() {
-            match kid_isizes_it.next() {
-                Some(kid_isize) => {
-                    if *self_isize < *kid_isize {
-                        *self_isize = *kid_isize;
+    /// Update the corresponding value of self_inline-sizes if a value of kid_inline-sizes has larger value
+    /// than one of self_inline-sizes.
+    pub fn update_col_inline_sizes(self_inline_sizes: &mut Vec<Au>, kid_inline_sizes: &Vec<Au>) -> Au {
+        let mut sum_inline_sizes = Au(0);
+        let mut kid_inline_sizes_it = kid_inline_sizes.iter();
+        for self_inline_size in self_inline_sizes.mut_iter() {
+            match kid_inline_sizes_it.next() {
+                Some(kid_inline_size) => {
+                    if *self_inline_size < *kid_inline_size {
+                        *self_inline_size = *kid_inline_size;
                     }
                 },
                 None => {}
             }
-            sum_isizes = sum_isizes + *self_isize;
+            sum_inline_sizes = sum_inline_sizes + *self_inline_size;
         }
-        sum_isizes
+        sum_inline_sizes
     }
 
-    /// Assign bsize for table flow.
+    /// Assign block-size for table flow.
     ///
     /// TODO(#2014, pcwalton): This probably doesn't handle margin collapse right.
     ///
     /// inline(always) because this is only ever called by in-order or non-in-order top-level
     /// methods
     #[inline(always)]
-    fn assign_bsize_table_base(&mut self, layout_context: &mut LayoutContext) {
-        self.block_flow.assign_bsize_block_base(layout_context, MarginsMayNotCollapse);
+    fn assign_block_size_table_base(&mut self, layout_context: &mut LayoutContext) {
+        self.block_flow.assign_block_size_block_base(layout_context, MarginsMayNotCollapse);
     }
 
     pub fn build_display_list_table(&mut self, layout_context: &LayoutContext) {
@@ -148,130 +148,130 @@ impl Flow for TableFlow {
         &mut self.block_flow
     }
 
-    fn col_isizes<'a>(&'a mut self) -> &'a mut Vec<Au> {
-        &mut self.col_isizes
+    fn col_inline_sizes<'a>(&'a mut self) -> &'a mut Vec<Au> {
+        &mut self.col_inline_sizes
     }
 
-    fn col_min_isizes<'a>(&'a self) -> &'a Vec<Au> {
-        &self.col_min_isizes
+    fn col_min_inline_sizes<'a>(&'a self) -> &'a Vec<Au> {
+        &self.col_min_inline_sizes
     }
 
-    fn col_pref_isizes<'a>(&'a self) -> &'a Vec<Au> {
-        &self.col_pref_isizes
+    fn col_pref_inline_sizes<'a>(&'a self) -> &'a Vec<Au> {
+        &self.col_pref_inline_sizes
     }
 
-    /// The specified column isizes are set from column group and the first row for the fixed
+    /// The specified column inline-sizes are set from column group and the first row for the fixed
     /// table layout calculation.
-    /// The maximum min/pref isizes of each column are set from the rows for the automatic
+    /// The maximum min/pref inline-sizes of each column are set from the rows for the automatic
     /// table layout calculation.
-    fn bubble_isizes(&mut self, _: &mut LayoutContext) {
-        let mut min_isize = Au(0);
-        let mut pref_isize = Au(0);
+    fn bubble_inline_sizes(&mut self, _: &mut LayoutContext) {
+        let mut min_inline_size = Au(0);
+        let mut pref_inline_size = Au(0);
         let mut did_first_row = false;
 
         for kid in self.block_flow.base.child_iter() {
             assert!(kid.is_proper_table_child());
 
             if kid.is_table_colgroup() {
-                self.col_isizes.push_all(kid.as_table_colgroup().isizes.as_slice());
-                self.col_min_isizes = self.col_isizes.clone();
-                self.col_pref_isizes = self.col_isizes.clone();
+                self.col_inline_sizes.push_all(kid.as_table_colgroup().inline_sizes.as_slice());
+                self.col_min_inline_sizes = self.col_inline_sizes.clone();
+                self.col_pref_inline_sizes = self.col_inline_sizes.clone();
             } else if kid.is_table_rowgroup() || kid.is_table_row() {
-                // read column isizes from table-row-group/table-row, and assign
-                // isize=0 for the columns not defined in column-group
-                // FIXME: need to read isizes from either table-header-group OR
+                // read column inline-sizes from table-row-group/table-row, and assign
+                // inline-size=0 for the columns not defined in column-group
+                // FIXME: need to read inline-sizes from either table-header-group OR
                 // first table-row
                 match self.table_layout {
                     FixedLayout => {
-                        let kid_col_isizes = kid.col_isizes();
+                        let kid_col_inline_sizes = kid.col_inline_sizes();
                         if !did_first_row {
                             did_first_row = true;
-                            let mut child_isizes = kid_col_isizes.iter();
-                            for col_isize in self.col_isizes.mut_iter() {
-                                match child_isizes.next() {
-                                    Some(child_isize) => {
-                                        if *col_isize == Au::new(0) {
-                                            *col_isize = *child_isize;
+                            let mut child_inline_sizes = kid_col_inline_sizes.iter();
+                            for col_inline_size in self.col_inline_sizes.mut_iter() {
+                                match child_inline_sizes.next() {
+                                    Some(child_inline_size) => {
+                                        if *col_inline_size == Au::new(0) {
+                                            *col_inline_size = *child_inline_size;
                                         }
                                     },
                                     None => break
                                 }
                             }
                         }
-                        let num_child_cols = kid_col_isizes.len();
-                        let num_cols = self.col_isizes.len();
+                        let num_child_cols = kid_col_inline_sizes.len();
+                        let num_cols = self.col_inline_sizes.len();
                         debug!("table until the previous row has {} column(s) and this row has {} column(s)",
                                num_cols, num_child_cols);
                         for i in range(num_cols, num_child_cols) {
-                            self.col_isizes.push( *kid_col_isizes.get(i) );
+                            self.col_inline_sizes.push( *kid_col_inline_sizes.get(i) );
                         }
                     },
                     AutoLayout => {
-                        min_isize = TableFlow::update_col_isizes(&mut self.col_min_isizes, kid.col_min_isizes());
-                        pref_isize = TableFlow::update_col_isizes(&mut self.col_pref_isizes, kid.col_pref_isizes());
+                        min_inline_size = TableFlow::update_col_inline_sizes(&mut self.col_min_inline_sizes, kid.col_min_inline_sizes());
+                        pref_inline_size = TableFlow::update_col_inline_sizes(&mut self.col_pref_inline_sizes, kid.col_pref_inline_sizes());
 
-                        // update the number of column isizes from table-rows.
-                        let num_cols = self.col_min_isizes.len();
-                        let num_child_cols = kid.col_min_isizes().len();
+                        // update the number of column inline-sizes from table-rows.
+                        let num_cols = self.col_min_inline_sizes.len();
+                        let num_child_cols = kid.col_min_inline_sizes().len();
                         debug!("table until the previous row has {} column(s) and this row has {} column(s)",
                                num_cols, num_child_cols);
                         for i in range(num_cols, num_child_cols) {
-                            self.col_isizes.push(Au::new(0));
-                            let new_kid_min = *kid.col_min_isizes().get(i);
-                            self.col_min_isizes.push( new_kid_min );
-                            let new_kid_pref = *kid.col_pref_isizes().get(i);
-                            self.col_pref_isizes.push( new_kid_pref );
-                            min_isize = min_isize + new_kid_min;
-                            pref_isize = pref_isize + new_kid_pref;
+                            self.col_inline_sizes.push(Au::new(0));
+                            let new_kid_min = *kid.col_min_inline_sizes().get(i);
+                            self.col_min_inline_sizes.push( new_kid_min );
+                            let new_kid_pref = *kid.col_pref_inline_sizes().get(i);
+                            self.col_pref_inline_sizes.push( new_kid_pref );
+                            min_inline_size = min_inline_size + new_kid_min;
+                            pref_inline_size = pref_inline_size + new_kid_pref;
                         }
                     }
                 }
             }
         }
-        self.block_flow.base.intrinsic_isizes.minimum_isize = min_isize;
-        self.block_flow.base.intrinsic_isizes.preferred_isize =
-            geometry::max(min_isize, pref_isize);
+        self.block_flow.base.intrinsic_inline_sizes.minimum_inline_size = min_inline_size;
+        self.block_flow.base.intrinsic_inline_sizes.preferred_inline_size =
+            geometry::max(min_inline_size, pref_inline_size);
     }
 
-    /// Recursively (top-down) determines the actual isize of child contexts and fragments. When
-    /// called on this context, the context has had its isize set by the parent context.
-    fn assign_isizes(&mut self, ctx: &mut LayoutContext) {
-        debug!("assign_isizes({}): assigning isize for flow", "table");
+    /// Recursively (top-down) determines the actual inline-size of child contexts and fragments. When
+    /// called on this context, the context has had its inline-size set by the parent context.
+    fn assign_inline_sizes(&mut self, ctx: &mut LayoutContext) {
+        debug!("assign_inline_sizes({}): assigning inline_size for flow", "table");
 
         // The position was set to the containing block by the flow's parent.
-        let containing_block_isize = self.block_flow.base.position.size.isize;
+        let containing_block_inline_size = self.block_flow.base.position.size.inline;
 
-        let mut num_unspecified_isizes = 0;
-        let mut total_column_isize = Au::new(0);
-        for col_isize in self.col_isizes.iter() {
-            if *col_isize == Au::new(0) {
-                num_unspecified_isizes += 1;
+        let mut num_unspecified_inline_sizes = 0;
+        let mut total_column_inline_size = Au::new(0);
+        for col_inline_size in self.col_inline_sizes.iter() {
+            if *col_inline_size == Au::new(0) {
+                num_unspecified_inline_sizes += 1;
             } else {
-                total_column_isize = total_column_isize.add(col_isize);
+                total_column_inline_size = total_column_inline_size.add(col_inline_size);
             }
         }
 
-        let isize_computer = InternalTable;
-        isize_computer.compute_used_isize(&mut self.block_flow, ctx, containing_block_isize);
+        let inline_size_computer = InternalTable;
+        inline_size_computer.compute_used_inline_size(&mut self.block_flow, ctx, containing_block_inline_size);
 
-        let istart_content_edge = self.block_flow.fragment.border_padding.istart;
-        let padding_and_borders = self.block_flow.fragment.border_padding.istart_end();
-        let content_isize = self.block_flow.fragment.border_box.size.isize - padding_and_borders;
+        let inline_start_content_edge = self.block_flow.fragment.border_padding.inline_start;
+        let padding_and_borders = self.block_flow.fragment.border_padding.inline_start_end();
+        let content_inline_size = self.block_flow.fragment.border_box.size.inline - padding_and_borders;
 
         match self.table_layout {
             FixedLayout => {
                 // In fixed table layout, we distribute extra space among the unspecified columns if there are
                 // any, or among all the columns if all are specified.
-                if (total_column_isize < content_isize) && (num_unspecified_isizes == 0) {
-                    let ratio = content_isize.to_f64().unwrap() / total_column_isize.to_f64().unwrap();
-                    for col_isize in self.col_isizes.mut_iter() {
-                        *col_isize = (*col_isize).scale_by(ratio);
+                if (total_column_inline_size < content_inline_size) && (num_unspecified_inline_sizes == 0) {
+                    let ratio = content_inline_size.to_f64().unwrap() / total_column_inline_size.to_f64().unwrap();
+                    for col_inline_size in self.col_inline_sizes.mut_iter() {
+                        *col_inline_size = (*col_inline_size).scale_by(ratio);
                     }
-                } else if num_unspecified_isizes != 0 {
-                    let extra_column_isize = (content_isize - total_column_isize) / Au::new(num_unspecified_isizes);
-                    for col_isize in self.col_isizes.mut_iter() {
-                        if *col_isize == Au(0) {
-                            *col_isize = extra_column_isize;
+                } else if num_unspecified_inline_sizes != 0 {
+                    let extra_column_inline_size = (content_inline_size - total_column_inline_size) / Au::new(num_unspecified_inline_sizes);
+                    for col_inline_size in self.col_inline_sizes.mut_iter() {
+                        if *col_inline_size == Au(0) {
+                            *col_inline_size = extra_column_inline_size;
                         }
                     }
                 }
@@ -279,12 +279,12 @@ impl Flow for TableFlow {
             _ => {}
         }
 
-        self.block_flow.propagate_assigned_isize_to_children(istart_content_edge, content_isize, Some(self.col_isizes.clone()));
+        self.block_flow.propagate_assigned_inline_size_to_children(inline_start_content_edge, content_inline_size, Some(self.col_inline_sizes.clone()));
     }
 
-    fn assign_bsize(&mut self, ctx: &mut LayoutContext) {
-        debug!("assign_bsize: assigning bsize for table");
-        self.assign_bsize_table_base(ctx);
+    fn assign_block_size(&mut self, ctx: &mut LayoutContext) {
+        debug!("assign_block_size: assigning block_size for table");
+        self.assign_block_size_table_base(ctx);
     }
 
     fn compute_absolute_position(&mut self) {
@@ -300,25 +300,25 @@ impl fmt::Show for TableFlow {
 }
 
 /// Table, TableRowGroup, TableRow, TableCell types.
-/// Their isizes are calculated in the same way and do not have margins.
+/// Their inline-sizes are calculated in the same way and do not have margins.
 pub struct InternalTable;
 
 impl ISizeAndMarginsComputer for InternalTable {
-    /// Compute the used value of isize, taking care of min-isize and max-isize.
+    /// Compute the used value of inline-size, taking care of min-inline-size and max-inline-size.
     ///
-    /// CSS Section 10.4: Minimum and Maximum isizes
-    fn compute_used_isize(&self,
+    /// CSS Section 10.4: Minimum and Maximum inline-sizes
+    fn compute_used_inline_size(&self,
                           block: &mut BlockFlow,
                           ctx: &mut LayoutContext,
-                          parent_flow_isize: Au) {
-        let input = self.compute_isize_constraint_inputs(block, parent_flow_isize, ctx);
-        let solution = self.solve_isize_constraints(block, &input);
-        self.set_isize_constraint_solutions(block, solution);
+                          parent_flow_inline_size: Au) {
+        let input = self.compute_inline_size_constraint_inputs(block, parent_flow_inline_size, ctx);
+        let solution = self.solve_inline_size_constraints(block, &input);
+        self.set_inline_size_constraint_solutions(block, solution);
     }
 
-    /// Solve the isize and margins constraints for this block flow.
-    fn solve_isize_constraints(&self, _: &mut BlockFlow, input: &ISizeConstraintInput)
+    /// Solve the inline-size and margins constraints for this block flow.
+    fn solve_inline_size_constraints(&self, _: &mut BlockFlow, input: &ISizeConstraintInput)
                                -> ISizeConstraintSolution {
-        ISizeConstraintSolution::new(input.available_isize, Au::new(0), Au::new(0))
+        ISizeConstraintSolution::new(input.available_inline_size, Au::new(0), Au::new(0))
     }
 }
