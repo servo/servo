@@ -1092,8 +1092,8 @@ impl Flow for InlineFlow {
             let fragment_intrinsic_widths = fragment.intrinsic_widths(Some(context));
             intrinsic_widths.minimum_width = geometry::max(intrinsic_widths.minimum_width,
                                                            fragment_intrinsic_widths.minimum_width);
-            intrinsic_widths.preferred_width = geometry::max(intrinsic_widths.preferred_width,
-                                                             fragment_intrinsic_widths.preferred_width);
+            intrinsic_widths.preferred_width = intrinsic_widths.preferred_width +
+                                                fragment_intrinsic_widths.preferred_width;
         }
 
         self.base.intrinsic_widths = intrinsic_widths;
