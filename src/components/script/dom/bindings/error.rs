@@ -6,10 +6,12 @@ use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::global::GlobalRef;
 use dom::domexception::DOMException;
 
-use js::jsapi::{JSContext, JSBool};
-use js::jsapi::{JS_IsExceptionPending, JS_SetPendingException};
+use js::jsapi::{JSContext, JSBool, JSObject};
+use js::jsapi::{JS_IsExceptionPending, JS_SetPendingException, JS_ReportPendingException};
 use js::jsapi::{JS_ReportErrorNumber, JSErrorFormatString, JSEXN_TYPEERR};
+use js::jsapi::{JS_SaveFrameChain, JS_RestoreFrameChain};
 use js::glue::{ReportError};
+use js::rust::with_compartment;
 
 use libc;
 use std::ptr;
@@ -43,6 +45,20 @@ pub fn throw_dom_exception(cx: *mut JSContext, global: &GlobalRef,
     let thrown = exception.to_jsval(cx);
     unsafe {
         JS_SetPendingException(cx, thrown);
+    }
+}
+
+pub fn report_pending_exception(cx: *mut JSContext, obj: *mut JSObject) {
+    unsafe {
+        if JS_IsExceptionPending(cx) != 0 {
+            let saved = JS_SaveFrameChain(cx);
+            with_compartment(cx, obj, || {
+                JS_ReportPendingException(cx);
+            });
+            if saved != 0 {
+                JS_RestoreFrameChain(cx);
+            }
+        }
     }
 }
 
