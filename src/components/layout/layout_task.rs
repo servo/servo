@@ -171,16 +171,16 @@ impl PreorderFlowTraversal for FlowTreeVerificationTraversal {
     }
 }
 
-/// The bubble-widths traversal, the first part of layout computation. This computes preferred
-/// and intrinsic widths and bubbles them up the tree.
-pub struct BubbleWidthsTraversal<'a> {
+/// The bubble-inline-sizes traversal, the first part of layout computation. This computes preferred
+/// and intrinsic inline-sizes and bubbles them up the tree.
+pub struct BubbleISizesTraversal<'a> {
     pub layout_context: &'a mut LayoutContext,
 }
 
-impl<'a> PostorderFlowTraversal for BubbleWidthsTraversal<'a> {
+impl<'a> PostorderFlowTraversal for BubbleISizesTraversal<'a> {
     #[inline]
     fn process(&mut self, flow: &mut Flow) -> bool {
-        flow.bubble_widths(self.layout_context);
+        flow.bubble_inline_sizes(self.layout_context);
         true
     }
 
@@ -188,35 +188,35 @@ impl<'a> PostorderFlowTraversal for BubbleWidthsTraversal<'a> {
     /*
     #[inline]
     fn should_prune(&mut self, flow: &mut Flow) -> bool {
-        flow::mut_base(flow).restyle_damage.lacks(BubbleWidths)
+        flow::mut_base(flow).restyle_damage.lacks(BubbleISizes)
     }
     */
 }
 
-/// The assign-widths traversal. In Gecko this corresponds to `Reflow`.
-pub struct AssignWidthsTraversal<'a> {
+/// The assign-inline-sizes traversal. In Gecko this corresponds to `Reflow`.
+pub struct AssignISizesTraversal<'a> {
     pub layout_context: &'a mut LayoutContext,
 }
 
-impl<'a> PreorderFlowTraversal for AssignWidthsTraversal<'a> {
+impl<'a> PreorderFlowTraversal for AssignISizesTraversal<'a> {
     #[inline]
     fn process(&mut self, flow: &mut Flow) -> bool {
-        flow.assign_widths(self.layout_context);
+        flow.assign_inline_sizes(self.layout_context);
         true
     }
 }
 
-/// The assign-heights-and-store-overflow traversal, the last (and most expensive) part of layout
-/// computation. Determines the final heights for all layout objects, computes positions, and
+/// The assign-block-sizes-and-store-overflow traversal, the last (and most expensive) part of layout
+/// computation. Determines the final block-sizes for all layout objects, computes positions, and
 /// computes overflow regions. In Gecko this corresponds to `FinishAndStoreOverflow`.
-pub struct AssignHeightsAndStoreOverflowTraversal<'a> {
+pub struct AssignBSizesAndStoreOverflowTraversal<'a> {
     pub layout_context: &'a mut LayoutContext,
 }
 
-impl<'a> PostorderFlowTraversal for AssignHeightsAndStoreOverflowTraversal<'a> {
+impl<'a> PostorderFlowTraversal for AssignBSizesAndStoreOverflowTraversal<'a> {
     #[inline]
     fn process(&mut self, flow: &mut Flow) -> bool {
-        flow.assign_height(self.layout_context);
+        flow.assign_block_size(self.layout_context);
         // Skip store-overflow for absolutely positioned flows. That will be
         // done in a separate traversal.
         if !flow.is_store_overflow_delayed() {
@@ -482,8 +482,8 @@ impl LayoutTask {
     fn solve_constraints(&mut self,
                          layout_root: &mut Flow,
                          layout_context: &mut LayoutContext) {
-        if layout_context.opts.bubble_widths_separately {
-            let mut traversal = BubbleWidthsTraversal {
+        if layout_context.opts.bubble_inline_sizes_separately {
+            let mut traversal = BubbleISizesTraversal {
                 layout_context: layout_context,
             };
             layout_root.traverse_postorder(&mut traversal);
@@ -495,7 +495,7 @@ impl LayoutTask {
         // NOTE: this currently computes borders, so any pruning should separate that operation
         // out.
         {
-            let mut traversal = AssignWidthsTraversal {
+            let mut traversal = AssignISizesTraversal {
                 layout_context: layout_context,
             };
             layout_root.traverse_preorder(&mut traversal);
@@ -503,7 +503,7 @@ impl LayoutTask {
 
         // FIXME(pcwalton): Prune this pass as well.
         {
-            let mut traversal = AssignHeightsAndStoreOverflowTraversal {
+            let mut traversal = AssignBSizesAndStoreOverflowTraversal {
                 layout_context: layout_context,
             };
             layout_root.traverse_postorder(&mut traversal);
@@ -518,8 +518,8 @@ impl LayoutTask {
     fn solve_constraints_parallel(&mut self,
                                   layout_root: &mut FlowRef,
                                   layout_context: &mut LayoutContext) {
-        if layout_context.opts.bubble_widths_separately {
-            let mut traversal = BubbleWidthsTraversal {
+        if layout_context.opts.bubble_inline_sizes_separately {
+            let mut traversal = BubbleISizesTraversal {
                 layout_context: layout_context,
             };
             layout_root.get_mut().traverse_postorder(&mut traversal);
@@ -656,8 +656,12 @@ impl LayoutTask {
 
         // Build the display list if necessary, and send it to the renderer.
         if data.goal == ReflowForDisplay {
+            let writing_mode = flow::base(layout_root.get()).writing_mode;
             profile(time::LayoutDispListBuildCategory, self.time_profiler_chan.clone(), || {
-                layout_ctx.dirty = flow::base(layout_root.get()).position.clone();
+                // FIXME(#2795): Get the real container size
+                let container_size = Size2D::zero();
+                layout_ctx.dirty = flow::base(layout_root.get()).position.to_physical(
+                    writing_mode, container_size);
 
                 match self.parallel_traversal {
                     None => {
@@ -703,7 +707,10 @@ impl LayoutTask {
                     }
                 }
 
-                let root_size = flow::base(layout_root.get()).position.size;
+                let root_size = {
+                    let root_flow = flow::base(layout_root.get());
+                    root_flow.position.size.to_physical(root_flow.writing_mode)
+                };
                 let root_size = Size2D(root_size.width.to_nearest_px() as uint,
                                        root_size.height.to_nearest_px() as uint);
                 let render_layer = RenderLayer {

@@ -34,7 +34,7 @@ use flow_ref::FlowRef;
 use fragment::{Fragment, TableRowFragment, TableCellFragment};
 use incremental::RestyleDamage;
 use inline::InlineFlow;
-use model::{CollapsibleMargins, IntrinsicWidths, MarginCollapseInfo};
+use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
 use parallel::FlowParallelInfo;
 use table_wrapper::TableWrapperFlow;
 use table::TableFlow;
@@ -46,17 +46,15 @@ use table_cell::TableCellFlow;
 use wrapper::ThreadSafeLayoutNode;
 
 use collections::dlist::DList;
-use geom::point::Point2D;
-use geom::rect::Rect;
-use geom::size::Size2D;
 use gfx::display_list::DisplayList;
 use gfx::render_task::RenderLayer;
 use servo_msg::compositor_msg::LayerId;
 use servo_util::geometry::Au;
+use servo_util::logical_geometry::WritingMode;
+use servo_util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize};
 use std::mem;
 use std::fmt;
 use std::iter::Zip;
-use std::num::Zero;
 use std::sync::atomics::{AtomicUint, Relaxed, SeqCst};
 use std::slice::MutItems;
 use style::computed_values::{clear, position, text_align};
@@ -125,54 +123,54 @@ pub trait Flow: fmt::Show + ToStr + Share {
         fail!("called as_table_cell() on a non-tablecell flow")
     }
 
-    /// If this is a table row or table rowgroup or table flow, returns column widths.
+    /// If this is a table row or table rowgroup or table flow, returns column inline-sizes.
     /// Fails otherwise.
-    fn col_widths<'a>(&'a mut self) -> &'a mut Vec<Au> {
-        fail!("called col_widths() on an other flow than table-row/table-rowgroup/table")
+    fn col_inline_sizes<'a>(&'a mut self) -> &'a mut Vec<Au> {
+        fail!("called col_inline_sizes() on an other flow than table-row/table-rowgroup/table")
     }
 
-    /// If this is a table row flow or table rowgroup flow or table flow, returns column min widths.
+    /// If this is a table row flow or table rowgroup flow or table flow, returns column min inline-sizes.
     /// Fails otherwise.
-    fn col_min_widths<'a>(&'a self) -> &'a Vec<Au> {
-        fail!("called col_min_widths() on an other flow than table-row/table-rowgroup/table")
+    fn col_min_inline_sizes<'a>(&'a self) -> &'a Vec<Au> {
+        fail!("called col_min_inline_sizes() on an other flow than table-row/table-rowgroup/table")
     }
 
-    /// If this is a table row flow or table rowgroup flow or table flow, returns column min widths.
+    /// If this is a table row flow or table rowgroup flow or table flow, returns column min inline-sizes.
     /// Fails otherwise.
-    fn col_pref_widths<'a>(&'a self) -> &'a Vec<Au> {
-        fail!("called col_pref_widths() on an other flow than table-row/table-rowgroup/table")
+    fn col_pref_inline_sizes<'a>(&'a self) -> &'a Vec<Au> {
+        fail!("called col_pref_inline_sizes() on an other flow than table-row/table-rowgroup/table")
     }
 
     // Main methods
 
-    /// Pass 1 of reflow: computes minimum and preferred widths.
+    /// Pass 1 of reflow: computes minimum and preferred inline-sizes.
     ///
-    /// Recursively (bottom-up) determine the flow's minimum and preferred widths. When called on
-    /// this flow, all child flows have had their minimum and preferred widths set. This function
-    /// must decide minimum/preferred widths based on its children's widths and the dimensions of
+    /// Recursively (bottom-up) determine the flow's minimum and preferred inline-sizes. When called on
+    /// this flow, all child flows have had their minimum and preferred inline-sizes set. This function
+    /// must decide minimum/preferred inline-sizes based on its children's inline-sizes and the dimensions of
     /// any boxes it is responsible for flowing.
-    fn bubble_widths(&mut self, _ctx: &mut LayoutContext) {
-        fail!("bubble_widths not yet implemented")
+    fn bubble_inline_sizes(&mut self, _ctx: &mut LayoutContext) {
+        fail!("bubble_inline_sizes not yet implemented")
     }
 
-    /// Pass 2 of reflow: computes width.
-    fn assign_widths(&mut self, _ctx: &mut LayoutContext) {
-        fail!("assign_widths not yet implemented")
+    /// Pass 2 of reflow: computes inline-size.
+    fn assign_inline_sizes(&mut self, _ctx: &mut LayoutContext) {
+        fail!("assign_inline_sizes not yet implemented")
     }
 
-    /// Pass 3a of reflow: computes height.
-    fn assign_height(&mut self, _ctx: &mut LayoutContext) {
-        fail!("assign_height not yet implemented")
+    /// Pass 3a of reflow: computes block-size.
+    fn assign_block_size(&mut self, _ctx: &mut LayoutContext) {
+        fail!("assign_block_size not yet implemented")
     }
 
-    /// Assigns heights in-order; or, if this is a float, places the float. The default
-    /// implementation simply assigns heights if this flow is impacted by floats. Returns true if
+    /// Assigns block-sizes in-order; or, if this is a float, places the float. The default
+    /// implementation simply assigns block-sizes if this flow is impacted by floats. Returns true if
     /// this child was impacted by floats or false otherwise.
-    fn assign_height_for_inorder_child_if_necessary(&mut self, layout_context: &mut LayoutContext)
+    fn assign_block_size_for_inorder_child_if_necessary(&mut self, layout_context: &mut LayoutContext)
                                                     -> bool {
         let impacted = base(&*self).flags.impacted_by_floats();
         if impacted {
-            self.assign_height(layout_context);
+            self.assign_block_size(layout_context);
         }
         impacted
     }
@@ -193,7 +191,7 @@ pub trait Flow: fmt::Show + ToStr + Share {
         false
     }
 
-    fn compute_collapsible_top_margin(&mut self,
+    fn compute_collapsible_block_start_margin(&mut self,
                                       _layout_context: &mut LayoutContext,
                                       _margin_collapse_info: &mut MarginCollapseInfo) {
         // The default implementation is a no-op.
@@ -256,7 +254,7 @@ pub trait Flow: fmt::Show + ToStr + Share {
 
     /// Return the dimensions of the containing block generated by this flow for absolutely-
     /// positioned descendants. For block flows, this is the padding box.
-    fn generated_containing_block_rect(&self) -> Rect<Au> {
+    fn generated_containing_block_rect(&self) -> LogicalRect<Au> {
         fail!("generated_containing_block_position not yet implemented for this flow")
     }
 
@@ -443,11 +441,11 @@ bitfield!(FlowFlags, has_left_floated_descendants, set_has_left_floated_descenda
 bitfield!(FlowFlags, has_right_floated_descendants, set_has_right_floated_descendants, 0b0000_0010)
 
 // Whether this flow is impacted by floats to the left in the same block formatting context (i.e.
-// its height depends on some prior flows with `float: left`).
+// its block-size depends on some prior flows with `float: left`).
 bitfield!(FlowFlags, impacted_by_left_floats, set_impacted_by_left_floats, 0b0000_0100)
 
 // Whether this flow is impacted by floats to the right in the same block formatting context (i.e.
-// its height depends on some prior flows with `float: right`).
+// its block-size depends on some prior flows with `float: right`).
 bitfield!(FlowFlags, impacted_by_right_floats, set_impacted_by_right_floats, 0b0000_1000)
 
 /// The bitmask of flags that represent the text alignment field.
@@ -526,14 +524,14 @@ pub struct Descendants {
     descendant_links: Vec<FlowRef>,
 
     /// Static y offsets of all descendants from the start of this flow box.
-    pub static_y_offsets: Vec<Au>,
+    pub static_b_offsets: Vec<Au>,
 }
 
 impl Descendants {
     pub fn new() -> Descendants {
         Descendants {
             descendant_links: Vec::new(),
-            static_y_offsets: Vec::new(),
+            static_b_offsets: Vec::new(),
         }
     }
 
@@ -566,7 +564,7 @@ impl Descendants {
         let descendant_iter = DescendantIter {
             iter: self.descendant_links.mut_slice_from(0).mut_iter(),
         };
-        descendant_iter.zip(self.static_y_offsets.mut_slice_from(0).mut_iter())
+        descendant_iter.zip(self.static_b_offsets.mut_slice_from(0).mut_iter())
     }
 }
 
@@ -596,9 +594,9 @@ pub type DescendantOffsetIter<'a> = Zip<DescendantIter<'a>, MutItems<'a, Au>>;
 /// confused with absolutely-positioned flows).
 pub struct AbsolutePositionInfo {
     /// The size of the containing block for relatively-positioned descendants.
-    pub relative_containing_block_size: Size2D<Au>,
+    pub relative_containing_block_size: LogicalSize<Au>,
     /// The position of the absolute containing block.
-    pub absolute_containing_block_position: Point2D<Au>,
+    pub absolute_containing_block_position: LogicalPoint<Au>,
     /// Whether the absolute containing block forces positioned descendants to be layerized.
     ///
     /// FIXME(pcwalton): Move into `FlowFlags`.
@@ -606,12 +604,12 @@ pub struct AbsolutePositionInfo {
 }
 
 impl AbsolutePositionInfo {
-    pub fn new() -> AbsolutePositionInfo {
-        // FIXME(pcwalton): The initial relative containing block size should be equal to the size
+    pub fn new(writing_mode: WritingMode) -> AbsolutePositionInfo {
+        // FIXME(pcwalton): The initial relative containing block-size should be equal to the size
         // of the root layer.
         AbsolutePositionInfo {
-            relative_containing_block_size: Size2D::zero(),
-            absolute_containing_block_position: Zero::zero(),
+            relative_containing_block_size: LogicalSize::zero(writing_mode),
+            absolute_containing_block_position: LogicalPoint::zero(writing_mode),
             layers_needed_for_positioned_flows: false,
         }
     }
@@ -634,7 +632,7 @@ pub struct BaseFlow {
     /* layout computations */
     // TODO: min/pref and position are used during disjoint phases of
     // layout; maybe combine into a single enum to save space.
-    pub intrinsic_widths: IntrinsicWidths,
+    pub intrinsic_inline_sizes: IntrinsicISizes,
 
     /// The upper left corner of the box representing this flow, relative to the box representing
     /// its parent flow.
@@ -644,11 +642,11 @@ pub struct BaseFlow {
     /// This does not include margins in the block flow direction, because those can collapse. So
     /// for the block direction (usually vertical), this represents the *border box*. For the
     /// inline direction (usually horizontal), this represents the *margin box*.
-    pub position: Rect<Au>,
+    pub position: LogicalRect<Au>,
 
     /// The amount of overflow of this flow, relative to the containing block. Must include all the
     /// pixels of all the display list items for correct invalidation.
-    pub overflow: Rect<Au>,
+    pub overflow: LogicalRect<Au>,
 
     /// Data used during parallel traversals.
     ///
@@ -662,7 +660,7 @@ pub struct BaseFlow {
     pub collapsible_margins: CollapsibleMargins,
 
     /// The position of this flow in page coordinates, computed during display list construction.
-    pub abs_position: Point2D<Au>,
+    pub abs_position: LogicalPoint<Au>,
 
     /// Details about descendants with position 'absolute' or 'fixed' for which we are the
     /// containing block. This is in tree order. This includes any direct children.
@@ -670,10 +668,10 @@ pub struct BaseFlow {
 
     /// Offset wrt the nearest positioned ancestor - aka the Containing Block
     /// for any absolutely positioned elements.
-    pub absolute_static_x_offset: Au,
+    pub absolute_static_i_offset: Au,
 
     /// Offset wrt the Initial Containing Block.
-    pub fixed_static_x_offset: Au,
+    pub fixed_static_i_offset: Au,
 
     /// Reference to the Containing Block, if this flow is absolutely positioned.
     pub absolute_cb: ContainingBlockLink,
@@ -681,7 +679,7 @@ pub struct BaseFlow {
     /// Information needed to compute absolute (i.e. viewport-relative) flow positions (not to be
     /// confused with absolutely-positioned flows).
     ///
-    /// FIXME(pcwalton): Merge with `absolute_static_x_offset` and `fixed_static_x_offset` above?
+    /// FIXME(pcwalton): Merge with `absolute_static_i_offset` and `fixed_static_i_offset` above?
     pub absolute_position_info: AbsolutePositionInfo,
 
     /// The unflattened display items for this flow.
@@ -692,6 +690,8 @@ pub struct BaseFlow {
 
     /// Various flags for flows, tightly packed to save space.
     pub flags: FlowFlags,
+
+    pub writing_mode: WritingMode,
 }
 
 #[unsafe_destructor]
@@ -706,6 +706,7 @@ impl Drop for BaseFlow {
 impl BaseFlow {
     #[inline]
     pub fn new(node: ThreadSafeLayoutNode) -> BaseFlow {
+        let writing_mode = node.style().writing_mode;
         BaseFlow {
             ref_count: AtomicUint::new(1),
 
@@ -715,24 +716,25 @@ impl BaseFlow {
             next_sibling: None,
             prev_sibling: None,
 
-            intrinsic_widths: IntrinsicWidths::new(),
-            position: Rect::zero(),
-            overflow: Rect::zero(),
+            intrinsic_inline_sizes: IntrinsicISizes::new(),
+            position: LogicalRect::zero(writing_mode),
+            overflow: LogicalRect::zero(writing_mode),
 
             parallel: FlowParallelInfo::new(),
 
-            floats: Floats::new(),
+            floats: Floats::new(writing_mode),
             collapsible_margins: CollapsibleMargins::new(),
-            abs_position: Point2D(Au::new(0), Au::new(0)),
+            abs_position: LogicalPoint::zero(writing_mode),
             abs_descendants: Descendants::new(),
-            absolute_static_x_offset: Au::new(0),
-            fixed_static_x_offset: Au::new(0),
+            absolute_static_i_offset: Au::new(0),
+            fixed_static_i_offset: Au::new(0),
             absolute_cb: ContainingBlockLink::new(),
             display_list: DisplayList::new(),
             layers: DList::new(),
-            absolute_position_info: AbsolutePositionInfo::new(),
+            absolute_position_info: AbsolutePositionInfo::new(writing_mode),
 
             flags: FlowFlags::new(),
+            writing_mode: writing_mode,
         }
     }
 
@@ -973,14 +975,14 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
                     continue;
                 }
                 let mut kid_overflow = base(kid).overflow;
-                kid_overflow = kid_overflow.translate(&my_position.origin);
+                kid_overflow = kid_overflow.translate(&my_position.start);
                 overflow = overflow.union(&kid_overflow)
             }
 
             // FIXME(#2004, pcwalton): This is wrong for `position: fixed`.
             for descendant_link in mut_base(self).abs_descendants.iter() {
                 let mut kid_overflow = base(descendant_link).overflow;
-                kid_overflow = kid_overflow.translate(&my_position.origin);
+                kid_overflow = kid_overflow.translate(&my_position.start);
                 overflow = overflow.union(&kid_overflow)
             }
         }
@@ -1076,7 +1078,7 @@ impl ContainingBlockLink {
     }
 
     #[inline]
-    pub fn generated_containing_block_rect(&mut self) -> Rect<Au> {
+    pub fn generated_containing_block_rect(&mut self) -> LogicalRect<Au> {
         match self.link {
             None => fail!("haven't done it"),
             Some(ref mut link) => link.get_mut().generated_containing_block_rect(),

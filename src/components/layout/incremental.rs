@@ -11,12 +11,12 @@ bitflags! {
         #[doc = "Currently unused; need to decide how this propagates."]
         static Repaint = 0x01,
 
-        #[doc = "Recompute intrinsic widths (minimum and preferred)."]
+        #[doc = "Recompute intrinsic inline_sizes (minimum and preferred)."]
         #[doc = "Propagates down the flow tree because the computation is"]
         #[doc = "bottom-up."]
-        static BubbleWidths = 0x02,
+        static BubbleISizes = 0x02,
 
-        #[doc = "Recompute actual widths and heights."]
+        #[doc = "Recompute actual inline_sizes and block_sizes."]
         #[doc = "Propagates up the flow tree because the computation is"]
         #[doc = "top-down."]
         static Reflow = 0x04
@@ -31,7 +31,7 @@ impl RestyleDamage {
 
     /// Elements of self which should also get set on any child flows.
     pub fn propagate_down(self) -> RestyleDamage {
-        self & BubbleWidths
+        self & BubbleISizes
     }
 }
 
@@ -61,7 +61,7 @@ pub fn compute_damage(old: &ComputedValues, new: &ComputedValues) -> RestyleDama
           get_border.border_top_color, get_border.border_right_color,
           get_border.border_bottom_color, get_border.border_left_color ]);
 
-    add_if_not_equal!(old, new, damage, [ Repaint, BubbleWidths, Reflow ],
+    add_if_not_equal!(old, new, damage, [ Repaint, BubbleISizes, Reflow ],
         [ get_border.border_top_width, get_border.border_right_width,
           get_border.border_bottom_width, get_border.border_left_width,
           get_margin.margin_top, get_margin.margin_right,
