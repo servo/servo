@@ -4,12 +4,14 @@
 
 use dom::bindings::codegen::Bindings::WorkerBinding;
 use dom::bindings::codegen::Bindings::WorkerBinding::WorkerMethods;
+use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::error::{Fallible, Syntax};
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use dom::eventtarget::{EventTarget, WorkerTypeId};
+use dom::messageevent::MessageEvent;
 use script_task::{ScriptChan, DOMMessage};
 
 use servo_util::str::DOMString;
@@ -65,6 +67,14 @@ impl Worker {
             worker_url, worker_ref, resource_task, receiver, sender);
 
         Ok(Temporary::from_rooted(&*worker))
+    }
+
+    pub fn handle_message(address: TrustedWorkerAddress, message: DOMString) {
+        let worker = unsafe { JS::from_trusted_worker_address(address).root() };
+
+        let target: &JSRef<EventTarget> = EventTargetCast::from_ref(&*worker);
+        let global = worker.global.root();
+        MessageEvent::dispatch(target, &global.root_ref(), message);
     }
 }
 

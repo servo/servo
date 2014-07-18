@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding;
+use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding::DedicatedWorkerGlobalScopeMethods;
 use dom::bindings::codegen::InheritTypes::DedicatedWorkerGlobalScopeDerived;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, WorkerGlobalScopeCast};
 use dom::bindings::global::Worker;
@@ -18,9 +19,11 @@ use dom::workerglobalscope::WorkerGlobalScope;
 use dom::xmlhttprequest::XMLHttpRequest;
 use script_task::{ScriptTask, ScriptChan};
 use script_task::{ScriptMsg, DOMMessage, XHRProgressMsg, WorkerRelease};
+use script_task::WorkerPostMessage;
 use script_task::StackRootTLS;
 
 use servo_net::resource_task::{ResourceTask, load_whole_resource};
+use servo_util::str::DOMString;
 
 use js::rust::Cx;
 
@@ -114,6 +117,9 @@ impl DedicatedWorkerGlobalScope {
                     Ok(XHRProgressMsg(addr, progress)) => {
                         XMLHttpRequest::handle_xhr_progress(addr, progress)
                     },
+                    Ok(WorkerPostMessage(addr, message)) => {
+                        Worker::handle_message(addr, message);
+                    },
                     Ok(WorkerRelease(addr)) => {
                         Worker::handle_release(addr)
                     },
@@ -125,7 +131,13 @@ impl DedicatedWorkerGlobalScope {
     }
 }
 
-pub trait DedicatedWorkerGlobalScopeMethods {
+impl<'a> DedicatedWorkerGlobalScopeMethods for JSRef<'a, DedicatedWorkerGlobalScope> {
+    fn PostMessage(&self, message: DOMString) {
+        let scope: &JSRef<WorkerGlobalScope> =
+            WorkerGlobalScopeCast::from_ref(self);
+        let ScriptChan(ref sender) = *scope.script_chan();
+        sender.send(WorkerPostMessage(*self.worker, message));
+    }
 }
 
 trait PrivateDedicatedWorkerGlobalScopeHelpers {

@@ -87,6 +87,8 @@ pub enum ScriptMsg {
     /// Message sent through Worker.postMessage (only dispatched to
     /// DedicatedWorkerGlobalScope).
     DOMMessage(DOMString),
+    /// Posts a message to the Worker object (dispatched to all tasks).
+    WorkerPostMessage(TrustedWorkerAddress, DOMString),
     /// Releases one reference to the Worker object (dispatched to all tasks).
     WorkerRelease(TrustedWorkerAddress),
 }
@@ -444,6 +446,7 @@ impl ScriptTask {
                 FromConstellation(ResizeMsg(..)) => fail!("should have handled ResizeMsg already"),
                 FromScript(XHRProgressMsg(addr, progress)) => XMLHttpRequest::handle_xhr_progress(addr, progress),
                 FromScript(DOMMessage(..)) => fail!("unexpected message"),
+                FromScript(WorkerPostMessage(addr, message)) => Worker::handle_message(addr, message),
                 FromScript(WorkerRelease(addr)) => Worker::handle_release(addr),
             }
         }
