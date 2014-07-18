@@ -56,13 +56,14 @@ pub extern "C" fn cef_run_message_loop() {
         device_pixels_per_px: None,
         time_profiler_period: None,
         memory_profiler_period: None,
+        enable_experimental: false,
         layout_threads: 1,
         //layout_threads: cmp::max(rt::default_sched_threads() * 3 / 4, 1),
         exit_after_load: false,
         output_file: None,
         headless: false,
         hard_fail: false,
-        bubble_widths_separately: false,
+        bubble_inline_sizes_separately: false,
     };
     native::start(0, 0 as **u8, proc() {
        servo::run(opts);

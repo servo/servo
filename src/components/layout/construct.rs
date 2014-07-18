@@ -294,7 +294,7 @@ impl<'a> FlowConstructor<'a> {
 
         let mut inline_flow = box InlineFlow::from_fragments((*node).clone(), fragments);
         let (ascent, descent) = inline_flow.compute_minimum_ascent_and_descent(self.font_context(), &**node.style());
-        inline_flow.minimum_height_above_baseline = ascent;
+        inline_flow.minimum_block_size_above_baseline = ascent;
         inline_flow.minimum_depth_below_baseline = descent;
         let mut inline_flow = inline_flow as Box<Flow>;
         TextRunScanner::new().scan_for_runs(self.font_context(), inline_flow);
@@ -1037,10 +1037,10 @@ pub trait FlowConstructionUtils {
     fn add_new_child(&mut self, new_child: FlowRef);
 
     /// Finishes a flow. Once a flow is finished, no more child flows or boxes may be added to it.
-    /// This will normally run the bubble-widths (minimum and preferred -- i.e. intrinsic -- width)
-    /// calculation, unless the global `bubble_widths_separately` flag is on.
+    /// This will normally run the bubble-inline-sizes (minimum and preferred -- i.e. intrinsic -- inline-size)
+    /// calculation, unless the global `bubble_inline-sizes_separately` flag is on.
     ///
-    /// All flows must be finished at some point, or they will not have their intrinsic widths
+    /// All flows must be finished at some point, or they will not have their intrinsic inline-sizes
     /// properly computed. (This is not, however, a memory safety problem.)
     fn finish(&mut self, context: &mut LayoutContext);
 }
@@ -1062,16 +1062,16 @@ impl FlowConstructionUtils for FlowRef {
     }
 
     /// Finishes a flow. Once a flow is finished, no more child flows or fragments may be added to
-    /// it. This will normally run the bubble-widths (minimum and preferred -- i.e. intrinsic --
-    /// width) calculation, unless the global `bubble_widths_separately` flag is on.
+    /// it. This will normally run the bubble-inline-sizes (minimum and preferred -- i.e. intrinsic --
+    /// inline-size) calculation, unless the global `bubble_inline-sizes_separately` flag is on.
     ///
-    /// All flows must be finished at some point, or they will not have their intrinsic widths
+    /// All flows must be finished at some point, or they will not have their intrinsic inline-sizes
     /// properly computed. (This is not, however, a memory safety problem.)
     ///
     /// This must not be public because only the layout constructor can do this.
     fn finish(&mut self, context: &mut LayoutContext) {
-        if !context.opts.bubble_widths_separately {
-            self.get_mut().bubble_widths(context)
+        if !context.opts.bubble_inline_sizes_separately {
+            self.get_mut().bubble_inline_sizes(context)
         }
     }
 }

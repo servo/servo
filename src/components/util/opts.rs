@@ -67,7 +67,7 @@ pub struct Opts {
     /// intrinsic widths are computed as a separate pass instead of during flow construction. You
     /// may wish to turn this flag on in order to benchmark style recalculation against other
     /// browser engines.
-    pub bubble_widths_separately: bool,
+    pub bubble_inline_sizes_separately: bool,
 }
 
 fn print_usage(app: &str, opts: &[getopts::OptGroup]) {
@@ -186,7 +186,7 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
         output_file: opt_match.opt_str("o"),
         headless: opt_match.opt_present("z"),
         hard_fail: opt_match.opt_present("f"),
-        bubble_widths_separately: opt_match.opt_present("b"),
+        bubble_inline_sizes_separately: opt_match.opt_present("b"),
     })
 }
 

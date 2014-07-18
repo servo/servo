@@ -15,6 +15,7 @@ use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::TextRun;
 use gfx::text::util::{CompressWhitespaceNewline, transform_text, CompressNone};
 use servo_util::geometry::Au;
+use servo_util::logical_geometry::LogicalSize;
 use servo_util::range::Range;
 use style::ComputedValues;
 use style::computed_values::{font_family, line_height, white_space};
@@ -151,9 +152,11 @@ impl TextRunScanner {
                            *text);
                     let range = Range::new(CharIndex(0), run.char_len());
                     let new_metrics = run.metrics_for_range(&range);
+                    let bounding_box_size = LogicalSize::from_physical(
+                        old_fragment.style.writing_mode, new_metrics.bounding_box.size);
                     let new_text_fragment_info = ScannedTextFragmentInfo::new(Arc::new(run), range);
-                    let mut new_fragment = old_fragment.transform(new_metrics.bounding_box.size,
-                                                                  ScannedTextFragment(new_text_fragment_info));
+                    let mut new_fragment = old_fragment.transform(
+                        bounding_box_size, ScannedTextFragment(new_text_fragment_info));
                     new_fragment.new_line_pos = new_line_pos;
                     out_fragments.push(new_fragment)
                 }
@@ -236,9 +239,12 @@ impl TextRunScanner {
                     }
 
                     let new_text_fragment_info = ScannedTextFragmentInfo::new(run.get_ref().clone(), *range);
+                    let old_fragment = &in_fragments[i.to_uint()];
                     let new_metrics = new_text_fragment_info.run.metrics_for_range(range);
-                    let mut new_fragment = in_fragments[i.to_uint()].transform(new_metrics.bounding_box.size,
-                                                                               ScannedTextFragment(new_text_fragment_info));
+                    let bounding_box_size = LogicalSize::from_physical(
+                        old_fragment.style.writing_mode, new_metrics.bounding_box.size);
+                    let mut new_fragment = old_fragment.transform(
+                        bounding_box_size, ScannedTextFragment(new_text_fragment_info));
                     new_fragment.new_line_pos = new_line_positions.get(logical_offset.to_uint()).new_line_pos.clone();
                     out_fragments.push(new_fragment)
                 }
@@ -288,7 +294,7 @@ pub fn computed_style_to_font_style(style: &ComputedValues) -> FontStyle {
     }
 }
 
-/// Returns the line height needed by the given computed style and font size.
+/// Returns the line block-size needed by the given computed style and font size.
 ///
 /// FIXME(pcwalton): I believe this should not take a separate `font-size` parameter.
 pub fn line_height_from_style(style: &ComputedValues, font_size: Au) -> Au {
