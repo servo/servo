@@ -20,6 +20,7 @@ use dom::eventtarget::{EventTarget, EventTargetHelpers};
 use dom::node;
 use dom::node::{ElementNodeTypeId, Node, NodeHelpers};
 use dom::window::{TimerId, Window, WindowHelpers};
+use dom::worker::{Worker, TrustedWorkerAddress};
 use dom::xmlhttprequest::{TrustedXHRAddress, XMLHttpRequest, XHRProgress};
 use html::hubbub_html_parser::HtmlParserResult;
 use html::hubbub_html_parser::{HtmlDiscoveredStyle, HtmlDiscoveredScript};
@@ -86,6 +87,8 @@ pub enum ScriptMsg {
     /// Message sent through Worker.postMessage (only dispatched to
     /// DedicatedWorkerGlobalScope).
     DOMMessage(DOMString),
+    /// Releases one reference to the Worker object (dispatched to all tasks).
+    WorkerRelease(TrustedWorkerAddress),
 }
 
 /// Encapsulates internal communication within the script task.
@@ -441,6 +444,7 @@ impl ScriptTask {
                 FromConstellation(ResizeMsg(..)) => fail!("should have handled ResizeMsg already"),
                 FromScript(XHRProgressMsg(addr, progress)) => XMLHttpRequest::handle_xhr_progress(addr, progress),
                 FromScript(DOMMessage(..)) => fail!("unexpected message"),
+                FromScript(WorkerRelease(addr)) => Worker::handle_release(addr),
             }
         }
 
