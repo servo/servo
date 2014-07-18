@@ -249,23 +249,27 @@ impl Window {
                     _ => {
                         let dx = (xpos as f32) * 30.0;
                         let dy = (ypos as f32) * 30.0;
-
-                        let (x, y) = window.get_cursor_pos();
-                        //handle hidpi displays, since GLFW returns non-hi-def coordinates.
-                        let (backing_size, _) = window.get_framebuffer_size();
-                        let (window_size, _) = window.get_size();
-                        let hidpi = (backing_size as f32) / (window_size as f32);
-                        let x = x as f32 * hidpi;
-                        let y = y as f32 * hidpi;
-
-                        self.event_queue.borrow_mut().push(ScrollWindowEvent(TypedPoint2D(dx, dy),
-                        TypedPoint2D(x as i32, y as i32)));
+                        self.scroll_window(dx, dy);
                     }
                 }
 
             },
             _ => {}
         }
+    }
+
+    /// Helper function to send a scroll event.
+    fn scroll_window(&self, dx: f32, dy: f32) {
+        let (x, y) = self.glfw_window.get_cursor_pos();
+        //handle hidpi displays, since GLFW returns non-hi-def coordinates.
+        let (backing_size, _) = self.glfw_window.get_framebuffer_size();
+        let (window_size, _) = self.glfw_window.get_size();
+        let hidpi = (backing_size as f32) / (window_size as f32);
+        let x = x as f32 * hidpi;
+        let y = y as f32 * hidpi;
+
+        self.event_queue.borrow_mut().push(ScrollWindowEvent(TypedPoint2D(dx, dy),
+        TypedPoint2D(x as i32, y as i32)));
     }
 
     /// Helper function to set the window title in accordance with the ready state.
@@ -315,6 +319,14 @@ impl Window {
             }
             glfw::KeyBackspace => { // Backspace
                 self.event_queue.borrow_mut().push(NavigationWindowEvent(Back));
+            }
+            glfw::KeyPageDown => {
+                let (_, height) = self.glfw_window.get_size();
+                self.scroll_window(0.0, -height as f32);
+            }
+            glfw::KeyPageUp => {
+                let (_, height) = self.glfw_window.get_size();
+                self.scroll_window(0.0, height as f32);
             }
             _ => {}
         }
