@@ -4,12 +4,14 @@
 
 use dom::bindings::codegen::Bindings::MessageEventBinding;
 use dom::bindings::codegen::InheritTypes::{EventCast, MessageEventDerived};
+use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::trace::Traceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{Event, EventMethods, MessageEventTypeId};
+use dom::eventtarget::{EventTarget, EventTargetHelpers};
 
 use servo_util::str::DOMString;
 
@@ -60,6 +62,19 @@ impl MessageEvent {
         let ev = MessageEvent::new(global, type_, init.parent.bubbles, init.parent.cancelable,
                                    init.data, init.origin.clone(), init.lastEventId.clone());
         Ok(ev)
+    }
+}
+
+impl MessageEvent {
+    pub fn dispatch(target: &JSRef<EventTarget>,
+                    scope: &GlobalRef,
+                    message: DOMString) {
+        let messageevent = MessageEvent::new(
+            scope, "message".to_string(), false, false,
+            message.to_jsval(scope.get_cx()),
+            "".to_string(), "".to_string()).root();
+        let event: &JSRef<Event> = EventCast::from_ref(&*messageevent);
+        target.dispatch_event_with_target(None, &*event).unwrap();
     }
 }
 
