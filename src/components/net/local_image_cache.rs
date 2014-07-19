@@ -12,7 +12,7 @@ use image_cache_task::{Decode, GetImage, ImageCacheTask, ImageFailed, ImageNotRe
 use image_cache_task::{ImageResponseMsg, Prefetch, WaitForImage};
 
 use std::comm::{Receiver, channel};
-use servo_util::url::{UrlMap, url_map};
+use std::collections::hashmap::HashMap;
 use servo_util::task::spawn_named;
 use url::Url;
 
@@ -24,7 +24,7 @@ pub struct LocalImageCache {
     image_cache_task: ImageCacheTask,
     round_number: uint,
     on_image_available: Option<Box<ImageResponder+Send>>,
-    state_map: UrlMap<ImageState>
+    state_map: HashMap<Url, ImageState>
 }
 
 impl LocalImageCache {
@@ -33,7 +33,7 @@ impl LocalImageCache {
             image_cache_task: image_cache_task,
             round_number: 1,
             on_image_available: None,
-            state_map: url_map()
+            state_map: HashMap::new()
         }
     }
 }

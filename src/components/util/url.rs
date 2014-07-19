@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::collections::hashmap::HashMap;
 use rust_url;
 use rust_url::{Url, UrlParser};
 
@@ -28,13 +27,6 @@ pub fn try_parse_url(str_url: &str, base_url: Option<Url>) -> Result<Url, &'stat
 pub fn parse_url(str_url: &str, base_url: Option<rust_url::Url>) -> rust_url::Url {
     // FIXME: Need to handle errors
     try_parse_url(str_url, base_url).ok().expect("URL parsing failed")
-}
-
-
-pub type UrlMap<T> = HashMap<rust_url::Url, T>;
-
-pub fn url_map<T: Clone + 'static>() -> UrlMap<T> {
-    HashMap::new()
 }
 
 

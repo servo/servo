@@ -5,9 +5,9 @@
 use image::base::{Image, load_from_memory};
 use resource_task;
 use resource_task::{LoadData, ResourceTask};
-use servo_util::url::{UrlMap, url_map};
 
 use std::comm::{channel, Receiver, Sender};
+use std::collections::hashmap::HashMap;
 use std::mem::replace;
 use std::task::spawn;
 use std::result;
@@ -88,8 +88,8 @@ impl ImageCacheTask {
                 resource_task: resource_task.clone(),
                 port: port,
                 chan: chan_clone,
-                state_map: url_map(),
-                wait_map: url_map(),
+                state_map: HashMap::new(),
+                wait_map: HashMap::new(),
                 need_exit: None
             };
             cache.run();
@@ -136,9 +136,9 @@ struct ImageCache {
     /// A copy of the shared chan to give to child tasks
     chan: Sender<Msg>,
     /// The state of processsing an image for a URL
-    state_map: UrlMap<ImageState>,
+    state_map: HashMap<Url, ImageState>,
     /// List of clients waiting on a WaitForImage response
-    wait_map: UrlMap<Arc<Mutex<Vec<Sender<ImageResponseMsg>>>>>,
+    wait_map: HashMap<Url, Arc<Mutex<Vec<Sender<ImageResponseMsg>>>>>,
     need_exit: Option<Sender<()>>,
 }
 
