@@ -28,7 +28,6 @@ use geom::size::TypedSize2D;
 use geom::scale_factor::ScaleFactor;
 use gfx::render_task::ReRenderMsg;
 use layers::layers::LayerBufferSet;
-use layers::platform::surface::NativeCompositingGraphicsContext;
 use layers::rendergl;
 use layers::rendergl::RenderContext;
 use layers::scene::Scene;
@@ -80,9 +79,6 @@ pub struct IOCompositor {
 
     /// The device pixel ratio for this window.
     hidpi_factor: ScaleFactor<ScreenPx, DevicePixel, f32>,
-
-    /// The platform-specific graphics context.
-    graphics_context: NativeCompositingGraphicsContext,
 
     /// Tracks whether the renderer has finished its first rendering
     composite_ready: bool,
@@ -151,12 +147,11 @@ impl IOCompositor {
             window: window,
             port: port,
             opts: opts,
-            context: rendergl::init_render_context(),
+            context: rendergl::init_render_context(CompositorTask::create_graphics_context()),
             root_pipeline: None,
             scene: Scene::new(window_size.as_f32().to_untyped(), identity()),
             window_size: window_size,
             hidpi_factor: hidpi_factor,
-            graphics_context: CompositorTask::create_graphics_context(),
             composite_ready: false,
             shutdown_state: NotShuttingDown,
             recomposite: false,
@@ -498,7 +493,6 @@ impl IOCompositor {
                                                                             layer_id) {
                     Some(ref layer) => {
                         assert!(CompositorData::add_buffers(layer.clone(),
-                                                            &self.graphics_context,
                                                             new_layer_buffer_set,
                                                             epoch));
                         self.recomposite = true;
@@ -750,7 +744,6 @@ impl IOCompositor {
                 let recomposite =
                     CompositorData::get_buffer_requests_recursively(&mut request_map,
                                                                     layer.clone(),
-                                                                    &self.graphics_context,
                                                                     rect,
                                                                     scale.get());
                 for (_pipeline_id, (chan, requests)) in request_map.move_iter() {
