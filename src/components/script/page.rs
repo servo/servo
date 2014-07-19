@@ -319,7 +319,7 @@ impl Page {
                 self.join_layout();
 
                 // Tell the user that we're performing layout.
-                compositor.set_ready_state(PerformingLayout);
+                compositor.set_ready_state(self.id, PerformingLayout);
 
                 // Layout will let us know when it's done.
                 let (join_chan, join_port) = channel();

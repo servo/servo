@@ -246,6 +246,7 @@ impl<C:RenderListener + Send> RenderTask<C> {
                     }
 
                     let mut replies = Vec::new();
+                    self.compositor.set_render_state(RenderingRenderState, self.id);
                     for ReRenderRequest { buffer_requests, scale, layer_id, epoch }
                           in requests.move_iter() {
                         if self.epoch == epoch {
@@ -254,6 +255,7 @@ impl<C:RenderListener + Send> RenderTask<C> {
                             debug!("renderer epoch mismatch: {:?} != {:?}", self.epoch, epoch);
                         }
                     }
+                    self.compositor.set_render_state(IdleRenderState, self.id);
 
                     debug!("render_task: returning surfaces");
                     self.compositor.paint(self.id, self.epoch, replies);
@@ -265,17 +267,11 @@ impl<C:RenderListener + Send> RenderTask<C> {
                 }
                 PaintPermissionGranted => {
                     self.paint_permission = true;
-
-                    // Here we assume that the main layer—the layer responsible for the page size—
-                    // is the first layer. This is a pretty fragile assumption. It will be fixed
-                    // once we use the layers-based scrolling infrastructure for all scrolling.
-                    if self.render_layers.len() > 1 {
-                        self.epoch.next();
-                        initialize_layers(&mut self.compositor,
-                                          self.id,
-                                          self.epoch,
-                                          self.render_layers.as_slice());
-                    }
+                    self.epoch.next();
+                    initialize_layers(&mut self.compositor,
+                                      self.id,
+                                      self.epoch,
+                                      self.render_layers.as_slice());
                 }
                 PaintPermissionRevoked => {
                     self.paint_permission = false;
@@ -304,8 +300,6 @@ impl<C:RenderListener + Send> RenderTask<C> {
                 Some(render_layer) => render_layer,
                 None => return,
             };
-
-            self.compositor.set_render_state(RenderingRenderState);
 
             // Divide up the layer into tiles.
             for tile in tiles.iter() {
@@ -443,8 +437,6 @@ impl<C:RenderListener + Send> RenderTask<C> {
             };
 
             replies.push((render_layer.id, layer_buffer_set));
-            self.compositor.set_render_state(IdleRenderState);
         })
     }
 }
-

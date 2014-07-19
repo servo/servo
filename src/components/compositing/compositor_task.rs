@@ -38,8 +38,8 @@ pub struct CompositorChan {
 
 /// Implementation of the abstract `ScriptListener` interface.
 impl ScriptListener for CompositorChan {
-    fn set_ready_state(&self, ready_state: ReadyState) {
-        let msg = ChangeReadyState(ready_state);
+    fn set_ready_state(&self, pipeline_id: PipelineId, ready_state: ReadyState) {
+        let msg = ChangeReadyState(ready_state, pipeline_id);
         self.chan.send(msg);
     }
 
@@ -117,8 +117,6 @@ impl RenderListener for CompositorChan {
             } else {
                 self.chan.send(CreateOrUpdateDescendantLayer(layer_properties));
             }
-
-            self.chan.send(SetLayerClipRect(pipeline_id, metadata.id, layer_properties.rect));
         }
     }
 
@@ -133,8 +131,10 @@ impl RenderListener for CompositorChan {
         self.chan.send(SetLayerClipRect(pipeline_id, layer_id, new_rect))
     }
 
-    fn set_render_state(&self, render_state: RenderState) {
-        self.chan.send(ChangeRenderState(render_state))
+    fn set_render_state(&self,
+                        render_state: RenderState,
+                        pipeline_id: PipelineId) {
+        self.chan.send(ChangeRenderState(render_state, pipeline_id))
     }
 }
 
@@ -175,15 +175,16 @@ pub enum Msg {
     /// layer with that ID exists).
     CreateOrUpdateDescendantLayer(LayerProperties),
     /// Alerts the compositor that the specified layer's clipping rect has changed.
+    /// If LayerId is LayerId::null() then set the pipeline root layer clipping rect.
     SetLayerClipRect(PipelineId, LayerId, Rect<f32>),
     /// Scroll a page in a window
     ScrollFragmentPoint(PipelineId, LayerId, Point2D<f32>),
     /// Requests that the compositor paint the given layer buffer set for the given page size.
     Paint(PipelineId, Epoch, Vec<(LayerId, Box<LayerBufferSet>)>),
     /// Alerts the compositor to the current status of page loading.
-    ChangeReadyState(ReadyState),
+    ChangeReadyState(ReadyState, PipelineId),
     /// Alerts the compositor to the current status of rendering.
-    ChangeRenderState(RenderState),
+    ChangeRenderState(RenderState, PipelineId),
     /// Sets the channel to the current layout and render tasks, along with their id
     SetIds(SendableFrameTree, Sender<()>, ConstellationChan),
     /// The load of a page for a given URL has completed.
