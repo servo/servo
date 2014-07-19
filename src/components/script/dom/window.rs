@@ -24,7 +24,6 @@ use servo_msg::compositor_msg::ScriptListener;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_util::str::DOMString;
 use servo_util::task::{spawn_named};
-use servo_util::url::parse_url;
 
 use js::jsapi::JS_CallFunctionValue;
 use js::jsapi::JSContext;
@@ -46,7 +45,7 @@ use std::rc::Rc;
 use time;
 
 use serialize::{Encoder, Encodable};
-use url::Url;
+use url::{Url, UrlParser};
 
 #[deriving(PartialEq, Encodable, Eq)]
 pub struct TimerId(i32);
@@ -316,9 +315,11 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
 
     /// Commence a new URL load which will either replace this window or scroll to a fragment.
     fn load_url(&self, href: DOMString) {
-        let base_url = Some(self.page().get_url());
+        let base_url = self.page().get_url();
         debug!("current page url is {:?}", base_url);
-        let url = parse_url(href.as_slice(), base_url);
+        let url = UrlParser::new().base_url(&base_url).parse(href.as_slice());
+        // FIXME: handle URL parse errors more gracefully.
+        let url = url.unwrap();
         let ScriptChan(ref script_chan) = self.script_chan;
         if href.as_slice().starts_with("#") {
             script_chan.send(TriggerFragmentMsg(self.page.id, url));

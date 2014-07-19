@@ -29,7 +29,6 @@ use servo_net::resource_task;
 use servo_util::geometry::PagePx;
 use servo_util::opts::Opts;
 use servo_util::time::TimeProfilerChan;
-use servo_util::url::parse_url;
 use servo_util::task::spawn_named;
 use std::cell::RefCell;
 use std::kinds::marker;
@@ -446,7 +445,7 @@ impl<LTF: LayoutTaskFactory> Constellation<LTF> {
         debug!("creating replacement pipeline for about:failure");
 
         let new_id = self.get_next_pipeline_id();
-        let pipeline = self.new_pipeline(new_id, subpage_id, parse_url("about:failure", None));
+        let pipeline = self.new_pipeline(new_id, subpage_id, Url::parse("about:failure").unwrap());
         pipeline.load();
 
         let pipeline_wrapped = Rc::new(pipeline);

@@ -7,7 +7,6 @@
 pub use std::ascii::StrAsciiExt;
 use serialize::{Encodable, Encoder};
 
-pub use servo_util::url::parse_url;
 use servo_util::logical_geometry::{WritingMode, LogicalMargin};
 use sync::Arc;
 pub use url::Url;
@@ -597,7 +596,7 @@ pub mod longhands {
             pub fn from_component_value(component_value: &ComponentValue, base_url: &Url) -> Option<SpecifiedValue> {
                 match component_value {
                     &ast::URL(ref url) => {
-                        let image_url = parse_url(url.as_slice(), Some(base_url.clone()));
+                        let image_url = parse_url(url.as_slice(), base_url);
                         Some(Some(image_url))
                     },
                     &ast::Ident(ref value) if value.as_slice().eq_ignore_ascii_case("none") => Some(None),

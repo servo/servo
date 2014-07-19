@@ -42,12 +42,13 @@ use servo_util::geometry::{DevicePixel, PagePx, ScreenPx, ViewportPx};
 use servo_util::memory::MemoryProfilerChan;
 use servo_util::opts::Opts;
 use servo_util::time::{profile, TimeProfilerChan};
-use servo_util::{memory, time, url};
+use servo_util::{memory, time};
 use std::io::timer::sleep;
 use std::collections::hashmap::HashMap;
 use std::path::Path;
 use std::rc::Rc;
 use time::precise_time_s;
+use url::Url;
 
 
 pub struct IOCompositor {
@@ -626,7 +627,7 @@ impl IOCompositor {
                            layers"),
         };
 
-        let msg = LoadUrlMsg(root_pipeline_id, url::parse_url(url_string.as_slice(), None));
+        let msg = LoadUrlMsg(root_pipeline_id, Url::parse(url_string.as_slice()).unwrap());
         let ConstellationChan(ref chan) = self.constellation_chan;
         chan.send(msg);
     }

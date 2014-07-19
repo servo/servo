@@ -17,10 +17,9 @@ use dom::node::{Node, ElementNodeTypeId, NodeHelpers, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use servo_util::geometry::to_px;
 use servo_net::image_cache_task;
-use servo_util::url::parse_url;
 use servo_util::str::DOMString;
 use std::cell::RefCell;
-use url::Url;
+use url::{Url, UrlParser};
 
 #[deriving(Encodable)]
 pub struct HTMLImageElement {
@@ -35,13 +34,13 @@ impl HTMLImageElementDerived for EventTarget {
 }
 
 trait PrivateHTMLImageElementHelpers {
-    fn update_image(&self, value: Option<DOMString>, url: Option<Url>);
+    fn update_image(&self, value: Option<(DOMString, &Url)>);
 }
 
 impl<'a> PrivateHTMLImageElementHelpers for JSRef<'a, HTMLImageElement> {
     /// Makes the local `image` member match the status of the `src` attribute and starts
     /// prefetching the image. This method must be called after `src` is changed.
-    fn update_image(&self, value: Option<DOMString>, url: Option<Url>) {
+    fn update_image(&self, value: Option<(DOMString, &Url)>) {
         let node: &JSRef<Node> = NodeCast::from_ref(self);
         let document = node.owner_doc().root();
         let window = document.deref().window.root();
@@ -50,8 +49,10 @@ impl<'a> PrivateHTMLImageElementHelpers for JSRef<'a, HTMLImageElement> {
             None => {
                 *self.image.deref().borrow_mut() = None;
             }
-            Some(src) => {
-                let img_url = parse_url(src.as_slice(), url);
+            Some((src, base_url)) => {
+                let img_url = UrlParser::new().base_url(base_url).parse(src.as_slice());
+                // FIXME: handle URL parse errors more gracefully.
+                let img_url = img_url.unwrap();
                 *self.image.deref().borrow_mut() = Some(img_url.clone());
 
                 // inform the image cache to load this, but don't store a
@@ -254,8 +255,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLImageElement> {
 
         if "src" == name.as_slice() {
             let window = window_from_node(self).root();
-            let url = Some(window.deref().get_url());
-            self.update_image(Some(value), url);
+            let url = window.deref().get_url();
+            self.update_image(Some((value, &url)));
         }
     }
 
@@ -266,7 +267,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLImageElement> {
         }
 
         if "src" == name.as_slice() {
-            self.update_image(None, None);
+            self.update_image(None);
         }
     }
 
