@@ -162,40 +162,27 @@ each URL scheme
 */
 type LoaderTaskFactory = extern "Rust" fn() -> LoaderTask;
 
-/// Create a ResourceTask with the default loaders
+/// Create a ResourceTask
 pub fn new_resource_task() -> ResourceTask {
-    let loaders = vec!(
-        ("file".to_string(), file_loader::factory),
-        ("http".to_string(), http_loader::factory),
-        ("data".to_string(), data_loader::factory),
-    );
-    create_resource_task_with_loaders(loaders)
-}
-
-fn create_resource_task_with_loaders(loaders: Vec<(String, LoaderTaskFactory)>) -> ResourceTask {
     let (setup_chan, setup_port) = channel();
     let builder = TaskBuilder::new().named("ResourceManager");
     builder.spawn(proc() {
         let (chan, port) = channel();
         setup_chan.send(chan);
-        ResourceManager::new(port, loaders).start();
+        ResourceManager::new(port).start();
     });
     setup_port.recv()
 }
 
 struct ResourceManager {
     from_client: Receiver<ControlMsg>,
-    /// Per-scheme resource loaders
-    loaders: Vec<(String, LoaderTaskFactory)>,
 }
 
 
 impl ResourceManager {
-    fn new(from_client: Receiver<ControlMsg>, loaders: Vec<(String, LoaderTaskFactory)>)
-           -> ResourceManager {
+    fn new(from_client: Receiver<ControlMsg>) -> ResourceManager {
         ResourceManager {
             from_client : from_client,
-            loaders : loaders,
         }
     }
 }
@@ -216,29 +203,19 @@ impl ResourceManager {
     }
 
     fn load(&self, load_data: LoadData, start_chan: Sender<LoadResponse>) {
-        match self.get_loader_factory(&load_data) {
-            Some(loader_factory) => {
-                debug!("resource_task: loading url: {:s}", load_data.url.serialize());
-                loader_factory(load_data, start_chan);
-            }
-            None => {
+        let loader = match load_data.url.scheme.as_slice() {
+            "file" => file_loader::factory(),
+            "http" => http_loader::factory(),
+            "data" => data_loader::factory(),
+            _ => {
                 debug!("resource_task: no loader for scheme {:s}", load_data.url.scheme);
-                start_sending(start_chan, Metadata::default(load_data.url)).send(Done(Err("no loader for scheme".to_string())));
+                start_sending(start_chan, Metadata::default(load_data.url))
+                                          .send(Done(Err("no loader for scheme".to_string())));
+                return
             }
-        }
-    }
-
-    fn get_loader_factory(&self, load_data: &LoadData) -> Option<LoaderTask> {
-        for scheme_loader in self.loaders.iter() {
-            match *scheme_loader {
-                (ref scheme, ref loader_factory) => {
-                    if (*scheme) == load_data.url.scheme {
-                        return Some((*loader_factory)());
-                    }
-                }
-            }
-        }
-        return None;
+        };
+        debug!("resource_task: loading url: {:s}", load_data.url.serialize());
+        loader(load_data, start_chan);
     }
 }
 
@@ -259,34 +236,5 @@ fn test_bad_scheme() {
       Done(result) => { assert!(result.is_err()) }
       _ => fail!("bleh")
     }
-    resource_task.send(Exit);
-}
-
-#[cfg(test)]
-static snicklefritz_payload: [u8, ..3] = [1, 2, 3];
-
-#[cfg(test)]
-fn snicklefritz_loader_factory() -> LoaderTask {
-    let f: LoaderTask = proc(load_data: LoadData, start_chan: Sender<LoadResponse>) {
-        let progress_chan = start_sending(start_chan, Metadata::default(load_data.url));
-        progress_chan.send(Payload(Vec::from_slice(snicklefritz_payload)));
-        progress_chan.send(Done(Ok(())));
-    };
-    f
-}
-
-#[test]
-fn should_delegate_to_scheme_loader() {
-    let loader_factories = vec!(("snicklefritz".to_string(), snicklefritz_loader_factory));
-    let resource_task = create_resource_task_with_loaders(loader_factories);
-    let (start_chan, start) = channel();
-    let url = Url::parse("snicklefritz://heya").unwrap();
-    resource_task.send(Load(LoadData::new(url), start_chan));
-
-    let response = start.recv();
-    let progress = response.progress_port;
-
-    assert!(progress.recv() == Payload(Vec::from_slice(snicklefritz_payload)));
-    assert!(progress.recv() == Done(Ok(())));
     resource_task.send(Exit);
 }
