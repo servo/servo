@@ -4,6 +4,7 @@
 
 //! Element nodes.
 
+use cssparser::tokenize;
 use dom::attr::{Attr, ReplacedAttr, FirstSetAttr, AttrMethods, AttrHelpersForLayout};
 use dom::attr::{AttrValue, StringAttrValue, UIntAttrValue};
 use dom::attrlist::AttrList;
@@ -13,7 +14,7 @@ use dom::bindings::js::{JS, JSRef, Temporary, TemporaryPushable};
 use dom::bindings::js::{OptionalSettable, OptionalRootable, Root};
 use dom::bindings::trace::Traceable;
 use dom::bindings::utils::{Reflectable, Reflector};
-use dom::bindings::error::{ErrorResult, Fallible, NamespaceError, InvalidCharacter};
+use dom::bindings::error::{ErrorResult, Fallible, NamespaceError, InvalidCharacter, Syntax};
 use dom::bindings::utils::{QName, Name, InvalidXMLName, xml_name_type};
 use dom::clientrect::ClientRect;
 use dom::clientrectlist::ClientRectList;
@@ -28,6 +29,7 @@ use dom::nodelist::NodeList;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use layout_interface::ContentChangedDocumentDamage;
 use layout_interface::MatchSelectorsDocumentDamage;
+use style::{matches_compound_selector, NamespaceMap, parse_selector_list};
 use style;
 use servo_util::namespace;
 use servo_util::namespace::{Namespace, Null};
@@ -452,6 +454,7 @@ pub trait ElementMethods {
     fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>>;
     fn QuerySelectorAll(&self, selectors: DOMString) -> Fallible<Temporary<NodeList>>;
     fn Remove(&self);
+    fn Matches(&self, selectors: DOMString) -> Fallible<bool>;
 }
 
 impl<'a> ElementMethods for JSRef<'a, Element> {
@@ -759,6 +762,25 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     fn Remove(&self) {
         let node: &JSRef<Node> = NodeCast::from_ref(self);
         node.remove_self();
+    }
+
+    // http://dom.spec.whatwg.org/#dom-element-matches
+    fn Matches(&self, selectors: DOMString) -> Fallible<bool> {
+        let namespace = NamespaceMap::new();
+        match parse_selector_list(tokenize(selectors.as_slice()).map(|(token, _)| token).collect(),
+                                  &namespace) {
+            None => return Err(Syntax),
+            Some(ref selectors) => {
+                let root: &JSRef<Node> = NodeCast::from_ref(self);
+                for selector in selectors.iter() {
+                    let mut shareable = false;
+                    if matches_compound_selector(&*selector.compound_selectors, root, &mut shareable) {
+                        return Ok(true);
+                    }
+                }
+            }
+        }
+        Ok(false)
     }
 }
 
