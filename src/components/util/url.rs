@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::collections::hashmap::HashMap;
-use std::os;
 use rust_url;
 use rust_url::{Url, UrlParser};
 
@@ -22,25 +21,6 @@ pub fn try_parse_url(str_url: &str, base_url: Option<Url>) -> Result<Url, &'stat
     let parser = match base_url {
         Some(ref base) => &*parser.base_url(base),
         None => &parser,
-    };
-    let str_url = match parser.parse(str_url) {
-        Err(err) => {
-            if base_url.is_none() {
-                // Assume we've been given a file path. If it's absolute just return
-                // it, otherwise make it absolute with the cwd.
-                if str_url.as_slice().starts_with("/") {
-                    format!("file://{}", str_url)
-                } else {
-                    let mut path = os::getcwd();
-                    path.push(str_url);
-                    // FIXME (#1094): not the right way to transform a path
-                    format!("file://{}", path.display().to_str())
-                }
-            } else {
-                return Err(err)
-            }
-        },
-        Ok(url) => return Ok(url)
     };
     parser.parse(str_url.as_slice())
 }
