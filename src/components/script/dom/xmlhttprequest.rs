@@ -5,12 +5,12 @@
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType;
-use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseTypeValues::{_empty, Json, Text};
+use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseTypeValues::{_empty, Document, Json, Text};
 use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast, XMLHttpRequestDerived};
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult, Fallible, InvalidState, InvalidAccess};
 use dom::bindings::error::{Network, Syntax, Security, Abort, Timeout};
-use dom::bindings::global::{GlobalField, GlobalRef};
+use dom::bindings::global::{GlobalField, GlobalRef, WorkerField};
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootedRootable};
 use dom::bindings::str::ByteString;
 use dom::bindings::trace::{Traceable, Untraceable};
@@ -592,8 +592,10 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
         self.response_type.deref().get()
     }
     fn SetResponseType(&self, response_type: XMLHttpRequestResponseType) -> ErrorResult {
-        // FIXME: When Workers are implemented, there should be
-        // an additional check that this is a document environment
+        match self.global {
+            WorkerField(_) if response_type == Document => return Ok(()),
+            _ => {}
+        }
         match self.ready_state.deref().get() {
             Loading | XHRDone => Err(InvalidState),
             _ if self.sync.deref().get() => Err(InvalidAccess),
