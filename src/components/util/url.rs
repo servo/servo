@@ -42,21 +42,6 @@ pub fn try_parse_url(str_url: &str, base_url: Option<Url>) -> Result<Url, &'stat
         },
         Ok(url) => {
             match (url.scheme.as_slice(), url.scheme_data.clone()) {
-                ("about", rust_url::OtherSchemeData(scheme_data)) => {
-                    match scheme_data.as_slice() {
-                        "crash" => {
-                            fail!("about:crash");
-                        }
-                        "failure" => {
-                            let mut path = os::self_exe_path().expect("can't get exe path");
-                            path.push("../src/test/html/failure.html");
-                            // FIXME (#1094): not the right way to transform a path
-                            format!("file://{}", path.display().to_str())
-                        }
-                        // TODO: handle the rest of the about: pages
-                        _ => str_url.to_string()
-                    }
-                },
                 ("data", _) => {
                     // Drop whitespace within data: URLs, e.g. newlines within a base64
                     // src="..." block.  Whitespace intended as content should be
