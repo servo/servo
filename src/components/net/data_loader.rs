@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use std::str;
+
 use resource_task::{Done, Payload, Metadata, LoadData, LoadResponse, LoaderTask, start_sending};
 
 use serialize::base64::FromBase64;
@@ -59,21 +61,22 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
     metadata.set_content_type(&content_type);
 
     let progress_chan = start_sending(start_chan, metadata);
+    let bytes = percent_decode(parts.get(1).as_bytes());
 
     if is_base64 {
-        match (*parts.get(1)).from_base64() {
+        // FIXME(#2877): use bytes.as_slice().from_base64() when we upgrade to a Rust version
+        // that includes https://github.com/rust-lang/rust/pull/15810
+        let fake_utf8 = unsafe { str::raw::from_utf8(bytes.as_slice()) };
+        match fake_utf8.from_base64() {
             Err(..) => {
                 progress_chan.send(Done(Err("non-base64 data uri".to_string())));
             }
             Ok(data) => {
-                let data: Vec<u8> = data;
-                progress_chan.send(Payload(data.move_iter().collect()));
+                progress_chan.send(Payload(data));
                 progress_chan.send(Done(Ok(())));
             }
         }
     } else {
-        let mut bytes = Vec::new();
-        percent_decode(parts.get(1).as_bytes(), &mut bytes);
         progress_chan.send(Payload(bytes));
         progress_chan.send(Done(Ok(())));
     }
