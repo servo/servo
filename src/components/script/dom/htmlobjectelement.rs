@@ -22,7 +22,6 @@ use servo_net::image_cache_task;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_util::url::parse_url;
 use servo_util::namespace::Null;
-use servo_util::url::is_image_data;
 use url::Url;
 
 #[deriving(Encodable)]
@@ -72,6 +71,11 @@ impl<'a> ProcessDataURL for JSRef<'a, HTMLObjectElement> {
             _ => { }
         }
     }
+}
+
+pub fn is_image_data(uri: &str) -> bool {
+    static types: &'static [&'static str] = &["data:image/png", "data:image/gif", "data:image/jpeg"];
+    types.iter().any(|&type_| uri.starts_with(type_))
 }
 
 pub trait HTMLObjectElementMethods {

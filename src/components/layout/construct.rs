@@ -56,9 +56,10 @@ use script::dom::element::{HTMLTableRowElementTypeId, HTMLTableSectionElementTyp
 use script::dom::node::{CommentNodeTypeId, DoctypeNodeTypeId, DocumentFragmentNodeTypeId};
 use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, ProcessingInstructionNodeTypeId};
 use script::dom::node::{TextNodeTypeId};
+use script::dom::htmlobjectelement::is_image_data;
 use servo_util::namespace;
 use servo_util::range::Range;
-use servo_util::url::{is_image_data, parse_url};
+use servo_util::url::parse_url;
 use std::mem;
 use std::sync::atomics::Relaxed;
 use style::ComputedValues;

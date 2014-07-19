@@ -28,11 +28,3 @@ pub fn parse_url(str_url: &str, base_url: Option<rust_url::Url>) -> rust_url::Ur
     // FIXME: Need to handle errors
     try_parse_url(str_url, base_url).ok().expect("URL parsing failed")
 }
-
-
-pub fn is_image_data(uri: &str) -> bool {
-    static types: &'static [&'static str] = &["data:image/png", "data:image/gif", "data:image/jpeg"];
-    types.iter().any(|&type_| uri.starts_with(type_))
-}
-
-
