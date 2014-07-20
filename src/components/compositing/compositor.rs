@@ -31,7 +31,6 @@ use layers::layers::LayerBufferSet;
 use layers::rendergl;
 use layers::rendergl::RenderContext;
 use layers::scene::Scene;
-use layers::layers::Layer;
 use opengles::gl2;
 use png;
 use servo_msg::compositor_msg::{Blank, Epoch, FixedPosition, FinishedLoading, IdleRenderState};
@@ -369,16 +368,14 @@ impl IOCompositor {
                 pipeline_id: root_pipeline.id,
                 epoch: layer_properties.epoch,
                 id: LayerId::null(),
-                rect: Rect::zero(),
+                rect: layer_properties.rect,
                 background_color: layer_properties.background_color,
                 scroll_policy: FixedPosition,
             };
-            let new_compositor_data = CompositorData::new(root_pipeline,
-                                                          root_properties,
-                                                          WantsScrollEvents);
-            let new_root = Rc::new(Layer::new(layer_properties.rect,
-                                              self.opts.tile_size,
-                                              new_compositor_data));
+            let new_root = CompositorData::new_layer(root_pipeline,
+                                                     root_properties,
+                                                     WantsScrollEvents,
+                                                     self.opts.tile_size);
 
             CompositorData::add_child(new_root.clone(), layer_properties);
 

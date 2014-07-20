@@ -52,11 +52,12 @@ pub enum WantsScrollEventsFlag {
 }
 
 impl CompositorData {
-    pub fn new(pipeline: CompositionPipeline,
-               layer_properties: LayerProperties,
-               wants_scroll_events: WantsScrollEventsFlag)
-               -> CompositorData {
-        CompositorData {
+    pub fn new_layer(pipeline: CompositionPipeline,
+                     layer_properties: LayerProperties,
+                     wants_scroll_events: WantsScrollEventsFlag,
+                     tile_size: uint)
+                     -> Rc<Layer<CompositorData>> {
+        let new_compositor_data = CompositorData {
             pipeline: pipeline,
             id: layer_properties.id,
             scroll_offset: TypedPoint2D(0f32, 0f32),
@@ -64,7 +65,8 @@ impl CompositorData {
             scroll_policy: layer_properties.scroll_policy,
             background_color: layer_properties.background_color,
             epoch: layer_properties.epoch,
-        }
+        };
+        Rc::new(Layer::new(layer_properties.rect, tile_size, new_compositor_data))
     }
 
     /// Adds a child layer to the layer with the given ID and the given pipeline, if it doesn't
@@ -72,12 +74,10 @@ impl CompositorData {
     /// painting status as its parent.
     pub fn add_child(layer: Rc<Layer<CompositorData>>,
                      layer_properties: LayerProperties) {
-        let new_compositor_data = CompositorData::new(layer.extra_data.borrow().pipeline.clone(),
-                                                      layer_properties,
-                                                      DoesntWantScrollEvents);
-        let new_kid = Rc::new(Layer::new(layer_properties.rect,
-                                         layer.tile_size,
-                                         new_compositor_data));
+        let new_kid = CompositorData::new_layer(layer.extra_data.borrow().pipeline.clone(),
+                                                layer_properties,
+                                                DoesntWantScrollEvents,
+                                                layer.tile_size);
         layer.add_child(new_kid.clone());
     }
 
