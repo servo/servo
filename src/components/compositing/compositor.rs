@@ -366,7 +366,6 @@ impl IOCompositor {
             };
             let new_compositor_data = CompositorData::new_root(root_pipeline,
                                                                layer_properties.epoch,
-                                                               self.opts.cpu_painting,
                                                                layer_properties.background_color);
             let new_root = Rc::new(Layer::new(layer_properties.rect,
                                               self.opts.tile_size,

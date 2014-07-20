@@ -37,9 +37,6 @@ pub struct CompositorData {
     /// Whether an ancestor layer that receives scroll events moves this layer.
     pub scroll_policy: ScrollPolicy,
 
-    /// True if CPU rendering is enabled, false if we're using GPU rendering.
-    pub cpu_painting: bool,
-
     /// The color to use for the unrendered-content void
     pub unrendered_color: Color,
 
@@ -58,7 +55,6 @@ impl CompositorData {
     pub fn new(pipeline: CompositionPipeline,
                layer_id: LayerId,
                epoch: Epoch,
-               cpu_painting: bool,
                wants_scroll_events: WantsScrollEventsFlag,
                scroll_policy: ScrollPolicy,
                unrendered_color: Color)
@@ -69,7 +65,6 @@ impl CompositorData {
             scroll_offset: TypedPoint2D(0f32, 0f32),
             wants_scroll_events: wants_scroll_events,
             scroll_policy: scroll_policy,
-            cpu_painting: cpu_painting,
             unrendered_color: unrendered_color,
             epoch: epoch,
         }
@@ -77,12 +72,10 @@ impl CompositorData {
 
     pub fn new_root(pipeline: CompositionPipeline,
                     epoch: Epoch,
-                    cpu_painting: bool,
                     unrendered_color: Color) -> CompositorData {
         CompositorData::new(pipeline,
                             LayerId::null(),
                             epoch,
-                            cpu_painting,
                             WantsScrollEvents,
                             FixedPosition,
                             unrendered_color)
@@ -96,7 +89,6 @@ impl CompositorData {
         let new_compositor_data = CompositorData::new(layer.extra_data.borrow().pipeline.clone(),
                                                       layer_properties.id,
                                                       layer_properties.epoch,
-                                                      layer.extra_data.borrow().cpu_painting,
                                                       DoesntWantScrollEvents,
                                                       layer_properties.scroll_policy,
                                                       layer_properties.background_color);
