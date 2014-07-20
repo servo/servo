@@ -76,7 +76,7 @@ pub enum NavigationDirection {
     Back,
 }
 
-#[deriving(Clone, PartialEq, Eq, Hash, Encodable, Show)]
+#[deriving(Clone, PartialEq, Eq, Hash, Encodable)]
 pub struct PipelineId(pub uint);
 
 #[deriving(Clone, PartialEq, Eq, Hash, Encodable)]
