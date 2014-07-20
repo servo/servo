@@ -38,7 +38,7 @@ pub struct CompositorData {
     pub scroll_policy: ScrollPolicy,
 
     /// The color to use for the unrendered-content void
-    pub unrendered_color: Color,
+    pub background_color: Color,
 
     /// A monotonically increasing counter that keeps track of the current epoch.
     /// add_buffer() calls that don't match the current epoch will be ignored.
@@ -57,7 +57,7 @@ impl CompositorData {
                epoch: Epoch,
                wants_scroll_events: WantsScrollEventsFlag,
                scroll_policy: ScrollPolicy,
-               unrendered_color: Color)
+               background_color: Color)
                -> CompositorData {
         CompositorData {
             pipeline: pipeline,
@@ -65,20 +65,20 @@ impl CompositorData {
             scroll_offset: TypedPoint2D(0f32, 0f32),
             wants_scroll_events: wants_scroll_events,
             scroll_policy: scroll_policy,
-            unrendered_color: unrendered_color,
+            background_color: background_color,
             epoch: epoch,
         }
     }
 
     pub fn new_root(pipeline: CompositionPipeline,
                     epoch: Epoch,
-                    unrendered_color: Color) -> CompositorData {
+                    background_color: Color) -> CompositorData {
         CompositorData::new(pipeline,
                             LayerId::null(),
                             epoch,
                             WantsScrollEvents,
                             FixedPosition,
-                            unrendered_color)
+                            background_color)
     }
 
     /// Adds a child layer to the layer with the given ID and the given pipeline, if it doesn't
@@ -185,7 +185,7 @@ impl CompositorData {
 
     pub fn update_layer(layer: Rc<Layer<CompositorData>>, layer_properties: LayerProperties) {
         layer.extra_data.borrow_mut().epoch = layer_properties.epoch;
-        layer.extra_data.borrow_mut().unrendered_color = layer_properties.background_color;
+        layer.extra_data.borrow_mut().background_color = layer_properties.background_color;
 
         layer.resize(layer_properties.rect.size);
         layer.contents_changed();
