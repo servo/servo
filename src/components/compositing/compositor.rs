@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use compositor_data::CompositorData;
+use compositor_data::{CompositorData, WantsScrollEvents};
 use compositor_task::{Msg, CompositorTask, Exit, ChangeReadyState, SetIds, LayerProperties};
 use compositor_task::{GetGraphicsMetadata, CreateOrUpdateRootLayer, CreateOrUpdateDescendantLayer};
 use compositor_task::{SetLayerClipRect, Paint, ScrollFragmentPoint, LoadComplete};
@@ -34,7 +34,7 @@ use layers::scene::Scene;
 use layers::layers::Layer;
 use opengles::gl2;
 use png;
-use servo_msg::compositor_msg::{Blank, Epoch, FinishedLoading, IdleRenderState};
+use servo_msg::compositor_msg::{Blank, Epoch, FixedPosition, FinishedLoading, IdleRenderState};
 use servo_msg::compositor_msg::{LayerId, ReadyState, RenderState};
 use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, LoadUrlMsg, NavigateMsg};
 use servo_msg::constellation_msg::{PipelineId, ResizedWindowMsg, WindowSizeData};
@@ -364,9 +364,18 @@ impl IOCompositor {
                 Some(ref root_pipeline) => root_pipeline.clone(),
                 None => fail!("Compositor: Making new layer without initialized pipeline"),
             };
-            let new_compositor_data = CompositorData::new_root(root_pipeline,
-                                                               layer_properties.epoch,
-                                                               layer_properties.background_color);
+
+            let root_properties = LayerProperties {
+                pipeline_id: root_pipeline.id,
+                epoch: layer_properties.epoch,
+                id: LayerId::null(),
+                rect: Rect::zero(),
+                background_color: layer_properties.background_color,
+                scroll_policy: FixedPosition,
+            };
+            let new_compositor_data = CompositorData::new(root_pipeline,
+                                                          root_properties,
+                                                          WantsScrollEvents);
             let new_root = Rc::new(Layer::new(layer_properties.rect,
                                               self.opts.tile_size,
                                               new_compositor_data));

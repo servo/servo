@@ -13,7 +13,7 @@ use geom::size::{Size2D, TypedSize2D};
 use gfx::render_task::{ReRenderRequest, RenderChan, UnusedBufferMsg};
 use layers::layers::{Layer, LayerBufferSet};
 use layers::platform::surface::NativeSurfaceMethods;
-use servo_msg::compositor_msg::{Epoch, FixedPosition, LayerId};
+use servo_msg::compositor_msg::{Epoch, LayerId};
 use servo_msg::compositor_msg::ScrollPolicy;
 use servo_msg::constellation_msg::PipelineId;
 use servo_util::geometry::PagePx;
@@ -53,32 +53,18 @@ pub enum WantsScrollEventsFlag {
 
 impl CompositorData {
     pub fn new(pipeline: CompositionPipeline,
-               layer_id: LayerId,
-               epoch: Epoch,
-               wants_scroll_events: WantsScrollEventsFlag,
-               scroll_policy: ScrollPolicy,
-               background_color: Color)
+               layer_properties: LayerProperties,
+               wants_scroll_events: WantsScrollEventsFlag)
                -> CompositorData {
         CompositorData {
             pipeline: pipeline,
-            id: layer_id,
+            id: layer_properties.id,
             scroll_offset: TypedPoint2D(0f32, 0f32),
             wants_scroll_events: wants_scroll_events,
-            scroll_policy: scroll_policy,
-            background_color: background_color,
-            epoch: epoch,
+            scroll_policy: layer_properties.scroll_policy,
+            background_color: layer_properties.background_color,
+            epoch: layer_properties.epoch,
         }
-    }
-
-    pub fn new_root(pipeline: CompositionPipeline,
-                    epoch: Epoch,
-                    background_color: Color) -> CompositorData {
-        CompositorData::new(pipeline,
-                            LayerId::null(),
-                            epoch,
-                            WantsScrollEvents,
-                            FixedPosition,
-                            background_color)
     }
 
     /// Adds a child layer to the layer with the given ID and the given pipeline, if it doesn't
@@ -87,11 +73,8 @@ impl CompositorData {
     pub fn add_child(layer: Rc<Layer<CompositorData>>,
                      layer_properties: LayerProperties) {
         let new_compositor_data = CompositorData::new(layer.extra_data.borrow().pipeline.clone(),
-                                                      layer_properties.id,
-                                                      layer_properties.epoch,
-                                                      DoesntWantScrollEvents,
-                                                      layer_properties.scroll_policy,
-                                                      layer_properties.background_color);
+                                                      layer_properties,
+                                                      DoesntWantScrollEvents);
         let new_kid = Rc::new(Layer::new(layer_properties.rect,
                                          layer.tile_size,
                                          new_compositor_data));
