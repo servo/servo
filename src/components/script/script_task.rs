@@ -452,7 +452,7 @@ impl ScriptTask {
             let mut layout_join_port = page.layout_join_port.deref().borrow_mut();
             *layout_join_port = None;
         }
-        self.compositor.set_ready_state(pipeline_id, FinishedLoading);
+        self.compositor.set_ready_state(FinishedLoading);
     }
 
     /// Handles a navigate forward or backward message.
@@ -549,7 +549,7 @@ impl ScriptTask {
         let document = Document::new(&*window, Some(url.clone()), HTMLDocument, None).root();
         window.deref().init_browser_context(&*document);
 
-        self.compositor.set_ready_state(pipeline_id, Loading);
+        self.compositor.set_ready_state(Loading);
         // Parse HTML.
         //
         // Note: We can parse the next document in parallel with any previous documents.

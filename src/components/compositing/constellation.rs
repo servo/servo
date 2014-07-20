@@ -69,13 +69,11 @@ struct ChildFrameTree {
     pub rect: Option<TypedRect<PagePx, f32>>,
 }
 
-#[deriving(Clone)]
 pub struct SendableFrameTree {
     pub pipeline: CompositionPipeline,
     pub children: Vec<SendableChildFrameTree>,
 }
 
-#[deriving(Clone)]
 pub struct SendableChildFrameTree {
     pub frame_tree: SendableFrameTree,
     pub rect: Option<TypedRect<PagePx, f32>>,

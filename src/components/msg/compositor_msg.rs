@@ -14,13 +14,13 @@ use std::fmt;
 use constellation_msg::PipelineId;
 
 /// The status of the renderer.
-#[deriving(Eq, Ord, PartialOrd, PartialEq, Clone)]
+#[deriving(PartialEq, Clone)]
 pub enum RenderState {
-    RenderingRenderState,
     IdleRenderState,
+    RenderingRenderState,
 }
 
-#[deriving(Eq, Ord, PartialOrd, PartialEq, Clone)]
+#[deriving(PartialEq, Clone)]
 pub enum ReadyState {
     /// Informs the compositor that nothing has been done yet. Used for setting status
     Blank,
@@ -33,7 +33,7 @@ pub enum ReadyState {
 }
 
 /// A newtype struct for denoting the age of messages; prevents race conditions.
-#[deriving(PartialEq, PartialOrd)]
+#[deriving(PartialEq)]
 pub struct Epoch(pub uint);
 
 impl Epoch {
@@ -105,13 +105,13 @@ pub trait RenderListener {
              epoch: Epoch,
              replies: Vec<(LayerId, Box<LayerBufferSet>)>);
 
-    fn set_render_state(&self, render_state: RenderState, pipeline_id: PipelineId);
+    fn set_render_state(&self, render_state: RenderState);
 }
 
 /// The interface used by the script task to tell the compositor to update its ready state,
 /// which is used in displaying the appropriate message in the window's title.
 pub trait ScriptListener : Clone {
-    fn set_ready_state(&self, pipeline_id: PipelineId, ReadyState);
+    fn set_ready_state(&self, ReadyState);
     fn scroll_fragment_point(&self,
                              pipeline_id: PipelineId,
                              layer_id: LayerId,
