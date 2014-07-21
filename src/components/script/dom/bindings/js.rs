@@ -106,7 +106,7 @@ impl<T: Reflectable> Temporary<T> {
 
 /// A rooted, JS-owned value. Must only be used as a field in other JS-owned types.
 pub struct JS<T> {
-    ptr: *T
+    ptr: *const T
 }
 
 impl<T> PartialEq for JS<T> {
@@ -129,7 +129,7 @@ impl JS<Node> {
     pub unsafe fn from_trusted_node_address(inner: TrustedNodeAddress) -> JS<Node> {
         let TrustedNodeAddress(addr) = inner;
         JS {
-            ptr: addr as *Node
+            ptr: addr as *const Node
         }
     }
 }
@@ -138,14 +138,14 @@ impl JS<XMLHttpRequest> {
     pub unsafe fn from_trusted_xhr_address(inner: TrustedXHRAddress) -> JS<XMLHttpRequest> {
         let TrustedXHRAddress(addr) = inner;
         JS {
-            ptr: addr as *XMLHttpRequest
+            ptr: addr as *const XMLHttpRequest
         }
     }
 }
 
 impl<T: Reflectable> JS<T> {
     /// Create a new JS-owned value wrapped from a raw Rust pointer.
-    pub unsafe fn from_raw(raw: *T) -> JS<T> {
+    pub unsafe fn from_raw(raw: *const T) -> JS<T> {
         JS {
             ptr: raw
         }
@@ -442,7 +442,7 @@ impl<'a, T: Reflectable> Deref<T> for JSRef<'a, T> {
 
 /// Encapsulates a reference to something that is guaranteed to be alive. This is freely copyable.
 pub struct JSRef<'a, T> {
-    ptr: *T,
+    ptr: *const T,
     chain: ContravariantLifetime<'a>,
 }
 

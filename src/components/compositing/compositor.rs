@@ -916,13 +916,13 @@ impl IOCompositor {
                           .copy_memory(src_slice.slice_to(stride));
                 }
             }
-            let img = png::Image {
+            let mut img = png::Image {
                 width: width as u32,
                 height: height as u32,
                 color_type: png::RGB8,
                 pixels: pixels,
             };
-            let res = png::store_png(&img, &path);
+            let res = png::store_png(&mut img, &path);
             assert!(res.is_ok());
 
             debug!("shutting down the constellation after generating an output file");

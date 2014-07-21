@@ -54,16 +54,16 @@ impl FontTableTagConversions for FontTableTag {
     fn tag_to_str(&self) -> String {
         unsafe {
             let reversed = str::raw::from_buf_len(mem::transmute(self), 4);
-            return str::from_chars([reversed.as_slice().char_at(3),
-                                    reversed.as_slice().char_at(2),
-                                    reversed.as_slice().char_at(1),
-                                    reversed.as_slice().char_at(0)]);
+            return String::from_chars([reversed.as_slice().char_at(3),
+                                       reversed.as_slice().char_at(2),
+                                       reversed.as_slice().char_at(1),
+                                       reversed.as_slice().char_at(0)]);
         }
     }
 }
 
 pub trait FontTableMethods {
-    fn with_buffer(&self, |*u8, uint|);
+    fn with_buffer(&self, |*const u8, uint|);
 }
 
 #[deriving(Clone)]

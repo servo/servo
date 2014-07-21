@@ -15,8 +15,8 @@ use std::sync::atomics::SeqCst;
 
 #[unsafe_no_drop_flag]
 pub struct FlowRef {
-    vtable: *u8,
-    ptr: *u8,
+    vtable: *const u8,
+    ptr: *const u8,
 }
 
 impl FlowRef {

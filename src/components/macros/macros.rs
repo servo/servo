@@ -2,10 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![crate_id = "github.com/mozilla/servo#macros:0.1"]
-#![crate_type = "lib"]
+#![crate_name = "macros"]
 #![crate_type = "rlib"]
-#![crate_type = "dylib"]
 
 #![feature(macro_rules)]
 
@@ -44,10 +42,10 @@ macro_rules! lazy_init(
             impl Deref<$T> for $N {
                 fn deref<'a>(&'a self) -> &'a $T {
                     unsafe {
-                        static mut s: *$T = 0 as *$T;
+                        static mut s: *const $T = 0 as *const $T;
                         static mut ONCE: ::sync::one::Once = ::sync::one::ONCE_INIT;
                         ONCE.doit(|| {
-                            s = ::std::mem::transmute::<Box<$T>, *$T>(box () ($e));
+                            s = ::std::mem::transmute::<Box<$T>, *const $T>(box () ($e));
                         });
                         &*s
                     }

@@ -45,17 +45,16 @@ use servo_msg::constellation_msg;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_util::geometry::to_frac_px;
-use servo_util::task::send_on_failure;
+use servo_util::task::spawn_named_with_send_on_failure;
 use std::cell::RefCell;
 use std::comm::{channel, Sender, Receiver};
 use std::mem::replace;
 use std::rc::Rc;
-use std::task::TaskBuilder;
 use url::Url;
 
 use serialize::{Encoder, Encodable};
 
-local_data_key!(pub StackRoots: *RootCollection)
+local_data_key!(pub StackRoots: *const RootCollection)
 
 /// Messages used to control the script task.
 pub enum ScriptMsg {
@@ -116,7 +115,7 @@ pub struct StackRootTLS;
 
 impl StackRootTLS {
     pub fn new(roots: &RootCollection) -> StackRootTLS {
-        StackRoots.replace(Some(roots as *RootCollection));
+        StackRoots.replace(Some(roots as *const RootCollection));
         StackRootTLS
     }
 }
@@ -287,10 +286,8 @@ impl ScriptTask {
                   resource_task: ResourceTask,
                   image_cache_task: ImageCacheTask,
                   window_size: WindowSizeData) {
-        let mut builder = TaskBuilder::new().named("ScriptTask");
         let ConstellationChan(const_chan) = constellation_chan.clone();
-        send_on_failure(&mut builder, FailureMsg(failure_msg), const_chan);
-        builder.spawn(proc() {
+        spawn_named_with_send_on_failure("ScriptTask", proc() {
             let script_task = ScriptTask::new(id,
                                               compositor as Box<ScriptListener>,
                                               layout_chan,
@@ -305,7 +302,7 @@ impl ScriptTask {
 
             // This must always be the very last operation performed before the task completes
             failsafe.neuter();
-        });
+        }, FailureMsg(failure_msg), const_chan);
     }
 
     /// Handle incoming control messages.

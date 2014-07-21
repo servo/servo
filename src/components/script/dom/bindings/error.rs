@@ -91,24 +91,24 @@ static ERROR_FORMAT_STRING_STRING: [libc::c_char, ..4] = [
 
 /// Format string struct used to throw `TypeError`s.
 static ERROR_FORMAT_STRING: JSErrorFormatString = JSErrorFormatString {
-    format: &ERROR_FORMAT_STRING_STRING as *libc::c_char,
+    format: &ERROR_FORMAT_STRING_STRING as *const libc::c_char,
     argCount: 1,
     exnType: JSEXN_TYPEERR as i16,
 };
 
 /// Callback used to throw `TypeError`s.
 extern fn get_error_message(_user_ref: *mut libc::c_void,
-                            _locale: *libc::c_char,
-                            error_number: libc::c_uint) -> *JSErrorFormatString
+                            _locale: *const libc::c_char,
+                            error_number: libc::c_uint) -> *const JSErrorFormatString
 {
     assert_eq!(error_number, 0);
-    &ERROR_FORMAT_STRING as *JSErrorFormatString
+    &ERROR_FORMAT_STRING as *const JSErrorFormatString
 }
 
 /// Throw a `TypeError` with the given message.
 pub fn throw_type_error(cx: *mut JSContext, error: &str) {
     let error = error.to_c_str();
-    error.with_ref(|error| unsafe {
-        JS_ReportErrorNumber(cx, Some(get_error_message), ptr::mut_null(), 0, error);
-    });
+    unsafe {
+        JS_ReportErrorNumber(cx, Some(get_error_message), ptr::mut_null(), 0, error.as_ptr());
+    }
 }

@@ -53,12 +53,11 @@ use servo_util::opts::Opts;
 use servo_util::smallvec::{SmallVec, SmallVec1};
 use servo_util::time::{TimeProfilerChan, profile};
 use servo_util::time;
-use servo_util::task::send_on_failure;
+use servo_util::task::spawn_named_with_send_on_failure;
 use servo_util::workqueue::WorkQueue;
 use std::comm::{channel, Sender, Receiver};
 use std::mem;
 use std::ptr;
-use std::task::TaskBuilder;
 use style::{AuthorOrigin, Stylesheet, Stylist};
 use sync::{Arc, Mutex};
 use url::Url;
@@ -288,10 +287,8 @@ impl LayoutTaskFactory for LayoutTask {
                   opts: Opts,
                   time_profiler_chan: TimeProfilerChan,
                   shutdown_chan: Sender<()>) {
-        let mut builder = TaskBuilder::new().named("LayoutTask");
         let ConstellationChan(con_chan) = constellation_chan.clone();
-        send_on_failure(&mut builder, FailureMsg(failure_msg), con_chan);
-        builder.spawn(proc() {
+        spawn_named_with_send_on_failure("LayoutTask", proc() {
             { // Ensures layout task is destroyed before we send shutdown message
                 let mut layout = LayoutTask::new(id,
                                                  port,
@@ -306,7 +303,7 @@ impl LayoutTaskFactory for LayoutTask {
                 layout.start();
             }
             shutdown_chan.send(());
-        });
+        }, FailureMsg(failure_msg), con_chan);
     }
 }
 

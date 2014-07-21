@@ -61,9 +61,9 @@ impl<'a> StyleElementHelpers for JSRef<'a, HTMLStyleElement> {
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLStyleElement> {
-    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods+> {
+    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
         let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_ref(self);
-        Some(htmlelement as &VirtualMethods+)
+        Some(htmlelement as &VirtualMethods)
     }
 
     fn child_inserted(&self, child: &JSRef<Node>) {

@@ -87,9 +87,9 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLElement> {
-    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods+> {
+    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
-        Some(element as &VirtualMethods+)
+        Some(element as &VirtualMethods)
     }
 
     fn after_set_attr(&self, name: DOMString, value: DOMString) {

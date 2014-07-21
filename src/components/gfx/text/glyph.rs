@@ -45,7 +45,7 @@ impl GlyphEntry {
 
         let id_mask = id as u32;
         let Au(advance) = advance;
-        let advance_mask = (advance as u32) << GLYPH_ADVANCE_SHIFT;
+        let advance_mask = (advance as u32) << GLYPH_ADVANCE_SHIFT as uint;
 
         GlyphEntry::new(id_mask | advance_mask | FLAG_IS_SIMPLE_GLYPH)
     }
@@ -69,7 +69,7 @@ impl GlyphEntry {
         if !starts_ligature {
             val |= FLAG_NOT_LIGATURE_GROUP_START;
         }
-        val |= (glyph_count as u32) << GLYPH_COUNT_SHIFT;
+        val |= (glyph_count as u32) << GLYPH_COUNT_SHIFT as uint;
 
         GlyphEntry::new(val)
     }
@@ -79,7 +79,7 @@ impl GlyphEntry {
     fn missing(glyph_count: int) -> GlyphEntry {
         assert!(glyph_count <= u16::MAX as int);
 
-        GlyphEntry::new((glyph_count as u32) << GLYPH_COUNT_SHIFT)
+        GlyphEntry::new((glyph_count as u32) << GLYPH_COUNT_SHIFT as uint)
     }
 }
 
@@ -157,7 +157,7 @@ fn is_simple_glyph_id(id: GlyphId) -> bool {
 
 fn is_simple_advance(advance: Au) -> bool {
     let unsignedAu = advance.to_u32().unwrap();
-    (unsignedAu & (GLYPH_ADVANCE_MASK >> GLYPH_ADVANCE_SHIFT)) == unsignedAu
+    (unsignedAu & (GLYPH_ADVANCE_MASK >> GLYPH_ADVANCE_SHIFT as uint)) == unsignedAu
 }
 
 type DetailedGlyphCount = u16;
@@ -168,7 +168,7 @@ impl GlyphEntry {
     // getter methods
     #[inline(always)]
     fn advance(&self) -> Au {
-        NumCast::from((self.value & GLYPH_ADVANCE_MASK) >> GLYPH_ADVANCE_SHIFT).unwrap()
+        NumCast::from((self.value & GLYPH_ADVANCE_MASK) >> GLYPH_ADVANCE_SHIFT as uint).unwrap()
     }
 
     fn id(&self) -> GlyphId {
@@ -198,7 +198,7 @@ impl GlyphEntry {
     }
 
     fn can_break_before(&self) -> BreakType {
-        let flag = ((self.value & FLAG_CAN_BREAK_MASK) >> FLAG_CAN_BREAK_SHIFT) as u8;
+        let flag = ((self.value & FLAG_CAN_BREAK_MASK) >> FLAG_CAN_BREAK_SHIFT as uint) as u8;
         break_flag_to_enum(flag)
     }
 
@@ -222,7 +222,7 @@ impl GlyphEntry {
 
     #[inline(always)]
     fn set_can_break_before(&self, e: BreakType) -> GlyphEntry {
-        let flag = (break_enum_to_flag(e) as u32) << FLAG_CAN_BREAK_SHIFT;
+        let flag = (break_enum_to_flag(e) as u32) << FLAG_CAN_BREAK_SHIFT as uint;
         GlyphEntry::new(self.value | flag)
     }
 
@@ -230,7 +230,7 @@ impl GlyphEntry {
 
     fn glyph_count(&self) -> u16 {
         assert!(!self.is_simple());
-        ((self.value & GLYPH_COUNT_MASK) >> GLYPH_COUNT_SHIFT) as u16
+        ((self.value & GLYPH_COUNT_MASK) >> GLYPH_COUNT_SHIFT as uint) as u16
     }
 
     #[inline(always)]
@@ -279,8 +279,8 @@ struct DetailedGlyphRecord {
 }
 
 impl PartialOrd for DetailedGlyphRecord {
-    fn lt(&self, other: &DetailedGlyphRecord) -> bool {
-        self.entry_offset < other.entry_offset
+    fn partial_cmp(&self, other: &DetailedGlyphRecord) -> Option<Ordering> {
+        self.entry_offset.partial_cmp(&other.entry_offset)
     }
 }
 

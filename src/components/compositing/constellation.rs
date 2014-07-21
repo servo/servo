@@ -607,7 +607,7 @@ impl<LTF: LayoutTaskFactory> Constellation<LTF> {
     }
 
     fn handle_load_url_msg(&mut self, source_id: PipelineId, url: Url) {
-        debug!("Constellation: received message to load {:s}", url.to_str());
+        debug!("Constellation: received message to load {:s}", url.to_string());
         // Make sure no pending page would be overridden.
         let source_frame = self.current_frame().get_ref().find(source_id).expect(
             "Constellation: received a LoadUrlMsg from a pipeline_id associated

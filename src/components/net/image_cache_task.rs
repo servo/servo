@@ -695,7 +695,7 @@ mod tests {
         // Wait until our mock resource task has sent the image to the image cache
         join_port.recv();
 
-        for _ in range(0,2) {
+        for _ in range(0u32, 2u32) {
             let (response_chan, response_port) = comm::channel();
             image_cache_task.send(GetImage(url.clone(), response_chan));
             match response_port.recv() {

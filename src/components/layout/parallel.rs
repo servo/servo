@@ -42,7 +42,7 @@ fn null_unsafe_flow() -> UnsafeFlow {
     (0, 0)
 }
 
-pub fn owned_flow_to_unsafe_flow(flow: *FlowRef) -> UnsafeFlow {
+pub fn owned_flow_to_unsafe_flow(flow: *const FlowRef) -> UnsafeFlow {
     unsafe {
         mem::transmute_copy(&*flow)
     }
@@ -268,7 +268,7 @@ fn recalc_style_for_node(unsafe_layout_node: UnsafeLayoutNode,
     }
 
     // Prepare for flow construction by counting the node's children and storing that count.
-    let mut child_count = 0;
+    let mut child_count = 0u;
     for _ in node.children() {
         child_count += 1;
     }
@@ -320,7 +320,7 @@ fn construct_flows(mut unsafe_layout_node: UnsafeLayoutNode,
         // Reset the count of children for the next traversal.
         //
         // FIXME(pcwalton): Use children().len() when the implementation of that is efficient.
-        let mut child_count = 0;
+        let mut child_count = 0u;
         for _ in node.children() {
             child_count += 1
         }
@@ -401,7 +401,7 @@ fn compute_absolute_position(unsafe_flow: UnsafeFlow,
 
         // Count the number of absolutely-positioned children, so that we can subtract it from
         // from `children_and_absolute_descendant_count` to get the number of real children.
-        let mut absolutely_positioned_child_count = 0;
+        let mut absolutely_positioned_child_count = 0u;
         for kid in flow::child_iter(flow.get_mut()) {
             if kid.is_absolutely_positioned() {
                 absolutely_positioned_child_count += 1;

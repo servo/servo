@@ -176,7 +176,7 @@ impl RawLayoutElementHelpers for Element {
     unsafe fn get_attr_val_for_layout(&self, namespace: &Namespace, name: &str)
                                       -> Option<&'static str> {
         // cast to point to T in RefCell<T> directly
-        let attrs: *Vec<JS<Attr>> = mem::transmute(&self.attrs);
+        let attrs: *const Vec<JS<Attr>> = mem::transmute(&self.attrs);
         (*attrs).iter().find(|attr: & &JS<Attr>| {
             let attr = attr.unsafe_get();
             name == (*attr).local_name.as_slice() && (*attr).namespace == *namespace
@@ -190,7 +190,7 @@ impl RawLayoutElementHelpers for Element {
     unsafe fn get_attr_atom_for_layout(&self, namespace: &Namespace, name: &str)
                                       -> Option<Atom> {
         // cast to point to T in RefCell<T> directly
-        let attrs: *Vec<JS<Attr>> = mem::transmute(&self.attrs);
+        let attrs: *const Vec<JS<Attr>> = mem::transmute(&self.attrs);
         (*attrs).iter().find(|attr: & &JS<Attr>| {
             let attr = attr.unsafe_get();
             name == (*attr).local_name.as_slice() && (*attr).namespace == *namespace
@@ -427,7 +427,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
     fn set_uint_attribute(&self, name: &str, value: u32) {
         assert!(name == name.to_ascii_lower().as_slice());
-        self.set_attribute(name, UIntAttrValue(value.to_str(), value));
+        self.set_attribute(name, UIntAttrValue(value.to_string(), value));
     }
 }
 
@@ -791,9 +791,9 @@ pub fn get_attribute_parts<'a>(name: &'a str) -> (Option<&'a str>, &'a str) {
 }
 
 impl<'a> VirtualMethods for JSRef<'a, Element> {
-    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods+> {
+    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
         let node: &JSRef<Node> = NodeCast::from_ref(self);
-        Some(node as &VirtualMethods+)
+        Some(node as &VirtualMethods)
     }
 
     fn after_set_attr(&self, name: DOMString, value: DOMString) {

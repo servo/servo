@@ -35,7 +35,7 @@ use servo_util::str::DOMString;
 pub trait VirtualMethods {
     /// Returns self as the superclass of the implementation for this trait,
     /// if any.
-    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods+>;
+    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods>;
 
     /// Called when changing or adding attributes, after the attribute's value
     /// has been updated.
@@ -105,46 +105,46 @@ pub trait VirtualMethods {
 /// method call on the trait object will invoke the corresponding method on the
 /// concrete type, propagating up the parent hierarchy unless otherwise
 /// interrupted.
-pub fn vtable_for<'a>(node: &'a JSRef<Node>) -> &'a VirtualMethods+ {
+pub fn vtable_for<'a>(node: &'a JSRef<Node>) -> &'a VirtualMethods {
     match node.type_id() {
         ElementNodeTypeId(HTMLAnchorElementTypeId) => {
             let element: &JSRef<HTMLAnchorElement> = HTMLAnchorElementCast::to_ref(node).unwrap();
-            element as &VirtualMethods+
+            element as &VirtualMethods
         }
         ElementNodeTypeId(HTMLBodyElementTypeId) => {
             let element: &JSRef<HTMLBodyElement> = HTMLBodyElementCast::to_ref(node).unwrap();
-            element as &VirtualMethods+
+            element as &VirtualMethods
         }
         ElementNodeTypeId(HTMLCanvasElementTypeId) => {
             let element: &JSRef<HTMLCanvasElement> = HTMLCanvasElementCast::to_ref(node).unwrap();
-            element as &VirtualMethods+
+            element as &VirtualMethods
         }
         ElementNodeTypeId(HTMLImageElementTypeId) => {
             let element: &JSRef<HTMLImageElement> = HTMLImageElementCast::to_ref(node).unwrap();
-            element as &VirtualMethods+
+            element as &VirtualMethods
         }
         ElementNodeTypeId(HTMLIFrameElementTypeId) => {
             let element: &JSRef<HTMLIFrameElement> = HTMLIFrameElementCast::to_ref(node).unwrap();
-            element as &VirtualMethods+
+            element as &VirtualMethods
         }
         ElementNodeTypeId(HTMLObjectElementTypeId) => {
             let element: &JSRef<HTMLObjectElement> = HTMLObjectElementCast::to_ref(node).unwrap();
-            element as &VirtualMethods+
+            element as &VirtualMethods
         }
         ElementNodeTypeId(HTMLStyleElementTypeId) => {
             let element: &JSRef<HTMLStyleElement> = HTMLStyleElementCast::to_ref(node).unwrap();
-            element as &VirtualMethods+
+            element as &VirtualMethods
         }
         ElementNodeTypeId(ElementTypeId) => {
             let element: &JSRef<Element> = ElementCast::to_ref(node).unwrap();
-            element as &VirtualMethods+
+            element as &VirtualMethods
         }
         ElementNodeTypeId(_) => {
             let element: &JSRef<HTMLElement> = HTMLElementCast::to_ref(node).unwrap();
-            element as &VirtualMethods+
+            element as &VirtualMethods
         }
         _ => {
-            node as &VirtualMethods+
+            node as &VirtualMethods
         }
     }
 }

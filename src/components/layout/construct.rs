@@ -209,7 +209,7 @@ impl<'a> FlowConstructor<'a> {
     fn font_context<'a>(&'a mut self) -> &'a mut FontContext {
         match self.font_context {
             Some(ref mut font_context) => {
-                let font_context: &mut FontContext = *font_context;
+                let font_context: &mut FontContext = &mut **font_context;
                 font_context
             }
             None => self.layout_context.font_context(),

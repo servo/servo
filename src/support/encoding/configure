@@ -1,0 +1,5 @@
+#!/bin/bash
+
+SRCDIR="$(cd $(dirname $0) && pwd)"
+sed "s#%VPATH%#${SRCDIR}/rust-encoding#" ${SRCDIR}/Makefile.in > Makefile
+

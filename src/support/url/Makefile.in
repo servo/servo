@@ -10,7 +10,7 @@ SRC=$(shell find $(VPATH)/src -type f)
 all: 	liburl.dummy
 
 liburl.dummy: src/url.rs $(SRC) $(EXT_DEPS)
-	$(RUSTC) $(RUSTFLAGS) $< --out-dir .
+	$(RUSTC) $(RUSTFLAGS) $< --out-dir . --crate-type rlib
 	touch $@
 
 url-test: src/url.rs $(SRC)

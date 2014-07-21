@@ -86,7 +86,7 @@ impl ScaledFontExtensionMethods for ScaledFont {
         let azure_pattern = pattern.azure_color_pattern;
         assert!(azure_pattern.is_not_null());
 
-        let options = struct__AzDrawOptions {
+        let mut options = struct__AzDrawOptions {
             mAlpha: 1f64 as AzFloat,
             fields: 0x0200 as uint16_t
         };
@@ -115,8 +115,8 @@ impl ScaledFontExtensionMethods for ScaledFont {
         let azglyph_buf_len = azglyphs.len();
         if azglyph_buf_len == 0 { return; } // Otherwise the Quartz backend will assert.
 
-        let glyphbuf = struct__AzGlyphBuffer {
-            mGlyphs: azglyphs.as_ptr(),
+        let mut glyphbuf = struct__AzGlyphBuffer {
+            mGlyphs: azglyphs.as_mut_ptr(),
             mNumGlyphs: azglyph_buf_len as uint32_t
         };
 
@@ -124,10 +124,10 @@ impl ScaledFontExtensionMethods for ScaledFont {
             // TODO(Issue #64): this call needs to move into azure_hl.rs
             AzDrawTargetFillGlyphs(target.azure_draw_target,
                                    self.get_ref(),
-                                   &glyphbuf,
+                                   &mut glyphbuf,
                                    azure_pattern,
-                                   &options,
-                                   ptr::null());
+                                   &mut options,
+                                   ptr::mut_null());
         }
     }
 }

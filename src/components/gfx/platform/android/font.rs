@@ -42,7 +42,7 @@ fn fixed_to_float_ft(f: i32) -> f64 {
 pub struct FontTable;
 
 impl FontTableMethods for FontTable {
-    fn with_buffer(&self, _blk: |*u8, uint|) {
+    fn with_buffer(&self, _blk: |*const u8, uint|) {
         fail!()
     }
 }
@@ -93,10 +93,10 @@ impl FontHandleMethods for FontHandle {
             Err(()) => Err(())
         };
 
-        fn create_face_from_buffer(lib: FT_Library, cbuf: *u8, cbuflen: uint, pt_size: Option<f64>)
+        fn create_face_from_buffer(lib: FT_Library, cbuf: *const u8, cbuflen: uint, pt_size: Option<f64>)
                                    -> Result<FT_Face, ()> {
             unsafe {
-                let mut face: FT_Face = ptr::null();
+                let mut face: FT_Face = ptr::mut_null();
                 let face_index = 0 as FT_Long;
                 let result = FT_New_Memory_Face(lib, cbuf, cbuflen as FT_Long,
                                                 face_index, &mut face);
@@ -120,10 +120,10 @@ impl FontHandleMethods for FontHandle {
         self.font_data.clone()
     }
     fn family_name(&self) -> String {
-        unsafe { str::raw::from_c_str((*self.face).family_name) }
+        unsafe { str::raw::from_c_str(&*(*self.face).family_name) }
     }
     fn face_name(&self) -> String {
-        unsafe { str::raw::from_c_str(FT_Get_Postscript_Name(self.face)) }
+        unsafe { str::raw::from_c_str(&*FT_Get_Postscript_Name(self.face)) }
     }
     fn is_italic(&self) -> bool {
         unsafe { (*self.face).style_flags & FT_STYLE_FLAG_ITALIC != 0 }
@@ -134,7 +134,7 @@ impl FontHandleMethods for FontHandle {
             default_weight
         } else {
             unsafe {
-                let os2 = FT_Get_Sfnt_Table(self.face, ft_sfnt_os2) as *TT_OS2;
+                let os2 = FT_Get_Sfnt_Table(self.face, ft_sfnt_os2) as *mut TT_OS2;
                 let valid = os2.is_not_null() && (*os2).version != 0xffff;
                 if valid {
                     let weight =(*os2).usWeightClass;
@@ -226,7 +226,7 @@ impl FontHandleMethods for FontHandle {
         let mut strikeout_offset = geometry::from_pt(0.0);
         let mut x_height = geometry::from_pt(0.0);
         unsafe {
-            let os2 = FT_Get_Sfnt_Table(face, ft_sfnt_os2) as *TT_OS2;
+            let os2 = FT_Get_Sfnt_Table(face, ft_sfnt_os2) as *mut TT_OS2;
             let valid = os2.is_not_null() && (*os2).version != 0xffff;
             if valid {
                strikeout_size = self.font_units_to_au((*os2).yStrikeoutSize as f64);
@@ -270,9 +270,9 @@ impl<'a> FontHandle {
         }
     }
 
-    fn get_face_rec(&'a self) -> &'a FT_FaceRec {
+    fn get_face_rec(&'a self) -> &'a mut FT_FaceRec {
         unsafe {
-            &(*self.face)
+            &mut (*self.face)
         }
     }
 

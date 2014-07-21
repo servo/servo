@@ -73,13 +73,12 @@ pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: JSVal) {
     }
 
     unsafe {
-        description.to_c_str().with_ref(|name| {
-            (*tracer).debugPrinter = None;
-            (*tracer).debugPrintIndex = -1;
-            (*tracer).debugPrintArg = name as *libc::c_void;
-            debug!("tracing value {:s}", description);
-            JS_CallTracer(tracer, val.to_gcthing(), val.trace_kind());
-        });
+        let name = description.to_c_str();
+        (*tracer).debugPrinter = None;
+        (*tracer).debugPrintIndex = -1;
+        (*tracer).debugPrintArg = name.as_ptr() as *const libc::c_void;
+        debug!("tracing value {:s}", description);
+        JS_CallTracer(tracer, val.to_gcthing(), val.trace_kind());
     }
 }
 
@@ -91,13 +90,12 @@ pub fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Ref
 /// Trace a `JSObject`.
 pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: *mut JSObject) {
     unsafe {
-        description.to_c_str().with_ref(|name| {
-            (*tracer).debugPrinter = None;
-            (*tracer).debugPrintIndex = -1;
-            (*tracer).debugPrintArg = name as *libc::c_void;
-            debug!("tracing {:s}", description);
-            JS_CallTracer(tracer, obj as *mut libc::c_void, JSTRACE_OBJECT);
-        });
+        let name = description.to_c_str();
+        (*tracer).debugPrinter = None;
+        (*tracer).debugPrintIndex = -1;
+        (*tracer).debugPrintArg = name.as_ptr() as *const libc::c_void;
+        debug!("tracing {:s}", description);
+        JS_CallTracer(tracer, obj as *mut libc::c_void, JSTRACE_OBJECT);
     }
 }
 
@@ -183,25 +181,5 @@ impl<S: Encoder<E>, E> Encodable<S, E> for Traceable<JSVal> {
     fn encode(&self, s: &mut S) -> Result<(), E> {
         trace_jsval(get_jstracer(s), "val", **self);
         Ok(())
-    }
-}
-
-/// for a field which contains DOMType
-impl<T: Reflectable+Encodable<S, E>, S: Encoder<E>, E> Encodable<S, E> for Cell<JS<T>> {
-    fn encode(&self, s: &mut S) -> Result<(), E> {
-        self.get().encode(s)
-    }
-}
-
-impl<T: Reflectable+Encodable<S, E>, S: Encoder<E>, E> Encodable<S, E> for Cell<Option<JS<T>>> {
-    fn encode(&self, s: &mut S) -> Result<(), E> {
-        self.get().encode(s)
-    }
-}
-
-/// for a field which contains non-POD type contains DOMType
-impl<T: Reflectable+Encodable<S, E>, S: Encoder<E>, E> Encodable<S, E> for RefCell<Vec<JS<T>>> {
-    fn encode(&self, s: &mut S) -> Result<(), E> {
-        self.borrow().encode(s)
     }
 }

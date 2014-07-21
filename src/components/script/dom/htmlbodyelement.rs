@@ -55,9 +55,9 @@ impl<'a> HTMLBodyElementMethods for JSRef<'a, HTMLBodyElement> {
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLBodyElement> {
-    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods+> {
+    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
         let element: &JSRef<HTMLElement> = HTMLElementCast::from_ref(self);
-        Some(element as &VirtualMethods+)
+        Some(element as &VirtualMethods)
     }
 
     fn after_set_attr(&self, name: DOMString, value: DOMString) {

@@ -121,14 +121,14 @@ impl WindowMethods<Application> for Window {
                         3 => {
                             let tmp = local_window();
                             tmp.event_queue.borrow_mut().push(ScrollWindowEvent(
-                                    TypedPoint2D(0.0, 5.0 as f32),
-                                    TypedPoint2D(0.0 as i32, 5.0 as i32)));
+                                    TypedPoint2D(0.0f32, 5.0f32),
+                                    TypedPoint2D(0i32, 5i32)));
                         },
                         4 => {
                             let tmp = local_window();
                             tmp.event_queue.borrow_mut().push(ScrollWindowEvent(
-                                    TypedPoint2D(0.0, -5.0 as f32),
-                                    TypedPoint2D(0.0 as i32, -5.0 as i32)));
+                                    TypedPoint2D(0.0f32, -5.0f32),
+                                    TypedPoint2D(0i32, -5i32)));
                         },
                         _ => {}
                     }
@@ -229,10 +229,10 @@ impl Window {
             42 => self.load_url(),
             43 => self.event_queue.borrow_mut().push(ZoomWindowEvent(1.1)),
             45 => self.event_queue.borrow_mut().push(ZoomWindowEvent(0.909090909)),
-            56 => self.event_queue.borrow_mut().push(ScrollWindowEvent(TypedPoint2D(0.0, 5.0 as f32),
-                                                                       TypedPoint2D(0.0 as i32, 5.0 as i32))),
-            50 => self.event_queue.borrow_mut().push(ScrollWindowEvent(TypedPoint2D(0.0, -5.0 as f32),
-                                                                       TypedPoint2D(0.0 as i32, -5.0 as i32))),
+            56 => self.event_queue.borrow_mut().push(ScrollWindowEvent(TypedPoint2D(0.0f32, 5.0f32),
+                                                                       TypedPoint2D(0i32, 5i32))),
+            50 => self.event_queue.borrow_mut().push(ScrollWindowEvent(TypedPoint2D(0.0f32, -5.0f32),
+                                                                       TypedPoint2D(0i32, -5i32))),
             127 => {
                 if (modifiers & ACTIVE_SHIFT) != 0 {
                     self.event_queue.borrow_mut().push(NavigationWindowEvent(Forward));

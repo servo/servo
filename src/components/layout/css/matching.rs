@@ -224,7 +224,7 @@ impl StyleSharingCandidate {
             parent_style: parent_style.take_unwrap(),
             local_name: element.get_local_name().clone(),
             class: element.get_attr(&Null, "class")
-                          .map(|string| string.to_str()),
+                          .map(|string| string.to_string()),
         })
     }
 

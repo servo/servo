@@ -1,0 +1,47 @@
+VPATH=%VPATH%
+
+CC ?= gcc
+CXX ?= g++
+CXXFLAGS ?=
+AR ?= ar
+RUSTC ?= rustc
+RUSTDOC ?= rustdoc
+RUSTFLAGS ?= -O
+EXT_DEPS ?=
+
+LIB_RS = src/encoding/lib.rs
+RUST_SRC = $(shell find $(VPATH)/src/encoding/. -type f -name '*.rs')
+
+# rustdoc links dynamically, so we need to add '.' to the dynamic library path
+ifeq ($(CFG_OSTYPE),apple-darwin)
+export DYLD_LIBRARY_PATH := .:$(DYLD_LIBRARY_PATH)
+else
+export LD_LIBRARY_PATH := .:$(LD_LIBRARY_PATH)
+endif
+
+.PHONY: all
+all:	libencoding.dummy
+
+libencoding.dummy: $(LIB_RS) $(RUST_SRC) $(EXT_DEPS)
+	$(RUSTC) $(RUSTFLAGS) $< --crate-type rlib
+	touch $@
+
+rustencoding-test: $(LIB_RS) $(RUST_SRC) libencoding.dummy
+	$(RUSTC) $(RUSTFLAGS) $< -o $@ --test
+
+.PHONY: doctest
+doctest: $(LIB_RS) $(RUST_SRC) libencoding.dummy
+	$(RUSTDOC) $< -L . --test
+
+.PHONY: check
+check: doctest rustencoding-test
+	./rustencoding-test
+
+.PHONY: doc
+doc: $(LIB_RS) $(RUST_SRC)
+	$(RUSTDOC) $<
+
+.PHONY: clean
+clean:
+	rm -f *.o *.a *.so *.dylib *.rlib *.dll *.dummy *.exe *-test
+

@@ -63,7 +63,7 @@ use style::computed_values::{clear, position, text_align};
 ///
 /// Note that virtual methods have a cost; we should not overuse them in Servo. Consider adding
 /// methods to `ImmutableFlowUtils` or `MutableFlowUtils` before adding more methods here.
-pub trait Flow: fmt::Show + ToStr + Share {
+pub trait Flow: fmt::Show + ToString + Share {
     // RTTI
     //
     // TODO(pcwalton): Use Rust's RTTI, once that works.
@@ -486,13 +486,13 @@ impl FlowFlags {
     #[inline]
     pub fn text_align(self) -> text_align::T {
         let FlowFlags(ff) = self;
-        FromPrimitive::from_u8((ff & TEXT_ALIGN_BITMASK) >> TEXT_ALIGN_SHIFT).unwrap()
+        FromPrimitive::from_u8((ff & TEXT_ALIGN_BITMASK) >> TEXT_ALIGN_SHIFT as uint).unwrap()
     }
 
     #[inline]
     pub fn set_text_align(&mut self, value: text_align::T) {
         let FlowFlags(ff) = *self;
-        *self = FlowFlags((ff & !TEXT_ALIGN_BITMASK) | ((value as u8) << TEXT_ALIGN_SHIFT))
+        *self = FlowFlags((ff & !TEXT_ALIGN_BITMASK) | ((value as u8) << TEXT_ALIGN_SHIFT as uint))
     }
 
     #[inline]
@@ -908,7 +908,7 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
         for _ in range(0, level) {
             indent.push_str("| ")
         }
-        debug!("{}+ {}", indent, self.to_str());
+        debug!("{}+ {}", indent, self.to_string());
         for kid in imm_child_iter(self) {
             kid.dump_with_level(level + 1)
         }

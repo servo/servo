@@ -865,15 +865,20 @@ impl InlineFragments {
     pub fn strip_ignorable_whitespace_from_start(&mut self) {
         if self.is_empty() { return }; // Fast path
 
-        let new_fragments = mem::replace(&mut self.fragments, vec![])
-            .move_iter()
-            .skip_while(|fragment| {
-                let is_whitespace_only = fragment.is_whitespace_only();
-                if is_whitespace_only {
-                    debug!("stripping ignorable whitespace from start");
-                }
-                is_whitespace_only
-            }).collect();
+        // FIXME (rust#16151): This can be reverted back to using skip_while once
+        // the upstream bug is fixed.
+        let mut fragments = mem::replace(&mut self.fragments, vec![]).move_iter();
+        let mut new_fragments = Vec::new();
+        let mut skipping = true;
+        for fragment in fragments {
+            if skipping && fragment.is_whitespace_only() {
+                debug!("stripping ignorable whitespace from start");
+                continue
+            }
+
+            skipping = false;
+            new_fragments.push(fragment);
+        }
 
         self.fixup(new_fragments);
     }

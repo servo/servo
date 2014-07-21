@@ -111,7 +111,7 @@ impl FontCache {
         // TODO(Issue #188): look up localized font family names if canonical name not found
         // look up canonical name
         if self.local_families.contains_key(family_name) {
-            debug!("FontList: Found font family with name={:s}", family_name.to_str());
+            debug!("FontList: Found font family with name={:s}", family_name.to_string());
             let s = self.local_families.get_mut(family_name);
 
             if s.templates.len() == 0 {
@@ -130,7 +130,7 @@ impl FontCache {
 
             None
         } else {
-            debug!("FontList: Couldn't find font family with name={:s}", family_name.to_str());
+            debug!("FontList: Couldn't find font family with name={:s}", family_name.to_string());
             None
         }
     }

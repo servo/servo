@@ -71,11 +71,11 @@ pub enum XMLHttpRequestId {
 
 #[deriving(PartialEq, Encodable)]
 enum XMLHttpRequestState {
-    Unsent = 0u16,
-    Opened = 1u16,
-    HeadersReceived = 2u16,
-    Loading = 3u16,
-    XHRDone = 4u16, // So as not to conflict with the ProgressMsg `Done`
+    Unsent = 0,
+    Opened = 1,
+    HeadersReceived = 2,
+    Loading = 3,
+    XHRDone = 4, // So as not to conflict with the ProgressMsg `Done`
 }
 
 pub enum XHRProgress {
@@ -632,7 +632,8 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             },
             _ if self.ready_state.deref().get() != XHRDone => NullValue(),
             Json => {
-                let decoded = UTF_8.decode(self.response.deref().borrow().as_slice(), DecodeReplace).unwrap().to_string().to_utf16();
+                let decoded = UTF_8.decode(self.response.deref().borrow().as_slice(), DecodeReplace).unwrap().to_string();
+                let decoded: Vec<u16> = decoded.as_slice().utf16_units().collect();
                 let mut vp = UndefinedValue();
                 unsafe {
                     if JS_ParseJSON(cx, decoded.as_ptr(), decoded.len() as u32, &mut vp) == 0 {
@@ -679,7 +680,7 @@ impl XMLHttpRequestDerived for EventTarget {
     }
 }
 
-pub struct TrustedXHRAddress(pub *c_void);
+pub struct TrustedXHRAddress(pub *const c_void);
 
 impl TrustedXHRAddress {
     pub fn release_once(self) {
@@ -713,7 +714,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         }
         let pinned_count = self.pinned_count.deref().get();
         self.pinned_count.deref().set(pinned_count + 1);
-        TrustedXHRAddress(self.deref() as *XMLHttpRequest as *libc::c_void)
+        TrustedXHRAddress(self.deref() as *const XMLHttpRequest as *const libc::c_void)
     }
 
     fn release_once(&self) {

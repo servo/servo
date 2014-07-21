@@ -227,7 +227,7 @@ impl FromJSValConvertible<()> for f64 {
 impl ToJSValConvertible for DOMString {
     fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
         unsafe {
-            let string_utf16 = self.to_utf16();
+            let string_utf16: Vec<u16> = self.as_slice().utf16_units().collect();
             let jsstr = JS_NewUCStringCopyN(cx, string_utf16.as_ptr(), string_utf16.len() as libc::size_t);
             if jsstr.is_null() {
                 fail!("JS_NewUCStringCopyN failed");
@@ -272,7 +272,7 @@ impl ToJSValConvertible for ByteString {
     fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
         unsafe {
             let slice = self.as_slice();
-            let jsstr = JS_NewStringCopyN(cx, slice.as_ptr() as *libc::c_char,
+            let jsstr = JS_NewStringCopyN(cx, slice.as_ptr() as *const libc::c_char,
                                           slice.len() as libc::size_t);
             if jsstr.is_null() {
                 fail!("JS_NewStringCopyN failed");

@@ -129,7 +129,7 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
 
     fn SetIsMap(&self, is_map: bool) {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
-        element.set_string_attribute("isMap", is_map.to_str())
+        element.set_string_attribute("isMap", is_map.to_string())
     }
 
     fn Width(&self) -> u32 {
@@ -216,9 +216,9 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLImageElement> {
-    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods+> {
+    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
         let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_ref(self);
-        Some(htmlelement as &VirtualMethods+)
+        Some(htmlelement as &VirtualMethods)
     }
 
     fn after_set_attr(&self, name: DOMString, value: DOMString) {

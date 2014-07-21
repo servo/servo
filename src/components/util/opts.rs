@@ -85,7 +85,7 @@ fn args_fail(msg: &str) {
 }
 
 pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
-    let app_name = args[0].to_str();
+    let app_name = args[0].to_string();
     let args = args.tail();
 
     let opts = vec!(

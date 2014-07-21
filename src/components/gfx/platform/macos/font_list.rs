@@ -13,7 +13,7 @@ pub fn get_available_families(callback: |String|) {
     for strref in family_names.iter() {
         let family_name_ref: CFStringRef = unsafe { mem::transmute(strref) };
         let family_name_cf: CFString = unsafe { TCFType::wrap_under_get_rule(family_name_ref) };
-        let family_name = family_name_cf.to_str();
+        let family_name = family_name_cf.to_string();
         callback(family_name);
     }
 }

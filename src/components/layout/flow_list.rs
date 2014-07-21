@@ -16,7 +16,7 @@ pub type Link = Option<FlowRef>;
 #[allow(raw_pointer_deriving)]
 #[deriving(Clone)]
 pub struct Rawlink {
-    vtable: *(),
+    vtable: *const (),
     obj: *mut (),
 }
 

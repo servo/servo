@@ -18,7 +18,7 @@ use encoding::types::{Encoding, EncodeReplace};
 
 use std::cell::RefCell;
 use std::collections::hashmap::HashMap;
-use std::num::ToStrRadix;
+use std::fmt::radix;
 use std::ascii::OwnedStrAsciiExt;
 
 #[deriving(Encodable)]
@@ -115,7 +115,9 @@ impl URLSearchParamsHelpers for URLSearchParams {
                     a => {
                         // http://url.spec.whatwg.org/#percent-encode
                         let mut encoded = vec!(0x25); // %
-                        encoded.push_all(a.to_str_radix(16).into_ascii_upper().as_bytes());
+                        let s = format!("{}", radix(a, 16)).into_ascii_upper();
+                        let bytes = s.as_bytes();
+                        encoded.push_all(bytes);
                         encoded
                     }
                 };

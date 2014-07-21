@@ -49,13 +49,13 @@ pub extern fn getPropertyDescriptor(cx: *mut JSContext, proxy: *mut JSObject, id
 }
 
 pub fn defineProperty_(cx: *mut JSContext, proxy: *mut JSObject, id: jsid,
-                       desc: *JSPropertyDescriptor) -> JSBool {
+                       desc: *mut JSPropertyDescriptor) -> JSBool {
     static JSMSG_GETTER_ONLY: libc::c_uint = 160;
 
     unsafe {
         //FIXME: Workaround for https://github.com/mozilla/rust/issues/13385
-        let setter: *libc::c_void = mem::transmute((*desc).setter);
-        let setter_stub: *libc::c_void = mem::transmute(JS_StrictPropertyStub);
+        let setter: *const libc::c_void = mem::transmute((*desc).setter);
+        let setter_stub: *const libc::c_void = mem::transmute(JS_StrictPropertyStub);
         if ((*desc).attrs & JSPROP_GETTER) != 0 && setter == setter_stub {
             return JS_ReportErrorFlagsAndNumber(cx,
                                                 JSREPORT_WARNING | JSREPORT_STRICT |
@@ -75,7 +75,7 @@ pub fn defineProperty_(cx: *mut JSContext, proxy: *mut JSObject, id: jsid,
 }
 
 pub extern fn defineProperty(cx: *mut JSContext, proxy: *mut JSObject, id: jsid,
-                             desc: *JSPropertyDescriptor) -> JSBool {
+                             desc: *mut JSPropertyDescriptor) -> JSBool {
     defineProperty_(cx, proxy, id, desc)
 }
 
@@ -97,7 +97,7 @@ pub extern fn delete_(cx: *mut JSContext, proxy: *mut JSObject, id: jsid,
     }
 }
 
-pub fn _obj_toString(cx: *mut JSContext, className: *libc::c_char) -> *mut JSString {
+pub fn _obj_toString(cx: *mut JSContext, className: *const libc::c_char) -> *mut JSString {
   unsafe {
     let name = str::raw::from_c_str(className);
     let nchars = "[object ]".len() + name.len();
@@ -137,7 +137,7 @@ pub fn EnsureExpandoObject(cx: *mut JSContext, obj: *mut JSObject) -> *mut JSObj
         assert!(is_dom_proxy(obj));
         let mut expando = GetExpandoObject(obj);
         if expando.is_null() {
-            expando = JS_NewObjectWithGivenProto(cx, ptr::null(),
+            expando = JS_NewObjectWithGivenProto(cx, ptr::mut_null(),
                                                  ptr::mut_null(),
                                                  GetObjectParent(obj));
             if expando.is_null() {
