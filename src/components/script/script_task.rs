@@ -32,10 +32,8 @@ use layout_interface;
 use page::{Page, IterablePage, Frame};
 
 use geom::point::Point2D;
-use js::jsapi::JS_CallFunctionValue;
 use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ, JS_GC};
 use js::jsapi::{JSContext, JSRuntime};
-use js::jsval::NullValue;
 use js::rust::{Cx, RtUtils};
 use js::rust::with_compartment;
 use js;
@@ -51,7 +49,6 @@ use servo_util::task::send_on_failure;
 use std::cell::RefCell;
 use std::comm::{channel, Sender, Receiver};
 use std::mem::replace;
-use std::ptr;
 use std::rc::Rc;
 use std::task::TaskBuilder;
 use url::Url;
@@ -417,27 +414,7 @@ impl ScriptTask {
             pipeline ID not associated with this script task. This is a bug.");
         let frame = page.frame();
         let window = frame.get_ref().window.root();
-
-        let this_value = window.deref().reflector().get_jsobject();
-
-        let data = match window.deref().active_timers.deref().borrow().find(&timer_id) {
-            None => return,
-            Some(timer_handle) => timer_handle.data,
-        };
-
-        // TODO: Support extra arguments. This requires passing a `*JSVal` array as `argv`.
-        let cx = self.get_cx();
-        with_compartment(cx, this_value, || {
-            let mut rval = NullValue();
-            unsafe {
-                JS_CallFunctionValue(cx, this_value, *data.funval,
-                                     0, ptr::mut_null(), &mut rval);
-            }
-        });
-
-        if !data.is_interval {
-            window.deref().active_timers.deref().borrow_mut().remove(&timer_id);
-        }
+        window.handle_fire_timer(timer_id, self.get_cx());
     }
 
     /// Handles a notification that reflow completed.

@@ -26,9 +26,12 @@ use servo_util::str::DOMString;
 use servo_util::task::{spawn_named};
 use servo_util::url::parse_url;
 
+use js::jsapi::JS_CallFunctionValue;
 use js::jsapi::JSContext;
 use js::jsapi::{JS_GC, JS_GetRuntime};
 use js::jsval::JSVal;
+use js::jsval::NullValue;
+use js::rust::with_compartment;
 
 use std::collections::hashmap::HashMap;
 use std::cell::{Cell, RefCell};
@@ -37,6 +40,7 @@ use std::comm::{channel, Sender};
 use std::comm::Select;
 use std::hash::{Hash, sip};
 use std::io::timer::Timer;
+use std::ptr;
 use std::rc::Rc;
 
 use time;
@@ -284,6 +288,7 @@ pub trait WindowHelpers {
     fn wait_until_safe_to_modify_dom(&self);
     fn init_browser_context(&self, doc: &JSRef<Document>);
     fn load_url(&self, href: DOMString);
+    fn handle_fire_timer(&self, timer_id: TimerId, cx: *mut JSContext);
 }
 
 trait PrivateWindowHelpers {
@@ -319,6 +324,28 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
             script_chan.send(TriggerFragmentMsg(self.page.id, url));
         } else {
             script_chan.send(TriggerLoadMsg(self.page.id, url));
+        }
+    }
+
+    fn handle_fire_timer(&self, timer_id: TimerId, cx: *mut JSContext) {
+        let this_value = self.reflector().get_jsobject();
+
+        let data = match self.active_timers.deref().borrow().find(&timer_id) {
+            None => return,
+            Some(timer_handle) => timer_handle.data,
+        };
+
+        // TODO: Support extra arguments. This requires passing a `*JSVal` array as `argv`.
+        with_compartment(cx, this_value, || {
+            let mut rval = NullValue();
+            unsafe {
+                JS_CallFunctionValue(cx, this_value, *data.funval,
+                                     0, ptr::mut_null(), &mut rval);
+            }
+        });
+
+        if !data.is_interval {
+            self.active_timers.deref().borrow_mut().remove(&timer_id);
         }
     }
 }
