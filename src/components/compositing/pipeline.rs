@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use CompositorChan;
-use layout::layout_task::LayoutTaskFactory;
+use layout_traits::LayoutTaskFactory;
 
 use gfx::render_task::{PaintPermissionGranted, PaintPermissionRevoked};
 use gfx::render_task::{RenderChan, RenderTask};

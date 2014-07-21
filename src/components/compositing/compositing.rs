@@ -26,7 +26,7 @@ extern crate glfw;
 #[cfg(target_os="android")]
 extern crate glut;
 extern crate layers;
-extern crate layout;
+extern crate layout_traits;
 extern crate opengles;
 extern crate png;
 extern crate script;

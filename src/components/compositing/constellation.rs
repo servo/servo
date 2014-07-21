@@ -10,7 +10,7 @@ use geom::size::TypedSize2D;
 use gfx::render_task;
 use libc;
 use pipeline::{Pipeline, CompositionPipeline};
-use layout::layout_task::LayoutTaskFactory;
+use layout_traits::LayoutTaskFactory;
 use script::script_task::{ResizeMsg, ResizeInactiveMsg, ExitPipelineMsg};
 use script::layout_interface;
 use script::layout_interface::LayoutChan;

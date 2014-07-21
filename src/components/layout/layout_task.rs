@@ -30,6 +30,7 @@ use gfx::display_list::{DisplayItemIterator, DisplayList, OpaqueNode};
 use gfx::font_context::FontContext;
 use gfx::render_task::{RenderMsg, RenderChan, RenderLayer};
 use gfx::{render_task, color};
+use layout_traits::LayoutTaskFactory;
 use script::dom::bindings::js::JS;
 use script::dom::event::ReflowEvent;
 use script::dom::node::{ElementNodeTypeId, LayoutDataRef, Node};
@@ -61,23 +62,6 @@ use std::task::TaskBuilder;
 use style::{AuthorOrigin, Stylesheet, Stylist};
 use sync::{Arc, Mutex};
 use url::Url;
-
-// A static method creating a layout task
-pub trait LayoutTaskFactory {
-    fn create(_phantom: Option<&mut Self>, // FIXME: use a proper static method
-              id: PipelineId,
-              port: Receiver<Msg>,
-              chan: LayoutChan,
-              constellation_chan: ConstellationChan,
-              failure_msg: Failure,
-              script_chan: ScriptChan,
-              render_chan: RenderChan,
-              img_cache_task: ImageCacheTask,
-              font_cache_task: FontCacheTask,
-              opts: Opts,
-              time_profiler_chan: TimeProfilerChan,
-              shutdown_chan: Sender<()>);
-}
 
 /// Information needed by the layout task.
 pub struct LayoutTask {
