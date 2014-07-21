@@ -124,6 +124,12 @@ impl FontHandleMethods for FontHandle {
         return Some(glyphs[0] as GlyphId);
     }
 
+    fn glyph_h_kerning(&self, _first_glyph: GlyphId, _second_glyph: GlyphId)
+                        -> FractionalPixel {
+        // TODO: Implement on mac
+        0.0
+    }
+
     fn glyph_h_advance(&self, glyph: GlyphId) -> Option<FractionalPixel> {
         let glyphs = [glyph as CGGlyph];
         let advance = self.ctfont.get_advances_for_glyphs(kCTFontDefaultOrientation,

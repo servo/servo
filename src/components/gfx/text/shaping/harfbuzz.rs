@@ -27,6 +27,7 @@ use harfbuzz::{hb_font_funcs_create};
 use harfbuzz::{hb_font_funcs_destroy};
 use harfbuzz::{hb_font_funcs_set_glyph_func};
 use harfbuzz::{hb_font_funcs_set_glyph_h_advance_func};
+use harfbuzz::{hb_font_funcs_set_glyph_h_kerning_func};
 use harfbuzz::{hb_font_funcs_t, hb_buffer_t, hb_codepoint_t};
 use harfbuzz::{hb_font_set_funcs};
 use harfbuzz::{hb_font_set_ppem};
@@ -176,6 +177,7 @@ impl Shaper {
             let hb_funcs: *hb_font_funcs_t = hb_font_funcs_create();
             hb_font_funcs_set_glyph_func(hb_funcs, glyph_func, null(), None);
             hb_font_funcs_set_glyph_h_advance_func(hb_funcs, glyph_h_advance_func, null(), None);
+            hb_font_funcs_set_glyph_h_kerning_func(hb_funcs, glyph_h_kerning_func, null(), null());
             hb_font_set_funcs(hb_font, hb_funcs, font_ptr as *c_void, None);
 
             Shaper {
@@ -483,6 +485,21 @@ extern fn glyph_h_advance_func(_: *hb_font_t,
 
     unsafe {
         let advance = (*font).glyph_h_advance(glyph as GlyphId);
+        Shaper::float_to_fixed(advance)
+    }
+}
+
+extern fn glyph_h_kerning_func(_: *hb_font_t,
+                               font_data: *c_void,
+                               first_glyph: hb_codepoint_t,
+                               second_glyph: hb_codepoint_t,
+                               _: *c_void)
+                            -> hb_position_t {
+    let font: *mut Font = font_data as *mut Font;
+    assert!(font.is_not_null());
+
+    unsafe {
+        let advance = (*font).glyph_h_kerning(first_glyph as GlyphId, second_glyph as GlyphId);
         Shaper::float_to_fixed(advance)
     }
 }
