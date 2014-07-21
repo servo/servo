@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::AttrMethods;
+use dom::attr::StringAttrValue;
 use dom::bindings::codegen::InheritTypes::{NodeBase, NodeCast, TextCast, ElementCast};
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable, Root};
 use dom::bindings::utils::Reflectable;
@@ -501,28 +502,104 @@ pub fn parse_html(page: &Page,
         complete_script: |script| {
             unsafe {
                 let script: &JSRef<Element> = &*from_hubbub_node(script).root();
-                match script.get_attribute(Null, "src").root() {
-                    Some(src) => {
-                        debug!("found script: {:s}", src.deref().Value());
-                        match try_parse_url(src.deref().value().as_slice(), Some(url3.clone())) {
-                                Ok(new_url) => js_chan2.send(JSTaskNewFile(new_url)),
-                                Err(e) => debug!("Parsing url {:s} failed: {:s}", src.deref().Value(), e)
-                        };
-                    }
-                    None => {
-                        let mut data = String::new();
-                        let scriptnode: &JSRef<Node> = NodeCast::from_ref(script);
-                        debug!("iterating over children {:?}", scriptnode.first_child());
-                        for child in scriptnode.children() {
-                            debug!("child = {:?}", child);
-                            let text: &JSRef<Text> = TextCast::to_ref(&child).unwrap();
-                            data.push_str(text.deref().characterdata.data.deref().borrow().as_slice());
-                        }
+                // spec check
+                let script_type = {
+                    let script_type = script.get_attribute(Null, "type").root();
+                    script_type.map(|a| a.deref().Value())
+                };
 
-                        debug!("script data = {:?}", data);
-                        js_chan2.send(JSTaskNewInlineScript(data, url3.clone()));
+                let language_type = {
+                    let language_type = script.get_attribute(Null, "language").root();
+                    language_type.map(|a| a.deref().Value())
+                };
+
+                let mut enable_script = true;
+                // NOTE: Support the scripting language on the servo.
+                let support_script = vec!(String::from_str("application/javascript"), String::from_str("text/javascript"));
+
+                if script_type.is_none() {
+                    // NOTE: the script element has neither a type attribute nor a language attribute, then let the script block's type for this script element be "text/javascript".
+                    if language_type.is_none() {
+                        script.set_attribute("type",StringAttrValue(String::from_str("text/javascript")));
+                    } else {
+                        let mut language_str = language_type.unwrap();
+                        {
+                            let language_array = language_str.as_mut_vec();
+                            while !language_array.is_empty() && *language_array.get(0) as char == ' ' {
+                                language_array.remove(0);
+                            }
+
+                            while !language_array.is_empty() && *language_array.get(language_array.len()-1) as char == ' ' {
+                                language_array.pop();
+                            }
+                        }
+                        // NOTE: the script element has no type attribute but it has a language attribute and that attribute's value is the empty string,
+                        //       then let the script block's type for this script element be "text/javascript".
+                        if language_str.is_empty() {
+                            script.set_attribute("type",StringAttrValue(String::from_str("text/javascript")));
+                        } else {
+                        // NOTE: the element has a non-empty language attribute; 
+                        //       let the script block's type for this script element be the concatenation of the string "text/" followed by the value of the language attribute.
+                            let mut script_type_str = String::from_str("text/");
+                            script_type_str = script_type_str.append(language_str.as_slice());
+                            // NOTE: If the user agent does not support the scripting language given by the script block's type for this script element, the script is not executed.
+                            if !support_script.contains(&script_type_str) {
+                                enable_script = false;
+                            }
+
+                            script.set_attribute("type",StringAttrValue(script_type_str));
+                        }
+                    }
+                } else {
+                    let mut type_str = script_type.unwrap();
+                    // NOTE: let the script block's type for this script element be the value of that attribute with any leading or trailing sequences of space characters removed.
+                    {
+                        let type_array = type_str.as_mut_vec();
+                        while !type_array.is_empty() && (*type_array.get(0) as char) == ' ' {
+                            type_array.remove(0);
+                        }
+                        
+                        while !type_array.is_empty() && (*type_array.get(type_array.len()-1) as char) == ' ' {
+                            type_array.pop();
+                        }
+                    }                    
+
+                    // NOTE: the script element has a type attribute and its value is the empty string, then let the script block's type for this script element be "text/javascript".
+                    if type_str.is_empty() && language_type.is_none() {
+                        script.set_attribute("type",StringAttrValue(String::from_str("text/javascript")));
+                    } else {
+                        // NOTE: If the user agent does not support the scripting language given by the script block's type for this script element, the script is not executed.
+                        if !support_script.contains(&type_str) {
+                            enable_script = false;
+                        }
                     }
                 }
+
+                if enable_script {
+                    match script.get_attribute(Null, "src").root() {
+                        Some(src) => {
+                            debug!("found script: {:s}", src.deref().Value());
+                            match try_parse_url(src.deref().value().as_slice(), Some(url3.clone())) {
+                                    Ok(new_url) => js_chan2.send(JSTaskNewFile(new_url)),
+                                    Err(e) => debug!("Parsing url {:s} failed: {:s}", src.deref().Value(), e)
+                            };
+                        }
+                        None => {
+                            let mut data = String::new();
+                            let scriptnode: &JSRef<Node> = NodeCast::from_ref(script);
+                            debug!("iterating over children {:?}", scriptnode.first_child());
+                            for child in scriptnode.children() {
+                                debug!("child = {:?}", child);
+                                let text: &JSRef<Text> = TextCast::to_ref(&child).unwrap();
+                                data.push_str(text.deref().characterdata.data.deref().borrow().as_slice());
+                            }
+
+                            debug!("script data = {:?}", data);
+                            js_chan2.send(JSTaskNewInlineScript(data, url3.clone()));
+                        }
+                    }
+               }
+
             }
             debug!("complete script");
         },
