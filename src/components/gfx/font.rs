@@ -8,7 +8,7 @@ use std::str;
 use std::rc::Rc;
 use std::cell::RefCell;
 use servo_util::cache::{Cache, HashCache};
-use style::computed_values::{text_decoration, font_weight, font_style};
+use style::computed_values::{font_weight, font_style};
 use sync::Arc;
 
 use servo_util::geometry::Au;
@@ -170,11 +170,11 @@ impl FontGroup {
         }
     }
 
-    pub fn create_textrun(&self, text: String, decoration: text_decoration::T) -> TextRun {
+    pub fn create_textrun(&self, text: String) -> TextRun {
         assert!(self.fonts.len() > 0);
 
         // TODO(Issue #177): Actually fall back through the FontGroup when a font is unsuitable.
-        TextRun::new(&mut *self.fonts.get(0).borrow_mut(), text.clone(), decoration)
+        TextRun::new(&mut *self.fonts.get(0).borrow_mut(), text.clone())
     }
 }
 

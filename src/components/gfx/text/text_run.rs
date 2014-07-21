@@ -7,7 +7,6 @@ use servo_util::geometry::Au;
 use servo_util::range::Range;
 use servo_util::vec::{Comparator, FullBinarySearchMethods};
 use std::slice::Items;
-use style::computed_values::text_decoration;
 use sync::Arc;
 use text::glyph::{CharIndex, GlyphStore};
 use font::FontHandleMethods;
@@ -20,7 +19,6 @@ pub struct TextRun {
     pub font_template: Arc<FontTemplateData>,
     pub pt_size: f64,
     pub font_metrics: FontMetrics,
-    pub decoration: text_decoration::T,
     /// The glyph runs that make up this text run.
     pub glyphs: Arc<Vec<GlyphRun>>,
 }
@@ -119,14 +117,13 @@ impl<'a> Iterator<Range<CharIndex>> for LineIterator<'a> {
 }
 
 impl<'a> TextRun {
-    pub fn new(font: &mut Font, text: String, decoration: text_decoration::T) -> TextRun {
+    pub fn new(font: &mut Font, text: String) -> TextRun {
         let glyphs = TextRun::break_and_shape(font, text.as_slice());
         let run = TextRun {
             text: Arc::new(text),
             font_metrics: font.metrics.clone(),
             font_template: font.handle.get_template(),
             pt_size: font.pt_size,
-            decoration: decoration,
             glyphs: Arc::new(glyphs),
         };
         return run;
