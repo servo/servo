@@ -30,6 +30,7 @@ use gfx::display_list::{DisplayItemIterator, DisplayList, OpaqueNode};
 use gfx::font_context::FontContext;
 use gfx::render_task::{RenderMsg, RenderChan, RenderLayer};
 use gfx::{render_task, color};
+use layout_traits::LayoutTaskFactory;
 use script::dom::bindings::js::JS;
 use script::dom::event::ReflowEvent;
 use script::dom::node::{ElementNodeTypeId, LayoutDataRef, Node};
@@ -272,9 +273,10 @@ impl ImageResponder for LayoutImageResponder {
     }
 }
 
-impl LayoutTask {
+impl LayoutTaskFactory for LayoutTask {
     /// Spawns a new layout task.
-    pub fn create(id: PipelineId,
+    fn create(_phantom: Option<&mut LayoutTask>,
+                  id: PipelineId,
                   port: Receiver<Msg>,
                   chan: LayoutChan,
                   constellation_chan: ConstellationChan,
@@ -306,7 +308,9 @@ impl LayoutTask {
             shutdown_chan.send(());
         });
     }
+}
 
+impl LayoutTask {
     /// Creates a new `LayoutTask` structure.
     fn new(id: PipelineId,
            port: Receiver<Msg>,

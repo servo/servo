@@ -10,6 +10,7 @@ use geom::size::TypedSize2D;
 use gfx::render_task;
 use libc;
 use pipeline::{Pipeline, CompositionPipeline};
+use layout_traits::LayoutTaskFactory;
 use script::script_task::{ResizeMsg, ResizeInactiveMsg, ExitPipelineMsg};
 use script::layout_interface;
 use script::layout_interface::LayoutChan;
@@ -31,13 +32,14 @@ use servo_util::time::TimeProfilerChan;
 use servo_util::url::parse_url;
 use servo_util::task::spawn_named;
 use std::cell::RefCell;
+use std::kinds::marker;
 use std::mem::replace;
 use std::io;
 use std::rc::Rc;
 use url::Url;
 
 /// Maintains the pipelines and navigation context and grants permission to composite
-pub struct Constellation {
+pub struct Constellation<LTF> {
     pub chan: ConstellationChan,
     pub request_port: Receiver<Msg>,
     pub compositor_chan: CompositorChan,
@@ -49,6 +51,7 @@ pub struct Constellation {
     next_pipeline_id: PipelineId,
     pending_frames: Vec<FrameChange>,
     pending_sizes: HashMap<(PipelineId, SubpageId), TypedRect<PagePx, f32>>,
+    layout_task_factory: marker::CovariantType<LTF>,
     pub time_profiler_chan: TimeProfilerChan,
     pub window_size: WindowSizeData,
     pub opts: Opts,
@@ -240,7 +243,7 @@ impl NavigationContext {
     }
 }
 
-impl Constellation {
+impl<LTF: LayoutTaskFactory> Constellation<LTF> {
     pub fn start(compositor_chan: CompositorChan,
                  opts: &Opts,
                  resource_task: ResourceTask,
@@ -252,7 +255,7 @@ impl Constellation {
         let constellation_chan_clone = constellation_chan.clone();
         let opts_clone = opts.clone();
         spawn_named("Constellation", proc() {
-            let mut constellation = Constellation {
+            let mut constellation : Constellation<LTF> = Constellation {
                 chan: constellation_chan_clone,
                 request_port: constellation_port,
                 compositor_chan: compositor_chan,
@@ -264,6 +267,7 @@ impl Constellation {
                 next_pipeline_id: PipelineId(0),
                 pending_frames: vec!(),
                 pending_sizes: HashMap::new(),
+                layout_task_factory: marker::CovariantType,
                 time_profiler_chan: time_profiler_chan,
                 window_size: WindowSizeData {
                     visible_viewport: TypedSize2D(800_f32, 600_f32),
@@ -285,6 +289,26 @@ impl Constellation {
             }
         }
     }
+
+    /// Helper function for creating a pipeline
+    fn new_pipeline(&self,
+                    id: PipelineId,
+                    subpage_id: Option<SubpageId>,
+                    url: Url)
+                    -> Pipeline {
+            Pipeline::create::<LTF>(id,
+                                    subpage_id,
+                                    self.chan.clone(),
+                                    self.compositor_chan.clone(),
+                                    self.image_cache_task.clone(),
+                                    self.font_cache_task.clone(),
+                                    self.resource_task.clone(),
+                                    self.time_profiler_chan.clone(),
+                                    self.window_size,
+                                    self.opts.clone(),
+                                    url)
+    }
+
 
     /// Helper function for getting a unique pipeline Id
     fn get_next_pipeline_id(&mut self) -> PipelineId {
@@ -422,17 +446,7 @@ impl Constellation {
         debug!("creating replacement pipeline for about:failure");
 
         let new_id = self.get_next_pipeline_id();
-        let pipeline = Pipeline::create(new_id,
-                                        subpage_id,
-                                        self.chan.clone(),
-                                        self.compositor_chan.clone(),
-                                        self.image_cache_task.clone(),
-                                        self.font_cache_task.clone(),
-                                        self.resource_task.clone(),
-                                        self.time_profiler_chan.clone(),
-                                        self.window_size,
-                                        self.opts.clone(),
-                                        parse_url("about:failure", None));
+        let pipeline = self.new_pipeline(new_id, subpage_id, parse_url("about:failure", None));
         pipeline.load();
 
         let pipeline_wrapped = Rc::new(pipeline);
@@ -450,17 +464,8 @@ impl Constellation {
     }
 
     fn handle_init_load(&mut self, url: Url) {
-        let pipeline = Pipeline::create(self.get_next_pipeline_id(),
-                                        None,
-                                        self.chan.clone(),
-                                        self.compositor_chan.clone(),
-                                        self.image_cache_task.clone(),
-                                        self.font_cache_task.clone(),
-                                        self.resource_task.clone(),
-                                        self.time_profiler_chan.clone(),
-                                        self.window_size,
-                                        self.opts.clone(),
-                                        url);
+        let next_pipeline_id = self.get_next_pipeline_id();
+        let pipeline = self.new_pipeline(next_pipeline_id, None, url);
         pipeline.load();
         let pipeline_wrapped = Rc::new(pipeline);
 
@@ -577,30 +582,20 @@ impl Constellation {
         let pipeline = if same_script {
             debug!("Constellation: loading same-origin iframe at {:?}", url);
             // Reuse the script task if same-origin url's
-            Pipeline::with_script(next_pipeline_id,
-                                  subpage_id,
-                                  self.chan.clone(),
-                                  self.compositor_chan.clone(),
-                                  self.image_cache_task.clone(),
-                                  self.font_cache_task.clone(),
-                                  self.time_profiler_chan.clone(),
-                                  self.opts.clone(),
-                                  source_pipeline.clone(),
-                                  url)
+            Pipeline::with_script::<LTF>(next_pipeline_id,
+                                         subpage_id,
+                                         self.chan.clone(),
+                                         self.compositor_chan.clone(),
+                                         self.image_cache_task.clone(),
+                                         self.font_cache_task.clone(),
+                                         self.time_profiler_chan.clone(),
+                                         self.opts.clone(),
+                                         source_pipeline.clone(),
+                                         url)
         } else {
             debug!("Constellation: loading cross-origin iframe at {:?}", url);
             // Create a new script task if not same-origin url's
-            Pipeline::create(next_pipeline_id,
-                             Some(subpage_id),
-                             self.chan.clone(),
-                             self.compositor_chan.clone(),
-                             self.image_cache_task.clone(),
-                             self.font_cache_task.clone(),
-                             self.resource_task.clone(),
-                             self.time_profiler_chan.clone(),
-                             self.window_size,
-                             self.opts.clone(),
-                             url)
+            self.new_pipeline(next_pipeline_id, Some(subpage_id), url)
         };
 
         debug!("Constellation: sending load msg to pipeline {:?}", pipeline.id);
@@ -647,18 +642,7 @@ impl Constellation {
         let subpage_id = source_frame.pipeline.subpage_id;
         let next_pipeline_id = self.get_next_pipeline_id();
 
-        let pipeline = Pipeline::create(next_pipeline_id,
-                                        subpage_id,
-                                        self.chan.clone(),
-                                        self.compositor_chan.clone(),
-                                        self.image_cache_task.clone(),
-                                        self.font_cache_task.clone(),
-                                        self.resource_task.clone(),
-                                        self.time_profiler_chan.clone(),
-                                        self.window_size,
-                                        self.opts.clone(),
-                                        url);
-
+        let pipeline = self.new_pipeline(next_pipeline_id, subpage_id, url);
         pipeline.load();
         let pipeline_wrapped = Rc::new(pipeline);
 

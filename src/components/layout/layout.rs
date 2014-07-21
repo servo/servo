@@ -19,6 +19,7 @@ extern crate debug;
 
 extern crate geom;
 extern crate gfx;
+extern crate layout_traits;
 extern crate script;
 extern crate style;
 #[phase(plugin)]

@@ -274,30 +274,38 @@ DONE_style = $(B)src/components/style/libstyle.dummy
 
 DEPS_style = $(CRATE_style) $(SRC_style) $(DONE_SUBMODULES) $(DONE_util) $(DONE_macros)
 
-RFLAGS_layout = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/gfx -L $(B)src/components/util -L $(B)src/components/net -L $(B)src/components/script -L $(B)src/components/style -L $(B)src/components/msg -L$(B)src/components/macros
+RFLAGS_layout_traits = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/gfx -L $(B)src/components/util -L $(B)src/components/net -L $(B)src/components/script -L $(B)src/components/style -L $(B)src/components/msg
+
+SRC_layout_traits = $(call rwildcard,$(S)src/components/layout_traits/,*.rs)
+CRATE_layout_traits = $(S)src/components/layout_traits/layout_traits.rs
+DONE_layout_traits = $(B)src/components/layout_traits/liblayout_traits.dummy
+
+DEPS_layout_traits = $(CRATE_layout_traits) $(SRC_layout_traits) $(DONE_script) $(DONE_msg) $(DONE_net) $(DONE_gfx) $(DONE_util)
+
+RFLAGS_layout = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/gfx -L $(B)src/components/util -L $(B)src/components/net -L $(B)src/components/script -L $(B)src/components/style -L $(B)src/components/msg -L$(B)src/components/macros -L$(B)src/components/layout_traits
 
 SRC_layout = $(call rwildcard,$(S)src/components/layout/,*.rs) $(S)src/components/layout/css/user-agent.css
 CRATE_layout = $(S)src/components/layout/layout.rs
 DONE_layout = $(B)src/components/layout/liblayout.dummy
 
-DEPS_layout = $(CRATE_layout) $(SRC_layout) $(DONE_script) $(DONE_style) $(DONE_msg) $(DONE_macros) $(DONE_gfx) $(DONE_util)
+DEPS_layout = $(CRATE_layout) $(SRC_layout) $(DONE_script) $(DONE_style) $(DONE_msg) $(DONE_macros) $(DONE_gfx) $(DONE_util) $(DONE_layout_traits)
 
-RFLAGS_compositing = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/gfx -L $(B)src/components/util -L $(B)src/components/net -L $(B)src/components/script -L $(B)src/components/layout -L $(B)src/components/style -L $(B)src/components/msg
+RFLAGS_compositing = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/gfx -L $(B)src/components/util -L $(B)src/components/net -L $(B)src/components/script -L $(B)src/components/layout_traits -L $(B)src/components/style -L $(B)src/components/msg
 
 SRC_compositing = $(call rwildcard,$(S)src/components/compositing/,*.rs)
 CRATE_compositing = $(S)src/components/compositing/compositing.rs
 DONE_compositing = $(B)src/components/compositing/libcompositing.dummy
 
-DEPS_compositing = $(CRATE_compositing) $(SRC_compositing) $(DONE_util) $(DONE_msg) $(DONE_gfx) $(DONE_script) $(DONE_layout) $(DONE_style)
+DEPS_compositing = $(CRATE_compositing) $(SRC_compositing) $(DONE_util) $(DONE_msg) $(DONE_gfx) $(DONE_script) $(DONE_layout_traits) $(DONE_style)
 
-RFLAGS_servo = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/gfx -L $(B)src/components/util -L $(B)src/components/net -L $(B)src/components/script -L $(B)src/components/layout -L $(B)src/components/compositing -L $(B)src/components/style -L $(B)src/components/msg -L$(B)src/components/macros
+RFLAGS_servo = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/gfx -L $(B)src/components/util -L $(B)src/components/net -L $(B)src/components/script -L $(B)src/components/layout_traits -L $(B)src/components/layout -L $(B)src/components/compositing -L $(B)src/components/style -L $(B)src/components/msg -L$(B)src/components/macros
 
 SRC_servo = $(call rwildcard,$(S)src/components/main/,*.rs)
 CRATE_servo = $(S)src/components/main/servo.rs
 
-DEPS_servo = $(CRATE_servo) $(SRC_servo) $(DONE_SUBMODULES) $(DONE_util) $(DONE_gfx) $(DONE_script) $(DONE_net) $(DONE_msg) $(DONE_style) $(DONE_macros) $(DONE_layout) $(DONE_compositing)
+DEPS_servo = $(CRATE_servo) $(SRC_servo) $(DONE_SUBMODULES) $(DONE_util) $(DONE_gfx) $(DONE_script) $(DONE_net) $(DONE_msg) $(DONE_style) $(DONE_macros) $(DONE_layout) $(DONE_layout_traits) $(DONE_compositing)
 
-SERVO_LIB_CRATES = macros util net msg gfx script style layout compositing
+SERVO_LIB_CRATES = macros util net msg gfx script style layout layout_traits compositing
 
 # rules that depend on having correct meta-target vars (DEPS_CLEAN, DEPS_servo, etc)
 # and SERVO_LIB_CRATES
@@ -364,7 +372,7 @@ servo:	$(DEPS_servo)
 	@$(call E, compile: $@)
 	$(Q)$(RUSTC) $(RFLAGS_servo) $< --crate-type bin,dylib,rlib
 
-RFLAGS_embedding = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/gfx -L $(B)src/components/util -L $(B)src/components/net -L $(B)src/components/script -L $(B)src/components/layout -L $(B)src/components/compositing -L $(B)src/components/style -L $(B)src/components/msg -L $(B).. -L $(B)src/components/main -L $(B)src/components/macros -A non_camel_case_types -A unused_variable
+RFLAGS_embedding = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/gfx -L $(B)src/components/util -L $(B)src/components/net -L $(B)src/components/script -L $(B)src/components/layout -L $(B)src/components/layout_traits -L $(B)src/components/compositing -L $(B)src/components/style -L $(B)src/components/msg -L $(B).. -L $(B)src/components/main -L $(B)src/components/macros -A non_camel_case_types -A unused_variable
 
 ifeq ($(CFG_OSTYPE),apple-darwin)
 RFLAGS_embedding += -C link-args="-Wl,-U,_tc_new -Wl,-U,_tc_newarray -Wl,-U,_tc_delete -Wl,-U,_tc_deletearray"

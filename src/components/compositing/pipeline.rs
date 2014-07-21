@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use CompositorChan;
-use layout::layout_task::LayoutTask;
+use layout_traits::LayoutTaskFactory;
 
 use gfx::render_task::{PaintPermissionGranted, PaintPermissionRevoked};
 use gfx::render_task::{RenderChan, RenderTask};
@@ -45,17 +45,18 @@ pub struct CompositionPipeline {
 impl Pipeline {
     /// Starts a render task, layout task, and script task. Returns the channels wrapped in a
     /// struct.
-    pub fn with_script(id: PipelineId,
-                       subpage_id: SubpageId,
-                       constellation_chan: ConstellationChan,
-                       compositor_chan: CompositorChan,
-                       image_cache_task: ImageCacheTask,
-                       font_cache_task: FontCacheTask,
-                       time_profiler_chan: TimeProfilerChan,
-                       opts: Opts,
-                       script_pipeline: Rc<Pipeline>,
-                       url: Url)
-                       -> Pipeline {
+    pub fn with_script<LTF:LayoutTaskFactory>(
+                           id: PipelineId,
+                           subpage_id: SubpageId,
+                           constellation_chan: ConstellationChan,
+                           compositor_chan: CompositorChan,
+                           image_cache_task: ImageCacheTask,
+                           font_cache_task: FontCacheTask,
+                           time_profiler_chan: TimeProfilerChan,
+                           opts: Opts,
+                           script_pipeline: Rc<Pipeline>,
+                           url: Url)
+                           -> Pipeline {
         let (layout_port, layout_chan) = LayoutChan::new();
         let (render_port, render_chan) = RenderChan::new();
         let (render_shutdown_chan, render_shutdown_port) = channel();
@@ -76,18 +77,19 @@ impl Pipeline {
                            time_profiler_chan.clone(),
                            render_shutdown_chan);
 
-        LayoutTask::create(id,
-                           layout_port,
-                           layout_chan.clone(),
-                           constellation_chan,
-                           failure,
-                           script_pipeline.script_chan.clone(),
-                           render_chan.clone(),
-                           image_cache_task.clone(),
-                           font_cache_task.clone(),
-                           opts.clone(),
-                           time_profiler_chan,
-                           layout_shutdown_chan);
+        LayoutTaskFactory::create(None::<&mut LTF>,
+                                  id,
+                                  layout_port,
+                                  layout_chan.clone(),
+                                  constellation_chan,
+                                  failure,
+                                  script_pipeline.script_chan.clone(),
+                                  render_chan.clone(),
+                                  image_cache_task.clone(),
+                                  font_cache_task.clone(),
+                                  opts.clone(),
+                                  time_profiler_chan,
+                                  layout_shutdown_chan);
 
         let new_layout_info = NewLayoutInfo {
             old_pipeline_id: script_pipeline.id.clone(),
@@ -109,18 +111,19 @@ impl Pipeline {
                       url)
     }
 
-    pub fn create(id: PipelineId,
-                  subpage_id: Option<SubpageId>,
-                  constellation_chan: ConstellationChan,
-                  compositor_chan: CompositorChan,
-                  image_cache_task: ImageCacheTask,
-                  font_cache_task: FontCacheTask,
-                  resource_task: ResourceTask,
-                  time_profiler_chan: TimeProfilerChan,
-                  window_size: WindowSizeData,
-                  opts: Opts,
-                  url: Url)
-                  -> Pipeline {
+    pub fn create<LTF:LayoutTaskFactory>(
+                      id: PipelineId,
+                      subpage_id: Option<SubpageId>,
+                      constellation_chan: ConstellationChan,
+                      compositor_chan: CompositorChan,
+                      image_cache_task: ImageCacheTask,
+                      font_cache_task: FontCacheTask,
+                      resource_task: ResourceTask,
+                      time_profiler_chan: TimeProfilerChan,
+                      window_size: WindowSizeData,
+                      opts: Opts,
+                      url: Url)
+                      -> Pipeline {
         let (script_port, script_chan) = ScriptChan::new();
         let (layout_port, layout_chan) = LayoutChan::new();
         let (render_port, render_chan) = RenderChan::new();
@@ -161,18 +164,19 @@ impl Pipeline {
                            time_profiler_chan.clone(),
                            render_shutdown_chan);
 
-        LayoutTask::create(id,
-                           layout_port,
-                           layout_chan.clone(),
-                           constellation_chan,
-                           failure,
-                           script_chan.clone(),
-                           render_chan.clone(),
-                           image_cache_task,
-                           font_cache_task,
-                           opts.clone(),
-                           time_profiler_chan,
-                           layout_shutdown_chan);
+        LayoutTaskFactory::create(None::<&mut LTF>,
+                                  id,
+                                  layout_port,
+                                  layout_chan.clone(),
+                                  constellation_chan,
+                                  failure,
+                                  script_chan.clone(),
+                                  render_chan.clone(),
+                                  image_cache_task,
+                                  font_cache_task,
+                                  opts.clone(),
+                                  time_profiler_chan,
+                                  layout_shutdown_chan);
 
         pipeline
     }

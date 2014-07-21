@@ -616,6 +616,7 @@ make_dir ${CFG_BUILD_DIR}src/components/msg
 make_dir ${CFG_BUILD_DIR}src/components/net
 make_dir ${CFG_BUILD_DIR}src/components/gfx
 make_dir ${CFG_BUILD_DIR}src/components/layout
+make_dir ${CFG_BUILD_DIR}src/components/layout_traits
 make_dir ${CFG_BUILD_DIR}src/components/script
 make_dir ${CFG_BUILD_DIR}src/components/style
 make_dir ${CFG_BUILD_DIR}src/components/main
