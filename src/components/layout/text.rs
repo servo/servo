@@ -122,7 +122,6 @@ impl TextRunScanner {
                 };
 
                 let font_style = old_fragment.font_style();
-                let decoration = old_fragment.text_decoration();
 
                 // TODO(#115): Use the actual CSS `white-space` property of the relevant style.
                 let compression = match old_fragment.white_space() {
@@ -145,7 +144,7 @@ impl TextRunScanner {
                     // and then letting `FontGroup` decide which `Font` to stick into the text run.
                     let fontgroup = font_context.get_layout_font_group_for_style(&font_style);
                     let run = box fontgroup.create_textrun(
-                        transformed_text.clone(), decoration);
+                        transformed_text.clone());
 
                     debug!("TextRunScanner: pushing single text fragment in range: {} ({})",
                            self.clump,
@@ -168,7 +167,6 @@ impl TextRunScanner {
                 let in_fragment = &in_fragments[self.clump.begin().to_uint()];
                 let font_style = in_fragment.font_style();
                 let fontgroup = font_context.get_layout_font_group_for_style(&font_style);
-                let decoration = in_fragment.text_decoration();
 
                 // TODO(#115): Use the actual CSS `white-space` property of the relevant style.
                 let compression = match in_fragment.white_space() {
@@ -222,7 +220,7 @@ impl TextRunScanner {
                 let run = if clump.length() != CharIndex(0) && run_str.len() > 0 {
                     Some(Arc::new(box TextRun::new(
                         &mut *fontgroup.fonts.get(0).borrow_mut(),
-                        run_str.to_string(), decoration)))
+                        run_str.to_string())))
                 } else {
                     None
                 };
