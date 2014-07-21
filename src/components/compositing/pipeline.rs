@@ -43,74 +43,9 @@ pub struct CompositionPipeline {
 }
 
 impl Pipeline {
-    /// Starts a render task, layout task, and script task. Returns the channels wrapped in a
-    /// struct.
-    pub fn with_script<LTF:LayoutTaskFactory>(
-                           id: PipelineId,
-                           subpage_id: SubpageId,
-                           constellation_chan: ConstellationChan,
-                           compositor_chan: CompositorChan,
-                           image_cache_task: ImageCacheTask,
-                           font_cache_task: FontCacheTask,
-                           time_profiler_chan: TimeProfilerChan,
-                           opts: Opts,
-                           script_pipeline: Rc<Pipeline>,
-                           url: Url)
-                           -> Pipeline {
-        let (layout_port, layout_chan) = LayoutChan::new();
-        let (render_port, render_chan) = RenderChan::new();
-        let (render_shutdown_chan, render_shutdown_port) = channel();
-        let (layout_shutdown_chan, layout_shutdown_port) = channel();
-
-        let failure = Failure {
-            pipeline_id: id,
-            subpage_id: Some(subpage_id),
-        };
-
-        RenderTask::create(id,
-                           render_port,
-                           compositor_chan.clone(),
-                           constellation_chan.clone(),
-                           font_cache_task.clone(),
-                           failure.clone(),
-                           opts.clone(),
-                           time_profiler_chan.clone(),
-                           render_shutdown_chan);
-
-        LayoutTaskFactory::create(None::<&mut LTF>,
-                                  id,
-                                  layout_port,
-                                  layout_chan.clone(),
-                                  constellation_chan,
-                                  failure,
-                                  script_pipeline.script_chan.clone(),
-                                  render_chan.clone(),
-                                  image_cache_task.clone(),
-                                  font_cache_task.clone(),
-                                  opts.clone(),
-                                  time_profiler_chan,
-                                  layout_shutdown_chan);
-
-        let new_layout_info = NewLayoutInfo {
-            old_pipeline_id: script_pipeline.id.clone(),
-            new_pipeline_id: id,
-            subpage_id: subpage_id,
-            layout_chan: layout_chan.clone(),
-        };
-
-        let ScriptChan(ref chan) = script_pipeline.script_chan;
-        chan.send(AttachLayoutMsg(new_layout_info));
-
-        Pipeline::new(id,
-                      Some(subpage_id),
-                      script_pipeline.script_chan.clone(),
-                      layout_chan,
-                      render_chan,
-                      layout_shutdown_port,
-                      render_shutdown_port,
-                      url)
-    }
-
+    /// Starts a render task, layout task, and possibly a script task.
+    /// Returns the channels wrapped in a struct.
+    /// If script_pipeline is not None, then subpage_id must also be not None.
     pub fn create<LTF:LayoutTaskFactory>(
                       id: PipelineId,
                       subpage_id: Option<SubpageId>,
@@ -122,37 +57,47 @@ impl Pipeline {
                       time_profiler_chan: TimeProfilerChan,
                       window_size: WindowSizeData,
                       opts: Opts,
+                      script_pipeline: Option<Rc<Pipeline>>,
                       url: Url)
                       -> Pipeline {
-        let (script_port, script_chan) = ScriptChan::new();
         let (layout_port, layout_chan) = LayoutChan::new();
         let (render_port, render_chan) = RenderChan::new();
         let (render_shutdown_chan, render_shutdown_port) = channel();
         let (layout_shutdown_chan, layout_shutdown_port) = channel();
-        let pipeline = Pipeline::new(id,
-                                     subpage_id,
-                                     script_chan.clone(),
-                                     layout_chan.clone(),
-                                     render_chan.clone(),
-                                     layout_shutdown_port,
-                                     render_shutdown_port,
-                                     url);
 
         let failure = Failure {
             pipeline_id: id,
             subpage_id: subpage_id,
         };
 
-        ScriptTask::create(id,
-                           box compositor_chan.clone(),
-                           layout_chan.clone(),
-                           script_port,
-                           script_chan.clone(),
-                           constellation_chan.clone(),
-                           failure.clone(),
-                           resource_task,
-                           image_cache_task.clone(),
-                           window_size);
+        let script_chan = match script_pipeline {
+            None => {
+                let (script_port, script_chan) = ScriptChan::new();
+                ScriptTask::create(id,
+                               box compositor_chan.clone(),
+                               layout_chan.clone(),
+                               script_port,
+                               script_chan.clone(),
+                               constellation_chan.clone(),
+                               failure.clone(),
+                               resource_task,
+                               image_cache_task.clone(),
+                               window_size);
+                script_chan
+            }
+            Some(spipe) => {
+                let new_layout_info = NewLayoutInfo {
+                    old_pipeline_id: spipe.id.clone(),
+                    new_pipeline_id: id,
+                    subpage_id: subpage_id.expect("script_pipeline != None but subpage_id == None"),
+                    layout_chan: layout_chan.clone(),
+                };
+
+                let ScriptChan(ref chan) = spipe.script_chan;
+                chan.send(AttachLayoutMsg(new_layout_info));
+                spipe.script_chan.clone()
+            }
+        };
 
         RenderTask::create(id,
                            render_port,
@@ -178,7 +123,14 @@ impl Pipeline {
                                   time_profiler_chan,
                                   layout_shutdown_chan);
 
-        pipeline
+        Pipeline::new(id,
+                      subpage_id,
+                      script_chan,
+                      layout_chan,
+                      render_chan,
+                      layout_shutdown_port,
+                      render_shutdown_port,
+                      url)
     }
 
     pub fn new(id: PipelineId,
