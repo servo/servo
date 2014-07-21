@@ -62,6 +62,23 @@ use style::{AuthorOrigin, Stylesheet, Stylist};
 use sync::{Arc, Mutex};
 use url::Url;
 
+// A static method creating a layout task
+pub trait LayoutTaskFactory {
+    fn create(_phantom: Option<&mut Self>, // FIXME: use a proper static method
+              id: PipelineId,
+              port: Receiver<Msg>,
+              chan: LayoutChan,
+              constellation_chan: ConstellationChan,
+              failure_msg: Failure,
+              script_chan: ScriptChan,
+              render_chan: RenderChan,
+              img_cache_task: ImageCacheTask,
+              font_cache_task: FontCacheTask,
+              opts: Opts,
+              time_profiler_chan: TimeProfilerChan,
+              shutdown_chan: Sender<()>);
+}
+
 /// Information needed by the layout task.
 pub struct LayoutTask {
     /// The ID of the pipeline that we belong to.
@@ -272,9 +289,10 @@ impl ImageResponder for LayoutImageResponder {
     }
 }
 
-impl LayoutTask {
+impl LayoutTaskFactory for LayoutTask {
     /// Spawns a new layout task.
-    pub fn create(id: PipelineId,
+    fn create(_phantom: Option<&mut LayoutTask>,
+                  id: PipelineId,
                   port: Receiver<Msg>,
                   chan: LayoutChan,
                   constellation_chan: ConstellationChan,
@@ -306,7 +324,9 @@ impl LayoutTask {
             shutdown_chan.send(());
         });
     }
+}
 
+impl LayoutTask {
     /// Creates a new `LayoutTask` structure.
     fn new(id: PipelineId,
            port: Receiver<Msg>,

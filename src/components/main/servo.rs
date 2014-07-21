@@ -20,6 +20,7 @@ extern crate servo_msg = "msg";
 #[phase(plugin, link)]
 extern crate servo_util = "util";
 extern crate script;
+extern crate layout;
 extern crate green;
 extern crate gfx;
 extern crate libc;
@@ -125,7 +126,8 @@ pub fn run(opts: opts::Opts) {
                 ImageCacheTask::new(resource_task.clone())
             };
         let font_cache_task = FontCacheTask::new();
-        let constellation_chan = Constellation::start(compositor_chan,
+        let constellation_chan = Constellation::<layout::layout_task::LayoutTask>::start(
+                                                      compositor_chan,
                                                       opts,
                                                       resource_task,
                                                       image_cache_task,
