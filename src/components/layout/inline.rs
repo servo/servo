@@ -1027,8 +1027,7 @@ impl InlineFlow {
             },
             vertical_align::Length(length) => (-(length + ascent), false),
             vertical_align::Percentage(p) => {
-                let pt_size = fragment.font_style().pt_size;
-                let line_height = fragment.calculate_line_height(Au::from_pt(pt_size));
+                let line_height = fragment.calculate_line_height();
                 let percent_offset = line_height.scale_by(p);
                 (-(percent_offset + ascent), false)
             }
@@ -1073,7 +1072,7 @@ impl InlineFlow {
                                               style: &ComputedValues) -> (Au, Au) {
         let font_style = text::computed_style_to_font_style(style);
         let font_metrics = text::font_metrics_for_style(font_context, &font_style);
-        let line_height = text::line_height_from_style(style, style.get_font().font_size);
+        let line_height = text::line_height_from_style(style);
         let inline_metrics = InlineMetrics::from_font_metrics(&font_metrics, line_height);
         (inline_metrics.block_size_above_baseline, inline_metrics.depth_below_baseline)
     }
