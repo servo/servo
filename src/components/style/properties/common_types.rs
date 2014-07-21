@@ -4,6 +4,8 @@
 
 #![allow(non_camel_case_types)]
 
+use url::{Url, UrlParser};
+
 pub use servo_util::geometry::Au;
 
 pub type CSSFloat = f64;
@@ -252,4 +254,9 @@ pub mod computed {
             specified::LPN_None => LPN_None,
         }
     }
+}
+
+pub fn parse_url(input: &str, base_url: &Url) -> Url {
+    UrlParser::new().base_url(base_url).parse(input)
+        .unwrap_or_else(|_| Url::parse("about:invalid").unwrap())
 }

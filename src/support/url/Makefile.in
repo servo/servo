@@ -1,0 +1,25 @@
+VPATH=%VPATH%
+
+RUSTC ?= rustc
+RUSTFLAGS ?=
+EXT_DEPS ?=
+
+SRC=$(shell find $(VPATH)/src -type f)
+
+.PHONY: all
+all: 	liburl.dummy
+
+liburl.dummy: src/url.rs $(SRC) $(EXT_DEPS)
+	$(RUSTC) $(RUSTFLAGS) $< --out-dir .
+	touch $@
+
+url-test: src/url.rs $(SRC)
+	$(RUSTC) $(RUSTFLAGS) $< -o $@ --test
+
+.PHONY: check
+check: url-test
+	./url-test $(TEST)
+
+.PHONY: clean
+clean:
+	rm -f *.o *.a *.so *.dylib *.rlib *.dll *.dummy *-test

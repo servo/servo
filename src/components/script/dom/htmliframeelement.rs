@@ -21,11 +21,10 @@ use servo_msg::constellation_msg::{IFrameSandboxed, IFrameUnsandboxed};
 use servo_msg::constellation_msg::{ConstellationChan, LoadIframeUrlMsg};
 use servo_util::namespace::Null;
 use servo_util::str::DOMString;
-use servo_util::url::try_parse_url;
 
 use std::ascii::StrAsciiExt;
 use std::cell::Cell;
-use url::Url;
+use url::{Url, UrlParser};
 
 enum SandboxAllowance {
     AllowNothing = 0x00,
@@ -70,8 +69,8 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
         element.get_attribute(Null, "src").root().and_then(|src| {
             let window = window_from_node(self).root();
-            try_parse_url(src.deref().value().as_slice(),
-                          Some(window.deref().page().get_url())).ok()
+            UrlParser::new().base_url(&window.deref().page().get_url())
+                .parse(src.deref().value().as_slice()).ok()
         })
     }
 }

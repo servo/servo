@@ -28,7 +28,6 @@ extern crate sync;
 #[cfg(target_os="macos")]
 extern crate task_info;
 extern crate std_time = "time";
-extern crate std_url = "url";
 extern crate string_cache;
 
 pub mod atom;
@@ -45,6 +44,5 @@ pub mod sort;
 pub mod str;
 pub mod task;
 pub mod time;
-pub mod url;
 pub mod vec;
 pub mod workqueue;

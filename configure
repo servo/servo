@@ -528,7 +528,8 @@ CFG_SUBMODULES="\
     support/opengles/rust-opengles \
     support/sharegl/sharegl \
     support/phf/rust-phf \
-    support/stringcache/string-cache"
+    support/stringcache/string-cache \
+    support/url/rust-url"
 
 if [ $CFG_OSTYPE = "apple-darwin" ]
 then
@@ -747,6 +748,9 @@ do
             ;;
         support/phf/rust-phf)
             ENABLE_DEBUG=""
+            ;;
+        support/url/rust-url)
+            CONFIGURE_SCRIPT="${CFG_SRC_DIR}src/support/url/configure"
             ;;
         *)
             ;;

@@ -21,7 +21,7 @@ extern crate geom;
 extern crate num;
 extern crate serialize;
 extern crate sync;
-extern crate url;
+extern crate url = "url_";
 
 extern crate cssparser;
 extern crate encoding;

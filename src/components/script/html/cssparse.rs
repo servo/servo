@@ -29,7 +29,7 @@ fn parse_css(provenance: StylesheetProvenance) -> Stylesheet {
 
     match provenance {
         UrlProvenance(url, resource_task) => {
-            debug!("cssparse: loading style sheet at {:s}", url.to_str());
+            debug!("cssparse: loading style sheet at {:s}", url.serialize());
             let (input_chan, input_port) = channel();
             resource_task.send(Load(LoadData::new(url), input_chan));
             let LoadResponse { metadata: metadata, progress_port: progress_port , ..}

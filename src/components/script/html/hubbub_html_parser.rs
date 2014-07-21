@@ -23,13 +23,12 @@ use servo_util::namespace;
 use servo_util::namespace::{Namespace, Null};
 use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS};
 use servo_util::task::spawn_named;
-use servo_util::url::try_parse_url;
 use std::ascii::StrAsciiExt;
 use std::mem;
 use std::cell::RefCell;
 use std::comm::{channel, Sender, Receiver};
 use style::Stylesheet;
-use url::Url;
+use url::{Url, UrlParser};
 
 macro_rules! handle_element(
     ($document: expr,
@@ -133,7 +132,7 @@ fn js_script_listener(to_parent: Sender<HtmlDiscoveryMessage>,
             Ok(JSTaskNewFile(url)) => {
                 match load_whole_resource(&resource_task, url.clone()) {
                     Err(_) => {
-                        error!("error loading script {:s}", url.to_str());
+                        error!("error loading script {:s}", url.serialize());
                     }
                     Ok((metadata, bytes)) => {
                         result_vec.push(JSFile {
@@ -421,8 +420,9 @@ pub fn parse_html(page: &Page,
                                     s.as_slice().eq_ignore_ascii_case("stylesheet")
                                 }) => {
                             debug!("found CSS stylesheet: {:s}", *href);
-                            match try_parse_url(href.as_slice(), Some(url2.clone())) {
-                                Ok(url) => css_chan2.send(CSSTaskNewFile(UrlProvenance(url, resource_task.clone()))),
+                            match UrlParser::new().base_url(&url2).parse(href.as_slice()) {
+                                Ok(url) => css_chan2.send(CSSTaskNewFile(
+                                    UrlProvenance(url, resource_task.clone()))),
                                 Err(e) => debug!("Parsing url {:s} failed: {:s}", *href, e)
                             };
                         }
@@ -504,9 +504,10 @@ pub fn parse_html(page: &Page,
                 match script.get_attribute(Null, "src").root() {
                     Some(src) => {
                         debug!("found script: {:s}", src.deref().Value());
-                        match try_parse_url(src.deref().value().as_slice(), Some(url3.clone())) {
-                                Ok(new_url) => js_chan2.send(JSTaskNewFile(new_url)),
-                                Err(e) => debug!("Parsing url {:s} failed: {:s}", src.deref().Value(), e)
+                        match UrlParser::new().base_url(&url3)
+                                .parse(src.deref().value().as_slice()) {
+                            Ok(new_url) => js_chan2.send(JSTaskNewFile(new_url)),
+                            Err(e) => debug!("Parsing url {:s} failed: {:s}", src.deref().Value(), e)
                         };
                     }
                     None => {
@@ -541,7 +542,7 @@ pub fn parse_html(page: &Page,
                 parser.parse_chunk(data.as_slice());
             }
             Done(Err(err)) => {
-                fail!("Failed to load page URL {:s}, error: {:s}", url.to_str(), err);
+                fail!("Failed to load page URL {:s}, error: {:s}", url.serialize(), err);
             }
             Done(..) => {
                 break;

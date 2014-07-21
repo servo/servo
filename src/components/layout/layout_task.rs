@@ -563,7 +563,7 @@ impl LayoutTask {
             mem::transmute(&mut node)
         };
 
-        debug!("layout: received layout request for: {:s}", data.url.to_str());
+        debug!("layout: received layout request for: {:s}", data.url.serialize());
         debug!("layout: damage is {:?}", data.damage);
         debug!("layout: parsed Node tree");
         debug!("{:?}", node.dump());

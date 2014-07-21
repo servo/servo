@@ -12,7 +12,7 @@ use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use dom::eventtarget::{EventTarget, WorkerTypeId};
 
 use servo_util::str::DOMString;
-use servo_util::url::try_parse_url;
+use url::UrlParser;
 
 #[deriving(Encodable)]
 pub struct Worker {
@@ -37,7 +37,8 @@ impl Worker {
     // http://www.whatwg.org/html/#dom-worker
     pub fn Constructor(global: &GlobalRef, scriptURL: DOMString) -> Fallible<Temporary<Worker>> {
         // Step 2-4.
-        let worker_url = match try_parse_url(scriptURL.as_slice(), Some(global.get_url())) {
+        let worker_url = match UrlParser::new().base_url(&global.get_url())
+                .parse(scriptURL.as_slice()) {
             Ok(url) => url,
             Err(_) => return Err(Syntax),
         };

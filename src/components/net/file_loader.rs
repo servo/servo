@@ -31,7 +31,7 @@ pub fn factory() -> LoaderTask {
         assert!("file" == url.scheme.as_slice());
         let progress_chan = start_sending(start_chan, Metadata::default(url.clone()));
         spawn_named("file_loader", proc() {
-            match File::open_mode(&Path::new(url.path), io::Open, io::Read) {
+            match File::open_mode(&Path::new(url.serialize_path().unwrap()), io::Open, io::Read) {
                 Ok(ref mut reader) => {
                     let res = read_all(reader as &mut io::Stream, &progress_chan);
                     progress_chan.send(Done(res));

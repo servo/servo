@@ -20,9 +20,7 @@ use servo_util::str::DOMString;
 
 use servo_net::image_cache_task;
 use servo_net::image_cache_task::ImageCacheTask;
-use servo_util::url::parse_url;
 use servo_util::namespace::Null;
-use servo_util::url::is_image_data;
 use url::Url;
 
 #[deriving(Encodable)]
@@ -50,13 +48,13 @@ impl HTMLObjectElement {
 }
 
 trait ProcessDataURL {
-    fn process_data_url(&self, image_cache: ImageCacheTask, url: Option<Url>);
+    fn process_data_url(&self, image_cache: ImageCacheTask);
 }
 
 impl<'a> ProcessDataURL for JSRef<'a, HTMLObjectElement> {
     // Makes the local `data` member match the status of the `data` attribute and starts
     /// prefetching the image. This method must be called after `data` is changed.
-    fn process_data_url(&self, image_cache: ImageCacheTask, url: Option<Url>) {
+    fn process_data_url(&self, image_cache: ImageCacheTask) {
         let elem: &JSRef<Element> = ElementCast::from_ref(self);
 
         // TODO: support other values
@@ -64,7 +62,7 @@ impl<'a> ProcessDataURL for JSRef<'a, HTMLObjectElement> {
                elem.get_attribute(Null, "data").map(|x| x.root().Value())) {
             (None, Some(uri)) => {
                 if is_image_data(uri.as_slice()) {
-                    let data_url = parse_url(uri.as_slice(), url);
+                    let data_url = Url::parse(uri.as_slice()).unwrap();
                     // Issue #84
                     image_cache.send(image_cache_task::Prefetch(data_url));
                 }
@@ -72,6 +70,11 @@ impl<'a> ProcessDataURL for JSRef<'a, HTMLObjectElement> {
             _ => { }
         }
     }
+}
+
+pub fn is_image_data(uri: &str) -> bool {
+    static types: &'static [&'static str] = &["data:image/png", "data:image/gif", "data:image/jpeg"];
+    types.iter().any(|&type_| uri.starts_with(type_))
 }
 
 pub trait HTMLObjectElementMethods {
@@ -99,8 +102,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLObjectElement> {
 
         if "data" == name.as_slice() {
             let window = window_from_node(self).root();
-            let url = Some(window.deref().get_url());
-            self.process_data_url(window.deref().image_cache_task.clone(), url);
+            self.process_data_url(window.deref().image_cache_task.clone());
         }
     }
 }

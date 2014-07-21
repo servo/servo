@@ -40,7 +40,7 @@ extern crate servo_util = "util";
 extern crate style;
 extern crate sync;
 extern crate servo_msg = "msg";
-extern crate url;
+extern crate url = "url_";
 
 pub mod dom {
     pub mod bindings {

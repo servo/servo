@@ -5,12 +5,11 @@
 use image::base::{Image, load_from_memory};
 use resource_task;
 use resource_task::{LoadData, ResourceTask};
-use servo_util::url::{UrlMap, url_map};
 
 use std::comm::{channel, Receiver, Sender};
+use std::collections::hashmap::HashMap;
 use std::mem::replace;
 use std::task::spawn;
-use std::to_str::ToStr;
 use std::result;
 use sync::{Arc, Mutex};
 use serialize::{Encoder, Encodable};
@@ -89,8 +88,8 @@ impl ImageCacheTask {
                 resource_task: resource_task.clone(),
                 port: port,
                 chan: chan_clone,
-                state_map: url_map(),
-                wait_map: url_map(),
+                state_map: HashMap::new(),
+                wait_map: HashMap::new(),
                 need_exit: None
             };
             cache.run();
@@ -137,9 +136,9 @@ struct ImageCache {
     /// A copy of the shared chan to give to child tasks
     chan: Sender<Msg>,
     /// The state of processsing an image for a URL
-    state_map: UrlMap<ImageState>,
+    state_map: HashMap<Url, ImageState>,
     /// List of clients waiting on a WaitForImage response
-    wait_map: UrlMap<Arc<Mutex<Vec<Sender<ImageResponseMsg>>>>>,
+    wait_map: HashMap<Url, Arc<Mutex<Vec<Sender<ImageResponseMsg>>>>>,
     need_exit: Option<Sender<()>>,
 }
 
@@ -248,7 +247,7 @@ impl ImageCache {
 
                 spawn(proc() {
                     let url = url_clone;
-                    debug!("image_cache_task: started fetch for {:s}", url.to_str());
+                    debug!("image_cache_task: started fetch for {:s}", url.serialize());
 
                     let image = load_image_data(url.clone(), resource_task.clone());
 
@@ -258,7 +257,7 @@ impl ImageCache {
                         Err(())
                     };
                     to_cache.send(StorePrefetchedImageData(url.clone(), result));
-                    debug!("image_cache_task: ended fetch for {:s}", (url.clone()).to_str());
+                    debug!("image_cache_task: ended fetch for {:s}", url.serialize());
                 });
 
                 self.set_state(url, Prefetching(DoNotDecode));
@@ -317,7 +316,7 @@ impl ImageCache {
 
                 spawn(proc() {
                     let url = url_clone;
-                    debug!("image_cache_task: started image decode for {:s}", url.to_str());
+                    debug!("image_cache_task: started image decode for {:s}", url.serialize());
                     let image = load_from_memory(data.as_slice());
                     let image = if image.is_some() {
                         Some(Arc::new(box image.unwrap()))
@@ -325,7 +324,7 @@ impl ImageCache {
                         None
                     };
                     to_cache.send(StoreImage(url.clone(), image));
-                    debug!("image_cache_task: ended image decode for {:s}", url.to_str());
+                    debug!("image_cache_task: ended image decode for {:s}", url.serialize());
                 });
 
                 self.set_state(url, Decoding);
@@ -494,8 +493,8 @@ mod tests {
     use resource_task;
     use resource_task::{ResourceTask, Metadata, start_sending};
     use image::base::test_image_bin;
-    use servo_util::url::parse_url;
     use std::comm;
+    use url::Url;
 
     trait Closure {
         fn invoke(&self, _response: Sender<resource_task::ProgressMsg>) { }
@@ -568,7 +567,8 @@ mod tests {
             loop {
                 match port.recv() {
                     resource_task::Load(_, response) => {
-                        let chan = start_sending(response, Metadata::default(parse_url("file:///fake", None)));
+                        let chan = start_sending(response, Metadata::default(
+                            Url::parse("file:///fake").unwrap()));
                         on_load.invoke(chan);
                     }
                     resource_task::Exit => break
@@ -582,7 +582,6 @@ mod tests {
         let mock_resource_task = mock_resource_task(box DoesNothing);
 
         let image_cache_task = ImageCacheTask::new(mock_resource_task.clone());
-        let _url = parse_url("file", None);
 
         image_cache_task.exit();
         mock_resource_task.send(resource_task::Exit);
@@ -594,7 +593,7 @@ mod tests {
         let mock_resource_task = mock_resource_task(box DoesNothing);
 
         let image_cache_task = ImageCacheTask::new(mock_resource_task.clone());
-        let url = parse_url("file", None);
+        let url = Url::parse("file:///").unwrap();
 
         let (chan, port) = channel();
         image_cache_task.send(GetImage(url, chan));
@@ -608,7 +607,7 @@ mod tests {
         let mock_resource_task = mock_resource_task(box JustSendOK { url_requested_chan: url_requested_chan});
 
         let image_cache_task = ImageCacheTask::new(mock_resource_task.clone());
-        let url = parse_url("file", None);
+        let url = Url::parse("file:///").unwrap();
 
         image_cache_task.send(Prefetch(url));
         url_requested.recv();
@@ -623,7 +622,7 @@ mod tests {
         let mock_resource_task = mock_resource_task(box JustSendOK { url_requested_chan: url_requested_chan});
 
         let image_cache_task = ImageCacheTask::new(mock_resource_task.clone());
-        let url = parse_url("file", None);
+        let url = Url::parse("file:///").unwrap();
 
         image_cache_task.send(Prefetch(url.clone()));
         image_cache_task.send(Prefetch(url));
@@ -643,7 +642,7 @@ mod tests {
         let mock_resource_task = mock_resource_task(box WaitSendTestImage{wait_port: wait_port});
 
         let image_cache_task = ImageCacheTask::new(mock_resource_task.clone());
-        let url = parse_url("file", None);
+        let url = Url::parse("file:///").unwrap();
 
         image_cache_task.send(Prefetch(url.clone()));
         image_cache_task.send(Decode(url.clone()));
@@ -660,7 +659,7 @@ mod tests {
         let mock_resource_task = mock_resource_task(box SendTestImage);
 
         let image_cache_task = ImageCacheTask::new(mock_resource_task.clone());
-        let url = parse_url("file", None);
+        let url = Url::parse("file:///").unwrap();
 
         let join_port = image_cache_task.wait_for_store();
 
@@ -686,7 +685,7 @@ mod tests {
         let mock_resource_task = mock_resource_task(box SendTestImage);
 
         let image_cache_task = ImageCacheTask::new(mock_resource_task.clone());
-        let url = parse_url("file", None);
+        let url = Url::parse("file:///").unwrap();
 
         let join_port = image_cache_task.wait_for_store();
 
@@ -719,7 +718,8 @@ mod tests {
             loop {
                 match port.recv() {
                     resource_task::Load(_, response) => {
-                        let chan = start_sending(response, Metadata::default(parse_url("file:///fake", None)));
+                        let chan = start_sending(response, Metadata::default(
+                            Url::parse("file:///fake").unwrap()));
                         chan.send(resource_task::Payload(test_image_bin()));
                         chan.send(resource_task::Done(Ok(())));
                         image_bin_sent_chan.send(());
@@ -733,7 +733,7 @@ mod tests {
         });
 
         let image_cache_task = ImageCacheTask::new(mock_resource_task.clone());
-        let url = parse_url("file", None);
+        let url = Url::parse("file:///").unwrap();
 
         image_cache_task.send(Prefetch(url.clone()));
 
@@ -765,7 +765,8 @@ mod tests {
             loop {
                 match port.recv() {
                     resource_task::Load(_, response) => {
-                        let chan = start_sending(response, Metadata::default(parse_url("file:///fake", None)));
+                        let chan = start_sending(response, Metadata::default(
+                            Url::parse("file:///fake").unwrap()));
                         chan.send(resource_task::Payload(test_image_bin()));
                         chan.send(resource_task::Done(Err("".to_string())));
                         image_bin_sent_chan.send(());
@@ -779,7 +780,7 @@ mod tests {
         });
 
         let image_cache_task = ImageCacheTask::new(mock_resource_task.clone());
-        let url = parse_url("file", None);
+        let url = Url::parse("file:///").unwrap();
 
         image_cache_task.send(Prefetch(url.clone()));
         image_cache_task.send(Decode(url.clone()));
@@ -808,7 +809,7 @@ mod tests {
         let mock_resource_task = mock_resource_task(box SendTestImageErr);
 
         let image_cache_task = ImageCacheTask::new(mock_resource_task.clone());
-        let url = parse_url("file", None);
+        let url = Url::parse("file:///").unwrap();
 
         let join_port = image_cache_task.wait_for_store_prefetched();
 
@@ -834,7 +835,7 @@ mod tests {
         let mock_resource_task = mock_resource_task(box SendTestImageErr);
 
         let image_cache_task = ImageCacheTask::new(mock_resource_task.clone());
-        let url = parse_url("file", None);
+        let url = Url::parse("file:///").unwrap();
 
         let join_port = image_cache_task.wait_for_store_prefetched();
 
@@ -868,7 +869,7 @@ mod tests {
         let mock_resource_task = mock_resource_task(box SendBogusImage);
 
         let image_cache_task = ImageCacheTask::new(mock_resource_task.clone());
-        let url = parse_url("file", None);
+        let url = Url::parse("file:///").unwrap();
 
         let join_port = image_cache_task.wait_for_store();
 
@@ -896,7 +897,7 @@ mod tests {
         let mock_resource_task = mock_resource_task(box SendTestImage);
 
         let image_cache_task = ImageCacheTask::new(mock_resource_task.clone());
-        let url = parse_url("file", None);
+        let url = Url::parse("file:///").unwrap();
 
         let join_port = image_cache_task.wait_for_store();
 
@@ -924,7 +925,7 @@ mod tests {
         let mock_resource_task = mock_resource_task(box WaitSendTestImage {wait_port: wait_port});
 
         let image_cache_task = ImageCacheTask::new(mock_resource_task.clone());
-        let url = parse_url("file", None);
+        let url = Url::parse("file:///").unwrap();
 
         image_cache_task.send(Prefetch(url.clone()));
         image_cache_task.send(Decode(url.clone()));
@@ -950,7 +951,7 @@ mod tests {
         let mock_resource_task = mock_resource_task(box WaitSendTestImageErr{wait_port: wait_port});
 
         let image_cache_task = ImageCacheTask::new(mock_resource_task.clone());
-        let url = parse_url("file", None);
+        let url = Url::parse("file:///").unwrap();
 
         image_cache_task.send(Prefetch(url.clone()));
         image_cache_task.send(Decode(url.clone()));
@@ -974,7 +975,7 @@ mod tests {
         let mock_resource_task = mock_resource_task(box SendTestImage);
 
         let image_cache_task = ImageCacheTask::new_sync(mock_resource_task.clone());
-        let url = parse_url("file", None);
+        let url = Url::parse("file:///").unwrap();
 
         image_cache_task.send(Prefetch(url.clone()));
         image_cache_task.send(Decode(url.clone()));

@@ -2,12 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use std::str;
+
 use resource_task::{Done, Payload, Metadata, LoadData, LoadResponse, LoaderTask, start_sending};
 
 use serialize::base64::FromBase64;
 
 use http::headers::test_utils::from_stream_with_str;
 use http::headers::content_type::MediaType;
+use url::{percent_decode, OtherSchemeData};
+
 
 pub fn factory() -> LoaderTask {
     proc(url, start_chan) {
@@ -25,7 +29,18 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
     let mut metadata = Metadata::default(url.clone());
 
     // Split out content type and data.
-    let parts: Vec<&str> = url.path.as_slice().splitn(',', 1).collect();
+    let mut scheme_data = match url.scheme_data {
+        OtherSchemeData(scheme_data) => scheme_data,
+        _ => fail!("Expected a non-relative scheme URL.")
+    };
+    match url.query {
+        Some(query) => {
+            scheme_data.push_str("?");
+            scheme_data.push_str(query.as_slice());
+        },
+        None => ()
+    }
+    let parts: Vec<&str> = scheme_data.as_slice().splitn(',', 1).collect();
     if parts.len() != 2 {
         start_sending(start_chan, metadata).send(Done(Err("invalid data uri".to_string())));
         return;
@@ -46,23 +61,23 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
     metadata.set_content_type(&content_type);
 
     let progress_chan = start_sending(start_chan, metadata);
+    let bytes = percent_decode(parts.get(1).as_bytes());
 
     if is_base64 {
-        match (*parts.get(1)).from_base64() {
+        // FIXME(#2877): use bytes.as_slice().from_base64() when we upgrade to a Rust version
+        // that includes https://github.com/rust-lang/rust/pull/15810
+        let fake_utf8 = unsafe { str::raw::from_utf8(bytes.as_slice()) };
+        match fake_utf8.from_base64() {
             Err(..) => {
                 progress_chan.send(Done(Err("non-base64 data uri".to_string())));
             }
             Ok(data) => {
-                let data: Vec<u8> = data;
-                progress_chan.send(Payload(data.move_iter().collect()));
+                progress_chan.send(Payload(data));
                 progress_chan.send(Done(Ok(())));
             }
         }
     } else {
-        // FIXME: Since the %-decoded URL is already a str, we can't
-        // handle UTF8-incompatible encodings.
-        let bytes: &[u8] = (*parts.get(1)).as_bytes();
-        progress_chan.send(Payload(bytes.iter().map(|&x| x).collect()));
+        progress_chan.send(Payload(bytes));
         progress_chan.send(Done(Ok(())));
     }
 }
@@ -72,11 +87,11 @@ fn assert_parse(url:          &'static str,
                 content_type: Option<(String, String)>,
                 charset:      Option<String>,
                 data:         Option<Vec<u8>>) {
-    use std::from_str::FromStr;
     use std::comm;
+    use url::Url;
 
     let (start_chan, start_port) = comm::channel();
-    load(LoadData::new(FromStr::from_str(url).unwrap()), start_chan);
+    load(LoadData::new(Url::parse(url).unwrap()), start_chan);
 
     let response = start_port.recv();
     assert_eq!(&response.metadata.content_type, &content_type);

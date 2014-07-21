@@ -25,7 +25,7 @@ use dom::xmlhttprequestupload::XMLHttpRequestUpload;
 
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
-use encoding::types::{DecodeReplace, Encoding, EncodeReplace};
+use encoding::types::{DecodeReplace, Encoding, EncodingRef, EncodeReplace};
 
 use ResponseHeaderCollection = http::headers::response::HeaderCollection;
 use RequestHeaderCollection = http::headers::request::HeaderCollection;
@@ -46,7 +46,6 @@ use net::resource_task::{ResourceTask, Load, LoadData, Payload, Done};
 use script_task::{ScriptChan, XHRProgressMsg};
 use servo_util::str::DOMString;
 use servo_util::task::spawn_named;
-use servo_util::url::{parse_url, try_parse_url};
 
 use std::ascii::StrAsciiExt;
 use std::cell::{Cell, RefCell};
@@ -56,7 +55,7 @@ use std::from_str::FromStr;
 use std::path::BytesContainer;
 use std::task::TaskBuilder;
 use time;
-use url::Url;
+use url::{Url, UrlParser};
 
 use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams::{eString, eURLSearchParams, StringOrURLSearchParams};
 pub type SendParam = StringOrURLSearchParams;
@@ -113,7 +112,7 @@ pub struct XMLHttpRequest {
 
     // Associated concepts
     request_method: Untraceable<RefCell<Method>>,
-    request_url: Untraceable<RefCell<Url>>,
+    request_url: Untraceable<RefCell<Option<Url>>>,
     request_headers: Untraceable<RefCell<RequestHeaderCollection>>,
     request_body_len: Traceable<Cell<uint>>,
     sync: Traceable<Cell<bool>>,
@@ -146,7 +145,7 @@ impl XMLHttpRequest {
             response_headers: Untraceable::new(RefCell::new(ResponseHeaderCollection::new())),
 
             request_method: Untraceable::new(RefCell::new(Get)),
-            request_url: Untraceable::new(RefCell::new(parse_url("", None))),
+            request_url: Untraceable::new(RefCell::new(None)),
             request_headers: Untraceable::new(RefCell::new(RequestHeaderCollection::new())),
             request_body_len: Traceable::new(Cell::new(0)),
             sync: Traceable::new(Cell::new(false)),
@@ -293,7 +292,6 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
             Method::from_str_or_new(s.as_slice())
         });
         // Step 2
-        let base: Option<Url> = Some(self.global.root().root_ref().get_url());
         match maybe_method {
             // Step 4
             Some(Connect) | Some(Trace) => Err(Security),
@@ -303,7 +301,8 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
                 *self.request_method.deref().borrow_mut() = maybe_method.unwrap();
 
                 // Step 6
-                let parsed_url = match try_parse_url(url.as_slice(), base) {
+                let base = self.global.root().root_ref().get_url();
+                let parsed_url = match UrlParser::new().base_url(&base).parse(url.as_slice()) {
                     Ok(parsed) => parsed,
                     Err(_) => return Err(Syntax) // Step 7
                 };
@@ -316,7 +315,7 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
                 }
                 // XXXManishearth abort existing requests
                 // Step 12
-                *self.request_url.deref().borrow_mut() = parsed_url;
+                *self.request_url.deref().borrow_mut() = Some(parsed_url);
                 *self.request_headers.deref().borrow_mut() = RequestHeaderCollection::new();
                 self.send_flag.deref().set(false);
                 *self.status_text.deref().borrow_mut() = ByteString::new(vec!());
@@ -487,7 +486,7 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
 
         let global = self.global.root();
         let resource_task = global.root_ref().resource_task();
-        let mut load_data = LoadData::new(self.request_url.deref().borrow().clone());
+        let mut load_data = LoadData::new(self.request_url.deref().borrow().clone().unwrap());
         load_data.data = extracted;
 
         // Default headers
@@ -517,16 +516,8 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
 
         // XXXManishearth this is to be replaced with Origin for CORS (with no path)
         let referer_url = self.global.root().root_ref().get_url();
-        let mut buf = String::new();
-        buf.push_str(referer_url.scheme.as_slice());
-        buf.push_str("://".as_slice());
-        buf.push_str(referer_url.host.as_slice());
-        referer_url.port.as_ref().map(|p| {
-            buf.push_str(":".as_slice());
-            buf.push_str(p.as_slice());
-        });
-        buf.push_str(referer_url.path.as_slice());
-        self.request_headers.deref().borrow_mut().referer = Some(buf);
+        self.request_headers.deref().borrow_mut().referer =
+            Some(referer_url.serialize_no_fragment());
 
         load_data.headers = (*self.request_headers.deref().borrow()).clone();
         load_data.method = (*self.request_method.deref().borrow()).clone();
@@ -910,7 +901,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         self.timer.deref().borrow_mut().oneshot(0);
     }
     fn text_response(&self) -> DOMString {
-        let mut encoding = UTF_8 as &Encoding+Send;
+        let mut encoding = UTF_8 as EncodingRef;
         match self.response_headers.deref().borrow().content_type {
             Some(ref x) => {
                 for &(ref name, ref value) in x.parameters.iter() {
@@ -945,7 +936,7 @@ trait Extractable {
 impl Extractable for SendParam {
     fn extract(&self) -> Vec<u8> {
         // http://fetch.spec.whatwg.org/#concept-fetchbodyinit-extract
-        let encoding = UTF_8 as &Encoding+Send;
+        let encoding = UTF_8 as EncodingRef;
         match *self {
             eString(ref s) => encoding.encode(s.as_slice(), EncodeReplace).unwrap(),
             eURLSearchParams(ref usp) => usp.root().serialize(None) // Default encoding is UTF8

@@ -29,7 +29,6 @@ use servo_net::resource_task;
 use servo_util::geometry::PagePx;
 use servo_util::opts::Opts;
 use servo_util::time::TimeProfilerChan;
-use servo_util::url::parse_url;
 use servo_util::task::spawn_named;
 use std::cell::RefCell;
 use std::kinds::marker;
@@ -446,7 +445,7 @@ impl<LTF: LayoutTaskFactory> Constellation<LTF> {
         debug!("creating replacement pipeline for about:failure");
 
         let new_id = self.get_next_pipeline_id();
-        let pipeline = self.new_pipeline(new_id, subpage_id, parse_url("about:failure", None));
+        let pipeline = self.new_pipeline(new_id, subpage_id, Url::parse("about:failure").unwrap());
         pipeline.load();
 
         let pipeline_wrapped = Rc::new(pipeline);
@@ -576,11 +575,11 @@ impl<LTF: LayoutTaskFactory> Constellation<LTF> {
 
         let source_url = source_pipeline.url.clone();
 
-        let same_script = (source_url.host == url.host &&
-                           source_url.port == url.port) && sandbox == IFrameUnsandboxed;
+        let same_script = (source_url.host() == url.host() &&
+                           source_url.port() == url.port()) && sandbox == IFrameUnsandboxed;
         // FIXME(tkuehn): Need to follow the standardized spec for checking same-origin
         let pipeline = if same_script {
-            debug!("Constellation: loading same-origin iframe at {:?}", url);
+            debug!("Constellation: loading same-origin iframe at {}", url.serialize());
             // Reuse the script task if same-origin url's
             Pipeline::with_script::<LTF>(next_pipeline_id,
                                          subpage_id,
@@ -616,7 +615,7 @@ impl<LTF: LayoutTaskFactory> Constellation<LTF> {
     }
 
     fn handle_load_url_msg(&mut self, source_id: PipelineId, url: Url) {
-        debug!("Constellation: received message to load {:s}", url.to_str());
+        debug!("Constellation: received message to load {:s}", url.serialize());
         // Make sure no pending page would be overridden.
         let source_frame = self.current_frame().get_ref().find(source_id).expect(
             "Constellation: received a LoadUrlMsg from a pipeline_id associated

@@ -56,9 +56,9 @@ use script::dom::element::{HTMLTableRowElementTypeId, HTMLTableSectionElementTyp
 use script::dom::node::{CommentNodeTypeId, DoctypeNodeTypeId, DocumentFragmentNodeTypeId};
 use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, ProcessingInstructionNodeTypeId};
 use script::dom::node::{TextNodeTypeId};
+use script::dom::htmlobjectelement::is_image_data;
 use servo_util::namespace;
 use servo_util::range::Range;
-use servo_util::url::{is_image_data, parse_url};
 use std::mem;
 use std::sync::atomics::Relaxed;
 use style::ComputedValues;
@@ -249,7 +249,7 @@ impl<'a> FlowConstructor<'a> {
                 IframeFragment(IframeFragmentInfo::new(node))
             }
             Some(ElementNodeTypeId(HTMLObjectElementTypeId)) => {
-                let data = node.get_object_data(&self.layout_context.url);
+                let data = node.get_object_data();
                 self.build_fragment_info_for_image(node, data)
             }
             Some(ElementNodeTypeId(HTMLTableElementTypeId)) => TableWrapperFragment,
@@ -1007,7 +1007,7 @@ trait ObjectElement {
     fn has_object_data(&self) -> bool;
 
     /// Returns the "data" attribute value parsed as a URL
-    fn get_object_data(&self, base_url: &Url) -> Option<Url>;
+    fn get_object_data(&self) -> Option<Url>;
 }
 
 impl<'ln> ObjectElement for ThreadSafeLayoutNode<'ln> {
@@ -1023,9 +1023,9 @@ impl<'ln> ObjectElement for ThreadSafeLayoutNode<'ln> {
         }
     }
 
-    fn get_object_data(&self, base_url: &Url) -> Option<Url> {
+    fn get_object_data(&self) -> Option<Url> {
         match self.get_type_and_data() {
-            (None, Some(uri)) if is_image_data(uri) => Some(parse_url(uri, Some(base_url.clone()))),
+            (None, Some(uri)) if is_image_data(uri) => Url::parse(uri).ok(),
             _ => None
         }
     }

@@ -1,0 +1,4 @@
+#!/bin/bash
+
+SRCDIR="$(cd $(dirname $0) && pwd)"
+sed "s#%VPATH%#${SRCDIR}/rust-url#" ${SRCDIR}/Makefile.in > Makefile

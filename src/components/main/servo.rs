@@ -26,7 +26,7 @@ extern crate gfx;
 extern crate libc;
 extern crate native;
 extern crate rustrt;
-extern crate url;
+extern crate url = "url_";
 
 #[cfg(not(test))]
 use compositing::{CompositorChan, CompositorTask, Constellation};
@@ -48,8 +48,9 @@ use servo_util::memory::MemoryProfiler;
 
 #[cfg(not(test))]
 use servo_util::opts;
+
 #[cfg(not(test))]
-use servo_util::url::parse_url;
+use url::{Url, UrlParser};
 
 
 #[cfg(not(test), not(target_os="android"))]
@@ -58,8 +59,6 @@ use std::os;
 use std::str;
 #[cfg(not(test))]
 use rustrt::task::TaskOpts;
-#[cfg(not(test))]
-use url::Url;
 
 
 #[cfg(not(test), target_os="linux")]
@@ -134,16 +133,12 @@ pub fn run(opts: opts::Opts) {
                                                       font_cache_task,
                                                       time_profiler_chan_clone);
 
+        let base_url = Url::from_directory_path(&os::getcwd()).unwrap();
+        let mut url_parser = UrlParser::new();
+        let url_parser = url_parser.base_url(&base_url);
         // Send the URL command to the constellation.
-        for filename in opts.urls.iter() {
-            let url = if filename.as_slice().starts_with("data:") {
-                // As a hack for easier command-line testing,
-                // assume that data URLs are not URL-encoded.
-                Url::new("data".to_string(), None, "".to_string(), None,
-                    filename.as_slice().slice_from(5).to_string(), vec!(), None)
-            } else {
-                parse_url(filename.as_slice(), None)
-            };
+        for url in opts.urls.iter() {
+            let url = url_parser.parse(url.as_slice()).ok().expect("URL parsing failed");
 
             let ConstellationChan(ref chan) = constellation_chan;
             chan.send(InitLoadUrlMsg(url));

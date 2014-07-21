@@ -13,7 +13,6 @@ use servo_util::str::DOMString;
 
 use serialize::{Encoder, Encodable};
 use std::rc::Rc;
-use url::query_to_str;
 
 #[deriving(Encodable)]
 pub struct Location {
@@ -43,15 +42,13 @@ pub trait LocationMethods {
 
 impl<'a> LocationMethods for JSRef<'a, Location> {
     fn Href(&self) -> DOMString {
-        self.page.get_url().to_str()
+        self.page.get_url().serialize()
     }
 
     fn Search(&self) -> DOMString {
-        let query = query_to_str(&self.page.get_url().query);
-        if query.as_slice() == "" {
-            query
-        } else {
-            "?".to_string().append(query.as_slice())
+        match self.page.get_url().query {
+            None => "".to_string(),
+            Some(ref query) => "?".to_string().append(query.as_slice())
         }
     }
 }
