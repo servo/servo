@@ -13,7 +13,7 @@ use geom::size::{Size2D, TypedSize2D};
 use gfx::render_task::{ReRenderRequest, RenderChan, UnusedBufferMsg};
 use layers::layers::{Layer, LayerBufferSet};
 use layers::platform::surface::NativeSurfaceMethods;
-use servo_msg::compositor_msg::{Epoch, FixedPosition, LayerId};
+use servo_msg::compositor_msg::{Epoch, LayerId};
 use servo_msg::compositor_msg::ScrollPolicy;
 use servo_msg::constellation_msg::PipelineId;
 use servo_util::geometry::PagePx;
@@ -37,11 +37,8 @@ pub struct CompositorData {
     /// Whether an ancestor layer that receives scroll events moves this layer.
     pub scroll_policy: ScrollPolicy,
 
-    /// True if CPU rendering is enabled, false if we're using GPU rendering.
-    pub cpu_painting: bool,
-
     /// The color to use for the unrendered-content void
-    pub unrendered_color: Color,
+    pub background_color: Color,
 
     /// A monotonically increasing counter that keeps track of the current epoch.
     /// add_buffer() calls that don't match the current epoch will be ignored.
@@ -55,37 +52,21 @@ pub enum WantsScrollEventsFlag {
 }
 
 impl CompositorData {
-    pub fn new(pipeline: CompositionPipeline,
-               layer_id: LayerId,
-               epoch: Epoch,
-               cpu_painting: bool,
-               wants_scroll_events: WantsScrollEventsFlag,
-               scroll_policy: ScrollPolicy,
-               unrendered_color: Color)
-               -> CompositorData {
-        CompositorData {
+    pub fn new_layer(pipeline: CompositionPipeline,
+                     layer_properties: LayerProperties,
+                     wants_scroll_events: WantsScrollEventsFlag,
+                     tile_size: uint)
+                     -> Rc<Layer<CompositorData>> {
+        let new_compositor_data = CompositorData {
             pipeline: pipeline,
-            id: layer_id,
+            id: layer_properties.id,
             scroll_offset: TypedPoint2D(0f32, 0f32),
             wants_scroll_events: wants_scroll_events,
-            scroll_policy: scroll_policy,
-            cpu_painting: cpu_painting,
-            unrendered_color: unrendered_color,
-            epoch: epoch,
-        }
-    }
-
-    pub fn new_root(pipeline: CompositionPipeline,
-                    epoch: Epoch,
-                    cpu_painting: bool,
-                    unrendered_color: Color) -> CompositorData {
-        CompositorData::new(pipeline,
-                            LayerId::null(),
-                            epoch,
-                            cpu_painting,
-                            WantsScrollEvents,
-                            FixedPosition,
-                            unrendered_color)
+            scroll_policy: layer_properties.scroll_policy,
+            background_color: layer_properties.background_color,
+            epoch: layer_properties.epoch,
+        };
+        Rc::new(Layer::new(layer_properties.rect, tile_size, new_compositor_data))
     }
 
     /// Adds a child layer to the layer with the given ID and the given pipeline, if it doesn't
@@ -93,16 +74,10 @@ impl CompositorData {
     /// painting status as its parent.
     pub fn add_child(layer: Rc<Layer<CompositorData>>,
                      layer_properties: LayerProperties) {
-        let new_compositor_data = CompositorData::new(layer.extra_data.borrow().pipeline.clone(),
-                                                      layer_properties.id,
-                                                      layer_properties.epoch,
-                                                      layer.extra_data.borrow().cpu_painting,
-                                                      DoesntWantScrollEvents,
-                                                      layer_properties.scroll_policy,
-                                                      layer_properties.background_color);
-        let new_kid = Rc::new(Layer::new(layer_properties.rect,
-                                         layer.tile_size,
-                                         new_compositor_data));
+        let new_kid = CompositorData::new_layer(layer.extra_data.borrow().pipeline.clone(),
+                                                layer_properties,
+                                                DoesntWantScrollEvents,
+                                                layer.tile_size);
         layer.add_child(new_kid.clone());
     }
 
@@ -193,7 +168,7 @@ impl CompositorData {
 
     pub fn update_layer(layer: Rc<Layer<CompositorData>>, layer_properties: LayerProperties) {
         layer.extra_data.borrow_mut().epoch = layer_properties.epoch;
-        layer.extra_data.borrow_mut().unrendered_color = layer_properties.background_color;
+        layer.extra_data.borrow_mut().background_color = layer_properties.background_color;
 
         layer.resize(layer_properties.rect.size);
         layer.contents_changed();

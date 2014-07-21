@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use compositor_data::CompositorData;
+use compositor_data::{CompositorData, WantsScrollEvents};
 use compositor_task::{Msg, CompositorTask, Exit, ChangeReadyState, SetIds, LayerProperties};
 use compositor_task::{GetGraphicsMetadata, CreateOrUpdateRootLayer, CreateOrUpdateDescendantLayer};
 use compositor_task::{SetLayerClipRect, Paint, ScrollFragmentPoint, LoadComplete};
@@ -31,10 +31,9 @@ use layers::layers::LayerBufferSet;
 use layers::rendergl;
 use layers::rendergl::RenderContext;
 use layers::scene::Scene;
-use layers::layers::Layer;
 use opengles::gl2;
 use png;
-use servo_msg::compositor_msg::{Blank, Epoch, FinishedLoading, IdleRenderState};
+use servo_msg::compositor_msg::{Blank, Epoch, FixedPosition, FinishedLoading, IdleRenderState};
 use servo_msg::compositor_msg::{LayerId, ReadyState, RenderState};
 use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, LoadUrlMsg, NavigateMsg};
 use servo_msg::constellation_msg::{PipelineId, ResizedWindowMsg, WindowSizeData};
@@ -364,13 +363,19 @@ impl IOCompositor {
                 Some(ref root_pipeline) => root_pipeline.clone(),
                 None => fail!("Compositor: Making new layer without initialized pipeline"),
             };
-            let new_compositor_data = CompositorData::new_root(root_pipeline,
-                                                               layer_properties.epoch,
-                                                               self.opts.cpu_painting,
-                                                               layer_properties.background_color);
-            let new_root = Rc::new(Layer::new(layer_properties.rect,
-                                              self.opts.tile_size,
-                                              new_compositor_data));
+
+            let root_properties = LayerProperties {
+                pipeline_id: root_pipeline.id,
+                epoch: layer_properties.epoch,
+                id: LayerId::null(),
+                rect: layer_properties.rect,
+                background_color: layer_properties.background_color,
+                scroll_policy: FixedPosition,
+            };
+            let new_root = CompositorData::new_layer(root_pipeline,
+                                                     root_properties,
+                                                     WantsScrollEvents,
+                                                     self.opts.tile_size);
 
             CompositorData::add_child(new_root.clone(), layer_properties);
 
@@ -763,10 +768,10 @@ impl IOCompositor {
             // Render the scene.
             match self.scene.root {
                 Some(ref layer) => {
-                    self.scene.background_color.r = layer.extra_data.borrow().unrendered_color.r;
-                    self.scene.background_color.g = layer.extra_data.borrow().unrendered_color.g;
-                    self.scene.background_color.b = layer.extra_data.borrow().unrendered_color.b;
-                    self.scene.background_color.a = layer.extra_data.borrow().unrendered_color.a;
+                    self.scene.background_color.r = layer.extra_data.borrow().background_color.r;
+                    self.scene.background_color.g = layer.extra_data.borrow().background_color.g;
+                    self.scene.background_color.b = layer.extra_data.borrow().background_color.b;
+                    self.scene.background_color.a = layer.extra_data.borrow().background_color.a;
                     rendergl::render_scene(layer.clone(), self.context, &self.scene);
                 }
                 None => {}

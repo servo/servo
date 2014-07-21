@@ -80,8 +80,8 @@ impl LayerProperties {
                                metadata.position.origin.y as f32),
                        Size2D(metadata.position.size.width as f32,
                               metadata.position.size.height as f32)),
-           background_color: metadata.background_color,
-           scroll_policy: metadata.scroll_policy,
+            background_color: metadata.background_color,
+            scroll_policy: metadata.scroll_policy,
         }
     }
 }
