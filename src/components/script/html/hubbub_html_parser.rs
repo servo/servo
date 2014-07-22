@@ -320,14 +320,12 @@ pub fn parse_html(page: &Page,
     debug!("Fetched page; metadata is {:?}", load_response.metadata);
 
     let base_url = load_response.metadata.final_url.clone();
-    let url2 = base_url.clone();
-    let url3 = url2.clone();
 
     {
         // Store the final URL before we start parsing, so that DOM routines
         // (e.g. HTMLImageElement::update_image) can resolve relative URLs
         // correctly.
-        *page.mut_url() = Some((url2.clone(), true));
+        *page.mut_url() = Some((base_url.clone(), true));
     }
 
     let mut parser = hubbub::Parser("UTF-8", false);
@@ -420,7 +418,7 @@ pub fn parse_html(page: &Page,
                                     s.as_slice().eq_ignore_ascii_case("stylesheet")
                                 }) => {
                             debug!("found CSS stylesheet: {:s}", *href);
-                            match UrlParser::new().base_url(&url2).parse(href.as_slice()) {
+                            match UrlParser::new().base_url(&base_url).parse(href.as_slice()) {
                                 Ok(url) => css_chan2.send(CSSTaskNewFile(
                                     UrlProvenance(url, resource_task.clone()))),
                                 Err(e) => debug!("Parsing url {:s} failed: {:s}", *href, e)
@@ -504,7 +502,7 @@ pub fn parse_html(page: &Page,
                 match script.get_attribute(Null, "src").root() {
                     Some(src) => {
                         debug!("found script: {:s}", src.deref().Value());
-                        match UrlParser::new().base_url(&url3)
+                        match UrlParser::new().base_url(&base_url)
                                 .parse(src.deref().value().as_slice()) {
                             Ok(new_url) => js_chan2.send(JSTaskNewFile(new_url)),
                             Err(e) => debug!("Parsing url {:s} failed: {:s}", src.deref().Value(), e)
@@ -521,7 +519,7 @@ pub fn parse_html(page: &Page,
                         }
 
                         debug!("script data = {:?}", data);
-                        js_chan2.send(JSTaskNewInlineScript(data, url3.clone()));
+                        js_chan2.send(JSTaskNewInlineScript(data, base_url.clone()));
                     }
                 }
             }
