@@ -328,12 +328,8 @@ pub fn parse_html(page: &Page,
         *page.mut_url() = Some((base_url.clone(), true));
     }
 
-    let mut parser = hubbub::Parser("UTF-8", false);
+    let mut parser = build_parser(unsafe { document.to_hubbub_node() });
     debug!("created parser");
-
-    parser.set_document_node(unsafe { document.to_hubbub_node() });
-    parser.enable_scripting(true);
-    parser.enable_styling(true);
 
     let (css_chan2, js_chan2) = (css_chan.clone(), js_chan.clone());
 
@@ -555,5 +551,13 @@ pub fn parse_html(page: &Page,
     HtmlParserResult {
         discovery_port: discovery_port,
     }
+}
+
+fn build_parser(node: hubbub::NodeDataPtr) -> hubbub::Parser {
+    let mut parser = hubbub::Parser("UTF-8", false);
+    parser.set_document_node(node);
+    parser.enable_scripting(true);
+    parser.enable_styling(true);
+    parser
 }
 
