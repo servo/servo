@@ -455,8 +455,8 @@ impl Fragment {
         }
     }
 
-    pub fn calculate_line_height(&self, font_size: Au) -> Au {
-        text::line_height_from_style(self.style(), font_size)
+    pub fn calculate_line_height(&self) -> Au {
+        text::line_height_from_style(self.style())
     }
 
     /// Returns the sum of the inline-sizes of all the borders of this fragment. This is private because
@@ -1089,15 +1089,9 @@ impl Fragment {
             ImageFragment(ref image_fragment_info) => {
                 image_fragment_info.computed_block_size()
             }
-            ScannedTextFragment(ref text_fragment_info) => {
+            ScannedTextFragment(_) => {
                 // Compute the block-size based on the line-block-size and font size.
-                //
-                // FIXME(pcwalton): Shouldn't we use the value of the `font-size` property below
-                // instead of the bounding box of the text run?
-                let (range, run) = (&text_fragment_info.range, &text_fragment_info.run);
-                let text_bounds = run.metrics_for_range(range).bounding_box;
-                let em_size = text_bounds.size.height;
-                self.calculate_line_height(em_size)
+                self.calculate_line_height()
             }
             TableColumnFragment(_) => fail!("Table column fragments do not have block_size"),
             UnscannedTextFragment(_) => fail!("Unscanned text fragments should have been scanned by now!"),
@@ -1388,8 +1382,7 @@ impl Fragment {
             }
             ScannedTextFragment(ref text_fragment) => {
                 // See CSS 2.1 § 10.8.1.
-                let font_size = self.style().get_font().font_size;
-                let line_height = self.calculate_line_height(font_size);
+                let line_height = self.calculate_line_height();
                 InlineMetrics::from_font_metrics(&text_fragment.run.font_metrics, line_height)
             }
             _ => {
