@@ -1803,6 +1803,7 @@ class CGWrapMethod(CGAbstractMethod):
     def definition_body(self):
         if not self.descriptor.createGlobal:
             return CGGeneric("""\
+let _ar = JSAutoRequest::new(aCx);
 let scope = aScope.reflector().get_jsobject();
 assert!(scope.is_not_null());
 assert!(((*JS_GetClass(scope)).flags & JSCLASS_IS_GLOBAL) != 0);
@@ -1817,6 +1818,7 @@ raw.reflector().set_jsobject(obj);
 Temporary::new(raw)""" % CreateBindingJSObject(self.descriptor, "scope"))
         else:
             return CGGeneric("""\
+let _ar = JSAutoRequest::new(aCx);
 %s
 with_compartment(aCx, obj, || {
   let proto = GetProtoObject(aCx, obj, obj);
@@ -4403,6 +4405,7 @@ class CGBindingRoot(CGThing):
             'js::glue::{RUST_FUNCTION_VALUE_TO_JITINFO}',
             'js::glue::{RUST_JS_NumberValue, RUST_JSID_IS_STRING}',
             'js::rust::with_compartment',
+            'js::rust::JSAutoRequest',
             'dom::types::*',
             'dom::bindings',
             'dom::bindings::global::GlobalRef',
@@ -4841,7 +4844,9 @@ class CGCallback(CGClass):
 
         bodyWithThis = string.Template(
             setupCall+
-            "let thisObjJS = WrapCallThisObject(s.GetContext(), thisObj);\n"
+            "let cx = s.GetContext();\n"
+            "let _ar = JSAutoRequest::new(cx);\n"
+            "let thisObjJS = WrapCallThisObject(cx, thisObj);\n"
             "if thisObjJS.is_null() {\n"
             "  return Err(FailureUnknown);\n"
             "}\n"
@@ -5001,7 +5006,8 @@ class CallbackMember(CGNativeMember):
         return CGList([
             CGGeneric(pre),
             CGWrapper(CGIndenter(CGGeneric(body)),
-                      pre="with_compartment(cx, self.parent.callback(), || {\n",
+                      pre="let _ar = JSAutoRequest::new(cx);\n"
+                          "with_compartment(cx, self.parent.callback(), || {\n",
                       post="})")
         ], "\n").define()
 

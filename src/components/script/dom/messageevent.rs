@@ -17,6 +17,7 @@ use servo_util::str::DOMString;
 
 use js::jsapi::JSContext;
 use js::jsval::JSVal;
+use js::rust::JSAutoRequest;
 
 #[deriving(Encodable)]
 pub struct MessageEvent {
@@ -69,10 +70,14 @@ impl MessageEvent {
     pub fn dispatch(target: &JSRef<EventTarget>,
                     scope: &GlobalRef,
                     message: DOMString) {
+        let message = {
+            let cx = scope.get_cx();
+            let _ar = JSAutoRequest::new(cx);
+            message.to_jsval(cx)
+        };
         let messageevent = MessageEvent::new(
             scope, "message".to_string(), false, false,
-            message.to_jsval(scope.get_cx()),
-            "".to_string(), "".to_string()).root();
+            message, "".to_string(), "".to_string()).root();
         let event: &JSRef<Event> = EventCast::from_ref(&*messageevent);
         target.dispatch_event_with_target(None, &*event).unwrap();
     }
