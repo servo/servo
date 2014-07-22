@@ -47,6 +47,7 @@ use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, Node, NodeTypeId}
 use script::dom::node::{LayoutNodeHelpers, RawLayoutNodeHelpers, TextNodeTypeId};
 use script::dom::text::Text;
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
+use servo_util::atom::Atom;
 use servo_util::namespace::Namespace;
 use servo_util::namespace;
 use servo_util::str::is_whitespace;
@@ -359,8 +360,8 @@ impl<'le> LayoutElement<'le> {
 
 impl<'le> TElement for LayoutElement<'le> {
     #[inline]
-    fn get_local_name<'a>(&'a self) -> &'a str {
-        self.element.local_name.as_slice()
+    fn get_local_name<'a>(&'a self) -> &'a Atom {
+        &self.element.local_name
     }
 
     #[inline]

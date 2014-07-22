@@ -201,7 +201,7 @@ impl LayoutElementHelpers for JS<Element> {
 
 pub trait ElementHelpers {
     fn html_element_in_html_document(&self) -> bool;
-    fn get_local_name<'a>(&'a self) -> &'a str;
+    fn get_local_name<'a>(&'a self) -> &'a Atom;
     fn get_namespace<'a>(&'a self) -> &'a Namespace;
 }
 
@@ -212,8 +212,8 @@ impl<'a> ElementHelpers for JSRef<'a, Element> {
         is_html && node.owner_doc().root().is_html_document
     }
 
-    fn get_local_name<'a>(&'a self) -> &'a str {
-        self.deref().local_name.as_slice()
+    fn get_local_name<'a>(&'a self) -> &'a Atom {
+        &self.deref().local_name
     }
 
     fn get_namespace<'a>(&'a self) -> &'a Namespace {
@@ -912,7 +912,7 @@ impl<'a> style::TElement for JSRef<'a, Element> {
             _ => None,
          }
     }
-    fn get_local_name<'a>(&'a self) -> &'a str {
+    fn get_local_name<'a>(&'a self) -> &'a Atom {
         (self as &ElementHelpers).get_local_name()
     }
     fn get_namespace<'a>(&'a self) -> &'a Namespace {

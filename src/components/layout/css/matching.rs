@@ -12,6 +12,7 @@ use util::{LayoutDataAccess, LayoutDataWrapper};
 use wrapper::{LayoutElement, LayoutNode, PostorderNodeMutTraversal, ThreadSafeLayoutNode};
 
 use gfx::font_context::FontContext;
+use servo_util::atom::Atom;
 use servo_util::cache::{Cache, LRUCache, SimpleHashCache};
 use servo_util::namespace::Null;
 use servo_util::smallvec::{SmallVec, SmallVec16};
@@ -162,10 +163,7 @@ pub struct StyleSharingCandidateCache {
 pub struct StyleSharingCandidate {
     pub style: Arc<ComputedValues>,
     pub parent_style: Arc<ComputedValues>,
-
-    // TODO(pcwalton): Intern.
-    pub local_name: DOMString,
-
+    pub local_name: Atom,
     pub class: Option<DOMString>,
 }
 
@@ -224,14 +222,14 @@ impl StyleSharingCandidate {
         Some(StyleSharingCandidate {
             style: style.take_unwrap(),
             parent_style: parent_style.take_unwrap(),
-            local_name: element.get_local_name().to_str(),
+            local_name: element.get_local_name().clone(),
             class: element.get_attr(&Null, "class")
                           .map(|string| string.to_str()),
         })
     }
 
     fn can_share_style_with(&self, element: &LayoutElement) -> bool {
-        if element.get_local_name() != self.local_name.as_slice() {
+        if *element.get_local_name() != self.local_name {
             return false
         }
         match (&self.class, element.get_attr(&Null, "class")) {
