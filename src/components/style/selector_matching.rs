@@ -147,7 +147,7 @@ impl SelectorMap {
         // TODO(pradeep): Case-sensitivity depends on the document type.
         SelectorMap::get_matching_rules_from_hash_ignoring_case(node,
                                                                 &self.element_hash,
-                                                                element.get_local_name(),
+                                                                element.get_local_name().as_slice(),
                                                                 matching_rules_list,
                                                                 shareable);
 
@@ -678,7 +678,7 @@ fn matches_simple_selector<E:TElement,
         // TODO: intern element names
         LocalNameSelector(ref name) => {
             let element = element.as_element();
-            element.get_local_name().eq_ignore_ascii_case(name.as_slice())
+            element.get_local_name().as_slice().eq_ignore_ascii_case(name.as_slice())
         }
 
         NamespaceSelector(ref namespace) => {
