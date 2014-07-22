@@ -31,7 +31,6 @@ use servo_util::opts::Opts;
 use servo_util::time::TimeProfilerChan;
 use servo_util::task::spawn_named;
 use std::cell::RefCell;
-use std::kinds::marker;
 use std::mem::replace;
 use std::io;
 use std::rc::Rc;
@@ -50,7 +49,6 @@ pub struct Constellation<LTF> {
     next_pipeline_id: PipelineId,
     pending_frames: Vec<FrameChange>,
     pending_sizes: HashMap<(PipelineId, SubpageId), TypedRect<PagePx, f32>>,
-    layout_task_factory: marker::CovariantType<LTF>,
     pub time_profiler_chan: TimeProfilerChan,
     pub window_size: WindowSizeData,
     pub opts: Opts,
@@ -266,7 +264,6 @@ impl<LTF: LayoutTaskFactory> Constellation<LTF> {
                 next_pipeline_id: PipelineId(0),
                 pending_frames: vec!(),
                 pending_sizes: HashMap::new(),
-                layout_task_factory: marker::CovariantType,
                 time_profiler_chan: time_profiler_chan,
                 window_size: WindowSizeData {
                     visible_viewport: TypedSize2D(800_f32, 600_f32),
@@ -293,19 +290,23 @@ impl<LTF: LayoutTaskFactory> Constellation<LTF> {
     fn new_pipeline(&self,
                     id: PipelineId,
                     subpage_id: Option<SubpageId>,
+                    script_pipeline: Option<Rc<Pipeline>>,
                     url: Url)
-                    -> Pipeline {
-            Pipeline::create::<LTF>(id,
-                                    subpage_id,
-                                    self.chan.clone(),
-                                    self.compositor_chan.clone(),
-                                    self.image_cache_task.clone(),
-                                    self.font_cache_task.clone(),
-                                    self.resource_task.clone(),
-                                    self.time_profiler_chan.clone(),
-                                    self.window_size,
-                                    self.opts.clone(),
-                                    url)
+                    -> Rc<Pipeline> {
+            let pipe = Pipeline::create::<LTF>(id,
+                                               subpage_id,
+                                               self.chan.clone(),
+                                               self.compositor_chan.clone(),
+                                               self.image_cache_task.clone(),
+                                               self.font_cache_task.clone(),
+                                               self.resource_task.clone(),
+                                               self.time_profiler_chan.clone(),
+                                               self.window_size,
+                                               self.opts.clone(),
+                                               script_pipeline,
+                                               url);
+            pipe.load();
+            Rc::new(pipe)
     }
 
 
@@ -445,39 +446,36 @@ impl<LTF: LayoutTaskFactory> Constellation<LTF> {
         debug!("creating replacement pipeline for about:failure");
 
         let new_id = self.get_next_pipeline_id();
-        let pipeline = self.new_pipeline(new_id, subpage_id, Url::parse("about:failure").unwrap());
-        pipeline.load();
+        let pipeline = self.new_pipeline(new_id, subpage_id, None,
+                                         Url::parse("about:failure").unwrap());
 
-        let pipeline_wrapped = Rc::new(pipeline);
         self.pending_frames.push(FrameChange{
             before: Some(pipeline_id),
             after: Rc::new(FrameTree {
-                pipeline: pipeline_wrapped.clone(),
+                pipeline: pipeline.clone(),
                 parent: RefCell::new(None),
                 children: RefCell::new(vec!()),
             }),
             navigation_type: constellation_msg::Load,
         });
 
-        self.pipelines.insert(new_id, pipeline_wrapped);
+        self.pipelines.insert(new_id, pipeline);
     }
 
     fn handle_init_load(&mut self, url: Url) {
         let next_pipeline_id = self.get_next_pipeline_id();
-        let pipeline = self.new_pipeline(next_pipeline_id, None, url);
-        pipeline.load();
-        let pipeline_wrapped = Rc::new(pipeline);
+        let pipeline = self.new_pipeline(next_pipeline_id, None, None, url);
 
         self.pending_frames.push(FrameChange {
             before: None,
             after: Rc::new(FrameTree {
-                pipeline: pipeline_wrapped.clone(),
+                pipeline: pipeline.clone(),
                 parent: RefCell::new(None),
                 children: RefCell::new(vec!()),
             }),
             navigation_type: constellation_msg::Load,
         });
-        self.pipelines.insert(pipeline_wrapped.id, pipeline_wrapped);
+        self.pipelines.insert(pipeline.id, pipeline);
     }
 
     fn handle_frame_rect_msg(&mut self, pipeline_id: PipelineId, subpage_id: SubpageId,
@@ -578,44 +576,38 @@ impl<LTF: LayoutTaskFactory> Constellation<LTF> {
         let same_script = (source_url.host() == url.host() &&
                            source_url.port() == url.port()) && sandbox == IFrameUnsandboxed;
         // FIXME(tkuehn): Need to follow the standardized spec for checking same-origin
-        let pipeline = if same_script {
-            debug!("Constellation: loading same-origin iframe at {}", url.serialize());
-            // Reuse the script task if same-origin url's
-            Pipeline::with_script::<LTF>(next_pipeline_id,
-                                         subpage_id,
-                                         self.chan.clone(),
-                                         self.compositor_chan.clone(),
-                                         self.image_cache_task.clone(),
-                                         self.font_cache_task.clone(),
-                                         self.time_profiler_chan.clone(),
-                                         self.opts.clone(),
-                                         source_pipeline.clone(),
-                                         url)
+        // Reuse the script task if the URL is same-origin
+        let new_pipeline = if same_script {
+            debug!("Constellation: loading same-origin iframe at {:?}", url);
+            Some(source_pipeline.clone())
         } else {
             debug!("Constellation: loading cross-origin iframe at {:?}", url);
-            // Create a new script task if not same-origin url's
-            self.new_pipeline(next_pipeline_id, Some(subpage_id), url)
+            None
         };
 
-        debug!("Constellation: sending load msg to pipeline {:?}", pipeline.id);
-        pipeline.load();
-        let pipeline_wrapped = Rc::new(pipeline);
+        let pipeline = self.new_pipeline(
+            next_pipeline_id,
+            Some(subpage_id),
+            new_pipeline,
+            url
+        );
+
         let rect = self.pending_sizes.pop(&(source_pipeline_id, subpage_id));
         for frame_tree in frame_trees.iter() {
             frame_tree.children.borrow_mut().push(ChildFrameTree {
                 frame_tree: Rc::new(FrameTree {
-                    pipeline: pipeline_wrapped.clone(),
+                    pipeline: pipeline.clone(),
                     parent: RefCell::new(Some(source_pipeline.clone())),
                     children: RefCell::new(vec!()),
                 }),
                 rect: rect,
             });
         }
-        self.pipelines.insert(pipeline_wrapped.id, pipeline_wrapped);
+        self.pipelines.insert(pipeline.id, pipeline);
     }
 
     fn handle_load_url_msg(&mut self, source_id: PipelineId, url: Url) {
-        debug!("Constellation: received message to load {:s}", url.serialize());
+        debug!("Constellation: received message to load {:s}", url.to_str());
         // Make sure no pending page would be overridden.
         let source_frame = self.current_frame().get_ref().find(source_id).expect(
             "Constellation: received a LoadUrlMsg from a pipeline_id associated
@@ -641,20 +633,18 @@ impl<LTF: LayoutTaskFactory> Constellation<LTF> {
         let subpage_id = source_frame.pipeline.subpage_id;
         let next_pipeline_id = self.get_next_pipeline_id();
 
-        let pipeline = self.new_pipeline(next_pipeline_id, subpage_id, url);
-        pipeline.load();
-        let pipeline_wrapped = Rc::new(pipeline);
+        let pipeline = self.new_pipeline(next_pipeline_id, subpage_id, None, url);
 
         self.pending_frames.push(FrameChange{
             before: Some(source_id),
             after: Rc::new(FrameTree {
-                pipeline: pipeline_wrapped.clone(),
+                pipeline: pipeline.clone(),
                 parent: parent,
                 children: RefCell::new(vec!()),
             }),
             navigation_type: constellation_msg::Load,
         });
-        self.pipelines.insert(pipeline_wrapped.id, pipeline_wrapped);
+        self.pipelines.insert(pipeline.id, pipeline);
     }
 
     fn handle_navigate_msg(&mut self, direction: constellation_msg::NavigationDirection) {
