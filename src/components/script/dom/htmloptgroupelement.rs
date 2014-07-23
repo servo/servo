@@ -3,14 +3,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLOptGroupElementBinding;
-use dom::bindings::codegen::InheritTypes::HTMLOptGroupElementDerived;
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
+use dom::bindings::codegen::InheritTypes::{HTMLOptGroupElementDerived, HTMLOptionElementDerived};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::HTMLOptGroupElementTypeId;
+use dom::element::{AttributeHandlers, Element, HTMLOptGroupElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, ElementNodeTypeId};
+use dom::node::{DisabledStateHelpers, Node, NodeHelpers, ElementNodeTypeId};
+use dom::virtualmethods::VirtualMethods;
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
@@ -38,6 +40,71 @@ impl HTMLOptGroupElement {
 }
 
 pub trait HTMLOptGroupElementMethods {
+    fn Disabled(&self) -> bool;
+    fn SetDisabled(&self, disabled: bool);
+}
+
+impl<'a> HTMLOptGroupElementMethods for JSRef<'a, HTMLOptGroupElement> {
+    // http://www.whatwg.org/html#dom-optgroup-disabled
+    fn Disabled(&self) -> bool {
+        let elem: &JSRef<Element> = ElementCast::from_ref(self);
+        elem.has_attribute("disabled")
+    }
+
+    // http://www.whatwg.org/html#dom-optgroup-disabled
+    fn SetDisabled(&self, disabled: bool) {
+        let elem: &JSRef<Element> = ElementCast::from_ref(self);
+        elem.set_bool_attribute("disabled", disabled)
+    }
+}
+
+impl<'a> VirtualMethods for JSRef<'a, HTMLOptGroupElement> {
+    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods+> {
+        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_ref(self);
+        Some(htmlelement as &VirtualMethods+)
+    }
+
+    fn after_set_attr(&self, name: DOMString, value: DOMString) {
+        match self.super_type() {
+            Some(ref s) => s.after_set_attr(name.clone(), value.clone()),
+            _ => (),
+        }
+
+        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        match name.as_slice() {
+            "disabled" => {
+                node.set_disabled_state(true);
+                node.set_enabled_state(false);
+                for descendant in node.traverse_preorder()
+                                      .filter(|descendant| descendant.is_htmloptionelement()) {
+                    descendant.set_disabled_state(true);
+                    descendant.set_enabled_state(false);
+                }
+            },
+            _ => ()
+        }
+    }
+
+    fn before_remove_attr(&self, name: DOMString, value: DOMString) {
+        match self.super_type() {
+            Some(ref s) => s.before_remove_attr(name.clone(), value),
+            _ => (),
+        }
+
+        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        match name.as_slice() {
+            "disabled" => {
+                node.set_disabled_state(false);
+                node.set_enabled_state(true);
+                for descendant in node.traverse_preorder()
+                                      .filter(|descendant| descendant.is_htmloptionelement()) {
+                    descendant.check_disabled_attribute();
+                    descendant.check_ancestors_disabled_state_for_form_control();
+                }
+            },
+            _ => ()
+        }
+    }
 }
 
 impl Reflectable for HTMLOptGroupElement {

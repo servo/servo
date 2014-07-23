@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>HTMLButtonElement disabled test</title>
+        <script src="harness.js"></script>
+        <script>
+            { // document child tests
+                let click_count = 0;
+                function on_click(ev) { click_count++; }
+
+                let click_event = new Event('click', {bubbles: true, cancelable: true});
+
+                let button1 = document.getElementById("button-1");
+                is(button1.disabled, false);
+
+                button1.addEventListener('click', on_click);
+                button1.dispatchEvent(click_event);
+                is(click_count, 1);
+
+                let button2 = document.getElementById("button-2");
+                is(button2.disabled, true);
+
+                // Only user-generated click events are prevented.
+                button2.addEventListener('click', on_click);
+                button2.dispatchEvent(click_event);
+                is(click_count, 2);
+
+                // This should look disabled, though - missing UA's CSS for :disabled?
+                let button3 = document.getElementById("button-3");
+                is(button3.disabled, false);
+
+                let button4 = document.getElementById("button-4");
+                is(button4.disabled, false);
+
+                // This should look disabled, though - missing UA's CSS for :disabled?
+                let button5 = document.getElementById("button-5");
+                is(button5.disabled, false);
+            }
+
+            { // JS tests
+                let button = document.createElement("button");
+                is(button.disabled, false);
+
+                button.disabled = true;
+                is(button.disabled, true);
+
+                button.removeAttribute("disabled");
+                is(button.disabled, false);
+
+                button.setAttribute("disabled", "");
+                is(button.disabled, true);
+            }
+
+            finish();
+        </script>
+    </head>
+    <body>
+        <button id="button-1"></button>
+
+        <button id="button-2" disabled></button>
+
+        <fieldset disabled>
+            <fieldset>
+                <button id="button-3"></button>
+            </fieldset>
+        </fieldset>
+
+        <fieldset disabled>
+            <legend>
+                <button id="button-4"></button>
+            </legend>
+        </fieldset>
+
+        <fieldset disabled>
+            <legend></legend>
+            <legend>
+                <button id="button-5"></button>
+            </legend>
+        </fieldset>
+    </body>
+</html>

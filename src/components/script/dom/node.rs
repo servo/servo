@@ -10,6 +10,7 @@ use dom::bindings::codegen::InheritTypes::{CommentCast, DocumentCast, DocumentTy
 use dom::bindings::codegen::InheritTypes::{ElementCast, TextCast, NodeCast, ElementDerived};
 use dom::bindings::codegen::InheritTypes::{CharacterDataCast, NodeBase, NodeDerived};
 use dom::bindings::codegen::InheritTypes::{ProcessingInstructionCast, EventTargetCast};
+use dom::bindings::codegen::InheritTypes::{HTMLLegendElementDerived, HTMLFieldSetElementDerived, HTMLOptGroupElementDerived};
 use dom::bindings::codegen::Bindings::NodeBinding::NodeConstants;
 use dom::bindings::error::{ErrorResult, Fallible, NotFound, HierarchyRequest, Syntax};
 use dom::bindings::global::{GlobalRef, Window};
@@ -24,8 +25,8 @@ use dom::comment::Comment;
 use dom::document::{Document, DocumentMethods, DocumentHelpers, HTMLDocument, NonHTMLDocument};
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
-use dom::element::{AttributeHandlers, Element, ElementMethods, ElementTypeId};
-use dom::element::{HTMLAnchorElementTypeId, ElementHelpers};
+use dom::element::{AttributeHandlers, Element, ElementHelpers, ElementMethods, ElementTypeId};
+use dom::element::HTMLAnchorElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::nodelist::{NodeList};
 use dom::processinginstruction::{ProcessingInstruction, ProcessingInstructionMethods};
@@ -118,8 +119,12 @@ bitflags! {
     flags NodeFlags: u8 {
         #[doc = "Specifies whether this node is in a document."]
         static IsInDoc = 0x01,
-        #[doc = "Specifies whether this node is hover state for this node"]
-        static InHoverState = 0x02
+        #[doc = "Specifies whether this node is in hover state."]
+        static InHoverState = 0x02,
+        #[doc = "Specifies whether this node is in disabled state."]
+        static InDisabledState = 0x04,
+        #[doc = "Specifies whether this node is in enabled state."]
+        static InEnabledState = 0x08
     }
 }
 
@@ -378,6 +383,12 @@ pub trait NodeHelpers {
     fn get_hover_state(&self) -> bool;
     fn set_hover_state(&self, state: bool);
 
+    fn get_disabled_state(&self) -> bool;
+    fn set_disabled_state(&self, state: bool);
+
+    fn get_enabled_state(&self) -> bool;
+    fn set_enabled_state(&self, state: bool);
+
     fn dump(&self);
     fn dump_indent(&self, indent: uint);
     fn debug_str(&self) -> String;
@@ -421,7 +432,7 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
 
     /// Returns a string that describes this node.
     fn debug_str(&self) -> String {
-        format!("{:?}", self.type_id())
+        format!("{:?}", self.type_id)
     }
 
     fn is_in_doc(&self) -> bool {
@@ -465,12 +476,12 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
 
     #[inline]
     fn is_document(&self) -> bool {
-        self.type_id() == DocumentNodeTypeId
+        self.type_id == DocumentNodeTypeId
     }
 
     #[inline]
     fn is_anchor_element(&self) -> bool {
-        self.type_id() == ElementNodeTypeId(HTMLAnchorElementTypeId)
+        self.type_id == ElementNodeTypeId(HTMLAnchorElementTypeId)
     }
 
     #[inline]
@@ -480,7 +491,7 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
 
     #[inline]
     fn is_text(&self) -> bool {
-        self.type_id() == TextNodeTypeId
+        self.type_id == TextNodeTypeId
     }
 
     fn get_hover_state(&self) -> bool {
@@ -492,6 +503,30 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
             self.flags.deref().borrow_mut().insert(InHoverState);
         } else {
             self.flags.deref().borrow_mut().remove(InHoverState);
+        }
+    }
+
+    fn get_disabled_state(&self) -> bool {
+        self.flags.deref().borrow().contains(InDisabledState)
+    }
+
+    fn set_disabled_state(&self, state: bool) {
+        if state {
+            self.flags.deref().borrow_mut().insert(InDisabledState);
+        } else {
+            self.flags.deref().borrow_mut().remove(InDisabledState);
+        }
+    }
+
+    fn get_enabled_state(&self) -> bool {
+        self.flags.deref().borrow().contains(InEnabledState)
+    }
+
+    fn set_enabled_state(&self, state: bool) {
+        if state {
+            self.flags.deref().borrow_mut().insert(InEnabledState);
+        } else {
+            self.flags.deref().borrow_mut().remove(InEnabledState);
         }
     }
 
@@ -723,11 +758,15 @@ impl LayoutNodeHelpers for JS<Node> {
 
 pub trait RawLayoutNodeHelpers {
     unsafe fn get_hover_state_for_layout(&self) -> bool;
+    unsafe fn get_disabled_state_for_layout(&self) -> bool;
 }
 
 impl RawLayoutNodeHelpers for Node {
     unsafe fn get_hover_state_for_layout(&self) -> bool {
         self.flags.deref().borrow().contains(InHoverState)
+    }
+    unsafe fn get_disabled_state_for_layout(&self) -> bool {
+        self.flags.deref().borrow().contains(InDisabledState)
     }
 }
 
@@ -1600,7 +1639,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     fn ReplaceChild(&self, node: &JSRef<Node>, child: &JSRef<Node>) -> Fallible<Temporary<Node>> {
 
         // Step 1.
-        match self.type_id() {
+        match self.type_id {
             DocumentNodeTypeId |
             DocumentFragmentNodeTypeId |
             ElementNodeTypeId(..) => (),
@@ -1631,7 +1670,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         }
 
         // Step 6.
-        match self.type_id() {
+        match self.type_id {
             DocumentNodeTypeId => {
                 match node.type_id() {
                     // Step 6.1
@@ -1990,5 +2029,54 @@ impl<'a> style::TNode<JSRef<'a, Element>> for JSRef<'a, Node> {
             // FIXME: https://github.com/mozilla/servo/issues/1558
             style::AnyNamespace => false,
         }
+    }
+}
+
+pub trait DisabledStateHelpers {
+    fn check_ancestors_disabled_state_for_form_control(&self);
+    fn check_ancestors_disabled_state_for_option(&self);
+    fn check_disabled_attribute(&self);
+}
+
+impl<'a> DisabledStateHelpers for JSRef<'a, Node> {
+    fn check_ancestors_disabled_state_for_form_control(&self) {
+        if self.get_disabled_state() { return; }
+        for ancestor in self.ancestors().filter(|ancestor| ancestor.is_htmlfieldsetelement()) {
+            if !ancestor.get_disabled_state() { continue; }
+            if ancestor.is_parent_of(self) {
+                self.set_disabled_state(true);
+                self.set_enabled_state(false);
+                return;
+            }
+            match ancestor.children().find(|child| child.is_htmllegendelement()) {
+                Some(ref legend) => {
+                    // XXXabinader: should we save previous ancestor to avoid this iteration?
+                    if self.ancestors().any(|ancestor| ancestor == *legend) { continue; }
+                },
+                None => ()
+            }
+            self.set_disabled_state(true);
+            self.set_enabled_state(false);
+            return;
+        }
+    }
+
+    fn check_ancestors_disabled_state_for_option(&self) {
+        if self.get_disabled_state() { return; }
+        for ancestor in self.ancestors().filter(|ancestor| ancestor.is_htmloptgroupelement()) {
+            if ancestor.get_disabled_state() {
+                self.set_disabled_state(true);
+                self.set_enabled_state(false);
+                return;
+            }
+        }
+    }
+
+    fn check_disabled_attribute(&self) {
+        assert!(self.is_element());
+        let elem: &JSRef<'a, Element> = ElementCast::to_ref(self).unwrap();
+        let has_disabled_attrib = elem.has_attribute("disabled");
+        self.set_disabled_state(has_disabled_attrib);
+        self.set_enabled_state(!has_disabled_attrib);
     }
 }

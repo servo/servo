@@ -233,11 +233,13 @@ pub trait AttributeHandlers {
     fn parse_attribute(&self, namespace: &Namespace, local_name: &str,
                        value: DOMString) -> AttrValue;
 
-    fn remove_attribute(&self, namespace: Namespace, name: &str) -> ErrorResult;
+    fn remove_attribute(&self, namespace: Namespace, name: &str);
     fn notify_attribute_changed(&self, local_name: DOMString);
     fn has_class(&self, name: &str) -> bool;
 
     // http://www.whatwg.org/html/#reflecting-content-attributes-in-idl-attributes
+    fn has_attribute(&self, name: &str) -> bool;
+    fn set_bool_attribute(&self, name: &str, value: bool);
     fn get_url_attribute(&self, name: &str) -> DOMString;
     fn set_url_attribute(&self, name: &str, value: DOMString);
     fn get_string_attribute(&self, name: &str) -> DOMString;
@@ -316,7 +318,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         }
     }
 
-    fn remove_attribute(&self, namespace: Namespace, name: &str) -> ErrorResult {
+    fn remove_attribute(&self, namespace: Namespace, name: &str) {
         let (_, local_name) = get_attribute_parts(name);
 
         let idx = self.deref().attrs.borrow().iter().map(|attr| attr.root()).position(|attr| {
@@ -340,8 +342,6 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
                 self.deref().attrs.borrow_mut().remove(idx);
             }
         };
-
-        Ok(())
     }
 
     fn notify_attribute_changed(&self, local_name: DOMString) {
@@ -360,6 +360,25 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         let class_names = self.get_string_attribute("class");
         let mut classes = split_html_space_chars(class_names.as_slice());
         classes.any(|class| name == class)
+    }
+
+    fn has_attribute(&self, name: &str) -> bool {
+        let name = match self.html_element_in_html_document() {
+            true => name.to_ascii_lower(),
+            false => name.to_string()
+        };
+        self.deref().attrs.borrow().iter().map(|attr| attr.root()).any(|attr| {
+            name == attr.local_name && attr.namespace == Null
+        })
+    }
+
+    fn set_bool_attribute(&self, name: &str, value: bool) {
+        if self.has_attribute(name) == value { return; }
+        if value {
+            self.set_string_attribute(name, String::new());
+        } else {
+            self.remove_attribute(Null, name);
+        }
     }
 
     fn get_url_attribute(&self, name: &str) -> DOMString {
@@ -439,8 +458,8 @@ pub trait ElementMethods {
     fn GetAttributeNS(&self, namespace: Option<DOMString>, local_name: DOMString) -> Option<DOMString>;
     fn SetAttribute(&self, name: DOMString, value: DOMString) -> ErrorResult;
     fn SetAttributeNS(&self, namespace_url: Option<DOMString>, name: DOMString, value: DOMString) -> ErrorResult;
-    fn RemoveAttribute(&self, name: DOMString) -> ErrorResult;
-    fn RemoveAttributeNS(&self, namespace: Option<DOMString>, localname: DOMString) -> ErrorResult;
+    fn RemoveAttribute(&self, name: DOMString);
+    fn RemoveAttributeNS(&self, namespace: Option<DOMString>, localname: DOMString);
     fn HasAttribute(&self, name: DOMString) -> bool;
     fn HasAttributeNS(&self, namespace: Option<DOMString>, local_name: DOMString) -> bool;
     fn GetElementsByTagName(&self, localname: DOMString) -> Temporary<HTMLCollection>;
@@ -651,7 +670,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
     // http://dom.spec.whatwg.org/#dom-element-removeattribute
     fn RemoveAttribute(&self,
-                       name: DOMString) -> ErrorResult {
+                       name: DOMString) {
         let name = if self.html_element_in_html_document() {
             name.as_slice().to_ascii_lower()
         } else {
@@ -663,7 +682,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     // http://dom.spec.whatwg.org/#dom-element-removeattributens
     fn RemoveAttributeNS(&self,
                          namespace: Option<DOMString>,
-                         localname: DOMString) -> ErrorResult {
+                         localname: DOMString) {
         let namespace = Namespace::from_str(null_str_as_empty_ref(&namespace));
         self.remove_attribute(namespace, localname.as_slice())
     }
@@ -671,7 +690,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     // http://dom.spec.whatwg.org/#dom-element-hasattribute
     fn HasAttribute(&self,
                     name: DOMString) -> bool {
-        self.GetAttribute(name).is_some()
+        self.has_attribute(name.as_slice())
     }
 
     // http://dom.spec.whatwg.org/#dom-element-hasattributens
@@ -921,5 +940,13 @@ impl<'a> style::TElement for JSRef<'a, Element> {
     fn get_hover_state(&self) -> bool {
         let node: &JSRef<Node> = NodeCast::from_ref(self);
         node.get_hover_state()
+    }
+    fn get_disabled_state(&self) -> bool {
+        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        node.get_disabled_state()
+    }
+    fn get_enabled_state(&self) -> bool {
+        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        node.get_enabled_state()
     }
 }

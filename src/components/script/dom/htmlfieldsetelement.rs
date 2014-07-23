@@ -3,16 +3,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLFieldSetElementDerived, NodeCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
+use dom::bindings::codegen::InheritTypes::{HTMLLegendElementDerived, HTMLFieldSetElementDerived};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::{Element, HTMLFieldSetElementTypeId};
+use dom::element::{AttributeHandlers, Element, HTMLFieldSetElementTypeId, HTMLButtonElementTypeId};
+use dom::element::{HTMLInputElementTypeId, HTMLSelectElementTypeId, HTMLTextAreaElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlcollection::{HTMLCollection, CollectionFilter};
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, ElementNodeTypeId, window_from_node};
+use dom::node::{DisabledStateHelpers, Node, NodeHelpers, ElementNodeTypeId, window_from_node};
 use dom::validitystate::ValidityState;
+use dom::virtualmethods::VirtualMethods;
 use servo_util::str::{DOMString, StaticStringVec};
 
 #[deriving(Encodable)]
@@ -42,6 +45,8 @@ impl HTMLFieldSetElement {
 pub trait HTMLFieldSetElementMethods {
     fn Elements(&self) -> Temporary<HTMLCollection>;
     fn Validity(&self) -> Temporary<ValidityState>;
+    fn Disabled(&self) -> bool;
+    fn SetDisabled(&self, disabled: bool);
 }
 
 impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
@@ -65,6 +70,99 @@ impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
     fn Validity(&self) -> Temporary<ValidityState> {
         let window = window_from_node(self).root();
         ValidityState::new(&*window)
+    }
+
+    // http://www.whatwg.org/html/#dom-fieldset-disabled
+    fn Disabled(&self) -> bool {
+        let elem: &JSRef<Element> = ElementCast::from_ref(self);
+        elem.has_attribute("disabled")
+    }
+
+    // http://www.whatwg.org/html/#dom-fieldset-disabled
+    fn SetDisabled(&self, disabled: bool) {
+        let elem: &JSRef<Element> = ElementCast::from_ref(self);
+        elem.set_bool_attribute("disabled", disabled)
+    }
+}
+
+impl<'a> VirtualMethods for JSRef<'a, HTMLFieldSetElement> {
+    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods+> {
+        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_ref(self);
+        Some(htmlelement as &VirtualMethods+)
+    }
+
+    fn after_set_attr(&self, name: DOMString, value: DOMString) {
+        match self.super_type() {
+            Some(ref s) => s.after_set_attr(name.clone(), value.clone()),
+            _ => (),
+        }
+
+        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        match name.as_slice() {
+            "disabled" => {
+                node.set_disabled_state(true);
+                node.set_enabled_state(false);
+                let maybe_legend = node.children().find(|node| node.is_htmllegendelement());
+                for descendant in node.traverse_preorder() {
+                    match descendant.type_id() {
+                        ElementNodeTypeId(HTMLButtonElementTypeId) |
+                        ElementNodeTypeId(HTMLInputElementTypeId) |
+                        ElementNodeTypeId(HTMLSelectElementTypeId) |
+                        ElementNodeTypeId(HTMLTextAreaElementTypeId) => {
+                            match maybe_legend {
+                                Some(ref legend) => {
+                                    if descendant.ancestors().any(|ancestor| ancestor == *legend) {
+                                        continue;
+                                    }
+                                },
+                                None => ()
+                            }
+                            descendant.set_disabled_state(true);
+                            descendant.set_enabled_state(false);
+                        },
+                        _ => ()
+                    }
+                }
+            },
+            _ => ()
+        }
+    }
+
+    fn before_remove_attr(&self, name: DOMString, value: DOMString) {
+        match self.super_type() {
+            Some(ref s) => s.before_remove_attr(name.clone(), value),
+            _ => (),
+        }
+
+        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        match name.as_slice() {
+            "disabled" => {
+                node.set_disabled_state(false);
+                node.set_enabled_state(true);
+                let maybe_legend = node.children().find(|node| node.is_htmllegendelement());
+                for descendant in node.traverse_preorder() {
+                    match descendant.type_id() {
+                        ElementNodeTypeId(HTMLButtonElementTypeId) |
+                        ElementNodeTypeId(HTMLInputElementTypeId) |
+                        ElementNodeTypeId(HTMLSelectElementTypeId) |
+                        ElementNodeTypeId(HTMLTextAreaElementTypeId) => {
+                            match maybe_legend {
+                                Some(ref legend) => {
+                                    if descendant.ancestors().any(|ancestor| ancestor == *legend) {
+                                        continue;
+                                    }
+                                },
+                                None => ()
+                            }
+                            descendant.check_disabled_attribute();
+                            descendant.check_ancestors_disabled_state_for_form_control();
+                        },
+                        _ => ()
+                    }
+                }
+            },
+            _ => ()
+        }
     }
 }
 
