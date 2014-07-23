@@ -64,6 +64,8 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
     let bytes = percent_decode(parts.get(1).as_bytes());
 
     if is_base64 {
+        // See #1268
+        let bytes = bytes.move_iter().filter(|&b| b != ' ' as u8).collect::<Vec<u8>>();
         // FIXME(#2877): use bytes.as_slice().from_base64() when we upgrade to a Rust version
         // that includes https://github.com/rust-lang/rust/pull/15810
         let fake_utf8 = unsafe { str::raw::from_utf8(bytes.as_slice()) };
