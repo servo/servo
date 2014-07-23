@@ -36,6 +36,7 @@ pub trait FontHandleMethods {
 
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId>;
     fn glyph_h_advance(&self, GlyphId) -> Option<FractionalPixel>;
+    fn glyph_h_kerning(&self, GlyphId, GlyphId) -> FractionalPixel;
     fn get_metrics(&self) -> FontMetrics;
     fn get_table_for_tag(&self, FontTableTag) -> Option<FontTable>;
 }
@@ -146,6 +147,10 @@ impl Font {
 
     pub fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {
         self.handle.glyph_index(codepoint)
+    }
+
+    pub fn glyph_h_kerning(&mut self, first_glyph: GlyphId, second_glyph: GlyphId) -> FractionalPixel {
+        self.handle.glyph_h_kerning(first_glyph, second_glyph)
     }
 
     pub fn glyph_h_advance(&mut self, glyph: GlyphId) -> FractionalPixel {
