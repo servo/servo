@@ -421,7 +421,7 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
 
     /// Returns a string that describes this node.
     fn debug_str(&self) -> String {
-        format!("{:?}", self.type_id())
+        format!("{:?}", self.type_id)
     }
 
     fn is_in_doc(&self) -> bool {
@@ -465,12 +465,12 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
 
     #[inline]
     fn is_document(&self) -> bool {
-        self.type_id() == DocumentNodeTypeId
+        self.type_id == DocumentNodeTypeId
     }
 
     #[inline]
     fn is_anchor_element(&self) -> bool {
-        self.type_id() == ElementNodeTypeId(HTMLAnchorElementTypeId)
+        self.type_id == ElementNodeTypeId(HTMLAnchorElementTypeId)
     }
 
     #[inline]
@@ -480,7 +480,7 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
 
     #[inline]
     fn is_text(&self) -> bool {
-        self.type_id() == TextNodeTypeId
+        self.type_id == TextNodeTypeId
     }
 
     fn get_hover_state(&self) -> bool {
@@ -1600,7 +1600,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     fn ReplaceChild(&self, node: &JSRef<Node>, child: &JSRef<Node>) -> Fallible<Temporary<Node>> {
 
         // Step 1.
-        match self.type_id() {
+        match self.type_id {
             DocumentNodeTypeId |
             DocumentFragmentNodeTypeId |
             ElementNodeTypeId(..) => (),
@@ -1631,7 +1631,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         }
 
         // Step 6.
-        match self.type_id() {
+        match self.type_id {
             DocumentNodeTypeId => {
                 match node.type_id() {
                     // Step 6.1
