@@ -9,7 +9,9 @@ install:
 - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then ./travis.osx.install.deps.sh; fi
 
 before_script:
-  - mkdir -p build
+- mkdir -p build
+- if [ "${TRAVIS_OS_NAME}" = "linux" ]; then ./travis.linux.before_script.sh; fi
+- if [ "${TRAVIS_OS_NAME}" = "osx" ]; then ./travis.osx.before_script.sh; fi
 
 script:
 - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then ./travis.linux.script.sh; fi
