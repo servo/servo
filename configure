@@ -340,6 +340,7 @@ opt manage-submodules 1 "let the build manage the git submodules"
 opt fast-make 0 "use .gitmodules as timestamp for submodule deps"
 opt debug 0 "build with debugging code and symbols"
 opt debug-skia 0 "build Skia and Azure for debugging (significant performance hit)"
+opt tree-rust 0 "build in-tree rust compiler"
 valopt local-rust-root "" "set prefix for local rust binary"
 valopt target "${DEFAULT_TARGET}" "target to be compiled"
 valopt android-cross-path "/opt/ndk_standalone" "Android NDK cross compiler path"
@@ -405,9 +406,9 @@ SNAPSHOT_VERSION=$(cat ${CFG_SRC_DIR}/src/compiler/rust-snapshot-hash | rev | cu
 SNAPSHOT_HASH=$(cat ${CFG_SRC_DIR}/src/compiler/rust-snapshot-hash | cut -d/ -f1)
 if [ $CFG_OSTYPE = "linux-androideabi" ]
 then
-CFG_TREE_RUST=1 # We don't yet have Android snapshots
+    CFG_ENABLE_TREE_RUST=1 # We don't yet have Android snapshots
 fi
-if [ -z "$CFG_TREE_RUST" ]
+if [ -z "$CFG_ENABLE_TREE_RUST" ]
 then
     if ! [ -f ${CFG_BUILD_DIR}/rust_snapshot/${SNAPSHOT_VERSION}-${DEFAULT_TARGET}/bin/rustc -a -f ${CFG_BUILD_DIR}/src/compiler/rust-snapshot-hash-stamp -a -z "$(diff ${CFG_BUILD_DIR}/src/compiler/rust-snapshot-hash-stamp ${CFG_SRC_DIR}/src/compiler/rust-snapshot-hash)" ]
     then
@@ -587,7 +588,7 @@ putvar CFG_RUST_HOME
 putvar CFG_PATH
 putvar CFG_LOCAL_RUSTC
 putvar CFG_LOCAL_RUST_ROOT
-putvar CFG_TREE_RUST
+putvar CFG_ENABLE_TREE_RUST
 putvar CFG_ENABLE_DEBUG
 putvar CFG_ENABLE_DEBUG_SKIA
 
