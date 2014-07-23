@@ -100,6 +100,11 @@ DEPS_rust-http += \
 	rust-url \
 	$(NULL)
 
+DEPS_string-cache += \
+	rust-phf \
+	rust \
+	$(NULL)
+
 # Platform-specific dependencies
 ifeq ($(CFG_OSTYPE),apple-darwin)
 DEPS_rust-azure += \
