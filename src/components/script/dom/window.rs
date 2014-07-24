@@ -32,6 +32,7 @@ use js::jsapi::{JS_GC, JS_GetRuntime};
 use js::jsval::JSVal;
 use js::jsval::NullValue;
 use js::rust::with_compartment;
+use url::{Url, UrlParser};
 
 use std::collections::hashmap::HashMap;
 use std::cell::{Cell, RefCell};
@@ -42,11 +43,7 @@ use std::hash::{Hash, sip};
 use std::io::timer::Timer;
 use std::ptr;
 use std::rc::Rc;
-
 use time;
-
-use serialize::{Encoder, Encodable};
-use url::{Url, UrlParser};
 
 #[deriving(PartialEq, Encodable, Eq)]
 pub struct TimerId(i32);

@@ -8,8 +8,6 @@ use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::window::Window;
 
-use serialize::{Encoder, Encodable};
-
 #[deriving(Encodable)]
 pub struct Screen {
     reflector_: Reflector,

@@ -11,7 +11,6 @@ use page::Page;
 
 use servo_util::str::DOMString;
 
-use serialize::{Encoder, Encodable};
 use std::rc::Rc;
 
 #[deriving(Encodable)]
