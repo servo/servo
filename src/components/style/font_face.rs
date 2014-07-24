@@ -8,8 +8,7 @@ use errors::{ErrorLoggerIterator, log_css_error};
 use std::ascii::StrAsciiExt;
 use parsing_utils::one_component_value;
 use stylesheets::{CSSRule, CSSFontFaceRule};
-use url::Url;
-use servo_util::url::parse_url;
+use url::{Url, UrlParser};
 
 #[deriving(PartialEq)]
 pub enum FontFaceFormat {
@@ -80,7 +79,9 @@ pub fn parse_font_face_rule(rule: AtRule, parent_rules: &mut Vec<CSSRule>, base_
                             // url() or local() should be next
                             let maybe_url = match iter.next() {
                                 Some(&URL(ref string_value)) => {
-                                    Some(parse_url(string_value.as_slice(), Some(base_url.clone())))
+                                    // FIXME: handle URL parse errors more gracefully.
+                                    let url = UrlParser::new().base_url(base_url).parse(string_value.as_slice()).unwrap();
+                                    Some(url)
                                 },
                                 Some(&Function(ref string_value, ref _values)) => {
                                     match string_value.as_slice() {
