@@ -5,8 +5,10 @@ os:
 - osx
 
 install:
-- if [ "${TRAVIS_OS_NAME}" = "linux" ]; then ./travis.linux.install.deps.sh; fi
+- if [ "${TRAVIS_OS_NAME}" = "linux" ] && [ "${ANDROID}" = "0" ]; then  ./travis.linux.install.deps.sh; fi
+- if [ "${TRAVIS_OS_NAME}" = "linux"  ] && [ "${ANDROID}" = "1" ]; then  ./travis.linux-android.install.deps.sh; fi
 - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then ./travis.osx.install.deps.sh; fi
+
 
 before_script:
   - mkdir -p build
@@ -17,6 +19,10 @@ script:
 
 git:
   submodules: true
+
+env: 
+ - ANDROID=1
+ - ANDROID=0
 
 notifications:
   irc:
