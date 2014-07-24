@@ -409,7 +409,7 @@ package: servo
 else ifeq ($(CFG_OSTYPE),linux-androideabi)
 package: servo
 	mkdir -p sofile
-	find . ! \( \( -type d -path './sofile' -o -path './$(CFG_TARGET)/src/compiler/rust' \) -prune \) -name '*.so' -type f | xargs -I {} cp -f {} $(CFG_BUILD_HOME)sofile/
+	find . ! \( \( -type d -path './sofile' -o -path './$(CFG_TARGET)/src/compiler/rust' -o -path '*/host' \) -prune \) -name '*.so' -type f | xargs -I {} cp -f {} $(CFG_BUILD_HOME)sofile/
 	find $(CFG_RUST_HOME)/lib/rustlib/$(CFG_TARGET)/lib/ -name '*.so' -type f -size +1c | xargs -I {} cp -f {} $(CFG_BUILD_HOME)sofile/
 	cd $(S)src/platform/android/servo-android-glue && make with-libs
 	cd $(CFG_BUILD_HOME)
