@@ -12,6 +12,7 @@ use dom::element::{Element, AttributeHandlers};
 use dom::node::Node;
 use dom::window::Window;
 use dom::virtualmethods::vtable_for;
+use servo_util::atom::Atom;
 use servo_util::namespace;
 use servo_util::namespace::Namespace;
 use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS};
@@ -62,7 +63,7 @@ pub struct Attr {
     reflector_: Reflector,
     pub local_name: DOMString,
     value: Traceable<RefCell<AttrValue>>,
-    pub name: DOMString,
+    pub name: Atom,
     pub namespace: Namespace,
     pub prefix: Option<DOMString>,
 
@@ -78,13 +79,13 @@ impl Reflectable for Attr {
 
 impl Attr {
     fn new_inherited(local_name: DOMString, value: AttrValue,
-                     name: DOMString, namespace: Namespace,
+                     name: Atom, namespace: Namespace,
                      prefix: Option<DOMString>, owner: &JSRef<Element>) -> Attr {
         Attr {
             reflector_: Reflector::new(),
             local_name: local_name,
             value: Traceable::new(RefCell::new(value)),
-            name: name, //TODO: Intern attribute names
+            name: name,
             namespace: namespace,
             prefix: prefix,
             owner: Cell::new(JS::from_rooted(owner)),
@@ -92,7 +93,7 @@ impl Attr {
     }
 
     pub fn new(window: &JSRef<Window>, local_name: DOMString, value: AttrValue,
-               name: DOMString, namespace: Namespace,
+               name: Atom, namespace: Namespace,
                prefix: Option<DOMString>, owner: &JSRef<Element>) -> Temporary<Attr> {
         let attr = Attr::new_inherited(local_name, value, name, namespace, prefix, owner);
         reflect_dom_object(box attr, &Window(*window), AttrBinding::Wrap)
@@ -150,7 +151,7 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
     }
 
     fn Name(&self) -> DOMString {
-        self.name.clone()
+        self.name.as_slice().to_string()
     }
 
     fn GetNamespaceURI(&self) -> Option<DOMString> {
