@@ -143,11 +143,13 @@ impl IOCompositor {
         let window_size = window.framebuffer_size();
         let hidpi_factor = window.hidpi_factor();
 
+        let show_debug_borders = opts.show_debug_borders;
         IOCompositor {
             window: window,
             port: port,
             opts: opts,
-            context: rendergl::init_render_context(CompositorTask::create_graphics_context()),
+            context: rendergl::RenderContext::new(CompositorTask::create_graphics_context(),
+                                                  show_debug_borders),
             root_pipeline: None,
             scene: Scene::new(window_size.as_f32().to_untyped(), identity()),
             window_size: window_size,
