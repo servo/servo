@@ -627,19 +627,22 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
             None => {}
         }
 
+        let name = Atom::from_slice(name.as_slice());
+        let xmlns = Atom::from_slice("xmlns");      // TODO: Make this a static atom type
+
         // Step 7a.
-        if "xmlns" == name.as_slice() && namespace != namespace::XMLNS {
+        if xmlns == name && namespace != namespace::XMLNS {
             return Err(NamespaceError);
         }
 
         // Step 8.
-        if namespace == namespace::XMLNS && "xmlns" != name.as_slice() && Some("xmlns") != prefix {
+        if namespace == namespace::XMLNS && xmlns != name && Some("xmlns") != prefix {
             return Err(NamespaceError);
         }
 
         // Step 9.
         let value = self.parse_attribute(&namespace, local_name.as_slice(), value);
-        self.do_set_attribute(local_name.to_string(), value, Atom::from_slice(name.as_slice()),
+        self.do_set_attribute(local_name.to_string(), value, name,
                               namespace.clone(), prefix.map(|s| s.to_string()),
                               |attr| {
             attr.deref().local_name.as_slice() == local_name &&
