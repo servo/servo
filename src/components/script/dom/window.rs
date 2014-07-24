@@ -16,10 +16,11 @@ use dom::eventtarget::{EventTarget, WindowTypeId, EventTargetHelpers};
 use dom::location::Location;
 use dom::navigator::Navigator;
 use dom::performance::Performance;
-
+use dom::screen::Screen;
 use layout_interface::{ReflowForDisplay, DocumentDamageLevel};
 use page::Page;
 use script_task::{ExitWindowMsg, FireTimerMsg, ScriptChan, TriggerLoadMsg, TriggerFragmentMsg};
+
 use servo_msg::compositor_msg::ScriptListener;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_util::str::DOMString;
@@ -31,6 +32,7 @@ use js::jsapi::{JS_GC, JS_GetRuntime};
 use js::jsval::JSVal;
 use js::jsval::NullValue;
 use js::rust::with_compartment;
+use url::{Url, UrlParser};
 
 use std::collections::hashmap::HashMap;
 use std::cell::{Cell, RefCell};
@@ -41,11 +43,7 @@ use std::hash::{Hash, sip};
 use std::io::timer::Timer;
 use std::ptr;
 use std::rc::Rc;
-
 use time;
-
-use serialize::{Encoder, Encodable};
-use url::{Url, UrlParser};
 
 #[deriving(PartialEq, Encodable, Eq)]
 pub struct TimerId(i32);
@@ -86,6 +84,7 @@ pub struct Window {
     performance: Cell<Option<JS<Performance>>>,
     pub navigationStart: u64,
     pub navigationStartPrecise: f64,
+    screen: Cell<Option<JS<Screen>>>,
 }
 
 impl Window {
@@ -142,6 +141,7 @@ pub trait WindowMethods {
     fn SetOnunload(&self, listener: Option<EventHandlerNonNull>);
     fn GetOnerror(&self) -> Option<OnErrorEventHandlerNonNull>;
     fn SetOnerror(&self, listener: Option<OnErrorEventHandlerNonNull>);
+    fn Screen(&self) -> Temporary<Screen>;
     fn Debug(&self, message: DOMString);
     fn Gc(&self);
 }
@@ -263,6 +263,14 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     fn SetOnerror(&self, listener: Option<OnErrorEventHandlerNonNull>) {
         let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
         eventtarget.set_event_handler_common("error", listener)
+    }
+
+    fn Screen(&self) -> Temporary<Screen> {
+        if self.screen.get().is_none() {
+            let screen = Screen::new(self);
+            self.screen.assign(Some(screen));
+        }
+        Temporary::new(self.screen.get().get_ref().clone())
     }
 
     fn Debug(&self, message: DOMString) {
@@ -433,6 +441,7 @@ impl Window {
             performance: Cell::new(None),
             navigationStart: time::get_time().sec as u64,
             navigationStartPrecise: time::precise_time_s(),
+            screen: Cell::new(None),
         };
 
         WindowBinding::Wrap(cx, win)

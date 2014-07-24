@@ -13,7 +13,6 @@ use dom::event::{Event, EventMethods, EventTypeId, UIEventTypeId};
 use dom::window::Window;
 use servo_util::str::DOMString;
 
-use serialize::{Encoder, Encodable};
 use std::cell::Cell;
 
 #[deriving(Encodable)]
