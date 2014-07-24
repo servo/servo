@@ -1,11 +1,23 @@
 sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
 sudo apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 1E9377A2BA9EF27F
 sudo apt-get update -qq
-echo showing holds
-apt-mark showhold 
-sudo apt-get install -qq --force-yes -y autoconf2.13 gperf libxxf86vm-dev libglfw-dev libstdc++6-4.7-dev libedit-dev ia32-libs ia32-libs-multiarch
-echo showing holds x2
-apt-mark showhold 
+echo  autoconf2.13
+sudo apt-get install -qq --force-yes -y autoconf2.13
+echo  gperf
+sudo apt-get install -qq --force-yes -y gperf
+echo  libxxf86vm-dev
+sudo apt-get install -qq --force-yes -y libxxf86vm-dev
+echo  libglfw-dev
+sudo apt-get install -qq --force-yes -y libglfw-dev
+echo  libstdc++6-4.7-dev
+sudo apt-get install -qq --force-yes -y libstdc++6-4.7-dev
+echo  libedit-dev
+sudo apt-get install -qq --force-yes -y libedit-dev
+echo  ia32-libs
+sudo apt-get install -qq --force-yes -y ia32-libs
+echo  on to gcc
+sudo apt-get install gcc-4.7
+sudo apt-get install -qq --force-yes -y ia32-libs-multiarch
 sudo apt-get install gcc-4.7
 sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.7 50
 sudo apt-get install g++-4.7

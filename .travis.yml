@@ -2,7 +2,7 @@ language: c
 
 os:
 - linux
-- osx
+# - osx
 
 install:
 - if [ "${TRAVIS_OS_NAME}" = "linux" ] && [ "${ANDROID}" = "0" ]; then  ./travis.linux.install.deps.sh; fi
