@@ -156,7 +156,7 @@ fn get_jemalloc_stat(name: &'static str) -> Option<u64> {
     unsafe {
         rv = je_mallctl(c_name.unwrap(), oldp, &mut oldlen, mut_null(), 0);
     }
-    if rv == 0 { Some(old) } else { None }
+    if rv == 0 { Some(old as u64) } else { None }
 }
 
 // Like std::macros::try!, but for Option<>.
