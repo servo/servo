@@ -78,6 +78,38 @@ partial interface Window {
   /*[Replaceable]*/ readonly attribute Performance performance;
 };
 
+// http://dev.w3.org/csswg/cssom-view/#extensions-to-the-window-interface
+partial interface Window {
+  //MediaQueryList matchMedia(DOMString query);
+  [SameObject] readonly attribute Screen screen;
+
+  // browsing context
+  //void moveTo(double x, double y);
+  //void moveBy(double x, double y);
+  //void resizeTo(double x, double y);
+  //void resizeBy(double x, double y);
+
+  // viewport
+  //readonly attribute double innerWidth;
+  //readonly attribute double innerHeight;
+
+  // viewport scrolling
+  //readonly attribute double scrollX;
+  //readonly attribute double pageXOffset;
+  //readonly attribute double scrollY;
+  //readonly attribute double pageYOffset;
+  //void scroll(double x, double y, optional ScrollOptions options);
+  //void scrollTo(double x, double y, optional ScrollOptions options);
+  //void scrollBy(double x, double y, optional ScrollOptions options);
+
+  // client
+  //readonly attribute double screenX;
+  //readonly attribute double screenY;
+  //readonly attribute double outerWidth;
+  //readonly attribute double outerHeight;
+  //readonly attribute double devicePixelRatio;
+};
+
 // Proprietary extensions.
 partial interface Window {
   readonly attribute Console console;
