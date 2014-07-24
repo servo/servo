@@ -1,7 +1,7 @@
 sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
 sudo apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 1E9377A2BA9EF27F
 sudo apt-get update -qq
-sudo apt-get install -qq --force-yes -y libedit-dev ia32-libs ia32-libs-multiarch
+sudo apt-get install -qq --force-yes -y autoconf2.13 gperf libxxf86vm-dev libglfw-dev libstdc++6-4.7-dev libedit-dev ia32-libs ia32-libs-multiarch
 sudo apt-get install gcc-4.7
 sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.7 50
 sudo apt-get install g++-4.7
