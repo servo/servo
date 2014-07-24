@@ -53,7 +53,7 @@ use servo_util::opts;
 use url::{Url, UrlParser};
 
 
-#[cfg(not(test), not(target_os="android"))]
+#[cfg(not(test))]
 use std::os;
 #[cfg(not(test), target_os="android")]
 use std::str;
@@ -83,7 +83,7 @@ pub extern "C" fn android_start(argc: int, argv: **u8) -> int {
             }
         }
 
-        let mut opts = opts::from_cmdline_args(args.as_slice());
+        let opts = opts::from_cmdline_args(args.as_slice());
         match opts {
             Some(mut o) => {
                 // Always use CPU rendering on android.
