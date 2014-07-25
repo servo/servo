@@ -167,6 +167,7 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
 
 pub trait AttrHelpersForLayout {
     unsafe fn value_ref_forever(&self) -> &'static str;
+    unsafe fn value_atom_forever(&self) -> Option<Atom>;
 }
 
 impl AttrHelpersForLayout for Attr {
@@ -174,5 +175,14 @@ impl AttrHelpersForLayout for Attr {
         // cast to point to T in RefCell<T> directly
         let value = mem::transmute::<&RefCell<AttrValue>, &AttrValue>(self.value.deref());
         value.as_slice()
+    }
+
+    unsafe fn value_atom_forever(&self) -> Option<Atom> {
+        // cast to point to T in RefCell<T> directly
+        let value = mem::transmute::<&RefCell<AttrValue>, &AttrValue>(self.value.deref());
+        match *value {
+            AtomAttrValue(ref val) => Some(val.clone()),
+            _ => None,
+        }
     }
 }

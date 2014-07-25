@@ -6,7 +6,7 @@
 
 use cssparser::tokenize;
 use dom::attr::{Attr, ReplacedAttr, FirstSetAttr, AttrHelpersForLayout};
-use dom::attr::{AttrValue, StringAttrValue, UIntAttrValue};
+use dom::attr::{AttrValue, StringAttrValue, UIntAttrValue, AtomAttrValue};
 use dom::attrlist::AttrList;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::ElementBinding;
@@ -168,6 +168,7 @@ impl Element {
 
 pub trait RawLayoutElementHelpers {
     unsafe fn get_attr_val_for_layout(&self, namespace: &Namespace, name: &str) -> Option<&'static str>;
+    unsafe fn get_attr_atom_for_layout(&self, namespace: &Namespace, name: &str) -> Option<Atom>;
 }
 
 impl RawLayoutElementHelpers for Element {
@@ -182,6 +183,20 @@ impl RawLayoutElementHelpers for Element {
         }).map(|attr| {
             let attr = attr.unsafe_get();
             (*attr).value_ref_forever()
+        })
+    }
+
+    #[inline]
+    unsafe fn get_attr_atom_for_layout(&self, namespace: &Namespace, name: &str)
+                                      -> Option<Atom> {
+        // cast to point to T in RefCell<T> directly
+        let attrs: *Vec<JS<Attr>> = mem::transmute(&self.attrs);
+        (*attrs).iter().find(|attr: & &JS<Attr>| {
+            let attr = attr.unsafe_get();
+            name == (*attr).local_name.as_slice() && (*attr).namespace == *namespace
+        }).and_then(|attr| {
+            let attr = attr.unsafe_get();
+            (*attr).value_atom_forever()
         })
     }
 }
@@ -900,5 +915,14 @@ impl<'a> style::TElement for JSRef<'a, Element> {
     fn get_hover_state(&self) -> bool {
         let node: &JSRef<Node> = NodeCast::from_ref(self);
         node.get_hover_state()
+    }
+    fn get_id<'a>(&self) -> Option<Atom> {
+        self.get_attribute(namespace::Null, "id").map(|attr| {
+            let attr = attr.root();
+            match *attr.value() {
+                AtomAttrValue(ref val) => val.clone(),
+                _ => fail!("`id` attribute should be AtomAttrValue"),
+            }
+        })
     }
 }

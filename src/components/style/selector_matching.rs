@@ -267,7 +267,7 @@ impl SelectorMap {
             match *ss {
                 // TODO(pradeep): Implement case-sensitivity based on the document type and quirks
                 // mode.
-                IDSelector(ref id) => return Some(id.clone()),
+                IDSelector(ref id) => return Some(id.as_slice().clone().to_string()),
                 _ => {}
             }
         }
@@ -691,9 +691,8 @@ fn matches_simple_selector<E:TElement,
         IDSelector(ref id) => {
             *shareable = false;
             let element = element.as_element();
-            element.get_attr(&namespace::Null, "id")
-                    .map_or(false, |attr| {
-                attr == id.as_slice()
+            element.get_id().map_or(false, |attr| {
+                attr == *id
             })
         }
         // TODO: cache and intern class names on elements.

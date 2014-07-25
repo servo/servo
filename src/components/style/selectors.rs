@@ -10,6 +10,7 @@ use sync::Arc;
 use cssparser::ast::*;
 use cssparser::parse_nth;
 
+use servo_util::atom::Atom;
 use servo_util::namespace::Namespace;
 use servo_util::namespace;
 
@@ -56,7 +57,7 @@ pub enum Combinator {
 
 #[deriving(PartialEq, Clone)]
 pub enum SimpleSelector {
-    IDSelector(String),
+    IDSelector(Atom),
     ClassSelector(String),
     LocalNameSelector(String),
     NamespaceSelector(Namespace),
@@ -306,7 +307,7 @@ fn parse_one_simple_selector(iter: &mut Iter, namespaces: &NamespaceMap, inside_
                          -> SimpleSelectorParseResult {
     match iter.peek() {
         Some(&IDHash(_)) => match iter.next() {
-            Some(IDHash(id)) => SimpleSelectorResult(IDSelector(id)),
+            Some(IDHash(id)) => SimpleSelectorResult(IDSelector(Atom::from_slice(id.as_slice()))),
             _ => fail!("Implementation error, this should not happen."),
         },
         Some(&Delim('.')) => {
@@ -572,6 +573,7 @@ fn skip_whitespace(iter: &mut Iter) -> bool {
 mod tests {
     use sync::Arc;
     use cssparser;
+    use servo_util::atom::Atom;
     use servo_util::namespace;
     use namespaces::NamespaceMap;
     use super::*;
@@ -611,7 +613,7 @@ mod tests {
         })))
         assert!(parse("#bar") == Some(vec!(Selector{
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: vec!(IDSelector("bar".to_string())),
+                simple_selectors: vec!(IDSelector(Atom::from_slice("bar"))),
                 next: None,
             }),
             pseudo_element: None,
@@ -621,7 +623,7 @@ mod tests {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(LocalNameSelector("e".to_string()),
                                        ClassSelector("foo".to_string()),
-                                       IDSelector("bar".to_string())),
+                                       IDSelector(Atom::from_slice("bar"))),
                 next: None,
             }),
             pseudo_element: None,
@@ -629,7 +631,7 @@ mod tests {
         })))
         assert!(parse("e.foo #bar") == Some(vec!(Selector{
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: vec!(IDSelector("bar".to_string())),
+                simple_selectors: vec!(IDSelector(Atom::from_slice("bar"))),
                 next: Some((box CompoundSelector {
                     simple_selectors: vec!(LocalNameSelector("e".to_string()),
                                            ClassSelector("foo".to_string())),
