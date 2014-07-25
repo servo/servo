@@ -4,8 +4,8 @@
 
 //! A partial implementation of CORS
 //! For now this library is XHR-specific.
-//! For stuff involving <img>, <iframe>, <form>, etc please check what the request mode should be
-//! and compare with the fetch spec
+//! For stuff involving `<img>`, `<iframe>`, `<form>`, etc please check what
+//! the request mode should be and compare with the fetch spec
 //! This library will eventually become the core of the Fetch crate
 //! with CORSRequest being expanded into FetchRequest (etc)
 
