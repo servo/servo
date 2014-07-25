@@ -742,8 +742,7 @@ do
             fi
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --enable-gczeal --enable-threadsafe"
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-nspr-cflags=-I${CFG_BUILD_DIR}src/support/spidermonkey/nspr/dist/include/nspr"
-            CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-nspr-libs=-L../nspr/dist/lib"
-            CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-nspr-libs=-lnspr4"
+            CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-nspr-libs='-L../nspr/dist/lib -lnspr4'"
             ;;
         support/skia/skia)
             # Right now the skia configure script actually ignores --enable-debug and the
@@ -775,7 +774,7 @@ do
     fi
 
     if [ -f ${CONFIGURE_SCRIPT} ]; then
-	(sh ${CONFIGURE_SCRIPT} ${CONFIGURE_ARGS}) || exit $?
+        (eval sh ${CONFIGURE_SCRIPT} ${CONFIGURE_ARGS}) || exit $?
     fi
 done
 
