@@ -63,7 +63,7 @@ impl CORSRequest {
             // we can fetch a data URL normally. about:blank can also be fetched by XHR
             "http" | "https" => {
                 let mut req = CORSRequest::new(referer, destination, mode, method, headers);
-                req.preflight_flag = (!is_simple_method(&req.method) || mode == ForcedPreflightMode);
+                req.preflight_flag = !is_simple_method(&req.method) || mode == ForcedPreflightMode;
                 if req.headers.iter().all(|h| is_simple_header(&h)) {
                     req.preflight_flag = true;
                 }
