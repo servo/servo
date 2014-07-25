@@ -80,8 +80,11 @@ DEPS_rust-hubbub += \
 	rust \
 	$(NULL)
 
-DEPS_rust-mozjs += \
+DEPS_mozjs += \
 	nspr \
+	$(NULL)
+
+DEPS_rust-mozjs += \
 	mozjs \
 	rust \
 	$(NULL)
