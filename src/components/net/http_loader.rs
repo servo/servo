@@ -106,6 +106,20 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
         if 3 == (response.status.code() / 100) {
             match response.headers.location {
                 Some(new_url) => {
+                    // CORS (http://fetch.spec.whatwg.org/#http-fetch, status section, point 9, 10)
+                    match load_data.cors {
+                        Some(ref c) => {
+                            if c.preflight {
+                                // The preflight lied
+                                send_error(url, "Preflight fetch inconsistent with main fetch".to_string(), start_chan);
+                                return;
+                            } else {
+                                // XXXManishearth There are some CORS-related steps here,
+                                // but they don't seem necessary until credentials are implemented
+                            }
+                        }
+                        _ => {}
+                    }
                     info!("redirecting to {:s}", new_url.serialize());
                     url = new_url;
                     continue;
