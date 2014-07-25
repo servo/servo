@@ -521,6 +521,7 @@ CFG_SUBMODULES="\
     support/skia/skia \
     support/spidermonkey/mozjs \
     support/spidermonkey/rust-mozjs \
+    support/spidermonkey/nspr \
     support/stb-image/rust-stb-image \
     support/png/libpng \
     support/png/rust-png \
@@ -722,6 +723,15 @@ do
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-default-fonts=${CFG_ANDROID_FONT_PATH}"
             CONFIGURE_ARGS="${CONFIGURE_ARGS} ${EXTRA_CONFIGURE_ARGS}"
             ;;
+        support/spidermonkey/nspr)
+            if [ ${CFG_OSTYPE} = "linux-androideabi" ]; then
+            CONFIGURE_ARGS="${CONFIGURE_ARGS} --target=arm-linux-androideabi"
+            CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-android-ndk=${CFG_ANDROID_NDK_PATH}"
+            CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-android-toolchain=${CFG_ANDROID_CROSS_PATH}"
+            else
+            CONFIGURE_ARGS="${CONFIGURE_ARGS} --enable-64bit"
+            fi
+            ;;
         support/spidermonkey/mozjs)
             # needed because Spidermonkey configure is in non-standard location
                 CONFIGURE_SCRIPT="${CFG_SRC_DIR}src/${i}/js/src/configure"
@@ -730,7 +740,7 @@ do
                 CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-android-ndk=${CFG_ANDROID_NDK_PATH}"
                 CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-android-toolchain=${CFG_ANDROID_CROSS_PATH}"
             fi
-            CONFIGURE_ARGS="${CONFIGURE_ARGS} --enable-gczeal --enable-threadsafe --with-system-nspr"
+            CONFIGURE_ARGS="${CONFIGURE_ARGS} --enable-gczeal --enable-threadsafe"
             ;;
         support/skia/skia)
             # Right now the skia configure script actually ignores --enable-debug and the
