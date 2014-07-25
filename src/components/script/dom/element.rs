@@ -31,10 +31,10 @@ use layout_interface::ContentChangedDocumentDamage;
 use layout_interface::MatchSelectorsDocumentDamage;
 use style::{matches_compound_selector, NamespaceMap, parse_selector_list};
 use style;
+use servo_util::atom::Atom;
 use servo_util::namespace;
 use servo_util::namespace::{Namespace, Null};
 use servo_util::str::{DOMString, null_str_as_empty_ref, split_html_space_chars};
-use servo_util::atom::Atom;
 
 use std::ascii::StrAsciiExt;
 use std::cell::{Cell, RefCell};
@@ -228,7 +228,7 @@ pub trait AttributeHandlers {
                                  prefix: Option<DOMString>);
     fn set_attribute(&self, name: &str, value: AttrValue);
     fn do_set_attribute(&self, local_name: DOMString, value: AttrValue,
-                        name: DOMString, namespace: Namespace,
+                        name: Atom, namespace: Namespace,
                         prefix: Option<DOMString>, cb: |&JSRef<Attr>| -> bool);
     fn parse_attribute(&self, namespace: &Namespace, local_name: &str,
                        value: DOMString) -> AttrValue;
@@ -267,8 +267,8 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
                                  value: DOMString, namespace: Namespace,
                                  prefix: Option<DOMString>) {
         let name = match prefix {
-            None => local_name.clone(),
-            Some(ref prefix) => format!("{:s}:{:s}", *prefix, local_name),
+            None => Atom::from_slice(local_name.as_slice()),
+            Some(ref prefix) => Atom::from_slice(format!("{:s}:{:s}", *prefix, local_name).as_slice()),
         };
         let value = self.parse_attribute(&namespace, local_name.as_slice(), value);
         self.do_set_attribute(local_name, value, name, namespace, prefix, |_| false)
@@ -281,13 +281,13 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         let node: &JSRef<Node> = NodeCast::from_ref(self);
         node.wait_until_safe_to_modify_dom();
 
-        self.do_set_attribute(name.to_string(), value, name.to_string(),
+        self.do_set_attribute(name.to_string(), value, Atom::from_slice(name),
             namespace::Null, None,
             |attr| attr.deref().local_name.as_slice() == name);
     }
 
     fn do_set_attribute(&self, local_name: DOMString, value: AttrValue,
-                        name: DOMString, namespace: Namespace,
+                        name: Atom, namespace: Namespace,
                         prefix: Option<DOMString>, cb: |&JSRef<Attr>| -> bool) {
         let idx = self.deref().attrs.borrow().iter()
                                     .map(|attr| attr.root())
@@ -576,8 +576,9 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
         // Step 3-5.
         let value = self.parse_attribute(&namespace::Null, name.as_slice(), value);
-        self.do_set_attribute(name.clone(), value, name.clone(), namespace::Null, None, |attr| {
-            attr.deref().name == name
+        let name_atom = Atom::from_slice(name.as_slice());
+        self.do_set_attribute(name.clone(), value, name_atom.clone(), namespace::Null, None, |attr| {
+            attr.deref().name == name_atom
         });
         Ok(())
     }
@@ -626,19 +627,22 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
             None => {}
         }
 
+        let name = Atom::from_slice(name.as_slice());
+        let xmlns = Atom::from_slice("xmlns");      // TODO: Make this a static atom type
+
         // Step 7a.
-        if "xmlns" == name.as_slice() && namespace != namespace::XMLNS {
+        if xmlns == name && namespace != namespace::XMLNS {
             return Err(NamespaceError);
         }
 
         // Step 8.
-        if namespace == namespace::XMLNS && "xmlns" != name.as_slice() && Some("xmlns") != prefix {
+        if namespace == namespace::XMLNS && xmlns != name && Some("xmlns") != prefix {
             return Err(NamespaceError);
         }
 
         // Step 9.
         let value = self.parse_attribute(&namespace, local_name.as_slice(), value);
-        self.do_set_attribute(local_name.to_string(), value, name.to_string(),
+        self.do_set_attribute(local_name.to_string(), value, name,
                               namespace.clone(), prefix.map(|s| s.to_string()),
                               |attr| {
             attr.deref().local_name.as_slice() == local_name &&
