@@ -10,6 +10,9 @@
 [submodule "src/support/spidermonkey/rust-mozjs"]
 	path = src/support/spidermonkey/rust-mozjs
 	url = https://github.com/servo/rust-mozjs.git
+[submodule "src/support/spidermonkey/nspr"]
+	path = src/support/spidermonkey/nspr
+	url = https://github.com/servo/nspr.git
 [submodule "src/support/harfbuzz/rust-harfbuzz"]
 	path = src/support/harfbuzz/rust-harfbuzz
 	url = https://github.com/servo/rust-harfbuzz.git

@@ -7,6 +7,7 @@ SLOW_TESTS += \
 
 # Tests for these submodules do not exist.
 NO_TESTS += \
+	nspr \
 	$(NULL)
 
 # These submodules will not be cleaned by the `make clean-fast` target.
@@ -23,6 +24,7 @@ NATIVE_BUILDS += \
 	libparserutils \
 	mozjs \
 	skia \
+	nspr \
 	glfw \
 	$(NULL)
 
@@ -76,6 +78,10 @@ DEPS_rust-hubbub += \
 	libhubbub \
 	libparserutils \
 	rust \
+	$(NULL)
+
+DEPS_mozjs += \
+	nspr \
 	$(NULL)
 
 DEPS_rust-mozjs += \

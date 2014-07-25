@@ -15,15 +15,19 @@ use dom::node::NodeTypeId;
 use dom::workerglobalscope::WorkerGlobalScopeId;
 use dom::xmlhttprequest::XMLHttpRequestId;
 use dom::virtualmethods::VirtualMethods;
+
+use servo_util::str::DOMString;
+
 use js::jsapi::{JS_CompileUCFunction, JS_GetFunctionObject, JS_CloneFunctionObject};
 use js::jsapi::{JSContext, JSObject};
-use servo_util::str::DOMString;
+use js::rust::JSAutoRequest;
+
 use libc::{c_char, size_t};
 use std::cell::RefCell;
+use std::collections::hashmap::HashMap;
 use std::ptr;
 use url::Url;
 
-use std::collections::hashmap::HashMap;
 
 #[deriving(PartialEq,Encodable)]
 pub enum ListenerPhase {
@@ -179,6 +183,8 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
         static arg_name: [c_char, ..6] =
             ['e' as c_char, 'v' as c_char, 'e' as c_char, 'n' as c_char, 't' as c_char, 0];
         static arg_names: [*c_char, ..1] = [&arg_name as *c_char];
+
+        let _ar = JSAutoRequest::new(cx);
 
         let source = source.to_utf16();
         let handler = name.with_ref(|name| {

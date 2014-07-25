@@ -298,7 +298,20 @@ DONE_compositing = $(B)src/components/compositing/libcompositing.dummy
 
 DEPS_compositing = $(CRATE_compositing) $(SRC_compositing) $(DONE_util) $(DONE_msg) $(DONE_gfx) $(DONE_script) $(DONE_layout_traits) $(DONE_style)
 
-RFLAGS_servo = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/gfx -L $(B)src/components/util -L $(B)src/components/net -L $(B)src/components/script -L $(B)src/components/layout_traits -L $(B)src/components/layout -L $(B)src/components/compositing -L $(B)src/components/style -L $(B)src/components/msg -L$(B)src/components/macros
+RFLAGS_servo = \
+  $(strip $(CFG_RUSTC_FLAGS)) \
+  $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) \
+  -L $(B)src/support/spidermonkey/nspr/dist/lib \
+  -L $(B)src/components/gfx \
+  -L $(B)src/components/util \
+  -L $(B)src/components/net \
+  -L $(B)src/components/script \
+  -L $(B)src/components/layout_traits \
+  -L $(B)src/components/layout \
+  -L $(B)src/components/compositing \
+  -L $(B)src/components/style \
+  -L $(B)src/components/msg \
+  -L$(B)src/components/macros
 
 SRC_servo = $(call rwildcard,$(S)src/components/main/,*.rs)
 CRATE_servo = $(S)src/components/main/servo.rs
