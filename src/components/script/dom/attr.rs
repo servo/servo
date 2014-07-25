@@ -30,6 +30,7 @@ pub enum AttrValue {
     StringAttrValue(DOMString),
     TokenListAttrValue(DOMString, Vec<(uint, uint)>),
     UIntAttrValue(DOMString, u32),
+    AtomAttrValue(Atom),
 }
 
 impl AttrValue {
@@ -50,11 +51,17 @@ impl AttrValue {
         UIntAttrValue(string, result)
     }
 
+    pub fn from_atomic(string: DOMString) -> AttrValue {
+        let value = Atom::from_slice(string.as_slice());
+        AtomAttrValue(value)
+    }
+
     pub fn as_slice<'a>(&'a self) -> &'a str {
         match *self {
             StringAttrValue(ref value) |
             TokenListAttrValue(ref value, _) |
             UIntAttrValue(ref value, _) => value.as_slice(),
+            AtomAttrValue(ref value) => value.as_slice(),
         }
     }
 }

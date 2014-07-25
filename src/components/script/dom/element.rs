@@ -239,6 +239,8 @@ pub trait AttributeHandlers {
     fn notify_attribute_changed(&self, local_name: DOMString);
     fn has_class(&self, name: &str) -> bool;
 
+    fn set_atomic_attribute(&self, name: &str, value: DOMString);
+
     // http://www.whatwg.org/html/#reflecting-content-attributes-in-idl-attributes
     fn get_url_attribute(&self, name: &str) -> DOMString;
     fn set_url_attribute(&self, name: &str, value: DOMString);
@@ -362,6 +364,12 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         classes.any(|class| name == class)
     }
 
+    fn set_atomic_attribute(&self, name: &str, value: DOMString) {
+        assert!(name == name.to_ascii_lower().as_slice());
+        let value = AttrValue::from_atomic(value);
+        self.set_attribute(name, value);
+    }
+
     fn get_url_attribute(&self, name: &str) -> DOMString {
         // XXX Resolve URL.
         self.get_string_attribute(name)
@@ -459,7 +467,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
     // http://dom.spec.whatwg.org/#dom-element-id
     fn SetId(&self, id: DOMString) {
-        self.set_string_attribute("id", id);
+        self.set_atomic_attribute("id", id);
     }
 
     // http://dom.spec.whatwg.org/#dom-element-classname
@@ -824,6 +832,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
 
     fn parse_plain_attribute(&self, name: &str, value: DOMString) -> AttrValue {
         match name {
+            "id" => AttrValue::from_atomic(value),
             "class" => AttrValue::from_tokenlist(value),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
