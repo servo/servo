@@ -92,7 +92,7 @@ pub struct Node {
 
     /// Layout information. Only the layout task may touch this data.
     ///
-    /// FIXME(pcwalton): We need to send these back to the layout task to be destroyed when this
+    /// Must be sent back to the layout task to be destroyed when this
     /// node is finalized.
     pub layout_data: LayoutDataRef,
 }
@@ -1339,7 +1339,7 @@ impl Node {
         Temporary::from_rooted(&*copy)
     }
 
-    /// Sends layout data, if any, back to the script task to be destroyed.
+    /// Sends layout data, if any, back to the layout task to be destroyed.
     unsafe fn reap_layout_data(&mut self) {
         if self.layout_data.is_present() {
             let layout_data = mem::replace(&mut self.layout_data, LayoutDataRef::new());
