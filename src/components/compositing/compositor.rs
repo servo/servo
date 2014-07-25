@@ -26,7 +26,7 @@ use geom::point::{Point2D, TypedPoint2D};
 use geom::rect::Rect;
 use geom::size::TypedSize2D;
 use geom::scale_factor::ScaleFactor;
-use gfx::render_task::ReRenderMsg;
+use gfx::render_task::{RenderChan, ReRenderMsg, ReRenderRequest, UnusedBufferMsg};
 use layers::layers::LayerBufferSet;
 use layers::rendergl;
 use layers::rendergl::RenderContext;
@@ -791,17 +791,44 @@ impl IOCompositor {
         match self.scene.root {
             Some(ref layer) => {
                 let rect = Rect(Point2D(0f32, 0f32), page_window.to_untyped());
-                let mut request_map = HashMap::new();
-                let recomposite =
-                    CompositorData::get_buffer_requests_recursively(&mut request_map,
-                                                                    layer.clone(),
-                                                                    rect,
-                                                                    scale.get());
-                for (_pipeline_id, (chan, requests)) in request_map.move_iter() {
+                let mut layers_and_requests = Vec::new();
+                let mut unused_buffers = Vec::new();
+                CompositorData::get_buffer_requests_recursively(&mut layers_and_requests,
+                                                                &mut unused_buffers,
+                                                                layer.clone(),
+                                                                rect,
+                                                                scale.get());
+
+                // Return unused tiles first, so that they can be reused by any new BufferRequests.
+                let have_unused_buffers = unused_buffers.len() > 0;
+                self.recomposite = self.recomposite || have_unused_buffers;
+                if have_unused_buffers {
+                    let message = UnusedBufferMsg(unused_buffers);
+                    let _ = layer.extra_data.borrow().pipeline.render_chan.send_opt(message);
+                }
+
+                // We want to batch requests for each pipeline to avoid race conditions
+                // when handling the resulting BufferRequest responses.
+                let mut pipeline_requests:
+                    HashMap<PipelineId, (RenderChan, Vec<ReRenderRequest>)> = HashMap::new();
+                for (layer, requests) in layers_and_requests.move_iter() {
+                    let pipeline_id = layer.extra_data.borrow().pipeline.id;
+                    let &(_, ref mut vec) = pipeline_requests.find_or_insert_with(pipeline_id, |_| {
+                        (layer.extra_data.borrow().pipeline.render_chan.clone(), Vec::new())
+                    });
+
+                    vec.push(ReRenderRequest {
+                        buffer_requests: requests,
+                        scale: scale.get(),
+                        layer_id: layer.extra_data.borrow().id,
+                        epoch: layer.extra_data.borrow().epoch,
+                    });
+                }
+
+                for (_pipeline_id, (chan, requests)) in pipeline_requests.move_iter() {
                     num_rerendermsgs_sent += 1;
                     let _ = chan.send_opt(ReRenderMsg(requests));
                 }
-                self.recomposite = self.recomposite || recomposite;
             }
             None => { }
         }
