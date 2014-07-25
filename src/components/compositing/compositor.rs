@@ -465,20 +465,24 @@ impl IOCompositor {
                            pipeline_id: PipelineId,
                            layer_id: LayerId,
                            new_rect: Rect<f32>) {
-        let ask: bool = match self.scene.root {
-            Some(ref layer) => {
-                assert!(CompositorData::set_clipping_rect(layer.clone(),
-                                                          pipeline_id,
-                                                          layer_id,
-                                                          new_rect));
-                true
+        let should_ask_for_tiles = match self.scene.root {
+            Some(ref root_layer) => {
+                match CompositorData::find_layer_with_pipeline_and_layer_id(root_layer.clone(),
+                                                                            pipeline_id,
+                                                                            layer_id) {
+                    Some(ref layer) => {
+                        *layer.bounds.borrow_mut() = new_rect;
+                        true
+                    }
+                    None => {
+                        fail!("compositor received SetLayerClipRect for nonexistent layer");
+                    }
+                }
             }
-            None => {
-                false
-            }
+            None => false
         };
 
-        if ask {
+        if should_ask_for_tiles {
             self.ask_for_tiles();
         }
     }
