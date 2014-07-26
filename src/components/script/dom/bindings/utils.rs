@@ -354,7 +354,7 @@ fn CreateInterfacePrototypeObject(cx: *mut JSContext, global: *mut JSObject,
 }
 
 pub extern fn ThrowingConstructor(_cx: *mut JSContext, _argc: c_uint, _vp: *mut JSVal) -> JSBool {
-    //XXX should trigger exception here
+    // FIXME(#347) should trigger exception here
     return 0;
 }
 
