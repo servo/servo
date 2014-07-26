@@ -21,7 +21,6 @@
 #[phase(plugin, link)]
 extern crate log;
 
-extern crate azure;
 extern crate debug;
 extern crate cssparser;
 extern crate collections;
@@ -44,6 +43,7 @@ extern crate style;
 extern crate sync;
 extern crate servo_msg = "msg";
 extern crate url = "url_";
+extern crate gfx;
 
 pub mod cors;
 
