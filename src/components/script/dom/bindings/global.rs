@@ -3,6 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! Abstractions for global scopes.
+//!
+//! This module contains smart pointers to global scopes, to simplify writing
+//! code that works in workers as well as window scopes.
 
 use dom::bindings::js::{JS, JSRef, Root};
 use dom::bindings::utils::{Reflectable, Reflector};
@@ -16,16 +19,20 @@ use js::jsapi::JSContext;
 
 use url::Url;
 
+/// A freely-copyable reference to a rooted global object.
 pub enum GlobalRef<'a> {
     Window(JSRef<'a, Window>),
     Worker(JSRef<'a, WorkerGlobalScope>),
 }
 
+/// A stack-based rooted reference to a global object.
 pub enum GlobalRoot<'a, 'b> {
     WindowRoot(Root<'a, 'b, Window>),
     WorkerRoot(Root<'a, 'b, WorkerGlobalScope>),
 }
 
+/// A traced reference to a global object, for use in fields of traced Rust
+/// structures.
 #[deriving(Encodable)]
 pub enum GlobalField {
     WindowField(JS<Window>),
@@ -33,6 +40,8 @@ pub enum GlobalField {
 }
 
 impl<'a> GlobalRef<'a> {
+    /// Get the `JSContext` for the `JSRuntime` associated with the thread
+    /// this global object is on.
     pub fn get_cx(&self) -> *mut JSContext {
         match *self {
             Window(ref window) => window.get_cx(),
@@ -40,6 +49,8 @@ impl<'a> GlobalRef<'a> {
         }
     }
 
+    /// Extract a `Window`, causing task failure if the global object is not
+    /// a `Window`.
     pub fn as_window<'b>(&'b self) -> &'b JSRef<'b, Window> {
         match *self {
             Window(ref window) => window,
@@ -79,6 +90,8 @@ impl<'a> Reflectable for GlobalRef<'a> {
 }
 
 impl<'a, 'b> GlobalRoot<'a, 'b> {
+    /// Obtain a safe reference to the global object that cannot outlive the
+    /// lifetime of this root.
     pub fn root_ref<'c>(&'c self) -> GlobalRef<'c> {
         match *self {
             WindowRoot(ref window) => Window(window.root_ref()),
@@ -88,6 +101,7 @@ impl<'a, 'b> GlobalRoot<'a, 'b> {
 }
 
 impl GlobalField {
+    /// Create a new `GlobalField` from a rooted reference.
     pub fn from_rooted(global: &GlobalRef) -> GlobalField {
         match *global {
             Window(ref window) => WindowField(JS::from_rooted(window)),
@@ -95,6 +109,7 @@ impl GlobalField {
         }
     }
 
+    /// Create a stack-bounded root for this reference.
     pub fn root(&self) -> GlobalRoot {
         match *self {
             WindowField(ref window) => WindowRoot(window.root()),

@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+///! Utilities for the implementation of JSAPI proxy handlers.
+
 use dom::bindings::utils::is_dom_proxy;
 use js::jsapi::{JSContext, jsid, JSPropertyDescriptor, JSObject, JSString, jschar};
 use js::jsapi::{JS_GetPropertyDescriptorById, JS_NewUCString, JS_malloc, JS_free};

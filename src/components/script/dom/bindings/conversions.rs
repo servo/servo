@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! Conversions of Rust values to and from `JSVal`.
+
 use dom::bindings::js::{JS, JSRef, Root};
 use dom::bindings::str::ByteString;
 use dom::bindings::utils::{Reflectable, Reflector};
@@ -33,11 +35,18 @@ pub trait IDLInterface {
     fn get_prototype_depth(_: Option<Self>) -> uint;
 }
 
+/// A trait to convert Rust types to `JSVal`s.
 pub trait ToJSValConvertible {
+    /// Convert `self` to a `JSVal`. JSAPI failure causes a task failure.
     fn to_jsval(&self, cx: *mut JSContext) -> JSVal;
 }
 
+/// A trait to convert `JSVal`s to Rust types.
 pub trait FromJSValConvertible<T> {
+    /// Convert `val` to type `Self`.
+    /// Optional configuration of type `T` can be passed as the `option`
+    /// argument.
+    /// If it returns `Err(())`, a JSAPI exception is pending.
     fn from_jsval(cx: *mut JSContext, val: JSVal, option: T) -> Result<Self, ()>;
 }
 
@@ -228,9 +237,12 @@ impl ToJSValConvertible for DOMString {
     }
 }
 
+/// Behavior for stringification of `JSVal`s.
 #[deriving(PartialEq)]
 pub enum StringificationBehavior {
+    /// Convert `null` to the string `"null"`.
     Default,
+    /// Convert `null` to the empty string.
     Empty,
 }
 

@@ -2,6 +2,30 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! Utilities for tracing JS-managed values.
+//!
+//! The lifetime of DOM objects is managed by the SpiderMonkey Garbage
+//! Collector. A rooted DOM object implementing the interface `Foo` is traced
+//! as follows:
+//!
+//! 1. The GC calls `_trace` defined in `FooBinding` during the marking
+//!    phase. (This happens through `JSClass.trace` for non-proxy bindings, and
+//!    through `ProxyTraps.trace` otherwise.)
+//! 2. `_trace` calls `Foo::trace()` (an implementation of `JSTraceable`,
+//!    defined in `InheritTypes.rs`).
+//! 3. `Foo::trace()` calls `Foo::encode()` (an implementation of `Encodable`).
+//!    This implementation is typically derived by a `#[deriving(Encodable)]`
+//!    annotation on the Rust struct.
+//! 4. For all fields (except those wrapped in `Untraceable`), `Foo::encode()`
+//!    calls `encode()` on the field.
+//!
+//!    For example, for fields of type `JS<T>`, `JS<T>::encode()` calls
+//!    `trace_reflector()`.
+//! 6. `trace_reflector()` calls `trace_object()` with the `JSObject` for the
+//!    reflector.
+//! 7. `trace_object()` calls `JS_CallTracer()` to notify the GC, which will
+//!    add the object to the graph, and will trace that object as well.
+
 use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector};
 
@@ -37,10 +61,12 @@ impl<S: Encoder<E>, E> Encodable<S, E> for Reflector {
     }
 }
 
+/// A trait to allow tracing (only) DOM objects.
 pub trait JSTraceable {
     fn trace(&self, trc: *mut JSTracer);
 }
 
+/// Trace a `JSVal`.
 pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: JSVal) {
     if !val.is_gcthing() {
         return;
@@ -57,10 +83,12 @@ pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: JSVal) {
     }
 }
 
+/// Trace the `JSObject` held by `reflector`.
 pub fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Reflector) {
     trace_object(tracer, description, reflector.get_jsobject())
 }
 
+/// Trace a `JSObject`.
 pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: *mut JSObject) {
     unsafe {
         description.to_c_str().with_ref(|name| {
@@ -73,8 +101,9 @@ pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: *mut JSObject
     }
 }
 
-/// Encapsulates a type that cannot easily have Encodable derived automagically,
+/// Encapsulates a type that cannot easily have `Encodable` derived automagically,
 /// but also does not need to be made known to the SpiderMonkey garbage collector.
+///
 /// Use only with types that are not associated with a JS reflector and do not contain
 /// fields of types associated with JS reflectors.
 ///
@@ -104,8 +133,10 @@ impl<T> Deref<T> for Untraceable<T> {
     }
 }
 
-/// Encapsulates a type that can be traced but is boxed in a type we don't control
-/// (such as RefCell). Wrap a field in Traceable and implement the Encodable trait
+/// Encapsulates a type that can be traced but is boxed in a type we don't
+/// control (such as `RefCell`).
+///
+/// Wrap a field in Traceable and implement the `Encodable` trait
 /// for that new concrete type to achieve magic compiler-derived trace hooks.
 ///
 /// We always prefer this, in case the contained type ever changes to something that should be traced.
