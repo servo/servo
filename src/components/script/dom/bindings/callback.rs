@@ -103,6 +103,7 @@ impl CallbackInterface {
 
             if !callable.is_object() ||
                JS_ObjectIsCallable(cx, callable.to_object()) == 0 {
+                // FIXME(#347)
                 //ThrowErrorMessage(cx, MSG_NOT_CALLABLE, description.get());
                 return Err(());
             }
