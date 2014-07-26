@@ -2,38 +2,49 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! The `ByteString` struct.
+
 use std::from_str::FromStr;
 use std::hash::{Hash, sip};
 use std::path::BytesContainer;
 use std::str;
 
+/// Encapsulates the IDL `ByteString` type.
 #[deriving(Encodable,Clone,Eq,PartialEq)]
 pub struct ByteString(Vec<u8>);
 
 impl ByteString {
+    /// Creates a new `ByteString`.
     pub fn new(value: Vec<u8>) -> ByteString {
         ByteString(value)
     }
+
+    /// Returns `self` as a string, if it encodes valid UTF-8, and `None`
+    /// otherwise.
     pub fn as_str<'a>(&'a self) -> Option<&'a str> {
         let ByteString(ref vec) = *self;
         str::from_utf8(vec.as_slice())
     }
 
+    /// Returns the underlying vector as a slice.
     pub fn as_slice<'a>(&'a self) -> &'a [u8] {
         let ByteString(ref vector) = *self;
         vector.as_slice()
     }
 
+    /// Returns the length.
     pub fn len(&self) -> uint {
         let ByteString(ref vector) = *self;
         vector.len()
     }
 
+    /// Compare `self` to `other`, matching A–Z and a–z as equal.
     pub fn eq_ignore_case(&self, other: &ByteString) -> bool {
         // XXXManishearth make this more efficient
         self.to_lower() == other.to_lower()
     }
 
+    /// Returns `self` with A–Z replaced by a–z.
     pub fn to_lower(&self) -> ByteString {
         let ByteString(ref vec) = *self;
         ByteString::new(vec.iter().map(|&x| {
@@ -45,6 +56,8 @@ impl ByteString {
         }).collect())
     }
 
+    /// Returns whether `self` is a `token`, as defined by
+    /// [RFC 2616](http://tools.ietf.org/html/rfc2616#page-17).
     pub fn is_token(&self) -> bool {
         let ByteString(ref vec) = *self;
         if vec.len() == 0 {
@@ -64,6 +77,8 @@ impl ByteString {
         })
     }
 
+    /// Returns whether `self` is a `field-value`, as defined by
+    /// [RFC 2616](http://tools.ietf.org/html/rfc2616#page-32).
     pub fn is_field_value(&self) -> bool {
         // Classifications of characters necessary for the [CRLF] (SP|HT) rule
         #[deriving(PartialEq)]

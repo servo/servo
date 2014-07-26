@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! Smart pointers for the JS-managed DOM objects.
+//!
 //! The DOM is made up of Rust types whose lifetime is entirely controlled by the whims of
 //! the SpiderMonkey garbage collector. The types in this module are designed to ensure
 //! that any interactions with said Rust types only occur on values that will remain alive
@@ -10,6 +12,7 @@
 //! Here is a brief overview of the important types:
 //!
 //! - `JSRef<T>`: a freely-copyable reference to a rooted value.
+//! - `Root<T>`: a stack-based reference to a rooted value.
 //! - `JS<T>`: a pointer to JS-owned memory that can automatically be traced by the GC when
 //!          encountered as a field of a Rust structure.
 //! - `Temporary<T>`: a value that will remain rooted for the duration of its lifetime.

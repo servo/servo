@@ -14,6 +14,8 @@
 
 #![feature(phase)]
 
+#![doc="The script crate contains all matters DOM."]
+
 #![allow(non_snake_case_functions)]
 
 #[phase(plugin, link)]
@@ -43,9 +45,11 @@ extern crate sync;
 extern crate servo_msg = "msg";
 extern crate url = "url_";
 
-
 pub mod cors;
+
+/// The implementation of the DOM.
 pub mod dom {
+    /// The code to expose the DOM to JavaScript through IDL bindings.
     pub mod bindings {
         pub mod global;
         pub mod js;
@@ -53,9 +57,11 @@ pub mod dom {
         pub mod callback;
         pub mod error;
         pub mod conversions;
-        pub mod proxyhandler;
+        mod proxyhandler;
         pub mod str;
         pub mod trace;
+
+        /// Generated JS-Rust bindings.
         pub mod codegen {
             pub mod Bindings;
             pub mod InterfaceTypes;
@@ -190,6 +196,7 @@ pub mod dom {
     pub mod testbinding;
 }
 
+/// Parsers for HTML and CSS.
 pub mod html {
     pub mod cssparse;
     pub mod hubbub_html_parser;
