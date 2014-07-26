@@ -6,7 +6,7 @@ use compositor_data::{CompositorData, WantsScrollEvents};
 use compositor_task::{Msg, CompositorTask, Exit, ChangeReadyState, SetIds, LayerProperties};
 use compositor_task::{GetGraphicsMetadata, CreateOrUpdateRootLayer, CreateOrUpdateDescendantLayer};
 use compositor_task::{SetLayerClipRect, Paint, ScrollFragmentPoint, LoadComplete};
-use compositor_task::{ShutdownComplete, ChangeRenderState};
+use compositor_task::{ShutdownComplete, ChangeRenderState, ReRenderMsgDiscarded};
 use constellation::SendableFrameTree;
 use events;
 use pipeline::CompositionPipeline;
@@ -90,6 +90,9 @@ pub struct IOCompositor {
     /// Tracks whether we need to re-composite a page.
     recomposite: bool,
 
+    /// Tracks outstanding ReRenderMsg's sent to the render tasks.
+    outstanding_rerendermsgs: uint,
+
     /// Tracks whether the zoom action has happend recently.
     zoom_action: bool,
 
@@ -166,7 +169,8 @@ impl IOCompositor {
             constellation_chan: constellation_chan,
             time_profiler_chan: time_profiler_chan,
             memory_profiler_chan: memory_profiler_chan,
-            fragment_point: None
+            fragment_point: None,
+            outstanding_rerendermsgs: 0,
         }
     }
 
@@ -278,6 +282,10 @@ impl IOCompositor {
                     self.change_render_state(render_state);
                 }
 
+                (Ok(ReRenderMsgDiscarded), NotShuttingDown) => {
+                    self.remove_outstanding_rerendermsg();
+                }
+
                 (Ok(SetIds(frame_tree, response_chan, new_constellation_chan)), _) => {
                     self.set_ids(frame_tree, response_chan, new_constellation_chan);
                 }
@@ -304,6 +312,7 @@ impl IOCompositor {
                     for (layer_id, new_layer_buffer_set) in replies.move_iter() {
                         self.paint(pipeline_id, layer_id, new_layer_buffer_set, epoch);
                     }
+                    self.remove_outstanding_rerendermsg();
                 }
 
                 (Ok(ScrollFragmentPoint(pipeline_id, layer_id, point)), NotShuttingDown) => {
@@ -326,6 +335,35 @@ impl IOCompositor {
         self.window.set_render_state(render_state);
         if render_state == IdleRenderState {
             self.composite_ready = true;
+        }
+    }
+
+    fn has_rerendermsg_tracking(&self) -> bool {
+        // only track ReRenderMsg's if the compositor outputs to a file.
+        self.opts.output_file.is_some()
+    }
+
+    fn has_outstanding_rerendermsgs(&self) -> bool {
+        self.has_rerendermsg_tracking() && self.outstanding_rerendermsgs > 0
+    }
+
+    fn add_outstanding_rerendermsg(&mut self, count: uint) {
+        // return early if not tracking ReRenderMsg's
+        if !self.has_rerendermsg_tracking() {
+            return;
+        }
+        debug!("add_outstanding_rerendermsg {}", self.outstanding_rerendermsgs);
+        self.outstanding_rerendermsgs += count;
+    }
+
+    fn remove_outstanding_rerendermsg(&mut self) {
+        if !self.has_rerendermsg_tracking() {
+            return;
+        }
+        if self.outstanding_rerendermsgs > 0 {
+            self.outstanding_rerendermsgs -= 1;
+        } else {
+            debug!("too many rerender msgs completed");
         }
     }
 
@@ -749,8 +787,9 @@ impl IOCompositor {
     fn ask_for_tiles(&mut self) {
         let scale = self.device_pixels_per_page_px();
         let page_window = self.page_window();
+        let mut num_rerendermsgs_sent = 0;
         match self.scene.root {
-            Some(ref mut layer) => {
+            Some(ref layer) => {
                 let rect = Rect(Point2D(0f32, 0f32), page_window.to_untyped());
                 let mut request_map = HashMap::new();
                 let recomposite =
@@ -759,12 +798,14 @@ impl IOCompositor {
                                                                     rect,
                                                                     scale.get());
                 for (_pipeline_id, (chan, requests)) in request_map.move_iter() {
+                    num_rerendermsgs_sent += 1;
                     let _ = chan.send_opt(ReRenderMsg(requests));
                 }
                 self.recomposite = self.recomposite || recomposite;
             }
             None => { }
         }
+        self.add_outstanding_rerendermsg(num_rerendermsgs_sent);
     }
 
     fn composite(&mut self) {
@@ -788,7 +829,7 @@ impl IOCompositor {
         // Render to PNG. We must read from the back buffer (ie, before
         // self.window.present()) as OpenGL ES 2 does not have glReadBuffer().
         if self.load_complete && self.ready_state == FinishedLoading
-            && self.opts.output_file.is_some() {
+            && self.opts.output_file.is_some() && !self.has_outstanding_rerendermsgs() {
             let (width, height) = (self.window_size.width.get(), self.window_size.height.get());
             let path = from_str::<Path>(self.opts.output_file.get_ref().as_slice()).unwrap();
             let mut pixels = gl2::read_pixels(0, 0,

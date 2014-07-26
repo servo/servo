@@ -242,6 +242,7 @@ impl<C:RenderListener + Send> RenderTask<C> {
                         debug!("render_task: render ready msg");
                         let ConstellationChan(ref mut c) = self.constellation_chan;
                         c.send(RendererReadyMsg(self.id));
+                        self.compositor.rerendermsg_discarded();
                         continue;
                     }
 

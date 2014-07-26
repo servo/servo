@@ -5,7 +5,7 @@
 use compositor_task::{Msg, Exit, ChangeReadyState, SetIds};
 use compositor_task::{GetGraphicsMetadata, CreateOrUpdateRootLayer, CreateOrUpdateDescendantLayer};
 use compositor_task::{SetLayerClipRect, Paint, ScrollFragmentPoint, LoadComplete};
-use compositor_task::{ShutdownComplete, ChangeRenderState};
+use compositor_task::{ShutdownComplete, ChangeRenderState, ReRenderMsgDiscarded};
 
 use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
@@ -92,7 +92,7 @@ impl NullCompositor {
                 CreateOrUpdateDescendantLayer(..) |
                 SetLayerClipRect(..) | Paint(..) |
                 ChangeReadyState(..) | ChangeRenderState(..) | ScrollFragmentPoint(..) |
-                LoadComplete(..) => ()
+                LoadComplete(..) | ReRenderMsgDiscarded(..) => ()
             }
         }
     }
