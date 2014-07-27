@@ -37,6 +37,7 @@ impl Location {
 pub trait LocationMethods {
     fn Href(&self) -> DOMString;
     fn Search(&self) -> DOMString;
+    fn Hash(&self) -> DOMString;
 }
 
 impl<'a> LocationMethods for JSRef<'a, Location> {
@@ -48,6 +49,13 @@ impl<'a> LocationMethods for JSRef<'a, Location> {
         match self.page.get_url().query {
             None => "".to_string(),
             Some(ref query) => "?".to_string().append(query.as_slice())
+        }
+    }
+
+    fn Hash(&self) -> DOMString {
+        match self.page.get_url().fragment {
+            None => "".to_string(),
+            Some(ref query) => "#".to_string().append(query.as_slice())
         }
     }
 }
