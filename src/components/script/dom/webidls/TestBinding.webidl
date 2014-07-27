@@ -101,6 +101,8 @@ interface TestBinding {
   unsigned long receiveUnsignedLong();
   long long receiveLongLong();
   unsigned long long receiveUnsignedLongLong();
+  float receiveFloat();
+  double receiveDouble();
   DOMString receiveString();
   ByteString receiveByteString();
   TestEnum receiveEnum();
@@ -118,6 +120,8 @@ interface TestBinding {
   unsigned long? receiveNullableUnsignedLong();
   long long? receiveNullableLongLong();
   unsigned long long? receiveNullableUnsignedLongLong();
+  float? receiveNullableFloat();
+  double? receiveNullableDouble();
   DOMString? receiveNullableString();
   ByteString? receiveNullableByteString();
   TestEnum? receiveNullableEnum();
