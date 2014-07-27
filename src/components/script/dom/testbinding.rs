@@ -129,7 +129,6 @@ pub trait TestBindingMethods {
     fn ReceiveNullableByteString(&self) -> Option<ByteString> { Some(ByteString::new(vec!())) }
     fn ReceiveNullableEnum(&self) -> Option<TestEnum> { Some(_empty) }
     fn ReceiveNullableInterface(&self) -> Option<Temporary<Blob>>;
-    fn ReceiveNullableAny(&self, _: *mut JSContext) -> Option<JSVal> { Some(NullValue()) }
     fn ReceiveNullableUnion(&self) -> Option<HTMLElementOrLong> { Some(eLong(0)) }
     fn ReceiveNullableUnion2(&self) -> Option<EventOrString> { Some(eString("".to_string())) }
 
@@ -170,7 +169,6 @@ pub trait TestBindingMethods {
     fn PassNullableInterface(&self, _: Option<JSRef<Blob>>) {}
     fn PassNullableUnion(&self, _: Option<HTMLElementOrLong>) {}
     fn PassNullableUnion2(&self, _: Option<EventOrString>) {}
-    fn PassNullableAny(&self, _: *mut JSContext, _: Option<JSVal>) {}
 
     fn PassOptionalBoolean(&self, _: Option<bool>) {}
     fn PassOptionalByte(&self, _: Option<i8>) {}
