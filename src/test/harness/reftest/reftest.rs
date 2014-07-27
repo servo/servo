@@ -20,6 +20,11 @@ use test::{AutoColor, DynTestName, DynTestFn, TestDesc, TestOpts, TestDescAndFn}
 use test::run_tests_console;
 use regex::Regex;
 
+enum RenderMode {
+  CpuRendering,
+  GpuRendering,
+}
+
 fn main() {
     let args = os::args();
     let mut parts = args.tail().split(|e| "--" == e.as_slice());
@@ -27,13 +32,19 @@ fn main() {
     let harness_args = parts.next().unwrap();  // .split() is never empty
     let servo_args = parts.next().unwrap_or(&[]);
 
-    let (manifest, testname) = match harness_args {
-      [] => fail!("error: at least one reftest list must be given"),
-      [ref manifest] => (manifest, None),
-      [ref manifest, ref testname, ..] => (manifest, Some(Regex::new(testname.as_slice()).unwrap())),
+    let (render_mode_string, manifest, testname) = match harness_args {
+      [] | [_] => fail!("USAGE: cpu|gpu manifest [testname regex]"),
+      [ref render_mode_string, ref manifest] => (render_mode_string, manifest, None),
+      [ref render_mode_string, ref manifest, ref testname, ..] => (render_mode_string, manifest, Some(Regex::new(testname.as_slice()).unwrap())),
     };
 
-    let tests = parse_lists(manifest, servo_args);
+    let render_mode = match render_mode_string.as_slice() {
+      "cpu" => CpuRendering,
+      "gpu" => GpuRendering,
+      _ => fail!("First argument must specify cpu or gpu as rendering mode")
+    };
+
+    let tests = parse_lists(manifest, servo_args, render_mode);
     let test_opts = TestOpts {
         filter: testname,
         run_ignored: false,
@@ -67,9 +78,10 @@ struct Reftest {
     files: [String, ..2],
     id: uint,
     servo_args: Vec<String>,
+    render_mode: RenderMode,
 }
 
-fn parse_lists(file: &String, servo_args: &[String]) -> Vec<TestDescAndFn> {
+fn parse_lists(file: &String, servo_args: &[String], render_mode: RenderMode) -> Vec<TestDescAndFn> {
     let mut tests = Vec::new();
     let mut next_id = 0;
     let file_path = Path::new(file.clone());
@@ -109,6 +121,7 @@ name: parts.get(1).to_string().append(" / ").append(*parts.get(2)),
          kind: kind,
          files: [file_left, file_right],
          id: next_id,
+         render_mode: render_mode,
          servo_args: servo_args.iter().map(|x| x.clone()).collect(),
        };
 
@@ -136,6 +149,10 @@ fn make_test(reftest: Reftest) -> TestDescAndFn {
 fn capture(reftest: &Reftest, side: uint) -> png::Image {
     let filename = format!("/tmp/servo-reftest-{:06u}-{:u}.png", reftest.id, side);
     let mut args = reftest.servo_args.clone();
+    match reftest.render_mode {
+      CpuRendering => args.push("-c".to_string()),
+      _ => {}   // GPU rendering is the default
+    }
     args.push_all_move(vec!("-f".to_string(), "-o".to_string(), filename.clone(), reftest.files[side].clone()));
 
     let retval = match Command::new("./servo").args(args.as_slice()).status() {
