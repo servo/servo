@@ -257,7 +257,7 @@ impl XMLHttpRequest {
     }
 }
 
-pub trait XMLHttpRequestMethods<'a> {
+pub trait XMLHttpRequestMethods {
     fn GetOnreadystatechange(&self) -> Option<EventHandlerNonNull>;
     fn SetOnreadystatechange(&self, listener: Option<EventHandlerNonNull>);
     fn ReadyState(&self) -> u16;
@@ -284,7 +284,7 @@ pub trait XMLHttpRequestMethods<'a> {
     fn GetResponseXML(&self) -> Option<Temporary<Document>>;
 }
 
-impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
+impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
     fn GetOnreadystatechange(&self) -> Option<EventHandlerNonNull> {
         let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
         eventtarget.get_event_handler_common("readystatechange")
