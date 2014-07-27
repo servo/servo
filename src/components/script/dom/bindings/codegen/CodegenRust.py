@@ -408,6 +408,7 @@ def typeNeedsRooting(type, descriptorProvider):
 def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                                     isDefinitelyObject=False,
                                     isMember=False,
+                                    isArgument=False,
                                     invalidEnumValueFatal=True,
                                     defaultValue=None,
                                     treatNullAs="Default",
@@ -584,7 +585,12 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                                           failureCode)
             return handleOptional(template, declType, handleDefaultNull("None"))
 
-        descriptorType = descriptor.memberType if isMember else descriptor.nativeType
+        if isMember:
+            descriptorType = descriptor.memberType
+        elif isArgument:
+            descriptorType = descriptor.argumentType
+        else:
+            descriptorType = descriptor.nativeType
 
         templateBody = ""
         if descriptor.interface.isConsequential():
@@ -3945,6 +3951,104 @@ static Class: DOMClass = """ + DOMClass(self.descriptor) + """;
 
 """
 
+
+class CGInterfaceTrait(CGThing):
+    def __init__(self, descriptor):
+        CGThing.__init__(self)
+
+        def argument_type(ty, optional=False, defaultValue=None, variadic=False):
+            _, _, declType, _ = getJSToNativeConversionTemplate(
+                ty, descriptor, isArgument=True)
+
+            if variadic:
+                declType = CGWrapper(declType, pre="Vec<", post=">")
+            elif optional and not defaultValue:
+                declType = CGWrapper(declType, pre="Option<", post=">")
+
+            if ty.isGeckoInterface() and not (ty.nullable() or optional):
+                declType = CGWrapper(declType, pre="&")
+            elif ty.isDictionary():
+                declType = CGWrapper(declType, pre="&")
+
+            return declType.define()
+
+        def attribute_arguments(needCx, argument=None):
+            if needCx:
+                yield "cx", "*mut JSContext"
+
+            if argument:
+                yield "value", argument_type(argument)
+
+        def method_arguments(returnType, arguments, trailing=None):
+            if needCx(returnType, arguments, True):
+                yield "cx", "*mut JSContext"
+
+            for argument in arguments:
+                ty = argument_type(argument.type, argument.optional,
+                    argument.defaultValue, argument.variadic)
+                yield CGDictionary.makeMemberName(argument.identifier.name), ty
+
+            if trailing:
+                yield trailing
+
+        def return_type(rettype, infallible):
+            result = getRetvalDeclarationForType(rettype, descriptor)
+            if not infallible:
+                result = CGWrapper(result, pre="Fallible<", post=">")
+            return result.define()
+
+        def members():
+            for m in descriptor.interface.members:
+                if m.isMethod() and not m.isStatic():
+                    name = CGSpecializedMethod.makeNativeName(descriptor, m)
+                    infallible = 'infallible' in descriptor.getExtendedAttributes(m)
+                    for idx, (rettype, arguments) in enumerate(m.signatures()):
+                        arguments = method_arguments(rettype, arguments)
+                        rettype = return_type(rettype, infallible)
+                        yield name + ('_' * idx), arguments, rettype
+                elif m.isAttr() and not m.isStatic():
+                    name = CGSpecializedGetter.makeNativeName(descriptor, m)
+                    infallible = 'infallible' in descriptor.getExtendedAttributes(m, getter=True)
+                    needCx = typeNeedsCx(m.type)
+                    yield name, attribute_arguments(needCx), return_type(m.type, infallible)
+
+                    if not m.readonly:
+                        name = CGSpecializedSetter.makeNativeName(descriptor, m)
+                        infallible = 'infallible' in descriptor.getExtendedAttributes(m, setter=True)
+                        if infallible:
+                            rettype = "()"
+                        else:
+                            rettype = "ErrorResult"
+                        yield name, attribute_arguments(needCx, m.type), rettype
+
+            if descriptor.proxy:
+                for name, operation in descriptor.operations.iteritems():
+                    if not operation:
+                        continue
+
+                    assert len(operation.signatures()) == 1
+                    rettype, arguments = operation.signatures()[0]
+
+                    infallible = 'infallible' in descriptor.getExtendedAttributes(m)
+                    arguments = method_arguments(rettype, arguments, ("found", "&mut bool"))
+                    rettype = return_type(rettype, infallible)
+                    yield name, arguments, rettype
+
+        def fmt(arguments):
+            return "".join(", %s: %s" % argument for argument in arguments)
+
+        methods = CGList([
+            CGGeneric("fn %s(&self%s) -> %s;\n" % (name, fmt(arguments), rettype))
+            for name, arguments, rettype in members()
+        ], "")
+        self.cgRoot = CGWrapper(CGIndenter(methods),
+                                pre="pub trait %sMethods {\n" % descriptor.interface.identifier.name,
+                                post="}")
+
+    def define(self):
+        return self.cgRoot.define()
+
+
 class CGDescriptor(CGThing):
     def __init__(self, descriptor):
         CGThing.__init__(self)
@@ -4054,6 +4158,7 @@ class CGDescriptor(CGThing):
             cgThings.append(CGWrapMethod(descriptor))
 
         cgThings.append(CGIDLInterface(descriptor))
+        cgThings.append(CGInterfaceTrait(descriptor))
 
         cgThings = CGList(cgThings, "\n")
         cgThings = CGWrapper(cgThings, pre='\n', post='\n')
