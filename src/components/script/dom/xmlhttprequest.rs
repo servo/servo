@@ -277,7 +277,6 @@ pub trait XMLHttpRequestMethods<'a> {
     fn StatusText(&self) -> ByteString;
     fn GetResponseHeader(&self, name: ByteString) -> Option<ByteString>;
     fn GetAllResponseHeaders(&self) -> ByteString;
-    fn OverrideMimeType(&self, _mime: DOMString);
     fn ResponseType(&self) -> XMLHttpRequestResponseType;
     fn SetResponseType(&self, response_type: XMLHttpRequestResponseType) -> ErrorResult;
     fn Response(&self, _cx: *mut JSContext) -> JSVal;
@@ -629,9 +628,6 @@ impl<'a> XMLHttpRequestMethods<'a> for JSRef<'a, XMLHttpRequest> {
         vec.pop();
 
         ByteString::new(vec)
-    }
-    fn OverrideMimeType(&self, _mime: DOMString) {
-
     }
     fn ResponseType(&self) -> XMLHttpRequestResponseType {
         self.response_type.deref().get()
