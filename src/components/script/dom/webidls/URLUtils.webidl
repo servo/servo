@@ -21,4 +21,5 @@ interface URLUtils {
   readonly attribute DOMString search;
   //         attribute URLSearchParams searchParams;
   //         attribute ScalarValueString hash;
+  readonly attribute DOMString hash;
 };
