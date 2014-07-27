@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::PerformanceBinding;
 use dom::bindings::global::Window;
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::performancetiming::{PerformanceTiming, PerformanceTimingMethods};
+use dom::performancetiming::{PerformanceTiming, PerformanceTimingHelpers};
 use dom::window::Window;
 use time;
 
