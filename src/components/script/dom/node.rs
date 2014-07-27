@@ -389,6 +389,7 @@ pub trait NodeHelpers {
 
     fn owner_doc(&self) -> Temporary<Document>;
     fn set_owner_doc(&self, document: &JSRef<Document>);
+    fn is_in_html_doc(&self) -> bool;
 
     fn wait_until_safe_to_modify_dom(&self);
 
@@ -670,6 +671,10 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
 
     fn set_owner_doc(&self, document: &JSRef<Document>) {
         self.owner_doc.assign(Some(document.clone()));
+    }
+
+    fn is_in_html_doc(&self) -> bool {
+        self.owner_doc().root().is_html_document
     }
 
     fn children(&self) -> AbstractNodeChildrenIterator {

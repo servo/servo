@@ -351,12 +351,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     // http://dom.spec.whatwg.org/#dom-document-getelementsbytagnamens
     fn GetElementsByTagNameNS(&self, maybe_ns: Option<DOMString>, tag_name: DOMString) -> Temporary<HTMLCollection> {
         let window = self.window.root();
-
-        let namespace = match maybe_ns {
-            Some(namespace) => Namespace::from_str(namespace.as_slice()),
-            None => Null
-        };
-        HTMLCollection::by_tag_name_ns(&*window, NodeCast::from_ref(self), tag_name, namespace)
+        HTMLCollection::by_tag_name_ns(&*window, NodeCast::from_ref(self), tag_name, maybe_ns)
     }
 
     // http://dom.spec.whatwg.org/#dom-document-getelementsbyclassname
