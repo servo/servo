@@ -3612,7 +3612,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
             # properties that shadow prototype properties.
             namedGet = ("\n" +
                         "if set == 0 && RUST_JSID_IS_STRING(id) != 0 && !HasPropertyOnPrototype(cx, proxy, id) {\n" +
-                        "  let name = Some(jsid_to_str(cx, id));\n" +
+                        "  let name = jsid_to_str(cx, id);\n" +
                         "  let this = UnwrapProxy(proxy);\n" +
                         "  let this = JS::from_raw(this);\n" +
                         "  let this = this.root();\n" +
@@ -3675,7 +3675,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
             if not self.descriptor.operations['NamedCreator'] is namedSetter:
                 raise TypeError("Can't handle creator that's different from the setter")
             set += ("if RUST_JSID_IS_STRING(id) != 0 {\n" +
-                    "  let name = Some(jsid_to_str(cx, id));\n" +
+                    "  let name = jsid_to_str(cx, id);\n" +
                     "  let this = UnwrapProxy(proxy);\n" +
                     "  let this = JS::from_raw(this);\n" +
                     "  let this = this.root();\n" +
@@ -3683,7 +3683,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                     "}\n")
         elif self.descriptor.operations['NamedGetter']:
             set += ("if RUST_JSID_IS_STRING(id) {\n" +
-                    "  let name = Some(jsid_to_str(cx, id));\n" +
+                    "  let name = jsid_to_str(cx, id);\n" +
                     "  let this = UnwrapProxy(proxy);\n" +
                     "  let this = JS::from_raw(this);\n" +
                     "  let this = this.root();\n" +
@@ -3724,7 +3724,7 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
         namedGetter = self.descriptor.operations['NamedGetter']
         if namedGetter:
             named = ("if RUST_JSID_IS_STRING(id) != 0 && !HasPropertyOnPrototype(cx, proxy, id) {\n" +
-                     "  let name = Some(jsid_to_str(cx, id));\n" +
+                     "  let name = jsid_to_str(cx, id);\n" +
                      "  let this = UnwrapProxy(proxy);\n" +
                      "  let this = JS::from_raw(this);\n" +
                      "  let this = this.root();\n" +
@@ -3796,7 +3796,7 @@ if expando.is_not_null() {
         namedGetter = self.descriptor.operations['NamedGetter']
         if namedGetter and False: #XXXjdm unfinished
             getNamed = ("if (JSID_IS_STRING(id)) {\n" +
-                        "  let name = Some(jsid_to_str(cx, id));\n" +
+                        "  let name = jsid_to_str(cx, id);\n" +
                         "  let this = UnwrapProxy(proxy);\n" +
                         "  let this = JS::from_raw(this);\n" +
                         "  let this = this.root();\n" +

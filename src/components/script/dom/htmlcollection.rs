@@ -124,7 +124,7 @@ pub trait HTMLCollectionMethods {
     fn Item(&self, index: u32) -> Option<Temporary<Element>>;
     fn NamedItem(&self, key: DOMString) -> Option<Temporary<Element>>;
     fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Temporary<Element>>;
-    fn NamedGetter(&self, maybe_name: Option<DOMString>, found: &mut bool) -> Option<Temporary<Element>>;
+    fn NamedGetter(&self, name: DOMString, found: &mut bool) -> Option<Temporary<Element>>;
 }
 
 impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
@@ -202,18 +202,10 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
         maybe_elem
     }
 
-    fn NamedGetter(&self, maybe_name: Option<DOMString>, found: &mut bool) -> Option<Temporary<Element>> {
-        match maybe_name {
-            Some(name) => {
-                let maybe_elem = self.NamedItem(name);
-                *found = maybe_elem.is_some();
-                maybe_elem
-            },
-            None => {
-                *found = false;
-                None
-            }
-        }
+    fn NamedGetter(&self, name: DOMString, found: &mut bool) -> Option<Temporary<Element>> {
+        let maybe_elem = self.NamedItem(name);
+        *found = maybe_elem.is_some();
+        maybe_elem
     }
 }
 
