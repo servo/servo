@@ -2,18 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::collections::hashmap::HashMap;
 use dom::bindings::codegen::Bindings::URLSearchParamsBinding;
+use dom::bindings::codegen::Bindings::URLSearchParamsBinding::URLSearchParamsMethods;
 use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams::{StringOrURLSearchParams, eURLSearchParams, eString};
 use dom::bindings::error::{Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::trace::Traceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+
+use servo_util::str::DOMString;
+
 use encoding::all::UTF_8;
 use encoding::types::{Encoding, EncodeReplace};
-use servo_util::str::DOMString;
+
 use std::cell::RefCell;
+use std::collections::hashmap::HashMap;
 use std::num::ToStrRadix;
 use std::ascii::OwnedStrAsciiExt;
 
@@ -53,14 +57,6 @@ impl URLSearchParams {
         }
         Ok(Temporary::from_rooted(&*usp))
     }
-}
-
-pub trait URLSearchParamsMethods {
-    fn Append(&self, name: DOMString, value: DOMString);
-    fn Delete(&self, name: DOMString);
-    fn Get(&self, name: DOMString) -> Option<DOMString>;
-    fn Has(&self, name: DOMString) -> bool;
-    fn Set(&self, name: DOMString, value: DOMString);
 }
 
 impl<'a> URLSearchParamsMethods for JSRef<'a, URLSearchParams> {

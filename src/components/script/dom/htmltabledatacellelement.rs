@@ -37,9 +37,6 @@ impl HTMLTableDataCellElement {
     }
 }
 
-pub trait HTMLTableDataCellElementMethods {
-}
-
 impl Reflectable for HTMLTableDataCellElement {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.htmltablecellelement.reflector()

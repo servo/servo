@@ -37,9 +37,6 @@ impl HTMLDirectoryElement {
     }
 }
 
-pub trait HTMLDirectoryElementMethods {
-}
-
 impl Reflectable for HTMLDirectoryElement {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.htmlelement.reflector()

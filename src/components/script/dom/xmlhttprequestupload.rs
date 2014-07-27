@@ -39,6 +39,3 @@ impl XMLHttpRequestUploadDerived for EventTarget {
         self.type_id == XMLHttpRequestTargetTypeId(XMLHttpRequestUploadTypeId)
     }
 }
-
-pub trait XMLHttpRequestUploadMethods {
-}

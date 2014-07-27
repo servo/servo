@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::MessageEventBinding;
+use dom::bindings::codegen::Bindings::MessageEventBinding::MessageEventMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, MessageEventDerived};
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::Fallible;
@@ -10,7 +12,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::trace::Traceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::event::{Event, EventMethods, MessageEventTypeId};
+use dom::event::{Event, MessageEventTypeId};
 use dom::eventtarget::{EventTarget, EventTargetHelpers};
 
 use servo_util::str::DOMString;
@@ -76,12 +78,6 @@ impl MessageEvent {
         let event: &JSRef<Event> = EventCast::from_ref(&*messageevent);
         target.dispatch_event_with_target(None, &*event).unwrap();
     }
-}
-
-pub trait MessageEventMethods {
-    fn Data(&self, cx: *mut JSContext) -> JSVal;
-    fn Origin(&self) -> DOMString;
-    fn LastEventId(&self) -> DOMString;
 }
 
 impl<'a> MessageEventMethods for JSRef<'a, MessageEvent> {

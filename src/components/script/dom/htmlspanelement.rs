@@ -37,9 +37,6 @@ impl HTMLSpanElement {
     }
 }
 
-pub trait HTMLSpanElementMethods {
-}
-
 impl Reflectable for HTMLSpanElement {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.htmlelement.reflector()

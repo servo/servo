@@ -37,9 +37,6 @@ impl HTMLTextAreaElement {
     }
 }
 
-pub trait HTMLTextAreaElementMethods {
-}
-
 impl Reflectable for HTMLTextAreaElement {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.htmlelement.reflector()

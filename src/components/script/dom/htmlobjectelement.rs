@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::AttrMethods;
+use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::HTMLObjectElementBinding;
+use dom::bindings::codegen::Bindings::HTMLObjectElementBinding::HTMLObjectElementMethods;
 use dom::bindings::codegen::InheritTypes::HTMLObjectElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::js::{JSRef, Temporary};
@@ -75,10 +76,6 @@ impl<'a> ProcessDataURL for JSRef<'a, HTMLObjectElement> {
 pub fn is_image_data(uri: &str) -> bool {
     static types: &'static [&'static str] = &["data:image/png", "data:image/gif", "data:image/jpeg"];
     types.iter().any(|&type_| uri.starts_with(type_))
-}
-
-pub trait HTMLObjectElementMethods {
-    fn Validity(&self) -> Temporary<ValidityState>;
 }
 
 impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {

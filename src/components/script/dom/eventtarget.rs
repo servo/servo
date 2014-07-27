@@ -5,6 +5,7 @@
 use dom::bindings::callback::CallbackContainer;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
+use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::error::{Fallible, InvalidState, report_pending_exception};
 use dom::bindings::js::JSRef;
 use dom::bindings::trace::Traceable;
@@ -218,18 +219,6 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
     fn has_handlers(&self) -> bool {
         !self.handlers.deref().borrow().is_empty()
     }
-}
-
-pub trait EventTargetMethods {
-    fn AddEventListener(&self,
-                        ty: DOMString,
-                        listener: Option<EventListener>,
-                        capture: bool);
-    fn RemoveEventListener(&self,
-                           ty: DOMString,
-                           listener: Option<EventListener>,
-                           capture: bool);
-    fn DispatchEvent(&self, event: &JSRef<Event>) -> Fallible<bool>;
 }
 
 impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {

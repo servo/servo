@@ -37,9 +37,6 @@ impl HTMLQuoteElement {
     }
 }
 
-pub trait HTMLQuoteElementMethods {
-}
-
 impl Reflectable for HTMLQuoteElement {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.htmlelement.reflector()

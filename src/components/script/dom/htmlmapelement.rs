@@ -37,9 +37,6 @@ impl HTMLMapElement {
     }
 }
 
-pub trait HTMLMapElementMethods {
-}
-
 impl Reflectable for HTMLMapElement {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.htmlelement.reflector()

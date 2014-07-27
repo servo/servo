@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLScriptElementBinding;
+use dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElementMethods;
 use dom::bindings::codegen::InheritTypes::HTMLScriptElementDerived;
 use dom::bindings::codegen::InheritTypes::ElementCast;
 use dom::bindings::js::{JSRef, Temporary};
@@ -36,10 +37,6 @@ impl HTMLScriptElement {
         let element = HTMLScriptElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLScriptElementBinding::Wrap)
     }
-}
-
-pub trait HTMLScriptElementMethods {
-    fn Src(&self) -> DOMString;
 }
 
 impl<'a> HTMLScriptElementMethods for JSRef<'a, HTMLScriptElement> {

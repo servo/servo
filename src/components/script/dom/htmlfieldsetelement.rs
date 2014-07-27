@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding;
+use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding::HTMLFieldSetElementMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLFieldSetElementDerived, NodeCast};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
@@ -37,11 +38,6 @@ impl HTMLFieldSetElement {
         let element = HTMLFieldSetElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLFieldSetElementBinding::Wrap)
     }
-}
-
-pub trait HTMLFieldSetElementMethods {
-    fn Elements(&self) -> Temporary<HTMLCollection>;
-    fn Validity(&self) -> Temporary<ValidityState>;
 }
 
 impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {

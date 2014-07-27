@@ -2,20 +2,23 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::DOMImplementationBinding;
+use dom::bindings::codegen::Bindings::DOMImplementationBinding::DOMImplementationMethods;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::error::{Fallible, InvalidCharacter, NamespaceError};
 use dom::bindings::global::Window;
 use dom::bindings::js::{JS, JSRef, Root, Temporary, OptionalRootable};
 use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
 use dom::bindings::utils::{QName, Name, InvalidXMLName, xml_name_type};
-use dom::document::{Document, HTMLDocument, NonHTMLDocument, DocumentMethods};
+use dom::document::{Document, HTMLDocument, NonHTMLDocument};
 use dom::documenttype::DocumentType;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlheadelement::HTMLHeadElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::htmltitleelement::HTMLTitleElement;
-use dom::node::{Node, NodeMethods};
+use dom::node::Node;
 use dom::text::Text;
 use servo_util::str::DOMString;
 
@@ -45,13 +48,6 @@ impl Reflectable for DOMImplementation {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         &self.reflector_
     }
-}
-
-pub trait DOMImplementationMethods {
-    fn CreateDocumentType(&self, qname: DOMString, pubid: DOMString, sysid: DOMString) -> Fallible<Temporary<DocumentType>>;
-    fn CreateDocument(&self, namespace: Option<DOMString>, qname: DOMString,
-                      mut maybe_doctype: Option<JSRef<DocumentType>>) -> Fallible<Temporary<Document>>;
-    fn CreateHTMLDocument(&self, title: Option<DOMString>) -> Temporary<Document>;
 }
 
 // http://dom.spec.whatwg.org/#domimplementation

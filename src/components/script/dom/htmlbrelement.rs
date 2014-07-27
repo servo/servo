@@ -37,9 +37,6 @@ impl HTMLBRElement {
     }
 }
 
-pub trait HTMLBRElementMethods {
-}
-
 impl Reflectable for HTMLBRElement {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.htmlelement.reflector()

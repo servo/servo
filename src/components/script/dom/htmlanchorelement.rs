@@ -2,15 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
+use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLAnchorElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLAnchorElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
 use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::{Document, DocumentHelpers};
-use dom::attr::AttrMethods;
 use dom::element::{Element, AttributeHandlers, HTMLAnchorElementTypeId};
-use dom::event::{Event, EventMethods};
+use dom::event::Event;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, NodeHelpers, ElementNodeTypeId};
@@ -40,9 +41,6 @@ impl HTMLAnchorElement {
         let element = HTMLAnchorElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLAnchorElementBinding::Wrap)
     }
-}
-
-pub trait HTMLAnchorElementMethods {
 }
 
 trait PrivateHTMLAnchorElementHelpers {

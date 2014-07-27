@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::WorkerBinding;
+use dom::bindings::codegen::Bindings::WorkerBinding::WorkerMethods;
 use dom::bindings::error::{Fallible, Syntax};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
@@ -49,10 +50,6 @@ impl Worker {
             worker_url, receiver, resource_task, global.script_chan().clone());
         Ok(Worker::new(global, sender))
     }
-}
-
-pub trait WorkerMethods {
-    fn PostMessage(&self, message: DOMString);
 }
 
 impl<'a> WorkerMethods for JSRef<'a, Worker> {

@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding;
+use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::HTMLCanvasElementMethods;
 use dom::bindings::codegen::InheritTypes::HTMLCanvasElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::global::Window;
@@ -55,14 +56,6 @@ impl HTMLCanvasElement {
         let element = HTMLCanvasElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLCanvasElementBinding::Wrap)
     }
-}
-
-pub trait HTMLCanvasElementMethods {
-    fn Width(&self) -> u32;
-    fn SetWidth(&self, width: u32);
-    fn Height(&self) -> u32;
-    fn SetHeight(&self, height: u32);
-    fn GetContext(&self, id: DOMString) -> Option<Temporary<CanvasRenderingContext2D>>;
 }
 
 impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {

@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::TextBinding;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::TextDerived;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
@@ -12,7 +13,6 @@ use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::node::{Node, TextNodeTypeId};
-use dom::window::WindowMethods;
 use servo_util::str::DOMString;
 
 /// An HTML text node.
@@ -43,9 +43,6 @@ impl Text {
         let document = global.as_window().Document().root();
         Ok(Text::new(text, &*document))
     }
-}
-
-pub trait TextMethods {
 }
 
 impl Reflectable for Text {

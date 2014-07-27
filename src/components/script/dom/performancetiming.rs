@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::PerformanceTimingBinding;
+use dom::bindings::codegen::Bindings::PerformanceTimingBinding::PerformanceTimingMethods;
 use dom::bindings::global::Window;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
@@ -31,10 +32,6 @@ impl PerformanceTiming {
         reflect_dom_object(box timing, &Window(*window),
                            PerformanceTimingBinding::Wrap)
     }
-}
-
-pub trait PerformanceTimingMethods {
-    fn NavigationStart(&self) -> u64;
 }
 
 impl<'a> PerformanceTimingMethods for JSRef<'a, PerformanceTiming> {

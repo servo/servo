@@ -3,7 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::DocumentBinding;
+use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{DocumentDerived, EventCast, HTMLElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLHeadElementCast, TextCast, ElementCast};
 use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, HTMLHtmlElementCast, NodeCast};
@@ -32,13 +35,13 @@ use dom::htmlheadelement::HTMLHeadElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::htmltitleelement::HTMLTitleElement;
 use dom::mouseevent::MouseEvent;
-use dom::node::{Node, ElementNodeTypeId, DocumentNodeTypeId, NodeHelpers, NodeMethods};
+use dom::node::{Node, ElementNodeTypeId, DocumentNodeTypeId, NodeHelpers};
 use dom::node::{CloneChildren, DoNotCloneChildren};
 use dom::nodelist::NodeList;
 use dom::text::Text;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::uievent::UIEvent;
-use dom::window::{Window, WindowMethods, WindowHelpers};
+use dom::window::{Window, WindowHelpers};
 use dom::location::Location;
 use html::hubbub_html_parser::build_element_from_tag;
 use hubbub::hubbub::{QuirksMode, NoQuirks, LimitedQuirks, FullQuirks};
@@ -278,52 +281,6 @@ impl<'a> PrivateDocumentHelpers for JSRef<'a, Document> {
             Temporary::from_rooted(HTMLHtmlElementCast::to_ref(&*elem).unwrap())
         })
     }
-}
-
-pub trait DocumentMethods {
-    fn Implementation(&self) -> Temporary<DOMImplementation>;
-    fn URL(&self) -> DOMString;
-    fn DocumentURI(&self) -> DOMString;
-    fn CompatMode(&self) -> DOMString;
-    fn CharacterSet(&self) -> DOMString;
-    fn ContentType(&self) -> DOMString;
-    fn GetDoctype(&self) -> Option<Temporary<DocumentType>>;
-    fn GetDocumentElement(&self) -> Option<Temporary<Element>>;
-    fn GetElementsByTagName(&self, tag_name: DOMString) -> Temporary<HTMLCollection>;
-    fn GetElementsByTagNameNS(&self, maybe_ns: Option<DOMString>, tag_name: DOMString) -> Temporary<HTMLCollection>;
-    fn GetElementsByClassName(&self, classes: DOMString) -> Temporary<HTMLCollection>;
-    fn GetElementById(&self, id: DOMString) -> Option<Temporary<Element>>;
-    fn CreateElement(&self, local_name: DOMString) -> Fallible<Temporary<Element>>;
-    fn CreateElementNS(&self, namespace: Option<DOMString>, qualified_name: DOMString) -> Fallible<Temporary<Element>>;
-    fn CreateDocumentFragment(&self) -> Temporary<DocumentFragment>;
-    fn CreateTextNode(&self, data: DOMString) -> Temporary<Text>;
-    fn CreateComment(&self, data: DOMString) -> Temporary<Comment>;
-    fn CreateProcessingInstruction(&self, target: DOMString, data: DOMString) -> Fallible<Temporary<ProcessingInstruction>>;
-    fn ImportNode(&self, node: &JSRef<Node>, deep: bool) -> Fallible<Temporary<Node>>;
-    fn AdoptNode(&self, node: &JSRef<Node>) -> Fallible<Temporary<Node>>;
-    fn CreateEvent(&self, interface: DOMString) -> Fallible<Temporary<Event>>;
-    fn Title(&self) -> DOMString;
-    fn SetTitle(&self, title: DOMString) -> ErrorResult;
-    fn GetHead(&self) -> Option<Temporary<HTMLHeadElement>>;
-    fn GetBody(&self) -> Option<Temporary<HTMLElement>>;
-    fn SetBody(&self, new_body: Option<JSRef<HTMLElement>>) -> ErrorResult;
-    fn GetElementsByName(&self, name: DOMString) -> Temporary<NodeList>;
-    fn Images(&self) -> Temporary<HTMLCollection>;
-    fn Embeds(&self) -> Temporary<HTMLCollection>;
-    fn Plugins(&self) -> Temporary<HTMLCollection>;
-    fn Links(&self) -> Temporary<HTMLCollection>;
-    fn Forms(&self) -> Temporary<HTMLCollection>;
-    fn Scripts(&self) -> Temporary<HTMLCollection>;
-    fn Anchors(&self) -> Temporary<HTMLCollection>;
-    fn Applets(&self) -> Temporary<HTMLCollection>;
-    fn Location(&self) -> Temporary<Location>;
-    fn Children(&self) -> Temporary<HTMLCollection>;
-    fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>>;
-    fn QuerySelectorAll(&self, selectors: DOMString) -> Fallible<Temporary<NodeList>>;
-    fn GetOnclick(&self) -> Option<EventHandlerNonNull>;
-    fn SetOnclick(&self, listener: Option<EventHandlerNonNull>);
-    fn GetOnload(&self) -> Option<EventHandlerNonNull>;
-    fn SetOnload(&self, listener: Option<EventHandlerNonNull>);
 }
 
 impl<'a> DocumentMethods for JSRef<'a, Document> {

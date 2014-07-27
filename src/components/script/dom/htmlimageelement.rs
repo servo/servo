@@ -4,6 +4,7 @@
 
 use dom::attr::AttrValue;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding;
+use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, HTMLElementCast, HTMLImageElementDerived};
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::trace::Untraceable;
@@ -88,33 +89,6 @@ impl LayoutHTMLImageElementHelpers for JS<HTMLImageElement> {
     unsafe fn image(&self) -> Option<Url> {
         (*self.unsafe_get()).image.borrow().clone()
     }
-}
-
-pub trait HTMLImageElementMethods {
-    fn Alt(&self) -> DOMString;
-    fn SetAlt(&self, alt: DOMString);
-    fn Src(&self) -> DOMString;
-    fn SetSrc(&self, src: DOMString);
-    fn UseMap(&self) -> DOMString;
-    fn SetUseMap(&self, use_map: DOMString);
-    fn IsMap(&self) -> bool;
-    fn SetIsMap(&self, is_map: bool);
-    fn Width(&self) -> u32;
-    fn SetWidth(&self, width: u32);
-    fn Height(&self) -> u32;
-    fn SetHeight(&self, height: u32);
-    fn Name(&self) -> DOMString;
-    fn SetName(&self, name: DOMString);
-    fn Align(&self) -> DOMString;
-    fn SetAlign(&self, align: DOMString);
-    fn Hspace(&self) -> u32;
-    fn SetHspace(&self, hspace: u32);
-    fn Vspace(&self) -> u32;
-    fn SetVspace(&self, vspace: u32);
-    fn LongDesc(&self) -> DOMString;
-    fn SetLongDesc(&self, longdesc: DOMString);
-    fn Border(&self) -> DOMString;
-    fn SetBorder(&self, border: DOMString);
 }
 
 impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {

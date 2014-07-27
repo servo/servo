@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding;
+use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
 use dom::bindings::codegen::InheritTypes::HTMLButtonElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
@@ -36,10 +37,6 @@ impl HTMLButtonElement {
         let element = HTMLButtonElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLButtonElementBinding::Wrap)
     }
-}
-
-pub trait HTMLButtonElementMethods {
-    fn Validity(&self) -> Temporary<ValidityState>;
 }
 
 impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {

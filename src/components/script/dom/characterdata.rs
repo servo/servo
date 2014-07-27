@@ -4,6 +4,7 @@
 
 //! DOM bindings for `CharacterData`.
 
+use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use dom::bindings::codegen::InheritTypes::{CharacterDataDerived, NodeCast};
 use dom::bindings::error::{Fallible, ErrorResult, IndexSize};
 use dom::bindings::js::JSRef;
@@ -40,18 +41,6 @@ impl CharacterData {
             data: Traceable::new(RefCell::new(data)),
         }
     }
-}
-
-pub trait CharacterDataMethods {
-    fn Data(&self) -> DOMString;
-    fn SetData(&self, arg: DOMString) -> ErrorResult;
-    fn Length(&self) -> u32;
-    fn SubstringData(&self, offset: u32, count: u32) -> Fallible<DOMString>;
-    fn AppendData(&self, arg: DOMString) -> ErrorResult;
-    fn InsertData(&self, _offset: u32, _arg: DOMString) -> ErrorResult;
-    fn DeleteData(&self, _offset: u32, _count: u32) -> ErrorResult;
-    fn ReplaceData(&self, _offset: u32, _count: u32, _arg: DOMString) -> ErrorResult;
-    fn Remove(&self);
 }
 
 impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {

@@ -37,9 +37,6 @@ impl HTMLFontElement {
     }
 }
 
-pub trait HTMLFontElementMethods {
-}
-
 impl Reflectable for HTMLFontElement {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.htmlelement.reflector()

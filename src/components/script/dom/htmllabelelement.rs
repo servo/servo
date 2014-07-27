@@ -37,9 +37,6 @@ impl HTMLLabelElement {
     }
 }
 
-pub trait HTMLLabelElementMethods {
-}
-
 impl Reflectable for HTMLLabelElement {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.htmlelement.reflector()

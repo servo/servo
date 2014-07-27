@@ -3,10 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::callback::ReportExceptions;
+use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, NodeDerived};
 use dom::bindings::js::{JS, JSRef, OptionalSettable, OptionalRootable, Root};
 use dom::eventtarget::{Capturing, Bubbling, EventTarget};
-use dom::event::{Event, PhaseAtTarget, PhaseNone, PhaseBubbling, PhaseCapturing, EventMethods};
+use dom::event::{Event, PhaseAtTarget, PhaseNone, PhaseBubbling, PhaseCapturing};
 use dom::node::{Node, NodeHelpers};
 use dom::virtualmethods::vtable_for;
 

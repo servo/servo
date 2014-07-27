@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::FormDataBinding;
+use dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
 use dom::bindings::codegen::InheritTypes::FileCast;
 use dom::bindings::codegen::UnionTypes::FileOrString::{FileOrString, eFile, eString};
 use dom::bindings::error::{Fallible};
@@ -49,16 +50,6 @@ impl FormData {
     pub fn Constructor(global: &GlobalRef, form: Option<JSRef<HTMLFormElement>>) -> Fallible<Temporary<FormData>> {
         Ok(FormData::new(form, global))
     }
-}
-
-pub trait FormDataMethods {
-    fn Append(&self, name: DOMString, value: &JSRef<Blob>, filename: Option<DOMString>);
-    fn Append_(&self, name: DOMString, value: DOMString);
-    fn Delete(&self, name: DOMString);
-    fn Get(&self, name: DOMString) -> Option<FileOrString>;
-    fn Has(&self, name: DOMString) -> bool;
-    fn Set(&self, name: DOMString, value: &JSRef<Blob>, filename: Option<DOMString>);
-    fn Set_(&self, name: DOMString, value: DOMString);
 }
 
 impl<'a> FormDataMethods for JSRef<'a, FormData> {

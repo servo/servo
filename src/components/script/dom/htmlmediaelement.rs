@@ -35,9 +35,6 @@ impl HTMLMediaElement {
     }
 }
 
-pub trait HTMLMediaElementMethods {
-}
-
 impl Reflectable for HTMLMediaElement {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.htmlelement.reflector()

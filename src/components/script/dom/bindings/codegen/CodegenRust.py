@@ -1341,10 +1341,6 @@ class CGImports(CGWrapper):
             'dead_code',
         ]
 
-        for d in descriptors:
-            name = d.interface.identifier.name
-            imports.append('dom::%s::%sMethods' % (name.lower(), name))
-
         statements = ['#![allow(%s)]' % ','.join(ignored_warnings)]
         statements.extend('use %s;' % i for i in sorted(imports))
 

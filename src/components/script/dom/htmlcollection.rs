@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::InheritTypes::{ElementCast, NodeCast};
 use dom::bindings::codegen::Bindings::HTMLCollectionBinding;
+use dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
+use dom::bindings::codegen::InheritTypes::{ElementCast, NodeCast};
 use dom::bindings::global::Window;
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
@@ -117,14 +118,6 @@ impl HTMLCollection {
         }
         HTMLCollection::create(window, root, box ElementChildFilter)
     }
-}
-
-pub trait HTMLCollectionMethods {
-    fn Length(&self) -> u32;
-    fn Item(&self, index: u32) -> Option<Temporary<Element>>;
-    fn NamedItem(&self, key: DOMString) -> Option<Temporary<Element>>;
-    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Temporary<Element>>;
-    fn NamedGetter(&self, name: DOMString, found: &mut bool) -> Option<Temporary<Element>>;
 }
 
 impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {

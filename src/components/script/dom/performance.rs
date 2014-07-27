@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::PerformanceBinding;
+use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
 use dom::bindings::global::Window;
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
@@ -31,11 +32,6 @@ impl Performance {
         reflect_dom_object(box performance, &Window(*window),
                            PerformanceBinding::Wrap)
     }
-}
-
-pub trait PerformanceMethods {
-    fn Timing(&self) -> Temporary<PerformanceTiming>;
-    fn Now(&self) -> DOMHighResTimeStamp;
 }
 
 impl<'a> PerformanceMethods for JSRef<'a, Performance> {

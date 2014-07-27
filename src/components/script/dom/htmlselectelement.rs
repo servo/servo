@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding;
+use dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
 use dom::bindings::codegen::InheritTypes::HTMLSelectElementDerived;
 use dom::bindings::codegen::UnionTypes::HTMLElementOrLong::HTMLElementOrLong;
 use dom::bindings::codegen::UnionTypes::HTMLOptionElementOrHTMLOptGroupElement::HTMLOptionElementOrHTMLOptGroupElement;
@@ -38,11 +39,6 @@ impl HTMLSelectElement {
         let element = HTMLSelectElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLSelectElementBinding::Wrap)
     }
-}
-
-pub trait HTMLSelectElementMethods {
-    fn Validity(&self) -> Temporary<ValidityState>;
-    fn Add(&self, _element: HTMLOptionElementOrHTMLOptGroupElement, _before: Option<HTMLElementOrLong>);
 }
 
 impl<'a> HTMLSelectElementMethods for JSRef<'a, HTMLSelectElement> {

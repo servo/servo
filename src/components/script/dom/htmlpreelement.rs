@@ -37,9 +37,6 @@ impl HTMLPreElement {
     }
 }
 
-pub trait HTMLPreElementMethods {
-}
-
 impl Reflectable for HTMLPreElement {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.htmlelement.reflector()

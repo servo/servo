@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::ConsoleBinding;
+use dom::bindings::codegen::Bindings::ConsoleBinding::ConsoleMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
@@ -23,15 +24,6 @@ impl Console {
     pub fn new(global: &GlobalRef) -> Temporary<Console> {
         reflect_dom_object(box Console::new_inherited(), global, ConsoleBinding::Wrap)
     }
-}
-
-pub trait ConsoleMethods {
-    fn Log(&self, message: DOMString);
-    fn Debug(&self, message: DOMString);
-    fn Info(&self, message: DOMString);
-    fn Warn(&self, message: DOMString);
-    fn Error(&self, message: DOMString);
-    fn Assert(&self, condition: bool, message: Option<DOMString>);
 }
 
 impl<'a> ConsoleMethods for JSRef<'a, Console> {

@@ -37,9 +37,6 @@ impl HTMLFormElement {
     }
 }
 
-pub trait HTMLFormElementMethods {
-}
-
 impl Reflectable for HTMLFormElement {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.htmlelement.reflector()

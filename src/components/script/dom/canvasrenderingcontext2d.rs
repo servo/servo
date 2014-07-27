@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding;
+use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2DMethods;
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::trace::Untraceable;
@@ -108,12 +109,6 @@ impl CanvasRenderingContext2D {
     pub fn recreate(&self, size: Size2D<i32>) {
         self.renderer.send(Recreate(size));
     }
-}
-
-pub trait CanvasRenderingContext2DMethods {
-    fn FillRect(&self, x: f64, y: f64, width: f64, height: f64);
-    fn ClearRect(&self, x: f64, y: f64, width: f64, height: f64);
-    fn StrokeRect(&self, x: f64, y: f64, width: f64, height: f64);
 }
 
 impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D> {

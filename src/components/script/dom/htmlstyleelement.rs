@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLStyleElementBinding;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLStyleElementDerived, NodeCast};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
@@ -10,7 +11,7 @@ use dom::document::Document;
 use dom::element::HTMLStyleElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, NodeMethods, NodeHelpers, ElementNodeTypeId, window_from_node};
+use dom::node::{Node, NodeHelpers, ElementNodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use html::cssparse::parse_inline_css;
 use layout_interface::{AddStylesheetMsg, LayoutChan};
@@ -38,9 +39,6 @@ impl HTMLStyleElement {
         let element = HTMLStyleElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLStyleElementBinding::Wrap)
     }
-}
-
-pub trait HTMLStyleElementMethods {
 }
 
 pub trait StyleElementHelpers {

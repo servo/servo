@@ -37,9 +37,6 @@ impl HTMLMeterElement {
     }
 }
 
-pub trait HTMLMeterElementMethods {
-}
-
 impl Reflectable for HTMLMeterElement {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.htmlelement.reflector()

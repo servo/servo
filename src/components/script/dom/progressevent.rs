@@ -2,13 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::ProgressEventBinding;
+use dom::bindings::codegen::Bindings::ProgressEventBinding::ProgressEventMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, ProgressEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::event::{Event, EventMethods, ProgressEventTypeId};
+use dom::event::{Event, ProgressEventTypeId};
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
@@ -52,12 +54,6 @@ impl ProgressEvent {
                                     init.lengthComputable, init.loaded, init.total);
         Ok(ev)
     }
-}
-
-pub trait ProgressEventMethods {
-    fn LengthComputable(&self) -> bool;
-    fn Loaded(&self) -> u64;
-    fn Total(&self) -> u64;
 }
 
 impl<'a> ProgressEventMethods for JSRef<'a, ProgressEvent> {

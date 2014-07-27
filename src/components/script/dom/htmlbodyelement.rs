@@ -4,6 +4,8 @@
 
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::HTMLBodyElementBinding;
+use dom::bindings::codegen::Bindings::HTMLBodyElementBinding::HTMLBodyElementMethods;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLElementCast};
 use dom::bindings::js::{JSRef, Temporary};
@@ -14,7 +16,6 @@ use dom::eventtarget::{EventTarget, NodeTargetTypeId, EventTargetHelpers};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, ElementNodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
-use dom::window::WindowMethods;
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
@@ -39,11 +40,6 @@ impl HTMLBodyElement {
         let element = HTMLBodyElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLBodyElementBinding::Wrap)
     }
-}
-
-pub trait HTMLBodyElementMethods {
-    fn GetOnunload(&self) -> Option<EventHandlerNonNull>;
-    fn SetOnunload(&self, listener: Option<EventHandlerNonNull>);
 }
 
 impl<'a> HTMLBodyElementMethods for JSRef<'a, HTMLBodyElement> {

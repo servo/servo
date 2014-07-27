@@ -2,14 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::UIEventBinding;
+use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, UIEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::{GlobalRef, Window};
 use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, OptionalSettable};
 use dom::bindings::trace::Traceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::event::{Event, EventMethods, EventTypeId, UIEventTypeId};
+use dom::event::{Event, EventTypeId, UIEventTypeId};
 use dom::window::Window;
 use servo_util::str::DOMString;
 
@@ -62,17 +64,6 @@ impl UIEvent {
                                  init.view.root_ref(), init.detail);
         Ok(event)
     }
-}
-
-pub trait UIEventMethods {
-    fn GetView(&self) -> Option<Temporary<Window>>;
-    fn Detail(&self) -> i32;
-    fn InitUIEvent(&self,
-                   type_: DOMString,
-                   can_bubble: bool,
-                   cancelable: bool,
-                   view: Option<JSRef<Window>>,
-                   detail: i32);
 }
 
 impl<'a> UIEventMethods for JSRef<'a, UIEvent> {

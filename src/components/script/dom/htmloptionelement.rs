@@ -37,9 +37,6 @@ impl HTMLOptionElement {
     }
 }
 
-pub trait HTMLOptionElementMethods {
-}
-
 impl Reflectable for HTMLOptionElement {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.htmlelement.reflector()

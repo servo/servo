@@ -4,6 +4,7 @@
 
 use dom::attr::{Attr, TokenListAttrValue};
 use dom::bindings::codegen::Bindings::DOMTokenListBinding;
+use dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
 use dom::bindings::global::Window;
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable};
 use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
@@ -53,12 +54,6 @@ impl<'a> PrivateDOMTokenListHelpers for JSRef<'a, DOMTokenList> {
         let element = self.element.root();
         element.deref().get_attribute(Null, self.local_name)
     }
-}
-
-pub trait DOMTokenListMethods {
-    fn Length(&self) -> u32;
-    fn Item(&self, index: u32) -> Option<DOMString>;
-    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<DOMString>;
 }
 
 // http://dom.spec.whatwg.org/#domtokenlist

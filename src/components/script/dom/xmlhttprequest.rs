@@ -4,6 +4,7 @@
 
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding;
+use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestMethods;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseTypeValues::{_empty, Document, Json, Text};
 use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast, XMLHttpRequestDerived};
@@ -255,33 +256,6 @@ impl XMLHttpRequest {
             }
         }
     }
-}
-
-pub trait XMLHttpRequestMethods {
-    fn GetOnreadystatechange(&self) -> Option<EventHandlerNonNull>;
-    fn SetOnreadystatechange(&self, listener: Option<EventHandlerNonNull>);
-    fn ReadyState(&self) -> u16;
-    fn Open(&self, _method: ByteString, _url: DOMString) -> ErrorResult;
-    fn Open_(&self, _method: ByteString, _url: DOMString, _async: bool,
-             _username: Option<DOMString>, _password: Option<DOMString>) -> ErrorResult;
-    fn SetRequestHeader(&self, name: ByteString, mut value: ByteString) -> ErrorResult;
-    fn Timeout(&self) -> u32;
-    fn SetTimeout(&self, timeout: u32) -> ErrorResult;
-    fn WithCredentials(&self) -> bool;
-    fn SetWithCredentials(&self, with_credentials: bool);
-    fn Upload(&self) -> Temporary<XMLHttpRequestUpload>;
-    fn Send(&self, data: Option<SendParam>) -> ErrorResult;
-    fn Abort(&self);
-    fn ResponseURL(&self) -> DOMString;
-    fn Status(&self) -> u16;
-    fn StatusText(&self) -> ByteString;
-    fn GetResponseHeader(&self, name: ByteString) -> Option<ByteString>;
-    fn GetAllResponseHeaders(&self) -> ByteString;
-    fn ResponseType(&self) -> XMLHttpRequestResponseType;
-    fn SetResponseType(&self, response_type: XMLHttpRequestResponseType) -> ErrorResult;
-    fn Response(&self, _cx: *mut JSContext) -> JSVal;
-    fn GetResponseText(&self) -> Fallible<DOMString>;
-    fn GetResponseXML(&self) -> Option<Temporary<Document>>;
 }
 
 impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {

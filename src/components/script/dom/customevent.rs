@@ -3,13 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::CustomEventBinding;
+use dom::bindings::codegen::Bindings::CustomEventBinding::CustomEventMethods;
+use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, CustomEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::trace::Traceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::event::{Event, EventMethods, EventTypeId, CustomEventTypeId};
+use dom::event::{Event, EventTypeId, CustomEventTypeId};
 use js::jsapi::JSContext;
 use js::jsval::{JSVal, NullValue};
 use servo_util::str::DOMString;
@@ -26,13 +28,6 @@ impl CustomEventDerived for Event {
     fn is_customevent(&self) -> bool {
         self.type_id == CustomEventTypeId
     }
-}
-
-pub trait CustomEventMethods {
-    fn Detail(&self, _cx: *mut JSContext) -> JSVal;
-    fn InitCustomEvent(&self, _cx: *mut JSContext,
-                       type_: DOMString, can_bubble: bool,
-                       cancelable: bool, detail: JSVal);
 }
 
 impl CustomEvent {

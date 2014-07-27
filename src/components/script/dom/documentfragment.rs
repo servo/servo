@@ -2,8 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::InheritTypes::{DocumentFragmentDerived, NodeCast};
 use dom::bindings::codegen::Bindings::DocumentFragmentBinding;
+use dom::bindings::codegen::Bindings::DocumentFragmentBinding::DocumentFragmentMethods;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use dom::bindings::codegen::InheritTypes::{DocumentFragmentDerived, NodeCast};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
@@ -14,7 +16,6 @@ use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlcollection::HTMLCollection;
 use dom::node::{DocumentFragmentNodeTypeId, Node, NodeHelpers, window_from_node};
 use dom::nodelist::NodeList;
-use dom::window::WindowMethods;
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
@@ -47,12 +48,6 @@ impl DocumentFragment {
 
         Ok(DocumentFragment::new(&document.root_ref()))
     }
-}
-
-pub trait DocumentFragmentMethods {
-    fn Children(&self) -> Temporary<HTMLCollection>;
-    fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>>;
-    fn QuerySelectorAll(&self, selectors: DOMString) -> Fallible<Temporary<NodeList>>;
 }
 
 impl<'a> DocumentFragmentMethods for JSRef<'a, DocumentFragment> {
