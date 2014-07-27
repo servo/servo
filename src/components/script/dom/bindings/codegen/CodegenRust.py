@@ -2114,7 +2114,7 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
 assert!(global.is_not_null());
 assert!(GetProtoObject(cx, global, global).is_not_null());""")
 
-def needCx(returnType, arguments, extendedAttributes, considerTypes):
+def needCx(returnType, arguments, considerTypes):
     return (considerTypes and
             (typeNeedsCx(returnType, True) or
              any(typeNeedsCx(a.type) for a in arguments)))
@@ -2150,8 +2150,7 @@ class CGCallGenerator(CGThing):
                 name = "&" + name
             args.append(CGGeneric(name))
 
-        needsCx = (typeNeedsCx(returnType, True) or
-                   any(typeNeedsCx(a.type) for (a, _) in arguments))
+        needsCx = needCx(returnType, (a for (a, _) in arguments), True)
 
         if not "cx" in argsPre and needsCx:
             args.prepend(CGGeneric("cx"))
@@ -4618,8 +4617,7 @@ class CGNativeMember(ClassMethod):
             assert self.member.isIdentifierLess()
             args.insert(0, Argument("JS::Value", "aThisVal"))
         # And jscontext bits.
-        if needCx(returnType, argList, self.extendedAttrs,
-                  self.passJSBitsAsNeeded):
+        if needCx(returnType, argList, self.passJSBitsAsNeeded):
             args.insert(0, Argument("JSContext*", "cx"))
         # And if we're static, a global
         if self.member.isStatic():
