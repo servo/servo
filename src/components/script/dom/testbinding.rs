@@ -228,8 +228,8 @@ pub trait TestBindingMethods {
     fn PassOptionalNullableUnsignedLongWithDefault(&self, _: Option<u32>) {}
     fn PassOptionalNullableLongLongWithDefault(&self, _: Option<i64>) {}
     fn PassOptionalNullableUnsignedLongLongWithDefault(&self, _: Option<u64>) {}
-    fn PassOptionalNullableFloatWithDefault(&self, _: Option<f32>) {}
-    fn PassOptionalNullableDoubleWithDefault(&self, _: Option<f64>) {}
+    // fn PassOptionalNullableFloatWithDefault(&self, _: Option<f32>) {}
+    // fn PassOptionalNullableDoubleWithDefault(&self, _: Option<f64>) {}
     fn PassOptionalNullableStringWithDefault(&self, _: Option<DOMString>) {}
     fn PassOptionalNullableByteStringWithDefault(&self, _: Option<ByteString>) {}
     // fn PassOptionalNullableEnumWithDefault(&self, _: Option<TestEnum>) {}
