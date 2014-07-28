@@ -36,10 +36,13 @@ def set_defaults(args):
     args.product = "servo"
     args.debug_args = None
     args.interactive = False
-    return vars(args)
+    args.chunk_type = "none"
+    rv = vars(args)
+    wptcommandline.check_args(rv)
+    return rv
 
 def main():
-    parser = wptcommandline.create_parser(False)
+    parser = wptcommandline.create_parser(product_choices=('servo',))
     parser.add_argument('--update-manifest', dest='update_manifest', action='store_true')
     args = parser.parse_args()
     if args.update_manifest:
