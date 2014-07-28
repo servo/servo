@@ -32,17 +32,13 @@ def set_defaults(args):
     args.metadata_root = args.metadata_root if args.metadata_root else wptsubdir("metadata")
     args.tests_root = args.tests_root if args.tests_root else wptsubdir("web-platform-tests")
     args.include_manifest = args.include_manifest if args.include_manifest else wptsubdir("include.ini")
-    args.binary = args.binary if args.binary else os.path.join(servo_root, "build", "servo")
     args.product = "servo"
-    args.debug_args = None
-    args.interactive = False
-    args.chunk_type = "none"
     rv = vars(args)
     wptcommandline.check_args(rv)
     return rv
 
 def main():
-    parser = wptcommandline.create_parser(product_choices=('servo',))
+    parser = wptcommandline.create_parser()
     parser.add_argument('--update-manifest', dest='update_manifest', action='store_true')
     args = parser.parse_args()
     if args.update_manifest:
