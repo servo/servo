@@ -689,7 +689,7 @@ impl LayoutTask {
 
                 // FIXME(pcwalton): This is really ugly and can't handle overflow: scroll. Refactor
                 // it with extreme prejudice.
-                let mut color = color::rgba(255.0, 255.0, 255.0, 255.0);
+                let mut color = color::rgba(1.0, 1.0, 1.0, 1.0);
                 for child in node.traverse_preorder() {
                     if child.type_id() == Some(ElementNodeTypeId(HTMLHtmlElementTypeId)) ||
                             child.type_id() == Some(ElementNodeTypeId(HTMLBodyElementTypeId)) {

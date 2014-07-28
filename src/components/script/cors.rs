@@ -312,6 +312,7 @@ impl CORSCacheEntry {
 
 impl CORSCache {
     /// http://fetch.spec.whatwg.org/#concept-cache-clear
+    #[allow(dead_code)]
     fn clear (&mut self, request: &CORSRequest) {
         let CORSCache(buf) = self.clone();
         let new_buf: Vec<CORSCacheEntry> = buf.move_iter().filter(|e| e.origin == request.origin && request.destination == e.url).collect();
