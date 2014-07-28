@@ -97,34 +97,31 @@ impl FontTemplate {
                 }
             },
             None => {
-                match self.is_valid {
-                    true => {
-                        let data = self.get_data();
-                        let handle: Result<FontHandle, ()> = FontHandleMethods::new_from_template(fctx, data.clone(), None);
-                        match handle {
-                            Ok(handle) => {
-                                let actual_desc = FontTemplateDescriptor::new(handle.boldness(),
-                                                    handle.is_italic());
-                                let desc_match = actual_desc == *requested_desc;
+                if self.is_valid {
+                    let data = self.get_data();
+                    let handle: Result<FontHandle, ()> = FontHandleMethods::new_from_template(fctx, data.clone(), None);
+                    match handle {
+                        Ok(handle) => {
+                            let actual_desc = FontTemplateDescriptor::new(handle.boldness(),
+                                                handle.is_italic());
+                            let desc_match = actual_desc == *requested_desc;
 
-                                self.descriptor = Some(actual_desc);
-                                self.is_valid = true;
-                                if desc_match {
-                                    Some(data)
-                                } else {
-                                    None
-                                }
-                            }
-                            Err(()) => {
-                                self.is_valid = false;
-                                debug!("Unable to create a font from template {}", self.identifier);
+                            self.descriptor = Some(actual_desc);
+                            self.is_valid = true;
+                            if desc_match {
+                                Some(data)
+                            } else {
                                 None
                             }
                         }
-                    },
-                    false => {
-                        None
+                        Err(()) => {
+                            self.is_valid = false;
+                            debug!("Unable to create a font from template {}", self.identifier);
+                            None
+                        }
                     }
+                } else {
+                    None
                 }
             }
         }

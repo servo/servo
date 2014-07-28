@@ -79,8 +79,8 @@ pub fn parse_font_face_rule(rule: AtRule, parent_rules: &mut Vec<CSSRule>, base_
                             // url() or local() should be next
                             let maybe_url = match iter.next() {
                                 Some(&URL(ref string_value)) => {
-                                    // FIXME: handle URL parse errors more gracefully.
-                                    let url = UrlParser::new().base_url(base_url).parse(string_value.as_slice()).unwrap();
+                                    let maybe_url = UrlParser::new().base_url(base_url).parse(string_value.as_slice());
+                                    let url = maybe_url.unwrap_or_else(|_| Url::parse("about:invalid").unwrap());
                                     Some(url)
                                 },
                                 Some(&Function(ref string_value, ref _values)) => {
