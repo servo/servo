@@ -145,9 +145,8 @@ impl CompositionPipelineTree {
             pipeline: frame_tree.pipeline,
             children: Vec::new(),
         };
-        for child_tree in frame_tree.children.iter() {
-            tree.children.push(CompositionPipelineTree::new(child_tree.frame_tree.clone()));
-        }
+        tree.children.push_all_move(frame_tree.children.iter().map(
+                |child| CompositionPipelineTree::new(child.frame_tree.clone())).collect());
         return tree;
     }
 }
@@ -517,7 +516,7 @@ impl IOCompositor {
                         layer
                     },
                     // root layer is already initialized
-                    Some(_) => fail!("scene root layer already initalized"),
+                    Some(_) => fail!("scene root layer already initialized"),
                     None => fail!("No scene root layer"),
                 };
                 CompositorData::update_layer(scene_root.clone(), page_window, layer_properties);
