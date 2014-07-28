@@ -4,6 +4,7 @@
 
 use dom::bindings::codegen::Bindings::DOMExceptionBinding;
 use dom::bindings::codegen::Bindings::DOMExceptionBinding::DOMExceptionConstants;
+use dom::bindings::codegen::Bindings::DOMExceptionBinding::DOMExceptionMethods;
 use dom::bindings::error;
 use dom::bindings::error::Error;
 use dom::bindings::global::GlobalRef;
@@ -85,12 +86,6 @@ impl Reflectable for DOMException {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         &self.reflector_
     }
-}
-
-pub trait DOMExceptionMethods {
-    fn Code(&self) -> u16;
-    fn Name(&self) -> DOMString;
-    fn Message(&self) -> DOMString;
 }
 
 impl<'a> DOMExceptionMethods for JSRef<'a, DOMException> {

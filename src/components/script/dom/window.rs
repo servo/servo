@@ -4,6 +4,7 @@
 
 use dom::bindings::codegen::Bindings::EventHandlerBinding::{OnErrorEventHandlerNonNull, EventHandlerNonNull};
 use dom::bindings::codegen::Bindings::WindowBinding;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::global;
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalSettable};
@@ -117,33 +118,6 @@ impl Drop for Window {
 pub struct TimerData {
     pub is_interval: bool,
     pub funval: Traceable<JSVal>,
-}
-
-pub trait WindowMethods {
-    fn Alert(&self, s: DOMString);
-    fn Close(&self);
-    fn Document(&self) -> Temporary<Document>;
-    fn Location(&self) -> Temporary<Location>;
-    fn Console(&self) -> Temporary<Console>;
-    fn Navigator(&self) -> Temporary<Navigator>;
-    fn SetTimeout(&self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32;
-    fn ClearTimeout(&self, handle: i32);
-    fn SetInterval(&self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32;
-    fn ClearInterval(&self, handle: i32);
-    fn Window(&self) -> Temporary<Window>;
-    fn Self(&self) -> Temporary<Window>;
-    fn Performance(&self) -> Temporary<Performance>;
-    fn GetOnclick(&self) -> Option<EventHandlerNonNull>;
-    fn SetOnclick(&self, listener: Option<EventHandlerNonNull>);
-    fn GetOnload(&self) -> Option<EventHandlerNonNull>;
-    fn SetOnload(&self, listener: Option<EventHandlerNonNull>);
-    fn GetOnunload(&self) -> Option<EventHandlerNonNull>;
-    fn SetOnunload(&self, listener: Option<EventHandlerNonNull>);
-    fn GetOnerror(&self) -> Option<OnErrorEventHandlerNonNull>;
-    fn SetOnerror(&self, listener: Option<OnErrorEventHandlerNonNull>);
-    fn Screen(&self) -> Temporary<Screen>;
-    fn Debug(&self, message: DOMString);
-    fn Gc(&self);
 }
 
 impl<'a> WindowMethods for JSRef<'a, Window> {

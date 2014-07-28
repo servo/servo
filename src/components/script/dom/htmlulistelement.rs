@@ -37,9 +37,6 @@ impl HTMLUListElement {
     }
 }
 
-pub trait HTMLUListElementMethods {
-}
-
 impl Reflectable for HTMLUListElement {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.htmlelement.reflector()

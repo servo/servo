@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
+use dom::bindings::codegen::Bindings::XMLHttpRequestEventTargetBinding::XMLHttpRequestEventTargetMethods;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::codegen::InheritTypes::XMLHttpRequestEventTargetDerived;
 use dom::bindings::js::JSRef;
@@ -36,23 +37,6 @@ impl Reflectable for XMLHttpRequestEventTarget {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.eventtarget.reflector()
     }
-}
-
-pub trait XMLHttpRequestEventTargetMethods {
-    fn GetOnloadstart(&self) -> Option<EventHandlerNonNull>;
-    fn SetOnloadstart(&self, listener: Option<EventHandlerNonNull>);
-    fn GetOnprogress(&self) -> Option<EventHandlerNonNull>;
-    fn SetOnprogress(&self, listener: Option<EventHandlerNonNull>);
-    fn GetOnabort(&self) -> Option<EventHandlerNonNull>;
-    fn SetOnabort(&self, listener: Option<EventHandlerNonNull>);
-    fn GetOnerror(&self) -> Option<EventHandlerNonNull>;
-    fn SetOnerror(&self, listener: Option<EventHandlerNonNull>);
-    fn GetOnload(&self) -> Option<EventHandlerNonNull>;
-    fn SetOnload(&self, listener: Option<EventHandlerNonNull>);
-    fn GetOntimeout(&self) -> Option<EventHandlerNonNull>;
-    fn SetOntimeout(&self, listener: Option<EventHandlerNonNull>);
-    fn GetOnloadend(&self) -> Option<EventHandlerNonNull>;
-    fn SetOnloadend(&self, listener: Option<EventHandlerNonNull>);
 }
 
 impl<'a> XMLHttpRequestEventTargetMethods for JSRef<'a, XMLHttpRequestEventTarget> {

@@ -37,9 +37,6 @@ impl HTMLMetaElement {
     }
 }
 
-pub trait HTMLMetaElementMethods {
-}
-
 impl Reflectable for HTMLMetaElement {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.htmlelement.reflector()

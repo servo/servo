@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::ProcessingInstructionBinding;
+use dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
 use dom::bindings::codegen::InheritTypes::ProcessingInstructionDerived;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
@@ -37,10 +38,6 @@ impl ProcessingInstruction {
         let node = ProcessingInstruction::new_inherited(target, data, document);
         Node::reflect_node(box node, document, ProcessingInstructionBinding::Wrap)
     }
-}
-
-pub trait ProcessingInstructionMethods {
-    fn Target(&self) -> DOMString;
 }
 
 impl<'a> ProcessingInstructionMethods for JSRef<'a, ProcessingInstruction> {

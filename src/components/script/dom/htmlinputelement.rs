@@ -37,9 +37,6 @@ impl HTMLInputElement {
     }
 }
 
-pub trait HTMLInputElementMethods {
-}
-
 impl Reflectable for HTMLInputElement {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.htmlelement.reflector()

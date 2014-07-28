@@ -408,6 +408,7 @@ def typeNeedsRooting(type, descriptorProvider):
 def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                                     isDefinitelyObject=False,
                                     isMember=False,
+                                    isArgument=False,
                                     invalidEnumValueFatal=True,
                                     defaultValue=None,
                                     treatNullAs="Default",
@@ -584,7 +585,12 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                                           failureCode)
             return handleOptional(template, declType, handleDefaultNull("None"))
 
-        descriptorType = descriptor.memberType if isMember else descriptor.nativeType
+        if isMember:
+            descriptorType = descriptor.memberType
+        elif isArgument:
+            descriptorType = descriptor.argumentType
+        else:
+            descriptorType = descriptor.nativeType
 
         templateBody = ""
         if descriptor.interface.isConsequential():
@@ -1334,10 +1340,6 @@ class CGImports(CGWrapper):
             'dead_assignment',
             'dead_code',
         ]
-
-        for d in descriptors:
-            name = d.interface.identifier.name
-            imports.append('dom::%s::%sMethods' % (name.lower(), name))
 
         statements = ['#![allow(%s)]' % ','.join(ignored_warnings)]
         statements.extend('use %s;' % i for i in sorted(imports))
@@ -2114,7 +2116,7 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
 assert!(global.is_not_null());
 assert!(GetProtoObject(cx, global, global).is_not_null());""")
 
-def needCx(returnType, arguments, extendedAttributes, considerTypes):
+def needCx(returnType, arguments, considerTypes):
     return (considerTypes and
             (typeNeedsCx(returnType, True) or
              any(typeNeedsCx(a.type) for a in arguments)))
@@ -2150,8 +2152,7 @@ class CGCallGenerator(CGThing):
                 name = "&" + name
             args.append(CGGeneric(name))
 
-        needsCx = (typeNeedsCx(returnType, True) or
-                   any(typeNeedsCx(a.type) for (a, _) in arguments))
+        needsCx = needCx(returnType, (a for (a, _) in arguments), True)
 
         if not "cx" in argsPre and needsCx:
             args.prepend(CGGeneric("cx"))
@@ -3612,7 +3613,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
             # properties that shadow prototype properties.
             namedGet = ("\n" +
                         "if set == 0 && RUST_JSID_IS_STRING(id) != 0 && !HasPropertyOnPrototype(cx, proxy, id) {\n" +
-                        "  let name = Some(jsid_to_str(cx, id));\n" +
+                        "  let name = jsid_to_str(cx, id);\n" +
                         "  let this = UnwrapProxy(proxy);\n" +
                         "  let this = JS::from_raw(this);\n" +
                         "  let this = this.root();\n" +
@@ -3675,7 +3676,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
             if not self.descriptor.operations['NamedCreator'] is namedSetter:
                 raise TypeError("Can't handle creator that's different from the setter")
             set += ("if RUST_JSID_IS_STRING(id) != 0 {\n" +
-                    "  let name = Some(jsid_to_str(cx, id));\n" +
+                    "  let name = jsid_to_str(cx, id);\n" +
                     "  let this = UnwrapProxy(proxy);\n" +
                     "  let this = JS::from_raw(this);\n" +
                     "  let this = this.root();\n" +
@@ -3683,7 +3684,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                     "}\n")
         elif self.descriptor.operations['NamedGetter']:
             set += ("if RUST_JSID_IS_STRING(id) {\n" +
-                    "  let name = Some(jsid_to_str(cx, id));\n" +
+                    "  let name = jsid_to_str(cx, id);\n" +
                     "  let this = UnwrapProxy(proxy);\n" +
                     "  let this = JS::from_raw(this);\n" +
                     "  let this = this.root();\n" +
@@ -3724,7 +3725,7 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
         namedGetter = self.descriptor.operations['NamedGetter']
         if namedGetter:
             named = ("if RUST_JSID_IS_STRING(id) != 0 && !HasPropertyOnPrototype(cx, proxy, id) {\n" +
-                     "  let name = Some(jsid_to_str(cx, id));\n" +
+                     "  let name = jsid_to_str(cx, id);\n" +
                      "  let this = UnwrapProxy(proxy);\n" +
                      "  let this = JS::from_raw(this);\n" +
                      "  let this = this.root();\n" +
@@ -3796,7 +3797,7 @@ if expando.is_not_null() {
         namedGetter = self.descriptor.operations['NamedGetter']
         if namedGetter and False: #XXXjdm unfinished
             getNamed = ("if (JSID_IS_STRING(id)) {\n" +
-                        "  let name = Some(jsid_to_str(cx, id));\n" +
+                        "  let name = jsid_to_str(cx, id);\n" +
                         "  let this = UnwrapProxy(proxy);\n" +
                         "  let this = JS::from_raw(this);\n" +
                         "  let this = this.root();\n" +
@@ -3946,6 +3947,104 @@ static Class: DOMClass = """ + DOMClass(self.descriptor) + """;
 
 """
 
+
+class CGInterfaceTrait(CGThing):
+    def __init__(self, descriptor):
+        CGThing.__init__(self)
+
+        def argument_type(ty, optional=False, defaultValue=None, variadic=False):
+            _, _, declType, _ = getJSToNativeConversionTemplate(
+                ty, descriptor, isArgument=True)
+
+            if variadic:
+                declType = CGWrapper(declType, pre="Vec<", post=">")
+            elif optional and not defaultValue:
+                declType = CGWrapper(declType, pre="Option<", post=">")
+
+            if ty.isGeckoInterface() and not (ty.nullable() or optional):
+                declType = CGWrapper(declType, pre="&")
+            elif ty.isDictionary():
+                declType = CGWrapper(declType, pre="&")
+
+            return declType.define()
+
+        def attribute_arguments(needCx, argument=None):
+            if needCx:
+                yield "cx", "*mut JSContext"
+
+            if argument:
+                yield "value", argument_type(argument)
+
+        def method_arguments(returnType, arguments, trailing=None):
+            if needCx(returnType, arguments, True):
+                yield "cx", "*mut JSContext"
+
+            for argument in arguments:
+                ty = argument_type(argument.type, argument.optional,
+                    argument.defaultValue, argument.variadic)
+                yield CGDictionary.makeMemberName(argument.identifier.name), ty
+
+            if trailing:
+                yield trailing
+
+        def return_type(rettype, infallible):
+            result = getRetvalDeclarationForType(rettype, descriptor)
+            if not infallible:
+                result = CGWrapper(result, pre="Fallible<", post=">")
+            return result.define()
+
+        def members():
+            for m in descriptor.interface.members:
+                if m.isMethod() and not m.isStatic():
+                    name = CGSpecializedMethod.makeNativeName(descriptor, m)
+                    infallible = 'infallible' in descriptor.getExtendedAttributes(m)
+                    for idx, (rettype, arguments) in enumerate(m.signatures()):
+                        arguments = method_arguments(rettype, arguments)
+                        rettype = return_type(rettype, infallible)
+                        yield name + ('_' * idx), arguments, rettype
+                elif m.isAttr() and not m.isStatic():
+                    name = CGSpecializedGetter.makeNativeName(descriptor, m)
+                    infallible = 'infallible' in descriptor.getExtendedAttributes(m, getter=True)
+                    needCx = typeNeedsCx(m.type)
+                    yield name, attribute_arguments(needCx), return_type(m.type, infallible)
+
+                    if not m.readonly:
+                        name = CGSpecializedSetter.makeNativeName(descriptor, m)
+                        infallible = 'infallible' in descriptor.getExtendedAttributes(m, setter=True)
+                        if infallible:
+                            rettype = "()"
+                        else:
+                            rettype = "ErrorResult"
+                        yield name, attribute_arguments(needCx, m.type), rettype
+
+            if descriptor.proxy:
+                for name, operation in descriptor.operations.iteritems():
+                    if not operation:
+                        continue
+
+                    assert len(operation.signatures()) == 1
+                    rettype, arguments = operation.signatures()[0]
+
+                    infallible = 'infallible' in descriptor.getExtendedAttributes(m)
+                    arguments = method_arguments(rettype, arguments, ("found", "&mut bool"))
+                    rettype = return_type(rettype, infallible)
+                    yield name, arguments, rettype
+
+        def fmt(arguments):
+            return "".join(", %s: %s" % argument for argument in arguments)
+
+        methods = CGList([
+            CGGeneric("fn %s(&self%s) -> %s;\n" % (name, fmt(arguments), rettype))
+            for name, arguments, rettype in members()
+        ], "")
+        self.cgRoot = CGWrapper(CGIndenter(methods),
+                                pre="pub trait %sMethods {\n" % descriptor.interface.identifier.name,
+                                post="}")
+
+    def define(self):
+        return self.cgRoot.define()
+
+
 class CGDescriptor(CGThing):
     def __init__(self, descriptor):
         CGThing.__init__(self)
@@ -4055,6 +4154,7 @@ class CGDescriptor(CGThing):
             cgThings.append(CGWrapMethod(descriptor))
 
         cgThings.append(CGIDLInterface(descriptor))
+        cgThings.append(CGInterfaceTrait(descriptor))
 
         cgThings = CGList(cgThings, "\n")
         cgThings = CGWrapper(cgThings, pre='\n', post='\n')
@@ -4618,8 +4718,7 @@ class CGNativeMember(ClassMethod):
             assert self.member.isIdentifierLess()
             args.insert(0, Argument("JS::Value", "aThisVal"))
         # And jscontext bits.
-        if needCx(returnType, argList, self.extendedAttrs,
-                  self.passJSBitsAsNeeded):
+        if needCx(returnType, argList, self.passJSBitsAsNeeded):
             args.insert(0, Argument("JSContext*", "cx"))
         # And if we're static, a global
         if self.member.isStatic():

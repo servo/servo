@@ -37,9 +37,6 @@ impl HTMLAppletElement {
     }
 }
 
-pub trait HTMLAppletElementMethods {
-}
-
 impl Reflectable for HTMLAppletElement {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.htmlelement.reflector()

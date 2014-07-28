@@ -37,9 +37,6 @@ impl HTMLTimeElement {
     }
 }
 
-pub trait HTMLTimeElementMethods {
-}
-
 impl Reflectable for HTMLTimeElement {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.htmlelement.reflector()

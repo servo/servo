@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
+use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLIFrameElementDerived, HTMLElementCast};
 use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
 use dom::bindings::trace::Traceable;
@@ -88,14 +89,6 @@ impl HTMLIFrameElement {
         let element = HTMLIFrameElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLIFrameElementBinding::Wrap)
     }
-}
-
-pub trait HTMLIFrameElementMethods {
-    fn Src(&self) -> DOMString;
-    fn SetSrc(&self, src: DOMString);
-    fn Sandbox(&self) -> DOMString;
-    fn SetSandbox(&self, sandbox: DOMString);
-    fn GetContentWindow(&self) -> Option<Temporary<Window>>;
 }
 
 impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {

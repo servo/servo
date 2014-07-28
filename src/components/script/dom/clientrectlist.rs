@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::ClientRectListBinding;
+use dom::bindings::codegen::Bindings::ClientRectListBinding::ClientRectListMethods;
 use dom::bindings::global::Window;
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
@@ -32,12 +33,6 @@ impl ClientRectList {
         reflect_dom_object(box ClientRectList::new_inherited(window, rects),
                            &Window(*window), ClientRectListBinding::Wrap)
     }
-}
-
-pub trait ClientRectListMethods {
-    fn Length(&self) -> u32;
-    fn Item(&self, index: u32) -> Option<Temporary<ClientRect>>;
-    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Temporary<ClientRect>>;
 }
 
 impl<'a> ClientRectListMethods for JSRef<'a, ClientRectList> {

@@ -37,9 +37,6 @@ impl HTMLParamElement {
     }
 }
 
-pub trait HTMLParamElementMethods {
-}
-
 impl Reflectable for HTMLParamElement {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.htmlelement.reflector()

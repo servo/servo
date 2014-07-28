@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLOutputElementBinding;
+use dom::bindings::codegen::Bindings::HTMLOutputElementBinding::HTMLOutputElementMethods;
 use dom::bindings::codegen::InheritTypes::HTMLOutputElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
@@ -36,10 +37,6 @@ impl HTMLOutputElement {
         let element = HTMLOutputElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLOutputElementBinding::Wrap)
     }
-}
-
-pub trait HTMLOutputElementMethods {
-    fn Validity(&self) -> Temporary<ValidityState>;
 }
 
 impl<'a> HTMLOutputElementMethods for JSRef<'a, HTMLOutputElement> {

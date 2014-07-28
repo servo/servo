@@ -37,9 +37,6 @@ impl HTMLEmbedElement {
     }
 }
 
-pub trait HTMLEmbedElementMethods {
-}
-
 impl Reflectable for HTMLEmbedElement {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.htmlelement.reflector()

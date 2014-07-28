@@ -37,9 +37,6 @@ impl HTMLVideoElement {
     }
 }
 
-pub trait HTMLVideoElementMethods {
-}
-
 impl Reflectable for HTMLVideoElement {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.htmlmediaelement.reflector()

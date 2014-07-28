@@ -37,9 +37,6 @@ impl HTMLAudioElement {
     }
 }
 
-pub trait HTMLAudioElementMethods {
-}
-
 impl Reflectable for HTMLAudioElement {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.htmlmediaelement.reflector()

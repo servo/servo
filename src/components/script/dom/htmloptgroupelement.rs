@@ -37,9 +37,6 @@ impl HTMLOptGroupElement {
     }
 }
 
-pub trait HTMLOptGroupElementMethods {
-}
-
 impl Reflectable for HTMLOptGroupElement {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.htmlelement.reflector()

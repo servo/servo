@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::AttrMethods;
+use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{NodeBase, NodeCast, TextCast, ElementCast};
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable, Root};
 use dom::bindings::utils::Reflectable;
@@ -11,7 +12,7 @@ use dom::element::{AttributeHandlers, HTMLLinkElementTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::htmlheadingelement::{Heading1, Heading2, Heading3, Heading4, Heading5, Heading6};
 use dom::htmlformelement::HTMLFormElement;
-use dom::node::{ElementNodeTypeId, NodeHelpers, NodeMethods};
+use dom::node::{ElementNodeTypeId, NodeHelpers};
 use dom::types::*;
 use html::cssparse::{StylesheetProvenance, UrlProvenance, spawn_css_parser};
 use page::Page;

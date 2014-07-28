@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::NodeListBinding;
+use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use dom::bindings::global::Window;
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
@@ -42,12 +43,6 @@ impl NodeList {
     pub fn new_child_list(window: &JSRef<Window>, node: &JSRef<Node>) -> Temporary<NodeList> {
         NodeList::new(window, Children(JS::from_rooted(node)))
     }
-}
-
-pub trait NodeListMethods {
-    fn Length(&self) -> u32;
-    fn Item(&self, index: u32) -> Option<Temporary<Node>>;
-    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Temporary<Node>>;
 }
 
 impl<'a> NodeListMethods for JSRef<'a, NodeList> {

@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::NavigatorBinding;
+use dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use dom::bindings::global::Window;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
@@ -26,14 +27,6 @@ impl Navigator {
                            &Window(*window),
                            NavigatorBinding::Wrap)
     }
-}
-
-pub trait NavigatorMethods {
-    fn Product(&self) -> DOMString;
-    fn TaintEnabled(&self) -> bool;
-    fn AppName(&self) -> DOMString;
-    fn AppCodeName(&self) -> DOMString;
-    fn Platform(&self) -> DOMString;
 }
 
 impl<'a> NavigatorMethods for JSRef<'a, Navigator> {

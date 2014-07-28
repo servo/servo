@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLDataListElementBinding;
+use dom::bindings::codegen::Bindings::HTMLDataListElementBinding::HTMLDataListElementMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLDataListElementDerived, NodeCast};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
@@ -36,10 +37,6 @@ impl HTMLDataListElement {
         let element = HTMLDataListElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLDataListElementBinding::Wrap)
     }
-}
-
-pub trait HTMLDataListElementMethods {
-    fn Options(&self) -> Temporary<HTMLCollection>;
 }
 
 impl<'a> HTMLDataListElementMethods for JSRef<'a, HTMLDataListElement> {

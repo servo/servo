@@ -37,9 +37,6 @@ impl HTMLOListElement {
     }
 }
 
-pub trait HTMLOListElementMethods {
-}
-
 impl Reflectable for HTMLOListElement {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.htmlelement.reflector()

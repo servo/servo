@@ -37,9 +37,6 @@ impl HTMLProgressElement {
     }
 }
 
-pub trait HTMLProgressElementMethods {
-}
-
 impl Reflectable for HTMLProgressElement {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.htmlelement.reflector()

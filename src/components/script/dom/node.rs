@@ -5,12 +5,17 @@
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
 use cssparser::tokenize;
-use dom::attr::{Attr, AttrMethods};
+use dom::attr::Attr;
+use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
+use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
+use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
+use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
+use dom::bindings::codegen::Bindings::NodeBinding::{NodeConstants, NodeMethods};
+use dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
 use dom::bindings::codegen::InheritTypes::{CommentCast, DocumentCast, DocumentTypeCast};
 use dom::bindings::codegen::InheritTypes::{ElementCast, TextCast, NodeCast, ElementDerived};
 use dom::bindings::codegen::InheritTypes::{CharacterDataCast, NodeBase, NodeDerived};
 use dom::bindings::codegen::InheritTypes::{ProcessingInstructionCast, EventTargetCast};
-use dom::bindings::codegen::Bindings::NodeBinding::NodeConstants;
 use dom::bindings::error::{ErrorResult, Fallible, NotFound, HierarchyRequest, Syntax};
 use dom::bindings::global::{GlobalRef, Window};
 use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, Root, OptionalUnrootable};
@@ -19,16 +24,16 @@ use dom::bindings::js::{ResultRootable, OptionalRootable};
 use dom::bindings::trace::Traceable;
 use dom::bindings::utils;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::characterdata::{CharacterData, CharacterDataMethods};
+use dom::characterdata::CharacterData;
 use dom::comment::Comment;
-use dom::document::{Document, DocumentMethods, DocumentHelpers, HTMLDocument, NonHTMLDocument};
+use dom::document::{Document, DocumentHelpers, HTMLDocument, NonHTMLDocument};
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
-use dom::element::{AttributeHandlers, Element, ElementMethods, ElementTypeId};
+use dom::element::{AttributeHandlers, Element, ElementTypeId};
 use dom::element::{HTMLAnchorElementTypeId, ElementHelpers};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::nodelist::{NodeList};
-use dom::processinginstruction::{ProcessingInstruction, ProcessingInstructionMethods};
+use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use dom::window::Window;
@@ -1353,37 +1358,6 @@ impl Node {
             }
         }
     }
-}
-
-pub trait NodeMethods {
-    fn NodeType(&self) -> u16;
-    fn NodeName(&self) -> DOMString;
-    fn GetBaseURI(&self) -> Option<DOMString>;
-    fn GetOwnerDocument(&self) -> Option<Temporary<Document>>;
-    fn GetParentNode(&self) -> Option<Temporary<Node>>;
-    fn GetParentElement(&self) -> Option<Temporary<Element>>;
-    fn HasChildNodes(&self) -> bool;
-    fn ChildNodes(&self) -> Temporary<NodeList>;
-    fn GetFirstChild(&self) -> Option<Temporary<Node>>;
-    fn GetLastChild(&self) -> Option<Temporary<Node>>;
-    fn GetPreviousSibling(&self) -> Option<Temporary<Node>>;
-    fn GetNextSibling(&self) -> Option<Temporary<Node>>;
-    fn GetNodeValue(&self) -> Option<DOMString>;
-    fn SetNodeValue(&self, val: Option<DOMString>) -> ErrorResult;
-    fn GetTextContent(&self) -> Option<DOMString>;
-    fn SetTextContent(&self, value: Option<DOMString>) -> ErrorResult;
-    fn InsertBefore(&self, node: &JSRef<Node>, child: Option<JSRef<Node>>) -> Fallible<Temporary<Node>>;
-    fn AppendChild(&self, node: &JSRef<Node>) -> Fallible<Temporary<Node>>;
-    fn ReplaceChild(&self, node: &JSRef<Node>, child: &JSRef<Node>) -> Fallible<Temporary<Node>>;
-    fn RemoveChild(&self, node: &JSRef<Node>) -> Fallible<Temporary<Node>>;
-    fn Normalize(&self);
-    fn CloneNode(&self, deep: bool) -> Temporary<Node>;
-    fn IsEqualNode(&self, maybe_node: Option<JSRef<Node>>) -> bool;
-    fn CompareDocumentPosition(&self, other: &JSRef<Node>) -> u16;
-    fn Contains(&self, maybe_other: Option<JSRef<Node>>) -> bool;
-    fn LookupPrefix(&self, _prefix: Option<DOMString>) -> Option<DOMString>;
-    fn LookupNamespaceURI(&self, _namespace: Option<DOMString>) -> Option<DOMString>;
-    fn IsDefaultNamespace(&self, _namespace: Option<DOMString>) -> bool;
 }
 
 impl<'a> NodeMethods for JSRef<'a, Node> {

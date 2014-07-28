@@ -37,9 +37,6 @@ impl HTMLLegendElement {
     }
 }
 
-pub trait HTMLLegendElementMethods {
-}
-
 impl Reflectable for HTMLLegendElement {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.htmlelement.reflector()

@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::DOMParserBinding;
+use dom::bindings::codegen::Bindings::DOMParserBinding::DOMParserMethods;
 use dom::bindings::codegen::Bindings::DOMParserBinding::SupportedTypeValues::{Text_html, Text_xml};
 use dom::bindings::error::{Fallible, FailureUnknown};
 use dom::bindings::global::{GlobalRef, Window};
@@ -34,11 +35,6 @@ impl DOMParser {
     pub fn Constructor(global: &GlobalRef) -> Fallible<Temporary<DOMParser>> {
         Ok(DOMParser::new(global.as_window()))
     }
-}
-
-pub trait DOMParserMethods {
-    fn ParseFromString(&self, _s: DOMString, ty: DOMParserBinding::SupportedType)
-        -> Fallible<Temporary<Document>>;
 }
 
 impl<'a> DOMParserMethods for JSRef<'a, DOMParser> {

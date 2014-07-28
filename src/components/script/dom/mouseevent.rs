@@ -3,6 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::MouseEventBinding;
+use dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
+use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use dom::bindings::codegen::InheritTypes::{UIEventCast, MouseEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::{GlobalRef, Window};
@@ -11,7 +13,7 @@ use dom::bindings::trace::Traceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{Event, MouseEventTypeId};
 use dom::eventtarget::EventTarget;
-use dom::uievent::{UIEvent, UIEventMethods};
+use dom::uievent::UIEvent;
 use dom::window::Window;
 use servo_util::str::DOMString;
 use std::cell::Cell;
@@ -98,35 +100,6 @@ impl MouseEvent {
                                     init.button, init.relatedTarget.root_ref());
         Ok(event)
     }
-}
-
-pub trait MouseEventMethods {
-    fn ScreenX(&self) -> i32;
-    fn ScreenY(&self) -> i32;
-    fn ClientX(&self) -> i32;
-    fn ClientY(&self) -> i32;
-    fn CtrlKey(&self) -> bool;
-    fn ShiftKey(&self) -> bool;
-    fn AltKey(&self) -> bool;
-    fn MetaKey(&self) -> bool;
-    fn Button(&self) -> i16;
-    fn GetRelatedTarget(&self) -> Option<Temporary<EventTarget>>;
-    fn InitMouseEvent(&self,
-                      typeArg: DOMString,
-                      canBubbleArg: bool,
-                      cancelableArg: bool,
-                      viewArg: Option<JSRef<Window>>,
-                      detailArg: i32,
-                      screenXArg: i32,
-                      screenYArg: i32,
-                      clientXArg: i32,
-                      clientYArg: i32,
-                      ctrlKeyArg: bool,
-                      altKeyArg: bool,
-                      shiftKeyArg: bool,
-                      metaKeyArg: bool,
-                      buttonArg: i16,
-                      relatedTargetArg: Option<JSRef<EventTarget>>);
 }
 
 impl<'a> MouseEventMethods for JSRef<'a, MouseEvent> {

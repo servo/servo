@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::AttrBinding;
+use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::global::Window;
 use dom::bindings::js::{JS, JSRef, Temporary};
@@ -123,15 +124,6 @@ impl Attr {
     pub fn value<'a>(&'a self) -> Ref<'a, AttrValue> {
         self.value.deref().borrow()
     }
-}
-
-pub trait AttrMethods {
-    fn LocalName(&self) -> DOMString;
-    fn Value(&self) -> DOMString;
-    fn SetValue(&self, value: DOMString);
-    fn Name(&self) -> DOMString;
-    fn GetNamespaceURI(&self) -> Option<DOMString>;
-    fn GetPrefix(&self) -> Option<DOMString>;
 }
 
 impl<'a> AttrMethods for JSRef<'a, Attr> {

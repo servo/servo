@@ -37,9 +37,6 @@ impl HTMLFrameElement {
     }
 }
 
-pub trait HTMLFrameElementMethods {
-}
-
 impl Reflectable for HTMLFrameElement {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.htmlelement.reflector()

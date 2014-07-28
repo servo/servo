@@ -37,9 +37,6 @@ impl HTMLTrackElement {
     }
 }
 
-pub trait HTMLTrackElementMethods {
-}
-
 impl Reflectable for HTMLTrackElement {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.htmlelement.reflector()

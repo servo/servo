@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::EventBinding;
-use dom::bindings::codegen::Bindings::EventBinding::EventConstants;
+use dom::bindings::codegen::Bindings::EventBinding::{EventConstants, EventMethods};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, Temporary};
@@ -106,22 +106,6 @@ impl Event {
                        init: &EventBinding::EventInit) -> Fallible<Temporary<Event>> {
         Ok(Event::new(global, type_, init.bubbles, init.cancelable))
     }
-}
-
-pub trait EventMethods {
-    fn EventPhase(&self) -> u16;
-    fn Type(&self) -> DOMString;
-    fn GetTarget(&self) -> Option<Temporary<EventTarget>>;
-    fn GetCurrentTarget(&self) -> Option<Temporary<EventTarget>>;
-    fn DefaultPrevented(&self) -> bool;
-    fn PreventDefault(&self);
-    fn StopPropagation(&self);
-    fn StopImmediatePropagation(&self);
-    fn Bubbles(&self) -> bool;
-    fn Cancelable(&self) -> bool;
-    fn TimeStamp(&self) -> u64;
-    fn InitEvent(&self, type_: DOMString, bubbles: bool, cancelable: bool);
-    fn IsTrusted(&self) -> bool;
 }
 
 impl<'a> EventMethods for JSRef<'a, Event> {

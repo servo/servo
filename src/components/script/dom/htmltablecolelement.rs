@@ -37,9 +37,6 @@ impl HTMLTableColElement {
     }
 }
 
-pub trait HTMLTableColElementMethods {
-}
-
 impl Reflectable for HTMLTableColElement {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.htmlelement.reflector()

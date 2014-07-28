@@ -4,6 +4,7 @@
 
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::AttrListBinding;
+use dom::bindings::codegen::Bindings::AttrListBinding::AttrListMethods;
 use dom::bindings::global::Window;
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
@@ -28,12 +29,6 @@ impl AttrList {
         reflect_dom_object(box AttrList::new_inherited(elem),
                            &Window(*window), AttrListBinding::Wrap)
     }
-}
-
-pub trait AttrListMethods {
-    fn Length(&self) -> u32;
-    fn Item(&self, index: u32) -> Option<Temporary<Attr>>;
-    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Temporary<Attr>>;
 }
 
 impl<'a> AttrListMethods for JSRef<'a, AttrList> {

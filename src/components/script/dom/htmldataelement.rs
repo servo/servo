@@ -37,9 +37,6 @@ impl HTMLDataElement {
     }
 }
 
-pub trait HTMLDataElementMethods {
-}
-
 impl Reflectable for HTMLDataElement {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.htmlelement.reflector()

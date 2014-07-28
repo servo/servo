@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::Bindings::TestBindingBinding::TestBindingMethods;
 use dom::bindings::codegen::Bindings::TestBindingBinding::TestEnum;
 use dom::bindings::codegen::Bindings::TestBindingBinding::TestEnumValues::_empty;
 use dom::bindings::codegen::UnionTypes::BlobOrString::BlobOrString;
@@ -23,7 +24,7 @@ pub struct TestBinding {
     global: GlobalField,
 }
 
-pub trait TestBindingMethods {
+impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn BooleanAttribute(&self) -> bool { false }
     fn SetBooleanAttribute(&self, _: bool) {}
     fn ByteAttribute(&self) -> i8 { 0 }
@@ -52,7 +53,10 @@ pub trait TestBindingMethods {
     fn SetByteStringAttribute(&self, _: ByteString) {}
     fn EnumAttribute(&self) -> TestEnum { _empty }
     fn SetEnumAttribute(&self, _: TestEnum) {}
-    fn InterfaceAttribute(&self) -> Temporary<Blob>;
+    fn InterfaceAttribute(&self) -> Temporary<Blob> {
+        let global = self.global.root();
+        Blob::new(&global.root_ref())
+    }
     fn SetInterfaceAttribute(&self, _: &JSRef<Blob>) {}
     fn UnionAttribute(&self) -> HTMLElementOrLong { eLong(0) }
     fn SetUnionAttribute(&self, _: HTMLElementOrLong) {}
@@ -88,7 +92,10 @@ pub trait TestBindingMethods {
     fn GetStringAttributeNullable(&self) -> Option<DOMString> { Some("".to_string()) }
     fn SetStringAttributeNullable(&self, _: Option<DOMString>) {}
     fn GetEnumAttributeNullable(&self) -> Option<TestEnum> { Some(_empty) }
-    fn GetInterfaceAttributeNullable(&self) -> Option<Temporary<Blob>>;
+    fn GetInterfaceAttributeNullable(&self) -> Option<Temporary<Blob>> {
+        let global = self.global.root();
+        Some(Blob::new(&global.root_ref()))
+    }
     fn SetInterfaceAttributeNullable(&self, _: Option<JSRef<Blob>>) {}
     fn GetUnionAttributeNullable(&self) -> Option<HTMLElementOrLong> { Some(eLong(0)) }
     fn SetUnionAttributeNullable(&self, _: Option<HTMLElementOrLong>) {}
@@ -109,7 +116,10 @@ pub trait TestBindingMethods {
     fn ReceiveString(&self) -> DOMString { "".to_string() }
     fn ReceiveByteString(&self) -> ByteString { ByteString::new(vec!()) }
     fn ReceiveEnum(&self) -> TestEnum { _empty }
-    fn ReceiveInterface(&self) -> Temporary<Blob>;
+    fn ReceiveInterface(&self) -> Temporary<Blob> {
+        let global = self.global.root();
+        Blob::new(&global.root_ref())
+    }
     fn ReceiveAny(&self, _: *mut JSContext) -> JSVal { NullValue() }
     fn ReceiveUnion(&self) -> HTMLElementOrLong { eLong(0) }
     fn ReceiveUnion2(&self) -> EventOrString { eString("".to_string()) }
@@ -128,8 +138,10 @@ pub trait TestBindingMethods {
     fn ReceiveNullableString(&self) -> Option<DOMString> { Some("".to_string()) }
     fn ReceiveNullableByteString(&self) -> Option<ByteString> { Some(ByteString::new(vec!())) }
     fn ReceiveNullableEnum(&self) -> Option<TestEnum> { Some(_empty) }
-    fn ReceiveNullableInterface(&self) -> Option<Temporary<Blob>>;
-    fn ReceiveNullableAny(&self, _: *mut JSContext) -> Option<JSVal> { Some(NullValue()) }
+    fn ReceiveNullableInterface(&self) -> Option<Temporary<Blob>> {
+        let global = self.global.root();
+        Some(Blob::new(&global.root_ref()))
+    }
     fn ReceiveNullableUnion(&self) -> Option<HTMLElementOrLong> { Some(eLong(0)) }
     fn ReceiveNullableUnion2(&self) -> Option<EventOrString> { Some(eString("".to_string())) }
 
@@ -170,7 +182,6 @@ pub trait TestBindingMethods {
     fn PassNullableInterface(&self, _: Option<JSRef<Blob>>) {}
     fn PassNullableUnion(&self, _: Option<HTMLElementOrLong>) {}
     fn PassNullableUnion2(&self, _: Option<EventOrString>) {}
-    fn PassNullableAny(&self, _: *mut JSContext, _: Option<JSVal>) {}
 
     fn PassOptionalBoolean(&self, _: Option<bool>) {}
     fn PassOptionalByte(&self, _: Option<i8>) {}
@@ -230,8 +241,8 @@ pub trait TestBindingMethods {
     fn PassOptionalNullableUnsignedLongWithDefault(&self, _: Option<u32>) {}
     fn PassOptionalNullableLongLongWithDefault(&self, _: Option<i64>) {}
     fn PassOptionalNullableUnsignedLongLongWithDefault(&self, _: Option<u64>) {}
-    fn PassOptionalNullableFloatWithDefault(&self, _: Option<f32>) {}
-    fn PassOptionalNullableDoubleWithDefault(&self, _: Option<f64>) {}
+    // fn PassOptionalNullableFloatWithDefault(&self, _: Option<f32>) {}
+    // fn PassOptionalNullableDoubleWithDefault(&self, _: Option<f64>) {}
     fn PassOptionalNullableStringWithDefault(&self, _: Option<DOMString>) {}
     fn PassOptionalNullableByteStringWithDefault(&self, _: Option<ByteString>) {}
     // fn PassOptionalNullableEnumWithDefault(&self, _: Option<TestEnum>) {}
@@ -273,25 +284,6 @@ pub trait TestBindingMethods {
     fn PassVariadicUnion2(&self, _: Vec<EventOrString>) {}
     fn PassVariadicUnion3(&self, _: Vec<BlobOrString>) {}
     fn PassVariadicAny(&self, _: *mut JSContext, _: Vec<JSVal>) {}
-}
-
-impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
-    fn InterfaceAttribute(&self) -> Temporary<Blob> {
-        let global = self.global.root();
-        Blob::new(&global.root_ref())
-    }
-    fn GetInterfaceAttributeNullable(&self) -> Option<Temporary<Blob>> {
-        let global = self.global.root();
-        Some(Blob::new(&global.root_ref()))
-    }
-    fn ReceiveInterface(&self) -> Temporary<Blob> {
-        let global = self.global.root();
-        Blob::new(&global.root_ref())
-    }
-    fn ReceiveNullableInterface(&self) -> Option<Temporary<Blob>> {
-        let global = self.global.root();
-        Some(Blob::new(&global.root_ref()))
-    }
 }
 
 impl TestBinding {

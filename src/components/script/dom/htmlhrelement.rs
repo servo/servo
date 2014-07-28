@@ -37,9 +37,6 @@ impl HTMLHRElement {
     }
 }
 
-pub trait HTMLHRElementMethods {
-}
-
 impl Reflectable for HTMLHRElement {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.htmlelement.reflector()

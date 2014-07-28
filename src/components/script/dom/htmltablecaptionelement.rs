@@ -37,9 +37,6 @@ impl HTMLTableCaptionElement {
     }
 }
 
-pub trait HTMLTableCaptionElementMethods {
-}
-
 impl Reflectable for HTMLTableCaptionElement {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.htmlelement.reflector()

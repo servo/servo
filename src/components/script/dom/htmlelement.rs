@@ -4,6 +4,8 @@
 
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::HTMLElementBinding;
+use dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLFrameSetElementDerived};
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::codegen::InheritTypes::{HTMLElementDerived, HTMLBodyElementDerived};
@@ -14,7 +16,6 @@ use dom::element::{Element, ElementTypeId, HTMLElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, NodeTargetTypeId};
 use dom::node::{Node, ElementNodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
-use dom::window::WindowMethods;
 use servo_util::namespace;
 use servo_util::str::DOMString;
 
@@ -55,13 +56,6 @@ impl<'a> PrivateHTMLElementHelpers for JSRef<'a, HTMLElement> {
         let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
         eventtarget.is_htmlbodyelement() || eventtarget.is_htmlframesetelement()
     }
-}
-
-pub trait HTMLElementMethods {
-    fn GetOnclick(&self) -> Option<EventHandlerNonNull>;
-    fn SetOnclick(&self, listener: Option<EventHandlerNonNull>);
-    fn GetOnload(&self) -> Option<EventHandlerNonNull>;
-    fn SetOnload(&self, listener: Option<EventHandlerNonNull>);
 }
 
 impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {

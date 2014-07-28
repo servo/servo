@@ -37,9 +37,6 @@ impl HTMLParagraphElement {
     }
 }
 
-pub trait HTMLParagraphElementMethods {
-}
-
 impl Reflectable for HTMLParagraphElement {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.htmlelement.reflector()

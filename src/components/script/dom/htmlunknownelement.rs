@@ -37,9 +37,6 @@ impl HTMLUnknownElement {
     }
 }
 
-pub trait HTMLUnknownElementMethods {
-}
-
 impl Reflectable for HTMLUnknownElement {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.htmlelement.reflector()

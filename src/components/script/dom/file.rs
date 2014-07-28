@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::FileBinding;
+use dom::bindings::codegen::Bindings::FileBinding::FileMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
@@ -32,10 +33,6 @@ impl File {
                            global,
                            FileBinding::Wrap)
     }
-}
-
-pub trait FileMethods {
-    fn Name(&self) -> DOMString;
 }
 
 impl FileMethods for File {

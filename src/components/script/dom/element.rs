@@ -5,10 +5,12 @@
 //! Element nodes.
 
 use cssparser::tokenize;
-use dom::attr::{Attr, ReplacedAttr, FirstSetAttr, AttrMethods, AttrHelpersForLayout};
+use dom::attr::{Attr, ReplacedAttr, FirstSetAttr, AttrHelpersForLayout};
 use dom::attr::{AttrValue, StringAttrValue, UIntAttrValue};
 use dom::attrlist::AttrList;
+use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::ElementBinding;
+use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::InheritTypes::{ElementDerived, NodeCast};
 use dom::bindings::js::{JS, JSRef, Temporary, TemporaryPushable};
 use dom::bindings::js::{OptionalSettable, OptionalRootable, Root};
@@ -420,39 +422,6 @@ impl Element {
             _ => false
         }
     }
-}
-
-pub trait ElementMethods {
-    fn NamespaceURI(&self) -> DOMString;
-    fn LocalName(&self) -> DOMString;
-    fn GetPrefix(&self) -> Option<DOMString>;
-    fn TagName(&self) -> DOMString;
-    fn Id(&self) -> DOMString;
-    fn SetId(&self, id: DOMString);
-    fn ClassName(&self) -> DOMString;
-    fn SetClassName(&self, class: DOMString);
-    fn ClassList(&self) -> Temporary<DOMTokenList>;
-    fn Attributes(&self) -> Temporary<AttrList>;
-    fn GetAttribute(&self, name: DOMString) -> Option<DOMString>;
-    fn GetAttributeNS(&self, namespace: Option<DOMString>, local_name: DOMString) -> Option<DOMString>;
-    fn SetAttribute(&self, name: DOMString, value: DOMString) -> ErrorResult;
-    fn SetAttributeNS(&self, namespace_url: Option<DOMString>, name: DOMString, value: DOMString) -> ErrorResult;
-    fn RemoveAttribute(&self, name: DOMString);
-    fn RemoveAttributeNS(&self, namespace: Option<DOMString>, localname: DOMString);
-    fn HasAttribute(&self, name: DOMString) -> bool;
-    fn HasAttributeNS(&self, namespace: Option<DOMString>, local_name: DOMString) -> bool;
-    fn GetElementsByTagName(&self, localname: DOMString) -> Temporary<HTMLCollection>;
-    fn GetElementsByTagNameNS(&self, maybe_ns: Option<DOMString>, localname: DOMString) -> Temporary<HTMLCollection>;
-    fn GetElementsByClassName(&self, classes: DOMString) -> Temporary<HTMLCollection>;
-    fn GetClientRects(&self) -> Temporary<ClientRectList>;
-    fn GetBoundingClientRect(&self) -> Temporary<ClientRect>;
-    fn GetInnerHTML(&self) -> Fallible<DOMString>;
-    fn GetOuterHTML(&self) -> Fallible<DOMString>;
-    fn Children(&self) -> Temporary<HTMLCollection>;
-    fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>>;
-    fn QuerySelectorAll(&self, selectors: DOMString) -> Fallible<Temporary<NodeList>>;
-    fn Remove(&self);
-    fn Matches(&self, selectors: DOMString) -> Fallible<bool>;
 }
 
 impl<'a> ElementMethods for JSRef<'a, Element> {
