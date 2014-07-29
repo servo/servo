@@ -329,15 +329,6 @@ impl<'a> FlowConstructor<'a> {
                 } else if flow.get().need_anonymous_flow(kid_flow.get()) {
                     consecutive_siblings.push(kid_flow)
                 } else {
-                    // Strip ignorable whitespace from the start of this flow per CSS 2.1 §
-                    // 9.2.1.1.
-                    let whitespace_stripping = if flow.get().is_table_kind() || *first_fragment {
-                        *first_fragment = false;
-                        StripWhitespaceFromStart
-                    } else {
-                        NoWhitespaceStripping
-                    };
-
                     // Flush any inline fragments that we were gathering up. This allows us to handle
                     // {ib} splits.
                     debug!("flushing {} inline box(es) to flow A",
@@ -346,7 +337,7 @@ impl<'a> FlowConstructor<'a> {
                         mem::replace(inline_fragment_accumulator, InlineFragmentsAccumulator::new()),
                         flow,
                         consecutive_siblings,
-                        whitespace_stripping,
+                        StripWhitespaceFromStart,
                         node);
                     if !consecutive_siblings.is_empty() {
                         let consecutive_siblings = mem::replace(consecutive_siblings, vec!());
@@ -407,8 +398,14 @@ impl<'a> FlowConstructor<'a> {
                 inline_fragment_accumulator.fragments.push_all(successor_fragments);
                 abs_descendants.push_descendants(kid_abs_descendants);
             }
-            ConstructionItemConstructionResult(WhitespaceConstructionItem(..)) => {
-                // Nothing to do here.
+            ConstructionItemConstructionResult(WhitespaceConstructionItem(whitespace_node, whitespace_style)) => {
+                // Add whitespace results. They will be stripped out later on when
+                // between block elements, and retained when between inline elements.
+                let fragment_info = UnscannedTextFragment(UnscannedTextFragmentInfo::from_text(" ".to_string()));
+                let fragment = Fragment::from_opaque_node_and_style(whitespace_node,
+                                                                    whitespace_style.clone(),
+                                                                    fragment_info);
+                inline_fragment_accumulator.fragments.push(fragment, whitespace_style);
             }
             ConstructionItemConstructionResult(TableColumnFragmentConstructionItem(_)) => {
                 // TODO: Implement anonymous table objects for missing parents

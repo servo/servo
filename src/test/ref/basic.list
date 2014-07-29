@@ -88,3 +88,5 @@
 == pseudo_inherit.html pseudo_inherit_ref.html
 == float_intrinsic_height.html float_intrinsic_height_ref.html
 == table_auto_width.html table_auto_width_ref.html
+== inline_whitespace_b.html inline_whitespace_ref.html
+== inline_whitespace_a.html inline_whitespace_ref.html
