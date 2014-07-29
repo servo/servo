@@ -9,8 +9,9 @@ use pipeline::CompositionPipeline;
 use azure::azure_hl::Color;
 use geom::point::TypedPoint2D;
 use geom::rect::Rect;
+use geom::scale_factor::ScaleFactor;
 use geom::size::{Size2D, TypedSize2D};
-use gfx::render_task::{UnusedBufferMsg};
+use gfx::render_task::UnusedBufferMsg;
 use layers::layers::{BufferRequest, Layer, LayerBuffer, LayerBufferSet};
 use layers::platform::surface::NativeSurfaceMethods;
 use servo_msg::compositor_msg::{Epoch, LayerId};
@@ -86,9 +87,8 @@ impl CompositorData {
                                                                Vec<BufferRequest>)>,
                                            unused_buffers: &mut Vec<Box<LayerBuffer>>,
                                            layer: Rc<Layer<CompositorData>>,
-                                           window_rect: Rect<f32>,
-                                           scale: f32) {
-        let (request, unused) = layer.get_tile_rects_page(window_rect, scale);
+                                           window_rect_in_device_pixels: Rect<f32>) {
+        let (request, unused) = layer.get_tile_rects_page(window_rect_in_device_pixels);
         unused_buffers.push_all_move(unused);
 
         if !request.is_empty() {
@@ -96,10 +96,11 @@ impl CompositorData {
         }
 
         for kid in layer.children().iter() {
-            let mut new_rect = window_rect;
-            let offset = kid.extra_data.borrow().scroll_offset.to_untyped();
-            new_rect.origin.x = new_rect.origin.x - offset.x;
-            new_rect.origin.y = new_rect.origin.y - offset.y;
+            let mut new_rect = window_rect_in_device_pixels;
+            let content_offset = kid.content_offset.borrow();
+            new_rect.origin.x = new_rect.origin.x - content_offset.x;
+            new_rect.origin.y = new_rect.origin.y - content_offset.y;
+
             match new_rect.intersection(&*kid.bounds.borrow()) {
                 Some(new_rect) => {
                     // Child layers act as if they are rendered at (0,0), so we
@@ -110,8 +111,7 @@ impl CompositorData {
                     CompositorData::get_buffer_requests_recursively(requests,
                                                                     unused_buffers,
                                                                     kid.clone(),
-                                                                    child_rect,
-                                                                    scale);
+                                                                    child_rect);
                 }
                 None => {}
             }
@@ -126,12 +126,15 @@ impl CompositorData {
         layer.contents_changed();
 
         // Call scroll for bounds checking if the page shrunk. Use (-1, -1) as the
-        // cursor position to make sure the scroll isn't propagated downwards.
+        // cursor position to make sure the scroll isn't propagated downwards. The
+        // scale factor does not matter here since we are scrolling to 0 offset and
+        // 0 * n == 0.
         let size: TypedSize2D<PagePx, f32> = Size2D::from_untyped(&layer.bounds.borrow().size);
         events::handle_scroll_event(layer.clone(),
-                                            TypedPoint2D(0f32, 0f32),
-                                            TypedPoint2D(-1f32, -1f32),
-                                            size);
+                                    TypedPoint2D(0f32, 0f32),
+                                    TypedPoint2D(-1f32, -1f32),
+                                    size,
+                                    ScaleFactor(1.0));
     }
 
     pub fn find_layer_with_pipeline_and_layer_id(layer: Rc<Layer<CompositorData>>,

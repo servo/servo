@@ -10,13 +10,14 @@ use geom::length::Length;
 use geom::matrix::identity;
 use geom::point::{Point2D, TypedPoint2D};
 use geom::rect::{Rect, TypedRect};
+use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
 use layers::layers::Layer;
 use script::dom::event::{ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent};
 use script::script_task::{ScriptChan, SendEventMsg};
 use servo_msg::compositor_msg::{FixedPosition, LayerId};
 use servo_msg::constellation_msg::PipelineId;
-use servo_util::geometry::PagePx;
+use servo_util::geometry::{DevicePixel, PagePx};
 use std::rc::Rc;
 
 trait Clampable {
@@ -44,7 +45,8 @@ impl Clampable for f32 {
 pub fn handle_scroll_event(layer: Rc<Layer<CompositorData>>,
                            delta: TypedPoint2D<PagePx, f32>,
                            cursor: TypedPoint2D<PagePx, f32>,
-                           window_size: TypedSize2D<PagePx, f32>)
+                           window_size: TypedSize2D<PagePx, f32>,
+                           page_to_device_pixels_scale: ScaleFactor<PagePx, DevicePixel, f32>)
                            -> bool {
     // If this layer doesn't want scroll events, neither it nor its children can handle scroll
     // events.
@@ -60,7 +62,8 @@ pub fn handle_scroll_event(layer: Rc<Layer<CompositorData>>,
            handle_scroll_event(child.clone(),
                                delta,
                                cursor - rect.origin,
-                               rect.size) {
+                               rect.size,
+                               page_to_device_pixels_scale) {
             return true
         }
     }
@@ -86,13 +89,14 @@ pub fn handle_scroll_event(layer: Rc<Layer<CompositorData>>,
     }
 
     let offset = layer.extra_data.borrow().scroll_offset.clone();
-    scroll(layer.clone(), offset)
+    scroll(layer.clone(), offset, page_to_device_pixels_scale)
 }
 
 /// Actually scrolls the descendants of a layer that scroll. This is called by
 /// `handle_scroll_event` above when it determines that a layer wants to scroll.
 fn scroll(layer: Rc<Layer<CompositorData>>,
-          scroll_offset: TypedPoint2D<PagePx, f32>)
+          scroll_offset: TypedPoint2D<PagePx, f32>,
+          page_to_device_pixels_scale: ScaleFactor<PagePx, DevicePixel, f32>)
           -> bool {
     let mut result = false;
 
@@ -103,12 +107,13 @@ fn scroll(layer: Rc<Layer<CompositorData>>,
 
         let scroll_offset = layer.extra_data.borrow().scroll_offset.clone();
         *layer.transform.borrow_mut() = identity().translate(scroll_offset.x.get(), scroll_offset.y.get(), 0.0);
+        *layer.content_offset.borrow_mut() = (scroll_offset * page_to_device_pixels_scale).to_untyped();
 
         result = true
     }
 
     for child in layer.children().iter() {
-        result = scroll(child.clone(), scroll_offset) || result;
+        result = scroll(child.clone(), scroll_offset, page_to_device_pixels_scale) || result;
     }
 
     result
@@ -149,13 +154,19 @@ pub fn move(layer: Rc<Layer<CompositorData>>,
             pipeline_id: PipelineId,
             layer_id: LayerId,
             origin: Point2D<f32>,
-            window_size: TypedSize2D<PagePx, f32>)
+            window_size: TypedSize2D<PagePx, f32>,
+            page_to_device_pixels_scale: ScaleFactor<PagePx, DevicePixel, f32>)
             -> bool {
     // Search children for the right layer to move.
     if layer.extra_data.borrow().pipeline.id != pipeline_id ||
        layer.extra_data.borrow().id != layer_id {
         return layer.children().iter().any(|kid| {
-            move(kid.clone(), pipeline_id, layer_id, origin, window_size)
+            move(kid.clone(),
+                 pipeline_id,
+                 layer_id,
+                 origin,
+                 window_size,
+                 page_to_device_pixels_scale)
         });
     }
 
@@ -183,5 +194,5 @@ pub fn move(layer: Rc<Layer<CompositorData>>,
     }
 
     let offset = layer.extra_data.borrow().scroll_offset.clone();
-    scroll(layer.clone(), offset)
+    scroll(layer.clone(), offset, page_to_device_pixels_scale)
 }
