@@ -26,7 +26,7 @@ use geom::point::{Point2D, TypedPoint2D};
 use geom::rect::Rect;
 use geom::size::TypedSize2D;
 use geom::scale_factor::ScaleFactor;
-use gfx::render_task::ReRenderMsg;
+use gfx::render_task::{RenderChan, ReRenderMsg, ReRenderRequest, UnusedBufferMsg};
 use layers::layers::LayerBufferSet;
 use layers::rendergl;
 use layers::rendergl::RenderContext;
@@ -397,7 +397,15 @@ impl IOCompositor {
         }
     }
 
-    fn create_or_update_root_layer(&mut self, layer_properties: LayerProperties) {
+    // rust-layers keeps everything in layer coordinates, so we must convert all rectangles
+    // from page coordinates into layer coordinates based on our current scale.
+    fn convert_page_rect_to_layer_coordinates(&self, page_rect: Rect<f32>) -> Rect<f32> {
+        page_rect * self.device_pixels_per_page_px().get()
+    }
+
+    fn create_or_update_root_layer(&mut self, mut layer_properties: LayerProperties) {
+        layer_properties.rect = self.convert_page_rect_to_layer_coordinates(layer_properties.rect);
+
         let need_new_root_layer = !self.update_layer_if_exists(layer_properties);
         if need_new_root_layer {
             let root_pipeline = match self.root_pipeline {
@@ -433,7 +441,8 @@ impl IOCompositor {
         self.ask_for_tiles();
     }
 
-    fn create_or_update_descendant_layer(&mut self, layer_properties: LayerProperties) {
+    fn create_or_update_descendant_layer(&mut self, mut layer_properties: LayerProperties) {
+        layer_properties.rect = self.convert_page_rect_to_layer_coordinates(layer_properties.rect);
         if !self.update_layer_if_exists(layer_properties) {
             self.create_descendant_layer(layer_properties);
         }
@@ -483,6 +492,7 @@ impl IOCompositor {
                                                    pipeline_id: PipelineId,
                                                    layer_id: LayerId) {
         let page_window = self.page_window();
+        let device_pixels_per_page_px = self.device_pixels_per_page_px();
         let needs_recomposite = match self.scene.root {
             Some(ref mut root_layer) => {
                 self.fragment_point.take().map_or(false, |fragment_point| {
@@ -490,7 +500,8 @@ impl IOCompositor {
                                  pipeline_id,
                                  layer_id,
                                  fragment_point,
-                                 page_window)
+                                 page_window,
+                                 device_pixels_per_page_px)
                 })
             }
             None => fail!("Compositor: Tried to scroll to fragment without root layer."),
@@ -502,14 +513,16 @@ impl IOCompositor {
     fn set_layer_clip_rect(&mut self,
                            pipeline_id: PipelineId,
                            layer_id: LayerId,
-                           new_rect: Rect<f32>) {
+                           new_rect_in_page_coordinates: Rect<f32>) {
+        let new_rect_in_layer_coordinates =
+            self.convert_page_rect_to_layer_coordinates(new_rect_in_page_coordinates);
         let should_ask_for_tiles = match self.scene.root {
             Some(ref root_layer) => {
                 match CompositorData::find_layer_with_pipeline_and_layer_id(root_layer.clone(),
                                                                             pipeline_id,
                                                                             layer_id) {
                     Some(ref layer) => {
-                        *layer.bounds.borrow_mut() = new_rect;
+                        *layer.bounds.borrow_mut() = new_rect_in_layer_coordinates;
                         true
                     }
                     None => {
@@ -569,10 +582,16 @@ impl IOCompositor {
                                 layer_id: LayerId,
                                 point: Point2D<f32>) {
         let page_window = self.page_window();
+        let device_pixels_per_page_px = self.device_pixels_per_page_px();
         let (ask, move): (bool, bool) = match self.scene.root {
             Some(ref layer) if layer.extra_data.borrow().pipeline.id == pipeline_id => {
                 (true,
-                 events::move(layer.clone(), pipeline_id, layer_id, point, page_window))
+                 events::move(layer.clone(),
+                              pipeline_id,
+                              layer_id,
+                              point,
+                              page_window,
+                              device_pixels_per_page_px))
             }
             Some(_) | None => {
                 self.fragment_point = Some(point);
@@ -704,12 +723,14 @@ impl IOCompositor {
         let page_cursor = cursor.as_f32() / scale;
         let page_window = self.page_window();
         let mut scroll = false;
+        let device_pixels_per_page_px = self.device_pixels_per_page_px();
         match self.scene.root {
             Some(ref mut layer) => {
                 scroll = events::handle_scroll_event(layer.clone(),
                                                      page_delta,
                                                      page_cursor,
-                                                     page_window) || scroll;
+                                                     page_window,
+                                                     device_pixels_per_page_px) || scroll;
             }
             None => { }
         }
@@ -761,12 +782,14 @@ impl IOCompositor {
         let page_cursor = TypedPoint2D(-1f32, -1f32); // Make sure this hits the base layer
         let page_window = self.page_window();
 
+        let device_pixels_per_page_px = self.device_pixels_per_page_px();
         match self.scene.root {
             Some(ref mut layer) => {
                 events::handle_scroll_event(layer.clone(),
                                             page_delta,
                                             page_cursor,
-                                            page_window);
+                                            page_window,
+                                            device_pixels_per_page_px);
             }
             None => { }
         }
@@ -786,22 +809,55 @@ impl IOCompositor {
     /// Get BufferRequests from each layer.
     fn ask_for_tiles(&mut self) {
         let scale = self.device_pixels_per_page_px();
-        let page_window = self.page_window();
         let mut num_rerendermsgs_sent = 0;
+        let window_rect_in_device_pixels = Rect(Point2D(0f32, 0f32),
+                                                self.window_size.as_f32().to_untyped());
+
         match self.scene.root {
-            Some(ref layer) => {
-                let rect = Rect(Point2D(0f32, 0f32), page_window.to_untyped());
-                let mut request_map = HashMap::new();
-                let recomposite =
-                    CompositorData::get_buffer_requests_recursively(&mut request_map,
-                                                                    layer.clone(),
-                                                                    rect,
-                                                                    scale.get());
-                for (_pipeline_id, (chan, requests)) in request_map.move_iter() {
+            Some(ref mut layer) => {
+                let mut layers_and_requests = Vec::new();
+                let mut unused_buffers = Vec::new();
+                CompositorData::get_buffer_requests_recursively(&mut layers_and_requests,
+                                                                &mut unused_buffers,
+                                                                layer.clone(),
+                                                                window_rect_in_device_pixels);
+
+                // Return unused tiles first, so that they can be reused by any new BufferRequests.
+                let have_unused_buffers = unused_buffers.len() > 0;
+                self.recomposite = self.recomposite || have_unused_buffers;
+                if have_unused_buffers {
+                    let message = UnusedBufferMsg(unused_buffers);
+                    let _ = layer.extra_data.borrow().pipeline.render_chan.send_opt(message);
+                }
+
+                // We want to batch requests for each pipeline to avoid race conditions
+                // when handling the resulting BufferRequest responses.
+                let mut pipeline_requests:
+                    HashMap<PipelineId, (RenderChan, Vec<ReRenderRequest>)> = HashMap::new();
+                for (layer, mut requests) in layers_and_requests.move_iter() {
+                    let pipeline_id = layer.extra_data.borrow().pipeline.id;
+                    let &(_, ref mut vec) = pipeline_requests.find_or_insert_with(pipeline_id, |_| {
+                        (layer.extra_data.borrow().pipeline.render_chan.clone(), Vec::new())
+                    });
+
+                    // All the BufferRequests are in layer/device coordinates, but the render task
+                    // wants to know the page coordinates. We scale them before sending them.
+                    for request in requests.mut_iter() {
+                        request.page_rect = request.page_rect / scale.get();
+                    }
+
+                    vec.push(ReRenderRequest {
+                        buffer_requests: requests,
+                        scale: scale.get(),
+                        layer_id: layer.extra_data.borrow().id,
+                        epoch: layer.extra_data.borrow().epoch,
+                    });
+                }
+
+                for (_pipeline_id, (chan, requests)) in pipeline_requests.move_iter() {
                     num_rerendermsgs_sent += 1;
                     let _ = chan.send_opt(ReRenderMsg(requests));
                 }
-                self.recomposite = self.recomposite || recomposite;
             }
             None => { }
         }

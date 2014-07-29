@@ -9,15 +9,15 @@ use pipeline::CompositionPipeline;
 use azure::azure_hl::Color;
 use geom::point::TypedPoint2D;
 use geom::rect::Rect;
+use geom::scale_factor::ScaleFactor;
 use geom::size::{Size2D, TypedSize2D};
-use gfx::render_task::{ReRenderRequest, RenderChan, UnusedBufferMsg};
-use layers::layers::{Layer, LayerBufferSet};
+use gfx::render_task::UnusedBufferMsg;
+use layers::layers::{BufferRequest, Layer, LayerBuffer, LayerBufferSet};
 use layers::platform::surface::NativeSurfaceMethods;
 use servo_msg::compositor_msg::{Epoch, LayerId};
 use servo_msg::compositor_msg::ScrollPolicy;
 use servo_msg::constellation_msg::PipelineId;
 use servo_util::geometry::PagePx;
-use std::collections::hashmap::HashMap;
 use std::rc::Rc;
 
 pub struct CompositorData {
@@ -83,40 +83,24 @@ impl CompositorData {
 
     // Given the current window size, determine which tiles need to be (re-)rendered and sends them
     // off the the appropriate renderer. Returns true if and only if the scene should be repainted.
-    pub fn get_buffer_requests_recursively(requests: &mut HashMap<PipelineId,
-                                                                  (RenderChan,
-                                                                   Vec<ReRenderRequest>)>,
+    pub fn get_buffer_requests_recursively(requests: &mut Vec<(Rc<Layer<CompositorData>>,
+                                                               Vec<BufferRequest>)>,
+                                           unused_buffers: &mut Vec<Box<LayerBuffer>>,
                                            layer: Rc<Layer<CompositorData>>,
-                                           window_rect: Rect<f32>,
-                                           scale: f32)
-                                           -> bool {
-        let (request, unused) = layer.get_tile_rects_page(window_rect, scale);
-        let redisplay = !unused.is_empty();
-        if redisplay {
-            // Send back unused tiles.
-            let msg = UnusedBufferMsg(unused);
-            let _ = layer.extra_data.borrow().pipeline.render_chan.send_opt(msg);
-        }
+                                           window_rect_in_device_pixels: Rect<f32>) {
+        let (request, unused) = layer.get_tile_rects_page(window_rect_in_device_pixels);
+        unused_buffers.push_all_move(unused);
+
         if !request.is_empty() {
-            // Ask for tiles.
-            let pipeline_id = layer.extra_data.borrow().pipeline.id;
-            let msg = ReRenderRequest {
-                buffer_requests: request,
-                scale: scale,
-                layer_id: layer.extra_data.borrow().id,
-                epoch: layer.extra_data.borrow().epoch,
-            };
-            let &(_, ref mut vec) = requests.find_or_insert_with(pipeline_id, |_| {
-                (layer.extra_data.borrow().pipeline.render_chan.clone(), Vec::new())
-            });
-            vec.push(msg);
+            requests.push((layer.clone(), request));
         }
 
-        let get_child_buffer_request = |kid: &Rc<Layer<CompositorData>>| -> bool {
-            let mut new_rect = window_rect;
-            let offset = kid.extra_data.borrow().scroll_offset.to_untyped();
-            new_rect.origin.x = new_rect.origin.x - offset.x;
-            new_rect.origin.y = new_rect.origin.y - offset.y;
+        for kid in layer.children().iter() {
+            let mut new_rect = window_rect_in_device_pixels;
+            let content_offset = kid.content_offset.borrow();
+            new_rect.origin.x = new_rect.origin.x - content_offset.x;
+            new_rect.origin.y = new_rect.origin.y - content_offset.y;
+
             match new_rect.intersection(&*kid.bounds.borrow()) {
                 Some(new_rect) => {
                     // Child layers act as if they are rendered at (0,0), so we
@@ -125,17 +109,13 @@ impl CompositorData {
                     let child_rect = Rect(new_rect.origin.sub(&kid.bounds.borrow().origin),
                                           new_rect.size);
                     CompositorData::get_buffer_requests_recursively(requests,
+                                                                    unused_buffers,
                                                                     kid.clone(),
-                                                                    child_rect,
-                                                                    scale)
+                                                                    child_rect);
                 }
-                None => {
-                    false // Layer is offscreen
-                }
+                None => {}
             }
         };
-
-        layer.children().iter().map(get_child_buffer_request).any(|b| b) || redisplay
     }
 
     pub fn update_layer(layer: Rc<Layer<CompositorData>>, layer_properties: LayerProperties) {
@@ -146,12 +126,15 @@ impl CompositorData {
         layer.contents_changed();
 
         // Call scroll for bounds checking if the page shrunk. Use (-1, -1) as the
-        // cursor position to make sure the scroll isn't propagated downwards.
+        // cursor position to make sure the scroll isn't propagated downwards. The
+        // scale factor does not matter here since we are scrolling to 0 offset and
+        // 0 * n == 0.
         let size: TypedSize2D<PagePx, f32> = Size2D::from_untyped(&layer.bounds.borrow().size);
         events::handle_scroll_event(layer.clone(),
-                                            TypedPoint2D(0f32, 0f32),
-                                            TypedPoint2D(-1f32, -1f32),
-                                            size);
+                                    TypedPoint2D(0f32, 0f32),
+                                    TypedPoint2D(-1f32, -1f32),
+                                    size,
+                                    ScaleFactor(1.0));
     }
 
     pub fn find_layer_with_pipeline_and_layer_id(layer: Rc<Layer<CompositorData>>,
