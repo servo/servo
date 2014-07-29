@@ -191,6 +191,11 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         self.Window()
     }
 
+    fn Parent(&self) -> Temporary<Window> {
+        //TODO - Once we support iframes correctly this needs to return the parent frame
+        self.Window()
+    }
+
     fn Performance(&self) -> Temporary<Performance> {
         if self.performance.get().is_none() {
             let performance = Performance::new(self);
