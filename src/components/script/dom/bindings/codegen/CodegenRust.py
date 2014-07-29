@@ -2061,7 +2061,7 @@ let traps = ProxyTraps {
   getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor),
   defineProperty: Some(defineProperty),
   getOwnPropertyNames: ptr::null(),
-  delete_: None,
+  delete_: Some(delete_),
   enumerate: ptr::null(),
 
   has: None,
@@ -4541,7 +4541,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::proxyhandler',
             'dom::bindings::proxyhandler::{_obj_toString, defineProperty}',
             'dom::bindings::proxyhandler::{FillPropertyDescriptor, GetExpandoObject}',
-            'dom::bindings::proxyhandler::{getPropertyDescriptor}',
+            'dom::bindings::proxyhandler::{delete_, getPropertyDescriptor}',
             'dom::bindings::str::ByteString',
             'page::JSPageInfo',
             'libc',
