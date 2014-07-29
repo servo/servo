@@ -5,7 +5,7 @@
 use compositor_data::{CompositorData, WantsScrollEvents};
 use compositor_task::{Msg, CompositorTask, Exit, ChangeReadyState, SetIds, LayerProperties};
 use compositor_task::{GetGraphicsMetadata, CreateOrUpdateRootLayer, CreateOrUpdateDescendantLayer};
-use compositor_task::{SetLayerClipRect, Paint, ScrollFragmentPoint, LoadComplete};
+use compositor_task::{SetLayerOrigin, SetLayerSize, Paint, ScrollFragmentPoint, LoadComplete};
 use compositor_task::{ShutdownComplete, ChangeRenderState, ReRenderMsgDiscarded};
 use constellation::SendableFrameTree;
 use events;
@@ -20,21 +20,21 @@ use windowing::{WindowEvent, WindowMethods, WindowNavigateMsg, ZoomWindowEvent};
 use windowing::PinchZoomWindowEvent;
 
 use azure::azure_hl::SourceSurfaceMethods;
-use azure::azure_hl;
+use azure::{azure_hl, AzFloat};
 use geom::matrix::identity;
 use geom::point::{Point2D, TypedPoint2D};
 use geom::rect::Rect;
-use geom::size::TypedSize2D;
+use geom::size::{Size2D, TypedSize2D};
 use geom::scale_factor::ScaleFactor;
 use gfx::render_task::ReRenderMsg;
-use layers::layers::LayerBufferSet;
+use layers::layers::{Layer, LayerBufferSet};
 use layers::rendergl;
 use layers::rendergl::RenderContext;
 use layers::scene::Scene;
 use opengles::gl2;
 use png;
 use servo_msg::compositor_msg::{Blank, Epoch, FixedPosition, FinishedLoading, IdleRenderState};
-use servo_msg::compositor_msg::{LayerId, ReadyState, RenderState};
+use servo_msg::compositor_msg::{LayerId, ReadyState, RenderingRenderState, RenderState};
 use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, LoadUrlMsg, NavigateMsg};
 use servo_msg::constellation_msg::{PipelineId, ResizedWindowMsg, WindowSizeData};
 use servo_msg::constellation_msg;
@@ -47,6 +47,7 @@ use std::io::timer::sleep;
 use std::collections::hashmap::HashMap;
 use std::path::Path;
 use std::rc::Rc;
+use std::cmp;
 use time::precise_time_s;
 use url::Url;
 
@@ -61,8 +62,8 @@ pub struct IOCompositor {
     /// The render context.
     context: RenderContext,
 
-    /// The root pipeline.
-    root_pipeline: Option<CompositionPipeline>,
+    /// The root pipeline tree.
+    pipeline_tree: Option<CompositionPipelineTree>,
 
     /// The canvas to paint a page.
     scene: Scene<CompositorData>,
@@ -100,7 +101,8 @@ pub struct IOCompositor {
     zoom_time: f64,
 
     /// Current display/reflow status of the page
-    ready_state: ReadyState,
+    ready_states: HashMap<PipelineId, ReadyState>,
+    render_states: HashMap<PipelineId, RenderState>,
 
     /// Whether the page being rendered has loaded completely.
     /// Differs from ReadyState because we can finish loading (ready)
@@ -130,6 +132,25 @@ enum ShutdownState {
     FinishedShuttingDown,
 }
 
+
+#[deriving(Clone)]
+struct CompositionPipelineTree {
+    pipeline: CompositionPipeline,
+    children: Vec<CompositionPipelineTree>,
+}
+
+impl CompositionPipelineTree {
+    pub fn new(frame_tree: SendableFrameTree) -> CompositionPipelineTree {
+        let mut tree = CompositionPipelineTree {
+            pipeline: frame_tree.pipeline,
+            children: Vec::new(),
+        };
+        tree.children.push_all_move(frame_tree.children.iter().map(
+                |child| CompositionPipelineTree::new(child.frame_tree.clone())).collect());
+        return tree;
+    }
+}
+
 impl IOCompositor {
     fn new(app: &Application,
                opts: Opts,
@@ -153,7 +174,7 @@ impl IOCompositor {
             opts: opts,
             context: rendergl::RenderContext::new(CompositorTask::create_graphics_context(),
                                                   show_debug_borders),
-            root_pipeline: None,
+            pipeline_tree: None,
             scene: Scene::new(window_size.as_f32().to_untyped(), identity()),
             window_size: window_size,
             hidpi_factor: hidpi_factor,
@@ -164,7 +185,8 @@ impl IOCompositor {
             viewport_zoom: ScaleFactor(1.0),
             zoom_action: false,
             zoom_time: 0f64,
-            ready_state: Blank,
+            ready_states: HashMap::new(),
+            render_states: HashMap::new(),
             load_complete: false,
             constellation_chan: constellation_chan,
             time_profiler_chan: time_profiler_chan,
@@ -273,13 +295,12 @@ impl IOCompositor {
                     break;
                 }
 
-                (Ok(ChangeReadyState(ready_state)), NotShuttingDown) => {
-                    self.window.set_ready_state(ready_state);
-                    self.ready_state = ready_state;
+                (Ok(ChangeReadyState(pipeline_id, ready_state)), NotShuttingDown) => {
+                    self.change_ready_state(pipeline_id, ready_state);
                 }
 
-                (Ok(ChangeRenderState(render_state)), NotShuttingDown) => {
-                    self.change_render_state(render_state);
+                (Ok(ChangeRenderState(pipeline_id, render_state)), NotShuttingDown) => {
+                    self.change_render_state(pipeline_id, render_state);
                 }
 
                 (Ok(ReRenderMsgDiscarded), NotShuttingDown) => {
@@ -296,16 +317,36 @@ impl IOCompositor {
 
                 (Ok(CreateOrUpdateRootLayer(layer_properties)),
                  NotShuttingDown) => {
-                    self.create_or_update_root_layer(layer_properties);
+                    let scene_root = self.scene.root.clone();
+                    self.create_or_update_root_layer(&scene_root, layer_properties);
                 }
 
                 (Ok(CreateOrUpdateDescendantLayer(layer_properties)),
                  NotShuttingDown) => {
-                    self.create_or_update_descendant_layer(layer_properties);
+                    match self.find_parent_pipeline_id(self.get_root_pipeline_tree(),
+                                                       layer_properties.pipeline_id) {
+                        Some(parent_pipeline_id) =>
+                            self.create_or_update_descendant_layer(layer_properties,
+                                                                   parent_pipeline_id),
+                        None if self.is_root_pipeline(layer_properties.pipeline_id) =>
+                            self.create_or_update_descendant_layer(layer_properties,
+                                                                   layer_properties.pipeline_id),
+                        None =>
+                            fail!("didn't find pipeline for parent layer for pipeline id {:?}",
+                                  layer_properties.pipeline_id),
+                    }
                 }
 
-                (Ok(SetLayerClipRect(pipeline_id, layer_id, new_rect)), NotShuttingDown) => {
-                    self.set_layer_clip_rect(pipeline_id, layer_id, new_rect);
+                (Ok(SetLayerOrigin(pipeline_id, layer_id, origin)), NotShuttingDown) => {
+                    self.update_layer_clip_rect(pipeline_id,
+                                                layer_id,
+                                                |rect| -> Rect<f32> { Rect (origin, rect.size) });
+                }
+
+                (Ok(SetLayerSize(pipeline_id, layer_id, size)), NotShuttingDown) => {
+                    self.update_layer_clip_rect(pipeline_id,
+                                                layer_id,
+                                                |rect| -> Rect<f32> { Rect (rect.origin, size) });
                 }
 
                 (Ok(Paint(pipeline_id, epoch, replies)), NotShuttingDown) => {
@@ -331,11 +372,50 @@ impl IOCompositor {
         }
     }
 
-    fn change_render_state(&mut self, render_state: RenderState) {
-        self.window.set_render_state(render_state);
-        if render_state == IdleRenderState {
-            self.composite_ready = true;
+    fn change_ready_state(&mut self, pipeline_id: PipelineId, ready_state: ReadyState) {
+        self.ready_states.insert_or_update_with(pipeline_id,
+                                                ready_state,
+                                                |_key, val| *val = ready_state);
+
+        self.window.set_ready_state(self.get_ready_state());
+    }
+
+    fn get_ready_state(&self) -> ReadyState {
+        let mut ready_state = FinishedLoading;
+        for (_, state) in self.ready_states.iter() {
+            ready_state = cmp::min(ready_state, *state);
+            if ready_state == Blank { break; };
         }
+        return ready_state;
+    }
+
+    fn change_render_state(&mut self, pipeline_id: PipelineId, render_state: RenderState) {
+        self.render_states.insert_or_update_with(pipeline_id,
+                                                 render_state,
+                                                 |_key, val| *val = render_state);
+
+
+        let new_render_state = self.get_render_state();
+        self.window.set_render_state(new_render_state);
+        if self.do_synchronous_wait_for_render() {
+            self.composite_ready = new_render_state == IdleRenderState;
+        } else {
+            self.composite_ready |= new_render_state == IdleRenderState;
+        }
+    }
+
+    fn get_render_state(&self) -> RenderState {
+        let mut render_state = IdleRenderState;
+        for (_, state) in self.render_states.iter() {
+            render_state = cmp::min(render_state, *state);
+            if render_state == RenderingRenderState { break; };
+        }
+        return render_state;
+    }
+
+    fn do_synchronous_wait_for_render(&self) -> bool {
+        // only synchronously wait if the compositor outputs to a file.
+        self.opts.output_file.is_some()
     }
 
     fn has_rerendermsg_tracking(&self) -> bool {
@@ -373,11 +453,42 @@ impl IOCompositor {
                new_constellation_chan: ConstellationChan) {
         response_chan.send(());
 
-        self.root_pipeline = Some(frame_tree.pipeline.clone());
+        let tree = CompositionPipelineTree::new(frame_tree);
+        self.pipeline_tree = Some(tree.clone());
+        self.scene.root = Some(self.create_pipeline_tree_root_layers(&tree.clone()));
 
         // Initialize the new constellation channel by sending it the root window size.
         self.constellation_chan = new_constellation_chan;
         self.send_window_size();
+    }
+
+    fn create_pipeline_tree_root_layers(&mut self,
+                                        pipeline_tree: &CompositionPipelineTree)
+                                        -> Rc<Layer<CompositorData>> {
+        let layer_properties = LayerProperties {
+            pipeline_id: pipeline_tree.pipeline.id,
+            epoch: Epoch(0),
+            id: LayerId::null(),
+            rect: Rect(Point2D(0f32,
+                               0f32),
+                       Size2D(0f32,
+                              0f32)),
+            background_color: azure_hl::Color::new(0 as AzFloat,
+                                                   0 as AzFloat,
+                                                   0 as AzFloat,
+                                                   0 as AzFloat),
+            scroll_policy: FixedPosition,
+        };
+        let root_layer = CompositorData::new_layer(pipeline_tree.pipeline.clone(),
+                                                   layer_properties,
+                                                   WantsScrollEvents,
+                                                   self.opts.tile_size);
+        self.ready_states.insert(pipeline_tree.pipeline.id, Blank);
+        self.render_states.insert(pipeline_tree.pipeline.id, RenderingRenderState);
+        for child_pipeline in pipeline_tree.children.iter() {
+            root_layer.add_child(self.create_pipeline_tree_root_layers(child_pipeline));
+        }
+        return root_layer;
     }
 
     fn update_layer_if_exists(&mut self, properties: LayerProperties) -> bool {
@@ -387,7 +498,9 @@ impl IOCompositor {
                                                                             properties.pipeline_id,
                                                                             properties.id) {
                     Some(existing_layer) => {
-                        CompositorData::update_layer(existing_layer.clone(), properties);
+                        CompositorData::update_layer(existing_layer.clone(),
+                                                     self.page_window(),
+                                                     properties);
                         true
                     }
                     None => false,
@@ -397,67 +510,129 @@ impl IOCompositor {
         }
     }
 
-    fn create_or_update_root_layer(&mut self, layer_properties: LayerProperties) {
+    fn create_or_update_root_layer(&mut self,
+                                   root: &Option<Rc<Layer<CompositorData>>>,
+                                   layer_properties: LayerProperties) {
+
         let need_new_root_layer = !self.update_layer_if_exists(layer_properties);
+        let page_window = self.page_window();
         if need_new_root_layer {
-            let root_pipeline = match self.root_pipeline {
-                Some(ref root_pipeline) => root_pipeline.clone(),
-                None => fail!("Compositor: Making new layer without initialized pipeline"),
-            };
-
-            let root_properties = LayerProperties {
-                pipeline_id: root_pipeline.id,
-                epoch: layer_properties.epoch,
-                id: LayerId::null(),
-                rect: layer_properties.rect,
-                background_color: layer_properties.background_color,
-                scroll_policy: FixedPosition,
-            };
-            let new_root = CompositorData::new_layer(root_pipeline,
-                                                     root_properties,
-                                                     WantsScrollEvents,
-                                                     self.opts.tile_size);
-
-            CompositorData::add_child(new_root.clone(), layer_properties);
-
-            // Release all tiles from the layer before dropping it.
-            match self.scene.root {
-                Some(ref mut layer) => CompositorData::clear_all_tiles(layer.clone()),
-                None => { }
-            }
-            self.scene.root = Some(new_root);
+            if self.is_root_pipeline(layer_properties.pipeline_id) {
+                let scene_root = match self.scene.root {
+                    // Release all tiles from the layer before dropping it.
+                    Some(ref mut layer) if layer.extra_data.borrow().id == LayerId::null() => {
+                        CompositorData::clear_all_tiles(layer.clone());
+                        layer
+                    },
+                    // root layer is already initialized
+                    Some(_) => fail!("scene root layer already initialized"),
+                    None => fail!("No scene root layer"),
+                };
+                CompositorData::update_layer(scene_root.clone(), page_window, layer_properties);
+            } else {
+                let root_layer =
+                    match self.find_pipeline_root_layer(root, layer_properties.pipeline_id) {
+                    // Release all tiles from the layer before dropping it.
+                    Some(ref mut layer) => {
+                        CompositorData::clear_all_tiles(layer.clone());
+                        layer.clone()
+                    },
+                    None => fail!("No pipeline root layer"),
+                };
+                CompositorData::update_layer(root_layer.clone(), page_window, layer_properties);
+             }
         }
-
         self.scroll_layer_to_fragment_point_if_necessary(layer_properties.pipeline_id,
                                                          layer_properties.id);
         self.ask_for_tiles();
     }
 
-    fn create_or_update_descendant_layer(&mut self, layer_properties: LayerProperties) {
+    fn create_or_update_descendant_layer(&mut self,
+                                         layer_properties: LayerProperties,
+                                         parent_layer_pipeline_id: PipelineId) {
+
         if !self.update_layer_if_exists(layer_properties) {
-            self.create_descendant_layer(layer_properties);
+            self.create_descendant_layer(layer_properties, parent_layer_pipeline_id);
         }
         self.scroll_layer_to_fragment_point_if_necessary(layer_properties.pipeline_id,
                                                          layer_properties.id);
         self.ask_for_tiles();
     }
 
-    fn create_descendant_layer(&self, layer_properties: LayerProperties) {
+    fn create_descendant_layer(&self,
+                               layer_properties: LayerProperties,
+                               parent_layer_pipeline_id: PipelineId) {
+
         match self.scene.root {
             Some(ref root_layer) => {
-                let parent_layer_id = root_layer.extra_data.borrow().id;
-                match CompositorData::find_layer_with_pipeline_and_layer_id(root_layer.clone(),
-                                                                            layer_properties.pipeline_id,
-                                                                            parent_layer_id) {
-                    Some(ref mut parent_layer) => {
-                        CompositorData::add_child(parent_layer.clone(), layer_properties);
-                    }
-                    None => {
-                        fail!("Compositor: couldn't find parent layer");
-                    }
-                }
+                let x = Some(root_layer.clone());
+                let parent_layer = match self.find_pipeline_root_layer(&x,
+                                                                       parent_layer_pipeline_id) {
+                    Some(l) => l,
+                    None => fail!("couldn't find parent layer"),
+                };
+                CompositorData::add_child(parent_layer.clone(), layer_properties);
             }
             None => fail!("Compositor: Received new layer without initialized pipeline")
+        }
+    }
+
+    fn is_root_pipeline(&mut self, pipeline_id: PipelineId) -> bool {
+        match self.pipeline_tree {
+            Some(ref root_pipeline) => root_pipeline.pipeline.id == pipeline_id,
+            None => fail!("Compositor: Uninitialized pipeline tree"),
+        }
+    }
+
+    fn get_root_pipeline_tree<'a>(&'a self) -> Option<&'a CompositionPipelineTree> {
+        match self.pipeline_tree {
+            Some(ref tree) => Some(tree),
+            None => None,
+        }
+    }
+
+    fn find_parent_pipeline_id(&self,
+                               tree: Option<&CompositionPipelineTree>,
+                               child_pipeline_id: PipelineId)
+                               -> Option<PipelineId> {
+        match tree {
+            Some(ref pipeline_tree) => {
+                for child_pipeline in pipeline_tree.children.iter() {
+                    if child_pipeline.pipeline.id == child_pipeline_id {
+                        return Some(pipeline_tree.pipeline.id);
+                    }
+                }
+                for child_tree in pipeline_tree.children.iter() {
+                    match self.find_parent_pipeline_id(Some(child_tree),
+                                                       child_pipeline_id) {
+                        Some(parent_pipeline_id) => return Some(parent_pipeline_id),
+                        None => {},
+                    }
+                }
+                None
+            },
+            None => None,
+        }
+    }
+
+    fn find_pipeline_root_layer(&self,
+                                root: &Option<Rc<Layer<CompositorData>>>,
+                                pipeline_id: PipelineId)
+                                -> Option<Rc<Layer<CompositorData>>> {
+        let root_layer = match *root {
+            Some(ref layer) => layer.clone(),
+            None => fail!("no layer"),
+        };
+        if root_layer.extra_data.borrow().pipeline.id == pipeline_id {
+            return Some(root_layer);
+        } else {
+            for child in root_layer.children().iter() {
+                match self.find_pipeline_root_layer(&Some(child.clone()), pipeline_id) {
+                    Some(l) => return Some(l),
+                    None => { },
+                }
+            }
+            return None;
         }
     }
 
@@ -499,16 +674,27 @@ impl IOCompositor {
         self.recomposite_if(needs_recomposite);
     }
 
-    fn set_layer_clip_rect(&mut self,
-                           pipeline_id: PipelineId,
-                           layer_id: LayerId,
-                           new_rect: Rect<f32>) {
+    fn update_layer_clip_rect(&mut self,
+                              pipeline_id: PipelineId,
+                              layer_id: LayerId,
+                              f: |rect: Rect<f32>| ->Rect<f32>) {
+        let root_layer = match self.scene.root {
+            Some(ref root) => Some(root.clone()),
+            None => None,
+        };
+        let layer_id = match (layer_id == LayerId::null(),
+                              self.find_pipeline_root_layer(&root_layer, pipeline_id)) {
+            (false, _)  => layer_id,
+            (true, Some(l)) => l.extra_data.borrow().id,
+            (true, None) => fail!("No root layer for pipeline")};
+
         let should_ask_for_tiles = match self.scene.root {
             Some(ref root_layer) => {
                 match CompositorData::find_layer_with_pipeline_and_layer_id(root_layer.clone(),
                                                                             pipeline_id,
                                                                             layer_id) {
                     Some(ref layer) => {
+                        let new_rect = { f(*layer.bounds.borrow()) };
                         *layer.bounds.borrow_mut() = new_rect;
                         true
                     }
@@ -828,7 +1014,7 @@ impl IOCompositor {
 
         // Render to PNG. We must read from the back buffer (ie, before
         // self.window.present()) as OpenGL ES 2 does not have glReadBuffer().
-        if self.load_complete && self.ready_state == FinishedLoading
+        if self.load_complete && self.get_ready_state() == FinishedLoading
             && self.opts.output_file.is_some() && !self.has_outstanding_rerendermsgs() {
             let (width, height) = (self.window_size.width.get(), self.window_size.height.get());
             let path = from_str::<Path>(self.opts.output_file.get_ref().as_slice()).unwrap();
@@ -877,4 +1063,3 @@ impl IOCompositor {
         self.recomposite = result || self.recomposite;
     }
 }
-

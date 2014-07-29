@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use compositor_task::{CompositorChan, LoadComplete, ShutdownComplete, SetLayerClipRect, SetIds};
+use compositor_task::{CompositorChan, LoadComplete, ShutdownComplete, SetLayerOrigin, SetIds};
 use std::collections::hashmap::{HashMap, HashSet};
 use geom::rect::{Rect, TypedRect};
 use geom::scale_factor::ScaleFactor;
@@ -69,11 +69,13 @@ struct ChildFrameTree {
     pub rect: Option<TypedRect<PagePx, f32>>,
 }
 
+#[deriving(Clone)]
 pub struct SendableFrameTree {
     pub pipeline: CompositionPipeline,
     pub children: Vec<SendableChildFrameTree>,
 }
 
+#[deriving(Clone)]
 pub struct SendableChildFrameTree {
     pub frame_tree: SendableFrameTree,
     pub rect: Option<TypedRect<PagePx, f32>>,
@@ -505,13 +507,13 @@ impl<LTF: LayoutTaskFactory> Constellation<LTF> {
                     if is_active {
                         let ScriptChan(ref script_chan) = pipeline.script_chan;
                         script_chan.send(ResizeMsg(pipeline.id, WindowSizeData {
-                            visible_viewport: rect.size,
-                            initial_viewport: rect.size * ScaleFactor(1.0),
-                            device_pixel_ratio: self.window_size.device_pixel_ratio,
-                        }));
-                        self.compositor_chan.send(SetLayerClipRect(pipeline.id,
-                                                                   LayerId::null(),
-                                                                   rect.to_untyped()));
+                                    visible_viewport: rect.size,
+                                    initial_viewport: rect.size * ScaleFactor(1.0),
+                                    device_pixel_ratio: self.window_size.device_pixel_ratio,
+                                }));
+                        self.compositor_chan.send(SetLayerOrigin(pipeline.id,
+                                                                 LayerId::null(),
+                                                                 rect.to_untyped().origin));
                     } else {
                         already_sent.insert(pipeline.id);
                     }

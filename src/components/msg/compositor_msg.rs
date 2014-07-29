@@ -14,13 +14,13 @@ use std::fmt;
 use constellation_msg::PipelineId;
 
 /// The status of the renderer.
-#[deriving(PartialEq, Clone)]
+#[deriving(Eq, Ord, PartialOrd, PartialEq, Clone)]
 pub enum RenderState {
-    IdleRenderState,
     RenderingRenderState,
+    IdleRenderState,
 }
 
-#[deriving(PartialEq, Clone)]
+#[deriving(Eq, Ord, PartialOrd, PartialEq, Clone)]
 pub enum ReadyState {
     /// Informs the compositor that nothing has been done yet. Used for setting status
     Blank,
@@ -94,11 +94,6 @@ pub trait RenderListener {
                                       metadata: Vec<LayerMetadata>,
                                       epoch: Epoch);
 
-    fn set_layer_clip_rect(&self,
-                           pipeline_id: PipelineId,
-                           layer_id: LayerId,
-                           new_rect: Rect<uint>);
-
     /// Sends new tiles for the given layer to the compositor.
     fn paint(&self,
              pipeline_id: PipelineId,
@@ -106,13 +101,13 @@ pub trait RenderListener {
              replies: Vec<(LayerId, Box<LayerBufferSet>)>);
 
     fn rerendermsg_discarded(&self);
-    fn set_render_state(&self, render_state: RenderState);
+    fn set_render_state(&self, pipeline_id: PipelineId, render_state: RenderState);
 }
 
 /// The interface used by the script task to tell the compositor to update its ready state,
 /// which is used in displaying the appropriate message in the window's title.
 pub trait ScriptListener : Clone {
-    fn set_ready_state(&self, ReadyState);
+    fn set_ready_state(&self, PipelineId, ReadyState);
     fn scroll_fragment_point(&self,
                              pipeline_id: PipelineId,
                              layer_id: LayerId,
