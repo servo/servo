@@ -27,7 +27,7 @@ use geom::rect::Rect;
 use geom::size::TypedSize2D;
 use geom::scale_factor::ScaleFactor;
 use gfx::render_task::{RenderChan, ReRenderMsg, ReRenderRequest, UnusedBufferMsg};
-use layers::layers::LayerBufferSet;
+use layers::layers::{BufferRequest, Layer, LayerBufferSet};
 use layers::rendergl;
 use layers::rendergl::RenderContext;
 use layers::scene::Scene;
@@ -806,61 +806,78 @@ impl IOCompositor {
         chan.send(NavigateMsg(direction))
     }
 
-    /// Get BufferRequests from each layer.
-    fn ask_for_tiles(&mut self) {
+    fn convert_buffer_requests_to_pipeline_requests_map(&self,
+                                                        requests: Vec<(Rc<Layer<CompositorData>>,
+                                                                       Vec<BufferRequest>)>) ->
+                                                        HashMap<PipelineId, (RenderChan,
+                                                                             Vec<ReRenderRequest>)> {
         let scale = self.device_pixels_per_page_px();
-        let mut num_rerendermsgs_sent = 0;
-        let window_rect_in_device_pixels = Rect(Point2D(0f32, 0f32),
-                                                self.window_size.as_f32().to_untyped());
+        let mut results:
+            HashMap<PipelineId, (RenderChan, Vec<ReRenderRequest>)> = HashMap::new();
 
-        match self.scene.root {
-            Some(ref mut layer) => {
-                let mut layers_and_requests = Vec::new();
-                let mut unused_buffers = Vec::new();
-                CompositorData::get_buffer_requests_recursively(&mut layers_and_requests,
-                                                                &mut unused_buffers,
-                                                                layer.clone(),
-                                                                window_rect_in_device_pixels);
+        for (layer, mut layer_requests) in requests.move_iter() {
+            let pipeline_id = layer.extra_data.borrow().pipeline.id;
+            let &(_, ref mut vec) = results.find_or_insert_with(pipeline_id, |_| {
+                (layer.extra_data.borrow().pipeline.render_chan.clone(), Vec::new())
+            });
 
-                // Return unused tiles first, so that they can be reused by any new BufferRequests.
+            // All the BufferRequests are in layer/device coordinates, but the render task
+            // wants to know the page coordinates. We scale them before sending them.
+            for request in layer_requests.mut_iter() {
+                request.page_rect = request.page_rect / scale.get();
+            }
+
+            vec.push(ReRenderRequest {
+                buffer_requests: layer_requests,
+                scale: scale.get(),
+                layer_id: layer.extra_data.borrow().id,
+                epoch: layer.extra_data.borrow().epoch,
+            });
+        }
+
+        return results;
+    }
+
+    fn send_back_unused_buffers(&mut self) {
+        match self.root_pipeline {
+            Some(ref pipeline) => {
+                let unused_buffers = self.scene.collect_unused_buffers();
                 let have_unused_buffers = unused_buffers.len() > 0;
                 self.recomposite = self.recomposite || have_unused_buffers;
                 if have_unused_buffers {
                     let message = UnusedBufferMsg(unused_buffers);
-                    let _ = layer.extra_data.borrow().pipeline.render_chan.send_opt(message);
+                    let _ = pipeline.render_chan.send_opt(message);
                 }
-
-                // We want to batch requests for each pipeline to avoid race conditions
-                // when handling the resulting BufferRequest responses.
-                let mut pipeline_requests:
-                    HashMap<PipelineId, (RenderChan, Vec<ReRenderRequest>)> = HashMap::new();
-                for (layer, mut requests) in layers_and_requests.move_iter() {
-                    let pipeline_id = layer.extra_data.borrow().pipeline.id;
-                    let &(_, ref mut vec) = pipeline_requests.find_or_insert_with(pipeline_id, |_| {
-                        (layer.extra_data.borrow().pipeline.render_chan.clone(), Vec::new())
-                    });
-
-                    // All the BufferRequests are in layer/device coordinates, but the render task
-                    // wants to know the page coordinates. We scale them before sending them.
-                    for request in requests.mut_iter() {
-                        request.page_rect = request.page_rect / scale.get();
-                    }
-
-                    vec.push(ReRenderRequest {
-                        buffer_requests: requests,
-                        scale: scale.get(),
-                        layer_id: layer.extra_data.borrow().id,
-                        epoch: layer.extra_data.borrow().epoch,
-                    });
-                }
-
-                for (_pipeline_id, (chan, requests)) in pipeline_requests.move_iter() {
-                    num_rerendermsgs_sent += 1;
-                    let _ = chan.send_opt(ReRenderMsg(requests));
-                }
-            }
-            None => { }
+            },
+            None => {}
         }
+    }
+
+    /// Get BufferRequests from each layer.
+    fn ask_for_tiles(&mut self) {
+        let mut layers_and_requests = Vec::new();
+        self.scene.get_buffer_requests(&mut layers_and_requests,
+                                       Rect(Point2D(0f32, 0f32),
+                                            self.window_size.as_f32().to_untyped()));
+
+        // Return unused tiles first, so that they can be reused by any new BufferRequests.
+        self.send_back_unused_buffers();
+
+        if layers_and_requests.len() == 0 {
+            return;
+        }
+
+        // We want to batch requests for each pipeline to avoid race conditions
+        // when handling the resulting BufferRequest responses.
+        let pipeline_requests =
+            self.convert_buffer_requests_to_pipeline_requests_map(layers_and_requests);
+
+        let mut num_rerendermsgs_sent = 0;
+        for (_pipeline_id, (chan, requests)) in pipeline_requests.move_iter() {
+            num_rerendermsgs_sent += 1;
+            let _ = chan.send_opt(ReRenderMsg(requests));
+        }
+
         self.add_outstanding_rerendermsg(num_rerendermsgs_sent);
     }
 
