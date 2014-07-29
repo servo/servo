@@ -101,8 +101,8 @@ pub struct IOCompositor {
     zoom_time: f64,
 
     /// Current display/reflow status of the page
-    ready_state: HashMap<PipelineId, ReadyState>,
-    render_state: HashMap<PipelineId, RenderState>,
+    ready_states: HashMap<PipelineId, ReadyState>,
+    render_states: HashMap<PipelineId, RenderState>,
 
     /// Whether the page being rendered has loaded completely.
     /// Differs from ReadyState because we can finish loading (ready)
@@ -185,8 +185,8 @@ impl IOCompositor {
             viewport_zoom: ScaleFactor(1.0),
             zoom_action: false,
             zoom_time: 0f64,
-            ready_state: HashMap::new(),
-            render_state: HashMap::new(),
+            ready_states: HashMap::new(),
+            render_states: HashMap::new(),
             load_complete: false,
             constellation_chan: constellation_chan,
             time_profiler_chan: time_profiler_chan,
@@ -373,16 +373,16 @@ impl IOCompositor {
     }
 
     fn change_ready_state(&mut self, pipeline_id: PipelineId, ready_state: ReadyState) {
-        self.ready_state.insert_or_update_with(pipeline_id,
-                                               ready_state,
-                                               |_key, val| *val = ready_state);
+        self.ready_states.insert_or_update_with(pipeline_id,
+                                                ready_state,
+                                                |_key, val| *val = ready_state);
 
         self.window.set_ready_state(self.get_ready_state());
     }
 
     fn get_ready_state(&self) -> ReadyState {
         let mut ready_state = FinishedLoading;
-        for (_, state) in self.ready_state.iter() {
+        for (_, state) in self.ready_states.iter() {
             ready_state = cmp::min(ready_state, *state);
             if ready_state == Blank { break; };
         }
@@ -390,23 +390,32 @@ impl IOCompositor {
     }
 
     fn change_render_state(&mut self, pipeline_id: PipelineId, render_state: RenderState) {
-        self.render_state.insert_or_update_with(pipeline_id,
-                                               render_state,
-                                               |_key, val| *val = render_state);
+        self.render_states.insert_or_update_with(pipeline_id,
+                                                 render_state,
+                                                 |_key, val| *val = render_state);
 
 
         let new_render_state = self.get_render_state();
         self.window.set_render_state(new_render_state);
-        self.composite_ready = new_render_state == IdleRenderState;
+        if self.do_synchronous_wait_for_render() {
+            self.composite_ready = new_render_state == IdleRenderState;
+        } else {
+            self.composite_ready = new_render_state == IdleRenderState;
+        }
     }
 
     fn get_render_state(&self) -> RenderState {
         let mut render_state = IdleRenderState;
-        for (_, state) in self.render_state.iter() {
+        for (_, state) in self.render_states.iter() {
             render_state = cmp::min(render_state, *state);
             if render_state == RenderingRenderState { break; };
         }
         render_state
+    }
+
+    fn do_synchronous_wait_for_render(&self) -> bool {
+        // only synchronously wait if the compositor outputs to a file.
+        self.opts.output_file.is_some()
     }
 
     fn has_rerendermsg_tracking(&self) -> bool {
@@ -474,8 +483,8 @@ impl IOCompositor {
                                                    layer_properties,
                                                    WantsScrollEvents,
                                                    self.opts.tile_size);
-        self.ready_state.insert(pipeline_tree.pipeline.id, Blank);
-        self.render_state.insert(pipeline_tree.pipeline.id, RenderingRenderState);
+        self.ready_states.insert(pipeline_tree.pipeline.id, Blank);
+        self.render_states.insert(pipeline_tree.pipeline.id, RenderingRenderState);
         for child_pipeline in pipeline_tree.children.iter() {
             root_layer.add_child(self.create_pipeline_tree_root_layers(child_pipeline));
         }
@@ -575,7 +584,7 @@ impl IOCompositor {
         }
     }
 
-    fn get_root_pipeline_tree<'a>(&'a self) -> Option<&'a CompositionPipelineTree>{
+    fn get_root_pipeline_tree<'a>(&'a self) -> Option<&'a CompositionPipelineTree> {
         match self.pipeline_tree {
             Some(ref tree) => Some(tree),
             None => None,

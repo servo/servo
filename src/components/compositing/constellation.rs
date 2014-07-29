@@ -510,7 +510,7 @@ impl<LTF: LayoutTaskFactory> Constellation<LTF> {
                             visible_viewport: rect.size,
                             initial_viewport: rect.size * ScaleFactor(1.0),
                             device_pixel_ratio: self.window_size.device_pixel_ratio,
-                                }));
+                            }));
                         self.compositor_chan.send(SetLayerOrigin(pipeline.id,
                                                                  LayerId::null(),
                                                                  rect.to_untyped().origin));
