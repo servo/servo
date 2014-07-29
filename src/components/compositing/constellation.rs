@@ -507,10 +507,10 @@ impl<LTF: LayoutTaskFactory> Constellation<LTF> {
                     if is_active {
                         let ScriptChan(ref script_chan) = pipeline.script_chan;
                         script_chan.send(ResizeMsg(pipeline.id, WindowSizeData {
-                            visible_viewport: rect.size,
-                            initial_viewport: rect.size * ScaleFactor(1.0),
-                            device_pixel_ratio: self.window_size.device_pixel_ratio,
-                            }));
+                                    visible_viewport: rect.size,
+                                    initial_viewport: rect.size * ScaleFactor(1.0),
+                                    device_pixel_ratio: self.window_size.device_pixel_ratio,
+                                }));
                         self.compositor_chan.send(SetLayerOrigin(pipeline.id,
                                                                  LayerId::null(),
                                                                  rect.to_untyped().origin));

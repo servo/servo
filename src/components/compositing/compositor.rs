@@ -340,13 +340,13 @@ impl IOCompositor {
                 (Ok(SetLayerOrigin(pipeline_id, layer_id, origin)), NotShuttingDown) => {
                     self.update_layer_clip_rect(pipeline_id,
                                                 layer_id,
-                                                | rect | -> Rect<f32> { Rect (origin, rect.size) });
+                                                |rect| -> Rect<f32> { Rect (origin, rect.size) });
                 }
 
                 (Ok(SetLayerSize(pipeline_id, layer_id, size)), NotShuttingDown) => {
                     self.update_layer_clip_rect(pipeline_id,
                                                 layer_id,
-                                                | rect | -> Rect<f32> { Rect (rect.origin, size) });
+                                                |rect| -> Rect<f32> { Rect (rect.origin, size) });
                 }
 
                 (Ok(Paint(pipeline_id, epoch, replies)), NotShuttingDown) => {
@@ -386,7 +386,7 @@ impl IOCompositor {
             ready_state = cmp::min(ready_state, *state);
             if ready_state == Blank { break; };
         }
-        ready_state
+        return ready_state;
     }
 
     fn change_render_state(&mut self, pipeline_id: PipelineId, render_state: RenderState) {
@@ -400,7 +400,7 @@ impl IOCompositor {
         if self.do_synchronous_wait_for_render() {
             self.composite_ready = new_render_state == IdleRenderState;
         } else {
-            self.composite_ready = new_render_state == IdleRenderState;
+            self.composite_ready |= new_render_state == IdleRenderState;
         }
     }
 
@@ -410,7 +410,7 @@ impl IOCompositor {
             render_state = cmp::min(render_state, *state);
             if render_state == RenderingRenderState { break; };
         }
-        render_state
+        return render_state;
     }
 
     fn do_synchronous_wait_for_render(&self) -> bool {
