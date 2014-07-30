@@ -40,6 +40,7 @@ pub mod local_image_cache;
 pub mod resource_task;
 
 pub mod fetch {
+    #![allow(dead_code)] // XXXManishearth this is only temporary until the Fetch mod starts being used
     pub mod request;
     pub mod response;
 }
