@@ -20,11 +20,11 @@
             }
             // test2: Node.namespaceURI
             {
-                is(document.namespaceURI, null, "test2.0: createElementNS");
+                is(document.namespaceURI, undefined, "test2.0: createElementNS");
                 is(document.documentElement.namespaceURI, "http://www.w3.org/1999/xhtml", "test2.1: createElementNS");
                 var scriptElt = document.getElementById("script");
-                is(scriptElt.firstChild.namespaceURI, null, "test2.2: createElementNS");
-                is(scriptElt.nextSibling.namespaceURI, null, "test2.3: createElementNS");
+                is(scriptElt.firstChild.namespaceURI, undefined, "test2.2: createElementNS");
+                is(scriptElt.nextSibling.namespaceURI, undefined, "test2.3: createElementNS");
             }
 
             finish();
