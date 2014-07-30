@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use compositor_data::{CompositorData, WantsScrollEvents};
+use compositor_data::{CompositorData, DoesntWantScrollEvents, WantsScrollEvents};
 use compositor_task::{Msg, CompositorTask, Exit, ChangeReadyState, SetIds, LayerProperties};
 use compositor_task::{GetGraphicsMetadata, CreateOrUpdateRootLayer, CreateOrUpdateDescendantLayer};
 use compositor_task::{SetLayerClipRect, Paint, ScrollFragmentPoint, LoadComplete};
@@ -421,12 +421,15 @@ impl IOCompositor {
                 background_color: layer_properties.background_color,
                 scroll_policy: FixedPosition,
             };
-            let new_root = CompositorData::new_layer(root_pipeline,
+            let new_root = CompositorData::new_layer(root_pipeline.clone(),
                                                      root_properties,
                                                      WantsScrollEvents,
                                                      self.opts.tile_size);
-
-            CompositorData::add_child(new_root.clone(), layer_properties);
+            let first_chid = CompositorData::new_layer(root_pipeline.clone(),
+                                                       layer_properties,
+                                                       DoesntWantScrollEvents,
+                                                       self.opts.tile_size);
+            new_root.add_child(first_chid);
 
             // Release all tiles from the layer before dropping it.
             match self.scene.root {
@@ -459,7 +462,12 @@ impl IOCompositor {
                                                                             layer_properties.pipeline_id,
                                                                             parent_layer_id) {
                     Some(ref mut parent_layer) => {
-                        CompositorData::add_child(parent_layer.clone(), layer_properties);
+                        let pipeline = parent_layer.extra_data.borrow().pipeline.clone();
+                        let new_layer = CompositorData::new_layer(pipeline,
+                                                                  layer_properties,
+                                                                  DoesntWantScrollEvents,
+                                                                  parent_layer.tile_size);
+                        parent_layer.add_child(new_layer);
                     }
                     None => {
                         fail!("Compositor: couldn't find parent layer");

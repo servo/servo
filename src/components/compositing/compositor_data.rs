@@ -68,18 +68,6 @@ impl CompositorData {
         Rc::new(Layer::new(layer_properties.rect, tile_size, new_compositor_data))
     }
 
-    /// Adds a child layer to the layer with the given ID and the given pipeline, if it doesn't
-    /// exist yet. The child layer will have the same pipeline, tile size, memory limit, and CPU
-    /// painting status as its parent.
-    pub fn add_child(layer: Rc<Layer<CompositorData>>,
-                     layer_properties: LayerProperties) {
-        let new_kid = CompositorData::new_layer(layer.extra_data.borrow().pipeline.clone(),
-                                                layer_properties,
-                                                DoesntWantScrollEvents,
-                                                layer.tile_size);
-        layer.add_child(new_kid.clone());
-    }
-
     pub fn update_layer(layer: Rc<Layer<CompositorData>>, layer_properties: LayerProperties) {
         layer.extra_data.borrow_mut().epoch = layer_properties.epoch;
         layer.extra_data.borrow_mut().background_color = layer_properties.background_color;
