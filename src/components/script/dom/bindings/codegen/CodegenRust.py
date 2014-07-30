@@ -497,7 +497,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         return CGWrapper(
             CGGeneric(
                 failureCode or
-                ('//XXXjdm ThrowErrorMessage(cx, MSG_NOT_OBJECT, "%s");\n'
+                ('throw_type_error(cx, "%s is not an object.");\n'
                  '%s' % (firstCap(sourceDescription), exceptionCode))),
             post="\n")
     def onFailureBadType(failureCode, typeName):
