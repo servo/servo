@@ -393,6 +393,11 @@ impl<'le> TElement for LayoutElement<'le> {
             self.element.node.get_hover_state_for_layout()
         }
     }
+
+    #[inline]
+    fn get_id(&self) -> Option<Atom> {
+        unsafe { self.element.get_attr_atom_for_layout(&namespace::Null, "id") }
+    }
 }
 
 fn get_content(content_list: &content::T) -> String {

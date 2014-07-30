@@ -26,5 +26,6 @@ pub trait TElement {
     fn get_local_name<'a>(&'a self) -> &'a Atom;
     fn get_namespace<'a>(&'a self) -> &'a Namespace;
     fn get_hover_state(&self) -> bool;
+    fn get_id(&self) -> Option<Atom>;
 }
 

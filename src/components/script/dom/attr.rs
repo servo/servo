@@ -30,6 +30,7 @@ pub enum AttrValue {
     StringAttrValue(DOMString),
     TokenListAttrValue(DOMString, Vec<(uint, uint)>),
     UIntAttrValue(DOMString, u32),
+    AtomAttrValue(Atom),
 }
 
 impl AttrValue {
@@ -50,11 +51,17 @@ impl AttrValue {
         UIntAttrValue(string, result)
     }
 
+    pub fn from_atomic(string: DOMString) -> AttrValue {
+        let value = Atom::from_slice(string.as_slice());
+        AtomAttrValue(value)
+    }
+
     pub fn as_slice<'a>(&'a self) -> &'a str {
         match *self {
             StringAttrValue(ref value) |
             TokenListAttrValue(ref value, _) |
             UIntAttrValue(ref value, _) => value.as_slice(),
+            AtomAttrValue(ref value) => value.as_slice(),
         }
     }
 }
@@ -160,6 +167,7 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
 
 pub trait AttrHelpersForLayout {
     unsafe fn value_ref_forever(&self) -> &'static str;
+    unsafe fn value_atom_forever(&self) -> Option<Atom>;
 }
 
 impl AttrHelpersForLayout for Attr {
@@ -167,5 +175,14 @@ impl AttrHelpersForLayout for Attr {
         // cast to point to T in RefCell<T> directly
         let value = mem::transmute::<&RefCell<AttrValue>, &AttrValue>(self.value.deref());
         value.as_slice()
+    }
+
+    unsafe fn value_atom_forever(&self) -> Option<Atom> {
+        // cast to point to T in RefCell<T> directly
+        let value = mem::transmute::<&RefCell<AttrValue>, &AttrValue>(self.value.deref());
+        match *value {
+            AtomAttrValue(ref val) => Some(val.clone()),
+            _ => None,
+        }
     }
 }

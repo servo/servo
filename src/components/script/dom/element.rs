@@ -6,7 +6,7 @@
 
 use cssparser::tokenize;
 use dom::attr::{Attr, ReplacedAttr, FirstSetAttr, AttrHelpersForLayout};
-use dom::attr::{AttrValue, StringAttrValue, UIntAttrValue};
+use dom::attr::{AttrValue, StringAttrValue, UIntAttrValue, AtomAttrValue};
 use dom::attrlist::AttrList;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::ElementBinding;
@@ -168,6 +168,7 @@ impl Element {
 
 pub trait RawLayoutElementHelpers {
     unsafe fn get_attr_val_for_layout(&self, namespace: &Namespace, name: &str) -> Option<&'static str>;
+    unsafe fn get_attr_atom_for_layout(&self, namespace: &Namespace, name: &str) -> Option<Atom>;
 }
 
 impl RawLayoutElementHelpers for Element {
@@ -182,6 +183,20 @@ impl RawLayoutElementHelpers for Element {
         }).map(|attr| {
             let attr = attr.unsafe_get();
             (*attr).value_ref_forever()
+        })
+    }
+
+    #[inline]
+    unsafe fn get_attr_atom_for_layout(&self, namespace: &Namespace, name: &str)
+                                      -> Option<Atom> {
+        // cast to point to T in RefCell<T> directly
+        let attrs: *Vec<JS<Attr>> = mem::transmute(&self.attrs);
+        (*attrs).iter().find(|attr: & &JS<Attr>| {
+            let attr = attr.unsafe_get();
+            name == (*attr).local_name.as_slice() && (*attr).namespace == *namespace
+        }).and_then(|attr| {
+            let attr = attr.unsafe_get();
+            (*attr).value_atom_forever()
         })
     }
 }
@@ -238,6 +253,8 @@ pub trait AttributeHandlers {
     fn remove_attribute(&self, namespace: Namespace, name: &str);
     fn notify_attribute_changed(&self, local_name: DOMString);
     fn has_class(&self, name: &str) -> bool;
+
+    fn set_atomic_attribute(&self, name: &str, value: DOMString);
 
     // http://www.whatwg.org/html/#reflecting-content-attributes-in-idl-attributes
     fn get_url_attribute(&self, name: &str) -> DOMString;
@@ -362,6 +379,12 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         classes.any(|class| name == class)
     }
 
+    fn set_atomic_attribute(&self, name: &str, value: DOMString) {
+        assert!(name == name.to_ascii_lower().as_slice());
+        let value = AttrValue::from_atomic(value);
+        self.set_attribute(name, value);
+    }
+
     fn get_url_attribute(&self, name: &str) -> DOMString {
         // XXX Resolve URL.
         self.get_string_attribute(name)
@@ -459,7 +482,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
     // http://dom.spec.whatwg.org/#dom-element-id
     fn SetId(&self, id: DOMString) {
-        self.set_string_attribute("id", id);
+        self.set_atomic_attribute("id", id);
     }
 
     // http://dom.spec.whatwg.org/#dom-element-classname
@@ -824,6 +847,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
 
     fn parse_plain_attribute(&self, name: &str, value: DOMString) -> AttrValue {
         match name {
+            "id" => AttrValue::from_atomic(value),
             "class" => AttrValue::from_tokenlist(value),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
@@ -891,5 +915,14 @@ impl<'a> style::TElement for JSRef<'a, Element> {
     fn get_hover_state(&self) -> bool {
         let node: &JSRef<Node> = NodeCast::from_ref(self);
         node.get_hover_state()
+    }
+    fn get_id<'a>(&self) -> Option<Atom> {
+        self.get_attribute(namespace::Null, "id").map(|attr| {
+            let attr = attr.root();
+            match *attr.value() {
+                AtomAttrValue(ref val) => val.clone(),
+                _ => fail!("`id` attribute should be AtomAttrValue"),
+            }
+        })
     }
 }
