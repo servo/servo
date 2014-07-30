@@ -17,9 +17,10 @@ from wptrunner import wptrunner, wptcommandline
 import manifest
 
 def update_manifest():
-    opts = argparse.Namespace(rebuild=False, experimental_include_local_changes=True,
-                              path=wptsubdir("metadata", "MANIFEST.json"))
-    manifest.update_manifest(wptsubdir("web-platform-tests"), opts)
+    manifest.update_manifest(wptsubdir("web-platform-tests"),
+                             rebuild=False,
+                             experimental_include_local_changes=True,
+                             path=wptsubdir("metadata", "MANIFEST.json"))
     return True
 
 def run_tests(**kwargs):
@@ -40,8 +41,7 @@ def main():
     parser.add_argument('--update-manifest', dest='update_manifest', action='store_true')
     args = parser.parse_args()
     if args.update_manifest:
-        update_manifest()
-        return True
+        return update_manifest()
     kwargs = set_defaults(args)
     return run_tests(**kwargs)
 
