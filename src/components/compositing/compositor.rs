@@ -223,7 +223,7 @@ impl IOCompositor {
             // If a pinch-zoom happened recently, ask for tiles at the new resolution
             if self.zoom_action && precise_time_s() - self.zoom_time > 0.3 {
                 self.zoom_action = false;
-                self.ask_for_tiles();
+                self.send_buffer_requests_for_all_layers();
             }
 
         }
@@ -438,7 +438,7 @@ impl IOCompositor {
 
         self.scroll_layer_to_fragment_point_if_necessary(layer_properties.pipeline_id,
                                                          layer_properties.id);
-        self.ask_for_tiles();
+        self.send_buffer_requests_for_all_layers();
     }
 
     fn create_or_update_descendant_layer(&mut self, mut layer_properties: LayerProperties) {
@@ -448,7 +448,7 @@ impl IOCompositor {
         }
         self.scroll_layer_to_fragment_point_if_necessary(layer_properties.pipeline_id,
                                                          layer_properties.id);
-        self.ask_for_tiles();
+        self.send_buffer_requests_for_all_layers();
     }
 
     fn create_descendant_layer(&self, layer_properties: LayerProperties) {
@@ -534,7 +534,7 @@ impl IOCompositor {
         };
 
         if should_ask_for_tiles {
-            self.ask_for_tiles();
+            self.send_buffer_requests_for_all_layers();
         }
     }
 
@@ -602,7 +602,7 @@ impl IOCompositor {
 
         if ask {
             self.recomposite_if(move);
-            self.ask_for_tiles();
+            self.send_buffer_requests_for_all_layers();
         }
     }
 
@@ -735,7 +735,7 @@ impl IOCompositor {
             None => { }
         }
         self.recomposite_if(scroll);
-        self.ask_for_tiles();
+        self.send_buffer_requests_for_all_layers();
     }
 
     fn device_pixels_per_screen_px(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32> {
@@ -853,8 +853,7 @@ impl IOCompositor {
         }
     }
 
-    /// Get BufferRequests from each layer.
-    fn ask_for_tiles(&mut self) {
+    fn send_buffer_requests_for_all_layers(&mut self) {
         let mut layers_and_requests = Vec::new();
         self.scene.get_buffer_requests(&mut layers_and_requests,
                                        Rect(Point2D(0f32, 0f32),
