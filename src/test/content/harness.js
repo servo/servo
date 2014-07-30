@@ -20,8 +20,8 @@ function _printer(opstr, op) {
   };
 }
 
-var is          = _printer("==",           function (a,b) { return a == b; });
-var is_not      = _printer("!=",           function (a,b) { return a != b; });
+var is          = _printer("===",          function (a,b) { return a === b; });
+var is_not      = _printer("!==",          function (a,b) { return a !== b; });
 var is_a        = _printer("is a",         function (a,b) { return a instanceof b; });
 var is_not_a    = _printer("is not a",     function (a,b) { return !(a instanceof b); });
 var is_in       = _printer("is in",        function (a,b) { return a in b; });
