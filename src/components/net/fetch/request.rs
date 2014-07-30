@@ -53,8 +53,7 @@ pub enum ResponseTainting {
     Opaque // Opaque
 }
 
-/// A Request as defined by the [Fetch spec](http://fetch.spec.whatwg.org/#requests)
-/// 
+/// A [Request](http://fetch.spec.whatwg.org/#requests) as defined by the Fetch spec
 pub struct Request {
     pub method: Method,
     pub url: Url,
@@ -82,7 +81,7 @@ pub struct Request {
 }
 
 impl Request {
-    fn new(url: Url, context: Context) -> Request {
+    pub fn new(url: Url, context: Context) -> Request {
          Request {
             method: Get,
             url: url,
