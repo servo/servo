@@ -17,9 +17,12 @@ from wptrunner import wptrunner, wptcommandline
 import manifest
 
 def update_manifest():
-    opts = argparse.Namespace(rebuild=False, experimental_include_local_changes=True,
-                              path=wptsubdir("metadata", "MANIFEST.json"))
-    manifest.update_manifest(wptsubdir("web-platform-tests"), opts)
+    opts = {
+        "rebuild": False,
+        "experimental_include_local_changes": True,
+        "path": wptsubdir("metadata", "MANIFEST.json"),
+    }
+    manifest.update_manifest(wptsubdir("web-platform-tests"), **opts)
     return True
 
 def run_tests(**kwargs):
