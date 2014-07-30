@@ -4,7 +4,8 @@
 
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLIFrameElementDerived, HTMLElementCast};
+use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLIFrameElementDerived};
 use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
 use dom::bindings::trace::Traceable;
 use dom::bindings::utils::{Reflectable, Reflector};
@@ -13,7 +14,7 @@ use dom::element::{HTMLIFrameElementTypeId, Element};
 use dom::element::AttributeHandlers;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, ElementNodeTypeId, window_from_node};
+use dom::node::{Node, NodeHelpers, ElementNodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
 use page::IterablePage;
@@ -59,6 +60,8 @@ pub struct IFrameSize {
 pub trait HTMLIFrameElementHelpers {
     fn is_sandboxed(&self) -> bool;
     fn get_url(&self) -> Option<Url>;
+    /// http://www.whatwg.org/html/#process-the-iframe-attributes
+    fn process_the_iframe_attributes(&self);
 }
 
 impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
@@ -73,6 +76,32 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
             UrlParser::new().base_url(&window.deref().page().get_url())
                 .parse(src.deref().value().as_slice()).ok()
         })
+    }
+
+    fn process_the_iframe_attributes(&self) {
+        match self.get_url() {
+            Some(url) => {
+                let sandboxed = if self.is_sandboxed() {
+                    IFrameSandboxed
+                } else {
+                    IFrameUnsandboxed
+                };
+
+                // Subpage Id
+                let window = window_from_node(self).root();
+                let page = window.deref().page();
+                let subpage_id = page.get_next_subpage_id();
+
+                self.deref().size.deref().set(Some(IFrameSize {
+                    pipeline_id: page.id,
+                    subpage_id: subpage_id,
+                }));
+
+                let ConstellationChan(ref chan) = *page.constellation_chan.deref();
+                chan.send(LoadIframeUrlMsg(url, page.id, subpage_id, sandboxed));
+            }
+            _ => ()
+        }
     }
 }
 
@@ -155,6 +184,13 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
             }
             self.deref().sandbox.deref().set(Some(modes));
         }
+
+        if "src" == name.as_slice() {
+            let node: &JSRef<Node> = NodeCast::from_ref(self);
+            if node.is_in_doc() {
+                self.process_the_iframe_attributes()
+            }
+        }
     }
 
     fn before_remove_attr(&self, name: DOMString, value: DOMString) {
@@ -174,30 +210,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
             _ => (),
         }
 
-        if !tree_in_doc { return; }
-
-        match self.get_url() {
-            Some(url) => {
-                let sandboxed = if self.is_sandboxed() {
-                    IFrameSandboxed
-                } else {
-                    IFrameUnsandboxed
-                };
-
-                // Subpage Id
-                let window = window_from_node(self).root();
-                let page = window.deref().page();
-                let subpage_id = page.get_next_subpage_id();
-
-                self.deref().size.deref().set(Some(IFrameSize {
-                    pipeline_id: page.id,
-                    subpage_id: subpage_id,
-                }));
-
-                let ConstellationChan(ref chan) = *page.constellation_chan.deref();
-                chan.send(LoadIframeUrlMsg(url, page.id, subpage_id, sandboxed));
-            }
-            _ => ()
+        if tree_in_doc {
+            self.process_the_iframe_attributes();
         }
     }
 }
