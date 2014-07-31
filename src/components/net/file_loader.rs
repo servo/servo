@@ -8,8 +8,7 @@ use std::io;
 use std::io::File;
 use servo_util::task::spawn_named;
 
-//FIXME: https://github.com/mozilla/rust/issues/12892
-static READ_SIZE: uint = 1;
+static READ_SIZE: uint = 8192;
 
 fn read_all(reader: &mut io::Stream, progress_chan: &Sender<ProgressMsg>)
         -> Result<(), String> {
@@ -18,7 +17,12 @@ fn read_all(reader: &mut io::Stream, progress_chan: &Sender<ProgressMsg>)
         match reader.push_at_least(READ_SIZE, READ_SIZE, &mut buf) {
             Ok(_) => progress_chan.send(Payload(buf)),
             Err(e) => match e.kind {
-                io::EndOfFile => return Ok(()),
+                io::EndOfFile => {
+                    if buf.len() > 0 {
+                        progress_chan.send(Payload(buf));
+                    }
+                    return Ok(());
+                }
                 _ => return Err(e.desc.to_string()),
             }
         }
