@@ -374,7 +374,7 @@ impl<C:RenderListener + Send> RenderTask<C> {
                 // draw target in GPU rendering mode, so that it doesn't have to recreate it.
                 let buffer = match self.graphics_context {
                     CpuGraphicsContext => {
-                        let buffer = match self.buffer_map.find(tile.screen_rect.size) {
+                        let mut buffer = match self.buffer_map.find(tile.screen_rect.size) {
                             Some(buffer) => {
                                 let mut buffer = buffer;
                                 buffer.rect = tile.page_rect;
