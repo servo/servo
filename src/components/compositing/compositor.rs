@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use compositor_data::{CompositorData, WantsScrollEvents};
+use compositor_data::{CompositorData, DoesntWantScrollEvents, WantsScrollEvents};
 use compositor_task::{Msg, CompositorTask, Exit, ChangeReadyState, SetIds, LayerProperties};
 use compositor_task::{GetGraphicsMetadata, CreateOrUpdateRootLayer, CreateOrUpdateDescendantLayer};
 use compositor_task::{SetLayerClipRect, Paint, ScrollFragmentPoint, LoadComplete};
@@ -27,7 +27,7 @@ use geom::rect::Rect;
 use geom::size::TypedSize2D;
 use geom::scale_factor::ScaleFactor;
 use gfx::render_task::{RenderChan, ReRenderMsg, ReRenderRequest, UnusedBufferMsg};
-use layers::layers::LayerBufferSet;
+use layers::layers::{BufferRequest, Layer, LayerBufferSet};
 use layers::rendergl;
 use layers::rendergl::RenderContext;
 use layers::scene::Scene;
@@ -223,7 +223,7 @@ impl IOCompositor {
             // If a pinch-zoom happened recently, ask for tiles at the new resolution
             if self.zoom_action && precise_time_s() - self.zoom_time > 0.3 {
                 self.zoom_action = false;
-                self.ask_for_tiles();
+                self.send_buffer_requests_for_all_layers();
             }
 
         }
@@ -421,12 +421,15 @@ impl IOCompositor {
                 background_color: layer_properties.background_color,
                 scroll_policy: FixedPosition,
             };
-            let new_root = CompositorData::new_layer(root_pipeline,
+            let new_root = CompositorData::new_layer(root_pipeline.clone(),
                                                      root_properties,
                                                      WantsScrollEvents,
                                                      self.opts.tile_size);
-
-            CompositorData::add_child(new_root.clone(), layer_properties);
+            let first_chid = CompositorData::new_layer(root_pipeline.clone(),
+                                                       layer_properties,
+                                                       DoesntWantScrollEvents,
+                                                       self.opts.tile_size);
+            new_root.add_child(first_chid);
 
             // Release all tiles from the layer before dropping it.
             match self.scene.root {
@@ -438,7 +441,7 @@ impl IOCompositor {
 
         self.scroll_layer_to_fragment_point_if_necessary(layer_properties.pipeline_id,
                                                          layer_properties.id);
-        self.ask_for_tiles();
+        self.send_buffer_requests_for_all_layers();
     }
 
     fn create_or_update_descendant_layer(&mut self, mut layer_properties: LayerProperties) {
@@ -448,7 +451,7 @@ impl IOCompositor {
         }
         self.scroll_layer_to_fragment_point_if_necessary(layer_properties.pipeline_id,
                                                          layer_properties.id);
-        self.ask_for_tiles();
+        self.send_buffer_requests_for_all_layers();
     }
 
     fn create_descendant_layer(&self, layer_properties: LayerProperties) {
@@ -459,7 +462,12 @@ impl IOCompositor {
                                                                             layer_properties.pipeline_id,
                                                                             parent_layer_id) {
                     Some(ref mut parent_layer) => {
-                        CompositorData::add_child(parent_layer.clone(), layer_properties);
+                        let pipeline = parent_layer.extra_data.borrow().pipeline.clone();
+                        let new_layer = CompositorData::new_layer(pipeline,
+                                                                  layer_properties,
+                                                                  DoesntWantScrollEvents,
+                                                                  parent_layer.tile_size);
+                        parent_layer.add_child(new_layer);
                     }
                     None => {
                         fail!("Compositor: couldn't find parent layer");
@@ -534,7 +542,7 @@ impl IOCompositor {
         };
 
         if should_ask_for_tiles {
-            self.ask_for_tiles();
+            self.send_buffer_requests_for_all_layers();
         }
     }
 
@@ -602,7 +610,7 @@ impl IOCompositor {
 
         if ask {
             self.recomposite_if(move);
-            self.ask_for_tiles();
+            self.send_buffer_requests_for_all_layers();
         }
     }
 
@@ -735,7 +743,7 @@ impl IOCompositor {
             None => { }
         }
         self.recomposite_if(scroll);
-        self.ask_for_tiles();
+        self.send_buffer_requests_for_all_layers();
     }
 
     fn device_pixels_per_screen_px(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32> {
@@ -806,61 +814,77 @@ impl IOCompositor {
         chan.send(NavigateMsg(direction))
     }
 
-    /// Get BufferRequests from each layer.
-    fn ask_for_tiles(&mut self) {
+    fn convert_buffer_requests_to_pipeline_requests_map(&self,
+                                                        requests: Vec<(Rc<Layer<CompositorData>>,
+                                                                       Vec<BufferRequest>)>) ->
+                                                        HashMap<PipelineId, (RenderChan,
+                                                                             Vec<ReRenderRequest>)> {
         let scale = self.device_pixels_per_page_px();
-        let mut num_rerendermsgs_sent = 0;
-        let window_rect_in_device_pixels = Rect(Point2D(0f32, 0f32),
-                                                self.window_size.as_f32().to_untyped());
+        let mut results:
+            HashMap<PipelineId, (RenderChan, Vec<ReRenderRequest>)> = HashMap::new();
 
-        match self.scene.root {
-            Some(ref mut layer) => {
-                let mut layers_and_requests = Vec::new();
-                let mut unused_buffers = Vec::new();
-                CompositorData::get_buffer_requests_recursively(&mut layers_and_requests,
-                                                                &mut unused_buffers,
-                                                                layer.clone(),
-                                                                window_rect_in_device_pixels);
+        for (layer, mut layer_requests) in requests.move_iter() {
+            let pipeline_id = layer.extra_data.borrow().pipeline.id;
+            let &(_, ref mut vec) = results.find_or_insert_with(pipeline_id, |_| {
+                (layer.extra_data.borrow().pipeline.render_chan.clone(), Vec::new())
+            });
 
-                // Return unused tiles first, so that they can be reused by any new BufferRequests.
+            // All the BufferRequests are in layer/device coordinates, but the render task
+            // wants to know the page coordinates. We scale them before sending them.
+            for request in layer_requests.mut_iter() {
+                request.page_rect = request.page_rect / scale.get();
+            }
+
+            vec.push(ReRenderRequest {
+                buffer_requests: layer_requests,
+                scale: scale.get(),
+                layer_id: layer.extra_data.borrow().id,
+                epoch: layer.extra_data.borrow().epoch,
+            });
+        }
+
+        return results;
+    }
+
+    fn send_back_unused_buffers(&mut self) {
+        match self.root_pipeline {
+            Some(ref pipeline) => {
+                let unused_buffers = self.scene.collect_unused_buffers();
                 let have_unused_buffers = unused_buffers.len() > 0;
                 self.recomposite = self.recomposite || have_unused_buffers;
                 if have_unused_buffers {
                     let message = UnusedBufferMsg(unused_buffers);
-                    let _ = layer.extra_data.borrow().pipeline.render_chan.send_opt(message);
+                    let _ = pipeline.render_chan.send_opt(message);
                 }
-
-                // We want to batch requests for each pipeline to avoid race conditions
-                // when handling the resulting BufferRequest responses.
-                let mut pipeline_requests:
-                    HashMap<PipelineId, (RenderChan, Vec<ReRenderRequest>)> = HashMap::new();
-                for (layer, mut requests) in layers_and_requests.move_iter() {
-                    let pipeline_id = layer.extra_data.borrow().pipeline.id;
-                    let &(_, ref mut vec) = pipeline_requests.find_or_insert_with(pipeline_id, |_| {
-                        (layer.extra_data.borrow().pipeline.render_chan.clone(), Vec::new())
-                    });
-
-                    // All the BufferRequests are in layer/device coordinates, but the render task
-                    // wants to know the page coordinates. We scale them before sending them.
-                    for request in requests.mut_iter() {
-                        request.page_rect = request.page_rect / scale.get();
-                    }
-
-                    vec.push(ReRenderRequest {
-                        buffer_requests: requests,
-                        scale: scale.get(),
-                        layer_id: layer.extra_data.borrow().id,
-                        epoch: layer.extra_data.borrow().epoch,
-                    });
-                }
-
-                for (_pipeline_id, (chan, requests)) in pipeline_requests.move_iter() {
-                    num_rerendermsgs_sent += 1;
-                    let _ = chan.send_opt(ReRenderMsg(requests));
-                }
-            }
-            None => { }
+            },
+            None => {}
         }
+    }
+
+    fn send_buffer_requests_for_all_layers(&mut self) {
+        let mut layers_and_requests = Vec::new();
+        self.scene.get_buffer_requests(&mut layers_and_requests,
+                                       Rect(Point2D(0f32, 0f32),
+                                            self.window_size.as_f32().to_untyped()));
+
+        // Return unused tiles first, so that they can be reused by any new BufferRequests.
+        self.send_back_unused_buffers();
+
+        if layers_and_requests.len() == 0 {
+            return;
+        }
+
+        // We want to batch requests for each pipeline to avoid race conditions
+        // when handling the resulting BufferRequest responses.
+        let pipeline_requests =
+            self.convert_buffer_requests_to_pipeline_requests_map(layers_and_requests);
+
+        let mut num_rerendermsgs_sent = 0;
+        for (_pipeline_id, (chan, requests)) in pipeline_requests.move_iter() {
+            num_rerendermsgs_sent += 1;
+            let _ = chan.send_opt(ReRenderMsg(requests));
+        }
+
         self.add_outstanding_rerendermsg(num_rerendermsgs_sent);
     }
 

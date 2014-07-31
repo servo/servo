@@ -8,11 +8,10 @@ use pipeline::CompositionPipeline;
 
 use azure::azure_hl::Color;
 use geom::point::TypedPoint2D;
-use geom::rect::Rect;
 use geom::scale_factor::ScaleFactor;
 use geom::size::{Size2D, TypedSize2D};
 use gfx::render_task::UnusedBufferMsg;
-use layers::layers::{BufferRequest, Layer, LayerBuffer, LayerBufferSet};
+use layers::layers::{Layer, LayerBufferSet};
 use layers::platform::surface::NativeSurfaceMethods;
 use servo_msg::compositor_msg::{Epoch, LayerId};
 use servo_msg::compositor_msg::ScrollPolicy;
@@ -67,55 +66,6 @@ impl CompositorData {
             epoch: layer_properties.epoch,
         };
         Rc::new(Layer::new(layer_properties.rect, tile_size, new_compositor_data))
-    }
-
-    /// Adds a child layer to the layer with the given ID and the given pipeline, if it doesn't
-    /// exist yet. The child layer will have the same pipeline, tile size, memory limit, and CPU
-    /// painting status as its parent.
-    pub fn add_child(layer: Rc<Layer<CompositorData>>,
-                     layer_properties: LayerProperties) {
-        let new_kid = CompositorData::new_layer(layer.extra_data.borrow().pipeline.clone(),
-                                                layer_properties,
-                                                DoesntWantScrollEvents,
-                                                layer.tile_size);
-        layer.add_child(new_kid.clone());
-    }
-
-    // Given the current window size, determine which tiles need to be (re-)rendered and sends them
-    // off the the appropriate renderer. Returns true if and only if the scene should be repainted.
-    pub fn get_buffer_requests_recursively(requests: &mut Vec<(Rc<Layer<CompositorData>>,
-                                                               Vec<BufferRequest>)>,
-                                           unused_buffers: &mut Vec<Box<LayerBuffer>>,
-                                           layer: Rc<Layer<CompositorData>>,
-                                           window_rect_in_device_pixels: Rect<f32>) {
-        let (request, unused) = layer.get_tile_rects_page(window_rect_in_device_pixels);
-        unused_buffers.push_all_move(unused);
-
-        if !request.is_empty() {
-            requests.push((layer.clone(), request));
-        }
-
-        for kid in layer.children().iter() {
-            let mut new_rect = window_rect_in_device_pixels;
-            let content_offset = kid.content_offset.borrow();
-            new_rect.origin.x = new_rect.origin.x - content_offset.x;
-            new_rect.origin.y = new_rect.origin.y - content_offset.y;
-
-            match new_rect.intersection(&*kid.bounds.borrow()) {
-                Some(new_rect) => {
-                    // Child layers act as if they are rendered at (0,0), so we
-                    // subtract the layer's (x,y) coords in its containing page
-                    // to make the child_rect appear in coordinates local to it.
-                    let child_rect = Rect(new_rect.origin.sub(&kid.bounds.borrow().origin),
-                                          new_rect.size);
-                    CompositorData::get_buffer_requests_recursively(requests,
-                                                                    unused_buffers,
-                                                                    kid.clone(),
-                                                                    child_rect);
-                }
-                None => {}
-            }
-        };
     }
 
     pub fn update_layer(layer: Rc<Layer<CompositorData>>, layer_properties: LayerProperties) {
