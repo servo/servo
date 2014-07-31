@@ -246,6 +246,8 @@ impl<C:RenderListener + Send> RenderTask<C> {
                         continue;
                     }
 
+                    self.compositor.set_render_state(RenderingRenderState);
+
                     let mut replies = Vec::new();
                     for ReRenderRequest { buffer_requests, scale, layer_id, epoch }
                           in requests.move_iter() {
@@ -255,6 +257,8 @@ impl<C:RenderListener + Send> RenderTask<C> {
                             debug!("renderer epoch mismatch: {:?} != {:?}", self.epoch, epoch);
                         }
                     }
+
+                    self.compositor.set_render_state(IdleRenderState);
 
                     debug!("render_task: returning surfaces");
                     self.compositor.paint(self.id, self.epoch, replies);
@@ -305,8 +309,6 @@ impl<C:RenderListener + Send> RenderTask<C> {
                 Some(render_layer) => render_layer,
                 None => return,
             };
-
-            self.compositor.set_render_state(RenderingRenderState);
 
             // Divide up the layer into tiles.
             for tile in tiles.iter() {
@@ -444,7 +446,6 @@ impl<C:RenderListener + Send> RenderTask<C> {
             };
 
             replies.push((render_layer.id, layer_buffer_set));
-            self.compositor.set_render_state(IdleRenderState);
         })
     }
 }
