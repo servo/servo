@@ -478,11 +478,6 @@ impl IOCompositor {
         }
     }
 
-    /// The size of the content area in CSS px at the current zoom level
-    fn page_window(&self) -> TypedSize2D<PagePx, f32> {
-        self.window_size.as_f32() / self.device_pixels_per_page_px()
-    }
-
     fn send_window_size(&self) {
         let dppx = self.page_zoom * self.device_pixels_per_screen_px();
         let initial_viewport = self.window_size.as_f32() / dppx;
@@ -499,17 +494,17 @@ impl IOCompositor {
     fn scroll_layer_to_fragment_point_if_necessary(&mut self,
                                                    pipeline_id: PipelineId,
                                                    layer_id: LayerId) {
-        let page_window = self.page_window();
         let device_pixels_per_page_px = self.device_pixels_per_page_px();
+        let window_size = self.window_size.as_f32();
         let needs_recomposite = match self.scene.root {
             Some(ref mut root_layer) => {
                 self.fragment_point.take().map_or(false, |fragment_point| {
+                    let fragment_point = fragment_point * device_pixels_per_page_px.get();
                     events::move(root_layer.clone(),
                                  pipeline_id,
                                  layer_id,
                                  fragment_point,
-                                 page_window,
-                                 device_pixels_per_page_px)
+                                 window_size)
                 })
             }
             None => fail!("Compositor: Tried to scroll to fragment without root layer."),
@@ -589,17 +584,19 @@ impl IOCompositor {
                                 pipeline_id: PipelineId,
                                 layer_id: LayerId,
                                 point: Point2D<f32>) {
-        let page_window = self.page_window();
+
         let device_pixels_per_page_px = self.device_pixels_per_page_px();
+        let device_point = point * device_pixels_per_page_px.get();
+        let window_size = self.window_size.as_f32();
+
         let (ask, move): (bool, bool) = match self.scene.root {
             Some(ref layer) if layer.extra_data.borrow().pipeline.id == pipeline_id => {
                 (true,
                  events::move(layer.clone(),
                               pipeline_id,
                               layer_id,
-                              point,
-                              page_window,
-                              device_pixels_per_page_px))
+                              device_point,
+                              window_size))
             }
             Some(_) | None => {
                 self.fragment_point = Some(point);
@@ -711,7 +708,7 @@ impl IOCompositor {
             MouseWindowMouseUpEvent(_, p) => p / scale,
         };
         for layer in self.scene.root.iter() {
-            events::send_mouse_event(layer.clone(), mouse_window_event, point);
+            events::send_mouse_event(layer.clone(), mouse_window_event, point, scale);
         }
     }
 
@@ -725,20 +722,14 @@ impl IOCompositor {
     fn on_scroll_window_event(&mut self,
                               delta: TypedPoint2D<DevicePixel, f32>,
                               cursor: TypedPoint2D<DevicePixel, i32>) {
-        let scale = self.device_pixels_per_page_px();
-        // TODO: modify delta to snap scroll to pixels.
-        let page_delta = delta / scale;
-        let page_cursor = cursor.as_f32() / scale;
-        let page_window = self.page_window();
         let mut scroll = false;
-        let device_pixels_per_page_px = self.device_pixels_per_page_px();
+        let window_size = self.window_size.as_f32();
         match self.scene.root {
             Some(ref mut layer) => {
                 scroll = events::handle_scroll_event(layer.clone(),
-                                                     page_delta,
-                                                     page_cursor,
-                                                     page_window,
-                                                     device_pixels_per_page_px) || scroll;
+                                                     delta,
+                                                     cursor.as_f32(),
+                                                     window_size) || scroll;
             }
             None => { }
         }
@@ -775,7 +766,6 @@ impl IOCompositor {
         self.zoom_action = true;
         self.zoom_time = precise_time_s();
         let old_viewport_zoom = self.viewport_zoom;
-        let window_size = self.window_size.as_f32();
 
         self.viewport_zoom = ScaleFactor((self.viewport_zoom.get() * magnification).max(1.0));
         let viewport_zoom = self.viewport_zoom;
@@ -783,21 +773,19 @@ impl IOCompositor {
         self.update_zoom_transform();
 
         // Scroll as needed
-        let page_delta = TypedPoint2D(
+        let window_size = self.window_size.as_f32();
+        let page_delta: TypedPoint2D<PagePx, f32> = TypedPoint2D(
             window_size.width.get() * (viewport_zoom.inv() - old_viewport_zoom.inv()).get() * 0.5,
             window_size.height.get() * (viewport_zoom.inv() - old_viewport_zoom.inv()).get() * 0.5);
-        // TODO: modify delta to snap scroll to pixels.
-        let page_cursor = TypedPoint2D(-1f32, -1f32); // Make sure this hits the base layer
-        let page_window = self.page_window();
 
-        let device_pixels_per_page_px = self.device_pixels_per_page_px();
+        let delta = page_delta * self.device_pixels_per_page_px();
+        let cursor = TypedPoint2D(-1f32, -1f32);  // Make sure this hits the base layer.
         match self.scene.root {
             Some(ref mut layer) => {
                 events::handle_scroll_event(layer.clone(),
-                                            page_delta,
-                                            page_cursor,
-                                            page_window,
-                                            device_pixels_per_page_px);
+                                            delta,
+                                            cursor,
+                                            window_size);
             }
             None => { }
         }
