@@ -1,14 +1,10 @@
-set -e
-cd build
-../configure
 export DISPLAY=:1.0
 export RUST_TEST_TASKS=1
-make tidy
-make -j2
-make check-servo
-make check-content
-make check-ref-cpu
-make doc
+case $1 in
+unit) make check-servo ;;
+content) make check-content ;;
+ref) make check-ref-cpu ;;
+doc) make doc
 
 if [ $TRAVIS_BRANCH = master ] && [ $TRAVIS_PULL_REQUEST = false ]
 then
@@ -17,3 +13,6 @@ then
     ghp-import -n doc
     git push -fq https://${TOKEN}@github.com/${TRAVIS_REPO_SLUG}.git gh-pages
 fi
+;;
+*) echo "Task $1 not enabled for Linux"
+esac
