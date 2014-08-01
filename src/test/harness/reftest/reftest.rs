@@ -21,8 +21,8 @@ use test::run_tests_console;
 use regex::Regex;
 
 enum RenderMode {
-  CpuRendering,
-  GpuRendering,
+  CpuRendering = 1,
+  GpuRendering = 2,
 }
 
 fn main() {
@@ -79,6 +79,14 @@ struct Reftest {
     id: uint,
     servo_args: Vec<String>,
     render_mode: RenderMode,
+    flakiness: uint,
+}
+
+struct TestLine<'a> {
+  conditions: &'a str,
+  kind: &'a str,
+  file_left: &'a str,
+  file_right: &'a str,
 }
 
 fn parse_lists(file: &String, servo_args: &[String], render_mode: RenderMode) -> Vec<TestDescAndFn> {
@@ -101,28 +109,60 @@ fn parse_lists(file: &String, servo_args: &[String], render_mode: RenderMode) ->
 
        let parts: Vec<&str> = line.split(' ').filter(|p| !p.is_empty()).collect();
 
-       if parts.len() != 3 {
-          fail!("reftest line: '{:s}' doesn't match 'KIND LEFT RIGHT'", line);
-       }
+       let test_line = match parts.len() {
+          3 => {
+            TestLine {
+              conditions: "",
+              kind: *parts.get(0),
+              file_left: *parts.get(1),
+              file_right: *parts.get(2),
+            }
+          },
+          4 => {
+            TestLine {
+              conditions: *parts.get(0),
+              kind: *parts.get(1),
+              file_left: *parts.get(2),
+              file_right: *parts.get(3),
+            }
+          },
+          _ => {
+            fail!("reftest line: '{:s}' doesn't match '[CONDITIONS] KIND LEFT RIGHT'", line);
+          }
+       };
 
-       let kind = match parts.get(0) {
-          & "==" => Same,
-             & "!=" => Different,
-             &part => fail!("reftest line: '{:s}' has invalid kind '{:s}'",
-                   line, part)
+       let kind = match test_line.kind {
+          "==" => Same,
+          "!=" => Different,
+          part => fail!("reftest line: '{:s}' has invalid kind '{:s}'", line, part)
        };
        let src_path = file_path.dir_path();
        let src_dir = src_path.display().to_str();
-       let file_left =  src_dir.clone().append("/").append(*parts.get(1));
-       let file_right = src_dir.append("/").append(*parts.get(2));
+       let file_left =  src_dir.clone().append("/").append(test_line.file_left);
+       let file_right = src_dir.append("/").append(test_line.file_right);
+
+       let mut conditions_list = test_line.conditions.split(',');
+       let mut flakiness = 0;
+       for condition in conditions_list {
+          match condition {
+            "flaky_cpu" => {
+              flakiness |= CpuRendering as uint;
+            },
+            "flaky_gpu" => {
+              flakiness |= GpuRendering as uint;
+            },
+            _ => {}
+          }
+       }
 
        let reftest = Reftest {
-name: parts.get(1).to_string().append(" / ").append(*parts.get(2)),
+         name: test_line.file_left.to_string().append(" / ").append(test_line.file_right),
          kind: kind,
          files: [file_left, file_right],
          id: next_id,
          render_mode: render_mode,
          servo_args: servo_args.iter().map(|x| x.clone()).collect(),
+         flakiness: flakiness,
        };
 
        next_id += 1;
@@ -181,6 +221,8 @@ fn check_reftest(reftest: Reftest) {
             }
         }).collect();
 
+    let test_is_flaky = (reftest.render_mode as uint & reftest.flakiness) != 0;
+
     if pixels.iter().any(|&a| a < 255) {
         let output_str = format!("/tmp/servo-reftest-{:06u}-diff.png", reftest.id);
         let output = from_str::<Path>(output_str.as_slice()).unwrap();
@@ -194,8 +236,12 @@ fn check_reftest(reftest: Reftest) {
         let res = png::store_png(&img, &output);
         assert!(res.is_ok());
 
-        assert!(reftest.kind == Different, "rendering difference: {}", output_str);
+        match (reftest.kind, test_is_flaky) {
+          (Same, true) => println!("flaky test - rendering difference: {}", output_str),
+          (Same, false) => fail!("rendering difference: {}", output_str),
+          (Different, _) => {}   // Result was different and that's what was expected
+        }
     } else {
-        assert!(reftest.kind == Same);
+        assert!(test_is_flaky || reftest.kind == Same);
     }
 }
