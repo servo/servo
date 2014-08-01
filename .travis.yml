@@ -14,8 +14,12 @@ before_script:
 - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then ./travis.osx.before_script.sh; fi
 
 script:
-- if [ "${TRAVIS_OS_NAME}" = "linux" ]; then ./travis.linux.script.sh; fi
-- if [ "${TRAVIS_OS_NAME}" = "osx" ]; then ./travis.osx.script.sh; fi
+- set -e
+- cd build; ../configure
+- make tidy
+- make -j2
+- if [ "${TRAVIS_OS_NAME}" = "linux" ]; then ../travis.linux.script.sh $AFTER_BUILD; fi
+- if [ "${TRAVIS_OS_NAME}" = "osx" ]; then ../travis.osx.script.sh $AFTER_BUILD; fi
 
 git:
   submodules: true
@@ -32,4 +36,18 @@ branches:
     - master
 
 env:
-  - secure: qSjs06HEBF6A7ZyCWdltko+LkVz6OpNZQnEbr0nHB3rSl9mzwwjjH6v0VOKYNgvSPTgD8eHa/nnTeTcUJPaBB3mok+X43xkEUQWHLnW/X30QU0c8Xn+7db4hCgsaUupc1XaJhzpLDj3qV8dqDiGNKIwXJHlMzIuxSW424XL1CNc=
+  global:
+    - secure: qSjs06HEBF6A7ZyCWdltko+LkVz6OpNZQnEbr0nHB3rSl9mzwwjjH6v0VOKYNgvSPTgD8eHa/nnTeTcUJPaBB3mok+X43xkEUQWHLnW/X30QU0c8Xn+7db4hCgsaUupc1XaJhzpLDj3qV8dqDiGNKIwXJHlMzIuxSW424XL1CNc=
+  matrix:
+    - AFTER_BUILD=unit
+    - AFTER_BUILD=content
+    - AFTER_BUILD=ref
+    - AFTER_BUILD=wpt
+    - AFTER_BUILD=doc
+
+matrix:
+  exclude:
+    - os: linux
+      env: AFTER_BUILD=wpt
+    - os: osx
+      env: AFTER_BUILD=doc
