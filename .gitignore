@@ -14,7 +14,7 @@
 servo-test
 Servo.app
 .config.mk.last
-build*
+/build*
 objdir
 parser.out
 src/components/script/dom/bindings/codegen/*.rs
