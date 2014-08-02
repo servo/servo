@@ -180,6 +180,7 @@ pub mod dom {
     pub mod progressevent;
     pub mod screen;
     pub mod text;
+    pub mod treewalker;
     pub mod uievent;
     pub mod urlsearchparams;
     pub mod validitystate;
