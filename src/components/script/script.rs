@@ -178,6 +178,7 @@ pub mod dom {
     pub mod performance;
     pub mod performancetiming;
     pub mod progressevent;
+    pub mod range;
     pub mod screen;
     pub mod text;
     pub mod treewalker;
