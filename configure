@@ -355,6 +355,11 @@ then
     exit 0
 fi
 
+if [ ! -z "$CFG_ENABLE_TREE_RUST" -a ! -z "$CFG_LOCAL_RUST_ROOT" ]
+then
+    err "Specify at most one of --enable-tree-rust and --local-rust-root."
+fi
+
 # Split target triple
 split_triple "${CFG_TARGET}" TARGET_CPUTYPE TARGET_VENDOR TARGET_OSTYPE
 
@@ -408,7 +413,7 @@ if [ $CFG_OSTYPE = "linux-androideabi" ]
 then
     CFG_ENABLE_TREE_RUST=1 # We don't yet have Android snapshots
 fi
-if [ -z "$CFG_ENABLE_TREE_RUST" ]
+if [ -z "$CFG_ENABLE_TREE_RUST" -a -z "$CFG_LOCAL_RUST_ROOT" ]
 then
     if ! [ -f ${CFG_BUILD_DIR}/rust_snapshot/${SNAPSHOT_VERSION}-${DEFAULT_TARGET}/bin/rustc -a -f ${CFG_BUILD_DIR}/src/compiler/rust-snapshot-hash-stamp -a -z "$(diff ${CFG_BUILD_DIR}/src/compiler/rust-snapshot-hash-stamp ${CFG_SRC_DIR}/src/compiler/rust-snapshot-hash)" ]
     then
