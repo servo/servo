@@ -173,6 +173,7 @@ pub mod dom {
     pub mod mouseevent;
     pub mod navigator;
     pub mod node;
+    pub mod nodeiterator;
     pub mod nodelist;
     pub mod processinginstruction;
     pub mod performance;
