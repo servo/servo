@@ -686,7 +686,6 @@ do
     fi
     CONFIGURE_SCRIPT="${CFG_SRC_DIR}src/${i}/configure"
     CONFIGURE_ARGS=""
-    ENV_VARS=""
     ENABLE_DEBUG="$CFG_ENABLE_DEBUG"
 
     case $i in
