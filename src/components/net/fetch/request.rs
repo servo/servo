@@ -32,25 +32,24 @@ pub enum Referer {
 
 /// A [request mode](http://fetch.spec.whatwg.org/#concept-request-mode)
 pub enum RequestMode {
-    SameOrigin, // same-origin
-    NoCORS, // No CORS
-    CORSMode, // CORS
-    ForcedPreflightMode // CORS-with-forced-preflight
+    SameOrigin,
+    NoCORS,
+    CORSMode,
+    ForcedPreflightMode
 }
 
 /// Request [credentials mode](http://fetch.spec.whatwg.org/#concept-request-credentials-mode)
 pub enum CredentialsMode {
-    Omit, // omit
-    CredentialsSameOrigin, // same-origin
-    Include // include
+    Omit,
+    CredentialsSameOrigin,
+    Include
 }
 
-    
-// [Response tainting](http://fetch.spec.whatwg.org/#concept-request-response-tainting)
+/// [Response tainting](http://fetch.spec.whatwg.org/#concept-request-response-tainting)
 pub enum ResponseTainting {
-    Basic, // basic
-    CORSTainting, // CORS
-    Opaque // Opaque
+    Basic,
+    CORSTainting,
+    Opaque
 }
 
 /// A [Request](http://fetch.spec.whatwg.org/#requests) as defined by the Fetch spec
@@ -104,6 +103,6 @@ impl Request {
             manual_redirect: false,
             redirect_count: 0,
             response_tainting: Basic
-        }       
+        }
     }
 }

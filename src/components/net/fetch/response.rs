@@ -10,7 +10,7 @@ use http::headers::response::HeaderCollection;
 use std::ascii::OwnedStrAsciiExt;
 
 // [Response type](http://fetch.spec.whatwg.org/#concept-response-type)
-#[deriving(Clone)]
+#[deriving(Clone, PartialEq)]
 pub enum ResponseType {
     Basic,
     CORS,
@@ -37,7 +37,7 @@ pub struct Response {
     pub headers: HeaderCollection,
     pub body: Option<Vec<u8>>,
     /// [Internal response](http://fetch.spec.whatwg.org/#concept-internal-response), only used if the Response is a filtered response
-    pub internal_response: Option<Box<Response>>, 
+    pub internal_response: Option<Box<Response>>,
 }
 
 impl Response {
@@ -60,9 +60,11 @@ impl Response {
         }
     }
 
-    /// Convert to a filtered response, of type `filter_type`
+    /// Convert to a filtered response, of type `filter_type`.
     /// Do not use with type Error or Default
     pub fn to_filtered(self, filter_type: ResponseType) -> Response {
+        assert!(filter_type != Error);
+        assert!(filter_type != Default);
         if self.is_network_error() {
             return self;
         }
