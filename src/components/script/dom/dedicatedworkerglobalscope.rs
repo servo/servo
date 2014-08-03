@@ -18,14 +18,13 @@ use script_task::{ScriptTask, ScriptChan};
 use script_task::StackRootTLS;
 
 use servo_net::resource_task::{ResourceTask, load_whole_resource};
-
 use servo_util::str::DOMString;
 
 use js::rust::Cx;
 
 use std::rc::Rc;
-use native;
-use rustrt::task::TaskOpts;
+use std::task::TaskBuilder;
+use native::task::NativeTaskBuilder;
 use url::Url;
 
 #[deriving(Encodable)]
@@ -66,10 +65,10 @@ impl DedicatedWorkerGlobalScope {
                             receiver: Receiver<DOMString>,
                             resource_task: ResourceTask,
                             script_chan: ScriptChan) {
-        let mut task_opts = TaskOpts::new();
-        task_opts.name = Some(format!("Web Worker at {}", worker_url.serialize())
-                              .into_maybe_owned());
-        native::task::spawn_opts(task_opts, proc() {
+        TaskBuilder::new()
+            .native()
+            .named(format!("Web Worker at {}", worker_url.serialize()))
+            .spawn(proc() {
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
 
