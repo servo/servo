@@ -542,17 +542,19 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                         for title_child in title_node.children() {
                             assert!(title_node.RemoveChild(&title_child).is_ok());
                         }
-                        let new_text = self.CreateTextNode(title.clone()).root();
-
-                        assert!(title_node.AppendChild(NodeCast::from_ref(&*new_text)).is_ok());
+                        if !title.is_empty() {
+                            let new_text = self.CreateTextNode(title.clone()).root();
+                            assert!(title_node.AppendChild(NodeCast::from_ref(&*new_text)).is_ok());
+                        }
                     },
                     None => {
                         let new_title = HTMLTitleElement::new("title".to_string(), self).root();
                         let new_title: &JSRef<Node> = NodeCast::from_ref(&*new_title);
 
-                        let new_text = self.CreateTextNode(title.clone()).root();
-
-                        assert!(new_title.AppendChild(NodeCast::from_ref(&*new_text)).is_ok());
+                        if !title.is_empty() {
+                            let new_text = self.CreateTextNode(title.clone()).root();
+                            assert!(new_title.AppendChild(NodeCast::from_ref(&*new_text)).is_ok());
+                        }
                         assert!(head.AppendChild(new_title).is_ok());
                     },
                 }
