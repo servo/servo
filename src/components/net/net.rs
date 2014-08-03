@@ -37,3 +37,9 @@ pub mod image_cache_task;
 pub mod local_image_cache;
 pub mod resource_task;
 
+/// An implementation of the [Fetch spec](http://fetch.spec.whatwg.org/)
+pub mod fetch {
+    #![allow(dead_code)] // XXXManishearth this is only temporary until the Fetch mod starts being used
+    pub mod request;
+    pub mod response;
+}
