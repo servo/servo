@@ -54,6 +54,10 @@ pub mod color;
 pub mod display_list;
 pub mod render_task;
 
+// Canvas Rendering
+#[allow(dead_code)]
+pub mod canvas_render_task;
+
 // Fonts
 pub mod font;
 pub mod font_context;

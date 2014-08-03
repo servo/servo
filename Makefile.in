@@ -256,7 +256,7 @@ DONE_gfx = $(B)src/components/gfx/libgfx.dummy
 
 DEPS_gfx = $(CRATE_gfx) $(SRC_gfx) $(DONE_SUBMODULES) $(DONE_util) $(DONE_style) $(DONE_net) $(DONE_msg) $(DONE_macros)
 
-RFLAGS_script = $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/util -L $(B)src/components/style -L $(B)src/components/net -L $(B)src/components/msg -L$(B)src/components/macros
+RFLAGS_script = $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/util -L $(B)src/components/style -L $(B)src/components/net -L $(B)src/components/msg -L$(B)src/components/macros -L$(B)src/components/gfx
 
 BINDINGS_SRC = $(S)src/components/script/dom/bindings/codegen
 WEBIDLS_SRC = $(S)src/components/script/dom/webidls
@@ -269,7 +269,7 @@ SRC_script = $(call rwildcard,$(S)src/components/script/,*.rs) $(AUTOGEN_SRC_scr
 CRATE_script = $(S)src/components/script/script.rs
 DONE_script = $(B)src/components/script/libscript.dummy
 
-DEPS_script = $(CRATE_script) $(SRC_script) $(DONE_SUBMODULES) $(DONE_util) $(DONE_style) $(DONE_net) $(DONE_msg) $(DONE_macros)
+DEPS_script = $(CRATE_script) $(SRC_script) $(DONE_SUBMODULES) $(DONE_util) $(DONE_style) $(DONE_net) $(DONE_msg) $(DONE_macros) $(DONE_gfx)
 
 RFLAGS_style = $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/util -L$(B)src/components/macros
 MAKO_ZIP = $(S)src/components/style/Mako-0.9.1.zip
