@@ -14,17 +14,21 @@ pub fn spawn_named<S: IntoMaybeOwned<'static>>(name: S, f: proc():Send) {
 
 /// Arrange to send a particular message to a channel if the task built by
 /// this `TaskBuilder` fails.
-pub fn send_on_failure<T: Send>(builder: &mut TaskBuilder, msg: T, dest: Sender<T>) {
-    let port = builder.future_result();
-    let watched_name = builder.opts.name.as_ref().unwrap().as_slice().to_string();
-    let name = format!("{:s}Watcher", watched_name);
-    spawn_named(name, proc() {
-        match port.recv() {
+pub fn spawn_named_with_send_on_failure<T: Send>(name: &str,
+                                                 f: proc(): Send,
+                                                 msg: T,
+                                                 dest: Sender<T>) {
+    let name = name.to_string();
+    let future_result = TaskBuilder::new().named(name.clone()).try_future(f);
+
+    let watch_name = format!("{:s}Watcher", name);
+    spawn_named(watch_name, proc() {
+        match future_result.unwrap() {
             Ok(()) => (),
             Err(..) => {
-                debug!("{:s} failed, notifying constellation", watched_name);
+                debug!("{:s} failed, notifying constellation", name);
                 dest.send(msg);
             }
         }
-    })
+    });
 }

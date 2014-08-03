@@ -429,13 +429,18 @@ then
         tar -zxf ${CFG_BUILD_DIR}/rust_snapshot/snapshot-${SNAPSHOT_HASH}.tgz -C ${CFG_BUILD_DIR}/rust_snapshot/
         cp -f ${CFG_SRC_DIR}/src/compiler/rust-snapshot-hash ${CFG_BUILD_DIR}/src/compiler/rust-snapshot-hash-stamp
     fi
-    CFG_LOCAL_RUST_ROOT=${CFG_BUILD_DIR}/rust_snapshot/${SNAPSHOT_VERSION}-${DEFAULT_TARGET}
+    CFG_LOCAL_RUST_ROOT=${CFG_BUILD_DIR}rust_snapshot/${SNAPSHOT_VERSION}-${DEFAULT_TARGET}
 fi
 
 if [ ! -z "$CFG_LOCAL_RUST_ROOT" ]
 then
     if [ -f ${CFG_LOCAL_RUST_ROOT}/bin/rustc ]
     then
+        if [ $CFG_OSTYPE = "apple-darwin" ]; then
+            export DYLD_LIBRARY_PATH=${CFG_LOCAL_RUST_ROOT}/lib
+        else
+            export LD_LIBRARY_PATH=${CFG_LOCAL_RUST_ROOT}/lib
+        fi
         LRV=`${CFG_LOCAL_RUST_ROOT}/bin/rustc --version`
         step_msg "using rustc at: ${CFG_LOCAL_RUST_ROOT} with version: $LRV"
         CFG_RUSTC=${CFG_LOCAL_RUST_ROOT}/bin/rustc
@@ -753,6 +758,9 @@ do
             ;;
         support/phf/rust-phf)
             ENABLE_DEBUG=""
+            ;;
+        support/encoding/rust-encoding)
+            CONFIGURE_SCRIPT="${CFG_SRC_DIR}src/support/encoding/configure"
             ;;
         support/url/rust-url)
             CONFIGURE_SCRIPT="${CFG_SRC_DIR}src/support/url/configure"

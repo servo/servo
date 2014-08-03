@@ -93,9 +93,9 @@ impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLCanvasElement> {
-    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods+> {
+    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
         let element: &JSRef<HTMLElement> = HTMLElementCast::from_ref(self);
-        Some(element as &VirtualMethods+)
+        Some(element as &VirtualMethods)
     }
 
     fn before_remove_attr(&self, name: DOMString, value: DOMString) {

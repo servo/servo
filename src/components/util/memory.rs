@@ -143,7 +143,7 @@ impl MemoryProfiler {
 }
 
 extern {
-    fn je_mallctl(name: *c_char, oldp: *mut c_void, oldlenp: *mut size_t,
+    fn je_mallctl(name: *const c_char, oldp: *mut c_void, oldlenp: *mut size_t,
                   newp: *mut c_void, newlen: size_t) -> c_int;
 }
 
@@ -167,7 +167,7 @@ macro_rules! option_try(
 #[cfg(target_os="linux")]
 fn get_proc_self_statm_field(field: uint) -> Option<u64> {
     let mut f = File::open(&Path::new("/proc/self/statm"));
-    match f.read_to_str() {
+    match f.read_to_string() {
         Ok(contents) => {
             let s = option_try!(contents.as_slice().words().nth(field));
             let npages: u64 = option_try!(from_str(s));

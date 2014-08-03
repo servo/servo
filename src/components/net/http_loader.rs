@@ -97,7 +97,7 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
         };
 
         // Dump headers, but only do the iteration if info!() is enabled.
-        info!("got HTTP response {:s}, headers:", response.status.to_str());
+        info!("got HTTP response {:s}, headers:", response.status.to_string());
         info!("{:?}",
             for header in response.headers.iter() {
                 info!(" - {:s}: {:s}", header.header_name(), header.header_value());

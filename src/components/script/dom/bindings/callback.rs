@@ -97,7 +97,8 @@ impl CallbackInterface {
     pub fn GetCallableProperty(&self, cx: *mut JSContext, name: &str) -> Result<JSVal, ()> {
         let mut callable = UndefinedValue();
         unsafe {
-            if name.to_c_str().with_ref(|name| JS_GetProperty(cx, self.callback(), name, &mut callable)) == 0 {
+            let name = name.to_c_str();
+            if JS_GetProperty(cx, self.callback(), name.as_ptr(), &mut callable) == 0 {
                 return Err(());
             }
 

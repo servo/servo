@@ -50,9 +50,9 @@ impl<T> VecLike<T> for Vec<T> {
 trait SmallVecPrivate<T> {
     unsafe fn set_len(&mut self, new_len: uint);
     unsafe fn set_cap(&mut self, new_cap: uint);
-    fn data(&self, index: uint) -> *T;
+    fn data(&self, index: uint) -> *const T;
     fn mut_data(&mut self, index: uint) -> *mut T;
-    unsafe fn ptr(&self) -> *T;
+    unsafe fn ptr(&self) -> *const T;
     unsafe fn mut_ptr(&mut self) -> *mut T;
     unsafe fn set_ptr(&mut self, new_ptr: *mut T);
 }
@@ -66,7 +66,7 @@ pub trait SmallVec<T> : SmallVecPrivate<T> {
         self.cap() > self.inline_size()
     }
 
-    fn begin(&self) -> *T {
+    fn begin(&self) -> *const T {
         unsafe {
             if self.spilled() {
                 self.ptr()
@@ -76,7 +76,7 @@ pub trait SmallVec<T> : SmallVecPrivate<T> {
         }
     }
 
-    fn end(&self) -> *T {
+    fn end(&self) -> *const T {
         unsafe {
             self.begin().offset(self.len() as int)
         }
@@ -155,7 +155,7 @@ pub trait SmallVec<T> : SmallVecPrivate<T> {
             }
             let end_ptr = self.begin().offset(last_index as int);
 
-            mem::swap(&mut value, mem::transmute::<*T,&mut T>(end_ptr));
+            mem::swap(&mut value, mem::transmute::<*const T,&mut T>(end_ptr));
             self.set_len(last_index);
             Some(value)
         }
@@ -170,7 +170,7 @@ pub trait SmallVec<T> : SmallVecPrivate<T> {
 
             if self.spilled() {
                 if intrinsics::owns_managed::<T>() {
-                    local_heap::local_free(self.ptr() as *u8)
+                    local_heap::local_free(self.ptr() as *mut u8)
                 } else {
                     heap::deallocate(self.mut_ptr() as *mut u8,
                                      mem::size_of::<T>() * self.cap(),
@@ -246,8 +246,8 @@ pub trait SmallVec<T> : SmallVecPrivate<T> {
 }
 
 pub struct SmallVecIterator<'a,T> {
-    ptr: *T,
-    end: *T,
+    ptr: *const T,
+    end: *const T,
     lifetime: ContravariantLifetime<'a>
 }
 
@@ -327,7 +327,7 @@ impl<'a,T> Drop for SmallVecMoveIterator<'a,T> {
             Some(allocation) => {
                 unsafe {
                     if intrinsics::owns_managed::<T>() {
-                        local_heap::local_free(allocation as *u8)
+                        local_heap::local_free(allocation as *mut u8)
                     } else {
                         heap::deallocate(allocation as *mut u8,
                                          mem::size_of::<T>() * self.cap,
@@ -346,7 +346,7 @@ macro_rules! def_small_vector(
         pub struct $name<T> {
             len: uint,
             cap: uint,
-            ptr: *T,
+            ptr: *const T,
             data: [T, ..$size],
         }
 
@@ -357,15 +357,15 @@ macro_rules! def_small_vector(
             unsafe fn set_cap(&mut self, new_cap: uint) {
                 self.cap = new_cap
             }
-            fn data(&self, index: uint) -> *T {
-                let ptr: *T = &self.data[index];
+            fn data(&self, index: uint) -> *const T {
+                let ptr: *const T = &self.data[index];
                 ptr
             }
             fn mut_data(&mut self, index: uint) -> *mut T {
                 let ptr: *mut T = &mut self.data[index];
                 ptr
             }
-            unsafe fn ptr(&self) -> *T {
+            unsafe fn ptr(&self) -> *const T {
                 self.ptr
             }
             unsafe fn mut_ptr(&mut self) -> *mut T {
@@ -445,7 +445,7 @@ macro_rules! def_small_vector_drop_impl(
                     }
 
                     if intrinsics::owns_managed::<T>() {
-                        local_heap::local_free(self.ptr() as *u8)
+                        local_heap::local_free(self.ptr() as *mut u8)
                     } else {
                         heap::deallocate(self.mut_ptr() as *mut u8,
                                          mem::size_of::<T>() * self.cap(),

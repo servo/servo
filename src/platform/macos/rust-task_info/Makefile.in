@@ -9,10 +9,10 @@ CFLAGS=-Wall
 RUST_SRC = $(shell find $(VPATH)/. -type f -name '*.rs')
 
 .PHONY: all
-all: libtask_info.dummy
+all: libtask_info-servo.dummy
 
-libtask_info.dummy: task_info.rc $(RUST_SRC) libtask_info.a
-	$(RUSTC) $(RUSTFLAGS) $< --out-dir .
+libtask_info-servo.dummy: task_info.rc $(RUST_SRC) libtask_info.a
+	$(RUSTC) $(RUSTFLAGS) $< --out-dir . -C extra-filename=-servo
 	touch $@
 
 task_info-test: task_info.rc $(RUST_SRC) libtask_info.a

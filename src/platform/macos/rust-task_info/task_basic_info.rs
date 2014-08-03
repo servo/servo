@@ -32,7 +32,7 @@ pub fn resident_size() -> Option<u64> {
     if rv == 0 { Some(resident_size) } else { None }
 }
 
-#[link(name = "task_info")]
+#[link(name = "task_info", kind = "static")]
 extern {
     fn TaskBasicInfoVirtualSize(virtual_size: *mut uint64_t) -> c_int;
     fn TaskBasicInfoResidentSize(resident_size: *mut uint64_t) -> c_int;

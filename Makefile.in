@@ -114,6 +114,13 @@ ifeq ($(CFG_OSTYPE),linux-androideabi)
   CFG_RUSTC_FLAGS += --target arm-linux-androideabi -C linker=$(CFG_ANDROID_CROSS_PATH)/bin/arm-linux-androideabi-g++ -C ar=$(CFG_ANDROID_CROSS_PATH)/bin/arm-linux-androideabi-ar
 endif
 
+# Set up LD_LIBRARY_PATH os the compiler can find libraries
+ifeq ($(CFG_OSTYPE),apple-darwin)
+export DYLD_LIBRARY_PATH=$(CFG_RUST_HOME)/lib
+else
+export LD_LIBRARY_PATH=$(CFG_RUST_HOME)/lib
+endif
+
 # Strip off submodule paths to determine "raw" submodule names.
 SUBMODULES=$(shell echo $(CFG_SUBMODULES) | perl -p -e 's![A-Za-z0-9_-]+/!!g')
 

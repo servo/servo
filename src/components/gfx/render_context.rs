@@ -110,9 +110,11 @@ impl<'a> RenderContext<'a>  {
 
         self.draw_target.make_current();
         let draw_target_ref = &self.draw_target;
-        let azure_surface = draw_target_ref.create_source_surface_from_data(image.pixels.as_slice(), size,
-                                                                            stride as i32, B8G8R8A8);
-        let source_rect = Rect(Point2D(0 as AzFloat, 0 as AzFloat),
+        let azure_surface = draw_target_ref.create_source_surface_from_data(image.pixels.as_slice(),
+                                                                            size,
+                                                                            stride as i32,
+                                                                            B8G8R8A8);
+        let source_rect = Rect(Point2D(0u as AzFloat, 0u as AzFloat),
                                Size2D(image.width as AzFloat, image.height as AzFloat));
         let dest_rect = bounds.to_azure_rect();
         let draw_surface_options = DrawSurfaceOptions::new(Linear, true);
@@ -246,9 +248,9 @@ impl<'a> RenderContext<'a>  {
                                   color:     Color,
                                   dash_size: DashSize) {
         let rect = bounds.to_azure_rect();
-        let draw_opts = DrawOptions::new(1 as AzFloat, 0 as uint16_t);
-        let mut stroke_opts = StrokeOptions::new(0 as AzFloat, 10 as AzFloat);
-        let mut dash: [AzFloat, ..2] = [0 as AzFloat, 0 as AzFloat];
+        let draw_opts = DrawOptions::new(1u as AzFloat, 0 as uint16_t);
+        let mut stroke_opts = StrokeOptions::new(0u as AzFloat, 10u as AzFloat);
+        let mut dash: [AzFloat, ..2] = [0u as AzFloat, 0u as AzFloat];
 
         stroke_opts.set_cap_style(AZ_CAP_BUTT as u8);
 
@@ -262,7 +264,7 @@ impl<'a> RenderContext<'a>  {
         stroke_opts.line_width = border_width;
         dash[0] = border_width * (dash_size as int) as AzFloat;
         dash[1] = border_width * (dash_size as int) as AzFloat;
-        stroke_opts.mDashPattern = dash.as_ptr();
+        stroke_opts.mDashPattern = dash.as_mut_ptr();
         stroke_opts.mDashLength = dash.len() as size_t;
 
         let (start, end)  = match direction {

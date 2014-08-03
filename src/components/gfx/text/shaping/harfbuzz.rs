@@ -42,15 +42,15 @@ use servo_util::range::Range;
 use std::mem;
 use std::char;
 use std::cmp;
-use std::ptr::null;
+use std::ptr;
 
 static NO_GLYPH: i32 = -1;
 static CONTINUATION_BYTE: i32 = -2;
 
 pub struct ShapedGlyphData {
     count: int,
-    glyph_infos: *hb_glyph_info_t,
-    pos_infos: *hb_glyph_position_t,
+    glyph_infos: *mut hb_glyph_info_t,
+    pos_infos: *mut hb_glyph_position_t,
 }
 
 pub struct ShapedGlyphEntry {
@@ -60,14 +60,14 @@ pub struct ShapedGlyphEntry {
 }
 
 impl ShapedGlyphData {
-    pub fn new(buffer: *hb_buffer_t) -> ShapedGlyphData {
+    pub fn new(buffer: *mut hb_buffer_t) -> ShapedGlyphData {
         unsafe {
-            let glyph_count = 0;
-            let glyph_infos = hb_buffer_get_glyph_infos(buffer, &glyph_count);
+            let mut glyph_count = 0;
+            let glyph_infos = hb_buffer_get_glyph_infos(buffer, &mut glyph_count);
             let glyph_count = glyph_count as int;
             assert!(glyph_infos.is_not_null());
-            let pos_count = 0;
-            let pos_infos = hb_buffer_get_glyph_positions(buffer, &pos_count);
+            let mut pos_count = 0;
+            let pos_infos = hb_buffer_get_glyph_positions(buffer, &mut pos_count);
             let pos_count = pos_count as int;
             assert!(pos_infos.is_not_null());
             assert!(glyph_count == pos_count);
@@ -132,9 +132,9 @@ impl ShapedGlyphData {
 }
 
 pub struct Shaper {
-    hb_face: *hb_face_t,
-    hb_font: *hb_font_t,
-    hb_funcs: *hb_font_funcs_t,
+    hb_face: *mut hb_face_t,
+    hb_font: *mut hb_font_t,
+    hb_funcs: *mut hb_font_funcs_t,
 }
 
 #[unsafe_destructor]
@@ -158,10 +158,10 @@ impl Shaper {
         unsafe {
             // Indirection for Rust Issue #6248, dynamic freeze scope artifically extended
             let font_ptr = font as *mut Font;
-            let hb_face: *hb_face_t = hb_face_create_for_tables(get_font_table_func,
-                                                                font_ptr as *c_void,
-                                                                None);
-            let hb_font: *hb_font_t = hb_font_create(hb_face);
+            let hb_face: *mut hb_face_t = hb_face_create_for_tables(get_font_table_func,
+                                                                    font_ptr as *mut c_void,
+                                                                    None);
+            let hb_font: *mut hb_font_t = hb_font_create(hb_face);
 
             // Set points-per-em. if zero, performs no hinting in that direction.
             let pt_size = font.pt_size;
@@ -174,11 +174,11 @@ impl Shaper {
 
             // configure static function callbacks.
             // NB. This funcs structure could be reused globally, as it never changes.
-            let hb_funcs: *hb_font_funcs_t = hb_font_funcs_create();
-            hb_font_funcs_set_glyph_func(hb_funcs, glyph_func, null(), None);
-            hb_font_funcs_set_glyph_h_advance_func(hb_funcs, glyph_h_advance_func, null(), None);
-            hb_font_funcs_set_glyph_h_kerning_func(hb_funcs, glyph_h_kerning_func, null(), null());
-            hb_font_set_funcs(hb_font, hb_funcs, font_ptr as *c_void, None);
+            let hb_funcs: *mut hb_font_funcs_t = hb_font_funcs_create();
+            hb_font_funcs_set_glyph_func(hb_funcs, glyph_func, ptr::mut_null(), None);
+            hb_font_funcs_set_glyph_h_advance_func(hb_funcs, glyph_h_advance_func, ptr::mut_null(), None);
+            hb_font_funcs_set_glyph_h_kerning_func(hb_funcs, glyph_h_kerning_func, ptr::mut_null(), ptr::mut_null());
+            hb_font_set_funcs(hb_font, hb_funcs, font_ptr as *mut c_void, None);
 
             Shaper {
                 hb_face: hb_face,
@@ -202,17 +202,16 @@ impl ShaperMethods for Shaper {
     /// font.
     fn shape_text(&self, text: &str, glyphs: &mut GlyphStore) {
         unsafe {
-            let hb_buffer: *hb_buffer_t = hb_buffer_create();
+            let hb_buffer: *mut hb_buffer_t = hb_buffer_create();
             hb_buffer_set_direction(hb_buffer, HB_DIRECTION_LTR);
 
-            // Using as_imm_buf because it never does a copy - we don't need the trailing null
             hb_buffer_add_utf8(hb_buffer,
-                               text.as_ptr() as *c_char,
+                               text.as_ptr() as *const c_char,
                                text.len() as c_int,
                                0,
                                text.len() as c_int);
 
-            hb_shape(self.hb_font, hb_buffer, null(), 0);
+            hb_shape(self.hb_font, hb_buffer, ptr::mut_null(), 0);
             self.save_glyph_results(text, glyphs, hb_buffer);
             hb_buffer_destroy(hb_buffer);
         }
@@ -220,7 +219,7 @@ impl ShaperMethods for Shaper {
 }
 
 impl Shaper {
-    fn save_glyph_results(&self, text: &str, glyphs: &mut GlyphStore, buffer: *hb_buffer_t) {
+    fn save_glyph_results(&self, text: &str, glyphs: &mut GlyphStore, buffer: *mut hb_buffer_t) {
         let glyph_data = ShapedGlyphData::new(buffer);
         let glyph_count = glyph_data.len();
         let byte_max = text.len() as int;
@@ -454,14 +453,14 @@ impl Shaper {
 }
 
 /// Callbacks from Harfbuzz when font map and glyph advance lookup needed.
-extern fn glyph_func(_: *hb_font_t,
-                     font_data: *c_void,
+extern fn glyph_func(_: *mut hb_font_t,
+                     font_data: *mut c_void,
                      unicode: hb_codepoint_t,
                      _: hb_codepoint_t,
                      glyph: *mut hb_codepoint_t,
-                     _: *c_void)
+                     _: *mut c_void)
                   -> hb_bool_t {
-    let font: *Font = font_data as *Font;
+    let font: *const Font = font_data as *const Font;
     assert!(font.is_not_null());
 
     unsafe {
@@ -475,10 +474,10 @@ extern fn glyph_func(_: *hb_font_t,
     }
 }
 
-extern fn glyph_h_advance_func(_: *hb_font_t,
-                               font_data: *c_void,
+extern fn glyph_h_advance_func(_: *mut hb_font_t,
+                               font_data: *mut c_void,
                                glyph: hb_codepoint_t,
-                               _: *c_void)
+                               _: *mut c_void)
                             -> hb_position_t {
     let font: *mut Font = font_data as *mut Font;
     assert!(font.is_not_null());
@@ -489,11 +488,11 @@ extern fn glyph_h_advance_func(_: *hb_font_t,
     }
 }
 
-extern fn glyph_h_kerning_func(_: *hb_font_t,
-                               font_data: *c_void,
+extern fn glyph_h_kerning_func(_: *mut hb_font_t,
+                               font_data: *mut c_void,
                                first_glyph: hb_codepoint_t,
                                second_glyph: hb_codepoint_t,
-                               _: *c_void)
+                               _: *mut c_void)
                             -> hb_position_t {
     let font: *mut Font = font_data as *mut Font;
     assert!(font.is_not_null());
@@ -505,21 +504,21 @@ extern fn glyph_h_kerning_func(_: *hb_font_t,
 }
 
 // Callback to get a font table out of a font.
-extern fn get_font_table_func(_: *hb_face_t, tag: hb_tag_t, user_data: *c_void) -> *hb_blob_t {
+extern fn get_font_table_func(_: *mut hb_face_t, tag: hb_tag_t, user_data: *mut c_void) -> *mut hb_blob_t {
     unsafe {
-        let font: *Font = user_data as *Font;
+        let font: *const Font = user_data as *const Font;
         assert!(font.is_not_null());
 
         // TODO(Issue #197): reuse font table data, which will change the unsound trickery here.
         match (*font).get_table_for_tag(tag as FontTableTag) {
-            None => null(),
+            None => ptr::mut_null(),
             Some(ref font_table) => {
-                let skinny_font_table_ptr: *FontTable = font_table;   // private context
+                let skinny_font_table_ptr: *const FontTable = font_table;   // private context
 
-                let mut blob: *hb_blob_t = null();
-                (*skinny_font_table_ptr).with_buffer(|buf: *u8, len: uint| {
+                let mut blob: *mut hb_blob_t = ptr::mut_null();
+                (*skinny_font_table_ptr).with_buffer(|buf: *const u8, len: uint| {
                     // HarfBuzz calls `destroy_blob_func` when the buffer is no longer needed.
-                    blob = hb_blob_create(buf as *c_char,
+                    blob = hb_blob_create(buf as *const c_char,
                                           len as c_uint,
                                           HB_MEMORY_MODE_READONLY,
                                           mem::transmute(skinny_font_table_ptr),
@@ -537,6 +536,6 @@ extern fn get_font_table_func(_: *hb_face_t, tag: hb_tag_t, user_data: *c_void) 
 // In particular, we'll need to cast to a boxed, rather than owned, FontTable.
 
 // even better, should cache the harfbuzz blobs directly instead of recreating a lot.
-extern fn destroy_blob_func(_: *c_void) {
+extern fn destroy_blob_func(_: *mut c_void) {
     // TODO: Previous code here was broken. Rewrite.
 }

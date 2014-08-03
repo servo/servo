@@ -120,19 +120,19 @@ fn empty_invalid() {
 
 #[test]
 fn plain() {
-    assert_parse("data:,hello%20world", None, None, Some(bytes!("hello world").iter().map(|&x| x).collect()));
+    assert_parse("data:,hello%20world", None, None, Some(b"hello world".iter().map(|&x| x).collect()));
 }
 
 #[test]
 fn plain_ct() {
     assert_parse("data:text/plain,hello",
-        Some(("text".to_string(), "plain".to_string())), None, Some(bytes!("hello").iter().map(|&x| x).collect()));
+        Some(("text".to_string(), "plain".to_string())), None, Some(b"hello".iter().map(|&x| x).collect()));
 }
 
 #[test]
 fn plain_charset() {
     assert_parse("data:text/plain;charset=latin1,hello",
-        Some(("text".to_string(), "plain".to_string())), Some("latin1".to_string()), Some(bytes!("hello").iter().map(|&x| x).collect()));
+        Some(("text".to_string(), "plain".to_string())), Some("latin1".to_string()), Some(b"hello".iter().map(|&x| x).collect()));
 }
 
 #[test]

@@ -110,19 +110,19 @@ pub fn transform_text(text: &str, mode: CompressionMode,
 }
 
 pub fn float_to_fixed(before: int, f: f64) -> i32 {
-    (1i32 << before) * (f as i32)
+    (1i32 << before as uint) * (f as i32)
 }
 
 pub fn fixed_to_float(before: int, f: i32) -> f64 {
-    f as f64 * 1.0f64 / ((1i32 << before) as f64)
+    f as f64 * 1.0f64 / ((1i32 << before as uint) as f64)
 }
 
 pub fn fixed_to_rounded_int(before: int, f: i32) -> int {
-    let half = 1i32 << (before-1);
+    let half = 1i32 << (before-1) as uint;
     if f > 0i32 {
-        ((half + f) >> before) as int
+        ((half + f) >> before as uint) as int
     } else {
-       -((half - f) >> before) as int
+       -((half - f) >> before as uint) as int
     }
 }
 

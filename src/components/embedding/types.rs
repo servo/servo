@@ -11,23 +11,23 @@ pub type cef_text_input_context_t = c_void;
 pub type cef_event_handle_t = c_void;
 
 //these all need to be done...
-pub type cef_binary_value = *c_void;
-pub type cef_dictionary_value = *c_void;
+pub type cef_binary_value = *mut c_void;
+pub type cef_dictionary_value = *mut c_void;
 pub type cef_client_t = c_void;
 pub type cef_request_t = c_void;
 pub type cef_response_t = c_void;
 pub type cef_urlrequest_client_t = c_void;
-pub type cef_frame = *c_void;
-pub type cef_domnode = *c_void;
-pub type cef_load_handler = *c_void;
-pub type cef_request = *c_void;
-pub type cef_navigation_type = *c_void;
+pub type cef_frame = *mut c_void;
+pub type cef_domnode = *mut c_void;
+pub type cef_load_handler = *mut c_void;
+pub type cef_request = *mut c_void;
+pub type cef_navigation_type = *mut c_void;
 pub type cef_request_context_t = c_void;
 pub type cef_window_info_t = c_void;
 pub type cef_browser_settings_t = c_void;
-pub type cef_v8context = *c_void;
-pub type cef_v8exception = *c_void;
-pub type cef_v8stack_trace = *c_void;
+pub type cef_v8context = *mut c_void;
+pub type cef_v8exception = *mut c_void;
+pub type cef_v8stack_trace = *mut c_void;
 pub type cef_window_handle_t = c_void; //FIXME: wtf is this
 
 pub type cef_string_t = cef_string_utf8; //FIXME: this is #defined...
@@ -60,7 +60,7 @@ pub struct cef_string_wide {
 pub type cef_main_args_t = cef_main_args;
 pub struct cef_main_args {
   pub argc: c_int,
-  pub argv: **u8
+  pub argv: *const *const u8
 }
 
 pub type cef_color_t = c_uint;
@@ -799,13 +799,13 @@ pub struct cef_command_line {
   // The first argument must be the name of the program. This function is only
   // supported on non-Windows platforms.
   ///
-  pub init_from_argv: extern "C" fn(cmd: *mut cef_command_line, argc: c_int, argv: *u8),
+  pub init_from_argv: extern "C" fn(cmd: *mut cef_command_line, argc: c_int, argv: *const u8),
 
   ///
   // Initialize the command line with the string returned by calling
   // GetCommandLineW(). This function is only supported on Windows.
   ///
-  pub init_from_string: extern "C" fn(cmd: *mut cef_command_line, command_line: *cef_string_t),
+  pub init_from_string: extern "C" fn(cmd: *mut cef_command_line, command_line: *const cef_string_t),
 
   ///
   // Reset the command-line switches and arguments but leave the program
@@ -835,7 +835,7 @@ pub struct cef_command_line {
   ///
   // Set the program part of the command line string (the first item).
   ///
-  pub set_program: extern "C" fn(cmd: *mut cef_command_line, name: *cef_string_t),
+  pub set_program: extern "C" fn(cmd: *mut cef_command_line, name: *const cef_string_t),
 
   ///
   // Returns true (1) if the command line has switches.
@@ -845,14 +845,14 @@ pub struct cef_command_line {
   ///
   // Returns true (1) if the command line contains the given switch.
   ///
-  pub has_switch: extern "C" fn(cmd: *mut cef_command_line, name: *cef_string_t) -> c_int,
+  pub has_switch: extern "C" fn(cmd: *mut cef_command_line, name: *const cef_string_t) -> c_int,
 
   ///
   // Returns the value associated with the given switch. If the switch has no
   // value or isn't present this function returns the NULL string.
   ///
   // The resulting string must be freed by calling cef_string_userfree_free().
-  pub get_switch_value: extern "C" fn(cmd: *mut cef_command_line, name: *cef_string_t) -> *mut cef_string_userfree_t,
+  pub get_switch_value: extern "C" fn(cmd: *mut cef_command_line, name: *const cef_string_t) -> *mut cef_string_userfree_t,
 
   ///
   // Returns the map of switch names and values. If a switch has no value an
@@ -864,12 +864,12 @@ pub struct cef_command_line {
   // Add a switch to the end of the command line. If the switch has no value
   // pass an NULL value string.
   ///
-  pub append_switch: extern "C" fn(cmd: *mut cef_command_line, name: *cef_string_t),
+  pub append_switch: extern "C" fn(cmd: *mut cef_command_line, name: *const cef_string_t),
 
   ///
   // Add a switch with the specified value to the end of the command line.
   ///
-  pub append_switch_with_value: extern "C" fn(cmd: *mut cef_command_line, name: *cef_string_t, value: *cef_string_t),
+  pub append_switch_with_value: extern "C" fn(cmd: *mut cef_command_line, name: *const cef_string_t, value: *const cef_string_t),
 
   ///
   // True if there are remaining command line arguments.
@@ -884,13 +884,13 @@ pub struct cef_command_line {
   ///
   // Add an argument to the end of the command line.
   ///
-  pub append_argument: extern "C" fn(cmd: *mut cef_command_line, argument: *cef_string_t),
+  pub append_argument: extern "C" fn(cmd: *mut cef_command_line, argument: *const cef_string_t),
 
   ///
   // Insert a command before the current command. Common for debuggers, like
   // "valgrind" or "gdb --args".
   ///
-  pub prepend_wrapper: extern "C" fn(cmd: *mut cef_command_line, wrapper: *cef_string_t),
+  pub prepend_wrapper: extern "C" fn(cmd: *mut cef_command_line, wrapper: *const cef_string_t),
 }
 
 
@@ -951,7 +951,7 @@ pub struct cef_scheme_registrar {
   // if an error occurs this function will return false (0).
   ///
   _add_custom_scheme: extern "C" fn(registrar: *mut cef_scheme_registrar,
-                                    scheme_name: *cef_string_t,
+                                    scheme_name: *const cef_string_t,
                                     is_standard: c_int, is_local: c_int,
                                     is_display_isolated: c_int),
 }
@@ -985,7 +985,7 @@ pub struct cef_resource_bundle_handler {
   // cef_pack_resources.h.
   ///
   pub get_data_resource: extern "C" fn(bundle_handler: *mut cef_resource_bundle_handler,
-                               resource_id: c_int, data: **mut c_void, data_size: *mut size_t) -> c_int,
+                               resource_id: c_int, data: *mut *mut c_void, data_size: *mut size_t) -> c_int,
 }
 
 
@@ -1112,7 +1112,7 @@ pub struct cef_list_value {
   // Sets the value at the specified index as type string. Returns true (1) if
   // the value was set successfully.
   ///
-  pub set_string: extern "C" fn(list_value: *mut cef_list_value, index: c_int, value: *cef_string_t) -> c_int,
+  pub set_string: extern "C" fn(list_value: *mut cef_list_value, index: c_int, value: *const cef_string_t) -> c_int,
 
   ///
   // Sets the value at the specified index as type binary. Returns true (1) if
@@ -1297,14 +1297,14 @@ pub struct cef_browser_host {
   // the UI thread.
   ///
   pub run_file_dialog: extern "C" fn(browser_host: *mut cef_browser_host,
-                             mode: cef_file_dialog_mode_t, title: *cef_string_t,
-                             default_file_name: *cef_string_t, accept_types: *mut cef_string_list_t,
+                             mode: cef_file_dialog_mode_t, title: *const cef_string_t,
+                             default_file_name: *const cef_string_t, accept_types: *mut cef_string_list_t,
                              callback: *mut cef_run_file_dialog_callback),
 
   ///
   // Download the file at |url| using cef_download_handler_t.
   ///
-  pub start_download: extern "C" fn(browser_host: *mut cef_browser_host, url: *cef_string_t),
+  pub start_download: extern "C" fn(browser_host: *mut cef_browser_host, url: *const cef_string_t),
 
   ///
   // Print the current browser contents.
@@ -1318,7 +1318,7 @@ pub struct cef_browser_host {
   // be case-sensitive. |findNext| indicates whether this is the first request
   // or a follow-up.
   ///
-  pub find: extern "C" fn(browser_host: *mut cef_browser_host, identifier: c_int, searchText: *cef_string_t,
+  pub find: extern "C" fn(browser_host: *mut cef_browser_host, identifier: c_int, searchText: *const cef_string_t,
                   forward: c_int, matchCase: c_int, findNext: c_int),
 
   ///
@@ -1330,9 +1330,9 @@ pub struct cef_browser_host {
   // Open developer tools in its own window.
   ///
   pub show_dev_tools: extern "C" fn(browser_host: *mut cef_browser_host,
-                            windowInfo: *cef_window_info_t,
+                            windowInfo: *const cef_window_info_t,
                             client: *mut cef_client_t,
-                            settings: *cef_browser_settings_t),
+                            settings: *const cef_browser_settings_t),
 
   ///
   // Explicitly close the developer tools window if one exists for this browser
@@ -1387,20 +1387,20 @@ pub struct cef_browser_host {
   // function is only used when window rendering is disabled.
   ///
   pub invalidate: extern "C" fn(browser_host: *mut cef_browser_host,
-                        dirtyRect: *cef_rect, t: cef_paint_element_type_t),
+                        dirtyRect: *const cef_rect, t: cef_paint_element_type_t),
 
   ///
   // Send a key event to the browser.
   ///
   pub send_key_event: extern "C" fn(browser_host: *mut cef_browser_host,
-                            event: *cef_key_event),
+                            event: *const cef_key_event),
 
   ///
   // Send a mouse click event to the browser. The |x| and |y| coordinates are
   // relative to the upper-left corner of the view.
   ///
   pub send_mouse_click_event: extern "C" fn(browser_host: *mut cef_browser_host,
-                            event: *cef_mouse_event,
+                            event: *const cef_mouse_event,
                             t: cef_mouse_button_type_t,
                             mouseUp: c_int, clickCount: c_int),
 
@@ -1409,7 +1409,7 @@ pub struct cef_browser_host {
   // relative to the upper-left corner of the view.
   ///
   pub send_mouse_move_event: extern "C" fn(browser_host: *mut cef_browser_host,
-                            event: *cef_mouse_event, mouseLeave: c_int),
+                            event: *const cef_mouse_event, mouseLeave: c_int),
 
   ///
   // Send a mouse wheel event to the browser. The |x| and |y| coordinates are
@@ -1419,7 +1419,7 @@ pub struct cef_browser_host {
   // cef_render_handler_t::GetScreenPoint should be implemented properly.
   ///
   pub send_mouse_wheel_event: extern "C" fn(browser_host: *mut cef_browser_host,
-                            event: *cef_mouse_event, deltaX: c_int, deltaY: c_int),
+                            event: *const cef_mouse_event, deltaX: c_int, deltaY: c_int),
 
   ///
   // Send a focus event to the browser.
@@ -1550,7 +1550,7 @@ pub struct cef_browser {
   ///
   // Returns the frame with the specified name, or NULL if not found.
   ///
-  pub get_frame: extern "C" fn(browser: *mut cef_browser, name: *cef_string_t) -> *mut cef_frame,
+  pub get_frame: extern "C" fn(browser: *mut cef_browser, name: *const cef_string_t) -> *mut cef_frame,
 
   ///
   // Returns the number of frames that currently exist.
@@ -1711,7 +1711,7 @@ pub struct cef_app {
   // modify command-line arguments for non-browser processes as this may result
   // in undefined behavior including crashes.
   ///
-  pub on_before_command_line_processing: extern "C" fn(app: *mut cef_app_t, process_type: *cef_string_t, command_line: *mut cef_command_line),
+  pub on_before_command_line_processing: extern "C" fn(app: *mut cef_app_t, process_type: *const cef_string_t, command_line: *mut cef_command_line),
 
   ///
   // Provides an opportunity to register custom schemes. Do not keep a reference
@@ -1818,14 +1818,14 @@ pub struct cef_post_data_element {
   ///
   // The post data element will represent a file.
   ///
-  pub set_to_file: extern "C" fn(post_data_element: *mut cef_post_data_element, fileName: *cef_string_t),
+  pub set_to_file: extern "C" fn(post_data_element: *mut cef_post_data_element, fileName: *const cef_string_t),
 
   ///
   // The post data element will represent bytes.  The bytes passed in will be
   // copied.
   ///
   pub set_to_bytes: extern "C" fn(post_data_element: *mut cef_post_data_element,
-                          size: size_t, bytes: *c_void),
+                          size: size_t, bytes: *const c_void),
 
   ///
   // Return the type of this post data element.
@@ -1877,7 +1877,7 @@ pub struct cef_post_data {
   // Retrieve the post data elements.
   ///
   pub get_elements: extern "C" fn(post_data: *mut cef_post_data,
-                          elements_count: *mut size_t, elements: **mut cef_post_data_element),
+                          elements_count: *mut size_t, elements: *mut *mut cef_post_data_element),
 
   ///
   // Remove the specified post data element.  Returns true (1) if the removal

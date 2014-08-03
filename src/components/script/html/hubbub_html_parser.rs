@@ -555,7 +555,7 @@ pub fn parse_html(page: &Page,
 }
 
 fn build_parser(node: hubbub::NodeDataPtr) -> hubbub::Parser {
-    let mut parser = hubbub::Parser("UTF-8", false);
+    let mut parser = hubbub::Parser::new("UTF-8", false);
     parser.set_document_node(node);
     parser.enable_scripting(true);
     parser.enable_styling(true);

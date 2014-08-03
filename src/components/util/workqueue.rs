@@ -7,13 +7,13 @@
 //! Data associated with queues is simply a pair of unsigned integers. It is expected that a
 //! higher-level API on top of this could allow safe fork-join parallelism.
 
-use native;
+use native::task::NativeTaskBuilder;
 use rand::{Rng, XorShiftRng};
 use std::mem;
 use std::rand::weak_rng;
 use std::sync::atomics::{AtomicUint, SeqCst};
 use std::sync::deque::{Abort, BufferPool, Data, Empty, Stealer, Worker};
-use rustrt::task::TaskOpts;
+use std::task::TaskBuilder;
 
 /// A unit of work.
 ///
@@ -31,7 +31,7 @@ pub struct WorkUnit<QueueData, WorkData> {
 /// Messages from the supervisor to the worker.
 enum WorkerMsg<QueueData, WorkData> {
     /// Tells the worker to start work.
-    StartMsg(Worker<WorkUnit<QueueData, WorkData>>, *mut AtomicUint, *QueueData),
+    StartMsg(Worker<WorkUnit<QueueData, WorkData>>, *mut AtomicUint, *const QueueData),
     /// Tells the worker to stop. It can be restarted again with a `StartMsg`.
     StopMsg,
     /// Tells the worker thread to terminate.
@@ -159,7 +159,7 @@ impl<QueueData: Send, WorkData: Send> WorkerThread<QueueData, WorkData> {
 pub struct WorkerProxy<'a, QueueData, WorkData> {
     worker: &'a mut Worker<WorkUnit<QueueData, WorkData>>,
     ref_count: *mut AtomicUint,
-    queue_data: *QueueData,
+    queue_data: *const QueueData,
 }
 
 impl<'a, QueueData, WorkData: Send> WorkerProxy<'a, QueueData, WorkData> {
@@ -230,9 +230,7 @@ impl<QueueData: Send, WorkData: Send> WorkQueue<QueueData, WorkData> {
 
         // Spawn threads.
         for thread in threads.move_iter() {
-            let mut opts = TaskOpts::new();
-            opts.name = Some(task_name.into_maybe_owned());
-            native::task::spawn_opts(opts, proc() {
+            TaskBuilder::new().named(task_name).native().spawn(proc() {
                 let mut thread = thread;
                 thread.start()
             })

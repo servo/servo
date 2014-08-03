@@ -17,23 +17,23 @@ use libc;
 use libc::{c_void, c_long, size_t, malloc};
 use std::mem;
 
-extern fn ft_alloc(_mem: FT_Memory, size: c_long) -> *c_void {
+extern fn ft_alloc(_mem: FT_Memory, size: c_long) -> *mut c_void {
     unsafe {
         let ptr = libc::malloc(size as size_t);
-        ptr as *c_void
+        ptr as *mut c_void
     }
 }
 
-extern fn ft_free(_mem: FT_Memory, block: *c_void) {
+extern fn ft_free(_mem: FT_Memory, block: *mut c_void) {
     unsafe {
-        libc::free(block as *mut c_void);
+        libc::free(block);
     }
 }
 
-extern fn ft_realloc(_mem: FT_Memory, _cur_size: c_long, new_size: c_long, block: *c_void) -> *c_void {
+extern fn ft_realloc(_mem: FT_Memory, _cur_size: c_long, new_size: c_long, block: *mut c_void) -> *mut c_void {
     unsafe {
-        let ptr = libc::realloc(block as *mut c_void, new_size as size_t);
-        ptr as *c_void
+        let ptr = libc::realloc(block, new_size as size_t);
+        ptr as *mut c_void
     }
 }
 
@@ -61,15 +61,15 @@ impl FontContextHandle {
             let ptr = libc::malloc(mem::size_of::<struct_FT_MemoryRec_>() as size_t);
             let allocator: &mut struct_FT_MemoryRec_ = mem::transmute(ptr);
             ptr::write(allocator, struct_FT_MemoryRec_ {
-                user: ptr::null(),
+                user: ptr::mut_null(),
                 alloc: ft_alloc,
                 free: ft_free,
                 realloc: ft_realloc,
             });
 
-            let ctx: FT_Library = ptr::null();
+            let mut ctx: FT_Library = ptr::mut_null();
 
-            let result = FT_New_Library(ptr as FT_Memory, &ctx);
+            let result = FT_New_Library(ptr as FT_Memory, &mut ctx);
             if !result.succeeded() { fail!("Unable to initialize FreeType library"); }
 
             FT_Add_Default_Modules(ctx);

@@ -75,7 +75,7 @@ fn find_tests(config: Config) -> Vec<TestDescAndFn> {
         _ => fail!("Error reading directory."),
     };
     files.retain(|file| file.extension_str() == Some("html") );
-    return files.iter().map(|file| make_test(file.display().to_str()) ).collect();
+    return files.iter().map(|file| make_test(format!("{}", file.display()))).collect();
 }
 
 fn make_test(file: String) -> TestDescAndFn {
@@ -92,12 +92,13 @@ fn make_test(file: String) -> TestDescAndFn {
 fn run_test(file: String) {
     let path = os::make_absolute(&Path::new(file));
     // FIXME (#1094): not the right way to transform a path
-    let infile = "file://".to_string().append(path.display().to_str().as_slice());
+    let infile = format!("file://{}", path.display());
     let stdout = CreatePipe(false, true);
     let stderr = InheritFd(2);
+    let args = ["-z", "-f", infile.as_slice()];
 
     let mut prc = match Command::new("./servo")
-        .args(["-z", "-f", infile.as_slice()])
+        .args(args)
         .stdin(Ignored)
         .stdout(stdout)
         .stderr(stderr)

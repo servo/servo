@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![crate_id = "github.com/mozilla/servo"]
+#![crate_name = "servo"]
 #![comment = "The Servo Parallel Browser Project"]
 #![license = "MPL"]
 
@@ -52,7 +52,6 @@ use servo_util::opts;
 #[cfg(not(test))]
 use url::{Url, UrlParser};
 
-
 #[cfg(not(test))]
 use std::os;
 #[cfg(not(test), target_os="android")]
@@ -65,7 +64,7 @@ use rustrt::task::TaskOpts;
 #[cfg(not(test), target_os="macos")]
 #[start]
 #[allow(dead_code)]
-fn start(argc: int, argv: **u8) -> int {
+fn start(argc: int, argv: *const *const u8) -> int {
     native::start(argc, argv, proc() {
         opts::from_cmdline_args(os::args().as_slice()).map(run);
     })
@@ -74,12 +73,12 @@ fn start(argc: int, argv: **u8) -> int {
 #[cfg(not(test), target_os="android")]
 #[no_mangle]
 #[allow(dead_code)]
-pub extern "C" fn android_start(argc: int, argv: **u8) -> int {
+pub extern "C" fn android_start(argc: int, argv: *const *const u8) -> int {
     native::start(argc, argv, proc() {
         let mut args: Vec<String> = vec!();
         for i in range(0u, argc as uint) {
             unsafe {
-                args.push(str::raw::from_c_str(*argv.offset(i as int) as *i8));
+                args.push(str::raw::from_c_str(*argv.offset(i as int) as *const i8));
             }
         }
 

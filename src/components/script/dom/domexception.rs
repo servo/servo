@@ -15,26 +15,26 @@ use servo_util::str::DOMString;
 #[repr(uint)]
 #[deriving(Show, Encodable)]
 pub enum DOMErrorName {
-    IndexSizeError = DOMExceptionConstants::INDEX_SIZE_ERR,
-    HierarchyRequestError = DOMExceptionConstants::HIERARCHY_REQUEST_ERR,
-    WrongDocumentError = DOMExceptionConstants::WRONG_DOCUMENT_ERR,
-    InvalidCharacterError = DOMExceptionConstants::INVALID_CHARACTER_ERR,
-    NoModificationAllowedError = DOMExceptionConstants::NO_MODIFICATION_ALLOWED_ERR,
-    NotFoundError = DOMExceptionConstants::NOT_FOUND_ERR,
-    NotSupportedError = DOMExceptionConstants::NOT_SUPPORTED_ERR,
-    InvalidStateError = DOMExceptionConstants::INVALID_STATE_ERR,
-    SyntaxError = DOMExceptionConstants::SYNTAX_ERR,
-    InvalidModificationError = DOMExceptionConstants::INVALID_MODIFICATION_ERR,
-    NamespaceError = DOMExceptionConstants::NAMESPACE_ERR,
-    InvalidAccessError = DOMExceptionConstants::INVALID_ACCESS_ERR,
-    SecurityError = DOMExceptionConstants::SECURITY_ERR,
-    NetworkError = DOMExceptionConstants::NETWORK_ERR,
-    AbortError = DOMExceptionConstants::ABORT_ERR,
-    URLMismatchError = DOMExceptionConstants::URL_MISMATCH_ERR,
-    QuotaExceededError = DOMExceptionConstants::QUOTA_EXCEEDED_ERR,
-    TimeoutError = DOMExceptionConstants::TIMEOUT_ERR,
-    InvalidNodeTypeError = DOMExceptionConstants::INVALID_NODE_TYPE_ERR,
-    DataCloneError = DOMExceptionConstants::DATA_CLONE_ERR,
+    IndexSizeError = DOMExceptionConstants::INDEX_SIZE_ERR as uint,
+    HierarchyRequestError = DOMExceptionConstants::HIERARCHY_REQUEST_ERR as uint,
+    WrongDocumentError = DOMExceptionConstants::WRONG_DOCUMENT_ERR as uint,
+    InvalidCharacterError = DOMExceptionConstants::INVALID_CHARACTER_ERR as uint,
+    NoModificationAllowedError = DOMExceptionConstants::NO_MODIFICATION_ALLOWED_ERR as uint,
+    NotFoundError = DOMExceptionConstants::NOT_FOUND_ERR as uint,
+    NotSupportedError = DOMExceptionConstants::NOT_SUPPORTED_ERR as uint,
+    InvalidStateError = DOMExceptionConstants::INVALID_STATE_ERR as uint,
+    SyntaxError = DOMExceptionConstants::SYNTAX_ERR as uint,
+    InvalidModificationError = DOMExceptionConstants::INVALID_MODIFICATION_ERR as uint,
+    NamespaceError = DOMExceptionConstants::NAMESPACE_ERR as uint,
+    InvalidAccessError = DOMExceptionConstants::INVALID_ACCESS_ERR as uint,
+    SecurityError = DOMExceptionConstants::SECURITY_ERR as uint,
+    NetworkError = DOMExceptionConstants::NETWORK_ERR as uint,
+    AbortError = DOMExceptionConstants::ABORT_ERR as uint,
+    URLMismatchError = DOMExceptionConstants::URL_MISMATCH_ERR as uint,
+    QuotaExceededError = DOMExceptionConstants::QUOTA_EXCEEDED_ERR as uint,
+    TimeoutError = DOMExceptionConstants::TIMEOUT_ERR as uint,
+    InvalidNodeTypeError = DOMExceptionConstants::INVALID_NODE_TYPE_ERR as uint,
+    DataCloneError = DOMExceptionConstants::DATA_CLONE_ERR as uint,
     EncodingError
 }
 
@@ -100,7 +100,7 @@ impl<'a> DOMExceptionMethods for JSRef<'a, DOMException> {
 
     // http://dom.spec.whatwg.org/#error-names-0
     fn Name(&self) -> DOMString {
-        self.code.to_str()
+        self.code.to_string()
     }
 
     // http://dom.spec.whatwg.org/#error-names-0

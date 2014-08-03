@@ -15,10 +15,10 @@ use types::{cef_app_t, cef_main_args_t, cef_settings_t};
 
 
 #[no_mangle]
-pub extern "C" fn cef_initialize(args: *cef_main_args_t,
+pub extern "C" fn cef_initialize(args: *const cef_main_args_t,
                                  _settings: *mut cef_settings_t,
                                  application: *mut cef_app_t,
-                                 _windows_sandbox_info: *c_void)
+                                 _windows_sandbox_info: *const c_void)
                                  -> c_int {
     if args.is_null() {
         return 0;
@@ -66,7 +66,7 @@ pub extern "C" fn cef_run_message_loop() {
         bubble_inline_sizes_separately: false,
         show_debug_borders: false,
     };
-    native::start(0, 0 as **u8, proc() {
+    native::start(0, 0 as *const *const u8, proc() {
        servo::run(opts);
     });
 }
@@ -76,7 +76,7 @@ pub extern "C" fn cef_quit_message_loop() {
 }
 
 #[no_mangle]
-pub extern "C" fn cef_execute_process(_args: *cef_main_args_t,
+pub extern "C" fn cef_execute_process(_args: *const cef_main_args_t,
                                       _app: *mut cef_app_t,
                                       _windows_sandbox_info: *mut c_void)
                                       -> c_int {

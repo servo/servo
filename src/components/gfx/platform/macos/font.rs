@@ -46,7 +46,7 @@ impl FontTable {
 }
 
 impl FontTableMethods for FontTable {
-    fn with_buffer(&self, blk: |*u8, uint|) {
+    fn with_buffer(&self, blk: |*const u8, uint|) {
         blk(self.data.bytes().as_ptr(), self.data.len() as uint);
     }
 }
@@ -108,11 +108,11 @@ impl FontHandleMethods for FontHandle {
 
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {
         let characters: [UniChar,  ..1] = [codepoint as UniChar];
-        let glyphs: [CGGlyph, ..1] = [0 as CGGlyph];
+        let mut glyphs: [CGGlyph, ..1] = [0 as CGGlyph];
         let count: CFIndex = 1;
 
         let result = self.ctfont.get_glyphs_for_characters(&characters[0],
-                                                           &glyphs[0],
+                                                           &mut glyphs[0],
                                                            count);
 
         if !result {
@@ -134,7 +134,7 @@ impl FontHandleMethods for FontHandle {
         let glyphs = [glyph as CGGlyph];
         let advance = self.ctfont.get_advances_for_glyphs(kCTFontDefaultOrientation,
                                                           &glyphs[0],
-                                                          ptr::null(),
+                                                          ptr::mut_null(),
                                                           1);
         Some(advance as FractionalPixel)
     }

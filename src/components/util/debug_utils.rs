@@ -10,23 +10,23 @@ use std::slice::raw::buf_as_slice;
 
 fn hexdump_slice(buf: &[u8]) {
     let mut stderr = io::stderr();
-    stderr.write(bytes!("    ")).unwrap();
+    stderr.write(b"    ").unwrap();
     for (i, &v) in buf.iter().enumerate() {
         let output = format!("{:02X} ", v as uint);
         stderr.write(output.as_bytes()).unwrap();
         match i % 16 {
-            15 => { stderr.write(bytes!("\n    ")).unwrap(); },
-            7 =>  { stderr.write(bytes!("   ")).unwrap(); },
+            15 => { stderr.write(b"\n    ").unwrap(); },
+            7 =>  { stderr.write(b"   ").unwrap(); },
              _ => ()
         }
         stderr.flush().unwrap();
     }
-    stderr.write(bytes!("\n")).unwrap();
+    stderr.write(b"\n").unwrap();
 }
 
 pub fn hexdump<T>(obj: &T) {
     unsafe {
-        let buf: *u8 = mem::transmute(obj);
+        let buf: *const u8 = mem::transmute(obj);
         debug!("dumping at {:p}", buf);
         buf_as_slice(buf, size_of::<T>(), hexdump_slice);
     }

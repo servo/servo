@@ -73,7 +73,7 @@ pub struct LayoutContext {
     /// The CSS selector stylist.
     ///
     /// FIXME(#2604): Make this no longer an unsafe pointer once we have fast `RWArc`s.
-    pub stylist: *Stylist,
+    pub stylist: *const Stylist,
 
     /// The root node at which we're starting the layout.
     pub reflow_root: OpaqueNode,

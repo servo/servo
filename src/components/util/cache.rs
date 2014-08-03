@@ -58,7 +58,7 @@ impl<K: Clone + PartialEq, V: Clone> Cache<K,V> for MonoCache<K,V> {
 
 #[test]
 fn test_monocache() {
-    let mut cache = MonoCache::new(10);
+    let mut cache: MonoCache<uint,Cell<&str>> = MonoCache::new(10);
     let one = Cell::new("one");
     let two = Cell::new("two");
     cache.insert(1, one);
@@ -105,7 +105,7 @@ impl<K: Clone + PartialEq + Eq + Hash, V: Clone> Cache<K,V> for HashCache<K,V> {
 
 #[test]
 fn test_hashcache() {
-    let mut cache = HashCache::new();
+    let mut cache: HashCache<uint, Cell<&str>> = HashCache::new();
     let one = Cell::new("one");
     let two = Cell::new("two");
 
@@ -252,7 +252,7 @@ fn test_lru_cache() {
     let four = Cell::new("four");
 
     // Test normal insertion.
-    let mut cache = LRUCache::new(2); // (_, _) (cache is empty)
+    let mut cache: LRUCache<uint,Cell<&str>> = LRUCache::new(2); // (_, _) (cache is empty)
     cache.insert(1, one);    // (1, _)
     cache.insert(2, two);    // (1, 2)
     cache.insert(3, three);  // (2, 3)

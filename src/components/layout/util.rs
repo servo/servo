@@ -67,7 +67,7 @@ pub struct LayoutDataWrapper {
 /// A trait that allows access to the layout data of a DOM node.
 pub trait LayoutDataAccess {
     /// Borrows the layout data without checks.
-    unsafe fn borrow_layout_data_unchecked(&self) -> *Option<LayoutDataWrapper>;
+    unsafe fn borrow_layout_data_unchecked(&self) -> *const Option<LayoutDataWrapper>;
     /// Borrows the layout data immutably. Fails on a conflicting borrow.
     fn borrow_layout_data<'a>(&'a self) -> Ref<'a,Option<LayoutDataWrapper>>;
     /// Borrows the layout data mutably. Fails on a conflicting borrow.
@@ -76,7 +76,7 @@ pub trait LayoutDataAccess {
 
 impl<'ln> LayoutDataAccess for LayoutNode<'ln> {
     #[inline(always)]
-    unsafe fn borrow_layout_data_unchecked(&self) -> *Option<LayoutDataWrapper> {
+    unsafe fn borrow_layout_data_unchecked(&self) -> *const Option<LayoutDataWrapper> {
         mem::transmute(self.get().layout_data.borrow_unchecked())
     }
 

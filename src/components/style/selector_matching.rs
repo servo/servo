@@ -28,7 +28,7 @@ pub enum StylesheetOrigin {
 }
 
 /// The definition of whitespace per CSS Selectors Level 3 § 4.
-static SELECTOR_WHITESPACE: &'static [char] = &'static [' ', '\t', '\n', '\r', '\x0C'];
+static SELECTOR_WHITESPACE: &'static [char] = &[' ', '\t', '\n', '\r', '\x0C'];
 
 /// A newtype struct used to perform lowercase ASCII comparisons without allocating a whole new
 /// string.
@@ -344,9 +344,9 @@ impl Stylist {
         // Take apart the StyleRule into individual Rules and insert
         // them into the SelectorMap of that priority.
         macro_rules! append(
-            ($priority: ident) => {
-                if style_rule.declarations.$priority.len() > 0 {
-                    for selector in style_rule.selectors.iter() {
+            ($style_rule: ident, $priority: ident) => {
+                if $style_rule.declarations.$priority.len() > 0 {
+                    for selector in $style_rule.selectors.iter() {
                         let map = match selector.pseudo_element {
                             None => &mut element_map,
                             Some(Before) => &mut before_map,
@@ -356,7 +356,7 @@ impl Stylist {
                                 selector: selector.compound_selectors.clone(),
                                 property: MatchedProperty {
                                     specificity: selector.specificity,
-                                    declarations: style_rule.declarations.$priority.clone(),
+                                    declarations: $style_rule.declarations.$priority.clone(),
                                     source_order: rules_source_order,
                                 },
                         });
@@ -367,8 +367,8 @@ impl Stylist {
 
         let device = &Device { media_type: Screen };  // TODO, use Print when printing
         iter_style_rules(stylesheet.rules.as_slice(), device, |style_rule| {
-            append!(normal);
-            append!(important);
+            append!(style_rule, normal);
+            append!(style_rule, important);
             rules_source_order += 1;
         });
         self.rules_source_order = rules_source_order;
@@ -511,10 +511,10 @@ impl Eq for MatchedProperty {}
 
 impl PartialOrd for MatchedProperty {
     #[inline]
-    fn lt(&self, other: &MatchedProperty) -> bool {
+    fn partial_cmp(&self, other: &MatchedProperty) -> Option<Ordering> {
         let this_rank = (self.specificity, self.source_order);
         let other_rank = (other.specificity, other.source_order);
-        this_rank < other_rank
+        this_rank.partial_cmp(&other_rank)
     }
 }
 

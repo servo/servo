@@ -164,7 +164,7 @@ pub struct SharedLayoutData {
 pub struct LayoutData {
     chan: Option<LayoutChan>,
     _shared_data: SharedLayoutData,
-    _data: *(),
+    _data: *const (),
 }
 
 pub struct LayoutDataRef {
@@ -197,7 +197,7 @@ impl LayoutDataRef {
     /// happen if you try to mutate the layout data while this is held. This is the only thread-
     /// safe layout data accessor.
     #[inline]
-    pub unsafe fn borrow_unchecked(&self) -> *Option<LayoutData> {
+    pub unsafe fn borrow_unchecked(&self) -> *const Option<LayoutData> {
         mem::transmute(&self.data_cell)
     }
 
@@ -538,7 +538,7 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
     }
 
     fn to_trusted_node_address(&self) -> TrustedNodeAddress {
-        TrustedNodeAddress(self.deref() as *Node as *libc::c_void)
+        TrustedNodeAddress(self.deref() as *const Node as *const libc::c_void)
     }
 
     fn get_bounding_content_box(&self) -> Rect<Au> {
@@ -665,7 +665,7 @@ pub fn from_untrusted_node_address(runtime: *mut JSRuntime, candidate: Untrusted
         if object.is_null() {
             fail!("Attempted to create a `JS<Node>` from an invalid pointer!")
         }
-        let boxed_node: *Node = utils::unwrap(object);
+        let boxed_node: *const Node = utils::unwrap(object);
         Temporary::new(JS::from_raw(boxed_node))
     }
 }
@@ -905,7 +905,7 @@ pub enum CloneChildrenFlag {
     DoNotCloneChildren
 }
 
-fn as_uintptr<T>(t: &T) -> uintptr_t { t as *T as uintptr_t }
+fn as_uintptr<T>(t: &T) -> uintptr_t { t as *const T as uintptr_t }
 
 impl Node {
     pub fn reflect_node<N: Reflectable+NodeBase>
@@ -1918,9 +1918,9 @@ pub fn window_from_node<T: NodeBase>(derived: &JSRef<T>) -> Temporary<Window> {
 }
 
 impl<'a> VirtualMethods for JSRef<'a, Node> {
-    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods+> {
+    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
         let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        Some(eventtarget as &VirtualMethods+)
+        Some(eventtarget as &VirtualMethods)
     }
 }
 

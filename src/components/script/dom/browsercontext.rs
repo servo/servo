@@ -85,20 +85,20 @@ static proxy_handler: ProxyTraps = ProxyTraps {
     getPropertyDescriptor: None,
     getOwnPropertyDescriptor: None,
     defineProperty: None,
-    getOwnPropertyNames: 0 as *u8,
+    getOwnPropertyNames: 0 as *const u8,
     delete_: None,
-    enumerate: 0 as *u8,
+    enumerate: 0 as *const u8,
 
     has: None,
     hasOwn: None,
     get: None,
     set: None,
-    keys: 0 as *u8,
+    keys: 0 as *const u8,
     iterate: None,
 
     call: None,
     construct: None,
-    nativeCall: 0 as *u8,
+    nativeCall: 0 as *const u8,
     hasInstance: None,
     typeOf: None,
     objectClassIs: None,
@@ -113,7 +113,7 @@ static proxy_handler: ProxyTraps = ProxyTraps {
     trace: None
 };
 
-pub fn new_window_proxy_handler() -> *c_void {
+pub fn new_window_proxy_handler() -> *const c_void {
     unsafe {
         CreateWrapperProxyHandler(&proxy_handler)
     }

@@ -26,11 +26,11 @@ fn command_line_new() -> *mut command_line_t {
     }
 }
 
-pub fn command_line_init(argc: c_int, argv: **u8) {
+pub fn command_line_init(argc: c_int, argv: *const *const u8) {
     unsafe {
         let mut a: Vec<String> = vec!();
         for i in range(0u, argc as uint) {
-            a.push(str::raw::from_c_str(*argv.offset(i as int) as *i8));
+            a.push(str::raw::from_c_str(*argv.offset(i as int) as *const i8));
         }
         let cl = command_line_new();
         (*cl).argc = argc;
@@ -41,7 +41,7 @@ pub fn command_line_init(argc: c_int, argv: **u8) {
 }
 
 #[no_mangle]
-pub extern "C" fn command_line_get_switch_value(cmd: *mut cef_command_line_t, name: *cef_string_t) -> *mut cef_string_userfree_t {
+pub extern "C" fn command_line_get_switch_value(cmd: *mut cef_command_line_t, name: *const cef_string_t) -> *mut cef_string_userfree_t {
     if cmd.is_null() || name.is_null() {
         return 0 as *mut cef_string_userfree_t;
     }
@@ -49,8 +49,8 @@ pub extern "C" fn command_line_get_switch_value(cmd: *mut cef_command_line_t, na
         //technically cef_string_t can be any type of character size
         //but the default cef callback uses utf16, so I'm jumping on board the SS Copy
         let cl: *mut command_line_t = mem::transmute(cmd);
-        let cs: *cef_string_utf16_t = mem::transmute(name);
-        let opt = str::from_utf16(CVec::new((*cs).str, (*cs).length as uint).as_slice()).unwrap();
+        let cs: *const cef_string_utf16_t = mem::transmute(name);
+        let opt = String::from_utf16(CVec::new((*cs).str, (*cs).length as uint).as_slice()).unwrap();
             //debug!("opt: {}", opt);
         for s in (*cl).argv.iter() {
             let o = s.as_slice().trim_left_chars('-');

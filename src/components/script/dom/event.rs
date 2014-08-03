@@ -29,10 +29,10 @@ pub enum Event_ {
 
 #[deriving(Encodable)]
 pub enum EventPhase {
-    PhaseNone      = EventConstants::NONE,
-    PhaseCapturing = EventConstants::CAPTURING_PHASE,
-    PhaseAtTarget  = EventConstants::AT_TARGET,
-    PhaseBubbling  = EventConstants::BUBBLING_PHASE,
+    PhaseNone      = EventConstants::NONE as int,
+    PhaseCapturing = EventConstants::CAPTURING_PHASE as int,
+    PhaseAtTarget  = EventConstants::AT_TARGET as int,
+    PhaseBubbling  = EventConstants::BUBBLING_PHASE as int,
 }
 
 #[deriving(PartialEq, Encodable)]

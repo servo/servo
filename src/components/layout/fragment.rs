@@ -392,7 +392,7 @@ impl Fragment {
     /// Returns a debug ID of this fragment. This ID should not be considered stable across multiple
     /// layouts or fragment manipulations.
     pub fn debug_id(&self) -> uint {
-        self as *Fragment as uint
+        self as *const Fragment as uint
     }
 
     /// Transforms this fragment into another fragment of the given type, with the given size, preserving all

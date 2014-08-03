@@ -179,18 +179,20 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
         let nargs = 1; //XXXjdm not true for onerror
         static arg_name: [c_char, ..6] =
             ['e' as c_char, 'v' as c_char, 'e' as c_char, 'n' as c_char, 't' as c_char, 0];
-        static arg_names: [*c_char, ..1] = [&arg_name as *c_char];
+        static arg_names: [*const c_char, ..1] = [&arg_name as *const c_char];
 
-        let source = source.to_utf16();
-        let handler = name.with_ref(|name| {
-            url.with_ref(|url| {
-                unsafe {
-                    JS_CompileUCFunction(cx, ptr::mut_null(), name,
-                                         nargs, &arg_names as **i8 as *mut *i8,
-                                         source.as_ptr(), source.len() as size_t, url, lineno)
-                }
-            })
-        });
+        let source: Vec<u16> = source.as_slice().utf16_units().collect();
+        let handler = unsafe {
+                JS_CompileUCFunction(cx,
+                                     ptr::mut_null(),
+                                     name.as_ptr(),
+                                     nargs,
+                                     &arg_names as *const *const i8 as *mut *const i8,
+                                     source.as_ptr(),
+                                     source.len() as size_t,
+                                     url.as_ptr(),
+                                     lineno)
+        };
         if handler.is_null() {
             report_pending_exception(cx, self.reflector().get_jsobject());
             return;
@@ -279,7 +281,7 @@ impl Reflectable for EventTarget {
 }
 
 impl<'a> VirtualMethods for JSRef<'a, EventTarget> {
-    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods+> {
+    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
         None
     }
 }

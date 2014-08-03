@@ -91,12 +91,12 @@ fn test_match<T: PartialEq>(b: &T, a: Option<&T>) -> bool {
 
 #[test]
 fn should_find_all_elements() {
-    let arr_odd = [1, 2, 4, 6, 7, 8, 9];
-    let arr_even = [1, 2, 5, 6, 7, 8, 9, 42];
-    let arr_double = [1, 1, 2, 2, 6, 8, 22];
-    let arr_one = [234986325];
-    let arr_two = [3044, 8393];
-    let arr_three = [12, 23, 34];
+    let arr_odd = [1u32, 2, 4, 6, 7, 8, 9];
+    let arr_even = [1u32, 2, 5, 6, 7, 8, 9, 42];
+    let arr_double = [1u32, 1, 2, 2, 6, 8, 22];
+    let arr_one = [234986325u32];
+    let arr_two = [3044u32, 8393];
+    let arr_three = [12u32, 23, 34];
 
     test_find_all_elems(arr_odd);
     test_find_all_elems(arr_even);
@@ -108,12 +108,12 @@ fn should_find_all_elements() {
 
 #[test]
 fn should_not_find_missing_elements() {
-    let arr_odd = [1, 2, 4, 6, 7, 8, 9];
-    let arr_even = [1, 2, 5, 6, 7, 8, 9, 42];
-    let arr_double = [1, 1, 2, 2, 6, 8, 22];
-    let arr_one = [234986325];
-    let arr_two = [3044, 8393];
-    let arr_three = [12, 23, 34];
+    let arr_odd = [1u32, 2, 4, 6, 7, 8, 9];
+    let arr_even = [1u32, 2, 5, 6, 7, 8, 9, 42];
+    let arr_double = [1u32, 1, 2, 2, 6, 8, 22];
+    let arr_one = [234986325u32];
+    let arr_two = [3044u32, 8393];
+    let arr_three = [12u32, 23, 34];
 
     test_miss_all_elems(arr_odd, [-22, 0, 3, 5, 34938, 10, 11, 12]);
     test_miss_all_elems(arr_even, [-1, 0, 3, 34938, 10, 11, 12]);
