@@ -178,11 +178,9 @@ pub fn new_resource_task() -> ResourceTask {
     let (setup_chan, setup_port) = channel();
     let builder = TaskBuilder::new().named("ResourceManager");
     builder.spawn(proc() {
-        let (chan, port) = channel();
-        setup_chan.send(chan);
-        ResourceManager::new(port).start();
+        ResourceManager::new(setup_port).start();
     });
-    setup_port.recv()
+    setup_chan
 }
 
 struct ResourceManager {
