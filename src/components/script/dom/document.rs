@@ -521,8 +521,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                 });
         });
         let v: Vec<&str> = split_html_space_chars(title.as_slice()).collect();
-        let title = v.connect(" ");
-        title.as_slice().trim().to_string()
+        v.connect(" ")
     }
 
     // http://www.whatwg.org/specs/web-apps/current-work/#document.title
