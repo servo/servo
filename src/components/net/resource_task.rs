@@ -202,7 +202,7 @@ impl ResourceManager {
         loop {
             match self.from_client.recv() {
               Load(load_data, start_chan) => {
-                self.load(load_data.clone(), start_chan)
+                self.load(load_data, start_chan)
               }
               Exit => {
                 break
