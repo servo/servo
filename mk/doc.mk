@@ -3,7 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 # FIXME(#2924) These crates make rustdoc fail for undetermined reasons.
-DOC_BLACKLISTED := style layout
+DOC_BLACKLISTED := style
 
 define DEF_DOC_RULES
 .PHONY: doc-$(1)

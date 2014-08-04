@@ -71,7 +71,7 @@ pub struct Line {
     /// <span>I <span>like truffles, <img></span> yes I do.</span>
     /// ~~~
     ///
-    /// ~~~
+    /// ~~~text
     /// +------------+
     /// | I like     |
     /// | truffles,  |
@@ -84,11 +84,11 @@ pub struct Line {
     ///
     /// The ranges that describe these lines would be:
     ///
-    /// ~~~
+    /// <style>.content style ~ table th, style ~ table td { border: 1px solid #888 }
+    ///        .content style ~ table { border-collapse: collapse }</style>
     /// | [0.0, 1.4) | [1.5, 2.0)  | [2.0, 3.4)  | [3.4, 4.0) |
     /// |------------|-------------|-------------|------------|
     /// | 'I like'   | 'truffles,' | '<img> yes' | 'I do.'    |
-    /// ~~~
     pub range: Range<LineIndices>,
     /// The bounds are the exact position and extents of the line with respect
     /// to the parent box.
@@ -101,7 +101,7 @@ pub struct Line {
     ///
     /// ...the bounds would be:
     ///
-    /// ~~~
+    /// ~~~text
     /// +-----------------------------------------------------------+
     /// |               ^                                           |
     /// |               |                                           |
@@ -123,7 +123,7 @@ pub struct Line {
     /// The green zone is the greatest extent from wich a line can extend to
     /// before it collides with a float.
     ///
-    /// ~~~
+    /// ~~~text
     /// +-----------------------+
     /// |:::::::::::::::::      |
     /// |:::::::::::::::::FFFFFF|
@@ -164,11 +164,11 @@ pub struct LineIndices {
     ///
     /// The fragments would be indexed as follows:
     ///
-    /// ~~~
-    /// |  0   |        1         |   2   |       3      |
-    /// |------|------------------|-------|--------------|
-    /// | 'I ' | 'like truffles,' | <img> | ' yes I do.' |
-    /// ~~~
+    /// <style>.content style ~ table th, style ~ table td { border: 1px solid #888 }
+    ///        .content style ~ table { border-collapse: collapse }</style>
+    /// |  0   |        1         |    2    |       3      |
+    /// |------|------------------|---------|--------------|
+    /// | 'I ' | 'like truffles,' | `<img>` | ' yes I do.' |
     pub fragment_index: FragmentIndex,
     /// The index of a character in a DOM fragment. Continuous runs of whitespace
     /// are treated as single characters. Non-breakable DOM fragments such as
@@ -182,15 +182,15 @@ pub struct LineIndices {
     ///
     /// The characters would be indexed as follows:
     ///
-    /// ~~~
+    /// <style>.content style ~ table th, style ~ table td { border: 1px solid #888 }
+    ///        .content style ~ table { border-collapse: collapse }</style>
     /// | 0 | 1 | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 |
     /// |---|---|---|---|---|---|---|---|---|---|---|---|----|----|----|----|----|
     /// | I |   | l | i | k | e |   | t | r | u | f | f | l  | e  | s  | ,  |    |
     ///
-    /// |   0   | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
-    /// |-------|---|---|---|---|---|---|---|---|---|---|
-    /// | <img> |   | y | e | s |   | I |   | d | o | . |
-    /// ~~~
+    /// |    0    | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
+    /// |---------|---|---|---|---|---|---|---|---|---|---|
+    /// | `<img>` |   | y | e | s |   | I |   | d | o | . |
     pub char_index: CharIndex,
 }
 
