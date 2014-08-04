@@ -586,7 +586,15 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                             "argument" % descriptor.interface.identifier.name)
 
         if failureCode is None:
-            unwrapFailureCode = "return 0; //XXXjdm return Throw(cx, rv);"
+            substitutions = {
+                "sourceDescription": sourceDescription,
+                "interface": descriptor.interface.identifier.name,
+                "exceptionCode": exceptionCode,
+            }
+            unwrapFailureCode = string.Template(
+                'throw_type_error(cx, "${sourceDescription} does not '
+                'implement interface ${interface}.");\n'
+                '${exceptionCode}').substitute(substitutions)
         else:
             unwrapFailureCode = failureCode
 
