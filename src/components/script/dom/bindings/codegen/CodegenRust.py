@@ -101,19 +101,21 @@ class CastableObjectUnwrapper():
     codeOnFailure is the code to run if unwrapping fails.
     """
     def __init__(self, descriptor, source, codeOnFailure):
-        self.substitution = { "type" : descriptor.nativeType,
-                              "depth": descriptor.interface.inheritanceDepth(),
-                              "prototype": "PrototypeList::id::" + descriptor.name,
-                              "protoID" : "PrototypeList::id::" + descriptor.name + " as uint",
-                              "source" : source,
-                              "codeOnFailure" : CGIndenter(CGGeneric(codeOnFailure), 4).define()}
+        self.substitution = {
+            "type": descriptor.nativeType,
+            "depth": descriptor.interface.inheritanceDepth(),
+            "prototype": "PrototypeList::id::" + descriptor.name,
+            "protoID": "PrototypeList::id::" + descriptor.name + " as uint",
+            "source": source,
+            "codeOnFailure": CGIndenter(CGGeneric(codeOnFailure), 4).define(),
+        }
 
     def __str__(self):
         return string.Template(
 """match unwrap_jsmanaged(${source}, ${prototype}, ${depth}) {
   Ok(val) => val,
   Err(()) => {
-    ${codeOnFailure}
+${codeOnFailure}
   }
 }""").substitute(self.substitution)
 
