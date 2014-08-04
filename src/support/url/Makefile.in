@@ -3,6 +3,9 @@ VPATH=%VPATH%
 RUSTC ?= rustc
 RUSTFLAGS ?=
 EXT_DEPS ?=
+RUSTDOC ?= rustdoc
+RUSTDOC_FLAGS ?=
+RUSTDOC_TARGET ?= doc
 
 SRC=$(shell find $(VPATH)/src -type f)
 
@@ -19,6 +22,12 @@ url-test: src/url.rs $(SRC)
 .PHONY: check
 check: url-test
 	./url-test $(TEST)
+
+.PHONY: doc
+doc: $(RUSTDOC_TARGET)/url/index.html
+
+$(RUSTDOC_TARGET)/url/index.html: src/url.rs $(SRC) $(EXT_DEPS)
+	$(RUSTDOC) $(RUSTDOC_FLAGS) $< -o $(RUSTDOC_TARGET)
 
 .PHONY: clean
 clean:

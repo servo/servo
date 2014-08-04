@@ -8,6 +8,8 @@ RUSTC ?= rustc
 RUSTDOC ?= rustdoc
 RUSTFLAGS ?= -O
 EXT_DEPS ?=
+RUSTDOC_FLAGS ?=
+RUSTDOC_TARGET ?= doc
 
 LIB_RS = src/encoding/lib.rs
 RUST_SRC = $(shell find $(VPATH)/src/encoding/. -type f -name '*.rs')
@@ -38,8 +40,10 @@ check: doctest rustencoding-test
 	./rustencoding-test
 
 .PHONY: doc
-doc: $(LIB_RS) $(RUST_SRC)
-	$(RUSTDOC) $<
+doc: $(RUSTDOC_TARGET)/encoding/index.html
+
+$(RUSTDOC_TARGET)/encoding/index.html: $(LIB_RS) $(RUST_SRC) $(EXT_DEPS)
+	$(RUSTDOC) $(RUSTDOC_FLAGS) $< -o $(RUSTDOC_TARGET)
 
 .PHONY: clean
 clean:
