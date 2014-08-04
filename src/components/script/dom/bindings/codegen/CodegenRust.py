@@ -119,20 +119,6 @@ ${codeOnFailure}
   }
 }""").substitute(self.substitution)
 
-#"""{
-#  nsresult rv = UnwrapObject<${protoID}, ${type}>(cx, ${source}, ${target});
-#  if (NS_FAILED(rv)) {
-#${codeOnFailure}
-#  }
-#}""").substitute(self.substitution)
-
-class FailureFatalCastableObjectUnwrapper(CastableObjectUnwrapper):
-    """
-    As CastableObjectUnwrapper, but defaulting to throwing if unwrapping fails
-    """
-    def __init__(self, descriptor, source):
-        CastableObjectUnwrapper.__init__(self, descriptor, source,
-                                         "return 0; //XXXjdm return Throw(cx, rv);")
 
 class CGThing():
     """
@@ -599,15 +585,15 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             raise TypeError("Consequential interface %s being used as an "
                             "argument" % descriptor.interface.identifier.name)
 
-        if failureCode is not None:
-            templateBody = str(CastableObjectUnwrapper(
-                    descriptor,
-                    "(${val}).to_object()",
-                    failureCode))
+        if failureCode is None:
+            unwrapFailureCode = "return 0; //XXXjdm return Throw(cx, rv);"
         else:
-            templateBody = str(FailureFatalCastableObjectUnwrapper(
-                    descriptor,
-                    "(${val}).to_object()"))
+            unwrapFailureCode = failureCode
+
+        templateBody = str(CastableObjectUnwrapper(
+                descriptor,
+                "(${val}).to_object()",
+                unwrapFailureCode))
 
         declType = CGGeneric(descriptorType)
         if type.nullable():
