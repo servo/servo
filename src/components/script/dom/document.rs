@@ -305,8 +305,8 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     // http://dom.spec.whatwg.org/#dom-document-compatmode
     fn CompatMode(&self) -> DOMString {
         match self.quirks_mode.deref().get() {
-            NoQuirks => "CSS1Compat".to_string(),
-            LimitedQuirks | FullQuirks => "BackCompat".to_string()
+            LimitedQuirks | NoQuirks => "CSS1Compat".to_string(),
+            FullQuirks => "BackCompat".to_string()
         }
     }
 
