@@ -84,8 +84,6 @@ pub struct Line {
     ///
     /// The ranges that describe these lines would be:
     ///
-    /// <style>.content style ~ table th, style ~ table td { border: 1px solid #888 }
-    ///        .content style ~ table { border-collapse: collapse }</style>
     /// | [0.0, 1.4) | [1.5, 2.0)  | [2.0, 3.4)  | [3.4, 4.0) |
     /// |------------|-------------|-------------|------------|
     /// | 'I like'   | 'truffles,' | '<img> yes' | 'I do.'    |
@@ -164,8 +162,6 @@ pub struct LineIndices {
     ///
     /// The fragments would be indexed as follows:
     ///
-    /// <style>.content style ~ table th, style ~ table td { border: 1px solid #888 }
-    ///        .content style ~ table { border-collapse: collapse }</style>
     /// |  0   |        1         |    2    |       3      |
     /// |------|------------------|---------|--------------|
     /// | 'I ' | 'like truffles,' | `<img>` | ' yes I do.' |
@@ -182,8 +178,6 @@ pub struct LineIndices {
     ///
     /// The characters would be indexed as follows:
     ///
-    /// <style>.content style ~ table th, style ~ table td { border: 1px solid #888 }
-    ///        .content style ~ table { border-collapse: collapse }</style>
     /// | 0 | 1 | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 |
     /// |---|---|---|---|---|---|---|---|---|---|---|---|----|----|----|----|----|
     /// | I |   | l | i | k | e |   | t | r | u | f | f | l  | e  | s  | ,  |    |
