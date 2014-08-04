@@ -2377,7 +2377,10 @@ class CGAbstractBindingMethod(CGAbstractExternMethod):
         CGAbstractExternMethod.__init__(self, descriptor, name, "JSBool", args)
 
         if unwrapFailureCode is None:
-            self.unwrapFailureCode = "return 0; //XXXjdm return Throw(cx, rv);"
+            self.unwrapFailureCode = (
+                'throw_type_error(cx, "\\"this\\" object does not '
+                'implement interface %s.");\n'
+                'return 0;' % descriptor.interface.identifier.name)
         else:
             self.unwrapFailureCode = unwrapFailureCode
 
