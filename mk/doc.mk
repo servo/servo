@@ -23,7 +23,7 @@ doc/$(1)/index.html: $$(DEPS_$(1)) $$(RUSTDOC_DEPS)
 else
 
 .PHONY: doc/$(1)/index.html
-doc/$(1)/index.html: $$(DEPS_$(1))
+doc/$(1)/index.html:
 	@echo SKIPPED: blacklisted rustdoc: $$@
 
 endif
