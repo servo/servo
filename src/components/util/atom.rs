@@ -8,6 +8,8 @@
 
 use serialize::{Encoder, Encodable};
 use std::fmt;
+use std::hash::Hash;
+use std::hash::sip::SipState;
 use string_cache::atom;
 
 #[deriving(Clone, Eq, PartialEq)]
@@ -40,5 +42,11 @@ impl fmt::Show for Atom {
 impl<E, S: Encoder<E>> Encodable<S, E> for Atom {
     fn encode(&self, _s: &mut S) -> Result<(), E> {
         Ok(())
+    }
+}
+
+impl Hash for Atom {
+    fn hash(&self, state: &mut SipState) {
+        self.as_slice().hash(state);
     }
 }

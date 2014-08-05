@@ -58,8 +58,8 @@ pub enum Combinator {
 #[deriving(PartialEq, Clone)]
 pub enum SimpleSelector {
     IDSelector(Atom),
-    ClassSelector(String),
-    LocalNameSelector(String),
+    ClassSelector(Atom),
+    LocalNameSelector(Atom),
     NamespaceSelector(Namespace),
 
     // Attribute selectors
@@ -288,7 +288,10 @@ fn parse_type_selector(iter: &mut Iter, namespaces: &NamespaceMap)
                 AnyNamespace => (),
             }
             match local_name {
-                Some(name) => simple_selectors.push(LocalNameSelector(name)),
+                Some(name) => {
+                    let name_atom = Atom::from_slice(name.as_slice());
+                    simple_selectors.push(LocalNameSelector(name_atom))
+                }
                 None => (),
             }
             TypeSelector(simple_selectors)
@@ -315,7 +318,7 @@ fn parse_one_simple_selector(iter: &mut Iter, namespaces: &NamespaceMap, inside_
         Some(&Delim('.')) => {
             iter.next();
             match iter.next() {
-                Some(Ident(class)) => SimpleSelectorResult(ClassSelector(class)),
+                Some(Ident(class)) => SimpleSelectorResult(ClassSelector(Atom::from_slice(class.as_slice()))),
                 _ => InvalidSimpleSelector,
             }
         }
@@ -601,7 +604,7 @@ mod tests {
         assert!(parse("") == None)
         assert!(parse("e") == Some(vec!(Selector{
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: vec!(LocalNameSelector("e".to_string())),
+                simple_selectors: vec!(LocalNameSelector(Atom::from_slice("e"))),
                 next: None,
             }),
             pseudo_element: None,
@@ -609,7 +612,7 @@ mod tests {
         })))
         assert!(parse(".foo") == Some(vec!(Selector{
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: vec!(ClassSelector("foo".to_string())),
+                simple_selectors: vec!(ClassSelector(Atom::from_slice("foo"))),
                 next: None,
             }),
             pseudo_element: None,
@@ -625,8 +628,8 @@ mod tests {
         })))
         assert!(parse("e.foo#bar") == Some(vec!(Selector{
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: vec!(LocalNameSelector("e".to_string()),
-                                       ClassSelector("foo".to_string()),
+                simple_selectors: vec!(LocalNameSelector(Atom::from_slice("e")),
+                                       ClassSelector(Atom::from_slice("foo")),
                                        IDSelector(Atom::from_slice("bar"))),
                 next: None,
             }),
@@ -637,8 +640,8 @@ mod tests {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(IDSelector(Atom::from_slice("bar"))),
                 next: Some((box CompoundSelector {
-                    simple_selectors: vec!(LocalNameSelector("e".to_string()),
-                                           ClassSelector("foo".to_string())),
+                    simple_selectors: vec!(LocalNameSelector(Atom::from_slice("e")),
+                                           ClassSelector(Atom::from_slice("foo"))),
                     next: None,
                 }, Descendant)),
             }),
@@ -680,7 +683,7 @@ mod tests {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(
                     NamespaceSelector(namespace::MathML),
-                    LocalNameSelector("e".to_string()),
+                    LocalNameSelector(Atom::from_slice("e")),
                 ),
                 next: None,
             }),
@@ -700,7 +703,7 @@ mod tests {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(),
                 next: Some((box CompoundSelector {
-                    simple_selectors: vec!(LocalNameSelector("div".to_string())),
+                    simple_selectors: vec!(LocalNameSelector(Atom::from_slice("div"))),
                     next: None,
                 }, Descendant)),
             }),
