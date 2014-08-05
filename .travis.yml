@@ -15,7 +15,7 @@ before_script:
 
 script:
 - set -e
-- cd build; ../configure
+- cd build; ../configure --disable-optimize
 - make tidy
 - make -j2
 - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then ../travis.linux.script.sh $AFTER_BUILD; fi
