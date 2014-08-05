@@ -24,6 +24,8 @@ NATIVE_BUILDS += \
 	mozjs \
 	skia \
 	glfw \
+	fontconfig \
+	libpng \
 	$(NULL)
 
 # NOTE: the make magic can only compute transitive build dependencies,

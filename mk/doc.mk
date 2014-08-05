@@ -10,7 +10,8 @@ RUSTDOC_DEPS = $(RUSTDOC_HTML_IN_HEADER)
 # FIXME(#2924) These crates make rustdoc fail for undetermined reasons.
 DOC_BLACKLISTED := style
 
-define DEF_DOC_RULES
+
+define DEF_SERVO_DOC_RULES
 .PHONY: doc-$(1)
 doc-$(1): doc/$(1)/index.html
 
@@ -30,8 +31,30 @@ endif
 endef
 
 $(foreach lib_crate,$(SERVO_LIB_CRATES) servo,\
-$(eval $(call DEF_DOC_RULES,$(lib_crate))))
+$(eval $(call DEF_SERVO_DOC_RULES,$(lib_crate))))
+
+
+define DEF_SUBMODULES_DOC_RULES
+
+.PHONY: doc-$(1)
+doc-$(1): $$(DONE_DEPS_$(1)) $$(ROUGH_DEPS_$(1)) $$(RUSTC_DEP_$(1))
+	@$$(call E, rustdoc: $(1))
+	$$(Q) \
+	RUSTDOC_FLAGS="$$(ENV_RLDFLAGS_$(1))" \
+	RUSTDOC_TARGET="$$(CFG_BUILD_HOME)/doc" \
+	$$(ENV_EXT_DEPS_$(1)) \
+	$$(MAKE) -C $$(B)src/$$(PATH_$(1)) doc
+
+endef
+
+# Only Rust submodules
+DOC_SUBMODULES = $(foreach submodule,$(SUBMODULES),\
+                   $(if $(RUSTC_DEP_$(submodule)), $(submodule)))
+
+
+$(foreach submodule,$(DOC_SUBMODULES),\
+$(eval $(call DEF_SUBMODULES_DOC_RULES,$(submodule))))
 
 
 .PHONY: doc
-doc: $(foreach crate,$(SERVO_LIB_CRATES) servo,doc-$(crate))
+doc: $(foreach target,$(DOC_SUBMODULES) $(SERVO_LIB_CRATES) servo,doc-$(target))
