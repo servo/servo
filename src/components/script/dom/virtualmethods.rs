@@ -5,28 +5,59 @@
 use dom::attr::{AttrValue, StringAttrValue};
 use dom::bindings::codegen::InheritTypes::ElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLAnchorElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLAreaElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLBodyElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLButtonElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLCanvasElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLFieldSetElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLIFrameElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLImageElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLInputElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLLinkElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLObjectElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLOptGroupElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLOptionElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLSelectElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLStyleElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLTextAreaElementCast;
 use dom::bindings::js::JSRef;
 use dom::element::Element;
-use dom::element::{ElementTypeId, HTMLAnchorElementTypeId};
-use dom::element::{HTMLBodyElementTypeId, HTMLCanvasElementTypeId};
-use dom::element::{HTMLIFrameElementTypeId, HTMLImageElementTypeId};
-use dom::element::{HTMLObjectElementTypeId, HTMLStyleElementTypeId};
+use dom::element::ElementTypeId;
+use dom::element::HTMLAnchorElementTypeId;
+use dom::element::HTMLAreaElementTypeId;
+use dom::element::HTMLBodyElementTypeId;
+use dom::element::HTMLButtonElementTypeId;
+use dom::element::HTMLCanvasElementTypeId;
+use dom::element::HTMLFieldSetElementTypeId;
+use dom::element::HTMLIFrameElementTypeId;
+use dom::element::HTMLImageElementTypeId;
+use dom::element::HTMLInputElementTypeId;
+use dom::element::HTMLLinkElementTypeId;
+use dom::element::HTMLObjectElementTypeId;
+use dom::element::HTMLOptGroupElementTypeId;
+use dom::element::HTMLOptionElementTypeId;
+use dom::element::HTMLSelectElementTypeId;
+use dom::element::HTMLStyleElementTypeId;
+use dom::element::HTMLTextAreaElementTypeId;
 use dom::event::Event;
 use dom::htmlanchorelement::HTMLAnchorElement;
+use dom::htmlareaelement::HTMLAreaElement;
 use dom::htmlbodyelement::HTMLBodyElement;
+use dom::htmlbuttonelement::HTMLButtonElement;
 use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmlelement::HTMLElement;
+use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
+use dom::htmlinputelement::HTMLInputElement;
+use dom::htmllinkelement::HTMLLinkElement;
 use dom::htmlobjectelement::HTMLObjectElement;
+use dom::htmloptgroupelement::HTMLOptGroupElement;
+use dom::htmloptionelement::HTMLOptionElement;
+use dom::htmlselectelement::HTMLSelectElement;
 use dom::htmlstyleelement::HTMLStyleElement;
+use dom::htmltextareaelement::HTMLTextAreaElement;
 use dom::node::{Node, NodeHelpers, ElementNodeTypeId};
 use servo_util::str::DOMString;
 
@@ -111,12 +142,24 @@ pub fn vtable_for<'a>(node: &'a JSRef<Node>) -> &'a VirtualMethods {
             let element: &JSRef<HTMLAnchorElement> = HTMLAnchorElementCast::to_ref(node).unwrap();
             element as &VirtualMethods
         }
+        ElementNodeTypeId(HTMLAreaElementTypeId) => {
+            let element: &JSRef<HTMLAreaElement> = HTMLAreaElementCast::to_ref(node).unwrap();
+            element as &VirtualMethods
+        }
         ElementNodeTypeId(HTMLBodyElementTypeId) => {
             let element: &JSRef<HTMLBodyElement> = HTMLBodyElementCast::to_ref(node).unwrap();
             element as &VirtualMethods
         }
+        ElementNodeTypeId(HTMLButtonElementTypeId) => {
+            let element: &JSRef<HTMLButtonElement> = HTMLButtonElementCast::to_ref(node).unwrap();
+            element as &VirtualMethods
+        }
         ElementNodeTypeId(HTMLCanvasElementTypeId) => {
             let element: &JSRef<HTMLCanvasElement> = HTMLCanvasElementCast::to_ref(node).unwrap();
+            element as &VirtualMethods
+        }
+        ElementNodeTypeId(HTMLFieldSetElementTypeId) => {
+            let element: &JSRef<HTMLFieldSetElement> = HTMLFieldSetElementCast::to_ref(node).unwrap();
             element as &VirtualMethods
         }
         ElementNodeTypeId(HTMLImageElementTypeId) => {
@@ -127,12 +170,36 @@ pub fn vtable_for<'a>(node: &'a JSRef<Node>) -> &'a VirtualMethods {
             let element: &JSRef<HTMLIFrameElement> = HTMLIFrameElementCast::to_ref(node).unwrap();
             element as &VirtualMethods
         }
+        ElementNodeTypeId(HTMLInputElementTypeId) => {
+            let element: &JSRef<HTMLInputElement> = HTMLInputElementCast::to_ref(node).unwrap();
+            element as &VirtualMethods
+        }
+        ElementNodeTypeId(HTMLLinkElementTypeId) => {
+            let element: &JSRef<HTMLLinkElement> = HTMLLinkElementCast::to_ref(node).unwrap();
+            element as &VirtualMethods
+        }
         ElementNodeTypeId(HTMLObjectElementTypeId) => {
             let element: &JSRef<HTMLObjectElement> = HTMLObjectElementCast::to_ref(node).unwrap();
             element as &VirtualMethods
         }
+        ElementNodeTypeId(HTMLOptGroupElementTypeId) => {
+            let element: &JSRef<HTMLOptGroupElement> = HTMLOptGroupElementCast::to_ref(node).unwrap();
+            element as &VirtualMethods
+        }
+        ElementNodeTypeId(HTMLOptionElementTypeId) => {
+            let element: &JSRef<HTMLOptionElement> = HTMLOptionElementCast::to_ref(node).unwrap();
+            element as &VirtualMethods
+        }
+        ElementNodeTypeId(HTMLSelectElementTypeId) => {
+            let element: &JSRef<HTMLSelectElement> = HTMLSelectElementCast::to_ref(node).unwrap();
+            element as &VirtualMethods
+        }
         ElementNodeTypeId(HTMLStyleElementTypeId) => {
             let element: &JSRef<HTMLStyleElement> = HTMLStyleElementCast::to_ref(node).unwrap();
+            element as &VirtualMethods
+        }
+        ElementNodeTypeId(HTMLTextAreaElementTypeId) => {
+            let element: &JSRef<HTMLTextAreaElement> = HTMLTextAreaElementCast::to_ref(node).unwrap();
             element as &VirtualMethods
         }
         ElementNodeTypeId(ElementTypeId) => {

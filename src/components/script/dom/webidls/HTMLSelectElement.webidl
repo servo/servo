@@ -6,7 +6,7 @@
 // http://www.whatwg.org/html/#htmlselectelement
 interface HTMLSelectElement : HTMLElement {
   //         attribute boolean autofocus;
-  //         attribute boolean disabled;
+           attribute boolean disabled;
   //readonly attribute HTMLFormElement? form;
   //         attribute boolean multiple;
   //         attribute DOMString name;

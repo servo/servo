@@ -257,6 +257,8 @@ pub trait AttributeHandlers {
     fn set_atomic_attribute(&self, name: &str, value: DOMString);
 
     // http://www.whatwg.org/html/#reflecting-content-attributes-in-idl-attributes
+    fn has_attribute(&self, name: &str) -> bool;
+    fn set_bool_attribute(&self, name: &str, value: bool);
     fn get_url_attribute(&self, name: &str) -> DOMString;
     fn set_url_attribute(&self, name: &str, value: DOMString);
     fn get_string_attribute(&self, name: &str) -> DOMString;
@@ -383,6 +385,25 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         assert!(name == name.to_ascii_lower().as_slice());
         let value = AttrValue::from_atomic(value);
         self.set_attribute(name, value);
+    }
+
+    fn has_attribute(&self, name: &str) -> bool {
+        let name = match self.html_element_in_html_document() {
+            true => name.to_ascii_lower(),
+            false => name.to_string()
+        };
+        self.deref().attrs.borrow().iter().map(|attr| attr.root()).any(|attr| {
+            name == attr.local_name && attr.namespace == Null
+        })
+    }
+
+    fn set_bool_attribute(&self, name: &str, value: bool) {
+        if self.has_attribute(name) == value { return; }
+        if value {
+            self.set_string_attribute(name, String::new());
+        } else {
+            self.remove_attribute(Null, name);
+        }
     }
 
     fn get_url_attribute(&self, name: &str) -> DOMString {
@@ -664,7 +685,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     // http://dom.spec.whatwg.org/#dom-element-hasattribute
     fn HasAttribute(&self,
                     name: DOMString) -> bool {
-        self.GetAttribute(name).is_some()
+        self.has_attribute(name.as_slice())
     }
 
     // http://dom.spec.whatwg.org/#dom-element-hasattributens
@@ -924,5 +945,13 @@ impl<'a> style::TElement for JSRef<'a, Element> {
                 _ => fail!("`id` attribute should be AtomAttrValue"),
             }
         })
+    }
+    fn get_disabled_state(&self) -> bool {
+        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        node.get_disabled_state()
+    }
+    fn get_enabled_state(&self) -> bool {
+        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        node.get_enabled_state()
     }
 }
