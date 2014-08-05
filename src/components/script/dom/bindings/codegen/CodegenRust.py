@@ -101,36 +101,24 @@ class CastableObjectUnwrapper():
     codeOnFailure is the code to run if unwrapping fails.
     """
     def __init__(self, descriptor, source, codeOnFailure):
-        self.substitution = { "type" : descriptor.nativeType,
-                              "depth": descriptor.interface.inheritanceDepth(),
-                              "prototype": "PrototypeList::id::" + descriptor.name,
-                              "protoID" : "PrototypeList::id::" + descriptor.name + " as uint",
-                              "source" : source,
-                              "codeOnFailure" : CGIndenter(CGGeneric(codeOnFailure), 4).define()}
+        self.substitution = {
+            "type": descriptor.nativeType,
+            "depth": descriptor.interface.inheritanceDepth(),
+            "prototype": "PrototypeList::id::" + descriptor.name,
+            "protoID": "PrototypeList::id::" + descriptor.name + " as uint",
+            "source": source,
+            "codeOnFailure": CGIndenter(CGGeneric(codeOnFailure), 4).define(),
+        }
 
     def __str__(self):
         return string.Template(
 """match unwrap_jsmanaged(${source}, ${prototype}, ${depth}) {
   Ok(val) => val,
   Err(()) => {
-    ${codeOnFailure}
+${codeOnFailure}
   }
 }""").substitute(self.substitution)
 
-#"""{
-#  nsresult rv = UnwrapObject<${protoID}, ${type}>(cx, ${source}, ${target});
-#  if (NS_FAILED(rv)) {
-#${codeOnFailure}
-#  }
-#}""").substitute(self.substitution)
-
-class FailureFatalCastableObjectUnwrapper(CastableObjectUnwrapper):
-    """
-    As CastableObjectUnwrapper, but defaulting to throwing if unwrapping fails
-    """
-    def __init__(self, descriptor, source):
-        CastableObjectUnwrapper.__init__(self, descriptor, source,
-                                         "return 0; //XXXjdm return Throw(cx, rv);")
 
 class CGThing():
     """
@@ -597,15 +585,23 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             raise TypeError("Consequential interface %s being used as an "
                             "argument" % descriptor.interface.identifier.name)
 
-        if failureCode is not None:
-            templateBody = str(CastableObjectUnwrapper(
-                    descriptor,
-                    "(${val}).to_object()",
-                    failureCode))
+        if failureCode is None:
+            substitutions = {
+                "sourceDescription": sourceDescription,
+                "interface": descriptor.interface.identifier.name,
+                "exceptionCode": exceptionCode,
+            }
+            unwrapFailureCode = string.Template(
+                'throw_type_error(cx, "${sourceDescription} does not '
+                'implement interface ${interface}.");\n'
+                '${exceptionCode}').substitute(substitutions)
         else:
-            templateBody = str(FailureFatalCastableObjectUnwrapper(
-                    descriptor,
-                    "(${val}).to_object()"))
+            unwrapFailureCode = failureCode
+
+        templateBody = str(CastableObjectUnwrapper(
+                descriptor,
+                "(${val}).to_object()",
+                unwrapFailureCode))
 
         declType = CGGeneric(descriptorType)
         if type.nullable():
@@ -2381,7 +2377,10 @@ class CGAbstractBindingMethod(CGAbstractExternMethod):
         CGAbstractExternMethod.__init__(self, descriptor, name, "JSBool", args)
 
         if unwrapFailureCode is None:
-            self.unwrapFailureCode = "return 0; //XXXjdm return Throw(cx, rv);"
+            self.unwrapFailureCode = (
+                'throw_type_error(cx, "\\"this\\" object does not '
+                'implement interface %s.");\n'
+                'return 0;' % descriptor.interface.identifier.name)
         else:
             self.unwrapFailureCode = unwrapFailureCode
 
