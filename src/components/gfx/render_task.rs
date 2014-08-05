@@ -50,7 +50,7 @@ pub struct RenderLayer {
     pub scroll_policy: ScrollPolicy,
 }
 
-pub struct ReRenderRequest {
+pub struct RenderRequest {
     pub buffer_requests: Vec<BufferRequest>,
     pub scale: f32,
     pub layer_id: LayerId,
@@ -58,8 +58,8 @@ pub struct ReRenderRequest {
 }
 
 pub enum Msg {
-    RenderMsg(SmallVec1<RenderLayer>),
-    ReRenderMsg(Vec<ReRenderRequest>),
+    RenderInitMsg(SmallVec1<RenderLayer>),
+    RenderMsg(Vec<RenderRequest>),
     UnusedBufferMsg(Vec<Box<LayerBuffer>>),
     PaintPermissionGranted,
     PaintPermissionRevoked,
@@ -221,7 +221,7 @@ impl<C:RenderListener + Send> RenderTask<C> {
 
         loop {
             match self.port.recv() {
-                RenderMsg(render_layers) => {
+                RenderInitMsg(render_layers) => {
                     self.epoch.next();
                     self.render_layers = render_layers;
 
@@ -237,19 +237,19 @@ impl<C:RenderListener + Send> RenderTask<C> {
                                       self.epoch,
                                       self.render_layers.as_slice());
                 }
-                ReRenderMsg(requests) => {
+                RenderMsg(requests) => {
                     if !self.paint_permission {
                         debug!("render_task: render ready msg");
                         let ConstellationChan(ref mut c) = self.constellation_chan;
                         c.send(RendererReadyMsg(self.id));
-                        self.compositor.rerendermsg_discarded();
+                        self.compositor.render_msg_discarded();
                         continue;
                     }
 
                     self.compositor.set_render_state(RenderingRenderState);
 
                     let mut replies = Vec::new();
-                    for ReRenderRequest { buffer_requests, scale, layer_id, epoch }
+                    for RenderRequest { buffer_requests, scale, layer_id, epoch }
                           in requests.move_iter() {
                         if self.epoch == epoch {
                             self.render(&mut replies, buffer_requests, scale, layer_id);

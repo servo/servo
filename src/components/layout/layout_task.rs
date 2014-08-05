@@ -28,7 +28,7 @@ use geom::size::Size2D;
 use gfx::display_list::{ClipDisplayItemClass, ContentStackingLevel, DisplayItem};
 use gfx::display_list::{DisplayItemIterator, DisplayList, OpaqueNode};
 use gfx::font_context::FontContext;
-use gfx::render_task::{RenderMsg, RenderChan, RenderLayer};
+use gfx::render_task::{RenderInitMsg, RenderChan, RenderLayer};
 use gfx::{render_task, color};
 use layout_traits::LayoutTaskFactory;
 use script::dom::bindings::js::JS;
@@ -736,7 +736,7 @@ impl LayoutTask {
 
                 debug!("Layout done!");
 
-                self.render_chan.send(RenderMsg(layers));
+                self.render_chan.send(RenderInitMsg(layers));
             });
         }
 

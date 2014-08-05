@@ -122,8 +122,8 @@ impl RenderListener for CompositorChan {
         }
     }
 
-    fn rerendermsg_discarded(&self) {
-        self.chan.send(ReRenderMsgDiscarded);
+    fn render_msg_discarded(&self) {
+        self.chan.send(RenderMsgDiscarded);
     }
 
     fn set_layer_clip_rect(&self,
@@ -188,8 +188,8 @@ pub enum Msg {
     ChangeReadyState(ReadyState),
     /// Alerts the compositor to the current status of rendering.
     ChangeRenderState(RenderState),
-    /// Alerts the compositor that the ReRenderMsg has been discarded.
-    ReRenderMsgDiscarded,
+    /// Alerts the compositor that the RenderMsg has been discarded.
+    RenderMsgDiscarded,
     /// Sets the channel to the current layout and render tasks, along with their id
     SetIds(SendableFrameTree, Sender<()>, ConstellationChan),
     /// The load of a page for a given URL has completed.
