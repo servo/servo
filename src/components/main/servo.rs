@@ -125,7 +125,7 @@ pub fn run(opts: opts::Opts) {
             } else {
                 ImageCacheTask::new(resource_task.clone())
             };
-        let font_cache_task = FontCacheTask::new();
+        let font_cache_task = FontCacheTask::new(resource_task.clone());
         let constellation_chan = Constellation::<layout::layout_task::LayoutTask>::start(
                                                       compositor_chan,
                                                       opts,

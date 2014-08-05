@@ -15,10 +15,17 @@ pub struct FontTemplateData {
 }
 
 impl FontTemplateData {
-    pub fn new(identifier: &str) -> FontTemplateData {
-        // TODO: Handle file load failure!
-        let mut file = File::open_mode(&Path::new(identifier), io::Open, io::Read).unwrap();
-        let bytes = file.read_to_end().unwrap();
+    pub fn new(identifier: &str, font_data: Option<Vec<u8>>) -> FontTemplateData {
+        let bytes = match font_data {
+            Some(bytes) => {
+                bytes
+            },
+            None => {
+                // TODO: Handle file load failure!
+                let mut file = File::open_mode(&Path::new(identifier), io::Open, io::Read).unwrap();
+                file.read_to_end().unwrap()
+            },
+        };
 
         FontTemplateData {
             bytes: bytes,

@@ -29,6 +29,7 @@ extern crate servo_util = "util";
 extern crate servo_msg = "msg";
 extern crate style;
 extern crate sync;
+extern crate url = "url_";
 
 // Eventually we would like the shaper to be pluggable, as many operating systems have their own
 // shapers. For now, however, this is a hard dependency.
