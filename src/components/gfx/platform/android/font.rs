@@ -174,9 +174,9 @@ impl FontHandleMethods for FontHandle {
     fn glyph_h_kerning(&self, first_glyph: GlyphId, second_glyph: GlyphId)
                         -> FractionalPixel {
         assert!(self.face.is_not_null());
-        let delta = struct_FT_Vector_ { x: 0, y: 0 };
+        let mut delta = struct_FT_Vector_ { x: 0, y: 0 };
         unsafe {
-            FT_Get_Kerning(self.face, first_glyph, second_glyph, FT_KERNING_DEFAULT, &delta);
+            FT_Get_Kerning(self.face, first_glyph, second_glyph, FT_KERNING_DEFAULT, &mut delta);
         }
         fixed_to_float_ft(delta.x as i32)
     }
