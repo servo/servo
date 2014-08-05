@@ -8,9 +8,10 @@
 
 use serialize::{Encoder, Encodable};
 use std::fmt;
+use std::hash::Hash;
 use string_cache::atom;
 
-#[deriving(Clone, Eq, PartialEq)]
+#[deriving(Clone, Eq, Hash, PartialEq)]
 pub struct Atom {
     atom: atom::Atom,
 }
@@ -22,11 +23,9 @@ impl Atom {
             atom: atom::Atom::from_slice(slice)
         }
     }
-}
 
-impl Str for Atom {
     #[inline(always)]
-    fn as_slice<'t>(&'t self) -> &'t str {
+    pub fn as_slice<'t>(&'t self) -> &'t str {
         self.atom.as_slice()
     }
 }
