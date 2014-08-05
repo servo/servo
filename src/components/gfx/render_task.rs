@@ -58,7 +58,7 @@ pub struct ReRenderRequest {
 }
 
 pub enum Msg {
-    RenderMsg(SmallVec1<RenderLayer>),
+    RenderInitMsg(SmallVec1<RenderLayer>),
     ReRenderMsg(Vec<ReRenderRequest>),
     UnusedBufferMsg(Vec<Box<LayerBuffer>>),
     PaintPermissionGranted,
@@ -221,7 +221,7 @@ impl<C:RenderListener + Send> RenderTask<C> {
 
         loop {
             match self.port.recv() {
-                RenderMsg(render_layers) => {
+                RenderInitMsg(render_layers) => {
                     self.epoch.next();
                     self.render_layers = render_layers;
 
