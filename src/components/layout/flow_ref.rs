@@ -13,6 +13,7 @@ use std::mem;
 use std::ptr;
 use std::sync::atomics::SeqCst;
 
+// FIXME: This should probably be a wrapper on TraitObject.
 #[unsafe_no_drop_flag]
 pub struct FlowRef {
     vtable: *const u8,

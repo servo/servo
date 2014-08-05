@@ -322,7 +322,7 @@ impl<'a> Iterator<LayoutNode<'a>> for LayoutTreeIterator<'a> {
         if self.index >= self.nodes.len() {
             None
         } else {
-            let v = self.nodes.get(self.index).clone();
+            let v = self.nodes[self.index].clone();
             self.index += 1;
             Some(v)
         }
@@ -768,9 +768,9 @@ pub fn layout_node_to_unsafe_layout_node(node: &LayoutNode) -> UnsafeLayoutNode 
     }
 }
 
-pub fn layout_node_from_unsafe_layout_node(node: &UnsafeLayoutNode) -> LayoutNode {
-    unsafe {
-        let (node, _) = *node;
-        mem::transmute(node)
-    }
+// FIXME(#3044): This should be updated to use a real lifetime instead of
+// faking one.
+pub unsafe fn layout_node_from_unsafe_layout_node(node: &UnsafeLayoutNode) -> LayoutNode<'static> {
+    let (node, _) = *node;
+    mem::transmute(node)
 }

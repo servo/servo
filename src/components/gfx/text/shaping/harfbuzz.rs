@@ -303,7 +303,7 @@ impl Shaper {
                        char_byte_span.begin(), char_byte_span.length(), glyph_span.begin());
 
                 while char_byte_span.end() != byte_max &&
-                        *byteToGlyph.get(char_byte_span.end() as uint) == NO_GLYPH {
+                        byteToGlyph[char_byte_span.end() as uint] == NO_GLYPH {
                     debug!("Extending char byte span to include byte offset={} with no associated \
                             glyph", char_byte_span.end());
                     let range = text.char_range_at(char_byte_span.end() as uint);
@@ -315,8 +315,8 @@ impl Shaper {
                 // in cases where one char made several glyphs and left some unassociated chars.
                 let mut max_glyph_idx = glyph_span.end();
                 for i in char_byte_span.each_index() {
-                    if *byteToGlyph.get(i as uint) > NO_GLYPH {
-                        max_glyph_idx = cmp::max(*byteToGlyph.get(i as uint) as int + 1, max_glyph_idx);
+                    if byteToGlyph[i as uint] > NO_GLYPH {
+                        max_glyph_idx = cmp::max(byteToGlyph[i as uint] as int + 1, max_glyph_idx);
                     }
                 }
 
@@ -375,7 +375,7 @@ impl Shaper {
             let mut covered_byte_span = char_byte_span.clone();
             // extend, clipping at end of text range.
             while covered_byte_span.end() < byte_max
-                    && *byteToGlyph.get(covered_byte_span.end() as uint) == NO_GLYPH {
+                    && byteToGlyph[covered_byte_span.end() as uint] == NO_GLYPH {
                 let range = text.char_range_at(covered_byte_span.end() as uint);
                 drop(range.ch);
                 covered_byte_span.extend_to(range.next as int);

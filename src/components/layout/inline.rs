@@ -719,7 +719,7 @@ impl InlineFragments {
 
     /// A convenience function to return the fragment at a given index.
     pub fn get<'a>(&'a self, index: uint) -> &'a Fragment {
-        self.fragments.get(index)
+        &self.fragments[index]
     }
 
     /// A convenience function to return a mutable reference to the fragment at a given index.

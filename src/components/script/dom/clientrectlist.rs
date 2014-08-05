@@ -43,7 +43,7 @@ impl<'a> ClientRectListMethods for JSRef<'a, ClientRectList> {
     fn Item(&self, index: u32) -> Option<Temporary<ClientRect>> {
         let rects = &self.rects;
         if index < rects.len() as u32 {
-            Some(Temporary::new(rects.get(index as uint).clone()))
+            Some(Temporary::new(rects[index as uint].clone()))
         } else {
             None
         }

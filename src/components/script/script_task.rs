@@ -452,7 +452,7 @@ impl ScriptTask {
         let new_page = {
             let window_size = parent_page.window_size.deref().get();
             Page::new(new_pipeline_id, Some(subpage_id),
-                      LayoutChan(layout_chan.as_ref::<Sender<layout_interface::Msg>>().unwrap().clone()),
+                      LayoutChan(layout_chan.downcast_ref::<Sender<layout_interface::Msg>>().unwrap().clone()),
                       window_size,
                       parent_page.resource_task.deref().clone(),
                       self.constellation_chan.clone(),

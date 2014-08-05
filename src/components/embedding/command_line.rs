@@ -4,7 +4,7 @@
 
 use libc::{calloc, c_int, size_t};
 use std::mem;
-use std::str;
+use std::string;
 use std::c_vec::CVec;
 use string::{cef_string_userfree_utf16_alloc, cef_string_utf16_set};
 use types::{cef_command_line_t, cef_string_t, cef_string_userfree_t, cef_string_utf16_t};
@@ -30,7 +30,7 @@ pub fn command_line_init(argc: c_int, argv: *const *const u8) {
     unsafe {
         let mut a: Vec<String> = vec!();
         for i in range(0u, argc as uint) {
-            a.push(str::raw::from_c_str(*argv.offset(i as int) as *const i8));
+            a.push(string::raw::from_buf(*argv.offset(i as int) as *const u8));
         }
         let cl = command_line_new();
         (*cl).argc = argc;

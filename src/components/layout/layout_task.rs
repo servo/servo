@@ -422,7 +422,7 @@ impl LayoutTask {
             AddStylesheetMsg(sheet) => self.handle_add_stylesheet(sheet),
             ReflowMsg(data) => {
                 profile(time::LayoutPerformCategory, self.time_profiler_chan.clone(), || {
-                    self.handle_reflow(data);
+                    self.handle_reflow(&*data);
                 });
             }
             QueryMsg(query) => {
@@ -617,8 +617,10 @@ impl LayoutTask {
     /// The high-level routine that performs layout tasks.
     fn handle_reflow(&mut self, data: &Reflow) {
         // FIXME: Isolate this transmutation into a "bridge" module.
+        // FIXME(rust#16366): The following line had to be moved because of a
+        // rustc bug. It should be in the next unsafe block.
+        let mut node: JS<Node> = unsafe { JS::from_trusted_node_address(data.document_root) };
         let node: &mut LayoutNode = unsafe {
-            let mut node: JS<Node> = JS::from_trusted_node_address(data.document_root);
             mem::transmute(&mut node)
         };
 
@@ -673,7 +675,7 @@ impl LayoutTask {
                     let mut applicable_declarations = ApplicableDeclarations::new();
                     let mut applicable_declarations_cache = ApplicableDeclarationsCache::new();
                     let mut style_sharing_candidate_cache = StyleSharingCandidateCache::new();
-                    drop(node.recalc_style_for_subtree(self.stylist,
+                    drop(node.recalc_style_for_subtree(&*self.stylist,
                                                        &mut layout_ctx,
                                                        font_context_opt.take_unwrap(),
                                                        &mut applicable_declarations,

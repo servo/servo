@@ -20,7 +20,7 @@ $(eval $(call DEF_SUBMODULE_TEST_RULES,$(submodule))))
 define DEF_LIB_CRATE_TEST_RULES
 servo-test-$(1): $$(DEPS_$(1))
 	@$$(call E, compile: servo-test-$(1))
-	$$(Q)$$(RUSTC) $$(RFLAGS_$(1)) --test -o $$@ $$<
+	$$(Q)$$(RUSTC)  $(strip $(CFG_RUSTC_FLAGS)) $$(RFLAGS_$(1)) --test -o $$@ $$<
 
 .PHONY: check-servo-$(1)
 check-servo-$(1): servo-test-$(1)

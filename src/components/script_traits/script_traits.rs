@@ -11,7 +11,7 @@
 extern crate geom;
 extern crate servo_msg = "msg";
 extern crate servo_net = "net";
-extern crate url = "url_";
+extern crate url;
 extern crate std;
 extern crate serialize;
 

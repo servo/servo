@@ -113,17 +113,17 @@ fn parse_lists(file: &String, servo_args: &[String], render_mode: RenderMode) ->
           3 => {
             TestLine {
               conditions: "",
-              kind: *parts.get(0),
-              file_left: *parts.get(1),
-              file_right: *parts.get(2),
+              kind: parts[0],
+              file_left: parts[1],
+              file_right: parts[2],
             }
           },
           4 => {
             TestLine {
-              conditions: *parts.get(0),
-              kind: *parts.get(1),
-              file_left: *parts.get(2),
-              file_right: *parts.get(3),
+              conditions: parts[0],
+              kind: parts[1],
+              file_left: parts[2],
+              file_right: parts[3],
             }
           },
           _ => {

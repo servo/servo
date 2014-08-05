@@ -17,9 +17,9 @@ use fontconfig::fontconfig::{
 };
 
 use libc;
-use libc::{c_int, c_char};
+use libc::c_int;
 use std::ptr;
-use std::str;
+use std::string;
 
 pub fn get_available_families(callback: |String|) {
     unsafe {
@@ -32,7 +32,7 @@ pub fn get_available_families(callback: |String|) {
             let mut FC_FAMILY_C = "family".to_c_str();
             let FC_FAMILY = FC_FAMILY_C.as_mut_ptr();
             while FcPatternGetString(*font, FC_FAMILY, v, &mut family) == FcResultMatch {
-                let family_name = str::raw::from_c_str(family as *const c_char);
+                let family_name = string::raw::from_buf(family as *const i8 as *const u8);
                 callback(family_name);
                 v += 1;
             }
@@ -75,7 +75,7 @@ pub fn get_variations_for_family(family_name: &str, callback: |String|) {
             let FC_FILE = FC_FILE_C.as_mut_ptr();
             let mut file: *mut FcChar8 = ptr::mut_null();
             let file = if FcPatternGetString(*font, FC_FILE, 0, &mut file) == FcResultMatch {
-                str::raw::from_c_str(file as *const libc::c_char)
+                string::raw::from_buf(file as *const i8 as *const u8)
             } else {
                 fail!();
             };

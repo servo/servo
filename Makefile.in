@@ -45,6 +45,10 @@ ifdef CFG_ENABLE_DEBUG
   CFG_RUSTC_SELF_FLAGS += -g
 endif
 
+# FIXME: Remove once we’re on a Rust version without the old url crate
+# https://github.com/rust-lang/rust/issues/16140
+CFG_RUSTC_FLAGS += --extern url=$(B)/src/support/url/rust-url/liburl.rlib
+
 export CFG_RUSTC
 export CFG_RUSTC_FLAGS
 export CFG_LOCAL_RUSTC

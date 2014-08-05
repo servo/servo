@@ -207,9 +207,9 @@ impl TextRunScanner {
                 let mut new_ranges: Vec<Range<CharIndex>> = vec![];
                 let mut char_total = CharIndex(0);
                 for i in range(0, transformed_strs.len() as int) {
-                    let added_chars = CharIndex(transformed_strs.get(i as uint).as_slice().char_len() as int);
+                    let added_chars = CharIndex(transformed_strs[i as uint].as_slice().char_len() as int);
                     new_ranges.push(Range::new(char_total, added_chars));
-                    run_str.push_str(transformed_strs.get(i as uint).as_slice());
+                    run_str.push_str(transformed_strs[i as uint].as_slice());
                     char_total = char_total + added_chars;
                 }
 
@@ -219,7 +219,7 @@ impl TextRunScanner {
                 let clump = self.clump;
                 let run = if clump.length() != CharIndex(0) && run_str.len() > 0 {
                     Some(Arc::new(box TextRun::new(
-                        &mut *fontgroup.fonts.get(0).borrow_mut(),
+                        &mut *fontgroup.fonts[0].borrow_mut(),
                         run_str.to_string())))
                 } else {
                     None
@@ -229,21 +229,21 @@ impl TextRunScanner {
                 debug!("TextRunScanner: pushing fragment(s) in range: {}", self.clump);
                 for i in clump.each_index() {
                     let logical_offset = i - self.clump.begin();
-                    let range = new_ranges.get(logical_offset.to_uint());
+                    let range = new_ranges[logical_offset.to_uint()];
                     if range.length() == CharIndex(0) {
                         debug!("Elided an `UnscannedTextFragment` because it was zero-length after \
                                 compression; {}", in_fragments[i.to_uint()]);
                         continue
                     }
 
-                    let new_text_fragment_info = ScannedTextFragmentInfo::new(run.get_ref().clone(), *range);
+                    let new_text_fragment_info = ScannedTextFragmentInfo::new(run.get_ref().clone(), range);
                     let old_fragment = &in_fragments[i.to_uint()];
-                    let new_metrics = new_text_fragment_info.run.metrics_for_range(range);
+                    let new_metrics = new_text_fragment_info.run.metrics_for_range(&range);
                     let bounding_box_size = LogicalSize::from_physical(
                         old_fragment.style.writing_mode, new_metrics.bounding_box.size);
                     let mut new_fragment = old_fragment.transform(
                         bounding_box_size, ScannedTextFragment(new_text_fragment_info));
-                    new_fragment.new_line_pos = new_line_positions.get(logical_offset.to_uint()).new_line_pos.clone();
+                    new_fragment.new_line_pos = new_line_positions[logical_offset.to_uint()].new_line_pos.clone();
                     out_fragments.push(new_fragment)
                 }
             }
@@ -263,7 +263,7 @@ impl TextRunScanner {
 pub fn font_metrics_for_style(font_context: &mut FontContext, font_style: &FontStyle)
                               -> FontMetrics {
     let fontgroup = font_context.get_layout_font_group_for_style(font_style);
-    fontgroup.fonts.get(0).borrow().metrics.clone()
+    fontgroup.fonts[0].borrow().metrics.clone()
 }
 
 /// Converts a computed style to a font style used for rendering.

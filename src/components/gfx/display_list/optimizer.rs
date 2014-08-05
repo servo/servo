@@ -6,7 +6,6 @@ use display_list::{BorderDisplayItemClass, ClipDisplayItem, ClipDisplayItemClass
 use display_list::{DisplayList, ImageDisplayItemClass, LineDisplayItemClass};
 use display_list::{PseudoDisplayItemClass, SolidColorDisplayItemClass, TextDisplayItemClass};
 
-use std::collections::Deque;
 use collections::dlist::DList;
 use geom::rect::Rect;
 use servo_util::geometry::Au;
@@ -36,7 +35,7 @@ impl DisplayListOptimizer {
         for item in display_list.iter() {
             match self.process_display_item(item) {
                 None => {}
-                Some(display_item) => result.push_back(display_item),
+                Some(display_item) => result.push(display_item),
             }
         }
         DisplayList {

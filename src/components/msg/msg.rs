@@ -11,7 +11,7 @@ extern crate layers;
 extern crate serialize;
 extern crate servo_util = "util";
 extern crate std;
-extern crate url = "url_";
+extern crate url;
 
 #[cfg(target_os="macos")]
 extern crate core_foundation;

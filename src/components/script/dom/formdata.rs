@@ -70,7 +70,7 @@ impl<'a> FormDataMethods for JSRef<'a, FormData> {
 
     fn Get(&self, name: DOMString) -> Option<FileOrString> {
         if self.data.deref().borrow().contains_key_equiv(&name) {
-            match self.data.deref().borrow().get(&name).get(0).clone() {
+            match self.data.deref().borrow().get(&name)[0].clone() {
                 StringData(ref s) => Some(eString(s.clone())),
                 FileData(ref f) => {
                     Some(eFile(f.clone()))

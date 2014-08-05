@@ -158,10 +158,10 @@ impl Flow for TableRowGroupFlow {
                 let num_child_cols = kid.col_min_inline_sizes().len();
                 for i in range(num_cols, num_child_cols) {
                     self.col_inline_sizes.push(Au::new(0));
-                    let new_kid_min = *kid.col_min_inline_sizes().get(i);
-                    self.col_min_inline_sizes.push(*kid.col_min_inline_sizes().get(i));
-                    let new_kid_pref = *kid.col_pref_inline_sizes().get(i);
-                    self.col_pref_inline_sizes.push(*kid.col_pref_inline_sizes().get(i));
+                    let new_kid_min = kid.col_min_inline_sizes()[i];
+                    self.col_min_inline_sizes.push(kid.col_min_inline_sizes()[i]);
+                    let new_kid_pref = kid.col_pref_inline_sizes()[i];
+                    self.col_pref_inline_sizes.push(kid.col_pref_inline_sizes()[i]);
                     min_inline_size = min_inline_size + new_kid_min;
                     pref_inline_size = pref_inline_size + new_kid_pref;
                 }
