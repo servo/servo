@@ -55,6 +55,15 @@ function should_not_throw(f) {
   }
 }
 
+function check_selector(elem, selector, matches) {
+    is(elem.matches(selector), matches);
+}
+
+function check_disabled_selector(elem, disabled) {
+    check_selector(elem, ":disabled", disabled);
+    check_selector(elem, ":enabled", !disabled);
+}
+
 var _test_complete = false;
 var _test_timeout = 10000; //10 seconds
 function finish() {
