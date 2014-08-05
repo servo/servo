@@ -16,8 +16,6 @@ source _virtualenv/bin/activate
 if [[ $* == *--update-manifest* ]]; then
     (python -c "import html5lib" &>/dev/null) || pip install html5lib
 fi
-
-(python -c "import mozlog"  &>/dev/null) || pip install mozlog==2.1 #Temporary fix for broken tree
 (python -c "import wptrunner"  &>/dev/null) || pip install 'wptrunner==1.0'
 
 python $servo_root/src/test/wpt/run.py \
