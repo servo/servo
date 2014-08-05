@@ -48,7 +48,7 @@ use hubbub::hubbub::{QuirksMode, NoQuirks, LimitedQuirks, FullQuirks};
 use layout_interface::{DocumentDamageLevel, ContentChangedDocumentDamage};
 use servo_util::namespace;
 use servo_util::namespace::{Namespace, Null};
-use servo_util::str::{DOMString, null_str_as_empty_ref};
+use servo_util::str::{DOMString, null_str_as_empty_ref, split_html_space_chars};
 
 use std::collections::hashmap::HashMap;
 use std::ascii::StrAsciiExt;
@@ -520,9 +520,8 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                     }
                 });
         });
-        let v: Vec<&str> = title.as_slice().words().collect();
-        let title = v.connect(" ");
-        title.as_slice().trim().to_string()
+        let v: Vec<&str> = split_html_space_chars(title.as_slice()).collect();
+        v.connect(" ")
     }
 
     // http://www.whatwg.org/specs/web-apps/current-work/#document.title
