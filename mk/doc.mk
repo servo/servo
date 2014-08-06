@@ -7,6 +7,14 @@ RUSTDOC_HTML_IN_HEADER = $(S)/src/etc/rustdoc-style.html
 RUSTDOC_FLAGS = --html-in-header $(RUSTDOC_HTML_IN_HEADER)
 RUSTDOC_DEPS = $(RUSTDOC_HTML_IN_HEADER)
 
+
+.PHONY: doc-rust
+doc-rust: doc/rustc/index.html
+
+doc/rustc/index.html:
+	cp -r $(CFG_RUST_HOME)/doc . || true
+
+
 # FIXME(#2924) These crates make rustdoc fail for undetermined reasons.
 DOC_BLACKLISTED := style
 
@@ -57,4 +65,4 @@ $(eval $(call DEF_SUBMODULES_DOC_RULES,$(submodule))))
 
 
 .PHONY: doc
-doc: $(foreach target,$(DOC_SUBMODULES) $(SERVO_LIB_CRATES) servo,doc-$(target))
+doc: $(foreach target,rust $(DOC_SUBMODULES) $(SERVO_LIB_CRATES) servo,doc-$(target))
