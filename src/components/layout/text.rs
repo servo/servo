@@ -293,10 +293,10 @@ pub fn computed_style_to_font_style(style: &ComputedValues) -> FontStyle {
 }
 
 /// Returns the line block-size needed by the given computed style and font size.
-pub fn line_height_from_style(style: &ComputedValues) -> Au {
+pub fn line_height_from_style(style: &ComputedValues, metrics: &FontMetrics) -> Au {
     let font_size = style.get_font().font_size;
     let from_inline = match style.get_inheritedbox().line_height {
-        line_height::Normal => font_size.scale_by(1.14),
+        line_height::Normal => metrics.line_gap,
         line_height::Number(l) => font_size.scale_by(l),
         line_height::Length(l) => l
     };
