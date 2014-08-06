@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! The layout task. Performs layout on the DOM, builds display lists and sends them to be
-/// rendered.
+//! rendered.
 
 use css::matching::{ApplicableDeclarations, ApplicableDeclarationsCache, MatchMethods};
 use css::matching::{StyleSharingCandidateCache};
