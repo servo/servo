@@ -84,6 +84,17 @@ pub struct Document {
     pub is_html_document: bool,
     url: Untraceable<Url>,
     quirks_mode: Untraceable<Cell<QuirksMode>>,
+    links_collection_cache: Cell<Option<JS<HTMLCollection>>>,
+    flags: Traceable<RefCell<DocumentFlags>>,
+}
+
+bitflags! {
+    #[doc = "Flags for Document items."]
+    #[deriving(Encodable)]
+    flags DocumentFlags: u8 {
+        #[doc = "Specifies whether the cached live collections from this document are dirty."]
+        static CollectionCacheIsDirty = 0x01
+    }
 }
 
 impl DocumentDerived for EventTarget {
@@ -122,7 +133,15 @@ impl<'a> DocumentHelpers for JSRef<'a, Document> {
         *self.encoding_name.deref().borrow_mut() = name;
     }
 
-    fn content_changed(&self, _change_type: ContentChangeType) {
+    fn content_changed(&self, change_type: ContentChangeType) {
+        match change_type {
+            DOMTreeChange => {
+                if !self.flags.deref().borrow().contains(CollectionCacheIsDirty) {
+                    self.flags.deref().borrow_mut().insert(CollectionCacheIsDirty)
+                }
+            },
+            _ => ()
+        }
         self.damage_and_reflow(ContentChangedDocumentDamage);
     }
 
@@ -234,6 +253,8 @@ impl Document {
             // http://dom.spec.whatwg.org/#concept-document-encoding
             encoding_name: Traceable::new(RefCell::new("utf-8".to_string())),
             is_html_document: is_html_document == HTMLDocument,
+            links_collection_cache: Cell::new(None),
+            flags: Traceable::new(RefCell::new(DocumentFlags::empty())),
         }
     }
 
@@ -695,18 +716,24 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     }
 
     fn Links(&self) -> Temporary<HTMLCollection> {
-        let window = self.window.root();
-
         // FIXME: https://github.com/mozilla/servo/issues/1847
-        struct LinksFilter;
-        impl CollectionFilter for LinksFilter {
-            fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                (elem.is_htmlanchorelement() || elem.is_htmlareaelement()) &&
-                    elem.get_attribute(Null, "href").is_some()
+
+        if self.flags.deref().borrow().contains(CollectionCacheIsDirty) {
+            let window = self.window.root();
+            struct LinksFilter;
+            impl CollectionFilter for LinksFilter {
+                fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
+                    (elem.is_htmlanchorelement() || elem.is_htmlareaelement()) &&
+                        elem.get_attribute(Null, "href").is_some()
+                }
             }
+            let filter = box LinksFilter;
+            self.links_collection_cache.assign(Some(HTMLCollection::create(&*window, NodeCast::from_ref(self), filter)));
+            self.flags.deref().borrow_mut().remove(CollectionCacheIsDirty);
+            println!("=== links collection cache updated ===");
         }
-        let filter = box LinksFilter;
-        HTMLCollection::create(&*window, NodeCast::from_ref(self), filter)
+
+        Temporary::new(self.links_collection_cache.get().get_ref().clone())
     }
 
     fn Forms(&self) -> Temporary<HTMLCollection> {
