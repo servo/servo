@@ -27,9 +27,5 @@ notifications:
     on_failure: change
     use_notice: true
 
-branches:
-  only:
-    - master
-
 env:
   - secure: qSjs06HEBF6A7ZyCWdltko+LkVz6OpNZQnEbr0nHB3rSl9mzwwjjH6v0VOKYNgvSPTgD8eHa/nnTeTcUJPaBB3mok+X43xkEUQWHLnW/X30QU0c8Xn+7db4hCgsaUupc1XaJhzpLDj3qV8dqDiGNKIwXJHlMzIuxSW424XL1CNc=
