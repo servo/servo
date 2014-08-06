@@ -141,7 +141,16 @@ impl NodeFlags {
     pub fn new(type_id: NodeTypeId) -> NodeFlags {
         match type_id {
             DocumentNodeTypeId => IsInDoc,
-            _                  => NodeFlags::empty(),
+            // The following elements are enabled by default.
+            ElementNodeTypeId(HTMLButtonElementTypeId) |
+            ElementNodeTypeId(HTMLInputElementTypeId) |
+            ElementNodeTypeId(HTMLSelectElementTypeId) |
+            ElementNodeTypeId(HTMLTextAreaElementTypeId) |
+            ElementNodeTypeId(HTMLOptGroupElementTypeId) |
+            ElementNodeTypeId(HTMLOptionElementTypeId) |
+            //ElementNodeTypeId(HTMLMenuItemElementTypeId) |
+            ElementNodeTypeId(HTMLFieldSetElementTypeId) => InEnabledState,
+            _ => NodeFlags::empty(),
         }
     }
 }
@@ -973,7 +982,7 @@ impl Node {
     }
 
     fn new_(type_id: NodeTypeId, doc: Option<JSRef<Document>>) -> Node {
-        let node = Node {
+        Node {
             eventtarget: EventTarget::new_inherited(NodeTargetTypeId(type_id)),
             type_id: type_id,
 
@@ -988,22 +997,7 @@ impl Node {
             flags: Traceable::new(RefCell::new(NodeFlags::new(type_id))),
 
             layout_data: LayoutDataRef::new(),
-        };
-        match type_id {
-            // The following elements are enabled by default.
-            ElementNodeTypeId(HTMLButtonElementTypeId) |
-            ElementNodeTypeId(HTMLInputElementTypeId) |
-            ElementNodeTypeId(HTMLSelectElementTypeId) |
-            ElementNodeTypeId(HTMLTextAreaElementTypeId) |
-            ElementNodeTypeId(HTMLOptGroupElementTypeId) |
-            ElementNodeTypeId(HTMLOptionElementTypeId) |
-            //ElementNodeTypeId(HTMLMenuItemElementTypeId) |
-            ElementNodeTypeId(HTMLFieldSetElementTypeId) => {
-                node.flags.deref().borrow_mut().insert(InEnabledState);
-            },
-            _ => ()
         }
-        node
     }
 
     // http://dom.spec.whatwg.org/#concept-node-adopt
