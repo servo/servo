@@ -654,7 +654,7 @@ do
     fi
 done
 
-if [ ${do_reconfigure} -ne 0 ]
+if [ -z "$CFG_LOCAL_RUST_ROOT" -a ${do_reconfigure} -ne 0 ]
 then
     cd ${CFG_BUILD_DIR}src/compiler/rust
     RUST_CONFIGURE_ARGS="--enable-debug"
