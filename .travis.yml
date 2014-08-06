@@ -35,6 +35,7 @@ env:
   matrix:
     - AFTER_BUILD=content
     - AFTER_BUILD=ref
+    - AFTER_BUILD=wpt
 
 matrix:
   include:
@@ -42,5 +43,3 @@ matrix:
       env: AFTER_BUILD=unit-doc
     - os: osx
       env: AFTER_BUILD=unit
-    - os: osx
-      env: AFTER_BUILD=wpt
