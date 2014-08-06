@@ -8,6 +8,8 @@ make -j2
 make check-servo
 make check-content
 make check-ref-cpu
+
+mv x86_64-unknown-linux-gnu/rust_snapshot/rust-*/doc .
 make doc
 
 if [ $TRAVIS_BRANCH = master ] && [ $TRAVIS_PULL_REQUEST = false ]
