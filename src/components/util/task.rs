@@ -6,6 +6,7 @@ use std::str::IntoMaybeOwned;
 use std::task;
 use std::comm::Sender;
 use std::task::TaskBuilder;
+use native::task::NativeTaskBuilder;
 
 pub fn spawn_named<S: IntoMaybeOwned<'static>>(name: S, f: proc():Send) {
     let builder = task::TaskBuilder::new().named(name);
@@ -14,15 +15,20 @@ pub fn spawn_named<S: IntoMaybeOwned<'static>>(name: S, f: proc():Send) {
 
 /// Arrange to send a particular message to a channel if the task built by
 /// this `TaskBuilder` fails.
-pub fn spawn_named_with_send_on_failure<T: Send>(name: &str,
+pub fn spawn_named_with_send_on_failure<T: Send>(name: &'static str,
                                                  f: proc(): Send,
                                                  msg: T,
-                                                 dest: Sender<T>) {
-    let name = name.to_string();
-    let future_result = TaskBuilder::new().named(name.clone()).try_future(f);
+                                                 dest: Sender<T>,
+                                                 native: bool) {
+    let future_result = if native {
+        TaskBuilder::new().named(name).native().try_future(f)
+    } else {
+        TaskBuilder::new().named(name).try_future(f)
+    };
 
-    let watch_name = format!("{:s}Watcher", name);
-    spawn_named(watch_name, proc() {
+    let watched_name = name.to_string();
+    let watcher_name = format!("{:s}Watcher", watched_name);
+    TaskBuilder::new().named(watcher_name).spawn(proc() {
         match future_result.unwrap() {
             Ok(()) => (),
             Err(..) => {

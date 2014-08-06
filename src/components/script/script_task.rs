@@ -321,7 +321,7 @@ impl ScriptTask {
 
             // This must always be the very last operation performed before the task completes
             failsafe.neuter();
-        }, FailureMsg(failure_msg), const_chan);
+        }, FailureMsg(failure_msg), const_chan, false);
     }
 
     /// Handle incoming control messages.

@@ -304,7 +304,7 @@ impl LayoutTaskFactory for LayoutTask {
                 layout.start();
             }
             shutdown_chan.send(());
-        }, FailureMsg(failure_msg), con_chan);
+        }, FailureMsg(failure_msg), con_chan, false);
     }
 }
 
