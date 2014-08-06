@@ -153,6 +153,7 @@ impl<'a> DocumentHelpers for JSRef<'a, Document> {
             let node: &JSRef<Node> = NodeCast::from_ref(element);
             node.is_in_doc()
         });
+        assert!(!id.is_empty());
 
         let mut idmap = self.idmap.deref().borrow_mut();
 

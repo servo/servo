@@ -832,7 +832,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
             }
             "id" => {
                 let node: &JSRef<Node> = NodeCast::from_ref(self);
-                if node.is_in_doc() {
+                if node.is_in_doc() && !value.is_empty() {
                     let doc = document_from_node(self).root();
                     doc.register_named_element(self, value.clone());
                 }
@@ -855,7 +855,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
             }
             "id" => {
                 let node: &JSRef<Node> = NodeCast::from_ref(self);
-                if node.is_in_doc() {
+                if node.is_in_doc() && !value.is_empty() {
                     let doc = document_from_node(self).root();
                     doc.unregister_named_element(self, value);
                 }
@@ -885,7 +885,10 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
         match self.get_attribute(Null, "id").root() {
             Some(attr) => {
                 let doc = document_from_node(self).root();
-                doc.deref().register_named_element(self, attr.deref().Value());
+                let value = attr.deref().Value();
+                if !value.is_empty() {
+                    doc.deref().register_named_element(self, value);
+                }
             }
             _ => ()
         }
@@ -902,7 +905,10 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
         match self.get_attribute(Null, "id").root() {
             Some(attr) => {
                 let doc = document_from_node(self).root();
-                doc.deref().unregister_named_element(self, attr.deref().Value());
+                let value = attr.deref().Value();
+                if !value.is_empty() {
+                    doc.deref().unregister_named_element(self, value);
+                }
             }
             _ => ()
         }
