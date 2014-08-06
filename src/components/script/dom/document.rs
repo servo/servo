@@ -66,6 +66,12 @@ pub enum IsHTMLDocument {
     NonHTMLDocument,
 }
 
+#[deriving(PartialEq,Encodable)]
+pub enum ContentChangeType {
+    DOMTreeChange,
+    TextContentChange
+}
+
 #[deriving(Encodable)]
 pub struct Document {
     pub node: Node,
@@ -91,7 +97,7 @@ pub trait DocumentHelpers {
     fn quirks_mode(&self) -> QuirksMode;
     fn set_quirks_mode(&self, mode: QuirksMode);
     fn set_encoding_name(&self, name: DOMString);
-    fn content_changed(&self);
+    fn content_changed(&self, change_type: ContentChangeType);
     fn damage_and_reflow(&self, damage: DocumentDamageLevel);
     fn wait_until_safe_to_modify_dom(&self);
     fn unregister_named_element(&self, to_unregister: &JSRef<Element>, id: DOMString);
@@ -116,7 +122,7 @@ impl<'a> DocumentHelpers for JSRef<'a, Document> {
         *self.encoding_name.deref().borrow_mut() = name;
     }
 
-    fn content_changed(&self) {
+    fn content_changed(&self, _change_type: ContentChangeType) {
         self.damage_and_reflow(ContentChangedDocumentDamage);
     }
 
