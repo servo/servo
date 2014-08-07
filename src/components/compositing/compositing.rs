@@ -27,7 +27,7 @@ extern crate layers;
 extern crate layout_traits;
 extern crate opengles;
 extern crate png;
-extern crate script;
+extern crate script_traits;
 extern crate servo_msg = "msg";
 extern crate servo_net = "net";
 #[phase(plugin, link)]

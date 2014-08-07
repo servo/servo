@@ -14,7 +14,6 @@ use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
 use dom::document::{Document, HTMLDocument, DocumentHelpers};
 use dom::element::{Element, HTMLButtonElementTypeId, HTMLInputElementTypeId};
 use dom::element::{HTMLSelectElementTypeId, HTMLTextAreaElementTypeId, HTMLOptionElementTypeId};
-use dom::event::{Event_, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent};
 use dom::event::Event;
 use dom::uievent::UIEvent;
 use dom::eventtarget::{EventTarget, EventTargetHelpers};
@@ -26,7 +25,7 @@ use html::hubbub_html_parser::HtmlParserResult;
 use html::hubbub_html_parser::{HtmlDiscoveredStyle, HtmlDiscoveredScript};
 use html::hubbub_html_parser;
 use layout_interface::AddStylesheetMsg;
-use layout_interface::{LayoutChan, MatchSelectorsDocumentDamage};
+use layout_interface::{ScriptLayoutChan, LayoutChan, MatchSelectorsDocumentDamage};
 use layout_interface::{ReflowDocumentDamage, ReflowForDisplay};
 use layout_interface::ContentChangedDocumentDamage;
 use layout_interface;
@@ -38,17 +37,23 @@ use js::jsapi::{JSContext, JSRuntime};
 use js::rust::{Cx, RtUtils};
 use js::rust::with_compartment;
 use js;
+use script_traits::{CompositorEvent, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent};
+use script_traits::{MouseMoveEvent, MouseUpEvent, ConstellationControlMsg, ScriptTaskFactory};
+use script_traits::{ResizeMsg, AttachLayoutMsg, LoadMsg, SendEventMsg, ResizeInactiveMsg};
+use script_traits::{ExitPipelineMsg, NewLayoutInfo, OpaqueScriptLayoutChannel, ScriptControlChan};
+use script_traits::ReflowCompleteMsg;
 use servo_msg::compositor_msg::{FinishedLoading, LayerId, Loading};
 use servo_msg::compositor_msg::{ScriptListener};
 use servo_msg::constellation_msg::{ConstellationChan, LoadCompleteMsg, LoadUrlMsg, NavigationDirection};
-use servo_msg::constellation_msg::{PipelineId, SubpageId, Failure, FailureMsg, WindowSizeData};
+use servo_msg::constellation_msg::{PipelineId, Failure, FailureMsg, WindowSizeData};
 use servo_msg::constellation_msg;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_util::geometry::to_frac_px;
 use servo_util::task::spawn_named_with_send_on_failure;
+use std::any::{Any, AnyRefExt};
 use std::cell::RefCell;
-use std::comm::{channel, Sender, Receiver};
+use std::comm::{channel, Sender, Receiver, Select};
 use std::mem::replace;
 use std::rc::Rc;
 use url::Url;
@@ -59,42 +64,21 @@ local_data_key!(pub StackRoots: *const RootCollection)
 
 /// Messages used to control the script task.
 pub enum ScriptMsg {
-    /// Loads a new URL on the specified pipeline.
-    LoadMsg(PipelineId, Url),
     /// Acts on a fragment URL load on the specified pipeline.
     TriggerFragmentMsg(PipelineId, Url),
     /// Begins a content-initiated load on the specified pipeline.
     TriggerLoadMsg(PipelineId, Url),
-    /// Gives a channel and ID to a layout task, as well as the ID of that layout's parent
-    AttachLayoutMsg(NewLayoutInfo),
     /// Instructs the script task to send a navigate message to the constellation.
     NavigateMsg(NavigationDirection),
-    /// Sends a DOM event.
-    SendEventMsg(PipelineId, Event_),
-    /// Window resized.  Sends a DOM event eventually, but first we combine events.
-    ResizeMsg(PipelineId, WindowSizeData),
     /// Fires a JavaScript timeout.
     FireTimerMsg(PipelineId, TimerId),
-    /// Notifies script that reflow is finished.
-    ReflowCompleteMsg(PipelineId, uint),
-    /// Notifies script that window has been resized but to not take immediate action.
-    ResizeInactiveMsg(PipelineId, WindowSizeData),
-    /// Notifies the script that a pipeline should be closed.
-    ExitPipelineMsg(PipelineId),
     /// Notifies the script that a window associated with a particular pipeline should be closed.
     ExitWindowMsg(PipelineId),
     /// Notifies the script of progress on a fetch
     XHRProgressMsg(TrustedXHRAddress, XHRProgress)
 }
 
-pub struct NewLayoutInfo {
-    pub old_pipeline_id: PipelineId,
-    pub new_pipeline_id: PipelineId,
-    pub subpage_id: SubpageId,
-    pub layout_chan: LayoutChan,
-}
-
-/// Encapsulates external communication with the script task.
+/// Encapsulates internal communication within the script task.
 #[deriving(Clone)]
 pub struct ScriptChan(pub Sender<ScriptMsg>);
 
@@ -141,9 +125,16 @@ pub struct ScriptTask {
 
     /// The port on which the script task receives messages (load URL, exit, etc.)
     port: Receiver<ScriptMsg>,
-    /// A channel to hand out when some other task needs to be able to respond to a message from
-    /// the script task.
+    /// A channel to hand out to script task-based entities that need to be able to enqueue
+    /// events in the event queue.
     chan: ScriptChan,
+
+    /// A channel to hand out to tasks that need to respond to a message from the script task.
+    control_chan: ScriptControlChan,
+
+    /// The port on which the constellation and layout tasks can communicate with the
+    /// script task.
+    control_port: Receiver<ConstellationControlMsg>,
 
     /// For communicating load url messages to the constellation
     constellation_chan: ConstellationChan,
@@ -212,6 +203,52 @@ impl<'a> PrivateScriptTaskHelpers for JSRef<'a, Node> {
     }
 }
 
+impl ScriptTaskFactory for ScriptTask {
+    fn create_layout_channel(_phantom: Option<&mut ScriptTask>) -> OpaqueScriptLayoutChannel {
+        let (chan, port) = channel();
+        ScriptLayoutChan::new(chan, port)
+    }
+
+    fn clone_layout_channel(_phantom: Option<&mut ScriptTask>, pair: &OpaqueScriptLayoutChannel) -> Box<Any+Send> {
+        box pair.sender() as Box<Any+Send>
+    }
+
+    fn create<C:ScriptListener + Send>(
+                  _phantom: Option<&mut ScriptTask>,
+                  id: PipelineId,
+                  compositor: Box<C>,
+                  layout_chan: &OpaqueScriptLayoutChannel,
+                  control_chan: ScriptControlChan,
+                  control_port: Receiver<ConstellationControlMsg>,
+                  constellation_chan: ConstellationChan,
+                  failure_msg: Failure,
+                  resource_task: ResourceTask,
+                  image_cache_task: ImageCacheTask,
+                  window_size: WindowSizeData) {
+        let ConstellationChan(const_chan) = constellation_chan.clone();
+        let (script_chan, script_port) = channel();
+        let layout_chan = LayoutChan(layout_chan.sender());
+        spawn_named_with_send_on_failure("ScriptTask", proc() {
+            let script_task = ScriptTask::new(id,
+                                              compositor as Box<ScriptListener>,
+                                              layout_chan,
+                                              script_port,
+                                              ScriptChan(script_chan),
+                                              control_chan,
+                                              control_port,
+                                              constellation_chan,
+                                              resource_task,
+                                              image_cache_task,
+                                              window_size);
+            let mut failsafe = ScriptMemoryFailsafe::new(&*script_task);
+            script_task.start();
+
+            // This must always be the very last operation performed before the task completes
+            failsafe.neuter();
+        }, FailureMsg(failure_msg), const_chan, false);
+    }
+}
+
 impl ScriptTask {
     /// Creates a new script task.
     pub fn new(id: PipelineId,
@@ -219,6 +256,8 @@ impl ScriptTask {
                layout_chan: LayoutChan,
                port: Receiver<ScriptMsg>,
                chan: ScriptChan,
+               control_chan: ScriptControlChan,
+               control_port: Receiver<ConstellationControlMsg>,
                constellation_chan: ConstellationChan,
                resource_task: ResourceTask,
                img_cache_task: ImageCacheTask,
@@ -252,6 +291,8 @@ impl ScriptTask {
 
             port: port,
             chan: chan,
+            control_chan: control_chan,
+            control_port: control_port,
             constellation_chan: constellation_chan,
             compositor: compositor,
 
@@ -294,36 +335,6 @@ impl ScriptTask {
         }
     }
 
-    pub fn create<C:ScriptListener + Send>(
-                  id: PipelineId,
-                  compositor: Box<C>,
-                  layout_chan: LayoutChan,
-                  port: Receiver<ScriptMsg>,
-                  chan: ScriptChan,
-                  constellation_chan: ConstellationChan,
-                  failure_msg: Failure,
-                  resource_task: ResourceTask,
-                  image_cache_task: ImageCacheTask,
-                  window_size: WindowSizeData) {
-        let ConstellationChan(const_chan) = constellation_chan.clone();
-        spawn_named_with_send_on_failure("ScriptTask", proc() {
-            let script_task = ScriptTask::new(id,
-                                              compositor as Box<ScriptListener>,
-                                              layout_chan,
-                                              port,
-                                              chan,
-                                              constellation_chan,
-                                              resource_task,
-                                              image_cache_task,
-                                              window_size);
-            let mut failsafe = ScriptMemoryFailsafe::new(&*script_task);
-            script_task.start();
-
-            // This must always be the very last operation performed before the task completes
-            failsafe.neuter();
-        }, FailureMsg(failure_msg), const_chan, false);
-    }
-
     /// Handle incoming control messages.
     fn handle_msgs(&self) -> bool {
         let roots = RootCollection::new();
@@ -353,15 +364,36 @@ impl ScriptTask {
             self.handle_event(id, ResizeEvent(size));
         }
 
+        enum MixedMessage {
+            FromConstellation(ConstellationControlMsg),
+            FromScript(ScriptMsg),
+        }
+
         // Store new resizes, and gather all other events.
         let mut sequential = vec!();
 
         // Receive at least one message so we don't spinloop.
-        let mut event = self.port.recv();
+        let mut event = {
+            let sel = Select::new();
+            let mut port1 = sel.handle(&self.port);
+            let mut port2 = sel.handle(&self.control_port);
+            unsafe {
+                port1.add();
+                port2.add();
+            }
+            let ret = sel.wait();
+            if ret == port1.id() {
+                FromScript(self.port.recv())
+            } else if ret == port2.id() {
+                FromConstellation(self.control_port.recv())
+            } else {
+                fail!("unexpected select result")
+            }
+        };
 
         loop {
             match event {
-                ResizeMsg(id, size) => {
+                FromConstellation(ResizeMsg(id, size)) => {
                     let mut page = self.page.borrow_mut();
                     let page = page.find(id).expect("resize sent to nonexistent pipeline");
                     page.resize_event.deref().set(Some(size));
@@ -371,9 +403,12 @@ impl ScriptTask {
                 }
             }
 
-            match self.port.try_recv() {
-                Err(_) => break,
-                Ok(ev) => event = ev,
+            match self.control_port.try_recv() {
+                Err(_) => match self.port.try_recv() {
+                    Err(_) => break,
+                    Ok(ev) => event = FromScript(ev),
+                },
+                Ok(ev) => event = FromConstellation(ev),
             }
         }
 
@@ -381,19 +416,20 @@ impl ScriptTask {
         for msg in sequential.move_iter() {
             match msg {
                 // TODO(tkuehn) need to handle auxiliary layouts for iframes
-                AttachLayoutMsg(new_layout_info) => self.handle_new_layout(new_layout_info),
-                LoadMsg(id, url) => self.load(id, url),
-                TriggerLoadMsg(id, url) => self.trigger_load(id, url),
-                TriggerFragmentMsg(id, url) => self.trigger_fragment(id, url),
-                SendEventMsg(id, event) => self.handle_event(id, event),
-                FireTimerMsg(id, timer_id) => self.handle_fire_timer_msg(id, timer_id),
-                NavigateMsg(direction) => self.handle_navigate_msg(direction),
-                ReflowCompleteMsg(id, reflow_id) => self.handle_reflow_complete_msg(id, reflow_id),
-                ResizeInactiveMsg(id, new_size) => self.handle_resize_inactive_msg(id, new_size),
-                ExitPipelineMsg(id) => if self.handle_exit_pipeline_msg(id) { return false },
-                ExitWindowMsg(id) => self.handle_exit_window_msg(id),
-                ResizeMsg(..) => fail!("should have handled ResizeMsg already"),
-                XHRProgressMsg(addr, progress) => XMLHttpRequest::handle_xhr_progress(addr, progress),
+                FromConstellation(AttachLayoutMsg(new_layout_info)) =>
+                    self.handle_new_layout(new_layout_info),
+                FromConstellation(LoadMsg(id, url)) => self.load(id, url),
+                FromScript(TriggerLoadMsg(id, url)) => self.trigger_load(id, url),
+                FromScript(TriggerFragmentMsg(id, url)) => self.trigger_fragment(id, url),
+                FromConstellation(SendEventMsg(id, event)) => self.handle_event(id, event),
+                FromScript(FireTimerMsg(id, timer_id)) => self.handle_fire_timer_msg(id, timer_id),
+                FromScript(NavigateMsg(direction)) => self.handle_navigate_msg(direction),
+                FromConstellation(ReflowCompleteMsg(id, reflow_id)) => self.handle_reflow_complete_msg(id, reflow_id),
+                FromConstellation(ResizeInactiveMsg(id, new_size)) => self.handle_resize_inactive_msg(id, new_size),
+                FromConstellation(ExitPipelineMsg(id)) => if self.handle_exit_pipeline_msg(id) { return false },
+                FromScript(ExitWindowMsg(id)) => self.handle_exit_window_msg(id),
+                FromConstellation(ResizeMsg(..)) => fail!("should have handled ResizeMsg already"),
+                FromScript(XHRProgressMsg(addr, progress)) => XMLHttpRequest::handle_xhr_progress(addr, progress),
             }
         }
 
@@ -415,7 +451,9 @@ impl ScriptTask {
             task's page tree. This is a bug.");
         let new_page = {
             let window_size = parent_page.window_size.deref().get();
-            Page::new(new_pipeline_id, Some(subpage_id), layout_chan, window_size,
+            Page::new(new_pipeline_id, Some(subpage_id),
+                      LayoutChan(layout_chan.as_ref::<Sender<layout_interface::Msg>>().unwrap().clone()),
+                      window_size,
                       parent_page.resource_task.deref().clone(),
                       self.constellation_chan.clone(),
                       self.js_context.borrow().get_ref().clone())
@@ -524,7 +562,7 @@ impl ScriptTask {
                 *page.mut_url() = Some((loaded.clone(), false));
                 if needs_reflow {
                     page.damage(ContentChangedDocumentDamage);
-                    page.reflow(ReflowForDisplay, self.chan.clone(), self.compositor);
+                    page.reflow(ReflowForDisplay, self.control_chan.clone(), self.compositor);
                 }
                 return;
             },
@@ -537,6 +575,7 @@ impl ScriptTask {
         let window = Window::new(cx.deref().ptr,
                                  page.clone(),
                                  self.chan.clone(),
+                                 self.control_chan.clone(),
                                  self.compositor.dup(),
                                  self.image_cache_task.clone()).root();
         let document = Document::new(&*window, Some(url.clone()), HTMLDocument, None).root();
@@ -643,7 +682,7 @@ impl ScriptTask {
     /// This is the main entry point for receiving and dispatching DOM events.
     ///
     /// TODO: Actually perform DOM event dispatch.
-    fn handle_event(&self, pipeline_id: PipelineId, event: Event_) {
+    fn handle_event(&self, pipeline_id: PipelineId, event: CompositorEvent) {
         match event {
             ResizeEvent(new_size) => {
                 debug!("script got resize event: {:?}", new_size);
@@ -655,7 +694,7 @@ impl ScriptTask {
                     let frame = page.frame();
                     if frame.is_some() {
                         page.damage(ReflowDocumentDamage);
-                        page.reflow(ReflowForDisplay, self.chan.clone(), self.compositor)
+                        page.reflow(ReflowForDisplay, self.control_chan.clone(), self.compositor)
                     }
 
                     let mut fragment_node = page.fragment_node.get();
@@ -691,7 +730,7 @@ impl ScriptTask {
                 let frame = page.frame();
                 if frame.is_some() {
                     page.damage(MatchSelectorsDocumentDamage);
-                    page.reflow(ReflowForDisplay, self.chan.clone(), self.compositor)
+                    page.reflow(ReflowForDisplay, self.control_chan.clone(), self.compositor)
                 }
             }
 
@@ -789,7 +828,7 @@ impl ScriptTask {
                         if target_compare {
                             if mouse_over_targets.is_some() {
                                 page.damage(MatchSelectorsDocumentDamage);
-                                page.reflow(ReflowForDisplay, self.chan.clone(), self.compositor);
+                                page.reflow(ReflowForDisplay, self.control_chan.clone(), self.compositor);
                             }
                             *mouse_over_targets = Some(target_list);
                         }

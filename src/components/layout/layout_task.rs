@@ -30,18 +30,18 @@ use gfx::display_list::{DisplayItemIterator, DisplayList, OpaqueNode};
 use gfx::font_context::FontContext;
 use gfx::render_task::{RenderInitMsg, RenderChan, RenderLayer};
 use gfx::{render_task, color};
-use layout_traits::LayoutTaskFactory;
+use layout_traits;
+use layout_traits::{LayoutControlMsg, LayoutTaskFactory};
 use script::dom::bindings::js::JS;
-use script::dom::event::ReflowEvent;
 use script::dom::node::{ElementNodeTypeId, LayoutDataRef, Node};
 use script::dom::element::{HTMLBodyElementTypeId, HTMLHtmlElementTypeId};
-use script::layout_interface::{AddStylesheetMsg, ContentBoxQuery};
+use script::layout_interface::{AddStylesheetMsg, ContentBoxQuery, ScriptLayoutChan};
 use script::layout_interface::{ContentBoxesQuery, ContentBoxesResponse, ExitNowMsg, LayoutQuery};
 use script::layout_interface::{HitTestQuery, ContentBoxResponse, HitTestResponse, MouseOverQuery, MouseOverResponse};
 use script::layout_interface::{ContentChangedDocumentDamage, LayoutChan, Msg, PrepareToExitMsg};
 use script::layout_interface::{QueryMsg, ReapLayoutDataMsg, Reflow, UntrustedNodeAddress};
 use script::layout_interface::{ReflowForDisplay, ReflowMsg};
-use script::script_task::{ReflowCompleteMsg, ScriptChan, SendEventMsg};
+use script_traits::{SendEventMsg, ReflowEvent, ReflowCompleteMsg, OpaqueScriptLayoutChannel, ScriptControlChan};
 use servo_msg::compositor_msg::Scrollable;
 use servo_msg::constellation_msg::{ConstellationChan, PipelineId, Failure, FailureMsg};
 use servo_net::image_cache_task::{ImageCacheTask, ImageResponseMsg};
@@ -55,7 +55,7 @@ use servo_util::time::{TimeProfilerChan, profile};
 use servo_util::time;
 use servo_util::task::spawn_named_with_send_on_failure;
 use servo_util::workqueue::WorkQueue;
-use std::comm::{channel, Sender, Receiver};
+use std::comm::{channel, Sender, Receiver, Select};
 use std::mem;
 use std::ptr;
 use style::{AuthorOrigin, Stylesheet, Stylist};
@@ -68,8 +68,11 @@ pub struct LayoutTask {
     /// The ID of the pipeline that we belong to.
     pub id: PipelineId,
 
-    /// The port on which we receive messages.
+    /// The port on which we receive messages from the script task.
     pub port: Receiver<Msg>,
+
+    /// The port on which we receive messages from the constellation
+    pub pipeline_port: Receiver<LayoutControlMsg>,
 
     //// The channel to send messages to ourself.
     pub chan: LayoutChan,
@@ -78,7 +81,7 @@ pub struct LayoutTask {
     pub constellation_chan: ConstellationChan,
 
     /// The channel on which messages can be sent to the script task.
-    pub script_chan: ScriptChan,
+    pub script_chan: ScriptControlChan,
 
     /// The channel on which messages can be sent to the painting task.
     pub render_chan: RenderChan,
@@ -258,7 +261,7 @@ impl<'a> BuildDisplayListTraversal<'a> {
 
 struct LayoutImageResponder {
     id: PipelineId,
-    script_chan: ScriptChan,
+    script_chan: ScriptControlChan,
 }
 
 impl ImageResponder for LayoutImageResponder {
@@ -266,7 +269,7 @@ impl ImageResponder for LayoutImageResponder {
         let id = self.id.clone();
         let script_chan = self.script_chan.clone();
         let f: proc(ImageResponseMsg):Send = proc(_) {
-            let ScriptChan(chan) = script_chan;
+            let ScriptControlChan(chan) = script_chan;
             drop(chan.send_opt(SendEventMsg(id.clone(), ReflowEvent)))
         };
         f
@@ -277,11 +280,11 @@ impl LayoutTaskFactory for LayoutTask {
     /// Spawns a new layout task.
     fn create(_phantom: Option<&mut LayoutTask>,
                   id: PipelineId,
-                  port: Receiver<Msg>,
-                  chan: LayoutChan,
+                  chan: OpaqueScriptLayoutChannel,
+                  pipeline_port: Receiver<LayoutControlMsg>,
                   constellation_chan: ConstellationChan,
                   failure_msg: Failure,
-                  script_chan: ScriptChan,
+                  script_chan: ScriptControlChan,
                   render_chan: RenderChan,
                   img_cache_task: ImageCacheTask,
                   font_cache_task: FontCacheTask,
@@ -291,9 +294,11 @@ impl LayoutTaskFactory for LayoutTask {
         let ConstellationChan(con_chan) = constellation_chan.clone();
         spawn_named_with_send_on_failure("LayoutTask", proc() {
             { // Ensures layout task is destroyed before we send shutdown message
+                let sender = chan.sender();
                 let mut layout = LayoutTask::new(id,
-                                                 port,
-                                                 chan,
+                                                 chan.receiver(),
+                                                 LayoutChan(sender),
+                                                 pipeline_port,
                                                  constellation_chan,
                                                  script_chan,
                                                  render_chan,
@@ -313,8 +318,9 @@ impl LayoutTask {
     fn new(id: PipelineId,
            port: Receiver<Msg>,
            chan: LayoutChan,
+           pipeline_port: Receiver<LayoutControlMsg>,
            constellation_chan: ConstellationChan,
-           script_chan: ScriptChan,
+           script_chan: ScriptControlChan,
            render_chan: RenderChan,
            image_cache_task: ImageCacheTask,
            font_cache_task: FontCacheTask,
@@ -332,6 +338,7 @@ impl LayoutTask {
         LayoutTask {
             id: id,
             port: port,
+            pipeline_port: pipeline_port,
             chan: chan,
             constellation_chan: constellation_chan,
             script_chan: script_chan,
@@ -373,9 +380,45 @@ impl LayoutTask {
         }
     }
 
-    /// Receives and dispatches messages from the port.
+    /// Receives and dispatches messages from the script and constellation tasks
     fn handle_request(&mut self) -> bool {
-        match self.port.recv() {
+        enum PortToRead {
+            Pipeline,
+            Script,
+        }
+
+        let port_to_read = {
+            let sel = Select::new();
+            let mut port1 = sel.handle(&self.port);
+            let mut port2 = sel.handle(&self.pipeline_port);
+            unsafe {
+                port1.add();
+                port2.add();
+            }
+            let ret = sel.wait();
+            if ret == port1.id() {
+                Script
+            } else if ret == port2.id() {
+                Pipeline
+            } else {
+                fail!("invalid select result");
+            }
+        };
+
+        match port_to_read {
+            Pipeline => match self.pipeline_port.recv() {
+                layout_traits::ExitNowMsg => self.handle_script_request(ExitNowMsg),
+            },
+            Script => {
+                let msg = self.port.recv();
+                self.handle_script_request(msg)
+            }
+        }
+    }
+
+    /// Receives and dispatches messages from the script task.
+    fn handle_script_request(&mut self, request: Msg) -> bool {
+        match request {
             AddStylesheetMsg(sheet) => self.handle_add_stylesheet(sheet),
             ReflowMsg(data) => {
                 profile(time::LayoutPerformCategory, self.time_profiler_chan.clone(), || {
@@ -764,7 +807,7 @@ impl LayoutTask {
         // FIXME(pcwalton): This should probably be *one* channel, but we can't fix this without
         // either select or a filtered recv() that only looks for messages of a given type.
         data.script_join_chan.send(());
-        let ScriptChan(ref chan) = data.script_chan;
+        let ScriptControlChan(ref chan) = data.script_chan;
         chan.send(ReflowCompleteMsg(self.id, data.id));
     }
 

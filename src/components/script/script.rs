@@ -33,6 +33,7 @@ extern crate net;
 extern crate rustrt;
 extern crate serialize;
 extern crate time;
+extern crate script_traits;
 #[phase(plugin)]
 extern crate servo_macros = "macros";
 extern crate servo_net = "net";
