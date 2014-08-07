@@ -245,7 +245,8 @@ impl FontHandleMethods for FontHandle {
             em_size:          em_size,
             ascent:           ascent,
             descent:          -descent, // linux font's seem to use the opposite sign from mac
-            max_advance:      max_advance
+            max_advance:      max_advance,
+            line_gap:         height,
         };
 
         debug!("Font metrics (@{:f} pt): {:?}", geometry::to_pt(em_size), metrics);
