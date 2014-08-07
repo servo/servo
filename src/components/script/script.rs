@@ -173,13 +173,16 @@ pub mod dom {
     pub mod mouseevent;
     pub mod navigator;
     pub mod node;
+    pub mod nodeiterator;
     pub mod nodelist;
     pub mod processinginstruction;
     pub mod performance;
     pub mod performancetiming;
     pub mod progressevent;
+    pub mod range;
     pub mod screen;
     pub mod text;
+    pub mod treewalker;
     pub mod uievent;
     pub mod urlsearchparams;
     pub mod validitystate;
