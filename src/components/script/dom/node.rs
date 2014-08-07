@@ -29,7 +29,7 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::characterdata::CharacterData;
 use dom::comment::Comment;
 use dom::document::{Document, DocumentHelpers, HTMLDocument, NonHTMLDocument};
-use dom::document::{DOMTreeChange, TextContentChange};
+use dom::document::{DOMTreeChange, DOMTreeNodeInserted, DOMTreeNodeRemoved, TextContentChange};
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
 use dom::element::{AttributeHandlers, Element, ElementTypeId};
@@ -276,7 +276,7 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
         let parent = self.parent_node().root();
         parent.map(|parent| vtable_for(&*parent).child_inserted(self));
 
-        document.deref().content_changed(DOMTreeChange);
+        document.deref().content_changed(&DOMTreeChange(DOMTreeNodeInserted(self)));
     }
 
     // http://dom.spec.whatwg.org/#node-is-removed
@@ -288,7 +288,7 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
             vtable_for(&node).unbind_from_tree(parent_in_doc);
         }
 
-        document.deref().content_changed(DOMTreeChange);
+        document.deref().content_changed(&DOMTreeChange(DOMTreeNodeRemoved(self)));
     }
 
     //
@@ -1623,7 +1623,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 
                 // Notify the document that the content of this node is different
                 let document = self.owner_doc().root();
-                document.deref().content_changed(TextContentChange);
+                document.deref().content_changed(&TextContentChange);
             }
             DoctypeNodeTypeId |
             DocumentNodeTypeId => {}

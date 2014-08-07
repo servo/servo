@@ -66,9 +66,14 @@ pub enum IsHTMLDocument {
     NonHTMLDocument,
 }
 
-#[deriving(PartialEq,Encodable)]
-pub enum ContentChangeType {
-    DOMTreeChange,
+pub enum DOMTreeChangeType<'a, 'b> {
+    DOMTreeLoaded,
+    DOMTreeNodeInserted(&'b JSRef<'a, Node>),
+    DOMTreeNodeRemoved(&'b JSRef<'a, Node>),
+}
+
+pub enum ContentChangeType<'a, 'b> {
+    DOMTreeChange(DOMTreeChangeType<'a, 'b>),
     TextContentChange
 }
 
@@ -92,8 +97,8 @@ bitflags! {
     #[doc = "Flags for Document items."]
     #[deriving(Encodable)]
     flags DocumentFlags: u8 {
-        #[doc = "Specifies whether the cached live collections from this document are dirty."]
-        static CollectionCacheIsDirty = 0x01
+        #[doc = "Specifies whether the links cached collection from this document needs update."]
+        static LinksCollectionNeedsUpdate = 0x01
     }
 }
 
@@ -108,7 +113,7 @@ pub trait DocumentHelpers {
     fn quirks_mode(&self) -> QuirksMode;
     fn set_quirks_mode(&self, mode: QuirksMode);
     fn set_encoding_name(&self, name: DOMString);
-    fn content_changed(&self, change_type: ContentChangeType);
+    fn content_changed(&self, change_type: &ContentChangeType);
     fn damage_and_reflow(&self, damage: DocumentDamageLevel);
     fn wait_until_safe_to_modify_dom(&self);
     fn unregister_named_element(&self, to_unregister: &JSRef<Element>, id: DOMString);
@@ -133,11 +138,21 @@ impl<'a> DocumentHelpers for JSRef<'a, Document> {
         *self.encoding_name.deref().borrow_mut() = name;
     }
 
-    fn content_changed(&self, change_type: ContentChangeType) {
-        match change_type {
-            DOMTreeChange => {
-                if !self.flags.deref().borrow().contains(CollectionCacheIsDirty) {
-                    self.flags.deref().borrow_mut().insert(CollectionCacheIsDirty)
+    fn content_changed(&self, change_type: &ContentChangeType) {
+        match *change_type {
+            DOMTreeChange(DOMTreeLoaded) => {
+                self.flags.deref().borrow_mut().insert(LinksCollectionNeedsUpdate);
+            },
+            DOMTreeChange(DOMTreeNodeInserted(ref node)) |
+            DOMTreeChange(DOMTreeNodeRemoved(ref node)) => {
+                let elem: Option<&JSRef<Element>> = ElementCast::to_ref(*node);
+                match elem {
+                    Some(ref elem) => {
+                        if (node.deref().is_htmlanchorelement() || node.deref().is_htmlareaelement()) && elem.get_attribute(Null, "href").is_some() {
+                            self.flags.deref().borrow_mut().insert(LinksCollectionNeedsUpdate);
+                        }
+                    },
+                    None => ()
                 }
             },
             _ => ()
@@ -718,7 +733,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     fn Links(&self) -> Temporary<HTMLCollection> {
         // FIXME: https://github.com/mozilla/servo/issues/1847
 
-        if self.flags.deref().borrow().contains(CollectionCacheIsDirty) {
+        if self.flags.deref().borrow().contains(LinksCollectionNeedsUpdate) {
             let window = self.window.root();
             struct LinksFilter;
             impl CollectionFilter for LinksFilter {
@@ -729,8 +744,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             }
             let filter = box LinksFilter;
             self.links_collection_cache.assign(Some(HTMLCollection::create(&*window, NodeCast::from_ref(self), filter)));
-            self.flags.deref().borrow_mut().remove(CollectionCacheIsDirty);
-            println!("=== links collection cache updated ===");
+            self.flags.deref().borrow_mut().remove(LinksCollectionNeedsUpdate);
         }
 
         Temporary::new(self.links_collection_cache.get().get_ref().clone())
