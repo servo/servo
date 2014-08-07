@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! The high-level interface from script to constellation. Using this abstract interface helps reduce
-/// coupling between these two components
+//! coupling between these two components
 
 use geom::rect::Rect;
 use geom::size::TypedSize2D;
