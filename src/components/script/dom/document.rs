@@ -11,6 +11,10 @@ use dom::bindings::codegen::InheritTypes::{DocumentDerived, EventCast, HTMLEleme
 use dom::bindings::codegen::InheritTypes::{HTMLHeadElementCast, TextCast, ElementCast};
 use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, HTMLHtmlElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
+use dom::bindings::codegen::InheritTypes::{HTMLAnchorElementDerived, HTMLAppletElementDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLAreaElementDerived, HTMLEmbedElementDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLFormElementDerived, HTMLImageElementDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived};
 use dom::bindings::error::{ErrorResult, Fallible, NotSupported, InvalidCharacter};
 use dom::bindings::error::{HierarchyRequest, NamespaceError};
 use dom::bindings::global::{GlobalRef, Window};
@@ -657,7 +661,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         struct ImagesFilter;
         impl CollectionFilter for ImagesFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                "img" == elem.deref().local_name.as_slice()
+                elem.is_htmlimageelement()
             }
         }
         let filter = box ImagesFilter;
@@ -671,7 +675,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         struct EmbedsFilter;
         impl CollectionFilter for EmbedsFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                "embed" == elem.deref().local_name.as_slice()
+                elem.is_htmlembedelement()
             }
         }
         let filter = box EmbedsFilter;
@@ -690,8 +694,8 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         struct LinksFilter;
         impl CollectionFilter for LinksFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                ("a" == elem.deref().local_name.as_slice() || "area" == elem.deref().local_name.as_slice()) &&
-                elem.get_attribute(Null, "href").is_some()
+                (elem.is_htmlanchorelement() || elem.is_htmlareaelement()) &&
+                    elem.get_attribute(Null, "href").is_some()
             }
         }
         let filter = box LinksFilter;
@@ -705,7 +709,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         struct FormsFilter;
         impl CollectionFilter for FormsFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                "form" == elem.deref().local_name.as_slice()
+                elem.is_htmlformelement()
             }
         }
         let filter = box FormsFilter;
@@ -719,7 +723,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         struct ScriptsFilter;
         impl CollectionFilter for ScriptsFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                "script" == elem.deref().local_name.as_slice()
+                elem.is_htmlscriptelement()
             }
         }
         let filter = box ScriptsFilter;
@@ -733,7 +737,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         struct AnchorsFilter;
         impl CollectionFilter for AnchorsFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                "a" == elem.deref().local_name.as_slice() && elem.get_attribute(Null, "name").is_some()
+                elem.is_htmlanchorelement() && elem.get_attribute(Null, "name").is_some()
             }
         }
         let filter = box AnchorsFilter;
@@ -747,7 +751,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         struct AppletsFilter;
         impl CollectionFilter for AppletsFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                "applet" == elem.deref().local_name.as_slice()
+                elem.is_htmlappletelement()
             }
         }
         let filter = box AppletsFilter;
