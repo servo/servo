@@ -17,7 +17,7 @@ use servo_util::atom::Atom;
 use servo_util::namespace;
 use servo_util::namespace::Namespace;
 use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS};
-use std::cell::{Ref, Cell, RefCell};
+use std::cell::{Ref, RefCell};
 use std::mem;
 
 pub enum AttrSettingType {
@@ -76,7 +76,7 @@ pub struct Attr {
     pub prefix: Option<DOMString>,
 
     /// the element that owns this attribute.
-    owner: Cell<JS<Element>>,
+    owner: JS<Element>,
 }
 
 impl Reflectable for Attr {
@@ -96,7 +96,7 @@ impl Attr {
             name: name,
             namespace: namespace,
             prefix: prefix,
-            owner: Cell::new(JS::from_rooted(owner)),
+            owner: JS::from_rooted(owner),
         }
     }
 
@@ -108,7 +108,7 @@ impl Attr {
     }
 
     pub fn set_value(&self, set_type: AttrSettingType, value: AttrValue) {
-        let owner = self.owner.get().root();
+        let owner = self.owner.root();
         let node: &JSRef<Node> = NodeCast::from_ref(&*owner);
         let namespace_is_null = self.namespace == namespace::Null;
 
@@ -143,7 +143,7 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
     }
 
     fn SetValue(&self, value: DOMString) {
-        let owner = self.owner.get().root();
+        let owner = self.owner.root();
         let value = owner.deref().parse_attribute(
             &self.namespace, self.deref().local_name.as_slice(), value);
         self.set_value(ReplacedAttr, value);
