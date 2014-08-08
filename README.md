@@ -33,9 +33,9 @@ sudo apt-get install autoconf2.13 curl freeglut3-dev libtool \
 On Fedora:
 
 ``` sh
-sudo yum install autoconf213 curl freeglut-devel libtool \
-    freetype-devel mesa-libGL-devel glib2-devel libX11-devel \
-    gperf gcc-c++ rpm-build cabextract ttmkfdir python python-virtualenv
+sudo yum install autoconf213 curl freeglut-devel libtool gcc-c++ libXi-devel \
+    freetype-devel mesa-libGL-devel glib2-devel libX11-devel libXRandr-devel gperf \
+    fontconfig-devel cabextract ttmkfdir python python-virtualenv expat-devel rpm-build
 pushd .
 cd /tmp
 wget http://corefonts.sourceforge.net/msttcorefonts-2.5-1.spec
