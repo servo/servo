@@ -52,7 +52,7 @@ impl Flow for TableColGroupFlow {
         self
     }
 
-    fn bubble_inline_sizes(&mut self, _: &mut LayoutContext) {
+    fn bubble_inline_sizes(&mut self, _: &LayoutContext) {
         for fragment in self.cols.iter() {
             // get the specified value from inline-size property
             let inline_size = MaybeAuto::from_style(fragment.style().content_inline_size(),
@@ -70,11 +70,11 @@ impl Flow for TableColGroupFlow {
 
     /// Table column inline-sizes are assigned in table flow and propagated to table row or rowgroup flow.
     /// Therefore, table colgroup flow does not need to assign its inline-size.
-    fn assign_inline_sizes(&mut self, _ctx: &mut LayoutContext) {
+    fn assign_inline_sizes(&mut self, _ctx: &LayoutContext) {
     }
 
     /// Table column do not have block-size.
-    fn assign_block_size(&mut self, _ctx: &mut LayoutContext) {
+    fn assign_block_size(&mut self, _ctx: &LayoutContext) {
     }
 }
 

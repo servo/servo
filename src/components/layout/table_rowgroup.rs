@@ -74,7 +74,7 @@ impl TableRowGroupFlow {
     /// inline(always) because this is only ever called by in-order or non-in-order top-level
     /// methods
     #[inline(always)]
-    fn assign_block_size_table_rowgroup_base(&mut self, layout_context: &mut LayoutContext) {
+    fn assign_block_size_table_rowgroup_base<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
         let (block_start_offset, _, _) = self.initialize_offsets();
 
         let mut cur_y = block_start_offset;
@@ -133,7 +133,7 @@ impl Flow for TableRowGroupFlow {
     /// Min/pref inline-sizes set by this function are used in automatic table layout calculation.
     /// Also, this function finds the specified column inline-sizes from the first row.
     /// Those are used in fixed table layout calculation
-    fn bubble_inline_sizes(&mut self, _: &mut LayoutContext) {
+    fn bubble_inline_sizes(&mut self, _: &LayoutContext) {
         let mut min_inline_size = Au(0);
         let mut pref_inline_size = Au(0);
 
@@ -175,7 +175,7 @@ impl Flow for TableRowGroupFlow {
 
     /// Recursively (top-down) determines the actual inline-size of child contexts and fragments. When
     /// called on this context, the context has had its inline-size set by the parent context.
-    fn assign_inline_sizes(&mut self, ctx: &mut LayoutContext) {
+    fn assign_inline_sizes(&mut self, ctx: &LayoutContext) {
         debug!("assign_inline_sizes({}): assigning inline_size for flow", "table_rowgroup");
 
         // The position was set to the containing block by the flow's parent.
@@ -191,7 +191,7 @@ impl Flow for TableRowGroupFlow {
         self.block_flow.propagate_assigned_inline_size_to_children(inline_start_content_edge, content_inline_size, Some(self.col_inline_sizes.clone()));
     }
 
-    fn assign_block_size(&mut self, ctx: &mut LayoutContext) {
+    fn assign_block_size<'a>(&mut self, ctx: &'a LayoutContext<'a>) {
         debug!("assign_block_size: assigning block_size for table_rowgroup");
         self.assign_block_size_table_rowgroup_base(ctx);
     }

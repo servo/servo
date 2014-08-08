@@ -5,12 +5,11 @@
 //! The layout task. Performs layout on the DOM, builds display lists and sends them to be
 //! rendered.
 
-use css::matching::{ApplicableDeclarations, ApplicableDeclarationsCache, MatchMethods};
-use css::matching::{StyleSharingCandidateCache};
+use css::matching::{ApplicableDeclarations, MatchMethods};
 use css::select::new_stylist;
 use css::node_style::StyledNode;
 use construct::{FlowConstructionResult, NoConstructionResult};
-use context::LayoutContext;
+use context::{LayoutContext, SharedLayoutContext};
 use flow::{Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
 use flow::{PreorderFlowTraversal, PostorderFlowTraversal};
 use flow;
@@ -27,7 +26,6 @@ use geom::rect::Rect;
 use geom::size::Size2D;
 use gfx::display_list::{ClipDisplayItemClass, ContentStackingLevel, DisplayItem};
 use gfx::display_list::{DisplayItemIterator, DisplayList, OpaqueNode};
-use gfx::font_context::FontContext;
 use gfx::render_task::{RenderInitMsg, RenderChan, RenderLayer};
 use gfx::{render_task, color};
 use layout_traits;
@@ -104,7 +102,7 @@ pub struct LayoutTask {
     pub stylist: Box<Stylist>,
 
     /// The workers that we use for parallel operation.
-    pub parallel_traversal: Option<WorkQueue<*mut LayoutContext,UnsafeFlow>>,
+    pub parallel_traversal: Option<WorkQueue<*const SharedLayoutContext,UnsafeFlow>>,
 
     /// The channel on which messages can be sent to the time profiler.
     pub time_profiler_chan: TimeProfilerChan,
@@ -178,7 +176,7 @@ impl PreorderFlowTraversal for FlowTreeVerificationTraversal {
 /// The bubble-inline-sizes traversal, the first part of layout computation. This computes preferred
 /// and intrinsic inline-sizes and bubbles them up the tree.
 pub struct BubbleISizesTraversal<'a> {
-    pub layout_context: &'a mut LayoutContext,
+    pub layout_context: &'a LayoutContext<'a>,
 }
 
 impl<'a> PostorderFlowTraversal for BubbleISizesTraversal<'a> {
@@ -199,7 +197,7 @@ impl<'a> PostorderFlowTraversal for BubbleISizesTraversal<'a> {
 
 /// The assign-inline-sizes traversal. In Gecko this corresponds to `Reflow`.
 pub struct AssignISizesTraversal<'a> {
-    pub layout_context: &'a mut LayoutContext,
+    pub layout_context: &'a LayoutContext<'a>,
 }
 
 impl<'a> PreorderFlowTraversal for AssignISizesTraversal<'a> {
@@ -214,7 +212,7 @@ impl<'a> PreorderFlowTraversal for AssignISizesTraversal<'a> {
 /// computation. Determines the final block-sizes for all layout objects, computes positions, and
 /// computes overflow regions. In Gecko this corresponds to `FinishAndStoreOverflow`.
 pub struct AssignBSizesAndStoreOverflowTraversal<'a> {
-    pub layout_context: &'a mut LayoutContext,
+    pub layout_context: &'a LayoutContext<'a>,
 }
 
 impl<'a> PostorderFlowTraversal for AssignBSizesAndStoreOverflowTraversal<'a> {
@@ -237,7 +235,7 @@ impl<'a> PostorderFlowTraversal for AssignBSizesAndStoreOverflowTraversal<'a> {
 
 /// The display list construction traversal.
 pub struct BuildDisplayListTraversal<'a> {
-    layout_context: &'a LayoutContext,
+    layout_context: &'a LayoutContext<'a>,
 }
 
 impl<'a> BuildDisplayListTraversal<'a> {
@@ -330,7 +328,7 @@ impl LayoutTask {
         let local_image_cache = Arc::new(Mutex::new(LocalImageCache::new(image_cache_task.clone())));
         let screen_size = Size2D(Au(0), Au(0));
         let parallel_traversal = if opts.layout_threads != 1 {
-            Some(WorkQueue::new("LayoutWorker", opts.layout_threads, ptr::mut_null()))
+            Some(WorkQueue::new("LayoutWorker", opts.layout_threads, ptr::null()))
         } else {
             None
         };
@@ -365,8 +363,8 @@ impl LayoutTask {
     }
 
     // Create a layout context for use in building display lists, hit testing, &c.
-    fn build_layout_context(&self, reflow_root: &LayoutNode, url: &Url) -> LayoutContext {
-        LayoutContext {
+    fn build_shared_layout_context(&self, reflow_root: &LayoutNode, url: &Url) -> SharedLayoutContext {
+        SharedLayoutContext {
             image_cache: self.local_image_cache.clone(),
             screen_size: self.screen_size.clone(),
             constellation_chan: self.constellation_chan.clone(),
@@ -542,10 +540,10 @@ impl LayoutTask {
     /// This corresponds to `Reflow()` in Gecko and `layout()` in WebKit/Blink and should be
     /// benchmarked against those two. It is marked `#[inline(never)]` to aid profiling.
     #[inline(never)]
-    fn solve_constraints(&mut self,
+    fn solve_constraints<'a>(&mut self,
                          layout_root: &mut Flow,
-                         layout_context: &mut LayoutContext) {
-        if layout_context.opts.bubble_inline_sizes_separately {
+                         layout_context: &'a LayoutContext<'a>) {
+        if layout_context.shared.opts.bubble_inline_sizes_separately {
             let mut traversal = BubbleISizesTraversal {
                 layout_context: layout_context,
             };
@@ -580,10 +578,10 @@ impl LayoutTask {
     #[inline(never)]
     fn solve_constraints_parallel(&mut self,
                                   layout_root: &mut FlowRef,
-                                  layout_context: &mut LayoutContext) {
-        if layout_context.opts.bubble_inline_sizes_separately {
+                                  shared_layout_context: &SharedLayoutContext) {
+        if shared_layout_context.opts.bubble_inline_sizes_separately {
             let mut traversal = BubbleISizesTraversal {
-                layout_context: layout_context,
+                layout_context: &LayoutContext::new(shared_layout_context),
             };
             layout_root.get_mut().traverse_postorder(&mut traversal);
         }
@@ -595,7 +593,7 @@ impl LayoutTask {
                 // operation out.
                 parallel::traverse_flow_tree_preorder(layout_root,
                                                       self.time_profiler_chan.clone(),
-                                                      layout_context,
+                                                      shared_layout_context,
                                                       traversal);
             }
         }
@@ -654,17 +652,7 @@ impl LayoutTask {
         self.screen_size = current_screen_size;
 
         // Create a layout context for use throughout the following passes.
-        let mut layout_ctx = self.build_layout_context(node, &data.url);
-
-        // Create a font context, if this is sequential.
-        //
-        // FIXME(pcwalton): This is a pretty bogus thing to do. Essentially this is a workaround
-        // for libgreen having slow TLS.
-        let mut font_context_opt = if self.parallel_traversal.is_none() {
-            Some(box FontContext::new(layout_ctx.font_cache_task.clone()))
-        } else {
-            None
-        };
+        let mut shared_layout_ctx = self.build_shared_layout_context(node, &data.url);
 
         let mut layout_root = profile(time::LayoutStyleRecalcCategory,
                                       self.time_profiler_chan.clone(),
@@ -672,19 +660,15 @@ impl LayoutTask {
             // Perform CSS selector matching and flow construction.
             match self.parallel_traversal {
                 None => {
+                    let layout_ctx = LayoutContext::new(&shared_layout_ctx);
                     let mut applicable_declarations = ApplicableDeclarations::new();
-                    let mut applicable_declarations_cache = ApplicableDeclarationsCache::new();
-                    let mut style_sharing_candidate_cache = StyleSharingCandidateCache::new();
-                    drop(node.recalc_style_for_subtree(&*self.stylist,
-                                                       &mut layout_ctx,
-                                                       font_context_opt.take_unwrap(),
-                                                       &mut applicable_declarations,
-                                                       &mut applicable_declarations_cache,
-                                                       &mut style_sharing_candidate_cache,
-                                                       None))
+                    node.recalc_style_for_subtree(&*self.stylist,
+                                                   &layout_ctx,
+                                                   &mut applicable_declarations,
+                                                   None)
                 }
                 Some(ref mut traversal) => {
-                    parallel::recalc_style_for_subtree(node, &mut layout_ctx, traversal)
+                    parallel::recalc_style_for_subtree(node, &mut shared_layout_ctx, traversal)
                 }
             }
 
@@ -710,11 +694,12 @@ impl LayoutTask {
             match self.parallel_traversal {
                 None => {
                     // Sequential mode.
-                    self.solve_constraints(layout_root.get_mut(), &mut layout_ctx)
+                    let layout_ctx = LayoutContext::new(&shared_layout_ctx);
+                    self.solve_constraints(layout_root.get_mut(), &layout_ctx)
                 }
                 Some(_) => {
                     // Parallel mode.
-                    self.solve_constraints_parallel(&mut layout_root, &mut layout_ctx)
+                    self.solve_constraints_parallel(&mut layout_root, &mut shared_layout_ctx)
                 }
             }
         });
@@ -725,11 +710,12 @@ impl LayoutTask {
             profile(time::LayoutDispListBuildCategory, self.time_profiler_chan.clone(), || {
                 // FIXME(#2795): Get the real container size
                 let container_size = Size2D::zero();
-                layout_ctx.dirty = flow::base(layout_root.get()).position.to_physical(
+                shared_layout_ctx.dirty = flow::base(layout_root.get()).position.to_physical(
                     writing_mode, container_size);
 
                 match self.parallel_traversal {
                     None => {
+                        let layout_ctx = LayoutContext::new(&shared_layout_ctx);
                         let mut traversal = BuildDisplayListTraversal {
                             layout_context: &layout_ctx,
                         };
@@ -738,7 +724,7 @@ impl LayoutTask {
                     Some(ref mut traversal) => {
                         parallel::build_display_list_for_subtree(&mut layout_root,
                                                                  self.time_profiler_chan.clone(),
-                                                                 &mut layout_ctx,
+                                                                 &mut shared_layout_ctx,
                                                                  traversal);
                     }
                 }
