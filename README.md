@@ -33,7 +33,7 @@ sudo apt-get install autoconf2.13 curl freeglut3-dev libtool \
 On Fedora:
 
 ``` sh
-sudo yum install autoconf213 curl freeglut-devel libtool gcc-c++\
+sudo yum install autoconf213 curl freeglut-devel libtool gcc-c++ \
     freetype-devel mesa-libGL-devel glib2-devel libX11-devel \
     gperf rpm-build cabextract ttmkfdir python python-virtualenv expat-devel
 pushd .
