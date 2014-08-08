@@ -37,10 +37,15 @@ impl AttrValue {
     pub fn from_tokenlist(list: DOMString) -> AttrValue {
         let mut indexes = vec![];
         let mut last_index: uint = 0;
+        let length = list.len() - 1;
         for (index, ch) in list.as_slice().char_indices() {
             if HTML_SPACE_CHARACTERS.iter().any(|&space| space == ch) {
-                indexes.push((last_index, index));
+                if last_index != index {
+                    indexes.push((last_index, index));
+                }
                 last_index = index + 1;
+            } else if index == length {
+                indexes.push((last_index, index + 1));
             }
         }
         return TokenListAttrValue(list, indexes);
