@@ -24,10 +24,10 @@ def PowerCollector(OutputDir, Benchmarks, LayoutThreads, Renderer):
     os.mkdir(os.path.join(OutputDir+"power"), 0777)
     os.mkdir(os.path.join(OutputDir+"time"), 0777)
     os.mkdir(os.path.join(OutputDir+"Addtional"), 0777)
-    SleepTime = 2
+    SleepTime = 20
     GuardTime = 0.5
     powerTiming = 1
-    ExperimentNum = 2
+    ExperimentNum = 21
     for ExpNum in range(1, ExperimentNum):
         for layoutT in range(1, LayoutThreads+1):
             PowerFiles = OutputDir + 'power/' + 'power-Layout' + \
@@ -58,7 +58,7 @@ def PowerCollector(OutputDir, Benchmarks, LayoutThreads, Renderer):
 
 def PowerParser(OutputDir, LayoutThreads):
     print "Running the PowerParser"
-    ExperimentNum = 2
+    ExperimentNum = 21
     ResultTable = OutputDir + "ResultTable.csv"
     ResultFile = open(ResultTable, "w")
     ResultFile.write("LayoutThreads, MeanPower, MeanTime , MaxTime, "
@@ -136,7 +136,7 @@ def PowerParser(OutputDir, LayoutThreads):
 
 # ----------------------------------------------------#
 def main():
-    LayoutThreads = 2  # Maximum number of threads considered for Layout
+    LayoutThreads = 8  # Maximum number of threads considered for Layout
     Benchmarks = "../../test/html/perf-rainbow.html"
     OutputDir = "Experiments/"
     os.mkdir(os.path.join(OutputDir), 0777)
