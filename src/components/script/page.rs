@@ -17,7 +17,7 @@ use layout_interface::{DocumentDamageLevel, HitTestQuery, HitTestResponse, Layou
 use layout_interface::{LayoutChan, QueryMsg};
 use layout_interface::{Reflow, ReflowGoal, ReflowMsg};
 use layout_interface::UntrustedNodeAddress;
-use script_task::ScriptChan;
+use script_traits::ScriptControlChan;
 
 use geom::point::Point2D;
 use js::rust::Cx;
@@ -301,7 +301,7 @@ impl Page {
     /// This function fails if there is no root frame.
     pub fn reflow(&self,
                   goal: ReflowGoal,
-                  script_chan: ScriptChan,
+                  script_chan: ScriptControlChan,
                   compositor: &ScriptListener) {
 
         let root = match *self.frame() {

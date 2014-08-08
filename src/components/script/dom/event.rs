@@ -10,22 +10,10 @@ use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::trace::Traceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::eventtarget::EventTarget;
-use servo_msg::constellation_msg::WindowSizeData;
 use servo_util::str::DOMString;
 use std::cell::{Cell, RefCell};
 
-use geom::point::Point2D;
-
 use time;
-
-pub enum Event_ {
-    ResizeEvent(WindowSizeData),
-    ReflowEvent,
-    ClickEvent(uint, Point2D<f32>),
-    MouseDownEvent(uint, Point2D<f32>),
-    MouseUpEvent(uint, Point2D<f32>),
-    MouseMoveEvent(Point2D<f32>)
-}
 
 #[deriving(Encodable)]
 pub enum EventPhase {

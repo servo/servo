@@ -3,14 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use CompositorChan;
-use layout_traits::LayoutTaskFactory;
+use layout_traits::{LayoutTaskFactory, LayoutControlChan};
+use script_traits::{ScriptControlChan, ScriptTaskFactory};
+use script_traits::{AttachLayoutMsg, LoadMsg, NewLayoutInfo, ExitPipelineMsg};
 
 use gfx::render_task::{PaintPermissionGranted, PaintPermissionRevoked};
 use gfx::render_task::{RenderChan, RenderTask};
-use script::layout_interface::LayoutChan;
-use script::script_task::LoadMsg;
-use script::script_task::{AttachLayoutMsg, NewLayoutInfo, ScriptTask, ScriptChan};
-use script::script_task;
 use servo_msg::constellation_msg::{ConstellationChan, Failure, PipelineId, SubpageId};
 use servo_msg::constellation_msg::WindowSizeData;
 use servo_net::image_cache_task::ImageCacheTask;
@@ -25,8 +23,8 @@ use url::Url;
 pub struct Pipeline {
     pub id: PipelineId,
     pub subpage_id: Option<SubpageId>,
-    pub script_chan: ScriptChan,
-    pub layout_chan: LayoutChan,
+    pub script_chan: ScriptControlChan,
+    pub layout_chan: LayoutControlChan,
     pub render_chan: RenderChan,
     pub layout_shutdown_port: Receiver<()>,
     pub render_shutdown_port: Receiver<()>,
@@ -38,7 +36,7 @@ pub struct Pipeline {
 #[deriving(Clone)]
 pub struct CompositionPipeline {
     pub id: PipelineId,
-    pub script_chan: ScriptChan,
+    pub script_chan: ScriptControlChan,
     pub render_chan: RenderChan,
 }
 
@@ -46,7 +44,7 @@ impl Pipeline {
     /// Starts a render task, layout task, and possibly a script task.
     /// Returns the channels wrapped in a struct.
     /// If script_pipeline is not None, then subpage_id must also be not None.
-    pub fn create<LTF:LayoutTaskFactory>(
+    pub fn create<LTF:LayoutTaskFactory, STF:ScriptTaskFactory>(
                       id: PipelineId,
                       subpage_id: Option<SubpageId>,
                       constellation_chan: ConstellationChan,
@@ -60,10 +58,11 @@ impl Pipeline {
                       script_pipeline: Option<Rc<Pipeline>>,
                       url: Url)
                       -> Pipeline {
-        let (layout_port, layout_chan) = LayoutChan::new();
+        let layout_pair = ScriptTaskFactory::create_layout_channel(None::<&mut STF>);
         let (render_port, render_chan) = RenderChan::new();
         let (render_shutdown_chan, render_shutdown_port) = channel();
         let (layout_shutdown_chan, layout_shutdown_port) = channel();
+        let (pipeline_chan, pipeline_port) = channel();
 
         let failure = Failure {
             pipeline_id: id,
@@ -72,28 +71,29 @@ impl Pipeline {
 
         let script_chan = match script_pipeline {
             None => {
-                let (script_port, script_chan) = ScriptChan::new();
-                ScriptTask::create(id,
-                               box compositor_chan.clone(),
-                               layout_chan.clone(),
-                               script_port,
-                               script_chan.clone(),
-                               constellation_chan.clone(),
-                               failure.clone(),
-                               resource_task,
-                               image_cache_task.clone(),
-                               window_size);
-                script_chan
+                let (script_chan, script_port) = channel();
+                ScriptTaskFactory::create(None::<&mut STF>,
+                                          id,
+                                          box compositor_chan.clone(),
+                                          &layout_pair,
+                                          ScriptControlChan(script_chan.clone()),
+                                          script_port,
+                                          constellation_chan.clone(),
+                                          failure.clone(),
+                                          resource_task,
+                                          image_cache_task.clone(),
+                                          window_size);
+                ScriptControlChan(script_chan)
             }
             Some(spipe) => {
                 let new_layout_info = NewLayoutInfo {
                     old_pipeline_id: spipe.id.clone(),
                     new_pipeline_id: id,
                     subpage_id: subpage_id.expect("script_pipeline != None but subpage_id == None"),
-                    layout_chan: layout_chan.clone(),
+                    layout_chan: ScriptTaskFactory::clone_layout_channel(None::<&mut STF>, &layout_pair),
                 };
 
-                let ScriptChan(ref chan) = spipe.script_chan;
+                let ScriptControlChan(ref chan) = spipe.script_chan;
                 chan.send(AttachLayoutMsg(new_layout_info));
                 spipe.script_chan.clone()
             }
@@ -111,8 +111,8 @@ impl Pipeline {
 
         LayoutTaskFactory::create(None::<&mut LTF>,
                                   id,
-                                  layout_port,
-                                  layout_chan.clone(),
+                                  layout_pair,
+                                  pipeline_port,
                                   constellation_chan,
                                   failure,
                                   script_chan.clone(),
@@ -126,7 +126,7 @@ impl Pipeline {
         Pipeline::new(id,
                       subpage_id,
                       script_chan,
-                      layout_chan,
+                      LayoutControlChan(pipeline_chan),
                       render_chan,
                       layout_shutdown_port,
                       render_shutdown_port,
@@ -135,8 +135,8 @@ impl Pipeline {
 
     pub fn new(id: PipelineId,
                subpage_id: Option<SubpageId>,
-               script_chan: ScriptChan,
-               layout_chan: LayoutChan,
+               script_chan: ScriptControlChan,
+               layout_chan: LayoutControlChan,
                render_chan: RenderChan,
                layout_shutdown_port: Receiver<()>,
                render_shutdown_port: Receiver<()>,
@@ -155,7 +155,7 @@ impl Pipeline {
     }
 
     pub fn load(&self) {
-        let ScriptChan(ref chan) = self.script_chan;
+        let ScriptControlChan(ref chan) = self.script_chan;
         chan.send(LoadMsg(self.id, self.url.clone()));
     }
 
@@ -173,8 +173,8 @@ impl Pipeline {
 
         // Script task handles shutting down layout, and layout handles shutting down the renderer.
         // For now, if the script task has failed, we give up on clean shutdown.
-        let ScriptChan(ref chan) = self.script_chan;
-        if chan.send_opt(script_task::ExitPipelineMsg(self.id)).is_ok() {
+        let ScriptControlChan(ref chan) = self.script_chan;
+        if chan.send_opt(ExitPipelineMsg(self.id)).is_ok() {
             // Wait until all slave tasks have terminated and run destructors
             // NOTE: We don't wait for script task as we don't always own it
             let _ = self.render_shutdown_port.recv_opt();

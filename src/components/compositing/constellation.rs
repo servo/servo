@@ -10,11 +10,9 @@ use geom::size::TypedSize2D;
 use gfx::render_task;
 use libc;
 use pipeline::{Pipeline, CompositionPipeline};
-use layout_traits::LayoutTaskFactory;
-use script::script_task::{ResizeMsg, ResizeInactiveMsg, ExitPipelineMsg};
-use script::layout_interface;
-use script::layout_interface::LayoutChan;
-use script::script_task::ScriptChan;
+use layout_traits::{LayoutControlChan, LayoutTaskFactory, ExitNowMsg};
+use script_traits::{ResizeMsg, ResizeInactiveMsg, ExitPipelineMsg};
+use script_traits::{ScriptControlChan, ScriptTaskFactory};
 use servo_msg::compositor_msg::LayerId;
 use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, FailureMsg, Failure, FrameRectMsg};
 use servo_msg::constellation_msg::{IFrameSandboxState, IFrameUnsandboxed, InitLoadUrlMsg};
@@ -37,7 +35,7 @@ use std::rc::Rc;
 use url::Url;
 
 /// Maintains the pipelines and navigation context and grants permission to composite
-pub struct Constellation<LTF> {
+pub struct Constellation<LTF, STF> {
     pub chan: ConstellationChan,
     pub request_port: Receiver<Msg>,
     pub compositor_chan: CompositorChan,
@@ -240,7 +238,7 @@ impl NavigationContext {
     }
 }
 
-impl<LTF: LayoutTaskFactory> Constellation<LTF> {
+impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     pub fn start(compositor_chan: CompositorChan,
                  opts: &Opts,
                  resource_task: ResourceTask,
@@ -252,7 +250,7 @@ impl<LTF: LayoutTaskFactory> Constellation<LTF> {
         let constellation_chan_clone = constellation_chan.clone();
         let opts_clone = opts.clone();
         spawn_named("Constellation", proc() {
-            let mut constellation : Constellation<LTF> = Constellation {
+            let mut constellation : Constellation<LTF, STF> = Constellation {
                 chan: constellation_chan_clone,
                 request_port: constellation_port,
                 compositor_chan: compositor_chan,
@@ -293,18 +291,18 @@ impl<LTF: LayoutTaskFactory> Constellation<LTF> {
                     script_pipeline: Option<Rc<Pipeline>>,
                     url: Url)
                     -> Rc<Pipeline> {
-            let pipe = Pipeline::create::<LTF>(id,
-                                               subpage_id,
-                                               self.chan.clone(),
-                                               self.compositor_chan.clone(),
-                                               self.image_cache_task.clone(),
-                                               self.font_cache_task.clone(),
-                                               self.resource_task.clone(),
-                                               self.time_profiler_chan.clone(),
-                                               self.window_size,
-                                               self.opts.clone(),
-                                               script_pipeline,
-                                               url);
+            let pipe = Pipeline::create::<LTF, STF>(id,
+                                                    subpage_id,
+                                                    self.chan.clone(),
+                                                    self.compositor_chan.clone(),
+                                                    self.image_cache_task.clone(),
+                                                    self.font_cache_task.clone(),
+                                                    self.resource_task.clone(),
+                                                    self.time_profiler_chan.clone(),
+                                                    self.window_size,
+                                                    self.opts.clone(),
+                                                    script_pipeline,
+                                                    url);
             pipe.load();
             Rc::new(pipe)
     }
@@ -421,11 +419,11 @@ impl<LTF: LayoutTaskFactory> Constellation<LTF> {
         };
 
         fn force_pipeline_exit(old_pipeline: &Rc<Pipeline>) {
-            let ScriptChan(ref old_script) = old_pipeline.script_chan;
+            let ScriptControlChan(ref old_script) = old_pipeline.script_chan;
             let _ = old_script.send_opt(ExitPipelineMsg(old_pipeline.id));
             let _ = old_pipeline.render_chan.send_opt(render_task::ExitMsg(None));
-            let LayoutChan(ref old_layout) = old_pipeline.layout_chan;
-            let _ = old_layout.send_opt(layout_interface::ExitNowMsg);
+            let LayoutControlChan(ref old_layout) = old_pipeline.layout_chan;
+            let _ = old_layout.send_opt(ExitNowMsg);
         }
         force_pipeline_exit(&old_pipeline);
         self.pipelines.remove(&pipeline_id);
@@ -503,7 +501,7 @@ impl<LTF: LayoutTaskFactory> Constellation<LTF> {
                 let pipeline = &child_frame_tree.frame_tree.pipeline;
                 if !already_sent.contains(&pipeline.id) {
                     if is_active {
-                        let ScriptChan(ref script_chan) = pipeline.script_chan;
+                        let ScriptControlChan(ref script_chan) = pipeline.script_chan;
                         script_chan.send(ResizeMsg(pipeline.id, WindowSizeData {
                             visible_viewport: rect.size,
                             initial_viewport: rect.size * ScaleFactor(1.0),
@@ -783,7 +781,7 @@ impl<LTF: LayoutTaskFactory> Constellation<LTF> {
         for frame_tree in self.current_frame().iter() {
             debug!("constellation sending resize message to active frame");
             let pipeline = &frame_tree.pipeline;
-            let ScriptChan(ref chan) = pipeline.script_chan;
+            let ScriptControlChan(ref chan) = pipeline.script_chan;
             let _ = chan.send_opt(ResizeMsg(pipeline.id, new_size));
             already_seen.insert(pipeline.id);
         }
@@ -792,7 +790,7 @@ impl<LTF: LayoutTaskFactory> Constellation<LTF> {
             let pipeline = &frame_tree.pipeline;
             if !already_seen.contains(&pipeline.id) {
                 debug!("constellation sending resize message to inactive frame");
-                let ScriptChan(ref chan) = pipeline.script_chan;
+                let ScriptControlChan(ref chan) = pipeline.script_chan;
                 let _ = chan.send_opt(ResizeInactiveMsg(pipeline.id, new_size));
                 already_seen.insert(pipeline.id);
             }
@@ -805,7 +803,7 @@ impl<LTF: LayoutTaskFactory> Constellation<LTF> {
             if frame_tree.parent.borrow().is_none() {
                 debug!("constellation sending resize message to pending outer frame ({:?})",
                        frame_tree.pipeline.id);
-                let ScriptChan(ref chan) = frame_tree.pipeline.script_chan;
+                let ScriptControlChan(ref chan) = frame_tree.pipeline.script_chan;
                 let _ = chan.send_opt(ResizeMsg(frame_tree.pipeline.id, new_size));
             }
         }

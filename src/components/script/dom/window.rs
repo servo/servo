@@ -21,6 +21,7 @@ use dom::screen::Screen;
 use layout_interface::{ReflowForDisplay, DocumentDamageLevel};
 use page::Page;
 use script_task::{ExitWindowMsg, FireTimerMsg, ScriptChan, TriggerLoadMsg, TriggerFragmentMsg};
+use script_traits::ScriptControlChan;
 
 use servo_msg::compositor_msg::ScriptListener;
 use servo_net::image_cache_task::ImageCacheTask;
@@ -73,6 +74,7 @@ impl TimerHandle {
 pub struct Window {
     eventtarget: EventTarget,
     pub script_chan: ScriptChan,
+    control_chan: ScriptControlChan,
     console: Cell<Option<JS<Console>>>,
     location: Cell<Option<JS<Location>>>,
     navigator: Cell<Option<JS<Navigator>>>,
@@ -287,7 +289,7 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         // currently rely on the display list, which means we can't destroy it by
         // doing a query reflow.
         self.page().damage(damage);
-        self.page().reflow(ReflowForDisplay, self.script_chan.clone(), *self.compositor);
+        self.page().reflow(ReflowForDisplay, self.control_chan.clone(), *self.compositor);
     }
 
     fn wait_until_safe_to_modify_dom(&self) {
@@ -402,12 +404,14 @@ impl Window {
     pub fn new(cx: *mut JSContext,
                page: Rc<Page>,
                script_chan: ScriptChan,
+               control_chan: ScriptControlChan,
                compositor: Box<ScriptListener>,
                image_cache_task: ImageCacheTask)
                -> Temporary<Window> {
         let win = box Window {
             eventtarget: EventTarget::new_inherited(WindowTypeId),
             script_chan: script_chan,
+            control_chan: control_chan,
             console: Cell::new(None),
             compositor: Untraceable::new(compositor),
             page: page,

@@ -12,11 +12,13 @@ use dom::node::{Node, LayoutDataRef};
 use geom::point::Point2D;
 use geom::rect::Rect;
 use libc::c_void;
-use script_task::{ScriptChan};
+use script_traits::{ScriptControlChan, OpaqueScriptLayoutChannel};
 use servo_msg::constellation_msg::WindowSizeData;
 use servo_util::geometry::Au;
+use std::any::{Any, AnyRefExt};
 use std::cmp;
 use std::comm::{channel, Receiver, Sender};
+use std::owned::BoxAny;
 use style::Stylesheet;
 use url::Url;
 
@@ -135,7 +137,7 @@ pub struct Reflow {
     /// The URL of the page.
     pub url: Url,
     /// The channel through which messages can be sent back to the script task.
-    pub script_chan: ScriptChan,
+    pub script_chan: ScriptControlChan,
     /// The current window size.
     pub window_size: WindowSizeData,
     /// The channel that we send a notification to.
@@ -152,6 +154,31 @@ impl LayoutChan {
     pub fn new() -> (Receiver<Msg>, LayoutChan) {
         let (chan, port) = channel();
         (port, LayoutChan(chan))
+    }
+}
+
+/// A trait to manage opaque references to script<->layout channels without needing
+/// to expose the message type to crates that don't need to know about them.
+pub trait ScriptLayoutChan {
+    fn new(sender: Sender<Msg>, receiver: Receiver<Msg>) -> Self;
+    fn sender(&self) -> Sender<Msg>;
+    fn receiver(self) -> Receiver<Msg>;
+}
+
+impl ScriptLayoutChan for OpaqueScriptLayoutChannel {
+    fn new(sender: Sender<Msg>, receiver: Receiver<Msg>) -> OpaqueScriptLayoutChannel {
+        let inner = (box sender as Box<Any+Send>, box receiver as Box<Any+Send>);
+        OpaqueScriptLayoutChannel(inner)
+    }
+
+    fn sender(&self) -> Sender<Msg> {
+        let &OpaqueScriptLayoutChannel((ref sender, _)) = self;
+        (*sender.as_ref::<Sender<Msg>>().unwrap()).clone()
+    }
+
+    fn receiver(self) -> Receiver<Msg> {
+        let OpaqueScriptLayoutChannel((_, receiver)) = self;
+        *receiver.downcast::<Receiver<Msg>>().unwrap()
     }
 }
 
