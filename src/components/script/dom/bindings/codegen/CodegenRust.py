@@ -4023,7 +4023,7 @@ class CGInterfaceTrait(CGThing):
                     assert len(operation.signatures()) == 1
                     rettype, arguments = operation.signatures()[0]
 
-                    infallible = 'infallible' in descriptor.getExtendedAttributes(m)
+                    infallible = 'infallible' in descriptor.getExtendedAttributes(operation)
                     arguments = method_arguments(rettype, arguments, ("found", "&mut bool"))
                     rettype = return_type(rettype, infallible)
                     yield name, arguments, rettype
