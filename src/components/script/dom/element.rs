@@ -224,9 +224,8 @@ pub trait ElementHelpers {
 
 impl<'a> ElementHelpers for JSRef<'a, Element> {
     fn html_element_in_html_document(&self) -> bool {
-        let is_html = self.namespace == namespace::HTML;
         let node: &JSRef<Node> = NodeCast::from_ref(self);
-        is_html && node.owner_doc().root().is_html_document
+        self.namespace == namespace::HTML && node.is_in_html_doc()
     }
 
     fn get_local_name<'a>(&'a self) -> &'a Atom {
@@ -702,12 +701,8 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
     fn GetElementsByTagNameNS(&self, maybe_ns: Option<DOMString>,
                               localname: DOMString) -> Temporary<HTMLCollection> {
-        let namespace = match maybe_ns {
-            Some(namespace) => Namespace::from_str(namespace.as_slice()),
-            None => Null
-        };
         let window = window_from_node(self).root();
-        HTMLCollection::by_tag_name_ns(&*window, NodeCast::from_ref(self), localname, namespace)
+        HTMLCollection::by_tag_name_ns(&*window, NodeCast::from_ref(self), localname, maybe_ns)
     }
 
     fn GetElementsByClassName(&self, classes: DOMString) -> Temporary<HTMLCollection> {

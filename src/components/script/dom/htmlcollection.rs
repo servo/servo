@@ -8,14 +8,16 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, NodeCast};
 use dom::bindings::global::Window;
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::element::{Element, AttributeHandlers};
+use dom::element::{Element, AttributeHandlers, ElementHelpers};
 use dom::node::{Node, NodeHelpers};
 use dom::window::Window;
 use servo_util::atom::Atom;
+use servo_util::namespace;
 use servo_util::namespace::Namespace;
 use servo_util::str::{DOMString, split_html_space_chars};
 
 use serialize::{Encoder, Encodable};
+use std::ascii::StrAsciiExt;
 
 pub trait CollectionFilter {
     fn filter(&self, elem: &JSRef<Element>, root: &JSRef<Node>) -> bool;
@@ -59,36 +61,82 @@ impl HTMLCollection {
         HTMLCollection::new(window, Live(JS::from_rooted(root), filter))
     }
 
+    fn all_elements(window: &JSRef<Window>, root: &JSRef<Node>,
+                    namespace_filter: Option<Namespace>) -> Temporary<HTMLCollection> {
+        struct AllElementFilter {
+            namespace_filter: Option<Namespace>
+        }
+        impl CollectionFilter for AllElementFilter {
+            fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
+                match self.namespace_filter {
+                    None => true,
+                    Some(ref namespace) => elem.namespace == *namespace
+                }
+            }
+        }
+        let filter = AllElementFilter {namespace_filter: namespace_filter};
+        HTMLCollection::create(window, root, box filter)
+    }
+
     pub fn by_tag_name(window: &JSRef<Window>, root: &JSRef<Node>, tag: DOMString)
                        -> Temporary<HTMLCollection> {
+        if tag.as_slice() == "*" {
+            return HTMLCollection::all_elements(window, root, None);
+        }
+
         struct TagNameFilter {
-            tag: Atom
+            tag: Atom,
+            ascii_lower_tag: Atom,
         }
         impl CollectionFilter for TagNameFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                elem.deref().local_name == self.tag
+                if elem.html_element_in_html_document() {
+                    elem.local_name == self.ascii_lower_tag
+                } else {
+                    elem.local_name == self.tag
+                }
             }
         }
         let filter = TagNameFilter {
-            tag: Atom::from_slice(tag.as_slice())
+            tag: Atom::from_slice(tag.as_slice()),
+            ascii_lower_tag: Atom::from_slice(tag.as_slice().to_ascii_lower().as_slice()),
         };
         HTMLCollection::create(window, root, box filter)
     }
 
     pub fn by_tag_name_ns(window: &JSRef<Window>, root: &JSRef<Node>, tag: DOMString,
-                          namespace: Namespace) -> Temporary<HTMLCollection> {
+                          maybe_ns: Option<DOMString>) -> Temporary<HTMLCollection> {
+        let namespace_filter = match maybe_ns {
+            Some(namespace) => {
+                match namespace.as_slice() {
+                    "*" => None,
+                    ns => Some(Namespace::from_str(ns)),
+                }
+            },
+            None => Some(namespace::Null),
+        };
+
+        if tag.as_slice() == "*" {
+            return HTMLCollection::all_elements(window, root, namespace_filter);
+        }
         struct TagNameNSFilter {
             tag: Atom,
-            namespace: Namespace
+            namespace_filter: Option<Namespace>
         }
         impl CollectionFilter for TagNameNSFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                elem.deref().namespace == self.namespace && elem.deref().local_name == self.tag
+                let ns_match = match self.namespace_filter {
+                    Some(ref namespace) => {
+                        elem.deref().namespace == *namespace
+                    },
+                    None => true
+                };
+                ns_match && elem.deref().local_name == self.tag
             }
         }
         let filter = TagNameNSFilter {
             tag: Atom::from_slice(tag.as_slice()),
-            namespace: namespace
+            namespace_filter: namespace_filter
         };
         HTMLCollection::create(window, root, box filter)
     }
