@@ -782,13 +782,13 @@ pub trait RawLayoutNodeHelpers {
 
 impl RawLayoutNodeHelpers for Node {
     unsafe fn get_hover_state_for_layout(&self) -> bool {
-        self.flags.deref().borrow().contains(InHoverState)
+        (*self.unsafe_get_flags()).contains(InHoverState)
     }
     unsafe fn get_disabled_state_for_layout(&self) -> bool {
-        self.flags.deref().borrow().contains(InDisabledState)
+        (*self.unsafe_get_flags()).contains(InDisabledState)
     }
     unsafe fn get_enabled_state_for_layout(&self) -> bool {
-        self.flags.deref().borrow().contains(InEnabledState)
+        (*self.unsafe_get_flags()).contains(InEnabledState)
     }
 }
 
@@ -1413,6 +1413,10 @@ impl Node {
                 },
             }
         }
+    }
+
+    pub unsafe fn unsafe_get_flags(&self) -> *const NodeFlags {
+        mem::transmute(&self.flags)
     }
 }
 
