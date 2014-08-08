@@ -9,13 +9,15 @@ install:
 - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then ./travis.osx.install.deps.sh; fi
 
 before_script:
-- mkdir -p build
 - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then ./travis.linux.before_script.sh; fi
 - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then ./travis.osx.before_script.sh; fi
 
 script:
-- if [ "${TRAVIS_OS_NAME}" = "linux" ]; then ./travis.linux.script.sh; fi
-- if [ "${TRAVIS_OS_NAME}" = "osx" ]; then ./travis.osx.script.sh; fi
+- mkdir -p build
+- cd build
+- ../mk/build.sh
+- if [ "${TRAVIS_OS_NAME}" = "linux" ]; then ../travis.linux.script.sh $AFTER_BUILD; fi
+- if [ "${TRAVIS_OS_NAME}" = "osx" ]; then ../travis.osx.script.sh $AFTER_BUILD; fi
 
 git:
   submodules: true
@@ -28,4 +30,17 @@ notifications:
     use_notice: true
 
 env:
-  - secure: qSjs06HEBF6A7ZyCWdltko+LkVz6OpNZQnEbr0nHB3rSl9mzwwjjH6v0VOKYNgvSPTgD8eHa/nnTeTcUJPaBB3mok+X43xkEUQWHLnW/X30QU0c8Xn+7db4hCgsaUupc1XaJhzpLDj3qV8dqDiGNKIwXJHlMzIuxSW424XL1CNc=
+  global:
+    - secure: qSjs06HEBF6A7ZyCWdltko+LkVz6OpNZQnEbr0nHB3rSl9mzwwjjH6v0VOKYNgvSPTgD8eHa/nnTeTcUJPaBB3mok+X43xkEUQWHLnW/X30QU0c8Xn+7db4hCgsaUupc1XaJhzpLDj3qV8dqDiGNKIwXJHlMzIuxSW424XL1CNc=
+  matrix:
+    - AFTER_BUILD=content
+    - AFTER_BUILD=ref
+
+matrix:
+  include:
+    - os: linux
+      env: AFTER_BUILD=unit-doc
+    - os: osx
+      env: AFTER_BUILD=unit
+    - os: osx
+      env: AFTER_BUILD=wpt
