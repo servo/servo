@@ -100,10 +100,16 @@ pub fn get_variations_for_family(family_name: &str, callback: |String|) {
     }
 }
 
+#[cfg(target_os="linux")]
 pub fn get_last_resort_font_families() -> Vec<String> {
     vec!(
         "Fira Sans".to_string(),
         "DejaVu Sans".to_string(),
         "Arial".to_string()
     )
+}
+
+#[cfg(target_os="android")]
+pub fn get_last_resort_font_families() -> Vec<String> {
+    vec!("Roboto".to_string())
 }
