@@ -7,6 +7,7 @@
 
 #![feature(macro_rules)]
 
+//! Exports macros for use in other Servo crates.
 
 #[cfg(test)]
 extern crate sync;

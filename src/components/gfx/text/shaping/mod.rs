@@ -3,9 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! Shaper encapsulates a specific shaper, such as Harfbuzz,
-/// Uniscribe, Pango, or Coretext.
-///
-/// Currently, only harfbuzz bindings are implemented.
+//! Uniscribe, Pango, or Coretext.
+//!
+//! Currently, only harfbuzz bindings are implemented.
 
 use text::glyph::GlyphStore;
 

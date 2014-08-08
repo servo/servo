@@ -3,16 +3,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! Servo heavily uses display lists, which are retained-mode lists of rendering commands to
-/// perform. Using a list instead of rendering elements in immediate mode allows transforms, hit
-/// testing, and invalidation to be performed using the same primitives as painting. It also allows
-/// Servo to aggressively cull invisible and out-of-bounds rendering elements, to reduce overdraw.
-/// Finally, display lists allow tiles to be farmed out onto multiple CPUs and rendered in
-/// parallel (although this benefit does not apply to GPU-based rendering).
-///
-/// Display items describe relatively high-level drawing operations (for example, entire borders
-/// and shadows instead of lines and blur operations), to reduce the amount of allocation required.
-/// They are therefore not exactly analogous to constructs like Skia pictures, which consist of
-/// low-level drawing primitives.
+//! perform. Using a list instead of rendering elements in immediate mode allows transforms, hit
+//! testing, and invalidation to be performed using the same primitives as painting. It also allows
+//! Servo to aggressively cull invisible and out-of-bounds rendering elements, to reduce overdraw.
+//! Finally, display lists allow tiles to be farmed out onto multiple CPUs and rendered in
+//! parallel (although this benefit does not apply to GPU-based rendering).
+//!
+//! Display items describe relatively high-level drawing operations (for example, entire borders
+//! and shadows instead of lines and blur operations), to reduce the amount of allocation required.
+//! They are therefore not exactly analogous to constructs like Skia pictures, which consist of
+//! low-level drawing primitives.
 
 use color::Color;
 use render_context::RenderContext;

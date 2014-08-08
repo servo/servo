@@ -16,6 +16,7 @@ use errors::{ErrorLoggerIterator, log_css_error};
 use namespaces::{NamespaceMap, parse_namespace_rule};
 use media_queries::{MediaRule, parse_media_rule};
 use media_queries;
+use font_face::{FontFaceRule, parse_font_face_rule};
 
 
 pub struct Stylesheet {
@@ -28,6 +29,7 @@ pub struct Stylesheet {
 pub enum CSSRule {
     CSSStyleRule(StyleRule),
     CSSMediaRule(MediaRule),
+    CSSFontFaceRule(FontFaceRule),
 }
 
 
@@ -143,6 +145,7 @@ pub fn parse_nested_at_rule(lower_name: &str, rule: AtRule,
                             parent_rules: &mut Vec<CSSRule>, namespaces: &NamespaceMap, base_url: &Url) {
     match lower_name {
         "media" => parse_media_rule(rule, parent_rules, namespaces, base_url),
+        "font-face" => parse_font_face_rule(rule, parent_rules, base_url),
         _ => log_css_error(rule.location,
                            format!("Unsupported at-rule: @{:s}", lower_name).as_slice())
     }
@@ -156,7 +159,8 @@ pub fn iter_style_rules<'a>(rules: &[CSSRule], device: &media_queries::Device,
             CSSStyleRule(ref rule) => callback(rule),
             CSSMediaRule(ref rule) => if rule.media_queries.evaluate(device) {
                 iter_style_rules(rule.rules.as_slice(), device, |s| callback(s))
-            }
+            },
+            CSSFontFaceRule(_) => {},
         }
     }
 }

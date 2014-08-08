@@ -8,7 +8,7 @@
 interface CanvasRenderingContext2D {
 
   // back-reference to the canvas
-  //readonly attribute HTMLCanvasElement canvas;
+  readonly attribute HTMLCanvasElement canvas;
 
   // canvas dimensions
   //         attribute unsigned long width;

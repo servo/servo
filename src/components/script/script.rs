@@ -33,6 +33,7 @@ extern crate net;
 extern crate rustrt;
 extern crate serialize;
 extern crate time;
+extern crate script_traits;
 #[phase(plugin)]
 extern crate servo_macros = "macros";
 extern crate servo_net = "net";
@@ -173,13 +174,16 @@ pub mod dom {
     pub mod mouseevent;
     pub mod navigator;
     pub mod node;
+    pub mod nodeiterator;
     pub mod nodelist;
     pub mod processinginstruction;
     pub mod performance;
     pub mod performancetiming;
     pub mod progressevent;
+    pub mod range;
     pub mod screen;
     pub mod text;
+    pub mod treewalker;
     pub mod uievent;
     pub mod urlsearchparams;
     pub mod validitystate;

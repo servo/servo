@@ -5,6 +5,6 @@
 
 // http://www.whatwg.org/html/#htmloptgroupelement
 interface HTMLOptGroupElement : HTMLElement {
-  //         attribute boolean disabled;
+           attribute boolean disabled;
   //         attribute DOMString label;
 };

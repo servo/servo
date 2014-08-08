@@ -45,19 +45,19 @@ use gfx::font_cache_task::FontCacheTask;
 use servo_util::time::TimeProfiler;
 #[cfg(not(test))]
 use servo_util::memory::MemoryProfiler;
-
 #[cfg(not(test))]
 use servo_util::opts;
 
 #[cfg(not(test))]
-use url::{Url, UrlParser};
-
+use green::GreenTaskBuilder;
 #[cfg(not(test))]
 use std::os;
+#[cfg(not(test))]
+use std::task::TaskBuilder;
 #[cfg(not(test), target_os="android")]
 use std::str;
 #[cfg(not(test))]
-use rustrt::task::TaskOpts;
+use url::{Url, UrlParser};
 
 
 #[cfg(not(test), target_os="linux")]
@@ -111,7 +111,9 @@ pub fn run(opts: opts::Opts) {
     let time_profiler_chan_clone = time_profiler_chan.clone();
 
     let (result_chan, result_port) = channel();
-    pool.spawn(TaskOpts::new(), proc() {
+    TaskBuilder::new()
+        .green(&mut pool)
+        .spawn(proc() {
         let opts = &opts_clone;
         // Create a Servo instance.
         let resource_task = new_resource_task();
@@ -123,8 +125,9 @@ pub fn run(opts: opts::Opts) {
             } else {
                 ImageCacheTask::new(resource_task.clone())
             };
-        let font_cache_task = FontCacheTask::new();
-        let constellation_chan = Constellation::<layout::layout_task::LayoutTask>::start(
+        let font_cache_task = FontCacheTask::new(resource_task.clone());
+        let constellation_chan = Constellation::<layout::layout_task::LayoutTask,
+                                                 script::script_task::ScriptTask>::start(
                                                       compositor_chan,
                                                       opts,
                                                       resource_task,

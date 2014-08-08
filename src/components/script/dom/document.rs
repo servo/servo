@@ -11,6 +11,10 @@ use dom::bindings::codegen::InheritTypes::{DocumentDerived, EventCast, HTMLEleme
 use dom::bindings::codegen::InheritTypes::{HTMLHeadElementCast, TextCast, ElementCast};
 use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, HTMLHtmlElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
+use dom::bindings::codegen::InheritTypes::{HTMLAnchorElementDerived, HTMLAppletElementDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLAreaElementDerived, HTMLEmbedElementDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLFormElementDerived, HTMLImageElementDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived};
 use dom::bindings::error::{ErrorResult, Fallible, NotSupported, InvalidCharacter};
 use dom::bindings::error::{HierarchyRequest, NamespaceError};
 use dom::bindings::global::{GlobalRef, Window};
@@ -153,6 +157,7 @@ impl<'a> DocumentHelpers for JSRef<'a, Document> {
             let node: &JSRef<Node> = NodeCast::from_ref(element);
             node.is_in_doc()
         });
+        assert!(!id.is_empty());
 
         let mut idmap = self.idmap.deref().borrow_mut();
 
@@ -305,8 +310,8 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     // http://dom.spec.whatwg.org/#dom-document-compatmode
     fn CompatMode(&self) -> DOMString {
         match self.quirks_mode.deref().get() {
-            NoQuirks => "CSS1Compat".to_string(),
-            LimitedQuirks | FullQuirks => "BackCompat".to_string()
+            LimitedQuirks | NoQuirks => "CSS1Compat".to_string(),
+            FullQuirks => "BackCompat".to_string()
         }
     }
 
@@ -346,12 +351,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     // http://dom.spec.whatwg.org/#dom-document-getelementsbytagnamens
     fn GetElementsByTagNameNS(&self, maybe_ns: Option<DOMString>, tag_name: DOMString) -> Temporary<HTMLCollection> {
         let window = self.window.root();
-
-        let namespace = match maybe_ns {
-            Some(namespace) => Namespace::from_str(namespace.as_slice()),
-            None => Null
-        };
-        HTMLCollection::by_tag_name_ns(&*window, NodeCast::from_ref(self), tag_name, namespace)
+        HTMLCollection::by_tag_name_ns(&*window, NodeCast::from_ref(self), tag_name, maybe_ns)
     }
 
     // http://dom.spec.whatwg.org/#dom-document-getelementsbyclassname
@@ -541,17 +541,19 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                         for title_child in title_node.children() {
                             assert!(title_node.RemoveChild(&title_child).is_ok());
                         }
-                        let new_text = self.CreateTextNode(title.clone()).root();
-
-                        assert!(title_node.AppendChild(NodeCast::from_ref(&*new_text)).is_ok());
+                        if !title.is_empty() {
+                            let new_text = self.CreateTextNode(title.clone()).root();
+                            assert!(title_node.AppendChild(NodeCast::from_ref(&*new_text)).is_ok());
+                        }
                     },
                     None => {
                         let new_title = HTMLTitleElement::new("title".to_string(), self).root();
                         let new_title: &JSRef<Node> = NodeCast::from_ref(&*new_title);
 
-                        let new_text = self.CreateTextNode(title.clone()).root();
-
-                        assert!(new_title.AppendChild(NodeCast::from_ref(&*new_text)).is_ok());
+                        if !title.is_empty() {
+                            let new_text = self.CreateTextNode(title.clone()).root();
+                            assert!(new_title.AppendChild(NodeCast::from_ref(&*new_text)).is_ok());
+                        }
                         assert!(head.AppendChild(new_title).is_ok());
                     },
                 }
@@ -654,7 +656,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         struct ImagesFilter;
         impl CollectionFilter for ImagesFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                "img" == elem.deref().local_name.as_slice()
+                elem.is_htmlimageelement()
             }
         }
         let filter = box ImagesFilter;
@@ -668,7 +670,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         struct EmbedsFilter;
         impl CollectionFilter for EmbedsFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                "embed" == elem.deref().local_name.as_slice()
+                elem.is_htmlembedelement()
             }
         }
         let filter = box EmbedsFilter;
@@ -687,8 +689,8 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         struct LinksFilter;
         impl CollectionFilter for LinksFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                ("a" == elem.deref().local_name.as_slice() || "area" == elem.deref().local_name.as_slice()) &&
-                elem.get_attribute(Null, "href").is_some()
+                (elem.is_htmlanchorelement() || elem.is_htmlareaelement()) &&
+                    elem.get_attribute(Null, "href").is_some()
             }
         }
         let filter = box LinksFilter;
@@ -702,7 +704,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         struct FormsFilter;
         impl CollectionFilter for FormsFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                "form" == elem.deref().local_name.as_slice()
+                elem.is_htmlformelement()
             }
         }
         let filter = box FormsFilter;
@@ -716,7 +718,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         struct ScriptsFilter;
         impl CollectionFilter for ScriptsFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                "script" == elem.deref().local_name.as_slice()
+                elem.is_htmlscriptelement()
             }
         }
         let filter = box ScriptsFilter;
@@ -730,7 +732,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         struct AnchorsFilter;
         impl CollectionFilter for AnchorsFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                "a" == elem.deref().local_name.as_slice() && elem.get_attribute(Null, "name").is_some()
+                elem.is_htmlanchorelement() && elem.get_attribute(Null, "name").is_some()
             }
         }
         let filter = box AnchorsFilter;
@@ -744,7 +746,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         struct AppletsFilter;
         impl CollectionFilter for AppletsFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                "applet" == elem.deref().local_name.as_slice()
+                elem.is_htmlappletelement()
             }
         }
         let filter = box AppletsFilter;

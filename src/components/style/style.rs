@@ -30,7 +30,7 @@ extern crate servo_util = "util";
 
 
 // Public API
-pub use stylesheets::{Stylesheet, CSSRule, StyleRule};
+pub use stylesheets::{Stylesheet, CSSRule, StyleRule, CSSFontFaceRule};
 pub use selector_matching::{Stylist, StylesheetOrigin, UserAgentOrigin, AuthorOrigin, UserOrigin};
 pub use selector_matching::{MatchedProperty, matches_compound_selector};
 pub use properties::{cascade, cascade_anonymous};
@@ -45,6 +45,7 @@ pub use selectors::{NamespaceConstraint, Selector, CompoundSelector, SimpleSelec
 pub use selectors::{parse_selector_list};
 pub use namespaces::NamespaceMap;
 pub use media_queries::{MediaRule, MediaQueryList, MediaQuery, Device, MediaType, MediaQueryType};
+pub use font_face::{FontFaceFormat, FontFaceRule, FontFaceSource,FontFaceSourceLine, TtfFormat};
 
 mod stylesheets;
 mod errors;
@@ -55,3 +56,4 @@ mod namespaces;
 mod node;
 mod media_queries;
 mod parsing_utils;
+mod font_face;

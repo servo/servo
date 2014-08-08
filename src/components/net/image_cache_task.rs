@@ -85,7 +85,7 @@ impl ImageCacheTask {
 
         spawn(proc() {
             let mut cache = ImageCache {
-                resource_task: resource_task.clone(),
+                resource_task: resource_task,
                 port: port,
                 chan: chan_clone,
                 state_map: HashMap::new(),
@@ -104,7 +104,7 @@ impl ImageCacheTask {
         let (chan, port) = channel();
 
         spawn(proc() {
-            let inner_cache = ImageCacheTask::new(resource_task.clone());
+            let inner_cache = ImageCacheTask::new(resource_task);
 
             loop {
                 let msg: Msg = port.recv();

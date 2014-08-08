@@ -105,7 +105,7 @@ pub trait RenderListener {
              epoch: Epoch,
              replies: Vec<(LayerId, Box<LayerBufferSet>)>);
 
-    fn rerendermsg_discarded(&self);
+    fn render_msg_discarded(&self);
     fn set_render_state(&self, render_state: RenderState);
 }
 

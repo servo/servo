@@ -224,9 +224,8 @@ pub trait ElementHelpers {
 
 impl<'a> ElementHelpers for JSRef<'a, Element> {
     fn html_element_in_html_document(&self) -> bool {
-        let is_html = self.namespace == namespace::HTML;
         let node: &JSRef<Node> = NodeCast::from_ref(self);
-        is_html && node.owner_doc().root().is_html_document
+        self.namespace == namespace::HTML && node.is_in_html_doc()
     }
 
     fn get_local_name<'a>(&'a self) -> &'a Atom {
@@ -257,6 +256,8 @@ pub trait AttributeHandlers {
     fn set_atomic_attribute(&self, name: &str, value: DOMString);
 
     // http://www.whatwg.org/html/#reflecting-content-attributes-in-idl-attributes
+    fn has_attribute(&self, name: &str) -> bool;
+    fn set_bool_attribute(&self, name: &str, value: bool);
     fn get_url_attribute(&self, name: &str) -> DOMString;
     fn set_url_attribute(&self, name: &str, value: DOMString);
     fn get_string_attribute(&self, name: &str) -> DOMString;
@@ -383,6 +384,25 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         assert!(name == name.to_ascii_lower().as_slice());
         let value = AttrValue::from_atomic(value);
         self.set_attribute(name, value);
+    }
+
+    fn has_attribute(&self, name: &str) -> bool {
+        let name = match self.html_element_in_html_document() {
+            true => name.to_ascii_lower(),
+            false => name.to_string()
+        };
+        self.deref().attrs.borrow().iter().map(|attr| attr.root()).any(|attr| {
+            name == attr.local_name && attr.namespace == Null
+        })
+    }
+
+    fn set_bool_attribute(&self, name: &str, value: bool) {
+        if self.has_attribute(name) == value { return; }
+        if value {
+            self.set_string_attribute(name, String::new());
+        } else {
+            self.remove_attribute(Null, name);
+        }
     }
 
     fn get_url_attribute(&self, name: &str) -> DOMString {
@@ -664,7 +684,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     // http://dom.spec.whatwg.org/#dom-element-hasattribute
     fn HasAttribute(&self,
                     name: DOMString) -> bool {
-        self.GetAttribute(name).is_some()
+        self.has_attribute(name.as_slice())
     }
 
     // http://dom.spec.whatwg.org/#dom-element-hasattributens
@@ -681,12 +701,8 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
     fn GetElementsByTagNameNS(&self, maybe_ns: Option<DOMString>,
                               localname: DOMString) -> Temporary<HTMLCollection> {
-        let namespace = match maybe_ns {
-            Some(namespace) => Namespace::from_str(namespace.as_slice()),
-            None => Null
-        };
         let window = window_from_node(self).root();
-        HTMLCollection::by_tag_name_ns(&*window, NodeCast::from_ref(self), localname, namespace)
+        HTMLCollection::by_tag_name_ns(&*window, NodeCast::from_ref(self), localname, maybe_ns)
     }
 
     fn GetElementsByClassName(&self, classes: DOMString) -> Temporary<HTMLCollection> {
@@ -811,7 +827,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
             }
             "id" => {
                 let node: &JSRef<Node> = NodeCast::from_ref(self);
-                if node.is_in_doc() {
+                if node.is_in_doc() && !value.is_empty() {
                     let doc = document_from_node(self).root();
                     doc.register_named_element(self, value.clone());
                 }
@@ -834,7 +850,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
             }
             "id" => {
                 let node: &JSRef<Node> = NodeCast::from_ref(self);
-                if node.is_in_doc() {
+                if node.is_in_doc() && !value.is_empty() {
                     let doc = document_from_node(self).root();
                     doc.unregister_named_element(self, value);
                 }
@@ -864,7 +880,10 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
         match self.get_attribute(Null, "id").root() {
             Some(attr) => {
                 let doc = document_from_node(self).root();
-                doc.deref().register_named_element(self, attr.deref().Value());
+                let value = attr.deref().Value();
+                if !value.is_empty() {
+                    doc.deref().register_named_element(self, value);
+                }
             }
             _ => ()
         }
@@ -881,7 +900,10 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
         match self.get_attribute(Null, "id").root() {
             Some(attr) => {
                 let doc = document_from_node(self).root();
-                doc.deref().unregister_named_element(self, attr.deref().Value());
+                let value = attr.deref().Value();
+                if !value.is_empty() {
+                    doc.deref().unregister_named_element(self, value);
+                }
             }
             _ => ()
         }
@@ -924,5 +946,13 @@ impl<'a> style::TElement for JSRef<'a, Element> {
                 _ => fail!("`id` attribute should be AtomAttrValue"),
             }
         })
+    }
+    fn get_disabled_state(&self) -> bool {
+        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        node.get_disabled_state()
+    }
+    fn get_enabled_state(&self) -> bool {
+        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        node.get_enabled_state()
     }
 }

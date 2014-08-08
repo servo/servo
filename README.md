@@ -12,21 +12,22 @@ On OS X (homebrew):
 
 ``` sh
 brew install https://raw.github.com/Homebrew/homebrew-versions/master/autoconf213.rb
-brew install automake libtool pkg-config
+brew install automake libtool pkg-config python
+pip install virtualenv
 ```
 
 On OS X (MacPorts):
 
 ``` sh
-sudo port install autoconf213
+sudo port install autoconf213 python27 py27-virtualenv
 ```
-    
+
 On Debian-based Linuxes:
 
 ``` sh
 sudo apt-get install autoconf2.13 curl freeglut3-dev libtool \
     libfreetype6-dev libgl1-mesa-dri libglib2.0-dev xorg-dev \
-    msttcorefonts gperf g++ automake cmake
+    msttcorefonts gperf g++ automake cmake python-virtualenv
 ```
 
 On Fedora:
@@ -34,12 +35,12 @@ On Fedora:
 ``` sh
 sudo yum install autoconf213 curl freeglut-devel libtool \
     freetype-devel mesa-libGL-devel glib2-devel libX11-devel \
-    gperf gcc-c++ rpm-build cabextract ttmkfdir
+    gperf gcc-c++ rpm-build cabextract ttmkfdir python python-virtualenv
 pushd .
 cd /tmp
 wget http://corefonts.sourceforge.net/msttcorefonts-2.5-1.spec
 rpmbuild -bb msttcorefonts-2.5-1.spec
-sudo yum install $HOME/rpmbuild/RPMS/noarch/msttcorefonts-2.5-1.noarch.rpm 
+sudo yum install $HOME/rpmbuild/RPMS/noarch/msttcorefonts-2.5-1.noarch.rpm
 popd
 ```
 

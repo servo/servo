@@ -11,8 +11,8 @@ use geom::rect::{Rect, TypedRect};
 use geom::scale_factor::ScaleFactor;
 use geom::size::{Size2D, TypedSize2D};
 use layers::layers::Layer;
-use script::dom::event::{ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent};
-use script::script_task::{ScriptChan, SendEventMsg};
+use script_traits::{ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent, SendEventMsg};
+use script_traits::{ScriptControlChan};
 use servo_msg::compositor_msg::{FixedPosition, LayerId};
 use servo_msg::constellation_msg::PipelineId;
 use servo_util::geometry::{DevicePixel, PagePx};
@@ -139,14 +139,14 @@ pub fn send_mouse_event(layer: Rc<Layer<CompositorData>>,
         MouseWindowMouseDownEvent(button, _) => MouseDownEvent(button, cursor.to_untyped()),
         MouseWindowMouseUpEvent(button, _) => MouseUpEvent(button, cursor.to_untyped()),
     };
-    let ScriptChan(ref chan) = layer.extra_data.borrow().pipeline.script_chan;
+    let ScriptControlChan(ref chan) = layer.extra_data.borrow().pipeline.script_chan;
     let _ = chan.send_opt(SendEventMsg(layer.extra_data.borrow().pipeline.id.clone(), message));
 }
 
 pub fn send_mouse_move_event(layer: Rc<Layer<CompositorData>>,
                              cursor: TypedPoint2D<PagePx, f32>) {
     let message = MouseMoveEvent(cursor.to_untyped());
-    let ScriptChan(ref chan) = layer.extra_data.borrow().pipeline.script_chan;
+    let ScriptControlChan(ref chan) = layer.extra_data.borrow().pipeline.script_chan;
     let _ = chan.send_opt(SendEventMsg(layer.extra_data.borrow().pipeline.id.clone(), message));
 }
 
