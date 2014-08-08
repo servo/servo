@@ -10,9 +10,9 @@ sudo python PowerMeasure.py
 ```
 You can define the maximum number of threads in layout level, rendering by cpu, benchmarks and output directory with these command line arguments:
 
-- `-b BENCHMARK, --benchmark BENCHMARK` sets the benchmark, for example "-B perf-rainbow.html"
+- `-b BENCHMARK, --benchmark BENCHMARK` sets the benchmark, for example `-B perf-rainbow.html`
 - `-c CPU, --CPU CPU` renders with CPU instead of GPU
-- `-l LAYOUTTHREADS, --LayoutThreads LAYOUTTHREADS` sets the maximum number of threads for layout, for example " -L 5"
+- `-l LAYOUTTHREADS, --LayoutThreads LAYOUTTHREADS` sets the maximum number of threads for layout, for example `-L 5`
 - `-o OUTPUT, --Output OUTPUT` specifyes the output directory
 
 ## Example
