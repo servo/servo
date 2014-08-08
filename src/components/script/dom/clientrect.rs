@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::ClientRectBinding;
 use dom::bindings::codegen::Bindings::ClientRectBinding::ClientRectMethods;
 use dom::bindings::global::Window;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::window::Window;
 use servo_util::geometry::Au;
@@ -17,12 +17,10 @@ pub struct ClientRect {
     bottom: f32,
     left: f32,
     right: f32,
-    window: JS<Window>,
 }
 
 impl ClientRect {
-    pub fn new_inherited(window: &JSRef<Window>,
-                         top: Au, bottom: Au,
+    pub fn new_inherited(top: Au, bottom: Au,
                          left: Au, right: Au) -> ClientRect {
         ClientRect {
             top: top.to_nearest_px() as f32,
@@ -30,14 +28,13 @@ impl ClientRect {
             left: left.to_nearest_px() as f32,
             right: right.to_nearest_px() as f32,
             reflector_: Reflector::new(),
-            window: JS::from_rooted(window),
         }
     }
 
     pub fn new(window: &JSRef<Window>,
                top: Au, bottom: Au,
                left: Au, right: Au) -> Temporary<ClientRect> {
-        let rect = ClientRect::new_inherited(window, top, bottom, left, right);
+        let rect = ClientRect::new_inherited(top, bottom, left, right);
         reflect_dom_object(box rect, &Window(*window), ClientRectBinding::Wrap)
     }
 }
