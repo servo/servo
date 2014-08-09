@@ -26,7 +26,7 @@ extern crate gfx;
 extern crate libc;
 extern crate native;
 extern crate rustrt;
-extern crate url = "url_";
+extern crate url;
 
 #[cfg(not(test))]
 use compositing::{CompositorChan, CompositorTask, Constellation};
@@ -55,7 +55,7 @@ use std::os;
 #[cfg(not(test))]
 use std::task::TaskBuilder;
 #[cfg(not(test), target_os="android")]
-use std::str;
+use std::string;
 #[cfg(not(test))]
 use url::{Url, UrlParser};
 
@@ -78,7 +78,7 @@ pub extern "C" fn android_start(argc: int, argv: *const *const u8) -> int {
         let mut args: Vec<String> = vec!();
         for i in range(0u, argc as uint) {
             unsafe {
-                args.push(str::raw::from_c_str(*argv.offset(i as int) as *const i8));
+                args.push(string::raw::from_buf(*argv.offset(i as int) as *const u8));
             }
         }
 

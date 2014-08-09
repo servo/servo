@@ -670,7 +670,8 @@ pub fn global_object_for_js_object(obj: *mut JSObject) -> GlobalField {
 /// Get the `JSContext` for the `JSRuntime` associated with the thread
 /// this object is on.
 fn cx_for_dom_reflector(obj: *mut JSObject) -> *mut JSContext {
-    let global = global_object_for_js_object(obj).root();
+    let global = global_object_for_js_object(obj);
+    let global = global.root();
     global.root_ref().get_cx()
 }
 

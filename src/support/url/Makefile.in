@@ -12,11 +12,11 @@ SRC=$(shell find $(VPATH)/src -type f)
 .PHONY: all
 all: 	liburl.dummy
 
-liburl.dummy: src/url.rs $(SRC) $(EXT_DEPS)
+liburl.dummy: src/lib.rs $(SRC) $(EXT_DEPS)
 	$(RUSTC) $(RUSTFLAGS) $< --out-dir . --crate-type rlib
 	touch $@
 
-url-test: src/url.rs $(SRC)
+url-test: src/lib.rs $(SRC)
 	$(RUSTC) $(RUSTFLAGS) $< -o $@ --test
 
 .PHONY: check
@@ -26,7 +26,7 @@ check: url-test
 .PHONY: doc
 doc: $(RUSTDOC_TARGET)/url/index.html
 
-$(RUSTDOC_TARGET)/url/index.html: src/url.rs $(SRC) $(EXT_DEPS)
+$(RUSTDOC_TARGET)/url/index.html: src/lib.rs $(SRC) $(EXT_DEPS)
 	$(RUSTDOC) $(RUSTDOC_FLAGS) $< -o $(RUSTDOC_TARGET)
 
 .PHONY: clean

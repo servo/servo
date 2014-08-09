@@ -8,16 +8,20 @@
 use flow::{Flow, base, mut_base};
 use flow_ref::FlowRef;
 
+use std::kinds::marker::ContravariantLifetime;
 use std::mem;
 use std::ptr;
 
 pub type Link = Option<FlowRef>;
 
+
+// FIXME: use TraitObject instead of duplicating the type
 #[allow(raw_pointer_deriving)]
 #[deriving(Clone)]
-pub struct Rawlink {
-    vtable: *const (),
+pub struct Rawlink<'a> {
+    vtable: *mut (),
     obj: *mut (),
+    marker: ContravariantLifetime<'a>,
 }
 
 /// Doubly-linked list of Flows.
@@ -38,17 +42,17 @@ pub struct FlowListIterator<'a> {
 
 /// Double-ended mutable FlowList iterator
 pub struct MutFlowListIterator<'a> {
-    _list: &'a mut FlowList,
-    head: Rawlink,
+    head: Rawlink<'a>,
     nelem: uint,
 }
 
-impl Rawlink {
+impl<'a> Rawlink<'a> {
     /// Like Option::None for Rawlink
-    pub fn none() -> Rawlink {
+    pub fn none() -> Rawlink<'static> {
         Rawlink {
-            vtable: ptr::null(),
+            vtable: ptr::mut_null(),
             obj: ptr::mut_null(),
+            marker: ContravariantLifetime,
         }
     }
 
@@ -57,7 +61,7 @@ impl Rawlink {
         unsafe { mem::transmute(n) }
     }
 
-    pub unsafe fn resolve_mut(&self) -> Option<&mut Flow> {
+    pub unsafe fn resolve_mut(&self) -> Option<&'a mut Flow> {
         if self.obj.is_null() {
             None
         } else {
@@ -201,14 +205,14 @@ impl FlowList {
     /// Provide a forward iterator with mutable references
     #[inline]
     pub fn mut_iter<'a>(&'a mut self) -> MutFlowListIterator<'a> {
+        let len = self.len();
         let head_raw = match self.list_head {
             Some(ref mut h) => Rawlink::some(h.get()),
             None => Rawlink::none(),
         };
         MutFlowListIterator {
-            nelem: self.len(),
+            nelem: len,
             head: head_raw,
-            _list: self
         }
     }
 }
@@ -269,7 +273,10 @@ impl<'a> Iterator<&'a mut Flow> for MutFlowListIterator<'a> {
                 self.head = match mut_base(next).next_sibling {
                     Some(ref mut node) => {
                         let x: &mut Flow = node.get_mut();
-                        Rawlink::some(x)
+                        // NOTE: transmute needed here to break the link
+                        // between x and next so that it is no longer
+                        // borrowed.
+                        mem::transmute(Rawlink::some(x))
                     }
                     None => Rawlink::none(),
                 };

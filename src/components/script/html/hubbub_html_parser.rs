@@ -346,14 +346,8 @@ pub fn parse_html(page: &Page,
             let comment: &JSRef<Node> = NodeCast::from_ref(&*comment);
             unsafe { comment.to_hubbub_node() }
         },
-        create_doctype: |doctype: Box<hubbub::Doctype>| {
+        create_doctype: |box hubbub::Doctype { name: name, public_id: public_id, system_id: system_id, ..}: Box<hubbub::Doctype>| {
             debug!("create doctype");
-            let box hubbub::Doctype {
-                name: name,
-                public_id: public_id,
-                system_id: system_id,
-                force_quirks: _
-            } = doctype;
             // NOTE: tmp vars are workaround for lifetime issues. Both required.
             let tmp_borrow = doc_cell.borrow();
             let tmp = &*tmp_borrow;
@@ -410,16 +404,19 @@ pub fn parse_html(page: &Page,
                 // Handle CSS style sheets from <link> elements
                 ElementNodeTypeId(HTMLLinkElementTypeId) => {
                     match (rel, href) {
-                        (Some(ref rel), Some(ref href)) if rel.as_slice().split(HTML_SPACE_CHARACTERS.as_slice())
-                                                              .any(|s| {
-                                    s.as_slice().eq_ignore_ascii_case("stylesheet")
-                                }) => {
-                            debug!("found CSS stylesheet: {:s}", *href);
-                            match UrlParser::new().base_url(base_url).parse(href.as_slice()) {
-                                Ok(url) => css_chan2.send(CSSTaskNewFile(
-                                    UrlProvenance(url, resource_task.clone()))),
-                                Err(e) => debug!("Parsing url {:s} failed: {:s}", *href, e)
-                            };
+                        (Some(ref rel), Some(ref href)) => {
+                            if rel.as_slice()
+                                  .split(HTML_SPACE_CHARACTERS.as_slice())
+                                  .any(|s| {
+                                      s.as_slice().eq_ignore_ascii_case("stylesheet")
+                                  }) {
+                                      debug!("found CSS stylesheet: {:s}", *href);
+                                      match UrlParser::new().base_url(base_url).parse(href.as_slice()) {
+                                          Ok(url) => css_chan2.send(CSSTaskNewFile(
+                                              UrlProvenance(url, resource_task.clone()))),
+                                          Err(e) => debug!("Parsing url {:s} failed: {:?}", *href, e)
+                                      };
+                                  }
                         }
                         _ => {}
                     }
@@ -502,7 +499,7 @@ pub fn parse_html(page: &Page,
                         match UrlParser::new().base_url(base_url)
                                 .parse(src.deref().value().as_slice()) {
                             Ok(new_url) => js_chan2.send(JSTaskNewFile(new_url)),
-                            Err(e) => debug!("Parsing url {:s} failed: {:s}", src.deref().Value(), e)
+                            Err(e) => debug!("Parsing url {:s} failed: {:?}", src.deref().Value(), e)
                         };
                     }
                     None => {
@@ -554,7 +551,7 @@ pub fn parse_html(page: &Page,
     }
 }
 
-fn build_parser(node: hubbub::NodeDataPtr) -> hubbub::Parser {
+fn build_parser<'a>(node: hubbub::NodeDataPtr) -> hubbub::Parser<'a> {
     let mut parser = hubbub::Parser::new("UTF-8", false);
     parser.set_document_node(node);
     parser.enable_scripting(true);

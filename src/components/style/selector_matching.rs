@@ -994,42 +994,42 @@ mod tests {
     #[test]
     fn test_rule_ordering_same_specificity(){
         let rules_list = get_mock_rules(["a.intro", "img.sidebar"]);
-        let rule1 = rules_list.get(0).get(0).clone();
-        let rule2 = rules_list.get(1).get(0).clone();
+        let rule1 = rules_list[0][0].clone();
+        let rule2 = rules_list[1][0].clone();
         assert!(rule1.property < rule2.property, "The rule that comes later should win.");
     }
 
     #[test]
     fn test_get_id_name(){
         let rules_list = get_mock_rules([".intro", "#top"]);
-        assert_eq!(SelectorMap::get_id_name(rules_list.get(0).get(0)), None);
-        assert_eq!(SelectorMap::get_id_name(rules_list.get(1).get(0)), Some("top".to_string()));
+        assert_eq!(SelectorMap::get_id_name(&rules_list[0][0]), None);
+        assert_eq!(SelectorMap::get_id_name(&rules_list[1][0]), Some("top".to_string()));
     }
 
     #[test]
     fn test_get_class_name(){
         let rules_list = get_mock_rules([".intro.foo", "#top"]);
-        assert_eq!(SelectorMap::get_class_name(rules_list.get(0).get(0)), Some("intro".to_string()));
-        assert_eq!(SelectorMap::get_class_name(rules_list.get(1).get(0)), None);
+        assert_eq!(SelectorMap::get_class_name(&rules_list[0][0]), Some("intro".to_string()));
+        assert_eq!(SelectorMap::get_class_name(&rules_list[1][0]), None);
     }
 
     #[test]
     fn test_get_element_name(){
         let rules_list = get_mock_rules(["img.foo", "#top", "IMG", "ImG"]);
-        assert_eq!(SelectorMap::get_element_name(rules_list.get(0).get(0)), Some("img".to_string()));
-        assert_eq!(SelectorMap::get_element_name(rules_list.get(1).get(0)), None);
-        assert_eq!(SelectorMap::get_element_name(rules_list.get(2).get(0)), Some("img".to_string()));
-        assert_eq!(SelectorMap::get_element_name(rules_list.get(3).get(0)), Some("img".to_string()));
+        assert_eq!(SelectorMap::get_element_name(&rules_list[0][0]), Some("img".to_string()));
+        assert_eq!(SelectorMap::get_element_name(&rules_list[1][0]), None);
+        assert_eq!(SelectorMap::get_element_name(&rules_list[2][0]), Some("img".to_string()));
+        assert_eq!(SelectorMap::get_element_name(&rules_list[3][0]), Some("img".to_string()));
     }
 
     #[test]
     fn test_insert(){
         let rules_list = get_mock_rules([".intro.foo", "#top"]);
         let mut selector_map = SelectorMap::new();
-        selector_map.insert(rules_list.get(1).get(0).clone());
-        assert_eq!(1, selector_map.id_hash.find_equiv(&("top")).unwrap().get(0).property.source_order);
-        selector_map.insert(rules_list.get(0).get(0).clone());
-        assert_eq!(0, selector_map.class_hash.find_equiv(&("intro")).unwrap().get(0).property.source_order);
+        selector_map.insert(rules_list[1][0].clone());
+        assert_eq!(1, selector_map.id_hash.find_equiv(&("top")).unwrap()[0].property.source_order);
+        selector_map.insert(rules_list[0][0].clone());
+        assert_eq!(0, selector_map.class_hash.find_equiv(&("intro")).unwrap()[0].property.source_order);
         assert!(selector_map.class_hash.find_equiv(&("foo")).is_none());
     }
 }

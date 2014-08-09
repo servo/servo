@@ -28,7 +28,6 @@ use wrapper::ThreadSafeLayoutNode;
 use style::ComputedValues;
 use style::computed_values::{clear, position};
 
-use collections::Deque;
 use collections::dlist::DList;
 use geom::{Size2D, Point2D, Rect};
 use gfx::color;
@@ -334,8 +333,10 @@ impl CandidateBSizeIterator {
             status: InitialCandidateBSizeStatus,
         }
     }
+}
 
-    pub fn next<'a>(&'a mut self) -> Option<(MaybeAuto, &'a mut Au)> {
+impl Iterator<MaybeAuto> for CandidateBSizeIterator {
+    fn next(&mut self) -> Option<MaybeAuto> {
         self.status = match self.status {
             InitialCandidateBSizeStatus => TryingBSizeCandidateBSizeStatus,
             TryingBSizeCandidateBSizeStatus => {
@@ -360,12 +361,12 @@ impl CandidateBSizeIterator {
         };
 
         match self.status {
-            TryingBSizeCandidateBSizeStatus => Some((self.block_size, &mut self.candidate_value)),
+            TryingBSizeCandidateBSizeStatus => Some(self.block_size),
             TryingMaxCandidateBSizeStatus => {
-                Some((Specified(self.max_block_size.unwrap()), &mut self.candidate_value))
+                Some(Specified(self.max_block_size.unwrap()))
             }
             TryingMinCandidateBSizeStatus => {
-                Some((Specified(self.min_block_size), &mut self.candidate_value))
+                Some(Specified(self.min_block_size))
             }
             FoundCandidateBSizeStatus => None,
             InitialCandidateBSizeStatus => fail!(),
@@ -970,8 +971,8 @@ impl BlockFlow {
 
         let mut candidate_block_size_iterator = CandidateBSizeIterator::new(self.fragment.style(),
                                                                          None);
-        for (candidate_block_size, new_candidate_block_size) in candidate_block_size_iterator {
-            *new_candidate_block_size = match candidate_block_size {
+        for candidate_block_size in candidate_block_size_iterator {
+            candidate_block_size_iterator.candidate_value = match candidate_block_size {
                 Auto => block_size,
                 Specified(value) => value
             }
@@ -1086,8 +1087,8 @@ impl BlockFlow {
 
         // Calculate content block-size, taking `min-block-size` and `max-block-size` into account.
         let mut candidate_block_size_iterator = CandidateBSizeIterator::new(self.fragment.style(), None);
-        for (candidate_block_size, new_candidate_block_size) in candidate_block_size_iterator {
-            *new_candidate_block_size = match candidate_block_size {
+        for candidate_block_size in candidate_block_size_iterator {
+            candidate_block_size_iterator.candidate_value = match candidate_block_size {
                 Auto => content_block_size,
                 Specified(value) => value,
             }
@@ -1230,7 +1231,7 @@ impl BlockFlow {
                 let mut candidate_block_size_iterator =
                     CandidateBSizeIterator::new(style, Some(containing_block_block_size));
 
-                for (block_size_used_val, new_candidate_block_size) in candidate_block_size_iterator {
+                for block_size_used_val in candidate_block_size_iterator {
                     solution =
                         Some(BSizeConstraintSolution::solve_vertical_constraints_abs_nonreplaced(
                             block_size_used_val,
@@ -1242,7 +1243,7 @@ impl BlockFlow {
                             available_block_size,
                             static_b_offset));
 
-                    *new_candidate_block_size = solution.unwrap().block_size
+                    candidate_block_size_iterator.candidate_value = solution.unwrap().block_size
                 }
             }
         }
@@ -1294,7 +1295,7 @@ impl BlockFlow {
             background_color: color::rgba(1.0, 1.0, 1.0, 0.0),
             scroll_policy: scroll_policy,
         };
-        self.base.layers.push_back(new_layer)
+        self.base.layers.push(new_layer)
     }
 
     /// Return the block-start outer edge of the hypothetical box for an absolute flow.

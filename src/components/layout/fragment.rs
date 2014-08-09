@@ -1130,7 +1130,7 @@ impl Fragment {
             UnscannedTextFragment(_) => fail!("Unscanned text fragments should have been scanned by now!"),
             ScannedTextFragment(ref text_fragment_info) => {
                 let mut new_line_pos = self.new_line_pos.clone();
-                let cur_new_line_pos = new_line_pos.shift().unwrap();
+                let cur_new_line_pos = new_line_pos.remove(0).unwrap();
 
                 let inline_start_range = Range::new(text_fragment_info.range.begin(), cur_new_line_pos);
                 let inline_end_range = Range::new(text_fragment_info.range.begin() + cur_new_line_pos + CharIndex(1),

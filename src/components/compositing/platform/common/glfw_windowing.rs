@@ -162,7 +162,7 @@ impl WindowMethods<Application> for Window {
         {
             let mut event_queue = self.event_queue.borrow_mut();
             if !event_queue.is_empty() {
-                return event_queue.shift().unwrap();
+                return event_queue.remove(0).unwrap();
             }
         }
 
@@ -174,7 +174,7 @@ impl WindowMethods<Application> for Window {
         if self.glfw_window.should_close() {
             QuitWindowEvent
         } else {
-            self.event_queue.borrow_mut().shift().unwrap_or(IdleWindowEvent)
+            self.event_queue.borrow_mut().remove(0).unwrap_or(IdleWindowEvent)
         }
     }
 

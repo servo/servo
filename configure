@@ -409,10 +409,7 @@ CFG_BUILD_DIR="${CFG_BUILD_HOME}${CFG_TARGET}/"
 make_dir "${CFG_BUILD_DIR}"
 SNAPSHOT_VERSION=$(cat ${CFG_SRC_DIR}/src/compiler/rust-snapshot-hash | rev | cut -d/ -f1 | rev)
 SNAPSHOT_HASH=$(cat ${CFG_SRC_DIR}/src/compiler/rust-snapshot-hash | cut -d/ -f1)
-if [ $CFG_OSTYPE = "linux-androideabi" ]
-then
-    CFG_ENABLE_TREE_RUST=1 # We don't yet have Android snapshots
-fi
+
 if [ -z "$CFG_ENABLE_TREE_RUST" -a -z "$CFG_LOCAL_RUST_ROOT" ]
 then
     if ! [ -f ${CFG_BUILD_DIR}/rust_snapshot/${SNAPSHOT_VERSION}-${DEFAULT_TARGET}/bin/rustc -a -f ${CFG_BUILD_DIR}/src/compiler/rust-snapshot-hash-stamp -a -z "$(diff ${CFG_BUILD_DIR}/src/compiler/rust-snapshot-hash-stamp ${CFG_SRC_DIR}/src/compiler/rust-snapshot-hash)" ]

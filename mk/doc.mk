@@ -4,7 +4,7 @@
 
 
 RUSTDOC_HTML_IN_HEADER = $(S)/src/etc/rustdoc-style.html
-RUSTDOC_FLAGS = --html-in-header $(RUSTDOC_HTML_IN_HEADER)
+RUSTDOC_FLAGS = --extern url=$(B)/src/support/url/rust-url/liburl.rlib --html-in-header $(RUSTDOC_HTML_IN_HEADER)
 RUSTDOC_DEPS = $(RUSTDOC_HTML_IN_HEADER)
 
 # FIXME(#2924) These crates make rustdoc fail for undetermined reasons.
@@ -36,15 +36,24 @@ $(eval $(call DEF_SERVO_DOC_RULES,$(lib_crate))))
 
 define DEF_SUBMODULES_DOC_RULES
 
+ifeq (,$(filter $(1),$(DOC_BLACKLISTED)))
+
 .PHONY: doc-$(1)
 doc-$(1): $$(DONE_DEPS_$(1)) $$(ROUGH_DEPS_$(1)) $$(RUSTC_DEP_$(1))
 	@$$(call E, rustdoc: $(1))
 	$$(Q) \
-	RUSTDOC_FLAGS="$$(ENV_RLDFLAGS_$(1))" \
+	RUSTDOC_FLAGS="$$(ENV_RLDFLAGS_$(1)) $$(RUSTDOC_FLAGS)" \
 	RUSTDOC_TARGET="$$(CFG_BUILD_HOME)/doc" \
 	$$(ENV_EXT_DEPS_$(1)) \
 	$$(MAKE) -C $$(B)src/$$(PATH_$(1)) doc
 
+else
+
+.PHONY: doc-$(1)
+doc-$(1): $$(DONE_DEPS_$(1)) $$(ROUGH_DEPS_$(1)) $$(RUSTC_DEP_$(1))
+	@echo SKIPPED: blacklisted rustdoc: $$@
+
+endif
 endef
 
 # Only Rust submodules

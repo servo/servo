@@ -323,7 +323,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             }
         };
 
-        self.deref().attrs.borrow().get(idx).root().set_value(set_type, value);
+        (*self.deref().attrs.borrow())[idx].root().set_value(set_type, value);
     }
 
     fn parse_attribute(&self, namespace: &Namespace, local_name: &str,
@@ -352,7 +352,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
                 }
 
                 if namespace == namespace::Null {
-                    let removed_raw_value = self.deref().attrs.borrow().get(idx).root().Value();
+                    let removed_raw_value = (*self.deref().attrs.borrow())[idx].root().Value();
                     vtable_for(NodeCast::from_ref(self))
                         .before_remove_attr(local_name.to_string(), removed_raw_value);
                 }

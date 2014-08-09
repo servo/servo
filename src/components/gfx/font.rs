@@ -4,7 +4,7 @@
 
 use geom::{Point2D, Rect, Size2D};
 use std::mem;
-use std::str;
+use std::string;
 use std::rc::Rc;
 use std::cell::RefCell;
 use servo_util::cache::{Cache, HashCache};
@@ -53,7 +53,7 @@ pub trait FontTableTagConversions {
 impl FontTableTagConversions for FontTableTag {
     fn tag_to_str(&self) -> String {
         unsafe {
-            let reversed = str::raw::from_buf_len(mem::transmute(self), 4);
+            let reversed = string::raw::from_buf_len(mem::transmute(self), 4);
             return String::from_chars([reversed.as_slice().char_at(3),
                                        reversed.as_slice().char_at(2),
                                        reversed.as_slice().char_at(1),
@@ -179,7 +179,7 @@ impl FontGroup {
         assert!(self.fonts.len() > 0);
 
         // TODO(Issue #177): Actually fall back through the FontGroup when a font is unsuitable.
-        TextRun::new(&mut *self.fonts.get(0).borrow_mut(), text.clone())
+        TextRun::new(&mut *self.fonts[0].borrow_mut(), text.clone())
     }
 }
 

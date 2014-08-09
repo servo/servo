@@ -21,7 +21,7 @@ use js::{JSPROP_GETTER, JSPROP_ENUMERATE, JSPROP_READONLY, JSRESOLVE_QUALIFIED};
 use libc;
 use std::mem;
 use std::ptr;
-use std::str;
+use std::string;
 use std::mem::size_of;
 
 static JSPROXYSLOT_EXPANDO: u32 = 0;
@@ -99,7 +99,7 @@ pub extern fn delete_(cx: *mut JSContext, proxy: *mut JSObject, id: jsid,
 
 pub fn _obj_toString(cx: *mut JSContext, className: *const libc::c_char) -> *mut JSString {
   unsafe {
-    let name = str::raw::from_c_str(className);
+    let name = string::raw::from_buf(className as *const i8 as *const u8);
     let nchars = "[object ]".len() + name.len();
     let chars: *mut jschar = JS_malloc(cx, (nchars + 1) as libc::size_t * (size_of::<jschar>() as libc::size_t)) as *mut jschar;
     if chars.is_null() {

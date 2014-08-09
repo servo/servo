@@ -203,7 +203,7 @@ impl Flow for TableFlow {
                         debug!("table until the previous row has {} column(s) and this row has {} column(s)",
                                num_cols, num_child_cols);
                         for i in range(num_cols, num_child_cols) {
-                            self.col_inline_sizes.push( *kid_col_inline_sizes.get(i) );
+                            self.col_inline_sizes.push((*kid_col_inline_sizes)[i]);
                         }
                     },
                     AutoLayout => {
@@ -217,9 +217,9 @@ impl Flow for TableFlow {
                                num_cols, num_child_cols);
                         for i in range(num_cols, num_child_cols) {
                             self.col_inline_sizes.push(Au::new(0));
-                            let new_kid_min = *kid.col_min_inline_sizes().get(i);
+                            let new_kid_min = kid.col_min_inline_sizes()[i];
                             self.col_min_inline_sizes.push( new_kid_min );
-                            let new_kid_pref = *kid.col_pref_inline_sizes().get(i);
+                            let new_kid_pref = kid.col_pref_inline_sizes()[i];
                             self.col_pref_inline_sizes.push( new_kid_pref );
                             min_inline_size = min_inline_size + new_kid_min;
                             pref_inline_size = pref_inline_size + new_kid_pref;

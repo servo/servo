@@ -138,7 +138,7 @@ impl<K: Clone + PartialEq, V: Clone> LRUCache<K,V> {
             let entry = self.entries.remove(pos);
             self.entries.push(entry.unwrap());
         }
-        self.entries.get(last_index).ref1().clone()
+        self.entries[last_index].ref1().clone()
     }
 
     pub fn iter<'a>(&'a self) -> Items<'a,(K,V)> {
@@ -206,8 +206,8 @@ impl<K:Clone+PartialEq+Hash,V:Clone> SimpleHashCache<K,V> {
     #[inline]
     pub fn find_equiv<'a,Q:Hash+Equiv<K>>(&'a self, key: &Q) -> Option<&'a V> {
         let bucket_index = self.bucket_for_key(key);
-        match self.entries.get(bucket_index) {
-            &Some((ref existing_key, ref value)) if key.equiv(existing_key) => Some(value),
+        match self.entries[bucket_index] {
+            Some((ref existing_key, ref value)) if key.equiv(existing_key) => Some(value),
             _ => None,
         }
     }
@@ -221,8 +221,8 @@ impl<K:Clone+PartialEq+Hash,V:Clone> Cache<K,V> for SimpleHashCache<K,V> {
 
     fn find(&mut self, key: &K) -> Option<V> {
         let bucket_index = self.bucket_for_key(key);
-        match self.entries.get(bucket_index) {
-            &Some((ref existing_key, ref value)) if existing_key == key => Some((*value).clone()),
+        match self.entries[bucket_index] {
+            Some((ref existing_key, ref value)) if existing_key == key => Some((*value).clone()),
             _ => None,
         }
     }

@@ -32,7 +32,7 @@ extern crate collections;
 extern crate green;
 extern crate libc;
 extern crate sync;
-extern crate url = "url_";
+extern crate url;
 
 pub mod block;
 pub mod construct;

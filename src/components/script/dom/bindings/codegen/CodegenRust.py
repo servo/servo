@@ -2175,7 +2175,8 @@ class CGCallGenerator(CGThing):
             if static:
                 glob = ""
             else:
-                glob = "        let global = global_object_for_js_object(this.reflector().get_jsobject()).root();\n"
+                glob = "        let global = global_object_for_js_object(this.reflector().get_jsobject());\n"\
+                       "        let global = global.root();\n"
 
             self.cgRoot.append(CGGeneric(
                 "let result = match result {\n"
@@ -3915,7 +3916,8 @@ class CGClassConstructHook(CGAbstractExternMethod):
 
     def definition_body(self):
         preamble = CGGeneric("""\
-let global = global_object_for_js_object(JS_CALLEE(cx, vp).to_object()).root();
+let global = global_object_for_js_object(JS_CALLEE(cx, vp).to_object());
+let global = global.root();
 """)
         nativeName = MakeNativeName(self._ctor.identifier.name)
         callGenerator = CGMethodCall(["&global.root_ref()"], nativeName, True,
@@ -4271,10 +4273,10 @@ class CGDictionary(CGThing):
 
         return string.Template(
             "impl<'a, 'b> ${selfName}<'a, 'b> {\n"
-            "  pub fn empty() -> ${selfName} {\n"
+            "  pub fn empty() -> ${selfName}<'a, 'b> {\n"
             "    ${selfName}::new(ptr::mut_null(), NullValue()).unwrap()\n"
             "  }\n"
-            "  pub fn new(cx: *mut JSContext, val: JSVal) -> Result<${selfName}, ()> {\n"
+            "  pub fn new(cx: *mut JSContext, val: JSVal) -> Result<${selfName}<'a, 'b>, ()> {\n"
             "    let object = if val.is_null_or_undefined() {\n"
             "        ptr::mut_null()\n"
             "    } else if val.is_object() {\n"

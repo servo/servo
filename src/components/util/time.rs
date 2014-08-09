@@ -198,7 +198,7 @@ impl TimeProfiler {
             if data_len > 0 {
                 let (mean, median, min, max) =
                     (data.iter().map(|&x|x).sum() / (data_len as f64),
-                     *data.get(data_len / 2),
+                     (*data)[data_len / 2],
                      data.iter().fold(f64::INFINITY, |a, &b| a.min(b)),
                      data.iter().fold(-f64::INFINITY, |a, &b| a.max(b)));
                 println!("{:-35s}: {:15.4f} {:15.4f} {:15.4f} {:15.4f} {:15u}",

@@ -41,7 +41,7 @@ extern crate servo_util = "util";
 extern crate style;
 extern crate sync;
 extern crate servo_msg = "msg";
-extern crate url = "url_";
+extern crate url;
 extern crate gfx;
 
 pub mod cors;
