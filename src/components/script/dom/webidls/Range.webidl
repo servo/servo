@@ -59,7 +59,7 @@ interface Range {
   // void surroundContents(Node newParent);
 
   // Range cloneRange();
-  // void detach();
+  void detach();
 
   // [Throws]
   // boolean isPointInRange(Node node, unsigned long offset);
