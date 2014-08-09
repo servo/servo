@@ -18,8 +18,8 @@ use dom::bindings::trace::Traceable;
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::bindings::error::{ErrorResult, Fallible, NamespaceError, InvalidCharacter, Syntax};
 use dom::bindings::utils::{QName, Name, InvalidXMLName, xml_name_type};
-use dom::clientrect::ClientRect;
-use dom::clientrectlist::ClientRectList;
+use dom::domrect::DOMRect;
+use dom::domrectlist::DOMRectList;
 use dom::document::{Document, DocumentHelpers};
 use dom::domtokenlist::DOMTokenList;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -711,12 +711,12 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     }
 
     // http://dev.w3.org/csswg/cssom-view/#dom-element-getclientrects
-    fn GetClientRects(&self) -> Temporary<ClientRectList> {
+    fn GetClientRects(&self) -> Temporary<DOMRectList> {
         let win = window_from_node(self).root();
         let node: &JSRef<Node> = NodeCast::from_ref(self);
         let rects = node.get_content_boxes();
-        let rects: Vec<Root<ClientRect>> = rects.iter().map(|r| {
-            ClientRect::new(
+        let rects: Vec<Root<DOMRect>> = rects.iter().map(|r| {
+            DOMRect::new(
                 &*win,
                 r.origin.y,
                 r.origin.y + r.size.height,
@@ -724,15 +724,15 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
                 r.origin.x + r.size.width).root()
         }).collect();
 
-        ClientRectList::new(&*win, rects.iter().map(|rect| rect.deref().clone()).collect())
+        DOMRectList::new(&*win, rects.iter().map(|rect| rect.deref().clone()).collect())
     }
 
     // http://dev.w3.org/csswg/cssom-view/#dom-element-getboundingclientrect
-    fn GetBoundingClientRect(&self) -> Temporary<ClientRect> {
+    fn GetBoundingClientRect(&self) -> Temporary<DOMRect> {
         let win = window_from_node(self).root();
         let node: &JSRef<Node> = NodeCast::from_ref(self);
         let rect = node.get_bounding_content_box();
-        ClientRect::new(
+        DOMRect::new(
             &*win,
             rect.origin.y,
             rect.origin.y + rect.size.height,

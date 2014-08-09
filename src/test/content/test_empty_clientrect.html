@@ -4,14 +4,13 @@
 <script>
 var rect = window.document.head.getBoundingClientRect();
 var rects = window.document.head.getClientRects();
-is_a(rect, ClientRect);
+is_a(rect, DOMRect);
 is(rect.top, 0);
 is(rect.bottom, 0);
 is(rect.left, 0);
 is(rect.right, 0);
 is(rect.width, 0);
 is(rect.height, 0);
-is_a(rects, ClientRectList);
 is(rects.length, 0);
 finish();
 </script>

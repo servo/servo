@@ -2,12 +2,11 @@
 <head>
 <script src="harness.js"></script>
 <script>
-is_function(ClientRect,     "ClientRect");
-is_function(ClientRectList, "ClientRectList");
+is_function(DOMRect,     "DOMRect");
 
 var elems = document.getElementsByTagName('div');
 var rect = elems[0].getBoundingClientRect();
-is_a(rect, ClientRect);
+is_a(rect, DOMRect);
 
 geq(rect.top,    100);
 geq(rect.bottom, 200);
