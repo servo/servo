@@ -11,7 +11,7 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 
 #[deriving(Encodable)]
 pub struct Range {
-    pub reflector_: Reflector
+    reflector_: Reflector
 }
 
 impl Range {
