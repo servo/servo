@@ -38,15 +38,16 @@ use dom::htmlelement::HTMLElement;
 use dom::htmlheadelement::HTMLHeadElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::htmltitleelement::HTMLTitleElement;
+use dom::location::Location;
 use dom::mouseevent::MouseEvent;
 use dom::node::{Node, ElementNodeTypeId, DocumentNodeTypeId, NodeHelpers};
 use dom::node::{CloneChildren, DoNotCloneChildren};
 use dom::nodelist::NodeList;
 use dom::text::Text;
 use dom::processinginstruction::ProcessingInstruction;
+use dom::range::Range;
 use dom::uievent::UIEvent;
 use dom::window::{Window, WindowHelpers};
-use dom::location::Location;
 use html::hubbub_html_parser::build_element_from_tag;
 use hubbub::hubbub::{QuirksMode, NoQuirks, LimitedQuirks, FullQuirks};
 use layout_interface::{DocumentDamageLevel, ContentChangedDocumentDamage};
@@ -502,6 +503,11 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             "htmlevents" | "events" | "event" => Ok(Event::new_uninitialized(&Window(*window))),
             _ => Err(NotSupported)
         }
+    }
+
+    // http://dom.spec.whatwg.org/#dom-document-createrange
+    fn CreateRange(&self) -> Temporary<Range> {
+        Range::new(self)
     }
 
     // http://www.whatwg.org/specs/web-apps/current-work/#document.title
