@@ -7,6 +7,7 @@
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
 use dom::bindings::conversions::{FromJSValConvertible, IDLInterface};
+use dom::bindings::error::throw_type_error;
 use dom::bindings::global::{GlobalRef, GlobalField, WindowField, WorkerField};
 use dom::bindings::js::{JS, Temporary, Root};
 use dom::bindings::trace::Untraceable;
@@ -401,8 +402,8 @@ fn CreateInterfacePrototypeObject(cx: *mut JSContext, global: *mut JSObject,
 
 /// A throwing constructor, for those interfaces that have neither
 /// `NoInterfaceObject` nor `Constructor`.
-pub extern fn ThrowingConstructor(_cx: *mut JSContext, _argc: c_uint, _vp: *mut JSVal) -> JSBool {
-    // FIXME(#347) should trigger exception here
+pub extern fn ThrowingConstructor(cx: *mut JSContext, _argc: c_uint, _vp: *mut JSVal) -> JSBool {
+    throw_type_error(cx, "Illegal constructor.");
     return 0;
 }
 
