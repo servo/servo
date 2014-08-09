@@ -43,6 +43,8 @@ interface Document : Node {
 
   [Throws]
   Event createEvent(DOMString interface_);
+
+  Range createRange();
 };
 
 /* http://www.whatwg.org/specs/web-apps/current-work/#the-document-object */
