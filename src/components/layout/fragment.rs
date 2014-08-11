@@ -660,7 +660,7 @@ impl Fragment {
             Some(ref image_url) => image_url,
         };
 
-        let mut holder = ImageHolder::new(image_url.clone(), layout_context.image_cache.clone());
+        let mut holder = ImageHolder::new(image_url.clone(), layout_context.shared.image_cache.clone());
         let image = match holder.get_image() {
             None => {
                 // No image data at all? Do nothing.
@@ -860,7 +860,7 @@ impl Fragment {
                absolute_fragment_bounds,
                self);
         debug!("Fragment::build_display_list: dirty={}, flow_origin={}",
-               layout_context.dirty,
+               layout_context.shared.dirty,
                flow_origin);
 
         let mut accumulator = ChildDisplayListAccumulator::new(self.style(),
@@ -871,7 +871,7 @@ impl Fragment {
             return accumulator
         }
 
-        if !absolute_fragment_bounds.intersects(&layout_context.dirty) {
+        if !absolute_fragment_bounds.intersects(&layout_context.shared.dirty) {
             debug!("Fragment::build_display_list: Did not intersect...");
             return accumulator
         }
@@ -1431,7 +1431,7 @@ impl Fragment {
                iframe_fragment.pipeline_id,
                iframe_fragment.subpage_id);
         let msg = FrameRectMsg(iframe_fragment.pipeline_id, iframe_fragment.subpage_id, rect);
-        let ConstellationChan(ref chan) = layout_context.constellation_chan;
+        let ConstellationChan(ref chan) = layout_context.shared.constellation_chan;
         chan.send(msg)
     }
 }

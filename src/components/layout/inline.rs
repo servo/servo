@@ -932,7 +932,7 @@ impl InlineFlow {
         // FIXME(#2795): Get the real container size
         let container_size = Size2D::zero();
         if !abs_rect.to_physical(self.base.writing_mode, container_size)
-                    .intersects(&layout_context.dirty) {
+                    .intersects(&layout_context.shared.dirty) {
             return
         }
 
@@ -1090,7 +1090,7 @@ impl Flow for InlineFlow {
         self
     }
 
-    fn bubble_inline_sizes(&mut self, _: &mut LayoutContext) {
+    fn bubble_inline_sizes(&mut self, _: &LayoutContext) {
         let writing_mode = self.base.writing_mode;
         for kid in self.base.child_iter() {
             flow::mut_base(kid).floats = Floats::new(writing_mode);
@@ -1115,7 +1115,7 @@ impl Flow for InlineFlow {
 
     /// Recursively (top-down) determines the actual inline-size of child contexts and fragments. When called
     /// on this context, the context has had its inline-size set by the parent context.
-    fn assign_inline_sizes(&mut self, _: &mut LayoutContext) {
+    fn assign_inline_sizes(&mut self, _: &LayoutContext) {
         // Initialize content fragment inline-sizes if they haven't been initialized already.
         //
         // TODO: Combine this with `LineBreaker`'s walk in the fragment list, or put this into `Fragment`.
@@ -1144,7 +1144,7 @@ impl Flow for InlineFlow {
     }
 
     /// Calculate and set the block-size of this flow. See CSS 2.1 § 10.6.1.
-    fn assign_block_size(&mut self, _: &mut LayoutContext) {
+    fn assign_block_size(&mut self, _: &LayoutContext) {
         debug!("assign_block_size_inline: assigning block_size for flow");
 
         // Divide the fragments into lines.

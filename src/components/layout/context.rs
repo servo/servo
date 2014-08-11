@@ -10,8 +10,6 @@ use geom::{Rect, Size2D};
 use gfx::display_list::OpaqueNode;
 use gfx::font_context::FontContext;
 use gfx::font_cache_task::FontCacheTask;
-#[cfg(not(target_os="android"))]
-use green::task::GreenTask;
 use script::layout_interface::LayoutChan;
 use servo_msg::constellation_msg::ConstellationChan;
 use servo_net::local_image_cache::LocalImageCache;
@@ -19,42 +17,37 @@ use servo_util::geometry::Au;
 use servo_util::opts::Opts;
 use sync::{Arc, Mutex};
 use std::mem;
-#[cfg(not(target_os="android"))]
-use std::ptr;
-#[cfg(not(target_os="android"))]
-use std::rt::local::Local;
-#[cfg(not(target_os="android"))]
-use std::rt::task::Task;
 use style::Stylist;
 use url::Url;
 
-#[cfg(not(target_os="android"))]
-#[thread_local]
-static mut FONT_CONTEXT: *mut FontContext = 0 as *mut FontContext;
+struct LocalLayoutContext {
+    font_context: FontContext,
+    applicable_declarations_cache: ApplicableDeclarationsCache,
+    style_sharing_candidate_cache: StyleSharingCandidateCache,
+}
 
-#[cfg(target_os="android")]
-local_data_key!(font_context: *mut FontContext)
+local_data_key!(local_context_key: *mut LocalLayoutContext)
 
-#[cfg(not(target_os="android"))]
-#[thread_local]
-static mut APPLICABLE_DECLARATIONS_CACHE: *mut ApplicableDeclarationsCache =
-    0 as *mut ApplicableDeclarationsCache;
+fn create_or_get_local_context(shared_layout_context: &SharedLayoutContext) -> *mut LocalLayoutContext {
+    let maybe_context = local_context_key.get();
 
-#[cfg(target_os="android")]
-local_data_key!(applicable_declarations_cache: *mut ApplicableDeclarationsCache)
+    let context = match maybe_context {
+        None => {
+            let context = box LocalLayoutContext {
+                font_context: FontContext::new(shared_layout_context.font_cache_task.clone()),
+                applicable_declarations_cache: ApplicableDeclarationsCache::new(),
+                style_sharing_candidate_cache: StyleSharingCandidateCache::new(),
+            };
+            local_context_key.replace(Some(unsafe { mem::transmute(context) }));
+            local_context_key.get().unwrap()
+        },
+        Some(context) => context
+    };
 
-#[cfg(not(target_os="android"))]
-#[thread_local]
-static mut STYLE_SHARING_CANDIDATE_CACHE: *mut StyleSharingCandidateCache =
-    0 as *mut StyleSharingCandidateCache;
+    *context
+}
 
-#[cfg(target_os="android")]
-local_data_key!(style_sharing_candidate_cache: *mut StyleSharingCandidateCache)
-
-/// Data shared by all layout workers.
-#[allow(raw_pointer_deriving)]
-#[deriving(Clone)]
-pub struct LayoutContext {
+pub struct SharedLayoutContext {
     /// The local image cache.
     pub image_cache: Arc<Mutex<LocalImageCache>>,
 
@@ -88,126 +81,43 @@ pub struct LayoutContext {
     pub dirty: Rect<Au>,
 }
 
-#[cfg(not(target_os="android"))]
-impl LayoutContext {
-    pub fn font_context<'a>(&'a mut self) -> &'a mut FontContext {
-        // Sanity check.
-        {
-            let mut task = Local::borrow(None::<Task>);
-            match task.maybe_take_runtime::<GreenTask>() {
-                Some(green) => {
-                    task.put_runtime(green);
-                    fail!("can't call this on a green task!")
-                }
-                None => {}
-            }
-        }
+pub struct LayoutContext<'a> {
+    pub shared: &'a SharedLayoutContext,
+    cached_local_layout_context: *mut LocalLayoutContext,
+}
 
-        unsafe {
-            if FONT_CONTEXT == ptr::mut_null() {
-                let context = box FontContext::new(self.font_cache_task.clone());
-                FONT_CONTEXT = mem::transmute(context)
-            }
-            mem::transmute(FONT_CONTEXT)
+impl<'a> LayoutContext<'a> {
+    pub fn new(shared_layout_context: &'a SharedLayoutContext) -> LayoutContext<'a> {
+
+        let local_context = create_or_get_local_context(shared_layout_context);
+
+        LayoutContext {
+            shared: shared_layout_context,
+            cached_local_layout_context: local_context,
         }
     }
 
+    #[inline(always)]
+    pub fn font_context<'a>(&'a self) -> &'a mut FontContext {
+        unsafe {
+            let cached_context = &*self.cached_local_layout_context;
+            mem::transmute(&cached_context.font_context)
+        }
+    }
+
+    #[inline(always)]
     pub fn applicable_declarations_cache<'a>(&'a self) -> &'a mut ApplicableDeclarationsCache {
-        // Sanity check.
-        {
-            let mut task = Local::borrow(None::<Task>);
-            match task.maybe_take_runtime::<GreenTask>() {
-                Some(green) => {
-                    task.put_runtime(green);
-                    fail!("can't call this on a green task!")
-                }
-                None => {}
-            }
-        }
-
         unsafe {
-            if APPLICABLE_DECLARATIONS_CACHE == ptr::mut_null() {
-                let cache = box ApplicableDeclarationsCache::new();
-                APPLICABLE_DECLARATIONS_CACHE = mem::transmute(cache)
-            }
-            mem::transmute(APPLICABLE_DECLARATIONS_CACHE)
+            let cached_context = &*self.cached_local_layout_context;
+            mem::transmute(&cached_context.applicable_declarations_cache)
         }
     }
 
+    #[inline(always)]
     pub fn style_sharing_candidate_cache<'a>(&'a self) -> &'a mut StyleSharingCandidateCache {
-        // Sanity check.
-        {
-            let mut task = Local::borrow(None::<Task>);
-            match task.maybe_take_runtime::<GreenTask>() {
-                Some(green) => {
-                    task.put_runtime(green);
-                    fail!("can't call this on a green task!")
-                }
-                None => {}
-            }
-        }
-
         unsafe {
-            if STYLE_SHARING_CANDIDATE_CACHE == ptr::mut_null() {
-                let cache = box StyleSharingCandidateCache::new();
-                STYLE_SHARING_CANDIDATE_CACHE = mem::transmute(cache)
-            }
-            mem::transmute(STYLE_SHARING_CANDIDATE_CACHE)
+            let cached_context = &*self.cached_local_layout_context;
+            mem::transmute(&cached_context.style_sharing_candidate_cache)
         }
     }
 }
-
-
-// On Android, we don't have the __tls_* functions emitted by rustc, so we
-// need to use the slower local_data functions.
-// Making matters worse, the local_data functions are very particular about
-// enforcing the lifetimes associated with objects that they hold onto,
-// which causes us some trouble we work around as below.
-#[cfg(target_os="android")]
-impl LayoutContext {
-    pub fn font_context<'a>(&'a mut self) -> &'a mut FontContext {
-        unsafe {
-            let opt = font_context.replace(None);
-            let mut context;
-            match opt {
-                Some(c) => context = mem::transmute(c),
-                None => {
-                    context = mem::transmute(box FontContext::new(self.font_cache_task.clone()))
-                }
-            }
-            font_context.replace(Some(context));
-            mem::transmute(context)
-        }
-    }
-
-    pub fn applicable_declarations_cache<'a>(&'a self) -> &'a mut ApplicableDeclarationsCache {
-        unsafe {
-            let opt = applicable_declarations_cache.replace(None);
-            let mut cache;
-            match opt {
-                Some(c) => cache = mem::transmute(c),
-                None => {
-                    cache = mem::transmute(box ApplicableDeclarationsCache::new());
-                }
-            }
-            applicable_declarations_cache.replace(Some(cache));
-            mem::transmute(cache)
-        }
-    }
-
-    pub fn style_sharing_candidate_cache<'a>(&'a self) -> &'a mut StyleSharingCandidateCache {
-        unsafe {
-            let opt = style_sharing_candidate_cache.replace(None);
-            let mut cache;
-            match opt {
-                Some(c) => cache = mem::transmute(c),
-                None => {
-                    cache = mem::transmute(box StyleSharingCandidateCache::new());
-                }
-            }
-            style_sharing_candidate_cache.replace(Some(cache));
-            mem::transmute(cache)
-        }
-    }
-}
-

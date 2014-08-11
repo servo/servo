@@ -11,7 +11,6 @@ use extra::LayoutAuxMethods;
 use util::{LayoutDataAccess, LayoutDataWrapper};
 use wrapper::{LayoutElement, LayoutNode, PostorderNodeMutTraversal, ThreadSafeLayoutNode};
 
-use gfx::font_context::FontContext;
 use servo_util::atom::Atom;
 use servo_util::cache::{Cache, LRUCache, SimpleHashCache};
 use servo_util::namespace::Null;
@@ -283,13 +282,9 @@ pub trait MatchMethods {
     /// sequentially.
     fn recalc_style_for_subtree(&self,
                                 stylist: &Stylist,
-                                layout_context: &mut LayoutContext,
-                                mut font_context: Box<FontContext>,
+                                layout_context: &LayoutContext,
                                 applicable_declarations: &mut ApplicableDeclarations,
-                                applicable_declarations_cache: &mut ApplicableDeclarationsCache,
-                                style_sharing_candidate_cache: &mut StyleSharingCandidateCache,
-                                parent: Option<LayoutNode>)
-                                -> Box<FontContext>;
+                                parent: Option<LayoutNode>);
 
     fn match_node(&self,
                   stylist: &Stylist,
@@ -462,18 +457,14 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
 
     fn recalc_style_for_subtree(&self,
                                 stylist: &Stylist,
-                                layout_context: &mut LayoutContext,
-                                mut font_context: Box<FontContext>,
+                                layout_context: &LayoutContext,
                                 applicable_declarations: &mut ApplicableDeclarations,
-                                applicable_declarations_cache: &mut ApplicableDeclarationsCache,
-                                style_sharing_candidate_cache: &mut StyleSharingCandidateCache,
-                                parent: Option<LayoutNode>)
-                                -> Box<FontContext> {
-        self.initialize_layout_data(layout_context.layout_chan.clone());
+                                parent: Option<LayoutNode>) {
+        self.initialize_layout_data(layout_context.shared.layout_chan.clone());
 
         // First, check to see whether we can share a style with someone.
         let sharing_result = unsafe {
-            self.share_style_if_possible(style_sharing_candidate_cache, parent.clone())
+            self.share_style_if_possible(layout_context.style_sharing_candidate_cache(), parent.clone())
         };
 
         // Otherwise, match and cascade selectors.
@@ -486,34 +477,30 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
                 unsafe {
                     self.cascade_node(parent,
                                       applicable_declarations,
-                                      applicable_declarations_cache)
+                                      layout_context.applicable_declarations_cache())
                 }
 
                 applicable_declarations.clear();
 
                 // Add ourselves to the LRU cache.
                 if shareable {
-                    style_sharing_candidate_cache.insert_if_possible(self)
+                    layout_context.style_sharing_candidate_cache().insert_if_possible(self)
                 }
             }
-            StyleWasShared(index) => style_sharing_candidate_cache.touch(index),
+            StyleWasShared(index) => layout_context.style_sharing_candidate_cache().touch(index),
         }
 
         for kid in self.children() {
-            font_context = kid.recalc_style_for_subtree(stylist,
-                                                        layout_context,
-                                                        font_context,
-                                                        applicable_declarations,
-                                                        applicable_declarations_cache,
-                                                        style_sharing_candidate_cache,
-                                                        Some(self.clone()))
+            kid.recalc_style_for_subtree(stylist,
+                                        layout_context,
+                                        applicable_declarations,
+                                        Some(self.clone()))
         }
 
         // Construct flows.
         let layout_node = ThreadSafeLayoutNode::new(self);
-        let mut flow_constructor = FlowConstructor::new(layout_context, Some(font_context));
+        let mut flow_constructor = FlowConstructor::new(layout_context);
         flow_constructor.process(&layout_node);
-        flow_constructor.unwrap_font_context().unwrap()
     }
 
     unsafe fn cascade_node(&self,

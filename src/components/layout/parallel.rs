@@ -8,7 +8,7 @@
 
 use css::matching::{ApplicableDeclarations, CannotShare, MatchMethods, StyleWasShared};
 use construct::FlowConstructor;
-use context::LayoutContext;
+use context::{LayoutContext, SharedLayoutContext};
 use extra::LayoutAuxMethods;
 use flow::{Flow, MutableFlowUtils, PreorderFlowTraversal, PostorderFlowTraversal};
 use flow;
@@ -116,7 +116,7 @@ trait ParallelPostorderFlowTraversal : PostorderFlowTraversal {
     /// fetch-and-subtract the parent's children count.
     fn run_parallel(&mut self,
                     mut unsafe_flow: UnsafeFlow,
-                    _: &mut WorkerProxy<*mut LayoutContext,UnsafeFlow>) {
+                    _: &mut WorkerProxy<*const SharedLayoutContext,UnsafeFlow>) {
         loop {
             unsafe {
                 // Get a real flow.
@@ -160,17 +160,17 @@ trait ParallelPostorderFlowTraversal : PostorderFlowTraversal {
 trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
     fn run_parallel(&mut self,
                     unsafe_flow: UnsafeFlow,
-                    proxy: &mut WorkerProxy<*mut LayoutContext,UnsafeFlow>);
+                    proxy: &mut WorkerProxy<*const SharedLayoutContext,UnsafeFlow>);
 
     #[inline(always)]
     fn run_parallel_helper(&mut self,
                            unsafe_flow: UnsafeFlow,
-                           proxy: &mut WorkerProxy<*mut LayoutContext,UnsafeFlow>,
+                           proxy: &mut WorkerProxy<*const SharedLayoutContext,UnsafeFlow>,
                            top_down_func: extern "Rust" fn(UnsafeFlow,
-                                                           &mut WorkerProxy<*mut LayoutContext,
+                                                           &mut WorkerProxy<*const SharedLayoutContext,
                                                                             UnsafeFlow>),
                            bottom_up_func: extern "Rust" fn(UnsafeFlow,
-                                                            &mut WorkerProxy<*mut LayoutContext,
+                                                            &mut WorkerProxy<*const SharedLayoutContext,
                                                                              UnsafeFlow>)) {
         let mut had_children = false;
         unsafe {
@@ -203,7 +203,7 @@ impl<'a> ParallelPostorderFlowTraversal for BubbleISizesTraversal<'a> {}
 impl<'a> ParallelPreorderFlowTraversal for AssignISizesTraversal<'a> {
     fn run_parallel(&mut self,
                     unsafe_flow: UnsafeFlow,
-                    proxy: &mut WorkerProxy<*mut LayoutContext,UnsafeFlow>) {
+                    proxy: &mut WorkerProxy<*const SharedLayoutContext,UnsafeFlow>) {
         self.run_parallel_helper(unsafe_flow,
                                  proxy,
                                  assign_inline_sizes,
@@ -214,8 +214,9 @@ impl<'a> ParallelPreorderFlowTraversal for AssignISizesTraversal<'a> {
 impl<'a> ParallelPostorderFlowTraversal for AssignBSizesAndStoreOverflowTraversal<'a> {}
 
 fn recalc_style_for_node(unsafe_layout_node: UnsafeLayoutNode,
-                         proxy: &mut WorkerProxy<*mut LayoutContext,UnsafeLayoutNode>) {
-    let layout_context = unsafe { &mut **proxy.user_data() };
+                         proxy: &mut WorkerProxy<*const SharedLayoutContext,UnsafeLayoutNode>) {
+    let shared_layout_context = unsafe { &**proxy.user_data() };
+    let layout_context = LayoutContext::new(shared_layout_context);
 
     // Get a real layout node.
     let node: LayoutNode = unsafe {
@@ -226,11 +227,11 @@ fn recalc_style_for_node(unsafe_layout_node: UnsafeLayoutNode,
     //
     // FIXME(pcwalton): Stop allocating here. Ideally this should just be done by the HTML
     // parser.
-    node.initialize_layout_data(layout_context.layout_chan.clone());
+    node.initialize_layout_data(layout_context.shared.layout_chan.clone());
 
     // Get the parent node.
     let opaque_node: OpaqueNode = OpaqueNodeMethods::from_layout_node(&node);
-    let parent_opt = if opaque_node == layout_context.reflow_root {
+    let parent_opt = if opaque_node == layout_context.shared.reflow_root {
         None
     } else {
         node.parent_node()
@@ -250,7 +251,7 @@ fn recalc_style_for_node(unsafe_layout_node: UnsafeLayoutNode,
 
             if node.is_element() {
                 // Perform the CSS selector matching.
-                let stylist = unsafe { &*layout_context.stylist };
+                let stylist = unsafe { &*layout_context.shared.stylist };
                 node.match_node(stylist, &mut applicable_declarations, &mut shareable);
             }
 
@@ -302,14 +303,12 @@ fn recalc_style_for_node(unsafe_layout_node: UnsafeLayoutNode,
     }
 
     // If we got here, we're a leaf. Start construction of flows for this node.
-    construct_flows(unsafe_layout_node, proxy)
+    construct_flows(unsafe_layout_node, &layout_context)
 }
 
 fn construct_flows(mut unsafe_layout_node: UnsafeLayoutNode,
-                   proxy: &mut WorkerProxy<*mut LayoutContext,UnsafeLayoutNode>) {
+                   layout_context: &LayoutContext) {
     loop {
-        let layout_context = unsafe { &mut **proxy.user_data() };
-
         // Get a real layout node.
         let node: LayoutNode = unsafe {
             layout_node_from_unsafe_layout_node(&unsafe_layout_node)
@@ -317,7 +316,7 @@ fn construct_flows(mut unsafe_layout_node: UnsafeLayoutNode,
 
         // Construct flows for this node.
         {
-            let mut flow_constructor = FlowConstructor::new(layout_context, None);
+            let mut flow_constructor = FlowConstructor::new(layout_context);
             flow_constructor.process(&ThreadSafeLayoutNode::new(&node));
         }
 
@@ -340,7 +339,7 @@ fn construct_flows(mut unsafe_layout_node: UnsafeLayoutNode,
 
         // If this is the reflow root, we're done.
         let opaque_node: OpaqueNode = OpaqueNodeMethods::from_layout_node(&node);
-        if layout_context.reflow_root == opaque_node {
+        if layout_context.shared.reflow_root == opaque_node {
             break
         }
 
@@ -376,25 +375,27 @@ fn construct_flows(mut unsafe_layout_node: UnsafeLayoutNode,
 }
 
 fn assign_inline_sizes(unsafe_flow: UnsafeFlow,
-                 proxy: &mut WorkerProxy<*mut LayoutContext,UnsafeFlow>) {
-    let layout_context = unsafe { &mut **proxy.user_data() };
+                 proxy: &mut WorkerProxy<*const SharedLayoutContext,UnsafeFlow>) {
+    let shared_layout_context = unsafe { &**proxy.user_data() };
+    let layout_context = LayoutContext::new(shared_layout_context);
     let mut assign_inline_sizes_traversal = AssignISizesTraversal {
-        layout_context: layout_context,
+        layout_context: &layout_context,
     };
     assign_inline_sizes_traversal.run_parallel(unsafe_flow, proxy)
 }
 
 fn assign_block_sizes_and_store_overflow(unsafe_flow: UnsafeFlow,
-                                     proxy: &mut WorkerProxy<*mut LayoutContext,UnsafeFlow>) {
-    let layout_context = unsafe { &mut **proxy.user_data() };
+                                     proxy: &mut WorkerProxy<*const SharedLayoutContext,UnsafeFlow>) {
+    let shared_layout_context = unsafe { &**proxy.user_data() };
+    let layout_context = LayoutContext::new(shared_layout_context);
     let mut assign_block_sizes_traversal = AssignBSizesAndStoreOverflowTraversal {
-        layout_context: layout_context,
+        layout_context: &layout_context,
     };
     assign_block_sizes_traversal.run_parallel(unsafe_flow, proxy)
 }
 
 fn compute_absolute_position(unsafe_flow: UnsafeFlow,
-                             proxy: &mut WorkerProxy<*mut LayoutContext,UnsafeFlow>) {
+                             proxy: &mut WorkerProxy<*const SharedLayoutContext,UnsafeFlow>) {
     let mut had_descendants = false;
     unsafe {
         // Get a real flow.
@@ -448,8 +449,9 @@ fn compute_absolute_position(unsafe_flow: UnsafeFlow,
 }
 
 fn build_display_list(mut unsafe_flow: UnsafeFlow,
-                      proxy: &mut WorkerProxy<*mut LayoutContext,UnsafeFlow>) {
-    let layout_context = unsafe { &mut **proxy.user_data() };
+                      proxy: &mut WorkerProxy<*const SharedLayoutContext,UnsafeFlow>) {
+    let shared_layout_context = unsafe { &**proxy.user_data() };
+    let layout_context = LayoutContext::new(shared_layout_context);
 
     loop {
         unsafe {
@@ -457,7 +459,7 @@ fn build_display_list(mut unsafe_flow: UnsafeFlow,
             let flow: &mut FlowRef = mem::transmute(&unsafe_flow);
 
             // Build display lists.
-            flow.get_mut().build_display_list(layout_context);
+            flow.get_mut().build_display_list(&layout_context);
 
             {
                 let base = flow::mut_base(flow.get_mut());
@@ -506,9 +508,9 @@ fn build_display_list(mut unsafe_flow: UnsafeFlow,
 }
 
 pub fn recalc_style_for_subtree(root_node: &LayoutNode,
-                                layout_context: &mut LayoutContext,
-                                queue: &mut WorkQueue<*mut LayoutContext,UnsafeLayoutNode>) {
-    queue.data = layout_context as *mut _;
+                                shared_layout_context: &SharedLayoutContext,
+                                queue: &mut WorkQueue<*const SharedLayoutContext,UnsafeLayoutNode>) {
+    queue.data = shared_layout_context as *const _;
 
     // Enqueue the root node.
     queue.push(WorkUnit {
@@ -518,14 +520,14 @@ pub fn recalc_style_for_subtree(root_node: &LayoutNode,
 
     queue.run();
 
-    queue.data = ptr::mut_null()
+    queue.data = ptr::null()
 }
 
 pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
                                    time_profiler_chan: TimeProfilerChan,
-                                   layout_context: &mut LayoutContext,
-                                   queue: &mut WorkQueue<*mut LayoutContext,UnsafeFlow>) {
-    queue.data = layout_context as *mut _;
+                                   shared_layout_context: &SharedLayoutContext,
+                                   queue: &mut WorkQueue<*const SharedLayoutContext,UnsafeFlow>) {
+    queue.data = shared_layout_context as *const _;
 
     profile(time::LayoutParallelWarmupCategory, time_profiler_chan, || {
         queue.push(WorkUnit {
@@ -536,14 +538,14 @@ pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
 
     queue.run();
 
-    queue.data = ptr::mut_null()
+    queue.data = ptr::null()
 }
 
 pub fn build_display_list_for_subtree(root: &mut FlowRef,
                                       time_profiler_chan: TimeProfilerChan,
-                                      layout_context: &mut LayoutContext,
-                                      queue: &mut WorkQueue<*mut LayoutContext,UnsafeFlow>) {
-    queue.data = layout_context as *mut _;
+                                      shared_layout_context: &SharedLayoutContext,
+                                      queue: &mut WorkQueue<*const SharedLayoutContext,UnsafeFlow>) {
+    queue.data = shared_layout_context as *const _;
 
     profile(time::LayoutParallelWarmupCategory, time_profiler_chan, || {
         queue.push(WorkUnit {
@@ -554,6 +556,6 @@ pub fn build_display_list_for_subtree(root: &mut FlowRef,
 
     queue.run();
 
-    queue.data = ptr::mut_null()
+    queue.data = ptr::null()
 }
 
