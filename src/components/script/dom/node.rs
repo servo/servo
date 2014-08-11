@@ -614,9 +614,9 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
         let namespace = NamespaceMap::new();
         match parse_selector_list(tokenize(selectors.as_slice()).map(|(token, _)| token).collect(), &namespace) {
             // Step 2.
-            None => return Err(Syntax),
+            Err(()) => return Err(Syntax),
             // Step 3.
-            Some(ref selectors) => {
+            Ok(ref selectors) => {
                 let root = self.ancestors().last().unwrap_or(self.clone());
                 for selector in selectors.iter() {
                     assert!(selector.pseudo_element.is_none());
@@ -641,9 +641,9 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
         let namespace = NamespaceMap::new();
         match parse_selector_list(tokenize(selectors.as_slice()).map(|(token, _)| token).collect(), &namespace) {
             // Step 2.
-            None => return Err(Syntax),
+            Err(()) => return Err(Syntax),
             // Step 3.
-            Some(ref selectors) => {
+            Ok(ref selectors) => {
                 for selector in selectors.iter() {
                     assert!(selector.pseudo_element.is_none());
                     for node in root.traverse_preorder().filter(|node| node.is_element()) {

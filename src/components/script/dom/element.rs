@@ -778,8 +778,8 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         let namespace = NamespaceMap::new();
         match parse_selector_list(tokenize(selectors.as_slice()).map(|(token, _)| token).collect(),
                                   &namespace) {
-            None => return Err(Syntax),
-            Some(ref selectors) => {
+            Err(()) => return Err(Syntax),
+            Ok(ref selectors) => {
                 let root: &JSRef<Node> = NodeCast::from_ref(self);
                 for selector in selectors.iter() {
                     let mut shareable = false;
