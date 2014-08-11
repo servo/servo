@@ -7,15 +7,18 @@ use std::ascii::StrAsciiExt;
 use cssparser::ast::{ComponentValue, Ident, SkipWhitespaceIterable};
 
 
-pub fn one_component_value<'a>(input: &'a [ComponentValue]) -> Option<&'a ComponentValue> {
+pub fn one_component_value<'a>(input: &'a [ComponentValue]) -> Result<&'a ComponentValue, ()> {
     let mut iter = input.skip_whitespace();
-    iter.next().filtered(|_| iter.next().is_none())
+    match iter.next() {
+        Some(value) => if iter.next().is_none() { Ok(value) } else { Err(()) },
+        None => Err(())
+    }
 }
 
 
-pub fn get_ident_lower(component_value: &ComponentValue) -> Option<String> {
+pub fn get_ident_lower(component_value: &ComponentValue) -> Result<String, ()> {
     match component_value {
-        &Ident(ref value) => Some(value.as_slice().to_ascii_lower()),
-        _ => None,
+        &Ident(ref value) => Ok(value.as_slice().to_ascii_lower()),
+        _ => Err(()),
     }
 }

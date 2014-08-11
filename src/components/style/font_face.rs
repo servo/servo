@@ -61,7 +61,7 @@ pub fn parse_font_face_rule(rule: AtRule, parent_rules: &mut Vec<CSSRule>, base_
                     "font-family" => {
                         // FIXME(#2802): Share code with the font-family parser.
                         match one_component_value(value.as_slice()) {
-                            Some(&String(ref string_value)) => {
+                            Ok(&String(ref string_value)) => {
                                 maybe_family = Some(string_value.clone());
                             },
                             _ => {

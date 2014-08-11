@@ -504,10 +504,10 @@ fn parse_functional_pseudo_class(name: String, arguments: Vec<ComponentValue>,
                                  -> Option<SimpleSelector> {
     match name.as_slice().to_ascii_lower().as_slice() {
 //        "lang" => parse_lang(arguments),
-        "nth-child"        => parse_nth(arguments.as_slice()).map(|(a, b)| NthChild(a, b)),
-        "nth-last-child"   => parse_nth(arguments.as_slice()).map(|(a, b)| NthLastChild(a, b)),
-        "nth-of-type"      => parse_nth(arguments.as_slice()).map(|(a, b)| NthOfType(a, b)),
-        "nth-last-of-type" => parse_nth(arguments.as_slice()).map(|(a, b)| NthLastOfType(a, b)),
+        "nth-child"        => parse_nth(arguments.as_slice()).map(|(a, b)| NthChild(a, b)).ok(),
+        "nth-last-child"   => parse_nth(arguments.as_slice()).map(|(a, b)| NthLastChild(a, b)).ok(),
+        "nth-of-type"      => parse_nth(arguments.as_slice()).map(|(a, b)| NthOfType(a, b)).ok(),
+        "nth-last-of-type" => parse_nth(arguments.as_slice()).map(|(a, b)| NthLastOfType(a, b)).ok(),
         "not" => if inside_negation { None } else { parse_negation(arguments, namespaces) },
         _ => None
     }

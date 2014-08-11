@@ -40,32 +40,32 @@ pub mod specified {
     static AU_PER_PC: CSSFloat = AU_PER_PT * 12.;
     impl Length {
         #[inline]
-        fn parse_internal(input: &ComponentValue, negative_ok: bool) -> Option<Length> {
+        fn parse_internal(input: &ComponentValue, negative_ok: bool) -> Result<Length, ()> {
             match input {
                 &Dimension(ref value, ref unit) if negative_ok || value.value >= 0.
                 => Length::parse_dimension(value.value, unit.as_slice()),
-                &Number(ref value) if value.value == 0. =>  Some(Au_(Au(0))),
-                _ => None
+                &Number(ref value) if value.value == 0. =>  Ok(Au_(Au(0))),
+                _ => Err(())
             }
         }
         #[allow(dead_code)]
-        pub fn parse(input: &ComponentValue) -> Option<Length> {
+        pub fn parse(input: &ComponentValue) -> Result<Length, ()> {
             Length::parse_internal(input, /* negative_ok = */ true)
         }
-        pub fn parse_non_negative(input: &ComponentValue) -> Option<Length> {
+        pub fn parse_non_negative(input: &ComponentValue) -> Result<Length, ()> {
             Length::parse_internal(input, /* negative_ok = */ false)
         }
-        pub fn parse_dimension(value: CSSFloat, unit: &str) -> Option<Length> {
+        pub fn parse_dimension(value: CSSFloat, unit: &str) -> Result<Length, ()> {
             match unit.to_ascii_lower().as_slice() {
-                "px" => Some(Length::from_px(value)),
-                "in" => Some(Au_(Au((value * AU_PER_IN) as i32))),
-                "cm" => Some(Au_(Au((value * AU_PER_CM) as i32))),
-                "mm" => Some(Au_(Au((value * AU_PER_MM) as i32))),
-                "pt" => Some(Au_(Au((value * AU_PER_PT) as i32))),
-                "pc" => Some(Au_(Au((value * AU_PER_PC) as i32))),
-                "em" => Some(Em(value)),
-                "ex" => Some(Ex(value)),
-                _ => None
+                "px" => Ok(Length::from_px(value)),
+                "in" => Ok(Au_(Au((value * AU_PER_IN) as i32))),
+                "cm" => Ok(Au_(Au((value * AU_PER_CM) as i32))),
+                "mm" => Ok(Au_(Au((value * AU_PER_MM) as i32))),
+                "pt" => Ok(Au_(Au((value * AU_PER_PT) as i32))),
+                "pc" => Ok(Au_(Au((value * AU_PER_PC) as i32))),
+                "em" => Ok(Em(value)),
+                "ex" => Ok(Ex(value)),
+                _ => Err(())
             }
         }
         #[inline]
@@ -81,23 +81,23 @@ pub mod specified {
     }
     impl LengthOrPercentage {
         fn parse_internal(input: &ComponentValue, negative_ok: bool)
-                              -> Option<LengthOrPercentage> {
+                              -> Result<LengthOrPercentage, ()> {
             match input {
                 &Dimension(ref value, ref unit) if negative_ok || value.value >= 0.
                 => Length::parse_dimension(value.value, unit.as_slice()).map(LP_Length),
                 &ast::Percentage(ref value) if negative_ok || value.value >= 0.
-                => Some(LP_Percentage(value.value / 100.)),
-                &Number(ref value) if value.value == 0. =>  Some(LP_Length(Au_(Au(0)))),
-                _ => None
+                => Ok(LP_Percentage(value.value / 100.)),
+                &Number(ref value) if value.value == 0. =>  Ok(LP_Length(Au_(Au(0)))),
+                _ => Err(())
             }
         }
         #[allow(dead_code)]
         #[inline]
-        pub fn parse(input: &ComponentValue) -> Option<LengthOrPercentage> {
+        pub fn parse(input: &ComponentValue) -> Result<LengthOrPercentage, ()> {
             LengthOrPercentage::parse_internal(input, /* negative_ok = */ true)
         }
         #[inline]
-        pub fn parse_non_negative(input: &ComponentValue) -> Option<LengthOrPercentage> {
+        pub fn parse_non_negative(input: &ComponentValue) -> Result<LengthOrPercentage, ()> {
             LengthOrPercentage::parse_internal(input, /* negative_ok = */ false)
         }
     }
@@ -110,23 +110,23 @@ pub mod specified {
     }
     impl LengthOrPercentageOrAuto {
         fn parse_internal(input: &ComponentValue, negative_ok: bool)
-                     -> Option<LengthOrPercentageOrAuto> {
+                     -> Result<LengthOrPercentageOrAuto, ()> {
             match input {
                 &Dimension(ref value, ref unit) if negative_ok || value.value >= 0.
                 => Length::parse_dimension(value.value, unit.as_slice()).map(LPA_Length),
                 &ast::Percentage(ref value) if negative_ok || value.value >= 0.
-                => Some(LPA_Percentage(value.value / 100.)),
-                &Number(ref value) if value.value == 0. => Some(LPA_Length(Au_(Au(0)))),
-                &Ident(ref value) if value.as_slice().eq_ignore_ascii_case("auto") => Some(LPA_Auto),
-                _ => None
+                => Ok(LPA_Percentage(value.value / 100.)),
+                &Number(ref value) if value.value == 0. => Ok(LPA_Length(Au_(Au(0)))),
+                &Ident(ref value) if value.as_slice().eq_ignore_ascii_case("auto") => Ok(LPA_Auto),
+                _ => Err(())
             }
         }
         #[inline]
-        pub fn parse(input: &ComponentValue) -> Option<LengthOrPercentageOrAuto> {
+        pub fn parse(input: &ComponentValue) -> Result<LengthOrPercentageOrAuto, ()> {
             LengthOrPercentageOrAuto::parse_internal(input, /* negative_ok = */ true)
         }
         #[inline]
-        pub fn parse_non_negative(input: &ComponentValue) -> Option<LengthOrPercentageOrAuto> {
+        pub fn parse_non_negative(input: &ComponentValue) -> Result<LengthOrPercentageOrAuto, ()> {
             LengthOrPercentageOrAuto::parse_internal(input, /* negative_ok = */ false)
         }
     }
@@ -139,24 +139,24 @@ pub mod specified {
     }
     impl LengthOrPercentageOrNone {
         fn parse_internal(input: &ComponentValue, negative_ok: bool)
-                     -> Option<LengthOrPercentageOrNone> {
+                     -> Result<LengthOrPercentageOrNone, ()> {
             match input {
                 &Dimension(ref value, ref unit) if negative_ok || value.value >= 0.
                 => Length::parse_dimension(value.value, unit.as_slice()).map(LPN_Length),
                 &ast::Percentage(ref value) if negative_ok || value.value >= 0.
-                => Some(LPN_Percentage(value.value / 100.)),
-                &Number(ref value) if value.value == 0. => Some(LPN_Length(Au_(Au(0)))),
-                &Ident(ref value) if value.as_slice().eq_ignore_ascii_case("none") => Some(LPN_None),
-                _ => None
+                => Ok(LPN_Percentage(value.value / 100.)),
+                &Number(ref value) if value.value == 0. => Ok(LPN_Length(Au_(Au(0)))),
+                &Ident(ref value) if value.as_slice().eq_ignore_ascii_case("none") => Ok(LPN_None),
+                _ => Err(())
             }
         }
         #[allow(dead_code)]
         #[inline]
-        pub fn parse(input: &ComponentValue) -> Option<LengthOrPercentageOrNone> {
+        pub fn parse(input: &ComponentValue) -> Result<LengthOrPercentageOrNone, ()> {
             LengthOrPercentageOrNone::parse_internal(input, /* negative_ok = */ true)
         }
         #[inline]
-        pub fn parse_non_negative(input: &ComponentValue) -> Option<LengthOrPercentageOrNone> {
+        pub fn parse_non_negative(input: &ComponentValue) -> Result<LengthOrPercentageOrNone, ()> {
             LengthOrPercentageOrNone::parse_internal(input, /* negative_ok = */ false)
         }
     }
