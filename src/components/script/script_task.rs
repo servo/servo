@@ -64,21 +64,27 @@ use std::rc::Rc;
 
 local_data_key!(pub StackRoots: *const RootCollection)
 
-/// Messages used to control the script task.
+/// Messages used to control script event loops, such as ScriptTask and
+/// DedicatedWorkerGlobalScope.
 pub enum ScriptMsg {
-    /// Acts on a fragment URL load on the specified pipeline.
+    /// Acts on a fragment URL load on the specified pipeline (only dispatched
+    /// to ScriptTask).
     TriggerFragmentMsg(PipelineId, Url),
-    /// Begins a content-initiated load on the specified pipeline.
+    /// Begins a content-initiated load on the specified pipeline (only
+    /// dispatched to ScriptTask).
     TriggerLoadMsg(PipelineId, Url),
-    /// Instructs the script task to send a navigate message to the constellation.
+    /// Instructs the script task to send a navigate message to
+    /// the constellation (only dispatched to ScriptTask).
     NavigateMsg(NavigationDirection),
-    /// Fires a JavaScript timeout.
+    /// Fires a JavaScript timeout (only dispatched to ScriptTask).
     FireTimerMsg(PipelineId, TimerId),
-    /// Notifies the script that a window associated with a particular pipeline should be closed.
+    /// Notifies the script that a window associated with a particular pipeline
+    /// should be closed (only dispatched to ScriptTask).
     ExitWindowMsg(PipelineId),
-    /// Notifies the script of progress on a fetch
+    /// Notifies the script of progress on a fetch (dispatched to all tasks).
     XHRProgressMsg(TrustedXHRAddress, XHRProgress),
-    /// Message sent through postMessage
+    /// Message sent through Worker.postMessage (only dispatched to
+    /// DedicatedWorkerGlobalScope).
     DOMMessage(DOMString),
 }
 
