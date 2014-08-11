@@ -296,7 +296,7 @@ impl LineBreaker {
         self.pending_line.green_zone = LogicalSize::zero(self.floats.writing_mode)
     }
 
-    pub fn scan_for_lines(&mut self, flow: &mut InlineFlow) {
+    pub fn scan_for_lines(&mut self, flow: &mut InlineFlow, layout_context: &LayoutContext) {
         self.reset_scanner();
 
         let mut old_fragments = mem::replace(&mut flow.fragments, InlineFragments::new());
@@ -322,7 +322,7 @@ impl LineBreaker {
                 };
 
                 let fragment_was_appended = match cur_fragment.white_space() {
-                    white_space::normal => self.try_append_to_line(cur_fragment, flow),
+                    white_space::normal => self.try_append_to_line(cur_fragment, flow, layout_context),
                     white_space::pre => self.try_append_to_line_by_new_line(cur_fragment),
                 };
 
@@ -360,8 +360,8 @@ impl LineBreaker {
 
     // FIXME(eatkinson): this assumes that the tallest fragment in the line determines the line block-size
     // This might not be the case with some weird text fonts.
-    fn new_block_size_for_line(&self, new_fragment: &Fragment) -> Au {
-        let fragment_block_size = new_fragment.content_block_size();
+    fn new_block_size_for_line(&self, new_fragment: &Fragment, layout_context: &LayoutContext) -> Au {
+        let fragment_block_size = new_fragment.content_block_size(layout_context);
         if fragment_block_size > self.pending_line.bounds.size.block {
             fragment_block_size
         } else {
@@ -507,7 +507,7 @@ impl LineBreaker {
 
     /// Tries to append the given fragment to the line, splitting it if necessary. Returns false only if
     /// we should break the line.
-    fn try_append_to_line(&mut self, in_fragment: Fragment, flow: &InlineFlow) -> bool {
+    fn try_append_to_line(&mut self, in_fragment: Fragment, flow: &InlineFlow, layout_context: &LayoutContext) -> bool {
         let line_is_empty = self.pending_line.range.length() == num::zero();
         if line_is_empty {
             let (line_bounds, _) = self.initial_line_placement(&in_fragment, self.cur_b, flow);
@@ -528,7 +528,7 @@ impl LineBreaker {
         // `green_zone.block-size < self.pending_line.bounds.size.block-size`, then we committed a line
         // that overlaps with floats.
 
-        let new_block_size = self.new_block_size_for_line(&in_fragment);
+        let new_block_size = self.new_block_size_for_line(&in_fragment, layout_context);
         if new_block_size > green_zone.block {
             // Uh-oh. Float collision imminent. Enter the float collision avoider
             return self.avoid_floats(in_fragment, flow, new_block_size, line_is_empty)
@@ -971,14 +971,15 @@ impl InlineFlow {
                               block_size_above_baseline: &mut Au,
                               depth_below_baseline: &mut Au,
                               largest_block_size_for_top_fragments: &mut Au,
-                              largest_block_size_for_bottom_fragments: &mut Au)
+                              largest_block_size_for_bottom_fragments: &mut Au,
+                              layout_context: &LayoutContext)
                               -> (Au, bool) {
         match fragment.vertical_align() {
             vertical_align::baseline => (-ascent, false),
             vertical_align::middle => {
                 // TODO: x-block-size value should be used from font info.
                 let xblock_size = Au(0);
-                let fragment_block_size = fragment.content_block_size();
+                let fragment_block_size = fragment.content_block_size(layout_context);
                 let offset_block_start = -(xblock_size + fragment_block_size).scale_by(0.5);
                 *block_size_above_baseline = offset_block_start.scale_by(-1.0);
                 *depth_below_baseline = fragment_block_size - *block_size_above_baseline;
@@ -1026,7 +1027,7 @@ impl InlineFlow {
             },
             vertical_align::Length(length) => (-(length + ascent), false),
             vertical_align::Percentage(p) => {
-                let line_height = fragment.calculate_line_height();
+                let line_height = fragment.calculate_line_height(layout_context);
                 let percent_offset = line_height.scale_by(p);
                 (-(percent_offset + ascent), false)
             }
@@ -1071,7 +1072,7 @@ impl InlineFlow {
                                               style: &ComputedValues) -> (Au, Au) {
         let font_style = text::computed_style_to_font_style(style);
         let font_metrics = text::font_metrics_for_style(font_context, &font_style);
-        let line_height = text::line_height_from_style(style);
+        let line_height = text::line_height_from_style(style, &font_metrics);
         let inline_metrics = InlineMetrics::from_font_metrics(&font_metrics, line_height);
         (inline_metrics.block_size_above_baseline, inline_metrics.depth_below_baseline)
     }
@@ -1144,7 +1145,7 @@ impl Flow for InlineFlow {
     }
 
     /// Calculate and set the block-size of this flow. See CSS 2.1 § 10.6.1.
-    fn assign_block_size(&mut self, _: &LayoutContext) {
+    fn assign_block_size(&mut self, ctx: &LayoutContext) {
         debug!("assign_block_size_inline: assigning block_size for flow");
 
         // Divide the fragments into lines.
@@ -1165,7 +1166,7 @@ impl Flow for InlineFlow {
 
         let scanner_floats = self.base.floats.clone();
         let mut scanner = LineBreaker::new(scanner_floats);
-        scanner.scan_for_lines(self);
+        scanner.scan_for_lines(self, ctx);
 
         // All lines use text alignment of the flow.
         let text_align = self.base.flags.text_align();
@@ -1196,7 +1197,7 @@ impl Flow for InlineFlow {
                     block_size_above_baseline: mut block_size_above_baseline,
                     depth_below_baseline: mut depth_below_baseline,
                     ascent
-                } = fragment.inline_metrics();
+                } = fragment.inline_metrics(ctx);
 
                 // To calculate text-top and text-bottom value when `vertical-align` is involved,
                 // we should find the top and bottom of the content area of the parent fragment.
@@ -1231,7 +1232,8 @@ impl Flow for InlineFlow {
                         &mut block_size_above_baseline,
                         &mut depth_below_baseline,
                         &mut largest_block_size_for_top_fragments,
-                        &mut largest_block_size_for_bottom_fragments);
+                        &mut largest_block_size_for_bottom_fragments,
+                        ctx);
 
                 // Unless the current fragment has `vertical-align` set to `top` or `bottom`,
                 // `largest_block-size_above_baseline` and `largest_depth_below_baseline` are updated.

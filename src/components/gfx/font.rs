@@ -77,7 +77,8 @@ pub struct FontMetrics {
     pub em_size:          Au,
     pub ascent:           Au,
     pub descent:          Au,
-    pub max_advance:      Au
+    pub max_advance:      Au,
+    pub line_gap:         Au,
 }
 
 // TODO(Issue #179): eventually this will be split into the specified
