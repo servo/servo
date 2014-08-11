@@ -7,10 +7,10 @@ use dom::bindings::codegen::Bindings::WorkerBinding::WorkerMethods;
 use dom::bindings::error::{Fallible, Syntax};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::trace::Untraceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use dom::eventtarget::{EventTarget, WorkerTypeId};
+use script_task::{ScriptChan, DOMMessage};
 
 use servo_util::str::DOMString;
 use url::UrlParser;
@@ -18,18 +18,18 @@ use url::UrlParser;
 #[deriving(Encodable)]
 pub struct Worker {
     eventtarget: EventTarget,
-    sender: Untraceable<Sender<DOMString>>,
+    sender: ScriptChan,
 }
 
 impl Worker {
-    pub fn new_inherited(sender: Sender<DOMString>) -> Worker {
+    pub fn new_inherited(sender: ScriptChan) -> Worker {
         Worker {
             eventtarget: EventTarget::new_inherited(WorkerTypeId),
-            sender: Untraceable::new(sender),
+            sender: sender,
         }
     }
 
-    pub fn new(global: &GlobalRef, sender: Sender<DOMString>) -> Temporary<Worker> {
+    pub fn new(global: &GlobalRef, sender: ScriptChan) -> Temporary<Worker> {
         reflect_dom_object(box Worker::new_inherited(sender),
                            global,
                            WorkerBinding::Wrap)
@@ -44,17 +44,17 @@ impl Worker {
             Err(_) => return Err(Syntax),
         };
 
-        let (sender, receiver) = channel();
         let resource_task = global.resource_task();
-        DedicatedWorkerGlobalScope::run_worker_scope(
-            worker_url, receiver, resource_task, global.script_chan().clone());
+        let sender = DedicatedWorkerGlobalScope::run_worker_scope(
+            worker_url, resource_task);
         Ok(Worker::new(global, sender))
     }
 }
 
 impl<'a> WorkerMethods for JSRef<'a, Worker> {
     fn PostMessage(&self, message: DOMString) {
-        self.sender.send(message);
+        let ScriptChan(ref sender) = self.sender;
+        sender.send(DOMMessage(message));
     }
 }
 

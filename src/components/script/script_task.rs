@@ -31,12 +31,6 @@ use layout_interface::ContentChangedDocumentDamage;
 use layout_interface;
 use page::{Page, IterablePage, Frame};
 
-use geom::point::Point2D;
-use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ, JS_GC};
-use js::jsapi::{JSContext, JSRuntime};
-use js::rust::{Cx, RtUtils};
-use js::rust::with_compartment;
-use js;
 use script_traits::{CompositorEvent, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent};
 use script_traits::{MouseMoveEvent, MouseUpEvent, ConstellationControlMsg, ScriptTaskFactory};
 use script_traits::{ResizeMsg, AttachLayoutMsg, LoadMsg, SendEventMsg, ResizeInactiveMsg};
@@ -50,32 +44,48 @@ use servo_msg::constellation_msg;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_util::geometry::to_frac_px;
+use servo_util::str::DOMString;
 use servo_util::task::spawn_named_with_send_on_failure;
+
+use geom::point::Point2D;
+use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ, JS_GC};
+use js::jsapi::{JSContext, JSRuntime};
+use js::rust::{Cx, RtUtils};
+use js::rust::with_compartment;
+use js;
+use url::Url;
+
+use serialize::{Encoder, Encodable};
 use std::any::{Any, AnyRefExt};
 use std::cell::RefCell;
 use std::comm::{channel, Sender, Receiver, Select};
 use std::mem::replace;
 use std::rc::Rc;
-use url::Url;
-
-use serialize::{Encoder, Encodable};
 
 local_data_key!(pub StackRoots: *const RootCollection)
 
-/// Messages used to control the script task.
+/// Messages used to control script event loops, such as ScriptTask and
+/// DedicatedWorkerGlobalScope.
 pub enum ScriptMsg {
-    /// Acts on a fragment URL load on the specified pipeline.
+    /// Acts on a fragment URL load on the specified pipeline (only dispatched
+    /// to ScriptTask).
     TriggerFragmentMsg(PipelineId, Url),
-    /// Begins a content-initiated load on the specified pipeline.
+    /// Begins a content-initiated load on the specified pipeline (only
+    /// dispatched to ScriptTask).
     TriggerLoadMsg(PipelineId, Url),
-    /// Instructs the script task to send a navigate message to the constellation.
+    /// Instructs the script task to send a navigate message to
+    /// the constellation (only dispatched to ScriptTask).
     NavigateMsg(NavigationDirection),
-    /// Fires a JavaScript timeout.
+    /// Fires a JavaScript timeout (only dispatched to ScriptTask).
     FireTimerMsg(PipelineId, TimerId),
-    /// Notifies the script that a window associated with a particular pipeline should be closed.
+    /// Notifies the script that a window associated with a particular pipeline
+    /// should be closed (only dispatched to ScriptTask).
     ExitWindowMsg(PipelineId),
-    /// Notifies the script of progress on a fetch
-    XHRProgressMsg(TrustedXHRAddress, XHRProgress)
+    /// Notifies the script of progress on a fetch (dispatched to all tasks).
+    XHRProgressMsg(TrustedXHRAddress, XHRProgress),
+    /// Message sent through Worker.postMessage (only dispatched to
+    /// DedicatedWorkerGlobalScope).
+    DOMMessage(DOMString),
 }
 
 /// Encapsulates internal communication within the script task.
@@ -430,6 +440,7 @@ impl ScriptTask {
                 FromScript(ExitWindowMsg(id)) => self.handle_exit_window_msg(id),
                 FromConstellation(ResizeMsg(..)) => fail!("should have handled ResizeMsg already"),
                 FromScript(XHRProgressMsg(addr, progress)) => XMLHttpRequest::handle_xhr_progress(addr, progress),
+                FromScript(DOMMessage(..)) => fail!("unexpected message"),
             }
         }
 

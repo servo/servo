@@ -14,11 +14,11 @@ use dom::eventtarget::WorkerGlobalScopeTypeId;
 use dom::messageevent::MessageEvent;
 use dom::workerglobalscope::DedicatedGlobalScope;
 use dom::workerglobalscope::WorkerGlobalScope;
-use script_task::{ScriptTask, ScriptChan};
+use dom::xmlhttprequest::XMLHttpRequest;
+use script_task::{ScriptTask, ScriptChan, ScriptMsg, DOMMessage, XHRProgressMsg};
 use script_task::StackRootTLS;
 
 use servo_net::resource_task::{ResourceTask, load_whole_resource};
-use servo_util::str::DOMString;
 
 use js::rust::Cx;
 
@@ -30,13 +30,13 @@ use url::Url;
 #[deriving(Encodable)]
 pub struct DedicatedWorkerGlobalScope {
     workerglobalscope: WorkerGlobalScope,
-    receiver: Untraceable<Receiver<DOMString>>,
+    receiver: Untraceable<Receiver<ScriptMsg>>,
 }
 
 impl DedicatedWorkerGlobalScope {
     pub fn new_inherited(worker_url: Url,
                          cx: Rc<Cx>,
-                         receiver: Receiver<DOMString>,
+                         receiver: Receiver<ScriptMsg>,
                          resource_task: ResourceTask,
                          script_chan: ScriptChan)
                          -> DedicatedWorkerGlobalScope {
@@ -50,7 +50,7 @@ impl DedicatedWorkerGlobalScope {
 
     pub fn new(worker_url: Url,
                cx: Rc<Cx>,
-               receiver: Receiver<DOMString>,
+               receiver: Receiver<ScriptMsg>,
                resource_task: ResourceTask,
                script_chan: ScriptChan)
                -> Temporary<DedicatedWorkerGlobalScope> {
@@ -62,9 +62,9 @@ impl DedicatedWorkerGlobalScope {
 
 impl DedicatedWorkerGlobalScope {
     pub fn run_worker_scope(worker_url: Url,
-                            receiver: Receiver<DOMString>,
-                            resource_task: ResourceTask,
-                            script_chan: ScriptChan) {
+                            resource_task: ResourceTask) -> ScriptChan {
+        let (receiver, sender) = ScriptChan::new();
+        let sender_clone = sender.clone();
         TaskBuilder::new()
             .native()
             .named(format!("Web Worker at {}", worker_url.serialize()))
@@ -85,7 +85,7 @@ impl DedicatedWorkerGlobalScope {
             let (_js_runtime, js_context) = ScriptTask::new_rt_and_cx();
             let global = DedicatedWorkerGlobalScope::new(
                 worker_url, js_context.clone(), receiver, resource_task,
-                script_chan).root();
+                sender).root();
             match js_context.evaluate_script(
                 global.reflector().get_jsobject(), source, url.serialize(), 1) {
                 Ok(_) => (),
@@ -98,13 +98,18 @@ impl DedicatedWorkerGlobalScope {
                 EventTargetCast::from_ref(&*global);
             loop {
                 match global.receiver.recv_opt() {
-                    Ok(message) => {
+                    Ok(DOMMessage(message)) => {
                         MessageEvent::dispatch(target, &Worker(*scope), message)
                     },
+                    Ok(XHRProgressMsg(addr, progress)) => {
+                        XMLHttpRequest::handle_xhr_progress(addr, progress)
+                    },
+                    Ok(_) => fail!("Unexpected message"),
                     Err(_) => break,
                 }
             }
         });
+        return sender_clone;
     }
 }
 
