@@ -7,5 +7,5 @@
 /*sealed*/ interface DedicatedWorkerGlobalScope : WorkerGlobalScope {
   //void postMessage(any message, optional sequence<Transferable> transfer);
   void postMessage(DOMString message);
-  //         attribute EventHandler onmessage;
+           attribute EventHandler onmessage;
 };
