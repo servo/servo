@@ -4,7 +4,7 @@
 
 
 use std::ascii::StrAsciiExt;
-use cssparser::ast::{ComponentValue, Ident, SkipWhitespaceIterable};
+use cssparser::ast::{ComponentValue, Ident, SkipWhitespaceIterable, SkipWhitespaceIterator};
 
 
 pub fn one_component_value<'a>(input: &'a [ComponentValue]) -> Result<&'a ComponentValue, ()> {
@@ -22,3 +22,39 @@ pub fn get_ident_lower(component_value: &ComponentValue) -> Result<String, ()> {
         _ => Err(()),
     }
 }
+
+
+pub struct BufferedIter<E, I> {
+    iter: I,
+    buffer: Option<E>,
+}
+
+impl<E, I: Iterator<E>> BufferedIter<E, I> {
+    pub fn new(iter: I) -> BufferedIter<E, I> {
+        BufferedIter {
+            iter: iter,
+            buffer: None,
+        }
+    }
+
+    #[inline]
+    pub fn push_back(&mut self, value: E) {
+        assert!(self.buffer.is_none());
+        self.buffer = Some(value);
+    }
+}
+
+impl<E, I: Iterator<E>> Iterator<E> for BufferedIter<E, I> {
+    #[inline]
+    fn next(&mut self) -> Option<E> {
+        if self.buffer.is_some() {
+            self.buffer.take()
+        }
+        else {
+            self.iter.next()
+        }
+    }
+}
+
+
+pub type ParserIter<'a> = BufferedIter<&'a ComponentValue, SkipWhitespaceIterator<'a>>;

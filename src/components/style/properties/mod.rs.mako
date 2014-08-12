@@ -718,61 +718,61 @@ pub mod longhands {
             pub type T = Vec<FontFamily>;
         }
         pub type SpecifiedValue = computed_value::T;
-        #[inline] pub fn get_initial_value() -> computed_value::T { vec!(FamilyName("serif".to_string())) }
+
+        #[inline]
+        pub fn get_initial_value() -> computed_value::T {
+            vec![FamilyName("serif".to_string())]
+        }
         /// <familiy-name>#
         /// <familiy-name> = <string> | [ <ident>+ ]
         /// TODO: <generic-familiy>
         pub fn parse(input: &[ComponentValue], _base_url: &Url) -> Result<SpecifiedValue, ()> {
             from_iter(input.skip_whitespace())
         }
-        pub fn from_iter<'a>(mut iter: SkipWhitespaceIterator<'a>) -> Result<SpecifiedValue, ()> {
-            let mut result = vec!();
-            macro_rules! add(
-                ($value: expr, $b: expr) => {
-                    {
-                        result.push($value);
-                        match iter.next() {
-                            Some(&Comma) => (),
-                            None => $b,
-                            _ => return Err(()),
-                        }
-                    }
-                }
-            )
-            'outer: loop {
-                match iter.next() {
-                    // TODO: avoid copying strings?
-                    Some(&String(ref value)) => add!(FamilyName(value.clone()), break 'outer),
-                    Some(&Ident(ref value)) => {
-                        match value.as_slice().to_ascii_lower().as_slice() {
-//                            "serif" => add!(Serif, break 'outer),
-//                            "sans-serif" => add!(SansSerif, break 'outer),
-//                            "cursive" => add!(Cursive, break 'outer),
-//                            "fantasy" => add!(Fantasy, break 'outer),
-//                            "monospace" => add!(Monospace, break 'outer),
-                            _ => {
-                                let mut idents = vec!(value.as_slice());
-                                loop {
-                                    match iter.next() {
-                                        Some(&Ident(ref value)) => idents.push(value.as_slice()),
-                                        Some(&Comma) => {
-                                            result.push(FamilyName(idents.connect(" ")));
-                                            break
-                                        },
-                                        None => {
-                                            result.push(FamilyName(idents.connect(" ")));
-                                            break 'outer
-                                        },
-                                        _ => return Err(()),
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    _ => return Err(()),
+        pub fn from_iter<'a>(iter: SkipWhitespaceIterator<'a>) -> Result<SpecifiedValue, ()> {
+            let iter = &mut BufferedIter::new(iter);
+            let mut families = vec![try!(parse_one_family(iter))];
+            for component_value in iter {
+                match component_value {
+                    &Comma => {
+                        families.push(try!(parse_one_family(iter)));
+                    },
+                    _ => return Err(())
                 }
             }
-            Ok(result)
+            Ok(families)
+        }
+        pub fn parse_one_family<'a>(iter: &mut ParserIter) -> Result<FontFamily, ()> {
+            // TODO: avoid copying strings?
+            let mut idents = match iter.next() {
+                Some(&String(ref value)) => return Ok(FamilyName(value.clone())),
+                Some(&Ident(ref value)) => {
+//                    match value.as_slice().to_ascii_lower().as_slice() {
+//                        "serif" => return Ok(Serif),
+//                        "sans-serif" => return Ok(SansSerif),
+//                        "cursive" => return Ok(Cursive),
+//                        "fantasy" => return Ok(Fantasy),
+//                        "monospace" => return Ok(Monospace),
+//                        _ => {
+                            vec![value.as_slice()]
+//                        }
+//                    }
+                }
+                _ => return Err(())
+            };
+            for component_value in iter {
+                match component_value {
+                    &Ident(ref value) => {
+                        idents.push(value.as_slice());
+                        iter.next();
+                    },
+                    _ => {
+                        iter.push_back(component_value);
+                        break
+                    }
+                }
+            }
+            Ok(FamilyName(idents.connect(" ")))
         }
     </%self:longhand>
 

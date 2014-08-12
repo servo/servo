@@ -6,7 +6,7 @@ use cssparser::ast::*;
 use cssparser::parse_declaration_list;
 use errors::{ErrorLoggerIterator, log_css_error};
 use std::ascii::StrAsciiExt;
-use parsing_utils::one_component_value;
+use parsing_utils::BufferedIter;
 use stylesheets::{CSSRule, CSSFontFaceRule};
 use url::{Url, UrlParser};
 
@@ -59,14 +59,13 @@ pub fn parse_font_face_rule(rule: AtRule, parent_rules: &mut Vec<CSSRule>, base_
                 let name_lower = name.as_slice().to_ascii_lower();
                 match name_lower.as_slice() {
                     "font-family" => {
-                        // FIXME(#2802): Share code with the font-family parser.
-                        match one_component_value(value.as_slice()) {
-                            Ok(&String(ref string_value)) => {
-                                maybe_family = Some(string_value.clone());
+                        let iter = &mut BufferedIter::new(value.as_slice().skip_whitespace());
+                        match ::properties::longhands::font_family::parse_one_family(iter) {
+                            Ok(::properties::computed_values::font_family::FamilyName(name)) => {
+                                maybe_family = Some(name);
                             },
-                            _ => {
-                                log_css_error(location, format!("Unsupported font-family string {:s}", name).as_slice());
-                            }
+                            // This also includes generic family names:
+                            _ => log_css_error(location, "Invalid font-family in @font-face"),
                         }
                     },
                     "src" => {
