@@ -45,8 +45,9 @@ impl Worker {
         };
 
         let resource_task = global.resource_task();
-        let sender = DedicatedWorkerGlobalScope::run_worker_scope(
-            worker_url, resource_task);
+        let (receiver, sender) = ScriptChan::new();
+        DedicatedWorkerGlobalScope::run_worker_scope(
+            worker_url, resource_task, receiver, sender.clone());
         Ok(Worker::new(global, sender))
     }
 }

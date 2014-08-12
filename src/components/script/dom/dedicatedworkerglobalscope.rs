@@ -62,9 +62,9 @@ impl DedicatedWorkerGlobalScope {
 
 impl DedicatedWorkerGlobalScope {
     pub fn run_worker_scope(worker_url: Url,
-                            resource_task: ResourceTask) -> ScriptChan {
-        let (receiver, sender) = ScriptChan::new();
-        let sender_clone = sender.clone();
+                            resource_task: ResourceTask,
+                            receiver: Receiver<ScriptMsg>,
+                            sender: ScriptChan) {
         TaskBuilder::new()
             .native()
             .named(format!("Web Worker at {}", worker_url.serialize()))
@@ -109,7 +109,6 @@ impl DedicatedWorkerGlobalScope {
                 }
             }
         });
-        return sender_clone;
     }
 }
 
