@@ -348,7 +348,7 @@ RFLAGS_style = $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components
 MAKO_ZIP = $(S)src/components/style/Mako-0.9.1.zip
 MAKO_style = $(S)src/components/style/properties/mod.rs
 MAKO_SRC_style = $(MAKO_style).mako
-SRC_style = $(call rwildcard,$(S)src/components/style/,*.rs) $(call rwildcard,$(S)src/compontents/style/properties/*.rs) $(MAKO_style)
+SRC_style = $(call rwildcard,$(S)src/components/style/,*.rs) $(call rwildcard,$(S)src/compontents/style/properties/*.rs) $(MAKO_style) $(S)src/components/style/user-agent.css
 CRATE_style = $(S)src/components/style/style.rs
 DONE_style = $(B)src/components/style/libstyle.dummy
 
@@ -364,7 +364,7 @@ DEPS_layout_traits = $(CRATE_layout_traits) $(SRC_layout_traits) $(DONE_script_t
 
 RFLAGS_layout = $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/gfx -L $(B)src/components/util -L $(B)src/components/net -L $(B)src/components/script -L $(B)src/components/style -L $(B)src/components/msg -L$(B)src/components/macros -L$(B)src/components/layout_traits -L $(B)src/components/script_traits
 
-SRC_layout = $(call rwildcard,$(S)src/components/layout/,*.rs) $(S)src/components/layout/css/user-agent.css
+SRC_layout = $(call rwildcard,$(S)src/components/layout/,*.rs)
 CRATE_layout = $(S)src/components/layout/layout.rs
 DONE_layout = $(B)src/components/layout/liblayout.dummy
 

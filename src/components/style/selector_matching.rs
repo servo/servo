@@ -7,6 +7,8 @@ use std::ascii::StrAsciiExt;
 use std::num::div_rem;
 use sync::Arc;
 
+use url::Url;
+
 use servo_util::atom::Atom;
 use servo_util::namespace;
 use servo_util::smallvec::VecLike;
@@ -287,12 +289,19 @@ pub struct Stylist {
 impl Stylist {
     #[inline]
     pub fn new() -> Stylist {
-        Stylist {
+        let mut stylist = Stylist {
             element_map: PerPseudoElementSelectorMap::new(),
             before_map: PerPseudoElementSelectorMap::new(),
             after_map: PerPseudoElementSelectorMap::new(),
             rules_source_order: 0u,
-        }
+        };
+        let ua_stylesheet = Stylesheet::from_bytes(
+            include_bin!("user-agent.css"),
+            Url::parse("chrome:///user-agent.css").unwrap(),
+            None,
+            None);
+        stylist.add_stylesheet(ua_stylesheet, UserAgentOrigin);
+        stylist
     }
 
     pub fn add_stylesheet(&mut self, stylesheet: Stylesheet, origin: StylesheetOrigin) {

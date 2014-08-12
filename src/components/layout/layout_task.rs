@@ -6,7 +6,6 @@
 //! rendered.
 
 use css::matching::{ApplicableDeclarations, MatchMethods};
-use css::select::new_stylist;
 use css::node_style::StyledNode;
 use construct::{FlowConstructionResult, NoConstructionResult};
 use context::{LayoutContext, SharedLayoutContext};
@@ -347,7 +346,7 @@ impl LayoutTask {
             screen_size: screen_size,
 
             display_list: None,
-            stylist: box new_stylist(),
+            stylist: box Stylist::new(),
             parallel_traversal: parallel_traversal,
             time_profiler_chan: time_profiler_chan,
             opts: opts.clone(),
