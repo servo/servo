@@ -175,7 +175,6 @@ impl SelectorMap {
                           shareable: &mut bool) {
         for rule in rules.iter() {
             if matches_compound_selector(&*rule.selector, node, shareable) {
-                // TODO(pradeep): Is the cloning inefficient?
                 matching_rules.vec_push(rule.declarations.clone());
             }
         }
