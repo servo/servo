@@ -927,6 +927,11 @@ pub mod longhands {
             let mut result = SpecifiedValue {
                 underline: false, overline: false, line_through: false,
             };
+            match one_component_value(input) {
+                Ok(&Ident(ref value))
+                if value.as_slice().eq_ignore_ascii_case("none") => return Ok(result),
+                _ => {}
+            }
             let mut blink = false;
             let mut empty = true;
             for component_value in input.skip_whitespace() {
@@ -941,7 +946,6 @@ pub mod longhands {
                                           else { empty = false; result.line_through = true },
                         "blink" => if blink { return Err(()) }
                                    else { empty = false; blink = true },
-                        "none" => return if empty { Ok(result) } else { Err(()) },
                         _ => return Err(()),
                     }
                 }
