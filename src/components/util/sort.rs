@@ -4,7 +4,7 @@
 
 //! In-place sorting.
 
-fn quicksort_helper<T:Ord + Eq + PartialOrd + PartialEq>(arr: &mut [T], left: int, right: int) {
+fn quicksort_helper<T>(arr: &mut [T], left: int, right: int, compare: fn(&T, &T) -> Ordering) {
     if right <= left {
         return
     }
@@ -17,11 +17,11 @@ fn quicksort_helper<T:Ord + Eq + PartialOrd + PartialEq>(arr: &mut [T], left: in
         let v: *mut T = &mut arr[right as uint];
         loop {
             i += 1;
-            while arr[i as uint] < (*v) {
+            while compare(&arr[i as uint], &*v) == Less {
                 i += 1
             }
             j -= 1;
-            while (*v) < arr[j as uint] {
+            while compare(&*v, &arr[j as uint]) == Less {
                 if j == left {
                     break
                 }
@@ -31,11 +31,11 @@ fn quicksort_helper<T:Ord + Eq + PartialOrd + PartialEq>(arr: &mut [T], left: in
                 break
             }
             arr.swap(i as uint, j as uint);
-            if arr[i as uint] == (*v) {
+            if compare(&arr[i as uint], &*v) == Equal {
                 p += 1;
                 arr.swap(p as uint, i as uint)
             }
-            if (*v) == arr[j as uint] {
+            if compare(&*v, &arr[j as uint]) == Equal {
                 q -= 1;
                 arr.swap(j as uint, q as uint)
             }
@@ -60,21 +60,21 @@ fn quicksort_helper<T:Ord + Eq + PartialOrd + PartialEq>(arr: &mut [T], left: in
         assert!(k != 0);
     }
 
-    quicksort_helper(arr, left, j);
-    quicksort_helper(arr, i, right);
+    quicksort_helper(arr, left, j, compare);
+    quicksort_helper(arr, i, right, compare);
 }
 
 /// An in-place quicksort.
 ///
 /// The algorithm is from Sedgewick and Bentley, "Quicksort is Optimal":
 ///     http://www.cs.princeton.edu/~rs/talks/QuicksortIsOptimal.pdf
-pub fn quicksort<T:Ord + Eq + PartialOrd + PartialEq>(arr: &mut [T]) {
+pub fn quicksort_by<T>(arr: &mut [T], compare: fn(&T, &T) -> Ordering) {
     if arr.len() <= 1 {
         return
     }
 
     let len = arr.len();
-    quicksort_helper(arr, 0, (len - 1) as int);
+    quicksort_helper(arr, 0, (len - 1) as int, compare);
 }
 
 #[cfg(test)]
@@ -90,7 +90,8 @@ pub mod test {
         for _ in range(0u32, 50000u32) {
             let len: uint = rng.gen();
             let mut v: Vec<int> = rng.gen_iter::<int>().take((len % 32) + 1).collect();
-            sort::quicksort(v.as_mut_slice());
+            fn compare_ints(a: &int, b: &int) -> Ordering { a.cmp(b) }
+            sort::quicksort_by(v.as_mut_slice(), compare_ints);
             for i in range(0, v.len() - 1) {
                 assert!(v.get(i) <= v.get(i + 1))
             }

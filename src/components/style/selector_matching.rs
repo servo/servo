@@ -125,7 +125,11 @@ impl SelectorMap {
                                         shareable);
 
         // Sort only the rules we just added.
-        sort::quicksort(matching_rules_list.vec_mut_slice_from(init_len));
+        sort::quicksort_by(matching_rules_list.vec_mut_slice_from(init_len), compare);
+
+        fn compare(a: &DeclarationBlock, b: &DeclarationBlock) -> Ordering {
+            (a.specificity, a.source_order).cmp(&(b.specificity, b.source_order))
+        }
     }
 
     fn get_matching_rules_from_hash<E:TElement,
@@ -469,34 +473,6 @@ impl DeclarationBlock {
     }
 }
 
-impl PartialEq for DeclarationBlock {
-    #[inline]
-    fn eq(&self, other: &DeclarationBlock) -> bool {
-        let this_rank = (self.specificity, self.source_order);
-        let other_rank = (other.specificity, other.source_order);
-        this_rank == other_rank
-    }
-}
-
-impl Eq for DeclarationBlock {}
-
-impl PartialOrd for DeclarationBlock {
-    #[inline]
-    fn partial_cmp(&self, other: &DeclarationBlock) -> Option<Ordering> {
-        let this_rank = (self.specificity, self.source_order);
-        let other_rank = (other.specificity, other.source_order);
-        this_rank.partial_cmp(&other_rank)
-    }
-}
-
-impl Ord for DeclarationBlock {
-    #[inline]
-    fn cmp(&self, other: &DeclarationBlock) -> Ordering {
-        let this_rank = (self.specificity, self.source_order);
-        let other_rank = (other.specificity, other.source_order);
-        this_rank.cmp(&other_rank)
-    }
-}
 
 /// Determines whether the given element matches the given single or compound selector.
 ///
@@ -968,7 +944,8 @@ mod tests {
         let rules_list = get_mock_rules(["a.intro", "img.sidebar"]);
         let a = &rules_list[0][0].declarations;
         let b = &rules_list[1][0].declarations;
-        assert!(a < b, "The rule that comes later should win.");
+        assert!((a.specificity, a.source_order).cmp(&(b.specificity, b.source_order)) == Less,
+                "The rule that comes later should win.");
     }
 
     #[test]
