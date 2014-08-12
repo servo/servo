@@ -27,21 +27,6 @@ impl<T, I: Iterator<Result<T, SyntaxError>>> Iterator<T> for ErrorLoggerIterator
 /// Set a `RUST_LOG=style::errors` environment variable
 /// to log CSS parse errors to stderr.
 pub fn log_css_error(location: SourceLocation, message: &str) {
-    // Check this first as it’s cheaper than local_data.
-    if log_enabled!(::log::INFO) {
-        if silence_errors.get().is_none() {
-            // TODO eventually this will got into a "web console" or something.
-            info!("{:u}:{:u} {:s}", location.line, location.column, message)
-        }
-    }
-}
-
-
-local_data_key!(silence_errors: ())
-
-pub fn with_errors_silenced<T>(f: || -> T) -> T {
-    silence_errors.replace(Some(()));
-    let result = f();
-    silence_errors.replace(None);
-    result
+    // TODO eventually this will got into a "web console" or something.
+    info!("{:u}:{:u} {:s}", location.line, location.column, message)
 }

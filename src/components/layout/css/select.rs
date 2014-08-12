@@ -8,11 +8,11 @@ use url::Url;
 
 pub fn new_stylist() -> Stylist {
     let mut stylist = Stylist::new();
-    let ua_stylesheet = with_errors_silenced(|| Stylesheet::from_bytes(
+    let ua_stylesheet = Stylesheet::from_bytes(
         include_bin!("user-agent.css"),
         Url::parse("chrome:///user-agent.css").unwrap(),
         None,
-        None));
+        None);
     stylist.add_stylesheet(ua_stylesheet, UserAgentOrigin);
     stylist
 }

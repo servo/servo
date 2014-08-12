@@ -38,7 +38,6 @@ pub use properties::{PropertyDeclaration, ComputedValues, computed_values, style
 pub use properties::{PropertyDeclarationBlock, parse_style_attribute};  // Style attributes
 pub use properties::{CSSFloat, DeclaredValue, PropertyDeclarationParseResult};
 pub use properties::longhands;
-pub use errors::with_errors_silenced;
 pub use node::{TElement, TNode};
 pub use selectors::{PseudoElement, Before, After, AttrSelector, SpecificNamespace, AnyNamespace};
 pub use selectors::{NamespaceConstraint, Selector, CompoundSelector, SimpleSelector, Combinator};
