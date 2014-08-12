@@ -32,7 +32,7 @@ extern crate servo_util = "util";
 // Public API
 pub use stylesheets::{Stylesheet, CSSRule, StyleRule, CSSFontFaceRule};
 pub use selector_matching::{Stylist, StylesheetOrigin, UserAgentOrigin, AuthorOrigin, UserOrigin};
-pub use selector_matching::{MatchedProperty, matches_compound_selector};
+pub use selector_matching::{DeclarationBlock, matches_compound_selector};
 pub use properties::{cascade, cascade_anonymous};
 pub use properties::{PropertyDeclaration, ComputedValues, computed_values, style_structs};
 pub use properties::{PropertyDeclarationBlock, parse_style_attribute};  // Style attributes

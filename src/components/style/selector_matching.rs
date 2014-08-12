@@ -74,7 +74,7 @@ impl SelectorMap {
     /// Sort the Rules at the end to maintain cascading order.
     fn get_all_matching_rules<E:TElement,
                               N:TNode<E>,
-                              V:VecLike<MatchedProperty>>(
+                              V:VecLike<DeclarationBlock>>(
                               &self,
                               node: &N,
                               matching_rules_list: &mut V,
@@ -130,7 +130,7 @@ impl SelectorMap {
 
     fn get_matching_rules_from_hash<E:TElement,
                                     N:TNode<E>,
-                                    V:VecLike<MatchedProperty>>(
+                                    V:VecLike<DeclarationBlock>>(
                                     node: &N,
                                     hash: &HashMap<Atom, Vec<Rule>>,
                                     key: &Atom,
@@ -146,7 +146,7 @@ impl SelectorMap {
 
     fn get_matching_rules_from_hash_ignoring_case<E:TElement,
                                                   N:TNode<E>,
-                                                  V:VecLike<MatchedProperty>>(
+                                                  V:VecLike<DeclarationBlock>>(
                                                   node: &N,
                                                   hash: &HashMap<Atom, Vec<Rule>>,
                                                   key: &str,
@@ -164,7 +164,7 @@ impl SelectorMap {
     /// Adds rules in `rules` that match `node` to the `matching_rules` list.
     fn get_matching_rules<E:TElement,
                           N:TNode<E>,
-                          V:VecLike<MatchedProperty>>(
+                          V:VecLike<DeclarationBlock>>(
                           node: &N,
                           rules: &[Rule],
                           matching_rules: &mut V,
@@ -172,7 +172,7 @@ impl SelectorMap {
         for rule in rules.iter() {
             if matches_compound_selector(&*rule.selector, node, shareable) {
                 // TODO(pradeep): Is the cloning inefficient?
-                matching_rules.vec_push(rule.property.clone());
+                matching_rules.vec_push(rule.declarations.clone());
             }
         }
     }
@@ -325,7 +325,7 @@ impl Stylist {
                         };
                         map.$priority.insert(Rule {
                                 selector: selector.compound_selectors.clone(),
-                                property: MatchedProperty {
+                                declarations: DeclarationBlock {
                                     specificity: selector.specificity,
                                     declarations: $style_rule.declarations.$priority.clone(),
                                     source_order: rules_source_order,
@@ -353,7 +353,7 @@ impl Stylist {
     /// in `css::matching::PrivateMatchMethods::candidate_element_allows_for_style_sharing`.
     pub fn push_applicable_declarations<E:TElement,
                                         N:TNode<E>,
-                                        V:VecLike<MatchedProperty>>(
+                                        V:VecLike<DeclarationBlock>>(
                                         &self,
                                         element: &N,
                                         style_attribute: Option<&PropertyDeclarationBlock>,
@@ -382,7 +382,7 @@ impl Stylist {
         // Step 2: Normal style attributes.
         style_attribute.map(|sa| {
             shareable = false;
-            applicable_declarations.vec_push(MatchedProperty::from_declarations(sa.normal.clone()))
+            applicable_declarations.vec_push(DeclarationBlock::from_declarations(sa.normal.clone()))
         });
 
         // Step 3: Author-supplied `!important` rules.
@@ -393,7 +393,7 @@ impl Stylist {
         // Step 4: `!important` style attributes.
         style_attribute.map(|sa| {
             shareable = false;
-            applicable_declarations.vec_push(MatchedProperty::from_declarations(sa.important.clone()))
+            applicable_declarations.vec_push(DeclarationBlock::from_declarations(sa.important.clone()))
         });
 
         // Step 5: User and UA `!important` rules.
@@ -446,22 +446,22 @@ struct Rule {
     // that it matches. Selector contains an owned vector (through
     // CompoundSelector) and we want to avoid the allocation.
     selector: Arc<CompoundSelector>,
-    property: MatchedProperty,
+    declarations: DeclarationBlock,
 }
 
 /// A property declaration together with its precedence among rules of equal specificity so that
 /// we can sort them.
 #[deriving(Clone)]
-pub struct MatchedProperty {
+pub struct DeclarationBlock {
     pub declarations: Arc<Vec<PropertyDeclaration>>,
     source_order: uint,
     specificity: u32,
 }
 
-impl MatchedProperty {
+impl DeclarationBlock {
     #[inline]
-    pub fn from_declarations(declarations: Arc<Vec<PropertyDeclaration>>) -> MatchedProperty {
-        MatchedProperty {
+    pub fn from_declarations(declarations: Arc<Vec<PropertyDeclaration>>) -> DeclarationBlock {
+        DeclarationBlock {
             declarations: declarations,
             source_order: 0,
             specificity: 0,
@@ -469,29 +469,29 @@ impl MatchedProperty {
     }
 }
 
-impl PartialEq for MatchedProperty {
+impl PartialEq for DeclarationBlock {
     #[inline]
-    fn eq(&self, other: &MatchedProperty) -> bool {
+    fn eq(&self, other: &DeclarationBlock) -> bool {
         let this_rank = (self.specificity, self.source_order);
         let other_rank = (other.specificity, other.source_order);
         this_rank == other_rank
     }
 }
 
-impl Eq for MatchedProperty {}
+impl Eq for DeclarationBlock {}
 
-impl PartialOrd for MatchedProperty {
+impl PartialOrd for DeclarationBlock {
     #[inline]
-    fn partial_cmp(&self, other: &MatchedProperty) -> Option<Ordering> {
+    fn partial_cmp(&self, other: &DeclarationBlock) -> Option<Ordering> {
         let this_rank = (self.specificity, self.source_order);
         let other_rank = (other.specificity, other.source_order);
         this_rank.partial_cmp(&other_rank)
     }
 }
 
-impl Ord for MatchedProperty {
+impl Ord for DeclarationBlock {
     #[inline]
-    fn cmp(&self, other: &MatchedProperty) -> Ordering {
+    fn cmp(&self, other: &DeclarationBlock) -> Ordering {
         let this_rank = (self.specificity, self.source_order);
         let other_rank = (other.specificity, other.source_order);
         this_rank.cmp(&other_rank)
@@ -938,7 +938,7 @@ fn matches_last_child<E:TElement,N:TNode<E>>(element: &N) -> bool {
 mod tests {
     use servo_util::atom::Atom;
     use sync::Arc;
-    use super::{MatchedProperty, Rule, SelectorMap};
+    use super::{DeclarationBlock, Rule, SelectorMap};
 
     /// Helper method to get some Rules from selector strings.
     /// Each sublist of the result contains the Rules for one StyleRule.
@@ -953,7 +953,7 @@ mod tests {
             .unwrap().move_iter().map(|s| {
                 Rule {
                     selector: s.compound_selectors.clone(),
-                    property: MatchedProperty {
+                    declarations: DeclarationBlock {
                         specificity: s.specificity,
                         declarations: Arc::new(vec!()),
                         source_order: i,
@@ -966,9 +966,9 @@ mod tests {
     #[test]
     fn test_rule_ordering_same_specificity(){
         let rules_list = get_mock_rules(["a.intro", "img.sidebar"]);
-        let rule1 = rules_list[0][0].clone();
-        let rule2 = rules_list[1][0].clone();
-        assert!(rule1.property < rule2.property, "The rule that comes later should win.");
+        let a = &rules_list[0][0].declarations;
+        let b = &rules_list[1][0].declarations;
+        assert!(a < b, "The rule that comes later should win.");
     }
 
     #[test]
@@ -999,9 +999,9 @@ mod tests {
         let rules_list = get_mock_rules([".intro.foo", "#top"]);
         let mut selector_map = SelectorMap::new();
         selector_map.insert(rules_list[1][0].clone());
-        assert_eq!(1, selector_map.id_hash.find(&Atom::from_slice("top")).unwrap()[0].property.source_order);
+        assert_eq!(1, selector_map.id_hash.find(&Atom::from_slice("top")).unwrap()[0].declarations.source_order);
         selector_map.insert(rules_list[0][0].clone());
-        assert_eq!(0, selector_map.class_hash.find(&Atom::from_slice("intro")).unwrap()[0].property.source_order);
+        assert_eq!(0, selector_map.class_hash.find(&Atom::from_slice("intro")).unwrap()[0].declarations.source_order);
         assert!(selector_map.class_hash.find(&Atom::from_slice("foo")).is_none());
     }
 }

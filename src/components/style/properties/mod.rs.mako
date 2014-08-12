@@ -18,7 +18,7 @@ pub use geom::SideOffsets2D;
 use errors::{ErrorLoggerIterator, log_css_error};
 pub use parsing_utils::*;
 pub use self::common_types::*;
-use selector_matching::MatchedProperty;
+use selector_matching::DeclarationBlock;
 
 
 pub use self::property_bit_field::PropertyBitField;
@@ -1800,7 +1800,7 @@ impl<T: Send + Share + Clone> ArcExperimental<T> for Arc<T> {
 }
 
 /// Fast path for the function below. Only computes new inherited styles.
-fn cascade_with_cached_declarations(applicable_declarations: &[MatchedProperty],
+fn cascade_with_cached_declarations(applicable_declarations: &[DeclarationBlock],
                                     shareable: bool,
                                     parent_style: &ComputedValues,
                                     cached_style: &ComputedValues,
@@ -1905,7 +1905,7 @@ fn cascade_with_cached_declarations(applicable_declarations: &[MatchedProperty],
 ///     this is ignored.
 ///
 /// Returns the computed values and a boolean indicating whether the result is cacheable.
-pub fn cascade(applicable_declarations: &[MatchedProperty],
+pub fn cascade(applicable_declarations: &[DeclarationBlock],
                shareable: bool,
                parent_style: Option< &ComputedValues >,
                cached_style: Option< &ComputedValues >)
