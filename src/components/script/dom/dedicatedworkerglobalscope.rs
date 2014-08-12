@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding;
+use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding::DedicatedWorkerGlobalScopeMethods;
 use dom::bindings::codegen::InheritTypes::DedicatedWorkerGlobalScopeDerived;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, WorkerGlobalScopeCast};
 use dom::bindings::global::Worker;
@@ -12,13 +13,17 @@ use dom::bindings::utils::{Reflectable, Reflector};
 use dom::eventtarget::EventTarget;
 use dom::eventtarget::WorkerGlobalScopeTypeId;
 use dom::messageevent::MessageEvent;
+use dom::worker::{Worker, TrustedWorkerAddress};
 use dom::workerglobalscope::DedicatedGlobalScope;
 use dom::workerglobalscope::WorkerGlobalScope;
 use dom::xmlhttprequest::XMLHttpRequest;
-use script_task::{ScriptTask, ScriptChan, ScriptMsg, DOMMessage, XHRProgressMsg};
+use script_task::{ScriptTask, ScriptChan};
+use script_task::{ScriptMsg, DOMMessage, XHRProgressMsg, WorkerRelease};
+use script_task::WorkerPostMessage;
 use script_task::StackRootTLS;
 
 use servo_net::resource_task::{ResourceTask, load_whole_resource};
+use servo_util::str::DOMString;
 
 use js::rust::Cx;
 
@@ -31,40 +36,52 @@ use url::Url;
 pub struct DedicatedWorkerGlobalScope {
     workerglobalscope: WorkerGlobalScope,
     receiver: Untraceable<Receiver<ScriptMsg>>,
+    /// Sender to the parent thread.
+    parent_sender: ScriptChan,
+    worker: Untraceable<TrustedWorkerAddress>,
 }
 
 impl DedicatedWorkerGlobalScope {
     pub fn new_inherited(worker_url: Url,
+                         worker: TrustedWorkerAddress,
                          cx: Rc<Cx>,
-                         receiver: Receiver<ScriptMsg>,
                          resource_task: ResourceTask,
-                         script_chan: ScriptChan)
+                         parent_sender: ScriptChan,
+                         own_sender: ScriptChan,
+                         receiver: Receiver<ScriptMsg>)
                          -> DedicatedWorkerGlobalScope {
         DedicatedWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
                 DedicatedGlobalScope, worker_url, cx, resource_task,
-                script_chan),
+                own_sender),
             receiver: Untraceable::new(receiver),
+            parent_sender: parent_sender,
+            worker: Untraceable::new(worker),
         }
     }
 
     pub fn new(worker_url: Url,
+               worker: TrustedWorkerAddress,
                cx: Rc<Cx>,
-               receiver: Receiver<ScriptMsg>,
                resource_task: ResourceTask,
-               script_chan: ScriptChan)
+               parent_sender: ScriptChan,
+               own_sender: ScriptChan,
+               receiver: Receiver<ScriptMsg>)
                -> Temporary<DedicatedWorkerGlobalScope> {
         let scope = box DedicatedWorkerGlobalScope::new_inherited(
-            worker_url, cx.clone(), receiver, resource_task, script_chan);
+            worker_url, worker, cx.clone(), resource_task, parent_sender,
+            own_sender, receiver);
         DedicatedWorkerGlobalScopeBinding::Wrap(cx.ptr, scope)
     }
 }
 
 impl DedicatedWorkerGlobalScope {
     pub fn run_worker_scope(worker_url: Url,
-                            resource_task: ResourceTask) -> ScriptChan {
-        let (receiver, sender) = ScriptChan::new();
-        let sender_clone = sender.clone();
+                            worker: TrustedWorkerAddress,
+                            resource_task: ResourceTask,
+                            parent_sender: ScriptChan,
+                            own_sender: ScriptChan,
+                            receiver: Receiver<ScriptMsg>) {
         TaskBuilder::new()
             .native()
             .named(format!("Web Worker at {}", worker_url.serialize()))
@@ -84,13 +101,14 @@ impl DedicatedWorkerGlobalScope {
 
             let (_js_runtime, js_context) = ScriptTask::new_rt_and_cx();
             let global = DedicatedWorkerGlobalScope::new(
-                worker_url, js_context.clone(), receiver, resource_task,
-                sender).root();
+                worker_url, worker, js_context.clone(), resource_task,
+                parent_sender, own_sender, receiver).root();
             match js_context.evaluate_script(
                 global.reflector().get_jsobject(), source, url.serialize(), 1) {
                 Ok(_) => (),
                 Err(_) => println!("evaluate_script failed")
             }
+            global.delayed_release_worker();
 
             let scope: &JSRef<WorkerGlobalScope> =
                 WorkerGlobalScopeCast::from_ref(&*global);
@@ -99,21 +117,42 @@ impl DedicatedWorkerGlobalScope {
             loop {
                 match global.receiver.recv_opt() {
                     Ok(DOMMessage(message)) => {
-                        MessageEvent::dispatch(target, &Worker(*scope), message)
+                        MessageEvent::dispatch(target, &Worker(*scope), message);
+                        global.delayed_release_worker();
                     },
                     Ok(XHRProgressMsg(addr, progress)) => {
                         XMLHttpRequest::handle_xhr_progress(addr, progress)
+                    },
+                    Ok(WorkerPostMessage(addr, message)) => {
+                        Worker::handle_message(addr, message);
+                    },
+                    Ok(WorkerRelease(addr)) => {
+                        Worker::handle_release(addr)
                     },
                     Ok(_) => fail!("Unexpected message"),
                     Err(_) => break,
                 }
             }
         });
-        return sender_clone;
     }
 }
 
-pub trait DedicatedWorkerGlobalScopeMethods {
+impl<'a> DedicatedWorkerGlobalScopeMethods for JSRef<'a, DedicatedWorkerGlobalScope> {
+    fn PostMessage(&self, message: DOMString) {
+        let ScriptChan(ref sender) = self.parent_sender;
+        sender.send(WorkerPostMessage(*self.worker, message));
+    }
+}
+
+trait PrivateDedicatedWorkerGlobalScopeHelpers {
+    fn delayed_release_worker(&self);
+}
+
+impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerGlobalScope> {
+    fn delayed_release_worker(&self) {
+        let ScriptChan(ref sender) = self.parent_sender;
+        sender.send(WorkerRelease(*self.worker));
+    }
 }
 
 impl Reflectable for DedicatedWorkerGlobalScope {
