@@ -9,9 +9,34 @@ use std::ascii::StrAsciiExt;
 use parsing_utils::{BufferedIter, ParserIter, parse_slice_comma_separated};
 use properties::longhands::font_family::parse_one_family;
 use properties::computed_values::font_family::FamilyName;
-use stylesheets::{CSSRule, CSSFontFaceRule};
+use stylesheets::{CSSRule, CSSFontFaceRule, CSSStyleRule, CSSMediaRule};
+use media_queries::{Device, Screen};
 use url::{Url, UrlParser};
 
+
+static SUPPORTED_FORMATS: &'static [&'static str] = &["truetype", "opentype"];
+
+
+pub fn iter_font_face_rules_inner(rules: &[CSSRule], callback: |family: &str, source: &Url|) {
+    let device = &Device { media_type: Screen };  // TODO, use Print when printing
+    for rule in rules.iter() {
+        match *rule {
+            CSSStyleRule(_) => {},
+            CSSMediaRule(ref rule) => if rule.media_queries.evaluate(device) {
+                iter_font_face_rules_inner(rule.rules.as_slice(), |f, s| callback(f, s))
+            },
+            CSSFontFaceRule(ref rule) => {
+                for source in rule.sources.iter() {
+                    if source.format_hints.is_empty() || source.format_hints.iter().any(
+                            |f| SUPPORTED_FORMATS.iter().any(
+                                |s| f.as_slice().eq_ignore_ascii_case(*s))) {
+                        callback(rule.family.as_slice(), &source.url)
+                    }
+                }
+            },
+        }
+    }
+}
 
 enum Source {
     UrlSource(UrlSource),

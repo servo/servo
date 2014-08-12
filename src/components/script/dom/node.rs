@@ -4,7 +4,6 @@
 
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
-use cssparser::tokenize;
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
@@ -48,7 +47,7 @@ use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery, C
                        LayoutChan, ReapLayoutDataMsg, TrustedNodeAddress, UntrustedNodeAddress};
 use servo_util::geometry::Au;
 use servo_util::str::{DOMString, null_str_as_empty};
-use style::{parse_selector_list, matches_compound_selector, NamespaceMap};
+use style::{parse_selector_list_from_str, matches};
 
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use js::jsfriendapi;
@@ -611,21 +610,16 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
     // http://dom.spec.whatwg.org/#dom-parentnode-queryselector
     fn query_selector(&self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>> {
         // Step 1.
-        let namespace = NamespaceMap::new();
-        match parse_selector_list(tokenize(selectors.as_slice()).map(|(token, _)| token).collect(), &namespace) {
+        match parse_selector_list_from_str(selectors.as_slice()) {
             // Step 2.
             Err(()) => return Err(Syntax),
             // Step 3.
             Ok(ref selectors) => {
                 let root = self.ancestors().last().unwrap_or(self.clone());
-                for selector in selectors.iter() {
-                    assert!(selector.pseudo_element.is_none());
-                    for node in root.traverse_preorder().filter(|node| node.is_element()) {
-                        let mut _shareable: bool = false;
-                        if matches_compound_selector(selector.compound_selectors.deref(), &node, &mut _shareable) {
-                            let elem: &JSRef<Element> = ElementCast::to_ref(&node).unwrap();
-                            return Ok(Some(Temporary::from_rooted(elem)));
-                        }
+                for node in root.traverse_preorder() {
+                    if node.is_element() && matches(selectors, &node) {
+                        let elem: &JSRef<Element> = ElementCast::to_ref(&node).unwrap();
+                        return Ok(Some(Temporary::from_rooted(elem)));
                     }
                 }
             }
@@ -636,23 +630,15 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
     // http://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
     fn query_selector_all(&self, selectors: DOMString) -> Fallible<Temporary<NodeList>> {
         // Step 1.
-        let mut nodes = vec!();
+        let nodes;
         let root = self.ancestors().last().unwrap_or(self.clone());
-        let namespace = NamespaceMap::new();
-        match parse_selector_list(tokenize(selectors.as_slice()).map(|(token, _)| token).collect(), &namespace) {
+        match parse_selector_list_from_str(selectors.as_slice()) {
             // Step 2.
             Err(()) => return Err(Syntax),
             // Step 3.
             Ok(ref selectors) => {
-                for selector in selectors.iter() {
-                    assert!(selector.pseudo_element.is_none());
-                    for node in root.traverse_preorder().filter(|node| node.is_element()) {
-                        let mut _shareable: bool = false;
-                        if matches_compound_selector(selector.compound_selectors.deref(), &node, &mut _shareable) {
-                            nodes.push(node.clone())
-                        }
-                    }
-                }
+                nodes = root.traverse_preorder().filter(
+                    |node| node.is_element() && matches(selectors, node)).collect()
             }
         }
         let window = window_from_node(self).root();

@@ -18,7 +18,7 @@ use media_queries::{Device, Screen};
 use node::{TElement, TNode};
 use properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use selectors::*;
-use stylesheets::{Stylesheet, iter_style_rules};
+use stylesheets::{Stylesheet, iter_stylesheet_style_rules};
 
 pub enum StylesheetOrigin {
     UserAgentOrigin,
@@ -317,7 +317,7 @@ impl Stylist {
         );
 
         let device = &Device { media_type: Screen };  // TODO, use Print when printing
-        iter_style_rules(stylesheet.rules.as_slice(), device, |style_rule| {
+        iter_stylesheet_style_rules(&stylesheet, device, |style_rule| {
             append!(style_rule, normal);
             append!(style_rule, important);
             rules_source_order += 1;
@@ -449,6 +449,12 @@ impl DeclarationBlock {
     }
 }
 
+pub fn matches<E:TElement, N:TNode<E>>(selector_list: &SelectorList, element: &N) -> bool {
+    get_selector_list_selectors(selector_list).iter().any(|selector|
+        selector.pseudo_element.is_none() &&
+        matches_compound_selector(&*selector.compound_selectors, element, &mut false))
+}
+
 
 /// Determines whether the given element matches the given single or compound selector.
 ///
@@ -456,7 +462,7 @@ impl DeclarationBlock {
 /// `shareable` to false unless you are willing to update the style sharing logic. Otherwise things
 /// will almost certainly break as nodes will start mistakenly sharing styles. (See the code in
 /// `main/css/matching.rs`.)
-pub fn matches_compound_selector<E:TElement,
+fn matches_compound_selector<E:TElement,
                              N:TNode<E>>(
                              selector: &CompoundSelector,
                              element: &N,

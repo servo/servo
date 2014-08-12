@@ -70,7 +70,7 @@ impl FontFamily {
 /// Commands that the FontContext sends to the font cache task.
 pub enum Command {
     GetFontTemplate(String, FontTemplateDescriptor, Sender<Reply>),
-    AddWebFont(Vec<Url>, String, Sender<()>),
+    AddWebFont(String, Url, Sender<()>),
     Exit(Sender<()>),
 }
 
@@ -105,21 +105,19 @@ impl FontCache {
 
                     result.send(GetFontTemplateReply(font_template));
                 }
-                AddWebFont(urls, family_name, result) => {
-                    for url in urls.iter() {
-                        let maybe_resource = load_whole_resource(&self.resource_task, url.clone());
-                        match maybe_resource {
-                            Ok((_, bytes)) => {
-                                if !self.web_families.contains_key(&family_name) {
-                                    let family = FontFamily::new();
-                                    self.web_families.insert(family_name.clone(), family);
-                                }
-                                let family = self.web_families.get_mut(&family_name);
-                                family.add_template(format!("{}", url).as_slice(), Some(bytes));
-                            },
-                            Err(msg) => {
-                                fail!("{}: url={}", msg, url);
+                AddWebFont(family_name, url, result) => {
+                    let maybe_resource = load_whole_resource(&self.resource_task, url.clone());
+                    match maybe_resource {
+                        Ok((_, bytes)) => {
+                            if !self.web_families.contains_key(&family_name) {
+                                let family = FontFamily::new();
+                                self.web_families.insert(family_name.clone(), family);
                             }
+                            let family = self.web_families.get_mut(&family_name);
+                            family.add_template(format!("{}", url).as_slice(), Some(bytes));
+                        },
+                        Err(msg) => {
+                            fail!("{}: url={}", msg, url);
                         }
                     }
                     result.send(());
@@ -264,9 +262,9 @@ impl FontCacheTask {
         }
     }
 
-    pub fn add_web_font(&mut self, urls: Vec<Url>, family: &str) {
+    pub fn add_web_font(&mut self, family: String, url: Url) {
         let (response_chan, response_port) = channel();
-        self.chan.send(AddWebFont(urls, family.to_string(), response_chan));
+        self.chan.send(AddWebFont(family, url, response_chan));
         response_port.recv();
     }
 

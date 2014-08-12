@@ -8,7 +8,7 @@ use std::vec;
 use sync::Arc;
 
 use cssparser::ast::*;
-use cssparser::parse_nth;
+use cssparser::{tokenize, parse_nth};
 
 use servo_util::atom::Atom;
 use servo_util::namespace::Namespace;
@@ -115,6 +115,22 @@ pub enum NamespaceConstraint {
 
 type Iter = iter::Peekable<ComponentValue, vec::MoveItems<ComponentValue>>;
 
+
+pub fn parse_selector_list_from_str(input: &str) -> Result<SelectorList, ()> {
+    let namespaces = NamespaceMap::new();
+    let input = tokenize(input).map(|(token, _)| token).collect();
+    parse_selector_list(input, &namespaces).map(|s| SelectorList { selectors: s })
+}
+
+/// Re-exported to script, but opaque.
+pub struct SelectorList {
+    selectors: Vec<Selector>
+}
+
+/// Public to the style crate, but not re-exported to script
+pub fn get_selector_list_selectors<'a>(selector_list: &'a SelectorList) -> &'a [Selector] {
+    selector_list.selectors.as_slice()
+}
 
 /// Parse a comma-separated list of Selectors.
 /// aka Selector Group in http://www.w3.org/TR/css3-selectors/#grouping
