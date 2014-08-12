@@ -1997,29 +1997,32 @@ impl<'a> style::TNode<JSRef<'a, Element>> for JSRef<'a, Node> {
     fn parent_node(&self) -> Option<JSRef<'a, Node>> {
         (self as &NodeHelpers).parent_node().map(|node| *node.root())
     }
+
     fn prev_sibling(&self) -> Option<JSRef<'a, Node>> {
         (self as &NodeHelpers).prev_sibling().map(|node| *node.root())
     }
+
     fn next_sibling(&self) -> Option<JSRef<'a, Node>> {
         (self as &NodeHelpers).next_sibling().map(|node| *node.root())
     }
+
     fn is_document(&self) -> bool {
         (self as &NodeHelpers).is_document()
     }
+
     fn is_element(&self) -> bool {
         (self as &NodeHelpers).is_element()
     }
+
     fn as_element(&self) -> JSRef<'a, Element> {
         let elem: Option<&JSRef<'a, Element>> = ElementCast::to_ref(self);
         assert!(elem.is_some());
         *elem.unwrap()
     }
+
     fn match_attr(&self, attr: &style::AttrSelector, test: |&str| -> bool) -> bool {
         let name = {
-            let elem: Option<&JSRef<'a, Element>> = ElementCast::to_ref(self);
-            assert!(elem.is_some());
-            let elem: &ElementHelpers = elem.unwrap() as &ElementHelpers;
-            if elem.html_element_in_html_document() {
+            if self.is_html_element_in_html_document() {
                 attr.lower_name.as_slice()
             } else {
                 attr.name.as_slice()
@@ -2033,6 +2036,13 @@ impl<'a> style::TNode<JSRef<'a, Element>> for JSRef<'a, Node> {
             // FIXME: https://github.com/mozilla/servo/issues/1558
             style::AnyNamespace => false,
         }
+    }
+
+    fn is_html_element_in_html_document(&self) -> bool {
+        let elem: Option<&JSRef<'a, Element>> = ElementCast::to_ref(self);
+        assert!(elem.is_some());
+        let elem: &ElementHelpers = elem.unwrap() as &ElementHelpers;
+        elem.html_element_in_html_document()
     }
 }
 

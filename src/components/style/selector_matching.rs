@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::collections::hashmap::HashMap;
-use std::ascii::StrAsciiExt;
+use std::hash::Hash;
 use std::num::div_rem;
 use sync::Arc;
 
@@ -52,7 +52,10 @@ struct SelectorMap {
     // TODO: Tune the initial capacity of the HashMap
     id_hash: HashMap<Atom, Vec<Rule>>,
     class_hash: HashMap<Atom, Vec<Rule>>,
-    element_hash: HashMap<Atom, Vec<Rule>>,
+    local_name_hash: HashMap<Atom, Vec<Rule>>,
+    /// Same as local_name_hash, but keys are lower-cased.
+    /// For HTML elements in HTML documents.
+    lower_local_name_hash: HashMap<Atom, Vec<Rule>>,
     // For Rules that don't have ID, class, or element selectors.
     universal_rules: Vec<Rule>,
     /// Whether this hash is empty.
@@ -64,7 +67,8 @@ impl SelectorMap {
         SelectorMap {
             id_hash: HashMap::new(),
             class_hash: HashMap::new(),
-            element_hash: HashMap::new(),
+            local_name_hash: HashMap::new(),
+            lower_local_name_hash: HashMap::new(),
             universal_rules: vec!(),
             empty: true,
         }
@@ -113,13 +117,16 @@ impl SelectorMap {
             None => {}
         }
 
-        // HTML elements in HTML documents must be matched case-insensitively.
-        // TODO(pradeep): Case-sensitivity depends on the document type.
-        SelectorMap::get_matching_rules_from_hash_ignoring_case(node,
-                                                                &self.element_hash,
-                                                                element.get_local_name().as_slice(),
-                                                                matching_rules_list,
-                                                                shareable);
+        let local_name_hash = if node.is_html_element_in_html_document() {
+            &self.lower_local_name_hash
+        } else {
+            &self.local_name_hash
+        };
+        SelectorMap::get_matching_rules_from_hash(node,
+                                                  local_name_hash,
+                                                  element.get_local_name(),
+                                                  matching_rules_list,
+                                                  shareable);
 
         SelectorMap::get_matching_rules(node,
                                         self.universal_rules.as_slice(),
@@ -150,23 +157,6 @@ impl SelectorMap {
         }
     }
 
-    fn get_matching_rules_from_hash_ignoring_case<E:TElement,
-                                                  N:TNode<E>,
-                                                  V:VecLike<DeclarationBlock>>(
-                                                  node: &N,
-                                                  hash: &HashMap<Atom, Vec<Rule>>,
-                                                  key: &str,
-                                                  matching_rules: &mut V,
-                                                  shareable: &mut bool) {
-        // FIXME: Precache the lower case version as an atom.
-        match hash.find(&Atom::from_slice(key.to_ascii_lower().as_slice())) {
-            Some(rules) => {
-                SelectorMap::get_matching_rules(node, rules.as_slice(), matching_rules, shareable)
-            }
-            None => {}
-        }
-    }
-
     /// Adds rules in `rules` that match `node` to the `matching_rules` list.
     fn get_matching_rules<E:TElement,
                           N:TNode<E>,
@@ -183,49 +173,29 @@ impl SelectorMap {
     }
 
     /// Insert rule into the correct hash.
-    /// Order in which to try: id_hash, class_hash, element_hash, universal_rules.
+    /// Order in which to try: id_hash, class_hash, local_name_hash, universal_rules.
     fn insert(&mut self, rule: Rule) {
         self.empty = false;
 
         match SelectorMap::get_id_name(&rule) {
             Some(id_name) => {
-                match self.id_hash.find_mut(&id_name) {
-                    Some(rules) => {
-                        rules.push(rule);
-                        return;
-                    }
-                    None => {}
-                }
-                self.id_hash.insert(id_name, vec!(rule));
+                self.id_hash.find_push(id_name, rule);
                 return;
             }
             None => {}
         }
         match SelectorMap::get_class_name(&rule) {
             Some(class_name) => {
-                match self.class_hash.find_mut(&class_name) {
-                    Some(rules) => {
-                        rules.push(rule);
-                        return;
-                    }
-                    None => {}
-                }
-                self.class_hash.insert(class_name, vec!(rule));
+                self.class_hash.find_push(class_name, rule);
                 return;
             }
             None => {}
         }
 
-        match SelectorMap::get_element_name(&rule) {
-            Some(element_name) => {
-                match self.element_hash.find_mut(&element_name) {
-                    Some(rules) => {
-                        rules.push(rule);
-                        return;
-                    }
-                    None => {}
-                }
-                self.element_hash.insert(element_name, vec!(rule));
+        match SelectorMap::get_local_name(&rule) {
+            Some(LocalNameSelector { name, lower_name }) => {
+                self.local_name_hash.find_push(name, rule.clone());
+                self.lower_local_name_hash.find_push(lower_name, rule);
                 return;
             }
             None => {}
@@ -263,14 +233,12 @@ impl SelectorMap {
     }
 
     /// Retrieve the name if it is a type selector, or None otherwise.
-    fn get_element_name(rule: &Rule) -> Option<Atom> {
+    fn get_local_name(rule: &Rule) -> Option<LocalNameSelector> {
         let simple_selector_sequence = &rule.selector.simple_selectors;
         for ss in simple_selector_sequence.iter() {
             match *ss {
-                // HTML elements in HTML documents must be matched case-insensitively
-                // TODO: case-sensitivity depends on the document type
                 LocalNameSelector(ref name) => {
-                    return Some(Atom::from_slice(name.as_slice().to_ascii_lower().as_slice()));
+                    return Some(name.clone())
                 }
                 _ => {}
             }
@@ -629,11 +597,10 @@ fn matches_simple_selector<E:TElement,
                            shareable: &mut bool)
                            -> bool {
     match *selector {
-        // TODO: case-sensitivity depends on the document type
-        // TODO: intern element names
-        LocalNameSelector(ref name) => {
+        LocalNameSelector(LocalNameSelector { ref name, ref lower_name }) => {
+            let name = if element.is_html_element_in_html_document() { lower_name } else { name };
             let element = element.as_element();
-            element.get_local_name().as_slice().eq_ignore_ascii_case(name.as_slice())
+            element.get_local_name() == name
         }
 
         NamespaceSelector(ref namespace) => {
@@ -918,11 +885,30 @@ fn matches_last_child<E:TElement,N:TNode<E>>(element: &N) -> bool {
 }
 
 
+trait FindPush<K, V> {
+    fn find_push(&mut self, key: K, value: V);
+}
+
+impl<K: Eq + Hash, V> FindPush<K, V> for HashMap<K, Vec<V>> {
+    fn find_push(&mut self, key: K, value: V) {
+        match self.find_mut(&key) {
+            Some(vec) => {
+                vec.push(value);
+                return
+            }
+            None => {}
+        }
+        self.insert(key, vec![value]);
+    }
+}
+
+
 #[cfg(test)]
 mod tests {
     use servo_util::atom::Atom;
     use sync::Arc;
     use super::{DeclarationBlock, Rule, SelectorMap};
+    use selectors::LocalNameSelector;
 
     /// Helper method to get some Rules from selector strings.
     /// Each sublist of the result contains the Rules for one StyleRule.
@@ -971,12 +957,18 @@ mod tests {
     }
 
     #[test]
-    fn test_get_element_name(){
+    fn test_get_local_name(){
         let rules_list = get_mock_rules(["img.foo", "#top", "IMG", "ImG"]);
-        assert_eq!(SelectorMap::get_element_name(&rules_list[0][0]), Some(Atom::from_slice("img")));
-        assert_eq!(SelectorMap::get_element_name(&rules_list[1][0]), None);
-        assert_eq!(SelectorMap::get_element_name(&rules_list[2][0]), Some(Atom::from_slice("img")));
-        assert_eq!(SelectorMap::get_element_name(&rules_list[3][0]), Some(Atom::from_slice("img")));
+        let check = |i, names: Option<(&str, &str)>| {
+            assert!(SelectorMap::get_local_name(&rules_list[i][0])
+                    == names.map(|(name, lower_name)| LocalNameSelector {
+                            name: Atom::from_slice(name),
+                            lower_name: Atom::from_slice(lower_name) }))
+        };
+        check(0, Some(("img", "img")));
+        check(1, None);
+        check(2, Some(("IMG", "img")));
+        check(3, Some(("ImG", "img")));
     }
 
     #[test]

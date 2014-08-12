@@ -41,7 +41,7 @@ pub use properties::longhands;
 pub use node::{TElement, TNode};
 pub use selectors::{PseudoElement, Before, After, AttrSelector, SpecificNamespace, AnyNamespace};
 pub use selectors::{NamespaceConstraint, Selector, CompoundSelector, SimpleSelector, Combinator};
-pub use selectors::{parse_selector_list};
+pub use selectors::{LocalNameSelector, parse_selector_list};
 pub use namespaces::NamespaceMap;
 pub use media_queries::{MediaRule, MediaQueryList, MediaQuery, Device, MediaType, MediaQueryType};
 pub use font_face::{FontFaceFormat, FontFaceRule, FontFaceSource,FontFaceSourceLine, TtfFormat};
