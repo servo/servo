@@ -5,7 +5,6 @@
 // http://www.whatwg.org/html/#dedicatedworkerglobalscope
 [Global/*=Worker,DedicatedWorker*/]
 /*sealed*/ interface DedicatedWorkerGlobalScope : WorkerGlobalScope {
-  //void postMessage(any message, optional sequence<Transferable> transfer);
-  void postMessage(DOMString message);
+  void postMessage(any message/*, optional sequence<Transferable> transfer*/);
            attribute EventHandler onmessage;
 };

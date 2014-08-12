@@ -17,11 +17,13 @@ use script_task::{ScriptChan, DOMMessage};
 
 use servo_util::str::DOMString;
 
-use js::jsapi::{JSContext, JS_AddObjectRoot, JS_RemoveObjectRoot, JS_WriteStructuredClone};
-use js::jsval::JSVal;
+use js::glue::JS_STRUCTURED_CLONE_VERSION;
+use js::jsapi::{JSContext, JS_AddObjectRoot, JS_RemoveObjectRoot};
+use js::jsapi::{JS_ReadStructuredClone, JS_WriteStructuredClone};
+use js::jsval::{JSVal, UndefinedValue};
 use url::UrlParser;
 
-use libc::c_void;
+use libc::{c_void, size_t};
 use std::cell::Cell;
 use std::ptr;
 
@@ -75,12 +77,22 @@ impl Worker {
         Ok(Temporary::from_rooted(&*worker))
     }
 
-    pub fn handle_message(address: TrustedWorkerAddress, message: DOMString) {
+    pub fn handle_message(address: TrustedWorkerAddress,
+                          data: *mut u64, nbytes: size_t) {
         let worker = unsafe { JS::from_trusted_worker_address(address).root() };
 
-        let target: &JSRef<EventTarget> = EventTargetCast::from_ref(&*worker);
         let global = worker.global.root();
-        MessageEvent::dispatch(target, &global.root_ref(), message);
+
+        let mut message = UndefinedValue();
+        unsafe {
+            assert!(JS_ReadStructuredClone(
+                global.root_ref().get_cx(), data as *const u64, nbytes,
+                JS_STRUCTURED_CLONE_VERSION, &mut message,
+                ptr::null(), ptr::mut_null()) != 0);
+        }
+
+        let target: &JSRef<EventTarget> = EventTargetCast::from_ref(&*worker);
+        MessageEvent::dispatch_jsval(target, &global.root_ref(), message);
     }
 }
 

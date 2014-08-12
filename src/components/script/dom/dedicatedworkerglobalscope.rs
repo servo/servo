@@ -24,11 +24,10 @@ use script_task::WorkerPostMessage;
 use script_task::StackRootTLS;
 
 use servo_net::resource_task::{ResourceTask, load_whole_resource};
-use servo_util::str::DOMString;
 
 use js::glue::JS_STRUCTURED_CLONE_VERSION;
-use js::jsapi::JS_ReadStructuredClone;
-use js::jsval::UndefinedValue;
+use js::jsapi::{JSContext, JS_ReadStructuredClone, JS_WriteStructuredClone};
+use js::jsval::{JSVal, UndefinedValue};
 use js::rust::Cx;
 
 use std::rc::Rc;
@@ -136,8 +135,8 @@ impl DedicatedWorkerGlobalScope {
                     Ok(XHRProgressMsg(addr, progress)) => {
                         XMLHttpRequest::handle_xhr_progress(addr, progress)
                     },
-                    Ok(WorkerPostMessage(addr, message)) => {
-                        Worker::handle_message(addr, message);
+                    Ok(WorkerPostMessage(addr, data, nbytes)) => {
+                        Worker::handle_message(addr, data, nbytes);
                     },
                     Ok(WorkerRelease(addr)) => {
                         Worker::handle_release(addr)
@@ -151,9 +150,16 @@ impl DedicatedWorkerGlobalScope {
 }
 
 impl<'a> DedicatedWorkerGlobalScopeMethods for JSRef<'a, DedicatedWorkerGlobalScope> {
-    fn PostMessage(&self, message: DOMString) {
+    fn PostMessage(&self, cx: *mut JSContext, message: JSVal) {
+        let mut data = ptr::mut_null();
+        let mut nbytes = 0;
+        unsafe {
+            assert!(JS_WriteStructuredClone(cx, message, &mut data, &mut nbytes,
+                                            ptr::null(), ptr::mut_null()) != 0);
+        }
+
         let ScriptChan(ref sender) = self.parent_sender;
-        sender.send(WorkerPostMessage(*self.worker, message));
+        sender.send(WorkerPostMessage(*self.worker, data, nbytes));
     }
 
     fn GetOnmessage(&self) -> Option<EventHandlerNonNull> {
