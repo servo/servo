@@ -56,6 +56,7 @@ use js::rust::with_compartment;
 use js;
 use url::Url;
 
+use libc::size_t;
 use serialize::{Encoder, Encodable};
 use std::any::{Any, AnyRefExt};
 use std::cell::RefCell;
@@ -86,7 +87,7 @@ pub enum ScriptMsg {
     XHRProgressMsg(TrustedXHRAddress, XHRProgress),
     /// Message sent through Worker.postMessage (only dispatched to
     /// DedicatedWorkerGlobalScope).
-    DOMMessage(DOMString),
+    DOMMessage(*mut u64, size_t),
     /// Posts a message to the Worker object (dispatched to all tasks).
     WorkerPostMessage(TrustedWorkerAddress, DOMString),
     /// Releases one reference to the Worker object (dispatched to all tasks).

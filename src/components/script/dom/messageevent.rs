@@ -78,6 +78,16 @@ impl MessageEvent {
         let event: &JSRef<Event> = EventCast::from_ref(&*messageevent);
         target.dispatch_event_with_target(None, &*event).unwrap();
     }
+
+    pub fn dispatch_jsval(target: &JSRef<EventTarget>,
+                          scope: &GlobalRef,
+                          message: JSVal) {
+        let messageevent = MessageEvent::new(
+            scope, "message".to_string(), false, false, message,
+            "".to_string(), "".to_string()).root();
+        let event: &JSRef<Event> = EventCast::from_ref(&*messageevent);
+        target.dispatch_event_with_target(None, &*event).unwrap();
+    }
 }
 
 impl<'a> MessageEventMethods for JSRef<'a, MessageEvent> {

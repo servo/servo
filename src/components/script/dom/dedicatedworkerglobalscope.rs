@@ -26,9 +26,13 @@ use script_task::StackRootTLS;
 use servo_net::resource_task::{ResourceTask, load_whole_resource};
 use servo_util::str::DOMString;
 
+use js::glue::JS_STRUCTURED_CLONE_VERSION;
+use js::jsapi::JS_ReadStructuredClone;
+use js::jsval::UndefinedValue;
 use js::rust::Cx;
 
 use std::rc::Rc;
+use std::ptr;
 use std::task::TaskBuilder;
 use native::task::NativeTaskBuilder;
 use url::Url;
@@ -117,8 +121,16 @@ impl DedicatedWorkerGlobalScope {
                 EventTargetCast::from_ref(&*global);
             loop {
                 match global.receiver.recv_opt() {
-                    Ok(DOMMessage(message)) => {
-                        MessageEvent::dispatch(target, &Worker(*scope), message);
+                    Ok(DOMMessage(data, nbytes)) => {
+                        let mut message = UndefinedValue();
+                        unsafe {
+                            assert!(JS_ReadStructuredClone(
+                                js_context.ptr, data as *const u64, nbytes,
+                                JS_STRUCTURED_CLONE_VERSION, &mut message,
+                                ptr::null(), ptr::mut_null()) != 0);
+                        }
+
+                        MessageEvent::dispatch_jsval(target, &Worker(*scope), message);
                         global.delayed_release_worker();
                     },
                     Ok(XHRProgressMsg(addr, progress)) => {

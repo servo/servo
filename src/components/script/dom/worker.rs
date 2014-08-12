@@ -17,11 +17,13 @@ use script_task::{ScriptChan, DOMMessage};
 
 use servo_util::str::DOMString;
 
-use js::jsapi::{JS_AddObjectRoot, JS_RemoveObjectRoot};
+use js::jsapi::{JSContext, JS_AddObjectRoot, JS_RemoveObjectRoot, JS_WriteStructuredClone};
+use js::jsval::JSVal;
 use url::UrlParser;
 
 use libc::c_void;
 use std::cell::Cell;
+use std::ptr;
 
 pub struct TrustedWorkerAddress(pub *const c_void);
 
@@ -115,10 +117,17 @@ impl Worker {
 }
 
 impl<'a> WorkerMethods for JSRef<'a, Worker> {
-    fn PostMessage(&self, message: DOMString) {
+    fn PostMessage(&self, cx: *mut JSContext, message: JSVal) {
+        let mut data = ptr::mut_null();
+        let mut nbytes = 0;
+        unsafe {
+            assert!(JS_WriteStructuredClone(cx, message, &mut data, &mut nbytes,
+                                            ptr::null(), ptr::mut_null()) != 0);
+        }
+
         self.addref();
         let ScriptChan(ref sender) = self.sender;
-        sender.send(DOMMessage(message));
+        sender.send(DOMMessage(data, nbytes));
     }
 
     fn GetOnmessage(&self) -> Option<EventHandlerNonNull> {
