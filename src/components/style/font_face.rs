@@ -6,37 +6,29 @@ use cssparser::ast::*;
 use cssparser::parse_declaration_list;
 use errors::{ErrorLoggerIterator, log_css_error};
 use std::ascii::StrAsciiExt;
-use parsing_utils::BufferedIter;
+use parsing_utils::{BufferedIter, ParserIter, parse_slice_comma_separated};
+use properties::longhands::font_family::parse_one_family;
+use properties::computed_values::font_family::FamilyName;
 use stylesheets::{CSSRule, CSSFontFaceRule};
 use url::{Url, UrlParser};
 
-#[deriving(PartialEq)]
-pub enum FontFaceFormat {
-    UnknownFormat,
-    WoffFormat,
-    TtfFormat,
-    SvgFormat,
-    EotFormat,
+
+enum Source {
+    UrlSource(UrlSource),
+    LocalSource(String),
 }
 
-pub struct FontFaceSource {
+pub struct UrlSource {
     pub url: Url,
-    pub format_hints: Vec<FontFaceFormat>,
-}
-
-pub struct FontFaceSourceLine {
-    pub sources: Vec<FontFaceSource>
+    pub format_hints: Vec<String>,
 }
 
 pub struct FontFaceRule {
     pub family: String,
-    pub source_lines: Vec<FontFaceSourceLine>,
+    pub sources: Vec<UrlSource>,  // local() is not supported yet
 }
 
 pub fn parse_font_face_rule(rule: AtRule, parent_rules: &mut Vec<CSSRule>, base_url: &Url) {
-    let mut maybe_family = None;
-    let mut source_lines = vec!();
-
     if rule.prelude.as_slice().skip_whitespace().next().is_some() {
         log_css_error(rule.location, "@font-face prelude contains unexpected characters");
         return;
@@ -49,6 +41,9 @@ pub fn parse_font_face_rule(rule: AtRule, parent_rules: &mut Vec<CSSRule>, base_
             return
         }
     };
+
+    let mut maybe_family = None;
+    let mut maybe_sources = None;
 
     for item in ErrorLoggerIterator(parse_declaration_list(block.move_iter())) {
         match item {
@@ -63,8 +58,8 @@ pub fn parse_font_face_rule(rule: AtRule, parent_rules: &mut Vec<CSSRule>, base_
                 match name_lower.as_slice() {
                     "font-family" => {
                         let iter = &mut BufferedIter::new(value.as_slice().skip_whitespace());
-                        match ::properties::longhands::font_family::parse_one_family(iter) {
-                            Ok(::properties::computed_values::font_family::FamilyName(name)) => {
+                        match parse_one_family(iter) {
+                            Ok(FamilyName(name)) => {
                                 maybe_family = Some(name);
                             },
                             // This also includes generic family names:
@@ -72,124 +67,11 @@ pub fn parse_font_face_rule(rule: AtRule, parent_rules: &mut Vec<CSSRule>, base_
                         }
                     },
                     "src" => {
-                        let mut iter = value.as_slice().skip_whitespace();
-                        let mut sources = vec!();
-                        let mut syntax_error = false;
-
-                        'outer: loop {
-
-                            // url() or local() should be next
-                            let maybe_url = match iter.next() {
-                                Some(&URL(ref string_value)) => {
-                                    let maybe_url = UrlParser::new().base_url(base_url).parse(string_value.as_slice());
-                                    let url = maybe_url.unwrap_or_else(|_| Url::parse("about:invalid").unwrap());
-                                    Some(url)
-                                },
-                                Some(&Function(ref string_value, ref _values)) => {
-                                    match string_value.as_slice() {
-                                        "local" => {
-                                            log_css_error(location, "local font face is not supported yet - skipping");
-                                            None
-                                        },
-                                        _ => {
-                                            log_css_error(location, format!("Unexpected token {}", string_value).as_slice());
-                                            syntax_error = true;
-                                            break;
-                                        }
-                                    }
-                                },
-                                _ => {
-                                    log_css_error(location, "Unsupported declaration type");
-                                    syntax_error = true;
-                                    break;
-                                }
-                            };
-
-                            let mut next_token = iter.next();
-
-                            match maybe_url {
-                                Some(url) => {
-                                    let mut source = FontFaceSource {
-                                        url: url,
-                                        format_hints: vec!(),
-                                    };
-
-                                    // optional format, or comma to start loop again
-                                    match next_token {
-                                        Some(&Function(ref string_value, ref values)) => {
-                                            match string_value.as_slice() {
-                                                "format" => {
-                                                    let mut format_iter = values.as_slice().skip_whitespace();
-
-                                                    loop {
-                                                        let fmt_token = format_iter.next();
-                                                        match fmt_token {
-                                                            Some(&String(ref format_hint)) => {
-                                                                let hint = match format_hint.as_slice() {
-                                                                    "embedded-opentype" => EotFormat,
-                                                                    "woff" => WoffFormat,
-                                                                    "truetype" | "opentype" => TtfFormat,
-                                                                    "svg" => SvgFormat,
-                                                                    _ => UnknownFormat,
-                                                                };
-                                                                source.format_hints.push(hint);
-                                                            },
-                                                            _ => {
-                                                                log_css_error(location, "Unexpected token");
-                                                                syntax_error = true;
-                                                                break 'outer;
-                                                            }
-                                                        }
-
-                                                        let comma_token = format_iter.next();
-                                                        match comma_token {
-                                                            Some(&Comma) => {},
-                                                            None => {
-                                                                break;
-                                                            }
-                                                            _ => {
-                                                                log_css_error(location, "Unexpected token");
-                                                                syntax_error = true;
-                                                                break 'outer;
-                                                            }
-                                                        }
-                                                    }
-                                                },
-                                                _ => {
-                                                    log_css_error(location,
-                                                                    format!("Unsupported token {}", string_value).as_slice());
-                                                    syntax_error = true;
-                                                    break;
-                                                }
-                                            }
-                                            next_token = iter.next();
-                                        },
-                                        _ => {}
-                                    }
-
-                                    sources.push(source);
-                                },
-                                None => {},
-                            }
-
-                            // after url or optional format, comes comma or end
-                            match next_token {
-                                Some(&Comma) => {},
-                                None => break,
-                                _ => {
-                                    log_css_error(location, "Unexpected token type");
-                                    syntax_error = true;
-                                    break;
-                                }
-                            }
-                        }
-
-                        if !syntax_error && sources.len() > 0 {
-                            let source_line = FontFaceSourceLine {
-                                sources: sources
-                            };
-                            source_lines.push(source_line);
-                        }
+                        match parse_slice_comma_separated(
+                                value.as_slice(), |iter| parse_one_url_src(iter, base_url)) {
+                            Ok(sources) => maybe_sources = Some(sources),
+                            Err(()) => log_css_error(location, "Invalid src in @font-face"),
+                        };
                     },
                     _ => {
                         log_css_error(location, format!("Unsupported declaration {:s}", name).as_slice());
@@ -199,11 +81,78 @@ pub fn parse_font_face_rule(rule: AtRule, parent_rules: &mut Vec<CSSRule>, base_
         }
     }
 
-    if maybe_family.is_some() && source_lines.len() > 0 {
-        let font_face_rule = FontFaceRule {
-            family: maybe_family.unwrap(),
-            source_lines: source_lines,
-        };
-        parent_rules.push(CSSFontFaceRule(font_face_rule));
+    match (maybe_family, maybe_sources) {
+        (Some(family), Some(sources)) => parent_rules.push(CSSFontFaceRule(FontFaceRule {
+            family: family,
+            sources: sources,
+        })),
+        (None, _) => log_css_error(rule.location, "@font-face without a font-family descriptor"),
+        _ => log_css_error(rule.location, "@font-face without an src descriptor"),
+    }
+}
+
+
+/// local() is not supported yet
+fn parse_one_url_src(iter: ParserIter, base_url: &Url) -> Result<UrlSource, ()> {
+    match parse_one_src(iter, base_url) {
+        Ok(UrlSource(source)) => Ok(source),
+        _ => Err(())
+    }
+}
+
+
+fn parse_one_src(iter: ParserIter, base_url: &Url) -> Result<Source, ()> {
+    let url = match iter.next() {
+        // Parsing url()
+        Some(&URL(ref url)) => {
+            UrlParser::new().base_url(base_url).parse(url.as_slice()).unwrap_or_else(
+                |_error| Url::parse("about:invalid").unwrap())
+        },
+        // Parsing local() with early return()
+        Some(&Function(ref name, ref arguments)) => {
+            if name.as_slice().eq_ignore_ascii_case("local") {
+                let iter = &mut BufferedIter::new(arguments.as_slice().skip_whitespace());
+                match parse_one_family(iter) {
+                    Ok(FamilyName(name)) => return Ok(LocalSource(name)),
+                    _ => return Err(())
+                }
+            }
+            return Err(())
+        },
+        _ => return Err(())
+    };
+
+    // Parsing optional format()
+    let format_hints = match iter.next() {
+        Some(&Function(ref name, ref arguments)) => {
+            if !name.as_slice().eq_ignore_ascii_case("format") {
+                return Err(())
+            }
+            try!(parse_slice_comma_separated(arguments.as_slice(), parse_one_format))
+        }
+        Some(component_value) => {
+            iter.push_back(component_value);
+            vec![]
+        }
+        None => vec![],
+    };
+
+    Ok(UrlSource(UrlSource {
+        url: url,
+        format_hints: format_hints,
+    }))
+}
+
+
+fn parse_one_format(iter: ParserIter) -> Result<String, ()> {
+    match iter.next() {
+        Some(&String(ref value)) => {
+            if iter.next().is_none() {
+                Ok(value.clone())
+            } else {
+                Err(())
+            }
+        }
+        _ => Err(())
     }
 }

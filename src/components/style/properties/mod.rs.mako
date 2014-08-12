@@ -727,22 +727,9 @@ pub mod longhands {
         /// <familiy-name> = <string> | [ <ident>+ ]
         /// TODO: <generic-familiy>
         pub fn parse(input: &[ComponentValue], _base_url: &Url) -> Result<SpecifiedValue, ()> {
-            from_iter(input.skip_whitespace())
+            parse_slice_comma_separated(input, parse_one_family)
         }
-        pub fn from_iter<'a>(iter: SkipWhitespaceIterator<'a>) -> Result<SpecifiedValue, ()> {
-            let iter = &mut BufferedIter::new(iter);
-            let mut families = vec![try!(parse_one_family(iter))];
-            for component_value in iter {
-                match component_value {
-                    &Comma => {
-                        families.push(try!(parse_one_family(iter)));
-                    },
-                    _ => return Err(())
-                }
-            }
-            Ok(families)
-        }
-        pub fn parse_one_family<'a>(iter: &mut ParserIter) -> Result<FontFamily, ()> {
+        pub fn parse_one_family<'a>(iter: ParserIter) -> Result<FontFamily, ()> {
             // TODO: avoid copying strings?
             let mut idents = match iter.next() {
                 Some(&String(ref value)) => return Ok(FamilyName(value.clone())),
@@ -1337,15 +1324,15 @@ pub mod shorthands {
             }
             _ => ()
         }
-        let family = font_family::from_iter(iter).ok();
-        if family.is_none() { return Err(()) }
+        let family = try!(parse_comma_separated(
+            &mut BufferedIter::new(iter), font_family::parse_one_family));
         Ok(Longhands {
             font_style: style,
             font_variant: variant,
             font_weight: weight,
             font_size: size,
             line_height: line_height,
-            font_family: family
+            font_family: Some(family)
         })
     </%self:shorthand>
 

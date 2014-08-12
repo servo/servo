@@ -4,7 +4,7 @@
 
 
 use std::ascii::StrAsciiExt;
-use cssparser::ast::{ComponentValue, Ident, SkipWhitespaceIterable, SkipWhitespaceIterator};
+use cssparser::ast::{ComponentValue, Ident, Comma, SkipWhitespaceIterable, SkipWhitespaceIterator};
 
 
 pub fn one_component_value<'a>(input: &'a [ComponentValue]) -> Result<&'a ComponentValue, ()> {
@@ -56,5 +56,26 @@ impl<E, I: Iterator<E>> Iterator<E> for BufferedIter<E, I> {
     }
 }
 
+pub type ParserIter<'a, 'b> = &'a mut BufferedIter<&'b ComponentValue, SkipWhitespaceIterator<'b>>;
 
-pub type ParserIter<'a> = BufferedIter<&'a ComponentValue, SkipWhitespaceIterator<'a>>;
+
+#[inline]
+pub fn parse_slice_comma_separated<T>(input: &[ComponentValue],
+                                      parse_one: |ParserIter| -> Result<T, ()>)
+                                      -> Result<Vec<T>, ()> {
+    parse_comma_separated(&mut BufferedIter::new(input.skip_whitespace()), parse_one)
+}
+
+#[inline]
+pub fn parse_comma_separated<T>(iter: ParserIter,
+                                parse_one: |ParserIter| -> Result<T, ()>)
+                                -> Result<Vec<T>, ()> {
+    let mut values = vec![try!(parse_one(iter))];
+    for component_value in iter {
+        match component_value {
+            &Comma => values.push(try!(parse_one(iter))),
+            _ => return Err(())
+        }
+    }
+    Ok(values)
+}

@@ -495,10 +495,8 @@ impl LayoutTask {
             match rule {
                 &CSSFontFaceRule(ref font_face_rule) => {
                     let mut font_urls = vec!();
-                    for source_line in font_face_rule.source_lines.iter() {
-                        for source in source_line.sources.iter() {
-                            font_urls.push(source.url.clone());
-                        }
+                    for source in font_face_rule.sources.iter() {
+                        font_urls.push(source.url.clone());
                     }
                     self.font_cache_task.add_web_font(font_urls, font_face_rule.family.as_slice());
                 },

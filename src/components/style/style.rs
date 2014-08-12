@@ -44,7 +44,7 @@ pub use selectors::{NamespaceConstraint, Selector, CompoundSelector, SimpleSelec
 pub use selectors::{LocalNameSelector, parse_selector_list};
 pub use namespaces::NamespaceMap;
 pub use media_queries::{MediaRule, MediaQueryList, MediaQuery, Device, MediaType, MediaQueryType};
-pub use font_face::{FontFaceFormat, FontFaceRule, FontFaceSource,FontFaceSourceLine, TtfFormat};
+pub use font_face::{FontFaceRule};
 
 mod stylesheets;
 mod errors;
