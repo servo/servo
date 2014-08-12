@@ -29,6 +29,8 @@ pub struct Worker {
     eventtarget: EventTarget,
     refcount: Cell<uint>,
     global: GlobalField,
+    /// Sender to the Receiver associated with the DedicatedWorkerGlobalScope
+    /// this Worker created.
     sender: ScriptChan,
 }
 
@@ -64,7 +66,8 @@ impl Worker {
         let worker_ref = worker.addref();
 
         DedicatedWorkerGlobalScope::run_worker_scope(
-            worker_url, worker_ref, resource_task, receiver, sender);
+            worker_url, worker_ref, resource_task, global.script_chan().clone(),
+            sender, receiver);
 
         Ok(Temporary::from_rooted(&*worker))
     }

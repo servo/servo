@@ -36,6 +36,8 @@ use url::Url;
 pub struct DedicatedWorkerGlobalScope {
     workerglobalscope: WorkerGlobalScope,
     receiver: Untraceable<Receiver<ScriptMsg>>,
+    /// Sender to the parent thread.
+    parent_sender: ScriptChan,
     worker: Untraceable<TrustedWorkerAddress>,
 }
 
@@ -43,15 +45,17 @@ impl DedicatedWorkerGlobalScope {
     pub fn new_inherited(worker_url: Url,
                          worker: TrustedWorkerAddress,
                          cx: Rc<Cx>,
-                         receiver: Receiver<ScriptMsg>,
                          resource_task: ResourceTask,
-                         script_chan: ScriptChan)
+                         parent_sender: ScriptChan,
+                         own_sender: ScriptChan,
+                         receiver: Receiver<ScriptMsg>)
                          -> DedicatedWorkerGlobalScope {
         DedicatedWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
                 DedicatedGlobalScope, worker_url, cx, resource_task,
-                script_chan),
+                own_sender),
             receiver: Untraceable::new(receiver),
+            parent_sender: parent_sender,
             worker: Untraceable::new(worker),
         }
     }
@@ -59,13 +63,14 @@ impl DedicatedWorkerGlobalScope {
     pub fn new(worker_url: Url,
                worker: TrustedWorkerAddress,
                cx: Rc<Cx>,
-               receiver: Receiver<ScriptMsg>,
                resource_task: ResourceTask,
-               script_chan: ScriptChan)
+               parent_sender: ScriptChan,
+               own_sender: ScriptChan,
+               receiver: Receiver<ScriptMsg>)
                -> Temporary<DedicatedWorkerGlobalScope> {
         let scope = box DedicatedWorkerGlobalScope::new_inherited(
-            worker_url, worker, cx.clone(), receiver, resource_task,
-            script_chan);
+            worker_url, worker, cx.clone(), resource_task, parent_sender,
+            own_sender, receiver);
         DedicatedWorkerGlobalScopeBinding::Wrap(cx.ptr, scope)
     }
 }
@@ -74,8 +79,9 @@ impl DedicatedWorkerGlobalScope {
     pub fn run_worker_scope(worker_url: Url,
                             worker: TrustedWorkerAddress,
                             resource_task: ResourceTask,
-                            receiver: Receiver<ScriptMsg>,
-                            sender: ScriptChan) {
+                            parent_sender: ScriptChan,
+                            own_sender: ScriptChan,
+                            receiver: Receiver<ScriptMsg>) {
         TaskBuilder::new()
             .native()
             .named(format!("Web Worker at {}", worker_url.serialize()))
@@ -95,8 +101,8 @@ impl DedicatedWorkerGlobalScope {
 
             let (_js_runtime, js_context) = ScriptTask::new_rt_and_cx();
             let global = DedicatedWorkerGlobalScope::new(
-                worker_url, worker, js_context.clone(), receiver, resource_task,
-                sender).root();
+                worker_url, worker, js_context.clone(), resource_task,
+                parent_sender, own_sender, receiver).root();
             match js_context.evaluate_script(
                 global.reflector().get_jsobject(), source, url.serialize(), 1) {
                 Ok(_) => (),
@@ -133,9 +139,7 @@ impl DedicatedWorkerGlobalScope {
 
 impl<'a> DedicatedWorkerGlobalScopeMethods for JSRef<'a, DedicatedWorkerGlobalScope> {
     fn PostMessage(&self, message: DOMString) {
-        let scope: &JSRef<WorkerGlobalScope> =
-            WorkerGlobalScopeCast::from_ref(self);
-        let ScriptChan(ref sender) = *scope.script_chan();
+        let ScriptChan(ref sender) = self.parent_sender;
         sender.send(WorkerPostMessage(*self.worker, message));
     }
 }
@@ -146,9 +150,7 @@ trait PrivateDedicatedWorkerGlobalScopeHelpers {
 
 impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerGlobalScope> {
     fn delayed_release_worker(&self) {
-        let scope: &JSRef<WorkerGlobalScope> =
-            WorkerGlobalScopeCast::from_ref(self);
-        let ScriptChan(ref sender) = *scope.script_chan();
+        let ScriptChan(ref sender) = self.parent_sender;
         sender.send(WorkerRelease(*self.worker));
     }
 }
