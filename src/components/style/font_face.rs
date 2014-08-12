@@ -54,8 +54,11 @@ pub fn parse_font_face_rule(rule: AtRule, parent_rules: &mut Vec<CSSRule>, base_
         match item {
             DeclAtRule(rule) => log_css_error(
                 rule.location, format!("Unsupported at-rule in declaration list: @{:s}", rule.name).as_slice()),
-            Declaration(Declaration{ location: location, name: name, value: value, important: _}) => {
-
+            Declaration(Declaration{ location, name, value, important }) => {
+                if important {
+                    log_css_error(location, "!important is not allowed on @font-face descriptors");
+                    continue
+                }
                 let name_lower = name.as_slice().to_ascii_lower();
                 match name_lower.as_slice() {
                     "font-family" => {
