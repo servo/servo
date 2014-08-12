@@ -19,7 +19,7 @@ ifeq (,$(filter $(1),$(DOC_BLACKLISTED)))
 
 doc/$(1)/index.html: $$(DEPS_$(1)) $$(RUSTDOC_DEPS)
 	@$$(call E, rustdoc: $$@)
-	$$(Q)$$(RUSTDOC) $$(RUSTDOC_FLAGS) $$(RFLAGS_$(1)) $$<
+	$$(Q)$$(RUSTDOC) $$(RUSTDOC_FLAGS) $$(filter-out -Z time-passes, $$(RFLAGS_$(1))) $$<
 
 else
 

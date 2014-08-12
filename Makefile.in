@@ -270,6 +270,13 @@ DEPS_script_traits = $(CRATE_script_traits) $(SRC_script_traits) $(DONE_msg) $(D
 
 RFLAGS_script = $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/util -L $(B)src/components/style -L $(B)src/components/net -L $(B)src/components/msg -L$(B)src/components/macros -L$(B)src/components/gfx -L$(B)src/components/script_traits
 
+ifdef TRAVIS
+# libscript has a habit of taking over 10 minutes while running on Travis,
+# and Travis kills the build if we don't output anything for 10 minutes.
+# Note: mk/doc.mk filters this out when calling rustdoc.
+RFLAGS_script += -Z time-passes
+endif
+
 BINDINGS_SRC = $(S)src/components/script/dom/bindings/codegen
 WEBIDLS_SRC = $(S)src/components/script/dom/webidls
 
