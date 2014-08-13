@@ -129,7 +129,7 @@ pub fn parse_style_rule(rule: QualifiedRule, parent_rules: &mut Vec<CSSRule>,
     let QualifiedRule{location: location, prelude: prelude, block: block} = rule;
     // FIXME: avoid doing this for valid selectors
     let serialized = prelude.iter().to_css();
-    match selectors::parse_selector_list(prelude, namespaces) {
+    match selectors::parse_selector_list(prelude.move_iter(), namespaces) {
         Ok(selectors) => parent_rules.push(CSSStyleRule(StyleRule{
             selectors: selectors,
             declarations: properties::parse_property_declaration_list(block.move_iter(), base_url)

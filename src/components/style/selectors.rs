@@ -4,7 +4,6 @@
 
 use std::{cmp, iter};
 use std::ascii::{StrAsciiExt, OwnedStrAsciiExt};
-use std::vec;
 use sync::Arc;
 
 use cssparser::ast::*;
@@ -113,13 +112,10 @@ pub enum NamespaceConstraint {
 }
 
 
-type Iter = iter::Peekable<ComponentValue, vec::MoveItems<ComponentValue>>;
-
-
 pub fn parse_selector_list_from_str(input: &str) -> Result<SelectorList, ()> {
     let namespaces = NamespaceMap::new();
-    let input = tokenize(input).map(|(token, _)| token).collect();
-    parse_selector_list(input, &namespaces).map(|s| SelectorList { selectors: s })
+    let iter = tokenize(input).map(|(token, _)| token);
+    parse_selector_list(iter, &namespaces).map(|s| SelectorList { selectors: s })
 }
 
 /// Re-exported to script, but opaque.
@@ -136,9 +132,10 @@ pub fn get_selector_list_selectors<'a>(selector_list: &'a SelectorList) -> &'a [
 /// aka Selector Group in http://www.w3.org/TR/css3-selectors/#grouping
 ///
 /// Return the Selectors or None if there is an invalid selector.
-pub fn parse_selector_list(input: Vec<ComponentValue>, namespaces: &NamespaceMap)
+pub fn parse_selector_list<I: Iterator<ComponentValue>>(
+                           iter: I, namespaces: &NamespaceMap)
                            -> Result<Vec<Selector>, ()> {
-    let iter = &mut input.move_iter().peekable();
+    let iter = &mut iter.peekable();
     let mut results = vec![try!(parse_selector(iter, namespaces))];
 
     loop {
@@ -156,11 +153,14 @@ pub fn parse_selector_list(input: Vec<ComponentValue>, namespaces: &NamespaceMap
 }
 
 
+type Iter<I> = iter::Peekable<ComponentValue, I>;
+
 /// Build up a Selector.
 /// selector : simple_selector_sequence [ combinator simple_selector_sequence ]* ;
 ///
-/// None means invalid selector.
-fn parse_selector(iter: &mut Iter, namespaces: &NamespaceMap)
+/// `Err` means invalid selector.
+fn parse_selector<I: Iterator<ComponentValue>>(
+                  iter: &mut Iter<I>, namespaces: &NamespaceMap)
                   -> Result<Selector, ()> {
     let (first, mut pseudo_element) = try!(parse_simple_selectors(iter, namespaces));
     let mut compound = CompoundSelector{ simple_selectors: first, next: None };
@@ -253,8 +253,9 @@ fn compute_specificity(mut selector: &CompoundSelector,
 /// | [ HASH | class | attrib | pseudo | negation ]+
 ///
 /// `Err(())` means invalid selector
-fn parse_simple_selectors(iter: &mut Iter, namespaces: &NamespaceMap)
-                           -> Result<(Vec<SimpleSelector>, Option<PseudoElement>), ()> {
+fn parse_simple_selectors<I: Iterator<ComponentValue>>(
+                          iter: &mut Iter<I>, namespaces: &NamespaceMap)
+                          -> Result<(Vec<SimpleSelector>, Option<PseudoElement>), ()> {
     let mut empty = true;
     let mut simple_selectors = match try!(parse_type_selector(iter, namespaces)) {
         None => vec![],
@@ -277,7 +278,8 @@ fn parse_simple_selectors(iter: &mut Iter, namespaces: &NamespaceMap)
 /// * `Err(())`: Invalid selector, abort
 /// * `Ok(None)`: Not a type selector, could be something else. `iter` was not consumed.
 /// * `Ok(Some(vec))`: Length 0 (`*|*`), 1 (`*|E` or `ns|*`) or 2 (`|E` or `ns|E`)
-fn parse_type_selector(iter: &mut Iter, namespaces: &NamespaceMap)
+fn parse_type_selector<I: Iterator<ComponentValue>>(
+                       iter: &mut Iter<I>, namespaces: &NamespaceMap)
                        -> Result<Option<Vec<SimpleSelector>>, ()> {
     skip_whitespace(iter);
     match try!(parse_qualified_name(iter, /* in_attr_selector = */ false, namespaces)) {
@@ -313,8 +315,9 @@ enum SimpleSelectorParseResult {
 /// * `Err(())`: Invalid selector, abort
 /// * `Ok(None)`: Not a simple selector, could be something else. `iter` was not consumed.
 /// * `Ok(Some(_))`: Parsed a simple selector or pseudo-element
-fn parse_one_simple_selector(iter: &mut Iter, namespaces: &NamespaceMap, inside_negation: bool)
-                         -> Result<Option<SimpleSelectorParseResult>, ()> {
+fn parse_one_simple_selector<I: Iterator<ComponentValue>>(
+                             iter: &mut Iter<I>, namespaces: &NamespaceMap, inside_negation: bool)
+                             -> Result<Option<SimpleSelectorParseResult>, ()> {
     match iter.peek() {
         Some(&IDHash(_)) => match iter.next() {
             Some(IDHash(id)) => Ok(Some(SimpleSelectorResult(
@@ -372,21 +375,18 @@ fn parse_one_simple_selector(iter: &mut Iter, namespaces: &NamespaceMap, inside_
 /// * `Err(())`: Invalid selector, abort
 /// * `Ok(None)`: Not a simple selector, could be something else. `iter` was not consumed.
 /// * `Ok(Some((namespace, local_name)))`: `None` for the local name means a `*` universal selector
-fn parse_qualified_name(iter: &mut Iter, in_attr_selector: bool, namespaces: &NamespaceMap)
-                       -> Result<Option<(NamespaceConstraint, Option<String>)>, ()> {
-    #[inline]
-    fn default_namespace(namespaces: &NamespaceMap, local_name: Option<String>)
-                         -> Result<Option<(NamespaceConstraint, Option<String>)>, ()> {
+fn parse_qualified_name<I: Iterator<ComponentValue>>(
+                        iter: &mut Iter<I>, in_attr_selector: bool, namespaces: &NamespaceMap)
+                        -> Result<Option<(NamespaceConstraint, Option<String>)>, ()> {
+    let default_namespace = |local_name| {
         let namespace = match namespaces.default {
             Some(ref ns) => SpecificNamespace(ns.clone()),
             None => AnyNamespace,
         };
         Ok(Some((namespace, local_name)))
-    }
+    };
 
-    #[inline]
-    fn explicit_namespace(iter: &mut Iter, in_attr_selector: bool, namespace: NamespaceConstraint)
-                         -> Result<Option<(NamespaceConstraint, Option<String>)>, ()> {
+    let explicit_namespace = |iter: &mut Iter<I>, namespace| {
         assert!(iter.next() == Some(Delim('|')),
                 "Implementation error, this should not happen.");
         match iter.peek() {
@@ -400,7 +400,7 @@ fn parse_qualified_name(iter: &mut Iter, in_attr_selector: bool, namespaces: &Na
             },
             _ => Err(()),
         }
-    }
+    };
 
     match iter.peek() {
         Some(&Ident(_)) => {
@@ -411,25 +411,24 @@ fn parse_qualified_name(iter: &mut Iter, in_attr_selector: bool, namespaces: &Na
                         None => return Err(()),  // Undeclared namespace prefix
                         Some(ref ns) => (*ns).clone(),
                     };
-                    explicit_namespace(iter, in_attr_selector, SpecificNamespace(namespace))
+                    explicit_namespace(iter, SpecificNamespace(namespace))
                 },
                 _ if in_attr_selector => Ok(Some(
                     (SpecificNamespace(namespace::Null), Some(value)))),
-                _ => default_namespace(namespaces, Some(value)),
+                _ => default_namespace(Some(value)),
             }
         },
         Some(&Delim('*')) => {
             iter.next();  // Consume '*'
             match iter.peek() {
-                Some(&Delim('|')) => explicit_namespace(iter, in_attr_selector, AnyNamespace),
+                Some(&Delim('|')) => explicit_namespace(iter, AnyNamespace),
                 _ => {
-                    if !in_attr_selector { default_namespace(namespaces, None) }
+                    if !in_attr_selector { default_namespace(None) }
                     else { Err(()) }
                 },
             }
         },
-        Some(&Delim('|')) => explicit_namespace(
-            iter, in_attr_selector, SpecificNamespace(namespace::Null)),
+        Some(&Delim('|')) => explicit_namespace(iter, SpecificNamespace(namespace::Null)),
         _ => Ok(None),
     }
 }
@@ -553,7 +552,7 @@ fn parse_negation(arguments: Vec<ComponentValue>, namespaces: &NamespaceMap)
 
 /// Assuming the next token is an ident, consume it and return its value
 #[inline]
-fn get_next_ident(iter: &mut Iter) -> String {
+fn get_next_ident<I: Iterator<ComponentValue>>(iter: &mut Iter<I>) -> String {
     match iter.next() {
         Some(Ident(value)) => value,
         _ => fail!("Implementation error, this should not happen."),
@@ -562,7 +561,7 @@ fn get_next_ident(iter: &mut Iter) -> String {
 
 
 #[inline]
-fn skip_whitespace(iter: &mut Iter) -> bool {
+fn skip_whitespace<I: Iterator<ComponentValue>>(iter: &mut Iter<I>) -> bool {
     let mut any_whitespace = false;
     loop {
         if iter.peek() != Some(&WhiteSpace) { return any_whitespace }
@@ -586,9 +585,7 @@ mod tests {
     }
 
     fn parse_ns(input: &str, namespaces: &NamespaceMap) -> Result<Vec<Selector>, ()> {
-        parse_selector_list(
-            cssparser::tokenize(input).map(|(v, _)| v).collect(),
-            namespaces)
+        parse_selector_list(cssparser::tokenize(input).map(|(v, _)| v), namespaces)
     }
 
     fn specificity(a: u32, b: u32, c: u32) -> u32 {

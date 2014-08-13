@@ -925,7 +925,7 @@ mod tests {
 
         let namespaces = NamespaceMap::new();
         css_selectors.iter().enumerate().map(|(i, selectors)| {
-            parse_selector_list(tokenize(*selectors).map(|(c, _)| c).collect(), &namespaces)
+            parse_selector_list(tokenize(*selectors).map(|(c, _)| c), &namespaces)
             .unwrap().move_iter().map(|s| {
                 Rule {
                     selector: s.compound_selectors.clone(),
