@@ -6,7 +6,7 @@
 //[Exposed=Worker]
 interface WorkerGlobalScope : EventTarget {
   readonly attribute WorkerGlobalScope self;
-  //readonly attribute WorkerLocation location;
+  readonly attribute WorkerLocation location;
 
   //void close();
   //         attribute OnErrorEventHandler onerror;
