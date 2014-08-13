@@ -4,13 +4,14 @@
 
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding;
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding::DedicatedWorkerGlobalScopeMethods;
+use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::InheritTypes::DedicatedWorkerGlobalScopeDerived;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, WorkerGlobalScopeCast};
 use dom::bindings::global::Worker;
 use dom::bindings::js::{JSRef, Temporary, RootCollection};
 use dom::bindings::trace::Untraceable;
 use dom::bindings::utils::{Reflectable, Reflector};
-use dom::eventtarget::EventTarget;
+use dom::eventtarget::{EventTarget, EventTargetHelpers};
 use dom::eventtarget::WorkerGlobalScopeTypeId;
 use dom::messageevent::MessageEvent;
 use dom::worker::{Worker, TrustedWorkerAddress};
@@ -141,6 +142,16 @@ impl<'a> DedicatedWorkerGlobalScopeMethods for JSRef<'a, DedicatedWorkerGlobalSc
     fn PostMessage(&self, message: DOMString) {
         let ScriptChan(ref sender) = self.parent_sender;
         sender.send(WorkerPostMessage(*self.worker, message));
+    }
+
+    fn GetOnmessage(&self) -> Option<EventHandlerNonNull> {
+        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        eventtarget.get_event_handler_common("message")
+    }
+
+    fn SetOnmessage(&self, listener: Option<EventHandlerNonNull>) {
+        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        eventtarget.set_event_handler_common("message", listener)
     }
 }
 
