@@ -6,6 +6,7 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::{OnErrorEventHandlerN
 use dom::bindings::codegen::Bindings::WindowBinding;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
+use dom::bindings::error::{Fallible, InvalidCharacter};
 use dom::bindings::global;
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalSettable};
 use dom::bindings::trace::{Traceable, Untraceable};
@@ -25,7 +26,7 @@ use script_traits::ScriptControlChan;
 
 use servo_msg::compositor_msg::ScriptListener;
 use servo_net::image_cache_task::ImageCacheTask;
-use servo_util::str::DOMString;
+use servo_util::str::{DOMString,HTML_SPACE_CHARACTERS};
 use servo_util::task::{spawn_named};
 
 use js::jsapi::JS_CallFunctionValue;
@@ -36,6 +37,7 @@ use js::jsval::NullValue;
 use js::rust::with_compartment;
 use url::{Url, UrlParser};
 
+use serialize::base64::{FromBase64, ToBase64, STANDARD};
 use std::collections::hashmap::HashMap;
 use std::cell::{Cell, RefCell};
 use std::cmp;
@@ -261,6 +263,80 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     fn Gc(&self) {
         unsafe {
             JS_GC(JS_GetRuntime(self.get_cx()));
+        }
+    }
+
+    // http://www.whatwg.org/html/#atob
+    fn Btoa(&self, btoa: DOMString) -> Fallible<DOMString> {
+        let input = btoa.as_slice();
+        // "The btoa() method must throw an InvalidCharacterError exception if
+        //  the method's first argument contains any character whose code point
+        //  is greater than U+00FF."
+        if input.chars().any(|c: char| c > '\u00FF') {
+            Err(InvalidCharacter)
+        } else {
+            // "Otherwise, the user agent must convert that argument to a
+            //  sequence of octets whose nth octet is the eight-bit
+            //  representation of the code point of the nth character of
+            //  the argument,"
+            let octets = input.chars().map(|c: char| c as u8).collect::<Vec<u8>>();
+
+            // "and then must apply the base64 algorithm to that sequence of
+            //  octets, and return the result. [RFC4648]"
+            Ok(octets.as_slice().to_base64(STANDARD))
+        }
+    }
+
+    // http://www.whatwg.org/html/#atob
+    fn Atob(&self, atob: DOMString) -> Fallible<DOMString> {
+        // "Let input be the string being parsed."
+        let mut input = atob.as_slice();
+
+        // "Remove all space characters from input."
+        // serialize::base64::from_base64 ignores \r and \n,
+        // but it treats the other space characters as
+        // invalid input.
+        fn is_html_space(c: char) -> bool {
+            HTML_SPACE_CHARACTERS.iter().any(|&m| m == c)
+        }
+        let without_spaces = input.chars()
+                                  .filter(|&c| ! is_html_space(c))
+                                  .collect::<String>();
+        input = without_spaces.as_slice();
+
+        // "If the length of input divides by 4 leaving no remainder, then:
+        //  if input ends with one or two U+003D EQUALS SIGN (=) characters,
+        //  remove them from input."
+        if input.len() % 4 == 0 {
+            if input.ends_with("==") {
+                input = input.slice_to(input.len() - 2)
+            } else if input.ends_with("=") {
+                input = input.slice_to(input.len() - 1)
+            }
+        }
+
+        // "If the length of input divides by 4 leaving a remainder of 1,
+        //  throw an InvalidCharacterError exception and abort these steps."
+        if input.len() % 4 == 1 {
+            return Err(InvalidCharacter)
+        }
+
+        // "If input contains a character that is not in the following list of
+        //  characters and character ranges, throw an InvalidCharacterError
+        //  exception and abort these steps:
+        //
+        //  U+002B PLUS SIGN (+)
+        //  U+002F SOLIDUS (/)
+        //  Alphanumeric ASCII characters"
+        if input.chars()
+                .find(|&c| !(c == '+' || c == '/' || c.is_alphanumeric()))
+                .is_some() {
+            return Err(InvalidCharacter)
+        }
+
+        match input.from_base64() {
+            Ok(data) => Ok(data.iter().map(|&b| b as char).collect::<String>()),
+            Err(..) => Err(InvalidCharacter)
         }
     }
 }
