@@ -666,8 +666,6 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     fn Images(&self) -> Temporary<HTMLCollection> {
         let window = self.window.root();
-
-        // FIXME: https://github.com/mozilla/servo/issues/1847
         struct ImagesFilter;
         impl CollectionFilter for ImagesFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
@@ -680,8 +678,6 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     fn Embeds(&self) -> Temporary<HTMLCollection> {
         let window = self.window.root();
-
-        // FIXME: https://github.com/mozilla/servo/issues/1847
         struct EmbedsFilter;
         impl CollectionFilter for EmbedsFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
@@ -693,12 +689,10 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     }
 
     fn Plugins(&self) -> Temporary<HTMLCollection> {
-        // FIXME: https://github.com/mozilla/servo/issues/1847
         self.Embeds()
     }
 
     fn Links(&self) -> Temporary<HTMLCollection> {
-        // FIXME: https://github.com/mozilla/servo/issues/1847
         if self.links.get().is_none() {
             let window = self.window.root();
             let root = NodeCast::from_ref(self);
@@ -710,8 +704,6 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     fn Forms(&self) -> Temporary<HTMLCollection> {
         let window = self.window.root();
-
-        // FIXME: https://github.com/mozilla/servo/issues/1847
         struct FormsFilter;
         impl CollectionFilter for FormsFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
@@ -724,8 +716,6 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     fn Scripts(&self) -> Temporary<HTMLCollection> {
         let window = self.window.root();
-
-        // FIXME: https://github.com/mozilla/servo/issues/1847
         struct ScriptsFilter;
         impl CollectionFilter for ScriptsFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
@@ -738,8 +728,6 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     fn Anchors(&self) -> Temporary<HTMLCollection> {
         let window = self.window.root();
-
-        // FIXME: https://github.com/mozilla/servo/issues/1847
         struct AnchorsFilter;
         impl CollectionFilter for AnchorsFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
