@@ -78,11 +78,19 @@ pub struct Document {
     pub is_html_document: bool,
     url: Untraceable<Url>,
     quirks_mode: Untraceable<Cell<QuirksMode>>,
+    links: Cell<Option<JS<HTMLCollection>>>,
 }
 
 impl DocumentDerived for EventTarget {
     fn is_document(&self) -> bool {
         self.type_id == NodeTargetTypeId(DocumentNodeTypeId)
+    }
+}
+
+struct LinksFilter;
+impl CollectionFilter for LinksFilter {
+    fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
+        (elem.is_htmlanchorelement() || elem.is_htmlareaelement()) && elem.has_attribute("href")
     }
 }
 
@@ -228,6 +236,7 @@ impl Document {
             // http://dom.spec.whatwg.org/#concept-document-encoding
             encoding_name: Traceable::new(RefCell::new("utf-8".to_string())),
             is_html_document: is_html_document == HTMLDocument,
+            links: Cell::new(None),
         }
     }
 
@@ -689,18 +698,14 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     }
 
     fn Links(&self) -> Temporary<HTMLCollection> {
-        let window = self.window.root();
-
         // FIXME: https://github.com/mozilla/servo/issues/1847
-        struct LinksFilter;
-        impl CollectionFilter for LinksFilter {
-            fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                (elem.is_htmlanchorelement() || elem.is_htmlareaelement()) &&
-                    elem.get_attribute(Null, "href").is_some()
-            }
+        if self.links.get().is_none() {
+            let window = self.window.root();
+            let root = NodeCast::from_ref(self);
+            let filter = box LinksFilter;
+            self.links.assign(Some(HTMLCollection::create(&*window, root, filter)));
         }
-        let filter = box LinksFilter;
-        HTMLCollection::create(&*window, NodeCast::from_ref(self), filter)
+        Temporary::new(self.links.get().get_ref().clone())
     }
 
     fn Forms(&self) -> Temporary<HTMLCollection> {
