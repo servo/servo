@@ -11,7 +11,7 @@ use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, OptionalSettable};
 use dom::bindings::js::OptionalRootable;
 use dom::bindings::utils::Reflectable;
 use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
-use dom::document::{Document, HTMLDocument, DocumentHelpers};
+use dom::document::{Document, HTMLDocument, DocumentHelpers, DOMTreeChange, DOMTreeLoaded};
 use dom::element::{Element, HTMLButtonElementTypeId, HTMLInputElementTypeId};
 use dom::element::{HTMLSelectElementTypeId, HTMLTextAreaElementTypeId, HTMLOptionElementTypeId};
 use dom::event::Event;
@@ -642,7 +642,7 @@ impl ScriptTask {
         }
 
         // Kick off the initial reflow of the page.
-        document.deref().content_changed();
+        document.deref().content_changed(&DOMTreeChange(DOMTreeLoaded));
 
         let fragment = url.fragment.as_ref().map(|ref fragment| fragment.to_string());
 

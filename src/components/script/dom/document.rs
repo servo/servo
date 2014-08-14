@@ -66,6 +66,17 @@ pub enum IsHTMLDocument {
     NonHTMLDocument,
 }
 
+pub enum DOMTreeChangeType<'a, 'b> {
+    DOMTreeLoaded,
+    DOMTreeNodeInserted(&'b JSRef<'a, Node>),
+    DOMTreeNodeRemoved(&'b JSRef<'a, Node>),
+}
+
+pub enum ContentChangeType<'a, 'b> {
+    DOMTreeChange(DOMTreeChangeType<'a, 'b>),
+    TextContentChange
+}
+
 #[deriving(Encodable)]
 pub struct Document {
     pub node: Node,
@@ -78,6 +89,17 @@ pub struct Document {
     pub is_html_document: bool,
     url: Untraceable<Url>,
     quirks_mode: Untraceable<Cell<QuirksMode>>,
+    links_collection_cache: Cell<Option<JS<HTMLCollection>>>,
+    flags: Traceable<RefCell<DocumentFlags>>,
+}
+
+bitflags! {
+    #[doc = "Flags for Document items."]
+    #[deriving(Encodable)]
+    flags DocumentFlags: u8 {
+        #[doc = "Specifies whether the links cached collection from this document needs update."]
+        static LinksCollectionNeedsUpdate = 0x01
+    }
 }
 
 impl DocumentDerived for EventTarget {
@@ -91,7 +113,7 @@ pub trait DocumentHelpers {
     fn quirks_mode(&self) -> QuirksMode;
     fn set_quirks_mode(&self, mode: QuirksMode);
     fn set_encoding_name(&self, name: DOMString);
-    fn content_changed(&self);
+    fn content_changed(&self, change_type: &ContentChangeType);
     fn damage_and_reflow(&self, damage: DocumentDamageLevel);
     fn wait_until_safe_to_modify_dom(&self);
     fn unregister_named_element(&self, to_unregister: &JSRef<Element>, id: DOMString);
@@ -116,7 +138,25 @@ impl<'a> DocumentHelpers for JSRef<'a, Document> {
         *self.encoding_name.deref().borrow_mut() = name;
     }
 
-    fn content_changed(&self) {
+    fn content_changed(&self, change_type: &ContentChangeType) {
+        match *change_type {
+            DOMTreeChange(DOMTreeLoaded) => {
+                self.flags.deref().borrow_mut().insert(LinksCollectionNeedsUpdate);
+            },
+            DOMTreeChange(DOMTreeNodeInserted(ref node)) |
+            DOMTreeChange(DOMTreeNodeRemoved(ref node)) => {
+                let elem: Option<&JSRef<Element>> = ElementCast::to_ref(*node);
+                match elem {
+                    Some(elem) => {
+                        if (box LinksFilter).filter(elem, *node) {
+                            self.flags.deref().borrow_mut().insert(LinksCollectionNeedsUpdate);
+                        }
+                    },
+                    None => ()
+                }
+            },
+            _ => ()
+        }
         self.damage_and_reflow(ContentChangedDocumentDamage);
     }
 
@@ -228,6 +268,8 @@ impl Document {
             // http://dom.spec.whatwg.org/#concept-document-encoding
             encoding_name: Traceable::new(RefCell::new("utf-8".to_string())),
             is_html_document: is_html_document == HTMLDocument,
+            links_collection_cache: Cell::new(None),
+            flags: Traceable::new(RefCell::new(DocumentFlags::empty())),
         }
     }
 
@@ -250,6 +292,14 @@ impl Document {
 impl Reflectable for Document {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.node.reflector()
+    }
+}
+
+struct LinksFilter;
+
+impl CollectionFilter for LinksFilter {
+    fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
+        (elem.is_htmlanchorelement() || elem.is_htmlareaelement()) && elem.has_attribute("href")
     }
 }
 
@@ -689,18 +739,15 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     }
 
     fn Links(&self) -> Temporary<HTMLCollection> {
-        let window = self.window.root();
-
         // FIXME: https://github.com/mozilla/servo/issues/1847
-        struct LinksFilter;
-        impl CollectionFilter for LinksFilter {
-            fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                (elem.is_htmlanchorelement() || elem.is_htmlareaelement()) &&
-                    elem.get_attribute(Null, "href").is_some()
-            }
+        if self.flags.deref().borrow().contains(LinksCollectionNeedsUpdate) {
+            let window = self.window.root();
+            let filter = box LinksFilter;
+            let collection = HTMLCollection::create(&*window, NodeCast::from_ref(self), filter);
+            self.links_collection_cache.assign(Some(cache));
+            self.flags.deref().borrow_mut().remove(LinksCollectionNeedsUpdate);
         }
-        let filter = box LinksFilter;
-        HTMLCollection::create(&*window, NodeCast::from_ref(self), filter)
+        Temporary::new(self.links_collection_cache.get().get_ref().clone())
     }
 
     fn Forms(&self) -> Temporary<HTMLCollection> {
@@ -738,7 +785,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         struct AnchorsFilter;
         impl CollectionFilter for AnchorsFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                elem.is_htmlanchorelement() && elem.get_attribute(Null, "name").is_some()
+                elem.is_htmlanchorelement() && elem.has_attribute("name")
             }
         }
         let filter = box AnchorsFilter;
