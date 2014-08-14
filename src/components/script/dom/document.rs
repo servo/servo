@@ -78,7 +78,13 @@ pub struct Document {
     pub is_html_document: bool,
     url: Untraceable<Url>,
     quirks_mode: Untraceable<Cell<QuirksMode>>,
+    images: Cell<Option<JS<HTMLCollection>>>,
+    embeds: Cell<Option<JS<HTMLCollection>>>,
     links: Cell<Option<JS<HTMLCollection>>>,
+    forms: Cell<Option<JS<HTMLCollection>>>,
+    scripts: Cell<Option<JS<HTMLCollection>>>,
+    anchors: Cell<Option<JS<HTMLCollection>>>,
+    applets: Cell<Option<JS<HTMLCollection>>>,
 }
 
 impl DocumentDerived for EventTarget {
@@ -87,10 +93,52 @@ impl DocumentDerived for EventTarget {
     }
 }
 
+struct ImagesFilter;
+impl CollectionFilter for ImagesFilter {
+    fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
+        elem.is_htmlimageelement()
+    }
+}
+
+struct EmbedsFilter;
+impl CollectionFilter for EmbedsFilter {
+    fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
+        elem.is_htmlembedelement()
+    }
+}
+
 struct LinksFilter;
 impl CollectionFilter for LinksFilter {
     fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
         (elem.is_htmlanchorelement() || elem.is_htmlareaelement()) && elem.has_attribute("href")
+    }
+}
+
+struct FormsFilter;
+impl CollectionFilter for FormsFilter {
+    fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
+        elem.is_htmlformelement()
+    }
+}
+
+struct ScriptsFilter;
+impl CollectionFilter for ScriptsFilter {
+    fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
+        elem.is_htmlscriptelement()
+    }
+}
+
+struct AnchorsFilter;
+impl CollectionFilter for AnchorsFilter {
+    fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
+        elem.is_htmlanchorelement() && elem.has_attribute("href")
+    }
+}
+
+struct AppletsFilter;
+impl CollectionFilter for AppletsFilter {
+    fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
+        elem.is_htmlappletelement()
     }
 }
 
@@ -236,7 +284,13 @@ impl Document {
             // http://dom.spec.whatwg.org/#concept-document-encoding
             encoding_name: Traceable::new(RefCell::new("utf-8".to_string())),
             is_html_document: is_html_document == HTMLDocument,
+            images: Cell::new(None),
+            embeds: Cell::new(None),
             links: Cell::new(None),
+            forms: Cell::new(None),
+            scripts: Cell::new(None),
+            anchors: Cell::new(None),
+            applets: Cell::new(None),
         }
     }
 
@@ -665,27 +719,23 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     }
 
     fn Images(&self) -> Temporary<HTMLCollection> {
-        let window = self.window.root();
-        struct ImagesFilter;
-        impl CollectionFilter for ImagesFilter {
-            fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                elem.is_htmlimageelement()
-            }
+        if self.images.get().is_none() {
+            let window = self.window.root();
+            let root = NodeCast::from_ref(self);
+            let filter = box ImagesFilter;
+            self.images.assign(Some(HTMLCollection::create(&*window, root, filter)));
         }
-        let filter = box ImagesFilter;
-        HTMLCollection::create(&*window, NodeCast::from_ref(self), filter)
+        Temporary::new(self.images.get().get_ref().clone())
     }
 
     fn Embeds(&self) -> Temporary<HTMLCollection> {
-        let window = self.window.root();
-        struct EmbedsFilter;
-        impl CollectionFilter for EmbedsFilter {
-            fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                elem.is_htmlembedelement()
-            }
+        if self.embeds.get().is_none() {
+            let window = self.window.root();
+            let root = NodeCast::from_ref(self);
+            let filter = box EmbedsFilter;
+            self.embeds.assign(Some(HTMLCollection::create(&*window, root, filter)));
         }
-        let filter = box EmbedsFilter;
-        HTMLCollection::create(&*window, NodeCast::from_ref(self), filter)
+        Temporary::new(self.embeds.get().get_ref().clone())
     }
 
     fn Plugins(&self) -> Temporary<HTMLCollection> {
@@ -703,53 +753,44 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     }
 
     fn Forms(&self) -> Temporary<HTMLCollection> {
-        let window = self.window.root();
-        struct FormsFilter;
-        impl CollectionFilter for FormsFilter {
-            fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                elem.is_htmlformelement()
-            }
+        if self.forms.get().is_none() {
+            let window = self.window.root();
+            let root = NodeCast::from_ref(self);
+            let filter = box FormsFilter;
+            self.forms.assign(Some(HTMLCollection::create(&*window, root, filter)));
         }
-        let filter = box FormsFilter;
-        HTMLCollection::create(&*window, NodeCast::from_ref(self), filter)
+        Temporary::new(self.forms.get().get_ref().clone())
     }
 
     fn Scripts(&self) -> Temporary<HTMLCollection> {
-        let window = self.window.root();
-        struct ScriptsFilter;
-        impl CollectionFilter for ScriptsFilter {
-            fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                elem.is_htmlscriptelement()
-            }
+        if self.scripts.get().is_none() {
+            let window = self.window.root();
+            let root = NodeCast::from_ref(self);
+            let filter = box ScriptsFilter;
+            self.scripts.assign(Some(HTMLCollection::create(&*window, root, filter)));
         }
-        let filter = box ScriptsFilter;
-        HTMLCollection::create(&*window, NodeCast::from_ref(self), filter)
+        Temporary::new(self.scripts.get().get_ref().clone())
     }
 
     fn Anchors(&self) -> Temporary<HTMLCollection> {
-        let window = self.window.root();
-        struct AnchorsFilter;
-        impl CollectionFilter for AnchorsFilter {
-            fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                elem.is_htmlanchorelement() && elem.get_attribute(Null, "name").is_some()
-            }
+        if self.anchors.get().is_none() {
+            let window = self.window.root();
+            let root = NodeCast::from_ref(self);
+            let filter = box AnchorsFilter;
+            self.anchors.assign(Some(HTMLCollection::create(&*window, root, filter)));
         }
-        let filter = box AnchorsFilter;
-        HTMLCollection::create(&*window, NodeCast::from_ref(self), filter)
+        Temporary::new(self.anchors.get().get_ref().clone())
     }
 
     fn Applets(&self) -> Temporary<HTMLCollection> {
-        let window = self.window.root();
-
         // FIXME: This should be return OBJECT elements containing applets.
-        struct AppletsFilter;
-        impl CollectionFilter for AppletsFilter {
-            fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                elem.is_htmlappletelement()
-            }
+        if self.applets.get().is_none() {
+            let window = self.window.root();
+            let root = NodeCast::from_ref(self);
+            let filter = box AppletsFilter;
+            self.applets.assign(Some(HTMLCollection::create(&*window, root, filter)));
         }
-        let filter = box AppletsFilter;
-        HTMLCollection::create(&*window, NodeCast::from_ref(self), filter)
+        Temporary::new(self.applets.get().get_ref().clone())
     }
 
     fn Location(&self) -> Temporary<Location> {
