@@ -18,7 +18,8 @@ interface WorkerGlobalScope : EventTarget {
 // http://www.whatwg.org/html/#WorkerGlobalScope-partial
 //[Exposed=Worker]
 partial interface WorkerGlobalScope { // not obsolete
-  //void importScripts(DOMString... urls);
+  [Throws]
+  void importScripts(DOMString... urls);
   readonly attribute WorkerNavigator navigator;
 };
 //WorkerGlobalScope implements WindowTimers;

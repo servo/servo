@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
+use dom::bindings::error::{ErrorResult, Syntax, Network, FailureUnknown};
 use dom::bindings::trace::Untraceable;
 use dom::bindings::global;
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalSettable};
@@ -13,14 +14,15 @@ use dom::workerlocation::WorkerLocation;
 use dom::workernavigator::WorkerNavigator;
 use script_task::ScriptChan;
 
-use servo_net::resource_task::ResourceTask;
+use servo_net::resource_task::{ResourceTask, load_whole_resource};
+use servo_util::str::DOMString;
 
 use js::jsapi::JSContext;
 use js::rust::Cx;
 
 use std::cell::Cell;
 use std::rc::Rc;
-use url::Url;
+use url::{Url, UrlParser};
 
 #[deriving(PartialEq,Encodable)]
 pub enum WorkerGlobalScopeId {
@@ -85,6 +87,38 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
             self.location.assign(Some(location));
         }
         Temporary::new(self.location.get().get_ref().clone())
+    }
+
+    fn ImportScripts(&self, url_strings: Vec<DOMString>) -> ErrorResult {
+        let mut urls = Vec::with_capacity(url_strings.len());
+        for url in url_strings.move_iter() {
+            let url = UrlParser::new().base_url(&*self.worker_url)
+                                      .parse(url.as_slice());
+            match url {
+                Ok(url) => urls.push(url),
+                Err(_) => return Err(Syntax),
+            };
+        }
+
+        for url in urls.move_iter() {
+            let (url, source) = match load_whole_resource(&*self.resource_task, url) {
+                Err(_) => return Err(Network),
+                Ok((metadata, bytes)) => {
+                    (metadata.final_url, String::from_utf8(bytes).unwrap())
+                }
+            };
+
+            match self.js_context.evaluate_script(
+                self.reflector().get_jsobject(), source, url.serialize(), 1) {
+                Ok(_) => (),
+                Err(_) => {
+                    println!("evaluate_script failed");
+                    return Err(FailureUnknown);
+                }
+            }
+        }
+
+        Ok(())
     }
 
     fn Navigator(&self) -> Temporary<WorkerNavigator> {
