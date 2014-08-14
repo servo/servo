@@ -118,7 +118,7 @@ impl FontCache {
                                 family.add_template(format!("{}", url).as_slice(), Some(bytes));
                             },
                             Err(msg) => {
-                                fail!(msg);
+                                fail!("{}: url={}", msg, url);
                             }
                         }
                     }
