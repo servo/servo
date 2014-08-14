@@ -6,7 +6,6 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::MessageEventBinding;
 use dom::bindings::codegen::Bindings::MessageEventBinding::MessageEventMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, MessageEventDerived};
-use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
@@ -68,12 +67,11 @@ impl MessageEvent {
 }
 
 impl MessageEvent {
-    pub fn dispatch(target: &JSRef<EventTarget>,
-                    scope: &GlobalRef,
-                    message: DOMString) {
+    pub fn dispatch_jsval(target: &JSRef<EventTarget>,
+                          scope: &GlobalRef,
+                          message: JSVal) {
         let messageevent = MessageEvent::new(
-            scope, "message".to_string(), false, false,
-            message.to_jsval(scope.get_cx()),
+            scope, "message".to_string(), false, false, message,
             "".to_string(), "".to_string()).root();
         let event: &JSRef<Event> = EventCast::from_ref(&*messageevent);
         target.dispatch_event_with_target(None, &*event).unwrap();

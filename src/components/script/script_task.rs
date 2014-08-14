@@ -45,7 +45,6 @@ use servo_msg::constellation_msg;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_util::geometry::to_frac_px;
-use servo_util::str::DOMString;
 use servo_util::task::spawn_named_with_send_on_failure;
 
 use geom::point::Point2D;
@@ -56,6 +55,7 @@ use js::rust::with_compartment;
 use js;
 use url::Url;
 
+use libc::size_t;
 use serialize::{Encoder, Encodable};
 use std::any::{Any, AnyRefExt};
 use std::cell::RefCell;
@@ -86,9 +86,9 @@ pub enum ScriptMsg {
     XHRProgressMsg(TrustedXHRAddress, XHRProgress),
     /// Message sent through Worker.postMessage (only dispatched to
     /// DedicatedWorkerGlobalScope).
-    DOMMessage(DOMString),
+    DOMMessage(*mut u64, size_t),
     /// Posts a message to the Worker object (dispatched to all tasks).
-    WorkerPostMessage(TrustedWorkerAddress, DOMString),
+    WorkerPostMessage(TrustedWorkerAddress, *mut u64, size_t),
     /// Releases one reference to the Worker object (dispatched to all tasks).
     WorkerRelease(TrustedWorkerAddress),
 }
@@ -446,7 +446,7 @@ impl ScriptTask {
                 FromConstellation(ResizeMsg(..)) => fail!("should have handled ResizeMsg already"),
                 FromScript(XHRProgressMsg(addr, progress)) => XMLHttpRequest::handle_xhr_progress(addr, progress),
                 FromScript(DOMMessage(..)) => fail!("unexpected message"),
-                FromScript(WorkerPostMessage(addr, message)) => Worker::handle_message(addr, message),
+                FromScript(WorkerPostMessage(addr, data, nbytes)) => Worker::handle_message(addr, data, nbytes),
                 FromScript(WorkerRelease(addr)) => Worker::handle_release(addr),
             }
         }
