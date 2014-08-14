@@ -18,7 +18,7 @@ use dom::bindings::codegen::InheritTypes::{CharacterDataCast, NodeBase, NodeDeri
 use dom::bindings::codegen::InheritTypes::{ProcessingInstructionCast, EventTargetCast};
 use dom::bindings::codegen::InheritTypes::{HTMLLegendElementDerived, HTMLFieldSetElementDerived};
 use dom::bindings::codegen::InheritTypes::HTMLOptGroupElementDerived;
-use dom::bindings::error::{ErrorResult, Fallible, NotFound, HierarchyRequest, Syntax};
+use dom::bindings::error::{Fallible, NotFound, HierarchyRequest, Syntax};
 use dom::bindings::global::{GlobalRef, Window};
 use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, Root, OptionalUnrootable};
 use dom::bindings::js::{OptionalSettable, TemporaryPushable, OptionalRootedRootable};
@@ -1557,14 +1557,14 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     }
 
     // http://dom.spec.whatwg.org/#dom-node-nodevalue
-    fn SetNodeValue(&self, val: Option<DOMString>) -> ErrorResult {
+    fn SetNodeValue(&self, val: Option<DOMString>) {
         match self.type_id {
             CommentNodeTypeId |
             TextNodeTypeId |
             ProcessingInstructionNodeTypeId => {
                 self.SetTextContent(val)
             }
-            _ => Ok(())
+            _ => {}
         }
     }
 
@@ -1596,7 +1596,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     }
 
     // http://dom.spec.whatwg.org/#dom-node-textcontent
-    fn SetTextContent(&self, value: Option<DOMString>) -> ErrorResult {
+    fn SetTextContent(&self, value: Option<DOMString>) {
         let value = null_str_as_empty(&value);
         match self.type_id {
             DocumentFragmentNodeTypeId |
@@ -1627,7 +1627,6 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
             DoctypeNodeTypeId |
             DocumentNodeTypeId => {}
         }
-        Ok(())
     }
 
     // http://dom.spec.whatwg.org/#dom-node-insertbefore
