@@ -43,6 +43,7 @@ impl<'a> LocationMethods for JSRef<'a, Location> {
     fn Search(&self) -> DOMString {
         match self.page.get_url().query {
             None => "".to_string(),
+            Some(ref query) if query.as_slice() == "" => "".to_string(),
             Some(ref query) => "?".to_string().append(query.as_slice())
         }
     }
@@ -50,7 +51,8 @@ impl<'a> LocationMethods for JSRef<'a, Location> {
     fn Hash(&self) -> DOMString {
         match self.page.get_url().fragment {
             None => "".to_string(),
-            Some(ref query) => "#".to_string().append(query.as_slice())
+            Some(ref hash) if hash.as_slice() == "" => "".to_string(),
+            Some(ref hash) => "#".to_string().append(hash.as_slice())
         }
     }
 }
