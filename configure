@@ -441,28 +441,6 @@ probe CFG_CLANG            clang++
 
 CFG_BUILD_DIR="${CFG_BUILD_HOME}${CFG_TARGET}/"
 make_dir "${CFG_BUILD_DIR}"
-SNAPSHOT_VERSION=$(cat ${CFG_SRC_DIR}/src/compiler/rust-snapshot-hash | rev | cut -d/ -f1 | rev)
-SNAPSHOT_HASH=$(cat ${CFG_SRC_DIR}/src/compiler/rust-snapshot-hash | cut -d/ -f1)
-
-if [ -z "$CFG_ENABLE_TREE_RUST" -a -z "$CFG_LOCAL_RUST_ROOT" ]
-then
-    if ! [ -f ${CFG_BUILD_DIR}/rust_snapshot/${SNAPSHOT_VERSION}-${DEFAULT_TARGET}/bin/rustc -a -f ${CFG_BUILD_DIR}/src/compiler/rust-snapshot-hash-stamp -a -z "$(diff ${CFG_BUILD_DIR}/src/compiler/rust-snapshot-hash-stamp ${CFG_SRC_DIR}/src/compiler/rust-snapshot-hash)" ]
-    then
-        make_dir ${CFG_BUILD_DIR}/rust_snapshot
-        make_dir ${CFG_BUILD_DIR}/src/compiler/rust
-        if [ ! -f ${CFG_BUILD_DIR}/rust_snapshot/snapshot-${SNAPSHOT_HASH}.tgz ]
-        then
-            SNAPSHOT_URL="https://servo-rust.s3.amazonaws.com/$(cat ${CFG_SRC_DIR}/src/compiler/rust-snapshot-hash)-${DEFAULT_TARGET}.tar.gz"
-            step_msg "Fetching snapshot from ${SNAPSHOT_URL}"
-            curl -o ${CFG_BUILD_DIR}/rust_snapshot/snapshot-${SNAPSHOT_HASH}.tgz ${SNAPSHOT_URL}
-            need_ok "Fetching the snapshot failed"
-        fi
-        rm -rf ${CFG_BUILD_DIR}/rust_snapshot/${SNAPSHOT_VERSION}-${DEFAULT_TARGET}
-        tar -zxf ${CFG_BUILD_DIR}/rust_snapshot/snapshot-${SNAPSHOT_HASH}.tgz -C ${CFG_BUILD_DIR}/rust_snapshot/
-        cp -f ${CFG_SRC_DIR}/src/compiler/rust-snapshot-hash ${CFG_BUILD_DIR}/src/compiler/rust-snapshot-hash-stamp
-    fi
-    CFG_LOCAL_RUST_ROOT=${CFG_BUILD_DIR}rust_snapshot/${SNAPSHOT_VERSION}-${DEFAULT_TARGET}
-fi
 
 if [ ! -z "$CFG_LOCAL_RUST_ROOT" ]
 then
@@ -475,18 +453,28 @@ then
         fi
         LRV=`${CFG_LOCAL_RUST_ROOT}/bin/rustc --version`
         step_msg "using rustc at: ${CFG_LOCAL_RUST_ROOT} with version: $LRV"
-        CFG_RUSTC=${CFG_LOCAL_RUST_ROOT}/bin/rustc
         CFG_RUST_HOME=${CFG_LOCAL_RUST_ROOT}
         CFG_LOCAL_RUSTC=1
     else
         err "No rustc found at ${CFG_LOCAL_RUST_ROOT}/bin/rustc"
     fi
 else
-    step_msg "using in-tree rust compiler"
-    # The Rust compiler we're going to build
-    CFG_RUSTC="${CFG_BUILD_DIR}src/compiler/rust/${DEFAULT_TARGET}/stage2/bin/rustc"
-    CFG_RUST_HOME="${CFG_BUILD_DIR}src/compiler/rust/${DEFAULT_TARGET}/stage2"
+    if [ -z "$CFG_ENABLE_TREE_RUST" ]
+    then
+        step_msg "Using binary Rust snapshot"
+        make_dir ${CFG_BUILD_DIR}/rust_snapshot
+        CFG_SNAPSHOT_RUSTC=1
+        SNAPSHOT_VERSION=$(cat ${CFG_SRC_DIR}/src/compiler/rust-snapshot-hash | rev | cut -d/ -f1 | rev)
+        CFG_LOCAL_RUST_ROOT=${CFG_BUILD_DIR}rust_snapshot/${SNAPSHOT_VERSION}-${DEFAULT_TARGET}
+        CFG_RUST_HOME=${CFG_LOCAL_RUST_ROOT}
+    else
+        step_msg "using in-tree rust compiler"
+        # The Rust compiler we're going to build
+        CFG_RUST_HOME="${CFG_BUILD_DIR}src/compiler/rust/${DEFAULT_TARGET}/stage2"
+    fi
 fi
+
+CFG_RUSTC=${CFG_RUST_HOME}/bin/rustc
 
 if [ -z "$CFG_ENABLE_CLANG" -a -z "$CFG_CC" ]
 then
@@ -615,6 +603,7 @@ fi
 
 step_msg "writing configuration"
 
+putvar DEFAULT_TARGET
 putvar CFG_TARGET
 putvar CFG_CPUTYPE
 putvar CFG_OSTYPE
@@ -628,6 +617,7 @@ putvar CFG_RUSTC
 putvar CFG_RUSTC_FLAGS
 putvar CFG_RUST_HOME
 putvar CFG_PATH
+putvar CFG_SNAPSHOT_RUSTC
 putvar CFG_LOCAL_RUSTC
 putvar CFG_LOCAL_RUST_ROOT
 putvar CFG_ENABLE_TREE_RUST

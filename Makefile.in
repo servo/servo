@@ -95,8 +95,49 @@ $(CFG_BUILD_HOME)config.stamp : $(S)configure $(S)Makefile.in
 	@$(call E, cfg: reconfiguring)
 	$(Q)$(S)configure $(CFG_CONFIGURE_ARGS)
 
-# Build the compiler
-ifneq ($(CFG_LOCAL_RUSTC),1)
+# Fetch or build the compiler
+ifeq ($(CFG_SNAPSHOT_RUSTC),1)
+
+SNAPSHOT_HASH_FILE=$(S)/src/compiler/rust-snapshot-hash
+SNAPSHOT_VERSION=$(shell cat $(SNAPSHOT_HASH_FILE) | rev | cut -d/ -f1 | rev)
+SNAPSHOT_HASH=$(shell cat $(SNAPSHOT_HASH_FILE) | cut -d/ -f1)
+SNAPSHOT_URL="https://servo-rust.s3.amazonaws.com/$(shell cat $(SNAPSHOT_HASH_FILE))-$(DEFAULT_TARGET).tar.gz"
+SNAPSHOT_TARBALL=$(B)/rust_snapshot/snapshot-$(SNAPSHOT_HASH).tgz
+SNAPSHOT_HASH_STAMP=$(B)/rust_snapshot/hash-stamp
+
+snapshot-url:
+	@echo $(SNAPSHOT_URL)
+
+$(SNAPSHOT_TARBALL):
+	$(Q)curl -o $@.tmp $(SNAPSHOT_URL)
+	$(Q)mv $@.tmp $@
+
+ifeq (identical,$(and $(wildcard $(CFG_RUSTC)), $(wildcard $(SNAPSHOT_HASH_STAMP)), \
+                      $(if $(shell diff $(SNAPSHOT_HASH_FILE) $(SNAPSHOT_HASH_STAMP)),,identical)))
+
+$(CFG_RUSTC):
+
+else
+
+$(CFG_RUSTC): $(SNAPSHOT_TARBALL) clean-rust
+	$(Q)tar -zxf $< -C $(B)/rust_snapshot/
+	$(Q)cp -f $(SNAPSHOT_HASH_FILE) $(SNAPSHOT_HASH_STAMP)
+
+endif
+
+clean-rust:
+	$(Q)rm -rf $(B)/rust_snapshot/$(SNAPSHOT_VERSION)-$(DEFAULT_TARGET)
+
+else  # not a snapshot
+
+ifeq ($(CFG_LOCAL_RUSTC),1)
+
+$(CFG_RUSTC):
+
+clean-rust:
+
+else  # in-tree rust
+
 $(CFG_RUSTC): $(B)src/compiler/rust/rust-auto-clean-stamp
 	@$(call E, building rustc)
 	$(Q)CFG_RUSTC_FLAGS= CFG_ENABLE_DEBUG= RUSTFLAGS="$(CFG_RUSTC_SELF_FLAGS)" $(MAKE) -C "$(CFG_BUILD_DIR)src/compiler/rust"
@@ -105,11 +146,7 @@ clean-rust:
 	@$(call E, cleaning rustc)
 	$(Q)CFG_RUSTC_FLAGS= CFG_ENABLE_DEBUG= RUSTFLAGS="$(CFG_RUSTC_SELF_FLAGS)" $(MAKE) -C "$(CFG_BUILD_DIR)src/compiler/rust" clean
 
-else
-$(CFG_RUSTC):
-
-clean-rust:
-
+endif
 endif
 
 $(B)src/compiler/rust/rust-auto-clean-stamp: $(S)src/compiler/rust-auto-clean-trigger
