@@ -20,6 +20,7 @@ use page::Page;
 use hubbub::hubbub;
 use hubbub::hubbub::{NullNs, HtmlNs, MathMlNs, SvgNs, XLinkNs, XmlNs, XmlNsNs};
 use servo_net::resource_task::{Load, LoadData, Payload, Done, ResourceTask, load_whole_resource};
+use servo_util::atom::Atom;
 use servo_util::namespace;
 use servo_util::namespace::{Namespace, Null};
 use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS};
@@ -378,7 +379,7 @@ pub fn parse_html(page: &Page,
                     XmlNsNs => (namespace::XMLNS, Some("xmlns")),
                     ns => fail!("Not expecting namespace {:?}", ns),
                 };
-                element.set_attribute_from_parser(attr.name.clone(),
+                element.set_attribute_from_parser(Atom::from_slice(attr.name.as_slice()),
                                                   attr.value.clone(),
                                                   namespace,
                                                   prefix.map(|p| p.to_string()));

@@ -179,7 +179,8 @@ impl RawLayoutElementHelpers for Element {
         let attrs: *const Vec<JS<Attr>> = mem::transmute(&self.attrs);
         (*attrs).iter().find(|attr: & &JS<Attr>| {
             let attr = attr.unsafe_get();
-            name == (*attr).local_name.as_slice() && (*attr).namespace == *namespace
+            name == (*attr).local_name().as_slice() &&
+            (*attr).namespace == *namespace
         }).map(|attr| {
             let attr = attr.unsafe_get();
             (*attr).value_ref_forever()
@@ -193,7 +194,8 @@ impl RawLayoutElementHelpers for Element {
         let attrs: *const Vec<JS<Attr>> = mem::transmute(&self.attrs);
         (*attrs).iter().find(|attr: & &JS<Attr>| {
             let attr = attr.unsafe_get();
-            name == (*attr).local_name.as_slice() && (*attr).namespace == *namespace
+            name == (*attr).local_name().as_slice() &&
+            (*attr).namespace == *namespace
         }).and_then(|attr| {
             let attr = attr.unsafe_get();
             (*attr).value_atom_forever()
@@ -239,14 +241,14 @@ impl<'a> ElementHelpers for JSRef<'a, Element> {
 
 pub trait AttributeHandlers {
     fn get_attribute(&self, namespace: Namespace, name: &str) -> Option<Temporary<Attr>>;
-    fn set_attribute_from_parser(&self, local_name: DOMString,
+    fn set_attribute_from_parser(&self, local_name: Atom,
                                  value: DOMString, namespace: Namespace,
                                  prefix: Option<DOMString>);
     fn set_attribute(&self, name: &str, value: AttrValue);
-    fn do_set_attribute(&self, local_name: DOMString, value: AttrValue,
+    fn do_set_attribute(&self, local_name: Atom, value: AttrValue,
                         name: Atom, namespace: Namespace,
                         prefix: Option<DOMString>, cb: |&JSRef<Attr>| -> bool);
-    fn parse_attribute(&self, namespace: &Namespace, local_name: &str,
+    fn parse_attribute(&self, namespace: &Namespace, local_name: &Atom,
                        value: DOMString) -> AttrValue;
 
     fn remove_attribute(&self, namespace: Namespace, name: &str);
@@ -270,27 +272,26 @@ pub trait AttributeHandlers {
 impl<'a> AttributeHandlers for JSRef<'a, Element> {
     fn get_attribute(&self, namespace: Namespace, name: &str) -> Option<Temporary<Attr>> {
         let element: &Element = self.deref();
-        let is_html_element = self.html_element_in_html_document();
-
+        let local_name = match self.html_element_in_html_document() {
+            true => Atom::from_slice(name.to_ascii_lower().as_slice()),
+            false => Atom::from_slice(name)
+        };
         element.attrs.borrow().iter().map(|attr| attr.root()).find(|attr| {
-            let same_name = if is_html_element {
-                name.to_ascii_lower() == attr.local_name
-            } else {
-                name == attr.local_name.as_slice()
-            };
-
-            same_name && attr.namespace == namespace
+            *attr.local_name() == local_name && attr.namespace == namespace
         }).map(|x| Temporary::from_rooted(&*x))
     }
 
-    fn set_attribute_from_parser(&self, local_name: DOMString,
+    fn set_attribute_from_parser(&self, local_name: Atom,
                                  value: DOMString, namespace: Namespace,
                                  prefix: Option<DOMString>) {
         let name = match prefix {
-            None => Atom::from_slice(local_name.as_slice()),
-            Some(ref prefix) => Atom::from_slice(format!("{:s}:{:s}", *prefix, local_name).as_slice()),
+            None => local_name.clone(),
+            Some(ref prefix) => {
+                let name = format!("{:s}:{:s}", *prefix, local_name.as_slice());
+                Atom::from_slice(name.as_slice())
+            },
         };
-        let value = self.parse_attribute(&namespace, local_name.as_slice(), value);
+        let value = self.parse_attribute(&namespace, &local_name, value);
         self.do_set_attribute(local_name, value, name, namespace, prefix, |_| false)
     }
 
@@ -301,12 +302,12 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         let node: &JSRef<Node> = NodeCast::from_ref(self);
         node.wait_until_safe_to_modify_dom();
 
-        self.do_set_attribute(name.to_string(), value, Atom::from_slice(name),
-            namespace::Null, None,
-            |attr| attr.deref().local_name.as_slice() == name);
+        let name = Atom::from_slice(name);
+        self.do_set_attribute(name.clone(), value, name.clone(),
+            namespace::Null, None, |attr| *attr.local_name() == name);
     }
 
-    fn do_set_attribute(&self, local_name: DOMString, value: AttrValue,
+    fn do_set_attribute(&self, local_name: Atom, value: AttrValue,
                         name: Atom, namespace: Namespace,
                         prefix: Option<DOMString>, cb: |&JSRef<Attr>| -> bool) {
         let idx = self.deref().attrs.borrow().iter()
@@ -316,7 +317,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             Some(idx) => (idx, ReplacedAttr),
             None => {
                 let window = window_from_node(self).root();
-                let attr = Attr::new(&*window, local_name.clone(), value.clone(),
+                let attr = Attr::new(&*window, local_name, value.clone(),
                                      name, namespace.clone(), prefix, self);
                 self.deref().attrs.borrow_mut().push_unrooted(&attr);
                 (self.deref().attrs.borrow().len() - 1, FirstSetAttr)
@@ -326,11 +327,11 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         (*self.deref().attrs.borrow())[idx].root().set_value(set_type, value);
     }
 
-    fn parse_attribute(&self, namespace: &Namespace, local_name: &str,
+    fn parse_attribute(&self, namespace: &Namespace, local_name: &Atom,
                        value: DOMString) -> AttrValue {
         if *namespace == namespace::Null {
             vtable_for(NodeCast::from_ref(self))
-                .parse_plain_attribute(local_name, value)
+                .parse_plain_attribute(local_name.as_slice(), value)
         } else {
             StringAttrValue(value)
         }
@@ -338,9 +339,10 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
 
     fn remove_attribute(&self, namespace: Namespace, name: &str) {
         let (_, local_name) = get_attribute_parts(name);
+        let local_name = Atom::from_slice(local_name);
 
         let idx = self.deref().attrs.borrow().iter().map(|attr| attr.root()).position(|attr| {
-            attr.local_name.as_slice() == local_name
+            *attr.local_name() == local_name
         });
 
         match idx {
@@ -354,7 +356,8 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
                 if namespace == namespace::Null {
                     let removed_raw_value = (*self.deref().attrs.borrow())[idx].root().Value();
                     vtable_for(NodeCast::from_ref(self))
-                        .before_remove_attr(local_name.to_string(), removed_raw_value);
+                        .before_remove_attr(local_name.as_slice().to_string(),
+                                            removed_raw_value);
                 }
 
                 self.deref().attrs.borrow_mut().remove(idx);
@@ -388,11 +391,11 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
 
     fn has_attribute(&self, name: &str) -> bool {
         let name = match self.html_element_in_html_document() {
-            true => name.to_ascii_lower(),
-            false => name.to_string()
+            true => Atom::from_slice(name.to_ascii_lower().as_slice()),
+            false => Atom::from_slice(name)
         };
         self.deref().attrs.borrow().iter().map(|attr| attr.root()).any(|attr| {
-            name == attr.local_name && attr.namespace == Null
+            *attr.local_name() == name && attr.namespace == Null
         })
     }
 
@@ -587,10 +590,10 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         };
 
         // Step 3-5.
-        let value = self.parse_attribute(&namespace::Null, name.as_slice(), value);
-        let name_atom = Atom::from_slice(name.as_slice());
-        self.do_set_attribute(name.clone(), value, name_atom.clone(), namespace::Null, None, |attr| {
-            attr.deref().name == name_atom
+        let name = Atom::from_slice(name.as_slice());
+        let value = self.parse_attribute(&namespace::Null, &name, value);
+        self.do_set_attribute(name.clone(), value, name.clone(), namespace::Null, None, |attr| {
+            attr.deref().name.as_slice() == name.as_slice()
         });
         Ok(())
     }
@@ -640,6 +643,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         }
 
         let name = Atom::from_slice(name.as_slice());
+        let local_name = Atom::from_slice(local_name);
         let xmlns = Atom::from_slice("xmlns");      // TODO: Make this a static atom type
 
         // Step 7a.
@@ -653,12 +657,12 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         }
 
         // Step 9.
-        let value = self.parse_attribute(&namespace, local_name.as_slice(), value);
-        self.do_set_attribute(local_name.to_string(), value, name,
+        let value = self.parse_attribute(&namespace, &local_name, value);
+        self.do_set_attribute(local_name.clone(), value, name,
                               namespace.clone(), prefix.map(|s| s.to_string()),
                               |attr| {
-            attr.deref().local_name.as_slice() == local_name &&
-            attr.deref().namespace == namespace
+            *attr.local_name() == local_name &&
+            attr.namespace == namespace
         });
         Ok(())
     }
