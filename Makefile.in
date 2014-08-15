@@ -49,6 +49,12 @@ endif
 # https://github.com/rust-lang/rust/issues/16140
 CFG_RUSTC_FLAGS += --extern url=$(B)/src/support/url/rust-url/liburl.rlib
 
+# Handle target
+TARGET_FLAGS = --target $(CFG_TARGET)
+ifeq ($(CFG_OSTYPE),linux-androideabi)
+  TARGET_FLAGS += -C linker=$(CFG_ANDROID_CROSS_PATH)/bin/arm-linux-androideabi-g++ -C ar=$(CFG_ANDROID_CROSS_PATH)/bin/arm-linux-androideabi-ar
+endif
+
 export CFG_RUSTC
 export CFG_RUSTC_FLAGS
 export CFG_LOCAL_RUSTC
@@ -112,11 +118,6 @@ $(B)src/compiler/rust/rust-auto-clean-stamp: $(S)src/compiler/rust-auto-clean-tr
 
 rust: $(CFG_RUSTC)
 
-# These arguments are automatically provided by the Rust compiler's build process to
-# itself, so they must be specified later for our Rust modules.
-ifeq ($(CFG_OSTYPE),linux-androideabi)
-  CFG_RUSTC_FLAGS += --target arm-linux-androideabi -C linker=$(CFG_ANDROID_CROSS_PATH)/bin/arm-linux-androideabi-g++ -C ar=$(CFG_ANDROID_CROSS_PATH)/bin/arm-linux-androideabi-ar
-endif
 
 # Set up LD_LIBRARY_PATH os the compiler can find libraries
 ifeq ($(CFG_OSTYPE),apple-darwin)
@@ -137,10 +138,15 @@ define DEF_SUBMODULE_VARS
 #defaults 
 DEPS_$(1) =
 CFLAGS_$(1) = -O2
+CXXFLAGS_$(1) =
 
 #if global cflags set, inherit that
 ifdef CFLAGS
 	CFLAGS_$(1) = $$(CFLAGS) 
+endif
+
+ifdef CXXFLAGS
+	CXXFLAGS_$(1) = $$(CXXFLAGS)
 endif
 
 # any "done" dummy files must be named libSOMETHING.dummy. 
@@ -176,13 +182,19 @@ endef
 # Define how to make submodule targets
 define DEF_SUBMODULE_RULES
 
-ENV_RLDFLAGS_$(1) = -L $$(CFG_BUILD_HOME)workspace/lib/$$(CFG_TARGET)
 ENV_RLDFLAGS_$(1) += $$(foreach dep,$$(DEPS_$(1)),-L $$(B)src/$$(PATH_$$(dep)) -L $$(B)src/$$(PATH_$$(dep))/.libs -L $$(B)src/$$(PATH_$$(dep))/src/.libs)
 
 # variables that depend on dependency definitions from sub.mk!
 ENV_CFLAGS_$(1) = CFLAGS="$$(CFLAGS_$(1))"
-ENV_RFLAGS_$(1) = RUSTFLAGS="$$(strip $$(CFG_RUSTC_FLAGS)) $$(ENV_RLDFLAGS_$(1))"
+ENV_CXXFLAGS_$(1) = CXXFLAGS="$$(CXXFLAGS_$(1))"
 ENV_EXT_DEPS_$(1) = EXT_DEPS="$$(DONE_DEPS_$(1))"
+
+# Some submodules should not be cross compiled
+ifeq "$$(filter $(1),$$(NO_CROSS_BUILDS))" "$(1)"
+ENV_RFLAGS_$(1) = RUSTFLAGS="$$(strip $$(CFG_RUSTC_FLAGS) $$(ENV_RLDFLAGS_$(1)))"
+else
+ENV_RFLAGS_$(1) = RUSTFLAGS="$$(strip $$(CFG_RUSTC_FLAGS) $$(ENV_RLDFLAGS_$(1)) $$(TARGET_FLAGS))"
+endif
 
 # Native builds do not depend on the rust compiler, so we can build them in parallel with rustc
 RUSTC_DEP_$(1)=
@@ -192,8 +204,13 @@ endif
 
 $(eval $(call DEF_SUBMODULE_DEPS,$(1)))
 
+ifeq ($(CFG_CPUTYPE),i686)
+CROSS_COMPILER_CC = CC='$(CFG_CC) -m32'
+CROSS_COMPILER_CXX = CXX='$(CFG_CXX) -m32'
+else
 CROSS_COMPILER_CC = CC=$(CFG_CC)
 CROSS_COMPILER_CXX = CXX=$(CFG_CXX)
+endif
 CROSS_COMPILER_LD = LD=$(CFG_LD)
 CROSS_COMPILER_AR = AR=$(CFG_AR)
 
@@ -209,10 +226,10 @@ $$(DONE_$(1)) : $$(DONE_DEPS_$(1)) $$(ROUGH_DEPS_$(1)) $$(RUSTC_DEP_$(1))
 	$$(ENV_CXXFLAGS_$(1)) \
 	$$(ENV_RFLAGS_$(1)) \
 	$$(ENV_EXT_DEPS_$(1)) \
-    $$(CROSS_COMPILER_CC) \
-    $$(CROSS_COMPILER_CXX) \
-    $$(CROSS_COMPILER_LD) \
-    $$(CROSS_COMPILER_AR) \
+	$$(CROSS_COMPILER_CC) \
+	$$(CROSS_COMPILER_CXX) \
+	$$(CROSS_COMPILER_LD) \
+	$$(CROSS_COMPILER_AR) \
 	$$(MAKE) -C $$(B)src/$$(PATH_$(1)) && touch $$(DONE_$(1))
 
 # main submodule target
@@ -346,7 +363,7 @@ include $(S)mk/clean.mk
 define DEF_LIB_CRATE_RULES
 $$(DONE_$(1)):	$$(DEPS_$(1))
 	@$$(call E, compile: $$@)
-	$$(Q)$$(RUSTC) $(strip $(CFG_RUSTC_FLAGS)) $$(RFLAGS_$(1)) --out-dir $$(B)src/components/$(1) $$< && touch $$@
+	$$(Q)$$(RUSTC) $(strip $(TARGET_FLAGS) $(CFG_RUSTC_FLAGS)) $$(RFLAGS_$(1)) --out-dir $$(B)src/components/$(1) $$< && touch $$@
 endef
 
 $(foreach lib_crate,$(SERVO_LIB_CRATES),\
@@ -396,7 +413,7 @@ ifneq ($(CFG_OSTYPE),linux-androideabi)
 all: servo servo-embedding
 servo:	$(DEPS_servo)
 	@$(call E, compile: $@)
-	$(Q)$(RUSTC) $(strip $(CFG_RUSTC_FLAGS)) $(RFLAGS_servo) $< --crate-type bin,dylib,rlib
+	$(Q)$(RUSTC) $(strip $(TARGET_FLAGS) $(CFG_RUSTC_FLAGS)) $(RFLAGS_servo) $< --crate-type bin,dylib,rlib
 
 RFLAGS_embedding = $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/gfx -L $(B)src/components/util -L $(B)src/components/net -L $(B)src/components/script -L $(B)src/components/layout -L $(B)src/components/layout_traits -L $(B)src/components/script_traits -L $(B)src/components/compositing -L $(B)src/components/style -L $(B)src/components/msg -L $(B).. -L $(B)src/components/main -L $(B)src/components/macros -A non_camel_case_types -A unused_variable
 
@@ -408,13 +425,13 @@ CRATE_embedding = $(S)src/components/embedding/embedding.rs
 
 servo-embedding: servo $(SRC_embedding) $(CRATE_embedding)
 	@$(call E, compile: $@)
-	$(Q)$(RUSTC) $(strip $(CFG_RUSTC_FLAGS)) $(RFLAGS_embedding) $(CRATE_embedding) --crate-type dylib,rlib
+	$(Q)$(RUSTC) $(strip $(TARGET_FLAGS) $(CFG_RUSTC_FLAGS)) $(RFLAGS_embedding) $(CRATE_embedding) --crate-type dylib,rlib
 	touch servo-embedding
 else
 all: servo
 servo:  $(DEPS_servo)
 	@$(call E, compile: $@)
-	$(Q)$(RUSTC) $(strip $(CFG_RUSTC_FLAGS)) $(RFLAGS_servo) $< -o libservo.so --crate-type dylib
+	$(Q)$(RUSTC) $(strip $(TARGET_FLAGS) $(CFG_RUSTC_FLAGS)) $(RFLAGS_servo) $< -o libservo.so --crate-type dylib
 	touch servo
 endif
 

@@ -8,6 +8,10 @@ check-$(1) : $$(DONE_$(1))
 	$$(ENV_CFLAGS_$(1)) \
 	$$(ENV_CXXFLAGS_$(1)) \
 	$$(ENV_RFLAGS_$(1)) \
+	$$(CROSS_COMPILER_CC) \
+        $$(CROSS_COMPILER_CXX) \
+        $$(CROSS_COMPILER_LD) \
+        $$(CROSS_COMPILER_AR) \
 	$$(MAKE) -C $$(B)src/$$(PATH_$(1)) check
 
 DEPS_CHECK_ALL += $(1)
@@ -20,7 +24,7 @@ $(eval $(call DEF_SUBMODULE_TEST_RULES,$(submodule))))
 define DEF_LIB_CRATE_TEST_RULES
 servo-test-$(1): $$(DEPS_$(1))
 	@$$(call E, compile: servo-test-$(1))
-	$$(Q)$$(RUSTC)  $(strip $(CFG_RUSTC_FLAGS)) $$(RFLAGS_$(1)) --test -o $$@ $$<
+	$$(Q)$$(RUSTC) $(strip $(TARGET_FLAGS) $(CFG_RUSTC_FLAGS)) $$(RFLAGS_$(1)) --test -o $$@ $$<
 
 .PHONY: check-servo-$(1)
 check-servo-$(1): servo-test-$(1)
@@ -36,15 +40,15 @@ $(eval $(call DEF_LIB_CRATE_TEST_RULES,$(lib_crate))))
 
 servo-test: $(DEPS_servo)
 	@$(call E, check: servo)
-	$(Q)$(RUSTC) $(RFLAGS_servo) --test -o $@ $<
+	$(Q)$(RUSTC) $(TARGET_FLAGS) $(RFLAGS_servo) --test -o $@ $<
 
 reftest: $(S)src/test/harness/reftest/reftest.rs servo
 	@$(call E, compile: $@)
-	$(Q)$(RUSTC) -L$(B)/src/support/png/rust-png/ -L$(B)/src/support/png/libpng/ -o $@ $<
+	$(Q)$(RUSTC) $(TARGET_FLAGS) -L$(B)/src/support/png/rust-png/ -L$(B)/src/support/png/libpng/ -o $@ $<
 
 contenttest: $(S)src/test/harness/contenttest/contenttest.rs servo
 	@$(call E, compile: $@)
-	$(Q)$(RUSTC) $(RFLAGS_servo) -o $@ $< -L .
+	$(Q)$(RUSTC) $(TARGET_FLAGS) $(RFLAGS_servo) -o $@ $< -L .
 
 
 DEPS_CHECK_TESTABLE = $(filter-out $(NO_TESTS),$(DEPS_CHECK_ALL))

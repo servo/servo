@@ -24,13 +24,13 @@ pub fn newarray0<T>(nmem: size_t) -> *mut T {
 
 pub fn newarray<T>(nmem: size_t) -> *mut T {
     unsafe {
-        tc_newarray(nmem * mem::size_of::<T>() as u64) as *mut T
+        tc_newarray(nmem * mem::size_of::<T>() as size_t) as *mut T
     }
 }
 
 #[allow(experimental)]
 pub fn new0<T>(nmem: size_t) -> *mut T {
-    let mem = new(nmem * mem::size_of::<T>() as u64) as *mut T;
+    let mem = new(nmem * mem::size_of::<T>() as size_t) as *mut T;
     unsafe {
         set_memory(mem, 0 as u8, nmem as uint);
     }
