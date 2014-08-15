@@ -9,6 +9,7 @@ use dom::bindings::js::{JS, JSRef, Temporary, OptionalSettable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::console::Console;
 use dom::eventtarget::{EventTarget, WorkerGlobalScopeTypeId};
+use dom::workernavigator::WorkerNavigator;
 use script_task::ScriptChan;
 
 use servo_net::resource_task::ResourceTask;
@@ -32,6 +33,7 @@ pub struct WorkerGlobalScope {
     js_context: Untraceable<Rc<Cx>>,
     resource_task: Untraceable<ResourceTask>,
     script_chan: ScriptChan,
+    navigator: Cell<Option<JS<WorkerNavigator>>>,
     console: Cell<Option<JS<Console>>>,
 }
 
@@ -47,6 +49,7 @@ impl WorkerGlobalScope {
             js_context: Untraceable::new(cx),
             resource_task: Untraceable::new(resource_task),
             script_chan: script_chan,
+            navigator: Cell::new(None),
             console: Cell::new(None),
         }
     }
@@ -71,6 +74,14 @@ impl WorkerGlobalScope {
 impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
     fn Self(&self) -> Temporary<WorkerGlobalScope> {
         Temporary::from_rooted(self)
+    }
+
+    fn Navigator(&self) -> Temporary<WorkerNavigator> {
+        if self.navigator.get().is_none() {
+            let navigator = WorkerNavigator::new(self);
+            self.navigator.assign(Some(navigator));
+        }
+        Temporary::new(self.navigator.get().get_ref().clone())
     }
 
     fn Console(&self) -> Temporary<Console> {

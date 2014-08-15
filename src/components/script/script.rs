@@ -191,6 +191,7 @@ pub mod dom {
     pub mod window;
     pub mod worker;
     pub mod workerglobalscope;
+    pub mod workernavigator;
     pub mod xmlhttprequest;
     pub mod xmlhttprequesteventtarget;
     pub mod xmlhttprequestupload;
