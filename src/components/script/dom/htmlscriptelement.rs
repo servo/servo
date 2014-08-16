@@ -52,9 +52,10 @@ impl<'a> HTMLScriptElementMethods for JSRef<'a, HTMLScriptElement> {
         let node: &JSRef<Node> = NodeCast::from_ref(self);
         let mut content = String::new();
         for child in node.children() {
-            if child.is_text() {
-                let text: &JSRef<Text> = TextCast::to_ref(&child).unwrap();
-                content.push_str(text.deref().characterdata.data.deref().borrow().as_slice());
+            let text: Option<&JSRef<Text>> = TextCast::to_ref(&child);
+            match text {
+                Some(text) => content.push_str(text.characterdata.data.borrow().as_slice()),
+                None => (),
             }
         }
         content
