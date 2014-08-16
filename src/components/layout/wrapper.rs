@@ -265,13 +265,11 @@ impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
     }
 
     fn match_attr(&self, attr: &AttrSelector, test: |&str| -> bool) -> bool {
-        let name = unsafe {
-            let element: JS<Element> = self.node.transmute_copy();
-            if element.html_element_in_html_document_for_layout() {
-                attr.lower_name.as_slice()
-            } else {
-                attr.name.as_slice()
-            }
+        assert!(self.is_element())
+        let name = if self.is_html_element_in_html_document() {
+            attr.lower_name.as_slice()
+        } else {
+            attr.name.as_slice()
         };
         match attr.namespace {
             SpecificNamespace(ref ns) => {
@@ -281,6 +279,15 @@ impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
             },
             // FIXME: https://github.com/mozilla/servo/issues/1558
             AnyNamespace => false,
+        }
+    }
+
+    fn is_html_element_in_html_document(&self) -> bool {
+        unsafe {
+            self.is_element() && {
+                let element: JS<Element> = self.node.transmute_copy();
+                element.html_element_in_html_document_for_layout()
+            }
         }
     }
 }

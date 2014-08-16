@@ -3,9 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::collections::hashmap::HashMap;
-use std::ascii::StrAsciiExt;
+use std::hash::Hash;
 use std::num::div_rem;
 use sync::Arc;
+
+use url::Url;
 
 use servo_util::atom::Atom;
 use servo_util::namespace;
@@ -16,7 +18,7 @@ use media_queries::{Device, Screen};
 use node::{TElement, TNode};
 use properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use selectors::*;
-use stylesheets::{Stylesheet, iter_style_rules};
+use stylesheets::{Stylesheet, iter_stylesheet_style_rules};
 
 pub enum StylesheetOrigin {
     UserAgentOrigin,
@@ -50,7 +52,10 @@ struct SelectorMap {
     // TODO: Tune the initial capacity of the HashMap
     id_hash: HashMap<Atom, Vec<Rule>>,
     class_hash: HashMap<Atom, Vec<Rule>>,
-    element_hash: HashMap<Atom, Vec<Rule>>,
+    local_name_hash: HashMap<Atom, Vec<Rule>>,
+    /// Same as local_name_hash, but keys are lower-cased.
+    /// For HTML elements in HTML documents.
+    lower_local_name_hash: HashMap<Atom, Vec<Rule>>,
     // For Rules that don't have ID, class, or element selectors.
     universal_rules: Vec<Rule>,
     /// Whether this hash is empty.
@@ -62,7 +67,8 @@ impl SelectorMap {
         SelectorMap {
             id_hash: HashMap::new(),
             class_hash: HashMap::new(),
-            element_hash: HashMap::new(),
+            local_name_hash: HashMap::new(),
+            lower_local_name_hash: HashMap::new(),
             universal_rules: vec!(),
             empty: true,
         }
@@ -74,7 +80,7 @@ impl SelectorMap {
     /// Sort the Rules at the end to maintain cascading order.
     fn get_all_matching_rules<E:TElement,
                               N:TNode<E>,
-                              V:VecLike<MatchedProperty>>(
+                              V:VecLike<DeclarationBlock>>(
                               &self,
                               node: &N,
                               matching_rules_list: &mut V,
@@ -111,13 +117,16 @@ impl SelectorMap {
             None => {}
         }
 
-        // HTML elements in HTML documents must be matched case-insensitively.
-        // TODO(pradeep): Case-sensitivity depends on the document type.
-        SelectorMap::get_matching_rules_from_hash_ignoring_case(node,
-                                                                &self.element_hash,
-                                                                element.get_local_name().as_slice(),
-                                                                matching_rules_list,
-                                                                shareable);
+        let local_name_hash = if node.is_html_element_in_html_document() {
+            &self.lower_local_name_hash
+        } else {
+            &self.local_name_hash
+        };
+        SelectorMap::get_matching_rules_from_hash(node,
+                                                  local_name_hash,
+                                                  element.get_local_name(),
+                                                  matching_rules_list,
+                                                  shareable);
 
         SelectorMap::get_matching_rules(node,
                                         self.universal_rules.as_slice(),
@@ -125,12 +134,16 @@ impl SelectorMap {
                                         shareable);
 
         // Sort only the rules we just added.
-        sort::quicksort(matching_rules_list.vec_mut_slice_from(init_len));
+        sort::quicksort_by(matching_rules_list.vec_mut_slice_from(init_len), compare);
+
+        fn compare(a: &DeclarationBlock, b: &DeclarationBlock) -> Ordering {
+            (a.specificity, a.source_order).cmp(&(b.specificity, b.source_order))
+        }
     }
 
     fn get_matching_rules_from_hash<E:TElement,
                                     N:TNode<E>,
-                                    V:VecLike<MatchedProperty>>(
+                                    V:VecLike<DeclarationBlock>>(
                                     node: &N,
                                     hash: &HashMap<Atom, Vec<Rule>>,
                                     key: &Atom,
@@ -144,83 +157,45 @@ impl SelectorMap {
         }
     }
 
-    fn get_matching_rules_from_hash_ignoring_case<E:TElement,
-                                                  N:TNode<E>,
-                                                  V:VecLike<MatchedProperty>>(
-                                                  node: &N,
-                                                  hash: &HashMap<Atom, Vec<Rule>>,
-                                                  key: &str,
-                                                  matching_rules: &mut V,
-                                                  shareable: &mut bool) {
-        // FIXME: Precache the lower case version as an atom.
-        match hash.find(&Atom::from_slice(key.to_ascii_lower().as_slice())) {
-            Some(rules) => {
-                SelectorMap::get_matching_rules(node, rules.as_slice(), matching_rules, shareable)
-            }
-            None => {}
-        }
-    }
-
     /// Adds rules in `rules` that match `node` to the `matching_rules` list.
     fn get_matching_rules<E:TElement,
                           N:TNode<E>,
-                          V:VecLike<MatchedProperty>>(
+                          V:VecLike<DeclarationBlock>>(
                           node: &N,
                           rules: &[Rule],
                           matching_rules: &mut V,
                           shareable: &mut bool) {
         for rule in rules.iter() {
             if matches_compound_selector(&*rule.selector, node, shareable) {
-                // TODO(pradeep): Is the cloning inefficient?
-                matching_rules.vec_push(rule.property.clone());
+                matching_rules.vec_push(rule.declarations.clone());
             }
         }
     }
 
     /// Insert rule into the correct hash.
-    /// Order in which to try: id_hash, class_hash, element_hash, universal_rules.
+    /// Order in which to try: id_hash, class_hash, local_name_hash, universal_rules.
     fn insert(&mut self, rule: Rule) {
         self.empty = false;
 
         match SelectorMap::get_id_name(&rule) {
             Some(id_name) => {
-                match self.id_hash.find_mut(&id_name) {
-                    Some(rules) => {
-                        rules.push(rule);
-                        return;
-                    }
-                    None => {}
-                }
-                self.id_hash.insert(id_name, vec!(rule));
+                self.id_hash.find_push(id_name, rule);
                 return;
             }
             None => {}
         }
         match SelectorMap::get_class_name(&rule) {
             Some(class_name) => {
-                match self.class_hash.find_mut(&class_name) {
-                    Some(rules) => {
-                        rules.push(rule);
-                        return;
-                    }
-                    None => {}
-                }
-                self.class_hash.insert(class_name, vec!(rule));
+                self.class_hash.find_push(class_name, rule);
                 return;
             }
             None => {}
         }
 
-        match SelectorMap::get_element_name(&rule) {
-            Some(element_name) => {
-                match self.element_hash.find_mut(&element_name) {
-                    Some(rules) => {
-                        rules.push(rule);
-                        return;
-                    }
-                    None => {}
-                }
-                self.element_hash.insert(element_name, vec!(rule));
+        match SelectorMap::get_local_name(&rule) {
+            Some(LocalNameSelector { name, lower_name }) => {
+                self.local_name_hash.find_push(name, rule.clone());
+                self.lower_local_name_hash.find_push(lower_name, rule);
                 return;
             }
             None => {}
@@ -258,14 +233,12 @@ impl SelectorMap {
     }
 
     /// Retrieve the name if it is a type selector, or None otherwise.
-    fn get_element_name(rule: &Rule) -> Option<Atom> {
+    fn get_local_name(rule: &Rule) -> Option<LocalNameSelector> {
         let simple_selector_sequence = &rule.selector.simple_selectors;
         for ss in simple_selector_sequence.iter() {
             match *ss {
-                // HTML elements in HTML documents must be matched case-insensitively
-                // TODO: case-sensitivity depends on the document type
                 LocalNameSelector(ref name) => {
-                    return Some(Atom::from_slice(name.as_slice().to_ascii_lower().as_slice()));
+                    return Some(name.clone())
                 }
                 _ => {}
             }
@@ -284,12 +257,19 @@ pub struct Stylist {
 impl Stylist {
     #[inline]
     pub fn new() -> Stylist {
-        Stylist {
+        let mut stylist = Stylist {
             element_map: PerPseudoElementSelectorMap::new(),
             before_map: PerPseudoElementSelectorMap::new(),
             after_map: PerPseudoElementSelectorMap::new(),
             rules_source_order: 0u,
-        }
+        };
+        let ua_stylesheet = Stylesheet::from_bytes(
+            include_bin!("user-agent.css"),
+            Url::parse("chrome:///user-agent.css").unwrap(),
+            None,
+            None);
+        stylist.add_stylesheet(ua_stylesheet, UserAgentOrigin);
+        stylist
     }
 
     pub fn add_stylesheet(&mut self, stylesheet: Stylesheet, origin: StylesheetOrigin) {
@@ -325,7 +305,7 @@ impl Stylist {
                         };
                         map.$priority.insert(Rule {
                                 selector: selector.compound_selectors.clone(),
-                                property: MatchedProperty {
+                                declarations: DeclarationBlock {
                                     specificity: selector.specificity,
                                     declarations: $style_rule.declarations.$priority.clone(),
                                     source_order: rules_source_order,
@@ -337,7 +317,7 @@ impl Stylist {
         );
 
         let device = &Device { media_type: Screen };  // TODO, use Print when printing
-        iter_style_rules(stylesheet.rules.as_slice(), device, |style_rule| {
+        iter_stylesheet_style_rules(&stylesheet, device, |style_rule| {
             append!(style_rule, normal);
             append!(style_rule, important);
             rules_source_order += 1;
@@ -353,7 +333,7 @@ impl Stylist {
     /// in `css::matching::PrivateMatchMethods::candidate_element_allows_for_style_sharing`.
     pub fn push_applicable_declarations<E:TElement,
                                         N:TNode<E>,
-                                        V:VecLike<MatchedProperty>>(
+                                        V:VecLike<DeclarationBlock>>(
                                         &self,
                                         element: &N,
                                         style_attribute: Option<&PropertyDeclarationBlock>,
@@ -382,7 +362,7 @@ impl Stylist {
         // Step 2: Normal style attributes.
         style_attribute.map(|sa| {
             shareable = false;
-            applicable_declarations.vec_push(MatchedProperty::from_declarations(sa.normal.clone()))
+            applicable_declarations.vec_push(DeclarationBlock::from_declarations(sa.normal.clone()))
         });
 
         // Step 3: Author-supplied `!important` rules.
@@ -393,7 +373,7 @@ impl Stylist {
         // Step 4: `!important` style attributes.
         style_attribute.map(|sa| {
             shareable = false;
-            applicable_declarations.vec_push(MatchedProperty::from_declarations(sa.important.clone()))
+            applicable_declarations.vec_push(DeclarationBlock::from_declarations(sa.important.clone()))
         });
 
         // Step 5: User and UA `!important` rules.
@@ -446,22 +426,22 @@ struct Rule {
     // that it matches. Selector contains an owned vector (through
     // CompoundSelector) and we want to avoid the allocation.
     selector: Arc<CompoundSelector>,
-    property: MatchedProperty,
+    declarations: DeclarationBlock,
 }
 
 /// A property declaration together with its precedence among rules of equal specificity so that
 /// we can sort them.
 #[deriving(Clone)]
-pub struct MatchedProperty {
+pub struct DeclarationBlock {
     pub declarations: Arc<Vec<PropertyDeclaration>>,
     source_order: uint,
     specificity: u32,
 }
 
-impl MatchedProperty {
+impl DeclarationBlock {
     #[inline]
-    pub fn from_declarations(declarations: Arc<Vec<PropertyDeclaration>>) -> MatchedProperty {
-        MatchedProperty {
+    pub fn from_declarations(declarations: Arc<Vec<PropertyDeclaration>>) -> DeclarationBlock {
+        DeclarationBlock {
             declarations: declarations,
             source_order: 0,
             specificity: 0,
@@ -469,34 +449,12 @@ impl MatchedProperty {
     }
 }
 
-impl PartialEq for MatchedProperty {
-    #[inline]
-    fn eq(&self, other: &MatchedProperty) -> bool {
-        let this_rank = (self.specificity, self.source_order);
-        let other_rank = (other.specificity, other.source_order);
-        this_rank == other_rank
-    }
+pub fn matches<E:TElement, N:TNode<E>>(selector_list: &SelectorList, element: &N) -> bool {
+    get_selector_list_selectors(selector_list).iter().any(|selector|
+        selector.pseudo_element.is_none() &&
+        matches_compound_selector(&*selector.compound_selectors, element, &mut false))
 }
 
-impl Eq for MatchedProperty {}
-
-impl PartialOrd for MatchedProperty {
-    #[inline]
-    fn partial_cmp(&self, other: &MatchedProperty) -> Option<Ordering> {
-        let this_rank = (self.specificity, self.source_order);
-        let other_rank = (other.specificity, other.source_order);
-        this_rank.partial_cmp(&other_rank)
-    }
-}
-
-impl Ord for MatchedProperty {
-    #[inline]
-    fn cmp(&self, other: &MatchedProperty) -> Ordering {
-        let this_rank = (self.specificity, self.source_order);
-        let other_rank = (other.specificity, other.source_order);
-        this_rank.cmp(&other_rank)
-    }
-}
 
 /// Determines whether the given element matches the given single or compound selector.
 ///
@@ -504,7 +462,7 @@ impl Ord for MatchedProperty {
 /// `shareable` to false unless you are willing to update the style sharing logic. Otherwise things
 /// will almost certainly break as nodes will start mistakenly sharing styles. (See the code in
 /// `main/css/matching.rs`.)
-pub fn matches_compound_selector<E:TElement,
+fn matches_compound_selector<E:TElement,
                              N:TNode<E>>(
                              selector: &CompoundSelector,
                              element: &N,
@@ -645,11 +603,10 @@ fn matches_simple_selector<E:TElement,
                            shareable: &mut bool)
                            -> bool {
     match *selector {
-        // TODO: case-sensitivity depends on the document type
-        // TODO: intern element names
-        LocalNameSelector(ref name) => {
+        LocalNameSelector(LocalNameSelector { ref name, ref lower_name }) => {
+            let name = if element.is_html_element_in_html_document() { lower_name } else { name };
             let element = element.as_element();
-            element.get_local_name().as_slice().eq_ignore_ascii_case(name.as_slice())
+            element.get_local_name() == name
         }
 
         NamespaceSelector(ref namespace) => {
@@ -934,11 +891,30 @@ fn matches_last_child<E:TElement,N:TNode<E>>(element: &N) -> bool {
 }
 
 
+trait FindPush<K, V> {
+    fn find_push(&mut self, key: K, value: V);
+}
+
+impl<K: Eq + Hash, V> FindPush<K, V> for HashMap<K, Vec<V>> {
+    fn find_push(&mut self, key: K, value: V) {
+        match self.find_mut(&key) {
+            Some(vec) => {
+                vec.push(value);
+                return
+            }
+            None => {}
+        }
+        self.insert(key, vec![value]);
+    }
+}
+
+
 #[cfg(test)]
 mod tests {
     use servo_util::atom::Atom;
     use sync::Arc;
-    use super::{MatchedProperty, Rule, SelectorMap};
+    use super::{DeclarationBlock, Rule, SelectorMap};
+    use selectors::LocalNameSelector;
 
     /// Helper method to get some Rules from selector strings.
     /// Each sublist of the result contains the Rules for one StyleRule.
@@ -949,11 +925,11 @@ mod tests {
 
         let namespaces = NamespaceMap::new();
         css_selectors.iter().enumerate().map(|(i, selectors)| {
-            parse_selector_list(tokenize(*selectors).map(|(c, _)| c).collect(), &namespaces)
+            parse_selector_list(tokenize(*selectors).map(|(c, _)| c), &namespaces)
             .unwrap().move_iter().map(|s| {
                 Rule {
                     selector: s.compound_selectors.clone(),
-                    property: MatchedProperty {
+                    declarations: DeclarationBlock {
                         specificity: s.specificity,
                         declarations: Arc::new(vec!()),
                         source_order: i,
@@ -966,9 +942,10 @@ mod tests {
     #[test]
     fn test_rule_ordering_same_specificity(){
         let rules_list = get_mock_rules(["a.intro", "img.sidebar"]);
-        let rule1 = rules_list[0][0].clone();
-        let rule2 = rules_list[1][0].clone();
-        assert!(rule1.property < rule2.property, "The rule that comes later should win.");
+        let a = &rules_list[0][0].declarations;
+        let b = &rules_list[1][0].declarations;
+        assert!((a.specificity, a.source_order).cmp(&(b.specificity, b.source_order)) == Less,
+                "The rule that comes later should win.");
     }
 
     #[test]
@@ -986,12 +963,18 @@ mod tests {
     }
 
     #[test]
-    fn test_get_element_name(){
+    fn test_get_local_name(){
         let rules_list = get_mock_rules(["img.foo", "#top", "IMG", "ImG"]);
-        assert_eq!(SelectorMap::get_element_name(&rules_list[0][0]), Some(Atom::from_slice("img")));
-        assert_eq!(SelectorMap::get_element_name(&rules_list[1][0]), None);
-        assert_eq!(SelectorMap::get_element_name(&rules_list[2][0]), Some(Atom::from_slice("img")));
-        assert_eq!(SelectorMap::get_element_name(&rules_list[3][0]), Some(Atom::from_slice("img")));
+        let check = |i, names: Option<(&str, &str)>| {
+            assert!(SelectorMap::get_local_name(&rules_list[i][0])
+                    == names.map(|(name, lower_name)| LocalNameSelector {
+                            name: Atom::from_slice(name),
+                            lower_name: Atom::from_slice(lower_name) }))
+        };
+        check(0, Some(("img", "img")));
+        check(1, None);
+        check(2, Some(("IMG", "img")));
+        check(3, Some(("ImG", "img")));
     }
 
     #[test]
@@ -999,9 +982,9 @@ mod tests {
         let rules_list = get_mock_rules([".intro.foo", "#top"]);
         let mut selector_map = SelectorMap::new();
         selector_map.insert(rules_list[1][0].clone());
-        assert_eq!(1, selector_map.id_hash.find(&Atom::from_slice("top")).unwrap()[0].property.source_order);
+        assert_eq!(1, selector_map.id_hash.find(&Atom::from_slice("top")).unwrap()[0].declarations.source_order);
         selector_map.insert(rules_list[0][0].clone());
-        assert_eq!(0, selector_map.class_hash.find(&Atom::from_slice("intro")).unwrap()[0].property.source_order);
+        assert_eq!(0, selector_map.class_hash.find(&Atom::from_slice("intro")).unwrap()[0].declarations.source_order);
         assert!(selector_map.class_hash.find(&Atom::from_slice("foo")).is_none());
     }
 }

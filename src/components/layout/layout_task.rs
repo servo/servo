@@ -6,7 +6,6 @@
 //! rendered.
 
 use css::matching::{ApplicableDeclarations, MatchMethods};
-use css::select::new_stylist;
 use css::node_style::StyledNode;
 use construct::{FlowConstructionResult, NoConstructionResult};
 use context::{LayoutContext, SharedLayoutContext};
@@ -57,7 +56,7 @@ use std::comm::{channel, Sender, Receiver, Select};
 use std::mem;
 use std::ptr;
 use style::{AuthorOrigin, Stylesheet, Stylist};
-use style::CSSFontFaceRule;
+use style::iter_font_face_rules;
 use sync::{Arc, Mutex};
 use url::Url;
 
@@ -347,7 +346,7 @@ impl LayoutTask {
             screen_size: screen_size,
 
             display_list: None,
-            stylist: box new_stylist(),
+            stylist: box Stylist::new(),
             parallel_traversal: parallel_traversal,
             time_profiler_chan: time_profiler_chan,
             opts: opts.clone(),
@@ -491,22 +490,9 @@ impl LayoutTask {
     fn handle_add_stylesheet(&mut self, sheet: Stylesheet) {
         // Find all font-face rules and notify the font cache of them.
         // GWTODO: Need to handle unloading web fonts (when we handle unloading stylesheets!)
-        // GWTODO: Need to handle font-face nested within media rules.
-        for rule in sheet.rules.iter() {
-            match rule {
-                &CSSFontFaceRule(ref font_face_rule) => {
-                    let mut font_urls = vec!();
-                    for source_line in font_face_rule.source_lines.iter() {
-                        for source in source_line.sources.iter() {
-                            font_urls.push(source.url.clone());
-                        }
-                    }
-                    self.font_cache_task.add_web_font(font_urls, font_face_rule.family.as_slice());
-                },
-                _ => {}
-            }
-        }
-
+        iter_font_face_rules(&sheet, |family, url| {
+            self.font_cache_task.add_web_font(family.to_string(), url.clone());
+        });
         self.stylist.add_stylesheet(sheet, AuthorOrigin);
     }
 

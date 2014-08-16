@@ -62,7 +62,6 @@ pub mod extra;
 pub mod css {
     mod node_util;
 
-    pub mod select;
     pub mod matching;
     pub mod node_style;
 }

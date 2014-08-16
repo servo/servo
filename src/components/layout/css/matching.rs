@@ -19,13 +19,13 @@ use servo_util::str::DOMString;
 use std::mem;
 use std::hash::{Hash, sip};
 use std::slice::Items;
-use style::{After, Before, ComputedValues, MatchedProperty, Stylist, TElement, TNode, cascade};
+use style::{After, Before, ComputedValues, DeclarationBlock, Stylist, TElement, TNode, cascade};
 use sync::Arc;
 
 pub struct ApplicableDeclarations {
-    pub normal: SmallVec16<MatchedProperty>,
-    pub before: Vec<MatchedProperty>,
-    pub after: Vec<MatchedProperty>,
+    pub normal: SmallVec16<DeclarationBlock>,
+    pub before: Vec<DeclarationBlock>,
+    pub after: Vec<DeclarationBlock>,
 
     /// Whether the `normal` declarations are shareable with other nodes.
     pub normal_shareable: bool,
@@ -51,11 +51,11 @@ impl ApplicableDeclarations {
 
 #[deriving(Clone)]
 pub struct ApplicableDeclarationsCacheEntry {
-    pub declarations: Vec<MatchedProperty>,
+    pub declarations: Vec<DeclarationBlock>,
 }
 
 impl ApplicableDeclarationsCacheEntry {
-    fn new(slice: &[MatchedProperty]) -> ApplicableDeclarationsCacheEntry {
+    fn new(slice: &[DeclarationBlock]) -> ApplicableDeclarationsCacheEntry {
         let mut entry_declarations = Vec::new();
         for declarations in slice.iter() {
             entry_declarations.push(declarations.clone());
@@ -81,11 +81,11 @@ impl Hash for ApplicableDeclarationsCacheEntry {
 }
 
 struct ApplicableDeclarationsCacheQuery<'a> {
-    declarations: &'a [MatchedProperty],
+    declarations: &'a [DeclarationBlock],
 }
 
 impl<'a> ApplicableDeclarationsCacheQuery<'a> {
-    fn new(declarations: &'a [MatchedProperty]) -> ApplicableDeclarationsCacheQuery<'a> {
+    fn new(declarations: &'a [DeclarationBlock]) -> ApplicableDeclarationsCacheQuery<'a> {
         ApplicableDeclarationsCacheQuery {
             declarations: declarations,
         }
@@ -141,14 +141,14 @@ impl ApplicableDeclarationsCache {
         }
     }
 
-    fn find(&self, declarations: &[MatchedProperty]) -> Option<Arc<ComputedValues>> {
+    fn find(&self, declarations: &[DeclarationBlock]) -> Option<Arc<ComputedValues>> {
         match self.cache.find_equiv(&ApplicableDeclarationsCacheQuery::new(declarations)) {
             None => None,
             Some(ref values) => Some((*values).clone()),
         }
     }
 
-    fn insert(&mut self, declarations: &[MatchedProperty], style: Arc<ComputedValues>) {
+    fn insert(&mut self, declarations: &[DeclarationBlock], style: Arc<ComputedValues>) {
         self.cache.insert(ApplicableDeclarationsCacheEntry::new(declarations), style)
     }
 }
@@ -309,7 +309,7 @@ pub trait MatchMethods {
 trait PrivateMatchMethods {
     fn cascade_node_pseudo_element(&self,
                                    parent_style: Option<&Arc<ComputedValues>>,
-                                   applicable_declarations: &[MatchedProperty],
+                                   applicable_declarations: &[DeclarationBlock],
                                    style: &mut Option<Arc<ComputedValues>>,
                                    applicable_declarations_cache: &mut
                                    ApplicableDeclarationsCache,
@@ -324,7 +324,7 @@ trait PrivateMatchMethods {
 impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
     fn cascade_node_pseudo_element(&self,
                                    parent_style: Option<&Arc<ComputedValues>>,
-                                   applicable_declarations: &[MatchedProperty],
+                                   applicable_declarations: &[DeclarationBlock],
                                    style: &mut Option<Arc<ComputedValues>>,
                                    applicable_declarations_cache: &mut
                                    ApplicableDeclarationsCache,

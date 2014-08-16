@@ -4,7 +4,6 @@
 
 //! Element nodes.
 
-use cssparser::tokenize;
 use dom::attr::{Attr, ReplacedAttr, FirstSetAttr, AttrHelpersForLayout};
 use dom::attr::{AttrValue, StringAttrValue, UIntAttrValue, AtomAttrValue};
 use dom::attrlist::AttrList;
@@ -31,7 +30,7 @@ use dom::nodelist::NodeList;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use layout_interface::ContentChangedDocumentDamage;
 use layout_interface::MatchSelectorsDocumentDamage;
-use style::{matches_compound_selector, NamespaceMap, parse_selector_list};
+use style::{matches, parse_selector_list_from_str};
 use style;
 use servo_util::atom::Atom;
 use servo_util::namespace;
@@ -775,21 +774,13 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
     // http://dom.spec.whatwg.org/#dom-element-matches
     fn Matches(&self, selectors: DOMString) -> Fallible<bool> {
-        let namespace = NamespaceMap::new();
-        match parse_selector_list(tokenize(selectors.as_slice()).map(|(token, _)| token).collect(),
-                                  &namespace) {
-            None => return Err(Syntax),
-            Some(ref selectors) => {
+        match parse_selector_list_from_str(selectors.as_slice()) {
+            Err(()) => Err(Syntax),
+            Ok(ref selectors) => {
                 let root: &JSRef<Node> = NodeCast::from_ref(self);
-                for selector in selectors.iter() {
-                    let mut shareable = false;
-                    if matches_compound_selector(&*selector.compound_selectors, root, &mut shareable) {
-                        return Ok(true);
-                    }
-                }
+                Ok(matches(selectors, root))
             }
         }
-        Ok(false)
     }
 }
 

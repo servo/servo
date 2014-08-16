@@ -29,7 +29,7 @@ servo-test-$(1): $$(DEPS_$(1))
 .PHONY: check-servo-$(1)
 check-servo-$(1): servo-test-$(1)
 	@$$(call E, check: $(1))
-	$$(Q)./servo-test-$(1)
+	$$(Q)./servo-test-$(1) $(TESTNAME)
 endef
 
 $(foreach lib_crate,$(SERVO_LIB_CRATES),\
