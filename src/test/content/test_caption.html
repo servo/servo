@@ -1,0 +1,23 @@
+<html>
+<head>
+<script src="harness.js"></script>
+</head>
+<table id="t">
+<caption id="tcaption">old caption</caption>
+</table>
+<script>
+  var t = document.getElementById("t");
+  var tcaption = document.getElementById("tcaption");
+  is(t.caption, tcaption);
+  is(t.caption.innerHTML, "old caption");
+
+  var newCaption = document.createElement("caption");
+  newCaption.innerHTML = "new caption";
+
+  t.caption = newCaption;
+  is(newCaption.parentNode, t);
+  is(t.caption, newCaption);
+
+  finish();
+</script>
+</html>
