@@ -17,11 +17,13 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, ElementNodeTypeId, NodeHelpers, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
-use servo_util::str::DOMString;
 
 use servo_net::image_cache_task;
 use servo_net::image_cache_task::ImageCacheTask;
+use servo_util::atom::Atom;
 use servo_util::namespace::Null;
+use servo_util::str::DOMString;
+
 use url::Url;
 
 #[deriving(Encodable)]
@@ -91,9 +93,9 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLObjectElement> {
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, name: DOMString, value: DOMString) {
+    fn after_set_attr(&self, name: &Atom, value: DOMString) {
         match self.super_type() {
-            Some(ref s) => s.after_set_attr(name.clone(), value),
+            Some(ref s) => s.after_set_attr(name, value),
             _ => (),
         }
 

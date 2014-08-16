@@ -116,7 +116,7 @@ impl Attr {
             ReplacedAttr => {
                 if namespace_is_null {
                     vtable_for(node).before_remove_attr(
-                        self.local_name().as_slice().to_string(),
+                        self.local_name(),
                         self.value.deref().borrow().as_slice().to_string());
                 }
             }
@@ -127,7 +127,7 @@ impl Attr {
 
         if namespace_is_null {
             vtable_for(node).after_set_attr(
-                self.local_name().as_slice().to_string(),
+                self.local_name(),
                 self.value.deref().borrow().as_slice().to_string());
         }
     }

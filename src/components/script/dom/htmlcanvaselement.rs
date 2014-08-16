@@ -18,6 +18,7 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, ElementNodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 
+use servo_util::atom::Atom;
 use servo_util::str::DOMString;
 
 use geom::size::Size2D;
@@ -98,9 +99,9 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLCanvasElement> {
         Some(element as &VirtualMethods)
     }
 
-    fn before_remove_attr(&self, name: DOMString, value: DOMString) {
+    fn before_remove_attr(&self, name: &Atom, value: DOMString) {
         match self.super_type() {
-            Some(ref s) => s.before_remove_attr(name.clone(), value.clone()),
+            Some(ref s) => s.before_remove_attr(name, value.clone()),
             _ => (),
         }
 
@@ -125,9 +126,9 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLCanvasElement> {
         }
     }
 
-    fn after_set_attr(&self, name: DOMString, value: DOMString) {
+    fn after_set_attr(&self, name: &Atom, value: DOMString) {
         match self.super_type() {
-            Some(ref s) => s.after_set_attr(name.clone(), value.clone()),
+            Some(ref s) => s.after_set_attr(name, value.clone()),
             _ => (),
         }
 

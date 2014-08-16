@@ -252,7 +252,7 @@ pub trait AttributeHandlers {
                        value: DOMString) -> AttrValue;
 
     fn remove_attribute(&self, namespace: Namespace, name: &str);
-    fn notify_attribute_changed(&self, local_name: DOMString);
+    fn notify_attribute_changed(&self, local_name: &Atom);
     fn has_class(&self, name: &str) -> bool;
 
     fn set_atomic_attribute(&self, name: &str, value: DOMString);
@@ -356,7 +356,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
                 if namespace == namespace::Null {
                     let removed_raw_value = (*self.deref().attrs.borrow())[idx].root().Value();
                     vtable_for(NodeCast::from_ref(self))
-                        .before_remove_attr(local_name.as_slice().to_string(),
+                        .before_remove_attr(&local_name,
                                             removed_raw_value);
                 }
 
@@ -365,7 +365,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         };
     }
 
-    fn notify_attribute_changed(&self, local_name: DOMString) {
+    fn notify_attribute_changed(&self, local_name: &Atom) {
         let node: &JSRef<Node> = NodeCast::from_ref(self);
         if node.is_in_doc() {
             let damage = match local_name.as_slice() {
@@ -816,9 +816,9 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
         Some(node as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, name: DOMString, value: DOMString) {
+    fn after_set_attr(&self, name: &Atom, value: DOMString) {
         match self.super_type() {
-            Some(ref s) => s.after_set_attr(name.clone(), value.clone()),
+            Some(ref s) => s.after_set_attr(name, value.clone()),
             _ => (),
         }
 
@@ -842,9 +842,9 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
         self.notify_attribute_changed(name);
     }
 
-    fn before_remove_attr(&self, name: DOMString, value: DOMString) {
+    fn before_remove_attr(&self, name: &Atom, value: DOMString) {
         match self.super_type() {
-            Some(ref s) => s.before_remove_attr(name.clone(), value.clone()),
+            Some(ref s) => s.before_remove_attr(name, value.clone()),
             _ => (),
         }
 

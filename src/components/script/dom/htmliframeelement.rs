@@ -18,9 +18,11 @@ use dom::node::{Node, NodeHelpers, ElementNodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
 use page::IterablePage;
+
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use servo_msg::constellation_msg::{IFrameSandboxed, IFrameUnsandboxed};
 use servo_msg::constellation_msg::{ConstellationChan, LoadIframeUrlMsg};
+use servo_util::atom::Atom;
 use servo_util::namespace::Null;
 use servo_util::str::DOMString;
 
@@ -163,9 +165,9 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, name: DOMString, value: DOMString) {
+    fn after_set_attr(&self, name: &Atom, value: DOMString) {
         match self.super_type() {
-            Some(ref s) => s.after_set_attr(name.clone(), value.clone()),
+            Some(ref s) => s.after_set_attr(name, value.clone()),
             _ => (),
         }
 
@@ -193,9 +195,9 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
         }
     }
 
-    fn before_remove_attr(&self, name: DOMString, value: DOMString) {
+    fn before_remove_attr(&self, name: &Atom, value: DOMString) {
         match self.super_type() {
-            Some(ref s) => s.before_remove_attr(name.clone(), value),
+            Some(ref s) => s.before_remove_attr(name, value),
             _ => (),
         }
 
