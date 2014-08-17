@@ -5,5 +5,6 @@
 
 // http://www.whatwg.org/html/#htmltitleelement
 interface HTMLTitleElement : HTMLElement {
-  //         attribute DOMString text;
+    [Pure]
+           attribute DOMString text;
 };
