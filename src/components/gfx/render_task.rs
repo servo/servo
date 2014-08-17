@@ -372,6 +372,7 @@ impl<C:RenderListener + Send> RenderTask<C> {
                                 buffer.resolution = scale;
                                 buffer.native_surface.mark_wont_leak();
                                 buffer.painted_with_cpu = true;
+                                buffer.content_age = tile.content_age;
                                 buffer
                             }
                             None => {
@@ -391,6 +392,7 @@ impl<C:RenderListener + Send> RenderTask<C> {
                                     resolution: scale,
                                     stride: (width * 4) as uint,
                                     painted_with_cpu: true,
+                                    content_age: tile.content_age,
                                 }
                             }
                         };
@@ -422,6 +424,7 @@ impl<C:RenderListener + Send> RenderTask<C> {
                             resolution: scale,
                             stride: (width * 4) as uint,
                             painted_with_cpu: false,
+                            content_age: tile.content_age,
                         }
                     }
                 };

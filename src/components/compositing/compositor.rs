@@ -223,6 +223,7 @@ impl IOCompositor {
             // If a pinch-zoom happened recently, ask for tiles at the new resolution
             if self.zoom_action && precise_time_s() - self.zoom_time > 0.3 {
                 self.zoom_action = false;
+                self.scene.mark_layer_contents_as_changed_recursively();
                 self.send_buffer_requests_for_all_layers();
             }
 
