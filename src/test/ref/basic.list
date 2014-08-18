@@ -93,3 +93,4 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == line_height_a.html line_height_ref.html
 == block_replaced_content_a.html block_replaced_content_ref.html
 == block_replaced_content_b.html block_replaced_content_ref.html
+== root_margin_collapse_a.html root_margin_collapse_b.html
