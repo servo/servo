@@ -91,3 +91,5 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == inline_whitespace_b.html inline_whitespace_ref.html
 == inline_whitespace_a.html inline_whitespace_ref.html
 == line_height_a.html line_height_ref.html
+== block_replaced_content_a.html block_replaced_content_ref.html
+== block_replaced_content_b.html block_replaced_content_ref.html
