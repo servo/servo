@@ -316,7 +316,6 @@ impl DisplayList {
         }
     }
 
-
     /// Appends the given item to the display list.
     pub fn push(&mut self, item: DisplayItem) {
         self.list.push(item)
@@ -326,6 +325,14 @@ impl DisplayList {
     /// the process.
     pub fn push_all_move(&mut self, other: DisplayList) {
         self.list.append(other.list)
+    }
+
+    pub fn debug(&self) {
+        if log_enabled!(::log::DEBUG) {
+            for item in self.list.iter() {
+                item.debug_with_level(0);
+            }
+        }
     }
 
     /// Draws the display list into the given render context. The display list must be flattened
@@ -724,14 +731,14 @@ impl DisplayItem {
     }
 
     pub fn debug_with_level(&self, level: uint) {
-            let mut indent = String::new();
-            for _ in range(0, level) {
-                indent.push_str("| ")
-            }
-            debug!("{}+ {}", indent, self);
-            for child in self.children() {
-                child.debug_with_level(level + 1);
-            }
+        let mut indent = String::new();
+        for _ in range(0, level) {
+            indent.push_str("| ")
+        }
+        debug!("{}+ {}", indent, self);
+        for child in self.children() {
+            child.debug_with_level(level + 1);
+        }
     }
 }
 

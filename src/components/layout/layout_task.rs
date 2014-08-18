@@ -718,6 +718,7 @@ impl LayoutTask {
                 let root_display_list =
                     mem::replace(&mut flow::mut_base(layout_root.get_mut()).display_list,
                                  DisplayList::new());
+                root_display_list.debug();
                 let display_list = Arc::new(root_display_list.flatten(ContentStackingLevel));
 
                 // FIXME(pcwalton): This is really ugly and can't handle overflow: scroll. Refactor
