@@ -450,7 +450,7 @@ ifneq ($(CFG_OSTYPE),linux-androideabi)
 all: servo servo-embedding
 servo:	$(DEPS_servo)
 	@$(call E, compile: $@)
-	$(Q)$(RUSTC) $(strip $(TARGET_FLAGS) $(CFG_RUSTC_FLAGS)) $(RFLAGS_servo) $< --crate-type bin,dylib,rlib
+	$(Q)$(RUSTC) $(strip $(TARGET_FLAGS) $(CFG_RUSTC_FLAGS)) $(RFLAGS_servo) -C rpath $< --crate-type bin,dylib,rlib
 
 RFLAGS_embedding = $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/gfx -L $(B)src/components/util -L $(B)src/components/net -L $(B)src/components/script -L $(B)src/components/layout -L $(B)src/components/layout_traits -L $(B)src/components/script_traits -L $(B)src/components/compositing -L $(B)src/components/style -L $(B)src/components/msg -L $(B).. -L $(B)src/components/main -L $(B)src/components/macros -A non_camel_case_types -A unused_variable
 
@@ -462,7 +462,7 @@ CRATE_embedding = $(S)src/components/embedding/embedding.rs
 
 servo-embedding: servo $(SRC_embedding) $(CRATE_embedding)
 	@$(call E, compile: $@)
-	$(Q)$(RUSTC) $(strip $(TARGET_FLAGS) $(CFG_RUSTC_FLAGS)) $(RFLAGS_embedding) $(CRATE_embedding) --crate-type dylib,rlib
+	$(Q)$(RUSTC) $(strip $(TARGET_FLAGS) $(CFG_RUSTC_FLAGS)) $(RFLAGS_embedding) $(CRATE_embedding) -C rpath --crate-type dylib,rlib
 	touch servo-embedding
 else
 all: servo
