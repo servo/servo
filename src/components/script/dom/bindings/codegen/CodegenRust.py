@@ -1788,7 +1788,7 @@ JS_SetReservedSlot(obj, DOM_OBJECT_SLOT as u32,
 
 class CGWrapMethod(CGAbstractMethod):
     def __init__(self, descriptor):
-        assert descriptor.interface.hasInterfacePrototypeObject()
+        assert not descriptor.interface.isCallback()
         if not descriptor.createGlobal:
             args = [Argument('*mut JSContext', 'aCx'), Argument('&GlobalRef', 'aScope'),
                     Argument("Box<%s>" % descriptor.concreteType, 'aObject', mutable=True)]
@@ -1920,6 +1920,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
     properties should be a PropertyArrays instance.
     """
     def __init__(self, descriptor, properties):
+        assert not descriptor.interface.isCallback()
         args = [Argument('*mut JSContext', 'aCx'), Argument('*mut JSObject', 'aGlobal'),
                 Argument('*mut JSObject', 'aReceiver')]
         CGAbstractMethod.__init__(self, descriptor, 'CreateInterfaceObjects', '*mut JSObject', args)
@@ -1933,12 +1934,6 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
             getParentProto = ("%s::GetProtoObject(aCx, aGlobal, aReceiver)" %
                               toBindingNamespace(parentProtoName))
 
-        needInterfaceObject = self.descriptor.interface.hasInterfaceObject()
-        needInterfacePrototypeObject = self.descriptor.interface.hasInterfacePrototypeObject()
-
-        # if we don't need to create anything, why are we generating this?
-        assert needInterfaceObject or needInterfacePrototypeObject
-
         getParentProto = ("let parentProto: *mut JSObject = %s;\n"
                           "assert!(parentProto.is_not_null());\n") % getParentProto
 
@@ -1950,7 +1945,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
         else:
             domClass = "ptr::null()"
 
-        if needInterfaceObject:
+        if self.descriptor.interface.hasInterfaceObject():
             if self.descriptor.interface.ctor():
                 constructHook = CONSTRUCT_HOOK_NAME
                 constructArgs = methodLength(self.descriptor.interface.ctor())
@@ -4049,62 +4044,60 @@ class CGDescriptor(CGThing):
     def __init__(self, descriptor):
         CGThing.__init__(self)
 
-        assert not descriptor.concrete or descriptor.interface.hasInterfacePrototypeObject()
+        assert not descriptor.interface.isCallback()
 
         cgThings = []
-        if descriptor.interface.hasInterfacePrototypeObject():
-            cgThings.append(CGGetProtoObjectMethod(descriptor))
+        cgThings.append(CGGetProtoObjectMethod(descriptor))
         if descriptor.interface.hasInterfaceObject():
             # https://github.com/mozilla/servo/issues/2665
             # cgThings.append(CGGetConstructorObjectMethod(descriptor))
             pass
 
-        if descriptor.interface.hasInterfacePrototypeObject():
-            (hasMethod, hasGetter, hasLenientGetter,
-             hasSetter, hasLenientSetter) = False, False, False, False, False
-            for m in descriptor.interface.members:
-                if m.isMethod() and not m.isIdentifierLess():
+        (hasMethod, hasGetter, hasLenientGetter,
+         hasSetter, hasLenientSetter) = False, False, False, False, False
+        for m in descriptor.interface.members:
+            if m.isMethod() and not m.isIdentifierLess():
+                if m.isStatic():
+                    assert descriptor.interface.hasInterfaceObject()
+                    cgThings.append(CGStaticMethod(descriptor, m))
+                else:
+                    cgThings.append(CGSpecializedMethod(descriptor, m))
+                    cgThings.append(CGMemberJITInfo(descriptor, m))
+                    hasMethod = True
+            elif m.isAttr():
+                if m.isStatic():
+                    assert descriptor.interface.hasInterfaceObject()
+                    cgThings.append(CGStaticGetter(descriptor, m))
+                else:
+                    cgThings.append(CGSpecializedGetter(descriptor, m))
+                    if m.hasLenientThis():
+                        hasLenientGetter = True
+                    else:
+                        hasGetter = True
+
+                if not m.readonly:
                     if m.isStatic():
                         assert descriptor.interface.hasInterfaceObject()
-                        cgThings.append(CGStaticMethod(descriptor, m))
-                    elif descriptor.interface.hasInterfacePrototypeObject():
-                        cgThings.append(CGSpecializedMethod(descriptor, m))
-                        cgThings.append(CGMemberJITInfo(descriptor, m))
-                        hasMethod = True
-                elif m.isAttr():
-                    if m.isStatic():
-                        assert descriptor.interface.hasInterfaceObject()
-                        cgThings.append(CGStaticGetter(descriptor, m))
-                    elif descriptor.interface.hasInterfacePrototypeObject():
-                        cgThings.append(CGSpecializedGetter(descriptor, m))
+                        cgThings.append(CGStaticSetter(descriptor, m))
+                    else:
+                        cgThings.append(CGSpecializedSetter(descriptor, m))
                         if m.hasLenientThis():
-                            hasLenientGetter = True
+                            hasLenientSetter = True
                         else:
-                            hasGetter = True
+                            hasSetter = True
 
-                    if not m.readonly:
-                        if m.isStatic():
-                            assert descriptor.interface.hasInterfaceObject()
-                            cgThings.append(CGStaticSetter(descriptor, m))
-                        elif descriptor.interface.hasInterfacePrototypeObject():
-                            cgThings.append(CGSpecializedSetter(descriptor, m))
-                            if m.hasLenientThis():
-                                hasLenientSetter = True
-                            else:
-                                hasSetter = True
-
-                    if not m.isStatic() and descriptor.interface.hasInterfacePrototypeObject():
-                        cgThings.append(CGMemberJITInfo(descriptor, m))
-            if hasMethod:
-                cgThings.append(CGGenericMethod(descriptor))
-            if hasGetter:
-                cgThings.append(CGGenericGetter(descriptor))
-            if hasLenientGetter:
-                pass
-            if hasSetter:
-                cgThings.append(CGGenericSetter(descriptor))
-            if hasLenientSetter:
-                pass
+                if not m.isStatic():
+                    cgThings.append(CGMemberJITInfo(descriptor, m))
+        if hasMethod:
+            cgThings.append(CGGenericMethod(descriptor))
+        if hasGetter:
+            cgThings.append(CGGenericGetter(descriptor))
+        if hasLenientGetter:
+            pass
+        if hasSetter:
+            cgThings.append(CGGenericSetter(descriptor))
+        if hasLenientSetter:
+            pass
 
         if descriptor.concrete:
             cgThings.append(CGClassFinalizeHook(descriptor))
@@ -4114,8 +4107,7 @@ class CGDescriptor(CGThing):
             cgThings.append(CGClassConstructHook(descriptor))
             cgThings.append(CGInterfaceObjectJSClass(descriptor))
 
-        if descriptor.interface.hasInterfacePrototypeObject():
-            cgThings.append(CGPrototypeJSClass(descriptor))
+        cgThings.append(CGPrototypeJSClass(descriptor))
 
         properties = PropertyArrays(descriptor)
         cgThings.append(CGGeneric(str(properties)))
@@ -4415,7 +4407,7 @@ class CGBindingRoot(CGThing):
     """
     def __init__(self, config, prefix, webIDLFile):
         descriptors = config.getDescriptors(webIDLFile=webIDLFile,
-                                            hasInterfaceOrInterfacePrototypeObject=True)
+                                            isCallback=False)
         dictionaries = config.getDictionaries(webIDLFile=webIDLFile)
 
         cgthings = []
@@ -5383,7 +5375,7 @@ class GlobalGenRoots():
     @staticmethod
     def PrototypeList(config):
         # Prototype ID enum.
-        protos = [d.name for d in config.getDescriptors(hasInterfacePrototypeObject=True)]
+        protos = [d.name for d in config.getDescriptors(isCallback=False)]
         proxies = [d.name for d in config.getDescriptors(proxy=True)]
 
         return CGList([
