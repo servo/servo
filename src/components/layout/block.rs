@@ -1574,10 +1574,11 @@ impl Flow for BlockFlow {
     }
 
     fn assign_block_size<'a>(&mut self, ctx: &'a LayoutContext<'a>) {
-        // Assign block-size for fragment if it is an image fragment.
-        self.fragment.assign_replaced_block_size_if_necessary();
 
-        if self.is_float() {
+        if self.is_replaced_content() {
+            // Assign block-size for fragment if it is an image fragment.
+            self.fragment.assign_replaced_block_size_if_necessary();
+        } else if self.is_float() {
             debug!("assign_block_size_float: assigning block_size for float");
             self.assign_block_size_float(ctx);
         } else {
