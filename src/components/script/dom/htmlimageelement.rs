@@ -96,19 +96,14 @@ impl LayoutHTMLImageElementHelpers for JS<HTMLImageElement> {
 }
 
 impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
-    fn Alt(&self) -> DOMString {
-        let element: &JSRef<Element> = ElementCast::from_ref(self);
-        element.get_string_attribute("alt")
-    }
+
+    make_getters!(Alt, Src, UseMap, Name, Align, LongDesc, Border)
+    make_bool_getters!(IsMap)
+    make_uint_getters!(Width, Height, Hspace, Vspace)
 
     fn SetAlt(&self, alt: DOMString) {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
         element.set_string_attribute("alt", alt)
-    }
-
-    fn Src(&self) -> DOMString {
-        let element: &JSRef<Element> = ElementCast::from_ref(self);
-        element.get_string_attribute("src")
     }
 
     fn SetSrc(&self, src: DOMString) {
@@ -116,19 +111,9 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
         element.set_url_attribute("src", src)
     }
 
-    fn UseMap(&self) -> DOMString {
-        let element: &JSRef<Element> = ElementCast::from_ref(self);
-        element.get_string_attribute("useMap")
-    }
-
     fn SetUseMap(&self, use_map: DOMString) {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
         element.set_string_attribute("useMap", use_map)
-    }
-
-    fn IsMap(&self) -> bool {
-        let element: &JSRef<Element> = ElementCast::from_ref(self);
-        from_str::<bool>(element.get_string_attribute("hspace").as_slice()).unwrap()
     }
 
     fn SetIsMap(&self, is_map: bool) {
@@ -136,21 +121,10 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
         element.set_string_attribute("isMap", is_map.to_string())
     }
 
-    fn Width(&self) -> u32 {
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
-        let rect = node.get_bounding_content_box();
-        to_px(rect.size.width) as u32
-    }
 
     fn SetWidth(&self, width: u32) {
         let elem: &JSRef<Element> = ElementCast::from_ref(self);
         elem.set_uint_attribute("width", width)
-    }
-
-    fn Height(&self) -> u32 {
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
-        let rect = node.get_bounding_content_box();
-        to_px(rect.size.height) as u32
     }
 
     fn SetHeight(&self, height: u32) {
@@ -158,19 +132,9 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
         elem.set_uint_attribute("height", height)
     }
 
-    fn Name(&self) -> DOMString {
-        let element: &JSRef<Element> = ElementCast::from_ref(self);
-        element.get_string_attribute("name")
-    }
-
     fn SetName(&self, name: DOMString) {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
         element.set_string_attribute("name", name)
-    }
-
-    fn Align(&self) -> DOMString {
-        let element: &JSRef<Element> = ElementCast::from_ref(self);
-        element.get_string_attribute("align")
     }
 
     fn SetAlign(&self, align: DOMString) {
@@ -178,19 +142,9 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
         element.set_string_attribute("align", align)
     }
 
-    fn Hspace(&self) -> u32 {
-        let element: &JSRef<Element> = ElementCast::from_ref(self);
-        element.get_uint_attribute("hspace")
-    }
-
     fn SetHspace(&self, hspace: u32) {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
         element.set_uint_attribute("hspace", hspace)
-    }
-
-    fn Vspace(&self) -> u32 {
-        let element: &JSRef<Element> = ElementCast::from_ref(self);
-        element.get_uint_attribute("vspace")
     }
 
     fn SetVspace(&self, vspace: u32) {
@@ -198,19 +152,9 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
         element.set_uint_attribute("vspace", vspace)
     }
 
-    fn LongDesc(&self) -> DOMString {
-        let element: &JSRef<Element> = ElementCast::from_ref(self);
-        element.get_string_attribute("longdesc")
-    }
-
     fn SetLongDesc(&self, longdesc: DOMString) {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
         element.set_string_attribute("longdesc", longdesc)
-    }
-
-    fn Border(&self) -> DOMString {
-        let element: &JSRef<Element> = ElementCast::from_ref(self);
-        element.get_string_attribute("border")
     }
 
     fn SetBorder(&self, border: DOMString) {
@@ -225,9 +169,9 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLImageElement> {
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, name: &Atom, value: DOMString) {
+    fn after_set_attr(&self, name: DOMString, value: DOMString) {
         match self.super_type() {
-            Some(ref s) => s.after_set_attr(name, value.clone()),
+            Some(ref s) => s.after_set_attr(name.clone(), value.clone()),
             _ => (),
         }
 
@@ -238,9 +182,9 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLImageElement> {
         }
     }
 
-    fn before_remove_attr(&self, name: &Atom, value: DOMString) {
+    fn before_remove_attr(&self, name: DOMString, value: DOMString) {
         match self.super_type() {
-            Some(ref s) => s.before_remove_attr(name, value.clone()),
+            Some(ref s) => s.before_remove_attr(name.clone(), value.clone()),
             _ => (),
         }
 

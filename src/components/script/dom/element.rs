@@ -435,7 +435,6 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 
     fn get_uint_attribute(&self, name: &str) -> u32 {
-        assert!(name == name.to_ascii_lower().as_slice());
         let attribute = self.get_attribute(Null, name).root();
         match attribute {
             Some(attribute) => {
