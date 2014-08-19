@@ -16,7 +16,6 @@ use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, ElementNodeTypeId, NodeHelpers, window_from_node};
 use dom::virtualmethods::VirtualMethods;
-
 use servo_net::image_cache_task;
 use servo_util::atom::Atom;
 use servo_util::geometry::to_px;
@@ -96,35 +95,49 @@ impl LayoutHTMLImageElementHelpers for JS<HTMLImageElement> {
 }
 
 impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
-
-    make_getters!(Alt, Src, UseMap, Name, Align, LongDesc, Border)
-    make_bool_getters!(IsMap)
-    make_uint_getters!(Width, Height, Hspace, Vspace)
+    make_getter!(Alt)
 
     fn SetAlt(&self, alt: DOMString) {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
         element.set_string_attribute("alt", alt)
     }
 
+    make_getter!(Src)
+
     fn SetSrc(&self, src: DOMString) {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
         element.set_url_attribute("src", src)
     }
+
+    make_getter!(UseMap)
 
     fn SetUseMap(&self, use_map: DOMString) {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
         element.set_string_attribute("useMap", use_map)
     }
 
+    make_bool_getter!(IsMap)
+
     fn SetIsMap(&self, is_map: bool) {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
         element.set_string_attribute("isMap", is_map.to_string())
     }
 
+    fn Width(&self) -> u32 {
+        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let rect = node.get_bounding_content_box();
+        to_px(rect.size.width) as u32
+    }
 
     fn SetWidth(&self, width: u32) {
         let elem: &JSRef<Element> = ElementCast::from_ref(self);
         elem.set_uint_attribute("width", width)
+    }
+
+    fn Height(&self) -> u32 {
+        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let rect = node.get_bounding_content_box();
+        to_px(rect.size.height) as u32
     }
 
     fn SetHeight(&self, height: u32) {
@@ -132,30 +145,42 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
         elem.set_uint_attribute("height", height)
     }
 
+    make_getter!(Name)
+
     fn SetName(&self, name: DOMString) {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
         element.set_string_attribute("name", name)
     }
+
+    make_getter!(Align)
 
     fn SetAlign(&self, align: DOMString) {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
         element.set_string_attribute("align", align)
     }
 
+    make_uint_getter!(Hspace)
+
     fn SetHspace(&self, hspace: u32) {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
         element.set_uint_attribute("hspace", hspace)
     }
+
+    make_uint_getter!(Vspace)
 
     fn SetVspace(&self, vspace: u32) {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
         element.set_uint_attribute("vspace", vspace)
     }
 
+    make_getter!(LongDesc)
+
     fn SetLongDesc(&self, longdesc: DOMString) {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
         element.set_string_attribute("longdesc", longdesc)
     }
+
+    make_getter!(Border)
 
     fn SetBorder(&self, border: DOMString) {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
@@ -169,9 +194,9 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLImageElement> {
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, name: DOMString, value: DOMString) {
+    fn after_set_attr(&self, name: &Atom, value: DOMString) {
         match self.super_type() {
-            Some(ref s) => s.after_set_attr(name.clone(), value.clone()),
+            Some(ref s) => s.after_set_attr(name, value.clone()),
             _ => (),
         }
 
@@ -182,9 +207,9 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLImageElement> {
         }
     }
 
-    fn before_remove_attr(&self, name: DOMString, value: DOMString) {
+    fn before_remove_attr(&self, name: &Atom, value: DOMString) {
         match self.super_type() {
-            Some(ref s) => s.before_remove_attr(name.clone(), value.clone()),
+            Some(ref s) => s.before_remove_attr(name, value.clone()),
             _ => (),
         }
 
