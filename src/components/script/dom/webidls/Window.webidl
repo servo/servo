@@ -74,6 +74,16 @@ interface WindowTimers {
 };
 Window implements WindowTimers;
 
+// http://www.whatwg.org/html/#atob
+[NoInterfaceObject/*, Exposed=Window,Worker*/]
+interface WindowBase64 {
+  [Throws]
+  DOMString btoa(DOMString btoa);
+  [Throws]
+  DOMString atob(DOMString atob);
+};
+Window implements WindowBase64;
+
 // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/NavigationTiming/Overview.html#sec-window.performance-attribute
 partial interface Window {
   /*[Replaceable]*/ readonly attribute Performance performance;
