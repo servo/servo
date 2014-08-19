@@ -33,15 +33,15 @@ fn main() {
     let servo_args = parts.next().unwrap_or(&[]);
 
     let (render_mode_string, manifest, testname) = match harness_args {
-      [] | [_] => fail!("USAGE: cpu|gpu manifest [testname regex]"),
-      [ref render_mode_string, ref manifest] => (render_mode_string, manifest, None),
-      [ref render_mode_string, ref manifest, ref testname, ..] => (render_mode_string, manifest, Some(Regex::new(testname.as_slice()).unwrap())),
+        [] | [_] => fail!("USAGE: cpu|gpu manifest [testname regex]"),
+        [ref render_mode_string, ref manifest] => (render_mode_string, manifest, None),
+        [ref render_mode_string, ref manifest, ref testname, ..] => (render_mode_string, manifest, Some(Regex::new(testname.as_slice()).unwrap())),
     };
 
     let render_mode = match render_mode_string.as_slice() {
-      "cpu" => CpuRendering,
-      "gpu" => GpuRendering,
-      _ => fail!("First argument must specify cpu or gpu as rendering mode")
+        "cpu" => CpuRendering,
+        "gpu" => GpuRendering,
+        _ => fail!("First argument must specify cpu or gpu as rendering mode")
     };
 
     let tests = parse_lists(manifest, servo_args, render_mode);
@@ -83,91 +83,77 @@ struct Reftest {
 }
 
 struct TestLine<'a> {
-  conditions: &'a str,
-  kind: &'a str,
-  file_left: &'a str,
-  file_right: &'a str,
+    conditions: &'a str,
+    kind: &'a str,
+    file_left: &'a str,
+    file_right: &'a str,
 }
 
 fn parse_lists(file: &String, servo_args: &[String], render_mode: RenderMode) -> Vec<TestDescAndFn> {
     let mut tests = Vec::new();
     let mut next_id = 0;
     let file_path = Path::new(file.clone());
-    let contents: String = match File::open_mode(&file_path, io::Open, io::Read)
-       .and_then(|mut f| {
-             f.read_to_string()
-             }) {
-          Ok(s) => s,
-             _ => fail!("Could not read file"),
-       };
+    let contents = File::open_mode(&file_path, io::Open, io::Read)
+                       .and_then(|mut f| f.read_to_string())
+                       .ok().expect("Could not read file");
 
     for line in contents.as_slice().lines() {
-       // ignore comments or empty lines
-       if line.starts_with("#") || line.is_empty() {
-          continue;
-       }
+        // ignore comments or empty lines
+        if line.starts_with("#") || line.is_empty() {
+            continue;
+        }
 
-       let parts: Vec<&str> = line.split(' ').filter(|p| !p.is_empty()).collect();
+        let parts: Vec<&str> = line.split(' ').filter(|p| !p.is_empty()).collect();
 
-       let test_line = match parts.len() {
-          3 => {
-            TestLine {
-              conditions: "",
-              kind: parts[0],
-              file_left: parts[1],
-              file_right: parts[2],
-            }
-          },
-          4 => {
-            TestLine {
-              conditions: parts[0],
-              kind: parts[1],
-              file_left: parts[2],
-              file_right: parts[3],
-            }
-          },
-          _ => {
-            fail!("reftest line: '{:s}' doesn't match '[CONDITIONS] KIND LEFT RIGHT'", line);
-          }
-       };
-
-       let kind = match test_line.kind {
-          "==" => Same,
-          "!=" => Different,
-          part => fail!("reftest line: '{:s}' has invalid kind '{:s}'", line, part)
-       };
-       let src_path = file_path.dir_path();
-       let src_dir = src_path.display().to_string();
-       let file_left =  src_dir.clone().append("/").append(test_line.file_left);
-       let file_right = src_dir.append("/").append(test_line.file_right);
-
-       let mut conditions_list = test_line.conditions.split(',');
-       let mut flakiness = 0;
-       for condition in conditions_list {
-          match condition {
-            "flaky_cpu" => {
-              flakiness |= CpuRendering as uint;
+        let test_line = match parts.len() {
+            3 => TestLine {
+                conditions: "",
+                kind: parts[0],
+                file_left: parts[1],
+                file_right: parts[2],
             },
-            "flaky_gpu" => {
-              flakiness |= GpuRendering as uint;
+            4 => TestLine {
+                conditions: parts[0],
+                kind: parts[1],
+                file_left: parts[2],
+                file_right: parts[3],
             },
-            _ => {}
-          }
-       }
+            _ => fail!("reftest line: '{:s}' doesn't match '[CONDITIONS] KIND LEFT RIGHT'", line),
+        };
 
-       let reftest = Reftest {
-         name: test_line.file_left.to_string().append(" / ").append(test_line.file_right),
-         kind: kind,
-         files: [file_left, file_right],
-         id: next_id,
-         render_mode: render_mode,
-         servo_args: servo_args.iter().map(|x| x.clone()).collect(),
-         flakiness: flakiness,
-       };
+        let kind = match test_line.kind {
+            "==" => Same,
+            "!=" => Different,
+            part => fail!("reftest line: '{:s}' has invalid kind '{:s}'", line, part)
+        };
+        let src_path = file_path.dir_path();
+        let src_dir = src_path.display().to_string();
+        let file_left =  src_dir.clone().append("/").append(test_line.file_left);
+        let file_right = src_dir.append("/").append(test_line.file_right);
 
-       next_id += 1;
+        let mut conditions_list = test_line.conditions.split(',');
+        let mut flakiness = 0;
+        for condition in conditions_list {
+            match condition {
+                "flaky_cpu" => flakiness |= CpuRendering as uint,
+                "flaky_gpu" => flakiness |= GpuRendering as uint,
+                _ => (),
+            }
+        }
 
-       tests.push(make_test(reftest));
+        let reftest = Reftest {
+            name: test_line.file_left.to_string().append(" / ").append(test_line.file_right),
+            kind: kind,
+            files: [file_left, file_right],
+            id: next_id,
+            render_mode: render_mode,
+            servo_args: servo_args.iter().map(|x| x.clone()).collect(),
+            flakiness: flakiness,
+        };
+
+        next_id += 1;
+
+        tests.push(make_test(reftest));
     }
     tests
 }
@@ -190,8 +176,8 @@ fn capture(reftest: &Reftest, side: uint) -> png::Image {
     let filename = format!("/tmp/servo-reftest-{:06u}-{:u}.png", reftest.id, side);
     let mut args = reftest.servo_args.clone();
     match reftest.render_mode {
-      CpuRendering => args.push("-c".to_string()),
-      _ => {}   // GPU rendering is the default
+        CpuRendering => args.push("-c".to_string()),
+        _ => {}   // GPU rendering is the default
     }
     args.push_all_move(vec!("-f".to_string(), "-o".to_string(), filename.clone(), reftest.files[side].clone()));
 
@@ -208,18 +194,18 @@ fn check_reftest(reftest: Reftest) {
     let left  = capture(&reftest, 0);
     let right = capture(&reftest, 1);
 
-    let pixels: Vec<u8> = left.pixels.iter().zip(right.pixels.iter()).map(|(&a, &b)| {
-            if a as i8 - b as i8 == 0 {
-                // White for correct
-                0xFF
-            } else {
-                // "1100" in the RGBA channel with an error for an incorrect value
-                // This results in some number of C0 and FFs, which is much more
-                // readable (and distinguishable) than the previous difference-wise
-                // scaling but does not require reconstructing the actual RGBA pixel.
-                0xC0
-            }
-        }).collect();
+    let pixels = left.pixels.iter().zip(right.pixels.iter()).map(|(&a, &b)| {
+        if a as i8 - b as i8 == 0 {
+            // White for correct
+            0xFF
+        } else {
+            // "1100" in the RGBA channel with an error for an incorrect value
+            // This results in some number of C0 and FFs, which is much more
+            // readable (and distinguishable) than the previous difference-wise
+            // scaling but does not require reconstructing the actual RGBA pixel.
+            0xC0
+        }
+    }).collect::<Vec<u8>>();
 
     let test_is_flaky = (reftest.render_mode as uint & reftest.flakiness) != 0;
 
@@ -237,9 +223,9 @@ fn check_reftest(reftest: Reftest) {
         assert!(res.is_ok());
 
         match (reftest.kind, test_is_flaky) {
-          (Same, true) => println!("flaky test - rendering difference: {}", output_str),
-          (Same, false) => fail!("rendering difference: {}", output_str),
-          (Different, _) => {}   // Result was different and that's what was expected
+            (Same, true) => println!("flaky test - rendering difference: {}", output_str),
+            (Same, false) => fail!("rendering difference: {}", output_str),
+            (Different, _) => {}   // Result was different and that's what was expected
         }
     } else {
         assert!(test_is_flaky || reftest.kind == Same);
