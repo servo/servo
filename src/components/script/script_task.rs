@@ -50,6 +50,7 @@ use servo_util::task::spawn_named_with_send_on_failure;
 use geom::point::Point2D;
 use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ, JS_GC};
 use js::jsapi::{JSContext, JSRuntime};
+use js::jsapi::{JS_SetGCParameter, JSGC_MAX_BYTES};
 use js::rust::{Cx, RtUtils};
 use js::rust::with_compartment;
 use js;
@@ -62,6 +63,7 @@ use std::cell::RefCell;
 use std::comm::{channel, Sender, Receiver, Select};
 use std::mem::replace;
 use std::rc::Rc;
+use std::u32;
 
 local_data_key!(pub StackRoots: *const RootCollection)
 
@@ -323,6 +325,15 @@ impl ScriptTask {
             let ptr: *mut JSRuntime = (*js_runtime).ptr;
             ptr.is_not_null()
         });
+
+        // Unconstrain the runtime's threshold on nominal heap size, to avoid
+        // triggering GC too often if operating continuously near an arbitrary
+        // finite threshold. This leaves the maximum-JS_malloc-bytes threshold
+        // still in effect to cause periodical, and we hope hygienic,
+        // last-ditch GCs from within the GC's allocator.
+        unsafe {
+            JS_SetGCParameter(js_runtime.ptr, JSGC_MAX_BYTES, u32::MAX);
+        }
 
         let js_context = js_runtime.cx();
         assert!({
