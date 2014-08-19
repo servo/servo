@@ -93,13 +93,9 @@ fn parse_lists(file: &String, servo_args: &[String], render_mode: RenderMode) ->
     let mut tests = Vec::new();
     let mut next_id = 0;
     let file_path = Path::new(file.clone());
-    let contents: String = match File::open_mode(&file_path, io::Open, io::Read)
-       .and_then(|mut f| {
-             f.read_to_string()
-             }) {
-          Ok(s) => s,
-             _ => fail!("Could not read file"),
-       };
+    let contents = File::open_mode(&file_path, io::Open, io::Read)
+                       .and_then(|mut f| f.read_to_string())
+                       .ok().expect("Could not read file");
 
     for line in contents.as_slice().lines() {
        // ignore comments or empty lines
