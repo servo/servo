@@ -70,7 +70,7 @@ fn main() {
             Some(extension) => {
                 if extension.to_ascii_lower().as_slice() == "list" && file.is_file() {
                     let manifest = file.as_str().unwrap();
-                    let tests = parse_lists(manifest, servo_args, render_mode, all_tests.len());
+                    let tests = parse_lists(manifest, servo_args, render_mode);
                     println!("\t{} [{} tests]", manifest, tests.len());
                     all_tests.push_all_move(tests);
                 }
@@ -113,8 +113,14 @@ struct Reftest {
     id: uint,
     servo_args: Vec<String>,
     render_mode: RenderMode,
+<<<<<<< HEAD
     is_flaky: bool,
+||||||| merged common ancestors
+    flakiness: uint,
+=======
+    flakiness: uint,
     experimental: bool,
+>>>>>>> Reftests can opt into --experimental
 }
 
 struct TestLine<'a> {
@@ -124,14 +130,16 @@ struct TestLine<'a> {
     file_right: &'a str,
 }
 
-fn parse_lists(file: &str, servo_args: &[String], render_mode: RenderMode, id_offset: uint) -> Vec<TestDescAndFn> {
+fn parse_lists(file: &str, servo_args: &[String], render_mode: RenderMode) -> Vec<TestDescAndFn> {
     let mut tests = Vec::new();
+    let mut next_id = 0;
     let file_path = Path::new(file);
     let contents = File::open_mode(&file_path, io::Open, io::Read)
                        .and_then(|mut f| f.read_to_string())
                        .ok().expect("Could not read file");
 
     for line in contents.as_slice().lines() {
+<<<<<<< HEAD
         // ignore comments or empty lines
         if line.starts_with("#") || line.is_empty() {
             continue;
@@ -145,6 +153,100 @@ fn parse_lists(file: &str, servo_args: &[String], render_mode: RenderMode, id_of
                 kind: parts[0],
                 file_left: parts[1],
                 file_right: parts[2],
+||||||| merged common ancestors
+       // ignore comments or empty lines
+       if line.starts_with("#") || line.is_empty() {
+          continue;
+       }
+
+       let parts: Vec<&str> = line.split(' ').filter(|p| !p.is_empty()).collect();
+
+       let test_line = match parts.len() {
+          3 => {
+            TestLine {
+              conditions: "",
+              kind: parts[0],
+              file_left: parts[1],
+              file_right: parts[2],
+            }
+          },
+          4 => {
+            TestLine {
+              conditions: parts[0],
+              kind: parts[1],
+              file_left: parts[2],
+              file_right: parts[3],
+            }
+          },
+          _ => {
+            fail!("reftest line: '{:s}' doesn't match '[CONDITIONS] KIND LEFT RIGHT'", line);
+          }
+       };
+
+       let kind = match test_line.kind {
+          "==" => Same,
+          "!=" => Different,
+          part => fail!("reftest line: '{:s}' has invalid kind '{:s}'", line, part)
+       };
+       let src_path = file_path.dir_path();
+       let src_dir = src_path.display().to_string();
+       let file_left =  src_dir.clone().append("/").append(test_line.file_left);
+       let file_right = src_dir.append("/").append(test_line.file_right);
+
+       let mut conditions_list = test_line.conditions.split(',');
+       let mut flakiness = 0;
+       for condition in conditions_list {
+          match condition {
+            "flaky_cpu" => {
+              flakiness |= CpuRendering as uint;
+=======
+       // ignore comments or empty lines
+       if line.starts_with("#") || line.is_empty() {
+          continue;
+       }
+
+       let parts: Vec<&str> = line.split(' ').filter(|p| !p.is_empty()).collect();
+
+       let test_line = match parts.len() {
+          3 => {
+            TestLine {
+              conditions: "",
+              kind: parts[0],
+              file_left: parts[1],
+              file_right: parts[2],
+            }
+          },
+          4 => {
+            TestLine {
+              conditions: parts[0],
+              kind: parts[1],
+              file_left: parts[2],
+              file_right: parts[3],
+            }
+          },
+          _ => {
+            fail!("reftest line: '{:s}' doesn't match '[CONDITIONS] KIND LEFT RIGHT'", line);
+          }
+       };
+
+       let kind = match test_line.kind {
+          "==" => Same,
+          "!=" => Different,
+          part => fail!("reftest line: '{:s}' has invalid kind '{:s}'", line, part)
+       };
+       let src_path = file_path.dir_path();
+       let src_dir = src_path.display().to_string();
+       let file_left =  src_dir.clone().append("/").append(test_line.file_left);
+       let file_right = src_dir.append("/").append(test_line.file_right);
+
+       let mut conditions_list = test_line.conditions.split(',');
+       let mut flakiness = 0;
+       let mut experimental = false;
+       for condition in conditions_list {
+          match condition {
+            "flaky_cpu" => {
+              flakiness |= CpuRendering as uint;
+>>>>>>> Reftests can opt into --experimental
             },
             4 => TestLine {
                 conditions: parts[0],
@@ -152,6 +254,7 @@ fn parse_lists(file: &str, servo_args: &[String], render_mode: RenderMode, id_of
                 file_left: parts[2],
                 file_right: parts[3],
             },
+<<<<<<< HEAD
             _ => fail!("reftest line: '{:s}' doesn't match '[CONDITIONS] KIND LEFT RIGHT'", line),
         };
 
@@ -167,14 +270,12 @@ fn parse_lists(file: &str, servo_args: &[String], render_mode: RenderMode, id_of
 
         let mut conditions_list = test_line.conditions.split(',');
         let mut flakiness = RenderMode::empty();
-        let mut experimental = false;
         for condition in conditions_list {
             match condition {
                 "flaky_cpu" => flakiness.insert(CpuRendering),
                 "flaky_gpu" => flakiness.insert(GpuRendering),
                 "flaky_linux" => flakiness.insert(LinuxTarget),
                 "flaky_macos" => flakiness.insert(MacOsTarget),
-                "experimental" => experimental = true,
                 _ => (),
             }
         }
@@ -183,14 +284,56 @@ fn parse_lists(file: &str, servo_args: &[String], render_mode: RenderMode, id_of
             name: format!("{} {} {}", test_line.file_left, test_line.kind, test_line.file_right),
             kind: kind,
             files: [file_left, file_right],
-            id: id_offset + tests.len(),
+            id: next_id,
             render_mode: render_mode,
             servo_args: servo_args.iter().map(|x| x.clone()).collect(),
             is_flaky: render_mode.intersects(flakiness),
-            experimental: experimental,
         };
 
+        next_id += 1;
+
         tests.push(make_test(reftest));
+||||||| merged common ancestors
+            _ => {}
+          }
+       }
+
+       let reftest = Reftest {
+         name: test_line.file_left.to_string().append(" / ").append(test_line.file_right),
+         kind: kind,
+         files: [file_left, file_right],
+         id: next_id,
+         render_mode: render_mode,
+         servo_args: servo_args.iter().map(|x| x.clone()).collect(),
+         flakiness: flakiness,
+       };
+
+       next_id += 1;
+
+       tests.push(make_test(reftest));
+=======
+            "experimental" => {
+                experimental = true;
+            },
+            _ => {}
+          }
+       }
+
+       let reftest = Reftest {
+         name: test_line.file_left.to_string().append(" / ").append(test_line.file_right),
+         kind: kind,
+         files: [file_left, file_right],
+         id: next_id,
+         render_mode: render_mode,
+         servo_args: servo_args.iter().map(|x| x.clone()).collect(),
+         flakiness: flakiness,
+         experimental: experimental,
+       };
+
+       next_id += 1;
+
+       tests.push(make_test(reftest));
+>>>>>>> Reftests can opt into --experimental
     }
     tests
 }
