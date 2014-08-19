@@ -1787,6 +1787,10 @@ JS_SetReservedSlot(obj, DOM_OBJECT_SLOT as u32,
     return create
 
 class CGWrapMethod(CGAbstractMethod):
+    """
+    Class that generates the FooBinding::Wrap function for non-callback
+    interfaces.
+    """
     def __init__(self, descriptor):
         assert not descriptor.interface.isCallback()
         if not descriptor.createGlobal:
