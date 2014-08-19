@@ -16,11 +16,15 @@ use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, ElementNodeTypeId, NodeHelpers, window_from_node};
 use dom::virtualmethods::VirtualMethods;
-use servo_util::geometry::to_px;
+
 use servo_net::image_cache_task;
+use servo_util::atom::Atom;
+use servo_util::geometry::to_px;
 use servo_util::str::DOMString;
-use std::cell::RefCell;
+
 use url::{Url, UrlParser};
+
+use std::cell::RefCell;
 
 #[deriving(Encodable)]
 pub struct HTMLImageElement {
@@ -221,9 +225,9 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLImageElement> {
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, name: DOMString, value: DOMString) {
+    fn after_set_attr(&self, name: &Atom, value: DOMString) {
         match self.super_type() {
-            Some(ref s) => s.after_set_attr(name.clone(), value.clone()),
+            Some(ref s) => s.after_set_attr(name, value.clone()),
             _ => (),
         }
 
@@ -234,9 +238,9 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLImageElement> {
         }
     }
 
-    fn before_remove_attr(&self, name: DOMString, value: DOMString) {
+    fn before_remove_attr(&self, name: &Atom, value: DOMString) {
         match self.super_type() {
-            Some(ref s) => s.before_remove_attr(name.clone(), value.clone()),
+            Some(ref s) => s.before_remove_attr(name, value.clone()),
             _ => (),
         }
 

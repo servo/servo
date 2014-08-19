@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use servo_util::namespace;
 use dom::attr::Attr;
 use dom::bindings::codegen::InheritTypes::{ElementCast, TextCast, CommentCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, CharacterDataCast};
@@ -18,6 +17,9 @@ use dom::node::{DocumentNodeTypeId, ElementNodeTypeId, ProcessingInstructionNode
 use dom::node::{TextNodeTypeId, NodeHelpers};
 use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
+
+use servo_util::atom::Atom;
+use servo_util::namespace;
 
 pub fn serialize(iterator: &mut NodeIterator) -> String {
     let mut html = String::new();
@@ -137,16 +139,16 @@ fn serialize_attr(attr: &JSRef<Attr>, html: &mut String) {
     html.push_char(' ');
     if attr.deref().namespace == namespace::XML {
         html.push_str("xml:");
-        html.push_str(attr.deref().local_name.as_slice());
+        html.push_str(attr.local_name().as_slice());
     } else if attr.deref().namespace == namespace::XMLNS &&
-        attr.deref().local_name.as_slice() == "xmlns" {
+        *attr.local_name() == Atom::from_slice("xmlns") {
         html.push_str("xmlns");
     } else if attr.deref().namespace == namespace::XMLNS {
         html.push_str("xmlns:");
-        html.push_str(attr.deref().local_name.as_slice());
+        html.push_str(attr.local_name().as_slice());
     } else if attr.deref().namespace == namespace::XLink {
         html.push_str("xlink:");
-        html.push_str(attr.deref().local_name.as_slice());
+        html.push_str(attr.local_name().as_slice());
     } else {
         html.push_str(attr.deref().name.as_slice());
     };
