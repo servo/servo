@@ -23,7 +23,7 @@ use servo_net::resource_task::{Load, LoadData, Payload, Done, ResourceTask, load
 use servo_util::atom::Atom;
 use servo_util::namespace;
 use servo_util::namespace::{Namespace, Null};
-use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS};
+use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS, StaticStringVec};
 use servo_util::task::spawn_named;
 use std::ascii::StrAsciiExt;
 use std::mem;
@@ -291,6 +291,57 @@ pub fn build_element_from_tag(tag: DOMString, ns: Namespace, document: &JSRef<Do
     return ElementCast::from_temporary(HTMLUnknownElement::new(tag, document));
 }
 
+// List found at http://whatwg.org/html#support-the-scripting-language
+static SCRIPT_JS_MIMES: StaticStringVec = &[
+    "application/ecmascript",
+    "application/javascript",
+    "application/x-ecmascript",
+    "application/x-javascript",
+    "text/ecmascript",
+    "text/javascript",
+    "text/javascript1.0",
+    "text/javascript1.1",
+    "text/javascript1.2",
+    "text/javascript1.3",
+    "text/javascript1.4",
+    "text/javascript1.5",
+    "text/jscript",
+    "text/livescript",
+    "text/x-ecmascript",
+    "text/x-javascript",
+];
+
+fn is_javascript(script: &JSRef<Element>) -> bool {
+    match script.get_attribute(Null, "type").root().map(|s| s.Value()) {
+        Some(ref s) if s.is_empty() => {
+            // type attr exists, but empty means js
+            debug!("script type empty, inferring js");
+            true
+        },
+        Some(ref s) => {
+            debug!("script type={:s}", *s);
+            SCRIPT_JS_MIMES.contains(&s.as_slice().trim_chars(HTML_SPACE_CHARACTERS))
+        },
+        None => {
+            debug!("no script type");
+            match script.get_attribute(Null, "language").root().map(|s| s.Value()) {
+                Some(ref s) if s.is_empty() => {
+                    debug!("script language empty, inferring js");
+                    true
+                },
+                Some(ref s) => {
+                    debug!("script language={:s}", *s);
+                    SCRIPT_JS_MIMES.contains(&"text/".to_string().append(s.as_slice()).as_slice())
+                },
+                None => {
+                    debug!("no script type or language, inferring js");
+                    true
+                }
+            }
+        }
+    }
+}
+
 pub fn parse_html(page: &Page,
                   document: &JSRef<Document>,
                   url: Url,
@@ -494,6 +545,11 @@ pub fn parse_html(page: &Page,
         complete_script: |script| {
             unsafe {
                 let script: &JSRef<Element> = &*from_hubbub_node(script).root();
+
+                if !is_javascript(script) {
+                    return;
+                }
+
                 match script.get_attribute(Null, "src").root() {
                     Some(src) => {
                         debug!("found script: {:s}", src.deref().Value());

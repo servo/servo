@@ -3,12 +3,20 @@ function _oneline(x) {
   return (i == -1) ? x : (x.slice(0, i) + "...");
 }
 
+var _expectations = 0;
+var _tests = 0;
+function expect(num) {
+  _expectations = num;
+}
+
 function _fail(s, m) {
+  _tests++;
   // string split to avoid problems with tests that end up printing the value of window._fail.
   window.alert(_oneline("TEST-UNEXPECTED" + "-FAIL | " + s + ": " + m));
 }
 
 function _pass(s, m) {
+  _tests++;
   window.alert(_oneline("TEST-PASS | " + s + ": " + m));
 }
 
@@ -67,6 +75,9 @@ function check_disabled_selector(elem, disabled) {
 var _test_complete = false;
 var _test_timeout = 10000; //10 seconds
 function finish() {
+  if (_expectations > _tests) {
+    _fail('expected ' + _expectations + ' tests, fullfilled ' + _tests);
+  }
   _test_complete = true;
   window.close();
 }
