@@ -1399,7 +1399,7 @@ class CGDOMJSClass(CGThing):
 
     def define(self):
         traceHook = "Some(%s)" % TRACE_HOOK_NAME
-        if self.descriptor.createGlobal:
+        if self.descriptor.isGlobal():
             flags = "JSCLASS_IS_GLOBAL | JSCLASS_DOM_GLOBAL"
             slots = "JSCLASS_GLOBAL_SLOT_COUNT + 1"
         else:
@@ -1759,7 +1759,7 @@ class CGAbstractMethod(CGThing):
 def CreateBindingJSObject(descriptor, parent=None):
     create = "let mut raw: JS<%s> = JS::from_raw(&*aObject);\n" % descriptor.concreteType
     if descriptor.proxy:
-        assert not descriptor.createGlobal
+        assert not descriptor.isGlobal()
         create += """
 let handler = RegisterBindings::proxy_handlers[PrototypeList::proxies::%s as uint];
 let mut private = PrivateValue(squirrel_away_unique(aObject) as *const libc::c_void);
@@ -1773,7 +1773,7 @@ assert!(obj.is_not_null());
 
 """ % (descriptor.name, parent)
     else:
-        if descriptor.createGlobal:
+        if descriptor.isGlobal():
             create += "let obj = CreateDOMGlobal(aCx, &Class.base as *const js::Class as *const JSClass);\n"
         else:
             create += ("let obj = with_compartment(aCx, proto, || {\n"
@@ -1793,7 +1793,7 @@ class CGWrapMethod(CGAbstractMethod):
     """
     def __init__(self, descriptor):
         assert not descriptor.interface.isCallback()
-        if not descriptor.createGlobal:
+        if not descriptor.isGlobal():
             args = [Argument('*mut JSContext', 'aCx'), Argument('&GlobalRef', 'aScope'),
                     Argument("Box<%s>" % descriptor.concreteType, 'aObject', mutable=True)]
         else:
@@ -1803,7 +1803,7 @@ class CGWrapMethod(CGAbstractMethod):
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', retval, args, pub=True)
 
     def definition_body(self):
-        if not self.descriptor.createGlobal:
+        if not self.descriptor.isGlobal():
             return CGGeneric("""\
 let scope = aScope.reflector().get_jsobject();
 assert!(scope.is_not_null());

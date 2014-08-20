@@ -155,7 +155,6 @@ class Descriptor(DescriptorProvider):
         self.memberType = "Root<'a, 'b, %s>" % ifaceName
         self.nativeType = desc.get('nativeType', 'JS<%s>' % ifaceName)
         self.concreteType = desc.get('concreteType', ifaceName)
-        self.createGlobal = desc.get('createGlobal', False)
         self.register = desc.get('register', True)
         self.outerObjectHook = desc.get('outerObjectHook', 'None')
 
@@ -280,6 +279,15 @@ class Descriptor(DescriptorProvider):
             throws = member.getExtendedAttribute(throwsAttr)
         maybeAppendInfallibleToAttrs(attrs, throws)
         return attrs
+
+    def isGlobal(self):
+        """
+        Returns true if this is the primary interface for a global object
+        of some sort.
+        """
+        return (self.interface.getExtendedAttribute("Global") or
+                self.interface.getExtendedAttribute("PrimaryGlobal"))
+
 
 # Some utility methods
 def getTypesFromDescriptor(descriptor):
