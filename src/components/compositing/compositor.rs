@@ -381,18 +381,26 @@ impl IOCompositor {
         self.send_window_size();
     }
 
-    fn update_layer_if_exists(&mut self, properties: LayerProperties) -> bool {
+    fn find_layer_with_pipeline_and_layer_id(&self,
+                                             pipeline_id: PipelineId,
+                                             layer_id: LayerId)
+                                             -> Option<Rc<Layer<CompositorData>>> {
         match self.scene.root {
             Some(ref root_layer) => {
-                match CompositorData::find_layer_with_pipeline_and_layer_id(root_layer.clone(),
-                                                                            properties.pipeline_id,
-                                                                            properties.id) {
-                    Some(existing_layer) => {
-                        CompositorData::update_layer(existing_layer.clone(), properties);
-                        true
-                    }
-                    None => false,
-               }
+                CompositorData::find_layer_with_pipeline_and_layer_id(root_layer.clone(),
+                                                                      pipeline_id,
+                                                                      layer_id)
+            }
+            None => None,
+        }
+
+    }
+
+    fn update_layer_if_exists(&mut self, properties: LayerProperties) -> bool {
+        match self.find_layer_with_pipeline_and_layer_id(properties.pipeline_id, properties.id) {
+            Some(existing_layer) => {
+                CompositorData::update_layer(existing_layer.clone(), properties);
+                true
             }
             None => false,
         }
@@ -458,24 +466,18 @@ impl IOCompositor {
     fn create_descendant_layer(&self, layer_properties: LayerProperties) {
         match self.scene.root {
             Some(ref root_layer) => {
-                let parent_layer_id = root_layer.extra_data.borrow().id;
-                match CompositorData::find_layer_with_pipeline_and_layer_id(root_layer.clone(),
-                                                                            layer_properties.pipeline_id,
-                                                                            parent_layer_id) {
-                    Some(ref mut parent_layer) => {
-                        let pipeline = parent_layer.extra_data.borrow().pipeline.clone();
-                        let new_layer = CompositorData::new_layer(pipeline,
-                                                                  layer_properties,
-                                                                  DoesntWantScrollEvents,
-                                                                  parent_layer.tile_size);
-                        parent_layer.add_child(new_layer);
-                    }
-                    None => {
-                        fail!("Compositor: couldn't find parent layer");
-                    }
+                let root_layer_pipeline = root_layer.extra_data.borrow().pipeline.clone();
+                if root_layer_pipeline.id != layer_properties.pipeline_id {
+                    fail!("Compositor: New layer pipeline does not match root layer pipeline");
                 }
+
+                let new_layer = CompositorData::new_layer(root_layer_pipeline,
+                                                          layer_properties,
+                                                          DoesntWantScrollEvents,
+                                                          root_layer.tile_size);
+                root_layer.add_child(new_layer);
             }
-            None => fail!("Compositor: Received new layer without initialized pipeline")
+            None => fail!("Compositor: Received new layer without root layer")
         }
     }
 
@@ -520,26 +522,13 @@ impl IOCompositor {
                            new_rect_in_page_coordinates: Rect<f32>) {
         let new_rect_in_layer_coordinates =
             self.convert_page_rect_to_layer_coordinates(new_rect_in_page_coordinates);
-        let should_ask_for_tiles = match self.scene.root {
-            Some(ref root_layer) => {
-                match CompositorData::find_layer_with_pipeline_and_layer_id(root_layer.clone(),
-                                                                            pipeline_id,
-                                                                            layer_id) {
-                    Some(ref layer) => {
-                        *layer.bounds.borrow_mut() = new_rect_in_layer_coordinates;
-                        true
-                    }
-                    None => {
-                        fail!("compositor received SetLayerClipRect for nonexistent layer");
-                    }
-                }
-            }
-            None => false
+
+        match self.find_layer_with_pipeline_and_layer_id(pipeline_id, layer_id) {
+            Some(ref layer) => *layer.bounds.borrow_mut() = new_rect_in_layer_coordinates,
+            None => fail!("compositor received SetLayerClipRect for nonexistent layer"),
         };
 
-        if should_ask_for_tiles {
-            self.send_buffer_requests_for_all_layers();
-        }
+        self.send_buffer_requests_for_all_layers();
     }
 
     fn paint(&mut self,
@@ -553,32 +542,18 @@ impl IOCompositor {
         let mut new_layer_buffer_set = new_layer_buffer_set;
         new_layer_buffer_set.mark_will_leak();
 
-        match self.scene.root {
-            Some(ref root_layer) => {
-                match CompositorData::find_layer_with_pipeline_and_layer_id(root_layer.clone(),
-                                                                            pipeline_id,
-                                                                            layer_id) {
-                    Some(ref layer) => {
-                        assert!(CompositorData::add_buffers(layer.clone(),
-                                                            new_layer_buffer_set,
-                                                            epoch));
-                        self.recomposite = true;
-                    }
-                    None => {
-                        // FIXME: This may potentially be triggered by a race condition where a
-                        // buffers are being rendered but the layer is removed before rendering
-                        // completes.
-                        fail!("compositor given paint command for non-existent layer");
-                    }
-                }
+        match self.find_layer_with_pipeline_and_layer_id(pipeline_id, layer_id) {
+            Some(ref layer) => {
+                assert!(CompositorData::add_buffers(layer.clone(), new_layer_buffer_set, epoch));
+                self.recomposite = true;
             }
             None => {
-                fail!("compositor given paint command with no root layer initialized");
+                // FIXME: This may potentially be triggered by a race condition where a
+                // buffers are being rendered but the layer is removed before rendering
+                // completes.
+                fail!("compositor given paint command for non-existent layer");
             }
         }
-
-        // TODO: Recycle the old buffers; send them back to the renderer to reuse if
-        // it wishes.
     }
 
     fn scroll_fragment_to_point(&mut self,
