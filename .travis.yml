@@ -4,6 +4,10 @@ os:
 - linux
 - osx
 
+before_install:
+- git submodule deinit src/compiler/rustc
+- git submodule update --init --recursive
+
 install:
 - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then ./travis.linux.install.deps.sh; fi
 - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then ./travis.osx.install.deps.sh; fi
@@ -20,7 +24,7 @@ script:
 - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then ../travis.osx.script.sh $AFTER_BUILD; fi
 
 git:
-  submodules: true
+  submodules: false
 
 notifications:
   irc:
