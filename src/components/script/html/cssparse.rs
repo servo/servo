@@ -12,6 +12,9 @@ use servo_net::resource_task::{Load, LoadData, LoadResponse, ProgressMsg, Payloa
 use servo_util::task::spawn_named;
 use url::Url;
 
+static CDATA_PREFIX: &'static str = "<![CDATA[";
+static CDATA_SUFFIX: &'static str = "]]>";
+
 /// Where a style sheet comes from.
 pub enum StylesheetProvenance {
     UrlProvenance(Url, ResourceTask),
@@ -43,7 +46,17 @@ fn parse_css(provenance: StylesheetProvenance) -> Stylesheet {
         }
         InlineProvenance(base_url, data) => {
             debug!("cssparse: loading inline stylesheet {:s}", data);
-            Stylesheet::from_str(data.as_slice(), base_url)
+
+            // Strip the CDATA prefix and suffix from the incoming CSS string
+            // if it exists.
+            // TODO: When we switch HTML parser this may not be needed.
+            let mut data_slice = data.as_slice();
+            if data_slice.starts_with(CDATA_PREFIX) && data_slice.ends_with(CDATA_SUFFIX) {
+                data_slice = data_slice.slice(CDATA_PREFIX.len(),
+                                data_slice.len() - CDATA_SUFFIX.len());
+            }
+
+            Stylesheet::from_str(data_slice, base_url)
         }
     }
 }
