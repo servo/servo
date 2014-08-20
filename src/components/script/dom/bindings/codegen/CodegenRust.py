@@ -4423,29 +4423,6 @@ class CGBindingRoot(CGThing):
         # Do codegen for all the enums
         cgthings = [CGEnum(e) for e in config.getEnums(webIDLFile)]
 
-        # Do codegen for all the dictionaries.  We have to be a bit careful
-        # here, because we have to generate these in order from least derived
-        # to most derived so that class inheritance works out.  We also have to
-        # generate members before the dictionary that contains them.
-        #
-        # XXXbz this will fail if we have two webidl files A and B such that A
-        # declares a dictionary which inherits from a dictionary in B and B
-        # declares a dictionary (possibly a different one!) that inherits from a
-        # dictionary in A.  The good news is that I expect this to never happen.
-        reSortedDictionaries = []
-        dictionaries = set(dictionaries)
-        while len(dictionaries) != 0:
-            # Find the dictionaries that don't depend on anything else anymore
-            # and move them over.
-            toMove = [d for d in dictionaries if
-                      len(CGDictionary.getDictionaryDependencies(d) &
-                          dictionaries) == 0]
-            if len(toMove) == 0:
-                raise TypeError("Loop in dictionary dependency graph")
-            dictionaries = dictionaries - set(toMove)
-            reSortedDictionaries.extend(toMove)
-
-        dictionaries = reSortedDictionaries
         cgthings.extend([CGDictionary(d, config.getDescriptorProvider())
                          for d in dictionaries])
 
