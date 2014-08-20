@@ -56,7 +56,10 @@ impl AttrValue {
         AtomAttrValue(value)
     }
 
-    pub fn as_slice<'a>(&'a self) -> &'a str {
+}
+
+impl Str for AttrValue {
+    fn as_slice<'a>(&'a self) -> &'a str {
         match *self {
             StringAttrValue(ref value) |
             TokenListAttrValue(ref value, _) |
