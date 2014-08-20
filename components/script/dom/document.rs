@@ -7,6 +7,7 @@ use dom::bindings::codegen::Bindings::DocumentBinding;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{DocumentDerived, EventCast, HTMLElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLHeadElementCast, TextCast, ElementCast};
@@ -47,6 +48,7 @@ use dom::nodelist::NodeList;
 use dom::text::Text;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::range::Range;
+use dom::treewalker::TreeWalker;
 use dom::uievent::UIEvent;
 use dom::window::{Window, WindowHelpers};
 use html::hubbub_html_parser::build_element_from_tag;
@@ -589,6 +591,12 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     // http://dom.spec.whatwg.org/#dom-document-createrange
     fn CreateRange(&self) -> Temporary<Range> {
         Range::new(self)
+    }
+
+    // http://dom.spec.whatwg.org/#dom-document-createtreewalker
+    fn CreateTreeWalker(&self, root: &JSRef<Node>, whatToShow: u32, filter: Option<NodeFilter>)
+                        -> Temporary<TreeWalker> {
+        TreeWalker::new(self, root, whatToShow, filter)
     }
 
     // http://www.whatwg.org/specs/web-apps/current-work/#document.title

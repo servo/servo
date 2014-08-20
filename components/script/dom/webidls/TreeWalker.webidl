@@ -8,16 +8,27 @@
  */
 
 interface TreeWalker {
-  // [SameObject] readonly attribute Node root;
-  // readonly attribute unsigned long whatToShow;
-  // readonly attribute NodeFilter? filter;
-  //          attribute Node currentNode;
+  [SameObject,Constant]
+  readonly attribute Node root;
+  [Constant]
+  readonly attribute unsigned long whatToShow;
+  [Constant]
+  readonly attribute NodeFilter? filter;
+  [Pure, SetterThrows]
+           attribute Node currentNode;
 
-  // Node? parentNode();
-  // Node? firstChild();
-  // Node? lastChild();
-  // Node? previousSibling();
-  // Node? nextSibling();
-  // Node? previousNode();
-  // Node? nextNode();
+  [Throws]
+  Node? parentNode();
+  [Throws]
+  Node? firstChild();
+  [Throws]
+  Node? lastChild();
+  [Throws]
+  Node? previousSibling();
+  [Throws]
+  Node? nextSibling();
+  [Throws]
+  Node? previousNode();
+  [Throws]
+  Node? nextNode();
 };
