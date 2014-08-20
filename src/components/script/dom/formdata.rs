@@ -55,22 +55,22 @@ impl FormData {
 impl<'a> FormDataMethods for JSRef<'a, FormData> {
     fn Append(&self, name: DOMString, value: &JSRef<Blob>, filename: Option<DOMString>) {
         let file = FileData(JS::from_rooted(&self.get_file_from_blob(value, filename)));
-        self.data.deref().borrow_mut().insert_or_update_with(name.clone(), vec!(file.clone()),
+        self.data.borrow_mut().insert_or_update_with(name.clone(), vec!(file.clone()),
                                         |_k, v| {v.push(file.clone());});
     }
 
     fn Append_(&self, name: DOMString, value: DOMString) {
-        self.data.deref().borrow_mut().insert_or_update_with(name, vec!(StringData(value.clone())),
+        self.data.borrow_mut().insert_or_update_with(name, vec!(StringData(value.clone())),
                                         |_k, v| {v.push(StringData(value.clone()));});
     }
 
     fn Delete(&self, name: DOMString) {
-        self.data.deref().borrow_mut().remove(&name);
+        self.data.borrow_mut().remove(&name);
     }
 
     fn Get(&self, name: DOMString) -> Option<FileOrString> {
-        if self.data.deref().borrow().contains_key_equiv(&name) {
-            match self.data.deref().borrow().get(&name)[0].clone() {
+        if self.data.borrow().contains_key_equiv(&name) {
+            match self.data.borrow().get(&name)[0].clone() {
                 StringData(ref s) => Some(eString(s.clone())),
                 FileData(ref f) => {
                     Some(eFile(f.clone()))
@@ -82,16 +82,16 @@ impl<'a> FormDataMethods for JSRef<'a, FormData> {
     }
 
     fn Has(&self, name: DOMString) -> bool {
-        self.data.deref().borrow().contains_key_equiv(&name)
+        self.data.borrow().contains_key_equiv(&name)
     }
 
     fn Set(&self, name: DOMString, value: &JSRef<Blob>, filename: Option<DOMString>) {
         let file = FileData(JS::from_rooted(&self.get_file_from_blob(value, filename)));
-        self.data.deref().borrow_mut().insert(name, vec!(file));
+        self.data.borrow_mut().insert(name, vec!(file));
     }
 
     fn Set_(&self, name: DOMString, value: DOMString) {
-        self.data.deref().borrow_mut().insert(name, vec!(StringData(value)));
+        self.data.borrow_mut().insert(name, vec!(StringData(value)));
     }
 }
 

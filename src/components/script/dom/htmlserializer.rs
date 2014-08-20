@@ -69,7 +69,7 @@ pub fn serialize(iterator: &mut NodeIterator) -> String {
 
 fn serialize_comment(comment: &JSRef<Comment>, html: &mut String) {
     html.push_str("<!--");
-    html.push_str(comment.deref().characterdata.data.deref().borrow().as_slice());
+    html.push_str(comment.characterdata.data.borrow().as_slice());
     html.push_str("-->");
 }
 
@@ -78,49 +78,49 @@ fn serialize_text(text: &JSRef<Text>, html: &mut String) {
     match text_node.parent_node().map(|node| node.root()) {
         Some(ref parent) if parent.is_element() => {
             let elem: &JSRef<Element> = ElementCast::to_ref(&**parent).unwrap();
-            match elem.deref().local_name.as_slice() {
+            match elem.local_name.as_slice() {
                 "style" | "script" | "xmp" | "iframe" |
                 "noembed" | "noframes" | "plaintext" |
-                "noscript" if elem.deref().namespace == namespace::HTML
-                => html.push_str(text.deref().characterdata.data.deref().borrow().as_slice()),
-                _ => escape(text.deref().characterdata.data.deref().borrow().as_slice(), false, html)
+                "noscript" if elem.namespace == namespace::HTML
+                => html.push_str(text.characterdata.data.borrow().as_slice()),
+                _ => escape(text.characterdata.data.borrow().as_slice(), false, html)
             }
         }
-        _ => escape(text.deref().characterdata.data.deref().borrow().as_slice(), false, html)
+        _ => escape(text.characterdata.data.borrow().as_slice(), false, html)
     }
 }
 
 fn serialize_processing_instruction(processing_instruction: &JSRef<ProcessingInstruction>,
                                     html: &mut String) {
     html.push_str("<?");
-    html.push_str(processing_instruction.deref().target.as_slice());
+    html.push_str(processing_instruction.target.as_slice());
     html.push_char(' ');
-    html.push_str(processing_instruction.deref().characterdata.data.deref().borrow().as_slice());
+    html.push_str(processing_instruction.characterdata.data.borrow().as_slice());
     html.push_str("?>");
 }
 
 fn serialize_doctype(doctype: &JSRef<DocumentType>, html: &mut String) {
     html.push_str("<!DOCTYPE");
-    html.push_str(doctype.deref().name.as_slice());
+    html.push_str(doctype.name.as_slice());
     html.push_char('>');
 }
 
 fn serialize_elem(elem: &JSRef<Element>, open_elements: &mut Vec<String>, html: &mut String) {
     html.push_char('<');
-    html.push_str(elem.deref().local_name.as_slice());
-    for attr in elem.deref().attrs.borrow().iter() {
+    html.push_str(elem.local_name.as_slice());
+    for attr in elem.attrs.borrow().iter() {
         let attr = attr.root();
         serialize_attr(&*attr, html);
     };
     html.push_char('>');
 
-    match elem.deref().local_name.as_slice() {
-        "pre" | "listing" | "textarea" if elem.deref().namespace == namespace::HTML => {
+    match elem.local_name.as_slice() {
+        "pre" | "listing" | "textarea" if elem.namespace == namespace::HTML => {
             let node: &JSRef<Node> = NodeCast::from_ref(elem);
             match node.first_child().map(|child| child.root()) {
                 Some(ref child) if child.is_text() => {
                     let text: &JSRef<CharacterData> = CharacterDataCast::to_ref(&**child).unwrap();
-                    if text.deref().data.deref().borrow().len() > 0 && text.deref().data.deref().borrow().as_slice().char_at(0) == '\n' {
+                    if text.data.borrow().len() > 0 && text.data.borrow().as_slice().char_at(0) == '\n' {
                         html.push_char('\x0A');
                     }
                 },
@@ -130,30 +130,30 @@ fn serialize_elem(elem: &JSRef<Element>, open_elements: &mut Vec<String>, html: 
         _ => {}
     }
 
-    if !elem.deref().is_void() {
-        open_elements.push(elem.deref().local_name.as_slice().to_string());
+    if !elem.is_void() {
+        open_elements.push(elem.local_name.as_slice().to_string());
     }
 }
 
 fn serialize_attr(attr: &JSRef<Attr>, html: &mut String) {
     html.push_char(' ');
-    if attr.deref().namespace == namespace::XML {
+    if attr.namespace == namespace::XML {
         html.push_str("xml:");
         html.push_str(attr.local_name().as_slice());
-    } else if attr.deref().namespace == namespace::XMLNS &&
+    } else if attr.namespace == namespace::XMLNS &&
         *attr.local_name() == Atom::from_slice("xmlns") {
         html.push_str("xmlns");
-    } else if attr.deref().namespace == namespace::XMLNS {
+    } else if attr.namespace == namespace::XMLNS {
         html.push_str("xmlns:");
         html.push_str(attr.local_name().as_slice());
-    } else if attr.deref().namespace == namespace::XLink {
+    } else if attr.namespace == namespace::XLink {
         html.push_str("xlink:");
         html.push_str(attr.local_name().as_slice());
     } else {
-        html.push_str(attr.deref().name.as_slice());
+        html.push_str(attr.name.as_slice());
     };
     html.push_str("=\"");
-    escape(attr.deref().value().as_slice(), true, html);
+    escape(attr.value().as_slice(), true, html);
     html.push_char('"');
 }
 

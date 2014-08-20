@@ -68,15 +68,15 @@ pub trait HTMLIFrameElementHelpers {
 
 impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
     fn is_sandboxed(&self) -> bool {
-        self.sandbox.deref().get().is_some()
+        self.sandbox.get().is_some()
     }
 
     fn get_url(&self) -> Option<Url> {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
         element.get_attribute(Null, "src").root().and_then(|src| {
             let window = window_from_node(self).root();
-            UrlParser::new().base_url(&window.deref().page().get_url())
-                .parse(src.deref().value().as_slice()).ok()
+            UrlParser::new().base_url(&window.page().get_url())
+                .parse(src.value().as_slice()).ok()
         })
     }
 
@@ -91,15 +91,15 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
 
                 // Subpage Id
                 let window = window_from_node(self).root();
-                let page = window.deref().page();
+                let page = window.page();
                 let subpage_id = page.get_next_subpage_id();
 
-                self.deref().size.deref().set(Some(IFrameSize {
+                self.size.set(Some(IFrameSize {
                     pipeline_id: page.id,
                     subpage_id: subpage_id,
                 }));
 
-                let ConstellationChan(ref chan) = *page.constellation_chan.deref();
+                let ConstellationChan(ref chan) = *page.constellation_chan;
                 chan.send(LoadIframeUrlMsg(url, page.id, subpage_id, sandboxed));
             }
             _ => ()
@@ -144,14 +144,14 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
     }
 
     fn GetContentWindow(&self) -> Option<Temporary<Window>> {
-        self.size.deref().get().and_then(|size| {
+        self.size.get().and_then(|size| {
             let window = window_from_node(self).root();
-            let children = &*window.deref().page.children.deref().borrow();
+            let children = &*window.page.children.borrow();
             let child = children.iter().find(|child| {
                 child.subpage_id.unwrap() == size.subpage_id
             });
             child.and_then(|page| {
-                page.frame.deref().borrow().as_ref().map(|frame| {
+                page.frame.borrow().as_ref().map(|frame| {
                     Temporary::new(frame.window.clone())
                 })
             })
@@ -184,7 +184,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
                     _ => AllowNothing
                 } as u8;
             }
-            self.deref().sandbox.deref().set(Some(modes));
+            self.sandbox.set(Some(modes));
         }
 
         if "src" == name.as_slice() {
@@ -202,7 +202,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
         }
 
         if "sandbox" == name.as_slice() {
-            self.deref().sandbox.deref().set(None);
+            self.sandbox.set(None);
         }
     }
 

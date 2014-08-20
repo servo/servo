@@ -5458,7 +5458,7 @@ class GlobalGenRoots():
             cast = [CGGeneric(string.Template('''pub trait ${castTraitName} {
   #[inline(always)]
   fn to_ref<'a, 'b, T: ${toBound}+Reflectable>(base: &'a JSRef<'b, T>) -> Option<&'a JSRef<'b, Self>> {
-    match base.deref().${checkFn}() {
+    match base.${checkFn}() {
         true => unsafe { Some(base.transmute()) },
         false => None
     }
@@ -5466,7 +5466,7 @@ class GlobalGenRoots():
 
   #[inline(always)]
   fn to_mut_ref<'a, 'b, T: ${toBound}+Reflectable>(base: &'a mut JSRef<'b, T>) -> Option<&'a mut JSRef<'b, Self>> {
-    match base.deref().${checkFn}() {
+    match base.${checkFn}() {
         true => unsafe { Some(base.transmute_mut()) },
         false => None
     }

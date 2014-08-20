@@ -374,14 +374,14 @@ impl ScriptTask {
             let mut page = self.page.borrow_mut();
             for page in page.iter() {
                 // Only process a resize if layout is idle.
-                let layout_join_port = page.layout_join_port.deref().borrow();
+                let layout_join_port = page.layout_join_port.borrow();
                 if layout_join_port.is_none() {
-                    let mut resize_event = page.resize_event.deref().get();
+                    let mut resize_event = page.resize_event.get();
                     match resize_event.take() {
                         Some(size) => resizes.push((page.id, size)),
                         None => ()
                     }
-                    page.resize_event.deref().set(None);
+                    page.resize_event.set(None);
                 }
             }
         }
@@ -422,7 +422,7 @@ impl ScriptTask {
                 FromConstellation(ResizeMsg(id, size)) => {
                     let mut page = self.page.borrow_mut();
                     let page = page.find(id).expect("resize sent to nonexistent pipeline");
-                    page.resize_event.deref().set(Some(size));
+                    page.resize_event.set(Some(size));
                 }
                 _ => {
                     sequential.push(event);
@@ -479,15 +479,15 @@ impl ScriptTask {
             whose parent has a PipelineId which does not correspond to a pipeline in the script
             task's page tree. This is a bug.");
         let new_page = {
-            let window_size = parent_page.window_size.deref().get();
+            let window_size = parent_page.window_size.get();
             Page::new(new_pipeline_id, Some(subpage_id),
                       LayoutChan(layout_chan.downcast_ref::<Sender<layout_interface::Msg>>().unwrap().clone()),
                       window_size,
-                      parent_page.resource_task.deref().clone(),
+                      parent_page.resource_task.clone(),
                       self.constellation_chan.clone(),
                       self.js_context.borrow().get_ref().clone())
         };
-        parent_page.children.deref().borrow_mut().push(Rc::new(new_page));
+        parent_page.children.borrow_mut().push(Rc::new(new_page));
     }
 
     /// Handles a timer that fired.
@@ -507,9 +507,9 @@ impl ScriptTask {
         let page = page.find(pipeline_id).expect(
             "ScriptTask: received a load message for a layout channel that is not associated \
              with this script task. This is a bug.");
-        let last_reflow_id = page.last_reflow_id.deref().get();
+        let last_reflow_id = page.last_reflow_id.get();
         if last_reflow_id == reflow_id {
-            let mut layout_join_port = page.layout_join_port.deref().borrow_mut();
+            let mut layout_join_port = page.layout_join_port.borrow_mut();
             *layout_join_port = None;
         }
         self.compositor.set_ready_state(FinishedLoading);
@@ -527,7 +527,7 @@ impl ScriptTask {
         let mut page = self.page.borrow_mut();
         let page = page.find(id).expect("Received resize message for PipelineId not associated
             with a page in the page tree. This is a bug.");
-        page.window_size.deref().set(new_size);
+        page.window_size.set(new_size);
         let mut page_url = page.mut_url();
         let last_loaded_url = replace(&mut *page_url, None);
         for url in last_loaded_url.iter() {
@@ -601,14 +601,14 @@ impl ScriptTask {
         let cx = self.js_context.borrow();
         let cx = cx.get_ref();
         // Create the window and document objects.
-        let window = Window::new(cx.deref().ptr,
+        let window = Window::new(cx.ptr,
                                  page.clone(),
                                  self.chan.clone(),
                                  self.control_chan.clone(),
                                  self.compositor.dup(),
                                  self.image_cache_task.clone()).root();
         let document = Document::new(&*window, Some(url.clone()), HTMLDocument, None).root();
-        window.deref().init_browser_context(&*document);
+        window.init_browser_context(&*document);
 
         self.compositor.set_ready_state(Loading);
         // Parse HTML.
@@ -627,8 +627,8 @@ impl ScriptTask {
             // Create the root frame.
             let mut frame = page.mut_frame();
             *frame = Some(Frame {
-                document: JS::from_rooted(document.deref()),
-                window: JS::from_rooted(window.deref()),
+                document: JS::from_rooted(&*document),
+                window: JS::from_rooted(&*window),
             });
         }
 
@@ -653,7 +653,7 @@ impl ScriptTask {
         }
 
         // Kick off the initial reflow of the page.
-        document.deref().content_changed();
+        document.content_changed();
 
         let fragment = url.fragment.as_ref().map(|ref fragment| fragment.to_string());
 
@@ -718,7 +718,7 @@ impl ScriptTask {
 
                 let window = {
                     let page = get_page(&*self.page.borrow(), pipeline_id);
-                    page.window_size.deref().set(new_size);
+                    page.window_size.set(new_size);
 
                     let frame = page.frame();
                     if frame.is_some() {
@@ -772,7 +772,7 @@ impl ScriptTask {
 
                         let temp_node =
                                 node::from_untrusted_node_address(
-                                    self.js_runtime.deref().ptr, node_address);
+                                    self.js_runtime.ptr, node_address);
 
                         let maybe_node = temp_node.root().ancestors().find(|node| node.is_element());
                         match maybe_node {
@@ -815,7 +815,7 @@ impl ScriptTask {
                             Some(ref mut mouse_over_targets) => {
                                 for node in mouse_over_targets.mut_iter() {
                                     let node = node.root();
-                                    node.deref().set_hover_state(false);
+                                    node.set_hover_state(false);
                                 }
                             }
                             None => {}
@@ -825,7 +825,7 @@ impl ScriptTask {
 
                             let temp_node =
                                 node::from_untrusted_node_address(
-                                    self.js_runtime.deref().ptr, *node_address);
+                                    self.js_runtime.ptr, *node_address);
 
                             let maybe_node = temp_node.root().ancestors().find(|node| node.is_element());
                             match maybe_node {

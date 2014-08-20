@@ -52,7 +52,7 @@ trait PrivateDOMTokenListHelpers {
 impl<'a> PrivateDOMTokenListHelpers for JSRef<'a, DOMTokenList> {
     fn attribute(&self) -> Option<Temporary<Attr>> {
         let element = self.element.root();
-        element.deref().get_attribute(Null, self.local_name)
+        element.get_attribute(Null, self.local_name)
     }
 }
 
@@ -63,7 +63,7 @@ impl<'a> DOMTokenListMethods for JSRef<'a, DOMTokenList> {
         let attribute = self.attribute().root();
         match attribute {
             Some(attribute) => {
-                match *attribute.deref().value() {
+                match *attribute.value() {
                     TokenListAttrValue(_, ref indexes) => indexes.len() as u32,
                     _ => fail!("Expected a TokenListAttrValue"),
                 }
@@ -76,7 +76,7 @@ impl<'a> DOMTokenListMethods for JSRef<'a, DOMTokenList> {
     fn Item(&self, index: u32) -> Option<DOMString> {
         let attribute = self.attribute().root();
         attribute.and_then(|attribute| {
-            match *attribute.deref().value() {
+            match *attribute.value() {
                 TokenListAttrValue(ref value, ref indexes) => {
                     indexes.as_slice().get(index as uint).map(|&(start, end)| {
                         value.as_slice().slice(start, end).to_string()

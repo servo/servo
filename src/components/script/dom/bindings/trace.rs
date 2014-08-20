@@ -166,7 +166,7 @@ impl<S: Encoder<E>, E, T: Encodable<S, E>> Encodable<S, E> for Traceable<RefCell
 
 impl<S: Encoder<E>, E, T: Encodable<S, E>+Copy> Encodable<S, E> for Traceable<Cell<T>> {
     fn encode(&self, s: &mut S) -> Result<(), E> {
-        self.deref().get().encode(s)
+        self.get().encode(s)
     }
 }
 

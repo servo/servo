@@ -113,15 +113,15 @@ impl<'a> DocumentHelpers for JSRef<'a, Document> {
     }
 
     fn quirks_mode(&self) -> QuirksMode {
-        self.quirks_mode.deref().get()
+        self.quirks_mode.get()
     }
 
     fn set_quirks_mode(&self, mode: QuirksMode) {
-        self.quirks_mode.deref().set(mode);
+        self.quirks_mode.set(mode);
     }
 
     fn set_encoding_name(&self, name: DOMString) {
-        *self.encoding_name.deref().borrow_mut() = name;
+        *self.encoding_name.borrow_mut() = name;
     }
 
     fn content_changed(&self) {
@@ -141,7 +141,7 @@ impl<'a> DocumentHelpers for JSRef<'a, Document> {
     fn unregister_named_element(&self,
                                 to_unregister: &JSRef<Element>,
                                 id: DOMString) {
-        let mut idmap = self.idmap.deref().borrow_mut();
+        let mut idmap = self.idmap.borrow_mut();
         let is_empty = match idmap.find_mut(&id) {
             None => false,
             Some(elements) => {
@@ -168,7 +168,7 @@ impl<'a> DocumentHelpers for JSRef<'a, Document> {
         });
         assert!(!id.is_empty());
 
-        let mut idmap = self.idmap.deref().borrow_mut();
+        let mut idmap = self.idmap.borrow_mut();
 
         // FIXME https://github.com/mozilla/rust/issues/13195
         //       Use mangle() when it exists again.
@@ -319,7 +319,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     // http://dom.spec.whatwg.org/#dom-document-compatmode
     fn CompatMode(&self) -> DOMString {
-        match self.quirks_mode.deref().get() {
+        match self.quirks_mode.get() {
             LimitedQuirks | NoQuirks => "CSS1Compat".to_string(),
             FullQuirks => "BackCompat".to_string()
         }
@@ -327,7 +327,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     // http://dom.spec.whatwg.org/#dom-document-characterset
     fn CharacterSet(&self) -> DOMString {
-        self.encoding_name.deref().borrow().as_slice().to_ascii_lower()
+        self.encoding_name.borrow().as_slice().to_ascii_lower()
     }
 
     // http://dom.spec.whatwg.org/#dom-document-content_type
@@ -373,7 +373,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     // http://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
     fn GetElementById(&self, id: DOMString) -> Option<Temporary<Element>> {
-        match self.idmap.deref().borrow().find_equiv(&id) {
+        match self.idmap.borrow().find_equiv(&id) {
             None => None,
             Some(ref elements) => Some(Temporary::new((*elements)[0].clone())),
         }
@@ -530,7 +530,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                     for child in title_elem.children() {
                         if child.is_text() {
                             let text: &JSRef<Text> = TextCast::to_ref(&child).unwrap();
-                            title.push_str(text.deref().characterdata.data.deref().borrow().as_slice());
+                            title.push_str(text.characterdata.data.borrow().as_slice());
                         }
                     }
                 });
@@ -624,7 +624,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         // Step 2.
         let old_body = self.GetBody().root();
         //FIXME: covariant lifetime workaround. do not judge.
-        if old_body.as_ref().map(|body| body.deref()) == new_body.as_ref().map(|a| &*a) {
+        if old_body.as_ref().map(|body| &**body) == new_body.as_ref().map(|a| &*a) {
             return Ok(());
         }
 

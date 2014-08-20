@@ -79,7 +79,7 @@ trait NodeWrapping<T> {
 
 impl<'a, T: NodeBase+Reflectable> NodeWrapping<T> for JSRef<'a, T> {
     unsafe fn to_hubbub_node(&self) -> hubbub::NodeDataPtr {
-        mem::transmute(self.deref())
+        mem::transmute(*self)
     }
 }
 
@@ -354,7 +354,7 @@ pub fn parse_html(page: &Page,
             let tmp = &*tmp_borrow;
             let doctype_node = DocumentType::new(name, public_id, system_id, *tmp).root();
             unsafe {
-                doctype_node.deref().to_hubbub_node()
+                doctype_node.to_hubbub_node()
             }
         },
         create_element: |tag: Box<hubbub::Tag>| {
@@ -388,12 +388,12 @@ pub fn parse_html(page: &Page,
             //FIXME: workaround for https://github.com/mozilla/rust/issues/13246;
             //       we get unrooting order failures if these are inside the match.
             let rel = {
-                let rel = element.deref().get_attribute(Null, "rel").root();
-                rel.map(|a| a.deref().Value())
+                let rel = element.get_attribute(Null, "rel").root();
+                rel.map(|a| a.Value())
             };
             let href = {
-                let href= element.deref().get_attribute(Null, "href").root();
-                href.map(|a| a.deref().Value())
+                let href= element.get_attribute(Null, "href").root();
+                href.map(|a| a.Value())
             };
 
             // Spawn additional parsing, network loads, etc. from tag and attrs
@@ -425,7 +425,7 @@ pub fn parse_html(page: &Page,
                 _ => {}
             }
 
-            unsafe { element.deref().to_hubbub_node() }
+            unsafe { element.to_hubbub_node() }
         },
         create_text: |data: String| {
             debug!("create text");
@@ -433,7 +433,7 @@ pub fn parse_html(page: &Page,
             let tmp_borrow = doc_cell.borrow();
             let tmp = &*tmp_borrow;
             let text = Text::new(data, *tmp).root();
-            unsafe { text.deref().to_hubbub_node() }
+            unsafe { text.to_hubbub_node() }
         },
         ref_node: |_| {},
         unref_node: |_| {},
@@ -442,7 +442,7 @@ pub fn parse_html(page: &Page,
                 debug!("append child {:x} {:x}", parent, child);
                 let child: Root<Node> = from_hubbub_node(child).root();
                 let parent: Root<Node> = from_hubbub_node(parent).root();
-                assert!(parent.deref().AppendChild(&*child).is_ok());
+                assert!(parent.AppendChild(&*child).is_ok());
             }
             child
         },
@@ -496,11 +496,11 @@ pub fn parse_html(page: &Page,
                 let script: &JSRef<Element> = &*from_hubbub_node(script).root();
                 match script.get_attribute(Null, "src").root() {
                     Some(src) => {
-                        debug!("found script: {:s}", src.deref().Value());
+                        debug!("found script: {:s}", src.Value());
                         match UrlParser::new().base_url(base_url)
-                                .parse(src.deref().value().as_slice()) {
+                                .parse(src.value().as_slice()) {
                             Ok(new_url) => js_chan2.send(JSTaskNewFile(new_url)),
-                            Err(e) => debug!("Parsing url {:s} failed: {:?}", src.deref().Value(), e)
+                            Err(e) => debug!("Parsing url {:s} failed: {:?}", src.Value(), e)
                         };
                     }
                     None => {
@@ -510,7 +510,7 @@ pub fn parse_html(page: &Page,
                         for child in scriptnode.children() {
                             debug!("child = {:?}", child);
                             let text: &JSRef<Text> = TextCast::to_ref(&child).unwrap();
-                            data.push_str(text.deref().characterdata.data.deref().borrow().as_slice());
+                            data.push_str(text.characterdata.data.borrow().as_slice());
                         }
 
                         debug!("script data = {:?}", data);
