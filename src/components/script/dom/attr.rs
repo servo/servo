@@ -117,7 +117,7 @@ impl Attr {
                 if namespace_is_null {
                     vtable_for(node).before_remove_attr(
                         self.local_name(),
-                        self.value.deref().borrow().as_slice().to_string());
+                        self.value().as_slice().to_string())
                 }
             }
             FirstSetAttr => {}
@@ -128,7 +128,7 @@ impl Attr {
         if namespace_is_null {
             vtable_for(node).after_set_attr(
                 self.local_name(),
-                self.value.deref().borrow().as_slice().to_string());
+                self.value().as_slice().to_string())
         }
     }
 
@@ -147,7 +147,7 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
     }
 
     fn Value(&self) -> DOMString {
-        self.value.deref().borrow().as_slice().to_string()
+        self.value().as_slice().to_string()
     }
 
     fn SetValue(&self, value: DOMString) {
