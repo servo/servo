@@ -19,7 +19,6 @@ use render_context::RenderContext;
 use text::glyph::CharIndex;
 use text::TextRun;
 
-use std::collections::Deque;
 use collections::dlist::DList;
 use collections::dlist;
 use geom::{Point2D, Rect, SideOffsets2D, Size2D};
@@ -222,7 +221,7 @@ impl StackingContext {
                             }
 
                             let mut new_list = DisplayList::new();
-                            new_list.list.push_back(item);
+                            new_list.list.push(item);
                             stacking_context.positioned_descendants.push((z_index, new_list))
                         }
                     }
@@ -320,7 +319,7 @@ impl DisplayList {
 
     /// Appends the given item to the display list.
     pub fn push(&mut self, item: DisplayItem) {
-        self.list.push_back(item)
+        self.list.push(item)
     }
 
     /// Appends the given display list to this display list, consuming the other display list in

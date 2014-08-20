@@ -455,8 +455,10 @@ impl Fragment {
         }
     }
 
-    pub fn calculate_line_height(&self) -> Au {
-        text::line_height_from_style(self.style())
+    pub fn calculate_line_height(&self, layout_context: &LayoutContext) -> Au {
+        let font_style = text::computed_style_to_font_style(&*self.style);
+        let font_metrics = text::font_metrics_for_style(layout_context.font_context(), &font_style);
+        text::line_height_from_style(&*self.style, &font_metrics)
     }
 
     /// Returns the sum of the inline-sizes of all the borders of this fragment. This is private because
@@ -660,7 +662,7 @@ impl Fragment {
             Some(ref image_url) => image_url,
         };
 
-        let mut holder = ImageHolder::new(image_url.clone(), layout_context.image_cache.clone());
+        let mut holder = ImageHolder::new(image_url.clone(), layout_context.shared.image_cache.clone());
         let image = match holder.get_image() {
             None => {
                 // No image data at all? Do nothing.
@@ -860,7 +862,7 @@ impl Fragment {
                absolute_fragment_bounds,
                self);
         debug!("Fragment::build_display_list: dirty={}, flow_origin={}",
-               layout_context.dirty,
+               layout_context.shared.dirty,
                flow_origin);
 
         let mut accumulator = ChildDisplayListAccumulator::new(self.style(),
@@ -871,7 +873,7 @@ impl Fragment {
             return accumulator
         }
 
-        if !absolute_fragment_bounds.intersects(&layout_context.dirty) {
+        if !absolute_fragment_bounds.intersects(&layout_context.shared.dirty) {
             debug!("Fragment::build_display_list: Did not intersect...");
             return accumulator
         }
@@ -1082,7 +1084,7 @@ impl Fragment {
     }
 
     /// Returns, and computes, the block-size of this fragment.
-    pub fn content_block_size(&self) -> Au {
+    pub fn content_block_size(&self, layout_context: &LayoutContext) -> Au {
         match self.specific {
             GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment | TableRowFragment |
             TableWrapperFragment => Au(0),
@@ -1091,7 +1093,7 @@ impl Fragment {
             }
             ScannedTextFragment(_) => {
                 // Compute the block-size based on the line-block-size and font size.
-                self.calculate_line_height()
+                self.calculate_line_height(layout_context)
             }
             TableColumnFragment(_) => fail!("Table column fragments do not have block_size"),
             UnscannedTextFragment(_) => fail!("Unscanned text fragments should have been scanned by now!"),
@@ -1130,7 +1132,7 @@ impl Fragment {
             UnscannedTextFragment(_) => fail!("Unscanned text fragments should have been scanned by now!"),
             ScannedTextFragment(ref text_fragment_info) => {
                 let mut new_line_pos = self.new_line_pos.clone();
-                let cur_new_line_pos = new_line_pos.shift().unwrap();
+                let cur_new_line_pos = new_line_pos.remove(0).unwrap();
 
                 let inline_start_range = Range::new(text_fragment_info.range.begin(), cur_new_line_pos);
                 let inline_end_range = Range::new(text_fragment_info.range.begin() + cur_new_line_pos + CharIndex(1),
@@ -1370,7 +1372,7 @@ impl Fragment {
 
     /// Calculates block-size above baseline, depth below baseline, and ascent for this fragment when
     /// used in an inline formatting context. See CSS 2.1 § 10.8.1.
-    pub fn inline_metrics(&self) -> InlineMetrics {
+    pub fn inline_metrics(&self, layout_context: &LayoutContext) -> InlineMetrics {
         match self.specific {
             ImageFragment(ref image_fragment_info) => {
                 let computed_block_size = image_fragment_info.computed_block_size();
@@ -1382,7 +1384,7 @@ impl Fragment {
             }
             ScannedTextFragment(ref text_fragment) => {
                 // See CSS 2.1 § 10.8.1.
-                let line_height = self.calculate_line_height();
+                let line_height = self.calculate_line_height(layout_context);
                 InlineMetrics::from_font_metrics(&text_fragment.run.font_metrics, line_height)
             }
             _ => {
@@ -1431,7 +1433,7 @@ impl Fragment {
                iframe_fragment.pipeline_id,
                iframe_fragment.subpage_id);
         let msg = FrameRectMsg(iframe_fragment.pipeline_id, iframe_fragment.subpage_id, rect);
-        let ConstellationChan(ref chan) = layout_context.constellation_chan;
+        let ConstellationChan(ref chan) = layout_context.shared.constellation_chan;
         chan.send(msg)
     }
 }

@@ -10,7 +10,7 @@ use serialize::base64::FromBase64;
 
 use http::headers::test_utils::from_stream_with_str;
 use http::headers::content_type::MediaType;
-use url::{percent_decode, OtherSchemeData};
+use url::{percent_decode, NonRelativeSchemeData};
 
 
 pub fn factory() -> LoaderTask {
@@ -30,7 +30,7 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
 
     // Split out content type and data.
     let mut scheme_data = match url.scheme_data {
-        OtherSchemeData(scheme_data) => scheme_data,
+        NonRelativeSchemeData(scheme_data) => scheme_data,
         _ => fail!("Expected a non-relative scheme URL.")
     };
     match url.query {
@@ -49,7 +49,7 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
     // ";base64" must come at the end of the content type, per RFC 2397.
     // rust-http will fail to parse it because there's no =value part.
     let mut is_base64 = false;
-    let mut ct_str = *parts.get(0);
+    let mut ct_str = parts[0];
     if ct_str.ends_with(";base64") {
         is_base64 = true;
         ct_str = ct_str.slice_to(ct_str.as_bytes().len() - 7);
@@ -61,7 +61,7 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
     metadata.set_content_type(&content_type);
 
     let progress_chan = start_sending(start_chan, metadata);
-    let bytes = percent_decode(parts.get(1).as_bytes());
+    let bytes = percent_decode(parts[1].as_bytes());
 
     if is_base64 {
         // FIXME(#2909): It’s unclear what to do with non-alphabet characters,

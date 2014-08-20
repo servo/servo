@@ -6,7 +6,7 @@ CXXFLAGS ?=
 AR ?= ar
 RUSTC ?= rustc
 RUSTDOC ?= rustdoc
-RUSTFLAGS ?= -O
+RUSTFLAGS ?=
 EXT_DEPS ?=
 RUSTDOC_FLAGS ?=
 RUSTDOC_TARGET ?= doc
@@ -36,7 +36,7 @@ doctest: $(LIB_RS) $(RUST_SRC) libencoding.dummy
 	$(RUSTDOC) $< -L . --test
 
 .PHONY: check
-check: doctest rustencoding-test
+check: rustencoding-test
 	./rustencoding-test
 
 .PHONY: doc

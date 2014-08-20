@@ -145,11 +145,13 @@ impl FontHandleMethods for FontHandle {
 
     fn get_metrics(&self) -> FontMetrics {
         let bounding_rect: CGRect = self.ctfont.bounding_box();
-        let ascent = Au::from_pt(self.ctfont.ascent() as f64);
-        let descent = Au::from_pt(self.ctfont.descent() as f64);
+        let ascent = self.ctfont.ascent() as f64;
+        let descent = self.ctfont.descent() as f64;
         let em_size = Au::from_frac_px(self.ctfont.pt_size() as f64);
+        let leading = self.ctfont.leading() as f64;
 
         let scale = px_to_pt(self.ctfont.pt_size() as f64) / (self.ctfont.ascent() as f64 + self.ctfont.descent() as f64);
+        let line_gap = (ascent + descent + leading + 0.5).floor();
 
         let metrics =  FontMetrics {
             underline_size:   Au::from_pt(self.ctfont.underline_thickness() as f64),
@@ -161,12 +163,13 @@ impl FontHandleMethods for FontHandle {
             underline_offset: Au::from_pt(self.ctfont.underline_position() as f64),
             strikeout_size:   geometry::from_pt(0.0), // FIXME(Issue #942)
             strikeout_offset: geometry::from_pt(0.0), // FIXME(Issue #942)
-            leading:          Au::from_pt(self.ctfont.leading() as f64),
+            leading:          Au::from_pt(leading),
             x_height:         Au::from_pt(self.ctfont.x_height() as f64),
             em_size:          em_size,
-            ascent:           ascent.scale_by(scale),
-            descent:          descent.scale_by(scale),
-            max_advance:      Au::from_pt(bounding_rect.size.width as f64)
+            ascent:           Au::from_pt(ascent).scale_by(scale),
+            descent:          Au::from_pt(descent).scale_by(scale),
+            max_advance:      Au::from_pt(bounding_rect.size.width as f64),
+            line_gap:         Au::from_frac_px(line_gap),
         };
 
         debug!("Font metrics (@{:f} pt): {:?}", self.ctfont.pt_size() as f64, metrics);

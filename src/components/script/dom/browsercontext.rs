@@ -35,7 +35,7 @@ impl BrowserContext {
     }
 
     pub fn active_document(&self) -> Temporary<Document> {
-        Temporary::new(self.history.get(self.active_index).document.clone())
+        Temporary::new(self.history[self.active_index].document.clone())
     }
 
     pub fn active_window(&self) -> Temporary<Window> {

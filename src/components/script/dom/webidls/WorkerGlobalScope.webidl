@@ -6,22 +6,21 @@
 //[Exposed=Worker]
 interface WorkerGlobalScope : EventTarget {
   readonly attribute WorkerGlobalScope self;
-  //readonly attribute WorkerLocation location;
+  readonly attribute WorkerLocation location;
 
   //void close();
   //         attribute OnErrorEventHandler onerror;
   //         attribute EventHandler onlanguagechange;
   //         attribute EventHandler onoffline;
   //         attribute EventHandler ononline;
-
-  // also has obsolete members
 };
 
 // http://www.whatwg.org/html/#WorkerGlobalScope-partial
 //[Exposed=Worker]
-partial interface WorkerGlobalScope {
-  //void importScripts(DOMString... urls);
-  //readonly attribute WorkerNavigator navigator;
+partial interface WorkerGlobalScope { // not obsolete
+  [Throws]
+  void importScripts(DOMString... urls);
+  readonly attribute WorkerNavigator navigator;
 };
 //WorkerGlobalScope implements WindowTimers;
 //WorkerGlobalScope implements WindowBase64;

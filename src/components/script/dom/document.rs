@@ -38,15 +38,16 @@ use dom::htmlelement::HTMLElement;
 use dom::htmlheadelement::HTMLHeadElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::htmltitleelement::HTMLTitleElement;
+use dom::location::Location;
 use dom::mouseevent::MouseEvent;
 use dom::node::{Node, ElementNodeTypeId, DocumentNodeTypeId, NodeHelpers};
 use dom::node::{CloneChildren, DoNotCloneChildren};
 use dom::nodelist::NodeList;
 use dom::text::Text;
 use dom::processinginstruction::ProcessingInstruction;
+use dom::range::Range;
 use dom::uievent::UIEvent;
 use dom::window::{Window, WindowHelpers};
-use dom::location::Location;
 use html::hubbub_html_parser::build_element_from_tag;
 use hubbub::hubbub::{QuirksMode, NoQuirks, LimitedQuirks, FullQuirks};
 use layout_interface::{DocumentDamageLevel, ContentChangedDocumentDamage};
@@ -78,11 +79,19 @@ pub struct Document {
     pub is_html_document: bool,
     url: Untraceable<Url>,
     quirks_mode: Untraceable<Cell<QuirksMode>>,
+    links: Cell<Option<JS<HTMLCollection>>>,
 }
 
 impl DocumentDerived for EventTarget {
     fn is_document(&self) -> bool {
         self.type_id == NodeTargetTypeId(DocumentNodeTypeId)
+    }
+}
+
+struct LinksFilter;
+impl CollectionFilter for LinksFilter {
+    fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
+        (elem.is_htmlanchorelement() || elem.is_htmlareaelement()) && elem.has_attribute("href")
     }
 }
 
@@ -179,7 +188,7 @@ impl<'a> DocumentHelpers for JSRef<'a, Document> {
                     let elem: Option<&JSRef<Element>> = ElementCast::to_ref(&node);
                     match elem {
                         Some(elem) => {
-                            if &*elements.get(head).root() == elem {
+                            if &*(*elements)[head].root() == elem {
                                 head = head + 1;
                             }
                             if new_node == &node || head == elements.len() {
@@ -234,6 +243,7 @@ impl Document {
             // http://dom.spec.whatwg.org/#concept-document-encoding
             encoding_name: Traceable::new(RefCell::new("utf-8".to_string())),
             is_html_document: is_html_document == HTMLDocument,
+            links: Cell::new(None),
         }
     }
 
@@ -372,7 +382,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     fn GetElementById(&self, id: DOMString) -> Option<Temporary<Element>> {
         match self.idmap.deref().borrow().find_equiv(&id) {
             None => None,
-            Some(ref elements) => Some(Temporary::new(elements.get(0).clone())),
+            Some(ref elements) => Some(Temporary::new((*elements)[0].clone())),
         }
     }
 
@@ -512,6 +522,11 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     }
     fn LastModified(&self) -> DOMString {
         String::from_str(self.last_modified.deref().borrow().as_slice())
+    }
+
+    // http://dom.spec.whatwg.org/#dom-document-createrange
+    fn CreateRange(&self) -> Temporary<Range> {
+        Range::new(self)
     }
 
     // http://www.whatwg.org/specs/web-apps/current-work/#document.title
@@ -661,8 +676,6 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     fn Images(&self) -> Temporary<HTMLCollection> {
         let window = self.window.root();
-
-        // FIXME: https://github.com/mozilla/servo/issues/1847
         struct ImagesFilter;
         impl CollectionFilter for ImagesFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
@@ -675,8 +688,6 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     fn Embeds(&self) -> Temporary<HTMLCollection> {
         let window = self.window.root();
-
-        // FIXME: https://github.com/mozilla/servo/issues/1847
         struct EmbedsFilter;
         impl CollectionFilter for EmbedsFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
@@ -688,29 +699,21 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     }
 
     fn Plugins(&self) -> Temporary<HTMLCollection> {
-        // FIXME: https://github.com/mozilla/servo/issues/1847
         self.Embeds()
     }
 
     fn Links(&self) -> Temporary<HTMLCollection> {
-        let window = self.window.root();
-
-        // FIXME: https://github.com/mozilla/servo/issues/1847
-        struct LinksFilter;
-        impl CollectionFilter for LinksFilter {
-            fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                (elem.is_htmlanchorelement() || elem.is_htmlareaelement()) &&
-                    elem.get_attribute(Null, "href").is_some()
-            }
+        if self.links.get().is_none() {
+            let window = self.window.root();
+            let root = NodeCast::from_ref(self);
+            let filter = box LinksFilter;
+            self.links.assign(Some(HTMLCollection::create(&*window, root, filter)));
         }
-        let filter = box LinksFilter;
-        HTMLCollection::create(&*window, NodeCast::from_ref(self), filter)
+        Temporary::new(self.links.get().get_ref().clone())
     }
 
     fn Forms(&self) -> Temporary<HTMLCollection> {
         let window = self.window.root();
-
-        // FIXME: https://github.com/mozilla/servo/issues/1847
         struct FormsFilter;
         impl CollectionFilter for FormsFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
@@ -723,8 +726,6 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     fn Scripts(&self) -> Temporary<HTMLCollection> {
         let window = self.window.root();
-
-        // FIXME: https://github.com/mozilla/servo/issues/1847
         struct ScriptsFilter;
         impl CollectionFilter for ScriptsFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
@@ -737,8 +738,6 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     fn Anchors(&self) -> Temporary<HTMLCollection> {
         let window = self.window.root();
-
-        // FIXME: https://github.com/mozilla/servo/issues/1847
         struct AnchorsFilter;
         impl CollectionFilter for AnchorsFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {

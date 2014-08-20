@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="harness.js"></script>
+        <script>
+            var links = document.links;
+            is(links, document.links);
+            is(links.length, 0);
+
+            var anchor = document.createElement("a");
+            anchor.id = "anchor-with-href";
+            anchor.setAttribute("href", "http://www.google.com");
+            document.body.appendChild(anchor);
+            is(links.length, 1);
+
+            anchor = document.createElement("a");
+            anchor.id = "anchor-without-href";
+            document.body.appendChild(anchor);
+            is(links.length, 1);
+
+            anchor.setAttribute("href", "http://www.google.com");
+            is(links.length, 2);
+
+            anchor.removeAttribute("href", "http://www.google.com");
+            is(links.length, 1);
+
+            document.body.removeChild(document.getElementById("anchor-without-href"));
+            is(links.length, 1);
+
+            document.body.removeChild(document.getElementById("anchor-with-href"));
+            is(links, document.links);
+            is(links.length, 0);
+
+            finish();
+        </script>
+    </head>
+</html>

@@ -11,7 +11,6 @@ use extra::LayoutAuxMethods;
 use util::{LayoutDataAccess, LayoutDataWrapper};
 use wrapper::{LayoutElement, LayoutNode, PostorderNodeMutTraversal, ThreadSafeLayoutNode};
 
-use gfx::font_context::FontContext;
 use servo_util::atom::Atom;
 use servo_util::cache::{Cache, LRUCache, SimpleHashCache};
 use servo_util::namespace::Null;
@@ -20,13 +19,13 @@ use servo_util::str::DOMString;
 use std::mem;
 use std::hash::{Hash, sip};
 use std::slice::Items;
-use style::{After, Before, ComputedValues, MatchedProperty, Stylist, TElement, TNode, cascade};
+use style::{After, Before, ComputedValues, DeclarationBlock, Stylist, TElement, TNode, cascade};
 use sync::Arc;
 
 pub struct ApplicableDeclarations {
-    pub normal: SmallVec16<MatchedProperty>,
-    pub before: Vec<MatchedProperty>,
-    pub after: Vec<MatchedProperty>,
+    pub normal: SmallVec16<DeclarationBlock>,
+    pub before: Vec<DeclarationBlock>,
+    pub after: Vec<DeclarationBlock>,
 
     /// Whether the `normal` declarations are shareable with other nodes.
     pub normal_shareable: bool,
@@ -52,11 +51,11 @@ impl ApplicableDeclarations {
 
 #[deriving(Clone)]
 pub struct ApplicableDeclarationsCacheEntry {
-    pub declarations: Vec<MatchedProperty>,
+    pub declarations: Vec<DeclarationBlock>,
 }
 
 impl ApplicableDeclarationsCacheEntry {
-    fn new(slice: &[MatchedProperty]) -> ApplicableDeclarationsCacheEntry {
+    fn new(slice: &[DeclarationBlock]) -> ApplicableDeclarationsCacheEntry {
         let mut entry_declarations = Vec::new();
         for declarations in slice.iter() {
             entry_declarations.push(declarations.clone());
@@ -82,11 +81,11 @@ impl Hash for ApplicableDeclarationsCacheEntry {
 }
 
 struct ApplicableDeclarationsCacheQuery<'a> {
-    declarations: &'a [MatchedProperty],
+    declarations: &'a [DeclarationBlock],
 }
 
 impl<'a> ApplicableDeclarationsCacheQuery<'a> {
-    fn new(declarations: &'a [MatchedProperty]) -> ApplicableDeclarationsCacheQuery<'a> {
+    fn new(declarations: &'a [DeclarationBlock]) -> ApplicableDeclarationsCacheQuery<'a> {
         ApplicableDeclarationsCacheQuery {
             declarations: declarations,
         }
@@ -142,14 +141,14 @@ impl ApplicableDeclarationsCache {
         }
     }
 
-    fn find(&self, declarations: &[MatchedProperty]) -> Option<Arc<ComputedValues>> {
+    fn find(&self, declarations: &[DeclarationBlock]) -> Option<Arc<ComputedValues>> {
         match self.cache.find_equiv(&ApplicableDeclarationsCacheQuery::new(declarations)) {
             None => None,
             Some(ref values) => Some((*values).clone()),
         }
     }
 
-    fn insert(&mut self, declarations: &[MatchedProperty], style: Arc<ComputedValues>) {
+    fn insert(&mut self, declarations: &[DeclarationBlock], style: Arc<ComputedValues>) {
         self.cache.insert(ApplicableDeclarationsCacheEntry::new(declarations), style)
     }
 }
@@ -283,13 +282,9 @@ pub trait MatchMethods {
     /// sequentially.
     fn recalc_style_for_subtree(&self,
                                 stylist: &Stylist,
-                                layout_context: &mut LayoutContext,
-                                mut font_context: Box<FontContext>,
+                                layout_context: &LayoutContext,
                                 applicable_declarations: &mut ApplicableDeclarations,
-                                applicable_declarations_cache: &mut ApplicableDeclarationsCache,
-                                style_sharing_candidate_cache: &mut StyleSharingCandidateCache,
-                                parent: Option<LayoutNode>)
-                                -> Box<FontContext>;
+                                parent: Option<LayoutNode>);
 
     fn match_node(&self,
                   stylist: &Stylist,
@@ -314,7 +309,7 @@ pub trait MatchMethods {
 trait PrivateMatchMethods {
     fn cascade_node_pseudo_element(&self,
                                    parent_style: Option<&Arc<ComputedValues>>,
-                                   applicable_declarations: &[MatchedProperty],
+                                   applicable_declarations: &[DeclarationBlock],
                                    style: &mut Option<Arc<ComputedValues>>,
                                    applicable_declarations_cache: &mut
                                    ApplicableDeclarationsCache,
@@ -329,7 +324,7 @@ trait PrivateMatchMethods {
 impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
     fn cascade_node_pseudo_element(&self,
                                    parent_style: Option<&Arc<ComputedValues>>,
-                                   applicable_declarations: &[MatchedProperty],
+                                   applicable_declarations: &[DeclarationBlock],
                                    style: &mut Option<Arc<ComputedValues>>,
                                    applicable_declarations_cache: &mut
                                    ApplicableDeclarationsCache,
@@ -462,18 +457,14 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
 
     fn recalc_style_for_subtree(&self,
                                 stylist: &Stylist,
-                                layout_context: &mut LayoutContext,
-                                mut font_context: Box<FontContext>,
+                                layout_context: &LayoutContext,
                                 applicable_declarations: &mut ApplicableDeclarations,
-                                applicable_declarations_cache: &mut ApplicableDeclarationsCache,
-                                style_sharing_candidate_cache: &mut StyleSharingCandidateCache,
-                                parent: Option<LayoutNode>)
-                                -> Box<FontContext> {
-        self.initialize_layout_data(layout_context.layout_chan.clone());
+                                parent: Option<LayoutNode>) {
+        self.initialize_layout_data(layout_context.shared.layout_chan.clone());
 
         // First, check to see whether we can share a style with someone.
         let sharing_result = unsafe {
-            self.share_style_if_possible(style_sharing_candidate_cache, parent.clone())
+            self.share_style_if_possible(layout_context.style_sharing_candidate_cache(), parent.clone())
         };
 
         // Otherwise, match and cascade selectors.
@@ -486,34 +477,30 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
                 unsafe {
                     self.cascade_node(parent,
                                       applicable_declarations,
-                                      applicable_declarations_cache)
+                                      layout_context.applicable_declarations_cache())
                 }
 
                 applicable_declarations.clear();
 
                 // Add ourselves to the LRU cache.
                 if shareable {
-                    style_sharing_candidate_cache.insert_if_possible(self)
+                    layout_context.style_sharing_candidate_cache().insert_if_possible(self)
                 }
             }
-            StyleWasShared(index) => style_sharing_candidate_cache.touch(index),
+            StyleWasShared(index) => layout_context.style_sharing_candidate_cache().touch(index),
         }
 
         for kid in self.children() {
-            font_context = kid.recalc_style_for_subtree(stylist,
-                                                        layout_context,
-                                                        font_context,
-                                                        applicable_declarations,
-                                                        applicable_declarations_cache,
-                                                        style_sharing_candidate_cache,
-                                                        Some(self.clone()))
+            kid.recalc_style_for_subtree(stylist,
+                                        layout_context,
+                                        applicable_declarations,
+                                        Some(self.clone()))
         }
 
         // Construct flows.
         let layout_node = ThreadSafeLayoutNode::new(self);
-        let mut flow_constructor = FlowConstructor::new(layout_context, Some(font_context));
+        let mut flow_constructor = FlowConstructor::new(layout_context);
         flow_constructor.process(&layout_node);
-        flow_constructor.unwrap_font_context().unwrap()
     }
 
     unsafe fn cascade_node(&self,

@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::InheritTypes::FileDerived;
-use dom::bindings::global::{GlobalRef, GlobalField};
+use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Temporary;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::error::Fallible;
@@ -18,21 +18,19 @@ pub enum BlobType {
 #[deriving(Encodable)]
 pub struct Blob {
     reflector_: Reflector,
-    global: GlobalField,
     type_: BlobType
 }
 
 impl Blob {
-    pub fn new_inherited(global: &GlobalRef) -> Blob {
+    pub fn new_inherited() -> Blob {
         Blob {
             reflector_: Reflector::new(),
-            global: GlobalField::from_rooted(global),
             type_: BlobTypeId
         }
     }
 
     pub fn new(global: &GlobalRef) -> Temporary<Blob> {
-        reflect_dom_object(box Blob::new_inherited(global),
+        reflect_dom_object(box Blob::new_inherited(),
                            global,
                            BlobBinding::Wrap)
     }

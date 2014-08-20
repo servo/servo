@@ -59,7 +59,7 @@ impl<'a> NodeListMethods for JSRef<'a, NodeList> {
     fn Item(&self, index: u32) -> Option<Temporary<Node>> {
         match self.list_type {
             _ if index >= self.Length() => None,
-            Simple(ref elems) => Some(Temporary::new(elems.get(index as uint).clone())),
+            Simple(ref elems) => Some(Temporary::new(elems[index as uint].clone())),
             Children(ref node) => {
                 let node = node.root();
                 node.deref().children().nth(index as uint)

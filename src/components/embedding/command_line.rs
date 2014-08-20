@@ -4,7 +4,7 @@
 
 use libc::{calloc, c_int, size_t};
 use std::mem;
-use std::str;
+use std::string;
 use std::c_vec::CVec;
 use string::{cef_string_userfree_utf16_alloc, cef_string_utf16_set};
 use types::{cef_command_line_t, cef_string_t, cef_string_userfree_t, cef_string_utf16_t};
@@ -21,7 +21,7 @@ static mut GLOBAL_CMDLINE: Option<*mut command_line_t> = None;
 fn command_line_new() -> *mut command_line_t {
     unsafe {
         let cl = calloc(1, mem::size_of::<command_line>() as size_t) as *mut command_line_t;
-        (*cl).cl.base.size = mem::size_of::<cef_command_line_t>() as u64;
+        (*cl).cl.base.size = mem::size_of::<cef_command_line_t>() as size_t;
         cl
     }
 }
@@ -30,7 +30,7 @@ pub fn command_line_init(argc: c_int, argv: *const *const u8) {
     unsafe {
         let mut a: Vec<String> = vec!();
         for i in range(0u, argc as uint) {
-            a.push(str::raw::from_c_str(*argv.offset(i as int) as *const i8));
+            a.push(string::raw::from_buf(*argv.offset(i as int) as *const u8));
         }
         let cl = command_line_new();
         (*cl).argc = argc;
@@ -59,7 +59,7 @@ pub extern "C" fn command_line_get_switch_value(cmd: *mut cef_command_line_t, na
                 let string = cef_string_userfree_utf16_alloc() as *mut cef_string_utf16_t;
                 let arg = o.slice_from(opt.len() + 1).as_bytes();
                 arg.with_c_str(|c_str| {
-                    cef_string_utf16_set(mem::transmute(c_str), arg.len() as u64, string, 1);
+                    cef_string_utf16_set(mem::transmute(c_str), arg.len() as size_t, string, 1);
                 });
                 return string as *mut cef_string_userfree_t
             }

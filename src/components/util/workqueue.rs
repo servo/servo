@@ -222,7 +222,7 @@ impl<QueueData: Send, WorkData: Send> WorkQueue<QueueData, WorkData> {
         for i in range(0, thread_count) {
             for j in range(0, thread_count) {
                 if i != j {
-                    threads.get_mut(i).other_deques.push(infos.get(j).thief.clone())
+                    threads.get_mut(i).other_deques.push(infos[j].thief.clone())
                 }
             }
             assert!(threads.get(i).other_deques.len() == thread_count - 1)

@@ -173,7 +173,7 @@ impl ScriptLayoutChan for OpaqueScriptLayoutChannel {
 
     fn sender(&self) -> Sender<Msg> {
         let &OpaqueScriptLayoutChannel((ref sender, _)) = self;
-        (*sender.as_ref::<Sender<Msg>>().unwrap()).clone()
+        (*sender.downcast_ref::<Sender<Msg>>().unwrap()).clone()
     }
 
     fn receiver(self) -> Receiver<Msg> {

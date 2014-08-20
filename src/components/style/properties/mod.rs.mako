@@ -18,7 +18,7 @@ pub use geom::SideOffsets2D;
 use errors::{ErrorLoggerIterator, log_css_error};
 pub use parsing_utils::*;
 pub use self::common_types::*;
-use selector_matching::MatchedProperty;
+use selector_matching::DeclarationBlock;
 
 
 pub use self::property_bit_field::PropertyBitField;
@@ -118,12 +118,13 @@ pub mod longhands {
             ${caller.body()}
             % if derived_from is None:
                 pub fn parse_declared(input: &[ComponentValue], base_url: &Url)
-                                   -> Option<DeclaredValue<SpecifiedValue>> {
+                                   -> Result<DeclaredValue<SpecifiedValue>, ()> {
                     match CSSWideKeyword::parse(input) {
-                        Some(Some(keyword)) => Some(CSSWideKeyword(keyword)),
-                        Some(None) => Some(CSSWideKeyword(${
-                            "Inherit" if THIS_STYLE_STRUCT.inherited else "Initial"})),
-                        None => parse_specified(input, base_url),
+                        Ok(InheritKeyword) => Ok(Inherit),
+                        Ok(InitialKeyword) => Ok(Initial),
+                        Ok(UnsetKeyword) => Ok(${
+                            "Inherit" if THIS_STYLE_STRUCT.inherited else "Initial"}),
+                        Err(()) => parse_specified(input, base_url),
                     }
                 }
             % endif
@@ -136,7 +137,7 @@ pub mod longhands {
             ${caller.body()}
             % if derived_from is None:
                 pub fn parse_specified(_input: &[ComponentValue], _base_url: &Url)
-                                   -> Option<DeclaredValue<SpecifiedValue>> {
+                                   -> Result<DeclaredValue<SpecifiedValue>, ()> {
                     parse(_input, _base_url).map(super::SpecifiedValue)
                 }
             % endif
@@ -147,7 +148,7 @@ pub mod longhands {
         <%self:longhand name="${name}" derived_from="${derived_from}"
                         experimental="${experimental}">
             ${caller.body()}
-            pub fn parse(input: &[ComponentValue], base_url: &Url) -> Option<SpecifiedValue> {
+            pub fn parse(input: &[ComponentValue], base_url: &Url) -> Result<SpecifiedValue, ()> {
                 one_component_value(input).and_then(|c| from_component_value(c, base_url))
             }
         </%self:longhand>
@@ -170,13 +171,13 @@ pub mod longhands {
                 ${to_rust_ident(values.split()[0])}
             }
             pub fn from_component_value(v: &ComponentValue, _base_url: &Url)
-                                        -> Option<SpecifiedValue> {
+                                        -> Result<SpecifiedValue, ()> {
                 get_ident_lower(v).and_then(|keyword| {
                     match keyword.as_slice() {
                         % for value in values.split():
-                            "${value}" => Some(${to_rust_ident(value)}),
+                            "${value}" => Ok(${to_rust_ident(value)}),
                         % endfor
-                        _ => None,
+                        _ => Err(()),
                     }
                 })
             }
@@ -201,7 +202,7 @@ pub mod longhands {
             }
             #[inline] pub fn get_initial_value() -> computed_value::T { ${initial_value} }
             #[inline] pub fn from_component_value(v: &ComponentValue, _base_url: &Url)
-                                                  -> Option<SpecifiedValue> {
+                                                  -> Result<SpecifiedValue, ()> {
                 specified::${type}::${parse_method}(v)
             }
         </%self:single_component_value>
@@ -244,14 +245,14 @@ pub mod longhands {
     % endfor
 
     pub fn parse_border_width(component_value: &ComponentValue, _base_url: &Url)
-                              -> Option<specified::Length> {
+                              -> Result<specified::Length, ()> {
         match component_value {
             &Ident(ref value) => {
                 match value.as_slice().to_ascii_lower().as_slice() {
-                    "thin" => Some(specified::Length::from_px(1.)),
-                    "medium" => Some(specified::Length::from_px(3.)),
-                    "thick" => Some(specified::Length::from_px(5.)),
-                    _ => None
+                    "thin" => Ok(specified::Length::from_px(1.)),
+                    "medium" => Ok(specified::Length::from_px(3.)),
+                    "thick" => Ok(specified::Length::from_px(5.)),
+                    _ => Err(())
                 }
             },
             _ => specified::Length::parse_non_negative(component_value)
@@ -267,7 +268,7 @@ pub mod longhands {
             #[inline] pub fn get_initial_value() -> computed_value::T {
                 Au::from_px(3)  // medium
             }
-            pub fn parse(input: &[ComponentValue], base_url: &Url) -> Option<SpecifiedValue> {
+            pub fn parse(input: &[ComponentValue], base_url: &Url) -> Result<SpecifiedValue, ()> {
                 one_component_value(input).and_then(|c| parse_border_width(c, base_url))
             }
             #[inline]
@@ -346,7 +347,7 @@ pub mod longhands {
         pub fn get_initial_value() -> computed_value::T { computed::LPA_Auto }
         #[inline]
         pub fn from_component_value(v: &ComponentValue, _base_url: &Url)
-                                              -> Option<SpecifiedValue> {
+                                              -> Result<SpecifiedValue, ()> {
             specified::LengthOrPercentageOrAuto::parse_non_negative(v)
         }
         pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
@@ -387,18 +388,18 @@ pub mod longhands {
         }
         /// normal | <number> | <length> | <percentage>
         pub fn from_component_value(input: &ComponentValue, _base_url: &Url)
-                                    -> Option<SpecifiedValue> {
+                                    -> Result<SpecifiedValue, ()> {
             match input {
                 &ast::Number(ref value) if value.value >= 0.
-                => Some(SpecifiedNumber(value.value)),
+                => Ok(SpecifiedNumber(value.value)),
                 &ast::Percentage(ref value) if value.value >= 0.
-                => Some(SpecifiedLength(specified::Em(value.value / 100.))),
+                => Ok(SpecifiedLength(specified::Em(value.value / 100.))),
                 &Dimension(ref value, ref unit) if value.value >= 0.
                 => specified::Length::parse_dimension(value.value, unit.as_slice())
                     .map(SpecifiedLength),
                 &Ident(ref value) if value.as_slice().eq_ignore_ascii_case("normal")
-                => Some(SpecifiedNormal),
-                _ => None,
+                => Ok(SpecifiedNormal),
+                _ => Err(()),
             }
         }
         pub mod computed_value {
@@ -474,14 +475,14 @@ pub mod longhands {
         /// baseline | sub | super | top | text-top | middle | bottom | text-bottom
         /// | <percentage> | <length>
         pub fn from_component_value(input: &ComponentValue, _base_url: &Url)
-                                    -> Option<SpecifiedValue> {
+                                    -> Result<SpecifiedValue, ()> {
             match input {
                 &Ident(ref value) => {
                     match value.as_slice().to_ascii_lower().as_slice() {
                         % for keyword in vertical_align_keywords:
-                        "${keyword}" => Some(Specified_${to_rust_ident(keyword)}),
+                        "${keyword}" => Ok(Specified_${to_rust_ident(keyword)}),
                         % endfor
-                        _ => None,
+                        _ => Err(()),
                     }
                 },
                 _ => specified::LengthOrPercentage::parse_non_negative(input)
@@ -552,12 +553,12 @@ pub mod longhands {
 
             // normal | none | [ <string> ]+
             // TODO: <uri>, <counter>, attr(<identifier>), open-quote, close-quote, no-open-quote, no-close-quote
-            pub fn parse(input: &[ComponentValue], _base_url: &Url) -> Option<SpecifiedValue> {
+            pub fn parse(input: &[ComponentValue], _base_url: &Url) -> Result<SpecifiedValue, ()> {
                 match one_component_value(input) {
-                    Some(&Ident(ref keyword)) => {
+                    Ok(&Ident(ref keyword)) => {
                         match keyword.as_slice().to_ascii_lower().as_slice() {
-                            "normal" => return Some(normal),
-                            "none" => return Some(none),
+                            "normal" => return Ok(normal),
+                            "none" => return Ok(none),
                             _ => ()
                         }
                     },
@@ -568,10 +569,10 @@ pub mod longhands {
                     match component_value {
                         &String(ref value)
                         => content.push(StringContent(value.clone())),
-                        _ => return None  // invalid/unsupported value
+                        _ => return Err(())  // invalid/unsupported value
                     }
                 }
-                Some(Content(content))
+                Ok(Content(content))
             }
     </%self:longhand>
     // CSS 2.1, Section 13 - Paged media
@@ -593,14 +594,16 @@ pub mod longhands {
             #[inline] pub fn get_initial_value() -> SpecifiedValue {
                 None
             }
-            pub fn from_component_value(component_value: &ComponentValue, base_url: &Url) -> Option<SpecifiedValue> {
+            pub fn from_component_value(component_value: &ComponentValue, base_url: &Url)
+                                        -> Result<SpecifiedValue, ()> {
                 match component_value {
                     &ast::URL(ref url) => {
                         let image_url = parse_url(url.as_slice(), base_url);
-                        Some(Some(image_url))
+                        Ok(Some(image_url))
                     },
-                    &ast::Ident(ref value) if value.as_slice().eq_ignore_ascii_case("none") => Some(None),
-                    _ => None,
+                    &ast::Ident(ref value) if value.as_slice().eq_ignore_ascii_case("none")
+                    => Ok(None),
+                    _ => Err(()),
                 }
             }
     </%self:single_component_value>
@@ -643,36 +646,29 @@ pub mod longhands {
 
             // FIXME(#1997, pcwalton): Support complete CSS2 syntax.
             pub fn parse_horizontal_and_vertical(horiz: &ComponentValue, vert: &ComponentValue)
-                                                 -> Option<SpecifiedValue> {
-                let horiz = match specified::LengthOrPercentage::parse_non_negative(horiz) {
-                    None => return None,
-                    Some(value) => value,
-                };
+                                                 -> Result<SpecifiedValue, ()> {
+                let horiz = try!(specified::LengthOrPercentage::parse_non_negative(horiz));
+                let vert = try!(specified::LengthOrPercentage::parse_non_negative(vert));
 
-                let vert = match specified::LengthOrPercentage::parse_non_negative(vert) {
-                    None => return None,
-                    Some(value) => value,
-                };
-
-                Some(SpecifiedValue {
+                Ok(SpecifiedValue {
                     horizontal: horiz,
                     vertical: vert,
                 })
             }
 
-            pub fn parse(input: &[ComponentValue], _: &Url) -> Option<SpecifiedValue> {
+            pub fn parse(input: &[ComponentValue], _: &Url) -> Result<SpecifiedValue, ()> {
                 let mut input_iter = input.skip_whitespace();
                 let horizontal = input_iter.next();
                 let vertical = input_iter.next();
                 if input_iter.next().is_some() {
-                    return None
+                    return Err(())
                 }
 
                 match (horizontal, vertical) {
                     (Some(horizontal), Some(vertical)) => {
                         parse_horizontal_and_vertical(horizontal, vertical)
                     }
-                    _ => None
+                    _ => Err(())
                 }
             }
     </%self:longhand>
@@ -693,11 +689,11 @@ pub mod longhands {
             RGBA { red: 0., green: 0., blue: 0., alpha: 1. }  /* black */
         }
         pub fn parse_specified(input: &[ComponentValue], _base_url: &Url)
-                               -> Option<DeclaredValue<SpecifiedValue>> {
+                               -> Result<DeclaredValue<SpecifiedValue>, ()> {
             match one_component_value(input).and_then(Color::parse) {
-                Some(RGBA(rgba)) => Some(SpecifiedValue(rgba)),
-                Some(CurrentColor) => Some(CSSWideKeyword(Inherit)),
-                None => None,
+                Ok(RGBA(rgba)) => Ok(SpecifiedValue(rgba)),
+                Ok(CurrentColor) => Ok(Inherit),
+                Err(()) => Err(()),
             }
         }
     </%self:raw_longhand>
@@ -722,61 +718,48 @@ pub mod longhands {
             pub type T = Vec<FontFamily>;
         }
         pub type SpecifiedValue = computed_value::T;
-        #[inline] pub fn get_initial_value() -> computed_value::T { vec!(FamilyName("serif".to_string())) }
+
+        #[inline]
+        pub fn get_initial_value() -> computed_value::T {
+            vec![FamilyName("serif".to_string())]
+        }
         /// <familiy-name>#
         /// <familiy-name> = <string> | [ <ident>+ ]
         /// TODO: <generic-familiy>
-        pub fn parse(input: &[ComponentValue], _base_url: &Url) -> Option<SpecifiedValue> {
-            from_iter(input.skip_whitespace())
+        pub fn parse(input: &[ComponentValue], _base_url: &Url) -> Result<SpecifiedValue, ()> {
+            parse_slice_comma_separated(input, parse_one_family)
         }
-        pub fn from_iter<'a>(mut iter: SkipWhitespaceIterator<'a>) -> Option<SpecifiedValue> {
-            let mut result = vec!();
-            macro_rules! add(
-                ($value: expr, $b: expr) => {
-                    {
-                        result.push($value);
-                        match iter.next() {
-                            Some(&Comma) => (),
-                            None => $b,
-                            _ => return None,
-                        }
-                    }
+        pub fn parse_one_family<'a>(iter: ParserIter) -> Result<FontFamily, ()> {
+            // TODO: avoid copying strings?
+            let mut idents = match iter.next() {
+                Some(&String(ref value)) => return Ok(FamilyName(value.clone())),
+                Some(&Ident(ref value)) => {
+//                    match value.as_slice().to_ascii_lower().as_slice() {
+//                        "serif" => return Ok(Serif),
+//                        "sans-serif" => return Ok(SansSerif),
+//                        "cursive" => return Ok(Cursive),
+//                        "fantasy" => return Ok(Fantasy),
+//                        "monospace" => return Ok(Monospace),
+//                        _ => {
+                            vec![value.as_slice()]
+//                        }
+//                    }
                 }
-            )
-            'outer: loop {
-                match iter.next() {
-                    // TODO: avoid copying strings?
-                    Some(&String(ref value)) => add!(FamilyName(value.clone()), break 'outer),
-                    Some(&Ident(ref value)) => {
-                        match value.as_slice().to_ascii_lower().as_slice() {
-//                            "serif" => add!(Serif, break 'outer),
-//                            "sans-serif" => add!(SansSerif, break 'outer),
-//                            "cursive" => add!(Cursive, break 'outer),
-//                            "fantasy" => add!(Fantasy, break 'outer),
-//                            "monospace" => add!(Monospace, break 'outer),
-                            _ => {
-                                let mut idents = vec!(value.as_slice());
-                                loop {
-                                    match iter.next() {
-                                        Some(&Ident(ref value)) => idents.push(value.as_slice()),
-                                        Some(&Comma) => {
-                                            result.push(FamilyName(idents.connect(" ")));
-                                            break
-                                        },
-                                        None => {
-                                            result.push(FamilyName(idents.connect(" ")));
-                                            break 'outer
-                                        },
-                                        _ => return None,
-                                    }
-                                }
-                            }
-                        }
+                _ => return Err(())
+            };
+            for component_value in iter {
+                match component_value {
+                    &Ident(ref value) => {
+                        idents.push(value.as_slice());
+                        iter.next();
+                    },
+                    _ => {
+                        iter.push_back(component_value);
+                        break
                     }
-                    _ => return None,
                 }
             }
-            Some(result)
+            Ok(FamilyName(idents.connect(" ")))
         }
     </%self:longhand>
 
@@ -795,30 +778,30 @@ pub mod longhands {
         }
         /// normal | bold | bolder | lighter | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900
         pub fn from_component_value(input: &ComponentValue, _base_url: &Url)
-                                    -> Option<SpecifiedValue> {
+                                    -> Result<SpecifiedValue, ()> {
             match input {
                 &Ident(ref value) => {
                     match value.as_slice().to_ascii_lower().as_slice() {
-                        "bold" => Some(SpecifiedWeight700),
-                        "normal" => Some(SpecifiedWeight400),
-                        "bolder" => Some(Bolder),
-                        "lighter" => Some(Lighter),
-                        _ => None,
+                        "bold" => Ok(SpecifiedWeight700),
+                        "normal" => Ok(SpecifiedWeight400),
+                        "bolder" => Ok(Bolder),
+                        "lighter" => Ok(Lighter),
+                        _ => Err(()),
                     }
                 },
                 &Number(ref value) => match value.int_value {
-                    Some(100) => Some(SpecifiedWeight100),
-                    Some(200) => Some(SpecifiedWeight200),
-                    Some(300) => Some(SpecifiedWeight300),
-                    Some(400) => Some(SpecifiedWeight400),
-                    Some(500) => Some(SpecifiedWeight500),
-                    Some(600) => Some(SpecifiedWeight600),
-                    Some(700) => Some(SpecifiedWeight700),
-                    Some(800) => Some(SpecifiedWeight800),
-                    Some(900) => Some(SpecifiedWeight900),
-                    _ => None,
+                    Some(100) => Ok(SpecifiedWeight100),
+                    Some(200) => Ok(SpecifiedWeight200),
+                    Some(300) => Ok(SpecifiedWeight300),
+                    Some(400) => Ok(SpecifiedWeight400),
+                    Some(500) => Ok(SpecifiedWeight500),
+                    Some(600) => Ok(SpecifiedWeight600),
+                    Some(700) => Ok(SpecifiedWeight700),
+                    Some(800) => Ok(SpecifiedWeight800),
+                    Some(900) => Ok(SpecifiedWeight900),
+                    _ => Err(()),
                 },
-                _ => None
+                _ => Err(())
             }
         }
         pub mod computed_value {
@@ -890,7 +873,7 @@ pub mod longhands {
         /// <length> | <percentage>
         /// TODO: support <absolute-size> and <relative-size>
         pub fn from_component_value(input: &ComponentValue, _base_url: &Url)
-                                    -> Option<SpecifiedValue> {
+                                    -> Result<SpecifiedValue, ()> {
             specified::LengthOrPercentage::parse_non_negative(input).map(|value| {
                 match value {
                     specified::LP_Length(value) => value,
@@ -927,30 +910,34 @@ pub mod longhands {
             none
         }
         /// none | [ underline || overline || line-through || blink ]
-        pub fn parse(input: &[ComponentValue], _base_url: &Url) -> Option<SpecifiedValue> {
+        pub fn parse(input: &[ComponentValue], _base_url: &Url) -> Result<SpecifiedValue, ()> {
             let mut result = SpecifiedValue {
                 underline: false, overline: false, line_through: false,
             };
+            match one_component_value(input) {
+                Ok(&Ident(ref value))
+                if value.as_slice().eq_ignore_ascii_case("none") => return Ok(result),
+                _ => {}
+            }
             let mut blink = false;
             let mut empty = true;
             for component_value in input.skip_whitespace() {
                 match get_ident_lower(component_value) {
-                    None => return None,
-                    Some(keyword) => match keyword.as_slice() {
-                        "underline" => if result.underline { return None }
+                    Err(()) => return Err(()),
+                    Ok(keyword) => match keyword.as_slice() {
+                        "underline" => if result.underline { return Err(()) }
                                       else { empty = false; result.underline = true },
-                        "overline" => if result.overline { return None }
+                        "overline" => if result.overline { return Err(()) }
                                       else { empty = false; result.overline = true },
-                        "line-through" => if result.line_through { return None }
+                        "line-through" => if result.line_through { return Err(()) }
                                           else { empty = false; result.line_through = true },
-                        "blink" => if blink { return None }
+                        "blink" => if blink { return Err(()) }
                                    else { empty = false; blink = true },
-                        "none" => return if empty { Some(result) } else { None },
-                        _ => return None,
+                        _ => return Err(()),
                     }
                 }
             }
-            if !empty { Some(result) } else { None }
+            if !empty { Ok(result) } else { Err(()) }
         }
     </%self:longhand>
 
@@ -1070,7 +1057,7 @@ pub mod shorthands {
                     pub ${sub_property.ident}: Option<${sub_property.ident}::SpecifiedValue>,
                 % endfor
             }
-            pub fn parse(input: &[ComponentValue], base_url: &Url) -> Option<Longhands> {
+            pub fn parse(input: &[ComponentValue], base_url: &Url) -> Result<Longhands, ()> {
                 ${caller.body()}
             }
         }
@@ -1080,7 +1067,7 @@ pub mod shorthands {
         <%self:shorthand name="${name}" sub_properties="${
                 ' '.join(sub_property_pattern % side
                          for side in ['top', 'right', 'bottom', 'left'])}">
-            let mut iter = input.skip_whitespace().map(|c| ${parser_function}(c, base_url));
+            let mut iter = input.skip_whitespace().map(|c| ${parser_function}(c, base_url).ok());
             // zero or more than four values is invalid.
             // one value sets them all
             // two values set (top, bottom) and (left, right)
@@ -1092,13 +1079,13 @@ pub mod shorthands {
             let left = iter.next().unwrap_or(right);
             if top.is_some() && right.is_some() && bottom.is_some() && left.is_some()
             && iter.next().is_none() {
-                Some(Longhands {
+                Ok(Longhands {
                     % for side in ["top", "right", "bottom", "left"]:
                         ${to_rust_ident(sub_property_pattern % side)}: ${side},
                     % endfor
                 })
             } else {
-                None
+                Err(())
             }
         </%self:shorthand>
     </%def>
@@ -1116,46 +1103,46 @@ pub mod shorthands {
                 for component_value in input.skip_whitespace() {
                     if color.is_none() {
                         match background_color::from_component_value(component_value, base_url) {
-                            Some(v) => {
+                            Ok(v) => {
                                 color = Some(v);
                                 any = true;
                                 continue
                             },
-                            None => ()
+                            Err(()) => ()
                         }
                     }
 
                     if image.is_none() {
                         match background_image::from_component_value(component_value, base_url) {
-                            Some(v) => {
+                            Ok(v) => {
                                 image = Some(v);
                                 any = true;
                                 continue
                             },
-                            None => (),
+                            Err(()) => (),
                         }
                     }
 
                     if repeat.is_none() {
                         match background_repeat::from_component_value(component_value, base_url) {
-                            Some(v) => {
+                            Ok(v) => {
                                 repeat = Some(v);
                                 any = true;
                                 continue
                             },
-                            None => ()
+                            Err(()) => ()
                         }
                     }
 
                     if attachment.is_none() {
                         match background_attachment::from_component_value(component_value,
                                                                           base_url) {
-                            Some(v) => {
+                            Ok(v) => {
                                 attachment = Some(v);
                                 any = true;
                                 continue
                             },
-                            None => ()
+                            Err(()) => ()
                         }
                     }
 
@@ -1165,17 +1152,17 @@ pub mod shorthands {
                                 match background_position::parse_horizontal_and_vertical(
                                         saved_component_value,
                                         component_value) {
-                                    Some(v) => {
+                                    Ok(v) => {
                                         position = Some(v);
                                         any = true;
                                         continue
                                     },
-                                    None => (),
+                                    Err(()) => (),
                                 }
                             }
 
                             // If we get here, parsing failed.
-                            return None
+                            return Err(())
                         }
                         None => {
                             // Save the component value.
@@ -1185,7 +1172,7 @@ pub mod shorthands {
                 }
 
                 if any && last_component_value.is_none() {
-                    Some(Longhands {
+                    Ok(Longhands {
                         background_color: color,
                         background_image: image,
                         background_position: position,
@@ -1193,14 +1180,14 @@ pub mod shorthands {
                         background_attachment: attachment,
                     })
                 } else {
-                    None
+                    Err(())
                 }
     </%self:shorthand>
 
     ${four_sides_shorthand("margin", "margin-%s", "margin_top::from_component_value")}
     ${four_sides_shorthand("padding", "padding-%s", "padding_top::from_component_value")}
 
-    pub fn parse_color(value: &ComponentValue, _base_url: &Url) -> Option<specified::CSSColor> {
+    pub fn parse_color(value: &ComponentValue, _base_url: &Url) -> Result<specified::CSSColor, ()> {
         specified::CSSColor::parse(value)
     }
     ${four_sides_shorthand("border-color", "border-%s-color", "parse_color")}
@@ -1209,9 +1196,9 @@ pub mod shorthands {
     ${four_sides_shorthand("border-width", "border-%s-width", "parse_border_width")}
 
     pub fn parse_border(input: &[ComponentValue], base_url: &Url)
-                     -> Option<(Option<specified::CSSColor>,
+                     -> Result<(Option<specified::CSSColor>,
                                 Option<border_top_style::SpecifiedValue>,
-                                Option<specified::Length>)> {
+                                Option<specified::Length>), ()> {
         let mut color = None;
         let mut style = None;
         let mut width = None;
@@ -1219,25 +1206,25 @@ pub mod shorthands {
         for component_value in input.skip_whitespace() {
             if color.is_none() {
                 match specified::CSSColor::parse(component_value) {
-                    Some(c) => { color = Some(c); any = true; continue },
-                    None => ()
+                    Ok(c) => { color = Some(c); any = true; continue },
+                    Err(()) => ()
                 }
             }
             if style.is_none() {
                 match border_top_style::from_component_value(component_value, base_url) {
-                    Some(s) => { style = Some(s); any = true; continue },
-                    None => ()
+                    Ok(s) => { style = Some(s); any = true; continue },
+                    Err(()) => ()
                 }
             }
             if width.is_none() {
                 match parse_border_width(component_value, base_url) {
-                    Some(w) => { width = Some(w); any = true; continue },
-                    None => ()
+                    Ok(w) => { width = Some(w); any = true; continue },
+                    Err(()) => ()
                 }
             }
-            return None
+            return Err(())
         }
-        if any { Some((color, style, width)) } else { None }
+        if any { Ok((color, style, width)) } else { Err(()) }
     }
 
 
@@ -1286,7 +1273,7 @@ pub mod shorthands {
             // font-style, font-weight and font-variant.
             // Leaves the values to None, 'normal' is the initial value for each of them.
             match get_ident_lower(component_value) {
-                Some(ref ident) if ident.as_slice().eq_ignore_ascii_case("normal") => {
+                Ok(ref ident) if ident.as_slice().eq_ignore_ascii_case("normal") => {
                     nb_normals += 1;
                     continue;
                 }
@@ -1294,25 +1281,25 @@ pub mod shorthands {
             }
             if style.is_none() {
                 match font_style::from_component_value(component_value, base_url) {
-                    Some(s) => { style = Some(s); continue },
-                    None => ()
+                    Ok(s) => { style = Some(s); continue },
+                    Err(()) => ()
                 }
             }
             if weight.is_none() {
                 match font_weight::from_component_value(component_value, base_url) {
-                    Some(w) => { weight = Some(w); continue },
-                    None => ()
+                    Ok(w) => { weight = Some(w); continue },
+                    Err(()) => ()
                 }
             }
             if variant.is_none() {
                 match font_variant::from_component_value(component_value, base_url) {
-                    Some(v) => { variant = Some(v); continue },
-                    None => ()
+                    Ok(v) => { variant = Some(v); continue },
+                    Err(()) => ()
                 }
             }
             match font_size::from_component_value(component_value, base_url) {
-                Some(s) => { size = Some(s); break },
-                None => return None
+                Ok(s) => { size = Some(s); break },
+                Err(()) => return Err(())
             }
         }
         #[inline]
@@ -1323,29 +1310,29 @@ pub mod shorthands {
             }
         }
         if size.is_none() || (count(&style) + count(&weight) + count(&variant) + nb_normals) > 3 {
-            return None
+            return Err(())
         }
         let mut copied_iter = iter.clone();
         match copied_iter.next() {
             Some(&Delim('/')) => {
                 iter = copied_iter;
                 line_height = match iter.next() {
-                    Some(v) => line_height::from_component_value(v, base_url),
-                    _ => return None,
+                    Some(v) => line_height::from_component_value(v, base_url).ok(),
+                    _ => return Err(()),
                 };
-                if line_height.is_none() { return None }
+                if line_height.is_none() { return Err(()) }
             }
             _ => ()
         }
-        let family = font_family::from_iter(iter);
-        if family.is_none() { return None }
-        Some(Longhands {
+        let family = try!(parse_comma_separated(
+            &mut BufferedIter::new(iter), font_family::parse_one_family));
+        Ok(Longhands {
             font_style: style,
             font_variant: variant,
             font_weight: weight,
             font_size: size,
             line_height: line_height,
-            font_family: family
+            font_family: Some(family)
         })
     </%self:shorthand>
 
@@ -1459,20 +1446,20 @@ pub fn parse_property_declaration_list<I: Iterator<Node>>(input: I, base_url: &U
 }
 
 
-#[deriving(Clone)]
 pub enum CSSWideKeyword {
-    Initial,
-    Inherit,
+    InitialKeyword,
+    InheritKeyword,
+    UnsetKeyword,
 }
 
 impl CSSWideKeyword {
-    pub fn parse(input: &[ComponentValue]) -> Option<Option<CSSWideKeyword>> {
+    pub fn parse(input: &[ComponentValue]) -> Result<CSSWideKeyword, ()> {
         one_component_value(input).and_then(get_ident_lower).and_then(|keyword| {
             match keyword.as_slice() {
-                "initial" => Some(Some(Initial)),
-                "inherit" => Some(Some(Inherit)),
-                "unset" => Some(None),
-                _ => None
+                "initial" => Ok(InitialKeyword),
+                "inherit" => Ok(InheritKeyword),
+                "unset" => Ok(UnsetKeyword),
+                _ => Err(())
             }
         })
     }
@@ -1482,7 +1469,11 @@ impl CSSWideKeyword {
 #[deriving(Clone)]
 pub enum DeclaredValue<T> {
     SpecifiedValue(T),
-    CSSWideKeyword(CSSWideKeyword),
+    Initial,
+    Inherit,
+    // There is no Unset variant here.
+    // The 'unset' keyword is represented as either Initial or Inherit,
+    // depending on whether the property is inherited.
 }
 
 #[deriving(Clone)]
@@ -1521,12 +1512,12 @@ impl PropertyDeclaration {
                             return ValidOrIgnoredDeclaration
                         }
                         match longhands::${property.ident}::parse_declared(value, base_url) {
-                            Some(value) => {
+                            Ok(value) => {
                                 seen.set_${property.ident}();
                                 result_list.push(${property.camel_case}Declaration(value));
                                 ValidOrIgnoredDeclaration
                             },
-                            None => InvalidValue,
+                            Err(()) => InvalidValue,
                         }
                     },
                 % else:
@@ -1540,45 +1531,53 @@ impl PropertyDeclaration {
                         return ValidOrIgnoredDeclaration
                     }
                     match CSSWideKeyword::parse(value) {
-                        Some(Some(keyword)) => {
+                        Ok(InheritKeyword) => {
                             % for sub_property in shorthand.sub_properties:
                                 if !seen.get_${sub_property.ident}() {
                                     seen.set_${sub_property.ident}();
-                                    result_list.push(${sub_property.camel_case}Declaration(
-                                        CSSWideKeyword(keyword)));
+                                    result_list.push(
+                                        ${sub_property.camel_case}Declaration(Inherit));
                                 }
                             % endfor
                             ValidOrIgnoredDeclaration
                         },
-                        Some(None) => {
+                        Ok(InitialKeyword) => {
+                            % for sub_property in shorthand.sub_properties:
+                                if !seen.get_${sub_property.ident}() {
+                                    seen.set_${sub_property.ident}();
+                                    result_list.push(
+                                        ${sub_property.camel_case}Declaration(Initial));
+                                }
+                            % endfor
+                            ValidOrIgnoredDeclaration
+                        },
+                        Ok(UnsetKeyword) => {
                             % for sub_property in shorthand.sub_properties:
                                 if !seen.get_${sub_property.ident}() {
                                     seen.set_${sub_property.ident}();
                                     result_list.push(${sub_property.camel_case}Declaration(
-                                        CSSWideKeyword(
-                                            ${"Inherit" if sub_property.style_struct.inherited else "Initial"}
-                                        )
+                                        ${"Inherit" if sub_property.style_struct.inherited else "Initial"}
                                     ));
                                 }
                             % endfor
                             ValidOrIgnoredDeclaration
                         },
-                        None => match shorthands::${shorthand.ident}::parse(value, base_url) {
-                            Some(result) => {
+                        Err(()) => match shorthands::${shorthand.ident}::parse(value, base_url) {
+                            Ok(result) => {
                                 % for sub_property in shorthand.sub_properties:
                                     if !seen.get_${sub_property.ident}() {
                                         seen.set_${sub_property.ident}();
                                         result_list.push(${sub_property.camel_case}Declaration(
                                             match result.${sub_property.ident} {
                                                 Some(value) => SpecifiedValue(value),
-                                                None => CSSWideKeyword(Initial),
+                                                None => Initial,
                                             }
                                         ));
                                     }
                                 % endfor
                                 ValidOrIgnoredDeclaration
                             },
-                            None => InvalidValue,
+                            Err(()) => InvalidValue,
                         }
                     }
                 },
@@ -1788,7 +1787,7 @@ impl<T: Send + Share + Clone> ArcExperimental<T> for Arc<T> {
 }
 
 /// Fast path for the function below. Only computes new inherited styles.
-fn cascade_with_cached_declarations(applicable_declarations: &[MatchedProperty],
+fn cascade_with_cached_declarations(applicable_declarations: &[DeclarationBlock],
                                     shareable: bool,
                                     parent_style: &ComputedValues,
                                     cached_style: &ComputedValues,
@@ -1824,9 +1823,9 @@ fn cascade_with_cached_declarations(applicable_declarations: &[MatchedProperty],
                                             (*specified_value).clone(),
                                             context
                                         ),
-                                        CSSWideKeyword(Initial)
+                                        Initial
                                         => longhands::${property.ident}::get_initial_value(),
-                                        CSSWideKeyword(Inherit) => {
+                                        Inherit => {
                                             // This is a bit slow, but this is rare so it shouldn't
                                             // matter.
                                             //
@@ -1893,7 +1892,7 @@ fn cascade_with_cached_declarations(applicable_declarations: &[MatchedProperty],
 ///     this is ignored.
 ///
 /// Returns the computed values and a boolean indicating whether the result is cacheable.
-pub fn cascade(applicable_declarations: &[MatchedProperty],
+pub fn cascade(applicable_declarations: &[DeclarationBlock],
                shareable: bool,
                parent_style: Option< &ComputedValues >,
                cached_style: Option< &ComputedValues >)
@@ -1934,8 +1933,8 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
         ($style_struct_getter: ident, $property: ident, $declared_value: expr) => {
             match *$declared_value {
                 SpecifiedValue(specified_value) => specified_value,
-                CSSWideKeyword(Initial) => longhands::$property::get_initial_value(),
-                CSSWideKeyword(Inherit) => inherited_style.$style_struct_getter().$property.clone(),
+                Initial => longhands::$property::get_initial_value(),
+                Inherit => inherited_style.$style_struct_getter().$property.clone(),
             }
         };
     )
@@ -1950,8 +1949,8 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
                     context.font_size = match *value {
                         SpecifiedValue(specified_value) => computed::compute_Au_with_font_size(
                             specified_value, context.inherited_font_size),
-                        CSSWideKeyword(Initial) => longhands::font_size::get_initial_value(),
-                        CSSWideKeyword(Inherit) => context.inherited_font_size,
+                        Initial => longhands::font_size::get_initial_value(),
+                        Inherit => context.inherited_font_size,
                     }
                 }
                 ColorDeclaration(ref value) => {
@@ -2031,9 +2030,9 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
                                         (*specified_value).clone(),
                                         &context
                                     ),
-                                    CSSWideKeyword(Initial)
+                                    Initial
                                     => longhands::${property.ident}::get_initial_value(),
-                                    CSSWideKeyword(Inherit) => {
+                                    Inherit => {
                                         // This is a bit slow, but this is rare so it shouldn't
                                         // matter.
                                         //

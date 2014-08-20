@@ -46,9 +46,9 @@ interface Node : EventTarget {
   [Pure]
   readonly attribute Node? nextSibling;
 
-  [SetterThrows, Pure]
+  [Pure]
            attribute DOMString? nodeValue;
-  [SetterThrows, Pure]
+  [Pure]
            attribute DOMString? textContent;
   void normalize();
 

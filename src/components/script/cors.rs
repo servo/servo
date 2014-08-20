@@ -165,12 +165,12 @@ impl CORSRequest {
                                                    .eq_ignore_ascii_case(name))
                                     .map(|h| h.header_value())
         }
-        let methods_string = match find_header(response.headers, "Access-Control-Allow-Methods") {
+        let methods_string = match find_header(&*response.headers, "Access-Control-Allow-Methods") {
             Some(s) => s,
             _ => return error
         };
         let methods = methods_string.as_slice().split(',');
-        let headers_string = match find_header(response.headers, "Access-Control-Allow-Headers") {
+        let headers_string = match find_header(&*response.headers, "Access-Control-Allow-Headers") {
             Some(s) => s,
             _ => return error
         };
@@ -197,7 +197,7 @@ impl CORSRequest {
             }
         }
         // Substep 7, 8
-        let max_age: uint = find_header(response.headers, "Access-Control-Max-Age")
+        let max_age: uint = find_header(&*response.headers, "Access-Control-Max-Age")
                                 .and_then(|h| FromStr::from_str(h.as_slice())).unwrap_or(0);
         // Substep 9: Impose restrictions on max-age, if any (unimplemented)
         // Substeps 10-12: Add a cache (partially implemented, XXXManishearth)

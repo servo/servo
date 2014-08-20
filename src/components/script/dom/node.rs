@@ -4,7 +4,6 @@
 
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
-use cssparser::tokenize;
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
@@ -18,7 +17,7 @@ use dom::bindings::codegen::InheritTypes::{CharacterDataCast, NodeBase, NodeDeri
 use dom::bindings::codegen::InheritTypes::{ProcessingInstructionCast, EventTargetCast};
 use dom::bindings::codegen::InheritTypes::{HTMLLegendElementDerived, HTMLFieldSetElementDerived};
 use dom::bindings::codegen::InheritTypes::HTMLOptGroupElementDerived;
-use dom::bindings::error::{ErrorResult, Fallible, NotFound, HierarchyRequest, Syntax};
+use dom::bindings::error::{Fallible, NotFound, HierarchyRequest, Syntax};
 use dom::bindings::global::{GlobalRef, Window};
 use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, Root, OptionalUnrootable};
 use dom::bindings::js::{OptionalSettable, TemporaryPushable, OptionalRootedRootable};
@@ -48,7 +47,7 @@ use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery, C
                        LayoutChan, ReapLayoutDataMsg, TrustedNodeAddress, UntrustedNodeAddress};
 use servo_util::geometry::Au;
 use servo_util::str::{DOMString, null_str_as_empty};
-use style::{parse_selector_list, matches_compound_selector, NamespaceMap};
+use style::{parse_selector_list_from_str, matches};
 
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use js::jsfriendapi;
@@ -370,11 +369,11 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
     }
 }
 
-pub trait NodeHelpers {
-    fn ancestors(&self) -> AncestorIterator;
-    fn children(&self) -> AbstractNodeChildrenIterator;
-    fn child_elements(&self) -> ChildElementIterator;
-    fn following_siblings(&self) -> AbstractNodeChildrenIterator;
+pub trait NodeHelpers<'m, 'n> {
+    fn ancestors(&self) -> AncestorIterator<'n>;
+    fn children(&self) -> AbstractNodeChildrenIterator<'n>;
+    fn child_elements(&self) -> ChildElementIterator<'m, 'n>;
+    fn following_siblings(&self) -> AbstractNodeChildrenIterator<'n>;
     fn is_in_doc(&self) -> bool;
     fn is_inclusive_ancestor_of(&self, parent: &JSRef<Node>) -> bool;
     fn is_parent_of(&self, child: &JSRef<Node>) -> bool;
@@ -412,9 +411,9 @@ pub trait NodeHelpers {
     fn dump_indent(&self, indent: uint);
     fn debug_str(&self) -> String;
 
-    fn traverse_preorder<'a>(&'a self) -> TreeIterator<'a>;
-    fn sequential_traverse_postorder<'a>(&'a self) -> TreeIterator<'a>;
-    fn inclusively_following_siblings<'a>(&'a self) -> AbstractNodeChildrenIterator<'a>;
+    fn traverse_preorder(&self) -> TreeIterator<'n>;
+    fn sequential_traverse_postorder(&self) -> TreeIterator<'n>;
+    fn inclusively_following_siblings(&self) -> AbstractNodeChildrenIterator<'n>;
 
     fn to_trusted_node_address(&self) -> TrustedNodeAddress;
 
@@ -427,7 +426,7 @@ pub trait NodeHelpers {
     fn remove_self(&self);
 }
 
-impl<'a> NodeHelpers for JSRef<'a, Node> {
+impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
     /// Dumps the subtree rooted at this node, for debugging.
     fn dump(&self) {
         self.dump_indent(0);
@@ -550,20 +549,20 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
     }
 
     /// Iterates over this node and all its descendants, in preorder.
-    fn traverse_preorder<'a>(&'a self) -> TreeIterator<'a> {
+    fn traverse_preorder(&self) -> TreeIterator<'n> {
         let mut nodes = vec!();
         gather_abstract_nodes(self, &mut nodes, false);
         TreeIterator::new(nodes)
     }
 
     /// Iterates over this node and all its descendants, in postorder.
-    fn sequential_traverse_postorder<'a>(&'a self) -> TreeIterator<'a> {
+    fn sequential_traverse_postorder(&self) -> TreeIterator<'n> {
         let mut nodes = vec!();
         gather_abstract_nodes(self, &mut nodes, true);
         TreeIterator::new(nodes)
     }
 
-    fn inclusively_following_siblings<'a>(&'a self) -> AbstractNodeChildrenIterator<'a> {
+    fn inclusively_following_siblings(&self) -> AbstractNodeChildrenIterator<'n> {
         AbstractNodeChildrenIterator {
             current_node: Some(self.clone()),
         }
@@ -573,7 +572,7 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
         self == parent || parent.ancestors().any(|ancestor| &ancestor == self)
     }
 
-    fn following_siblings(&self) -> AbstractNodeChildrenIterator {
+    fn following_siblings(&self) -> AbstractNodeChildrenIterator<'n> {
         AbstractNodeChildrenIterator {
             current_node: self.next_sibling().root().map(|next| next.deref().clone()),
         }
@@ -611,21 +610,16 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
     // http://dom.spec.whatwg.org/#dom-parentnode-queryselector
     fn query_selector(&self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>> {
         // Step 1.
-        let namespace = NamespaceMap::new();
-        match parse_selector_list(tokenize(selectors.as_slice()).map(|(token, _)| token).collect(), &namespace) {
+        match parse_selector_list_from_str(selectors.as_slice()) {
             // Step 2.
-            None => return Err(Syntax),
+            Err(()) => return Err(Syntax),
             // Step 3.
-            Some(ref selectors) => {
+            Ok(ref selectors) => {
                 let root = self.ancestors().last().unwrap_or(self.clone());
-                for selector in selectors.iter() {
-                    assert!(selector.pseudo_element.is_none());
-                    for node in root.traverse_preorder().filter(|node| node.is_element()) {
-                        let mut _shareable: bool = false;
-                        if matches_compound_selector(selector.compound_selectors.deref(), &node, &mut _shareable) {
-                            let elem: &JSRef<Element> = ElementCast::to_ref(&node).unwrap();
-                            return Ok(Some(Temporary::from_rooted(elem)));
-                        }
+                for node in root.traverse_preorder() {
+                    if node.is_element() && matches(selectors, &node) {
+                        let elem: &JSRef<Element> = ElementCast::to_ref(&node).unwrap();
+                        return Ok(Some(Temporary::from_rooted(elem)));
                     }
                 }
             }
@@ -636,30 +630,22 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
     // http://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
     fn query_selector_all(&self, selectors: DOMString) -> Fallible<Temporary<NodeList>> {
         // Step 1.
-        let mut nodes = vec!();
+        let nodes;
         let root = self.ancestors().last().unwrap_or(self.clone());
-        let namespace = NamespaceMap::new();
-        match parse_selector_list(tokenize(selectors.as_slice()).map(|(token, _)| token).collect(), &namespace) {
+        match parse_selector_list_from_str(selectors.as_slice()) {
             // Step 2.
-            None => return Err(Syntax),
+            Err(()) => return Err(Syntax),
             // Step 3.
-            Some(ref selectors) => {
-                for selector in selectors.iter() {
-                    assert!(selector.pseudo_element.is_none());
-                    for node in root.traverse_preorder().filter(|node| node.is_element()) {
-                        let mut _shareable: bool = false;
-                        if matches_compound_selector(selector.compound_selectors.deref(), &node, &mut _shareable) {
-                            nodes.push(node.clone())
-                        }
-                    }
-                }
+            Ok(ref selectors) => {
+                nodes = root.traverse_preorder().filter(
+                    |node| node.is_element() && matches(selectors, node)).collect()
             }
         }
         let window = window_from_node(self).root();
         Ok(NodeList::new_simple_list(&window.root_ref(), nodes))
     }
 
-    fn ancestors(&self) -> AncestorIterator {
+    fn ancestors(&self) -> AncestorIterator<'n> {
         AncestorIterator {
             current: self.parent_node.get().map(|node| (*node.root()).clone()),
         }
@@ -677,13 +663,13 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
         self.owner_doc().root().is_html_document
     }
 
-    fn children(&self) -> AbstractNodeChildrenIterator {
+    fn children(&self) -> AbstractNodeChildrenIterator<'n> {
         AbstractNodeChildrenIterator {
             current_node: self.first_child.get().map(|node| (*node.root()).clone()),
         }
     }
 
-    fn child_elements(&self) -> ChildElementIterator {
+    fn child_elements(&self) -> ChildElementIterator<'m, 'n> {
         self.children()
             .filter(|node| {
                 node.is_element()
@@ -858,7 +844,8 @@ impl<'a> Iterator<JSRef<'a, Node>> for TreeIterator<'a> {
         if self.index >= self.nodes.len() {
             None
         } else {
-            let v = self.nodes.get(self.index).clone();
+            let v = self.nodes[self.index];
+            let v = v.clone();
             self.index += 1;
             Some(v)
         }
@@ -886,7 +873,7 @@ impl NodeIterator {
         }
     }
 
-    fn next_child<'b>(&self, node: &JSRef<'b, Node>) -> Option<JSRef<Node>> {
+    fn next_child<'b>(&self, node: &JSRef<'b, Node>) -> Option<JSRef<'b, Node>> {
         if !self.include_descendants_of_void && node.is_element() {
             let elem: &JSRef<Element> = ElementCast::to_ref(node).unwrap();
             if elem.deref().is_void() {
@@ -901,7 +888,7 @@ impl NodeIterator {
 }
 
 impl<'a> Iterator<JSRef<'a, Node>> for NodeIterator {
-    fn next(&mut self) -> Option<JSRef<Node>> {
+    fn next(&mut self) -> Option<JSRef<'a, Node>> {
         self.current_node = match self.current_node.as_ref().map(|node| node.root()) {
             None => {
                 if self.include_start {
@@ -1090,9 +1077,11 @@ impl Node {
                                     return Err(HierarchyRequest);
                                 }
                                 match child {
-                                    Some(ref child) if child.inclusively_following_siblings()
-                                                            .any(|child| child.is_doctype()) => {
-                                        return Err(HierarchyRequest);
+                                    Some(ref child) => {
+                                        if child.inclusively_following_siblings()
+                                            .any(|child| child.is_doctype()) {
+                                                return Err(HierarchyRequest)
+                                            }
                                     }
                                     _ => (),
                                 }
@@ -1109,9 +1098,11 @@ impl Node {
                             return Err(HierarchyRequest);
                         }
                         match child {
-                            Some(ref child) if child.inclusively_following_siblings()
-                                                    .any(|child| child.is_doctype()) => {
-                                return Err(HierarchyRequest);
+                            Some(ref child) => {
+                                if child.inclusively_following_siblings()
+                                    .any(|child| child.is_doctype()) {
+                                        return Err(HierarchyRequest)
+                                    }
                             }
                             _ => (),
                         }
@@ -1383,7 +1374,7 @@ impl Node {
                 for attr in node_elem.deref().attrs.borrow().iter().map(|attr| attr.root()) {
                     copy_elem.deref().attrs.borrow_mut().push_unrooted(
                         &Attr::new(&*window,
-                                   attr.deref().local_name.clone(), attr.deref().value().clone(),
+                                   attr.local_name().clone(), attr.deref().value().clone(),
                                    attr.deref().name.clone(), attr.deref().namespace.clone(),
                                    attr.deref().prefix.clone(), copy_elem));
                 }
@@ -1552,14 +1543,14 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     }
 
     // http://dom.spec.whatwg.org/#dom-node-nodevalue
-    fn SetNodeValue(&self, val: Option<DOMString>) -> ErrorResult {
+    fn SetNodeValue(&self, val: Option<DOMString>) {
         match self.type_id {
             CommentNodeTypeId |
             TextNodeTypeId |
             ProcessingInstructionNodeTypeId => {
                 self.SetTextContent(val)
             }
-            _ => Ok(())
+            _ => {}
         }
     }
 
@@ -1591,7 +1582,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     }
 
     // http://dom.spec.whatwg.org/#dom-node-textcontent
-    fn SetTextContent(&self, value: Option<DOMString>) -> ErrorResult {
+    fn SetTextContent(&self, value: Option<DOMString>) {
         let value = null_str_as_empty(&value);
         match self.type_id {
             DocumentFragmentNodeTypeId |
@@ -1622,7 +1613,6 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
             DoctypeNodeTypeId |
             DocumentNodeTypeId => {}
         }
-        Ok(())
     }
 
     // http://dom.spec.whatwg.org/#dom-node-insertbefore
@@ -1843,7 +1833,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
             element.attrs.borrow().iter().map(|attr| attr.root()).all(|attr| {
                 other_element.attrs.borrow().iter().map(|attr| attr.root()).any(|other_attr| {
                     (attr.namespace == other_attr.namespace) &&
-                    (attr.local_name == other_attr.local_name) &&
+                    (attr.local_name() == other_attr.local_name()) &&
                     (attr.deref().value().as_slice() == other_attr.deref().value().as_slice())
                 })
             })
@@ -1993,29 +1983,32 @@ impl<'a> style::TNode<JSRef<'a, Element>> for JSRef<'a, Node> {
     fn parent_node(&self) -> Option<JSRef<'a, Node>> {
         (self as &NodeHelpers).parent_node().map(|node| *node.root())
     }
+
     fn prev_sibling(&self) -> Option<JSRef<'a, Node>> {
         (self as &NodeHelpers).prev_sibling().map(|node| *node.root())
     }
+
     fn next_sibling(&self) -> Option<JSRef<'a, Node>> {
         (self as &NodeHelpers).next_sibling().map(|node| *node.root())
     }
+
     fn is_document(&self) -> bool {
         (self as &NodeHelpers).is_document()
     }
+
     fn is_element(&self) -> bool {
         (self as &NodeHelpers).is_element()
     }
+
     fn as_element(&self) -> JSRef<'a, Element> {
         let elem: Option<&JSRef<'a, Element>> = ElementCast::to_ref(self);
         assert!(elem.is_some());
         *elem.unwrap()
     }
+
     fn match_attr(&self, attr: &style::AttrSelector, test: |&str| -> bool) -> bool {
         let name = {
-            let elem: Option<&JSRef<'a, Element>> = ElementCast::to_ref(self);
-            assert!(elem.is_some());
-            let elem: &ElementHelpers = elem.unwrap() as &ElementHelpers;
-            if elem.html_element_in_html_document() {
+            if self.is_html_element_in_html_document() {
                 attr.lower_name.as_slice()
             } else {
                 attr.name.as_slice()
@@ -2029,6 +2022,13 @@ impl<'a> style::TNode<JSRef<'a, Element>> for JSRef<'a, Node> {
             // FIXME: https://github.com/mozilla/servo/issues/1558
             style::AnyNamespace => false,
         }
+    }
+
+    fn is_html_element_in_html_document(&self) -> bool {
+        let elem: Option<&JSRef<'a, Element>> = ElementCast::to_ref(self);
+        assert!(elem.is_some());
+        let elem: &ElementHelpers = elem.unwrap() as &ElementHelpers;
+        elem.html_element_in_html_document()
     }
 }
 

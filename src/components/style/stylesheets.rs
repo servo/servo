@@ -16,13 +16,13 @@ use errors::{ErrorLoggerIterator, log_css_error};
 use namespaces::{NamespaceMap, parse_namespace_rule};
 use media_queries::{MediaRule, parse_media_rule};
 use media_queries;
-use font_face::{FontFaceRule, parse_font_face_rule};
+use font_face::{FontFaceRule, parse_font_face_rule, iter_font_face_rules_inner};
 
 
 pub struct Stylesheet {
     /// List of rules in the order they were found (important for
     /// cascading order)
-    pub rules: Vec<CSSRule>,
+    rules: Vec<CSSRule>,
 }
 
 
@@ -129,12 +129,12 @@ pub fn parse_style_rule(rule: QualifiedRule, parent_rules: &mut Vec<CSSRule>,
     let QualifiedRule{location: location, prelude: prelude, block: block} = rule;
     // FIXME: avoid doing this for valid selectors
     let serialized = prelude.iter().to_css();
-    match selectors::parse_selector_list(prelude, namespaces) {
-        Some(selectors) => parent_rules.push(CSSStyleRule(StyleRule{
+    match selectors::parse_selector_list(prelude.move_iter(), namespaces) {
+        Ok(selectors) => parent_rules.push(CSSStyleRule(StyleRule{
             selectors: selectors,
             declarations: properties::parse_property_declaration_list(block.move_iter(), base_url)
         })),
-        None => log_css_error(location, format!(
+        Err(()) => log_css_error(location, format!(
             "Invalid/unsupported selector: {}", serialized).as_slice()),
     }
 }
@@ -163,4 +163,16 @@ pub fn iter_style_rules<'a>(rules: &[CSSRule], device: &media_queries::Device,
             CSSFontFaceRule(_) => {},
         }
     }
+}
+
+#[inline]
+pub fn iter_stylesheet_style_rules(stylesheet: &Stylesheet, device: &media_queries::Device,
+                                   callback: |&StyleRule|) {
+    iter_style_rules(stylesheet.rules.as_slice(), device, callback)
+}
+
+
+#[inline]
+pub fn iter_font_face_rules(stylesheet: &Stylesheet, callback: |family: &str, sources: &Url|) {
+    iter_font_face_rules_inner(stylesheet.rules.as_slice(), callback)
 }

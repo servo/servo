@@ -161,12 +161,12 @@ impl WindowMethods<Application> for Window {
 
     fn recv(&self) -> WindowEvent {
         if !self.event_queue.borrow_mut().is_empty() {
-            return self.event_queue.borrow_mut().shift().unwrap();
+            return self.event_queue.borrow_mut().remove(0).unwrap();
         }
 
         glut::check_loop();
 
-        self.event_queue.borrow_mut().shift().unwrap_or(IdleWindowEvent)
+        self.event_queue.borrow_mut().remove(0).unwrap_or(IdleWindowEvent)
     }
 
     /// Sets the ready state.

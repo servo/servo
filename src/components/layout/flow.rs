@@ -149,24 +149,24 @@ pub trait Flow: fmt::Show + ToString + Share {
     /// this flow, all child flows have had their minimum and preferred inline-sizes set. This function
     /// must decide minimum/preferred inline-sizes based on its children's inline-sizes and the dimensions of
     /// any boxes it is responsible for flowing.
-    fn bubble_inline_sizes(&mut self, _ctx: &mut LayoutContext) {
+    fn bubble_inline_sizes(&mut self, _ctx: &LayoutContext) {
         fail!("bubble_inline_sizes not yet implemented")
     }
 
     /// Pass 2 of reflow: computes inline-size.
-    fn assign_inline_sizes(&mut self, _ctx: &mut LayoutContext) {
+    fn assign_inline_sizes(&mut self, _ctx: &LayoutContext) {
         fail!("assign_inline_sizes not yet implemented")
     }
 
     /// Pass 3a of reflow: computes block-size.
-    fn assign_block_size(&mut self, _ctx: &mut LayoutContext) {
+    fn assign_block_size<'a>(&mut self, _ctx: &'a LayoutContext<'a>) {
         fail!("assign_block_size not yet implemented")
     }
 
     /// Assigns block-sizes in-order; or, if this is a float, places the float. The default
     /// implementation simply assigns block-sizes if this flow is impacted by floats. Returns true if
     /// this child was impacted by floats or false otherwise.
-    fn assign_block_size_for_inorder_child_if_necessary(&mut self, layout_context: &mut LayoutContext)
+    fn assign_block_size_for_inorder_child_if_necessary<'a>(&mut self, layout_context: &'a LayoutContext<'a>)
                                                     -> bool {
         let impacted = base(&*self).flags.impacted_by_floats();
         if impacted {
@@ -365,7 +365,7 @@ pub trait MutableFlowUtils {
     // Mutators
 
     /// Computes the overflow region for this flow.
-    fn store_overflow(self, _: &mut LayoutContext);
+    fn store_overflow(self, _: &LayoutContext);
 
     /// Builds the display lists for this flow.
     fn build_display_list(self, layout_context: &LayoutContext);
@@ -963,7 +963,7 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
     /// Assumption: This is called in a bottom-up traversal, so kids' overflows have
     /// already been set.
     /// Assumption: Absolute descendants have had their overflow calculated.
-    fn store_overflow(self, _: &mut LayoutContext) {
+    fn store_overflow(self, _: &LayoutContext) {
         let my_position = mut_base(self).position;
         let mut overflow = my_position;
 

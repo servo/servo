@@ -28,6 +28,9 @@ NATIVE_BUILDS += \
 	libpng \
 	$(NULL)
 
+NO_CROSS_BUILDS += \
+	$(NULL)
+
 # NOTE: the make magic can only compute transitive build dependencies,
 # not transitive link flags. So, if A -> B -> C, must add A as a dep
 # of C so the correct -L/path/to/A flag is generated for building C.

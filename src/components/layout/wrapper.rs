@@ -265,13 +265,11 @@ impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
     }
 
     fn match_attr(&self, attr: &AttrSelector, test: |&str| -> bool) -> bool {
-        let name = unsafe {
-            let element: JS<Element> = self.node.transmute_copy();
-            if element.html_element_in_html_document_for_layout() {
-                attr.lower_name.as_slice()
-            } else {
-                attr.name.as_slice()
-            }
+        assert!(self.is_element())
+        let name = if self.is_html_element_in_html_document() {
+            attr.lower_name.as_slice()
+        } else {
+            attr.name.as_slice()
         };
         match attr.namespace {
             SpecificNamespace(ref ns) => {
@@ -281,6 +279,15 @@ impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
             },
             // FIXME: https://github.com/mozilla/servo/issues/1558
             AnyNamespace => false,
+        }
+    }
+
+    fn is_html_element_in_html_document(&self) -> bool {
+        unsafe {
+            self.is_element() && {
+                let element: JS<Element> = self.node.transmute_copy();
+                element.html_element_in_html_document_for_layout()
+            }
         }
     }
 }
@@ -322,7 +329,7 @@ impl<'a> Iterator<LayoutNode<'a>> for LayoutTreeIterator<'a> {
         if self.index >= self.nodes.len() {
             None
         } else {
-            let v = self.nodes.get(self.index).clone();
+            let v = self.nodes[self.index].clone();
             self.index += 1;
             Some(v)
         }
@@ -768,9 +775,9 @@ pub fn layout_node_to_unsafe_layout_node(node: &LayoutNode) -> UnsafeLayoutNode 
     }
 }
 
-pub fn layout_node_from_unsafe_layout_node(node: &UnsafeLayoutNode) -> LayoutNode {
-    unsafe {
-        let (node, _) = *node;
-        mem::transmute(node)
-    }
+// FIXME(#3044): This should be updated to use a real lifetime instead of
+// faking one.
+pub unsafe fn layout_node_from_unsafe_layout_node(node: &UnsafeLayoutNode) -> LayoutNode<'static> {
+    let (node, _) = *node;
+    mem::transmute(node)
 }

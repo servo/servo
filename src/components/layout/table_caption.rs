@@ -47,16 +47,16 @@ impl Flow for TableCaptionFlow {
         &mut self.block_flow
     }
 
-    fn bubble_inline_sizes(&mut self, ctx: &mut LayoutContext) {
+    fn bubble_inline_sizes(&mut self, ctx: &LayoutContext) {
         self.block_flow.bubble_inline_sizes(ctx);
     }
 
-    fn assign_inline_sizes(&mut self, ctx: &mut LayoutContext) {
+    fn assign_inline_sizes(&mut self, ctx: &LayoutContext) {
         debug!("assign_inline_sizes({}): assigning inline_size for flow", "table_caption");
         self.block_flow.assign_inline_sizes(ctx);
     }
 
-    fn assign_block_size(&mut self, ctx: &mut LayoutContext) {
+    fn assign_block_size<'a>(&mut self, ctx: &'a LayoutContext<'a>) {
         debug!("assign_block_size: assigning block_size for table_caption");
         self.block_flow.assign_block_size(ctx);
     }

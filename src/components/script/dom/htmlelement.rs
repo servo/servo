@@ -16,6 +16,8 @@ use dom::element::{Element, ElementTypeId, HTMLElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, NodeTargetTypeId};
 use dom::node::{Node, ElementNodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
+
+use servo_util::atom::Atom;
 use servo_util::namespace;
 use servo_util::str::DOMString;
 
@@ -92,9 +94,9 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLElement> {
         Some(element as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, name: DOMString, value: DOMString) {
+    fn after_set_attr(&self, name: &Atom, value: DOMString) {
         match self.super_type() {
-            Some(ref s) => s.after_set_attr(name.clone(), value.clone()),
+            Some(ref s) => s.after_set_attr(name, value.clone()),
             _ => (),
         }
 

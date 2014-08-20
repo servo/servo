@@ -20,6 +20,7 @@ use dom::eventtarget::{EventTarget, EventTargetHelpers};
 use dom::node;
 use dom::node::{ElementNodeTypeId, Node, NodeHelpers};
 use dom::window::{TimerId, Window, WindowHelpers};
+use dom::worker::{Worker, TrustedWorkerAddress};
 use dom::xmlhttprequest::{TrustedXHRAddress, XMLHttpRequest, XHRProgress};
 use html::hubbub_html_parser::HtmlParserResult;
 use html::hubbub_html_parser::{HtmlDiscoveredStyle, HtmlDiscoveredScript};
@@ -31,12 +32,6 @@ use layout_interface::ContentChangedDocumentDamage;
 use layout_interface;
 use page::{Page, IterablePage, Frame};
 
-use geom::point::Point2D;
-use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ, JS_GC};
-use js::jsapi::{JSContext, JSRuntime};
-use js::rust::{Cx, RtUtils};
-use js::rust::with_compartment;
-use js;
 use script_traits::{CompositorEvent, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent};
 use script_traits::{MouseMoveEvent, MouseUpEvent, ConstellationControlMsg, ScriptTaskFactory};
 use script_traits::{ResizeMsg, AttachLayoutMsg, LoadMsg, SendEventMsg, ResizeInactiveMsg};
@@ -51,31 +46,53 @@ use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_util::geometry::to_frac_px;
 use servo_util::task::spawn_named_with_send_on_failure;
+
+use geom::point::Point2D;
+use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ, JS_GC};
+use js::jsapi::{JSContext, JSRuntime};
+use js::jsapi::{JS_SetGCParameter, JSGC_MAX_BYTES};
+use js::rust::{Cx, RtUtils};
+use js::rust::with_compartment;
+use js;
+use url::Url;
+
+use libc::size_t;
+use serialize::{Encoder, Encodable};
 use std::any::{Any, AnyRefExt};
 use std::cell::RefCell;
 use std::comm::{channel, Sender, Receiver, Select};
 use std::mem::replace;
 use std::rc::Rc;
-use url::Url;
-
-use serialize::{Encoder, Encodable};
+use std::u32;
 
 local_data_key!(pub StackRoots: *const RootCollection)
 
-/// Messages used to control the script task.
+/// Messages used to control script event loops, such as ScriptTask and
+/// DedicatedWorkerGlobalScope.
 pub enum ScriptMsg {
-    /// Acts on a fragment URL load on the specified pipeline.
+    /// Acts on a fragment URL load on the specified pipeline (only dispatched
+    /// to ScriptTask).
     TriggerFragmentMsg(PipelineId, Url),
-    /// Begins a content-initiated load on the specified pipeline.
+    /// Begins a content-initiated load on the specified pipeline (only
+    /// dispatched to ScriptTask).
     TriggerLoadMsg(PipelineId, Url),
-    /// Instructs the script task to send a navigate message to the constellation.
+    /// Instructs the script task to send a navigate message to
+    /// the constellation (only dispatched to ScriptTask).
     NavigateMsg(NavigationDirection),
-    /// Fires a JavaScript timeout.
+    /// Fires a JavaScript timeout (only dispatched to ScriptTask).
     FireTimerMsg(PipelineId, TimerId),
-    /// Notifies the script that a window associated with a particular pipeline should be closed.
+    /// Notifies the script that a window associated with a particular pipeline
+    /// should be closed (only dispatched to ScriptTask).
     ExitWindowMsg(PipelineId),
-    /// Notifies the script of progress on a fetch
-    XHRProgressMsg(TrustedXHRAddress, XHRProgress)
+    /// Notifies the script of progress on a fetch (dispatched to all tasks).
+    XHRProgressMsg(TrustedXHRAddress, XHRProgress),
+    /// Message sent through Worker.postMessage (only dispatched to
+    /// DedicatedWorkerGlobalScope).
+    DOMMessage(*mut u64, size_t),
+    /// Posts a message to the Worker object (dispatched to all tasks).
+    WorkerPostMessage(TrustedWorkerAddress, *mut u64, size_t),
+    /// Releases one reference to the Worker object (dispatched to all tasks).
+    WorkerRelease(TrustedWorkerAddress),
 }
 
 /// Encapsulates internal communication within the script task.
@@ -309,6 +326,15 @@ impl ScriptTask {
             ptr.is_not_null()
         });
 
+        // Unconstrain the runtime's threshold on nominal heap size, to avoid
+        // triggering GC too often if operating continuously near an arbitrary
+        // finite threshold. This leaves the maximum-JS_malloc-bytes threshold
+        // still in effect to cause periodical, and we hope hygienic,
+        // last-ditch GCs from within the GC's allocator.
+        unsafe {
+            JS_SetGCParameter(js_runtime.ptr, JSGC_MAX_BYTES, u32::MAX);
+        }
+
         let js_context = js_runtime.cx();
         assert!({
             let ptr: *mut JSContext = (*js_context).ptr;
@@ -430,6 +456,9 @@ impl ScriptTask {
                 FromScript(ExitWindowMsg(id)) => self.handle_exit_window_msg(id),
                 FromConstellation(ResizeMsg(..)) => fail!("should have handled ResizeMsg already"),
                 FromScript(XHRProgressMsg(addr, progress)) => XMLHttpRequest::handle_xhr_progress(addr, progress),
+                FromScript(DOMMessage(..)) => fail!("unexpected message"),
+                FromScript(WorkerPostMessage(addr, data, nbytes)) => Worker::handle_message(addr, data, nbytes),
+                FromScript(WorkerRelease(addr)) => Worker::handle_release(addr),
             }
         }
 
@@ -452,7 +481,7 @@ impl ScriptTask {
         let new_page = {
             let window_size = parent_page.window_size.deref().get();
             Page::new(new_pipeline_id, Some(subpage_id),
-                      LayoutChan(layout_chan.as_ref::<Sender<layout_interface::Msg>>().unwrap().clone()),
+                      LayoutChan(layout_chan.downcast_ref::<Sender<layout_interface::Msg>>().unwrap().clone()),
                       window_size,
                       parent_page.resource_task.deref().clone(),
                       self.constellation_chan.clone(),

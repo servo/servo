@@ -69,7 +69,7 @@ impl AttrValue {
 #[deriving(Encodable)]
 pub struct Attr {
     reflector_: Reflector,
-    pub local_name: DOMString,
+    local_name: Atom,
     value: Traceable<RefCell<AttrValue>>,
     pub name: Atom,
     pub namespace: Namespace,
@@ -86,7 +86,7 @@ impl Reflectable for Attr {
 }
 
 impl Attr {
-    fn new_inherited(local_name: DOMString, value: AttrValue,
+    fn new_inherited(local_name: Atom, value: AttrValue,
                      name: Atom, namespace: Namespace,
                      prefix: Option<DOMString>, owner: &JSRef<Element>) -> Attr {
         Attr {
@@ -100,7 +100,7 @@ impl Attr {
         }
     }
 
-    pub fn new(window: &JSRef<Window>, local_name: DOMString, value: AttrValue,
+    pub fn new(window: &JSRef<Window>, local_name: Atom, value: AttrValue,
                name: Atom, namespace: Namespace,
                prefix: Option<DOMString>, owner: &JSRef<Element>) -> Temporary<Attr> {
         let attr = Attr::new_inherited(local_name, value, name, namespace, prefix, owner);
@@ -115,7 +115,9 @@ impl Attr {
         match set_type {
             ReplacedAttr => {
                 if namespace_is_null {
-                    vtable_for(node).before_remove_attr(self.local_name.clone(), self.value.deref().borrow().as_slice().to_string());
+                    vtable_for(node).before_remove_attr(
+                        self.local_name(),
+                        self.value.deref().borrow().as_slice().to_string());
                 }
             }
             FirstSetAttr => {}
@@ -124,18 +126,24 @@ impl Attr {
         *self.value.deref().borrow_mut() = value;
 
         if namespace_is_null {
-            vtable_for(node).after_set_attr(self.local_name.clone(), self.value.deref().borrow().as_slice().to_string());
+            vtable_for(node).after_set_attr(
+                self.local_name(),
+                self.value.deref().borrow().as_slice().to_string());
         }
     }
 
     pub fn value<'a>(&'a self) -> Ref<'a, AttrValue> {
         self.value.deref().borrow()
     }
+
+    pub fn local_name<'a>(&'a self) -> &'a Atom {
+        &self.local_name
+    }
 }
 
 impl<'a> AttrMethods for JSRef<'a, Attr> {
     fn LocalName(&self) -> DOMString {
-        self.local_name.clone()
+        self.local_name().as_slice().to_string()
     }
 
     fn Value(&self) -> DOMString {
@@ -145,7 +153,7 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
     fn SetValue(&self, value: DOMString) {
         let owner = self.owner.root();
         let value = owner.deref().parse_attribute(
-            &self.namespace, self.deref().local_name.as_slice(), value);
+            &self.namespace, self.local_name(), value);
         self.set_value(ReplacedAttr, value);
     }
 

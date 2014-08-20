@@ -72,7 +72,7 @@ impl<'a> URLSearchParamsMethods for JSRef<'a, URLSearchParams> {
     }
 
     fn Get(&self, name: DOMString) -> Option<DOMString> {
-        self.data.deref().borrow().find_equiv(&name).map(|v| v.get(0).clone())
+        self.data.deref().borrow().find_equiv(&name).map(|v| v[0].clone())
     }
 
     fn Has(&self, name: DOMString) -> bool {

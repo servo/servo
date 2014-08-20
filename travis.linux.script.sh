@@ -20,7 +20,7 @@ unit-doc)
       echo '<meta http-equiv=refresh content=0;url=servo/index.html>' > doc/index.html
       sudo pip install ghp-import
       ghp-import -n doc
-      git push -fq https://${TOKEN}@github.com/servo/doc.servo.org.git gh-pages
+      git push -f https://${TOKEN}@github.com/servo/doc.servo.org.git gh-pages
   fi
 ;;
 *) echo "Task $1 not enabled for Linux"

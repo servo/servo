@@ -41,7 +41,7 @@ extern crate servo_util = "util";
 extern crate style;
 extern crate sync;
 extern crate servo_msg = "msg";
-extern crate url = "url_";
+extern crate url;
 extern crate gfx;
 
 pub mod cors;
@@ -80,8 +80,8 @@ pub mod dom {
     pub mod browsercontext;
     pub mod canvasrenderingcontext2d;
     pub mod characterdata;
-    pub mod clientrect;
-    pub mod clientrectlist;
+    pub mod domrect;
+    pub mod domrectlist;
     pub mod comment;
     pub mod console;
     pub mod customevent;
@@ -191,6 +191,8 @@ pub mod dom {
     pub mod window;
     pub mod worker;
     pub mod workerglobalscope;
+    pub mod workerlocation;
+    pub mod workernavigator;
     pub mod xmlhttprequest;
     pub mod xmlhttprequesteventtarget;
     pub mod xmlhttprequestupload;

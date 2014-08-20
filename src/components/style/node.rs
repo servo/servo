@@ -18,6 +18,7 @@ pub trait TNode<E:TElement> : Clone {
     fn is_element(&self) -> bool;
     fn as_element(&self) -> E;
     fn match_attr(&self, attr: &AttrSelector, test: |&str| -> bool) -> bool;
+    fn is_html_element_in_html_document(&self) -> bool;
 }
 
 pub trait TElement {

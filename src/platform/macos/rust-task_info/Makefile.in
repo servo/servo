@@ -1,10 +1,10 @@
 VPATH=%VPATH%
 
-CC=gcc
+CC ?= gcc
 RUSTC ?= rustc
 AR ?= ar
 RUSTFLAGS ?=
-CFLAGS=-Wall
+CFLAGS += -Wall
 
 RUST_SRC = $(shell find $(VPATH)/. -type f -name '*.rs')
 

@@ -72,10 +72,6 @@ class Configuration:
                 getter = lambda x: x.interface.filename()
             elif key == 'hasInterfaceObject':
                 getter = lambda x: x.interface.hasInterfaceObject()
-            elif key == 'hasInterfacePrototypeObject':
-                getter = lambda x: x.interface.hasInterfacePrototypeObject()
-            elif key == 'hasInterfaceOrInterfacePrototypeObject':
-                getter = lambda x: x.hasInterfaceOrInterfacePrototypeObject()
             elif key == 'isCallback':
                 getter = lambda x: x.interface.isCallback()
             elif key == 'isJSImplemented':
@@ -257,9 +253,6 @@ class Descriptor(DescriptorProvider):
             parent = parent.parent
         config.maxProtoChainLength = max(config.maxProtoChainLength,
                                          len(self.prototypeChain))
-
-    def hasInterfaceOrInterfacePrototypeObject(self):
-        return self.interface.hasInterfaceObject() or self.interface.hasInterfacePrototypeObject()
 
     def getExtendedAttributes(self, member, getter=False, setter=False):
         def maybeAppendInfallibleToAttrs(attrs, throws):
