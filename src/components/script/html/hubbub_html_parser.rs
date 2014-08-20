@@ -30,6 +30,8 @@ use std::cell::RefCell;
 use std::comm::{channel, Sender, Receiver};
 use style::Stylesheet;
 use url::{Url, UrlParser};
+use http::headers::HeaderEnum;
+use time;
 
 macro_rules! handle_element(
     ($document: expr,
@@ -153,6 +155,31 @@ fn js_script_listener(to_parent: Sender<HtmlDiscoveryMessage>,
     }
 
     assert!(to_parent.send_opt(HtmlDiscoveredScript(result_vec)).is_ok());
+}
+
+// Parses an RFC 2616 compliant date/time string, and returns a localized
+// date/time string in a format suitable for document.lastModified.
+fn parse_last_modified(timestamp: String) -> String {
+    let format = "%m/%d/%Y %H:%M:%S";
+    let timestamp = timestamp.as_slice();
+
+    // RFC 822, updated by RFC 1123
+    match time::strptime(timestamp, "%a, %d %b %Y %T %Z") {
+        Ok(t) => return t.to_local().strftime(format),
+        Err(_) => ()
+    }
+
+    // RFC 850, obsoleted by RFC 1036
+    match time::strptime(timestamp, "%A, %d-%b-%y %T %Z") {
+        Ok(t) => return t.to_local().strftime(format),
+        Err(_) => ()
+    }
+
+    // ANSI C's asctime() format
+    match time::strptime(timestamp, "%c") {
+        Ok(t) => t.to_local().strftime(format),
+        Err(_) => String::from_str("")
+    }
 }
 
 // Silly macros to handle constructing      DOM nodes. This produces bad code and should be optimized
@@ -319,6 +346,20 @@ pub fn parse_html(page: &Page,
     let load_response = input_port.recv();
 
     debug!("Fetched page; metadata is {:?}", load_response.metadata);
+
+    // Set document.lastModified to the parsed Last-Modified header, defaulting
+    // to the current local time if the header was not sent.
+    document.set_last_modified(time::now().strftime("%m/%d/%Y %H:%M:%S"));
+
+    load_response.metadata.headers.and_then(|headers| {
+        for h in headers.iter() {
+            match h.header_name().as_slice() {
+                "Last-Modified" => document.set_last_modified(parse_last_modified(h.header_value())),
+                _ => {}
+            }
+        }
+        Some(())
+    });
 
     let base_url = &load_response.metadata.final_url;
 
