@@ -16,7 +16,6 @@ use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, ElementNodeTypeId, NodeHelpers, window_from_node};
 use dom::virtualmethods::VirtualMethods;
-
 use servo_net::image_cache_task;
 use servo_util::atom::Atom;
 use servo_util::geometry::to_px;
@@ -96,40 +95,28 @@ impl LayoutHTMLImageElementHelpers for JS<HTMLImageElement> {
 }
 
 impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
-    fn Alt(&self) -> DOMString {
-        let element: &JSRef<Element> = ElementCast::from_ref(self);
-        element.get_string_attribute("alt")
-    }
+    make_getter!(Alt)
 
     fn SetAlt(&self, alt: DOMString) {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
         element.set_string_attribute("alt", alt)
     }
 
-    fn Src(&self) -> DOMString {
-        let element: &JSRef<Element> = ElementCast::from_ref(self);
-        element.get_string_attribute("src")
-    }
+    make_getter!(Src)
 
     fn SetSrc(&self, src: DOMString) {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
         element.set_url_attribute("src", src)
     }
 
-    fn UseMap(&self) -> DOMString {
-        let element: &JSRef<Element> = ElementCast::from_ref(self);
-        element.get_string_attribute("useMap")
-    }
+    make_getter!(UseMap)
 
     fn SetUseMap(&self, use_map: DOMString) {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
         element.set_string_attribute("useMap", use_map)
     }
 
-    fn IsMap(&self) -> bool {
-        let element: &JSRef<Element> = ElementCast::from_ref(self);
-        from_str::<bool>(element.get_string_attribute("hspace").as_slice()).unwrap()
-    }
+    make_bool_getter!(IsMap)
 
     fn SetIsMap(&self, is_map: bool) {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
@@ -158,60 +145,42 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
         elem.set_uint_attribute("height", height)
     }
 
-    fn Name(&self) -> DOMString {
-        let element: &JSRef<Element> = ElementCast::from_ref(self);
-        element.get_string_attribute("name")
-    }
+    make_getter!(Name)
 
     fn SetName(&self, name: DOMString) {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
         element.set_string_attribute("name", name)
     }
 
-    fn Align(&self) -> DOMString {
-        let element: &JSRef<Element> = ElementCast::from_ref(self);
-        element.get_string_attribute("align")
-    }
+    make_getter!(Align)
 
     fn SetAlign(&self, align: DOMString) {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
         element.set_string_attribute("align", align)
     }
 
-    fn Hspace(&self) -> u32 {
-        let element: &JSRef<Element> = ElementCast::from_ref(self);
-        element.get_uint_attribute("hspace")
-    }
+    make_uint_getter!(Hspace)
 
     fn SetHspace(&self, hspace: u32) {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
         element.set_uint_attribute("hspace", hspace)
     }
 
-    fn Vspace(&self) -> u32 {
-        let element: &JSRef<Element> = ElementCast::from_ref(self);
-        element.get_uint_attribute("vspace")
-    }
+    make_uint_getter!(Vspace)
 
     fn SetVspace(&self, vspace: u32) {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
         element.set_uint_attribute("vspace", vspace)
     }
 
-    fn LongDesc(&self) -> DOMString {
-        let element: &JSRef<Element> = ElementCast::from_ref(self);
-        element.get_string_attribute("longdesc")
-    }
+    make_getter!(LongDesc)
 
     fn SetLongDesc(&self, longdesc: DOMString) {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
         element.set_string_attribute("longdesc", longdesc)
     }
 
-    fn Border(&self) -> DOMString {
-        let element: &JSRef<Element> = ElementCast::from_ref(self);
-        element.get_string_attribute("border")
-    }
+    make_getter!(Border)
 
     fn SetBorder(&self, border: DOMString) {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
