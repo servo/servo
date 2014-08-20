@@ -12,6 +12,7 @@ extern crate std;
 extern crate test;
 extern crate regex;
 
+use std::ascii::StrAsciiExt;
 use std::io;
 use std::io::{File, Reader, Command};
 use std::io::process::ExitStatus;
@@ -32,10 +33,10 @@ fn main() {
     let harness_args = parts.next().unwrap();  // .split() is never empty
     let servo_args = parts.next().unwrap_or(&[]);
 
-    let (render_mode_string, manifest, testname) = match harness_args {
-        [] | [_] => fail!("USAGE: cpu|gpu manifest [testname regex]"),
-        [ref render_mode_string, ref manifest] => (render_mode_string, manifest, None),
-        [ref render_mode_string, ref manifest, ref testname, ..] => (render_mode_string, manifest, Some(Regex::new(testname.as_slice()).unwrap())),
+    let (render_mode_string, base_path, testname) = match harness_args {
+        [] | [_] => fail!("USAGE: cpu|gpu base_path [testname regex]"),
+        [ref render_mode_string, ref base_path] => (render_mode_string, base_path, None),
+        [ref render_mode_string, ref base_path, ref testname, ..] => (render_mode_string, base_path, Some(Regex::new(testname.as_slice()).unwrap())),
     };
 
     let render_mode = match render_mode_string.as_slice() {
@@ -44,7 +45,24 @@ fn main() {
         _ => fail!("First argument must specify cpu or gpu as rendering mode")
     };
 
-    let tests = parse_lists(manifest, servo_args, render_mode);
+    let mut all_tests = vec!();
+    println!("Scanning {} for manifests\n", base_path);
+
+    for file in io::fs::walk_dir(&Path::new(base_path.as_slice())).unwrap() {
+        let maybe_extension = file.extension_str();
+        match maybe_extension {
+            Some(extension) => {
+                if extension.to_ascii_lower().as_slice() == "list" && file.is_file() {
+                    let manifest = file.as_str().unwrap();
+                    let tests = parse_lists(manifest, servo_args, render_mode);
+                    println!("\t{} [{} tests]", manifest, tests.len());
+                    all_tests.push_all_move(tests);
+                }
+            }
+            _ => {}
+        }
+    }
+
     let test_opts = TestOpts {
         filter: testname,
         run_ignored: false,
@@ -59,7 +77,7 @@ fn main() {
         color: AutoColor
     };
 
-    match run_tests_console(&test_opts, tests) {
+    match run_tests_console(&test_opts, all_tests) {
         Ok(false) => os::set_exit_status(1), // tests failed
         Err(_) => os::set_exit_status(2),    // I/O-related failure
         _ => (),
@@ -89,10 +107,10 @@ struct TestLine<'a> {
     file_right: &'a str,
 }
 
-fn parse_lists(file: &String, servo_args: &[String], render_mode: RenderMode) -> Vec<TestDescAndFn> {
+fn parse_lists(file: &str, servo_args: &[String], render_mode: RenderMode) -> Vec<TestDescAndFn> {
     let mut tests = Vec::new();
     let mut next_id = 0;
-    let file_path = Path::new(file.clone());
+    let file_path = Path::new(file);
     let contents = File::open_mode(&file_path, io::Open, io::Read)
                        .and_then(|mut f| f.read_to_string())
                        .ok().expect("Could not read file");
