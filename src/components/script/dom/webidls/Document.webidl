@@ -49,6 +49,7 @@ interface Document : Node {
 
 /* http://www.whatwg.org/specs/web-apps/current-work/#the-document-object */
 partial interface Document {
+  readonly attribute DOMString lastModified;
            [SetterThrows]
            attribute DOMString title;
            [SetterThrows]

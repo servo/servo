@@ -59,6 +59,7 @@ use std::collections::hashmap::HashMap;
 use std::ascii::StrAsciiExt;
 use std::cell::{Cell, RefCell};
 use url::Url;
+use time;
 
 #[deriving(PartialEq,Encodable)]
 pub enum IsHTMLDocument {
@@ -74,6 +75,7 @@ pub struct Document {
     idmap: Traceable<RefCell<HashMap<DOMString, Vec<JS<Element>>>>>,
     implementation: Cell<Option<JS<DOMImplementation>>>,
     content_type: DOMString,
+    last_modified: Traceable<RefCell<Option<DOMString>>>,
     pub encoding_name: Traceable<RefCell<DOMString>>,
     pub is_html_document: bool,
     url: Untraceable<Url>,
@@ -146,6 +148,7 @@ pub trait DocumentHelpers {
     fn url<'a>(&'a self) -> &'a Url;
     fn quirks_mode(&self) -> QuirksMode;
     fn set_quirks_mode(&self, mode: QuirksMode);
+    fn set_last_modified(&self, value: DOMString);
     fn set_encoding_name(&self, name: DOMString);
     fn content_changed(&self);
     fn damage_and_reflow(&self, damage: DocumentDamageLevel);
@@ -166,6 +169,10 @@ impl<'a> DocumentHelpers for JSRef<'a, Document> {
 
     fn set_quirks_mode(&self, mode: QuirksMode) {
         self.quirks_mode.deref().set(mode);
+    }
+
+    fn set_last_modified(&self, value: DOMString) {
+        *self.last_modified.deref().borrow_mut() = Some(value);
     }
 
     fn set_encoding_name(&self, name: DOMString) {
@@ -278,6 +285,7 @@ impl Document {
                     NonHTMLDocument => "application/xml".to_string()
                 }
             },
+            last_modified: Traceable::new(RefCell::new(None)),
             url: Untraceable::new(url),
             // http://dom.spec.whatwg.org/#concept-document-quirks
             quirks_mode: Untraceable::new(Cell::new(NoQuirks)),
@@ -566,6 +574,14 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             "customevent" => Ok(EventCast::from_temporary(CustomEvent::new_uninitialized(&Window(*window)))),
             "htmlevents" | "events" | "event" => Ok(Event::new_uninitialized(&Window(*window))),
             _ => Err(NotSupported)
+        }
+    }
+
+    // http://www.whatwg.org/html/#dom-document-lastmodified
+    fn LastModified(&self) -> DOMString {
+        match *self.last_modified.borrow() {
+            Some(ref t) => t.clone(),
+            None => time::now().strftime("%m/%d/%Y %H:%M:%S"),
         }
     }
 
