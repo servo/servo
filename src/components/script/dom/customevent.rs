@@ -45,7 +45,7 @@ impl CustomEvent {
     }
     pub fn new(global: &GlobalRef, type_: DOMString, bubbles: bool, cancelable: bool, detail: JSVal) -> Temporary<CustomEvent> {
         let ev = CustomEvent::new_uninitialized(global).root();
-        ev.deref().InitCustomEvent(global.get_cx(), type_, bubbles, cancelable, detail);
+        ev.InitCustomEvent(global.get_cx(), type_, bubbles, cancelable, detail);
         Temporary::from_rooted(&*ev)
     }
     pub fn Constructor(global: &GlobalRef,
@@ -57,7 +57,7 @@ impl CustomEvent {
 
 impl<'a> CustomEventMethods for JSRef<'a, CustomEvent> {
     fn Detail(&self, _cx: *mut JSContext) -> JSVal {
-        *self.detail.deref().get()
+        *self.detail.get()
     }
 
     fn InitCustomEvent(&self,
@@ -66,7 +66,7 @@ impl<'a> CustomEventMethods for JSRef<'a, CustomEvent> {
                        can_bubble: bool,
                        cancelable: bool,
                        detail: JSVal) {
-        self.detail.deref().set(Traceable::new(detail));
+        self.detail.set(Traceable::new(detail));
         let event: &JSRef<Event> = EventCast::from_ref(self);
         event.InitEvent(type_, can_bubble, cancelable);
     }

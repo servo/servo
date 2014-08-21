@@ -142,7 +142,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
 
     fn Location(&self) -> Temporary<Location> {
         if self.location.get().is_none() {
-            let page = self.deref().page.clone();
+            let page = self.page.clone();
             let location = Location::new(self, page);
             self.location.assign(Some(location));
         }
@@ -170,7 +170,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     }
 
     fn ClearTimeout(&self, handle: i32) {
-        let mut timers = self.active_timers.deref().borrow_mut();
+        let mut timers = self.active_timers.borrow_mut();
         let mut timer_handle = timers.pop(&TimerId(handle));
         match timer_handle {
             Some(ref mut handle) => handle.cancel(),
@@ -375,7 +375,7 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
     }
 
     fn init_browser_context(&self, doc: &JSRef<Document>) {
-        *self.browser_context.deref().borrow_mut() = Some(BrowserContext::new(doc));
+        *self.browser_context.borrow_mut() = Some(BrowserContext::new(doc));
     }
 
     /// Commence a new URL load which will either replace this window or scroll to a fragment.
@@ -396,7 +396,7 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
     fn handle_fire_timer(&self, timer_id: TimerId, cx: *mut JSContext) {
         let this_value = self.reflector().get_jsobject();
 
-        let data = match self.active_timers.deref().borrow().find(&timer_id) {
+        let data = match self.active_timers.borrow().find(&timer_id) {
             None => return,
             Some(timer_handle) => timer_handle.data,
         };
@@ -411,7 +411,7 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         });
 
         if !data.is_interval {
-            self.active_timers.deref().borrow_mut().remove(&timer_id);
+            self.active_timers.borrow_mut().remove(&timer_id);
         }
     }
 }
@@ -419,8 +419,8 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
 impl<'a> PrivateWindowHelpers for JSRef<'a, Window> {
     fn set_timeout_or_interval(&self, callback: JSVal, timeout: i32, is_interval: bool) -> i32 {
         let timeout = cmp::max(0, timeout) as u64;
-        let handle = self.next_timer_handle.deref().get();
-        self.next_timer_handle.deref().set(handle + 1);
+        let handle = self.next_timer_handle.get();
+        self.next_timer_handle.set(handle + 1);
 
         // Post a delayed message to the per-window timer task; it will dispatch it
         // to the relevant script handler that will deal with it.
@@ -471,7 +471,7 @@ impl<'a> PrivateWindowHelpers for JSRef<'a, Window> {
                 funval: Traceable::new(callback),
             }
         };
-        self.active_timers.deref().borrow_mut().insert(timer_id, timer);
+        self.active_timers.borrow_mut().insert(timer_id, timer);
         handle
     }
 }

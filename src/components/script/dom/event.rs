@@ -85,7 +85,7 @@ impl Event {
                can_bubble: bool,
                cancelable: bool) -> Temporary<Event> {
         let event = Event::new_uninitialized(global).root();
-        event.deref().InitEvent(type_, can_bubble, cancelable);
+        event.InitEvent(type_, can_bubble, cancelable);
         Temporary::from_rooted(&*event)
     }
 
@@ -98,11 +98,11 @@ impl Event {
 
 impl<'a> EventMethods for JSRef<'a, Event> {
     fn EventPhase(&self) -> u16 {
-        self.phase.deref().get() as u16
+        self.phase.get() as u16
     }
 
     fn Type(&self) -> DOMString {
-        self.type_.deref().borrow().clone()
+        self.type_.borrow().clone()
     }
 
     fn GetTarget(&self) -> Option<Temporary<EventTarget>> {
@@ -114,30 +114,30 @@ impl<'a> EventMethods for JSRef<'a, Event> {
     }
 
     fn DefaultPrevented(&self) -> bool {
-        self.canceled.deref().get()
+        self.canceled.get()
     }
 
     fn PreventDefault(&self) {
-        if self.cancelable.deref().get() {
-            self.canceled.deref().set(true)
+        if self.cancelable.get() {
+            self.canceled.set(true)
         }
     }
 
     fn StopPropagation(&self) {
-        self.stop_propagation.deref().set(true);
+        self.stop_propagation.set(true);
     }
 
     fn StopImmediatePropagation(&self) {
-        self.stop_immediate.deref().set(true);
-        self.stop_propagation.deref().set(true);
+        self.stop_immediate.set(true);
+        self.stop_propagation.set(true);
     }
 
     fn Bubbles(&self) -> bool {
-        self.bubbles.deref().get()
+        self.bubbles.get()
     }
 
     fn Cancelable(&self) -> bool {
-        self.cancelable.deref().get()
+        self.cancelable.get()
     }
 
     fn TimeStamp(&self) -> u64 {
@@ -148,22 +148,22 @@ impl<'a> EventMethods for JSRef<'a, Event> {
                  type_: DOMString,
                  bubbles: bool,
                  cancelable: bool) {
-        self.initialized.deref().set(true);
-        if self.dispatching.deref().get() {
+        self.initialized.set(true);
+        if self.dispatching.get() {
             return;
         }
-        self.stop_propagation.deref().set(false);
-        self.stop_immediate.deref().set(false);
-        self.canceled.deref().set(false);
-        self.trusted.deref().set(false);
+        self.stop_propagation.set(false);
+        self.stop_immediate.set(false);
+        self.canceled.set(false);
+        self.trusted.set(false);
         self.target.set(None);
-        *self.type_.deref().borrow_mut() = type_;
-        self.bubbles.deref().set(bubbles);
-        self.cancelable.deref().set(cancelable);
+        *self.type_.borrow_mut() = type_;
+        self.bubbles.set(bubbles);
+        self.cancelable.set(cancelable);
     }
 
     fn IsTrusted(&self) -> bool {
-        self.trusted.deref().get()
+        self.trusted.get()
     }
 }
 

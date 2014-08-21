@@ -78,14 +78,14 @@ impl EventTarget {
     }
 
     pub fn get_listeners(&self, type_: &str) -> Option<Vec<EventListener>> {
-        self.handlers.deref().borrow().find_equiv(&type_).map(|listeners| {
+        self.handlers.borrow().find_equiv(&type_).map(|listeners| {
             listeners.iter().map(|entry| entry.listener.get_listener()).collect()
         })
     }
 
     pub fn get_listeners_for(&self, type_: &str, desired_phase: ListenerPhase)
         -> Option<Vec<EventListener>> {
-        self.handlers.deref().borrow().find_equiv(&type_).map(|listeners| {
+        self.handlers.borrow().find_equiv(&type_).map(|listeners| {
             let filtered = listeners.iter().filter(|entry| entry.phase == desired_phase);
             filtered.map(|entry| entry.listener.get_listener()).collect()
         })
@@ -117,7 +117,7 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
     fn dispatch_event_with_target<'b>(&self,
                                       target: Option<JSRef<'b, EventTarget>>,
                                       event: &JSRef<Event>) -> Fallible<bool> {
-        if event.deref().dispatching.deref().get() || !event.deref().initialized.deref().get() {
+        if event.dispatching.get() || !event.initialized.get() {
             return Err(InvalidState);
         }
         Ok(dispatch_event(self, target, event))
@@ -126,7 +126,7 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
     fn set_inline_event_listener(&self,
                                  ty: DOMString,
                                  listener: Option<EventListener>) {
-        let mut handlers = self.handlers.deref().borrow_mut();
+        let mut handlers = self.handlers.borrow_mut();
         let entries = handlers.find_or_insert_with(ty, |_| vec!());
         let idx = entries.iter().position(|&entry| {
             match entry.listener {
@@ -156,7 +156,7 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
     }
 
     fn get_inline_event_listener(&self, ty: DOMString) -> Option<EventListener> {
-        let handlers = self.handlers.deref().borrow();
+        let handlers = self.handlers.borrow();
         let entries = handlers.find(&ty);
         entries.and_then(|entries| entries.iter().find(|entry| {
             match entry.listener {
@@ -219,7 +219,7 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
     }
 
     fn has_handlers(&self) -> bool {
-        !self.handlers.deref().borrow().is_empty()
+        !self.handlers.borrow().is_empty()
     }
 }
 
@@ -230,7 +230,7 @@ impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {
                         capture: bool) {
         match listener {
             Some(listener) => {
-                let mut handlers = self.handlers.deref().borrow_mut();
+                let mut handlers = self.handlers.borrow_mut();
                 let entry = handlers.find_or_insert_with(ty, |_| vec!());
                 let phase = if capture { Capturing } else { Bubbling };
                 let new_entry = EventListenerEntry {
@@ -251,7 +251,7 @@ impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {
                            capture: bool) {
         match listener {
             Some(listener) => {
-                let mut handlers = self.handlers.deref().borrow_mut();
+                let mut handlers = self.handlers.borrow_mut();
                 let mut entry = handlers.find_mut(&ty);
                 for entry in entry.mut_iter() {
                     let phase = if capture { Capturing } else { Bubbling };

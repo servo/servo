@@ -131,13 +131,13 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
         {
             // Step 4.
             let doc_html: Root<Node> = NodeCast::from_temporary(HTMLHtmlElement::new("html".to_string(), &*doc)).root();
-            let doc_html = doc_html.deref();
+            let doc_html = &*doc_html;
             assert!(doc_node.AppendChild(doc_html).is_ok());
 
             {
                 // Step 5.
                 let doc_head: Root<Node> = NodeCast::from_temporary(HTMLHeadElement::new("head".to_string(), &*doc)).root();
-                let doc_head = doc_head.deref();
+                let doc_head = &*doc_head;
                 assert!(doc_html.AppendChild(doc_head).is_ok());
 
                 // Step 6.
@@ -146,12 +146,12 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
                     Some(title_str) => {
                         // Step 6.1.
                         let doc_title: Root<Node> = NodeCast::from_temporary(HTMLTitleElement::new("title".to_string(), &*doc)).root();
-                        let doc_title = doc_title.deref();
+                        let doc_title = &*doc_title;
                         assert!(doc_head.AppendChild(doc_title).is_ok());
 
                         // Step 6.2.
                         let title_text: Root<Text> = Text::new(title_str, &*doc).root();
-                        let title_text = title_text.deref();
+                        let title_text = &*title_text;
                         assert!(doc_title.AppendChild(NodeCast::from_ref(title_text)).is_ok());
                     }
                 }
@@ -159,7 +159,7 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
 
             // Step 7.
             let doc_body: Root<HTMLBodyElement> = HTMLBodyElement::new("body".to_string(), &*doc).root();
-            let doc_body = doc_body.deref();
+            let doc_body = &*doc_body;
             assert!(doc_html.AppendChild(NodeCast::from_ref(doc_body)).is_ok());
         }
 

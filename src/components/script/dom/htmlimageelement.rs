@@ -47,17 +47,17 @@ impl<'a> PrivateHTMLImageElementHelpers for JSRef<'a, HTMLImageElement> {
     fn update_image(&self, value: Option<(DOMString, &Url)>) {
         let node: &JSRef<Node> = NodeCast::from_ref(self);
         let document = node.owner_doc().root();
-        let window = document.deref().window.root();
+        let window = document.window.root();
         let image_cache = &window.image_cache_task;
         match value {
             None => {
-                *self.image.deref().borrow_mut() = None;
+                *self.image.borrow_mut() = None;
             }
             Some((src, base_url)) => {
                 let img_url = UrlParser::new().base_url(base_url).parse(src.as_slice());
                 // FIXME: handle URL parse errors more gracefully.
                 let img_url = img_url.unwrap();
-                *self.image.deref().borrow_mut() = Some(img_url.clone());
+                *self.image.borrow_mut() = Some(img_url.clone());
 
                 // inform the image cache to load this, but don't store a
                 // handle.
@@ -202,7 +202,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLImageElement> {
 
         if "src" == name.as_slice() {
             let window = window_from_node(self).root();
-            let url = window.deref().get_url();
+            let url = window.get_url();
             self.update_image(Some((value, &url)));
         }
     }

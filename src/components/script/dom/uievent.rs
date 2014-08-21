@@ -52,7 +52,7 @@ impl UIEvent {
                view: Option<JSRef<Window>>,
                detail: i32) -> Temporary<UIEvent> {
         let ev = UIEvent::new_uninitialized(window).root();
-        ev.deref().InitUIEvent(type_, can_bubble, cancelable, view, detail);
+        ev.InitUIEvent(type_, can_bubble, cancelable, view, detail);
         Temporary::from_rooted(&*ev)
     }
 
@@ -72,7 +72,7 @@ impl<'a> UIEventMethods for JSRef<'a, UIEvent> {
     }
 
     fn Detail(&self) -> i32 {
-        self.detail.deref().get()
+        self.detail.get()
     }
 
     fn InitUIEvent(&self,
@@ -84,7 +84,7 @@ impl<'a> UIEventMethods for JSRef<'a, UIEvent> {
         let event: &JSRef<Event> = EventCast::from_ref(self);
         event.InitEvent(type_, can_bubble, cancelable);
         self.view.assign(view);
-        self.detail.deref().set(detail);
+        self.detail.set(detail);
     }
 }
 

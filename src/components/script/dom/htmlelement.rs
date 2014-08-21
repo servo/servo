@@ -74,7 +74,7 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
     fn GetOnload(&self) -> Option<EventHandlerNonNull> {
         if self.is_body_or_frameset() {
             let win = window_from_node(self).root();
-            win.deref().GetOnload()
+            win.GetOnload()
         } else {
             None
         }
@@ -83,7 +83,7 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
     fn SetOnload(&self, listener: Option<EventHandlerNonNull>) {
         if self.is_body_or_frameset() {
             let win = window_from_node(self).root();
-            win.deref().SetOnload(listener)
+            win.SetOnload(listener)
         }
     }
 }

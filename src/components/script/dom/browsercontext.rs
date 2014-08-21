@@ -40,26 +40,26 @@ impl BrowserContext {
 
     pub fn active_window(&self) -> Temporary<Window> {
         let doc = self.active_document().root();
-        Temporary::new(doc.deref().window.clone())
+        Temporary::new(doc.window.clone())
     }
 
     pub fn window_proxy(&self) -> *mut JSObject {
-        assert!(self.window_proxy.deref().is_not_null());
+        assert!(self.window_proxy.is_not_null());
         *self.window_proxy
     }
 
     fn create_window_proxy(&mut self) {
         let win = self.active_window().root();
-        let page = win.deref().page();
+        let page = win.page();
         let js_info = page.js_info();
 
         let handler = js_info.get_ref().dom_static.windowproxy_handler;
-        assert!(handler.deref().is_not_null());
+        assert!(handler.is_not_null());
 
-        let parent = win.deref().reflector().get_jsobject();
-        let cx = js_info.get_ref().js_context.deref().deref().ptr;
+        let parent = win.reflector().get_jsobject();
+        let cx = js_info.get_ref().js_context.ptr;
         let wrapper = with_compartment(cx, parent, || unsafe {
-            WrapperNew(cx, parent, *handler.deref())
+            WrapperNew(cx, parent, *handler)
         });
         assert!(wrapper.is_not_null());
         self.window_proxy = Traceable::new(wrapper);

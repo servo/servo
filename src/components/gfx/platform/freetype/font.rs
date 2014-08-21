@@ -75,7 +75,7 @@ impl FontHandleMethods for FontHandle {
         let ft_ctx: FT_Library = fctx.ctx.ctx;
         if ft_ctx.is_null() { return Err(()); }
 
-        let bytes = &template.deref().bytes;
+        let bytes = &template.bytes;
         let face_result = create_face_from_buffer(ft_ctx, bytes.as_ptr(), bytes.len(), pt_size);
 
         // TODO: this could be more simply written as result::chain

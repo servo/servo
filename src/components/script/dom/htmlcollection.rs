@@ -127,11 +127,11 @@ impl HTMLCollection {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
                 let ns_match = match self.namespace_filter {
                     Some(ref namespace) => {
-                        elem.deref().namespace == *namespace
+                        elem.namespace == *namespace
                     },
                     None => true
                 };
-                ns_match && elem.deref().local_name == self.tag
+                ns_match && elem.local_name == self.tag
             }
         }
         let filter = TagNameNSFilter {
@@ -175,7 +175,7 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
             Static(ref elems) => elems.len() as u32,
             Live(ref root, ref filter) => {
                 let root = root.root();
-                root.deref().traverse_preorder()
+                root.traverse_preorder()
                     .filter(|&child| {
                         let elem: Option<&JSRef<Element>> = ElementCast::to_ref(&child);
                         elem.map_or(false, |elem| filter.filter(elem, &*root))
@@ -193,7 +193,7 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
                 .map(|elem| Temporary::new(elem.clone())),
             Live(ref root, ref filter) => {
                 let root = root.root();
-                root.deref().traverse_preorder()
+                root.traverse_preorder()
                     .filter_map(|node| {
                         let elem: Option<&JSRef<Element>> = ElementCast::to_ref(&node);
                         elem.filtered(|&elem| filter.filter(elem, &*root))
@@ -223,7 +223,7 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
                 .map(|maybe_elem| Temporary::from_rooted(&*maybe_elem)),
             Live(ref root, ref filter) => {
                 let root = root.root();
-                root.deref().traverse_preorder()
+                root.traverse_preorder()
                     .filter_map(|node| {
                         let elem: Option<&JSRef<Element>> = ElementCast::to_ref(&node);
                         elem.filtered(|&elem| filter.filter(elem, &*root))

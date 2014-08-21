@@ -117,23 +117,23 @@ impl Attr {
                 if namespace_is_null {
                     vtable_for(node).before_remove_attr(
                         self.local_name(),
-                        self.value.deref().borrow().as_slice().to_string());
+                        self.value.borrow().as_slice().to_string());
                 }
             }
             FirstSetAttr => {}
         }
 
-        *self.value.deref().borrow_mut() = value;
+        *self.value.borrow_mut() = value;
 
         if namespace_is_null {
             vtable_for(node).after_set_attr(
                 self.local_name(),
-                self.value.deref().borrow().as_slice().to_string());
+                self.value.borrow().as_slice().to_string());
         }
     }
 
     pub fn value<'a>(&'a self) -> Ref<'a, AttrValue> {
-        self.value.deref().borrow()
+        self.value.borrow()
     }
 
     pub fn local_name<'a>(&'a self) -> &'a Atom {
@@ -147,12 +147,12 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
     }
 
     fn Value(&self) -> DOMString {
-        self.value.deref().borrow().as_slice().to_string()
+        self.value.borrow().as_slice().to_string()
     }
 
     fn SetValue(&self, value: DOMString) {
         let owner = self.owner.root();
-        let value = owner.deref().parse_attribute(
+        let value = owner.parse_attribute(
             &self.namespace, self.local_name(), value);
         self.set_value(ReplacedAttr, value);
     }
@@ -181,13 +181,13 @@ pub trait AttrHelpersForLayout {
 impl AttrHelpersForLayout for Attr {
     unsafe fn value_ref_forever(&self) -> &'static str {
         // cast to point to T in RefCell<T> directly
-        let value = mem::transmute::<&RefCell<AttrValue>, &AttrValue>(self.value.deref());
+        let value = mem::transmute::<&RefCell<AttrValue>, &AttrValue>(&*self.value);
         value.as_slice()
     }
 
     unsafe fn value_atom_forever(&self) -> Option<Atom> {
         // cast to point to T in RefCell<T> directly
-        let value = mem::transmute::<&RefCell<AttrValue>, &AttrValue>(self.value.deref());
+        let value = mem::transmute::<&RefCell<AttrValue>, &AttrValue>(&*self.value);
         match *value {
             AtomAttrValue(ref val) => Some(val.clone()),
             _ => None,
