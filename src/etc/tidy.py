@@ -48,7 +48,6 @@ exceptions = [
     # Upstream
     "src/support",
     "src/platform",
-    "src/compiler",
     "src/test/wpt/web-platform-tests",
 
     # Generated and upstream code combined with our own. Could use cleanup
