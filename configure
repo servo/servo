@@ -490,7 +490,7 @@ then
     cd ${CFG_SRC_DIR}
 
     msg "git: submodule sync"
-    "${CFG_GIT}" submodule --quiet sync
+    "${CFG_GIT}" submodule --quiet sync --recursive
 
     # NB: this is just for the sake of getting the submodule SHA1 values
     # and status written into the build log.
@@ -498,14 +498,6 @@ then
     "${CFG_GIT}" submodule status --recursive
 
     msg "git: submodule update"
-    "${CFG_GIT}" submodule update --init
-    need_ok "git failed"
-
-    msg "git: submodule foreach sync"
-    "${CFG_GIT}" submodule foreach --recursive 'if test -e .gitmodules; then git submodule sync; fi'
-    need_ok "git failed"
-
-    msg "git: submodule foreach update"
     "${CFG_GIT}" submodule update --init --recursive
     need_ok "git failed"
 
