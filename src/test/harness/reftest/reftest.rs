@@ -21,10 +21,17 @@ use test::{AutoColor, DynTestName, DynTestFn, TestDesc, TestOpts, TestDescAndFn}
 use test::run_tests_console;
 use regex::Regex;
 
-enum RenderMode {
-  CpuRendering = 1,
-  GpuRendering = 2,
-}
+
+bitflags!(
+    flags RenderMode: u32 {
+        static CpuRendering  = 0x00000001,
+        static GpuRendering  = 0x00000010,
+        static LinuxTarget   = 0x00000100,
+        static MacOsTarget   = 0x00001000,
+        static AndroidTarget = 0x00010000
+    }
+)
+
 
 fn main() {
     let args = os::args();
@@ -39,11 +46,20 @@ fn main() {
         [ref render_mode_string, ref base_path, ref testname, ..] => (render_mode_string, base_path, Some(Regex::new(testname.as_slice()).unwrap())),
     };
 
-    let render_mode = match render_mode_string.as_slice() {
+    let mut render_mode = match render_mode_string.as_slice() {
         "cpu" => CpuRendering,
         "gpu" => GpuRendering,
         _ => fail!("First argument must specify cpu or gpu as rendering mode")
     };
+    if cfg!(target_os = "linux") {
+        render_mode.insert(LinuxTarget);
+    }
+    if cfg!(target_os = "macos") {
+        render_mode.insert(MacOsTarget);
+    }
+    if cfg!(target_os = "android") {
+        render_mode.insert(AndroidTarget);
+    }
 
     let mut all_tests = vec!();
     println!("Scanning {} for manifests\n", base_path);
@@ -97,7 +113,7 @@ struct Reftest {
     id: uint,
     servo_args: Vec<String>,
     render_mode: RenderMode,
-    flakiness: uint,
+    is_flaky: bool,
 }
 
 struct TestLine<'a> {
@@ -150,23 +166,25 @@ fn parse_lists(file: &str, servo_args: &[String], render_mode: RenderMode) -> Ve
         let file_right = src_dir.append("/").append(test_line.file_right);
 
         let mut conditions_list = test_line.conditions.split(',');
-        let mut flakiness = 0;
+        let mut flakiness = RenderMode::empty();
         for condition in conditions_list {
             match condition {
-                "flaky_cpu" => flakiness |= CpuRendering as uint,
-                "flaky_gpu" => flakiness |= GpuRendering as uint,
+                "flaky_cpu" => flakiness.insert(CpuRendering),
+                "flaky_gpu" => flakiness.insert(GpuRendering),
+                "flaky_linux" => flakiness.insert(LinuxTarget),
+                "flaky_macos" => flakiness.insert(MacOsTarget),
                 _ => (),
             }
         }
 
         let reftest = Reftest {
-            name: test_line.file_left.to_string().append(" / ").append(test_line.file_right),
+            name: format!("{} {} {}", test_line.file_left, test_line.kind, test_line.file_right),
             kind: kind,
             files: [file_left, file_right],
             id: next_id,
             render_mode: render_mode,
             servo_args: servo_args.iter().map(|x| x.clone()).collect(),
-            flakiness: flakiness,
+            is_flaky: render_mode.intersects(flakiness),
         };
 
         next_id += 1;
@@ -193,9 +211,9 @@ fn make_test(reftest: Reftest) -> TestDescAndFn {
 fn capture(reftest: &Reftest, side: uint) -> png::Image {
     let filename = format!("/tmp/servo-reftest-{:06u}-{:u}.png", reftest.id, side);
     let mut args = reftest.servo_args.clone();
-    match reftest.render_mode {
-        CpuRendering => args.push("-c".to_string()),
-        _ => {}   // GPU rendering is the default
+    // GPU rendering is the default
+    if reftest.render_mode.contains(CpuRendering) {
+        args.push("-c".to_string());
     }
     args.push_all_move(vec!("-f".to_string(), "-o".to_string(), filename.clone(), reftest.files[side].clone()));
 
@@ -225,8 +243,6 @@ fn check_reftest(reftest: Reftest) {
         }
     }).collect::<Vec<u8>>();
 
-    let test_is_flaky = (reftest.render_mode as uint & reftest.flakiness) != 0;
-
     if pixels.iter().any(|&a| a < 255) {
         let output_str = format!("/tmp/servo-reftest-{:06u}-diff.png", reftest.id);
         let output = from_str::<Path>(output_str.as_slice()).unwrap();
@@ -240,12 +256,12 @@ fn check_reftest(reftest: Reftest) {
         let res = png::store_png(&mut img, &output);
         assert!(res.is_ok());
 
-        match (reftest.kind, test_is_flaky) {
+        match (reftest.kind, reftest.is_flaky) {
             (Same, true) => println!("flaky test - rendering difference: {}", output_str),
             (Same, false) => fail!("rendering difference: {}", output_str),
             (Different, _) => {}   // Result was different and that's what was expected
         }
     } else {
-        assert!(test_is_flaky || reftest.kind == Same);
+        assert!(reftest.is_flaky || reftest.kind == Same);
     }
 }
