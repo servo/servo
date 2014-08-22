@@ -68,9 +68,6 @@
 [submodule "src/support/skia/skia"]
 	path = src/support/skia/skia
 	url = https://github.com/servo/skia.git
-[submodule "src/compiler/rust"]
-	path = src/compiler/rust
-	url = https://github.com/servo/rust.git
 [submodule "src/support/alert/rust-alert"]
 	path = src/support/alert/rust-alert
 	url = https://github.com/servo/rust-alert.git

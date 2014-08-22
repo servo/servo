@@ -339,7 +339,7 @@ CFG_PATH=$PATH
 
 if [ -n "$CFG_DISABLE_MANAGE_SUBMODULES" ]
 then
-    if git status $CFG_SRC_DIR/src/compiler $CFG_SRC_DIR/src/support $CFG_SRC_DIR/src/platform \
+    if git status $CFG_SRC_DIR/src/support $CFG_SRC_DIR/src/platform \
         | grep -q 'modified:.*modified content'; then
         err "Some submodule has a dirty working tree.  See 'git status'."
     fi
@@ -369,7 +369,6 @@ opt manage-submodules 1 "let the build manage the git submodules"
 opt fast-make 0 "use .gitmodules as timestamp for submodule deps"
 opt debug 0 "build with debugging code and symbols"
 opt debug-skia 0 "build Skia and Azure for debugging (significant performance hit)"
-opt tree-rust 0 "build in-tree rust compiler"
 valopt local-rust-root "" "set prefix for local rust binary"
 valopt target "${DEFAULT_TARGET}" "target to be compiled"
 valopt android-cross-path "/opt/ndk_standalone" "Android NDK cross compiler path"
@@ -382,11 +381,6 @@ if [ $HELP -eq 1 ]
 then
     echo ""
     exit 0
-fi
-
-if [ ! -z "$CFG_ENABLE_TREE_RUST" -a ! -z "$CFG_LOCAL_RUST_ROOT" ]
-then
-    err "Specify at most one of --enable-tree-rust and --local-rust-root."
 fi
 
 # Split target triple
@@ -459,19 +453,12 @@ then
         err "No rustc found at ${CFG_LOCAL_RUST_ROOT}/bin/rustc"
     fi
 else
-    if [ -z "$CFG_ENABLE_TREE_RUST" ]
-    then
-        step_msg "Using binary Rust snapshot"
-        make_dir ${CFG_BUILD_DIR}/rust_snapshot
-        CFG_SNAPSHOT_RUSTC=1
-        SNAPSHOT_VERSION=$(cat ${CFG_SRC_DIR}/src/compiler/rust-snapshot-hash | rev | cut -d/ -f1 | rev)
-        CFG_LOCAL_RUST_ROOT=${CFG_BUILD_DIR}rust_snapshot/${SNAPSHOT_VERSION}-${DEFAULT_TARGET}
-        CFG_RUST_HOME=${CFG_LOCAL_RUST_ROOT}
-    else
-        step_msg "using in-tree rust compiler"
-        # The Rust compiler we're going to build
-        CFG_RUST_HOME="${CFG_BUILD_DIR}src/compiler/rust/${DEFAULT_TARGET}/stage2"
-    fi
+    step_msg "Using binary Rust snapshot"
+    make_dir ${CFG_BUILD_DIR}/rust_snapshot
+    CFG_SNAPSHOT_RUSTC=1
+    SNAPSHOT_VERSION=$(cat ${CFG_SRC_DIR}/rust-snapshot-hash | rev | cut -d/ -f1 | rev)
+    CFG_LOCAL_RUST_ROOT=${CFG_BUILD_DIR}rust_snapshot/${SNAPSHOT_VERSION}-${DEFAULT_TARGET}
+    CFG_RUST_HOME=${CFG_LOCAL_RUST_ROOT}
 fi
 
 CFG_RUSTC=${CFG_RUST_HOME}/bin/rustc
@@ -612,7 +599,6 @@ putvar CFG_PATH
 putvar CFG_SNAPSHOT_RUSTC
 putvar CFG_LOCAL_RUSTC
 putvar CFG_LOCAL_RUST_ROOT
-putvar CFG_ENABLE_TREE_RUST
 putvar CFG_ENABLE_DEBUG
 putvar CFG_ENABLE_DEBUG_SKIA
 
@@ -648,36 +634,10 @@ make_dir ${CFG_BUILD_DIR}src/components/script_traits
 make_dir ${CFG_BUILD_DIR}src/components/style
 make_dir ${CFG_BUILD_DIR}src/components/main
 make_dir src/test/html/ref
-make_dir src/compiler/rust
 
 # TODO: don't run configure on submodules unless necessary. For an example,
 # see how Rust's configure script optionally reconfigures the LLVM module.
 step_msg "running submodule configure scripts"
-
-# Only reconfigure Rust when it changes
-do_reconfigure=1
-index1="${CFG_SRC_DIR}.git/modules/src/compiler/rust/index"
-index2="${CFG_SRC_DIR}src/compiler/rust/.git/index"
-for index in ${index1} ${index2}
-do
-    config_stamp="${CFG_BUILD_DIR}src/compiler/rust/config.stamp"
-    if test -e ${index} -a -e ${config_stamp} -a ${config_stamp} -nt ${index}
-    then
-        msg "not reconfiguring Rust, config.stamp is fresh"
-        do_reconfigure=0
-    fi
-done
-
-if [ -z "$CFG_LOCAL_RUST_ROOT" -a ${do_reconfigure} -ne 0 ]
-then
-    cd ${CFG_BUILD_DIR}src/compiler/rust
-    RUST_CONFIGURE_ARGS="--target=${CFG_TARGET} --enable-debug"
-    if [ $CFG_OSTYPE = "linux-androideabi" ]; then
-        RUST_CONFIGURE_ARGS="${RUST_CONFIGURE_ARGS} --android-cross-path=${CFG_ANDROID_CROSS_PATH}"
-    fi
-    ${CFG_SRC_DIR}src/compiler/rust/configure ${RUST_CONFIGURE_ARGS}
-    cd ${CFG_BUILD_DIR}
-fi
 
 # fontconfig expects to use an installed freetype, but we want to use our version on Android
 if [ $CFG_OSTYPE = "linux-androideabi" ]
