@@ -49,8 +49,11 @@ Cross-compilation for Android:
 Basically, pre-installed Android tools are needed.
 See wiki for [details](https://github.com/mozilla/servo/wiki/Building-for-Android)
 
+## The Rust compiler
+
 Servo builds its own copy of Rust, so there is no need to provide a Rust
 compiler.
+If you'd like to know the snapshot revision of Rust which we use, see `./rust-snapshot-hash`.
 
 ## Building
 

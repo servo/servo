@@ -8,10 +8,6 @@ crate or library.
 * `components/net`: Networking, caching, image decoding.
 * `components/util`: Various utility functions used by other Servo components.
 
-## The Rust compiler
-
-* `compiler/rust`: The Rust compiler.
-
 ## Supporting libraries
 
 These libraries are used in all Servo ports. In keeping with Servo's philosophy of modularity,
