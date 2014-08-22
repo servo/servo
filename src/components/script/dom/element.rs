@@ -19,7 +19,7 @@ use dom::bindings::error::{ErrorResult, Fallible, NamespaceError, InvalidCharact
 use dom::bindings::utils::{QName, Name, InvalidXMLName, xml_name_type};
 use dom::domrect::DOMRect;
 use dom::domrectlist::DOMRectList;
-use dom::document::{Document, DocumentHelpers};
+use dom::document::{Document, DocumentHelpers, NodeChange, ElemAttrInserted, ElemAttrRemoved};
 use dom::domtokenlist::DOMTokenList;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlcollection::HTMLCollection;
@@ -28,8 +28,6 @@ use dom::node::{ElementNodeTypeId, Node, NodeHelpers, NodeIterator, document_fro
 use dom::node::{window_from_node, LayoutNodeHelpers};
 use dom::nodelist::NodeList;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
-use layout_interface::ContentChangedDocumentDamage;
-use layout_interface::MatchSelectorsDocumentDamage;
 use style::{matches, parse_selector_list_from_str};
 use style;
 use servo_util::atom::Atom;
@@ -249,7 +247,6 @@ pub trait AttributeHandlers {
                        value: DOMString) -> AttrValue;
 
     fn remove_attribute(&self, namespace: Namespace, name: &str);
-    fn notify_attribute_changed(&self, local_name: &Atom);
     fn has_class(&self, name: &str) -> bool;
 
     fn set_atomic_attribute(&self, name: &str, value: DOMString);
@@ -355,18 +352,6 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
                 self.deref().attrs.borrow_mut().remove(index);
             },
             _ => ()
-        }
-    }
-
-    fn notify_attribute_changed(&self, local_name: &Atom) {
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
-        if node.is_in_doc() {
-            let damage = match local_name.as_slice() {
-                "style" | "id" | "class" => MatchSelectorsDocumentDamage,
-                _ => ContentChangedDocumentDamage
-            };
-            let document = node.owner_doc().root();
-            document.deref().damage_and_reflow(damage);
         }
     }
 
@@ -809,6 +794,8 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
 
         let name = attr.local_name();
         let value = attr.value();
+        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let is_in_doc = node.is_in_doc();
         match name.as_slice() {
             "style" => {
                 let doc = document_from_node(self).root();
@@ -817,8 +804,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
                 *self.deref().style_attribute.deref().borrow_mut() = style;
             }
             "id" => {
-                let node: &JSRef<Node> = NodeCast::from_ref(self);
-                if node.is_in_doc() && !value.as_slice().is_empty() {
+                if is_in_doc && !value.as_slice().is_empty() {
                     let doc = document_from_node(self).root();
                     doc.register_named_element(self, value.as_slice().to_string());
                 }
@@ -826,7 +812,10 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
             _ => ()
         }
 
-        self.notify_attribute_changed(name);
+        if is_in_doc {
+            let document = node.owner_doc().root();
+            document.deref().content_changed(&NodeChange(ElemAttrInserted(attr)));
+        }
     }
 
     fn before_remove_attr<'a>(&self, attr: &JSRef<'a, Attr>) {
@@ -837,13 +826,14 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
 
         let name = attr.local_name();
         let value = attr.value();
+        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let is_in_doc = node.is_in_doc();
         match name.as_slice() {
             "style" => {
                 *self.deref().style_attribute.deref().borrow_mut() = None;
             }
             "id" => {
-                let node: &JSRef<Node> = NodeCast::from_ref(self);
-                if node.is_in_doc() && !value.as_slice().is_empty() {
+                if is_in_doc && !value.as_slice().is_empty() {
                     let doc = document_from_node(self).root();
                     doc.unregister_named_element(self, value.as_slice().to_string());
                 }
@@ -851,7 +841,10 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
             _ => ()
         }
 
-        self.notify_attribute_changed(name);
+        if is_in_doc {
+            let document = node.owner_doc().root();
+            document.deref().content_changed(&NodeChange(ElemAttrRemoved(attr)));
+        }
     }
 
     fn parse_plain_attribute(&self, name: &str, value: DOMString) -> AttrValue {
