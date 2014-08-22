@@ -124,22 +124,14 @@ impl<'a> AttrHelpers for JSRef<'a, Attr> {
         let namespace_is_null = self.namespace == namespace::Null;
 
         match set_type {
-            ReplacedAttr => {
-                if namespace_is_null {
-                    vtable_for(node).before_remove_attr(
-                        self.local_name(),
-                        self.value().as_slice().to_string())
-                }
-            }
-            FirstSetAttr => {}
+            ReplacedAttr if namespace_is_null => vtable_for(node).before_remove_attr(self),
+            _ => ()
         }
 
         *self.value.deref().borrow_mut() = value;
 
         if namespace_is_null {
-            vtable_for(node).after_set_attr(
-                self.local_name(),
-                self.value().as_slice().to_string())
+            vtable_for(node).after_set_attr(self)
         }
     }
 

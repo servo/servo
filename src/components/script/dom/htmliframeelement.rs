@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::AttrHelpers;
+use dom::attr::{Attr, AttrHelpers};
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast};
@@ -23,7 +23,6 @@ use page::IterablePage;
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use servo_msg::constellation_msg::{IFrameSandboxed, IFrameUnsandboxed};
 use servo_msg::constellation_msg::{ConstellationChan, LoadIframeUrlMsg};
-use servo_util::atom::Atom;
 use servo_util::namespace::Null;
 use servo_util::str::DOMString;
 
@@ -166,15 +165,16 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, name: &Atom, value: DOMString) {
+    fn after_set_attr<'a>(&self, attr: &JSRef<'a, Attr>) {
         match self.super_type() {
-            Some(ref s) => s.after_set_attr(name, value.clone()),
+            Some(ref s) => s.after_set_attr(attr),
             _ => (),
         }
 
-        if "sandbox" == name.as_slice() {
+        let name = attr.local_name().as_slice();
+        if "sandbox" == name {
             let mut modes = AllowNothing as u8;
-            for word in value.as_slice().split(' ') {
+            for word in attr.value().as_slice().split(' ') {
                 modes |= match word.to_ascii_lower().as_slice() {
                     "allow-same-origin" => AllowSameOrigin,
                     "allow-forms" => AllowForms,
@@ -188,7 +188,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
             self.deref().sandbox.deref().set(Some(modes));
         }
 
-        if "src" == name.as_slice() {
+        if "src" == name {
             let node: &JSRef<Node> = NodeCast::from_ref(self);
             if node.is_in_doc() {
                 self.process_the_iframe_attributes()
@@ -196,13 +196,13 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
         }
     }
 
-    fn before_remove_attr(&self, name: &Atom, value: DOMString) {
+    fn before_remove_attr<'a>(&self, attr: &JSRef<'a, Attr>) {
         match self.super_type() {
-            Some(ref s) => s.before_remove_attr(name, value),
+            Some(ref s) => s.before_remove_attr(attr),
             _ => (),
         }
 
-        if "sandbox" == name.as_slice() {
+        if "sandbox" == attr.local_name().as_slice() {
             self.deref().sandbox.deref().set(None);
         }
     }
