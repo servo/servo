@@ -103,3 +103,5 @@ experimental == vertical-lr-blocks.html vertical-lr-blocks_ref.html
 # FIXME: use the real test when pixel-snapping for scrolling is fixed.
 #== ../html/acid2.html#top acid2_ref_broken.html
 flaky_gpu,flaky_linux == acid2_noscroll.html acid2_ref_broken.html
+
+!= inline_background_a.html inline_background_ref.html

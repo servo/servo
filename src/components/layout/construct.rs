@@ -32,7 +32,7 @@ use fragment::{ImageFragment, ImageFragmentInfo, SpecificFragmentInfo, TableFrag
 use fragment::{TableCellFragment, TableColumnFragment, TableColumnFragmentInfo};
 use fragment::{TableRowFragment, TableWrapperFragment, UnscannedTextFragment};
 use fragment::{UnscannedTextFragmentInfo};
-use inline::{FragmentIndex, InlineFragments, InlineFlow};
+use inline::{InlineFragments, InlineFlow};
 use parallel;
 use table_wrapper::TableWrapperFlow;
 use table::TableFlow;
@@ -57,7 +57,6 @@ use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, ProcessingInstruc
 use script::dom::node::{TextNodeTypeId};
 use script::dom::htmlobjectelement::is_image_data;
 use servo_util::namespace;
-use servo_util::range::Range;
 use std::mem;
 use std::sync::atomics::Relaxed;
 use style::ComputedValues;
@@ -140,37 +139,40 @@ struct InlineFragmentsAccumulator {
     /// The list of fragments.
     fragments: InlineFragments,
 
-    /// Whether we've created a range to enclose all the fragments. This will be true if the outer node
-    /// is an inline and false otherwise.
-    has_enclosing_range: bool,
+    /// Whether we've created a range to enclose all the fragments. This will be Some() if the outer node
+    /// is an inline and None otherwise.
+    enclosing_style: Option<Arc<ComputedValues>>,
 }
 
 impl InlineFragmentsAccumulator {
     fn new() -> InlineFragmentsAccumulator {
         InlineFragmentsAccumulator {
             fragments: InlineFragments::new(),
-            has_enclosing_range: false,
+            enclosing_style: None,
         }
     }
 
     fn from_inline_node(node: &ThreadSafeLayoutNode) -> InlineFragmentsAccumulator {
-        let mut fragments = InlineFragments::new();
-        fragments.push_range(node.style().clone(), Range::empty());
+        let fragments = InlineFragments::new();
         InlineFragmentsAccumulator {
             fragments: fragments,
-            has_enclosing_range: true,
+            enclosing_style: Some(node.style().clone()),
         }
     }
 
     fn finish(self) -> InlineFragments {
         let InlineFragmentsAccumulator {
             fragments: mut fragments,
-            has_enclosing_range
+            enclosing_style
         } = self;
 
-        if has_enclosing_range {
-            let len = FragmentIndex(fragments.len() as int);
-            fragments.get_mut_range(FragmentIndex(0)).range.extend_to(len);
+        match enclosing_style {
+            Some(enclosing_style) => {
+                for frag in fragments.fragments.mut_iter() {
+                    frag.add_inline_context_style(enclosing_style.clone());
+                }
+            }
+            None => {}
         }
         fragments
     }
@@ -374,10 +376,10 @@ impl<'a, 'b> FlowConstructor<'a, 'b> {
                 // Add whitespace results. They will be stripped out later on when
                 // between block elements, and retained when between inline elements.
                 let fragment_info = UnscannedTextFragment(UnscannedTextFragmentInfo::from_text(" ".to_string()));
-                let fragment = Fragment::from_opaque_node_and_style(whitespace_node,
+                let mut fragment = Fragment::from_opaque_node_and_style(whitespace_node,
                                                                     whitespace_style.clone(),
                                                                     fragment_info);
-                inline_fragment_accumulator.fragments.push(fragment, whitespace_style);
+                inline_fragment_accumulator.fragments.push(&mut fragment, whitespace_style);
             }
             ConstructionItemConstructionResult(TableColumnFragmentConstructionItem(_)) => {
                 // TODO: Implement anonymous table objects for missing parents
@@ -525,10 +527,10 @@ impl<'a, 'b> FlowConstructor<'a, 'b> {
                         => {
                     // Instantiate the whitespace fragment.
                     let fragment_info = UnscannedTextFragment(UnscannedTextFragmentInfo::from_text(" ".to_string()));
-                    let fragment = Fragment::from_opaque_node_and_style(whitespace_node,
+                    let mut fragment = Fragment::from_opaque_node_and_style(whitespace_node,
                                                                         whitespace_style.clone(),
                                                                         fragment_info);
-                    fragment_accumulator.fragments.push(fragment, whitespace_style)
+                    fragment_accumulator.fragments.push(&mut fragment, whitespace_style)
                 }
                 ConstructionItemConstructionResult(TableColumnFragmentConstructionItem(_)) => {
                     // TODO: Implement anonymous table objects for missing parents
@@ -570,7 +572,7 @@ impl<'a, 'b> FlowConstructor<'a, 'b> {
         }
 
         let mut fragments = InlineFragments::new();
-        fragments.push(Fragment::new(self, node), node.style().clone());
+        fragments.push(&mut Fragment::new(self, node), node.style().clone());
 
         let construction_item = InlineFragmentsConstructionItem(InlineFragmentsConstructionResult {
             splits: Vec::new(),
