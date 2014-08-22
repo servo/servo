@@ -1100,13 +1100,10 @@ impl Flow for InlineFlow {
             line_distance_from_flow_block_start = line_distance_from_flow_block_start + line.bounds.size.block;
         } // End of `lines.each` loop.
 
-        self.base.position.size.block =
-            if self.lines.len() > 0 {
-                self.lines.as_slice().last().get_ref().bounds.start.b +
-                    self.lines.as_slice().last().get_ref().bounds.size.block
-            } else {
-                Au::new(0)
-            };
+        self.base.position.size.block = match self.lines.as_slice().last() {
+            Some(ref last_line) => last_line.bounds.start.b + last_line.bounds.size.block,
+            None => Au::new(0)
+        };
 
         self.base.floats = scanner.floats();
         self.base.floats.translate(LogicalSize::new(

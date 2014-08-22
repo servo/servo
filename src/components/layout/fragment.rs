@@ -29,6 +29,7 @@ use gfx::display_list::{ImageDisplayItemClass, LineDisplayItem};
 use gfx::display_list::{LineDisplayItemClass, OpaqueNode, PseudoDisplayItemClass};
 use gfx::display_list::{SolidColorDisplayItem, SolidColorDisplayItemClass, StackingLevel};
 use gfx::display_list::{TextDisplayItem, TextDisplayItemClass};
+use gfx::display_list::{Upright, SidewaysLeft, SidewaysRight};
 use gfx::font::FontStyle;
 use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::TextRun;
@@ -935,12 +936,31 @@ impl Fragment {
             TableColumnFragment(_) => fail!("Shouldn't see table column fragments here."),
             ScannedTextFragment(ref text_fragment) => {
                 // Create the text display item.
+                let orientation = if self.style.writing_mode.is_vertical() {
+                    if self.style.writing_mode.is_sideways_left() {
+                        SidewaysLeft
+                    } else {
+                        SidewaysRight
+                    }
+                } else {
+                    Upright
+                };
+
+                let metrics = &text_fragment.run.font_metrics;
+                let baseline_origin ={
+                    let mut tmp = content_box.start;
+                    tmp.b = tmp.b + metrics.ascent;
+                    tmp.to_physical(self.style.writing_mode, container_size) + flow_origin
+                };
+
                 let text_display_item = box TextDisplayItem {
                     base: BaseDisplayItem::new(
                         absolute_content_box, self.node, ContentStackingLevel),
                     text_run: text_fragment.run.clone(),
                     range: text_fragment.range,
                     text_color: self.style().get_color().color.to_gfx_color(),
+                    orientation: orientation,
+                    baseline_origin: baseline_origin,
                 };
                 accumulator.push(display_list, TextDisplayItemClass(text_display_item));
 
@@ -965,7 +985,6 @@ impl Fragment {
 
                     let text_decorations =
                         self.style().get_inheritedtext()._servo_text_decorations_in_effect;
-                    let metrics = &text_fragment.run.font_metrics;
                     line(text_decorations.underline, || {
                         let mut rect = content_box.clone();
                         rect.start.b = rect.start.b + metrics.ascent - metrics.underline_offset;

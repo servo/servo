@@ -352,7 +352,7 @@ impl<C:RenderListener + Send> RenderTask<C> {
 
                     // Draw the display list.
                     profile(time::RenderingDrawingCategory, self.time_profiler_chan.clone(), || {
-                        display_list.draw_into_context(&mut ctx);
+                        display_list.draw_into_context(&mut ctx, &matrix);
                         ctx.draw_target.flush();
                     });
                 }
