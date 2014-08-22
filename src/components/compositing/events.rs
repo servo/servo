@@ -6,16 +6,17 @@ use compositor_data::{CompositorData, WantsScrollEvents};
 use windowing::{MouseWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent};
 use windowing::MouseWindowMouseUpEvent;
 
-use geom::point::{Point2D, TypedPoint2D};
-use geom::rect::{Rect, TypedRect};
+use geom::length::Length;
+use geom::point::TypedPoint2D;
 use geom::scale_factor::ScaleFactor;
-use geom::size::{Size2D, TypedSize2D};
+use geom::size::TypedSize2D;
+use layers::geometry::DevicePixel;
 use layers::layers::Layer;
 use script_traits::{ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent, SendEventMsg};
 use script_traits::{ScriptControlChan};
 use servo_msg::compositor_msg::{FixedPosition, LayerId};
 use servo_msg::constellation_msg::PipelineId;
-use servo_util::geometry::{DevicePixel, PagePx};
+use servo_util::geometry::PagePx;
 use std::rc::Rc;
 
 
@@ -55,36 +56,33 @@ pub fn handle_scroll_event(layer: Rc<Layer<CompositorData>>,
     }
 
     // Allow children to scroll.
-    let content_offset: TypedPoint2D<DevicePixel, f32> =
-        Point2D::from_untyped(&*layer.content_offset.borrow());
+    let content_offset = layer.content_offset.borrow().clone();
     let cursor = cursor - content_offset;
     for child in layer.children().iter() {
-        let rect: TypedRect<DevicePixel, f32> = Rect::from_untyped(&*child.bounds.borrow());
-        if rect.contains(&cursor) &&
+        let child_bounds = child.bounds.borrow();
+        if child_bounds.contains(&cursor) &&
            handle_scroll_event(child.clone(),
                                delta,
-                               cursor - rect.origin,
-                               rect.size) {
+                               cursor - child_bounds.origin,
+                               child_bounds.size) {
             return true
         }
     }
 
-    clamp_scroll_offset_and_scroll_layer(layer,
-                                         content_offset.to_untyped() + delta.to_untyped(),
-                                         window_size.to_untyped())
+    clamp_scroll_offset_and_scroll_layer(layer, content_offset + delta, window_size)
 
 }
 
 pub fn clamp_scroll_offset_and_scroll_layer(layer: Rc<Layer<CompositorData>>,
-                                            mut new_offset: Point2D<f32>,
-                                            window_size: Size2D<f32>)
+                                            mut new_offset: TypedPoint2D<DevicePixel, f32>,
+                                            window_size: TypedSize2D<DevicePixel, f32>)
                                             -> bool {
     let layer_size = layer.bounds.borrow().size;
-    let min_x = (window_size.width - layer_size.width).min(0.0);
-    new_offset.x = new_offset.x.clamp(&min_x, &0.0);
+    let min_x = (window_size.width - layer_size.width).get().min(0.0);
+    new_offset.x = Length(new_offset.x.get().clamp(&min_x, &0.0));
 
-    let min_y = (window_size.height - layer_size.height).min(0.0);
-    new_offset.y = new_offset.y.clamp(&min_y, &0.0);
+    let min_y = (window_size.height - layer_size.height).get().min(0.0);
+    new_offset.y = Length(new_offset.y.get().clamp(&min_y, &0.0));
 
     if *layer.content_offset.borrow() == new_offset {
         return false
@@ -97,13 +95,15 @@ pub fn clamp_scroll_offset_and_scroll_layer(layer: Rc<Layer<CompositorData>>,
 }
 
 fn scroll_layer_and_all_child_layers(layer: Rc<Layer<CompositorData>>,
-                                     new_offset: Point2D<f32>)
+                                     new_offset: TypedPoint2D<DevicePixel, f32>)
                                      -> bool {
     let mut result = false;
 
     // Only scroll this layer if it's not fixed-positioned.
     if layer.extra_data.borrow().scroll_policy != FixedPosition {
-        *layer.transform.borrow_mut() = identity().translate(new_offset.x, new_offset.y, 0.0);
+        *layer.transform.borrow_mut() = identity().translate(new_offset.x.get(),
+                                                             new_offset.y.get(),
+                                                             0.0);
         *layer.content_offset.borrow_mut() = new_offset;
         result = true
     }
@@ -120,20 +120,22 @@ fn scroll_layer_and_all_child_layers(layer: Rc<Layer<CompositorData>>,
 // page coordinates.
 pub fn send_mouse_event(layer: Rc<Layer<CompositorData>>,
                         event: MouseWindowEvent,
-                        cursor: TypedPoint2D<PagePx, f32>,
+                        cursor: TypedPoint2D<DevicePixel, f32>,
                         device_pixels_per_page_px: ScaleFactor<PagePx, DevicePixel, f32>) {
-    let content_offset : TypedPoint2D<DevicePixel, f32> =
-        Point2D::from_untyped(&*layer.content_offset.borrow());
-    let cursor = cursor - (content_offset / device_pixels_per_page_px);
+    let cursor = cursor - *layer.content_offset.borrow();
     for child in layer.children().iter() {
-        let rect: TypedRect<PagePx, f32> = Rect::from_untyped(&*child.bounds.borrow());
-        if rect.contains(&cursor) {
-            send_mouse_event(child.clone(), event, cursor - rect.origin, device_pixels_per_page_px);
+        let child_bounds = child.bounds.borrow();
+        if child_bounds.contains(&cursor) {
+            send_mouse_event(child.clone(),
+                             event,
+                             cursor - child_bounds.origin,
+                             device_pixels_per_page_px);
             return;
         }
     }
 
     // This mouse event is mine!
+    let cursor = cursor / device_pixels_per_page_px;
     let message = match event {
         MouseWindowClickEvent(button, _) => ClickEvent(button, cursor.to_untyped()),
         MouseWindowMouseDownEvent(button, _) => MouseDownEvent(button, cursor.to_untyped()),
@@ -153,7 +155,7 @@ pub fn send_mouse_move_event(layer: Rc<Layer<CompositorData>>,
 pub fn move(layer: Rc<Layer<CompositorData>>,
             pipeline_id: PipelineId,
             layer_id: LayerId,
-            origin: Point2D<f32>,
+            origin: TypedPoint2D<DevicePixel, f32>,
             window_size: TypedSize2D<DevicePixel, f32>)
             -> bool {
     // Search children for the right layer to move.
@@ -172,5 +174,5 @@ pub fn move(layer: Rc<Layer<CompositorData>>,
         return false
     }
 
-    clamp_scroll_offset_and_scroll_layer(layer, origin * -1.0, window_size.to_untyped())
+    clamp_scroll_offset_and_scroll_layer(layer, TypedPoint2D(0f32, 0f32) - origin, window_size)
 }

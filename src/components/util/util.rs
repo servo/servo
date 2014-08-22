@@ -18,6 +18,7 @@ extern crate azure;
 extern crate collections;
 extern crate geom;
 extern crate getopts;
+extern crate layers;
 extern crate libc;
 extern crate native;
 extern crate rand;

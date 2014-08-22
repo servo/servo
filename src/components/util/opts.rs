@@ -5,11 +5,12 @@
 //! Configuration options for a single run of the servo application. Created
 //! from command line arguments.
 
-use geometry::{DevicePixel, ScreenPx};
+use geometry::ScreenPx;
 
 use azure::azure_hl::{BackendType, CairoBackend, CoreGraphicsBackend};
 use azure::azure_hl::{CoreGraphicsAcceleratedBackend, Direct2DBackend, SkiaBackend};
 use geom::scale_factor::ScaleFactor;
+use layers::geometry::DevicePixel;
 use getopts;
 use std::cmp;
 use std::io;

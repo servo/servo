@@ -27,6 +27,7 @@ use geom::rect::Rect;
 use geom::size::TypedSize2D;
 use geom::scale_factor::ScaleFactor;
 use gfx::render_task::{RenderChan, RenderMsg, RenderRequest, UnusedBufferMsg};
+use layers::geometry::DevicePixel;
 use layers::layers::{BufferRequest, Layer, LayerBufferSet};
 use layers::rendergl;
 use layers::rendergl::RenderContext;
@@ -38,7 +39,7 @@ use servo_msg::compositor_msg::{LayerId, ReadyState, RenderState};
 use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, LoadUrlMsg, NavigateMsg};
 use servo_msg::constellation_msg::{PipelineId, ResizedWindowMsg, WindowSizeData};
 use servo_msg::constellation_msg;
-use servo_util::geometry::{DevicePixel, PagePx, ScreenPx, ViewportPx};
+use servo_util::geometry::{PagePx, ScreenPx, ViewportPx};
 use servo_util::memory::MemoryProfilerChan;
 use servo_util::opts::Opts;
 use servo_util::time::{profile, TimeProfilerChan};
@@ -506,7 +507,7 @@ impl IOCompositor {
                     events::move(root_layer.clone(),
                                  pipeline_id,
                                  layer_id,
-                                 fragment_point,
+                                 Point2D::from_untyped(&fragment_point),
                                  window_size)
                 })
             }
@@ -522,6 +523,7 @@ impl IOCompositor {
                            new_rect_in_page_coordinates: Rect<f32>) {
         let new_rect_in_layer_coordinates =
             self.convert_page_rect_to_layer_coordinates(new_rect_in_page_coordinates);
+        let new_rect_in_layer_coordinates = Rect::from_untyped(&new_rect_in_layer_coordinates);
 
         match self.find_layer_with_pipeline_and_layer_id(pipeline_id, layer_id) {
             Some(ref layer) => *layer.bounds.borrow_mut() = new_rect_in_layer_coordinates,
@@ -571,7 +573,7 @@ impl IOCompositor {
                  events::move(layer.clone(),
                               pipeline_id,
                               layer_id,
-                              device_point,
+                              Point2D::from_untyped(&device_point),
                               window_size))
             }
             Some(_) | None => {
@@ -679,9 +681,9 @@ impl IOCompositor {
     fn on_mouse_window_event_class(&self, mouse_window_event: MouseWindowEvent) {
         let scale = self.device_pixels_per_page_px();
         let point = match mouse_window_event {
-            MouseWindowClickEvent(_, p) => p / scale,
-            MouseWindowMouseDownEvent(_, p) => p / scale,
-            MouseWindowMouseUpEvent(_, p) => p / scale,
+            MouseWindowClickEvent(_, p) => p,
+            MouseWindowMouseDownEvent(_, p) => p,
+            MouseWindowMouseUpEvent(_, p) => p,
         };
         for layer in self.scene.root.iter() {
             events::send_mouse_event(layer.clone(), mouse_window_event, point, scale);
@@ -828,8 +830,7 @@ impl IOCompositor {
     fn send_buffer_requests_for_all_layers(&mut self) {
         let mut layers_and_requests = Vec::new();
         self.scene.get_buffer_requests(&mut layers_and_requests,
-                                       Rect(Point2D(0f32, 0f32),
-                                            self.window_size.as_f32().to_untyped()));
+                                       Rect(TypedPoint2D(0f32, 0f32), self.window_size.as_f32()));
 
         // Return unused tiles first, so that they can be reused by any new BufferRequests.
         self.send_back_unused_buffers();

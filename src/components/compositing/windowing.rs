@@ -7,8 +7,9 @@
 use geom::point::TypedPoint2D;
 use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
+use layers::geometry::DevicePixel;
 use servo_msg::compositor_msg::{ReadyState, RenderState};
-use servo_util::geometry::{ScreenPx, DevicePixel};
+use servo_util::geometry::ScreenPx;
 use std::rc::Rc;
 
 pub enum MouseWindowEvent {

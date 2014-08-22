@@ -8,8 +8,9 @@
 use geom::rect::Rect;
 use geom::size::TypedSize2D;
 use geom::scale_factor::ScaleFactor;
+use layers::geometry::DevicePixel;
 use serialize::Encodable;
-use servo_util::geometry::{DevicePixel, PagePx, ViewportPx};
+use servo_util::geometry::{PagePx, ViewportPx};
 use std::comm::{channel, Sender, Receiver};
 use url::Url;
 

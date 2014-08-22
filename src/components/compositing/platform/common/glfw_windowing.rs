@@ -22,9 +22,10 @@ use std::rc::Rc;
 use geom::point::{Point2D, TypedPoint2D};
 use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
+use layers::geometry::DevicePixel;
 use servo_msg::compositor_msg::{IdleRenderState, RenderState, RenderingRenderState};
 use servo_msg::compositor_msg::{FinishedLoading, Blank, Loading, PerformingLayout, ReadyState};
-use servo_util::geometry::{ScreenPx, DevicePixel};
+use servo_util::geometry::ScreenPx;
 
 use glfw;
 use glfw::Context;
