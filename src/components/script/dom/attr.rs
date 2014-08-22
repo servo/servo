@@ -109,8 +109,16 @@ impl Attr {
         let attr = Attr::new_inherited(local_name, value, name, namespace, prefix, owner);
         reflect_dom_object(box attr, &Window(*window), AttrBinding::Wrap)
     }
+}
 
-    pub fn set_value(&self, set_type: AttrSettingType, value: AttrValue) {
+pub trait AttrHelpers {
+    fn set_value(&self, set_type: AttrSettingType, value: AttrValue);
+    fn value<'a>(&'a self) -> Ref<'a, AttrValue>;
+    fn local_name<'a>(&'a self) -> &'a Atom;
+}
+
+impl<'a> AttrHelpers for JSRef<'a, Attr> {
+    fn set_value(&self, set_type: AttrSettingType, value: AttrValue) {
         let owner = self.owner.root();
         let node: &JSRef<Node> = NodeCast::from_ref(&*owner);
         let namespace_is_null = self.namespace == namespace::Null;
@@ -135,11 +143,11 @@ impl Attr {
         }
     }
 
-    pub fn value<'a>(&'a self) -> Ref<'a, AttrValue> {
+    fn value<'a>(&'a self) -> Ref<'a, AttrValue> {
         self.value.deref().borrow()
     }
 
-    pub fn local_name<'a>(&'a self) -> &'a Atom {
+    fn local_name<'a>(&'a self) -> &'a Atom {
         &self.local_name
     }
 }

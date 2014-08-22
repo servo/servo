@@ -4,7 +4,7 @@
 
 //! Element nodes.
 
-use dom::attr::{Attr, ReplacedAttr, FirstSetAttr, AttrHelpersForLayout};
+use dom::attr::{Attr, ReplacedAttr, FirstSetAttr, AttrHelpers, AttrHelpersForLayout};
 use dom::attr::{AttrValue, StringAttrValue, UIntAttrValue, AtomAttrValue};
 use dom::attrlist::AttrList;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
@@ -177,12 +177,11 @@ impl RawLayoutElementHelpers for Element {
         // cast to point to T in RefCell<T> directly
         let attrs: *const Vec<JS<Attr>> = mem::transmute(&self.attrs);
         (*attrs).iter().find(|attr: & &JS<Attr>| {
-            let attr = attr.unsafe_get();
-            name == (*attr).local_name().as_slice() &&
-            (*attr).namespace == *namespace
+            let attr: &JSRef<Attr> = mem::transmute(attr.unsafe_get());
+            name == attr.local_name().as_slice() && attr.namespace == *namespace
         }).map(|attr| {
-            let attr = attr.unsafe_get();
-            (*attr).value_ref_forever()
+            let attr: &JSRef<Attr> = mem::transmute(attr.unsafe_get());
+            attr.value_ref_forever()
         })
     }
 
@@ -192,12 +191,11 @@ impl RawLayoutElementHelpers for Element {
         // cast to point to T in RefCell<T> directly
         let attrs: *const Vec<JS<Attr>> = mem::transmute(&self.attrs);
         (*attrs).iter().find(|attr: & &JS<Attr>| {
-            let attr = attr.unsafe_get();
-            name == (*attr).local_name().as_slice() &&
-            (*attr).namespace == *namespace
+            let attr: &JSRef<Attr> = mem::transmute(attr.unsafe_get());
+            name == attr.local_name().as_slice() && attr.namespace == *namespace
         }).and_then(|attr| {
-            let attr = attr.unsafe_get();
-            (*attr).value_atom_forever()
+            let attr: &JSRef<Attr> = mem::transmute(attr.unsafe_get());
+            attr.value_atom_forever()
         })
     }
 }
