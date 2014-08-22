@@ -94,7 +94,7 @@ $(CFG_BUILD_HOME)config.stamp : $(S)configure $(S)Makefile.in
 	$(Q)$(S)configure $(CFG_CONFIGURE_ARGS)
 
 
-SNAPSHOT_HASH_FILE=$(S)/src/rust-snapshot-hash
+SNAPSHOT_HASH_FILE=$(S)/rust-snapshot-hash
 SNAPSHOT_VERSION=$(shell cat $(SNAPSHOT_HASH_FILE) | rev | cut -d/ -f1 | rev)
 SNAPSHOT_HASH=$(shell cat $(SNAPSHOT_HASH_FILE) | cut -d/ -f1)
 SNAPSHOT_URL="https://servo-rust.s3.amazonaws.com/$(shell cat $(SNAPSHOT_HASH_FILE))-$(DEFAULT_TARGET).tar.gz"

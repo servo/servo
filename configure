@@ -456,7 +456,7 @@ else
     step_msg "Using binary Rust snapshot"
     make_dir ${CFG_BUILD_DIR}/rust_snapshot
     CFG_SNAPSHOT_RUSTC=1
-    SNAPSHOT_VERSION=$(cat ${CFG_SRC_DIR}/src/rust-snapshot-hash | rev | cut -d/ -f1 | rev)
+    SNAPSHOT_VERSION=$(cat ${CFG_SRC_DIR}/rust-snapshot-hash | rev | cut -d/ -f1 | rev)
     CFG_LOCAL_RUST_ROOT=${CFG_BUILD_DIR}rust_snapshot/${SNAPSHOT_VERSION}-${DEFAULT_TARGET}
     CFG_RUST_HOME=${CFG_LOCAL_RUST_ROOT}
 fi
