@@ -56,7 +56,10 @@ impl AttrValue {
         AtomAttrValue(value)
     }
 
-    pub fn as_slice<'a>(&'a self) -> &'a str {
+}
+
+impl Str for AttrValue {
+    fn as_slice<'a>(&'a self) -> &'a str {
         match *self {
             StringAttrValue(ref value) |
             TokenListAttrValue(ref value, _) |
@@ -117,7 +120,7 @@ impl Attr {
                 if namespace_is_null {
                     vtable_for(node).before_remove_attr(
                         self.local_name(),
-                        self.value.deref().borrow().as_slice().to_string());
+                        self.value().as_slice().to_string())
                 }
             }
             FirstSetAttr => {}
@@ -128,7 +131,7 @@ impl Attr {
         if namespace_is_null {
             vtable_for(node).after_set_attr(
                 self.local_name(),
-                self.value.deref().borrow().as_slice().to_string());
+                self.value().as_slice().to_string())
         }
     }
 
@@ -147,7 +150,7 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
     }
 
     fn Value(&self) -> DOMString {
-        self.value.deref().borrow().as_slice().to_string()
+        self.value().as_slice().to_string()
     }
 
     fn SetValue(&self, value: DOMString) {
