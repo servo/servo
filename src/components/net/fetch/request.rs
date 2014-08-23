@@ -5,6 +5,7 @@
 use url::Url;
 use http::method::{Get, Method};
 use http::headers::request::HeaderCollection;
+use fetch::cors_cache::CORSCache;
 use fetch::response::Response;
 
 /// A [request context](http://fetch.spec.whatwg.org/#concept-request-context)
@@ -77,7 +78,8 @@ pub struct Request {
     pub use_url_credentials: bool,
     pub manual_redirect: bool,
     pub redirect_count: uint,
-    pub response_tainting: ResponseTainting
+    pub response_tainting: ResponseTainting,
+    pub cache: Option<Box<CORSCache>>
 }
 
 impl Request {
@@ -103,7 +105,8 @@ impl Request {
             use_url_credentials: false,
             manual_redirect: false,
             redirect_count: 0,
-            response_tainting: Basic
+            response_tainting: Basic,
+            cache: None
         }
     }
 
