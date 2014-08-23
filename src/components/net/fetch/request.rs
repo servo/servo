@@ -5,6 +5,7 @@
 use url::Url;
 use http::method::{Get, Method};
 use http::headers::request::HeaderCollection;
+use fetch::response::Response;
 
 /// A [request context](http://fetch.spec.whatwg.org/#concept-request-context)
 pub enum Context {
@@ -104,5 +105,42 @@ impl Request {
             redirect_count: 0,
             response_tainting: Basic
         }
+    }
+
+    /// [Basic fetch](http://fetch.spec.whatwg.org#basic-fetch)
+    /// 
+    pub fn basic_fetch(&mut self) -> Response {
+        match self.url.scheme.as_slice() {
+            "about" => match self.url.non_relative_scheme_data() {
+                Some(s) if s.as_slice() == "blank" => {
+                    let mut response = Response::new();
+                    let _ = response.headers.insert_raw("Content-Type".to_string(), b"text/html;charset=utf-8");
+                    response
+                },
+                _ => Response::network_error()
+            },
+            "http" | "https" => {
+                self.http_fetch(false, false, false)
+            },
+            "blob" | "data" | "file" | "ftp" => {
+                // XXXManishearth handle these
+                fail!("Unimplemented scheme for Fetch")
+            },
+
+            _ => Response::network_error()
+        }
+    }
+    // [Basic fetch](http://fetch.spec.whatwg.org#http-fetch)
+    pub fn http_fetch(&mut self, _cors_flag: bool, cors_preflight_flag: bool, _authentication_fetch_flag: bool) -> Response {
+        let response = Response::new();
+        // TODO: Service worker fetch
+        // Step 3
+        // Substep 1
+        self.skip_service_worker = true;
+        // Substep 2
+        if cors_preflight_flag {
+            // XXXManishearth stuff goes here
+        }
+        response
     }
 }
