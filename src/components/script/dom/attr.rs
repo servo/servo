@@ -179,6 +179,7 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
 pub trait AttrHelpersForLayout {
     unsafe fn value_ref_forever(&self) -> &'static str;
     unsafe fn value_atom_forever(&self) -> Option<Atom>;
+    unsafe fn local_name_forever(&self) -> Atom;
 }
 
 impl AttrHelpersForLayout for Attr {
@@ -195,5 +196,9 @@ impl AttrHelpersForLayout for Attr {
             AtomAttrValue(ref val) => Some(val.clone()),
             _ => None,
         }
+    }
+
+    unsafe fn local_name_forever(&self) -> Atom {
+        self.local_name.clone()
     }
 }

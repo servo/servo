@@ -175,11 +175,11 @@ impl RawLayoutElementHelpers for Element {
         // cast to point to T in RefCell<T> directly
         let attrs: *const Vec<JS<Attr>> = mem::transmute(&self.attrs);
         (*attrs).iter().find(|attr: & &JS<Attr>| {
-            let attr: &JSRef<Attr> = mem::transmute(attr.unsafe_get());
-            name == attr.local_name().as_slice() && attr.namespace == *namespace
+            let attr = attr.unsafe_get();
+            (*attr).local_name_forever().as_slice() == name && (*attr).namespace == *namespace
         }).map(|attr| {
-            let attr: &JSRef<Attr> = mem::transmute(attr.unsafe_get());
-            attr.value_ref_forever()
+            let attr = attr.unsafe_get();
+            (*attr).value_ref_forever()
         })
     }
 
@@ -189,11 +189,11 @@ impl RawLayoutElementHelpers for Element {
         // cast to point to T in RefCell<T> directly
         let attrs: *const Vec<JS<Attr>> = mem::transmute(&self.attrs);
         (*attrs).iter().find(|attr: & &JS<Attr>| {
-            let attr: &JSRef<Attr> = mem::transmute(attr.unsafe_get());
-            name == attr.local_name().as_slice() && attr.namespace == *namespace
+            let attr = attr.unsafe_get();
+            (*attr).local_name_forever().as_slice() == name && (*attr).namespace == *namespace
         }).and_then(|attr| {
-            let attr: &JSRef<Attr> = mem::transmute(attr.unsafe_get());
-            attr.value_atom_forever()
+            let attr = attr.unsafe_get();
+            (*attr).value_atom_forever()
         })
     }
 }
