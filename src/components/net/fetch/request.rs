@@ -111,7 +111,6 @@ impl Request {
     }
 
     /// [Basic fetch](http://fetch.spec.whatwg.org#basic-fetch)
-    /// 
     pub fn basic_fetch(&mut self) -> Response {
         match self.url.scheme.as_slice() {
             "about" => match self.url.non_relative_scheme_data() {
@@ -133,7 +132,8 @@ impl Request {
             _ => Response::network_error()
         }
     }
-    // [Basic fetch](http://fetch.spec.whatwg.org#http-fetch)
+
+    // [HTTP fetch](http://fetch.spec.whatwg.org#http-fetch)
     pub fn http_fetch(&mut self, _cors_flag: bool, cors_preflight_flag: bool, _authentication_fetch_flag: bool) -> Response {
         let response = Response::new();
         // TODO: Service worker fetch

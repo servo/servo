@@ -2,6 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! An implementation of the [CORS preflight cache](http://fetch.spec.whatwg.org/#cors-preflight-cache)
+//! For now this library is XHR-specific.
+//! For stuff involving `<img>`, `<iframe>`, `<form>`, etc please check what
+//! the request mode should be and compare with the fetch spec
+//! This library will eventually become the core of the Fetch crate
+//! with CORSRequest being expanded into FetchRequest (etc)
+
 use http::method::Method;
 use std::ascii::StrAsciiExt;
 use std::comm::{Sender, Receiver, channel};
@@ -34,7 +41,7 @@ impl HeaderOrMethod {
     }
 }
 
- /// An entry in the CORS cache
+/// An entry in the CORS cache
 #[deriving(Clone)]
 pub struct CORSCacheEntry {
     pub origin: Url,
@@ -82,26 +89,25 @@ pub trait CORSCache {
     fn match_header_and_update(&mut self, request: CacheRequestDetails, header_name: &str, new_max_age: uint) -> bool;
 
     /// Returns true if an entry with a [matching method](http://fetch.spec.whatwg.org/#concept-cache-match-method) is found
-    fn match_method(&mut self, request: CacheRequestDetails, method: &Method) -> bool;
+    fn match_method(&mut self, request: CacheRequestDetails, method: Method) -> bool;
 
     /// Updates max age if an entry for [a matching method](http://fetch.spec.whatwg.org/#concept-cache-match-method) is found.
     ///
     /// If not, it will insert an equivalent entry
-    fn match_method_and_update(&mut self, request: CacheRequestDetails, method: &Method, new_max_age: uint) -> bool;
+    fn match_method_and_update(&mut self, request: CacheRequestDetails, method: Method, new_max_age: uint) -> bool;
     /// Insert an entry
     fn insert(&mut self, entry: CORSCacheEntry);
 }
 
 /// A simple, vector-based CORS Cache
 #[deriving(Clone)]
+#[unstable = "This might later be replaced with a HashMap-like entity, though that requires a separate Origin struct"]
 pub struct BasicCORSCache(Vec<CORSCacheEntry>);
-
 
 impl BasicCORSCache {
     fn find_entry_by_header<'a>(&'a mut self, request: &CacheRequestDetails, header_name: &str) -> Option<&'a mut CORSCacheEntry> {
         self.cleanup();
         let BasicCORSCache(ref mut buf) = *self;
-        // Credentials are not yet implemented here
         let entry = buf.mut_iter().find(|e| e.origin.scheme == request.origin.scheme &&
                             e.origin.host() == request.origin.host() &&
                             e.origin.port() == request.origin.port() &&
@@ -111,17 +117,16 @@ impl BasicCORSCache {
         entry
     }
 
-    fn find_entry_by_method<'a>(&'a mut self, request: &CacheRequestDetails, method: &Method) -> Option<&'a mut CORSCacheEntry> {
+    fn find_entry_by_method<'a>(&'a mut self, request: &CacheRequestDetails, method: Method) -> Option<&'a mut CORSCacheEntry> {
         // we can take the method from CORSRequest itself
         self.cleanup();
         let BasicCORSCache(ref mut buf) = *self;
-        // Credentials are not yet implemented here
         let entry = buf.mut_iter().find(|e| e.origin.scheme == request.origin.scheme &&
                             e.origin.host() == request.origin.host() &&
                             e.origin.port() == request.origin.port() &&
                             e.url == request.destination &&
                             e.credentials == request.credentials &&
-                            e.header_or_method.match_method(method));
+                            e.header_or_method.match_method(&method));
         entry
     }
 }
@@ -158,16 +163,16 @@ impl CORSCache for BasicCORSCache {
         }
     }
 
-    fn match_method(&mut self, request: CacheRequestDetails, method: &Method) -> bool {
+    fn match_method(&mut self, request: CacheRequestDetails, method: Method) -> bool {
         self.find_entry_by_method(&request, method).is_some()
     }
 
-    fn match_method_and_update(&mut self, request: CacheRequestDetails, method: &Method, new_max_age: uint) -> bool {
-        match self.find_entry_by_method(&request, method).map(|e| e.max_age = new_max_age) {
+    fn match_method_and_update(&mut self, request: CacheRequestDetails, method: Method, new_max_age: uint) -> bool {
+        match self.find_entry_by_method(&request, method.clone()).map(|e| e.max_age = new_max_age) {
             Some(_) => true,
             None => {
                 self.insert(CORSCacheEntry::new(request.origin, request.destination, new_max_age,
-                                                request.credentials, MethodData(method.clone())));
+                                                request.credentials, MethodData(method)));
                 false
             }
         }
@@ -188,7 +193,8 @@ pub enum CORSCacheTaskMsg {
     MatchHeaderUpdate(CacheRequestDetails, String, uint, Sender<bool>),
     MatchMethod(CacheRequestDetails, Method, Sender<bool>),
     MatchMethodUpdate(CacheRequestDetails, Method, uint, Sender<bool>),
-    Insert(CORSCacheEntry, Sender<()>)
+    Insert(CORSCacheEntry, Sender<()>),
+    ExitMsg
 }
 
 /// A Sender to a CORSCacheTask
@@ -201,44 +207,44 @@ impl CORSCache for CORSCacheSender {
     fn clear (&mut self, request: CacheRequestDetails) {
         let (tx, rx) = channel();
         self.send(Clear(request, tx));
-        rx.recv_opt().ok();
+        let _ = rx.recv_opt();
     }
 
     fn cleanup(&mut self) {
         let (tx, rx) = channel();
         self.send(Cleanup(tx));
-        rx.recv_opt().ok();
+        let _ = rx.recv_opt();
     }
 
     fn match_header(&mut self, request: CacheRequestDetails, header_name: &str) -> bool {
         let (tx, rx) = channel();
         self.send(MatchHeader(request, header_name.to_string(), tx));
-        rx.recv_opt().ok().unwrap_or(false)
+        rx.recv_opt().unwrap_or(false)
     }
 
     fn match_header_and_update(&mut self, request: CacheRequestDetails, header_name: &str, new_max_age: uint) -> bool {
         let (tx, rx) = channel();
         self.send(MatchHeaderUpdate(request, header_name.to_string(), new_max_age, tx));
-        rx.recv_opt().ok().unwrap_or(false)
+        rx.recv_opt().unwrap_or(false)
     }
 
-    fn match_method(&mut self, request: CacheRequestDetails, method: &Method) -> bool {
+    fn match_method(&mut self, request: CacheRequestDetails, method: Method) -> bool {
         let (tx, rx) = channel();
-        self.send(MatchMethod(request, method.clone(), tx));
-        rx.recv_opt().ok().unwrap_or(false)
+        self.send(MatchMethod(request, method, tx));
+        rx.recv_opt().unwrap_or(false)
     }
 
-    fn match_method_and_update(&mut self, request: CacheRequestDetails, method: &Method, new_max_age: uint) -> bool {
+    fn match_method_and_update(&mut self, request: CacheRequestDetails, method: Method, new_max_age: uint) -> bool {
         let (tx, rx) = channel();
-        self.send(MatchMethodUpdate(request, method.clone(), new_max_age, tx));
-        rx.recv_opt().ok().unwrap_or(false)
+        self.send(MatchMethodUpdate(request, method, new_max_age, tx));
+        rx.recv_opt().unwrap_or(false)
     }
 
     fn insert(&mut self, entry: CORSCacheEntry) {
         let (tx, rx) = channel();
         self.send(Insert(entry, tx));
-        rx.recv_opt().ok()  ;
-    }        
+        let _ = rx.recv_opt();
+    }
 }
 
 /// A simple task-based CORS Cache that can be sent messages
@@ -253,7 +259,7 @@ impl CORSCache for CORSCacheSender {
 /// ```
 pub struct CORSCacheTask {
     receiver: Receiver<CORSCacheTaskMsg>,
-    pub cache: BasicCORSCache,
+    cache: BasicCORSCache,
     sender: CORSCacheSender
 }
 
@@ -275,10 +281,9 @@ impl CORSCacheTask {
     /// Runs the cache task
     /// This blocks the current task, so it is advised
     /// to spawn a new task for this
+    /// Send ExitMsg to the associated Sender to exit
     pub fn run(&mut self) {
         loop {
-            // The recv() here should never fail, we always
-            // carry a copy of the Sender with us.
             match self.receiver.recv() {
                 Clear(request, tx) => {
                     self.cache.clear(request);
@@ -295,15 +300,16 @@ impl CORSCacheTask {
                     tx.send(self.cache.match_header_and_update(request, header.as_slice(), new_max_age));
                 },
                 MatchMethod(request, method, tx) => {
-                    tx.send(self.cache.match_method(request, &method));
+                    tx.send(self.cache.match_method(request, method));
                 },
                 MatchMethodUpdate(request, method, new_max_age, tx) => {
-                    tx.send(self.cache.match_method_and_update(request, &method, new_max_age));
+                    tx.send(self.cache.match_method_and_update(request, method, new_max_age));
                 },
                 Insert(entry, tx) => {
                     self.cache.insert(entry);
                     tx.send(());
-                }
+                },
+                ExitMsg => break
             }
         }
     }
