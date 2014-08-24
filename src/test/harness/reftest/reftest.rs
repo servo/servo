@@ -70,7 +70,7 @@ fn main() {
             Some(extension) => {
                 if extension.to_ascii_lower().as_slice() == "list" && file.is_file() {
                     let manifest = file.as_str().unwrap();
-                    let tests = parse_lists(manifest, servo_args, render_mode);
+                    let tests = parse_lists(manifest, servo_args, render_mode, all_tests.len());
                     println!("\t{} [{} tests]", manifest, tests.len());
                     all_tests.push_all_move(tests);
                 }
@@ -123,9 +123,8 @@ struct TestLine<'a> {
     file_right: &'a str,
 }
 
-fn parse_lists(file: &str, servo_args: &[String], render_mode: RenderMode) -> Vec<TestDescAndFn> {
+fn parse_lists(file: &str, servo_args: &[String], render_mode: RenderMode, id_offset: uint) -> Vec<TestDescAndFn> {
     let mut tests = Vec::new();
-    let mut next_id = 0;
     let file_path = Path::new(file);
     let contents = File::open_mode(&file_path, io::Open, io::Read)
                        .and_then(|mut f| f.read_to_string())
@@ -181,13 +180,11 @@ fn parse_lists(file: &str, servo_args: &[String], render_mode: RenderMode) -> Ve
             name: format!("{} {} {}", test_line.file_left, test_line.kind, test_line.file_right),
             kind: kind,
             files: [file_left, file_right],
-            id: next_id,
+            id: id_offset + tests.len(),
             render_mode: render_mode,
             servo_args: servo_args.iter().map(|x| x.clone()).collect(),
             is_flaky: render_mode.intersects(flakiness),
         };
-
-        next_id += 1;
 
         tests.push(make_test(reftest));
     }
