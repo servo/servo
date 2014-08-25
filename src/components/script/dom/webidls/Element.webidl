@@ -19,7 +19,7 @@ interface Element : Node {
   readonly attribute DOMString localName;
 
   [Constant]
-  readonly attribute DOMString namespaceURI;
+  readonly attribute DOMString? namespaceURI;
   // Not [Constant] because it depends on which document we're in
   [Pure]
   readonly attribute DOMString tagName;
