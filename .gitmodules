@@ -124,3 +124,6 @@
 [submodule "src/support/url/rust-url"]
 	path = src/support/url/rust-url
 	url = https://github.com/servo/rust-url.git
+[submodule "src/support/ssl/rust-openssl"]
+	path = src/support/ssl/rust-openssl
+	url = https://github.com/servo/rust-openssl.git

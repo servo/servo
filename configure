@@ -530,6 +530,7 @@ CFG_SUBMODULES="\
     support/skia/skia \
     support/spidermonkey/mozjs \
     support/spidermonkey/rust-mozjs \
+    support/ssl/rust-openssl \
     support/stb-image/rust-stb-image \
     support/png/libpng \
     support/png/rust-png \
@@ -737,6 +738,9 @@ do
             ENABLE_DEBUG="$CFG_ENABLE_DEBUG_SKIA"
             ;;
         support/phf/rust-phf)
+            ENABLE_DEBUG=""
+            ;;
+        support/ssl/rust-openssl)
             ENABLE_DEBUG=""
             ;;
         support/encoding/rust-encoding)

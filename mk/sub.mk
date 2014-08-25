@@ -103,6 +103,7 @@ DEPS_rust-url += \
 DEPS_rust-http += \
 	rust-encoding \
 	rust-url \
+	rust-openssl \
 	$(NULL)
 
 DEPS_string-cache += \
