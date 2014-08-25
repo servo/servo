@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::AttrValue;
+use dom::attr::{Attr, AttrHelpers, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, HTMLElementCast, HTMLImageElementDerived};
@@ -17,7 +17,6 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, ElementNodeTypeId, NodeHelpers, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use servo_net::image_cache_task;
-use servo_util::atom::Atom;
 use servo_util::geometry::to_px;
 use servo_util::str::DOMString;
 
@@ -194,26 +193,26 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLImageElement> {
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, name: &Atom, value: DOMString) {
+    fn after_set_attr<'a>(&self, attr: &JSRef<'a, Attr>) {
         match self.super_type() {
-            Some(ref s) => s.after_set_attr(name, value.clone()),
+            Some(ref s) => s.after_set_attr(attr),
             _ => (),
         }
 
-        if "src" == name.as_slice() {
+        if "src" == attr.local_name().as_slice() {
             let window = window_from_node(self).root();
             let url = window.deref().get_url();
-            self.update_image(Some((value, &url)));
+            self.update_image(Some((attr.value().as_slice().to_string(), &url)));
         }
     }
 
-    fn before_remove_attr(&self, name: &Atom, value: DOMString) {
+    fn before_remove_attr<'a>(&self, attr: &JSRef<'a, Attr>) {
         match self.super_type() {
-            Some(ref s) => s.before_remove_attr(name, value.clone()),
+            Some(ref s) => s.before_remove_attr(attr),
             _ => (),
         }
 
-        if "src" == name.as_slice() {
+        if "src" == attr.local_name().as_slice() {
             self.update_image(None);
         }
     }

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::attr::{Attr, AttrHelpers};
 use dom::bindings::codegen::Bindings::DocumentBinding;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
@@ -50,7 +51,7 @@ use dom::uievent::UIEvent;
 use dom::window::{Window, WindowHelpers};
 use html::hubbub_html_parser::build_element_from_tag;
 use hubbub::hubbub::{QuirksMode, NoQuirks, LimitedQuirks, FullQuirks};
-use layout_interface::{DocumentDamageLevel, ContentChangedDocumentDamage};
+use layout_interface::{DocumentDamageLevel, ContentChangedDocumentDamage, MatchSelectorsDocumentDamage};
 use servo_util::namespace;
 use servo_util::namespace::{Namespace, Null};
 use servo_util::str::{DOMString, null_str_as_empty_ref, split_html_space_chars};
@@ -64,6 +65,23 @@ use url::Url;
 pub enum IsHTMLDocument {
     HTMLDocument,
     NonHTMLDocument,
+}
+
+pub enum DOMTreeChangeType<'a, 'b> {
+    DOMTreeLoaded,
+    DOMTreeNodeInserted(&'b JSRef<'a, Node>),
+    DOMTreeNodeRemoved(&'b JSRef<'a, Node>),
+}
+
+pub enum NodeChangeType<'a, 'b> {
+    TextContentChange,
+    ElemAttrInserted(&'b JSRef<'a, Attr>),
+    ElemAttrRemoved(&'b JSRef<'a, Attr>)
+}
+
+pub enum ContentChangeType<'a, 'b> {
+    DOMTreeChange(DOMTreeChangeType<'a, 'b>),
+    NodeChange(NodeChangeType<'a, 'b>)
 }
 
 #[deriving(Encodable)]
@@ -147,7 +165,7 @@ pub trait DocumentHelpers {
     fn quirks_mode(&self) -> QuirksMode;
     fn set_quirks_mode(&self, mode: QuirksMode);
     fn set_encoding_name(&self, name: DOMString);
-    fn content_changed(&self);
+    fn content_changed(&self, change_type: &ContentChangeType);
     fn damage_and_reflow(&self, damage: DocumentDamageLevel);
     fn wait_until_safe_to_modify_dom(&self);
     fn unregister_named_element(&self, to_unregister: &JSRef<Element>, id: DOMString);
@@ -172,8 +190,19 @@ impl<'a> DocumentHelpers for JSRef<'a, Document> {
         *self.encoding_name.deref().borrow_mut() = name;
     }
 
-    fn content_changed(&self) {
-        self.damage_and_reflow(ContentChangedDocumentDamage);
+    fn content_changed(&self, change_type: &ContentChangeType) {
+        let mut damage = ContentChangedDocumentDamage;
+        match *change_type {
+            NodeChange(ElemAttrInserted(ref attr)) |
+            NodeChange(ElemAttrRemoved(ref attr)) => {
+                damage = match attr.local_name().as_slice() {
+                    "style" | "id" | "class" => MatchSelectorsDocumentDamage,
+                    _ => ContentChangedDocumentDamage
+                };
+            },
+            _ => ()
+        }
+        self.damage_and_reflow(damage);
     }
 
     fn damage_and_reflow(&self, damage: DocumentDamageLevel) {

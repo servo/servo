@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::attr::{Attr, AttrHelpers};
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::HTMLBodyElementBinding;
 use dom::bindings::codegen::Bindings::HTMLBodyElementBinding::HTMLBodyElementMethods;
@@ -17,7 +18,6 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, ElementNodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 
-use servo_util::atom::Atom;
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
@@ -62,12 +62,13 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLBodyElement> {
         Some(element as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, name: &Atom, value: DOMString) {
+    fn after_set_attr<'a>(&self, attr: &JSRef<'a, Attr>) {
         match self.super_type() {
-            Some(ref s) => s.after_set_attr(name, value.clone()),
+            Some(ref s) => s.after_set_attr(attr),
             _ => (),
         }
 
+        let name = attr.local_name();
         if name.as_slice().starts_with("on") {
             static forwarded_events: &'static [&'static str] =
                 &["onfocus", "onload", "onscroll", "onafterprint", "onbeforeprint",
@@ -86,7 +87,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLBodyElement> {
                 };
             evtarget.set_event_handler_uncompiled(cx, url, reflector,
                                                   name.as_slice().slice_from(2),
-                                                  value);
+                                                  attr.value().as_slice().to_string());
         }
     }
 }

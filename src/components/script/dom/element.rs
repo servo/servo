@@ -4,7 +4,7 @@
 
 //! Element nodes.
 
-use dom::attr::{Attr, ReplacedAttr, FirstSetAttr, AttrHelpersForLayout};
+use dom::attr::{Attr, ReplacedAttr, FirstSetAttr, AttrHelpers, AttrHelpersForLayout};
 use dom::attr::{AttrValue, StringAttrValue, UIntAttrValue, AtomAttrValue};
 use dom::attrlist::AttrList;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
@@ -19,7 +19,7 @@ use dom::bindings::error::{ErrorResult, Fallible, NamespaceError, InvalidCharact
 use dom::bindings::utils::{QName, Name, InvalidXMLName, xml_name_type};
 use dom::domrect::DOMRect;
 use dom::domrectlist::DOMRectList;
-use dom::document::{Document, DocumentHelpers};
+use dom::document::{Document, DocumentHelpers, NodeChange, ElemAttrInserted, ElemAttrRemoved};
 use dom::domtokenlist::DOMTokenList;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlcollection::HTMLCollection;
@@ -28,8 +28,6 @@ use dom::node::{ElementNodeTypeId, Node, NodeHelpers, NodeIterator, document_fro
 use dom::node::{window_from_node, LayoutNodeHelpers};
 use dom::nodelist::NodeList;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
-use layout_interface::ContentChangedDocumentDamage;
-use layout_interface::MatchSelectorsDocumentDamage;
 use style::{matches, parse_selector_list_from_str};
 use style;
 use servo_util::atom::Atom;
@@ -178,8 +176,7 @@ impl RawLayoutElementHelpers for Element {
         let attrs: *const Vec<JS<Attr>> = mem::transmute(&self.attrs);
         (*attrs).iter().find(|attr: & &JS<Attr>| {
             let attr = attr.unsafe_get();
-            name == (*attr).local_name().as_slice() &&
-            (*attr).namespace == *namespace
+            (*attr).local_name_forever().as_slice() == name && (*attr).namespace == *namespace
         }).map(|attr| {
             let attr = attr.unsafe_get();
             (*attr).value_ref_forever()
@@ -193,8 +190,7 @@ impl RawLayoutElementHelpers for Element {
         let attrs: *const Vec<JS<Attr>> = mem::transmute(&self.attrs);
         (*attrs).iter().find(|attr: & &JS<Attr>| {
             let attr = attr.unsafe_get();
-            name == (*attr).local_name().as_slice() &&
-            (*attr).namespace == *namespace
+            (*attr).local_name_forever().as_slice() == name && (*attr).namespace == *namespace
         }).and_then(|attr| {
             let attr = attr.unsafe_get();
             (*attr).value_atom_forever()
@@ -251,7 +247,6 @@ pub trait AttributeHandlers {
                        value: DOMString) -> AttrValue;
 
     fn remove_attribute(&self, namespace: Namespace, name: &str);
-    fn notify_attribute_changed(&self, local_name: &Atom);
     fn has_class(&self, name: &str) -> bool;
 
     fn set_atomic_attribute(&self, name: &str, value: DOMString);
@@ -340,39 +335,23 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         let (_, local_name) = get_attribute_parts(name);
         let local_name = Atom::from_slice(local_name);
 
-        let idx = self.deref().attrs.borrow().iter().map(|attr| attr.root()).position(|attr| {
-            *attr.local_name() == local_name
+        let maybe_index = self.deref().attrs.borrow().iter().position(|attr| {
+            *attr.root().root_ref().local_name() == local_name
         });
 
-        match idx {
-            None => (),
-            Some(idx) => {
-                {
-                    let node: &JSRef<Node> = NodeCast::from_ref(self);
-                    node.wait_until_safe_to_modify_dom();
-                }
+        match maybe_index {
+            Some(index) => {
+                let node: &JSRef<Node> = NodeCast::from_ref(self);
+                node.wait_until_safe_to_modify_dom();
 
                 if namespace == namespace::Null {
-                    let removed_raw_value = (*self.deref().attrs.borrow())[idx].root().Value();
-                    vtable_for(NodeCast::from_ref(self))
-                        .before_remove_attr(&local_name,
-                                            removed_raw_value);
+                    let attr = (*self.deref().attrs.borrow())[index].root();
+                    vtable_for(node).before_remove_attr(&*attr);
                 }
 
-                self.deref().attrs.borrow_mut().remove(idx);
-            }
-        };
-    }
-
-    fn notify_attribute_changed(&self, local_name: &Atom) {
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
-        if node.is_in_doc() {
-            let damage = match local_name.as_slice() {
-                "style" | "id" | "class" => MatchSelectorsDocumentDamage,
-                _ => ContentChangedDocumentDamage
-            };
-            let document = node.owner_doc().root();
-            document.deref().damage_and_reflow(damage);
+                self.deref().attrs.borrow_mut().remove(index);
+            },
+            _ => ()
         }
     }
 
@@ -807,12 +786,16 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
         Some(node as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, name: &Atom, value: DOMString) {
+    fn after_set_attr<'a>(&self, attr: &JSRef<'a, Attr>) {
         match self.super_type() {
-            Some(ref s) => s.after_set_attr(name, value.clone()),
+            Some(ref s) => s.after_set_attr(attr),
             _ => (),
         }
 
+        let name = attr.local_name();
+        let value = attr.value();
+        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let is_in_doc = node.is_in_doc();
         match name.as_slice() {
             "style" => {
                 let doc = document_from_node(self).root();
@@ -821,39 +804,47 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
                 *self.deref().style_attribute.deref().borrow_mut() = style;
             }
             "id" => {
-                let node: &JSRef<Node> = NodeCast::from_ref(self);
-                if node.is_in_doc() && !value.is_empty() {
+                if is_in_doc && !value.as_slice().is_empty() {
                     let doc = document_from_node(self).root();
-                    doc.register_named_element(self, value.clone());
+                    doc.register_named_element(self, value.as_slice().to_string());
                 }
             }
             _ => ()
         }
 
-        self.notify_attribute_changed(name);
+        if is_in_doc {
+            let document = node.owner_doc().root();
+            document.deref().content_changed(&NodeChange(ElemAttrInserted(attr)));
+        }
     }
 
-    fn before_remove_attr(&self, name: &Atom, value: DOMString) {
+    fn before_remove_attr<'a>(&self, attr: &JSRef<'a, Attr>) {
         match self.super_type() {
-            Some(ref s) => s.before_remove_attr(name, value.clone()),
+            Some(ref s) => s.before_remove_attr(attr),
             _ => (),
         }
 
+        let name = attr.local_name();
+        let value = attr.value();
+        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let is_in_doc = node.is_in_doc();
         match name.as_slice() {
             "style" => {
                 *self.deref().style_attribute.deref().borrow_mut() = None;
             }
             "id" => {
-                let node: &JSRef<Node> = NodeCast::from_ref(self);
-                if node.is_in_doc() && !value.is_empty() {
+                if is_in_doc && !value.as_slice().is_empty() {
                     let doc = document_from_node(self).root();
-                    doc.unregister_named_element(self, value);
+                    doc.unregister_named_element(self, value.as_slice().to_string());
                 }
             }
             _ => ()
         }
 
-        self.notify_attribute_changed(name);
+        if is_in_doc {
+            let document = node.owner_doc().root();
+            document.deref().content_changed(&NodeChange(ElemAttrRemoved(attr)));
+        }
     }
 
     fn parse_plain_attribute(&self, name: &str, value: DOMString) -> AttrValue {

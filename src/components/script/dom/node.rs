@@ -4,7 +4,7 @@
 
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
-use dom::attr::Attr;
+use dom::attr::{Attr, AttrHelpers};
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
@@ -28,6 +28,8 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::characterdata::CharacterData;
 use dom::comment::Comment;
 use dom::document::{Document, DocumentHelpers, HTMLDocument, NonHTMLDocument};
+use dom::document::{DOMTreeChange, DOMTreeNodeInserted, DOMTreeNodeRemoved};
+use dom::document::{NodeChange, TextContentChange};
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
 use dom::element::{AttributeHandlers, Element, ElementTypeId};
@@ -274,7 +276,7 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
         let parent = self.parent_node().root();
         parent.map(|parent| vtable_for(&*parent).child_inserted(self));
 
-        document.deref().content_changed();
+        document.deref().content_changed(&DOMTreeChange(DOMTreeNodeInserted(self)));
     }
 
     // http://dom.spec.whatwg.org/#node-is-removed
@@ -286,7 +288,7 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
             vtable_for(&node).unbind_from_tree(parent_in_doc);
         }
 
-        document.deref().content_changed();
+        document.deref().content_changed(&DOMTreeChange(DOMTreeNodeRemoved(self)));
     }
 
     //
@@ -1608,7 +1610,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 
                 // Notify the document that the content of this node is different
                 let document = self.owner_doc().root();
-                document.deref().content_changed();
+                document.deref().content_changed(&NodeChange(TextContentChange));
             }
             DoctypeNodeTypeId |
             DocumentNodeTypeId => {}

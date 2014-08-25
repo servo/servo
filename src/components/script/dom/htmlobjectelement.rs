@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::attr::{Attr, AttrHelpers};
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::HTMLObjectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLObjectElementBinding::HTMLObjectElementMethods;
@@ -20,7 +21,6 @@ use dom::virtualmethods::VirtualMethods;
 
 use servo_net::image_cache_task;
 use servo_net::image_cache_task::ImageCacheTask;
-use servo_util::atom::Atom;
 use servo_util::namespace::Null;
 use servo_util::str::DOMString;
 
@@ -93,13 +93,13 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLObjectElement> {
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, name: &Atom, value: DOMString) {
+    fn after_set_attr<'a>(&self, attr: &JSRef<'a, Attr>) {
         match self.super_type() {
-            Some(ref s) => s.after_set_attr(name, value),
+            Some(ref s) => s.after_set_attr(attr),
             _ => (),
         }
 
-        if "data" == name.as_slice() {
+        if "data" == attr.local_name().as_slice() {
             let window = window_from_node(self).root();
             self.process_data_url(window.deref().image_cache_task.clone());
         }
