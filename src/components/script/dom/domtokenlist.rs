@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::{Attr, TokenListAttrValue};
+use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::DOMTokenListBinding;
 use dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
 use dom::bindings::error::{Fallible, InvalidCharacter, Syntax};
@@ -71,31 +71,16 @@ impl<'a> PrivateDOMTokenListHelpers for JSRef<'a, DOMTokenList> {
 impl<'a> DOMTokenListMethods for JSRef<'a, DOMTokenList> {
     // http://dom.spec.whatwg.org/#dom-domtokenlist-length
     fn Length(&self) -> u32 {
-        let attribute = self.attribute().root();
-        match attribute {
-            Some(attribute) => {
-                match *attribute.deref().value() {
-                    TokenListAttrValue(_, ref indexes) => indexes.len() as u32,
-                    _ => fail!("Expected a TokenListAttrValue"),
-                }
-            }
-            None => 0,
-        }
+        self.attribute().root().map(|attr| {
+            attr.value().tokens().map(|tokens| tokens.len()).unwrap_or(0)
+        }).unwrap_or(0) as u32
     }
 
     // http://dom.spec.whatwg.org/#dom-domtokenlist-item
     fn Item(&self, index: u32) -> Option<DOMString> {
-        let attribute = self.attribute().root();
-        attribute.and_then(|attribute| {
-            match *attribute.deref().value() {
-                TokenListAttrValue(ref value, ref indexes) => {
-                    indexes.as_slice().get(index as uint).map(|&(start, end)| {
-                        value.as_slice().slice(start, end).to_string()
-                    })
-                },
-                _ => fail!("Expected a TokenListAttrValue"),
-            }
-        })
+        self.attribute().root().and_then(|attr| attr.value().tokens().and_then(|mut tokens| {
+            tokens.idx(index as uint).map(|token| token.as_slice().to_string())
+        }))
     }
 
     fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<DOMString> {
