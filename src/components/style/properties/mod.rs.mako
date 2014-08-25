@@ -21,7 +21,6 @@ pub use self::common_types::*;
 use selector_matching::DeclarationBlock;
 
 
-pub use self::property_bit_field::PropertyBitField;
 pub mod common_types;
 
 
@@ -1339,53 +1338,11 @@ pub mod shorthands {
 }
 
 
-// TODO(SimonSapin): Convert this to a syntax extension rather than a Mako template.
-// Maybe submit for inclusion in libstd?
-mod property_bit_field {
-    use std::uint;
-    use std::mem;
-
-    pub struct PropertyBitField {
-        storage: [uint, ..(${len(LONGHANDS)} - 1 + uint::BITS) / uint::BITS]
-    }
-
-    impl PropertyBitField {
-        #[inline]
-        pub fn new() -> PropertyBitField {
-            PropertyBitField { storage: unsafe { mem::zeroed() } }
-        }
-
-        #[inline]
-        fn get(&self, bit: uint) -> bool {
-            (self.storage[bit / uint::BITS] & (1 << (bit % uint::BITS))) != 0
-        }
-        #[inline]
-        fn set(&mut self, bit: uint) {
-            self.storage[bit / uint::BITS] |= 1 << (bit % uint::BITS)
-        }
-        #[inline]
-        fn clear(&mut self, bit: uint) {
-            self.storage[bit / uint::BITS] &= !(1 << (bit % uint::BITS))
-        }
-        % for i, property in enumerate(LONGHANDS):
-            #[allow(non_snake_case_functions)]
-            #[inline]
-            pub fn get_${property.ident}(&self) -> bool {
-                self.get(${i})
-            }
-            #[allow(non_snake_case_functions)]
-            #[inline]
-            pub fn set_${property.ident}(&mut self) {
-                self.set(${i})
-            }
-            #[allow(non_snake_case_functions)]
-            #[inline]
-            pub fn clear_${property.ident}(&mut self) {
-                self.clear(${i})
-            }
-        % endfor
-    }
-}
+bit_struct! PropertyBitField [
+    % for property in LONGHANDS:
+        ${property.ident},
+    % endfor
+]
 
 
 /// Declarations are stored in reverse order.
@@ -1508,12 +1465,12 @@ impl PropertyDeclaration {
                                 return ExperimentalProperty
                             }
                         % endif
-                        if seen.get_${property.ident}() {
+                        if seen.${property.ident}() {
                             return ValidOrIgnoredDeclaration
                         }
                         match longhands::${property.ident}::parse_declared(value, base_url) {
                             Ok(value) => {
-                                seen.set_${property.ident}();
+                                seen.set_${property.ident}(true);
                                 result_list.push(${property.camel_case}Declaration(value));
                                 ValidOrIgnoredDeclaration
                             },
@@ -1526,15 +1483,15 @@ impl PropertyDeclaration {
             % endfor
             % for shorthand in SHORTHANDS:
                 "${shorthand.name}" => {
-                    if ${" && ".join("seen.get_%s()" % sub_property.ident
+                    if ${" && ".join("seen.%s()" % sub_property.ident
                                      for sub_property in shorthand.sub_properties)} {
                         return ValidOrIgnoredDeclaration
                     }
                     match CSSWideKeyword::parse(value) {
                         Ok(InheritKeyword) => {
                             % for sub_property in shorthand.sub_properties:
-                                if !seen.get_${sub_property.ident}() {
-                                    seen.set_${sub_property.ident}();
+                                if !seen.${sub_property.ident}() {
+                                    seen.set_${sub_property.ident}(true);
                                     result_list.push(
                                         ${sub_property.camel_case}Declaration(Inherit));
                                 }
@@ -1543,8 +1500,8 @@ impl PropertyDeclaration {
                         },
                         Ok(InitialKeyword) => {
                             % for sub_property in shorthand.sub_properties:
-                                if !seen.get_${sub_property.ident}() {
-                                    seen.set_${sub_property.ident}();
+                                if !seen.${sub_property.ident}() {
+                                    seen.set_${sub_property.ident}(true);
                                     result_list.push(
                                         ${sub_property.camel_case}Declaration(Initial));
                                 }
@@ -1553,8 +1510,8 @@ impl PropertyDeclaration {
                         },
                         Ok(UnsetKeyword) => {
                             % for sub_property in shorthand.sub_properties:
-                                if !seen.get_${sub_property.ident}() {
-                                    seen.set_${sub_property.ident}();
+                                if !seen.${sub_property.ident}() {
+                                    seen.set_${sub_property.ident}(true);
                                     result_list.push(${sub_property.camel_case}Declaration(
                                         ${"Inherit" if sub_property.style_struct.inherited else "Initial"}
                                     ));
@@ -1565,8 +1522,8 @@ impl PropertyDeclaration {
                         Err(()) => match shorthands::${shorthand.ident}::parse(value, base_url) {
                             Ok(result) => {
                                 % for sub_property in shorthand.sub_properties:
-                                    if !seen.get_${sub_property.ident}() {
-                                        seen.set_${sub_property.ident}();
+                                    if !seen.${sub_property.ident}() {
+                                        seen.set_${sub_property.ident}(true);
                                         result_list.push(${sub_property.camel_case}Declaration(
                                             match result.${sub_property.ident} {
                                                 Some(value) => SpecifiedValue(value),
@@ -1813,10 +1770,10 @@ fn cascade_with_cached_declarations(applicable_declarations: &[DeclarationBlock]
                         % if property.derived_from is None:
                             ${property.camel_case}Declaration(ref ${'_' if not style_struct.inherited else ''}declared_value) => {
                                 % if style_struct.inherited:
-                                    if seen.get_${property.ident}() {
+                                    if seen.${property.ident}() {
                                         continue
                                     }
-                                    seen.set_${property.ident}();
+                                    seen.set_${property.ident}(true);
                                     let computed_value = match *declared_value {
                                         SpecifiedValue(ref specified_value)
                                         => longhands::${property.ident}::to_computed_value(
@@ -2020,10 +1977,10 @@ pub fn cascade(applicable_declarations: &[DeclarationBlock],
                     % for property in style_struct.longhands:
                         % if property.derived_from is None:
                             ${property.camel_case}Declaration(ref declared_value) => {
-                                if seen.get_${property.ident}() {
+                                if seen.${property.ident}() {
                                     continue
                                 }
-                                seen.set_${property.ident}();
+                                seen.set_${property.ident}(true);
                                 let computed_value = match *declared_value {
                                     SpecifiedValue(ref specified_value)
                                     => longhands::${property.ident}::to_computed_value(
@@ -2081,7 +2038,7 @@ pub fn cascade(applicable_declarations: &[DeclarationBlock],
     }
 
     // The initial value of display may be changed at computed value time.
-    if !seen.get_display() {
+    if !seen.display() {
         let box_ = style_box_.make_unique_experimental();
         box_.display = longhands::display::to_computed_value(box_.display, &context);
     }
