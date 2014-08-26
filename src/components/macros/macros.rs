@@ -6,12 +6,16 @@
 #![crate_type = "rlib"]
 #![crate_type = "dylib"]
 
-#![feature(macro_rules, plugin_registrar, quote)]
+#![feature(macro_rules, plugin_registrar, quote, phase)]
 
 //! Exports macros for use in other Servo crates.
 
 #[cfg(test)]
 extern crate sync;
+
+#[cfg(test)]
+#[phase(plugin)]
+extern crate macros;
 
 extern crate rustc;
 extern crate syntax;
@@ -181,9 +185,12 @@ macro_rules! lazy_init(
 )
 
 
+#[allow(dead_code)]
 #[cfg(test)]
 mod tests {
     use std::collections::hashmap::HashMap;
+    use std::mem::size_of;
+
     lazy_init! {
         static ref NUMBER: uint = times_two(3);
         static ref VEC: [Box<uint>, ..3] = [box 1, box 2, box 3];
@@ -215,5 +222,73 @@ mod tests {
         assert_eq!(*NUMBER, 6);
         assert_eq!(*NUMBER, 6);
         assert_eq!(*NUMBER, 6);
+    }
+
+    bit_struct! TestStruct64 {
+        f01, f02, f03, f04, f05, f06, f07, f08, f09, f10,
+        f11, f12, f13, f14, f15, f16, f17, f18, f19, f20,
+        f21, f22, f23, f24, f25, f26, f27, f28, f29, f30,
+        f31, f32, f33, f34, f35, f36, f37, f38, f39, f40,
+        f41, f42, f43, f44, f45, f46, f47, f48, f49, f50,
+        f51, f52, f53, f54, f55, f56, f57, f58, f59, f60,
+        f61, f62, f63, f64,
+    }
+
+    bit_struct! TestStruct65 {
+        f01, f02, f03, f04, f05, f06, f07, f08, f09, f10,
+        f11, f12, f13, f14, f15, f16, f17, f18, f19, f20,
+        f21, f22, f23, f24, f25, f26, f27, f28, f29, f30,
+        f31, f32, f33, f34, f35, f36, f37, f38, f39, f40,
+        f41, f42, f43, f44, f45, f46, f47, f48, f49, f50,
+        f51, f52, f53, f54, f55, f56, f57, f58, f59, f60,
+        f61, f62, f63, f64, f65,
+    }
+
+    #[test]
+    fn test_bit_struct() {
+        if cfg!(target_word_size = "64") {
+            // One and two 8-byte words
+            assert_eq!(size_of::<TestStruct64>(), 8)
+            assert_eq!(size_of::<TestStruct65>(), 16)
+        } else {
+            // Two and three 4-byte words
+            assert_eq!(size_of::<TestStruct64>(), 8)
+            assert_eq!(size_of::<TestStruct65>(), 12)
+        }
+
+        let mut foo = TestStruct65::new();
+        assert_eq!(foo.f01(), false);
+        assert_eq!(foo.f32(), false);
+        assert_eq!(foo.f33(), false);
+        assert_eq!(foo.f64(), false);
+        assert_eq!(foo.f65(), false);
+
+        foo.set_f33(true);
+        assert_eq!(foo.f01(), false);
+        assert_eq!(foo.f32(), false);
+        assert_eq!(foo.f33(), true);
+        assert_eq!(foo.f64(), false);
+        assert_eq!(foo.f65(), false);
+
+        foo.set_f01(false);
+        assert_eq!(foo.f01(), false);
+        assert_eq!(foo.f32(), false);
+        assert_eq!(foo.f33(), true);
+        assert_eq!(foo.f64(), false);
+        assert_eq!(foo.f65(), false);
+
+        foo.set_f65(true);
+        assert_eq!(foo.f01(), false);
+        assert_eq!(foo.f32(), false);
+        assert_eq!(foo.f33(), true);
+        assert_eq!(foo.f64(), false);
+        assert_eq!(foo.f65(), true);
+
+        foo.set_f33(false);
+        assert_eq!(foo.f01(), false);
+        assert_eq!(foo.f32(), false);
+        assert_eq!(foo.f33(), false);
+        assert_eq!(foo.f64(), false);
+        assert_eq!(foo.f65(), true);
     }
 }
