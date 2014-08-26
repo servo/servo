@@ -895,8 +895,7 @@ impl IOCompositor {
             let mut img = png::Image {
                 width: width as u32,
                 height: height as u32,
-                color_type: png::RGB8,
-                pixels: pixels,
+                pixels: png::RGB8(pixels),
             };
             let res = png::store_png(&mut img, &path);
             assert!(res.is_ok());
