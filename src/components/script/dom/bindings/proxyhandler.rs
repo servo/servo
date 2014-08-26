@@ -7,7 +7,7 @@
 use dom::bindings::utils::is_dom_proxy;
 use js::jsapi::{JSContext, jsid, JSPropertyDescriptor, JSObject, JSString, jschar};
 use js::jsapi::{JS_GetPropertyDescriptorById, JS_NewUCString, JS_malloc, JS_free};
-use js::jsapi::{JSBool, JS_DefinePropertyById, JS_NewObjectWithGivenProto};
+use js::jsapi::{JS_DefinePropertyById, JS_NewObjectWithGivenProto};
 use js::jsapi::{JS_ReportErrorFlagsAndNumber, JS_StrictPropertyStub};
 use js::jsapi::{JSREPORT_WARNING, JSREPORT_STRICT, JSREPORT_STRICT_MODE_ERROR};
 use js::jsapi::JS_DeletePropertyById2;
@@ -26,30 +26,32 @@ use std::mem::size_of;
 
 static JSPROXYSLOT_EXPANDO: u32 = 0;
 
-pub extern fn getPropertyDescriptor(cx: *mut JSContext, proxy: *mut JSObject, id: jsid,
-                                set: libc::c_int, desc: *mut JSPropertyDescriptor) -> libc::c_int {
+pub extern fn getPropertyDescriptor(cx: *mut JSContext, proxy: *mut JSObject,
+                                    id: jsid, set: bool,
+                                    desc: *mut JSPropertyDescriptor)
+                                    -> bool {
   unsafe {
     let handler = GetProxyHandler(proxy);
-    if InvokeGetOwnPropertyDescriptor(handler, cx, proxy, id, set, desc) == 0 {
-        return 0;
+    if !InvokeGetOwnPropertyDescriptor(handler, cx, proxy, id, set, desc) {
+        return false;
     }
     if (*desc).obj.is_not_null() {
-        return 1;
+        return true;
     }
 
     //let proto = JS_GetPrototype(proxy);
     let proto = GetObjectProto(proxy);
     if proto.is_null() {
         (*desc).obj = ptr::mut_null();
-        return 1;
+        return true;
     }
 
-    JS_GetPropertyDescriptorById(cx, proto, id, JSRESOLVE_QUALIFIED, mem::transmute(desc))
+    JS_GetPropertyDescriptorById(cx, proto, id, JSRESOLVE_QUALIFIED, desc) != 0
   }
 }
 
 pub fn defineProperty_(cx: *mut JSContext, proxy: *mut JSObject, id: jsid,
-                       desc: *mut JSPropertyDescriptor) -> JSBool {
+                       desc: *mut JSPropertyDescriptor) -> bool {
     static JSMSG_GETTER_ONLY: libc::c_uint = 160;
 
     unsafe {
@@ -61,39 +63,39 @@ pub fn defineProperty_(cx: *mut JSContext, proxy: *mut JSObject, id: jsid,
                                                 JSREPORT_WARNING | JSREPORT_STRICT |
                                                 JSREPORT_STRICT_MODE_ERROR,
                                                 Some(RUST_js_GetErrorMessage), ptr::mut_null(),
-                                                JSMSG_GETTER_ONLY);
+                                                JSMSG_GETTER_ONLY) != 0;
         }
 
         let expando = EnsureExpandoObject(cx, proxy);
         if expando.is_null() {
-            return 0;
+            return false;
         }
 
         return JS_DefinePropertyById(cx, expando, id, (*desc).value, (*desc).getter,
-                                     (*desc).setter, (*desc).attrs);
+                                     (*desc).setter, (*desc).attrs) != 0;
     }
 }
 
 pub extern fn defineProperty(cx: *mut JSContext, proxy: *mut JSObject, id: jsid,
-                             desc: *mut JSPropertyDescriptor) -> JSBool {
+                             desc: *mut JSPropertyDescriptor) -> bool {
     defineProperty_(cx, proxy, id, desc)
 }
 
 pub extern fn delete_(cx: *mut JSContext, proxy: *mut JSObject, id: jsid,
-                      bp: *mut bool) -> JSBool {
+                      bp: *mut bool) -> bool {
     unsafe {
         let expando = EnsureExpandoObject(cx, proxy);
         if expando.is_null() {
-            return 0;
+            return false;
         }
 
         let mut value = UndefinedValue();
         if JS_DeletePropertyById2(cx, expando, id, &mut value) == 0 {
-            return 0;
+            return false;
         }
 
         *bp = value.to_boolean();
-        return 1;
+        return true;
     }
 }
 
