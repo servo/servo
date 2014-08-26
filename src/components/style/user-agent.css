@@ -85,7 +85,7 @@ ol[type="i"]        { list-style-type: lower-roman; }
 ol[type="I"]        { list-style-type: upper-roman; }
 
 u, ins              { text-decoration: underline }
-br:before           { content: "\A"; white-space: pre-line }
+br:before           { content: "\A"; white-space: pre }
 
 center              { text-align: center }
 a:link,
