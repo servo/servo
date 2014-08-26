@@ -23,5 +23,7 @@ unit-doc)
       git push -f https://${TOKEN}@github.com/servo/doc.servo.org.git gh-pages
   fi
 ;;
+wpt) WPTARGS="--processes=4" make check-wpt
+;;
 *) echo "Task $1 not enabled for Linux"
 esac
