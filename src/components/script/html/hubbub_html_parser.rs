@@ -582,19 +582,24 @@ pub fn parse_html(page: &Page,
     };
     parser.set_tree_handler(&mut tree_handler);
     debug!("set tree handler");
-
     debug!("loaded page");
-    loop {
-        match load_response.progress_port.recv() {
-            Payload(data) => {
-                debug!("received data");
-                parser.parse_chunk(data.as_slice());
-            }
-            Done(Err(err)) => {
-                fail!("Failed to load page URL {:s}, error: {:s}", url.serialize(), err);
-            }
-            Done(..) => {
-                break;
+    match load_response.metadata.content_type {
+        Some((ref t, _)) if t.as_slice().eq_ignore_ascii_case("image") => {
+            let page = format!("<html><body><img src='{:s}' /></body></html>", base_url.serialize());
+            parser.parse_chunk(page.into_bytes().as_slice());
+        },
+        _ => loop {
+            match load_response.progress_port.recv() {
+                Payload(data) => {
+                    debug!("received data");
+                    parser.parse_chunk(data.as_slice());
+                }
+                Done(Err(err)) => {
+                    fail!("Failed to load page URL {:s}, error: {:s}", url.serialize(), err);
+                }
+                Done(..) => {
+                    break;
+                }
             }
         }
     }
