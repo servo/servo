@@ -364,9 +364,9 @@ RFLAGS_servo = $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components
 SRC_servo = $(call rwildcard,$(S)src/components/main/,*.rs)
 CRATE_servo = $(S)src/components/main/servo.rs
 
-DEPS_servo = $(CRATE_servo) $(SRC_servo) $(DONE_SUBMODULES) $(DONE_util) $(DONE_gfx) $(DONE_script) $(DONE_net) $(DONE_msg) $(DONE_style) $(DONE_macros) $(DONE_layout) $(DONE_layout_traits) $(DONE_script_traits) $(DONE_compositing)
-
 SERVO_LIB_CRATES = macros util net msg gfx script script_traits style layout layout_traits compositing
+
+DEPS_servo = $(CRATE_servo) $(SRC_servo) $(DONE_SUBMODULES) $(foreach lib_crate,$(SERVO_LIB_CRATES),$(DONE_$(lib_crate)))
 
 # rules that depend on having correct meta-target vars (DEPS_CLEAN, DEPS_servo, etc)
 # and SERVO_LIB_CRATES
