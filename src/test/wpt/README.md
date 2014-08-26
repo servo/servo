@@ -1,0 +1,99 @@
+This folder contains the web platform tests and the code required to integrate
+them with Servo.
+
+Contents
+========
+
+In particular, this folder contains:
+
+* `config.ini`: some configuration for the wpt libraries;
+* `include.ini`: the subset of tests we currently run;
+* `run.py` and `run.sh`: glue code to run the tests in Servo;
+* `metadata`: expected failures for the tests we run;
+* `web-platform-tests`: submodule pointer to the actual tests.
+
+Running the tests
+=================
+
+The simplest way to run the tests in Servo is `make check-wpt` in the build
+directory. This will run the subset of JavaScript tests defined in
+`include.ini` and log the output to stdout.
+
+Options can be passed through to `run.sh` by using the `WPTARGS` environment
+variable. Some useful options are:
+
+* `--include`: specifies which test(s) to run.
+  For example, `--include=/dom` runs all the DOM tests, `--include=/dom/errors`
+  runs all the DOM error tests and
+  `--include=/dom/errors/DOMException-constants.html` runs one specific test.
+  (Note that this overrides `include.ini` completely.)
+* `--processes`: specifies the number of parallel processes to use (default 1).
+  When this argument is passed, the runner will spawn multiple instances of
+  Servo simultaneously to run multiple tests in parallel for more efficiency
+  (especially on multi-core processors).
+
+Running the tests without make
+------------------------------
+
+When avoiding `make` for some reason, one can run `run.py` directly. However,
+this requires in the first place that the virtualenv has been set up (which can
+be done by running `make check-wpt` in advance). Then run from the build
+directory:
+
+    source _virtualenv/bin/activate
+    python $srcdir/src/test/wpt/run.py --config srcdir/src/test/wpt/config.ini
+
+with any other desired arguments.
+
+Running the tests manually
+--------------------------
+
+It can be useful to run a test without the interference of the test runner, for
+example when using a debugger such as `gdb`. In that case, start the server by
+first adding the following to the system's hosts file:
+
+    127.0.0.1   www.web-platform.test
+    127.0.0.1   www1.web-platform.test
+    127.0.0.1   www2.web-platform.test
+    127.0.0.1   web-platform.test
+    127.0.0.1   xn--n8j6ds53lwwkrqhv28a.web-platform.test
+    127.0.0.1   xn--lve-6lad.web-platform.test
+
+and then running `python serve.py` from `src/tests/wpt/web-platform-tests`.
+Then navigate Servo to `http://web-platform.test:8000/path/to/test`.
+
+Updating test expectations
+==========================
+
+When fixing a bug that causes the result of a test to change, the expected
+results for that test need to be changed. This can be done manually, by editing
+the `.ini` file under the `metadata` folder that corresponds to the test. In
+this case, remove the references to tests whose expectation is now `PASS`, and
+remove `.ini` files that no longer contain any expectations.
+
+When a larger number of changes is required, this process can be automated.
+This first requires saving the raw, unformatted log from a test run, for
+example by running `WPTARGS=--log-raw /tmp/servo.log make check-wpt`. Once the
+log is saved, run from the build directory:
+
+    source _virtualenv/bin/activate
+    _virtualenv/bin/wptupdate \
+      --ignore-existing \
+      --config $srcdir/src/test/wpt/config.ini \
+      /tmp/servo.log
+
+This will update the `.ini` files under the `metadata` folder; commit those
+changes along with the code changes that require them.
+
+Updating the upstream tests
+===========================
+
+In order to update the upstream tests, fetch the latest commits on the `master`
+branch of the upstream `git@github.com:w3c/web-platform-tests.git` repository.
+and create a new branch `servo_[current date]` with those commits. Then
+cherry-pick our changes to the `resources` submodule; those should be the
+latest commits on the branch currently used by Servo. If the `resources`
+submodule has been updated upstream, this will also require cherry-picking the
+changes there. Finally, push the `servo_[current date]` to our fork at
+`git@github.com:servo/web-platform-tests.git` and create a pull request with a
+submodule pointer update and updated test expectations to the Servo repository.
