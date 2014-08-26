@@ -34,7 +34,7 @@ On Fedora:
 
 ``` sh
 sudo yum install autoconf213 curl freeglut-devel libtool gcc-c++ libXi-devel \
-    freetype-devel mesa-libGL-devel glib2-devel libX11-devel libXRandr-devel gperf \
+    freetype-devel mesa-libGL-devel glib2-devel libX11-devel libXrandr-devel gperf \
     fontconfig-devel cabextract ttmkfdir python python-virtualenv expat-devel rpm-build
 pushd .
 cd /tmp
