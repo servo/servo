@@ -473,8 +473,11 @@ impl Element {
 
 impl<'a> ElementMethods for JSRef<'a, Element> {
     // http://dom.spec.whatwg.org/#dom-element-namespaceuri
-    fn NamespaceURI(&self) -> DOMString {
-        self.namespace.to_str().to_string()
+    fn GetNamespaceURI(&self) -> Option<DOMString> {
+        match self.namespace {
+            Null => None,
+            ref ns => Some(ns.to_str().to_string())
+        }
     }
 
     fn LocalName(&self) -> DOMString {
