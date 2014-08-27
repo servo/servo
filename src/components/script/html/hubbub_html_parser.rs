@@ -160,9 +160,8 @@ fn js_script_listener(to_parent: Sender<HtmlDiscoveryMessage>,
 
 // Parses an RFC 2616 compliant date/time string, and returns a localized
 // date/time string in a format suitable for document.lastModified.
-fn parse_last_modified(timestamp: String) -> String {
+fn parse_last_modified(timestamp: &str) -> String {
     let format = "%m/%d/%Y %H:%M:%S";
-    let timestamp = timestamp.as_slice();
 
     // RFC 822, updated by RFC 1123
     match time::strptime(timestamp, "%a, %d %b %Y %T %Z") {
@@ -350,15 +349,18 @@ pub fn parse_html(page: &Page,
 
     // Set document.lastModified to the parsed Last-Modified header, defaulting
     // to the current local time if the header was not sent.
-    document.set_last_modified(time::now().strftime("%m/%d/%Y %H:%M:%S"));
-
     load_response.metadata.headers.and_then(|headers| {
-        for h in headers.iter() {
-            match h.header_name().as_slice() {
-                "Last-Modified" => document.set_last_modified(parse_last_modified(h.header_value())),
-                _ => {}
-            }
-        }
+        let header = headers.iter().find(|h|
+            h.header_name().as_slice() == "Last-Modified"
+        );
+
+        let last_modified_time = match header {
+            Some(h) => parse_last_modified(h.header_value().as_slice()),
+            None => time::now().strftime("%m/%d/%Y %H:%M:%S"),
+        };
+
+        document.set_last_modified(last_modified_time);
+
         Some(())
     });
 

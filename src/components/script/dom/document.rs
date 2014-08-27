@@ -59,6 +59,7 @@ use std::collections::hashmap::HashMap;
 use std::ascii::StrAsciiExt;
 use std::cell::{Cell, RefCell};
 use url::Url;
+use time;
 
 #[deriving(PartialEq,Encodable)]
 pub enum IsHTMLDocument {
@@ -74,7 +75,7 @@ pub struct Document {
     idmap: Traceable<RefCell<HashMap<DOMString, Vec<JS<Element>>>>>,
     implementation: Cell<Option<JS<DOMImplementation>>>,
     content_type: DOMString,
-    pub last_modified: Traceable<RefCell<DOMString>>,
+    last_modified: Traceable<RefCell<DOMString>>,
     pub encoding_name: Traceable<RefCell<DOMString>>,
     pub is_html_document: bool,
     url: Untraceable<Url>,
@@ -236,7 +237,7 @@ impl Document {
                     NonHTMLDocument => "application/xml".to_string()
                 }
             },
-            last_modified: Traceable::new(RefCell::new("".to_string())),
+            last_modified: Traceable::new(RefCell::new(time::now().strftime("%m/%d/%Y %H:%M:%S"))),
             url: Untraceable::new(url),
             // http://dom.spec.whatwg.org/#concept-document-quirks
             quirks_mode: Untraceable::new(Cell::new(NoQuirks)),
@@ -520,6 +521,8 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             _ => Err(NotSupported)
         }
     }
+
+    // http://www.whatwg.org/html/#dom-document-lastmodified
     fn LastModified(&self) -> DOMString {
         String::from_str(self.last_modified.deref().borrow().as_slice())
     }
