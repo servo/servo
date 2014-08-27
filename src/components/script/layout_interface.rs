@@ -25,8 +25,6 @@ use url::Url;
 use serialize::{Encodable, Encoder};
 
 /// Asynchronous messages that script can send to layout.
-///
-/// FIXME(pcwalton): I think this should probably be merged with `LayoutQuery` below.
 pub enum Msg {
     /// Adds the given stylesheet to the document.
     AddStylesheetMsg(Stylesheet),
@@ -34,10 +32,8 @@ pub enum Msg {
     /// Requests a reflow.
     ReflowMsg(Box<Reflow>),
 
-    /// Performs a synchronous layout request.
-    ///
-    /// FIXME(pcwalton): As noted below, this isn't very type safe.
-    QueryMsg(LayoutQuery),
+    /// Get an RPC interface.
+    GetRPCMsg(Sender<Box<LayoutRPC + Send>>),
 
     /// Destroys layout data associated with a DOM node.
     ///
@@ -55,14 +51,21 @@ pub enum Msg {
 }
 
 /// Synchronous messages that script can send to layout.
-pub enum LayoutQuery {
+///
+/// In general, you should use messages to talk to Layout. Use the RPC interface
+/// if and only if the work is
+///
+///   1) read-only with respect to LayoutTaskData,
+///   2) small,
+//    3) and really needs to be fast.
+pub trait LayoutRPC {
     /// Requests the dimensions of the content box, as in the `getBoundingClientRect()` call.
-    ContentBoxQuery(TrustedNodeAddress, Sender<ContentBoxResponse>),
+    fn content_box(&self, node: TrustedNodeAddress) -> ContentBoxResponse;
     /// Requests the dimensions of all the content boxes, as in the `getClientRects()` call.
-    ContentBoxesQuery(TrustedNodeAddress, Sender<ContentBoxesResponse>),
+    fn content_boxes(&self, node: TrustedNodeAddress) -> ContentBoxesResponse;
     /// Requests the node containing the point of interest
-    HitTestQuery(TrustedNodeAddress, Point2D<f32>, Sender<Result<HitTestResponse, ()>>),
-    MouseOverQuery(TrustedNodeAddress, Point2D<f32>, Sender<Result<MouseOverResponse, ()>>),
+    fn hit_test(&self, node: TrustedNodeAddress, point: Point2D<f32>) -> Result<HitTestResponse, ()>;
+    fn mouse_over(&self, node: TrustedNodeAddress, point: Point2D<f32>) -> Result<MouseOverResponse, ()>;
 }
 
 /// The address of a node known to be valid. These must only be sent from content -> layout,

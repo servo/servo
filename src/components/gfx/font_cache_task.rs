@@ -247,7 +247,7 @@ impl FontCacheTask {
         }
     }
 
-    pub fn get_font_template(&mut self, family: String, desc: FontTemplateDescriptor)
+    pub fn get_font_template(&self, family: String, desc: FontTemplateDescriptor)
                                                 -> Arc<FontTemplateData> {
 
         let (response_chan, response_port) = channel();
@@ -262,7 +262,7 @@ impl FontCacheTask {
         }
     }
 
-    pub fn add_web_font(&mut self, family: String, url: Url) {
+    pub fn add_web_font(&self, family: String, url: Url) {
         let (response_chan, response_port) = channel();
         self.chan.send(AddWebFont(family, url, response_chan));
         response_port.recv();

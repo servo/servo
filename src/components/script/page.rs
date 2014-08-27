@@ -13,8 +13,8 @@ use dom::element::{Element, AttributeHandlers};
 use dom::node::{Node, NodeHelpers};
 use dom::window::Window;
 use layout_interface::{DocumentDamage};
-use layout_interface::{DocumentDamageLevel, HitTestQuery, HitTestResponse, LayoutQuery, MouseOverQuery, MouseOverResponse};
-use layout_interface::{LayoutChan, QueryMsg};
+use layout_interface::{DocumentDamageLevel, HitTestResponse, MouseOverResponse};
+use layout_interface::{GetRPCMsg, LayoutChan, LayoutRPC};
 use layout_interface::{Reflow, ReflowGoal, ReflowMsg};
 use layout_interface::UntrustedNodeAddress;
 use script_traits::ScriptControlChan;
@@ -53,6 +53,9 @@ pub struct Page {
 
     /// A handle for communicating messages to the layout task.
     pub layout_chan: Untraceable<LayoutChan>,
+
+    /// A handle to perform RPC calls into the layout, quickly.
+    pub layout_rpc: Untraceable<Box<LayoutRPC>>,
 
     /// The port that we will use to join layout. If this is `None`, then layout is not running.
     pub layout_join_port: Untraceable<RefCell<Option<Receiver<()>>>>,
@@ -126,11 +129,18 @@ impl Page {
             dom_static: GlobalStaticData(),
             js_context: Untraceable::new(js_context),
         };
+        let layout_rpc: Box<LayoutRPC> = {
+            let (rpc_send, rpc_recv) = channel();
+            let LayoutChan(ref lchan) = layout_chan;
+            lchan.send(GetRPCMsg(rpc_send));
+            rpc_recv.recv()
+        };
         Page {
             id: id,
             subpage_id: subpage_id,
             frame: Traceable::new(RefCell::new(None)),
             layout_chan: Untraceable::new(layout_chan),
+            layout_rpc: Untraceable::new(layout_rpc),
             layout_join_port: Untraceable::new(RefCell::new(None)),
             damage: Traceable::new(RefCell::new(None)),
             window_size: Traceable::new(Cell::new(window_size)),
@@ -255,6 +265,10 @@ impl Page {
         self.url().get_ref().ref0().clone()
     }
 
+    // FIXME(cgaebel): join_layout is racey. What if the compositor triggers a
+    // reflow between the "join complete" message and returning from this
+    // function?
+
     /// Sends a ping to layout and waits for the response. The response will arrive when the
     /// layout task has finished any pending request messages.
     pub fn join_layout(&self) {
@@ -279,17 +293,6 @@ impl Page {
                 None => fail!("reader forked but no join port?"),
             }
         }
-    }
-
-    /// Sends the given query to layout.
-    pub fn query_layout<T: Send>(&self,
-                                 query: LayoutQuery,
-                                 response_port: Receiver<T>)
-                                 -> T {
-        self.join_layout();
-        let LayoutChan(ref chan) = *self.layout_chan;
-        chan.send(QueryMsg(query));
-        response_port.recv()
     }
 
     /// Reflows the page if it's possible to do so. This method will wait until the layout task has
@@ -382,8 +385,7 @@ impl Page {
         }
         let root = root.unwrap();
         let root: &JSRef<Node> = NodeCast::from_ref(&*root);
-        let (chan, port) = channel();
-        let address = match self.query_layout(HitTestQuery(root.to_trusted_node_address(), *point, chan), port) {
+        let address = match self.layout_rpc.hit_test(root.to_trusted_node_address(), *point) {
             Ok(HitTestResponse(node_address)) => {
                 Some(node_address)
             }
@@ -404,8 +406,7 @@ impl Page {
         }
         let root = root.unwrap();
         let root: &JSRef<Node> = NodeCast::from_ref(&*root);
-        let (chan, port) = channel();
-        let address = match self.query_layout(MouseOverQuery(root.to_trusted_node_address(), *point, chan), port) {
+        let address = match self.layout_rpc.mouse_over(root.to_trusted_node_address(), *point) {
             Ok(MouseOverResponse(node_address)) => {
                 Some(node_address)
             }
