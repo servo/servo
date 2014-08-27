@@ -1110,16 +1110,18 @@ impl BlockFlow {
                                              .relative_containing_block_size,
                                         None);
 
+        // FIXME(#2795): Get the real container size
+        let container_size = Size2D::zero();
+
         // Add the box that starts the block context.
         let mut display_list = DisplayList::new();
-        let mut accumulator =
-            self.fragment.build_display_list(&mut display_list,
-                                             layout_context,
-                                             self.base.abs_position
-                                                .add_point(&offset)
-                                                + rel_offset,
-                                             background_border_level,
-                                             None);
+        let mut accumulator = self.fragment.build_display_list(
+            &mut display_list,
+            layout_context,
+            self.base.abs_position + (offset + rel_offset).to_physical(
+                self.base.writing_mode, container_size),
+            background_border_level,
+            None);
 
         let mut child_layers = DList::new();
         for kid in self.base.child_iter() {
@@ -1592,17 +1594,22 @@ impl Flow for BlockFlow {
     }
 
     fn compute_absolute_position(&mut self) {
+        // FIXME(#2795): Get the real container size
+        let container_size = Size2D::zero();
+
         if self.is_absolutely_positioned() {
+            let position_start = self.base.position.start.to_physical(
+                self.base.writing_mode, container_size);
             self.base
                 .absolute_position_info
                 .absolute_containing_block_position = if self.is_fixed() {
                 // The viewport is initially at (0, 0).
-                self.base.position.start
+                position_start
             } else {
                 // Absolute position of the containing block + position of absolute flow w/r/t the
                 // containing block.
                 self.base.absolute_position_info.absolute_containing_block_position
-                    .add_point(&self.base.position.start)
+                    + position_start
             };
 
             // Set the absolute position, which will be passed down later as part
@@ -1622,8 +1629,8 @@ impl Flow for BlockFlow {
         if self.is_positioned() {
             self.base.absolute_position_info.absolute_containing_block_position =
                 self.base.abs_position
-                .add_point(&self.generated_containing_block_rect().start)
-                + relative_offset
+                + (self.generated_containing_block_rect().start
+                   + relative_offset).to_physical(self.base.writing_mode, container_size)
         }
 
         let float_offset = if self.is_float() {
@@ -1640,14 +1647,14 @@ impl Flow for BlockFlow {
 
         // Process children.
         let this_position = self.base.abs_position;
+        let writing_mode = self.base.writing_mode;
         for kid in self.base.child_iter() {
             if !kid.is_absolutely_positioned() {
                 let kid_base = flow::mut_base(kid);
-                kid_base.abs_position =
-                    this_position
-                    .add_point(&kid_base.position.start)
+                kid_base.abs_position = this_position + (
+                    kid_base.position.start
                     .add_point(&float_offset)
-                    + relative_offset;
+                    + relative_offset).to_physical(writing_mode, container_size);
                 kid_base.absolute_position_info = absolute_position_info
             }
         }

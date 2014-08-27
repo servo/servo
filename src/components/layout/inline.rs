@@ -16,7 +16,7 @@ use text;
 use wrapper::ThreadSafeLayoutNode;
 
 use collections::{Deque, RingBuf};
-use geom::Size2D;
+use geom::Rect;
 use gfx::display_list::ContentLevel;
 use gfx::font::FontMetrics;
 use gfx::font_context::FontContext;
@@ -927,12 +927,8 @@ impl InlineFlow {
     }
 
     pub fn build_display_list_inline(&mut self, layout_context: &LayoutContext) {
-        let abs_rect = LogicalRect::from_point_size(
-            self.base.writing_mode, self.base.abs_position, self.base.position.size);
-        // FIXME(#2795): Get the real container size
-        let container_size = Size2D::zero();
-        if !abs_rect.to_physical(self.base.writing_mode, container_size)
-                    .intersects(&layout_context.shared.dirty) {
+        let size = self.base.position.size.to_physical(self.base.writing_mode);
+        if !Rect(self.base.abs_position, size).intersects(&layout_context.shared.dirty) {
             return
         }
 
@@ -947,7 +943,8 @@ impl InlineFlow {
                                                         Some(context));
             drop(fragment.build_display_list(&mut self.base.display_list,
                                              layout_context,
-                                             self.base.abs_position + rel_offset,
+                                             self.base.abs_position.add_size(
+                                                &rel_offset.to_physical(self.base.writing_mode)),
                                              ContentLevel,
                                              Some(context)));
         }

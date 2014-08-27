@@ -46,13 +46,15 @@ use table_cell::TableCellFlow;
 use wrapper::ThreadSafeLayoutNode;
 
 use collections::dlist::DList;
+use geom::Point2D;
 use gfx::display_list::DisplayList;
 use gfx::render_task::RenderLayer;
 use servo_msg::compositor_msg::LayerId;
 use servo_util::geometry::Au;
 use servo_util::logical_geometry::WritingMode;
-use servo_util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize};
+use servo_util::logical_geometry::{LogicalRect, LogicalSize};
 use std::mem;
+use std::num::Zero;
 use std::fmt;
 use std::iter::Zip;
 use std::sync::atomics::{AtomicUint, Relaxed, SeqCst};
@@ -596,7 +598,7 @@ pub struct AbsolutePositionInfo {
     /// The size of the containing block for relatively-positioned descendants.
     pub relative_containing_block_size: LogicalSize<Au>,
     /// The position of the absolute containing block.
-    pub absolute_containing_block_position: LogicalPoint<Au>,
+    pub absolute_containing_block_position: Point2D<Au>,
     /// Whether the absolute containing block forces positioned descendants to be layerized.
     ///
     /// FIXME(pcwalton): Move into `FlowFlags`.
@@ -609,7 +611,7 @@ impl AbsolutePositionInfo {
         // of the root layer.
         AbsolutePositionInfo {
             relative_containing_block_size: LogicalSize::zero(writing_mode),
-            absolute_containing_block_position: LogicalPoint::zero(writing_mode),
+            absolute_containing_block_position: Zero::zero(),
             layers_needed_for_positioned_flows: false,
         }
     }
@@ -660,7 +662,7 @@ pub struct BaseFlow {
     pub collapsible_margins: CollapsibleMargins,
 
     /// The position of this flow in page coordinates, computed during display list construction.
-    pub abs_position: LogicalPoint<Au>,
+    pub abs_position: Point2D<Au>,
 
     /// Details about descendants with position 'absolute' or 'fixed' for which we are the
     /// containing block. This is in tree order. This includes any direct children.
@@ -724,7 +726,7 @@ impl BaseFlow {
 
             floats: Floats::new(writing_mode),
             collapsible_margins: CollapsibleMargins::new(),
-            abs_position: LogicalPoint::zero(writing_mode),
+            abs_position: Zero::zero(),
             abs_descendants: Descendants::new(),
             absolute_static_i_offset: Au::new(0),
             fixed_static_i_offset: Au::new(0),

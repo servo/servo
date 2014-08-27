@@ -37,7 +37,7 @@ use servo_net::image::holder::ImageHolder;
 use servo_net::local_image_cache::LocalImageCache;
 use servo_util::geometry::Au;
 use servo_util::geometry;
-use servo_util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, LogicalMargin};
+use servo_util::logical_geometry::{LogicalRect, LogicalSize, LogicalMargin};
 use servo_util::range::*;
 use servo_util::namespace;
 use servo_util::smallvec::SmallVec;
@@ -776,15 +776,15 @@ impl Fragment {
 
     fn build_debug_borders_around_text_fragments(&self,
                                              display_list: &mut DisplayList,
-                                             flow_origin: LogicalPoint<Au>,
+                                             flow_origin: Point2D<Au>,
                                              text_fragment: &ScannedTextFragmentInfo) {
-        let mut fragment_bounds = self.border_box.clone();
-        fragment_bounds.start.i = fragment_bounds.start.i + flow_origin.i;
-        fragment_bounds.start.b = fragment_bounds.start.b + flow_origin.b;
         // FIXME(#2795): Get the real container size
         let container_size = Size2D::zero();
-        let absolute_fragment_bounds = fragment_bounds.to_physical(
-            self.style.writing_mode, container_size);
+        // Fragment position wrt to the owning flow.
+        let fragment_bounds = self.border_box.to_physical(self.style.writing_mode, container_size);
+        let absolute_fragment_bounds = Rect(
+            fragment_bounds.origin + flow_origin,
+            fragment_bounds.size);
 
         // Compute the text fragment bounds and draw a border surrounding them.
         let border_display_item = box BorderDisplayItem {
@@ -797,13 +797,11 @@ impl Fragment {
 
         // Draw a rectangle representing the baselines.
         let ascent = text_fragment.run.ascent();
-        let baseline = LogicalRect::new(
-            self.style.writing_mode,
-            fragment_bounds.start.i,
-            fragment_bounds.start.b + ascent,
-            fragment_bounds.size.inline,
-            Au(0)
-        ).to_physical(self.style.writing_mode, container_size);
+        let mut baseline = self.border_box.clone();
+        baseline.start.b = baseline.start.b + ascent;
+        baseline.size.block = Au(0);
+        let mut baseline = baseline.to_physical(self.style.writing_mode, container_size);
+        baseline.origin = baseline.origin + flow_origin;
 
         let line_display_item = box LineDisplayItem {
             base: BaseDisplayItem::new(baseline, self.node, ContentStackingLevel),
@@ -815,14 +813,14 @@ impl Fragment {
 
     fn build_debug_borders_around_fragment(&self,
                                       display_list: &mut DisplayList,
-                                      flow_origin: LogicalPoint<Au>) {
-        let mut fragment_bounds = self.border_box.clone();
-        fragment_bounds.start.i = fragment_bounds.start.i + flow_origin.i;
-        fragment_bounds.start.b = fragment_bounds.start.b + flow_origin.b;
+                                      flow_origin: Point2D<Au>) {
         // FIXME(#2795): Get the real container size
         let container_size = Size2D::zero();
-        let absolute_fragment_bounds = fragment_bounds.to_physical(
-            self.style.writing_mode, container_size);
+        // Fragment position wrt to the owning flow.
+        let fragment_bounds = self.border_box.to_physical(self.style.writing_mode, container_size);
+        let absolute_fragment_bounds = Rect(
+            fragment_bounds.origin + flow_origin,
+            fragment_bounds.size);
 
         // This prints a debug border around the border of this fragment.
         let border_display_item = box BorderDisplayItem {
@@ -845,18 +843,17 @@ impl Fragment {
     pub fn build_display_list(&self,
                               display_list: &mut DisplayList,
                               layout_context: &LayoutContext,
-                              flow_origin: LogicalPoint<Au>,
+                              flow_origin: Point2D<Au>,
                               background_and_border_level: BackgroundAndBorderLevel,
                               inline_fragment_context: Option<InlineFragmentContext>)
                               -> ChildDisplayListAccumulator {
-        // Fragment position wrt to the owning flow.
-        let mut fragment_bounds = self.border_box.clone();
-        fragment_bounds.start.i = fragment_bounds.start.i + flow_origin.i;
-        fragment_bounds.start.b = fragment_bounds.start.b + flow_origin.b;
         // FIXME(#2795): Get the real container size
         let container_size = Size2D::zero();
-        let absolute_fragment_bounds = fragment_bounds.to_physical(
-            self.style.writing_mode, container_size);
+        // Fragment position wrt to the owning flow.
+        let fragment_bounds = self.border_box.to_physical(self.style.writing_mode, container_size);
+        let absolute_fragment_bounds = Rect(
+            fragment_bounds.origin + flow_origin,
+            fragment_bounds.size);
         debug!("Fragment::build_display_list at rel={}, abs={}: {}",
                self.border_box,
                absolute_fragment_bounds,
@@ -1413,21 +1410,18 @@ impl Fragment {
     #[inline(never)]
     fn finalize_position_and_size_of_iframe(&self,
                                             iframe_fragment: &IframeFragmentInfo,
-                                            offset: LogicalPoint<Au>,
+                                            offset: Point2D<Au>,
                                             layout_context: &LayoutContext) {
-        let inline_start = offset.i + self.margin.inline_start + self.border_padding.inline_start;
-        let block_start = offset.b + self.margin.block_start + self.border_padding.block_start;
-        let inline_size = self.content_box().size.inline;
-        let block_size = self.content_box().size.block;
-        // FIXME(#2795): Get the real container size
-        let container_size = Size2D::zero();
-        let rect = LogicalRect::new(
-            self.style.writing_mode,
-            geometry::to_frac_px(inline_start) as f32,
-            geometry::to_frac_px(block_start) as f32,
-            geometry::to_frac_px(inline_size) as f32,
-            geometry::to_frac_px(block_size) as f32
-        ).to_physical(self.style.writing_mode, container_size);
+        let mbp = (self.margin + self.border_padding).to_physical(self.style.writing_mode);
+        let content_size = self.content_box().size.to_physical(self.style.writing_mode);
+
+        let left = offset.x + mbp.left;
+        let top = offset.y + mbp.top;
+        let width = content_size.width;
+        let height = content_size.height;
+        let origin = Point2D(geometry::to_frac_px(left) as f32, geometry::to_frac_px(top) as f32);
+        let size = Size2D(geometry::to_frac_px(width) as f32, geometry::to_frac_px(height) as f32);
+        let rect = Rect(origin, size);
 
         debug!("finalizing position and size of iframe for {:?},{:?}",
                iframe_fragment.pipeline_id,
