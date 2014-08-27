@@ -94,11 +94,6 @@ pub trait RenderListener {
                                       metadata: Vec<LayerMetadata>,
                                       epoch: Epoch);
 
-    fn set_layer_clip_rect(&self,
-                           pipeline_id: PipelineId,
-                           layer_id: LayerId,
-                           new_rect: Rect<uint>);
-
     /// Sends new tiles for the given layer to the compositor.
     fn paint(&self,
              pipeline_id: PipelineId,
