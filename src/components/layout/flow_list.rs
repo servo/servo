@@ -11,16 +11,14 @@ use flow_ref::FlowRef;
 use std::kinds::marker::ContravariantLifetime;
 use std::mem;
 use std::ptr;
+use std::raw;
 
 pub type Link = Option<FlowRef>;
 
 
-// FIXME: use TraitObject instead of duplicating the type
 #[allow(raw_pointer_deriving)]
-#[deriving(Clone)]
 pub struct Rawlink<'a> {
-    vtable: *mut (),
-    obj: *mut (),
+    object: raw::TraitObject,
     marker: ContravariantLifetime<'a>,
 }
 
@@ -50,23 +48,29 @@ impl<'a> Rawlink<'a> {
     /// Like Option::None for Rawlink
     pub fn none() -> Rawlink<'static> {
         Rawlink {
-            vtable: ptr::mut_null(),
-            obj: ptr::mut_null(),
+            object: raw::TraitObject {
+                vtable: ptr::mut_null(),
+                data: ptr::mut_null(),
+            },
             marker: ContravariantLifetime,
         }
     }
 
     /// Like Option::Some for Rawlink
     pub fn some(n: &Flow) -> Rawlink {
-        unsafe { mem::transmute(n) }
+        unsafe {
+            Rawlink {
+                object: mem::transmute::<&Flow, raw::TraitObject>(n),
+                marker: ContravariantLifetime,
+            }
+        }
     }
 
     pub unsafe fn resolve_mut(&self) -> Option<&'a mut Flow> {
-        if self.obj.is_null() {
+        if self.object.data.is_null() {
             None
         } else {
-            let me: &mut Flow = mem::transmute_copy(self);
-            Some(me)
+            Some(mem::transmute_copy::<raw::TraitObject, &mut Flow>(&self.object))
         }
     }
 }

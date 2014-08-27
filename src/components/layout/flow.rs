@@ -57,6 +57,7 @@ use std::mem;
 use std::num::Zero;
 use std::fmt;
 use std::iter::Zip;
+use std::raw;
 use std::sync::atomics::{AtomicUint, Relaxed, SeqCst};
 use std::slice::MutItems;
 use style::computed_values::{clear, position, text_align};
@@ -274,8 +275,8 @@ pub trait Flow: fmt::Show + ToString + Share {
 #[inline(always)]
 pub fn base<'a>(this: &'a Flow) -> &'a BaseFlow {
     unsafe {
-        let (_, ptr): (uint, &BaseFlow) = mem::transmute(this);
-        ptr
+        let obj = mem::transmute::<&'a Flow, raw::TraitObject>(this);
+        mem::transmute::<*mut (), &'a BaseFlow>(obj.data)
     }
 }
 
@@ -287,8 +288,8 @@ pub fn imm_child_iter<'a>(flow: &'a Flow) -> FlowListIterator<'a> {
 #[inline(always)]
 pub fn mut_base<'a>(this: &'a mut Flow) -> &'a mut BaseFlow {
     unsafe {
-        let (_, ptr): (uint, &mut BaseFlow) = mem::transmute(this);
-        ptr
+        let obj = mem::transmute::<&'a mut Flow, raw::TraitObject>(this);
+        mem::transmute::<*mut (), &'a mut BaseFlow>(obj.data)
     }
 }
 
