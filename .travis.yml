@@ -43,4 +43,6 @@ matrix:
     - os: osx
       env: AFTER_BUILD=unit
     - os: osx
-      env: AFTER_BUILD=wpt
+      env: AFTER_BUILD=wpt1
+    - os: osx
+      env: AFTER_BUILD=wpt2
