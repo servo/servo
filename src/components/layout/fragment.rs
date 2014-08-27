@@ -1421,7 +1421,7 @@ impl Fragment {
     pub fn can_merge_with_fragment(&self, other: &Fragment) -> bool {
         match (&self.specific, &other.specific) {
             (&UnscannedTextFragment(_), &UnscannedTextFragment(_)) => {
-                /// FIXME: Should probably use a whitelist of styles that can safely differ (#3165)
+                // FIXME: Should probably use a whitelist of styles that can safely differ (#3165)
                 self.font_style() == other.font_style() &&
                     self.text_decoration() == other.text_decoration() &&
                     self.white_space() == other.white_space()
