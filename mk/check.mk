@@ -57,29 +57,20 @@ contenttest: $(S)src/test/harness/contenttest/contenttest.rs servo
 DEPS_CHECK_TESTABLE = $(filter-out $(NO_TESTS),$(DEPS_CHECK_ALL))
 DEPS_CHECK_TARGETS_ALL = $(addprefix check-,$(DEPS_CHECK_TESTABLE))
 DEPS_CHECK_TARGETS_FAST = $(addprefix check-,$(filter-out $(SLOW_TESTS),$(DEPS_CHECK_TESTABLE)))
+DEPS_CHECK_TARGETS_ADDITIONAL = check-servo check-wpt check-content check-ref tidy
 
 .PHONY: check-test
 check-test:
 	@$(call E, check:)
 	@$(call E, "    $(DEPS_CHECK_TARGETS_ALL)")
 
-ifeq ($(CFG_OSTYPE),apple-darwin)
 .PHONY: check
-check: $(DEPS_CHECK_TARGETS_FAST) check-servo check-wpt check-content check-ref tidy
+check: $(DEPS_CHECK_TARGETS_FAST) $(DEPS_CHECK_TARGETS_ADDITIONAL)
 	@$(call E, check: all)
 
 .PHONY: check-all
-check-all: $(DEPS_CHECK_TARGETS_ALL) check-servo check-content check-ref tidy
+check-all: $(DEPS_CHECK_TARGETS_ALL) $(DEPS_CHECK_TARGETS_ADDITIONAL)
 	@$(call E, check: all)
-else
-.PHONY: check
-check: $(DEPS_CHECK_TARGETS_FAST) check-servo tidy
-	@$(call E, check: all)
-
-.PHONY: check-all
-check-all: $(DEPS_CHECK_TARGETS_ALL) check-servo tidy
-	@$(call E, check: all)
-endif
 
 .PHONY: check-servo
 check-servo: $(foreach lib_crate,$(SERVO_LIB_CRATES),check-servo-$(lib_crate)) servo-test
