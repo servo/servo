@@ -209,7 +209,7 @@ fn make_test(reftest: Reftest) -> TestDescAndFn {
     }
 }
 
-fn capture(reftest: &Reftest, side: uint) -> png::Image {
+fn capture(reftest: &Reftest, side: uint) -> (u32, u32, Vec<u8>) {
     let filename = format!("/tmp/servo-reftest-{:06u}-{:u}.png", reftest.id, side);
     let mut args = reftest.servo_args.clone();
     // GPU rendering is the default
@@ -228,14 +228,22 @@ fn capture(reftest: &Reftest, side: uint) -> png::Image {
     };
     assert!(retval == ExitStatus(0));
 
-    png::load_png(&from_str::<Path>(filename.as_slice()).unwrap()).unwrap()
+    let image = png::load_png(&from_str::<Path>(filename.as_slice()).unwrap()).unwrap();
+    let rgba8_bytes = match image.pixels {
+        png::RGBA8(pixels) => pixels,
+        _ => fail!(),
+    };
+    (image.width, image.height, rgba8_bytes)
 }
 
 fn check_reftest(reftest: Reftest) {
-    let left  = capture(&reftest, 0);
-    let right = capture(&reftest, 1);
+    let (left_width, left_height, left_bytes) = capture(&reftest, 0);
+    let (right_width, right_height, right_bytes) = capture(&reftest, 1);
 
-    let pixels = left.pixels.iter().zip(right.pixels.iter()).map(|(&a, &b)| {
+    assert_eq!(left_width, right_width);
+    assert_eq!(left_height, right_height);
+
+    let pixels = left_bytes.iter().zip(right_bytes.iter()).map(|(&a, &b)| {
         if a as i8 - b as i8 == 0 {
             // White for correct
             0xFF
@@ -253,10 +261,9 @@ fn check_reftest(reftest: Reftest) {
         let output = from_str::<Path>(output_str.as_slice()).unwrap();
 
         let mut img = png::Image {
-            width: left.width,
-            height: left.height,
-            color_type: png::RGBA8,
-            pixels: pixels,
+            width: left_width,
+            height: left_height,
+            pixels: png::RGBA8(pixels),
         };
         let res = png::store_png(&mut img, &output);
         assert!(res.is_ok());
