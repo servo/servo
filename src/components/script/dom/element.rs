@@ -6,7 +6,7 @@
 
 use dom::attr::{Attr, ReplacedAttr, FirstSetAttr, AttrHelpersForLayout};
 use dom::attr::{AttrValue, StringAttrValue, UIntAttrValue, AtomAttrValue};
-use dom::attrlist::AttrList;
+use dom::namednodemap::NamedNodeMap;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::ElementBinding;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
@@ -49,7 +49,7 @@ pub struct Element {
     pub prefix: Option<DOMString>,
     pub attrs: RefCell<Vec<JS<Attr>>>,
     pub style_attribute: Traceable<RefCell<Option<style::PropertyDeclarationBlock>>>,
-    pub attr_list: Cell<Option<JS<AttrList>>>,
+    pub attr_list: Cell<Option<JS<NamedNodeMap>>>,
     class_list: Cell<Option<JS<DOMTokenList>>>,
 }
 
@@ -535,7 +535,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     }
 
     // http://dom.spec.whatwg.org/#dom-element-attributes
-    fn Attributes(&self) -> Temporary<AttrList> {
+    fn Attributes(&self) -> Temporary<NamedNodeMap> {
         match self.attr_list.get() {
             None => (),
             Some(ref list) => return Temporary::new(list.clone()),
@@ -546,7 +546,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
             node.owner_doc().root()
         };
         let window = doc.deref().window.root();
-        let list = AttrList::new(&*window, self);
+        let list = NamedNodeMap::new(&*window, self);
         self.attr_list.assign(Some(list));
         Temporary::new(self.attr_list.get().get_ref().clone())
     }

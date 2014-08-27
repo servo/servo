@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::Attr;
-use dom::bindings::codegen::Bindings::AttrListBinding;
-use dom::bindings::codegen::Bindings::AttrListBinding::AttrListMethods;
+use dom::bindings::codegen::Bindings::NamedNodeMapBinding;
+use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::global::Window;
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
@@ -12,26 +12,26 @@ use dom::element::Element;
 use dom::window::Window;
 
 #[deriving(Encodable)]
-pub struct AttrList {
+pub struct NamedNodeMap {
     reflector_: Reflector,
     owner: JS<Element>,
 }
 
-impl AttrList {
-    pub fn new_inherited(elem: &JSRef<Element>) -> AttrList {
-        AttrList {
+impl NamedNodeMap {
+    pub fn new_inherited(elem: &JSRef<Element>) -> NamedNodeMap {
+        NamedNodeMap {
             reflector_: Reflector::new(),
             owner: JS::from_rooted(elem),
         }
     }
 
-    pub fn new(window: &JSRef<Window>, elem: &JSRef<Element>) -> Temporary<AttrList> {
-        reflect_dom_object(box AttrList::new_inherited(elem),
-                           &Window(*window), AttrListBinding::Wrap)
+    pub fn new(window: &JSRef<Window>, elem: &JSRef<Element>) -> Temporary<NamedNodeMap> {
+        reflect_dom_object(box NamedNodeMap::new_inherited(elem),
+                           &Window(*window), NamedNodeMapBinding::Wrap)
     }
 }
 
-impl<'a> AttrListMethods for JSRef<'a, AttrList> {
+impl<'a> NamedNodeMapMethods for JSRef<'a, NamedNodeMap> {
     fn Length(&self) -> u32 {
         self.owner.root().attrs.borrow().len() as u32
     }
@@ -47,7 +47,7 @@ impl<'a> AttrListMethods for JSRef<'a, AttrList> {
     }
 }
 
-impl Reflectable for AttrList {
+impl Reflectable for NamedNodeMap {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         &self.reflector_
     }
