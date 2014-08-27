@@ -46,5 +46,8 @@ path = "components/layout"
 [dependencies.gfx]
 path = "components/gfx"
 
+[dependencies.devtools]
+path = "components/devtools"
+
 [dependencies.url]
 git = "https://github.com/servo/rust-url"

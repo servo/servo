@@ -32,6 +32,9 @@ path = "../../components/util"
 [dependencies.style]
 path = "../../components/style"
 
+[dependencies.devtools]
+path = "../../components/devtools"
+
 [dependencies.azure]
 git = "https://github.com/servo/rust-azure"
 

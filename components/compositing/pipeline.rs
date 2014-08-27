@@ -7,6 +7,7 @@ use layout_traits::{LayoutTaskFactory, LayoutControlChan};
 use script_traits::{ScriptControlChan, ScriptTaskFactory};
 use script_traits::{AttachLayoutMsg, LoadMsg, NewLayoutInfo, ExitPipelineMsg};
 
+use devtools_traits::DevtoolsControlChan;
 use gfx::render_task::{PaintPermissionGranted, PaintPermissionRevoked};
 use gfx::render_task::{RenderChan, RenderTask};
 use servo_msg::constellation_msg::{ConstellationChan, Failure, PipelineId, SubpageId};
@@ -49,6 +50,7 @@ impl Pipeline {
                       subpage_id: Option<SubpageId>,
                       constellation_chan: ConstellationChan,
                       compositor_chan: CompositorChan,
+                      devtools_chan: Option<DevtoolsControlChan>,
                       image_cache_task: ImageCacheTask,
                       font_cache_task: FontCacheTask,
                       resource_task: ResourceTask,
@@ -82,6 +84,7 @@ impl Pipeline {
                                           failure.clone(),
                                           resource_task.clone(),
                                           image_cache_task.clone(),
+                                          devtools_chan,
                                           window_size);
                 ScriptControlChan(script_chan)
             }

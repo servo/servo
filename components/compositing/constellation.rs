@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use compositor_task::{CompositorChan, LoadComplete, ShutdownComplete, SetLayerOrigin, SetIds};
+use devtools_traits::DevtoolsControlChan;
 use std::collections::hashmap::{HashMap, HashSet};
 use geom::rect::{Rect, TypedRect};
 use geom::scale_factor::ScaleFactor;
@@ -41,6 +42,7 @@ pub struct Constellation<LTF, STF> {
     pub compositor_chan: CompositorChan,
     pub resource_task: ResourceTask,
     pub image_cache_task: ImageCacheTask,
+    devtools_chan: Option<DevtoolsControlChan>,
     pipelines: HashMap<PipelineId, Rc<Pipeline>>,
     font_cache_task: FontCacheTask,
     navigation_context: NavigationContext,
@@ -244,7 +246,8 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                  resource_task: ResourceTask,
                  image_cache_task: ImageCacheTask,
                  font_cache_task: FontCacheTask,
-                 time_profiler_chan: TimeProfilerChan)
+                 time_profiler_chan: TimeProfilerChan,
+                 devtools_chan: Option<DevtoolsControlChan>)
                  -> ConstellationChan {
         let (constellation_port, constellation_chan) = ConstellationChan::new();
         let constellation_chan_clone = constellation_chan.clone();
@@ -254,6 +257,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 chan: constellation_chan_clone,
                 request_port: constellation_port,
                 compositor_chan: compositor_chan,
+                devtools_chan: devtools_chan,
                 resource_task: resource_task,
                 image_cache_task: image_cache_task,
                 font_cache_task: font_cache_task,
@@ -295,6 +299,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                                                     subpage_id,
                                                     self.chan.clone(),
                                                     self.compositor_chan.clone(),
+                                                    self.devtools_chan.clone(),
                                                     self.image_cache_task.clone(),
                                                     self.font_cache_task.clone(),
                                                     self.resource_task.clone(),

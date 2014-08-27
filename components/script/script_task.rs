@@ -31,6 +31,8 @@ use layout_interface::ContentChangedDocumentDamage;
 use layout_interface;
 use page::{Page, IterablePage, Frame};
 
+use devtools_traits::{DevtoolsControlChan, DevtoolsControlPort, NewGlobal};
+use devtools_traits::{DevtoolScriptControlMsg, EvaluateJS};
 use script_traits::{CompositorEvent, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent};
 use script_traits::{MouseMoveEvent, MouseUpEvent, ConstellationControlMsg, ScriptTaskFactory};
 use script_traits::{ResizeMsg, AttachLayoutMsg, LoadMsg, SendEventMsg, ResizeInactiveMsg};
@@ -157,6 +159,12 @@ pub struct ScriptTask {
     /// A handle to the compositor for communicating ready state messages.
     compositor: Box<ScriptListener>,
 
+    /// For providing instructions to an optional devtools server.
+    _devtools_chan: Option<DevtoolsControlChan>,
+    /// For receiving commands from an optional devtools server. Will be ignored if
+    /// no such server exists.
+    devtools_port: DevtoolsControlPort,
+
     /// The JavaScript runtime.
     js_runtime: js::rust::rt,
     /// The JSContext.
@@ -240,6 +248,7 @@ impl ScriptTaskFactory for ScriptTask {
                   failure_msg: Failure,
                   resource_task: ResourceTask,
                   image_cache_task: ImageCacheTask,
+                  devtools_chan: Option<DevtoolsControlChan>,
                   window_size: WindowSizeData) {
         let ConstellationChan(const_chan) = constellation_chan.clone();
         let (script_chan, script_port) = channel();
@@ -255,6 +264,7 @@ impl ScriptTaskFactory for ScriptTask {
                                               constellation_chan,
                                               resource_task,
                                               image_cache_task,
+                                              devtools_chan,
                                               window_size);
             let mut failsafe = ScriptMemoryFailsafe::new(&*script_task);
             script_task.start();
@@ -277,6 +287,7 @@ impl ScriptTask {
                constellation_chan: ConstellationChan,
                resource_task: ResourceTask,
                img_cache_task: ImageCacheTask,
+               devtools_chan: Option<DevtoolsControlChan>,
                window_size: WindowSizeData)
                -> Rc<ScriptTask> {
         let (js_runtime, js_context) = ScriptTask::new_rt_and_cx();
@@ -299,6 +310,14 @@ impl ScriptTask {
                              resource_task.clone(),
                              constellation_chan.clone(),
                              js_context.clone());
+
+        // Notify devtools that a new script global exists.
+        //FIXME: Move this into handle_load after we create a window instead.
+        let (devtools_sender, devtools_receiver) = channel();
+        devtools_chan.as_ref().map(|chan| {
+            chan.send(NewGlobal(devtools_sender.clone()));
+        });
+
         Rc::new(ScriptTask {
             page: RefCell::new(Rc::new(page)),
 
@@ -311,6 +330,8 @@ impl ScriptTask {
             control_port: control_port,
             constellation_chan: constellation_chan,
             compositor: compositor,
+            _devtools_chan: devtools_chan,
+            devtools_port: devtools_receiver,
 
             js_runtime: js_runtime,
             js_context: RefCell::new(Some(js_context)),
@@ -392,6 +413,7 @@ impl ScriptTask {
         enum MixedMessage {
             FromConstellation(ConstellationControlMsg),
             FromScript(ScriptMsg),
+            FromDevtools(DevtoolScriptControlMsg),
         }
 
         // Store new resizes, and gather all other events.
@@ -402,20 +424,25 @@ impl ScriptTask {
             let sel = Select::new();
             let mut port1 = sel.handle(&self.port);
             let mut port2 = sel.handle(&self.control_port);
+            let mut port3 = sel.handle(&self.devtools_port);
             unsafe {
                 port1.add();
                 port2.add();
+                port3.add();
             }
             let ret = sel.wait();
             if ret == port1.id() {
                 FromScript(self.port.recv())
             } else if ret == port2.id() {
                 FromConstellation(self.control_port.recv())
+            } else if ret == port3.id() {
+                FromDevtools(self.devtools_port.recv())
             } else {
                 fail!("unexpected select result")
             }
         };
 
+        // Squash any pending resize events in the queue.
         loop {
             match event {
                 // This has to be handled before the ResizeMsg below,
@@ -434,9 +461,15 @@ impl ScriptTask {
                 }
             }
 
+            // If any of our input sources has an event pending, we'll perform another iteration
+            // and check for more resize events. If there are no events pending, we'll move
+            // on and execute the sequential non-resize events we've seen.
             match self.control_port.try_recv() {
                 Err(_) => match self.port.try_recv() {
-                    Err(_) => break,
+                    Err(_) => match self.devtools_port.try_recv() {
+                        Err(_) => break,
+                        Ok(ev) => event = FromDevtools(ev),
+                    },
                     Ok(ev) => event = FromScript(ev),
                 },
                 Ok(ev) => event = FromConstellation(ev),
@@ -463,6 +496,7 @@ impl ScriptTask {
                 FromScript(DOMMessage(..)) => fail!("unexpected message"),
                 FromScript(WorkerPostMessage(addr, data, nbytes)) => Worker::handle_message(addr, data, nbytes),
                 FromScript(WorkerRelease(addr)) => Worker::handle_release(addr),
+                FromDevtools(EvaluateJS(_s, _reply)) => {/*TODO*/}
             }
         }
 

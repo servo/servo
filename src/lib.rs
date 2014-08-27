@@ -15,6 +15,7 @@ extern crate log;
 extern crate debug;
 
 extern crate compositing;
+extern crate devtools;
 extern crate rustuv;
 extern crate servo_net = "net";
 extern crate servo_msg = "msg";
@@ -94,6 +95,11 @@ pub fn run(opts: opts::Opts) {
     let (compositor_port, compositor_chan) = CompositorChan::new();
     let time_profiler_chan = TimeProfiler::create(opts.time_profiler_period);
     let memory_profiler_chan = MemoryProfiler::create(opts.memory_profiler_period);
+    let devtools_chan = if opts.devtools_server {
+        Some(devtools::start_server())
+    } else {
+        None
+    };
 
     let opts_clone = opts.clone();
     let time_profiler_chan_clone = time_profiler_chan.clone();
@@ -121,7 +127,8 @@ pub fn run(opts: opts::Opts) {
                                                       resource_task,
                                                       image_cache_task,
                                                       font_cache_task,
-                                                      time_profiler_chan_clone);
+                                                      time_profiler_chan_clone,
+                                                      devtools_chan);
 
         // Send the URL command to the constellation.
         let cwd = os::getcwd();
