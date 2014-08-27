@@ -1107,8 +1107,7 @@ impl BlockFlow {
         let rel_offset =
             self.fragment.relative_position(&self.base
                                              .absolute_position_info
-                                             .relative_containing_block_size,
-                                        None);
+                                             .relative_containing_block_size);
 
         // FIXME(#2795): Get the real container size
         let container_size = Size2D::zero();
@@ -1120,8 +1119,7 @@ impl BlockFlow {
             layout_context,
             self.base.abs_position + (offset + rel_offset).to_physical(
                 self.base.writing_mode, container_size),
-            background_border_level,
-            None);
+            background_border_level);
 
         let mut child_layers = DList::new();
         for kid in self.base.child_iter() {
@@ -1470,7 +1468,7 @@ impl Flow for BlockFlow {
             flags.union_floated_descendants_flags(child_base.flags);
         }
 
-        let fragment_intrinsic_inline_sizes = self.fragment.intrinsic_inline_sizes(None);
+        let fragment_intrinsic_inline_sizes = self.fragment.intrinsic_inline_sizes();
         intrinsic_inline_sizes.minimum_inline_size = geometry::max(intrinsic_inline_sizes.minimum_inline_size,
                                                        fragment_intrinsic_inline_sizes.minimum_inline_size);
         intrinsic_inline_sizes.preferred_inline_size = geometry::max(intrinsic_inline_sizes.preferred_inline_size,
@@ -1624,8 +1622,7 @@ impl Flow for BlockFlow {
         let relative_offset =
             self.fragment.relative_position(&self.base
                                                  .absolute_position_info
-                                                 .relative_containing_block_size,
-                                            None);
+                                                 .relative_containing_block_size);
         if self.is_positioned() {
             self.base.absolute_position_info.absolute_containing_block_position =
                 self.base.abs_position
@@ -1811,7 +1808,7 @@ pub trait ISizeAndMarginsComputer {
         let containing_block_inline_size = self.containing_block_inline_size(block, parent_flow_inline_size, ctx);
         let computed_inline_size = self.initial_computed_inline_size(block, parent_flow_inline_size, ctx);
 
-        block.fragment.compute_border_padding_margins(containing_block_inline_size, None);
+        block.fragment.compute_border_padding_margins(containing_block_inline_size);
 
         let style = block.fragment.style();
 
@@ -2257,7 +2254,7 @@ impl ISizeAndMarginsComputer for AbsoluteReplaced {
                               -> MaybeAuto {
         let containing_block_inline_size = block.containing_block_size(ctx.shared.screen_size).inline;
         let fragment = block.fragment();
-        fragment.assign_replaced_inline_size_if_necessary(containing_block_inline_size, None);
+        fragment.assign_replaced_inline_size_if_necessary(containing_block_inline_size);
         // For replaced absolute flow, the rest of the constraint solving will
         // take inline-size to be specified as the value computed here.
         Specified(fragment.content_inline_size())
@@ -2306,7 +2303,7 @@ impl ISizeAndMarginsComputer for BlockReplaced {
                               _: &LayoutContext)
                               -> MaybeAuto {
         let fragment = block.fragment();
-        fragment.assign_replaced_inline_size_if_necessary(parent_flow_inline_size, None);
+        fragment.assign_replaced_inline_size_if_necessary(parent_flow_inline_size);
         // For replaced block flow, the rest of the constraint solving will
         // take inline-size to be specified as the value computed here.
         Specified(fragment.content_inline_size())
@@ -2362,7 +2359,7 @@ impl ISizeAndMarginsComputer for FloatReplaced {
                               _: &LayoutContext)
                               -> MaybeAuto {
         let fragment = block.fragment();
-        fragment.assign_replaced_inline_size_if_necessary(parent_flow_inline_size, None);
+        fragment.assign_replaced_inline_size_if_necessary(parent_flow_inline_size);
         // For replaced block flow, the rest of the constraint solving will
         // take inline-size to be specified as the value computed here.
         Specified(fragment.content_inline_size())

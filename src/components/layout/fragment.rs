@@ -99,6 +99,10 @@ pub struct Fragment {
     ///
     /// FIXME(#2260, pcwalton): This is very inefficient; remove.
     pub new_line_pos: Vec<CharIndex>,
+
+    /// Holds the style context information for fragments
+    /// that are part of an inline formatting context.
+    pub inline_context: Option<InlineFragmentContext>,
 }
 
 /// Info specific to the kind of fragment. Keep this enum small.
@@ -330,6 +334,7 @@ impl Fragment {
             margin: LogicalMargin::zero(writing_mode),
             specific: constructor.build_specific_fragment_info_for_node(node),
             new_line_pos: vec!(),
+            inline_context: None,
         }
     }
 
@@ -345,6 +350,7 @@ impl Fragment {
             margin: LogicalMargin::zero(writing_mode),
             specific: specific,
             new_line_pos: vec!(),
+            inline_context: None,
         }
     }
 
@@ -369,6 +375,7 @@ impl Fragment {
             margin: LogicalMargin::zero(writing_mode),
             specific: specific,
             new_line_pos: vec!(),
+            inline_context: None,
         }
     }
 
@@ -386,6 +393,7 @@ impl Fragment {
             margin: LogicalMargin::zero(writing_mode),
             specific: specific,
             new_line_pos: vec!(),
+            inline_context: None,
         }
     }
 
@@ -407,7 +415,17 @@ impl Fragment {
             margin: self.margin,
             specific: specific,
             new_line_pos: self.new_line_pos.clone(),
+            inline_context: self.inline_context.clone(),
         }
+    }
+
+    /// Adds a style to the inline context for this fragment. If the inline
+    /// context doesn't exist yet, it will be created.
+    pub fn add_inline_context_style(&mut self, style: Arc<ComputedValues>) {
+        if self.inline_context.is_none() {
+            self.inline_context = Some(InlineFragmentContext::new());
+        }
+        self.inline_context.get_mut_ref().styles.push(style.clone());
     }
 
     /// Uses the style only to estimate the intrinsic inline-sizes. These may be modified for text or
@@ -444,7 +462,7 @@ impl Fragment {
         };
 
         // FIXME(#2261, pcwalton): This won't work well for inlines: is this OK?
-        let border = self.border_width(None);
+        let border = self.border_width();
         let surround_inline_size = margin_inline_start + margin_inline_end + padding_inline_start + padding_inline_end +
                 border.inline_start_end();
 
@@ -465,13 +483,12 @@ impl Fragment {
     /// it should only be called during intrinsic inline-size computation or computation of
     /// `border_padding`. Other consumers of this information should simply consult that field.
     #[inline]
-    fn border_width(&self, inline_fragment_context: Option<InlineFragmentContext>)
-                    -> LogicalMargin<Au> {
-        match inline_fragment_context {
+    fn border_width(&self) -> LogicalMargin<Au> {
+        match self.inline_context {
             None => self.style().logical_border_width(),
-            Some(inline_fragment_context) => {
+            Some(ref inline_fragment_context) => {
                 let zero = LogicalMargin::zero(self.style.writing_mode);
-                inline_fragment_context.ranges().fold(zero, |acc, range| acc + range.border())
+                inline_fragment_context.styles.iter().fold(zero, |acc, style| acc + style.logical_border_width())
             }
         }
     }
@@ -480,8 +497,7 @@ impl Fragment {
     /// style. After this call, the `border_padding` and the vertical direction of the `margin`
     /// field will be correct.
     pub fn compute_border_padding_margins(&mut self,
-                                          containing_block_inline_size: Au,
-                                          inline_fragment_context: Option<InlineFragmentContext>) {
+                                          containing_block_inline_size: Au) {
         // Compute vertical margins. Note that this value will be ignored by layout if the style
         // specifies `auto`.
         match self.specific {
@@ -500,19 +516,19 @@ impl Fragment {
         }
 
         // Compute border.
-        let border = self.border_width(inline_fragment_context);
+        let border = self.border_width();
 
         // Compute padding.
         let padding = match self.specific {
             TableColumnFragment(_) | TableRowFragment |
             TableWrapperFragment => LogicalMargin::zero(self.style.writing_mode),
             _ => {
-                match inline_fragment_context {
+                match self.inline_context {
                     None => model::padding_from_style(self.style(), containing_block_inline_size),
-                    Some(inline_fragment_context) => {
+                    Some(ref inline_fragment_context) => {
                         let zero = LogicalMargin::zero(self.style.writing_mode);
-                        inline_fragment_context.ranges()
-                            .fold(zero, |acc, range| acc + range.padding())
+                        inline_fragment_context.styles.iter()
+                            .fold(zero, |acc, style| acc + model::padding_from_style(&**style, Au(0)))
                     }
                 }
             }
@@ -523,8 +539,7 @@ impl Fragment {
 
     // Return offset from original position because of `position: relative`.
     pub fn relative_position(&self,
-                             containing_block_size: &LogicalSize<Au>,
-                             inline_fragment_context: Option<InlineFragmentContext>)
+                             containing_block_size: &LogicalSize<Au>)
                              -> LogicalSize<Au> {
         fn from_style(style: &ComputedValues, container_size: &LogicalSize<Au>)
                       -> LogicalSize<Au> {
@@ -544,16 +559,16 @@ impl Fragment {
 
         // Go over the ancestor fragments and add all relative offsets (if any).
         let mut rel_pos = LogicalSize::zero(self.style.writing_mode);
-        match inline_fragment_context {
+        match self.inline_context {
             None => {
                 if self.style().get_box().position == position::relative {
                     rel_pos = rel_pos + from_style(self.style(), containing_block_size);
                 }
             }
-            Some(inline_fragment_context) => {
-                for range in inline_fragment_context.ranges() {
-                    if range.style.get_box().position == position::relative {
-                        rel_pos = rel_pos + from_style(&*range.style, containing_block_size);
+            Some(ref inline_fragment_context) => {
+                for style in inline_fragment_context.styles.iter() {
+                    if style.get_box().position == position::relative {
+                        rel_pos = rel_pos + from_style(&**style, containing_block_size);
                     }
                 }
             },
@@ -634,6 +649,7 @@ impl Fragment {
     /// Adds the display items necessary to paint the background of this fragment to the display
     /// list if necessary.
     pub fn build_display_list_for_background_if_applicable(&self,
+                                                           style: &ComputedValues,
                                                            list: &mut DisplayList,
                                                            layout_context: &LayoutContext,
                                                            level: StackingLevel,
@@ -642,7 +658,6 @@ impl Fragment {
         // needed. We could use display list optimization to clean this up, but it still seems
         // inefficient. What we really want is something like "nearest ancestor element that
         // doesn't have a fragment".
-        let style = self.style();
         let background_color = style.resolve_color(style.get_background().background_color);
         if !background_color.alpha.approx_eq(&0.0) {
             let display_item = box SolidColorDisplayItem {
@@ -742,11 +757,9 @@ impl Fragment {
     pub fn build_display_list_for_borders_if_applicable(&self,
                                                         list: &mut DisplayList,
                                                         abs_bounds: &Rect<Au>,
-                                                        level: StackingLevel,
-                                                        inline_fragment_context:
-                                                            Option<InlineFragmentContext>) {
+                                                        level: StackingLevel) {
         // Fast path.
-        let border = self.border_width(inline_fragment_context);
+        let border = self.border_width();
         if border.is_zero() {
             return
         }
@@ -844,8 +857,7 @@ impl Fragment {
                               display_list: &mut DisplayList,
                               layout_context: &LayoutContext,
                               flow_origin: Point2D<Au>,
-                              background_and_border_level: BackgroundAndBorderLevel,
-                              inline_fragment_context: Option<InlineFragmentContext>)
+                              background_and_border_level: BackgroundAndBorderLevel)
                               -> ChildDisplayListAccumulator {
         // FIXME(#2795): Get the real container size
         let container_size = Size2D::zero();
@@ -886,18 +898,31 @@ impl Fragment {
             display_list.push(PseudoDisplayItemClass(base_display_item));
 
             // Add the background to the list, if applicable.
-            self.build_display_list_for_background_if_applicable(display_list,
-                                                                 layout_context,
-                                                                 level,
-                                                                 &absolute_fragment_bounds);
+            match self.inline_context {
+                Some(ref inline_context) => {
+                    for style in inline_context.styles.iter().rev() {
+                        self.build_display_list_for_background_if_applicable(&**style,
+                                                                             display_list,
+                                                                             layout_context,
+                                                                             level,
+                                                                             &absolute_fragment_bounds);
+                    }
+                }
+                None => {
+                    self.build_display_list_for_background_if_applicable(&*self.style,
+                                                                         display_list,
+                                                                         layout_context,
+                                                                         level,
+                                                                         &absolute_fragment_bounds);
+                }
+            }
 
             // Add a border, if applicable.
             //
             // TODO: Outlines.
             self.build_display_list_for_borders_if_applicable(display_list,
                                                               &absolute_fragment_bounds,
-                                                              level,
-                                                              inline_fragment_context);
+                                                              level);
         }
 
         // Add a clip, if applicable.
@@ -944,8 +969,8 @@ impl Fragment {
                 // FIXME(#2263, pcwalton): This is a bit of an abuse of the logging infrastructure.
                 // We should have a real `SERVO_DEBUG` system.
                 debug!("{:?}", self.build_debug_borders_around_text_fragments(display_list,
-                                                                          flow_origin,
-                                                                          text_fragment))
+                                                                           flow_origin,
+                                                                           text_fragment))
             },
             GenericFragment | IframeFragment(..) | TableFragment | TableCellFragment | TableRowFragment |
             TableWrapperFragment => {
@@ -1017,7 +1042,7 @@ impl Fragment {
     }
 
     /// Returns the intrinsic inline-sizes of this fragment.
-    pub fn intrinsic_inline_sizes(&mut self, inline_fragment_context: Option<InlineFragmentContext>)
+    pub fn intrinsic_inline_sizes(&mut self)
                             -> IntrinsicISizes {
         let mut result = self.style_specified_intrinsic_inline_size();
 
@@ -1046,12 +1071,12 @@ impl Fragment {
         }
 
         // Take borders and padding for parent inline fragments into account, if necessary.
-        match inline_fragment_context {
+        match self.inline_context {
             None => {}
-            Some(context) => {
-                for range in context.ranges() {
-                    let border_width = range.border().inline_start_end();
-                    let padding_inline_size = range.padding().inline_start_end();
+            Some(ref context) => {
+                for style in context.styles.iter() {
+                    let border_width = style.logical_border_width().inline_start_end();
+                    let padding_inline_size = model::padding_from_style(&**style, Au(0)).inline_start_end();
                     result.minimum_inline_size = result.minimum_inline_size + border_width + padding_inline_size;
                     result.preferred_inline_size = result.preferred_inline_size + border_width + padding_inline_size;
                 }
@@ -1265,9 +1290,7 @@ impl Fragment {
     /// Assigns replaced inline-size, padding, and margins for this fragment only if it is replaced
     /// content per CSS 2.1 § 10.3.2.
     pub fn assign_replaced_inline_size_if_necessary(&mut self,
-                                              container_inline_size: Au,
-                                              inline_fragment_context:
-                                                Option<InlineFragmentContext>) {
+                                              container_inline_size: Au) {
         match self.specific {
             GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment | TableRowFragment |
             TableWrapperFragment => return,
@@ -1276,7 +1299,7 @@ impl Fragment {
             ImageFragment(_) | ScannedTextFragment(_) => {}
         };
 
-        self.compute_border_padding_margins(container_inline_size, inline_fragment_context);
+        self.compute_border_padding_margins(container_inline_size);
 
         let style_inline_size = self.style().content_inline_size();
         let style_block_size = self.style().content_block_size();

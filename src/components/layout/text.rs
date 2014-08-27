@@ -75,7 +75,7 @@ impl TextRunScanner {
 
         debug!("TextRunScanner: swapping out fragments.");
 
-        fragments.fixup(new_fragments);
+        fragments.fragments = new_fragments;
     }
 
     /// A "clump" is a range of inline flow leaves that can be merged together into a single
