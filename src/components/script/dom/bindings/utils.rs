@@ -39,6 +39,7 @@ use js::jsapi::{JSContext, JSObject, JSBool, jsid, JSClass};
 use js::jsapi::{JSFunctionSpec, JSPropertySpec};
 use js::jsapi::{JS_NewGlobalObject, JS_InitStandardClasses};
 use js::jsapi::{JSString};
+use js::jsapi::JS_DeletePropertyById2;
 use js::jsfriendapi::JS_ObjectToOuterObject;
 use js::jsfriendapi::bindgen::JS_NewObjectWithUniqueType;
 use js::jsval::JSVal;
@@ -680,6 +681,17 @@ fn cx_for_dom_reflector(obj: *mut JSObject) -> *mut JSContext {
 /// this DOM object is on.
 pub fn cx_for_dom_object<T: Reflectable>(obj: &T) -> *mut JSContext {
     cx_for_dom_reflector(obj.reflector().get_jsobject())
+}
+
+pub unsafe fn delete_property_by_id(cx: *mut JSContext, object: *mut JSObject,
+                                    id: jsid, bp: &mut bool) -> bool {
+    let mut value = UndefinedValue();
+    if JS_DeletePropertyById2(cx, object, id, &mut value) == 0 {
+        return false;
+    }
+
+    *bp = value.to_boolean();
+    return true;
 }
 
 /// Results of `xml_name_type`.

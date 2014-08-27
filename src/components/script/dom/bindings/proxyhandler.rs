@@ -4,14 +4,14 @@
 
 ///! Utilities for the implementation of JSAPI proxy handlers.
 
+use dom::bindings::utils::delete_property_by_id;
 use dom::bindings::utils::is_dom_proxy;
 use js::jsapi::{JSContext, jsid, JSPropertyDescriptor, JSObject, JSString, jschar};
 use js::jsapi::{JS_GetPropertyDescriptorById, JS_NewUCString, JS_malloc, JS_free};
 use js::jsapi::{JS_DefinePropertyById, JS_NewObjectWithGivenProto};
 use js::jsapi::{JS_ReportErrorFlagsAndNumber, JS_StrictPropertyStub};
 use js::jsapi::{JSREPORT_WARNING, JSREPORT_STRICT, JSREPORT_STRICT_MODE_ERROR};
-use js::jsapi::JS_DeletePropertyById2;
-use js::jsval::{UndefinedValue, ObjectValue};
+use js::jsval::ObjectValue;
 use js::glue::GetProxyExtra;
 use js::glue::{GetObjectProto, GetObjectParent, SetProxyExtra, GetProxyHandler};
 use js::glue::InvokeGetOwnPropertyDescriptor;
@@ -89,13 +89,7 @@ pub extern fn delete_(cx: *mut JSContext, proxy: *mut JSObject, id: jsid,
             return false;
         }
 
-        let mut value = UndefinedValue();
-        if JS_DeletePropertyById2(cx, expando, id, &mut value) == 0 {
-            return false;
-        }
-
-        *bp = value.to_boolean();
-        return true;
+        return delete_property_by_id(cx, expando, id, &mut *bp);
     }
 }
 
