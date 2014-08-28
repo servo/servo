@@ -349,9 +349,9 @@ pub fn parse_html(page: &Page,
 
     // Set document.lastModified to the parsed Last-Modified header, defaulting
     // to the current local time if the header was not sent.
-    load_response.metadata.headers.and_then(|headers| {
+    load_response.metadata.headers.map(|headers| {
         let header = headers.iter().find(|h|
-            h.header_name().as_slice() == "Last-Modified"
+            h.header_name().as_slice().to_ascii_lower() == "last-modified".to_string()
         );
 
         let last_modified_time = match header {
@@ -360,8 +360,6 @@ pub fn parse_html(page: &Page,
         };
 
         document.set_last_modified(last_modified_time);
-
-        Some(())
     });
 
     let base_url = &load_response.metadata.final_url;
