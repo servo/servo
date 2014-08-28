@@ -101,7 +101,7 @@ pub trait RenderListener {
              replies: Vec<(LayerId, Box<LayerBufferSet>)>);
 
     fn render_msg_discarded(&self);
-    fn set_render_state(&self, render_state: RenderState);
+    fn set_render_state(&self, PipelineId, RenderState);
 }
 
 /// The interface used by the script task to tell the compositor to update its ready state,

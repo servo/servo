@@ -126,8 +126,8 @@ impl RenderListener for CompositorChan {
         self.chan.send(RenderMsgDiscarded);
     }
 
-    fn set_render_state(&self, render_state: RenderState) {
-        self.chan.send(ChangeRenderState(render_state))
+    fn set_render_state(&self, pipeline_id: PipelineId, render_state: RenderState) {
+        self.chan.send(ChangeRenderState(pipeline_id, render_state))
     }
 }
 
@@ -176,7 +176,7 @@ pub enum Msg {
     /// Alerts the compositor to the current status of page loading.
     ChangeReadyState(PipelineId, ReadyState),
     /// Alerts the compositor to the current status of rendering.
-    ChangeRenderState(RenderState),
+    ChangeRenderState(PipelineId, RenderState),
     /// Alerts the compositor that the RenderMsg has been discarded.
     RenderMsgDiscarded,
     /// Sets the channel to the current layout and render tasks, along with their id

@@ -104,6 +104,9 @@ pub struct IOCompositor {
     /// Current display/reflow status of each pipeline.
     ready_states: HashMap<PipelineId, ReadyState>,
 
+    /// Current render status of each pipeline.
+    render_states: HashMap<PipelineId, RenderState>,
+
     /// Whether the page being rendered has loaded completely.
     /// Differs from ReadyState because we can finish loading (ready)
     /// many times for a single page.
@@ -167,6 +170,7 @@ impl IOCompositor {
             zoom_action: false,
             zoom_time: 0f64,
             ready_states: HashMap::new(),
+            render_states: HashMap::new(),
             load_complete: false,
             constellation_chan: constellation_chan,
             time_profiler_chan: time_profiler_chan,
@@ -280,8 +284,8 @@ impl IOCompositor {
                     self.change_ready_state(pipeline_id, ready_state);
                 }
 
-                (Ok(ChangeRenderState(render_state)), NotShuttingDown) => {
-                    self.change_render_state(render_state);
+                (Ok(ChangeRenderState(pipeline_id, render_state)), NotShuttingDown) => {
+                    self.change_render_state(pipeline_id, render_state);
                 }
 
                 (Ok(RenderMsgDiscarded), NotShuttingDown) => {
@@ -348,7 +352,10 @@ impl IOCompositor {
 
     }
 
-    fn change_render_state(&mut self, render_state: RenderState) {
+    fn change_render_state(&mut self, pipeline_id: PipelineId, render_state: RenderState) {
+        self.render_states.insert_or_update_with(pipeline_id,
+                                                 render_state,
+                                                 |_key, value| *value = render_state);
         self.window.set_render_state(render_state);
         if render_state == IdleRenderState {
             self.composite_ready = true;
