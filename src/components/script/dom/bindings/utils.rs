@@ -222,11 +222,23 @@ pub struct ConstantSpec {
     pub value: ConstantVal
 }
 
+/// Helper structure for cross-origin wrappers for DOM binding objects.
+pub struct NativePropertyHooks {
+    /// The property arrays for this interface.
+    pub native_properties: &'static NativeProperties,
+
+    /// The NativePropertyHooks instance for the parent interface, if any.
+    pub proto_hooks: Option<&'static NativePropertyHooks>,
+}
+
 /// The struct that holds inheritance information for DOM object reflectors.
 pub struct DOMClass {
     /// A list of interfaces that this object implements, in order of decreasing
     /// derivedness.
-    pub interface_chain: [PrototypeList::id::ID, ..MAX_PROTO_CHAIN_LENGTH]
+    pub interface_chain: [PrototypeList::id::ID, ..MAX_PROTO_CHAIN_LENGTH],
+
+    /// The NativePropertyHooks for the interface associated with this class.
+    pub native_hooks: &'static NativePropertyHooks,
 }
 
 /// The JSClass used for DOM object reflectors.

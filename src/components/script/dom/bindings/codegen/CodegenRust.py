@@ -131,6 +131,34 @@ class CGThing():
         """Produce code for a Rust file."""
         assert(False) # Override me!
 
+
+class CGNativePropertyHooks(CGThing):
+    """
+    Generate a NativePropertyHooks for a given descriptor
+    """
+    def __init__(self, descriptor, properties):
+        CGThing.__init__(self)
+        self.descriptor = descriptor
+        self.properties = properties
+
+    def define(self):
+        parent = self.descriptor.interface.parent
+        if parent:
+            parentHooks = "Some(&::dom::bindings::codegen::Bindings::%sBinding::sNativePropertyHooks)" % parent.identifier.name
+        else:
+            parentHooks = "None"
+
+        substitutions = {
+            "parentHooks": parentHooks
+        }
+
+        return string.Template(
+            "pub static sNativePropertyHooks: NativePropertyHooks = NativePropertyHooks {\n"
+            "    native_properties: &sNativeProperties,\n"
+            "    proto_hooks: ${parentHooks},\n"
+            "};\n").substitute(substitutions)
+
+
 class CGMethodCall(CGThing):
     """
     A class to generate selection of a method signature from a set of
@@ -1386,7 +1414,8 @@ def DOMClass(descriptor):
         protoList.extend(['PrototypeList::id::IDCount'] * (descriptor.config.maxProtoChainLength - len(protoList)))
         prototypeChainString = ', '.join(protoList)
         return """DOMClass {
-  interface_chain: [ %s ]
+  interface_chain: [ %s ],
+  native_hooks: &sNativePropertyHooks,
 }""" % prototypeChainString
 
 class CGDOMJSClass(CGThing):
@@ -4119,6 +4148,7 @@ class CGDescriptor(CGThing):
         properties = PropertyArrays(descriptor)
         cgThings.append(CGGeneric(str(properties)))
         cgThings.append(CGNativeProperties(descriptor, properties))
+        cgThings.append(CGNativePropertyHooks(descriptor, properties))
         cgThings.append(CGCreateInterfaceObjectsMethod(descriptor, properties))
 
         cgThings.append(CGNamespace.build([descriptor.name + "Constants"],
@@ -4499,7 +4529,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::utils::{ThrowingConstructor,  unwrap, unwrap_jsmanaged}',
             'dom::bindings::utils::VoidVal',
             'dom::bindings::utils::get_dictionary_property',
-            'dom::bindings::utils::NativeProperties',
+            'dom::bindings::utils::{NativeProperties, NativePropertyHooks}',
             'dom::bindings::trace::JSTraceable',
             'dom::bindings::callback::{CallbackContainer,CallbackInterface,CallbackFunction}',
             'dom::bindings::callback::{CallSetup,ExceptionHandling}',
