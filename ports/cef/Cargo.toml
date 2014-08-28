@@ -1,0 +1,70 @@
+[package]
+name = "embedding"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+
+[lib]
+name = "embedding"
+path = "lib.rs"
+crate-type = ["dylib"]
+
+[dependencies.servo]
+path = "../.."
+
+[dependencies.macros]
+path = "../../components/macros"
+
+[dependencies.gfx]
+path = "../../components/gfx"
+
+[dependencies.script]
+path = "../../components/script"
+
+[dependencies.net]
+path = "../../components/net"
+
+[dependencies.msg]
+path = "../../components/msg"
+
+[dependencies.util]
+path = "../../components/util"
+
+[dependencies.style]
+path = "../../components/style"
+
+[dependencies.azure]
+git = "https://github.com/servo/rust-azure"
+
+[dependencies.geom]
+git = "https://github.com/servo/rust-geom"
+
+[dependencies.glfw]
+git = "https://github.com/servo/glfw-rs"
+branch = "servo"
+
+[dependencies.glut]
+git = "https://github.com/servo/rust-glut"
+
+[dependencies.js]
+git = "https://github.com/servo/rust-mozjs"
+
+[dependencies.layers]
+git = "https://github.com/servo/rust-layers"
+
+[dependencies.opengles]
+git = "https://github.com/servo/rust-opengles"
+
+[dependencies.png]
+git = "https://github.com/servo/rust-png"
+
+[dependencies.sharegl]
+git = "https://github.com/servo/sharegl"
+
+[dependencies.stb_image]
+git = "https://github.com/servo/rust-stb-image"
+
+[dependencies.core_graphics]
+git = "https://github.com/servo/rust-core-graphics"
+
+[dependencies.core_text]
+git = "https://github.com/servo/rust-core-text"

@@ -1,0 +1,16 @@
+# Tool options
+[tools]
+# If system-rust is true, will use rustc/rustdoc from the path, or if
+# rust-root is specified, will make sure that rust-root is in the path
+# when building. Similarly for Cargo. This takes care of PATH as well as
+# [DY]LD_LIBRARY_PATH.
+system-rust = false
+rust-root = "/path/to/rust"
+system-cargo = false
+cargo-root = "/path/to/cargo"
+
+# Android information
+[android]
+sdk = "/opt/android-sdk"
+ndk = "/opt/android-ndk"
+toolchain = "/opt/android-toolchain"

@@ -1,0 +1,45 @@
+# Recursive wildcard function
+# http://blog.jgc.org/2011/07/gnu-make-recursive-wildcard-function.html
+rwildcard=$(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2) \
+  $(filter $(subst *,%,$2),$d))
+
+PYTHON = $(shell which python2.7 2>/dev/null || echo python)
+BINDINGS_SRC = $(shell pwd)/dom/bindings/codegen
+WEBIDLS_SRC = $(shell pwd)/dom/webidls
+WEBIDLS = $(call rwildcard,$(WEBIDLS_SRC),*.webidl)
+BINDINGS = $(patsubst %.webidl,%Binding.rs,$(WEBIDLS))
+AUTOGEN_SRC = $(foreach var,$(BINDINGS),$(subst $(WEBIDLS_SRC),$(BINDINGS_SRC)/Bindings,$(var)))
+
+CACHE_DIR = $(BINDINGS_SRC)/_cache
+
+bindinggen_dependencies := $(addprefix $(BINDINGS_SRC)/,BindingGen.py Bindings.conf Configuration.py CodegenRust.py parser/WebIDL.py ParserResults.pkl Bindings/.done)
+
+globalgen_dependencies := $(addprefix $(BINDINGS_SRC)/,GlobalGen.py Bindings.conf Configuration.py CodegenRust.py parser/WebIDL.py) $(CACHE_DIR)/.done $(BINDINGS_SRC)/Bindings/.done
+
+.PHONY: all
+all: $(AUTOGEN_SRC)
+
+$(BINDINGS_SRC)/Bindings/.done:
+	mkdir -p $(BINDINGS_SRC)/Bindings
+	touch $@
+
+$(CACHE_DIR)/.done:
+	mkdir -p $(CACHE_DIR)
+	touch $@
+
+$(BINDINGS_SRC)/ParserResults.pkl: $(globalgen_dependencies) $(WEBIDLS)
+	$(PYTHON) $(BINDINGS_SRC)/pythonpath.py \
+	  -I$(BINDINGS_SRC)/parser -I$(BINDINGS_SRC)/ply \
+	  -D$(BINDINGS_SRC) \
+	  $(BINDINGS_SRC)/GlobalGen.py $(BINDINGS_SRC)/Bindings.conf . \
+	  --cachedir=$(CACHE_DIR) \
+	  $(WEBIDLS)
+
+$(AUTOGEN_SRC): $(BINDINGS_SRC)/Bindings/%Binding.rs: $(bindinggen_dependencies) \
+						$(addprefix $(WEBIDLS_SRC)/,%.webidl)
+	$(PYTHON) $(BINDINGS_SRC)/pythonpath.py \
+	  -I$(BINDINGS_SRC)/parser -I$(BINDINGS_SRC)/ply \
+	  -D$(BINDINGS_SRC) \
+	  $(BINDINGS_SRC)/BindingGen.py \
+	  $(BINDINGS_SRC)/Bindings.conf Bindings/$*Binding $(addprefix $(WEBIDLS_SRC)/,$*.webidl)
+	touch $@

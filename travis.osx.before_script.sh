@@ -1,2 +1,0 @@
-# Placeholder for OS X
-
