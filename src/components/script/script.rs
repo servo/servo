@@ -33,6 +33,7 @@ extern crate net;
 extern crate rustrt;
 extern crate serialize;
 extern crate time;
+extern crate canvas;
 extern crate script_traits;
 #[phase(plugin)]
 extern crate servo_macros = "macros";
@@ -42,7 +43,6 @@ extern crate style;
 extern crate sync;
 extern crate servo_msg = "msg";
 extern crate url;
-extern crate gfx;
 
 pub mod cors;
 

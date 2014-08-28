@@ -288,6 +288,13 @@ DONE_msg = $(B)src/components/msg/libmsg.dummy
 
 DEPS_msg = $(CRATE_msg) $(SRC_msg) $(DONE_SUBMODULES) $(DONE_util)
 
+RFLAGS_canvas = $(addprefix -L $(B)src/,$(DEPS_SUBMODULES))
+SRC_canvas = $(call rwildcard,$(S)src/components/canvas/,*.rs)
+CRATE_canvas = $(S)src/components/canvas/canvas.rs
+DONE_canvas = $(B)src/components/canvas/libcanvas.dummy
+
+DEPS_canvas = $(CRATE_canvas) $(SRC_canvas) $(DONE_SUBMODULES)
+
 RFLAGS_gfx = $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/util -L $(B)src/components/style -L $(B)src/components/net -L $(B)src/components/msg -L$(B)src/components/macros
 SRC_gfx = $(call rwildcard,$(S)src/components/gfx/,*.rs)
 CRATE_gfx = $(S)src/components/gfx/gfx.rs
@@ -303,7 +310,7 @@ DONE_script_traits = $(B)src/components/script_traits/libscript_traits.dummy
 
 DEPS_script_traits = $(CRATE_script_traits) $(SRC_script_traits) $(DONE_msg) $(DONE_net)
 
-RFLAGS_script = $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/util -L $(B)src/components/style -L $(B)src/components/net -L $(B)src/components/msg -L$(B)src/components/macros -L$(B)src/components/gfx -L$(B)src/components/script_traits
+RFLAGS_script = $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/util -L $(B)src/components/style -L $(B)src/components/net -L $(B)src/components/msg -L$(B)src/components/macros -L$(B)src/components/canvas -L$(B)src/components/script_traits
 
 ifdef TRAVIS
 # libscript has a habit of taking over 10 minutes while running on Travis,
@@ -323,7 +330,7 @@ SRC_script = $(call rwildcard,$(S)src/components/script/,*.rs) $(AUTOGEN_SRC_scr
 CRATE_script = $(S)src/components/script/script.rs
 DONE_script = $(B)src/components/script/libscript.dummy
 
-DEPS_script = $(CRATE_script) $(SRC_script) $(DONE_SUBMODULES) $(DONE_util) $(DONE_style) $(DONE_net) $(DONE_msg) $(DONE_macros) $(DONE_gfx) $(DONE_script_traits)
+DEPS_script = $(CRATE_script) $(SRC_script) $(DONE_SUBMODULES) $(DONE_util) $(DONE_style) $(DONE_net) $(DONE_msg) $(DONE_macros) $(DONE_canvas) $(DONE_script_traits)
 
 RFLAGS_style = $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/util -L$(B)src/components/macros
 MAKO_ZIP = $(S)src/components/style/Mako-0.9.1.zip
@@ -343,7 +350,7 @@ DONE_layout_traits = $(B)src/components/layout_traits/liblayout_traits.dummy
 
 DEPS_layout_traits = $(CRATE_layout_traits) $(SRC_layout_traits) $(DONE_script_traits) $(DONE_msg) $(DONE_net) $(DONE_gfx) $(DONE_util)
 
-RFLAGS_layout = $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/gfx -L $(B)src/components/util -L $(B)src/components/net -L $(B)src/components/script -L $(B)src/components/style -L $(B)src/components/msg -L$(B)src/components/macros -L$(B)src/components/layout_traits -L $(B)src/components/script_traits
+RFLAGS_layout = $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/gfx -L $(B)src/components/canvas -L $(B)src/components/util -L $(B)src/components/net -L $(B)src/components/script -L $(B)src/components/style -L $(B)src/components/msg -L$(B)src/components/macros -L$(B)src/components/layout_traits -L $(B)src/components/script_traits
 
 SRC_layout = $(call rwildcard,$(S)src/components/layout/,*.rs)
 CRATE_layout = $(S)src/components/layout/layout.rs
@@ -359,12 +366,12 @@ DONE_compositing = $(B)src/components/compositing/libcompositing.dummy
 
 DEPS_compositing = $(CRATE_compositing) $(SRC_compositing) $(DONE_util) $(DONE_msg) $(DONE_gfx) $(DONE_layout_traits) $(DONE_script_traits) $(DONE_style)
 
-RFLAGS_servo = $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/gfx -L $(B)src/components/util -L $(B)src/components/net -L $(B)src/components/script -L $(B)src/components/layout_traits -L $(B)src/components/script_traits -L $(B)src/components/layout -L $(B)src/components/compositing -L $(B)src/components/style -L $(B)src/components/msg -L$(B)src/components/macros
+RFLAGS_servo = $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/gfx -L $(B)src/components/canvas -L $(B)src/components/util -L $(B)src/components/net -L $(B)src/components/script -L $(B)src/components/layout_traits -L $(B)src/components/script_traits -L $(B)src/components/layout -L $(B)src/components/compositing -L $(B)src/components/style -L $(B)src/components/msg -L$(B)src/components/macros
 
 SRC_servo = $(call rwildcard,$(S)src/components/main/,*.rs)
 CRATE_servo = $(S)src/components/main/servo.rs
 
-SERVO_LIB_CRATES = macros util net msg gfx script script_traits style layout layout_traits compositing
+SERVO_LIB_CRATES = macros util net msg canvas gfx script script_traits style layout layout_traits compositing
 
 DEPS_servo = $(CRATE_servo) $(SRC_servo) $(DONE_SUBMODULES) $(foreach lib_crate,$(SERVO_LIB_CRATES),$(DONE_$(lib_crate)))
 
@@ -433,7 +440,7 @@ servo:	$(DEPS_servo)
 	@$(call E, compile: $@)
 	$(Q)$(RUSTC) $(strip $(TARGET_FLAGS) $(CFG_RUSTC_FLAGS)) $(RFLAGS_servo) -C rpath $< --crate-type bin,dylib,rlib
 
-RFLAGS_embedding = $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/gfx -L $(B)src/components/util -L $(B)src/components/net -L $(B)src/components/script -L $(B)src/components/layout -L $(B)src/components/layout_traits -L $(B)src/components/script_traits -L $(B)src/components/compositing -L $(B)src/components/style -L $(B)src/components/msg -L $(B).. -L $(B)src/components/main -L $(B)src/components/macros -A non_camel_case_types -A unused_variable
+RFLAGS_embedding = $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/gfx -L $(B)src/components/canvas -L $(B)src/components/util -L $(B)src/components/net -L $(B)src/components/script -L $(B)src/components/layout -L $(B)src/components/layout_traits -L $(B)src/components/script_traits -L $(B)src/components/compositing -L $(B)src/components/style -L $(B)src/components/msg -L $(B).. -L $(B)src/components/main -L $(B)src/components/macros -A non_camel_case_types -A unused_variable
 
 ifeq ($(CFG_OSTYPE),apple-darwin)
 RFLAGS_embedding += -C link-args="-Wl,-U,_tc_new -Wl,-U,_tc_newarray -Wl,-U,_tc_delete -Wl,-U,_tc_deletearray"
@@ -444,13 +451,13 @@ CRATE_embedding = $(S)src/components/embedding/embedding.rs
 servo-embedding: servo $(SRC_embedding) $(CRATE_embedding)
 	@$(call E, compile: $@)
 	$(Q)$(RUSTC) $(strip $(TARGET_FLAGS) $(CFG_RUSTC_FLAGS)) $(RFLAGS_embedding) $(CRATE_embedding) -C rpath --crate-type dylib,rlib
-	touch servo-embedding
+	$(Q)touch servo-embedding
 else
 all: servo
 servo:  $(DEPS_servo)
 	@$(call E, compile: $@)
 	$(Q)$(RUSTC) $(strip $(TARGET_FLAGS) $(CFG_RUSTC_FLAGS)) $(RFLAGS_servo) $< -o libservo.so --crate-type dylib
-	touch servo
+	$(Q)touch servo
 endif
 
 # Darwin app packaging
