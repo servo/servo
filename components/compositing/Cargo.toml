@@ -1,0 +1,61 @@
+[package]
+name = "compositing"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+
+[lib]
+name = "compositing"
+path = "lib.rs"
+
+[dependencies.gfx]
+path = "../gfx"
+
+[dependencies.layout_traits]
+path = "../layout_traits"
+
+[dependencies.script_traits]
+path = "../script_traits"
+
+[dependencies.msg]
+path = "../msg"
+
+[dependencies.net]
+path = "../net"
+
+[dependencies.util]
+path = "../util"
+
+[dependencies.alert]
+git = "https://github.com/servo/rust-alert"
+
+[dependencies.azure]
+git = "https://github.com/servo/rust-azure"
+
+[dependencies.geom]
+git = "https://github.com/servo/rust-geom"
+
+[dependencies.glfw]
+git = "https://github.com/servo/glfw-rs"
+branch = "servo"
+
+[dependencies.layers]
+git = "https://github.com/servo/rust-layers"
+
+[dependencies.opengles]
+git = "https://github.com/servo/rust-opengles"
+
+[dependencies.png]
+git = "https://github.com/servo/rust-png"
+
+[dependencies.url]
+git = "https://github.com/servo/rust-url"
+
+[dependencies.core_graphics]
+git = "https://github.com/servo/rust-core-graphics"
+
+[dependencies.core_text]
+git = "https://github.com/servo/rust-core-text"
+
+[dependencies.glut]
+git = "https://github.com/servo/rust-glut"
+

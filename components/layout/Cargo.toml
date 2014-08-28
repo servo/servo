@@ -1,0 +1,38 @@
+[package]
+name = "layout"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+
+[lib]
+name = "layout"
+path = "lib.rs"
+
+[dependencies.gfx]
+path = "../gfx"
+
+[dependencies.script]
+path = "../script"
+
+[dependencies.layout_traits]
+path = "../layout_traits"
+
+[dependencies.script_traits]
+path = "../script_traits"
+
+[dependencies.style]
+path = "../style"
+
+[dependencies.macros]
+path = "../macros"
+
+[dependencies.net]
+path = "../net"
+
+[dependencies.util]
+path = "../util"
+
+[dependencies.geom]
+git = "https://github.com/servo/rust-geom"
+
+[dependencies.url]
+git = "https://github.com/servo/rust-url"

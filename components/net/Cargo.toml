@@ -1,0 +1,27 @@
+[package]
+name = "net"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+
+[lib]
+name = "net"
+path = "lib.rs"
+
+[dependencies.util]
+path = "../util"
+
+[dependencies.geom]
+git = "https://github.com/servo/rust-geom"
+
+[dependencies.http]
+git = "https://github.com/servo/rust-http"
+branch = "servo"
+
+[dependencies.png]
+git = "https://github.com/servo/rust-png"
+
+[dependencies.stb_image]
+git = "https://github.com/servo/rust-stb-image"
+
+[dependencies.url]
+git = "https://github.com/servo/rust-url"

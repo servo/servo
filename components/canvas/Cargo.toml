@@ -1,0 +1,14 @@
+[package]
+name = "canvas"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+
+[lib]
+name = "canvas"
+path = "lib.rs"
+
+[dependencies.azure]
+git = "https://github.com/servo/rust-azure"
+
+[dependencies.geom]
+git = "https://github.com/servo/rust-geom"

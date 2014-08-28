@@ -1,0 +1,7 @@
+MAKO_ZIP=Mako-0.9.1.zip
+
+all: properties/mod.rs
+
+properties/mod.rs: properties/mod.rs.mako
+	PYTHONPATH=$(MAKO_ZIP) python -c "from mako.template import Template; print(Template(filename='$<').render())" > $@.tmp
+	mv $@.tmp $@
