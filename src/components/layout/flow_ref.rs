@@ -11,13 +11,12 @@ use flow;
 
 use std::mem;
 use std::ptr;
+use std::raw;
 use std::sync::atomics::SeqCst;
 
-// FIXME: This should probably be a wrapper on TraitObject.
 #[unsafe_no_drop_flag]
 pub struct FlowRef {
-    vtable: *const u8,
-    ptr: *const u8,
+    object: raw::TraitObject,
 }
 
 impl FlowRef {
@@ -25,7 +24,8 @@ impl FlowRef {
         unsafe {
             let result = {
                 let flow_ref: &mut Flow = flow;
-                mem::transmute(flow_ref)
+                let object = mem::transmute::<&mut Flow, raw::TraitObject>(flow_ref);
+                FlowRef { object: object }
             };
             mem::forget(flow);
             result
@@ -34,13 +34,13 @@ impl FlowRef {
 
     pub fn get<'a>(&'a self) -> &'a Flow {
         unsafe {
-            mem::transmute_copy(self)
+            mem::transmute_copy::<raw::TraitObject, &'a Flow>(&self.object)
         }
     }
 
     pub fn get_mut<'a>(&'a mut self) -> &'a mut Flow {
         unsafe {
-            mem::transmute_copy(self)
+            mem::transmute_copy::<raw::TraitObject, &'a mut Flow>(&self.object)
         }
     }
 }
@@ -48,19 +48,22 @@ impl FlowRef {
 impl Drop for FlowRef {
     fn drop(&mut self) {
         unsafe {
-            if self.vtable == ptr::null() {
+            if self.object.vtable.is_null() {
                 return
             }
             if flow::base(self.get()).ref_count().fetch_sub(1, SeqCst) > 1 {
                 return
             }
             let flow_ref: FlowRef = mem::replace(self, FlowRef {
-                vtable: ptr::null(),
-                ptr: ptr::null(),
+                object: raw::TraitObject {
+                    vtable: ptr::mut_null(),
+                    data: ptr::mut_null(),
+                }
             });
-            drop(mem::transmute::<FlowRef,Box<Flow>>(flow_ref));
-            self.vtable = ptr::null();
-            self.ptr = ptr::null();
+            drop(mem::transmute::<raw::TraitObject, Box<Flow>>(flow_ref.object));
+            mem::forget(flow_ref);
+            self.object.vtable = ptr::mut_null();
+            self.object.data = ptr::mut_null();
         }
     }
 }
@@ -70,8 +73,10 @@ impl Clone for FlowRef {
         unsafe {
             drop(flow::base(self.get()).ref_count().fetch_add(1, SeqCst));
             FlowRef {
-                vtable: self.vtable,
-                ptr: self.ptr,
+                object: raw::TraitObject {
+                    vtable: self.object.vtable,
+                    data: self.object.data,
+                }
             }
         }
     }
