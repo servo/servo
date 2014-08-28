@@ -38,8 +38,8 @@ pub struct CompositorChan {
 
 /// Implementation of the abstract `ScriptListener` interface.
 impl ScriptListener for CompositorChan {
-    fn set_ready_state(&self, ready_state: ReadyState) {
-        let msg = ChangeReadyState(ready_state);
+    fn set_ready_state(&self, pipeline_id: PipelineId, ready_state: ReadyState) {
+        let msg = ChangeReadyState(pipeline_id, ready_state);
         self.chan.send(msg);
     }
 
@@ -174,7 +174,7 @@ pub enum Msg {
     /// Requests that the compositor paint the given layer buffer set for the given page size.
     Paint(PipelineId, Epoch, Vec<(LayerId, Box<LayerBufferSet>)>),
     /// Alerts the compositor to the current status of page loading.
-    ChangeReadyState(ReadyState),
+    ChangeReadyState(PipelineId, ReadyState),
     /// Alerts the compositor to the current status of rendering.
     ChangeRenderState(RenderState),
     /// Alerts the compositor that the RenderMsg has been discarded.

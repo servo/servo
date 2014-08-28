@@ -21,6 +21,7 @@ use windowing::PinchZoomWindowEvent;
 
 use azure::azure_hl::SourceSurfaceMethods;
 use azure::azure_hl;
+use std::cmp;
 use geom::matrix::identity;
 use geom::point::{Point2D, TypedPoint2D};
 use geom::rect::Rect;
@@ -100,8 +101,8 @@ pub struct IOCompositor {
     /// The time of the last zoom action has started.
     zoom_time: f64,
 
-    /// Current display/reflow status of the page
-    ready_state: ReadyState,
+    /// Current display/reflow status of each pipeline.
+    ready_states: HashMap<PipelineId, ReadyState>,
 
     /// Whether the page being rendered has loaded completely.
     /// Differs from ReadyState because we can finish loading (ready)
@@ -165,7 +166,7 @@ impl IOCompositor {
             viewport_zoom: ScaleFactor(1.0),
             zoom_action: false,
             zoom_time: 0f64,
-            ready_state: Blank,
+            ready_states: HashMap::new(),
             load_complete: false,
             constellation_chan: constellation_chan,
             time_profiler_chan: time_profiler_chan,
@@ -275,9 +276,8 @@ impl IOCompositor {
                     break;
                 }
 
-                (Ok(ChangeReadyState(ready_state)), NotShuttingDown) => {
-                    self.window.set_ready_state(ready_state);
-                    self.ready_state = ready_state;
+                (Ok(ChangeReadyState(pipeline_id, ready_state)), NotShuttingDown) => {
+                    self.change_ready_state(pipeline_id, ready_state);
                 }
 
                 (Ok(ChangeRenderState(render_state)), NotShuttingDown) => {
@@ -331,6 +331,21 @@ impl IOCompositor {
                 (_, ShuttingDown) => { }
             }
         }
+    }
+
+    fn change_ready_state(&mut self, pipeline_id: PipelineId, ready_state: ReadyState) {
+        self.ready_states.insert_or_update_with(pipeline_id,
+                                                ready_state,
+                                                |_key, value| *value = ready_state);
+        self.window.set_ready_state(self.get_earliest_pipeline_ready_state());
+    }
+
+    fn get_earliest_pipeline_ready_state(&self) -> ReadyState {
+        if self.ready_states.len() == 0 {
+            return Blank;
+        }
+        return self.ready_states.values().fold(FinishedLoading, |a, &b| cmp::min(a, b));
+
     }
 
     fn change_render_state(&mut self, render_state: RenderState) {
@@ -873,7 +888,7 @@ impl IOCompositor {
 
         // Render to PNG. We must read from the back buffer (ie, before
         // self.window.present()) as OpenGL ES 2 does not have glReadBuffer().
-        if self.load_complete && self.ready_state == FinishedLoading
+        if self.load_complete && self.get_earliest_pipeline_ready_state() == FinishedLoading
             && self.opts.output_file.is_some() && !self.has_outstanding_render_msgs() {
             let (width, height) = (self.window_size.width.get(), self.window_size.height.get());
             let path = from_str::<Path>(self.opts.output_file.get_ref().as_slice()).unwrap();

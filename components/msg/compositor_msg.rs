@@ -20,7 +20,7 @@ pub enum RenderState {
     RenderingRenderState,
 }
 
-#[deriving(PartialEq, Clone)]
+#[deriving(Eq, Ord, PartialEq, PartialOrd, Clone)]
 pub enum ReadyState {
     /// Informs the compositor that nothing has been done yet. Used for setting status
     Blank,
@@ -107,7 +107,7 @@ pub trait RenderListener {
 /// The interface used by the script task to tell the compositor to update its ready state,
 /// which is used in displaying the appropriate message in the window's title.
 pub trait ScriptListener : Clone {
-    fn set_ready_state(&self, ReadyState);
+    fn set_ready_state(&self, PipelineId, ReadyState);
     fn scroll_fragment_point(&self,
                              pipeline_id: PipelineId,
                              layer_id: LayerId,
