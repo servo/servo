@@ -16,9 +16,10 @@ use dom::virtualmethods::vtable_for;
 use servo_util::atom::Atom;
 use servo_util::namespace;
 use servo_util::namespace::Namespace;
-use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS};
+use servo_util::str::{DOMString, split_html_space_chars};
 use std::cell::{Ref, RefCell};
 use std::mem;
+use std::slice::Items;
 
 pub enum AttrSettingType {
     FirstSetAttr,
@@ -28,22 +29,16 @@ pub enum AttrSettingType {
 #[deriving(PartialEq, Clone, Encodable)]
 pub enum AttrValue {
     StringAttrValue(DOMString),
-    TokenListAttrValue(DOMString, Vec<(uint, uint)>),
+    TokenListAttrValue(DOMString, Vec<Atom>),
     UIntAttrValue(DOMString, u32),
     AtomAttrValue(Atom),
 }
 
 impl AttrValue {
-    pub fn from_tokenlist(list: DOMString) -> AttrValue {
-        let mut indexes = vec![];
-        let mut last_index: uint = 0;
-        for (index, ch) in list.as_slice().char_indices() {
-            if HTML_SPACE_CHARACTERS.iter().any(|&space| space == ch) {
-                indexes.push((last_index, index));
-                last_index = index + 1;
-            }
-        }
-        return TokenListAttrValue(list, indexes);
+    pub fn from_tokenlist(tokens: DOMString) -> AttrValue {
+        let atoms = split_html_space_chars(tokens.as_slice())
+            .map(|token| Atom::from_slice(token)).collect();
+        TokenListAttrValue(tokens, atoms)
     }
 
     pub fn from_u32(string: DOMString, default: u32) -> AttrValue {
@@ -56,7 +51,16 @@ impl AttrValue {
         AtomAttrValue(value)
     }
 
-    pub fn as_slice<'a>(&'a self) -> &'a str {
+    pub fn tokens<'a>(&'a self) -> Option<Items<'a, Atom>> {
+        match *self {
+            TokenListAttrValue(_, ref tokens) => Some(tokens.iter()),
+            _ => None
+        }
+    }
+}
+
+impl Str for AttrValue {
+    fn as_slice<'a>(&'a self) -> &'a str {
         match *self {
             StringAttrValue(ref value) |
             TokenListAttrValue(ref value, _) |
@@ -117,7 +121,7 @@ impl Attr {
                 if namespace_is_null {
                     vtable_for(node).before_remove_attr(
                         self.local_name(),
-                        self.value.deref().borrow().as_slice().to_string());
+                        self.value().as_slice().to_string())
                 }
             }
             FirstSetAttr => {}
@@ -128,7 +132,7 @@ impl Attr {
         if namespace_is_null {
             vtable_for(node).after_set_attr(
                 self.local_name(),
-                self.value.deref().borrow().as_slice().to_string());
+                self.value().as_slice().to_string())
         }
     }
 
@@ -147,7 +151,7 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
     }
 
     fn Value(&self) -> DOMString {
-        self.value.deref().borrow().as_slice().to_string()
+        self.value().as_slice().to_string()
     }
 
     fn SetValue(&self, value: DOMString) {

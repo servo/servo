@@ -21,10 +21,13 @@ $(foreach submodule,$(SUBMODULES),\
 $(eval $(call DEF_SUBMODULE_TEST_RULES,$(submodule))))
 
 
+DEPS_test_macros = $(DONE_macros)
+RFLAGS_test_macros = -L $(B)src/components/macros
+
 define DEF_LIB_CRATE_TEST_RULES
-servo-test-$(1): $$(DEPS_$(1))
+servo-test-$(1): $$(DEPS_$(1)) $$(DEPS_test_$(1))
 	@$$(call E, compile: servo-test-$(1))
-	$$(Q)$$(RUSTC) $(strip $(TARGET_FLAGS) $(CFG_RUSTC_FLAGS)) $$(RFLAGS_$(1)) --test -o $$@ $$<
+	$$(Q)$$(RUSTC) $(strip $(TARGET_FLAGS) $(CFG_RUSTC_FLAGS)) $$(RFLAGS_$(1)) $$(RFLAGS_test_$(1)) --test -o $$@ $$<
 
 .PHONY: check-servo-$(1)
 check-servo-$(1): servo-test-$(1)
@@ -54,29 +57,20 @@ contenttest: $(S)src/test/harness/contenttest/contenttest.rs servo
 DEPS_CHECK_TESTABLE = $(filter-out $(NO_TESTS),$(DEPS_CHECK_ALL))
 DEPS_CHECK_TARGETS_ALL = $(addprefix check-,$(DEPS_CHECK_TESTABLE))
 DEPS_CHECK_TARGETS_FAST = $(addprefix check-,$(filter-out $(SLOW_TESTS),$(DEPS_CHECK_TESTABLE)))
+DEPS_CHECK_TARGETS_ADDITIONAL = check-servo check-wpt check-content check-ref tidy
 
 .PHONY: check-test
 check-test:
 	@$(call E, check:)
 	@$(call E, "    $(DEPS_CHECK_TARGETS_ALL)")
 
-ifeq ($(CFG_OSTYPE),apple-darwin)
 .PHONY: check
-check: $(DEPS_CHECK_TARGETS_FAST) check-servo check-wpt check-content check-ref tidy
+check: $(DEPS_CHECK_TARGETS_FAST) $(DEPS_CHECK_TARGETS_ADDITIONAL)
 	@$(call E, check: all)
 
 .PHONY: check-all
-check-all: $(DEPS_CHECK_TARGETS_ALL) check-servo check-content check-ref tidy
+check-all: $(DEPS_CHECK_TARGETS_ALL) $(DEPS_CHECK_TARGETS_ADDITIONAL)
 	@$(call E, check: all)
-else
-.PHONY: check
-check: $(DEPS_CHECK_TARGETS_FAST) check-servo tidy
-	@$(call E, check: all)
-
-.PHONY: check-all
-check-all: $(DEPS_CHECK_TARGETS_ALL) check-servo tidy
-	@$(call E, check: all)
-endif
 
 .PHONY: check-servo
 check-servo: $(foreach lib_crate,$(SERVO_LIB_CRATES),check-servo-$(lib_crate)) servo-test
@@ -86,12 +80,12 @@ check-servo: $(foreach lib_crate,$(SERVO_LIB_CRATES),check-servo-$(lib_crate)) s
 .PHONY: check-ref-cpu
 check-ref-cpu: reftest
 	@$(call E, check: reftests with CPU rendering)
-	$(Q)./reftest cpu $(S)src/test/ref/basic.list $(TESTNAME)
+	$(Q)./reftest cpu $(S)src/test/ref $(TESTNAME)
 
 .PHONY: check-ref-gpu
 check-ref-gpu: reftest
 	@$(call E, check: reftests with GPU rendering)
-	$(Q)./reftest gpu $(S)src/test/ref/basic.list $(TESTNAME)
+	$(Q)./reftest gpu $(S)src/test/ref $(TESTNAME)
 
 .PHONY: check-ref
 check-ref: check-ref-cpu check-ref-gpu

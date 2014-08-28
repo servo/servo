@@ -44,10 +44,7 @@ impl HTMLOptGroupElement {
 
 impl<'a> HTMLOptGroupElementMethods for JSRef<'a, HTMLOptGroupElement> {
     // http://www.whatwg.org/html#dom-optgroup-disabled
-    fn Disabled(&self) -> bool {
-        let elem: &JSRef<Element> = ElementCast::from_ref(self);
-        elem.has_attribute("disabled")
-    }
+    make_bool_getter!(Disabled)
 
     // http://www.whatwg.org/html#dom-optgroup-disabled
     fn SetDisabled(&self, disabled: bool) {

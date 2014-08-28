@@ -235,12 +235,6 @@ impl LayoutDataRef {
     }
 }
 
-/// A trait that represents abstract layout data.
-///
-/// FIXME(pcwalton): Very very unsafe!!! We need to send these back to the layout task to be
-/// destroyed when this node is finalized.
-pub trait TLayoutData {}
-
 /// The different types of nodes.
 #[deriving(PartialEq,Encodable)]
 pub enum NodeTypeId {

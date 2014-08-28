@@ -4,7 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // http://www.whatwg.org/html/#window
-//[PrimaryGlobal]
+[PrimaryGlobal]
 /*sealed*/ interface Window : EventTarget {
   // the current browsing context
   //[Unforgeable] readonly attribute WindowProxy window;

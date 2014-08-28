@@ -1,4 +1,5 @@
 == basic_width_px.html basic_width_em.html
+== br.html br-ref.html
 == hello_a.html hello_b.html
 == margin_a.html margin_b.html
 == root_pseudo_a.html root_pseudo_b.html
@@ -86,6 +87,7 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == position_fixed_overflow_a.html position_fixed_overflow_b.html
 == noscript.html noscript_ref.html
 == pseudo_inherit.html pseudo_inherit_ref.html
+experimental == vertical-lr-blocks.html vertical-lr-blocks_ref.html
 == float_intrinsic_height.html float_intrinsic_height_ref.html
 == table_auto_width.html table_auto_width_ref.html
 == inline_whitespace_b.html inline_whitespace_ref.html
@@ -94,3 +96,13 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == block_replaced_content_a.html block_replaced_content_ref.html
 == block_replaced_content_b.html block_replaced_content_ref.html
 == root_margin_collapse_a.html root_margin_collapse_b.html
+
+# Should be == with expected failure:
+!= ../html/acid2.html#top acid2_ref.html
+
+# Should be != with expected failure:
+# FIXME: use the real test when pixel-snapping for scrolling is fixed.
+#== ../html/acid2.html#top acid2_ref_broken.html
+flaky_gpu,flaky_linux == acid2_noscroll.html acid2_ref_broken.html
+
+!= inline_background_a.html inline_background_ref.html

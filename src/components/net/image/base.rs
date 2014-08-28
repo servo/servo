@@ -18,17 +18,12 @@ pub fn test_image_bin() -> Vec<u8> {
 }
 
 // TODO(pcwalton): Speed up with SIMD, or better yet, find some way to not do this.
-fn byte_swap(color_type: png::ColorType, data: &mut [u8]) {
-    match color_type {
-        png::RGBA8 => {
-            let length = data.len();
-            for i in range_step(0, length, 4) {
-                let r = data[i + 2];
-                data[i + 2] = data[i + 0];
-                data[i + 0] = r;
-            }
-        }
-        _ => {}
+fn byte_swap(data: &mut [u8]) {
+    let length = data.len();
+    for i in range_step(0, length, 4) {
+        let r = data[i + 2];
+        data[i + 2] = data[i + 0];
+        data[i + 0] = r;
     }
 }
 
@@ -40,7 +35,12 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
     if png::is_png(buffer) {
         match png::load_png_from_memory(buffer) {
             Ok(mut png_image) => {
-                byte_swap(png_image.color_type, png_image.pixels.as_mut_slice());
+                match png_image.pixels {
+                    png::RGB8(ref mut data) | png::RGBA8(ref mut data) => {
+                        byte_swap(data.as_mut_slice());
+                    }
+                    _ => {}
+                }
                 Some(png_image)
             }
             Err(_err) => None,
@@ -53,12 +53,11 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
         match stb_image::load_from_memory_with_depth(buffer, FORCE_DEPTH, true) {
             stb_image::ImageU8(mut image) => {
                 assert!(image.depth == 4);
-                byte_swap(png::RGBA8, image.data.as_mut_slice());
+                byte_swap(image.data.as_mut_slice());
                 Some(png::Image {
                     width: image.width as u32,
                     height: image.height as u32,
-                    color_type: png::RGBA8,
-                    pixels: image.data
+                    pixels: png::RGBA8(image.data)
                 })
             }
             stb_image::ImageF32(_image) => fail!("HDR images not implemented"),

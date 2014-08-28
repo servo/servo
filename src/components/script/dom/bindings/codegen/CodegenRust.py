@@ -131,6 +131,34 @@ class CGThing():
         """Produce code for a Rust file."""
         assert(False) # Override me!
 
+
+class CGNativePropertyHooks(CGThing):
+    """
+    Generate a NativePropertyHooks for a given descriptor
+    """
+    def __init__(self, descriptor, properties):
+        CGThing.__init__(self)
+        self.descriptor = descriptor
+        self.properties = properties
+
+    def define(self):
+        parent = self.descriptor.interface.parent
+        if parent:
+            parentHooks = "Some(&::dom::bindings::codegen::Bindings::%sBinding::sNativePropertyHooks)" % parent.identifier.name
+        else:
+            parentHooks = "None"
+
+        substitutions = {
+            "parentHooks": parentHooks
+        }
+
+        return string.Template(
+            "pub static sNativePropertyHooks: NativePropertyHooks = NativePropertyHooks {\n"
+            "    native_properties: &sNativeProperties,\n"
+            "    proto_hooks: ${parentHooks},\n"
+            "};\n").substitute(substitutions)
+
+
 class CGMethodCall(CGThing):
     """
     A class to generate selection of a method signature from a set of
@@ -1386,7 +1414,8 @@ def DOMClass(descriptor):
         protoList.extend(['PrototypeList::id::IDCount'] * (descriptor.config.maxProtoChainLength - len(protoList)))
         prototypeChainString = ', '.join(protoList)
         return """DOMClass {
-  interface_chain: [ %s ]
+  interface_chain: [ %s ],
+  native_hooks: &sNativePropertyHooks,
 }""" % prototypeChainString
 
 class CGDOMJSClass(CGThing):
@@ -1399,7 +1428,7 @@ class CGDOMJSClass(CGThing):
 
     def define(self):
         traceHook = "Some(%s)" % TRACE_HOOK_NAME
-        if self.descriptor.createGlobal:
+        if self.descriptor.isGlobal():
             flags = "JSCLASS_IS_GLOBAL | JSCLASS_DOM_GLOBAL"
             slots = "JSCLASS_GLOBAL_SLOT_COUNT + 1"
         else:
@@ -1759,7 +1788,7 @@ class CGAbstractMethod(CGThing):
 def CreateBindingJSObject(descriptor, parent=None):
     create = "let mut raw: JS<%s> = JS::from_raw(&*aObject);\n" % descriptor.concreteType
     if descriptor.proxy:
-        assert not descriptor.createGlobal
+        assert not descriptor.isGlobal()
         create += """
 let handler = RegisterBindings::proxy_handlers[PrototypeList::proxies::%s as uint];
 let mut private = PrivateValue(squirrel_away_unique(aObject) as *const libc::c_void);
@@ -1773,7 +1802,7 @@ assert!(obj.is_not_null());
 
 """ % (descriptor.name, parent)
     else:
-        if descriptor.createGlobal:
+        if descriptor.isGlobal():
             create += "let obj = CreateDOMGlobal(aCx, &Class.base as *const js::Class as *const JSClass);\n"
         else:
             create += ("let obj = with_compartment(aCx, proto, || {\n"
@@ -1793,7 +1822,7 @@ class CGWrapMethod(CGAbstractMethod):
     """
     def __init__(self, descriptor):
         assert not descriptor.interface.isCallback()
-        if not descriptor.createGlobal:
+        if not descriptor.isGlobal():
             args = [Argument('*mut JSContext', 'aCx'), Argument('&GlobalRef', 'aScope'),
                     Argument("Box<%s>" % descriptor.concreteType, 'aObject', mutable=True)]
         else:
@@ -1803,7 +1832,7 @@ class CGWrapMethod(CGAbstractMethod):
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', retval, args, pub=True)
 
     def definition_body(self):
-        if not self.descriptor.createGlobal:
+        if not self.descriptor.isGlobal():
             return CGGeneric("""\
 let scope = aScope.reflector().get_jsobject();
 assert!(scope.is_not_null());
@@ -3547,10 +3576,10 @@ return box_;""" % self.descriptor.concreteType)
 class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
     def __init__(self, descriptor):
         args = [Argument('*mut JSContext', 'cx'), Argument('*mut JSObject', 'proxy'),
-                Argument('jsid', 'id'), Argument('JSBool', 'set'),
+                Argument('jsid', 'id'), Argument('bool', 'set'),
                 Argument('*mut JSPropertyDescriptor', 'desc')]
         CGAbstractExternMethod.__init__(self, descriptor, "getOwnPropertyDescriptor",
-                                        "JSBool", args)
+                                        "bool", args)
         self.descriptor = descriptor
     def getBody(self):
         indexedGetter = self.descriptor.operations['IndexedGetter']
@@ -3562,7 +3591,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
 
         if indexedGetter:
             readonly = toStringBool(self.descriptor.operations['IndexedSetter'] is None)
-            fillDescriptor = "FillPropertyDescriptor(&mut *desc, proxy, %s);\nreturn 1;" % readonly
+            fillDescriptor = "FillPropertyDescriptor(&mut *desc, proxy, %s);\nreturn true;" % readonly
             templateValues = {'jsvalRef': '(*desc).value', 'successCode': fillDescriptor}
             get = ("if index.is_some() {\n" +
                    "  let index = index.unwrap();\n" +
@@ -3581,7 +3610,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                     # FIXME need to check that this is a 'supported property index'
                     assert False
                 setOrIndexedGet += ("    FillPropertyDescriptor(&mut *desc, proxy, false);\n" +
-                                    "    return 1;\n" +
+                                    "    return true;\n" +
                                     "  }\n")
             if self.descriptor.operations['NamedSetter']:
                 setOrIndexedGet += "  if RUST_JSID_IS_STRING(id) {\n"
@@ -3589,7 +3618,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                     # FIXME need to check that this is a 'supported property name'
                     assert False
                 setOrIndexedGet += ("    FillPropertyDescriptor(&mut *desc, proxy, false);\n" +
-                                    "    return 1;\n" +
+                                    "    return true;\n" +
                                     "  }\n")
             setOrIndexedGet += "}"
             if indexedGetter:
@@ -3598,20 +3627,20 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                                     "}")
             setOrIndexedGet += "\n\n"
         elif indexedGetter:
-            setOrIndexedGet += ("if set == 0 {\n" +
+            setOrIndexedGet += ("if !set {\n" +
                                 CGIndenter(CGGeneric(get)).define() +
                                 "}\n\n")
 
         namedGetter = self.descriptor.operations['NamedGetter']
         if namedGetter:
             readonly = toStringBool(self.descriptor.operations['NamedSetter'] is None)
-            fillDescriptor = "FillPropertyDescriptor(&mut *desc, proxy, %s);\nreturn 1;" % readonly
+            fillDescriptor = "FillPropertyDescriptor(&mut *desc, proxy, %s);\nreturn true;" % readonly
             templateValues = {'jsvalRef': '(*desc).value', 'successCode': fillDescriptor}
             # Once we start supporting OverrideBuiltins we need to make
             # ResolveOwnProperty or EnumerateOwnProperties filter out named
             # properties that shadow prototype properties.
             namedGet = ("\n" +
-                        "if set == 0 && RUST_JSID_IS_STRING(id) != 0 && !HasPropertyOnPrototype(cx, proxy, id) {\n" +
+                        "if !set && RUST_JSID_IS_STRING(id) != 0 && !HasPropertyOnPrototype(cx, proxy, id) {\n" +
                         "  let name = jsid_to_str(cx, id);\n" +
                         "  let this = UnwrapProxy(proxy);\n" +
                         "  let this = JS::from_raw(this);\n" +
@@ -3624,19 +3653,19 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
         return setOrIndexedGet + """let expando: *mut JSObject = GetExpandoObject(proxy);
 //if (!xpc::WrapperFactory::IsXrayWrapper(proxy) && (expando = GetExpandoObject(proxy))) {
 if expando.is_not_null() {
-  let flags = if set != 0 { JSRESOLVE_ASSIGNING } else { 0 } | JSRESOLVE_QUALIFIED;
+  let flags = if set { JSRESOLVE_ASSIGNING } else { 0 } | JSRESOLVE_QUALIFIED;
   if JS_GetPropertyDescriptorById(cx, expando, id, flags, desc) == 0 {
-    return 0;
+    return false;
   }
   if (*desc).obj.is_not_null() {
     // Pretend the property lives on the wrapper.
     (*desc).obj = proxy;
-    return 1;
+    return true;
   }
 }
 """ + namedGet + """
 (*desc).obj = ptr::mut_null();
-return 1;"""
+return true;"""
 
     def definition_body(self):
         return CGGeneric(self.getBody())
@@ -3646,7 +3675,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
         args = [Argument('*mut JSContext', 'cx'), Argument('*mut JSObject', 'proxy'),
                 Argument('jsid', 'id'),
                 Argument('*const JSPropertyDescriptor', 'desc')]
-        CGAbstractExternMethod.__init__(self, descriptor, "defineProperty", "JSBool", args)
+        CGAbstractExternMethod.__init__(self, descriptor, "defineProperty", "bool", args)
         self.descriptor = descriptor
     def getBody(self):
         set = ""
@@ -3662,11 +3691,11 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                     "  let this = JS::from_raw(this);\n" +
                     "  let this = this.root();\n" +
                     CGIndenter(CGProxyIndexedSetter(self.descriptor)).define() +
-                    "  return 1;\n" +
+                    "  return true;\n" +
                     "}\n")
         elif self.descriptor.operations['IndexedGetter']:
             set += ("if GetArrayIndexFromId(cx, id).is_some() {\n" +
-                    "  return 0;\n" +
+                    "  return false;\n" +
                     "  //return ThrowErrorMessage(cx, MSG_NO_PROPERTY_SETTER, \"%s\");\n" +
                     "}\n") % self.descriptor.name
 
@@ -3689,10 +3718,10 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                     "  let this = this.root();\n" +
                     CGIndenter(CGProxyNamedGetter(self.descriptor)).define() +
                     "  if (found) {\n"
-                    "    return 0;\n" +
+                    "    return false;\n" +
                     "    //return ThrowErrorMessage(cx, MSG_NO_PROPERTY_SETTER, \"%s\");\n" +
                     "  }\n" +
-                    "  return 1;\n"
+                    "  return true;\n"
                     "}\n") % (self.descriptor.name)
         return set + """return proxyhandler::defineProperty_(%s);""" % ", ".join(a.name for a in self.args)
 
@@ -3702,8 +3731,8 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
 class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
     def __init__(self, descriptor):
         args = [Argument('*mut JSContext', 'cx'), Argument('*mut JSObject', 'proxy'),
-                Argument('jsid', 'id'), Argument('*mut JSBool', 'bp')]
-        CGAbstractExternMethod.__init__(self, descriptor, "hasOwn", "JSBool", args)
+                Argument('jsid', 'id'), Argument('*mut bool', 'bp')]
+        CGAbstractExternMethod.__init__(self, descriptor, "hasOwn", "bool", args)
         self.descriptor = descriptor
     def getBody(self):
         indexedGetter = self.descriptor.operations['IndexedGetter']
@@ -3715,8 +3744,8 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
                        "  let this = JS::from_raw(this);\n" +
                        "  let this = this.root();\n" +
                        CGIndenter(CGProxyIndexedGetter(self.descriptor)).define() + "\n" +
-                       "  *bp = found as JSBool;\n" +
-                       "  return 1;\n" +
+                       "  *bp = found;\n" +
+                       "  return true;\n" +
                        "}\n\n")
         else:
             indexed = ""
@@ -3729,8 +3758,8 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
                      "  let this = JS::from_raw(this);\n" +
                      "  let this = this.root();\n" +
                      CGIndenter(CGProxyNamedGetter(self.descriptor)).define() + "\n" +
-                     "  *bp = found as JSBool;\n"
-                     "  return 1;\n"
+                     "  *bp = found;\n"
+                     "  return true;\n"
                      "}\n" +
                      "\n")
         else:
@@ -3739,15 +3768,15 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
         return indexed + """let expando: *mut JSObject = GetExpandoObject(proxy);
 if expando.is_not_null() {
   let mut b: JSBool = 1;
-  let ok: JSBool = JS_HasPropertyById(cx, expando, id, &mut b);
-  *bp = !!b;
-  if ok == 0 || *bp != 0 {
+  let ok = JS_HasPropertyById(cx, expando, id, &mut b) != 0;
+  *bp = b != 0;
+  if !ok || *bp {
     return ok;
   }
 }
 
-""" + named + """*bp = 0;
-return 1;"""
+""" + named + """*bp = false;
+return true;"""
 
     def definition_body(self):
         return CGGeneric(self.getBody())
@@ -3757,22 +3786,25 @@ class CGDOMJSProxyHandler_get(CGAbstractExternMethod):
         args = [Argument('*mut JSContext', 'cx'), Argument('*mut JSObject', 'proxy'),
                 Argument('*mut JSObject', 'receiver'), Argument('jsid', 'id'),
                 Argument('*mut JSVal', 'vp')]
-        CGAbstractExternMethod.__init__(self, descriptor, "get", "JSBool", args)
+        CGAbstractExternMethod.__init__(self, descriptor, "get", "bool", args)
         self.descriptor = descriptor
     def getBody(self):
         getFromExpando = """let expando = GetExpandoObject(proxy);
 if expando.is_not_null() {
   let mut hasProp = 0;
   if JS_HasPropertyById(cx, expando, id, &mut hasProp) == 0 {
-    return 0;
+    return false;
   }
 
   if hasProp != 0 {
-    return JS_GetPropertyById(cx, expando, id, vp);
+    return JS_GetPropertyById(cx, expando, id, vp) != 0;
   }
 }"""
 
-        templateValues = {'jsvalRef': '*vp'}
+        templateValues = {
+            'jsvalRef': '*vp',
+            'successCode': 'return true;',
+        }
 
         indexedGetter = self.descriptor.operations['IndexedGetter']
         if indexedGetter:
@@ -3811,15 +3843,15 @@ if expando.is_not_null() {
 %s
 let mut found = false;
 if !GetPropertyOnPrototype(cx, proxy, id, &mut found, vp) {
-  return 0;
+  return false;
 }
 
 if found {
-  return 1;
+  return true;
 }
 %s
 *vp = UndefinedValue();
-return 1;""" % (getIndexedOrExpando, getNamed)
+return true;""" % (getIndexedOrExpando, getNamed)
 
     def definition_body(self):
         return CGGeneric(self.getBody())
@@ -4116,6 +4148,7 @@ class CGDescriptor(CGThing):
         properties = PropertyArrays(descriptor)
         cgThings.append(CGGeneric(str(properties)))
         cgThings.append(CGNativeProperties(descriptor, properties))
+        cgThings.append(CGNativePropertyHooks(descriptor, properties))
         cgThings.append(CGCreateInterfaceObjectsMethod(descriptor, properties))
 
         cgThings.append(CGNamespace.build([descriptor.name + "Constants"],
@@ -4423,29 +4456,6 @@ class CGBindingRoot(CGThing):
         # Do codegen for all the enums
         cgthings = [CGEnum(e) for e in config.getEnums(webIDLFile)]
 
-        # Do codegen for all the dictionaries.  We have to be a bit careful
-        # here, because we have to generate these in order from least derived
-        # to most derived so that class inheritance works out.  We also have to
-        # generate members before the dictionary that contains them.
-        #
-        # XXXbz this will fail if we have two webidl files A and B such that A
-        # declares a dictionary which inherits from a dictionary in B and B
-        # declares a dictionary (possibly a different one!) that inherits from a
-        # dictionary in A.  The good news is that I expect this to never happen.
-        reSortedDictionaries = []
-        dictionaries = set(dictionaries)
-        while len(dictionaries) != 0:
-            # Find the dictionaries that don't depend on anything else anymore
-            # and move them over.
-            toMove = [d for d in dictionaries if
-                      len(CGDictionary.getDictionaryDependencies(d) &
-                          dictionaries) == 0]
-            if len(toMove) == 0:
-                raise TypeError("Loop in dictionary dependency graph")
-            dictionaries = dictionaries - set(toMove)
-            reSortedDictionaries.extend(toMove)
-
-        dictionaries = reSortedDictionaries
         cgthings.extend([CGDictionary(d, config.getDescriptorProvider())
                          for d in dictionaries])
 
@@ -4519,7 +4529,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::utils::{ThrowingConstructor,  unwrap, unwrap_jsmanaged}',
             'dom::bindings::utils::VoidVal',
             'dom::bindings::utils::get_dictionary_property',
-            'dom::bindings::utils::NativeProperties',
+            'dom::bindings::utils::{NativeProperties, NativePropertyHooks}',
             'dom::bindings::trace::JSTraceable',
             'dom::bindings::callback::{CallbackContainer,CallbackInterface,CallbackFunction}',
             'dom::bindings::callback::{CallSetup,ExceptionHandling}',

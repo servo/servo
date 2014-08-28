@@ -75,7 +75,7 @@ impl TextRunScanner {
 
         debug!("TextRunScanner: swapping out fragments.");
 
-        fragments.fixup(new_fragments);
+        fragments.fragments = new_fragments;
     }
 
     /// A "clump" is a range of inline flow leaves that can be merged together into a single
@@ -87,12 +87,12 @@ impl TextRunScanner {
     ///
     /// FIXME(#2267, pcwalton): Stop cloning fragments. Instead we will need to replace each
     /// `in_fragment` with some smaller stub.
-    pub fn flush_clump_to_list(&mut self,
-                               font_context: &mut FontContext,
-                               in_fragments: &[Fragment],
-                               out_fragments: &mut Vec<Fragment>,
-                               last_whitespace: bool)
-                               -> bool {
+    fn flush_clump_to_list(&mut self,
+                           font_context: &mut FontContext,
+                           in_fragments: &[Fragment],
+                           out_fragments: &mut Vec<Fragment>,
+                           last_whitespace: bool)
+                           -> bool {
         assert!(self.clump.length() > CharIndex(0));
 
         debug!("TextRunScanner: flushing fragments in range={}", self.clump);
@@ -123,7 +123,6 @@ impl TextRunScanner {
 
                 let font_style = old_fragment.font_style();
 
-                // TODO(#115): Use the actual CSS `white-space` property of the relevant style.
                 let compression = match old_fragment.white_space() {
                     white_space::normal => CompressWhitespaceNewline,
                     white_space::pre => CompressNone,
@@ -168,7 +167,6 @@ impl TextRunScanner {
                 let font_style = in_fragment.font_style();
                 let fontgroup = font_context.get_layout_font_group_for_style(&font_style);
 
-                // TODO(#115): Use the actual CSS `white-space` property of the relevant style.
                 let compression = match in_fragment.white_space() {
                     white_space::normal => CompressWhitespaceNewline,
                     white_space::pre => CompressNone,
@@ -179,9 +177,6 @@ impl TextRunScanner {
                 // First, transform/compress text of all the nodes.
                 let mut last_whitespace_in_clump = new_whitespace;
                 let transformed_strs: Vec<String> = Vec::from_fn(self.clump.length().to_uint(), |i| {
-                    // TODO(#113): We should be passing the compression context between calls to
-                    // `transform_text`, so that fragments starting and/or ending with whitespace can
-                    // be compressed correctly with respect to the text run.
                     let idx = CharIndex(i as int) + self.clump.begin();
                     let in_fragment = match in_fragments[idx.to_uint()].specific {
                         UnscannedTextFragment(ref text_fragment_info) => &text_fragment_info.text,

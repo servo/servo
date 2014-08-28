@@ -79,8 +79,7 @@ impl Default for Au {
 
 impl fmt::Show for Au {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let Au(n) = *self;
-        write!(f, "Au(au={} px={})", n, to_frac_px(*self))
+        write!(f, "{}px", to_frac_px(*self))
     }}
 
 impl Add<Au,Au> for Au {

@@ -15,7 +15,7 @@ use geom::size::Size2D;
 use geom::side_offsets::SideOffsets2D;
 use libc::types::common::c99::uint16_t;
 use libc::size_t;
-use png::{RGBA8, K8, KA8};
+use png::{RGB8, RGBA8, K8, KA8};
 use servo_net::image::base::Image;
 use servo_util::geometry::Au;
 use servo_util::opts::Opts;
@@ -100,17 +100,15 @@ impl<'a> RenderContext<'a>  {
 
     pub fn draw_image(&self, bounds: Rect<Au>, image: Arc<Box<Image>>) {
         let size = Size2D(image.width as i32, image.height as i32);
-        let pixel_width = match image.color_type {
-            RGBA8 => 4,
-            K8    => 1,
-            KA8   => 2,
-            _     => fail!("color type not supported"),
+        let (pixel_width, pixels) = match image.pixels {
+            RGBA8(ref pixels) => (4, pixels.as_slice()),
+            RGB8(_) | K8(_) | KA8(_) => fail!("color type not supported"),
         };
         let stride = image.width * pixel_width;
 
         self.draw_target.make_current();
         let draw_target_ref = &self.draw_target;
-        let azure_surface = draw_target_ref.create_source_surface_from_data(image.pixels.as_slice(),
+        let azure_surface = draw_target_ref.create_source_surface_from_data(pixels,
                                                                             size,
                                                                             stride as i32,
                                                                             B8G8R8A8);

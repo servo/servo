@@ -34,7 +34,7 @@ On Fedora:
 
 ``` sh
 sudo yum install autoconf213 curl freeglut-devel libtool gcc-c++ libXi-devel \
-    freetype-devel mesa-libGL-devel glib2-devel libX11-devel libXRandr-devel gperf \
+    freetype-devel mesa-libGL-devel glib2-devel libX11-devel libXrandr-devel gperf \
     fontconfig-devel cabextract ttmkfdir python python-virtualenv expat-devel rpm-build
 pushd .
 cd /tmp
@@ -49,8 +49,11 @@ Cross-compilation for Android:
 Basically, pre-installed Android tools are needed.
 See wiki for [details](https://github.com/mozilla/servo/wiki/Building-for-Android)
 
+## The Rust compiler
+
 Servo builds its own copy of Rust, so there is no need to provide a Rust
 compiler.
+If you'd like to know the snapshot revision of Rust which we use, see `./rust-snapshot-hash`.
 
 ## Building
 

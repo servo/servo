@@ -21,7 +21,8 @@ interface HTMLAnchorElement : HTMLElement {
   //         attribute DOMString hreflang;
   //         attribute DOMString type;
 
-  //         attribute DOMString text;
+  [Pure]
+           attribute DOMString text;
 
   // also has obsolete members
 };

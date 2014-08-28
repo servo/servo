@@ -12,6 +12,7 @@ extern crate std;
 extern crate test;
 extern crate regex;
 
+use std::ascii::StrAsciiExt;
 use std::io;
 use std::io::{File, Reader, Command};
 use std::io::process::ExitStatus;
@@ -20,10 +21,17 @@ use test::{AutoColor, DynTestName, DynTestFn, TestDesc, TestOpts, TestDescAndFn}
 use test::run_tests_console;
 use regex::Regex;
 
-enum RenderMode {
-  CpuRendering = 1,
-  GpuRendering = 2,
-}
+
+bitflags!(
+    flags RenderMode: u32 {
+        static CpuRendering  = 0x00000001,
+        static GpuRendering  = 0x00000010,
+        static LinuxTarget   = 0x00000100,
+        static MacOsTarget   = 0x00001000,
+        static AndroidTarget = 0x00010000
+    }
+)
+
 
 fn main() {
     let args = os::args();
@@ -32,19 +40,45 @@ fn main() {
     let harness_args = parts.next().unwrap();  // .split() is never empty
     let servo_args = parts.next().unwrap_or(&[]);
 
-    let (render_mode_string, manifest, testname) = match harness_args {
-        [] | [_] => fail!("USAGE: cpu|gpu manifest [testname regex]"),
-        [ref render_mode_string, ref manifest] => (render_mode_string, manifest, None),
-        [ref render_mode_string, ref manifest, ref testname, ..] => (render_mode_string, manifest, Some(Regex::new(testname.as_slice()).unwrap())),
+    let (render_mode_string, base_path, testname) = match harness_args {
+        [] | [_] => fail!("USAGE: cpu|gpu base_path [testname regex]"),
+        [ref render_mode_string, ref base_path] => (render_mode_string, base_path, None),
+        [ref render_mode_string, ref base_path, ref testname, ..] => (render_mode_string, base_path, Some(Regex::new(testname.as_slice()).unwrap())),
     };
 
-    let render_mode = match render_mode_string.as_slice() {
+    let mut render_mode = match render_mode_string.as_slice() {
         "cpu" => CpuRendering,
         "gpu" => GpuRendering,
         _ => fail!("First argument must specify cpu or gpu as rendering mode")
     };
+    if cfg!(target_os = "linux") {
+        render_mode.insert(LinuxTarget);
+    }
+    if cfg!(target_os = "macos") {
+        render_mode.insert(MacOsTarget);
+    }
+    if cfg!(target_os = "android") {
+        render_mode.insert(AndroidTarget);
+    }
 
-    let tests = parse_lists(manifest, servo_args, render_mode);
+    let mut all_tests = vec!();
+    println!("Scanning {} for manifests\n", base_path);
+
+    for file in io::fs::walk_dir(&Path::new(base_path.as_slice())).unwrap() {
+        let maybe_extension = file.extension_str();
+        match maybe_extension {
+            Some(extension) => {
+                if extension.to_ascii_lower().as_slice() == "list" && file.is_file() {
+                    let manifest = file.as_str().unwrap();
+                    let tests = parse_lists(manifest, servo_args, render_mode, all_tests.len());
+                    println!("\t{} [{} tests]", manifest, tests.len());
+                    all_tests.push_all_move(tests);
+                }
+            }
+            _ => {}
+        }
+    }
+
     let test_opts = TestOpts {
         filter: testname,
         run_ignored: false,
@@ -59,7 +93,7 @@ fn main() {
         color: AutoColor
     };
 
-    match run_tests_console(&test_opts, tests) {
+    match run_tests_console(&test_opts, all_tests) {
         Ok(false) => os::set_exit_status(1), // tests failed
         Err(_) => os::set_exit_status(2),    // I/O-related failure
         _ => (),
@@ -79,7 +113,8 @@ struct Reftest {
     id: uint,
     servo_args: Vec<String>,
     render_mode: RenderMode,
-    flakiness: uint,
+    is_flaky: bool,
+    experimental: bool,
 }
 
 struct TestLine<'a> {
@@ -89,10 +124,9 @@ struct TestLine<'a> {
     file_right: &'a str,
 }
 
-fn parse_lists(file: &String, servo_args: &[String], render_mode: RenderMode) -> Vec<TestDescAndFn> {
+fn parse_lists(file: &str, servo_args: &[String], render_mode: RenderMode, id_offset: uint) -> Vec<TestDescAndFn> {
     let mut tests = Vec::new();
-    let mut next_id = 0;
-    let file_path = Path::new(file.clone());
+    let file_path = Path::new(file);
     let contents = File::open_mode(&file_path, io::Open, io::Read)
                        .and_then(|mut f| f.read_to_string())
                        .ok().expect("Could not read file");
@@ -132,26 +166,29 @@ fn parse_lists(file: &String, servo_args: &[String], render_mode: RenderMode) ->
         let file_right = src_dir.append("/").append(test_line.file_right);
 
         let mut conditions_list = test_line.conditions.split(',');
-        let mut flakiness = 0;
+        let mut flakiness = RenderMode::empty();
+        let mut experimental = false;
         for condition in conditions_list {
             match condition {
-                "flaky_cpu" => flakiness |= CpuRendering as uint,
-                "flaky_gpu" => flakiness |= GpuRendering as uint,
+                "flaky_cpu" => flakiness.insert(CpuRendering),
+                "flaky_gpu" => flakiness.insert(GpuRendering),
+                "flaky_linux" => flakiness.insert(LinuxTarget),
+                "flaky_macos" => flakiness.insert(MacOsTarget),
+                "experimental" => experimental = true,
                 _ => (),
             }
         }
 
         let reftest = Reftest {
-            name: test_line.file_left.to_string().append(" / ").append(test_line.file_right),
+            name: format!("{} {} {}", test_line.file_left, test_line.kind, test_line.file_right),
             kind: kind,
             files: [file_left, file_right],
-            id: next_id,
+            id: id_offset + tests.len(),
             render_mode: render_mode,
             servo_args: servo_args.iter().map(|x| x.clone()).collect(),
-            flakiness: flakiness,
+            is_flaky: render_mode.intersects(flakiness),
+            experimental: experimental,
         };
-
-        next_id += 1;
 
         tests.push(make_test(reftest));
     }
@@ -172,14 +209,18 @@ fn make_test(reftest: Reftest) -> TestDescAndFn {
     }
 }
 
-fn capture(reftest: &Reftest, side: uint) -> png::Image {
+fn capture(reftest: &Reftest, side: uint) -> (u32, u32, Vec<u8>) {
     let filename = format!("/tmp/servo-reftest-{:06u}-{:u}.png", reftest.id, side);
     let mut args = reftest.servo_args.clone();
-    match reftest.render_mode {
-        CpuRendering => args.push("-c".to_string()),
-        _ => {}   // GPU rendering is the default
+    // GPU rendering is the default
+    if reftest.render_mode.contains(CpuRendering) {
+        args.push("-c".to_string());
     }
-    args.push_all_move(vec!("-f".to_string(), "-o".to_string(), filename.clone(), reftest.files[side].clone()));
+    if reftest.experimental {
+        args.push("--experimental".to_string());
+    }
+    args.push_all(["-f".to_string(), "-o".to_string(), filename.clone(),
+                   reftest.files[side].clone()]);
 
     let retval = match Command::new("./servo").args(args.as_slice()).status() {
         Ok(status) => status,
@@ -187,14 +228,22 @@ fn capture(reftest: &Reftest, side: uint) -> png::Image {
     };
     assert!(retval == ExitStatus(0));
 
-    png::load_png(&from_str::<Path>(filename.as_slice()).unwrap()).unwrap()
+    let image = png::load_png(&from_str::<Path>(filename.as_slice()).unwrap()).unwrap();
+    let rgba8_bytes = match image.pixels {
+        png::RGBA8(pixels) => pixels,
+        _ => fail!(),
+    };
+    (image.width, image.height, rgba8_bytes)
 }
 
 fn check_reftest(reftest: Reftest) {
-    let left  = capture(&reftest, 0);
-    let right = capture(&reftest, 1);
+    let (left_width, left_height, left_bytes) = capture(&reftest, 0);
+    let (right_width, right_height, right_bytes) = capture(&reftest, 1);
 
-    let pixels = left.pixels.iter().zip(right.pixels.iter()).map(|(&a, &b)| {
+    assert_eq!(left_width, right_width);
+    assert_eq!(left_height, right_height);
+
+    let pixels = left_bytes.iter().zip(right_bytes.iter()).map(|(&a, &b)| {
         if a as i8 - b as i8 == 0 {
             // White for correct
             0xFF
@@ -207,27 +256,24 @@ fn check_reftest(reftest: Reftest) {
         }
     }).collect::<Vec<u8>>();
 
-    let test_is_flaky = (reftest.render_mode as uint & reftest.flakiness) != 0;
-
     if pixels.iter().any(|&a| a < 255) {
         let output_str = format!("/tmp/servo-reftest-{:06u}-diff.png", reftest.id);
         let output = from_str::<Path>(output_str.as_slice()).unwrap();
 
         let mut img = png::Image {
-            width: left.width,
-            height: left.height,
-            color_type: png::RGBA8,
-            pixels: pixels,
+            width: left_width,
+            height: left_height,
+            pixels: png::RGBA8(pixels),
         };
         let res = png::store_png(&mut img, &output);
         assert!(res.is_ok());
 
-        match (reftest.kind, test_is_flaky) {
+        match (reftest.kind, reftest.is_flaky) {
             (Same, true) => println!("flaky test - rendering difference: {}", output_str),
             (Same, false) => fail!("rendering difference: {}", output_str),
             (Different, _) => {}   // Result was different and that's what was expected
         }
     } else {
-        assert!(test_is_flaky || reftest.kind == Same);
+        assert!(reftest.is_flaky || reftest.kind == Same);
     }
 }

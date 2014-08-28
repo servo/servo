@@ -46,6 +46,7 @@ use gfx::font_cache_task::{FontCacheTask};
 use servo_net::local_image_cache::{ImageResponder, LocalImageCache};
 use servo_util::geometry::Au;
 use servo_util::geometry;
+use servo_util::logical_geometry::LogicalPoint;
 use servo_util::opts::Opts;
 use servo_util::smallvec::{SmallVec, SmallVec1};
 use servo_util::time::{TimeProfilerChan, profile};
@@ -694,10 +695,10 @@ impl LayoutTask {
         if data.goal == ReflowForDisplay {
             let writing_mode = flow::base(layout_root.get()).writing_mode;
             profile(time::LayoutDispListBuildCategory, self.time_profiler_chan.clone(), || {
-                // FIXME(#2795): Get the real container size
-                let container_size = Size2D::zero();
                 shared_layout_ctx.dirty = flow::base(layout_root.get()).position.to_physical(
-                    writing_mode, container_size);
+                    writing_mode, self.screen_size);
+                flow::mut_base(layout_root.get_mut()).abs_position =
+                    LogicalPoint::zero(writing_mode).to_physical(writing_mode, self.screen_size);
 
                 match self.parallel_traversal {
                     None => {
@@ -718,6 +719,7 @@ impl LayoutTask {
                 let root_display_list =
                     mem::replace(&mut flow::mut_base(layout_root.get_mut()).display_list,
                                  DisplayList::new());
+                root_display_list.debug();
                 let display_list = Arc::new(root_display_list.flatten(ContentStackingLevel));
 
                 // FIXME(pcwalton): This is really ugly and can't handle overflow: scroll. Refactor

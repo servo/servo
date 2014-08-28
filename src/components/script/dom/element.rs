@@ -35,7 +35,7 @@ use style;
 use servo_util::atom::Atom;
 use servo_util::namespace;
 use servo_util::namespace::{Namespace, Null};
-use servo_util::str::{DOMString, null_str_as_empty_ref, split_html_space_chars};
+use servo_util::str::{DOMString, null_str_as_empty_ref};
 
 use std::ascii::StrAsciiExt;
 use std::cell::{Cell, RefCell};
@@ -377,9 +377,11 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 
     fn has_class(&self, name: &str) -> bool {
-        let class_names = self.get_string_attribute("class");
-        let mut classes = split_html_space_chars(class_names.as_slice());
-        classes.any(|class| name == class)
+        self.get_attribute(Null, "class").root().map(|attr| {
+            attr.deref().value().tokens().map(|mut tokens| {
+                tokens.any(|atom| atom.as_slice() == name)
+            }).unwrap_or(false)
+        }).unwrap_or(false)
     }
 
     fn set_atomic_attribute(&self, name: &str, value: DOMString) {
@@ -471,8 +473,11 @@ impl Element {
 
 impl<'a> ElementMethods for JSRef<'a, Element> {
     // http://dom.spec.whatwg.org/#dom-element-namespaceuri
-    fn NamespaceURI(&self) -> DOMString {
-        self.namespace.to_str().to_string()
+    fn GetNamespaceURI(&self) -> Option<DOMString> {
+        match self.namespace {
+            Null => None,
+            ref ns => Some(ns.to_str().to_string())
+        }
     }
 
     fn LocalName(&self) -> DOMString {

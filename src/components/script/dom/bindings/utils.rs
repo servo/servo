@@ -39,6 +39,7 @@ use js::jsapi::{JSContext, JSObject, JSBool, jsid, JSClass};
 use js::jsapi::{JSFunctionSpec, JSPropertySpec};
 use js::jsapi::{JS_NewGlobalObject, JS_InitStandardClasses};
 use js::jsapi::{JSString};
+use js::jsapi::JS_DeletePropertyById2;
 use js::jsfriendapi::JS_ObjectToOuterObject;
 use js::jsfriendapi::bindgen::JS_NewObjectWithUniqueType;
 use js::jsval::JSVal;
@@ -221,11 +222,37 @@ pub struct ConstantSpec {
     pub value: ConstantVal
 }
 
+impl ConstantSpec {
+    /// Returns a `JSVal` that represents the value of this `ConstantSpec`.
+    pub fn get_value(&self) -> JSVal {
+        match self.value {
+            NullVal => NullValue(),
+            IntVal(i) => Int32Value(i),
+            UintVal(u) => UInt32Value(u),
+            DoubleVal(d) => DoubleValue(d),
+            BoolVal(b) => BooleanValue(b),
+            VoidVal => UndefinedValue(),
+        }
+    }
+}
+
+/// Helper structure for cross-origin wrappers for DOM binding objects.
+pub struct NativePropertyHooks {
+    /// The property arrays for this interface.
+    pub native_properties: &'static NativeProperties,
+
+    /// The NativePropertyHooks instance for the parent interface, if any.
+    pub proto_hooks: Option<&'static NativePropertyHooks>,
+}
+
 /// The struct that holds inheritance information for DOM object reflectors.
 pub struct DOMClass {
     /// A list of interfaces that this object implements, in order of decreasing
     /// derivedness.
-    pub interface_chain: [PrototypeList::id::ID, ..MAX_PROTO_CHAIN_LENGTH]
+    pub interface_chain: [PrototypeList::id::ID, ..MAX_PROTO_CHAIN_LENGTH],
+
+    /// The NativePropertyHooks for the interface associated with this class.
+    pub native_hooks: &'static NativePropertyHooks,
 }
 
 /// The JSClass used for DOM object reflectors.
@@ -336,17 +363,9 @@ fn CreateInterfaceObject(cx: *mut JSContext, global: *mut JSObject, receiver: *m
 /// Fails on JSAPI failure.
 fn DefineConstants(cx: *mut JSContext, obj: *mut JSObject, constants: &'static [ConstantSpec]) {
     for spec in constants.iter() {
-        let jsval = match spec.value {
-            NullVal => NullValue(),
-            IntVal(i) => Int32Value(i),
-            UintVal(u) => UInt32Value(u),
-            DoubleVal(d) => DoubleValue(d),
-            BoolVal(b) => BooleanValue(b),
-            VoidVal => UndefinedValue(),
-        };
         unsafe {
             assert!(JS_DefineProperty(cx, obj, spec.name.as_ptr() as *const libc::c_char,
-                                      jsval, None, None,
+                                      spec.get_value(), None, None,
                                       JSPROP_ENUMERATE | JSPROP_READONLY |
                                       JSPROP_PERMANENT) != 0);
         }
@@ -680,6 +699,17 @@ fn cx_for_dom_reflector(obj: *mut JSObject) -> *mut JSContext {
 /// this DOM object is on.
 pub fn cx_for_dom_object<T: Reflectable>(obj: &T) -> *mut JSContext {
     cx_for_dom_reflector(obj.reflector().get_jsobject())
+}
+
+pub unsafe fn delete_property_by_id(cx: *mut JSContext, object: *mut JSObject,
+                                    id: jsid, bp: &mut bool) -> bool {
+    let mut value = UndefinedValue();
+    if JS_DeletePropertyById2(cx, object, id, &mut value) == 0 {
+        return false;
+    }
+
+    *bp = value.to_boolean();
+    return true;
 }
 
 /// Results of `xml_name_type`.

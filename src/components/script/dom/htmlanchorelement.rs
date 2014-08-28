@@ -5,6 +5,8 @@
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLAnchorElementBinding;
+use dom::bindings::codegen::Bindings::HTMLAnchorElementBinding::HTMLAnchorElementMethods;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::HTMLAnchorElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
 use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
@@ -114,5 +116,17 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLAnchorElement> {
 impl Reflectable for HTMLAnchorElement {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.htmlelement.reflector()
+    }
+}
+
+impl<'a> HTMLAnchorElementMethods for JSRef<'a, HTMLAnchorElement> {
+    fn Text(&self) -> DOMString {
+        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        node.GetTextContent().unwrap()
+    }
+
+    fn SetText(&self, value: DOMString) {
+        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        node.SetTextContent(Some(value))
     }
 }

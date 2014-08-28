@@ -12,7 +12,8 @@ interface HTMLScriptElement : HTMLElement {
   //         attribute boolean async;
   //         attribute boolean defer;
   //         attribute DOMString crossOrigin;
-  //         attribute DOMString text;
+  [Pure]
+           attribute DOMString text;
 
   // also has obsolete members
 };

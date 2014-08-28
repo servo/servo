@@ -214,7 +214,7 @@ impl ResourceManager {
     fn load(&self, mut load_data: LoadData, start_chan: Sender<LoadResponse>) {
         let loader = match load_data.url.scheme.as_slice() {
             "file" => file_loader::factory(),
-            "http" => http_loader::factory(),
+            "http" | "https" => http_loader::factory(),
             "data" => data_loader::factory(),
             "about" => {
                 match load_data.url.non_relative_scheme_data().unwrap() {

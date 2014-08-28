@@ -50,10 +50,13 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
 
         redirected_to.insert(url.clone());
 
-        if "http" != url.scheme.as_slice() {
-            let s = format!("{:s} request, but we don't support that scheme", url.scheme);
-            send_error(url, s, start_chan);
-            return;
+        match url.scheme.as_slice() {
+            "http" | "https" => {}
+            _ => {
+                let s = format!("{:s} request, but we don't support that scheme", url.scheme);
+                send_error(url, s, start_chan);
+                return;
+            }
         }
 
         info!("requesting {:s}", url.serialize());
