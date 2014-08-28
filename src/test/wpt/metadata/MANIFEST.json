@@ -1362,6 +1362,142 @@
         "url": "/battery-status/prime.js"
       },
       {
+        "path": "content-security-policy/README.css",
+        "url": "/content-security-policy/README.css"
+      },
+      {
+        "path": "content-security-policy/generic/generic-0_10.html.sub.headers",
+        "url": "/content-security-policy/generic/generic-0_10.html.sub.headers"
+      },
+      {
+        "path": "content-security-policy/generic/generic-0_10_1.sub.html.sub.headers",
+        "url": "/content-security-policy/generic/generic-0_10_1.sub.html.sub.headers"
+      },
+      {
+        "path": "content-security-policy/generic/generic-0_2.html.sub.headers",
+        "url": "/content-security-policy/generic/generic-0_2.html.sub.headers"
+      },
+      {
+        "path": "content-security-policy/generic/generic-0_2_2.sub.html.sub.headers",
+        "url": "/content-security-policy/generic/generic-0_2_2.sub.html.sub.headers"
+      },
+      {
+        "path": "content-security-policy/generic/generic-0_2_3.html.sub.headers",
+        "url": "/content-security-policy/generic/generic-0_2_3.html.sub.headers"
+      },
+      {
+        "path": "content-security-policy/generic/generic-0_8.html.sub.headers",
+        "url": "/content-security-policy/generic/generic-0_8.html.sub.headers"
+      },
+      {
+        "path": "content-security-policy/generic/generic-0_8_1.sub.html.sub.headers",
+        "url": "/content-security-policy/generic/generic-0_8_1.sub.html.sub.headers"
+      },
+      {
+        "path": "content-security-policy/generic/generic-0_9.sub.html.sub.headers",
+        "url": "/content-security-policy/generic/generic-0_9.sub.html.sub.headers"
+      },
+      {
+        "path": "content-security-policy/generic/negativeTests.js",
+        "url": "/content-security-policy/generic/negativeTests.js"
+      },
+      {
+        "path": "content-security-policy/generic/positiveTest.js",
+        "url": "/content-security-policy/generic/positiveTest.js"
+      },
+      {
+        "path": "content-security-policy/generic/unreached.js",
+        "url": "/content-security-policy/generic/unreached.js"
+      },
+      {
+        "path": "content-security-policy/generic/wildcardHostTest.js",
+        "url": "/content-security-policy/generic/wildcardHostTest.js"
+      },
+      {
+        "path": "content-security-policy/generic/wildcardHostTestFailure.js",
+        "url": "/content-security-policy/generic/wildcardHostTestFailure.js"
+      },
+      {
+        "path": "content-security-policy/generic/wildcardHostTestSuceeds.js",
+        "url": "/content-security-policy/generic/wildcardHostTestSuceeds.js"
+      },
+      {
+        "path": "content-security-policy/generic/wildcardPortTest.js",
+        "url": "/content-security-policy/generic/wildcardPortTest.js"
+      },
+      {
+        "path": "content-security-policy/generic/wildcardPortTestSuceeds.js",
+        "url": "/content-security-policy/generic/wildcardPortTestSuceeds.js"
+      },
+      {
+        "path": "content-security-policy/object-src/object-src-2_1.html.sub.headers",
+        "url": "/content-security-policy/object-src/object-src-2_1.html.sub.headers"
+      },
+      {
+        "path": "content-security-policy/object-src/object-src-2_2.html.sub.headers",
+        "url": "/content-security-policy/object-src/object-src-2_2.html.sub.headers"
+      },
+      {
+        "path": "content-security-policy/script-src/addInlineTestsWithDOMManipulation.js",
+        "url": "/content-security-policy/script-src/addInlineTestsWithDOMManipulation.js"
+      },
+      {
+        "path": "content-security-policy/script-src/inlineSuccessTest.js",
+        "url": "/content-security-policy/script-src/inlineSuccessTest.js"
+      },
+      {
+        "path": "content-security-policy/script-src/inlineTests.js",
+        "url": "/content-security-policy/script-src/inlineTests.js"
+      },
+      {
+        "path": "content-security-policy/script-src/script-src-1_1.html.sub.headers",
+        "url": "/content-security-policy/script-src/script-src-1_1.html.sub.headers"
+      },
+      {
+        "path": "content-security-policy/script-src/script-src-1_2_1.html.sub.headers",
+        "url": "/content-security-policy/script-src/script-src-1_2_1.html.sub.headers"
+      },
+      {
+        "path": "content-security-policy/script-src/script-src-1_3.html.sub.headers",
+        "url": "/content-security-policy/script-src/script-src-1_3.html.sub.headers"
+      },
+      {
+        "path": "content-security-policy/script-src/script-src-1_4.html.sub.headers",
+        "url": "/content-security-policy/script-src/script-src-1_4.html.sub.headers"
+      },
+      {
+        "path": "content-security-policy/style-src/style-src-3_1.html.sub.headers",
+        "url": "/content-security-policy/style-src/style-src-3_1.html.sub.headers"
+      },
+      {
+        "path": "content-security-policy/style-src/style-src-3_2.html.sub.headers",
+        "url": "/content-security-policy/style-src/style-src-3_2.html.sub.headers"
+      },
+      {
+        "path": "content-security-policy/style-src/style-src-3_4-import.css",
+        "url": "/content-security-policy/style-src/style-src-3_4-import.css"
+      },
+      {
+        "path": "content-security-policy/style-src/style-src-3_4.css",
+        "url": "/content-security-policy/style-src/style-src-3_4.css"
+      },
+      {
+        "path": "content-security-policy/style-src/style-src-3_4.html.sub.headers",
+        "url": "/content-security-policy/style-src/style-src-3_4.html.sub.headers"
+      },
+      {
+        "path": "content-security-policy/support/checkReport.sub.js",
+        "url": "/content-security-policy/support/checkReport.sub.js"
+      },
+      {
+        "path": "content-security-policy/support/media/flash.swf",
+        "url": "/content-security-policy/support/media/flash.swf"
+      },
+      {
+        "path": "content-security-policy/support/report.py",
+        "url": "/content-security-policy/support/report.py"
+      },
+      {
         "path": "cors/resources/checkandremove.py",
         "url": "/cors/resources/checkandremove.py"
       },
@@ -1526,6 +1662,10 @@
         "url": "/dom/nodes/Node-contains.xml"
       },
       {
+        "path": "dom/nodes/ParentNode-querySelector-All.js",
+        "url": "/dom/nodes/ParentNode-querySelector-All.js"
+      },
+      {
         "path": "dom/nodes/attributes.js",
         "url": "/dom/nodes/attributes.js"
       },
@@ -1552,6 +1692,10 @@
       {
         "path": "dom/nodes/productions.js",
         "url": "/dom/nodes/productions.js"
+      },
+      {
+        "path": "dom/nodes/selectors.js",
+        "url": "/dom/nodes/selectors.js"
       },
       {
         "path": "dom/traversal/unfinished/001.xml",
@@ -2198,8 +2342,8 @@
         "url": "/html/editing/dnd/resources/circle.png"
       },
       {
-        "path": "html/editing/dnd/resources/crossorigin.js",
-        "url": "/html/editing/dnd/resources/crossorigin.js"
+        "path": "html/editing/dnd/resources/crossorigin.sub.js",
+        "url": "/html/editing/dnd/resources/crossorigin.sub.js"
       },
       {
         "path": "html/editing/dnd/resources/fail.png",
@@ -2324,6 +2468,10 @@
       {
         "path": "html/rendering/replaced-elements/attributes-for-embedded-content-and-images/object_border-ref.xhtml",
         "url": "html/rendering/replaced-elements/attributes-for-embedded-content-and-images/object_border-ref.xhtml"
+      },
+      {
+        "path": "html/rendering/replaced-elements/images/space-ref.html",
+        "url": "html/rendering/replaced-elements/images/space-ref.html"
       },
       {
         "path": "html/rendering/replaced-elements/resources/svg-sizing.js",
@@ -2714,6 +2862,10 @@
         "url": "/html/semantics/interactive-elements/the-menu-element/contains.json"
       },
       {
+        "path": "html/semantics/interfaces.js",
+        "url": "/html/semantics/interfaces.js"
+      },
+      {
         "path": "html/semantics/links/downloading-resources/contains.json",
         "url": "/html/semantics/links/downloading-resources/contains.json"
       },
@@ -3102,6 +3254,194 @@
         "url": "/js/builtins/Math.maxmin.js"
       },
       {
+        "path": "media-source/import_tests.sh",
+        "url": "/media-source/import_tests.sh"
+      },
+      {
+        "path": "media-source/manifest.txt",
+        "url": "/media-source/manifest.txt"
+      },
+      {
+        "path": "media-source/mediasource-config-changes.js",
+        "url": "/media-source/mediasource-config-changes.js"
+      },
+      {
+        "path": "media-source/mediasource-util.js",
+        "url": "/media-source/mediasource-util.js"
+      },
+      {
+        "path": "media-source/mp4/test-a-128k-44100Hz-1ch-manifest.json",
+        "url": "/media-source/mp4/test-a-128k-44100Hz-1ch-manifest.json"
+      },
+      {
+        "path": "media-source/mp4/test-a-128k-44100Hz-1ch.mp4",
+        "url": "/media-source/mp4/test-a-128k-44100Hz-1ch.mp4"
+      },
+      {
+        "path": "media-source/mp4/test-a-192k-44100Hz-1ch-manifest.json",
+        "url": "/media-source/mp4/test-a-192k-44100Hz-1ch-manifest.json"
+      },
+      {
+        "path": "media-source/mp4/test-a-192k-44100Hz-1ch.mp4",
+        "url": "/media-source/mp4/test-a-192k-44100Hz-1ch.mp4"
+      },
+      {
+        "path": "media-source/mp4/test-av-384k-44100Hz-1ch-320x240-30fps-10kfr-manifest.json",
+        "url": "/media-source/mp4/test-av-384k-44100Hz-1ch-320x240-30fps-10kfr-manifest.json"
+      },
+      {
+        "path": "media-source/mp4/test-av-384k-44100Hz-1ch-320x240-30fps-10kfr.mp4",
+        "url": "/media-source/mp4/test-av-384k-44100Hz-1ch-320x240-30fps-10kfr.mp4"
+      },
+      {
+        "path": "media-source/mp4/test-av-384k-44100Hz-1ch-640x480-30fps-10kfr-manifest.json",
+        "url": "/media-source/mp4/test-av-384k-44100Hz-1ch-640x480-30fps-10kfr-manifest.json"
+      },
+      {
+        "path": "media-source/mp4/test-av-384k-44100Hz-1ch-640x480-30fps-10kfr.mp4",
+        "url": "/media-source/mp4/test-av-384k-44100Hz-1ch-640x480-30fps-10kfr.mp4"
+      },
+      {
+        "path": "media-source/mp4/test-av-448k-44100Hz-1ch-640x480-30fps-10kfr-manifest.json",
+        "url": "/media-source/mp4/test-av-448k-44100Hz-1ch-640x480-30fps-10kfr-manifest.json"
+      },
+      {
+        "path": "media-source/mp4/test-av-448k-44100Hz-1ch-640x480-30fps-10kfr.mp4",
+        "url": "/media-source/mp4/test-av-448k-44100Hz-1ch-640x480-30fps-10kfr.mp4"
+      },
+      {
+        "path": "media-source/mp4/test-av-640k-44100Hz-1ch-640x480-30fps-10kfr-manifest.json",
+        "url": "/media-source/mp4/test-av-640k-44100Hz-1ch-640x480-30fps-10kfr-manifest.json"
+      },
+      {
+        "path": "media-source/mp4/test-av-640k-44100Hz-1ch-640x480-30fps-10kfr.mp4",
+        "url": "/media-source/mp4/test-av-640k-44100Hz-1ch-640x480-30fps-10kfr.mp4"
+      },
+      {
+        "path": "media-source/mp4/test-v-128k-320x240-24fps-8kfr-manifest.json",
+        "url": "/media-source/mp4/test-v-128k-320x240-24fps-8kfr-manifest.json"
+      },
+      {
+        "path": "media-source/mp4/test-v-128k-320x240-24fps-8kfr.mp4",
+        "url": "/media-source/mp4/test-v-128k-320x240-24fps-8kfr.mp4"
+      },
+      {
+        "path": "media-source/mp4/test-v-128k-320x240-30fps-10kfr-manifest.json",
+        "url": "/media-source/mp4/test-v-128k-320x240-30fps-10kfr-manifest.json"
+      },
+      {
+        "path": "media-source/mp4/test-v-128k-320x240-30fps-10kfr.mp4",
+        "url": "/media-source/mp4/test-v-128k-320x240-30fps-10kfr.mp4"
+      },
+      {
+        "path": "media-source/mp4/test-v-128k-640x480-30fps-10kfr-manifest.json",
+        "url": "/media-source/mp4/test-v-128k-640x480-30fps-10kfr-manifest.json"
+      },
+      {
+        "path": "media-source/mp4/test-v-128k-640x480-30fps-10kfr.mp4",
+        "url": "/media-source/mp4/test-v-128k-640x480-30fps-10kfr.mp4"
+      },
+      {
+        "path": "media-source/mp4/test-v-256k-320x240-30fps-10kfr-manifest.json",
+        "url": "/media-source/mp4/test-v-256k-320x240-30fps-10kfr-manifest.json"
+      },
+      {
+        "path": "media-source/mp4/test-v-256k-320x240-30fps-10kfr.mp4",
+        "url": "/media-source/mp4/test-v-256k-320x240-30fps-10kfr.mp4"
+      },
+      {
+        "path": "media-source/mp4/test.mp4",
+        "url": "/media-source/mp4/test.mp4"
+      },
+      {
+        "path": "media-source/webm/test-a-128k-44100Hz-1ch-manifest.json",
+        "url": "/media-source/webm/test-a-128k-44100Hz-1ch-manifest.json"
+      },
+      {
+        "path": "media-source/webm/test-a-128k-44100Hz-1ch.webm",
+        "url": "/media-source/webm/test-a-128k-44100Hz-1ch.webm"
+      },
+      {
+        "path": "media-source/webm/test-a-192k-44100Hz-1ch-manifest.json",
+        "url": "/media-source/webm/test-a-192k-44100Hz-1ch-manifest.json"
+      },
+      {
+        "path": "media-source/webm/test-a-192k-44100Hz-1ch.webm",
+        "url": "/media-source/webm/test-a-192k-44100Hz-1ch.webm"
+      },
+      {
+        "path": "media-source/webm/test-av-384k-44100Hz-1ch-320x240-30fps-10kfr-manifest.json",
+        "url": "/media-source/webm/test-av-384k-44100Hz-1ch-320x240-30fps-10kfr-manifest.json"
+      },
+      {
+        "path": "media-source/webm/test-av-384k-44100Hz-1ch-320x240-30fps-10kfr.webm",
+        "url": "/media-source/webm/test-av-384k-44100Hz-1ch-320x240-30fps-10kfr.webm"
+      },
+      {
+        "path": "media-source/webm/test-av-384k-44100Hz-1ch-640x480-30fps-10kfr-manifest.json",
+        "url": "/media-source/webm/test-av-384k-44100Hz-1ch-640x480-30fps-10kfr-manifest.json"
+      },
+      {
+        "path": "media-source/webm/test-av-384k-44100Hz-1ch-640x480-30fps-10kfr.webm",
+        "url": "/media-source/webm/test-av-384k-44100Hz-1ch-640x480-30fps-10kfr.webm"
+      },
+      {
+        "path": "media-source/webm/test-av-448k-44100Hz-1ch-640x480-30fps-10kfr-manifest.json",
+        "url": "/media-source/webm/test-av-448k-44100Hz-1ch-640x480-30fps-10kfr-manifest.json"
+      },
+      {
+        "path": "media-source/webm/test-av-448k-44100Hz-1ch-640x480-30fps-10kfr.webm",
+        "url": "/media-source/webm/test-av-448k-44100Hz-1ch-640x480-30fps-10kfr.webm"
+      },
+      {
+        "path": "media-source/webm/test-av-640k-44100Hz-1ch-640x480-30fps-10kfr-manifest.json",
+        "url": "/media-source/webm/test-av-640k-44100Hz-1ch-640x480-30fps-10kfr-manifest.json"
+      },
+      {
+        "path": "media-source/webm/test-av-640k-44100Hz-1ch-640x480-30fps-10kfr.webm",
+        "url": "/media-source/webm/test-av-640k-44100Hz-1ch-640x480-30fps-10kfr.webm"
+      },
+      {
+        "path": "media-source/webm/test-v-128k-320x240-24fps-8kfr-manifest.json",
+        "url": "/media-source/webm/test-v-128k-320x240-24fps-8kfr-manifest.json"
+      },
+      {
+        "path": "media-source/webm/test-v-128k-320x240-24fps-8kfr.webm",
+        "url": "/media-source/webm/test-v-128k-320x240-24fps-8kfr.webm"
+      },
+      {
+        "path": "media-source/webm/test-v-128k-320x240-30fps-10kfr-manifest.json",
+        "url": "/media-source/webm/test-v-128k-320x240-30fps-10kfr-manifest.json"
+      },
+      {
+        "path": "media-source/webm/test-v-128k-320x240-30fps-10kfr.webm",
+        "url": "/media-source/webm/test-v-128k-320x240-30fps-10kfr.webm"
+      },
+      {
+        "path": "media-source/webm/test-v-128k-640x480-30fps-10kfr-manifest.json",
+        "url": "/media-source/webm/test-v-128k-640x480-30fps-10kfr-manifest.json"
+      },
+      {
+        "path": "media-source/webm/test-v-128k-640x480-30fps-10kfr.webm",
+        "url": "/media-source/webm/test-v-128k-640x480-30fps-10kfr.webm"
+      },
+      {
+        "path": "media-source/webm/test-v-256k-320x240-30fps-10kfr-manifest.json",
+        "url": "/media-source/webm/test-v-256k-320x240-30fps-10kfr-manifest.json"
+      },
+      {
+        "path": "media-source/webm/test-v-256k-320x240-30fps-10kfr.webm",
+        "url": "/media-source/webm/test-v-256k-320x240-30fps-10kfr.webm"
+      },
+      {
+        "path": "media-source/webm/test-vp8-vorbis-webvtt.webm",
+        "url": "/media-source/webm/test-vp8-vorbis-webvtt.webm"
+      },
+      {
+        "path": "media-source/webm/test.webm",
+        "url": "/media-source/webm/test.webm"
+      },
+      {
         "path": "media/A4.mp4",
         "url": "/media/A4.mp4"
       },
@@ -3378,20 +3718,8 @@
         "url": "/resource-timing/resources/webperftestharness.js"
       },
       {
-        "path": "selectors-api/level1-lib.js",
-        "url": "/selectors-api/level1-lib.js"
-      },
-      {
-        "path": "selectors-api/selectors.js",
-        "url": "/selectors-api/selectors.js"
-      },
-      {
         "path": "selectors-api/tests/submissions/Opera/level2-lib.js",
         "url": "/selectors-api/tests/submissions/Opera/level2-lib.js"
-      },
-      {
-        "path": "selectors-api/tests/submissions/Opera/selectors.js",
-        "url": "/selectors-api/tests/submissions/Opera/selectors.js"
       },
       {
         "path": "service-workers/specgen.json",
@@ -3526,8 +3854,64 @@
         "url": "/webaudio/the-audio-api/the-gainnode-interface/gain-expected.wav"
       },
       {
+        "path": "webdriver/README.md",
+        "url": "/webdriver/README.md"
+      },
+      {
         "path": "webdriver/base_test.py",
         "url": "/webdriver/base_test.py"
+      },
+      {
+        "path": "webdriver/cookie/__init__.py",
+        "url": "/webdriver/cookie/__init__.py"
+      },
+      {
+        "path": "webdriver/element_location/__init__.py",
+        "url": "/webdriver/element_location/__init__.py"
+      },
+      {
+        "path": "webdriver/element_state/__init__.py",
+        "url": "/webdriver/element_state/__init__.py"
+      },
+      {
+        "path": "webdriver/javascript/__init__.py",
+        "url": "/webdriver/javascript/__init__.py"
+      },
+      {
+        "path": "webdriver/modal/__init__.py",
+        "url": "/webdriver/modal/__init__.py"
+      },
+      {
+        "path": "webdriver/navigation/__init__.py",
+        "url": "/webdriver/navigation/__init__.py"
+      },
+      {
+        "path": "webdriver/navigation/res/self-signed.key",
+        "url": "/webdriver/navigation/res/self-signed.key"
+      },
+      {
+        "path": "webdriver/network.py",
+        "url": "/webdriver/network.py"
+      },
+      {
+        "path": "webdriver/runtests.py",
+        "url": "/webdriver/runtests.py"
+      },
+      {
+        "path": "webdriver/timeouts/__init__.py",
+        "url": "/webdriver/timeouts/__init__.py"
+      },
+      {
+        "path": "webdriver/user_input/__init__.py",
+        "url": "/webdriver/user_input/__init__.py"
+      },
+      {
+        "path": "webdriver/webdriver.cfg",
+        "url": "/webdriver/webdriver.cfg"
+      },
+      {
+        "path": "webdriver/webserver.py",
+        "url": "/webdriver/webserver.py"
       },
       {
         "path": "webgl/common.js",
@@ -5524,8 +5908,124 @@
         "url": "/html/editing/dnd/target-origin/002-manual.html"
       },
       {
+        "path": "html/editing/dnd/target-origin/003-manual.html",
+        "url": "/html/editing/dnd/target-origin/003-manual.html"
+      },
+      {
+        "path": "html/editing/dnd/target-origin/004-manual.html",
+        "url": "/html/editing/dnd/target-origin/004-manual.html"
+      },
+      {
+        "path": "html/editing/dnd/target-origin/005-manual.html",
+        "url": "/html/editing/dnd/target-origin/005-manual.html"
+      },
+      {
+        "path": "html/editing/dnd/target-origin/006-manual.html",
+        "url": "/html/editing/dnd/target-origin/006-manual.html"
+      },
+      {
+        "path": "html/editing/dnd/target-origin/007-manual.html",
+        "url": "/html/editing/dnd/target-origin/007-manual.html"
+      },
+      {
+        "path": "html/editing/dnd/target-origin/008-manual.html",
+        "url": "/html/editing/dnd/target-origin/008-manual.html"
+      },
+      {
+        "path": "html/editing/dnd/target-origin/009-manual.html",
+        "url": "/html/editing/dnd/target-origin/009-manual.html"
+      },
+      {
+        "path": "html/editing/dnd/target-origin/010-manual.html",
+        "url": "/html/editing/dnd/target-origin/010-manual.html"
+      },
+      {
+        "path": "html/editing/dnd/target-origin/011-manual.html",
+        "url": "/html/editing/dnd/target-origin/011-manual.html"
+      },
+      {
+        "path": "html/editing/dnd/target-origin/012-manual.html",
+        "url": "/html/editing/dnd/target-origin/012-manual.html"
+      },
+      {
+        "path": "html/editing/dnd/target-origin/013-manual.html",
+        "url": "/html/editing/dnd/target-origin/013-manual.html"
+      },
+      {
         "path": "html/editing/dnd/target-origin/101-manual.html",
         "url": "/html/editing/dnd/target-origin/101-manual.html"
+      },
+      {
+        "path": "html/editing/dnd/target-origin/102-manual.html",
+        "url": "/html/editing/dnd/target-origin/102-manual.html"
+      },
+      {
+        "path": "html/editing/dnd/target-origin/103-manual.html",
+        "url": "/html/editing/dnd/target-origin/103-manual.html"
+      },
+      {
+        "path": "html/editing/dnd/target-origin/104-manual.html",
+        "url": "/html/editing/dnd/target-origin/104-manual.html"
+      },
+      {
+        "path": "html/editing/dnd/target-origin/105-manual.html",
+        "url": "/html/editing/dnd/target-origin/105-manual.html"
+      },
+      {
+        "path": "html/editing/dnd/target-origin/106-manual.html",
+        "url": "/html/editing/dnd/target-origin/106-manual.html"
+      },
+      {
+        "path": "html/editing/dnd/target-origin/107-manual.html",
+        "url": "/html/editing/dnd/target-origin/107-manual.html"
+      },
+      {
+        "path": "html/editing/dnd/target-origin/108-manual.html",
+        "url": "/html/editing/dnd/target-origin/108-manual.html"
+      },
+      {
+        "path": "html/editing/dnd/target-origin/109-manual.html",
+        "url": "/html/editing/dnd/target-origin/109-manual.html"
+      },
+      {
+        "path": "html/editing/dnd/target-origin/110-manual.html",
+        "url": "/html/editing/dnd/target-origin/110-manual.html"
+      },
+      {
+        "path": "html/editing/dnd/target-origin/111-manual.html",
+        "url": "/html/editing/dnd/target-origin/111-manual.html"
+      },
+      {
+        "path": "html/editing/dnd/target-origin/112-manual.html",
+        "url": "/html/editing/dnd/target-origin/112-manual.html"
+      },
+      {
+        "path": "html/editing/dnd/target-origin/113-manual.html",
+        "url": "/html/editing/dnd/target-origin/113-manual.html"
+      },
+      {
+        "path": "html/editing/dnd/target-origin/114-manual.html",
+        "url": "/html/editing/dnd/target-origin/114-manual.html"
+      },
+      {
+        "path": "html/editing/dnd/target-origin/115-manual.html",
+        "url": "/html/editing/dnd/target-origin/115-manual.html"
+      },
+      {
+        "path": "html/editing/dnd/target-origin/116-manual.html",
+        "url": "/html/editing/dnd/target-origin/116-manual.html"
+      },
+      {
+        "path": "html/editing/dnd/target-origin/117-manual.html",
+        "url": "/html/editing/dnd/target-origin/117-manual.html"
+      },
+      {
+        "path": "html/editing/dnd/target-origin/118-manual.html",
+        "url": "/html/editing/dnd/target-origin/118-manual.html"
+      },
+      {
+        "path": "html/editing/dnd/target-origin/201-manual.html",
+        "url": "/html/editing/dnd/target-origin/201-manual.html"
       },
       {
         "path": "html/editing/dnd/the-dragevent-interface/dragevent-manual.html",
@@ -5674,6 +6174,18 @@
       {
         "path": "html/semantics/embedded-content/media-elements/audio_volume_silent-manual.html",
         "url": "/html/semantics/embedded-content/media-elements/audio_volume_silent-manual.html"
+      },
+      {
+        "path": "html/semantics/embedded-content/media-elements/loading-the-media-resource/stable-state-beforeunload-manual.html",
+        "url": "/html/semantics/embedded-content/media-elements/loading-the-media-resource/stable-state-beforeunload-manual.html"
+      },
+      {
+        "path": "html/semantics/embedded-content/media-elements/loading-the-media-resource/stable-state-dialogs-manual.html",
+        "url": "/html/semantics/embedded-content/media-elements/loading-the-media-resource/stable-state-dialogs-manual.html"
+      },
+      {
+        "path": "html/semantics/embedded-content/media-elements/loading-the-media-resource/stable-state-print-manual.html",
+        "url": "/html/semantics/embedded-content/media-elements/loading-the-media-resource/stable-state-print-manual.html"
       },
       {
         "path": "html/semantics/embedded-content/media-elements/video_controls_present-manual.html",
@@ -5886,6 +6398,14 @@
       {
         "path": "pointerevents/pointerevent_pointerup-manual.html",
         "url": "/pointerevents/pointerevent_pointerup-manual.html"
+      },
+      {
+        "path": "pointerevents/pointerevent_pointerup_isprimary_same_as_pointerdown-manual.html",
+        "url": "/pointerevents/pointerevent_pointerup_isprimary_same_as_pointerdown-manual.html"
+      },
+      {
+        "path": "pointerevents/pointerevent_pointerup_pointertype-manual.html",
+        "url": "/pointerevents/pointerevent_pointerup_pointertype-manual.html"
       },
       {
         "path": "pointerevents/pointerevent_releasepointercapture_events_to_original_target-manual.html",
@@ -6440,6 +6960,90 @@
         "url": "/html/rendering/non-replaced-elements/tables/table-width-150percent.html"
       },
       {
+        "path": "html/rendering/replaced-elements/attributes-for-embedded-content-and-images/img_border_percent.xhtml",
+        "ref_type": "==",
+        "ref_url": "/html/rendering/replaced-elements/attributes-for-embedded-content-and-images/img_border-ref.xhtml",
+        "url": "/html/rendering/replaced-elements/attributes-for-embedded-content-and-images/img_border_percent.xhtml"
+      },
+      {
+        "path": "html/rendering/replaced-elements/attributes-for-embedded-content-and-images/object_border_perc.xhtml",
+        "ref_type": "==",
+        "ref_url": "/html/rendering/replaced-elements/attributes-for-embedded-content-and-images/object_border-ref.xhtml",
+        "url": "/html/rendering/replaced-elements/attributes-for-embedded-content-and-images/object_border_perc.xhtml"
+      },
+      {
+        "path": "html/rendering/replaced-elements/attributes-for-embedded-content-and-images/object_border_pixel.xhtml",
+        "ref_type": "==",
+        "ref_url": "/html/rendering/replaced-elements/attributes-for-embedded-content-and-images/object_border-ref.xhtml",
+        "url": "/html/rendering/replaced-elements/attributes-for-embedded-content-and-images/object_border_pixel.xhtml"
+      },
+      {
+        "path": "html/rendering/replaced-elements/images/space.html",
+        "ref_type": "==",
+        "ref_url": "/html/rendering/replaced-elements/images/space-ref.html",
+        "url": "/html/rendering/replaced-elements/images/space.html"
+      },
+      {
+        "path": "html/semantics/embedded-content/the-audio-element/audio_001.htm",
+        "ref_type": "==",
+        "ref_url": "/html/semantics/embedded-content/the-audio-element/audio_content-ref.htm",
+        "url": "/html/semantics/embedded-content/the-audio-element/audio_001.htm"
+      },
+      {
+        "path": "html/semantics/embedded-content/the-audio-element/audio_002.htm",
+        "ref_type": "==",
+        "ref_url": "/html/semantics/embedded-content/the-audio-element/audio_content-ref.htm",
+        "url": "/html/semantics/embedded-content/the-audio-element/audio_002.htm"
+      },
+      {
+        "path": "html/semantics/embedded-content/the-embed-element/embed-represent-nothing-01.html",
+        "ref_type": "==",
+        "ref_url": "/html/semantics/embedded-content/the-embed-element/embed-represent-nothing-ref.html",
+        "url": "/html/semantics/embedded-content/the-embed-element/embed-represent-nothing-01.html"
+      },
+      {
+        "path": "html/semantics/embedded-content/the-embed-element/embed-represent-nothing-02.html",
+        "ref_type": "==",
+        "ref_url": "/html/semantics/embedded-content/the-embed-element/embed-represent-nothing-ref.html",
+        "url": "/html/semantics/embedded-content/the-embed-element/embed-represent-nothing-02.html"
+      },
+      {
+        "path": "html/semantics/embedded-content/the-embed-element/embed-represent-nothing-03.html",
+        "ref_type": "==",
+        "ref_url": "/html/semantics/embedded-content/the-embed-element/embed-represent-nothing-ref.html",
+        "url": "/html/semantics/embedded-content/the-embed-element/embed-represent-nothing-03.html"
+      },
+      {
+        "path": "html/semantics/embedded-content/the-embed-element/embed-represent-nothing-04.html",
+        "ref_type": "==",
+        "ref_url": "/html/semantics/embedded-content/the-embed-element/embed-represent-nothing-ref.html",
+        "url": "/html/semantics/embedded-content/the-embed-element/embed-represent-nothing-04.html"
+      },
+      {
+        "path": "html/semantics/embedded-content/the-video-element/video_content_image.htm",
+        "ref_type": "==",
+        "ref_url": "/html/semantics/embedded-content/the-video-element/video_content-ref.htm",
+        "url": "/html/semantics/embedded-content/the-video-element/video_content_image.htm"
+      },
+      {
+        "path": "html/semantics/embedded-content/the-video-element/video_content_text.htm",
+        "ref_type": "==",
+        "ref_url": "/html/semantics/embedded-content/the-video-element/video_content-ref.htm",
+        "url": "/html/semantics/embedded-content/the-video-element/video_content_text.htm"
+      },
+      {
+        "path": "html/semantics/embedded-content/the-video-element/video_dynamic_poster_absolute.htm",
+        "ref_type": "==",
+        "ref_url": "/html/semantics/embedded-content/the-video-element/video_dynamic_poster-ref.htm",
+        "url": "/html/semantics/embedded-content/the-video-element/video_dynamic_poster_absolute.htm"
+      },
+      {
+        "path": "html/semantics/embedded-content/the-video-element/video_dynamic_poster_relative.htm",
+        "ref_type": "==",
+        "ref_url": "/html/semantics/embedded-content/the-video-element/video_dynamic_poster-ref.htm",
+        "url": "/html/semantics/embedded-content/the-video-element/video_dynamic_poster_relative.htm"
+      },
+      {
         "path": "html/semantics/embedded-content/the-video-element/video_initially_paused.html",
         "ref_type": "==",
         "ref_url": "/html/semantics/embedded-content/the-video-element/video_initially_paused-ref.html",
@@ -6528,6 +7132,18 @@
         "ref_type": "==",
         "ref_url": "/html/semantics/scripting-1/the-template-element/additions-to-the-css-user-agent-style-sheet/css-user-agent-style-sheet-test-001-ref.html",
         "url": "/html/semantics/scripting-1/the-template-element/additions-to-the-css-user-agent-style-sheet/css-user-agent-style-sheet-test-001.html"
+      },
+      {
+        "path": "html/semantics/scripting-1/the-template-element/additions-to-the-css-user-agent-style-sheet/css-user-agent-style-sheet-test-002.html",
+        "ref_type": "==",
+        "ref_url": "/html/semantics/scripting-1/the-template-element/additions-to-the-css-user-agent-style-sheet/css-user-agent-style-sheet-test-001-ref.html",
+        "url": "/html/semantics/scripting-1/the-template-element/additions-to-the-css-user-agent-style-sheet/css-user-agent-style-sheet-test-002.html"
+      },
+      {
+        "path": "html/semantics/scripting-1/the-template-element/additions-to-the-css-user-agent-style-sheet/css-user-agent-style-sheet-test-003.html",
+        "ref_type": "==",
+        "ref_url": "/html/semantics/scripting-1/the-template-element/additions-to-the-css-user-agent-style-sheet/css-user-agent-style-sheet-test-001-ref.html",
+        "url": "/html/semantics/scripting-1/the-template-element/additions-to-the-css-user-agent-style-sheet/css-user-agent-style-sheet-test-003.html"
       },
       {
         "path": "html/semantics/text-level-semantics/the-bdi-element/bdi-auto-dir-default.html",
@@ -6626,6 +7242,24 @@
         "url": "/html/semantics/text-level-semantics/the-bdi-element/bdi-paragraph-level-container.html"
       },
       {
+        "path": "html/semantics/text-level-semantics/the-bdo-element/bdo-child.html",
+        "ref_type": "==",
+        "ref_url": "/html/semantics/text-level-semantics/the-bdo-element/bidi-001-ref.html",
+        "url": "/html/semantics/text-level-semantics/the-bdo-element/bdo-child.html"
+      },
+      {
+        "path": "html/semantics/text-level-semantics/the-bdo-element/bdo-ltr.html",
+        "ref_type": "==",
+        "ref_url": "/html/semantics/text-level-semantics/the-bdo-element/bidi-001-ref.html",
+        "url": "/html/semantics/text-level-semantics/the-bdo-element/bdo-ltr.html"
+      },
+      {
+        "path": "html/semantics/text-level-semantics/the-bdo-element/bdo-override.html",
+        "ref_type": "==",
+        "ref_url": "/html/semantics/text-level-semantics/the-bdo-element/bidi-001-ref.html",
+        "url": "/html/semantics/text-level-semantics/the-bdo-element/bdo-override.html"
+      },
+      {
         "path": "html/semantics/text-level-semantics/the-bdo-element/bidi-001.html",
         "ref_type": "==",
         "ref_url": "/html/semantics/text-level-semantics/the-bdo-element/bidi-001-ref.html",
@@ -6642,6 +7276,12 @@
         "ref_type": "==",
         "ref_url": "/html/semantics/text-level-semantics/the-br-element/br-bidi-ref.html",
         "url": "/html/semantics/text-level-semantics/the-br-element/br-bidi.html"
+      },
+      {
+        "path": "html/semantics/text-level-semantics/the-wbr-element/wbr-element.html",
+        "ref_type": "!=",
+        "ref_url": "/html/semantics/text-level-semantics/the-wbr-element/wbr-element-notref.html",
+        "url": "/html/semantics/text-level-semantics/the-wbr-element/wbr-element.html"
       },
       {
         "path": "html/semantics/text-level-semantics/the-wbr-element/wbr-element.html",
@@ -12731,6 +13371,10 @@
         "url": "/XMLHttpRequest/send-send.htm"
       },
       {
+        "path": "XMLHttpRequest/send-sync-blocks-async.htm",
+        "url": "/XMLHttpRequest/send-sync-blocks-async.htm"
+      },
+      {
         "path": "XMLHttpRequest/send-sync-no-response-event-load.htm",
         "url": "/XMLHttpRequest/send-sync-no-response-event-load.htm"
       },
@@ -12922,6 +13566,74 @@
       {
         "path": "battery-status/battery-interface.html",
         "url": "/battery-status/battery-interface.html"
+      },
+      {
+        "path": "content-security-policy/generic/generic-0_10.html",
+        "url": "/content-security-policy/generic/generic-0_10.html"
+      },
+      {
+        "path": "content-security-policy/generic/generic-0_10_1.sub.html",
+        "url": "/content-security-policy/generic/generic-0_10_1.sub.html"
+      },
+      {
+        "path": "content-security-policy/generic/generic-0_2.html",
+        "url": "/content-security-policy/generic/generic-0_2.html"
+      },
+      {
+        "path": "content-security-policy/generic/generic-0_2_2.sub.html",
+        "url": "/content-security-policy/generic/generic-0_2_2.sub.html"
+      },
+      {
+        "path": "content-security-policy/generic/generic-0_2_3.html",
+        "url": "/content-security-policy/generic/generic-0_2_3.html"
+      },
+      {
+        "path": "content-security-policy/generic/generic-0_8.html",
+        "url": "/content-security-policy/generic/generic-0_8.html"
+      },
+      {
+        "path": "content-security-policy/generic/generic-0_8_1.sub.html",
+        "url": "/content-security-policy/generic/generic-0_8_1.sub.html"
+      },
+      {
+        "path": "content-security-policy/generic/generic-0_9.sub.html",
+        "url": "/content-security-policy/generic/generic-0_9.sub.html"
+      },
+      {
+        "path": "content-security-policy/object-src/object-src-2_1.html",
+        "url": "/content-security-policy/object-src/object-src-2_1.html"
+      },
+      {
+        "path": "content-security-policy/object-src/object-src-2_2.html",
+        "url": "/content-security-policy/object-src/object-src-2_2.html"
+      },
+      {
+        "path": "content-security-policy/script-src/script-src-1_1.html",
+        "url": "/content-security-policy/script-src/script-src-1_1.html"
+      },
+      {
+        "path": "content-security-policy/script-src/script-src-1_2_1.html",
+        "url": "/content-security-policy/script-src/script-src-1_2_1.html"
+      },
+      {
+        "path": "content-security-policy/script-src/script-src-1_3.html",
+        "url": "/content-security-policy/script-src/script-src-1_3.html"
+      },
+      {
+        "path": "content-security-policy/script-src/script-src-1_4.html",
+        "url": "/content-security-policy/script-src/script-src-1_4.html"
+      },
+      {
+        "path": "content-security-policy/style-src/style-src-3_1.html",
+        "url": "/content-security-policy/style-src/style-src-3_1.html"
+      },
+      {
+        "path": "content-security-policy/style-src/style-src-3_2.html",
+        "url": "/content-security-policy/style-src/style-src-3_2.html"
+      },
+      {
+        "path": "content-security-policy/style-src/style-src-3_4.html",
+        "url": "/content-security-policy/style-src/style-src-3_4.html"
       },
       {
         "path": "cors/allow-headers.htm",
@@ -13338,6 +14050,10 @@
         "url": "/dom/nodes/Document-characterSet-normalization.html"
       },
       {
+        "path": "dom/nodes/Document-constructor.html",
+        "url": "/dom/nodes/Document-constructor.html"
+      },
+      {
         "path": "dom/nodes/Document-contentType/contentType/contenttype_bmp.html",
         "url": "/dom/nodes/Document-contentType/contentType/contenttype_bmp.html"
       },
@@ -13446,12 +14162,20 @@
         "url": "/dom/nodes/Document-createTreeWalker.html"
       },
       {
+        "path": "dom/nodes/Document-doctype.html",
+        "url": "/dom/nodes/Document-doctype.html"
+      },
+      {
         "path": "dom/nodes/Document-getElementById.html",
         "url": "/dom/nodes/Document-getElementById.html"
       },
       {
         "path": "dom/nodes/Document-getElementsByTagName.html",
         "url": "/dom/nodes/Document-getElementsByTagName.html"
+      },
+      {
+        "path": "dom/nodes/Document-getElementsByTagName.xhtml",
+        "url": "/dom/nodes/Document-getElementsByTagName.xhtml"
       },
       {
         "path": "dom/nodes/Document-getElementsByTagNameNS.html",
@@ -13634,6 +14358,10 @@
         "url": "/dom/nodes/Node-appendChild.html"
       },
       {
+        "path": "dom/nodes/Node-childNodes.html",
+        "url": "/dom/nodes/Node-childNodes.html"
+      },
+      {
         "path": "dom/nodes/Node-cloneNode.html",
         "url": "/dom/nodes/Node-cloneNode.html"
       },
@@ -13696,6 +14424,14 @@
       {
         "path": "dom/nodes/Node-textContent.html",
         "url": "/dom/nodes/Node-textContent.html"
+      },
+      {
+        "path": "dom/nodes/ParentNode-querySelector-All.html",
+        "url": "/dom/nodes/ParentNode-querySelector-All.html"
+      },
+      {
+        "path": "dom/nodes/ParentNode-querySelector-All.xht",
+        "url": "/dom/nodes/ParentNode-querySelector-All.xht"
       },
       {
         "path": "dom/nodes/attributes.html",
@@ -14232,6 +14968,14 @@
         "url": "/html-imports/document/document-method-changes.html"
       },
       {
+        "path": "html-imports/fetching/already-in-import-map.html",
+        "url": "/html-imports/fetching/already-in-import-map.html"
+      },
+      {
+        "path": "html-imports/fetching/loading-attempt.html",
+        "url": "/html-imports/fetching/loading-attempt.html"
+      },
+      {
         "path": "html-imports/html-link-element/import-attribute.html",
         "url": "/html-imports/html-link-element/import-attribute.html"
       },
@@ -14405,6 +15149,10 @@
         "url": "/html/browsers/the-window-object/security-window/window-security.sub.html"
       },
       {
+        "path": "html/browsers/the-window-object/window-aliases.html",
+        "url": "/html/browsers/the-window-object/window-aliases.html"
+      },
+      {
         "path": "html/browsers/the-window-object/window-indexed-properties-strict.html",
         "url": "/html/browsers/the-window-object/window-indexed-properties-strict.html"
       },
@@ -14471,6 +15219,10 @@
       {
         "path": "html/dom/documents/dom-tree-accessors/document.embeds-document.plugins-01.html",
         "url": "/html/dom/documents/dom-tree-accessors/document.embeds-document.plugins-01.html"
+      },
+      {
+        "path": "html/dom/documents/dom-tree-accessors/document.forms.html",
+        "url": "/html/dom/documents/dom-tree-accessors/document.forms.html"
       },
       {
         "path": "html/dom/documents/dom-tree-accessors/document.getElementsByClassName-same.html",
@@ -15206,6 +15958,10 @@
         "url": "/html/editing/dnd/synthetic/001.html"
       },
       {
+        "path": "html/editing/dnd/target-origin/202.html",
+        "url": "/html/editing/dnd/target-origin/202.html"
+      },
+      {
         "path": "html/editing/dnd/the-draggable-attribute/draggable_attribute.html",
         "url": "/html/editing/dnd/the-draggable-attribute/draggable_attribute.html"
       },
@@ -15345,10 +16101,6 @@
       {
         "path": "html/obsolete/requirements-for-implementations/the-marquee-element-0/marquee-scrolldelay.html",
         "url": "/html/obsolete/requirements-for-implementations/the-marquee-element-0/marquee-scrolldelay.html"
-      },
-      {
-        "path": "html/rendering/bindings/the-progress-element-0/progress.html",
-        "url": "/html/rendering/bindings/the-progress-element-0/progress.html"
       },
       {
         "path": "html/rendering/replaced-elements/svg-embedded-sizing/svg-in-iframe-auto.html",
@@ -16658,6 +17410,22 @@
         "url": "/html/semantics/embedded-content/the-img-element/img.complete.html"
       },
       {
+        "path": "html/semantics/embedded-content/the-object-element/object-attributes.html",
+        "url": "/html/semantics/embedded-content/the-object-element/object-attributes.html"
+      },
+      {
+        "path": "html/semantics/embedded-content/the-object-element/object-events.html",
+        "url": "/html/semantics/embedded-content/the-object-element/object-events.html"
+      },
+      {
+        "path": "html/semantics/embedded-content/the-object-element/object-fallback.html",
+        "url": "/html/semantics/embedded-content/the-object-element/object-fallback.html"
+      },
+      {
+        "path": "html/semantics/embedded-content/the-object-element/object-handler.html",
+        "url": "/html/semantics/embedded-content/the-object-element/object-handler.html"
+      },
+      {
         "path": "html/semantics/embedded-content/the-video-element/video-tabindex.html",
         "url": "/html/semantics/embedded-content/the-video-element/video-tabindex.html"
       },
@@ -16968,6 +17736,10 @@
       {
         "path": "html/semantics/forms/the-output-element/output.html",
         "url": "/html/semantics/forms/the-output-element/output.html"
+      },
+      {
+        "path": "html/semantics/forms/the-progress-element/progress-2.html",
+        "url": "/html/semantics/forms/the-progress-element/progress-2.html"
       },
       {
         "path": "html/semantics/forms/the-progress-element/progress.html",
@@ -17286,10 +18058,6 @@
         "url": "/html/semantics/tabular-data/the-caption-element/caption_001.html"
       },
       {
-        "path": "html/semantics/tabular-data/the-table-element/border.html",
-        "url": "/html/semantics/tabular-data/the-table-element/border.html"
-      },
-      {
         "path": "html/semantics/tabular-data/the-table-element/caption-methods.html",
         "url": "/html/semantics/tabular-data/the-table-element/caption-methods.html"
       },
@@ -17403,206 +18171,257 @@
       },
       {
         "path": "html/syntax/parsing/html5lib_adoption01.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_adoption01.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_adoption02.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_adoption02.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_comments01.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_comments01.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_doctype01.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_doctype01.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_domjs-unsafe.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_domjs-unsafe.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_entities01.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_entities01.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_entities02.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_entities02.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_html5test-com.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_html5test-com.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_inbody01.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_inbody01.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_innerHTML_tests4.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_innerHTML_tests4.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_innerHTML_tests6.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_innerHTML_tests6.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_innerHTML_tests7.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_innerHTML_tests7.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_innerHTML_tests_innerHTML_1.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_innerHTML_tests_innerHTML_1.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_isindex.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_isindex.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_main-element.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_main-element.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_pending-spec-changes-plain-text-unsafe.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_pending-spec-changes-plain-text-unsafe.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_pending-spec-changes.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_pending-spec-changes.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_plain-text-unsafe.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_plain-text-unsafe.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_scriptdata01.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_scriptdata01.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_scripted_adoption01.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_scripted_adoption01.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_scripted_ark.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_scripted_ark.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_scripted_webkit01.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_scripted_webkit01.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_tables01.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_tables01.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_template.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_template.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests1.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_tests1.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests10.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_tests10.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests11.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_tests11.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests12.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_tests12.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests14.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_tests14.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests15.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_tests15.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests16.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_tests16.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests17.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_tests17.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests18.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_tests18.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests19.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_tests19.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests2.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_tests2.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests20.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_tests20.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests21.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_tests21.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests22.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_tests22.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests23.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_tests23.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests24.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_tests24.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests25.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_tests25.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests26.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_tests26.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests3.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_tests3.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests5.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_tests5.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests6.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_tests6.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests7.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_tests7.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests8.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_tests8.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests9.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_tests9.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_tricky01.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_tricky01.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_webkit01.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_webkit01.html"
       },
       {
         "path": "html/syntax/parsing/html5lib_webkit02.html",
+        "timeout": "long",
         "url": "/html/syntax/parsing/html5lib_webkit02.html"
       },
       {
@@ -17948,6 +18767,134 @@
       {
         "path": "media-source/interfaces.html",
         "url": "/media-source/interfaces.html"
+      },
+      {
+        "path": "media-source/mediasource-addsourcebuffer.html",
+        "url": "/media-source/mediasource-addsourcebuffer.html"
+      },
+      {
+        "path": "media-source/mediasource-append-buffer.html",
+        "url": "/media-source/mediasource-append-buffer.html"
+      },
+      {
+        "path": "media-source/mediasource-appendwindow.html",
+        "url": "/media-source/mediasource-appendwindow.html"
+      },
+      {
+        "path": "media-source/mediasource-buffered.html",
+        "url": "/media-source/mediasource-buffered.html"
+      },
+      {
+        "path": "media-source/mediasource-closed.html",
+        "url": "/media-source/mediasource-closed.html"
+      },
+      {
+        "path": "media-source/mediasource-config-change-mp4-a-bitrate.html",
+        "url": "/media-source/mediasource-config-change-mp4-a-bitrate.html"
+      },
+      {
+        "path": "media-source/mediasource-config-change-mp4-av-audio-bitrate.html",
+        "url": "/media-source/mediasource-config-change-mp4-av-audio-bitrate.html"
+      },
+      {
+        "path": "media-source/mediasource-config-change-mp4-av-framesize.html",
+        "url": "/media-source/mediasource-config-change-mp4-av-framesize.html"
+      },
+      {
+        "path": "media-source/mediasource-config-change-mp4-av-video-bitrate.html",
+        "url": "/media-source/mediasource-config-change-mp4-av-video-bitrate.html"
+      },
+      {
+        "path": "media-source/mediasource-config-change-mp4-v-bitrate.html",
+        "url": "/media-source/mediasource-config-change-mp4-v-bitrate.html"
+      },
+      {
+        "path": "media-source/mediasource-config-change-mp4-v-framerate.html",
+        "url": "/media-source/mediasource-config-change-mp4-v-framerate.html"
+      },
+      {
+        "path": "media-source/mediasource-config-change-mp4-v-framesize.html",
+        "url": "/media-source/mediasource-config-change-mp4-v-framesize.html"
+      },
+      {
+        "path": "media-source/mediasource-config-change-webm-a-bitrate.html",
+        "url": "/media-source/mediasource-config-change-webm-a-bitrate.html"
+      },
+      {
+        "path": "media-source/mediasource-config-change-webm-av-audio-bitrate.html",
+        "url": "/media-source/mediasource-config-change-webm-av-audio-bitrate.html"
+      },
+      {
+        "path": "media-source/mediasource-config-change-webm-av-framesize.html",
+        "url": "/media-source/mediasource-config-change-webm-av-framesize.html"
+      },
+      {
+        "path": "media-source/mediasource-config-change-webm-av-video-bitrate.html",
+        "url": "/media-source/mediasource-config-change-webm-av-video-bitrate.html"
+      },
+      {
+        "path": "media-source/mediasource-config-change-webm-v-bitrate.html",
+        "url": "/media-source/mediasource-config-change-webm-v-bitrate.html"
+      },
+      {
+        "path": "media-source/mediasource-config-change-webm-v-framerate.html",
+        "url": "/media-source/mediasource-config-change-webm-v-framerate.html"
+      },
+      {
+        "path": "media-source/mediasource-config-change-webm-v-framesize.html",
+        "url": "/media-source/mediasource-config-change-webm-v-framesize.html"
+      },
+      {
+        "path": "media-source/mediasource-duration.html",
+        "url": "/media-source/mediasource-duration.html"
+      },
+      {
+        "path": "media-source/mediasource-endofstream-invaliderror.html",
+        "url": "/media-source/mediasource-endofstream-invaliderror.html"
+      },
+      {
+        "path": "media-source/mediasource-getvideoplaybackquality.html",
+        "url": "/media-source/mediasource-getvideoplaybackquality.html"
+      },
+      {
+        "path": "media-source/mediasource-is-type-supported.html",
+        "url": "/media-source/mediasource-is-type-supported.html"
+      },
+      {
+        "path": "media-source/mediasource-multiple-attach.html",
+        "url": "/media-source/mediasource-multiple-attach.html"
+      },
+      {
+        "path": "media-source/mediasource-play-then-seek-back.html",
+        "url": "/media-source/mediasource-play-then-seek-back.html"
+      },
+      {
+        "path": "media-source/mediasource-play.html",
+        "url": "/media-source/mediasource-play.html"
+      },
+      {
+        "path": "media-source/mediasource-redundant-seek.html",
+        "url": "/media-source/mediasource-redundant-seek.html"
+      },
+      {
+        "path": "media-source/mediasource-remove.html",
+        "url": "/media-source/mediasource-remove.html"
+      },
+      {
+        "path": "media-source/mediasource-seek-beyond-duration.html",
+        "url": "/media-source/mediasource-seek-beyond-duration.html"
+      },
+      {
+        "path": "media-source/mediasource-seek-during-pending-seek.html",
+        "url": "/media-source/mediasource-seek-during-pending-seek.html"
+      },
+      {
+        "path": "media-source/mediasource-sourcebuffer-mode.html",
+        "url": "/media-source/mediasource-sourcebuffer-mode.html"
+      },
+      {
+        "path": "media-source/mediasource-sourcebufferlist.html",
+        "url": "/media-source/mediasource-sourcebufferlist.html"
       },
       {
         "path": "mediacapture-streams/obtaining-local-multimedia-content/navigatorusermedia/api-present.html",
@@ -18922,8 +19869,12 @@
         "url": "/progress-events/tests/submissions/Samsung/security-consideration.sub.html"
       },
       {
-        "path": "proximity/ProximityEvent_tests.html",
-        "url": "/proximity/ProximityEvent_tests.html"
+        "path": "proximity/DeviceProximityEvent_tests.html",
+        "url": "/proximity/DeviceProximityEvent_tests.html"
+      },
+      {
+        "path": "proximity/UserProximityEvent_tests.html",
+        "url": "/proximity/UserProximityEvent_tests.html"
       },
       {
         "path": "proximity/idlharness.html",
@@ -18960,18 +19911,6 @@
       {
         "path": "resource-timing/test_resource_timing.html",
         "url": "/resource-timing/test_resource_timing.html"
-      },
-      {
-        "path": "selectors-api/level1-additional.html",
-        "url": "/selectors-api/level1-additional.html"
-      },
-      {
-        "path": "selectors-api/level1-all.xht",
-        "url": "/selectors-api/level1-all.xht"
-      },
-      {
-        "path": "selectors-api/level1-baseline.html",
-        "url": "/selectors-api/level1-baseline.html"
       },
       {
         "path": "selectors-api/tests/submissions/Opera/level2-baseline.html",
@@ -21793,5 +22732,5 @@
     ]
   },
   "local_changes": [],
-  "rev": "82571908034650dd67bfb36d2d405864d37fc139"
+  "rev": "2c4d2713ef1eca473ab6df02cc5b0f9fdbcffd29"
 }
