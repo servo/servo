@@ -469,17 +469,6 @@ pub struct SolidColorDisplayItem {
     pub color: Color,
 }
 
-/// Text decoration information.
-#[deriving(Clone)]
-pub struct TextDecorations {
-    /// The color to use for underlining, if any.
-    pub underline: Option<Color>,
-    /// The color to use for overlining, if any.
-    pub overline: Option<Color>,
-    /// The color to use for line-through, if any.
-    pub line_through: Option<Color>,
-}
-
 /// Renders text.
 #[deriving(Clone)]
 pub struct TextDisplayItem {
@@ -494,9 +483,6 @@ pub struct TextDisplayItem {
 
     /// The color of the text.
     pub text_color: Color,
-
-    /// Text decorations in effect.
-    pub text_decorations: TextDecorations,
 }
 
 /// Renders an image.
@@ -611,31 +597,6 @@ impl DisplayItem {
                                                 &text.range,
                                                 baseline_origin,
                                                 text.text_color);
-                }
-                let width = text.base.bounds.size.width;
-                let underline_size = text_run.font_metrics.underline_size;
-                let underline_offset = text_run.font_metrics.underline_offset;
-                let strikeout_size = text_run.font_metrics.strikeout_size;
-                let strikeout_offset = text_run.font_metrics.strikeout_offset;
-
-                for underline_color in text.text_decorations.underline.iter() {
-                    let underline_y = baseline_origin.y - underline_offset;
-                    let underline_bounds = Rect(Point2D(baseline_origin.x, underline_y),
-                                                Size2D(width, underline_size));
-                    render_context.draw_solid_color(&underline_bounds, *underline_color);
-                }
-
-                for overline_color in text.text_decorations.overline.iter() {
-                    let overline_bounds = Rect(Point2D(baseline_origin.x, origin.y),
-                                               Size2D(width, underline_size));
-                    render_context.draw_solid_color(&overline_bounds, *overline_color);
-                }
-
-                for line_through_color in text.text_decorations.line_through.iter() {
-                    let strikeout_y = baseline_origin.y - strikeout_offset;
-                    let strikeout_bounds = Rect(Point2D(baseline_origin.x, strikeout_y),
-                                                Size2D(width, strikeout_size));
-                    render_context.draw_solid_color(&strikeout_bounds, *line_through_color);
                 }
             }
 
