@@ -6,6 +6,7 @@
 //! and layout tasks.
 
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, EventCast};
+use dom::bindings::conversions;
 use dom::bindings::conversions::{FromJSValConvertible, Empty};
 use dom::bindings::global::Window;
 use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, OptionalSettable};
@@ -31,8 +32,9 @@ use layout_interface::ContentChangedDocumentDamage;
 use layout_interface;
 use page::{Page, IterablePage, Frame};
 
+use devtools_traits;
 use devtools_traits::{DevtoolsControlChan, DevtoolsControlPort, NewGlobal};
-use devtools_traits::{DevtoolScriptControlMsg, EvaluateJS};
+use devtools_traits::{DevtoolScriptControlMsg, EvaluateJS, EvaluateJSReply};
 use script_traits::{CompositorEvent, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent};
 use script_traits::{MouseMoveEvent, MouseUpEvent, ConstellationControlMsg, ScriptTaskFactory};
 use script_traits::{ResizeMsg, AttachLayoutMsg, LoadMsg, SendEventMsg, ResizeInactiveMsg};
@@ -315,7 +317,7 @@ impl ScriptTask {
         //FIXME: Move this into handle_load after we create a window instead.
         let (devtools_sender, devtools_receiver) = channel();
         devtools_chan.as_ref().map(|chan| {
-            chan.send(NewGlobal(devtools_sender.clone()));
+            chan.send(NewGlobal(id, devtools_sender.clone()));
         });
 
         Rc::new(ScriptTask {
@@ -496,11 +498,34 @@ impl ScriptTask {
                 FromScript(DOMMessage(..)) => fail!("unexpected message"),
                 FromScript(WorkerPostMessage(addr, data, nbytes)) => Worker::handle_message(addr, data, nbytes),
                 FromScript(WorkerRelease(addr)) => Worker::handle_release(addr),
-                FromDevtools(EvaluateJS(_s, _reply)) => {/*TODO*/}
+                FromDevtools(EvaluateJS(id, s, reply)) => self.handle_evaluate_js(id, s, reply),
             }
         }
 
         true
+    }
+
+    fn handle_evaluate_js(&self, pipeline: PipelineId, eval: String, reply: Sender<EvaluateJSReply>) {
+        let page = get_page(&*self.page.borrow(), pipeline);
+        let frame = page.frame();
+        let window = frame.get_ref().window.root();
+        let cx = window.get_cx();
+        let rval = window.evaluate_js_with_result(eval.as_slice());
+
+        reply.send(if rval.is_undefined() {
+            devtools_traits::VoidValue
+        } else if rval.is_boolean() {
+            devtools_traits::BooleanValue(rval.to_boolean())
+        } else if rval.is_double() {
+            devtools_traits::NumberValue(FromJSValConvertible::from_jsval(cx, rval, ()).unwrap())
+        } else if rval.is_string() {
+            //FIXME: use jsstring_to_str when jsval grows to_jsstring
+            devtools_traits::StringValue(FromJSValConvertible::from_jsval(cx, rval, conversions::Default).unwrap())
+        } else {
+            //FIXME: jsvals don't have an is_int32/is_number yet
+            assert!(rval.is_object_or_null());
+            fail!("object values unimplemented")
+        });
     }
 
     fn handle_new_layout(&self, new_layout_info: NewLayoutInfo) {

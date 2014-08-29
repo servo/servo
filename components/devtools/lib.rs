@@ -21,19 +21,26 @@ extern crate debug;
 extern crate std;
 extern crate serialize;
 extern crate sync;
+extern crate servo_msg = "msg";
 
-use devtools_traits::{ServerExitMsg, DevtoolsControlMsg, NewGlobal};
+use devtools_traits::{ServerExitMsg, DevtoolsControlMsg, NewGlobal, DevtoolScriptControlMsg};
+use devtools_traits::{EvaluateJS, NullValue, VoidValue, NumberValue, StringValue, BooleanValue};
+use devtools_traits::ActorValue;
+use servo_msg::constellation_msg::PipelineId;
 
 use collections::TreeMap;
-use std::any::{Any, AnyRefExt};
+use std::any::{Any, AnyRefExt, AnyMutRefExt};
 use std::collections::hashmap::HashMap;
 use std::comm;
 use std::comm::{Disconnected, Empty};
 use std::io::{TcpListener, TcpStream};
 use std::io::{Acceptor, Listener, EndOfFile, IoError, TimedOut};
+use std::mem::{transmute, transmute_copy};
 use std::num;
+use std::raw::TraitObject;
 use std::task::TaskBuilder;
 use serialize::{json, Encodable};
+use serialize::json::ToJson;
 use sync::{Arc, Mutex};
 
 #[deriving(Encodable)]
@@ -49,6 +56,7 @@ struct RootActorMsg {
 }
 
 struct RootActor {
+    next: u32,
     tabs: Vec<String>,
 }
 
@@ -74,6 +82,12 @@ struct TabActor {
     url: String,
 }
 
+struct ConsoleActor {
+    name: String,
+    pipeline: PipelineId,
+    script_chan: Sender<DevtoolScriptControlMsg>,
+}
+
 #[deriving(Encodable)]
 struct ListTabsReply {
     from: String,
@@ -82,16 +96,14 @@ struct ListTabsReply {
 }
 
 #[deriving(Encodable)]
-struct TabTraits {
-    reconfigure: bool,
-}
+struct TabTraits;
 
 #[deriving(Encodable)]
 struct TabAttachedReply {
     from: String,
     __type__: String,
     threadActor: String,
-    cacheEnabled: bool,
+    cacheDisabled: bool,
     javascriptEnabled: bool,
     traits: TabTraits,
 }
@@ -102,11 +114,18 @@ struct TabDetachedReply {
     __type__: String,
 }
 
+
+#[deriving(Encodable)]
+struct StartedListenersTraits {
+    customNetworkRequest: bool,
+}
+
 #[deriving(Encodable)]
 struct StartedListenersReply {
     from: String,
     nativeConsoleAPI: bool,
     startedListeners: Vec<String>,
+    traits: StartedListenersTraits,
 }
 
 #[deriving(Encodable)]
@@ -186,13 +205,24 @@ impl ActorRegistry {
         }
     }
 
-    fn register(&mut self, actor: Box<Actor+Send+Sized>) {
+    fn register<T: 'static>(&mut self, actor: Box<Actor+Send+Sized>) {
+        /*{
+            let actor2: &Actor+Send+Sized = actor;
+            assert!((actor2 as &Any).is::<T>());
+        };*/
         self.actors.insert(actor.name().to_string(), actor);
     }
 
     fn find<'a, T: 'static>(&'a self, name: &str) -> &'a T {
-        let actor: &Actor+Send+Sized = *self.actors.find(&name.to_string()).unwrap();
-        (actor as &Any).downcast_ref::<T>().unwrap()
+        /*let actor: &Actor+Send+Sized = *self.actors.find(&name.to_string()).unwrap();
+        (actor as &Any).downcast_ref::<T>().unwrap()*/
+        self.actors.find(&name.to_string()).unwrap().as_ref::<T>().unwrap()
+    }
+
+    fn find_mut<'a, T: 'static>(&'a mut self, name: &str) -> &'a mut T {
+        /*let actor: &mut Actor+Send+Sized = *self.actors.find_mut(&name.to_string()).unwrap();
+        (actor as &mut Any).downcast_mut::<T>().unwrap()*/
+        self.actors.find_mut(&name.to_string()).unwrap().downcast_mut::<T>().unwrap()
     }
 
     fn handle_message(&self, msg: &json::Object, stream: &mut TcpStream) {
@@ -218,6 +248,45 @@ trait Actor: Any {
                       msg: &json::Object,
                       stream: &mut TcpStream) -> bool;
     fn name(&self) -> String;
+}
+
+impl<'a> AnyMutRefExt<'a> for &'a mut Actor {
+    fn downcast_mut<T: 'static>(self) -> Option<&'a mut T> {
+        if self.is::<T>() {
+            unsafe {
+                // Get the raw representation of the trait object
+                let to: TraitObject = transmute_copy(&self);
+
+                // Extract the data pointer
+                Some(transmute(to.data))
+            }
+        } else {
+            None
+        }
+    }
+}
+
+impl<'a> AnyRefExt<'a> for &'a Actor {
+    fn is<T: 'static>(self) -> bool {
+        /*let t = TypeId::of::<T>();
+        let boxed = self.get_type_id();
+        t == boxed*/
+        true
+    }
+
+    fn downcast_ref<T: 'static>(self) -> Option<&'a T> {
+        if self.is::<T>() {
+            unsafe {
+                // Get the raw representation of the trait object
+                let to: TraitObject = transmute_copy(&self);
+
+                // Extract the data pointer
+                Some(transmute(to.data))
+            }
+        } else {
+            None
+        }
+    }
 }
 
 impl Actor for RootActor {
@@ -268,6 +337,11 @@ impl RootActor {
     }
 }
 
+#[deriving(Encodable)]
+struct ReconfigureReply {
+    from: String
+}
+
 impl Actor for TabActor {
     fn name(&self) -> String {
         self.name.clone()
@@ -276,19 +350,21 @@ impl Actor for TabActor {
     fn handle_message(&self,
                       _registry: &ActorRegistry,
                       msg_type: &String,
-                      msg: &json::Object,
+                      _msg: &json::Object,
                       stream: &mut TcpStream) -> bool {
         match msg_type.as_slice() {
+            "reconfigure" => {
+                stream.write_json_packet(&ReconfigureReply { from: self.name() });
+                true
+            }
             "attach" => {
                 let msg = TabAttachedReply {
                     from: self.name(),
                     __type__: "tabAttached".to_string(),
                     threadActor: self.name(),
-                    cacheEnabled: false,
+                    cacheDisabled: false,
                     javascriptEnabled: true,
-                    traits: TabTraits {
-                        reconfigure: true,
-                    },
+                    traits: TabTraits,
                 };
                 stream.write_json_packet(&msg);
                 true
@@ -301,16 +377,34 @@ impl Actor for TabActor {
                 stream.write_json_packet(&msg);
                 true
             }
-            "startListeners" => {
-                let msg = StartedListenersReply {
-                    from: self.name(),
-                    nativeConsoleAPI: true,
-                    startedListeners:
-                        vec!("PageError".to_string(), "ConsoleAPI".to_string()),
-                };
-                stream.write_json_packet(&msg);
-                true
-            }
+            _ => false
+        }
+    }
+}
+
+impl TabActor {
+    fn encodable(&self) -> TabActorMsg {
+        TabActorMsg {
+            actor: self.name(),
+            title: self.title.clone(),
+            url: self.url.clone(),
+            outerWindowID: 0,
+            consoleActor: "console0".to_string(),
+        }
+    }
+}
+
+impl Actor for ConsoleActor {
+    fn name(&self) -> String {
+        self.name.clone()
+    }
+
+    fn handle_message(&self,
+                      _registry: &ActorRegistry,
+                      msg_type: &String,
+                      msg: &json::Object,
+                      stream: &mut TcpStream) -> bool {
+        match msg_type.as_slice() {
             "getCachedMessages" => {
                 let types = msg.find(&"messageTypes".to_string()).unwrap().as_list().unwrap();
                 let mut messages = vec!();
@@ -356,6 +450,20 @@ impl Actor for TabActor {
                 stream.write_json_packet(&msg);
                 true
             }
+            "startListeners" => {
+                let msg = StartedListenersReply {
+                    from: self.name(),
+                    nativeConsoleAPI: true,
+                    startedListeners:
+                        vec!("PageError".to_string(), "ConsoleAPI".to_string(),
+                             "NetworkActivity".to_string(), "FileActivity".to_string()),
+                    traits: StartedListenersTraits {
+                        customNetworkRequest: true,
+                    }
+                };
+                stream.write_json_packet(&msg);
+                true
+            }
             "stopListeners" => {
                 let msg = StopListenersReply {
                     from: self.name(),
@@ -380,10 +488,60 @@ impl Actor for TabActor {
                 true
             }
             "evaluateJS" => {
+                let input = msg.find(&"text".to_string()).unwrap().as_string().unwrap().to_string();
+                let (chan, port) = channel();
+                self.script_chan.send(EvaluateJS(self.pipeline, input.clone(), chan));
+
+                let result = match port.recv() {
+                    VoidValue => {
+                        let mut m = TreeMap::new();
+                        m.insert("type".to_string(), "undefined".to_string().to_json());
+                        json::Object(m)
+                    }
+                    NullValue => {
+                        let mut m = TreeMap::new();
+                        m.insert("type".to_string(), "null".to_string().to_json());
+                        json::Object(m)
+                    }
+                    BooleanValue(val) => val.to_json(),
+                    NumberValue(val) => {
+                        if val.is_nan() {
+                            let mut m = TreeMap::new();
+                            m.insert("type".to_string(), "NaN".to_string().to_json());
+                            json::Object(m)
+                        } else if val.is_infinite() {
+                            let mut m = TreeMap::new();
+                            if val < 0. {
+                                m.insert("type".to_string(), "Infinity".to_string().to_json());
+                            } else {
+                                m.insert("type".to_string(), "-Infinity".to_string().to_json());
+                            }
+                            json::Object(m)
+                        } else if val == Float::neg_zero() {
+                            let mut m = TreeMap::new();
+                            m.insert("type".to_string(), "-0".to_string().to_json());
+                            json::Object(m)
+                        } else {
+                            val.to_json()
+                        }
+                    }
+                    StringValue(s) => s.to_json(),
+                    ActorValue(s) => {
+                        let mut m = TreeMap::new();
+                        m.insert("type".to_string(), "object".to_string().to_json());
+                        m.insert("class".to_string(), "???".to_string().to_json());
+                        m.insert("actor".to_string(), s.to_json());
+                        m.insert("extensible".to_string(), true.to_json());
+                        m.insert("frozen".to_string(), false.to_json());
+                        m.insert("sealed".to_string(), false.to_json());
+                        json::Object(m)
+                    }
+                };
+
                 let msg = EvaluateJSReply {
                     from: self.name(),
-                    input: msg.find(&"text".to_string()).unwrap().as_string().unwrap().to_string(),
-                    result: json::Object(TreeMap::new()),
+                    input: input,
+                    result: result,
                     timestamp: 0,
                     exception: json::Object(TreeMap::new()),
                     exceptionMessage: "".to_string(),
@@ -393,18 +551,6 @@ impl Actor for TabActor {
                 true
             }
             _ => false
-        }
-    }
-}
-
-impl TabActor {
-    fn encodable(&self) -> TabActorMsg {
-        TabActorMsg {
-            actor: self.name(),
-            title: self.title.clone(),
-            url: self.url.clone(),
-            outerWindowID: 0,
-            consoleActor: self.name(),
         }
     }
 }
@@ -442,18 +588,13 @@ fn run_server(port: Receiver<DevtoolsControlMsg>) {
 
     let mut registry = ActorRegistry::new();
 
-    let tab = box TabActor {
-        name: "tab1".to_string(),
-        title: "Performing Layout".to_string(),
-        url: "about-mozilla.html".to_string(),
-    };
-
     let root = box RootActor {
-        tabs: vec!(tab.name().to_string()),
+        next: 0,
+        tabs: vec!(),
     };
 
-    registry.register(tab);
-    registry.register(root);
+    registry.register::<RootActor>(root);
+    registry.find::<RootActor>("root");
 
     let actors = Arc::new(Mutex::new(registry));
 
@@ -496,13 +637,41 @@ fn run_server(port: Receiver<DevtoolsControlMsg>) {
         }
     }
 
+    fn handle_new_global(actors: Arc<Mutex<ActorRegistry>>,
+                         pipeline: PipelineId,
+                         sender: Sender<DevtoolScriptControlMsg>) {
+        {
+            let mut actors = actors.lock();
+
+            let (tab, console) = {
+                let root = actors.find_mut::<RootActor>("root");
+
+                let tab = TabActor {
+                    name: format!("tab{}", root.next),
+                    title: "".to_string(),
+                    url: "about:blank".to_string(),
+                };
+                let console = ConsoleActor {
+                    name: format!("console{}", root.next),
+                    script_chan: sender,
+                    pipeline: pipeline,
+                };
+                root.next += 1;
+                root.tabs.push(tab.name.clone());
+                (tab, console)
+            };
+            actors.register::<TabActor>(box tab);
+            actors.register::<ConsoleActor>(box console);
+        }
+    }
+
     // accept connections and process them, spawning a new tasks for each one
     for stream in acceptor.incoming() {
         match stream {
             Err(ref e) if e.kind == TimedOut => {
                 match port.try_recv() {
                     Ok(ServerExitMsg) | Err(Disconnected) => break,
-                    Ok(NewGlobal(_)) => { /*TODO*/ },
+                    Ok(NewGlobal(id, sender)) => handle_new_global(actors.clone(), id, sender),
                     Err(Empty) => acceptor.set_timeout(Some(POLL_TIMEOUT)),
                 }
             }

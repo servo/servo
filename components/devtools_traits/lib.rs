@@ -8,24 +8,29 @@
 #![comment = "The Servo Parallel Browser Project"]
 #![license = "MPL"]
 
+extern crate servo_msg = "msg";
+
+use servo_msg::constellation_msg::PipelineId;
+
 pub type DevtoolsControlChan = Sender<DevtoolsControlMsg>;
 pub type DevtoolsControlPort = Receiver<DevtoolScriptControlMsg>;
 
 pub enum DevtoolsControlMsg {
-    NewGlobal(Sender<DevtoolScriptControlMsg>),
+    NewGlobal(PipelineId, Sender<DevtoolScriptControlMsg>),
     ServerExitMsg
 }
 
 pub enum EvaluateJSReply {
     VoidValue,
     NullValue,
+    BooleanValue(bool),
     NumberValue(f64),
     StringValue(String),
     ActorValue(String),
 }
 
 pub enum DevtoolScriptControlMsg {
-    EvaluateJS(String, Sender<EvaluateJSReply>),
+    EvaluateJS(PipelineId, String, Sender<EvaluateJSReply>),
 }
 
 pub enum ScriptDevtoolControlMsg {

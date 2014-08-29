@@ -6,3 +6,6 @@ authors = ["The Servo Project Developers"]
 [lib]
 name = "devtools_traits"
 path = "lib.rs"
+
+[dependencies.msg]
+path = "../msg"

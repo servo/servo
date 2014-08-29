@@ -3,7 +3,6 @@ name = "servo"
 version = "0.0.1"
 dependencies = [
  "compositing 0.0.1",
- "devtools 0.0.1",
  "gfx 0.0.1",
  "layout 0.0.1",
  "msg 0.0.1",
@@ -113,11 +112,15 @@ name = "devtools"
 version = "0.0.1"
 dependencies = [
  "devtools_traits 0.0.1",
+ "msg 0.0.1",
 ]
 
 [[package]]
 name = "devtools_traits"
 version = "0.0.1"
+dependencies = [
+ "msg 0.0.1",
+]
 
 [[package]]
 name = "egl"
