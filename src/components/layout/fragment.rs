@@ -28,7 +28,8 @@ use gfx::display_list::{ContentStackingLevel, DisplayItem, DisplayList, ImageDis
 use gfx::display_list::{ImageDisplayItemClass, LineDisplayItem};
 use gfx::display_list::{LineDisplayItemClass, OpaqueNode, PseudoDisplayItemClass};
 use gfx::display_list::{SolidColorDisplayItem, SolidColorDisplayItemClass, StackingLevel};
-use gfx::display_list::{TextDecorations, TextDisplayItem, TextDisplayItemClass};
+use gfx::display_list::{TextDisplayItem, TextDisplayItemClass};
+use gfx::display_list::{Upright, SidewaysLeft, SidewaysRight};
 use gfx::font::FontStyle;
 use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::TextRun;
@@ -46,7 +47,7 @@ use std::fmt;
 use std::from_str::FromStr;
 use std::mem;
 use std::num::Zero;
-use style::{ComputedValues, TElement, TNode, cascade_anonymous};
+use style::{ComputedValues, TElement, TNode, cascade_anonymous, RGBA};
 use style::computed_values::{LengthOrPercentageOrAuto, overflow, LPA_Auto, background_attachment};
 use style::computed_values::{background_repeat, border_style, clear, position, text_align};
 use style::computed_values::{text_decoration, vertical_align, visibility, white_space};
@@ -861,11 +862,12 @@ impl Fragment {
                               -> ChildDisplayListAccumulator {
         // FIXME(#2795): Get the real container size
         let container_size = Size2D::zero();
+        let rect_to_absolute = |logical_rect: LogicalRect<Au>| {
+            let physical_rect = logical_rect.to_physical(self.style.writing_mode, container_size);
+            Rect(physical_rect.origin + flow_origin, physical_rect.size)
+        };
         // Fragment position wrt to the owning flow.
-        let fragment_bounds = self.border_box.to_physical(self.style.writing_mode, container_size);
-        let absolute_fragment_bounds = Rect(
-            fragment_bounds.origin + flow_origin,
-            fragment_bounds.size);
+        let absolute_fragment_bounds = rect_to_absolute(self.border_box);
         debug!("Fragment::build_display_list at rel={}, abs={}: {}",
                self.border_box,
                absolute_fragment_bounds,
@@ -925,44 +927,84 @@ impl Fragment {
                                                               level);
         }
 
+        let content_box = self.content_box();
+        let absolute_content_box = rect_to_absolute(content_box);
+
         // Add a clip, if applicable.
         match self.specific {
             UnscannedTextFragment(_) => fail!("Shouldn't see unscanned fragments here."),
             TableColumnFragment(_) => fail!("Shouldn't see table column fragments here."),
             ScannedTextFragment(ref text_fragment) => {
-                // Compute text color.
-                let text_color = self.style().get_color().color.to_gfx_color();
-
-                // Compute text decorations.
-                let text_decorations_in_effect = self.style()
-                                                     .get_inheritedtext()
-                                                     ._servo_text_decorations_in_effect;
-                let text_decorations = TextDecorations {
-                    underline: text_decorations_in_effect.underline.map(|c| c.to_gfx_color()),
-                    overline: text_decorations_in_effect.overline.map(|c| c.to_gfx_color()),
-                    line_through: text_decorations_in_effect.line_through
-                                                            .map(|c| c.to_gfx_color()),
+                // Create the text display item.
+                let orientation = if self.style.writing_mode.is_vertical() {
+                    if self.style.writing_mode.is_sideways_left() {
+                        SidewaysLeft
+                    } else {
+                        SidewaysRight
+                    }
+                } else {
+                    Upright
                 };
 
-                let mut bounds = absolute_fragment_bounds.clone();
-                let mut border_padding = self.border_padding.clone();
-                border_padding.block_start = Au::new(0);
-                border_padding.block_end = Au::new(0);
-                let border_padding = border_padding.to_physical(self.style.writing_mode);
-                bounds.origin.x = bounds.origin.x + border_padding.left;
-                bounds.origin.y = bounds.origin.y + border_padding.top;
-                bounds.size.width = bounds.size.width - border_padding.horizontal();
-                bounds.size.height = bounds.size.height - border_padding.vertical();
+                let metrics = &text_fragment.run.font_metrics;
+                let baseline_origin ={
+                    let mut tmp = content_box.start;
+                    tmp.b = tmp.b + metrics.ascent;
+                    tmp.to_physical(self.style.writing_mode, container_size) + flow_origin
+                };
 
-                // Create the text fragment.
                 let text_display_item = box TextDisplayItem {
-                    base: BaseDisplayItem::new(bounds, self.node, ContentStackingLevel),
+                    base: BaseDisplayItem::new(
+                        absolute_content_box, self.node, ContentStackingLevel),
                     text_run: text_fragment.run.clone(),
                     range: text_fragment.range,
-                    text_color: text_color,
-                    text_decorations: text_decorations,
+                    text_color: self.style().get_color().color.to_gfx_color(),
+                    orientation: orientation,
+                    baseline_origin: baseline_origin,
                 };
                 accumulator.push(display_list, TextDisplayItemClass(text_display_item));
+
+
+                // Create display items for text decoration
+                {
+                    let line = |maybe_color: Option<RGBA>, rect: || -> LogicalRect<Au>| {
+                        match maybe_color {
+                            None => {},
+                            Some(color) => {
+                                accumulator.push(display_list, SolidColorDisplayItemClass(
+                                    box SolidColorDisplayItem {
+                                        base: BaseDisplayItem::new(
+                                            rect_to_absolute(rect()),
+                                            self.node, ContentStackingLevel),
+                                        color: color.to_gfx_color(),
+                                    }
+                                ));
+                            }
+                        }
+                    };
+
+                    let text_decorations =
+                        self.style().get_inheritedtext()._servo_text_decorations_in_effect;
+                    line(text_decorations.underline, || {
+                        let mut rect = content_box.clone();
+                        rect.start.b = rect.start.b + metrics.ascent - metrics.underline_offset;
+                        rect.size.block = metrics.underline_size;
+                        rect
+                    });
+
+                    line(text_decorations.overline, || {
+                        let mut rect = content_box.clone();
+                        rect.size.block = metrics.underline_size;
+                        rect
+                    });
+
+                    line(text_decorations.line_through, || {
+                        let mut rect = content_box.clone();
+                        rect.start.b = rect.start.b + metrics.ascent - metrics.strikeout_offset;
+                        rect.size.block = metrics.strikeout_size;
+                        rect
+                    });
+                }
 
                 // Draw debug frames for text bounds.
                 //
@@ -979,13 +1021,6 @@ impl Fragment {
                 debug!("{:?}", self.build_debug_borders_around_fragment(display_list, flow_origin))
             },
             ImageFragment(_) => {
-                let mut bounds = absolute_fragment_bounds.clone();
-                let border_padding = self.border_padding.to_physical(self.style.writing_mode);
-                bounds.origin.x = bounds.origin.x + border_padding.left;
-                bounds.origin.y = bounds.origin.y + border_padding.top;
-                bounds.size.width = bounds.size.width - border_padding.horizontal();
-                bounds.size.height = bounds.size.height - border_padding.vertical();
-
                 match self.specific {
                     ImageFragment(ref image_fragment) => {
                         let image_ref = &image_fragment.image;
@@ -995,11 +1030,11 @@ impl Fragment {
 
                                 // Place the image into the display list.
                                 let image_display_item = box ImageDisplayItem {
-                                    base: BaseDisplayItem::new(bounds,
+                                    base: BaseDisplayItem::new(absolute_content_box,
                                                                self.node,
                                                                ContentStackingLevel),
                                     image: image.clone(),
-                                    stretch_size: bounds.size,
+                                    stretch_size: absolute_content_box.size,
                                 };
                                 accumulator.push(display_list,
                                                  ImageDisplayItemClass(image_display_item))
@@ -1128,13 +1163,7 @@ impl Fragment {
     /// values are needed and that will save computation.
     #[inline]
     pub fn content_box(&self) -> LogicalRect<Au> {
-        LogicalRect::new(
-            self.style.writing_mode,
-            self.border_box.start.i + self.border_padding.inline_start,
-            self.border_box.start.b + self.border_padding.block_start,
-            self.border_box.size.inline - self.border_padding.inline_start_end(),
-            self.border_box.size.block - self.border_padding.block_start_end(),
-        )
+        self.border_box - self.border_padding
     }
 
     /// Find the split of a fragment that includes a new-line character.
@@ -1535,4 +1564,3 @@ impl ChildDisplayListAccumulator {
         flow::mut_base(parent).display_list = display_list
     }
 }
-

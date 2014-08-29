@@ -41,6 +41,11 @@ impl WritingMode {
     pub fn is_bidi_ltr(&self) -> bool {
         !self.intersects(FlagRTL)
     }
+
+    #[inline]
+    pub fn is_sideways_left(&self) -> bool {
+        self.intersects(FlagSidewaysLeft)
+    }
 }
 
 impl Show for WritingMode {

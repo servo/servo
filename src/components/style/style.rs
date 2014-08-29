@@ -41,6 +41,7 @@ pub use properties::longhands;
 pub use node::{TElement, TNode};
 pub use selectors::{PseudoElement, Before, After, SelectorList, parse_selector_list_from_str};
 pub use selectors::{AttrSelector, NamespaceConstraint, SpecificNamespace, AnyNamespace};
+pub use cssparser::{Color, RGBA};
 
 mod stylesheets;
 mod errors;

@@ -21,7 +21,7 @@ use text::TextRun;
 
 use collections::dlist::DList;
 use collections::dlist;
-use geom::{Point2D, Rect, SideOffsets2D, Size2D};
+use geom::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D};
 use libc::uintptr_t;
 use servo_net::image::base::Image;
 use servo_util::geometry::Au;
@@ -337,10 +337,11 @@ impl DisplayList {
 
     /// Draws the display list into the given render context. The display list must be flattened
     /// first for correct painting.
-    pub fn draw_into_context(&self, render_context: &mut RenderContext) {
+    pub fn draw_into_context(&self, render_context: &mut RenderContext,
+                             current_transform: &Matrix2D<AzFloat>) {
         debug!("Beginning display list.");
         for item in self.list.iter() {
-            item.draw_into_context(render_context)
+            item.draw_into_context(render_context, current_transform)
         }
         debug!("Ending display list.");
     }
@@ -469,17 +470,6 @@ pub struct SolidColorDisplayItem {
     pub color: Color,
 }
 
-/// Text decoration information.
-#[deriving(Clone)]
-pub struct TextDecorations {
-    /// The color to use for underlining, if any.
-    pub underline: Option<Color>,
-    /// The color to use for overlining, if any.
-    pub overline: Option<Color>,
-    /// The color to use for line-through, if any.
-    pub line_through: Option<Color>,
-}
-
 /// Renders text.
 #[deriving(Clone)]
 pub struct TextDisplayItem {
@@ -495,8 +485,15 @@ pub struct TextDisplayItem {
     /// The color of the text.
     pub text_color: Color,
 
-    /// Text decorations in effect.
-    pub text_decorations: TextDecorations,
+    pub baseline_origin: Point2D<Au>,
+    pub orientation: TextOrientation,
+}
+
+#[deriving(Clone, Eq, PartialEq)]
+pub enum TextOrientation {
+    Upright,
+    SidewaysLeft,
+    SidewaysRight,
 }
 
 /// Renders an image.
@@ -574,7 +571,8 @@ impl<'a> Iterator<&'a DisplayItem> for DisplayItemIterator<'a> {
 
 impl DisplayItem {
     /// Renders this display item into the given render context.
-    fn draw_into_context(&self, render_context: &mut RenderContext) {
+    fn draw_into_context(&self, render_context: &mut RenderContext,
+                         current_transform: &Matrix2D<AzFloat>) {
         // This should have been flattened to the content stacking level first.
         assert!(self.base().level == ContentStackingLevel);
 
@@ -586,56 +584,61 @@ impl DisplayItem {
             ClipDisplayItemClass(ref clip) => {
                 render_context.draw_push_clip(&clip.base.bounds);
                 for item in clip.children.iter() {
-                    (*item).draw_into_context(render_context);
+                    (*item).draw_into_context(render_context, current_transform);
                 }
                 render_context.draw_pop_clip();
             }
 
             TextDisplayItemClass(ref text) => {
-                debug!("Drawing text at {:?}.", text.base.bounds);
+                debug!("Drawing text at {}.", text.base.bounds);
 
-                // FIXME(pcwalton): Allocating? Why?
-                let text_run = text.text_run.clone();
+                // Optimization: Don’t set a transform matrix for upright text,
+                // and pass a strart point to `draw_text_into_context`.
+                // For sideways text, it’s easier to do the rotation such that its center
+                // (the baseline’s start point) is at (0, 0) coordinates.
+                let baseline_origin = match text.orientation {
+                    Upright => text.baseline_origin,
+                    SidewaysLeft => {
+                        let x = text.baseline_origin.x.to_nearest_px() as AzFloat;
+                        let y = text.baseline_origin.y.to_nearest_px() as AzFloat;
+                        render_context.draw_target.set_transform(&current_transform.mul(
+                            &Matrix2D::new(
+                                0., -1.,
+                                1., 0.,
+                                x, y
+                            )
+                        ));
+                        Zero::zero()
+                    },
+                    SidewaysRight => {
+                        let x = text.baseline_origin.x.to_nearest_px() as AzFloat;
+                        let y = text.baseline_origin.y.to_nearest_px() as AzFloat;
+                        render_context.draw_target.set_transform(&current_transform.mul(
+                            &Matrix2D::new(
+                                0., 1.,
+                                -1., 0.,
+                                x, y
+                            )
+                        ));
+                        Zero::zero()
+                    }
+                };
 
-                let font = render_context.font_ctx.get_render_font_from_template(
-                                            &text_run.font_template,
-                                            text_run.pt_size,
-                                            render_context.opts.render_backend);
-                let font = font.borrow();
+                render_context.font_ctx.get_render_font_from_template(
+                    &text.text_run.font_template,
+                    text.text_run.pt_size,
+                    render_context.opts.render_backend
+                ).borrow().draw_text_into_context(
+                    render_context,
+                    &*text.text_run,
+                    &text.range,
+                    baseline_origin,
+                    text.text_color
+                );
 
-                let origin = text.base.bounds.origin;
-                let baseline_origin = Point2D(origin.x, origin.y + text_run.font_metrics.ascent);
-                {
-                    font.draw_text_into_context(render_context,
-                                                &*text.text_run,
-                                                &text.range,
-                                                baseline_origin,
-                                                text.text_color);
-                }
-                let width = text.base.bounds.size.width;
-                let underline_size = text_run.font_metrics.underline_size;
-                let underline_offset = text_run.font_metrics.underline_offset;
-                let strikeout_size = text_run.font_metrics.strikeout_size;
-                let strikeout_offset = text_run.font_metrics.strikeout_offset;
-
-                for underline_color in text.text_decorations.underline.iter() {
-                    let underline_y = baseline_origin.y - underline_offset;
-                    let underline_bounds = Rect(Point2D(baseline_origin.x, underline_y),
-                                                Size2D(width, underline_size));
-                    render_context.draw_solid_color(&underline_bounds, *underline_color);
-                }
-
-                for overline_color in text.text_decorations.overline.iter() {
-                    let overline_bounds = Rect(Point2D(baseline_origin.x, origin.y),
-                                               Size2D(width, underline_size));
-                    render_context.draw_solid_color(&overline_bounds, *overline_color);
-                }
-
-                for line_through_color in text.text_decorations.line_through.iter() {
-                    let strikeout_y = baseline_origin.y - strikeout_offset;
-                    let strikeout_bounds = Rect(Point2D(baseline_origin.x, strikeout_y),
-                                                Size2D(width, strikeout_size));
-                    render_context.draw_solid_color(&strikeout_bounds, *line_through_color);
+                // Undo the transform, only when we did one.
+                if text.orientation != Upright {
+                    render_context.draw_target.set_transform(current_transform)
                 }
             }
 

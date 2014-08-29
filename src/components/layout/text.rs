@@ -9,16 +9,16 @@
 use flow::Flow;
 use fragment::{Fragment, ScannedTextFragment, ScannedTextFragmentInfo, UnscannedTextFragment};
 
-use gfx::font::{FontMetrics, FontStyle};
+use gfx::font::{FontMetrics, FontStyle, RunMetrics};
 use gfx::font_context::FontContext;
 use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::TextRun;
 use gfx::text::util::{CompressWhitespaceNewline, transform_text, CompressNone};
 use servo_util::geometry::Au;
-use servo_util::logical_geometry::LogicalSize;
+use servo_util::logical_geometry::{LogicalSize, WritingMode};
 use servo_util::range::Range;
 use style::ComputedValues;
-use style::computed_values::{font_family, line_height, white_space};
+use style::computed_values::{font_family, line_height, text_orientation, white_space};
 use sync::Arc;
 
 struct NewLinePositions {
@@ -150,8 +150,8 @@ impl TextRunScanner {
                            *text);
                     let range = Range::new(CharIndex(0), run.char_len());
                     let new_metrics = run.metrics_for_range(&range);
-                    let bounding_box_size = LogicalSize::from_physical(
-                        old_fragment.style.writing_mode, new_metrics.bounding_box.size);
+                    let bounding_box_size = bounding_box_for_run_metrics(
+                        &new_metrics, old_fragment.style.writing_mode);
                     let new_text_fragment_info = ScannedTextFragmentInfo::new(Arc::new(run), range);
                     let mut new_fragment = old_fragment.transform(
                         bounding_box_size, ScannedTextFragment(new_text_fragment_info));
@@ -234,8 +234,8 @@ impl TextRunScanner {
                     let new_text_fragment_info = ScannedTextFragmentInfo::new(run.get_ref().clone(), range);
                     let old_fragment = &in_fragments[i.to_uint()];
                     let new_metrics = new_text_fragment_info.run.metrics_for_range(&range);
-                    let bounding_box_size = LogicalSize::from_physical(
-                        old_fragment.style.writing_mode, new_metrics.bounding_box.size);
+                    let bounding_box_size = bounding_box_for_run_metrics(
+                        &new_metrics, old_fragment.style.writing_mode);
                     let mut new_fragment = old_fragment.transform(
                         bounding_box_size, ScannedTextFragment(new_text_fragment_info));
                     new_fragment.new_line_pos = new_line_positions[logical_offset.to_uint()].new_line_pos.clone();
@@ -249,6 +249,32 @@ impl TextRunScanner {
 
         new_whitespace
     } // End of `flush_clump_to_list`.
+}
+
+
+#[inline]
+fn bounding_box_for_run_metrics(metrics: &RunMetrics, writing_mode: WritingMode)
+                                -> LogicalSize<Au> {
+
+    // This does nothing, but it will fail to build
+    // when more values are added to the `text-orientation` CSS property.
+    // This will be a reminder to update the code below.
+    let dummy: Option<text_orientation::T> = None;
+    match dummy {
+        Some(text_orientation::sideways_right) |
+        Some(text_orientation::sideways_left) |
+        Some(text_orientation::sideways) |
+        None => {}
+    }
+
+    // In vertical sideways or horizontal upgright text,
+    // the "width" of text metrics is always inline
+    // This will need to be updated when other text orientations are supported.
+    LogicalSize::new(
+        writing_mode,
+        metrics.bounding_box.size.width,
+        metrics.bounding_box.size.height)
+
 }
 
 /// Returns the metrics of the font represented by the given `FontStyle`, respectively.
