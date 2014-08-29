@@ -32,7 +32,7 @@ interface Element : Node {
   readonly attribute DOMTokenList classList;
 
   [Constant]
-  readonly attribute AttrList attributes;
+  readonly attribute NamedNodeMap attributes;
   DOMString? getAttribute(DOMString name);
   DOMString? getAttributeNS(DOMString? namespace, DOMString localName);
   [Throws]

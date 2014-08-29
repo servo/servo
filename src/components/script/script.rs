@@ -76,7 +76,6 @@ pub mod dom {
     pub mod macros;
 
     pub mod attr;
-    pub mod attrlist;
     pub mod blob;
     pub mod browsercontext;
     pub mod canvasrenderingcontext2d;
@@ -173,6 +172,7 @@ pub mod dom {
     pub mod location;
     pub mod messageevent;
     pub mod mouseevent;
+    pub mod namednodemap;
     pub mod navigator;
     pub mod node;
     pub mod nodeiterator;
