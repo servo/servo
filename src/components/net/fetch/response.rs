@@ -8,8 +8,9 @@ use StatusOk = http::status::Ok;
 use http::headers::HeaderEnum;
 use http::headers::response::HeaderCollection;
 use std::ascii::OwnedStrAsciiExt;
+use std::comm::Receiver;
 
-// [Response type](http://fetch.spec.whatwg.org/#concept-response-type)
+/// [Response type](http://fetch.spec.whatwg.org/#concept-response-type)
 #[deriving(Clone, PartialEq)]
 pub enum ResponseType {
     Basic,
@@ -19,7 +20,7 @@ pub enum ResponseType {
     Opaque
 }
 
-// [Response termination reason](http://fetch.spec.whatwg.org/#concept-response-termination-reason)
+/// [Response termination reason](http://fetch.spec.whatwg.org/#concept-response-termination-reason)
 #[deriving(Clone)]
 pub enum TerminationReason {
     EndUserAbort,
@@ -27,7 +28,30 @@ pub enum TerminationReason {
     Timeout
 }
 
-// A [Response](http://fetch.spec.whatwg.org/#concept-response) as defined by the Fetch spec
+/// The response body can still be pushed to after fetch
+/// This provides a way to store unfinished response bodies
+#[unstable = "I haven't yet decided exactly how the interface for this will be"]
+#[deriving(Clone)]
+pub enum ResponseBody {
+    Empty, // XXXManishearth is this necessary, or is Done(vec![]) enough?
+    Receiving(Vec<u8>),
+    Done(Vec<u8>),
+}
+
+#[unstable = "I haven't yet decided exactly how the interface for this will be"]
+pub enum ResponseMsg {
+    Chunk(Vec<u8>),
+    Finished,
+    Errored
+}
+
+#[unstable = "I haven't yet decided exactly how the interface for this will be"]
+pub struct ResponseLoader {
+    response: Response,
+    chan: Receiver<ResponseMsg>
+}
+
+/// A [Response](http://fetch.spec.whatwg.org/#concept-response) as defined by the Fetch spec
 #[deriving(Clone)]
 pub struct Response {
     pub response_type: ResponseType,
@@ -35,7 +59,7 @@ pub struct Response {
     pub url: Option<Url>,
     pub status: Status,
     pub headers: HeaderCollection,
-    pub body: Option<Vec<u8>>,
+    pub body: ResponseBody,
     /// [Internal response](http://fetch.spec.whatwg.org/#concept-internal-response), only used if the Response is a filtered response
     pub internal_response: Option<Box<Response>>,
 }
@@ -48,7 +72,19 @@ impl Response {
             url: None,
             status: StatusOk,
             headers: HeaderCollection::new(),
-            body: None,
+            body: Empty,
+            internal_response: None
+        }
+    }
+
+    pub fn network_error() -> Response {
+        Response {
+            response_type: Error,
+            termination_reason: None,
+            url: None,
+            status: UnregisteredStatus(0, "".to_string()),
+            headers: HeaderCollection::new(),
+            body: Empty,
             internal_response: None
         }
     }
@@ -100,7 +136,7 @@ impl Response {
             Opaque => {
                 response.headers = HeaderCollection::new();
                 response.status = UnregisteredStatus(0, "".to_string());
-                response.body = None;
+                response.body = Empty;
             }
         }
         response
