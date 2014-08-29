@@ -195,6 +195,11 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         self.Window()
     }
 
+    // http://www.whatwg.org/html/#dom-frames
+    fn Frames(&self) -> Temporary<Window> {
+        self.Window()
+    }
+
     fn Parent(&self) -> Temporary<Window> {
         //TODO - Once we support iframes correctly this needs to return the parent frame
         self.Window()
