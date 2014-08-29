@@ -126,17 +126,6 @@ impl RenderListener for CompositorChan {
         self.chan.send(RenderMsgDiscarded);
     }
 
-    fn set_layer_clip_rect(&self,
-                           pipeline_id: PipelineId,
-                           layer_id: LayerId,
-                           new_rect: Rect<uint>) {
-        let new_rect = Rect(Point2D(new_rect.origin.x as f32,
-                                    new_rect.origin.y as f32),
-                            Size2D(new_rect.size.width as f32,
-                                   new_rect.size.height as f32));
-        self.chan.send(SetLayerClipRect(pipeline_id, layer_id, new_rect))
-    }
-
     fn set_render_state(&self, render_state: RenderState) {
         self.chan.send(ChangeRenderState(render_state))
     }
