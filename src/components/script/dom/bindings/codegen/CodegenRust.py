@@ -1030,7 +1030,7 @@ def typeRetValNeedsRooting(type):
         return False
     if type.nullable():
         type = type.inner
-    return type.isGeckoInterface() and not type.isCallback()
+    return type.isGeckoInterface() and not type.isCallback() and not type.isCallbackInterface()
 
 def memberIsCreator(member):
     return member.getExtendedAttribute("Creator") is not None
