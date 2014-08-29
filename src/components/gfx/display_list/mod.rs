@@ -63,7 +63,8 @@ trait ScaledFontExtensionMethods {
                               run: &Box<TextRun>,
                               range: &Range<CharIndex>,
                               baseline_origin: Point2D<Au>,
-                              color: Color);
+                              color: Color,
+                              antialias: bool);
 }
 
 impl ScaledFontExtensionMethods for ScaledFont {
@@ -72,8 +73,9 @@ impl ScaledFontExtensionMethods for ScaledFont {
                               run: &Box<TextRun>,
                               range: &Range<CharIndex>,
                               baseline_origin: Point2D<Au>,
-                              color: Color) {
-        use libc::types::common::c99::{uint16_t, uint32_t};
+                              color: Color,
+                              antialias: bool) {
+        use libc::types::common::c99::uint32_t;
         use azure::{struct__AzDrawOptions,
                     struct__AzGlyph,
                     struct__AzGlyphBuffer,
@@ -85,9 +87,15 @@ impl ScaledFontExtensionMethods for ScaledFont {
         let azure_pattern = pattern.azure_color_pattern;
         assert!(azure_pattern.is_not_null());
 
+        let fields = if antialias {
+            0x0200
+        } else {
+            0
+        };
+
         let mut options = struct__AzDrawOptions {
             mAlpha: 1f64 as AzFloat,
-            fields: 0x0200 as uint16_t
+            fields: fields,
         };
 
         let mut origin = baseline_origin.clone();
@@ -633,7 +641,8 @@ impl DisplayItem {
                     &*text.text_run,
                     &text.range,
                     baseline_origin,
-                    text.text_color
+                    text.text_color,
+                    render_context.opts.enable_text_antialiasing
                 );
 
                 // Undo the transform, only when we did one.

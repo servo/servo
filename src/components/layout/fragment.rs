@@ -756,16 +756,15 @@ impl Fragment {
     /// Adds the display items necessary to paint the borders of this fragment to a display list if
     /// necessary.
     pub fn build_display_list_for_borders_if_applicable(&self,
+                                                        style: &ComputedValues,
                                                         list: &mut DisplayList,
                                                         abs_bounds: &Rect<Au>,
                                                         level: StackingLevel) {
-        // Fast path.
-        let border = self.border_width();
+        let border = style.logical_border_width();
         if border.is_zero() {
             return
         }
 
-        let style = self.style();
         let top_color = style.resolve_color(style.get_border().border_top_color);
         let right_color = style.resolve_color(style.get_border().border_right_color);
         let bottom_color = style.resolve_color(style.get_border().border_bottom_color);
@@ -774,7 +773,7 @@ impl Fragment {
         // Append the border to the display list.
         let border_display_item = box BorderDisplayItem {
             base: BaseDisplayItem::new(*abs_bounds, self.node, level),
-            border: border.to_physical(self.style.writing_mode),
+            border: border.to_physical(style.writing_mode),
             color: SideOffsets2D::new(top_color.to_gfx_color(),
                                       right_color.to_gfx_color(),
                                       bottom_color.to_gfx_color(),
@@ -922,9 +921,22 @@ impl Fragment {
             // Add a border, if applicable.
             //
             // TODO: Outlines.
-            self.build_display_list_for_borders_if_applicable(display_list,
-                                                              &absolute_fragment_bounds,
-                                                              level);
+            match self.inline_context {
+                Some(ref inline_context) => {
+                    for style in inline_context.styles.iter().rev() {
+                        self.build_display_list_for_borders_if_applicable(&**style,
+                                                                          display_list,
+                                                                          &absolute_fragment_bounds,
+                                                                          level);
+                    }
+                }
+                None => {
+                    self.build_display_list_for_borders_if_applicable(&*self.style,
+                                                                      display_list,
+                                                                      &absolute_fragment_bounds,
+                                                                      level);
+                }
+            }
         }
 
         let content_box = self.content_box();
