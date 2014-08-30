@@ -30,6 +30,7 @@
 
   // other browsing contexts
   //[Replaceable] readonly attribute WindowProxy frames;
+  readonly attribute Window frames;
   //[Replaceable] readonly attribute unsigned long length;
   //[Unforgeable] readonly attribute WindowProxy top;
   //         attribute any opener;
