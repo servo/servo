@@ -117,8 +117,6 @@ impl RenderListener for CompositorChan {
             } else {
                 self.chan.send(CreateOrUpdateDescendantLayer(layer_properties));
             }
-
-            self.chan.send(SetLayerClipRect(pipeline_id, metadata.id, layer_properties.rect));
         }
     }
 
@@ -167,8 +165,8 @@ pub enum Msg {
     /// Tells the compositor to create a descendant layer for a pipeline if necessary (i.e. if no
     /// layer with that ID exists).
     CreateOrUpdateDescendantLayer(LayerProperties),
-    /// Alerts the compositor that the specified layer's clipping rect has changed.
-    SetLayerClipRect(PipelineId, LayerId, Rect<f32>),
+    /// Alerts the compositor that the specified layer's origin has changed.
+    SetLayerOrigin(PipelineId, LayerId, Point2D<f32>),
     /// Scroll a page in a window
     ScrollFragmentPoint(PipelineId, LayerId, Point2D<f32>),
     /// Requests that the compositor paint the given layer buffer set for the given page size.

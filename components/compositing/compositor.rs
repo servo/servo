@@ -5,7 +5,7 @@
 use compositor_data::{CompositorData, DoesntWantScrollEvents, WantsScrollEvents};
 use compositor_task::{Msg, CompositorTask, Exit, ChangeReadyState, SetIds, LayerProperties};
 use compositor_task::{GetGraphicsMetadata, CreateOrUpdateRootLayer, CreateOrUpdateDescendantLayer};
-use compositor_task::{SetLayerClipRect, Paint, ScrollFragmentPoint, LoadComplete};
+use compositor_task::{SetLayerOrigin, Paint, ScrollFragmentPoint, LoadComplete};
 use compositor_task::{ShutdownComplete, ChangeRenderState, RenderMsgDiscarded};
 use constellation::SendableFrameTree;
 use events;
@@ -312,8 +312,8 @@ impl IOCompositor {
                     self.create_or_update_descendant_layer(layer_properties);
                 }
 
-                (Ok(SetLayerClipRect(pipeline_id, layer_id, new_rect)), NotShuttingDown) => {
-                    self.set_layer_clip_rect(pipeline_id, layer_id, new_rect);
+                (Ok(SetLayerOrigin(pipeline_id, layer_id, origin)), NotShuttingDown) => {
+                    self.set_layer_origin(pipeline_id, layer_id, origin);
                 }
 
                 (Ok(Paint(pipeline_id, epoch, replies)), NotShuttingDown) => {
@@ -558,17 +558,17 @@ impl IOCompositor {
         self.recomposite_if(needs_recomposite);
     }
 
-    fn set_layer_clip_rect(&mut self,
-                           pipeline_id: PipelineId,
-                           layer_id: LayerId,
-                           new_rect_in_page_coordinates: Rect<f32>) {
-        let new_rect_in_layer_coordinates =
-            self.convert_page_rect_to_layer_coordinates(new_rect_in_page_coordinates);
-        let new_rect_in_layer_coordinates = Rect::from_untyped(&new_rect_in_layer_coordinates);
-
+    fn set_layer_origin(&mut self,
+                        pipeline_id: PipelineId,
+                        layer_id: LayerId,
+                        new_origin: Point2D<f32>) {
+        let new_origin_in_device_coordinates = new_origin * self.device_pixels_per_page_px().get();
         match self.find_layer_with_pipeline_and_layer_id(pipeline_id, layer_id) {
-            Some(ref layer) => *layer.bounds.borrow_mut() = new_rect_in_layer_coordinates,
-            None => fail!("compositor received SetLayerClipRect for nonexistent layer"),
+            Some(ref layer) => {
+                layer.bounds.borrow_mut().origin =
+                    Point2D::from_untyped(&new_origin_in_device_coordinates)
+            }
+            None => fail!("Compositor received SetLayerOrigin for nonexistent layer"),
         };
 
         self.send_buffer_requests_for_all_layers();
