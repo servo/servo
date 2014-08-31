@@ -626,6 +626,7 @@ fn matches_simple_selector<E:TElement,
         // TODO: cache and intern class names on elements.
         ClassSelector(ref class) => {
             let element = element.as_element();
+            // TODO GILLES: check to use element.has_class instead
             element.get_attr(&namespace::Null, "class")
                     .map_or(false, |attr| {
                 // TODO: case-sensitivity depends on the document type and quirks mode

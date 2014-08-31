@@ -911,10 +911,12 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
 }
 
 impl<'a> style::TElement for JSRef<'a, Element> {
-    fn get_attr(&self, namespace: &Namespace, attr: &str) -> Option<&'static str> {
+    fn get_attr(&self, namespace: &Namespace, attr: &str) -> Vec<Atom> {
+        let collected_atoms: Vec<Atom> = Vec::new();
         self.get_attribute(namespace.clone(), attr).root().map(|attr| {
-            unsafe { mem::transmute(attr.deref().value().as_slice()) }
-        })
+            attr.deref().value().tokens().map(|tokens| { tokens.map(|atom| { collected_atoms.push(atom.clone()) }) } )
+        });
+        collected_atoms
     }
     fn get_link(&self) -> Option<&'static str> {
         // FIXME: This is HTML only.
