@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::HTMLScriptElementBinding;
 use dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::HTMLScriptElementDerived;
-use dom::bindings::codegen::InheritTypes::{ElementCast, NodeCast, TextCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, NodeCast};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
@@ -14,7 +14,6 @@ use dom::element::{HTMLScriptElementTypeId, Element, AttributeHandlers};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, NodeHelpers, ElementNodeTypeId};
-use dom::text::Text;
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
@@ -50,15 +49,7 @@ impl<'a> HTMLScriptElementMethods for JSRef<'a, HTMLScriptElement> {
     // http://www.whatwg.org/html/#dom-script-text
     fn Text(&self) -> DOMString {
         let node: &JSRef<Node> = NodeCast::from_ref(self);
-        let mut content = String::new();
-        for child in node.children() {
-            let text: Option<&JSRef<Text>> = TextCast::to_ref(&child);
-            match text {
-                Some(text) => content.push_str(text.characterdata.data.borrow().as_slice()),
-                None => (),
-            }
-        }
-        content
+        Node::collect_text_contents(node.children())
     }
 
     // http://www.whatwg.org/html/#dom-script-text
