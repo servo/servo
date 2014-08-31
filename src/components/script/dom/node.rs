@@ -1408,6 +1408,18 @@ impl Node {
     pub unsafe fn unsafe_get_flags(&self) -> *const NodeFlags {
         mem::transmute(&self.flags)
     }
+
+    pub fn collect_text_contents<'a, T: Iterator<JSRef<'a, Node>>>(mut iterator: T) -> String {
+        let mut content = String::new();
+        for node in iterator {
+            let text: Option<&JSRef<Text>> = TextCast::to_ref(&node);
+            match text {
+                Some(text) => content.push_str(text.characterdata.data.borrow().as_slice()),
+                None => (),
+            }
+        }
+        content
+    }
 }
 
 impl<'a> NodeMethods for JSRef<'a, Node> {
@@ -1553,13 +1565,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         match self.type_id {
             DocumentFragmentNodeTypeId |
             ElementNodeTypeId(..) => {
-                let mut content = String::new();
-                for node in self.traverse_preorder() {
-                    if node.is_text() {
-                        let text: &JSRef<Text> = TextCast::to_ref(&node).unwrap();
-                        content.push_str(text.deref().characterdata.data.deref().borrow().as_slice());
-                    }
-                }
+                let content = Node::collect_text_contents(self.traverse_preorder());
                 Some(content)
             }
             CommentNodeTypeId |
