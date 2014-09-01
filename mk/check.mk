@@ -21,13 +21,10 @@ $(foreach submodule,$(SUBMODULES),\
 $(eval $(call DEF_SUBMODULE_TEST_RULES,$(submodule))))
 
 
-DEPS_test_macros = $(DONE_macros)
-RFLAGS_test_macros = -L $(B)src/components/macros
-
 define DEF_LIB_CRATE_TEST_RULES
-servo-test-$(1): $$(DEPS_$(1)) $$(DEPS_test_$(1))
+servo-test-$(1): $$(DEPS_$(1))
 	@$$(call E, compile: servo-test-$(1))
-	$$(Q)$$(RUSTC) $(strip $(TARGET_FLAGS) $(CFG_RUSTC_FLAGS)) $$(RFLAGS_$(1)) $$(RFLAGS_test_$(1)) --test -o $$@ $$<
+	$$(Q)$$(RUSTC) $(strip $(TARGET_FLAGS) $(CFG_RUSTC_FLAGS)) $$(RFLAGS_$(1)) --test -o $$@ $$<
 
 .PHONY: check-servo-$(1)
 check-servo-$(1): servo-test-$(1)
