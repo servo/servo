@@ -15,7 +15,7 @@ extern crate sync;
 
 extern crate rustc;
 extern crate syntax;
-
+ 
 use syntax::ast;
 use syntax::codemap::Span;
 use syntax::ext::base;
@@ -92,12 +92,10 @@ fn expand_bit_struct(cx: &mut ExtCtxt, sp: Span, name: ast::Ident, tts: Vec<ast:
                 let additional_impl = quote_item!(&*cx,
                     impl $name {
                         #[allow(non_snake_case_functions)]
-                        #[inline]
                         pub fn $field(&self) -> bool {
                             (self.storage[$word] & (1 << $bit)) != 0
                         }
                         #[allow(non_snake_case_functions)]
-                        #[inline]
                         pub fn $setter(&mut self, new_value: bool) {
                             if new_value {
                                 self.storage[$word] |= 1 << $bit
@@ -120,8 +118,6 @@ fn expand_bit_struct(cx: &mut ExtCtxt, sp: Span, name: ast::Ident, tts: Vec<ast:
     // Re-wrap.
     let impl_def = box(GC) impl_def;
 
-    // FIXME(SimonSapin) replace this with something from libsyntax
-    // if/when https://github.com/rust-lang/rust/issues/16723 is fixed
     struct MacItems {
         items: Vec<Gc<ast::Item>>
     }
