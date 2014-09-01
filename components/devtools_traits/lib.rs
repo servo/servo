@@ -10,16 +10,24 @@
 
 extern crate servo_msg = "msg";
 
+/// This module contains shared types and messages for use by devtools/script.
+/// The traits are here instead of in script so that the devtools crate can be
+/// modified independently of the rest of Servo.
+
 use servo_msg::constellation_msg::PipelineId;
 
 pub type DevtoolsControlChan = Sender<DevtoolsControlMsg>;
 pub type DevtoolsControlPort = Receiver<DevtoolScriptControlMsg>;
 
+/// Messages to the instruct the devtools server to update its known actors/state
+/// according to changes in the browser.
 pub enum DevtoolsControlMsg {
     NewGlobal(PipelineId, Sender<DevtoolScriptControlMsg>),
     ServerExitMsg
 }
 
+/// Serialized JS return values
+/// TODO: generalize this beyond the EvaluateJS message?
 pub enum EvaluateJSReply {
     VoidValue,
     NullValue,
@@ -29,10 +37,14 @@ pub enum EvaluateJSReply {
     ActorValue(String),
 }
 
+/// Messages to process in a particular script task, as instructed by a devtools client.
 pub enum DevtoolScriptControlMsg {
     EvaluateJS(PipelineId, String, Sender<EvaluateJSReply>),
 }
 
+/// Messages to instruct devtools server to update its state relating to a particular
+/// tab.
 pub enum ScriptDevtoolControlMsg {
+    /// Report a new JS error message
     ReportConsoleMsg(String),
 }
