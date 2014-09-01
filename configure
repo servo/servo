@@ -530,7 +530,6 @@ CFG_SUBMODULES="\
     support/skia/skia \
     support/spidermonkey/mozjs \
     support/spidermonkey/rust-mozjs \
-    support/ssl/rust-openssl \
     support/stb-image/rust-stb-image \
     support/png/libpng \
     support/png/rust-png \
@@ -553,6 +552,7 @@ CFG_SUBMODULES="\
     support/glfw/glfw-rs \
     platform/macos/rust-cocoa \
     platform/macos/rust-task_info \
+    support/ssl/rust-openssl \
     ${CFG_SUBMODULES}"
 fi
 
@@ -565,6 +565,7 @@ CFG_SUBMODULES="\
     support/glfw/glfw-rs \
     platform/linux/rust-fontconfig \
     platform/linux/rust-freetype \
+    support/ssl/rust-openssl \
     ${CFG_SUBMODULES}"
 fi
 
@@ -749,6 +750,9 @@ do
             ;;
         support/url/rust-url)
             CONFIGURE_SCRIPT="${CFG_SRC_DIR}src/support/url/configure"
+            ;;
+        support/http/rust-http)
+            CONFIGURE_SCRIPT="${CFG_SRC_DIR}src/support/http/rust-http/configure.servo"
             ;;
         *)
             ;;

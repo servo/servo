@@ -100,12 +100,6 @@ DEPS_rust-url += \
 	rust-encoding \
 	$(NULL)
 
-DEPS_rust-http += \
-	rust-encoding \
-	rust-url \
-	rust-openssl \
-	$(NULL)
-
 DEPS_string-cache += \
 	rust-phf \
 	rust \
@@ -161,6 +155,12 @@ DEPS_rust-layers += \
 	rust \
 	$(NULL)
 
+DEPS_rust-http += \
+	rust-encoding \
+	rust-url \
+	rust-openssl \
+	$(NULL)
+
 endif
 
 ifeq ($(CFG_OSTYPE),unknown-linux-gnu)
@@ -184,6 +184,12 @@ DEPS_rust-layers += \
 DEPS_rust-fontconfig += \
 	fontconfig \
 	rust \
+	$(NULL)
+
+DEPS_rust-http += \
+	rust-encoding \
+	rust-url \
+	rust-openssl \
 	$(NULL)
 
 NATIVE_BUILD += \
@@ -238,6 +244,11 @@ DEPS_skia += \
 
 CXXFLAGS_skia += \
 	-I$(S)src/platform/android/libfreetype2/include \
+	$(NULL)
+
+DEPS_rust-http += \
+	rust-encoding \
+	rust-url \
 	$(NULL)
 
 NATIVE_BUILD += \
