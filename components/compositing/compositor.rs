@@ -110,7 +110,7 @@ pub struct IOCompositor {
     /// Whether the page being rendered has loaded completely.
     /// Differs from ReadyState because we can finish loading (ready)
     /// many times for a single page.
-    load_complete: bool,
+    got_load_complete_message: bool,
 
     /// The command line option flags.
     opts: Opts,
@@ -171,7 +171,7 @@ impl IOCompositor {
             zoom_time: 0f64,
             ready_states: HashMap::new(),
             render_states: HashMap::new(),
-            load_complete: false,
+            got_load_complete_message: false,
             constellation_chan: constellation_chan,
             time_profiler_chan: time_profiler_chan,
             memory_profiler_chan: memory_profiler_chan,
@@ -328,7 +328,7 @@ impl IOCompositor {
                 }
 
                 (Ok(LoadComplete(..)), NotShuttingDown) => {
-                    self.load_complete = true;
+                    self.got_load_complete_message = true;
                 }
 
                 // When we are shutting_down, we need to avoid performing operations
@@ -362,6 +362,13 @@ impl IOCompositor {
         if render_state == IdleRenderState {
             self.composite_ready = true;
         }
+    }
+
+    fn all_pipelines_in_idle_render_state(&self) -> bool {
+        if self.ready_states.len() == 0 {
+            return false;
+        }
+        return self.render_states.values().all(|&value| value == IdleRenderState);
     }
 
     fn has_render_msg_tracking(&self) -> bool {
@@ -707,7 +714,7 @@ impl IOCompositor {
 
     fn on_load_url_window_event(&mut self, url_string: String) {
         debug!("osmain: loading URL `{:s}`", url_string);
-        self.load_complete = false;
+        self.got_load_complete_message = false;
         let root_pipeline_id = match self.scene.root {
             Some(ref layer) => layer.extra_data.borrow().pipeline.id.clone(),
             None => fail!("Compositor: Received LoadUrlWindowEvent without initialized compositor \
@@ -894,6 +901,25 @@ impl IOCompositor {
         self.add_outstanding_render_msg(num_render_msgs_sent);
     }
 
+    fn is_ready_to_render_image_output(&self) -> bool {
+        if !self.got_load_complete_message {
+            return false;
+        }
+
+        if self.get_earliest_pipeline_ready_state() != FinishedLoading {
+            return false;
+        }
+
+        if self.has_outstanding_render_msgs() {
+            return false;
+        }
+
+        if !self.all_pipelines_in_idle_render_state() {
+            return false;
+        }
+        return true;
+    }
+
     fn composite(&mut self) {
         profile(time::CompositingCategory, self.time_profiler_chan.clone(), || {
             debug!("compositor: compositing");
@@ -912,10 +938,14 @@ impl IOCompositor {
             }
         });
 
-        // Render to PNG. We must read from the back buffer (ie, before
-        // self.window.present()) as OpenGL ES 2 does not have glReadBuffer().
-        if self.load_complete && self.get_earliest_pipeline_ready_state() == FinishedLoading
-            && self.opts.output_file.is_some() && !self.has_outstanding_render_msgs() {
+        if self.opts.output_file.is_some() {
+            // If we aren't ready to produce image output, we will wait until the next composite.
+            if !self.is_ready_to_render_image_output() {
+                return;
+            }
+
+            // We must read from the back buffer (ie, before self.window.present()) as
+            // OpenGL ES 2 does not have glReadBuffer().
             let (width, height) = (self.window_size.width.get(), self.window_size.height.get());
             let path = from_str::<Path>(self.opts.output_file.get_ref().as_slice()).unwrap();
             let mut pixels = gl2::read_pixels(0, 0,
