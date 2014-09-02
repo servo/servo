@@ -9,13 +9,14 @@ use pipeline::CompositionPipeline;
 use azure::azure_hl::Color;
 use geom::point::TypedPoint2D;
 use geom::size::{Size2D, TypedSize2D};
+use geom::rect::Rect;
 use gfx::render_task::UnusedBufferMsg;
+use layers::geometry::DevicePixel;
 use layers::layers::{Layer, LayerBufferSet};
 use layers::platform::surface::NativeSurfaceMethods;
 use servo_msg::compositor_msg::{Epoch, LayerId};
 use servo_msg::compositor_msg::ScrollPolicy;
 use servo_msg::constellation_msg::PipelineId;
-use servo_util::geometry::DevicePixel;
 use std::rc::Rc;
 
 pub struct CompositorData {
@@ -59,19 +60,21 @@ impl CompositorData {
             background_color: layer_properties.background_color,
             epoch: layer_properties.epoch,
         };
-        Rc::new(Layer::new(layer_properties.rect, tile_size, new_compositor_data))
+
+        Rc::new(Layer::new(Rect::from_untyped(&layer_properties.rect),
+                           tile_size, new_compositor_data))
     }
 
     pub fn update_layer(layer: Rc<Layer<CompositorData>>, layer_properties: LayerProperties) {
         layer.extra_data.borrow_mut().epoch = layer_properties.epoch;
         layer.extra_data.borrow_mut().background_color = layer_properties.background_color;
 
-        layer.resize(layer_properties.rect.size);
+        let size: TypedSize2D<DevicePixel, f32> = Size2D::from_untyped(&layer_properties.rect.size);
+        layer.resize(size);
         layer.contents_changed();
 
         // Call scroll for bounds checking if the page shrunk. Use (-1, -1) as the
         // cursor position to make sure the scroll isn't propagated downwards.
-        let size: TypedSize2D<DevicePixel, f32> = Size2D::from_untyped(&layer.bounds.borrow().size);
         events::handle_scroll_event(layer.clone(),
                                     TypedPoint2D(0f32, 0f32),
                                     TypedPoint2D(-1f32, -1f32),

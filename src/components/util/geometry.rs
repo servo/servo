@@ -13,12 +13,6 @@ use std::fmt;
 
 // Units for use with geom::length and geom::scale_factor.
 
-/// One hardware pixel.
-///
-/// This unit corresponds to the smallest addressable element of the display hardware.
-#[deriving(Encodable)]
-pub enum DevicePixel {}
-
 /// A normalized "pixel" at the default resolution for the display.
 ///
 /// Like the CSS "px" unit, the exact physical size of this unit may vary between devices, but it
