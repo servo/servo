@@ -2,19 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::HTMLScriptElementBinding;
 use dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::HTMLScriptElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, NodeCast};
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::{HTMLScriptElementTypeId, Element, AttributeHandlers};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, NodeHelpers, ElementNodeTypeId};
-use servo_util::str::DOMString;
+
+use servo_util::namespace::Null;
+use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS, StaticStringVec};
 
 #[deriving(Encodable)]
 pub struct HTMLScriptElement {
@@ -37,6 +40,67 @@ impl HTMLScriptElement {
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLScriptElement> {
         let element = HTMLScriptElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLScriptElementBinding::Wrap)
+    }
+}
+
+pub trait HTMLScriptElementHelpers {
+    /// Prepare a script (<http://www.whatwg.org/html/#prepare-a-script>),
+    /// steps 6 and 7.
+    fn is_javascript(&self) -> bool;
+}
+
+/// Supported script types as defined by
+/// <http://whatwg.org/html/#support-the-scripting-language>.
+static SCRIPT_JS_MIMES: StaticStringVec = &[
+    "application/ecmascript",
+    "application/javascript",
+    "application/x-ecmascript",
+    "application/x-javascript",
+    "text/ecmascript",
+    "text/javascript",
+    "text/javascript1.0",
+    "text/javascript1.1",
+    "text/javascript1.2",
+    "text/javascript1.3",
+    "text/javascript1.4",
+    "text/javascript1.5",
+    "text/jscript",
+    "text/livescript",
+    "text/x-ecmascript",
+    "text/x-javascript",
+];
+
+impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
+    fn is_javascript(&self) -> bool {
+        let element: &JSRef<Element> = ElementCast::from_ref(self);
+        match element.get_attribute(Null, "type").root().map(|s| s.Value()) {
+            Some(ref s) if s.is_empty() => {
+                // type attr exists, but empty means js
+                debug!("script type empty, inferring js");
+                true
+            },
+            Some(ref s) => {
+                debug!("script type={:s}", *s);
+                SCRIPT_JS_MIMES.contains(&s.as_slice().trim_chars(HTML_SPACE_CHARACTERS))
+            },
+            None => {
+                debug!("no script type");
+                match element.get_attribute(Null, "language").root().map(|s| s.Value()) {
+                    Some(ref s) if s.is_empty() => {
+                        debug!("script language empty, inferring js");
+                        true
+                    },
+                    Some(ref s) => {
+                        debug!("script language={:s}", *s);
+                        SCRIPT_JS_MIMES.contains(&"text/".to_string().append(s.as_slice()).as_slice())
+                    },
+                    None => {
+                        debug!("no script type or language, inferring js");
+                        true
+                    }
+                }
+            }
+        }
     }
 }
 
