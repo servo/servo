@@ -2449,4 +2449,3 @@ fn propagate_column_inline_sizes_to_child(kid: &mut Flow,
     kid_base.position.start.i = *inline_start_margin_edge;
     kid_base.position.size.inline = inline_size;
 }
-

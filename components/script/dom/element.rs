@@ -801,7 +801,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
             Err(()) => Err(Syntax),
             Ok(ref selectors) => {
                 let root: &JSRef<Node> = NodeCast::from_ref(self);
-                Ok(matches(selectors, root))
+                Ok(matches(selectors, root, &mut None))
             }
         }
     }

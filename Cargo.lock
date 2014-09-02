@@ -409,17 +409,17 @@ source = "git+https://github.com/servo/rust-stb-image#f5022de4ad6bb474a03493d1f2
 [[package]]
 name = "string_cache"
 version = "0.0.0"
-source = "git+https://github.com/servo/string-cache#6d5a6669d05fcc20fe0436a7f9a63310e2bc522a"
+source = "git+https://github.com/servo/string-cache#3e5a5178088729772d95fe8f1450511497e08289"
 dependencies = [
  "phf 0.0.0 (git+https://github.com/sfackler/rust-phf#fa5d803428dd760287330571c919c7c5e11b2e1b)",
  "phf_mac 0.0.0 (git+https://github.com/sfackler/rust-phf#fa5d803428dd760287330571c919c7c5e11b2e1b)",
- "string_cache_macros 0.0.0 (git+https://github.com/servo/string-cache#6d5a6669d05fcc20fe0436a7f9a63310e2bc522a)",
+ "string_cache_macros 0.0.0 (git+https://github.com/servo/string-cache#3e5a5178088729772d95fe8f1450511497e08289)",
 ]
 
 [[package]]
 name = "string_cache_macros"
 version = "0.0.0"
-source = "git+https://github.com/servo/string-cache#6d5a6669d05fcc20fe0436a7f9a63310e2bc522a"
+source = "git+https://github.com/servo/string-cache#3e5a5178088729772d95fe8f1450511497e08289"
 
 [[package]]
 name = "style"
@@ -451,7 +451,7 @@ version = "0.0.1"
 dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure#9c5567b79d8b87e8ef3b48c5842f453978035d21)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#2982b770db6e5e3270305e0fd6b8068f6f80a489)",
- "string_cache 0.0.0 (git+https://github.com/servo/string-cache#6d5a6669d05fcc20fe0436a7f9a63310e2bc522a)",
+ "string_cache 0.0.0 (git+https://github.com/servo/string-cache#3e5a5178088729772d95fe8f1450511497e08289)",
  "task_info 0.0.1",
 ]
 

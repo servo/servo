@@ -31,7 +31,7 @@ pub struct Selector {
     pub specificity: u32,
 }
 
-#[deriving(PartialEq, Clone)]
+#[deriving(Eq, PartialEq, Clone, Hash)]
 pub enum PseudoElement {
     Before,
     After,
@@ -54,7 +54,7 @@ pub enum Combinator {
     LaterSibling,  // ~
 }
 
-#[deriving(PartialEq, Clone)]
+#[deriving(Eq, PartialEq, Clone, Hash)]
 pub enum SimpleSelector {
     IDSelector(Atom),
     ClassSelector(Atom),
@@ -92,20 +92,20 @@ pub enum SimpleSelector {
     // ...
 }
 
-#[deriving(PartialEq, Clone)]
+#[deriving(Eq, PartialEq, Clone, Hash)]
 pub struct LocalNameSelector {
     pub name: Atom,
     pub lower_name: Atom,
 }
 
-#[deriving(PartialEq, Clone)]
+#[deriving(Eq, PartialEq, Clone, Hash)]
 pub struct AttrSelector {
     pub name: String,
     pub lower_name: String,
     pub namespace: NamespaceConstraint,
 }
 
-#[deriving(PartialEq, Clone)]
+#[deriving(Eq, PartialEq, Clone, Hash)]
 pub enum NamespaceConstraint {
     AnyNamespace,
     SpecificNamespace(Namespace),

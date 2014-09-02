@@ -610,7 +610,7 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
             Ok(ref selectors) => {
                 let root = self.ancestors().last().unwrap_or(self.clone());
                 for node in root.traverse_preorder() {
-                    if node.is_element() && matches(selectors, &node) {
+                    if node.is_element() && matches(selectors, &node, &mut None) {
                         let elem: &JSRef<Element> = ElementCast::to_ref(&node).unwrap();
                         return Ok(Some(Temporary::from_rooted(elem)));
                     }
@@ -631,7 +631,9 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
             // Step 3.
             Ok(ref selectors) => {
                 nodes = root.traverse_preorder().filter(
-                    |node| node.is_element() && matches(selectors, node)).collect()
+                    // TODO(cgaebel): Is it worth it to build a bloom filter here
+                    // (instead of passing `None`)? Probably.
+                    |node| node.is_element() && matches(selectors, node, &mut None)).collect()
             }
         }
         let window = window_from_node(self).root();
@@ -1986,6 +1988,10 @@ impl<'a> VirtualMethods for JSRef<'a, Node> {
 impl<'a> style::TNode<JSRef<'a, Element>> for JSRef<'a, Node> {
     fn parent_node(&self) -> Option<JSRef<'a, Node>> {
         (self as &NodeHelpers).parent_node().map(|node| *node.root())
+    }
+
+    fn tnode_first_child(&self) -> Option<JSRef<'a, Node>> {
+        (self as &NodeHelpers).first_child().map(|node| *node.root())
     }
 
     fn prev_sibling(&self) -> Option<JSRef<'a, Node>> {
