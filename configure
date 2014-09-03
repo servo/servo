@@ -411,7 +411,7 @@ case ${TARGET_OSTYPE} in
         probe CFG_CXX              arm-linux-androideabi-g++
         probe CFG_LD               arm-linux-androideabi-ld
         probe CFG_AR               arm-linux-androideabi-ar
-        probe CFG_RANLIB	       arm-linux-androideabi-ranlib
+        probe CFG_RANLIB           arm-linux-androideabi-ranlib
 
         export PATH=${OLD_PATH}
         ;;
@@ -426,7 +426,7 @@ case ${TARGET_OSTYPE} in
         fi
         probe CFG_LD               ld
         probe CFG_AR               ar
-        probe CFG_RANLIB	   ranlib
+        probe CFG_RANLIB       ranlib
         CFG_RUSTC_FLAGS=""
         ;;
 esac
@@ -560,7 +560,7 @@ if [ $CFG_OSTYPE = "unknown-linux-gnu" ]
 then
 CFG_SUBMODULES="\
     platform/linux/rust-xlib \
-    platform/linux/fontconfig \
+    platform/fontconfig/fontconfig \
     support/glfw/glfw \
     support/glfw/glfw-rs \
     platform/linux/rust-fontconfig \
@@ -576,7 +576,7 @@ CFG_SUBMODULES="\
     support/egl/rust-egl \
     platform/android/libexpat \
     platform/android/libfreetype2 \
-    platform/android/fontconfig \
+    platform/fontconfig/fontconfig \
     platform/linux/rust-fontconfig \
     platform/linux/rust-freetype \
     ${CFG_SUBMODULES}"
@@ -665,7 +665,7 @@ for i in ${CFG_SUBMODULES}
 do
     if [ -d ${CFG_BUILD_DIR}src/${i} ]
     then
-	cd ${CFG_BUILD_DIR}src/${i}
+    cd ${CFG_BUILD_DIR}src/${i}
     fi
     CONFIGURE_SCRIPT="${CFG_SRC_DIR}src/${i}/configure"
     CONFIGURE_ARGS=""
@@ -682,30 +682,28 @@ do
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-sysroot=${CFG_ANDROID_CROSS_PATH}/sysroot"
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --without-zlib"
             ;;
-        platform/linux/fontconfig)
+        platform/fontconfig/fontconfig)
             CONFIGURE_SCRIPT="${CFG_SRC_DIR}src/${i}/autogen.sh"
-            CONFIGURE_ARGS="${CONFIGURE_ARGS} --sysconfdir=/etc"
-            CONFIGURE_ARGS="${CONFIGURE_ARGS} --localstatedir=/var"
-            CONFIGURE_ARGS="${CONFIGURE_ARGS} --disable-docs"
-            CONFIGURE_ARGS="${CONFIGURE_ARGS} --disable-shared" # work around Rust #12557
-            if [ -f /etc/redhat-release ]; then
-                # Some RedHat-based distros (including our CentOS 6 build machines) are missing
-                # pkg-config files for expat: https://bugzilla.redhat.com/show_bug.cgi?id=833338
-                CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-expat=/usr"
+            if [ ${CFG_OSTYPE} = "linux-androideabi" ]; then
+                CONFIGURE_ARGS="${CONFIGURE_ARGS} --host=arm-linux-androideabi"
+                CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-arch=arm"
+                CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-expat-includes=${CFG_SRC_DIR}src/platform/android/libexpat/expat/lib"
+                CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-expat-lib=${CFG_BUILD_DIR}src/platform/android/libexpat/.libs"
+                CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-sysroot=${CFG_ANDROID_CROSS_PATH}/sysroot"
+                CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-cache-dir=${CFG_ANDROID_RESOURCE_PATH}/.fccache"
+                CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-confdir=${CFG_ANDROID_RESOURCE_PATH}/.fcconfig"
+                CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-default-fonts=${CFG_ANDROID_FONT_PATH}"
+            else
+                CONFIGURE_ARGS="${CONFIGURE_ARGS} --sysconfdir=/etc"
+                CONFIGURE_ARGS="${CONFIGURE_ARGS} --localstatedir=/var"
+                CONFIGURE_ARGS="${CONFIGURE_ARGS} --disable-docs"
+                CONFIGURE_ARGS="${CONFIGURE_ARGS} --disable-shared" # work around Rust #12557
+                if [ -f /etc/redhat-release ]; then
+                    # Some RedHat-based distros (including our CentOS 6 build machines) are missing
+                    # pkg-config files for expat: https://bugzilla.redhat.com/show_bug.cgi?id=833338
+                    CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-expat=/usr"
+                fi
             fi
-            # --enable-debug isn't supported by fontconfig
-            ENABLE_DEBUG=
-            ;;
-        platform/android/fontconfig)
-            CONFIGURE_SCRIPT="${CFG_SRC_DIR}src/${i}/autogen.sh"
-            CONFIGURE_ARGS="${CONFIGURE_ARGS} --host=arm-linux-androideabi"
-            CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-arch=arm"
-            CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-expat-includes=${CFG_SRC_DIR}src/platform/android/libexpat/expat/lib"
-            CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-expat-lib=${CFG_BUILD_DIR}src/platform/android/libexpat/.libs"
-            CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-sysroot=${CFG_ANDROID_CROSS_PATH}/sysroot"
-            CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-cache-dir=${CFG_ANDROID_RESOURCE_PATH}/.fccache"
-            CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-confdir=${CFG_ANDROID_RESOURCE_PATH}/.fcconfig"
-            CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-default-fonts=${CFG_ANDROID_FONT_PATH}"
             # --enable-debug isn't supported by fontconfig
             ENABLE_DEBUG=
             ;;
@@ -764,7 +762,7 @@ do
     fi
 
     if [ -f ${CONFIGURE_SCRIPT} ]; then
-	(sh -c "${EXTRA_CONFIGURE_ARGS} ${CONFIGURE_SCRIPT} ${CONFIGURE_ARGS}") || exit $?
+    (sh -c "${EXTRA_CONFIGURE_ARGS} ${CONFIGURE_SCRIPT} ${CONFIGURE_ARGS}") || exit $?
     fi
 done
 
