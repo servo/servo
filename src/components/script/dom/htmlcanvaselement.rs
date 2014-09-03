@@ -133,11 +133,11 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLCanvasElement> {
 
         let recreate = match name.as_slice() {
             "width" => {
-                self.width.set(parse_unsigned_integer(value.as_slice().chars()).unwrap());
+                self.width.set(parse_unsigned_integer(value.as_slice().chars()).unwrap_or(DefaultWidth));
                 true
             }
             "height" => {
-                self.height.set(parse_unsigned_integer(value.as_slice().chars()).unwrap());
+                self.height.set(parse_unsigned_integer(value.as_slice().chars()).unwrap_or(DefaultHeight));
                 true
             }
             _ => false,
