@@ -27,8 +27,9 @@ extern crate serialize;
 extern crate sync;
 extern crate servo_msg = "msg";
 
-use actor::ActorRegistry;
+use actor::{Actor, ActorRegistry};
 use actors::console::ConsoleActor;
+use actors::inspector::InspectorActor;
 use actors::root::RootActor;
 use actors::tab::TabActor;
 use protocol::JsonPacketSender;
@@ -36,6 +37,7 @@ use protocol::JsonPacketSender;
 use devtools_traits::{ServerExitMsg, DevtoolsControlMsg, NewGlobal, DevtoolScriptControlMsg};
 use servo_msg::constellation_msg::PipelineId;
 
+use std::cell::RefCell;
 use std::comm;
 use std::comm::{Disconnected, Empty};
 use std::io::{TcpListener, TcpStream};
@@ -49,8 +51,9 @@ mod actor;
 /// Corresponds to http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/
 mod actors {
     pub mod console;
-    pub mod tab;
+    pub mod inspector;
     pub mod root;
+    pub mod tab;
 }
 mod protocol;
 
@@ -76,7 +79,6 @@ fn run_server(port: Receiver<DevtoolsControlMsg>) {
     let mut registry = ActorRegistry::new();
 
     let root = box RootActor {
-        next: 0,
         tabs: vec!(),
     };
 
@@ -136,27 +138,36 @@ fn run_server(port: Receiver<DevtoolsControlMsg>) {
                          sender: Sender<DevtoolScriptControlMsg>) {
         let mut actors = actors.lock();
 
-        let (tab, console) = {
-            let root = actors.find_mut::<RootActor>("root");
-
-            let tab = TabActor {
-                name: format!("tab{}", root.next),
-                title: "".to_string(),
-                url: "about:blank".to_string(),
-            };
+        //TODO: move all this actor creation into a constructor method on TabActor
+        let (tab, console, inspector) = {
             let console = ConsoleActor {
-                name: format!("console{}", root.next),
+                name: actors.new_name("console"),
                 script_chan: sender,
                 pipeline: pipeline,
             };
+            let inspector = InspectorActor {
+                name: actors.new_name("inspector"),
+                walker: RefCell::new(None),
+                pageStyle: RefCell::new(None),
+                highlighter: RefCell::new(None),
+            };
+            //TODO: send along the current page title and URL
+            let tab = TabActor {
+                name: actors.new_name("tab"),
+                title: "".to_string(),
+                url: "about:blank".to_string(),
+                console: console.name(),
+                inspector: inspector.name(),
+            };
 
-            root.next += 1;
+            let root = actors.find_mut::<RootActor>("root");
             root.tabs.push(tab.name.clone());
-            (tab, console)
+            (tab, console, inspector)
         };
 
         actors.register(box tab);
         actors.register(box console);
+        actors.register(box inspector);
     }
 
     //TODO: figure out some system that allows us to watch for new connections,

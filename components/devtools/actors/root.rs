@@ -15,7 +15,9 @@ use std::io::TcpStream;
 
 #[deriving(Encodable)]
 struct ActorTraits {
-    sources: bool
+    sources: bool,
+    highlightable: bool,
+    customHighlighters: Vec<String>,
 }
 
 #[deriving(Encodable)]
@@ -40,7 +42,6 @@ struct RootActorMsg {
 }
 
 pub struct RootActor {
-    pub next: u32,
     pub tabs: Vec<String>,
 }
 
@@ -90,6 +91,8 @@ impl RootActor {
             applicationType: "browser".to_string(),
             traits: ActorTraits {
                 sources: true,
+                highlightable: true,
+                customHighlighters: vec!("BoxModelHighlighter".to_string()),
             },
         }
     }

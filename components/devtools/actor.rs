@@ -6,6 +6,7 @@
 
 use std::any::{Any, AnyRefExt, AnyMutRefExt};
 use std::collections::hashmap::HashMap;
+use std::cell::{Cell, RefCell};
 use std::io::TcpStream;
 use std::mem::{transmute, transmute_copy};
 use std::raw::TraitObject;
@@ -69,6 +70,8 @@ impl<'a> AnyRefExt<'a> for &'a Actor {
 /// A list of known, owned actors.
 pub struct ActorRegistry {
     actors: HashMap<String, Box<Actor+Send+Sized>>,
+    new_actors: RefCell<Vec<Box<Actor+Send+Sized>>>,
+    next: Cell<u32>,
 }
 
 impl ActorRegistry {
@@ -76,12 +79,26 @@ impl ActorRegistry {
     pub fn new() -> ActorRegistry {
         ActorRegistry {
             actors: HashMap::new(),
+            new_actors: RefCell::new(vec!()),
+            next: Cell::new(0),
         }
+    }
+
+    /// Create a unique name based on a monotonically increasing suffix
+    pub fn new_name(&self, prefix: &str) -> String {
+        let suffix = self.next.get();
+        self.next.set(suffix + 1);
+        format!("{:s}{:u}", prefix, suffix)
     }
 
     /// Add an actor to the registry of known actors that can receive messages.
     pub fn register(&mut self, actor: Box<Actor+Send+Sized>) {
         self.actors.insert(actor.name().to_string(), actor);
+    }
+
+    pub fn register_later(&self, actor: Box<Actor+Send+Sized>) {
+        let mut actors = self.new_actors.borrow_mut();
+        actors.push(actor);
     }
 
     /// Find an actor by registered name
@@ -104,7 +121,7 @@ impl ActorRegistry {
 
     /// Attempt to process a message as directed by its `to` property. If the actor is not
     /// found or does not indicate that it knew how to process the message, ignore the failure.
-    pub fn handle_message(&self, msg: &json::Object, stream: &mut TcpStream) {
+    pub fn handle_message(&mut self, msg: &json::Object, stream: &mut TcpStream) {
         let to = msg.find(&"to".to_string()).unwrap().as_string().unwrap();
         match self.actors.find(&to.to_string()) {
             None => println!("message received for unknown actor \"{:s}\"", to),
@@ -116,5 +133,10 @@ impl ActorRegistry {
                 }
             }
         }
+        let mut new_actors = self.new_actors.borrow_mut();
+        for &actor in new_actors.iter() {
+            self.actors.insert(actor.name().to_string(), actor);
+        }
+        new_actors.clear();
     }
 }

@@ -37,18 +37,35 @@ struct ReconfigureReply {
 }
 
 #[deriving(Encodable)]
+struct ListFramesReply {
+    from: String,
+    frames: Vec<FrameMsg>,
+}
+
+#[deriving(Encodable)]
+struct FrameMsg {
+    id: uint,
+    url: String,
+    title: String,
+    parentID: uint,
+}
+
+#[deriving(Encodable)]
 pub struct TabActorMsg {
     actor: String,
     title: String,
     url: String,
     outerWindowID: uint,
     consoleActor: String,
+    inspectorActor: String,
 }
 
 pub struct TabActor {
     pub name: String,
     pub title: String,
     pub url: String,
+    pub console: String,
+    pub inspector: String,
 }
 
 impl Actor for TabActor {
@@ -90,6 +107,16 @@ impl Actor for TabActor {
                 stream.write_json_packet(&msg);
                 true
             }
+
+            "listFrames" => {
+                let msg = ListFramesReply {
+                    from: self.name(),
+                    frames: vec!(),
+                };
+                stream.write_json_packet(&msg);
+                true
+            }
+
             _ => false
         }
     }
@@ -102,7 +129,8 @@ impl TabActor {
             title: self.title.clone(),
             url: self.url.clone(),
             outerWindowID: 0, //FIXME: this should probably be the pipeline id
-            consoleActor: "console0".to_string(), //FIXME: this should be the actual actor name
+            consoleActor: self.console.clone(),
+            inspectorActor: self.inspector.clone(),
         }
     }
 }
