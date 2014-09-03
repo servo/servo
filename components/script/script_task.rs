@@ -162,7 +162,7 @@ pub struct ScriptTask {
     compositor: Box<ScriptListener>,
 
     /// For providing instructions to an optional devtools server.
-    _devtools_chan: Option<DevtoolsControlChan>,
+    devtools_chan: Option<DevtoolsControlChan>,
     /// For receiving commands from an optional devtools server. Will be ignored if
     /// no such server exists.
     devtools_port: DevtoolsControlPort,
@@ -332,7 +332,7 @@ impl ScriptTask {
             control_port: control_port,
             constellation_chan: constellation_chan,
             compositor: compositor,
-            _devtools_chan: devtools_chan,
+            devtools_chan: devtools_chan,
             devtools_port: devtools_receiver,
 
             js_runtime: js_runtime,
@@ -430,7 +430,9 @@ impl ScriptTask {
             unsafe {
                 port1.add();
                 port2.add();
-                port3.add();
+                if self.devtools_chan.is_some() {
+                    port3.add();
+                }
             }
             let ret = sel.wait();
             if ret == port1.id() {
