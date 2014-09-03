@@ -20,6 +20,7 @@ extern crate gfx;
 extern crate layout_traits;
 extern crate script;
 extern crate script_traits;
+extern crate serialize;
 extern crate style;
 #[phase(plugin)]
 extern crate servo_macros = "macros";
@@ -42,6 +43,7 @@ pub mod flow;
 pub mod flow_list;
 pub mod flow_ref;
 pub mod fragment;
+pub mod layout_debug;
 pub mod layout_task;
 pub mod inline;
 pub mod model;

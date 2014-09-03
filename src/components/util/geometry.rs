@@ -7,6 +7,7 @@ use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
 
+use serialize::{Encodable, Encoder};
 use std::default::Default;
 use std::num::{NumCast, One, Zero};
 use std::fmt;
@@ -68,6 +69,12 @@ impl Default for Au {
     #[inline]
     fn default() -> Au {
         Au(0)
+    }
+}
+
+impl<E, S: Encoder<E>> Encodable<S, E> for Au {
+    fn encode(&self, e: &mut S) -> Result<(), E> {
+        e.emit_f64(to_frac_px(*self))
     }
 }
 

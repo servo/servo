@@ -511,6 +511,7 @@ pub struct GlyphStore {
 }
 
 int_range_index! {
+    #[deriving(Encodable)]
     #[doc = "An index that refers to a character in a text run. This could \
              point to the middle of a glyph."]
     struct CharIndex(int)

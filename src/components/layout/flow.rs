@@ -49,6 +49,7 @@ use collections::dlist::DList;
 use geom::Point2D;
 use gfx::display_list::DisplayList;
 use gfx::render_task::RenderLayer;
+use serialize::{Encoder, Encodable};
 use servo_msg::compositor_msg::LayerId;
 use servo_util::geometry::Au;
 use servo_util::logical_geometry::WritingMode;
@@ -73,6 +74,12 @@ pub trait Flow: fmt::Show + ToString + Share {
 
     /// Returns the class of flow that this is.
     fn class(&self) -> FlowClass;
+
+    /// If this is a block flow, returns the underlying object, borrowed immutably. Fails
+    /// otherwise.
+    fn as_immutable_block<'a>(&'a self) -> &'a BlockFlow {
+        fail!("called as_immutable_block() on a non-block flow")
+    }
 
     /// If this is a block flow, returns the underlying object. Fails otherwise.
     fn as_block<'a>(&'a mut self) -> &'a mut BlockFlow {
@@ -270,6 +277,21 @@ pub trait Flow: fmt::Show + ToString + Share {
     }
 }
 
+impl<'a, E, S: Encoder<E>> Encodable<S, E> for &'a Flow {
+    fn encode(&self, e: &mut S) -> Result<(), E> {
+        e.emit_struct("flow", 0, |e| {
+            try!(e.emit_struct_field("class", 0, |e| self.class().encode(e)))
+            e.emit_struct_field("data", 1, |e| {
+                match self.class() {
+                    BlockFlowClass => self.as_immutable_block().encode(e),
+                    InlineFlowClass => self.as_immutable_inline().encode(e),
+                    _ => { Ok(()) } // TODO: Support tables
+                }
+            })
+        })
+    }
+}
+
 // Base access
 
 #[inline(always)]
@@ -381,7 +403,7 @@ pub trait MutableOwnedFlowUtils {
     fn set_abs_descendants(&mut self, abs_descendants: AbsDescendants);
 }
 
-#[deriving(PartialEq, Show)]
+#[deriving(Encodable, PartialEq, Show)]
 pub enum FlowClass {
     BlockFlowClass,
     InlineFlowClass,
@@ -428,7 +450,7 @@ pub trait PostorderFlowTraversal {
 }
 
 /// Flags used in flows, tightly packed to save space.
-#[deriving(Clone)]
+#[deriving(Clone, Encodable)]
 pub struct FlowFlags(pub u8);
 
 /// The bitmask of flags that represent the `has_left_floated_descendants` and
@@ -595,6 +617,7 @@ pub type DescendantOffsetIter<'a> = Zip<DescendantIter<'a>, MutItems<'a, Au>>;
 
 /// Information needed to compute absolute (i.e. viewport-relative) flow positions (not to be
 /// confused with absolutely-positioned flows).
+#[deriving(Encodable)]
 pub struct AbsolutePositionInfo {
     /// The size of the containing block for relatively-positioned descendants.
     pub relative_containing_block_size: LogicalSize<Au>,
@@ -697,6 +720,26 @@ pub struct BaseFlow {
     pub writing_mode: WritingMode,
 }
 
+impl<E, S: Encoder<E>> Encodable<S, E> for BaseFlow {
+    fn encode(&self, e: &mut S) -> Result<(), E> {
+        e.emit_struct("base", 0, |e| {
+            try!(e.emit_struct_field("id", 0, |e| self.debug_id().encode(e)))
+            try!(e.emit_struct_field("abs_position", 1, |e| self.abs_position.encode(e)))
+            try!(e.emit_struct_field("intrinsic_inline_sizes", 2, |e| self.intrinsic_inline_sizes.encode(e)))
+            try!(e.emit_struct_field("position", 3, |e| self.position.encode(e)))
+            e.emit_struct_field("children", 4, |e| {
+                e.emit_seq(self.children.len(), |e| {
+                    for (i, c) in self.children.iter().enumerate() {
+                        try!(e.emit_seq_elt(i, |e| c.encode(e)))
+                    }
+                    Ok(())
+                })
+
+            })
+        })
+    }
+}
+
 #[unsafe_destructor]
 impl Drop for BaseFlow {
     fn drop(&mut self) {
@@ -747,6 +790,10 @@ impl BaseFlow {
 
     pub unsafe fn ref_count<'a>(&'a self) -> &'a AtomicUint {
         &self.ref_count
+    }
+
+    pub fn debug_id(&self) -> String {
+        format!("{:p}", self as *const _)
     }
 }
 
