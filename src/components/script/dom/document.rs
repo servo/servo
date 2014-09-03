@@ -345,7 +345,8 @@ impl<'a> PrivateDocumentHelpers for JSRef<'a, Document> {
 
     fn get_html_element(&self) -> Option<Temporary<HTMLHtmlElement>> {
         self.GetDocumentElement().root().filtered(|root| {
-            root.node.type_id == ElementNodeTypeId(HTMLHtmlElementTypeId)
+            let root: &JSRef<Node> = NodeCast::from_ref(&**root);
+            root.type_id() == ElementNodeTypeId(HTMLHtmlElementTypeId)
         }).map(|elem| {
             Temporary::from_rooted(HTMLHtmlElementCast::to_ref(&*elem).unwrap())
         })

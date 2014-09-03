@@ -76,25 +76,25 @@ pub struct Node {
     pub type_id: NodeTypeId,
 
     /// The parent of this node.
-    pub parent_node: Cell<Option<JS<Node>>>,
+    parent_node: Cell<Option<JS<Node>>>,
 
     /// The first child of this node.
-    pub first_child: Cell<Option<JS<Node>>>,
+    first_child: Cell<Option<JS<Node>>>,
 
     /// The last child of this node.
-    pub last_child: Cell<Option<JS<Node>>>,
+    last_child: Cell<Option<JS<Node>>>,
 
     /// The next sibling of this node.
-    pub next_sibling: Cell<Option<JS<Node>>>,
+    next_sibling: Cell<Option<JS<Node>>>,
 
     /// The previous sibling of this node.
-    pub prev_sibling: Cell<Option<JS<Node>>>,
+    prev_sibling: Cell<Option<JS<Node>>>,
 
     /// The document that this node belongs to.
     owner_doc: Cell<Option<JS<Document>>>,
 
     /// The live list of children return by .childNodes.
-    pub child_list: Cell<Option<JS<NodeList>>>,
+    child_list: Cell<Option<JS<NodeList>>>,
 
     /// A bitfield of flags for node items.
     flags: Traceable<RefCell<NodeFlags>>,
