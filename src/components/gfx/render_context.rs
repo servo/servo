@@ -5,7 +5,7 @@
 use font_context::FontContext;
 use style::computed_values::border_style;
 
-use azure::azure_hl::{B8G8R8A8, Color, ColorPattern, DrawOptions, DrawSurfaceOptions, DrawTarget};
+use azure::azure_hl::{B8G8R8A8, A8, Color, ColorPattern, DrawOptions, DrawSurfaceOptions, DrawTarget};
 use azure::azure_hl::{Linear, SourceOp, StrokeOptions};
 use azure::AZ_CAP_BUTT;
 use azure::AzFloat;
@@ -100,9 +100,11 @@ impl<'a> RenderContext<'a>  {
 
     pub fn draw_image(&self, bounds: Rect<Au>, image: Arc<Box<Image>>) {
         let size = Size2D(image.width as i32, image.height as i32);
-        let (pixel_width, pixels) = match image.pixels {
-            RGBA8(ref pixels) => (4, pixels.as_slice()),
-            RGB8(_) | K8(_) | KA8(_) => fail!("color type not supported"),
+        let (pixel_width, pixels, source_format) = match image.pixels {
+            RGBA8(ref pixels) => (4, pixels.as_slice(), B8G8R8A8),
+            K8(ref pixels) => (1, pixels.as_slice(), A8),
+            RGB8(_) => fail!("RGB8 color type not supported"),
+            KA8(_) => fail!("KA8 color type not supported"),
         };
         let stride = image.width * pixel_width;
 
@@ -111,7 +113,7 @@ impl<'a> RenderContext<'a>  {
         let azure_surface = draw_target_ref.create_source_surface_from_data(pixels,
                                                                             size,
                                                                             stride as i32,
-                                                                            B8G8R8A8);
+                                                                            source_format);
         let source_rect = Rect(Point2D(0u as AzFloat, 0u as AzFloat),
                                Size2D(image.width as AzFloat, image.height as AzFloat));
         let dest_rect = bounds.to_azure_rect();
