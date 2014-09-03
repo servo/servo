@@ -219,7 +219,7 @@ impl Au {
 
     #[inline]
     pub fn from_pt(pt: f64) -> Au {
-        from_px(pt_to_px(pt) as int)
+        from_frac_px(pt_to_px(pt))
     }
 
     #[inline]

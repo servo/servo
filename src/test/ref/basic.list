@@ -106,3 +106,4 @@ experimental == vertical-lr-blocks.html vertical-lr-blocks_ref.html
 flaky_gpu,flaky_linux == acid2_noscroll.html acid2_ref_broken.html
 
 != inline_background_a.html inline_background_ref.html
+== inline_element_border_a.html inline_element_border_ref.html

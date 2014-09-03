@@ -219,6 +219,8 @@ fn capture(reftest: &Reftest, side: uint) -> (u32, u32, Vec<u8>) {
     if reftest.experimental {
         args.push("--experimental".to_string());
     }
+    // Allows pixel perfect rendering of Ahem font for reftests.
+    args.push("--disable-text-aa".to_string());
     args.push_all(["-f".to_string(), "-o".to_string(), filename.clone(),
                    reftest.files[side].clone()]);
 

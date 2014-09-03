@@ -150,7 +150,7 @@ impl FontHandleMethods for FontHandle {
         let em_size = Au::from_frac_px(self.ctfont.pt_size() as f64);
         let leading = self.ctfont.leading() as f64;
 
-        let scale = px_to_pt(self.ctfont.pt_size() as f64) / (self.ctfont.ascent() as f64 + self.ctfont.descent() as f64);
+        let scale = px_to_pt(self.ctfont.pt_size() as f64) / (ascent + descent);
         let line_gap = (ascent + descent + leading + 0.5).floor();
 
         let metrics =  FontMetrics {
@@ -166,12 +166,11 @@ impl FontHandleMethods for FontHandle {
             leading:          Au::from_pt(leading),
             x_height:         Au::from_pt(self.ctfont.x_height() as f64),
             em_size:          em_size,
-            ascent:           Au::from_pt(ascent).scale_by(scale),
-            descent:          Au::from_pt(descent).scale_by(scale),
+            ascent:           Au::from_pt(ascent * scale),
+            descent:          Au::from_pt(descent * scale),
             max_advance:      Au::from_pt(bounding_rect.size.width as f64),
             line_gap:         Au::from_frac_px(line_gap),
         };
-
         debug!("Font metrics (@{:f} pt): {:?}", self.ctfont.pt_size() as f64, metrics);
         return metrics;
     }
