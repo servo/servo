@@ -33,6 +33,8 @@ use std::cell::RefCell;
 use std::comm::{channel, Sender, Receiver};
 use style::Stylesheet;
 use url::{Url, UrlParser};
+use http::headers::HeaderEnum;
+use time;
 
 macro_rules! handle_element(
     ($document: expr,
@@ -156,6 +158,30 @@ fn js_script_listener(to_parent: Sender<HtmlDiscoveryMessage>,
     }
 
     assert!(to_parent.send_opt(HtmlDiscoveredScript(result_vec)).is_ok());
+}
+
+// Parses an RFC 2616 compliant date/time string, and returns a localized
+// date/time string in a format suitable for document.lastModified.
+fn parse_last_modified(timestamp: &str) -> String {
+    let format = "%m/%d/%Y %H:%M:%S";
+
+    // RFC 822, updated by RFC 1123
+    match time::strptime(timestamp, "%a, %d %b %Y %T %Z") {
+        Ok(t) => return t.to_local().strftime(format),
+        Err(_) => ()
+    }
+
+    // RFC 850, obsoleted by RFC 1036
+    match time::strptime(timestamp, "%A, %d-%b-%y %T %Z") {
+        Ok(t) => return t.to_local().strftime(format),
+        Err(_) => ()
+    }
+
+    // ANSI C's asctime() format
+    match time::strptime(timestamp, "%c") {
+        Ok(t) => t.to_local().strftime(format),
+        Err(_) => String::from_str("")
+    }
 }
 
 // Silly macros to handle constructing      DOM nodes. This produces bad code and should be optimized
@@ -322,6 +348,18 @@ pub fn parse_html(page: &Page,
     let load_response = input_port.recv();
 
     debug!("Fetched page; metadata is {:?}", load_response.metadata);
+
+    load_response.metadata.headers.map(|headers| {
+        let header = headers.iter().find(|h|
+            h.header_name().as_slice().to_ascii_lower() == "last-modified".to_string()
+        );
+
+        match header {
+            Some(h) => document.set_last_modified(
+                parse_last_modified(h.header_value().as_slice())),
+            None => {},
+        };
+    });
 
     let base_url = &load_response.metadata.final_url;
 
