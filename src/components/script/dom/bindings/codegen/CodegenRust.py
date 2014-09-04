@@ -377,7 +377,8 @@ class CGMethodCall(CGThing):
         overloadCGThings.append(
             CGSwitch("argcount",
                      argCountCases,
-                     CGGeneric("return 0; //XXXjdm throw stuff\n//return ThrowErrorMessage(cx, MSG_MISSING_ARGUMENTS, %s);\n" % methodName)))
+                     CGGeneric("throw_type_error(cx, \"Not enough arguments to %s.\");\n"
+                               "return 0;\n" % methodName)))
         #XXXjdm Avoid unreachable statement warnings
         #overloadCGThings.append(
         #    CGGeneric('fail!("We have an always-returning default case");\n'
@@ -520,15 +521,14 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         return CGWrapper(
             CGGeneric(
                 failureCode or
-                ('//XXXjdm ThrowErrorMessage(cx, MSG_DOES_NOT_IMPLEMENT_INTERFACE, "%s", "%s")\n;'
-                 '%s' % (firstCap(sourceDescription), typeName,
-                         exceptionCode))),
+                ('throw_type_error(cx, \"Value does not implement interface %s.\");\n'
+                 '%s' % (typeName, exceptionCode))),
             post="\n")
     def onFailureNotCallable(failureCode):
         return CGWrapper(
             CGGeneric(
                 failureCode or
-                ('//XXXjdm ThrowErrorMessage(cx, MSG_NOT_CALLABLE, "%s");\n'
+                ('throw_type_error(cx, \"Value %s is not callable.\");\n'
                  '%s' % (firstCap(sourceDescription), exceptionCode))),
             post="\n")
 
@@ -2656,7 +2656,7 @@ class CGStaticSetter(CGAbstractStaticBindingMethod):
         checkForArg = CGGeneric(
             "let argv = JS_ARGV(cx, vp);\n"
             "if (argc == 0) {\n"
-            "  // XXXjdmreturn ThrowErrorMessage(cx, MSG_MISSING_ARGUMENTS, \"%s setter\");\n"
+            "  throw_type_error(cx, \"Not enough arguments to %s setter.\");\n"
             "  return 0;\n"
             "}\n" % self.attr.identifier.name)
         call = CGSetterCall([], self.attr.type, nativeName, self.descriptor,
@@ -4311,7 +4311,7 @@ class CGDictionary(CGThing):
             "    } else if val.is_object() {\n"
             "        val.to_object()\n"
             "    } else {\n"
-            "        //XXXjdm throw properly here\n"
+            "        throw_type_error(cx, \"Value not an object.\");\n"
             "        return Err(());\n"
             "    };\n"
             "    Ok(${selfName} {\n"
