@@ -61,10 +61,6 @@
 [submodule "src/platform/linux/rust-xlib"]
 	path = src/platform/linux/rust-xlib
 	url = https://github.com/servo/rust-xlib.git
-[submodule "src/platform/linux/fontconfig"]
-	path = src/platform/linux/fontconfig
-	url = https://github.com/servo/fontconfig.git
-	ignore = dirty
 [submodule "src/support/skia/skia"]
 	path = src/support/skia/skia
 	url = https://github.com/servo/skia.git
@@ -86,9 +82,6 @@
 [submodule "src/support/png/libpng"]
 	path = src/support/png/libpng
 	url = https://github.com/servo/libpng.git
-[submodule "src/platform/android/fontconfig"]
-	path = src/platform/android/fontconfig
-	url = https://github.com/servo/fontconfig.git
 [submodule "src/platform/android/libexpat"]
 	path = src/platform/android/libexpat
 	url = https://github.com/servo/libexpat.git
@@ -127,3 +120,6 @@
 [submodule "src/support/ssl/rust-openssl"]
 	path = src/support/ssl/rust-openssl
 	url = https://github.com/servo/rust-openssl.git
+[submodule "src/platform/fontconfig/fontconfig"]
+	path = src/platform/fontconfig/fontconfig
+	url = https://github.com/servo/fontconfig.git
