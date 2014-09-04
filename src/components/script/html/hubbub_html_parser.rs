@@ -398,19 +398,16 @@ pub fn parse_html(page: &Page,
 
     debug!("Fetched page; metadata is {:?}", load_response.metadata);
 
-    // Set document.lastModified to the parsed Last-Modified header, defaulting
-    // to the current local time if the header was not sent.
     load_response.metadata.headers.map(|headers| {
         let header = headers.iter().find(|h|
             h.header_name().as_slice().to_ascii_lower() == "last-modified".to_string()
         );
 
-        let last_modified_time = match header {
-            Some(h) => parse_last_modified(h.header_value().as_slice()),
-            None => time::now().strftime("%m/%d/%Y %H:%M:%S"),
+        match header {
+            Some(h) => document.set_last_modified(
+                parse_last_modified(h.header_value().as_slice())),
+            None => {},
         };
-
-        document.set_last_modified(last_modified_time);
     });
 
     let base_url = &load_response.metadata.final_url;

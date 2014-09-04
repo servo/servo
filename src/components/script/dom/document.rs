@@ -75,7 +75,7 @@ pub struct Document {
     idmap: Traceable<RefCell<HashMap<DOMString, Vec<JS<Element>>>>>,
     implementation: Cell<Option<JS<DOMImplementation>>>,
     content_type: DOMString,
-    last_modified: Traceable<RefCell<DOMString>>,
+    last_modified: Traceable<RefCell<Option<DOMString>>>,
     pub encoding_name: Traceable<RefCell<DOMString>>,
     pub is_html_document: bool,
     url: Untraceable<Url>,
@@ -172,7 +172,7 @@ impl<'a> DocumentHelpers for JSRef<'a, Document> {
     }
 
     fn set_last_modified(&self, value: DOMString) {
-        *self.last_modified.deref().borrow_mut() = value;
+        *self.last_modified.deref().borrow_mut() = Some(value);
     }
 
     fn set_encoding_name(&self, name: DOMString) {
@@ -285,7 +285,7 @@ impl Document {
                     NonHTMLDocument => "application/xml".to_string()
                 }
             },
-            last_modified: Traceable::new(RefCell::new(time::now().strftime("%m/%d/%Y %H:%M:%S"))),
+            last_modified: Traceable::new(RefCell::new(None)),
             url: Untraceable::new(url),
             // http://dom.spec.whatwg.org/#concept-document-quirks
             quirks_mode: Untraceable::new(Cell::new(NoQuirks)),
@@ -578,7 +578,10 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     // http://www.whatwg.org/html/#dom-document-lastmodified
     fn LastModified(&self) -> DOMString {
-        String::from_str(self.last_modified.deref().borrow().as_slice())
+        match self.last_modified.deref().clone().unwrap() {
+            Some(t) => String::from_str(t.as_slice()),
+            None => time::now().strftime("%m/%d/%Y %H:%M:%S"),
+        }
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createrange
