@@ -907,7 +907,7 @@ impl Flow for InlineFlow {
     }
 
     fn bubble_inline_sizes(&mut self, _: &LayoutContext) {
-        let _scope = layout_debug::Scope::new(format!("inline::bubble_inline_sizes {:s}", self.base.debug_id()));
+        let _scope = layout_debug_scope!("inline::bubble_inline_sizes {:s}", self.base.debug_id());
 
         let writing_mode = self.base.writing_mode;
         for kid in self.base.child_iter() {
@@ -934,7 +934,7 @@ impl Flow for InlineFlow {
     /// Recursively (top-down) determines the actual inline-size of child contexts and fragments. When called
     /// on this context, the context has had its inline-size set by the parent context.
     fn assign_inline_sizes(&mut self, _: &LayoutContext) {
-        let _scope = layout_debug::Scope::new(format!("inline::assign_inline_sizes {:s}", self.base.debug_id()));
+        let _scope = layout_debug_scope!("inline::assign_inline_sizes {:s}", self.base.debug_id());
 
         // Initialize content fragment inline-sizes if they haven't been initialized already.
         //
@@ -964,8 +964,7 @@ impl Flow for InlineFlow {
 
     /// Calculate and set the block-size of this flow. See CSS 2.1 § 10.6.1.
     fn assign_block_size(&mut self, ctx: &LayoutContext) {
-        let _scope = layout_debug::Scope::new(format!("inline::assign_block_size {:s}", self.base.debug_id()));
-        debug!("assign_block_size_inline: assigning block_size for flow");
+        let _scope = layout_debug_scope!("inline::assign_block_size {:s}", self.base.debug_id());
 
         // Divide the fragments into lines.
         //

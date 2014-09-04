@@ -35,6 +35,9 @@ extern crate libc;
 extern crate sync;
 extern crate url;
 
+// Listed first because of macro definitions
+pub mod layout_debug;
+
 pub mod block;
 pub mod construct;
 pub mod context;
@@ -43,7 +46,6 @@ pub mod flow;
 pub mod flow_list;
 pub mod flow_ref;
 pub mod fragment;
-pub mod layout_debug;
 pub mod layout_task;
 pub mod inline;
 pub mod model;

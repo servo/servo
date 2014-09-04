@@ -5,6 +5,8 @@
 //! Supports writing a trace file created during each layout scope
 //! that can be viewed by an external tool to make layout debugging easier.
 
+#![macro_escape]
+
 use flow_ref::FlowRef;
 use serialize::json;
 use std::cell::RefCell;
@@ -16,6 +18,17 @@ local_data_key!(state_key: RefCell<State>)
 static mut DEBUG_ID_COUNTER: AtomicUint = INIT_ATOMIC_UINT;
 
 pub struct Scope;
+
+#[macro_export]
+macro_rules! layout_debug_scope(
+    ($($arg:tt)*) => (
+        if cfg!(not(ndebug)) {
+            layout_debug::Scope::new(format!($($arg)*))
+        } else {
+            layout_debug::Scope
+        }
+    )
+)
 
 #[deriving(Encodable)]
 struct ScopeData {
@@ -59,6 +72,7 @@ impl Scope {
     }
 }
 
+#[cfg(not(ndebug))]
 impl Drop for Scope {
     fn drop(&mut self) {
         let maybe_refcell = state_key.get();

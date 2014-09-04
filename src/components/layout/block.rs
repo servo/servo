@@ -811,7 +811,7 @@ impl BlockFlow {
     pub fn assign_block_size_block_base<'a>(&mut self,
                                     layout_context: &'a LayoutContext<'a>,
                                     margins_may_collapse: MarginsMayCollapseFlag) {
-        let _scope = layout_debug::Scope::new(format!("assign_block_size_block_base {:s}", self.base.debug_id()));
+        let _scope = layout_debug_scope!("assign_block_size_block_base {:s}", self.base.debug_id());
 
         // Our current border-box position.
         let mut cur_b = Au(0);
@@ -1059,7 +1059,7 @@ impl BlockFlow {
     ///
     /// It does not calculate the block-size of the flow itself.
     pub fn assign_block_size_float<'a>(&mut self, ctx: &'a LayoutContext<'a>) {
-        let _scope = layout_debug::Scope::new(format!("assign_block_size_float {:s}", self.base.debug_id()));
+        let _scope = layout_debug_scope!("assign_block_size_float {:s}", self.base.debug_id());
 
         let mut floats = Floats::new(self.fragment.style.writing_mode);
         for kid in self.base.child_iter() {
@@ -1457,7 +1457,7 @@ impl Flow for BlockFlow {
     ///
     /// TODO(pcwalton): Inline blocks.
     fn bubble_inline_sizes(&mut self, _: &LayoutContext) {
-        let _scope = layout_debug::Scope::new(format!("block::bubble_inline_sizes {:s}", self.base.debug_id()));
+        let _scope = layout_debug_scope!("bubble_inline_sizes {:s}", self.base.debug_id());
 
         let mut flags = self.base.flags;
         flags.set_has_left_floated_descendants(false);
@@ -1503,7 +1503,7 @@ impl Flow for BlockFlow {
     /// Dual fragments consume some inline-size first, and the remainder is assigned to all child (block)
     /// contexts.
     fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
-        let _scope = layout_debug::Scope::new(format!("block::assign_inline_sizes {:s}", self.base.debug_id()));
+        let _scope = layout_debug_scope!("block::assign_inline_sizes {:s}", self.base.debug_id());
 
         debug!("assign_inline_sizes({}): assigning inline_size for flow",
                if self.is_float() {

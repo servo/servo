@@ -531,7 +531,7 @@ impl LayoutTask {
     fn solve_constraints<'a>(&mut self,
                          layout_root: &mut Flow,
                          layout_context: &'a LayoutContext<'a>) {
-        let _scope = layout_debug::Scope::new("solve_constraints".to_string());
+        let _scope = layout_debug_scope!("solve_constraints");
 
         if layout_context.shared.opts.bubble_inline_sizes_separately {
             let mut traversal = BubbleISizesTraversal {
