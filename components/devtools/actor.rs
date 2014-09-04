@@ -71,6 +71,7 @@ impl<'a> AnyRefExt<'a> for &'a Actor {
 pub struct ActorRegistry {
     actors: HashMap<String, Box<Actor+Send+Sized>>,
     new_actors: RefCell<Vec<Box<Actor+Send+Sized>>>,
+    script_actors: RefCell<HashMap<String, String>>,
     next: Cell<u32>,
 }
 
@@ -80,8 +81,36 @@ impl ActorRegistry {
         ActorRegistry {
             actors: HashMap::new(),
             new_actors: RefCell::new(vec!()),
+            script_actors: RefCell::new(HashMap::new()),
             next: Cell::new(0),
         }
+    }
+
+    pub fn register_script_actor(&self, script_id: String, actor: String) {
+        println!("registering {:s} ({:s})", actor.as_slice(), script_id.as_slice());
+        let mut script_actors = self.script_actors.borrow_mut();
+        script_actors.insert(script_id, actor);
+    }
+
+    pub fn script_to_actor(&self, script_id: String) -> String {
+        if script_id.as_slice() == "" {
+            return "".to_string();
+        }
+        self.script_actors.borrow().find(&script_id).unwrap().to_string()
+    }
+
+    pub fn script_actor_registered(&self, script_id: String) -> bool {
+        self.script_actors.borrow().contains_key(&script_id)
+    }
+
+    pub fn actor_to_script(&self, actor: String) -> String {
+        for (key, value) in self.script_actors.borrow().iter() {
+            println!("checking {:s}", value.as_slice());
+            if value.as_slice() == actor.as_slice() {
+                return key.to_string();
+            }
+        }
+        fail!("couldn't find actor named {:s}", actor)
     }
 
     /// Create a unique name based on a monotonically increasing suffix

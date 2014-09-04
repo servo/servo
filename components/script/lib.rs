@@ -40,6 +40,7 @@ extern crate style;
 extern crate sync;
 extern crate servo_msg = "msg";
 extern crate url;
+extern crate uuid;
 
 pub mod cors;
 

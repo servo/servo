@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use devtools_traits::AttrInfo;
 use dom::bindings::codegen::Bindings::AttrBinding;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::InheritTypes::NodeCast;
@@ -149,6 +150,7 @@ pub trait AttrHelpers {
     fn set_value(&self, set_type: AttrSettingType, value: AttrValue);
     fn value<'a>(&'a self) -> Ref<'a, AttrValue>;
     fn local_name<'a>(&'a self) -> &'a Atom;
+    fn summarize(&self) -> AttrInfo;
 }
 
 impl<'a> AttrHelpers for JSRef<'a, Attr> {
@@ -183,6 +185,14 @@ impl<'a> AttrHelpers for JSRef<'a, Attr> {
 
     fn local_name<'a>(&'a self) -> &'a Atom {
         &self.local_name
+    }
+
+    fn summarize(&self) -> AttrInfo {
+        AttrInfo {
+            namespace: self.GetNamespaceURI().unwrap_or("".to_string()),
+            name: self.Name(),
+            value: self.Value(),
+        }
     }
 }
 

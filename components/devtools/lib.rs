@@ -142,7 +142,7 @@ fn run_server(port: Receiver<DevtoolsControlMsg>) {
         let (tab, console, inspector) = {
             let console = ConsoleActor {
                 name: actors.new_name("console"),
-                script_chan: sender,
+                script_chan: sender.clone(),
                 pipeline: pipeline,
             };
             let inspector = InspectorActor {
@@ -150,6 +150,8 @@ fn run_server(port: Receiver<DevtoolsControlMsg>) {
                 walker: RefCell::new(None),
                 pageStyle: RefCell::new(None),
                 highlighter: RefCell::new(None),
+                script_chan: sender,
+                pipeline: pipeline,
             };
             //TODO: send along the current page title and URL
             let tab = TabActor {

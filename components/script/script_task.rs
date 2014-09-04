@@ -5,6 +5,7 @@
 //! The script task is the task that owns the DOM in memory, runs JavaScript, and spawns parsing
 //! and layout tasks.
 
+use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, EventCast};
 use dom::bindings::conversions;
 use dom::bindings::conversions::{FromJSValConvertible, Empty};
@@ -33,8 +34,9 @@ use layout_interface;
 use page::{Page, IterablePage, Frame};
 
 use devtools_traits;
-use devtools_traits::{DevtoolsControlChan, DevtoolsControlPort, NewGlobal};
-use devtools_traits::{DevtoolScriptControlMsg, EvaluateJS, EvaluateJSReply};
+use devtools_traits::{DevtoolsControlChan, DevtoolsControlPort, NewGlobal, NodeInfo, GetRootNode};
+use devtools_traits::{DevtoolScriptControlMsg, EvaluateJS, EvaluateJSReply, GetDocumentElement};
+use devtools_traits::{GetChildren};
 use script_traits::{CompositorEvent, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent};
 use script_traits::{MouseMoveEvent, MouseUpEvent, ConstellationControlMsg, ScriptTaskFactory};
 use script_traits::{ResizeMsg, AttachLayoutMsg, LoadMsg, SendEventMsg, ResizeInactiveMsg};
@@ -501,6 +503,9 @@ impl ScriptTask {
                 FromScript(WorkerPostMessage(addr, data, nbytes)) => Worker::handle_message(addr, data, nbytes),
                 FromScript(WorkerRelease(addr)) => Worker::handle_release(addr),
                 FromDevtools(EvaluateJS(id, s, reply)) => self.handle_evaluate_js(id, s, reply),
+                FromDevtools(GetRootNode(id, reply)) => self.handle_get_root_node(id, reply),
+                FromDevtools(GetDocumentElement(id, reply)) => self.handle_get_document_element(id, reply),
+                FromDevtools(GetChildren(id, node_id, reply)) => self.handle_get_children(id, node_id, reply),
             }
         }
 
@@ -528,6 +533,47 @@ impl ScriptTask {
             assert!(rval.is_object_or_null());
             fail!("object values unimplemented")
         });
+    }
+
+    fn handle_get_root_node(&self, pipeline: PipelineId, reply: Sender<NodeInfo>) {
+        let page = get_page(&*self.page.borrow(), pipeline);
+        let frame = page.frame();
+        let document = frame.get_ref().document.root();
+
+        let node: &JSRef<Node> = NodeCast::from_ref(&*document);
+        reply.send(node.summarize());
+    }
+
+    fn handle_get_document_element(&self, pipeline: PipelineId, reply: Sender<NodeInfo>) {
+        let page = get_page(&*self.page.borrow(), pipeline);
+        let frame = page.frame();
+        let document = frame.get_ref().document.root();
+        let document_element = document.GetDocumentElement().root().unwrap();
+
+        let node: &JSRef<Node> = NodeCast::from_ref(&*document_element);
+        reply.send(node.summarize());
+    }
+
+    fn handle_get_children(&self, pipeline: PipelineId, node_id: String, reply: Sender<Vec<NodeInfo>>) {
+        let page = get_page(&*self.page.borrow(), pipeline);
+        let frame = page.frame();
+        let document = frame.get_ref().document.root();
+        let node: &JSRef<Node> = NodeCast::from_ref(&*document);
+
+        let mut children = vec!();
+        let mut found_parent = false;
+        for candidate in node.traverse_preorder() {
+            if candidate.get_unique_id().as_slice() == node_id.as_slice() {
+                found_parent = true;
+                for kid in candidate.children() {
+                    children.push(kid.summarize());
+                }
+                break;
+            }
+        }
+
+        assert!(found_parent);
+        reply.send(children);
     }
 
     fn handle_new_layout(&self, new_layout_info: NewLayoutInfo) {

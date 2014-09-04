@@ -4,9 +4,13 @@
 
 /// Liberally derived from the [Firefox JS implementation](http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/inspector.js).
 
+use devtools_traits::{GetRootNode, GetDocumentElement, GetChildren, DevtoolScriptControlMsg};
+use devtools_traits::NodeInfo;
+
 use actor::{Actor, ActorRegistry};
 use protocol::JsonPacketSender;
 
+use servo_msg::constellation_msg::PipelineId;
 use serialize::json;
 use std::cell::RefCell;
 use std::io::TcpStream;
@@ -16,6 +20,8 @@ pub struct InspectorActor {
     pub walker: RefCell<Option<String>>,
     pub pageStyle: RefCell<Option<String>>,
     pub highlighter: RefCell<Option<String>>,
+    pub script_chan: Sender<DevtoolScriptControlMsg>,
+    pub pipeline: PipelineId,
 }
 
 #[deriving(Encodable)]
@@ -122,8 +128,59 @@ struct NodeActorMsg {
     incompleteValue: bool,
 }
 
+trait NodeInfoToProtocol {
+    fn encode(self, actors: &ActorRegistry, display: bool) -> NodeActorMsg;
+}
+
+impl NodeInfoToProtocol for NodeInfo {
+    fn encode(self, actors: &ActorRegistry, display: bool) -> NodeActorMsg {
+        let actor_name = if !actors.script_actor_registered(self.uniqueId.clone()) {
+            let name = actors.new_name("node");
+            actors.register_script_actor(self.uniqueId, name.clone());
+            name
+        } else {
+            actors.script_to_actor(self.uniqueId)
+        };
+
+        NodeActorMsg {
+            actor: actor_name,
+            baseURI: self.baseURI,
+            parent: actors.script_to_actor(self.parent.clone()),
+            nodeType: self.nodeType,
+            namespaceURI: self.namespaceURI,
+            nodeName: self.nodeName,
+            numChildren: self.numChildren,
+
+            name: self.name,
+            publicId: self.publicId,
+            systemId: self.systemId,
+
+            attrs: self.attrs.move_iter().map(|attr| {
+                AttrMsg {
+                    namespace: attr.namespace,
+                    name: attr.name,
+                    value: attr.value,
+                }
+            }).collect(),
+
+            pseudoClassLocks: vec!(), //TODO get this data from script
+
+            isDisplayed: display,
+
+            hasEventListeners: false, //TODO get this data from script
+
+            isDocumentElement: self.isDocumentElement,
+
+            shortValue: self.shortValue,
+            incompleteValue: self.incompleteValue,
+        }
+    }
+}
+
 struct WalkerActor {
     name: String,
+    script_chan: Sender<DevtoolScriptControlMsg>,
+    pipeline: PipelineId,
 }
 
 #[deriving(Encodable)]
@@ -156,9 +213,9 @@ impl Actor for WalkerActor {
     }
 
     fn handle_message(&self,
-                      _registry: &ActorRegistry,
+                      registry: &ActorRegistry,
                       msg_type: &String,
-                      _msg: &json::Object,
+                      msg: &json::Object,
                       stream: &mut TcpStream) -> bool {
         match msg_type.as_slice() {
             "querySelector" => {
@@ -170,38 +227,15 @@ impl Actor for WalkerActor {
             }
 
             "documentElement" => {
+                let (tx, rx) = channel();
+                self.script_chan.send(GetDocumentElement(self.pipeline, tx));
+                let doc_elem_info = rx.recv();
+
+                let node = doc_elem_info.encode(registry, true);
+
                 let msg = DocumentElementReply {
                     from: self.name(),
-                    node: NodeActorMsg {
-                        actor: "node0".to_string(),
-                        baseURI: "".to_string(),
-                        parent: "".to_string(),
-                        nodeType: 1, //ELEMENT_NODE
-                        namespaceURI: "".to_string(),
-                        nodeName: "html".to_string(),
-                        numChildren: 0,
-
-                        name: "".to_string(),
-                        publicId: "".to_string(),
-                        systemId: "".to_string(),
-
-                        attrs: vec!(AttrMsg {
-                            namespace: "".to_string(),
-                            name: "manifest".to_string(),
-                            value: "foo.manifest".to_string(),
-                        }),
-
-                        pseudoClassLocks: vec!(),
-
-                        isDisplayed: true,
-
-                        hasEventListeners: false,
-
-                        isDocumentElement: true,
-
-                        shortValue: "".to_string(),
-                        incompleteValue: false,
-                    }
+                    node: node,
                 };
                 stream.write_json_packet(&msg);
                 true
@@ -216,36 +250,25 @@ impl Actor for WalkerActor {
             }
 
             "children" => {
+                let target = msg.find(&"node".to_string()).unwrap().as_string().unwrap();
+                let (tx, rx) = channel();
+                self.script_chan.send(GetChildren(self.pipeline,
+                                                  registry.actor_to_script(target.to_string()),
+                                                  tx));
+                let children = rx.recv();
+
                 let msg = ChildrenReply {
                     hasFirst: true,
                     hasLast: true,
-                    nodes: vec!(),
+                    nodes: children.move_iter().map(|child| {
+                        child.encode(registry, true)
+                    }).collect(),
                     from: self.name(),
                 };
                 stream.write_json_packet(&msg);
                 true
             }
 
-            _ => false,
-        }
-    }
-}
-
-struct NodeActor {
-    name: String,
-}
-
-impl Actor for NodeActor {
-    fn name(&self) -> String {
-        self.name.clone()
-    }
-
-    fn handle_message(&self,
-                      _registry: &ActorRegistry,
-                      msg_type: &String,
-                      _msg: &json::Object,
-                      _stream: &mut TcpStream) -> bool {
-        match msg_type.as_slice() {
             _ => false,
         }
     }
@@ -367,50 +390,19 @@ impl Actor for InspectorActor {
                 if self.walker.borrow().is_none() {
                     let walker = WalkerActor {
                         name: registry.new_name("walker"),
+                        script_chan: self.script_chan.clone(),
+                        pipeline: self.pipeline,
                     };
                     let mut walker_name = self.walker.borrow_mut();
                     *walker_name = Some(walker.name());
                     registry.register_later(box walker);
                 }
 
-                let node = NodeActor {
-                    name: registry.new_name("node"),
-                };
-                let node_actor_name = node.name();
-                registry.register_later(box node);
+                let (tx, rx) = channel();
+                self.script_chan.send(GetRootNode(self.pipeline, tx));
+                let root_info = rx.recv();
 
-                //TODO: query script for actual root node
-                //TODO: extra node actor creation
-                let node = NodeActorMsg {
-                    actor: node_actor_name,
-                    baseURI: "".to_string(),
-                    parent: "".to_string(),
-                    nodeType: 1, //ELEMENT_NODE
-                    namespaceURI: "".to_string(),
-                    nodeName: "html".to_string(),
-                    numChildren: 1,
-
-                    name: "".to_string(),
-                    publicId: "".to_string(),
-                    systemId: "".to_string(),
-
-                    attrs: vec!(AttrMsg {
-                        namespace: "".to_string(),
-                        name: "manifest".to_string(),
-                        value: "foo.manifest".to_string(),
-                    }),
-
-                    pseudoClassLocks: vec!(),
-
-                    isDisplayed: true,
-
-                    hasEventListeners: false,
-
-                    isDocumentElement: true,
-
-                    shortValue: "".to_string(),
-                    incompleteValue: false,
-                };
+                let node = root_info.encode(registry, false);
 
                 let msg = GetWalkerReply {
                     from: self.name(),

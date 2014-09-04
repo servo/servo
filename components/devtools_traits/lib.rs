@@ -37,9 +37,39 @@ pub enum EvaluateJSReply {
     ActorValue(String),
 }
 
+pub struct AttrInfo {
+    pub namespace: String,
+    pub name: String,
+    pub value: String,
+}
+
+pub struct NodeInfo {
+    pub uniqueId: String,
+    pub baseURI: String,
+    pub parent: String,
+    pub nodeType: uint,
+    pub namespaceURI: String,
+    pub nodeName: String,
+    pub numChildren: uint,
+
+    pub name: String,
+    pub publicId: String,
+    pub systemId: String,
+
+    pub attrs: Vec<AttrInfo>,
+
+    pub isDocumentElement: bool,
+
+    pub shortValue: String,
+    pub incompleteValue: bool,
+}
+
 /// Messages to process in a particular script task, as instructed by a devtools client.
 pub enum DevtoolScriptControlMsg {
     EvaluateJS(PipelineId, String, Sender<EvaluateJSReply>),
+    GetRootNode(PipelineId, Sender<NodeInfo>),
+    GetDocumentElement(PipelineId, Sender<NodeInfo>),
+    GetChildren(PipelineId, String, Sender<Vec<NodeInfo>>),
 }
 
 /// Messages to instruct devtools server to update its state relating to a particular
