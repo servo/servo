@@ -19,12 +19,11 @@ use dom::node::{Node, ElementNodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 
 use servo_util::atom::Atom;
-use servo_util::str::DOMString;
+use servo_util::str::{DOMString, parse_unsigned_integer};
 
 use geom::size::Size2D;
 
 use std::cell::Cell;
-use std::num;
 
 static DefaultWidth: u32 = 300;
 static DefaultHeight: u32 = 150;
@@ -134,11 +133,11 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLCanvasElement> {
 
         let recreate = match name.as_slice() {
             "width" => {
-                self.width.set(num::from_str_radix(value.as_slice(), 10).unwrap());
+                self.width.set(parse_unsigned_integer(value.as_slice().chars()).unwrap_or(DefaultWidth));
                 true
             }
             "height" => {
-                self.height.set(num::from_str_radix(value.as_slice(), 10).unwrap());
+                self.height.set(parse_unsigned_integer(value.as_slice().chars()).unwrap_or(DefaultHeight));
                 true
             }
             _ => false,

@@ -46,3 +46,64 @@ pub static HTML_SPACE_CHARACTERS: StaticCharVec = &[
 pub fn split_html_space_chars<'a>(s: &'a str) -> Filter<'a, &'a str, CharSplits<'a, StaticCharVec>> {
     s.split(HTML_SPACE_CHARACTERS).filter(|&split| !split.is_empty())
 }
+
+/// Shared implementation to parse an integer according to
+/// <http://www.whatwg.org/html/#rules-for-parsing-integers> or
+/// <http://www.whatwg.org/html/#rules-for-parsing-non-negative-integers>.
+fn do_parse_integer<T: Iterator<char>>(input: T) -> Option<i64> {
+    fn as_ascii_digit(c: char) -> Option<i64> {
+        match c {
+            '0'..'9' => Some(c as i64 - '0' as i64),
+            _ => None,
+        }
+    }
+
+
+    let mut input = input.skip_while(|c| {
+        HTML_SPACE_CHARACTERS.iter().any(|s| s == c)
+    }).peekable();
+
+    let sign = match input.peek() {
+        None => return None,
+        Some(&'-') => {
+            input.next();
+            -1
+        },
+        Some(&'+') => {
+            input.next();
+            1
+        },
+        Some(_) => 1,
+    };
+
+    match input.peek() {
+        Some(&c) if as_ascii_digit(c).is_some() => (),
+        _ => return None,
+    }
+
+    let value = input.filter_map(as_ascii_digit).fuse().fold(Some(0i64), |accumulator, d| {
+        accumulator.and_then(|accumulator| {
+            accumulator.checked_mul(&10)
+        }).and_then(|accumulator| {
+            accumulator.checked_add(&d)
+        })
+    });
+
+    return value.and_then(|value| value.checked_mul(&sign));
+}
+
+/// Parse an integer according to
+/// <http://www.whatwg.org/html/#rules-for-parsing-integers>.
+pub fn parse_integer<T: Iterator<char>>(input: T) -> Option<i32> {
+    do_parse_integer(input).and_then(|result| {
+        result.to_i32()
+    })
+}
+
+/// Parse an integer according to
+/// <http://www.whatwg.org/html/#rules-for-parsing-non-negative-integers>.
+pub fn parse_unsigned_integer<T: Iterator<char>>(input: T) -> Option<u32> {
+    do_parse_integer(input).and_then(|result| {
+        result.to_u32()
+    })
+}
