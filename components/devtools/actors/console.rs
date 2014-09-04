@@ -237,9 +237,9 @@ impl Actor for ConsoleActor {
                         } else if val.is_infinite() {
                             let mut m = TreeMap::new();
                             if val < 0. {
-                                m.insert("type".to_string(), "Infinity".to_string().to_json());
-                            } else {
                                 m.insert("type".to_string(), "-Infinity".to_string().to_json());
+                            } else {
+                                m.insert("type".to_string(), "Infinity".to_string().to_json());
                             }
                             json::Object(m)
                         } else if val == Float::neg_zero() {

@@ -4,7 +4,6 @@
 
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
-use devtools_traits::NodeInfo;
 use dom::attr::{Attr, AttrHelpers};
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
@@ -48,6 +47,7 @@ use geom::rect::Rect;
 use html::hubbub_html_parser::build_element_from_tag;
 use layout_interface::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC,
                        LayoutChan, ReapLayoutDataMsg, TrustedNodeAddress, UntrustedNodeAddress};
+use devtools_traits::NodeInfo;
 use servo_util::geometry::Au;
 use servo_util::str::{DOMString, null_str_as_empty};
 use style::{parse_selector_list_from_str, matches};
@@ -702,7 +702,7 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
     }
 
     fn summarize(&self) -> NodeInfo {
-        if self.unique_id.borrow().as_slice() == "" {
+        if self.unique_id.borrow().is_empty() {
             let mut unique_id = self.unique_id.borrow_mut();
             *unique_id = uuid::Uuid::new_v4().to_simple_str();
         }
@@ -710,7 +710,7 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
         NodeInfo {
             uniqueId: self.unique_id.borrow().clone(),
             baseURI: self.GetBaseURI().unwrap_or("".to_string()),
-            parent: self.GetParentNode().root().map(|node| node.unique_id.borrow().clone()).unwrap_or("".to_string()),
+            parent: self.GetParentNode().root().map(|node| node.get_unique_id()).unwrap_or("".to_string()),
             nodeType: self.NodeType() as uint,
             namespaceURI: "".to_string(), //FIXME
             nodeName: self.NodeName(),
@@ -722,16 +722,8 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
             systemId: "".to_string(),
 
             attrs: if self.is_element() {
-                let mut summarized = vec!();
                 let elem: &JSRef<Element> = ElementCast::to_ref(self).unwrap();
-                let attrs = elem.Attributes().root();
-                let mut i = 0;
-                while i < attrs.Length() {
-                    let attr = attrs.Item(i).unwrap().root();
-                    summarized.push(attr.summarize());
-                    i += 1;
-                }
-                summarized
+                elem.summarize()
             } else {
                 vec!()
             },

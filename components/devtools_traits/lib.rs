@@ -70,6 +70,7 @@ pub enum DevtoolScriptControlMsg {
     GetRootNode(PipelineId, Sender<NodeInfo>),
     GetDocumentElement(PipelineId, Sender<NodeInfo>),
     GetChildren(PipelineId, String, Sender<Vec<NodeInfo>>),
+    GetLayout(PipelineId, String, Sender<(f32, f32)>),
 }
 
 /// Messages to instruct devtools server to update its state relating to a particular

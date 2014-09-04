@@ -5,13 +5,15 @@
 /// Liberally derived from the [Firefox JS implementation](http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/inspector.js).
 
 use devtools_traits::{GetRootNode, GetDocumentElement, GetChildren, DevtoolScriptControlMsg};
-use devtools_traits::NodeInfo;
+use devtools_traits::{GetLayout, NodeInfo};
 
 use actor::{Actor, ActorRegistry};
 use protocol::JsonPacketSender;
 
+use collections::TreeMap;
 use servo_msg::constellation_msg::PipelineId;
 use serialize::json;
+use serialize::json::ToJson;
 use std::cell::RefCell;
 use std::io::TcpStream;
 
@@ -287,6 +289,8 @@ struct PageStyleMsg {
 
 struct PageStyleActor {
     name: String,
+    script_chan: Sender<DevtoolScriptControlMsg>,
+    pipeline: PipelineId,
 }
 
 #[deriving(Encodable)]
@@ -334,15 +338,31 @@ struct AppliedSheet {
     ruleCount: uint,
 }
 
+#[deriving(Encodable)]
+struct GetLayoutReply {
+    width: int,
+    height: int,
+    autoMargins: json::Json,
+    from: String,
+}
+
+#[deriving(Encodable)]
+struct AutoMargins {
+    top: String,
+    bottom: String,
+    left: String,
+    right: String,
+}
+
 impl Actor for PageStyleActor {
     fn name(&self) -> String {
         self.name.clone()
     }
 
     fn handle_message(&self,
-                      _registry: &ActorRegistry,
+                      registry: &ActorRegistry,
                       msg_type: &String,
-                      _msg: &json::Object,
+                      msg: &json::Object,
                       stream: &mut TcpStream) -> bool {
         match msg_type.as_slice() {
             "getApplied" => {
@@ -368,7 +388,37 @@ impl Actor for PageStyleActor {
             }
 
             //TODO: query script for box layout properties of node (msg.node)
-            //"getLayout" => {}
+            "getLayout" => {
+                let target = msg.find(&"node".to_string()).unwrap().as_string().unwrap();
+                let (tx, rx) = channel();
+                self.script_chan.send(GetLayout(self.pipeline,
+                                                registry.actor_to_script(target.to_string()),
+                                                tx));
+                let (width, height) = rx.recv();
+
+                let auto_margins = msg.find(&"autoMargins".to_string()).unwrap().as_boolean().unwrap();
+
+                //TODO: the remaining layout properties (margin, border, padding, position)
+                //      as specified in getLayout in http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/styles.js
+                let msg = GetLayoutReply {
+                    width: width.round() as int,
+                    height: height.round() as int,
+                    autoMargins: if auto_margins {
+                        //TODO: real values like processMargins in http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/styles.js
+                        let mut m = TreeMap::new();
+                        m.insert("top".to_string(), "auto".to_string().to_json());
+                        m.insert("bottom".to_string(), "auto".to_string().to_json());
+                        m.insert("left".to_string(), "auto".to_string().to_json());
+                        m.insert("right".to_string(), "auto".to_string().to_json());
+                        json::Object(m)
+                    } else {
+                        json::Null
+                    },
+                    from: self.name(),
+                };
+                stream.write_json_packet(&msg);
+                true
+            }
 
             _ => false,
         }
@@ -419,6 +469,8 @@ impl Actor for InspectorActor {
                 if self.pageStyle.borrow().is_none() {
                     let style = PageStyleActor {
                         name: registry.new_name("pageStyle"),
+                        script_chan: self.script_chan.clone(),
+                        pipeline: self.pipeline,
                     };
                     let mut pageStyle = self.pageStyle.borrow_mut();
                     *pageStyle = Some(style.name());

@@ -6,7 +6,9 @@
 //! and layout tasks.
 
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
-use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, EventCast};
+use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
+use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
+use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, EventCast, ElementCast};
 use dom::bindings::conversions;
 use dom::bindings::conversions::{FromJSValConvertible, Empty};
 use dom::bindings::global::Window;
@@ -36,7 +38,7 @@ use page::{Page, IterablePage, Frame};
 use devtools_traits;
 use devtools_traits::{DevtoolsControlChan, DevtoolsControlPort, NewGlobal, NodeInfo, GetRootNode};
 use devtools_traits::{DevtoolScriptControlMsg, EvaluateJS, EvaluateJSReply, GetDocumentElement};
-use devtools_traits::{GetChildren};
+use devtools_traits::{GetChildren, GetLayout};
 use script_traits::{CompositorEvent, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent};
 use script_traits::{MouseMoveEvent, MouseUpEvent, ConstellationControlMsg, ScriptTaskFactory};
 use script_traits::{ResizeMsg, AttachLayoutMsg, LoadMsg, SendEventMsg, ResizeInactiveMsg};
@@ -506,6 +508,7 @@ impl ScriptTask {
                 FromDevtools(GetRootNode(id, reply)) => self.handle_get_root_node(id, reply),
                 FromDevtools(GetDocumentElement(id, reply)) => self.handle_get_document_element(id, reply),
                 FromDevtools(GetChildren(id, node_id, reply)) => self.handle_get_children(id, node_id, reply),
+                FromDevtools(GetLayout(id, node_id, reply)) => self.handle_get_layout(id, node_id, reply),
             }
         }
 
@@ -554,26 +557,32 @@ impl ScriptTask {
         reply.send(node.summarize());
     }
 
-    fn handle_get_children(&self, pipeline: PipelineId, node_id: String, reply: Sender<Vec<NodeInfo>>) {
+    fn find_node_by_unique_id(&self, pipeline: PipelineId, node_id: String) -> Temporary<Node> {
         let page = get_page(&*self.page.borrow(), pipeline);
         let frame = page.frame();
         let document = frame.get_ref().document.root();
         let node: &JSRef<Node> = NodeCast::from_ref(&*document);
 
-        let mut children = vec!();
-        let mut found_parent = false;
         for candidate in node.traverse_preorder() {
             if candidate.get_unique_id().as_slice() == node_id.as_slice() {
-                found_parent = true;
-                for kid in candidate.children() {
-                    children.push(kid.summarize());
-                }
-                break;
+                return Temporary::from_rooted(&candidate);
             }
         }
 
-        assert!(found_parent);
+        fail!("couldn't find node with unique id {:s}", node_id)
+    }
+
+    fn handle_get_children(&self, pipeline: PipelineId, node_id: String, reply: Sender<Vec<NodeInfo>>) {
+        let parent = self.find_node_by_unique_id(pipeline, node_id).root();
+        let children = parent.children().map(|child| child.summarize()).collect();
         reply.send(children);
+    }
+
+    fn handle_get_layout(&self, pipeline: PipelineId, node_id: String, reply: Sender<(f32, f32)>) {
+        let node = self.find_node_by_unique_id(pipeline, node_id).root();
+        let elem: &JSRef<Element> = ElementCast::to_ref(&*node).expect("should be getting layout of element");
+        let rect = elem.GetBoundingClientRect().root();
+        reply.send((rect.Width(), rect.Height()));
     }
 
     fn handle_new_layout(&self, new_layout_info: NewLayoutInfo) {

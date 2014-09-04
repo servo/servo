@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use devtools_traits::AttrInfo;
 use dom::bindings::codegen::Bindings::AttrBinding;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::InheritTypes::NodeCast;
@@ -14,6 +13,8 @@ use dom::element::{Element, AttributeHandlers};
 use dom::node::Node;
 use dom::window::Window;
 use dom::virtualmethods::vtable_for;
+
+use devtools_traits::AttrInfo;
 use servo_util::atom::Atom;
 use servo_util::namespace;
 use servo_util::namespace::Namespace;
@@ -189,7 +190,7 @@ impl<'a> AttrHelpers for JSRef<'a, Attr> {
 
     fn summarize(&self) -> AttrInfo {
         AttrInfo {
-            namespace: self.GetNamespaceURI().unwrap_or("".to_string()),
+            namespace: self.namespace.to_str().to_string(),
             name: self.Name(),
             value: self.Value(),
         }

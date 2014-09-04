@@ -10,6 +10,7 @@ use dom::namednodemap::NamedNodeMap;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::ElementBinding;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
+use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::codegen::InheritTypes::{ElementDerived, NodeCast};
 use dom::bindings::js::{JS, JSRef, Temporary, TemporaryPushable};
 use dom::bindings::js::{OptionalSettable, OptionalRootable, Root};
@@ -30,6 +31,7 @@ use dom::nodelist::NodeList;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use layout_interface::ContentChangedDocumentDamage;
 use layout_interface::MatchSelectorsDocumentDamage;
+use devtools_traits::AttrInfo;
 use style::{matches, parse_selector_list_from_str};
 use style;
 use servo_util::atom::Atom;
@@ -239,6 +241,7 @@ pub trait ElementHelpers {
     fn html_element_in_html_document(&self) -> bool;
     fn get_local_name<'a>(&'a self) -> &'a Atom;
     fn get_namespace<'a>(&'a self) -> &'a Namespace;
+    fn summarize(&self) -> Vec<AttrInfo>;
 }
 
 impl<'a> ElementHelpers for JSRef<'a, Element> {
@@ -253,6 +256,18 @@ impl<'a> ElementHelpers for JSRef<'a, Element> {
 
     fn get_namespace<'a>(&'a self) -> &'a Namespace {
         &self.deref().namespace
+    }
+
+    fn summarize(&self) -> Vec<AttrInfo> {
+        let attrs = self.Attributes().root();
+        let mut i = 0;
+        let mut summarized = vec!();
+        while i < attrs.Length() {
+            let attr = attrs.Item(i).unwrap().root();
+            summarized.push(attr.summarize());
+            i += 1;
+        }
+        summarized
     }
 }
 
