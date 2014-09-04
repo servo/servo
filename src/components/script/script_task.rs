@@ -208,7 +208,7 @@ trait PrivateScriptTaskHelpers {
 
 impl<'a> PrivateScriptTaskHelpers for JSRef<'a, Node> {
     fn click_event_filter_by_disabled_state(&self) -> bool {
-        match self.type_id {
+        match self.type_id() {
             ElementNodeTypeId(HTMLButtonElementTypeId) |
             ElementNodeTypeId(HTMLInputElementTypeId) |
             // ElementNodeTypeId(HTMLKeygenElementTypeId) |
