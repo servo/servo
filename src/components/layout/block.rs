@@ -1450,6 +1450,14 @@ impl Flow for BlockFlow {
         flags.set_has_left_floated_descendants(false);
         flags.set_has_right_floated_descendants(false);
 
+        // If this block has a fixed width, just use that for the minimum
+        // and preferred width, rather than bubbling up children inline
+        // width.
+        let fixed_width = match self.fragment.style().get_box().width {
+            LPA_Length(_) => true,
+            _ => false,
+        };
+
         // Find the maximum inline-size from children.
         let mut intrinsic_inline_sizes = IntrinsicISizes::new();
         for child_ctx in self.base.child_iter() {
@@ -1458,12 +1466,15 @@ impl Flow for BlockFlow {
                     child_ctx.is_table_kind());
 
             let child_base = flow::mut_base(child_ctx);
-            intrinsic_inline_sizes.minimum_inline_size =
-                geometry::max(intrinsic_inline_sizes.minimum_inline_size,
-                              child_base.intrinsic_inline_sizes.total_minimum_inline_size());
-            intrinsic_inline_sizes.preferred_inline_size =
-                geometry::max(intrinsic_inline_sizes.preferred_inline_size,
-                              child_base.intrinsic_inline_sizes.total_preferred_inline_size());
+
+            if !fixed_width {
+                intrinsic_inline_sizes.minimum_inline_size =
+                    geometry::max(intrinsic_inline_sizes.minimum_inline_size,
+                                  child_base.intrinsic_inline_sizes.total_minimum_inline_size());
+                intrinsic_inline_sizes.preferred_inline_size =
+                    geometry::max(intrinsic_inline_sizes.preferred_inline_size,
+                                  child_base.intrinsic_inline_sizes.total_preferred_inline_size());
+            }
 
             flags.union_floated_descendants_flags(child_base.flags);
         }
