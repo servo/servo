@@ -25,9 +25,6 @@
 [submodule "src/support/layers/rust-layers"]
 	path = src/support/layers/rust-layers
 	url = https://github.com/servo/rust-layers.git
-[submodule "src/support/http-client/rust-http-client"]
-	path = src/support/http-client/rust-http-client
-	url = https://github.com/servo/rust-http-client.git
 [submodule "src/support/hubbub/libhubbub"]
 	path = src/support/hubbub/libhubbub
 	url = https://github.com/servo/libhubbub.git
