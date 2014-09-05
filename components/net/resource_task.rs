@@ -163,16 +163,6 @@ pub fn load_whole_resource(resource_task: &ResourceTask, url: Url)
 /// Handle to a resource task
 pub type ResourceTask = Sender<ControlMsg>;
 
-pub type LoaderTask = proc(load_data: LoadData, Sender<LoadResponse>);
-
-/**
-Creates a task to load a specific resource
-
-The ResourceManager delegates loading to a different type of loader task for
-each URL scheme
-*/
-type LoaderTaskFactory = extern "Rust" fn() -> LoaderTask;
-
 /// Create a ResourceTask
 pub fn new_resource_task() -> ResourceTask {
     let (setup_chan, setup_port) = channel();
@@ -213,9 +203,9 @@ impl ResourceManager {
 
     fn load(&self, mut load_data: LoadData, start_chan: Sender<LoadResponse>) {
         let loader = match load_data.url.scheme.as_slice() {
-            "file" => file_loader::factory(),
-            "http" | "https" => http_loader::factory(),
-            "data" => data_loader::factory(),
+            "file" => file_loader::factory,
+            "http" | "https" => http_loader::factory,
+            "data" => data_loader::factory,
             "about" => {
                 match load_data.url.non_relative_scheme_data().unwrap() {
                     "crash" => fail!("Loading the about:crash URL."),
@@ -225,7 +215,7 @@ impl ResourceManager {
                         path.pop();
                         path.push_many(["src", "test", "html", "failure.html"]);
                         load_data.url = Url::from_file_path(&path).unwrap();
-                        file_loader::factory()
+                        file_loader::factory
                     }
                     _ => {
                         start_sending(start_chan, Metadata::default(load_data.url))
