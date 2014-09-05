@@ -43,7 +43,7 @@ use dom::virtualmethods::{VirtualMethods, vtable_for};
 use dom::window::Window;
 use geom::rect::Rect;
 use html::hubbub_html_parser::build_element_from_tag;
-use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery, ContentBoxesResponse,
+use layout_interface::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC,
                        LayoutChan, ReapLayoutDataMsg, TrustedNodeAddress, UntrustedNodeAddress};
 use servo_util::geometry::Au;
 use servo_util::str::{DOMString, null_str_as_empty};
@@ -586,18 +586,17 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
     fn get_bounding_content_box(&self) -> Rect<Au> {
         let window = window_from_node(self).root();
         let page = window.deref().page();
-        let (chan, port) = channel();
         let addr = self.to_trusted_node_address();
-        let ContentBoxResponse(rect) = page.query_layout(ContentBoxQuery(addr, chan), port);
+
+        let ContentBoxResponse(rect) = page.layout_rpc.content_box(addr);
         rect
     }
 
     fn get_content_boxes(&self) -> Vec<Rect<Au>> {
         let window = window_from_node(self).root();
         let page = window.deref().page();
-        let (chan, port) = channel();
         let addr = self.to_trusted_node_address();
-        let ContentBoxesResponse(rects) = page.query_layout(ContentBoxesQuery(addr, chan), port);
+        let ContentBoxesResponse(rects) = page.layout_rpc.content_boxes(addr);
         rects
     }
 

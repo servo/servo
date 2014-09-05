@@ -32,11 +32,11 @@ use layout_traits::{LayoutControlMsg, LayoutTaskFactory};
 use script::dom::bindings::js::JS;
 use script::dom::node::{ElementNodeTypeId, LayoutDataRef, Node};
 use script::dom::element::{HTMLBodyElementTypeId, HTMLHtmlElementTypeId};
-use script::layout_interface::{AddStylesheetMsg, ContentBoxQuery, ScriptLayoutChan};
-use script::layout_interface::{ContentBoxesQuery, ContentBoxesResponse, ExitNowMsg, LayoutQuery};
-use script::layout_interface::{HitTestQuery, ContentBoxResponse, HitTestResponse, MouseOverQuery, MouseOverResponse};
+use script::layout_interface::{AddStylesheetMsg, ScriptLayoutChan};
+use script::layout_interface::{TrustedNodeAddress, ContentBoxesResponse, ExitNowMsg};
+use script::layout_interface::{ContentBoxResponse, HitTestResponse, MouseOverResponse};
 use script::layout_interface::{ContentChangedDocumentDamage, LayoutChan, Msg, PrepareToExitMsg};
-use script::layout_interface::{QueryMsg, ReapLayoutDataMsg, Reflow, UntrustedNodeAddress};
+use script::layout_interface::{GetRPCMsg, LayoutRPC, ReapLayoutDataMsg, Reflow, UntrustedNodeAddress};
 use script::layout_interface::{ReflowForDisplay, ReflowMsg};
 use script_traits::{SendEventMsg, ReflowEvent, ReflowCompleteMsg, OpaqueScriptLayoutChannel, ScriptControlChan};
 use servo_msg::compositor_msg::Scrollable;
@@ -61,6 +61,28 @@ use style::iter_font_face_rules;
 use sync::{Arc, Mutex};
 use url::Url;
 
+/// Mutable data belonging to the LayoutTask.
+///
+/// This needs to be protected by a mutex so we can do fast RPCs.
+pub struct LayoutTaskData {
+    /// The local image cache.
+    pub local_image_cache: Arc<Mutex<LocalImageCache>>,
+
+    /// The size of the viewport.
+    pub screen_size: Size2D<Au>,
+
+    /// A cached display list.
+    pub display_list: Option<Arc<DisplayList>>,
+
+    pub stylist: Box<Stylist>,
+
+    /// The workers that we use for parallel operation.
+    pub parallel_traversal: Option<WorkQueue<*const SharedLayoutContext, UnsafeFlow>>,
+
+    /// The dirty rect. Used during display list construction.
+    pub dirty: Rect<Au>,
+}
+
 /// Information needed by the layout task.
 pub struct LayoutTask {
     /// The ID of the pipeline that we belong to.
@@ -84,34 +106,23 @@ pub struct LayoutTask {
     /// The channel on which messages can be sent to the painting task.
     pub render_chan: RenderChan,
 
+    /// The channel on which messages can be sent to the time profiler.
+    pub time_profiler_chan: TimeProfilerChan,
+
     /// The channel on which messages can be sent to the image cache.
     pub image_cache_task: ImageCacheTask,
 
     /// Public interface to the font cache task.
     pub font_cache_task: FontCacheTask,
 
-    /// The local image cache.
-    pub local_image_cache: Arc<Mutex<LocalImageCache>>,
-
-    /// The size of the viewport.
-    pub screen_size: Size2D<Au>,
-
-    /// A cached display list.
-    pub display_list: Option<Arc<DisplayList>>,
-
-    pub stylist: Box<Stylist>,
-
-    /// The workers that we use for parallel operation.
-    pub parallel_traversal: Option<WorkQueue<*const SharedLayoutContext,UnsafeFlow>>,
-
-    /// The channel on which messages can be sent to the time profiler.
-    pub time_profiler_chan: TimeProfilerChan,
-
     /// The command-line options.
     pub opts: Opts,
 
-    /// The dirty rect. Used during display list construction.
-    pub dirty: Rect<Au>,
+    /// A mutex to allow for fast, read-only RPC of layout's internal data
+    /// structures, while still letting the LayoutTask modify them.
+    ///
+    /// All the other elements of this struct are read-only.
+    pub rw_data: Arc<Mutex<LayoutTaskData>>,
 }
 
 /// The damage computation traversal.
@@ -293,17 +304,19 @@ impl LayoutTaskFactory for LayoutTask {
         spawn_named_with_send_on_failure("LayoutTask", proc() {
             { // Ensures layout task is destroyed before we send shutdown message
                 let sender = chan.sender();
-                let mut layout = LayoutTask::new(id,
-                                                 chan.receiver(),
-                                                 LayoutChan(sender),
-                                                 pipeline_port,
-                                                 constellation_chan,
-                                                 script_chan,
-                                                 render_chan,
-                                                 img_cache_task,
-                                                 font_cache_task,
-                                                 &opts,
-                                                 time_profiler_chan);
+                let layout =
+                    LayoutTask::new(
+                        id,
+                        chan.receiver(),
+                        LayoutChan(sender),
+                        pipeline_port,
+                        constellation_chan,
+                        script_chan,
+                        render_chan,
+                        img_cache_task,
+                        font_cache_task,
+                        &opts,
+                        time_profiler_chan);
                 layout.start();
             }
             shutdown_chan.send(());
@@ -341,36 +354,38 @@ impl LayoutTask {
             constellation_chan: constellation_chan,
             script_chan: script_chan,
             render_chan: render_chan,
+            time_profiler_chan: time_profiler_chan,
             image_cache_task: image_cache_task.clone(),
             font_cache_task: font_cache_task,
-            local_image_cache: local_image_cache,
-            screen_size: screen_size,
-
-            display_list: None,
-            stylist: box Stylist::new(),
-            parallel_traversal: parallel_traversal,
-            time_profiler_chan: time_profiler_chan,
             opts: opts.clone(),
-            dirty: Rect::zero(),
+            rw_data: Arc::new(Mutex::new(
+                LayoutTaskData {
+                    local_image_cache: local_image_cache,
+                    screen_size: screen_size,
+                    display_list: None,
+                    stylist: box Stylist::new(),
+                    parallel_traversal: parallel_traversal,
+                    dirty: Rect::zero(),
+                })),
         }
     }
 
     /// Starts listening on the port.
-    fn start(&mut self) {
+    fn start(self) {
         while self.handle_request() {
             // Loop indefinitely.
         }
     }
 
     // Create a layout context for use in building display lists, hit testing, &c.
-    fn build_shared_layout_context(&self, reflow_root: &LayoutNode, url: &Url) -> SharedLayoutContext {
+    fn build_shared_layout_context(&self, rw_data: &LayoutTaskData, reflow_root: &LayoutNode, url: &Url) -> SharedLayoutContext {
         SharedLayoutContext {
-            image_cache: self.local_image_cache.clone(),
-            screen_size: self.screen_size.clone(),
+            image_cache: rw_data.local_image_cache.clone(),
+            screen_size: rw_data.screen_size.clone(),
             constellation_chan: self.constellation_chan.clone(),
             layout_chan: self.chan.clone(),
             font_cache_task: self.font_cache_task.clone(),
-            stylist: &*self.stylist,
+            stylist: &*rw_data.stylist,
             url: (*url).clone(),
             reflow_root: OpaqueNodeMethods::from_layout_node(reflow_root),
             opts: self.opts.clone(),
@@ -379,7 +394,7 @@ impl LayoutTask {
     }
 
     /// Receives and dispatches messages from the script and constellation tasks
-    fn handle_request(&mut self) -> bool {
+    fn handle_request(&self) -> bool {
         enum PortToRead {
             Pipeline,
             Script,
@@ -415,30 +430,29 @@ impl LayoutTask {
     }
 
     /// Receives and dispatches messages from the script task.
-    fn handle_script_request(&mut self, request: Msg) -> bool {
+    fn handle_script_request(&self, request: Msg) -> bool {
         match request {
             AddStylesheetMsg(sheet) => self.handle_add_stylesheet(sheet),
+            GetRPCMsg(response_chan) => {
+                response_chan.send(
+                    box LayoutRPCImpl(
+                        self.rw_data.clone()) as Box<LayoutRPC + Send>);
+            },
             ReflowMsg(data) => {
                 profile(time::LayoutPerformCategory, self.time_profiler_chan.clone(), || {
                     self.handle_reflow(&*data);
                 });
-            }
-            QueryMsg(query) => {
-                let mut query = Some(query);
-                profile(time::LayoutQueryCategory, self.time_profiler_chan.clone(), || {
-                    self.handle_query(query.take_unwrap());
-                });
-            }
+            },
             ReapLayoutDataMsg(dead_layout_data) => {
                 unsafe {
-                    self.handle_reap_layout_data(dead_layout_data)
+                    LayoutTask::handle_reap_layout_data(dead_layout_data)
                 }
-            }
+            },
             PrepareToExitMsg(response_chan) => {
                 debug!("layout: PrepareToExitMsg received");
                 self.prepare_to_exit(response_chan);
                 return false
-            }
+            },
             ExitNowMsg => {
                 debug!("layout: ExitNowMsg received");
                 self.exit_now();
@@ -452,13 +466,13 @@ impl LayoutTask {
     /// Enters a quiescent state in which no new messages except for `ReapLayoutDataMsg` will be
     /// processed until an `ExitNowMsg` is received. A pong is immediately sent on the given
     /// response channel.
-    fn prepare_to_exit(&mut self, response_chan: Sender<()>) {
+    fn prepare_to_exit(&self, response_chan: Sender<()>) {
         response_chan.send(());
         loop {
             match self.port.recv() {
                 ReapLayoutDataMsg(dead_layout_data) => {
                     unsafe {
-                        self.handle_reap_layout_data(dead_layout_data)
+                        LayoutTask::handle_reap_layout_data(dead_layout_data)
                     }
                 }
                 ExitNowMsg => {
@@ -476,25 +490,29 @@ impl LayoutTask {
 
     /// Shuts down the layout task now. If there are any DOM nodes left, layout will now (safely)
     /// crash.
-    fn exit_now(&mut self) {
+    fn exit_now(&self) {
         let (response_chan, response_port) = channel();
 
-        match self.parallel_traversal {
-            None => {}
-            Some(ref mut traversal) => traversal.shutdown(),
+        {
+            let mut rw_data = self.rw_data.lock();
+            match rw_data.deref_mut().parallel_traversal {
+                None => {}
+                Some(ref mut traversal) => traversal.shutdown(),
+            }
         }
 
         self.render_chan.send(render_task::ExitMsg(Some(response_chan)));
         response_port.recv()
     }
 
-    fn handle_add_stylesheet(&mut self, sheet: Stylesheet) {
+    fn handle_add_stylesheet(&self, sheet: Stylesheet) {
         // Find all font-face rules and notify the font cache of them.
         // GWTODO: Need to handle unloading web fonts (when we handle unloading stylesheets!)
         iter_font_face_rules(&sheet, |family, url| {
             self.font_cache_task.add_web_font(family.to_string(), url.clone());
         });
-        self.stylist.add_stylesheet(sheet, AuthorOrigin);
+        let mut rw_data = self.rw_data.lock();
+        rw_data.stylist.add_stylesheet(sheet, AuthorOrigin);
     }
 
     /// Retrieves the flow tree root from the root node.
@@ -527,7 +545,7 @@ impl LayoutTask {
     /// This corresponds to `Reflow()` in Gecko and `layout()` in WebKit/Blink and should be
     /// benchmarked against those two. It is marked `#[inline(never)]` to aid profiling.
     #[inline(never)]
-    fn solve_constraints<'a>(&mut self,
+    fn solve_constraints<'a>(&self,
                          layout_root: &mut Flow,
                          layout_context: &'a LayoutContext<'a>) {
         if layout_context.shared.opts.bubble_inline_sizes_separately {
@@ -563,7 +581,8 @@ impl LayoutTask {
     /// This corresponds to `Reflow()` in Gecko and `layout()` in WebKit/Blink and should be
     /// benchmarked against those two. It is marked `#[inline(never)]` to aid profiling.
     #[inline(never)]
-    fn solve_constraints_parallel(&mut self,
+    fn solve_constraints_parallel(&self,
+                                  rw_data: &mut LayoutTaskData,
                                   layout_root: &mut FlowRef,
                                   shared_layout_context: &SharedLayoutContext) {
         if shared_layout_context.opts.bubble_inline_sizes_separately {
@@ -573,7 +592,7 @@ impl LayoutTask {
             layout_root.get_mut().traverse_postorder(&mut traversal);
         }
 
-        match self.parallel_traversal {
+        match rw_data.parallel_traversal {
             None => fail!("solve_contraints_parallel() called with no parallel traversal ready"),
             Some(ref mut traversal) => {
                 // NOTE: this currently computes borders, so any pruning should separate that
@@ -590,17 +609,17 @@ impl LayoutTask {
     /// This is only on in debug builds.
     #[inline(never)]
     #[cfg(debug)]
-    fn verify_flow_tree(&mut self, layout_root: &mut FlowRef) {
+    fn verify_flow_tree(&self, layout_root: &mut FlowRef) {
         let mut traversal = FlowTreeVerificationTraversal;
         layout_root.traverse_preorder(&mut traversal);
     }
 
     #[cfg(not(debug))]
-    fn verify_flow_tree(&mut self, _: &mut FlowRef) {
+    fn verify_flow_tree(&self, _: &mut FlowRef) {
     }
 
     /// The high-level routine that performs layout tasks.
-    fn handle_reflow(&mut self, data: &Reflow) {
+    fn handle_reflow(&self, data: &Reflow) {
         // FIXME: Isolate this transmutation into a "bridge" module.
         // FIXME(rust#16366): The following line had to be moved because of a
         // rustc bug. It should be in the next unsafe block.
@@ -614,9 +633,11 @@ impl LayoutTask {
         debug!("layout: parsed Node tree");
         debug!("{:?}", node.dump());
 
+        let mut rw_data = self.rw_data.lock();
+
         {
             // Reset the image cache.
-            let mut local_image_cache = self.local_image_cache.lock();
+            let mut local_image_cache = rw_data.local_image_cache.lock();
             local_image_cache.next_round(self.make_on_image_available_cb());
         }
 
@@ -633,23 +654,24 @@ impl LayoutTask {
 
         let current_screen_size = Size2D(Au::from_frac32_px(viewport_size.width.get()),
                                          Au::from_frac32_px(viewport_size.height.get()));
-        if self.screen_size != current_screen_size {
+        if rw_data.screen_size != current_screen_size {
             all_style_damage = true
         }
-        self.screen_size = current_screen_size;
+        rw_data.screen_size = current_screen_size;
 
         // Create a layout context for use throughout the following passes.
-        let mut shared_layout_ctx = self.build_shared_layout_context(node, &data.url);
+        let mut shared_layout_ctx = self.build_shared_layout_context(rw_data.deref(), node, &data.url);
 
         let mut layout_root = profile(time::LayoutStyleRecalcCategory,
                                       self.time_profiler_chan.clone(),
                                       || {
             // Perform CSS selector matching and flow construction.
-            match self.parallel_traversal {
+            let rw_data = rw_data.deref_mut();
+            match rw_data.parallel_traversal {
                 None => {
                     let layout_ctx = LayoutContext::new(&shared_layout_ctx);
                     let mut applicable_declarations = ApplicableDeclarations::new();
-                    node.recalc_style_for_subtree(&*self.stylist,
+                    node.recalc_style_for_subtree(&*rw_data.stylist,
                                                    &layout_ctx,
                                                    &mut applicable_declarations,
                                                    None)
@@ -678,7 +700,8 @@ impl LayoutTask {
         // Perform the primary layout passes over the flow tree to compute the locations of all
         // the boxes.
         profile(time::LayoutMainCategory, self.time_profiler_chan.clone(), || {
-            match self.parallel_traversal {
+            let rw_data = rw_data.deref_mut();
+            match rw_data.parallel_traversal {
                 None => {
                     // Sequential mode.
                     let layout_ctx = LayoutContext::new(&shared_layout_ctx);
@@ -686,7 +709,7 @@ impl LayoutTask {
                 }
                 Some(_) => {
                     // Parallel mode.
-                    self.solve_constraints_parallel(&mut layout_root, &mut shared_layout_ctx)
+                    self.solve_constraints_parallel(rw_data, &mut layout_root, &mut shared_layout_ctx)
                 }
             }
         });
@@ -696,11 +719,12 @@ impl LayoutTask {
             let writing_mode = flow::base(layout_root.get()).writing_mode;
             profile(time::LayoutDispListBuildCategory, self.time_profiler_chan.clone(), || {
                 shared_layout_ctx.dirty = flow::base(layout_root.get()).position.to_physical(
-                    writing_mode, self.screen_size);
+                    writing_mode, rw_data.screen_size);
                 flow::mut_base(layout_root.get_mut()).abs_position =
-                    LogicalPoint::zero(writing_mode).to_physical(writing_mode, self.screen_size);
+                    LogicalPoint::zero(writing_mode).to_physical(writing_mode, rw_data.screen_size);
 
-                match self.parallel_traversal {
+                let rw_data = rw_data.deref_mut();
+                match rw_data.parallel_traversal {
                     None => {
                         let layout_ctx = LayoutContext::new(&shared_layout_ctx);
                         let mut traversal = BuildDisplayListTraversal {
@@ -760,7 +784,7 @@ impl LayoutTask {
                     scroll_policy: Scrollable,
                 };
 
-                self.display_list = Some(display_list.clone());
+                rw_data.display_list = Some(display_list.clone());
 
                 // TODO(pcwalton): Eventually, when we have incremental reflow, this will have to
                 // be smarter in order to handle retained layer contents properly from reflow to
@@ -787,156 +811,6 @@ impl LayoutTask {
         chan.send(ReflowCompleteMsg(self.id, data.id));
     }
 
-    /// Handles a query from the script task. This is the main routine that DOM functions like
-    /// `getClientRects()` or `getBoundingClientRect()` ultimately invoke.
-    fn handle_query(&self, query: LayoutQuery) {
-        match query {
-            // The neat thing here is that in order to answer the following two queries we only
-            // need to compare nodes for equality. Thus we can safely work only with `OpaqueNode`.
-            ContentBoxQuery(node, reply_chan) => {
-                let node: OpaqueNode = OpaqueNodeMethods::from_script_node(node);
-                fn union_boxes_for_node(accumulator: &mut Option<Rect<Au>>,
-                                        mut iter: DisplayItemIterator,
-                                        node: OpaqueNode) {
-                    for item in iter {
-                        union_boxes_for_node(accumulator, item.children(), node);
-                        if item.base().node == node {
-                            match *accumulator {
-                                None => *accumulator = Some(item.base().bounds),
-                                Some(ref mut acc) => *acc = acc.union(&item.base().bounds),
-                            }
-                        }
-                    }
-                }
-
-                let mut rect = None;
-                match self.display_list {
-                    None => fail!("no display list!"),
-                    Some(ref display_list) => {
-                        union_boxes_for_node(&mut rect, display_list.iter(), node)
-                    }
-                }
-                reply_chan.send(ContentBoxResponse(rect.unwrap_or(Rect::zero())))
-            }
-            ContentBoxesQuery(node, reply_chan) => {
-                let node: OpaqueNode = OpaqueNodeMethods::from_script_node(node);
-
-                fn add_boxes_for_node(accumulator: &mut Vec<Rect<Au>>,
-                                      mut iter: DisplayItemIterator,
-                                      node: OpaqueNode) {
-                    for item in iter {
-                        add_boxes_for_node(accumulator, item.children(), node);
-                        if item.base().node == node {
-                            accumulator.push(item.base().bounds)
-                        }
-                    }
-                }
-
-                let mut boxes = vec!();
-                match self.display_list {
-                    None => fail!("no display list!"),
-                    Some(ref display_list) => {
-                        add_boxes_for_node(&mut boxes, display_list.iter(), node)
-                    }
-                }
-                reply_chan.send(ContentBoxesResponse(boxes))
-            }
-            HitTestQuery(_, point, reply_chan) => {
-                fn hit_test<'a,I:Iterator<&'a DisplayItem>>(x: Au, y: Au, mut iterator: I)
-                            -> Option<HitTestResponse> {
-                    for item in iterator {
-                        match *item {
-                            ClipDisplayItemClass(ref cc) => {
-                                if geometry::rect_contains_point(cc.base.bounds, Point2D(x, y)) {
-                                    let ret = hit_test(x, y, cc.children.list.iter().rev());
-                                    if !ret.is_none() {
-                                        return ret
-                                    }
-                                }
-                                continue
-                            }
-                            _ => {}
-                        }
-
-                        let bounds = item.bounds();
-
-                        // TODO(tikue): This check should really be performed by a method of
-                        // DisplayItem.
-                        if x < bounds.origin.x + bounds.size.width &&
-                                bounds.origin.x <= x &&
-                                y < bounds.origin.y + bounds.size.height &&
-                                bounds.origin.y <= y {
-                            return Some(HitTestResponse(item.base()
-                                                            .node
-                                                            .to_untrusted_node_address()))
-                        }
-                    }
-                    let ret: Option<HitTestResponse> = None;
-                    ret
-                }
-                let (x, y) = (Au::from_frac_px(point.x as f64),
-                              Au::from_frac_px(point.y as f64));
-                let resp = match self.display_list {
-                    None => fail!("no display list!"),
-                    Some(ref display_list) => hit_test(x, y, display_list.list.iter().rev()),
-                };
-                if resp.is_some() {
-                    reply_chan.send(Ok(resp.unwrap()));
-                    return
-                }
-                reply_chan.send(Err(()));
-
-            }
-            MouseOverQuery(_, point, reply_chan) => {
-                fn mouse_over_test<'a,
-                                   I:Iterator<&'a DisplayItem>>(
-                                   x: Au,
-                                   y: Au,
-                                   mut iterator: I,
-                                   result: &mut Vec<UntrustedNodeAddress>) {
-                    for item in iterator {
-                        match *item {
-                            ClipDisplayItemClass(ref cc) => {
-                                mouse_over_test(x, y, cc.children.list.iter().rev(), result);
-                            }
-                            _ => {
-                                let bounds = item.bounds();
-
-                                // TODO(tikue): This check should really be performed by a method
-                                // of DisplayItem.
-                                if x < bounds.origin.x + bounds.size.width &&
-                                        bounds.origin.x <= x &&
-                                        y < bounds.origin.y + bounds.size.height &&
-                                        bounds.origin.y <= y {
-                                    result.push(item.base()
-                                                    .node
-                                                    .to_untrusted_node_address());
-                                }
-                            }
-                        }
-                    }
-                }
-
-                let mut mouse_over_list: Vec<UntrustedNodeAddress> = vec!();
-                let (x, y) = (Au::from_frac_px(point.x as f64), Au::from_frac_px(point.y as f64));
-                match self.display_list {
-                    None => fail!("no display list!"),
-                    Some(ref display_list) => {
-                        mouse_over_test(x,
-                                        y,
-                                        display_list.list.iter().rev(),
-                                        &mut mouse_over_list);
-                    }
-                };
-
-                if mouse_over_list.is_empty() {
-                    reply_chan.send(Err(()));
-                } else {
-                    reply_chan.send(Ok(MouseOverResponse(mouse_over_list)));
-                }
-            }
-        }
-    }
 
     // When images can't be loaded in time to display they trigger
     // this callback in some task somewhere. This will send a message
@@ -956,9 +830,180 @@ impl LayoutTask {
 
     /// Handles a message to destroy layout data. Layout data must be destroyed on *this* task
     /// because it contains local managed pointers.
-    unsafe fn handle_reap_layout_data(&self, layout_data: LayoutDataRef) {
+    unsafe fn handle_reap_layout_data(layout_data: LayoutDataRef) {
         let mut layout_data_ref = layout_data.borrow_mut();
         let _: Option<LayoutDataWrapper> = mem::transmute(
             mem::replace(&mut *layout_data_ref, None));
+    }
+}
+
+struct LayoutRPCImpl(Arc<Mutex<LayoutTaskData>>);
+
+impl LayoutRPC for LayoutRPCImpl {
+    // The neat thing here is that in order to answer the following two queries we only
+    // need to compare nodes for equality. Thus we can safely work only with `OpaqueNode`.
+    fn content_box(&self, node: TrustedNodeAddress) -> ContentBoxResponse {
+        let node: OpaqueNode = OpaqueNodeMethods::from_script_node(node);
+        fn union_boxes_for_node(accumulator: &mut Option<Rect<Au>>,
+                                mut iter: DisplayItemIterator,
+                                node: OpaqueNode) {
+            for item in iter {
+                union_boxes_for_node(accumulator, item.children(), node);
+                if item.base().node == node {
+                    match *accumulator {
+                        None => *accumulator = Some(item.base().bounds),
+                        Some(ref mut acc) => *acc = acc.union(&item.base().bounds),
+                    }
+                }
+            }
+        }
+
+        let mut rect = None;
+        {
+            let &LayoutRPCImpl(ref rw_data) = self;
+            let rw_data = rw_data.lock();
+            match rw_data.display_list {
+                None => fail!("no display list!"),
+                Some(ref display_list) => {
+                    union_boxes_for_node(&mut rect, display_list.iter(), node)
+                }
+            }
+        }
+        ContentBoxResponse(rect.unwrap_or(Rect::zero()))
+    }
+
+    /// Requests the dimensions of all the content boxes, as in the `getClientRects()` call.
+    fn content_boxes(&self, node: TrustedNodeAddress) -> ContentBoxesResponse {
+        let node: OpaqueNode = OpaqueNodeMethods::from_script_node(node);
+
+        fn add_boxes_for_node(accumulator: &mut Vec<Rect<Au>>,
+                              mut iter: DisplayItemIterator,
+                              node: OpaqueNode) {
+            for item in iter {
+                add_boxes_for_node(accumulator, item.children(), node);
+                if item.base().node == node {
+                    accumulator.push(item.base().bounds)
+                }
+            }
+        }
+
+        let mut boxes = vec!();
+        {
+            let &LayoutRPCImpl(ref rw_data) = self;
+            let rw_data = rw_data.lock();
+            match rw_data.display_list {
+                None => fail!("no display list!"),
+                Some(ref display_list) => {
+                    add_boxes_for_node(&mut boxes, display_list.iter(), node)
+                }
+            }
+        }
+        ContentBoxesResponse(boxes)
+    }
+
+    /// Requests the node containing the point of interest
+    fn hit_test(&self, _: TrustedNodeAddress, point: Point2D<f32>) -> Result<HitTestResponse, ()> {
+        fn hit_test<'a,I:Iterator<&'a DisplayItem>>(x: Au, y: Au, mut iterator: I)
+                     -> Option<HitTestResponse> {
+            for item in iterator {
+                match *item {
+                    ClipDisplayItemClass(ref cc) => {
+                        if geometry::rect_contains_point(cc.base.bounds, Point2D(x, y)) {
+                            let ret = hit_test(x, y, cc.children.list.iter().rev());
+                            if !ret.is_none() {
+                                return ret
+                            }
+                        }
+                        continue
+                    }
+                    _ => {}
+                }
+
+                let bounds = item.bounds();
+
+                // TODO(tikue): This check should really be performed by a method of
+                // DisplayItem.
+                if x < bounds.origin.x + bounds.size.width &&
+                        bounds.origin.x <= x &&
+                        y < bounds.origin.y + bounds.size.height &&
+                        bounds.origin.y <= y {
+                    return Some(HitTestResponse(item.base()
+                                                    .node
+                                                    .to_untrusted_node_address()))
+                }
+            }
+            let ret: Option<HitTestResponse> = None;
+            ret
+        }
+        let (x, y) = (Au::from_frac_px(point.x as f64),
+                      Au::from_frac_px(point.y as f64));
+
+        let resp = {
+            let &LayoutRPCImpl(ref rw_data) = self;
+            let rw_data = rw_data.lock();
+            match rw_data.display_list {
+                None => fail!("no display list!"),
+                Some(ref display_list) => hit_test(x, y, display_list.list.iter().rev()),
+            }
+        };
+
+        if resp.is_some() {
+            return Ok(resp.unwrap());
+        }
+        Err(())
+    }
+
+    fn mouse_over(&self, _: TrustedNodeAddress, point: Point2D<f32>) -> Result<MouseOverResponse, ()> {
+        fn mouse_over_test<'a,
+                           I:Iterator<&'a DisplayItem>>(
+                           x: Au,
+                           y: Au,
+                           mut iterator: I,
+                           result: &mut Vec<UntrustedNodeAddress>) {
+            for item in iterator {
+                match *item {
+                    ClipDisplayItemClass(ref cc) => {
+                        mouse_over_test(x, y, cc.children.list.iter().rev(), result);
+                    }
+                    _ => {
+                        let bounds = item.bounds();
+
+                        // TODO(tikue): This check should really be performed by a method
+                        // of DisplayItem.
+                        if x < bounds.origin.x + bounds.size.width &&
+                                bounds.origin.x <= x &&
+                                y < bounds.origin.y + bounds.size.height &&
+                                bounds.origin.y <= y {
+                            result.push(item.base()
+                                            .node
+                                            .to_untrusted_node_address());
+                        }
+                    }
+                }
+            }
+        }
+
+        let mut mouse_over_list: Vec<UntrustedNodeAddress> = vec!();
+        let (x, y) = (Au::from_frac_px(point.x as f64), Au::from_frac_px(point.y as f64));
+
+        {
+            let &LayoutRPCImpl(ref rw_data) = self;
+            let rw_data = rw_data.lock();
+            match rw_data.display_list {
+                None => fail!("no display list!"),
+                Some(ref display_list) => {
+                    mouse_over_test(x,
+                                    y,
+                                    display_list.list.iter().rev(),
+                                    &mut mouse_over_list);
+                }
+            };
+        }
+
+        if mouse_over_list.is_empty() {
+            Err(())
+        } else {
+            Ok(MouseOverResponse(mouse_over_list))
+        }
     }
 }
