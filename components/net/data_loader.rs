@@ -18,7 +18,7 @@ pub fn factory(load_data: LoadData, start_chan: Sender<LoadResponse>) {
     // Hypothesis: data URLs are too small for parallel base64 etc. to be worth it.
     // Should be tested at some point.
     // Left in separate function to allow easy moving to a task, if desired.
-    load(url, start_chan)
+    load(load_data, start_chan)
 }
 
 fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {

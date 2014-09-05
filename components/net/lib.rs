@@ -28,6 +28,7 @@ pub mod image {
     pub mod holder;
 }
 
+pub mod about_loader;
 pub mod file_loader;
 pub mod http_loader;
 pub mod data_loader;

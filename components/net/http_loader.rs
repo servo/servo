@@ -12,7 +12,7 @@ use servo_util::task::spawn_named;
 use url::Url;
 
 pub fn factory(load_data: LoadData, start_chan: Sender<LoadResponse>) {
-    spawn_named("http_loader", proc() load(url, start_chan))
+    spawn_named("http_loader", proc() load(load_data, start_chan))
 }
 
 fn send_error(url: Url, err: String, start_chan: Sender<LoadResponse>) {

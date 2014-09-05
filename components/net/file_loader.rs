@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use resource_task::{ProgressMsg, Metadata, Payload, Done, start_sending};
+use resource_task::{ProgressMsg, Metadata, Payload, Done, LoadData, start_sending};
+use resource_task::{LoadResponse};
 
 use std::io;
 use std::io::File;
