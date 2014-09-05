@@ -107,3 +107,6 @@ flaky_gpu,flaky_linux == acid2_noscroll.html acid2_ref_broken.html
 
 != inline_background_a.html inline_background_ref.html
 == inline_element_border_a.html inline_element_border_ref.html
+== float_intrinsic_width_a.html float_intrinsic_width_ref.html
+== float_right_intrinsic_width_a.html float_right_intrinsic_width_ref.html
+== fixed_width_overrides_child_intrinsic_width_a.html fixed_width_overrides_child_intrinsic_width_ref.html

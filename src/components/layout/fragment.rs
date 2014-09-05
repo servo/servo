@@ -1105,11 +1105,9 @@ impl Fragment {
                 let range = &text_fragment_info.range;
                 let min_line_inline_size = text_fragment_info.run.min_width_for_range(range);
 
-                let mut max_line_inline_size = Au::new(0);
-                for line_range in text_fragment_info.run.iter_natural_lines_for_range(range) {
-                    let line_metrics = text_fragment_info.run.metrics_for_range(&line_range);
-                    max_line_inline_size = Au::max(max_line_inline_size, line_metrics.advance_width);
-                }
+                // See http://dev.w3.org/csswg/css-sizing/#max-content-inline-size.
+                // TODO: Account for soft wrap opportunities.
+                let max_line_inline_size = text_fragment_info.run.metrics_for_range(range).advance_width;
 
                 result.minimum_inline_size = geometry::max(result.minimum_inline_size, min_line_inline_size);
                 result.preferred_inline_size = geometry::max(result.preferred_inline_size, max_line_inline_size);
