@@ -44,6 +44,13 @@ sudo yum install $HOME/rpmbuild/RPMS/noarch/msttcorefonts-2.5-1.noarch.rpm
 popd
 ```
 
+On Arch Linux:
+
+``` sh
+sudo pacman -S base-devel autoconf2.13 git gperf python2 \
+    python2-virtualenv mesa libxrandr libxi libgl glu ttf-font
+```
+
 Cross-compilation for Android:
 
 Basically, pre-installed Android tools are needed.
