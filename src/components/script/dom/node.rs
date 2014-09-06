@@ -73,7 +73,7 @@ pub struct Node {
     pub eventtarget: EventTarget,
 
     /// The type of node that this is.
-    pub type_id: NodeTypeId,
+    type_id: NodeTypeId,
 
     /// The parent of this node.
     parent_node: Cell<Option<JS<Node>>>,
@@ -762,6 +762,7 @@ pub trait RawLayoutNodeHelpers {
     unsafe fn get_hover_state_for_layout(&self) -> bool;
     unsafe fn get_disabled_state_for_layout(&self) -> bool;
     unsafe fn get_enabled_state_for_layout(&self) -> bool;
+    fn type_id_for_layout(&self) -> NodeTypeId;
 }
 
 impl RawLayoutNodeHelpers for Node {
@@ -773,6 +774,10 @@ impl RawLayoutNodeHelpers for Node {
     }
     unsafe fn get_enabled_state_for_layout(&self) -> bool {
         (*self.unsafe_get_flags()).contains(InEnabledState)
+    }
+
+    fn type_id_for_layout(&self) -> NodeTypeId {
+        self.type_id
     }
 }
 

@@ -383,7 +383,7 @@ impl<'le> TElement for LayoutElement<'le> {
 
     fn get_link(&self) -> Option<&'static str> {
         // FIXME: This is HTML only.
-        match self.element.node.type_id {
+        match self.element.node.type_id_for_layout() {
             // http://www.whatwg.org/specs/web-apps/current-work/multipage/selectors.html#
             // selector-link
             ElementNodeTypeId(HTMLAnchorElementTypeId) |
