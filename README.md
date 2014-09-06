@@ -51,6 +51,11 @@ sudo pacman -S base-devel autoconf2.13 git gperf python2 \
     python2-virtualenv mesa libxrandr libxi libgl glu ttf-font
 ```
 
+Note: autoconf 2.13 is required for SpiderMonkey; the autoconf project did not
+preserve backwards compatibility after version 2.13, and changing the Firefox
+build to work with a newer version is not considered a good use of developers'
+time.
+
 Cross-compilation for Android:
 
 Basically, pre-installed Android tools are needed.
