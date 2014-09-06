@@ -113,14 +113,14 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
 
     fn SetUseMap(&self, use_map: DOMString) {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
-        element.set_string_attribute("useMap", use_map)
+        element.set_string_attribute("usemap", use_map)
     }
 
     make_bool_getter!(IsMap)
 
     fn SetIsMap(&self, is_map: bool) {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
-        element.set_string_attribute("isMap", is_map.to_string())
+        element.set_string_attribute("ismap", is_map.to_string())
     }
 
     fn Width(&self) -> u32 {
