@@ -51,10 +51,10 @@ pub fn split_html_space_chars<'a>(s: &'a str) -> Filter<'a, &'a str, CharSplits<
 /// <http://www.whatwg.org/html/#rules-for-parsing-integers> or
 /// <http://www.whatwg.org/html/#rules-for-parsing-non-negative-integers>.
 fn do_parse_integer<T: Iterator<char>>(input: T) -> Option<i64> {
-    fn as_ascii_digit(c: char) -> Option<i64> {
-        match c {
-            '0'..'9' => Some(c as i64 - '0' as i64),
-            _ => None,
+    fn is_ascii_digit(c: &char) -> bool {
+        match *c {
+            '0'..'9' => true,
+            _ => false,
         }
     }
 
@@ -77,11 +77,13 @@ fn do_parse_integer<T: Iterator<char>>(input: T) -> Option<i64> {
     };
 
     match input.peek() {
-        Some(&c) if as_ascii_digit(c).is_some() => (),
+        Some(c) if is_ascii_digit(c) => (),
         _ => return None,
     }
 
-    let value = input.filter_map(as_ascii_digit).fuse().fold(Some(0i64), |accumulator, d| {
+    let value = input.take_while(is_ascii_digit).map(|d| {
+        d as i64 - '0' as i64
+    }).fold(Some(0i64), |accumulator, d| {
         accumulator.and_then(|accumulator| {
             accumulator.checked_mul(&10)
         }).and_then(|accumulator| {
