@@ -3,6 +3,7 @@
 rwildcard=$(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2) \
   $(filter $(subst *,%,$2),$d))
 
+PYTHON = $(shell which python2.7 2>/dev/null || echo python)
 BINDINGS_SRC = $(shell pwd)/dom/bindings/codegen
 WEBIDLS_SRC = $(shell pwd)/dom/webidls
 WEBIDLS = $(call rwildcard,$(WEBIDLS_SRC),*.webidl)
@@ -27,7 +28,7 @@ $(CACHE_DIR)/.done:
 	touch $@
 
 $(BINDINGS_SRC)/ParserResults.pkl: $(globalgen_dependencies) $(WEBIDLS)
-	python $(BINDINGS_SRC)/pythonpath.py \
+	$(PYTHON) $(BINDINGS_SRC)/pythonpath.py \
 	  -I$(BINDINGS_SRC)/parser -I$(BINDINGS_SRC)/ply \
 	  -D$(BINDINGS_SRC) \
 	  $(BINDINGS_SRC)/GlobalGen.py $(BINDINGS_SRC)/Bindings.conf . \
@@ -36,7 +37,7 @@ $(BINDINGS_SRC)/ParserResults.pkl: $(globalgen_dependencies) $(WEBIDLS)
 
 $(AUTOGEN_SRC): $(BINDINGS_SRC)/Bindings/%Binding.rs: $(bindinggen_dependencies) \
 						$(addprefix $(WEBIDLS_SRC)/,%.webidl)
-	python $(BINDINGS_SRC)/pythonpath.py \
+	$(PYTHON) $(BINDINGS_SRC)/pythonpath.py \
 	  -I$(BINDINGS_SRC)/parser -I$(BINDINGS_SRC)/ply \
 	  -D$(BINDINGS_SRC) \
 	  $(BINDINGS_SRC)/BindingGen.py \
