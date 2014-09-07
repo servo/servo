@@ -8,9 +8,9 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::InheritTypes::DedicatedWorkerGlobalScopeDerived;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, WorkerGlobalScopeCast};
 use dom::bindings::global::Worker;
-use dom::bindings::js::{JSRef, Temporary, RootCollection};
+use dom::bindings::js::{JSRef, Temporary, RootCollection, RootableValue};
 use dom::bindings::trace::Untraceable;
-use dom::bindings::utils::{Reflectable, Reflector, mut_value_handle, value_handle};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::eventtarget::{EventTarget, EventTargetHelpers};
 use dom::eventtarget::WorkerGlobalScopeTypeId;
 use dom::messageevent::MessageEvent;
@@ -124,15 +124,15 @@ impl DedicatedWorkerGlobalScope {
             loop {
                 match global.receiver.recv_opt() {
                     Ok(DOMMessage(data, nbytes)) => {
-                        let mut message = UndefinedValue();
+                        let mut message = UndefinedValue().root_value();
                         unsafe {
                             assert!(JS_ReadStructuredClone(
                                 js_context.ptr, data as *const u64, nbytes,
-                                JS_STRUCTURED_CLONE_VERSION, mut_value_handle(&mut message),
+                                JS_STRUCTURED_CLONE_VERSION, message.mut_handle_(),
                                 ptr::null(), ptr::mut_null()));
                         }
 
-                        MessageEvent::dispatch_jsval(target, &Worker(*scope), message);
+                        MessageEvent::dispatch_jsval(target, &Worker(*scope), *message.raw_());
                         global.delayed_release_worker();
                     },
                     Ok(XHRProgressMsg(addr, progress)) => {
@@ -154,13 +154,14 @@ impl DedicatedWorkerGlobalScope {
 
 impl<'a> DedicatedWorkerGlobalScopeMethods for JSRef<'a, DedicatedWorkerGlobalScope> {
     fn PostMessage(&self, cx: *mut JSContext, message: JSVal) {
+        let message = message.root_value();
         let mut data = ptr::mut_null();
         let mut nbytes = 0;
-        let transferable = UndefinedValue();
+        let transferable = UndefinedValue().root_value();
         unsafe {
-            assert!(JS_WriteStructuredClone(cx, value_handle(&message), &mut data, &mut nbytes,
+            assert!(JS_WriteStructuredClone(cx, message.handle_(), &mut data, &mut nbytes,
                                             ptr::null(), ptr::mut_null(),
-                                            value_handle(&transferable)));
+                                            transferable.handle_()));
         }
 
         let ScriptChan(ref sender) = self.parent_sender;

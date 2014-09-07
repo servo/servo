@@ -8,10 +8,10 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::error::{Fallible, InvalidCharacter};
 use dom::bindings::global;
-use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, OptionalSettable};
+use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, OptionalSettable, RootableValue};
+use dom::bindings::js::RootablePointer;
 use dom::bindings::trace::{Traceable, Untraceable};
 use dom::bindings::utils::{Reflectable, Reflector};
-use dom::bindings::utils::{object_handle, value_handle, mut_value_handle};
 use dom::browsercontext::BrowserContext;
 use dom::console::Console;
 use dom::document::Document;
@@ -382,20 +382,22 @@ trait PrivateWindowHelpers {
 
 impl<'a> WindowHelpers for JSRef<'a, Window> {
     fn evaluate_js_with_result(&self, code: &str) -> JSVal {
-        let global = self.reflector().get_jsobject();
+        let global = self.reflector().get_jsobject().root_ptr();
+        global.init();
         let code: Vec<u16> = code.as_slice().utf16_units().collect();
-        let mut rval = UndefinedValue();
+        let mut rval = UndefinedValue().root_value();
+        rval.init();
         let filename = "".to_c_str();
         let cx = self.get_cx();
 
-        with_compartment(cx, global, || {
+        with_compartment(cx, *global.raw(), || {
             unsafe {
-                if !JS_EvaluateUCScript(cx, object_handle(&global), code.as_ptr(),
+                if !JS_EvaluateUCScript(cx, global.handle(), code.as_ptr(),
                                         code.len() as libc::c_uint,
-                                        filename.as_ptr(), 1, mut_value_handle(&mut rval)) {
+                                        filename.as_ptr(), 1, rval.mut_handle_()) {
                     debug!("error evaluating JS string");
                 }
-                rval
+                *rval.raw_()
             }
         })
     }
@@ -435,20 +437,22 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
     }
 
     fn handle_fire_timer(&self, timer_id: TimerId, cx: *mut JSContext) {
-        let this_value = self.reflector().get_jsobject();
+        let this_value = self.reflector().get_jsobject().root_ptr();
+        this_value.init();
 
         let data = match self.active_timers.deref().borrow().find(&timer_id) {
             None => return,
             Some(timer_handle) => timer_handle.data,
         };
 
+        let fval = (*data.funval.deref()).root_value();
         // TODO: Support extra arguments. This requires passing a `*JSVal` array as `argv`.
-        with_compartment(cx, this_value, || {
-            let mut rval = NullValue();
+        with_compartment(cx, *this_value.raw(), || {
+            let mut rval = NullValue().root_value();
             unsafe {
-                CallFunctionValue(cx, object_handle(&this_value),
-                                  value_handle(&*data.funval),
-                                  0, ptr::null(), mut_value_handle(&mut rval));
+                CallFunctionValue(cx, this_value.handle(),
+                                  fval.handle_(),
+                                  0, ptr::null(), rval.mut_handle_());
             }
         });
 

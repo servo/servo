@@ -12,10 +12,10 @@ use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult, Fallible, InvalidState, InvalidAccess};
 use dom::bindings::error::{Network, Syntax, Security, Abort, Timeout};
 use dom::bindings::global::{GlobalField, GlobalRef, WorkerField};
-use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, OptionalRootedRootable};
+use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, OptionalRootedRootable, RootableValue};
 use dom::bindings::str::ByteString;
 use dom::bindings::trace::{Traceable, Untraceable};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object, mut_value_handle};
+use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::document::Document;
 use dom::event::Event;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, XMLHttpRequestTargetTypeId};
@@ -634,14 +634,14 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             Json => {
                 let decoded = UTF_8.decode(self.response.deref().borrow().as_slice(), DecodeReplace).unwrap().to_string();
                 let decoded: Vec<u16> = decoded.as_slice().utf16_units().collect();
-                let mut vp = UndefinedValue();
+                let mut vp = UndefinedValue().root_value();
                 unsafe {
-                    if !JS_ParseJSON(cx, decoded.as_ptr(), decoded.len() as u32, mut_value_handle(&mut vp)) {
+                    if !JS_ParseJSON(cx, decoded.as_ptr(), decoded.len() as u32, vp.mut_handle_()) {
                         JS_ClearPendingException(cx);
                         return NullValue();
                     }
                 }
-                vp
+                *vp.raw_()
             }
             _ => {
                 // XXXManishearth handle other response types

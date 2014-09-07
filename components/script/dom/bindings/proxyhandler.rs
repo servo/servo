@@ -4,8 +4,8 @@
 
 ///! Utilities for the implementation of JSAPI proxy handlers.
 
+use dom::bindings::js::RootablePointer;
 use dom::bindings::utils::delete_property_by_id;
-use dom::bindings::utils::{object_handle, mut_object_handle, mut_handle};
 use js::jsapi::{JSContext, JSPropertyDescriptor, JSObject, JSString, jschar};
 use js::jsapi::{JS_GetPropertyDescriptorById, JS_NewUCString, JS_malloc, JS_free};
 use js::jsapi::{JS_DefinePropertyById, JS_NewObjectWithGivenProto, MutableHandle};
@@ -30,9 +30,9 @@ static JSPROXYSLOT_EXPANDO: u32 = 0;
 pub extern fn getPropertyDescriptor(cx: *mut JSContext, proxy: JSHandleObject, id: JSHandleId,
                                     mut desc: MutableHandle<JSPropertyDescriptor>, flags: u32) -> bool {
   unsafe {
-    let handler = GetProxyHandler(proxy);
+    let handler = GetProxyHandler(*proxy);
     {
-        let desc2 = mut_handle(&mut *desc);
+        let desc2 = desc.clone();
         if !InvokeGetOwnPropertyDescriptor(handler, cx, proxy, id, desc2, flags) {
             return false;
         }
@@ -42,14 +42,14 @@ pub extern fn getPropertyDescriptor(cx: *mut JSContext, proxy: JSHandleObject, i
     }
 
     //let proto = JS_GetPrototype(proxy);
-    let mut proto = ptr::mut_null();
-    assert!(GetObjectProto(cx, proxy, mut_object_handle(&mut proto)));
-    if proto.is_null() {
+    let mut proto = ptr::mut_null().root_ptr();
+    assert!(GetObjectProto(cx, proxy, proto.mut_handle()));
+    if proto.raw().is_null() {
         desc.obj = ptr::mut_null();
         return true;
     }
 
-    JS_GetPropertyDescriptorById(cx, object_handle(&proto), id, JSRESOLVE_QUALIFIED, desc)
+    JS_GetPropertyDescriptorById(cx, proto.handle(), id, JSRESOLVE_QUALIFIED, desc)
   }
 }
 
@@ -87,12 +87,12 @@ pub extern fn defineProperty(cx: *mut JSContext, proxy: JSHandleObject, id: JSHa
 pub extern fn delete_(cx: *mut JSContext, proxy: JSHandleObject, id: JSHandleId,
                       bp: *mut bool) -> bool {
     unsafe {
-        let expando = EnsureExpandoObject(cx, *proxy);
-        if expando.is_null() {
+        let expando = EnsureExpandoObject(cx, *proxy).root_ptr();
+        if expando.raw().is_null() {
             return false;
         }
 
-        return delete_property_by_id(cx, object_handle(&expando), id, &mut *bp);
+        return delete_property_by_id(cx, expando.handle(), id, &mut *bp);
     }
 }
 
@@ -134,18 +134,18 @@ pub fn GetExpandoObject(obj: *mut JSObject) -> *mut JSObject {
 pub fn EnsureExpandoObject(cx: *mut JSContext, obj: *mut JSObject) -> *mut JSObject {
     unsafe {
         //XXXjdm it would be nice to assert that obj's class is a proxy class
-        let mut expando = GetExpandoObject(obj);
-        if expando.is_null() {
-            expando = JS_NewObjectWithGivenProto(cx, ptr::null(),
-                                                 object_handle(&ptr::mut_null()),
-                                                 object_handle(&GetObjectParent(obj)));
-            if expando.is_null() {
+        let mut expando = GetExpandoObject(obj).root_ptr();
+        if expando.raw().is_null() {
+            let o = ptr::mut_null().root_ptr();
+            let parent = GetObjectParent(obj).root_ptr();
+            expando = JS_NewObjectWithGivenProto(cx, ptr::null(), o.handle(), parent.handle()).root_ptr();
+            if expando.raw().is_null() {
                 return ptr::mut_null();
             }
 
-            SetProxyExtra(obj, JSPROXYSLOT_EXPANDO, ObjectValue(&*expando));
+            SetProxyExtra(obj, JSPROXYSLOT_EXPANDO, ObjectValue(&**expando.raw()));
         }
-        return expando;
+        return *expando.raw();
     }
 }
 

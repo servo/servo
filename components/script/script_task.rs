@@ -508,11 +508,13 @@ impl ScriptTask {
                 FromConstellation(ReflowCompleteMsg(id, reflow_id)) => self.handle_reflow_complete_msg(id, reflow_id),
                 FromConstellation(ResizeInactiveMsg(id, new_size)) => self.handle_resize_inactive_msg(id, new_size),
                 FromConstellation(ExitPipelineMsg(id)) => {
+                    // Ensure that the JS request has exited before the runtime is destroyed
                     _ar = None;
                     if self.handle_exit_pipeline_msg(id) { return false }
                 }
                 FromScript(ExitWindowMsg(id)) => {
-                    _ar = None;
+                    // No need to exit the JS request yet; we can still receive messages that
+                    // can require rooting (such as page damage)
                     self.handle_exit_window_msg(id)
                 }
                 FromConstellation(ResizeMsg(..)) => fail!("should have handled ResizeMsg already"),

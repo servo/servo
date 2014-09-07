@@ -52,7 +52,9 @@ use dom::worker::{Worker, TrustedWorkerAddress};
 use js::{ContextFriendFields, THING_ROOT_OBJECT};
 use js::glue::{insertObjectLinkedListElement, getPersistentRootedObjectList};
 use js::glue::{objectIsPoisoned, objectRelocate, objectNeedsPostBarrier, objectPostBarrier};
-use js::jsapi::{JSContext, JSObject, JS_IsInRequest, JS_GetRuntime};
+use js::jsapi::{JSContext, JSObject, JS_IsInRequest, JS_GetRuntime, Handle, MutableHandle, jsid};
+use js::jsapi::{JSFunction, JSString, JSPropertyDescriptor};
+use js::jsval::JSVal;
 use layout_interface::TrustedNodeAddress;
 use script_task::StackRoots;
 
@@ -341,11 +343,16 @@ impl<T: Reflectable> MutNullableJS<T> {
 /// Get an `Option<JSRef<T>>` out of an `Option<Root<T>>`
 pub trait RootedReference<T> {
     fn root_ref<'a>(&'a self) -> Option<JSRef<'a, T>>;
+    fn init(&self);
 }
 
 impl<'a, 'b, T: Reflectable> RootedReference<T> for Option<Root<'a, 'b, T>> {
     fn root_ref<'a>(&'a self) -> Option<JSRef<'a, T>> {
         self.as_ref().map(|root| root.root_ref())
+    }
+
+    fn init(&self) {
+        self.as_ref().map(|root| root.init());
     }
 }
 
@@ -480,7 +487,7 @@ impl<T: Assignable<U>, U: Reflectable> TemporaryPushable<T> for Vec<JS<U>> {
 
 /// An opaque, LIFO rooting mechanism.
 pub struct RootCollection {
-    roots: RefCell<Vec<*mut JSObject>>,
+    roots: RefCell<Vec<*mut libc::c_void>>,
     cx: *mut JSContext,
 }
 
@@ -499,18 +506,31 @@ impl RootCollection {
         Root::new(self, unrooted)
     }
 
+    /// Create a new stack-bounded root that will not outlive this collection
+    fn new_raw_root<'a, 'b, S: RootableSMPointerType, T: RootablePointer<S>>(&'a self, unrooted: T) -> Root<'a, 'b, libc::c_void, *mut S> {
+        Root::from_raw_ptr(self, unrooted.pointer())
+    }
+
+    /// Create a new stack-bounded root that will not outlive this collection
+    fn new_raw_value_root<'a, 'b, S: RootableSMValueType>(&'a self, unrooted: S) -> Root<'a, 'b, libc::c_void, S> {
+        Root::from_raw_value(self, unrooted)
+    }
+
     /// Track a stack-based root to ensure LIFO root ordering
-    fn root<'a, 'b, T: Reflectable>(&self, untracked: &Root<'a, 'b, T>) {
+    fn root<'a, 'b, T, S>(&self, untracked: &Root<'a, 'b, T, S>) {
         let mut roots = self.roots.borrow_mut();
-        roots.push(untracked.js_ptr);
-        debug!("  rooting {:?}", untracked.js_ptr);
+        let ptr = &untracked.js_ptr as *const S as *mut libc::c_void;
+        roots.push(ptr);
+        debug!("  rooting {:p}", ptr);
     }
 
     /// Stop tracking a stack-based root, asserting if LIFO root ordering has been violated
-    fn unroot<'a, 'b, T: Reflectable>(&self, rooted: &Root<'a, 'b, T>) {
+    fn unroot<'a, 'b, T, S>(&self, rooted: &Root<'a, 'b, T, S>) {
         let mut roots = self.roots.borrow_mut();
-        debug!("unrooting {:?} (expecting {:?}", roots.last().unwrap(), rooted.js_ptr);
-        assert!(*roots.last().unwrap() == rooted.js_ptr);
+        let expected = &rooted.js_ptr as *const S as *mut libc::c_void;
+        let actual = *roots.last().unwrap();
+        debug!("unrooting {:p} (expecting {:p})", actual, expected);
+        assert!(actual == expected);
         roots.pop().unwrap();
     }
 }
@@ -520,10 +540,10 @@ impl RootCollection {
 /// for the same JS value. `Root`s cannot outlive the associated `RootCollection` object.
 /// Attempts to transfer ownership of a `Root` via moving will trigger dynamic unrooting
 /// failures due to incorrect ordering.
-pub struct Root<'a, 'b, T> {
+pub struct Root<'a, 'b, T, S=*mut JSObject> {
     stack: Cell<*mut *const *const libc::c_void>,
     prev: Cell<*const *const libc::c_void>,
-    js_ptr: *mut JSObject,
+    js_ptr: S,
     /// Pointer to underlying Rust data
     ptr: *const T,
     /// List that ensures correct dynamic root ordering
@@ -532,12 +552,161 @@ pub struct Root<'a, 'b, T> {
     jsref: JSRef<'b, T>,
 }
 
+impl<'a, 'b, T, S> Root<'a, 'b, T, S> {
+    pub fn init(&self) {
+        unsafe {
+            assert!(JS_IsInRequest(JS_GetRuntime(self.root_list.cx)));
+            self.root_list.root(self);
+            let cxfields: *mut ContextFriendFields = mem::transmute(self.root_list.cx);
+            self.stack.set(&mut (*cxfields).thingGCRooters[THING_ROOT_OBJECT as uint]);
+            self.prev.set(*self.stack.get());
+            *self.stack.get() = self as *const Root<T, S> as *const *const libc::c_void;
+        }
+    }
+}
+
+trait RootableSMType {}
+impl RootableSMType for JSVal {}
+impl RootableSMType for JSObject {}
+impl RootableSMType for jsid {}
+impl RootableSMType for JSFunction {}
+impl RootableSMType for JSString {}
+impl RootableSMType for JSPropertyDescriptor {}
+
+trait RootableSMPointerType: RootableSMType {}
+trait RootableSMValueType: RootableSMType {}
+
+impl RootableSMPointerType for JSObject {}
+impl RootableSMPointerType for JSFunction {}
+impl RootableSMPointerType for JSString {}
+
+impl RootableSMValueType for JSVal {}
+impl RootableSMValueType for jsid {}
+impl RootableSMValueType for JSPropertyDescriptor {}
+
+pub trait RootablePointer<S: RootableSMPointerType> {
+    fn root_ptr<'a, 'b>(self) -> Root<'a, 'b, libc::c_void, *mut S>;
+    fn pointer(&self) -> *mut S;
+}
+
+pub trait RootableValue<S: RootableSMValueType> {
+    fn root_value<'a, 'b>(self) -> Root<'a, 'b, libc::c_void, S>;
+}
+
+fn raw_root_ptr_impl<'a, 'b, S: RootableSMPointerType, T: RootablePointer<S>>(ptr: T) -> Root<'a, 'b, libc::c_void, *mut S> {
+    let collection = StackRoots.get().unwrap();
+    unsafe {
+        (**collection).new_raw_root(ptr.pointer())
+    }
+}
+
+fn raw_root_value_impl<'a, 'b, S: RootableSMValueType>(val: S) -> Root<'a, 'b, libc::c_void, S> {
+    let collection = StackRoots.get().unwrap();
+    unsafe {
+        (**collection).new_raw_value_root(val)
+    }
+}
+
+impl<S: RootableSMPointerType> RootablePointer<S> for *mut S {
+    fn root_ptr<'a, 'b>(self) -> Root<'a, 'b, libc::c_void, *mut S> {
+        raw_root_ptr_impl(self)
+    }
+
+    fn pointer(&self) -> *mut S {
+        *self
+    }
+}
+
+impl<S: RootableSMValueType> RootableValue<S> for S {
+    fn root_value<'a, 'b>(self) -> Root<'a, 'b, libc::c_void, S> {
+        raw_root_value_impl(self)
+    }
+}
+
+impl<'a, 'b, S: RootableSMPointerType> Root<'a, 'b, libc::c_void, *mut S> {
+    fn from_raw_ptr(roots: &'a RootCollection, unrooted: *mut S) -> Root<'a, 'b, libc::c_void, *mut S> {
+        Root {
+            stack: Cell::new(ptr::mut_null()),
+            prev: Cell::new(ptr::null()),
+            root_list: roots,
+            jsref: JSRef {
+                ptr: ptr::null(),
+                chain: ContravariantLifetime,
+            },
+            ptr: ptr::null(),
+            js_ptr: unrooted,
+        }
+    }
+}
+
+impl<'a, 'b, S: RootableSMPointerType> Root<'a, 'b, libc::c_void, *mut S> {
+    pub fn handle<'c>(&'c self) -> Handle<'c, *mut S> {
+        if self.stack.get() == ptr::mut_null() {
+            self.init();
+        }
+        Handle {
+            unnamed_field1: &self.js_ptr,
+        }
+    }
+
+    pub fn mut_handle<'c>(&'c mut self) -> MutableHandle<'c, *mut S> {
+        if self.stack.get() == ptr::mut_null() {
+            self.init();
+        }
+        MutableHandle {
+            unnamed_field1: &mut self.js_ptr
+        }
+    }
+
+    pub fn raw<'c>(&'c self) -> &'c *mut S {
+        &self.js_ptr
+    }
+}
+
+impl<'a, 'b, S: RootableSMValueType> Root<'a, 'b, libc::c_void, S> {
+    fn from_raw_value(roots: &'a RootCollection, unrooted: S) -> Root<'a, 'b, libc::c_void, S> {
+        Root {
+            stack: Cell::new(ptr::mut_null()),
+            prev: Cell::new(ptr::null()),
+            root_list: roots,
+            jsref: JSRef {
+                ptr: ptr::null(),
+                chain: ContravariantLifetime,
+            },
+            ptr: ptr::null(),
+            js_ptr: unrooted,
+        }
+    }
+
+    pub fn handle_<'c>(&'c self) -> Handle<'c, S> {
+        if self.stack.get() == ptr::mut_null() {
+            self.init();
+        }
+        Handle {
+            unnamed_field1: &self.js_ptr,
+        }
+    }
+
+    pub fn mut_handle_<'c>(&'c mut self) -> MutableHandle<'c, S> {
+        if self.stack.get() == ptr::mut_null() {
+            self.init();
+        }
+        MutableHandle {
+            unnamed_field1: &mut self.js_ptr,
+        }
+    }
+
+    pub fn raw_<'c>(&'c self) -> &'c S {
+        &self.js_ptr
+    }
+}
+
 impl<'a, 'b, T: Reflectable> Root<'a, 'b, T> {
     /// Create a new stack-bounded root for the provided JS-owned value.
     /// It cannot not outlive its associated `RootCollection`, and it contains a `JSRef`
     /// which cannot outlive this new `Root`.
     fn new(roots: &'a RootCollection, unrooted: &JS<T>) -> Root<'a, 'b, T> {
-        let root = Root {
+        Root {
             stack: Cell::new(ptr::mut_null()),
             prev: Cell::new(ptr::null()),
             root_list: roots,
@@ -547,18 +716,6 @@ impl<'a, 'b, T: Reflectable> Root<'a, 'b, T> {
             },
             ptr: unrooted.ptr,
             js_ptr: unrooted.reflector().get_jsobject(),
-        };
-        roots.root(&root);
-        root
-    }
-
-    pub fn init(&self) {
-        unsafe {
-            assert!(JS_IsInRequest(JS_GetRuntime(self.root_list.cx)));
-            let cxfields: *mut ContextFriendFields = mem::transmute(self.root_list.cx);
-            self.stack.set(&mut (*cxfields).thingGCRooters[THING_ROOT_OBJECT as uint]);
-            self.prev.set(*self.stack.get());
-            *self.stack.get() = self as *const Root<T> as *const *const libc::c_void;
         }
     }
 
@@ -573,11 +730,11 @@ impl<'a, 'b, T: Reflectable> Root<'a, 'b, T> {
 }
 
 #[unsafe_destructor]
-impl<'a, 'b, T: Reflectable> Drop for Root<'a, 'b, T> {
+impl<'a, 'b, T, S> Drop for Root<'a, 'b, T, S> {
     fn drop(&mut self) {
         unsafe {
             assert!(self.stack.get() != ptr::mut_null(), "Uninitialized root encountered");
-            assert!(*self.stack.get() == self as *mut Root<T> as *const *const libc::c_void);
+            assert!(*self.stack.get() == self as *mut Root<T, S> as *const *const libc::c_void);
             *self.stack.get() = self.prev.get();
         }
         self.root_list.unroot(self);

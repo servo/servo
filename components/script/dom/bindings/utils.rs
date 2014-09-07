@@ -10,7 +10,7 @@ use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
 use dom::bindings::conversions::{FromJSValConvertible, IDLInterface};
 use dom::bindings::error::throw_type_error;
 use dom::bindings::global::{GlobalRef, GlobalField, WindowField, WorkerField};
-use dom::bindings::js::{JS, Temporary, Root};
+use dom::bindings::js::{JS, Temporary, Root, RootablePointer, RootableValue};
 use dom::bindings::trace::Untraceable;
 use dom::browsercontext;
 use dom::window;
@@ -30,10 +30,10 @@ use js::glue::{GetGlobalForObjectCrossCompartment, UnwrapObject};
 use js::glue::{IsWrapper, RUST_JSID_TO_STRING, RUST_JSID_IS_INT};
 use js::glue::{RUST_JSID_IS_STRING, RUST_JSID_TO_INT, ToString, NewGlobalObject};
 use js::jsapi::{JS_AlreadyHasOwnProperty, JS_NewFunction, JSVERSION_LATEST};
-use js::jsapi::{JS_DefineProperties, JS_ForwardGetPropertyTo, JSHandleValue};
+use js::jsapi::{JS_DefineProperties, JS_ForwardGetPropertyTo};
 use js::jsapi::{JS_GetClass, JS_LinkConstructorAndPrototype, JS_GetStringCharsAndLength};
 use js::jsapi::{JS_ObjectIsRegExp, JS_ObjectIsDate, JSHandleObject, JSMutableHandleValue};
-use js::jsapi::{JS_GetFunctionObject, JSMutableHandleObject, MutableHandle};
+use js::jsapi::{JS_GetFunctionObject};
 use js::jsapi::{JS_HasPropertyById, JS_GetPrototype};
 use js::jsapi::{JS_GetProperty, JS_HasProperty};
 use js::jsapi::{JS_DefineFunctions, JS_DefineProperty};
@@ -41,7 +41,7 @@ use js::jsapi::{JS_GetReservedSlot, JS_SetReservedSlot};
 use js::jsapi::{JSContext, JSObject, jsid, JSClass};
 use js::jsapi::{JSFunctionSpec, JSPropertySpec, JSHandleId};
 use js::jsapi::{JS_InitStandardClasses};
-use js::jsapi::{JSString, Handle};
+use js::jsapi::{JSString};
 use js::jsapi::JS_DeletePropertyById2;
 use js::jsfriendapi::bindgen::JS_NewObjectWithUniqueType;
 use js::jsval::JSVal;
@@ -311,43 +311,46 @@ fn CreateInterfaceObject(cx: *mut JSContext, global: JSHandleObject, receiver: *
                          ctorNargs: u32, proto: *mut JSObject,
                          members: &'static NativeProperties,
                          name: *const libc::c_char) {
+    let proto = proto.root_ptr();
+    proto.init();
+    let receiver = receiver.root_ptr();
+    receiver.init();
     unsafe {
         let fun = JS_NewFunction(cx, Some(constructorNative), ctorNargs,
                                  JSFUN_CONSTRUCTOR, global, name);
         assert!(fun.is_not_null());
 
-        let constructor = JS_GetFunctionObject(fun);
-        assert!(constructor.is_not_null());
+        let constructor = JS_GetFunctionObject(fun).root_ptr();
+        constructor.init();
+        assert!(constructor.raw().is_not_null());
 
-        let constructor = object_handle(&constructor);
         match members.staticMethods {
-            Some(staticMethods) => DefineMethods(cx, constructor, staticMethods),
+            Some(staticMethods) => DefineMethods(cx, constructor.handle(), staticMethods),
             _ => (),
         }
 
         match members.staticAttrs {
-            Some(staticProperties) => DefineProperties(cx, constructor, staticProperties),
+            Some(staticProperties) => DefineProperties(cx, constructor.handle(), staticProperties),
             _ => (),
         }
 
         match members.consts {
-            Some(constants) => DefineConstants(cx, constructor, constants),
+            Some(constants) => DefineConstants(cx, constructor.handle(), constants),
             _ => (),
         }
 
-        let protohandle = object_handle(&proto);
-        if proto.is_not_null() {
-            assert!(JS_LinkConstructorAndPrototype(cx, constructor, protohandle));
+        if proto.raw().is_not_null() {
+            assert!(JS_LinkConstructorAndPrototype(cx, constructor.handle(), proto.handle()));
         }
 
         let mut alreadyDefined = false;
-        let receiverhandle = object_handle(&receiver);
-        assert!(JS_AlreadyHasOwnProperty(cx, receiverhandle, name, &mut alreadyDefined));
+        assert!(JS_AlreadyHasOwnProperty(cx, receiver.handle(), name, &mut alreadyDefined));
 
-        let constructorhandle = ObjectValue(&**constructor);
+        let constructorval = ObjectValue(&**constructor.raw()).root_value();
+        constructorval.init();
         if !alreadyDefined {
-            assert!(JS_DefineProperty(cx, receiverhandle, name,
-                                      value_handle(&constructorhandle),
+            assert!(JS_DefineProperty(cx, receiver.handle(), name,
+                                      constructorval.handle_(),
                                       0, None, None));
         }
     }
@@ -357,10 +360,9 @@ fn CreateInterfaceObject(cx: *mut JSContext, global: JSHandleObject, receiver: *
 /// Fails on JSAPI failure.
 fn DefineConstants(cx: *mut JSContext, obj: JSHandleObject, constants: &'static [ConstantSpec]) {
     for spec in constants.iter() {
-        let jsval = spec.get_value();
-        let jsval = value_handle(&jsval);
+        let jsval = spec.get_value().root_value();
         unsafe {
-            assert!(JS_DefineProperty(cx, obj, spec.name.as_ptr() as *const libc::c_char, jsval,
+            assert!(JS_DefineProperty(cx, obj, spec.name.as_ptr() as *const libc::c_char, jsval.handle_(),
                                       JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT,
                                       None, None));
         }
@@ -392,26 +394,26 @@ fn CreateInterfacePrototypeObject(cx: *mut JSContext, global: JSHandleObject,
                                   protoClass: &'static JSClass,
                                   members: &'static NativeProperties) -> *mut JSObject {
     unsafe {
-        let ourProto = JS_NewObjectWithUniqueType(cx, protoClass, parentProto, global);
-        assert!(ourProto.is_not_null());
+        let ourProto = JS_NewObjectWithUniqueType(cx, protoClass, parentProto, global).root_ptr();
+        ourProto.init();
+        assert!(ourProto.raw().is_not_null());
 
-        let ourProto = object_handle(&ourProto);
         match members.methods {
-            Some(methods) => DefineMethods(cx, ourProto, methods),
+            Some(methods) => DefineMethods(cx, ourProto.handle(), methods),
             _ => (),
         }
 
         match members.attrs {
-            Some(properties) => DefineProperties(cx, ourProto, properties),
+            Some(properties) => DefineProperties(cx, ourProto.handle(), properties),
             _ => (),
         }
 
         match members.consts {
-            Some(constants) => DefineConstants(cx, ourProto, constants),
+            Some(constants) => DefineConstants(cx, ourProto.handle(), constants),
             _ => (),
         }
 
-        return *ourProto.unnamed_field1;
+        return *ourProto.raw();
     }
 }
 
@@ -493,16 +495,16 @@ pub fn GetPropertyOnPrototype(cx: *mut JSContext, proxy: JSHandleObject, id: JSH
                               vp: Option<JSMutableHandleValue>) -> bool {
     unsafe {
       //let proto = GetObjectProto(proxy);
-      let mut proto = ptr::mut_null();
-      if !JS_GetPrototype(cx, proxy, mut_object_handle(&mut proto)) {
+      let mut proto = ptr::mut_null().root_ptr();
+      if !JS_GetPrototype(cx, proxy, proto.mut_handle()) {
           return false;
       }
-      if proto.is_null() {
+      if proto.raw().is_null() {
           *found = false;
           return true;
       }
       let mut hasProp = false;
-      if !JS_HasPropertyById(cx, object_handle(&proto), id, &mut hasProp) {
+      if !JS_HasPropertyById(cx, proto.handle(), id, &mut hasProp) {
           return false;
       }
       *found = hasProp;
@@ -511,7 +513,7 @@ pub fn GetPropertyOnPrototype(cx: *mut JSContext, proxy: JSHandleObject, id: JSH
           return true;
       }
 
-      JS_ForwardGetPropertyTo(cx, object_handle(&proto), id, proxy, vp.unwrap())
+      JS_ForwardGetPropertyTo(cx, proto.handle(), id, proxy, vp.unwrap())
   }
 }
 
@@ -547,14 +549,16 @@ pub fn FindEnumStringIndex(cx: *mut JSContext,
                            v: JSVal,
                            values: &[&'static str]) -> Result<Option<uint>, ()> {
     unsafe {
-        let v = value_handle(&v);
-        let jsstr = ToString(cx, v);
-        if jsstr.is_null() {
+        let v = v.root_value();
+        v.init();
+        let jsstr = ToString(cx, v.handle_()).root_ptr();
+        jsstr.init();
+        if jsstr.raw().is_null() {
             return Err(());
         }
 
         let mut length = 0;
-        let chars = JS_GetStringCharsAndLength(cx, jsstr, &mut length);
+        let chars = JS_GetStringCharsAndLength(cx, *jsstr.raw(), &mut length);
         if chars.is_null() {
             return Err(());
         }
@@ -601,20 +605,20 @@ pub fn get_dictionary_property(cx: *mut JSContext,
         return Ok(None);
     }
 
-    let mut value = NullValue();
+    let mut value = NullValue().root_value();
     /*if !get_property(cx, object, &property, mut_value_handle(&mut value)) {
         return Err(());
     }*/
     if unsafe {
         property.with_ref(|s| {
-            !JS_GetProperty(cx, object, s, mut_value_handle(&mut value))
+            !JS_GetProperty(cx, object, s, value.mut_handle_())
         })
     } {
         return Err(());
     }
 
     unsafe {
-        Ok(Some(value))
+        Ok(Some(*value.raw_()))
     }
 }
 
@@ -627,8 +631,8 @@ pub fn HasPropertyOnPrototype(cx: *mut JSContext, proxy: JSHandleObject, id: JSH
 /// Returns whether `obj` can be converted to a callback interface per IDL.
 pub fn IsConvertibleToCallbackInterface(cx: *mut JSContext, obj: *mut JSObject) -> bool {
     unsafe {
-        let obj = object_handle(&obj);
-        !JS_ObjectIsDate(cx, obj) && !JS_ObjectIsRegExp(cx, obj)
+        let obj = obj.root_ptr();
+        !JS_ObjectIsDate(cx, obj.handle()) && !JS_ObjectIsRegExp(cx, obj.handle())
     }
 }
 
@@ -636,18 +640,18 @@ pub fn IsConvertibleToCallbackInterface(cx: *mut JSContext, obj: *mut JSObject) 
 pub fn CreateDOMGlobal(cx: *mut JSContext, class: *const JSClass) -> *mut JSObject {
     unsafe {
         //XXXjdm need to trace the protoiface cache, too
-        let obj = NewGlobalObject(cx, class, ptr::mut_null(), 0 /*FireOnNewGlobalHook*/);
-        if obj.is_null() {
+        let obj = NewGlobalObject(cx, class, ptr::mut_null(), 0 /*FireOnNewGlobalHook*/).root_ptr();
+        obj.init();
+        if obj.raw().is_null() {
             return ptr::mut_null();
         }
-        with_compartment(cx, obj, || {
-            let globhandle = object_handle(&obj);
+        with_compartment(cx, *obj.raw(), || {
             CompartmentOptions_SetVersion(cx, JSVERSION_LATEST);
             CompartmentOptions_SetTraceGlobal(cx, Some(WindowBinding::_trace));
-            JS_InitStandardClasses(cx, globhandle);
+            JS_InitStandardClasses(cx, obj.handle());
         });
-        initialize_global(obj);
-        obj
+        initialize_global(*obj.raw());
+        *obj.raw()
     }
 }
 
@@ -805,41 +809,5 @@ pub fn xml_name_type(name: &str) -> XMLName {
     match non_qname_colons {
         false => QName,
         true => Name
-    }
-}
-
-pub fn object_handle<'a>(obj: &'a *mut JSObject) -> JSHandleObject<'a> {
-    Handle {
-        unnamed_field1: obj
-    }
-}
-
-pub fn mut_object_handle<'a>(obj: &'a mut *mut JSObject) -> JSMutableHandleObject<'a> {
-    MutableHandle {
-        unnamed_field1: obj
-    }
-}
-
-pub fn id_handle<'a>(id: &'a jsid) -> JSHandleId<'a> {
-    Handle {
-        unnamed_field1: id
-    }
-}
-
-pub fn value_handle<'a>(val: &'a JSVal) -> JSHandleValue<'a> {
-    Handle {
-        unnamed_field1: val
-    }
-}
-
-pub fn mut_value_handle<'a>(val: &'a mut JSVal) -> JSMutableHandleValue<'a> {
-    MutableHandle {
-        unnamed_field1: val
-    }
-}
-
-pub fn mut_handle<'a, T>(val: &'a mut T) -> MutableHandle<'a, T> {
-    MutableHandle {
-        unnamed_field1: val
     }
 }
