@@ -33,9 +33,12 @@ class MachCommands(CommandBase):
 
     @Command('doc',
              description='Generate documentation',
-             category='post-build')
-    def doc(self):
+             category='post-build',
+             allow_all_args=True)
+    @CommandArgument('params', default=None, nargs='...',
+                     help="Command-line arguments to be passed through to cargo doc")
+    def doc(self, params):
         self.ensure_bootstrapped()
-        subprocess.check_call(["cargo", "doc"],
-                              env=self.build_env())
+        return subprocess.call(["cargo", "doc"] + params,
+                               env=self.build_env())
 
