@@ -68,7 +68,7 @@ pub trait JSTraceable {
 
 /// Trace a `JSVal`.
 pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: JSVal) {
-    if !val.is_gcthing() {
+    if !val.is_markable() {
         return;
     }
 
