@@ -111,5 +111,4 @@ flaky_gpu,flaky_linux == acid2_noscroll.html acid2_ref_broken.html
 == float_right_intrinsic_width_a.html float_right_intrinsic_width_ref.html
 == fixed_width_overrides_child_intrinsic_width_a.html fixed_width_overrides_child_intrinsic_width_ref.html
 
-# This next test causes a failure on the Travis CI build
-#== multiple_css_class_a.html multiple_css_class_b.html
+== multiple_css_class_a.html multiple_css_class_b.html
