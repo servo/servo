@@ -27,7 +27,7 @@ class MachCommands(CommandBase):
     @CommandArgument('--target', '-t', default=None)
     def build(self, target):
         self.ensure_bootstrapped()
-        
+
         build_start = time()
         subprocess.check_call(["cargo", "build"], env=self.build_env())
         elapsed = time() - build_start

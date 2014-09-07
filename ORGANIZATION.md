@@ -2,7 +2,8 @@
 
 ## Servo components
 
-* `components/main`: The top-level Servo crate. Contains compositing, DOM, layout, and script.
+* `src/bin.rs`: Servo's entry point
+* `src/lib.rs`: libservo entry point
 * `components/layout`: The layout system.
 * `components/style`: The CSS styling system.
 * `components/script`: The JavaScript and DOM systems.

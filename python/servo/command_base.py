@@ -71,7 +71,7 @@ class CommandBase(object):
                 module_path = components[1]
                 subprocess.check_call(["git", "submodule", "update",
                                        "--init", "--recursive", "--", module_path])
-                
+
         if not self.config["tools"]["system-rust"] and \
            not path.exists(path.join(self.context.topdir, "rust", "bin", "rustc")):
             Registrar.dispatch("bootstrap-rust", context=self.context)
