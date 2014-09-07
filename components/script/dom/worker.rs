@@ -8,9 +8,8 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::error::{Fallible, Syntax};
 use dom::bindings::global::{GlobalRef, GlobalField};
-use dom::bindings::js::{JS, JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object, mut_value_handle};
-use dom::bindings::utils::value_handle;
+use dom::bindings::js::{JS, JSRef, Temporary, RootableValue};
+use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, WorkerTypeId};
 use dom::messageevent::MessageEvent;
@@ -85,16 +84,16 @@ impl Worker {
 
         let global = worker.global.root();
 
-        let mut message = UndefinedValue();
+        let mut message = UndefinedValue().root_value();
         unsafe {
             assert!(JS_ReadStructuredClone(
                 global.root_ref().get_cx(), data as *const u64, nbytes,
-                JS_STRUCTURED_CLONE_VERSION, mut_value_handle(&mut message),
+                JS_STRUCTURED_CLONE_VERSION, message.mut_handle_(),
                 ptr::null(), ptr::null_mut()));
         }
 
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(*worker);
-        MessageEvent::dispatch_jsval(target, &global.root_ref(), message);
+        MessageEvent::dispatch_jsval(target, &global.root_ref(), *message.raw_());
     }
 }
 
@@ -132,13 +131,14 @@ impl Worker {
 
 impl<'a> WorkerMethods for JSRef<'a, Worker> {
     fn PostMessage(self, cx: *mut JSContext, message: JSVal) {
+        let message = message.root_value();
         let mut data = ptr::null_mut();
         let mut nbytes = 0;
-        let transferable = UndefinedValue();
+        let transferable = UndefinedValue().root_value();
         unsafe {
-            assert!(JS_WriteStructuredClone(cx, value_handle(&message), &mut data, &mut nbytes,
+            assert!(JS_WriteStructuredClone(cx, message.handle_(), &mut data, &mut nbytes,
                                             ptr::null(), ptr::null_mut(),
-                                            value_handle(&transferable)));
+                                            transferable.handle_()));
         }
 
         self.addref();

@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JS, JSRef, Temporary, RootablePointer};
 use dom::bindings::trace::Traceable;
-use dom::bindings::utils::{Reflectable, object_handle};
+use dom::bindings::utils::{Reflectable};
 use dom::document::Document;
 use dom::window::Window;
 
@@ -67,15 +67,15 @@ impl BrowserContext {
         let handler = js_info.as_ref().unwrap().dom_static.windowproxy_handler;
         assert!(handler.deref().is_not_null());
 
-        let obj = win.deref().reflector().get_jsobject();
+        let obj = win.deref().reflector().get_jsobject().root_ptr();
         let cx = js_info.as_ref().unwrap().js_context.deref().deref().ptr;
-        let wrapper = with_compartment(cx, obj, || unsafe {
-            WrapperNew(cx, object_handle(&obj), object_handle(&obj), *handler.deref(),
+        let wrapper = with_compartment(cx, *obj.raw(), || unsafe {
+            WrapperNew(cx, obj.handle(), obj.handle(), *handler.deref(),
                        &mut ProxyClass, true)
         });
         assert!(wrapper.is_not_null());
         unsafe {
-            SetProxyExtra(wrapper, 0, PrivateValue(obj as *const libc::c_void));
+            SetProxyExtra(wrapper, 0, PrivateValue(*obj.raw() as *const libc::c_void));
         }
         self.window_proxy = Traceable::new(wrapper);
     }

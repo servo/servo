@@ -4,9 +4,9 @@
 
 //! Conversions of Rust values to and from `JSVal`.
 
-use dom::bindings::js::{JS, JSRef, Root};
+use dom::bindings::js::{JS, JSRef, Root, RootableValue};
 use dom::bindings::str::ByteString;
-use dom::bindings::utils::{Reflectable, Reflector, value_handle, mut_value_handle};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::bindings::utils::jsstring_to_str;
 use dom::bindings::utils::unwrap_jsmanaged;
 use servo_util::str::DOMString;
@@ -57,11 +57,12 @@ impl ToJSValConvertible for () {
 
 impl ToJSValConvertible for JSVal {
     fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
-        let mut value = *self;
-        if unsafe { !JS_WrapValue(cx, mut_value_handle(&mut value)) } {
+        let mut value = (*self).root_value();
+        value.init();
+        if unsafe { !JS_WrapValue(cx, value.mut_handle_()) } {
             fail!("JS_WrapValue failed.");
         }
-        value
+        *value.raw_()
     }
 }
 
@@ -69,8 +70,9 @@ unsafe fn convert_from_jsval<T: default::Default>(
     cx: *mut JSContext, value: JSVal,
     convert_fn: unsafe extern "C" fn(*mut JSContext, JSHandleValue, *mut T) -> bool) -> Result<T, ()> {
     let mut ret = default::Default::default();
-    let value = value_handle(&value);
-    if !convert_fn(cx, value, &mut ret) {
+    let value = value.root_value();
+    value.init();
+    if !convert_fn(cx, value.handle_(), &mut ret) {
         Err(())
     } else {
         Ok(ret)
@@ -86,8 +88,9 @@ impl ToJSValConvertible for bool {
 
 impl FromJSValConvertible<()> for bool {
     fn from_jsval(_cx: *mut JSContext, val: JSVal, _option: ()) -> Result<bool, ()> {
-        let val = value_handle(&val);
-        Ok(unsafe { ToBoolean(val) })
+        let val = val.root_value();
+        val.init();
+        Ok(unsafe { ToBoolean(val.handle_()) })
     }
 }
 
@@ -256,8 +259,9 @@ impl FromJSValConvertible<StringificationBehavior> for DOMString {
         if nullBehavior == Empty && value.is_null() {
             Ok("".to_string())
         } else {
-            let valhandle = value_handle(&value);
-            let jsstr = unsafe { ToString(cx, valhandle) };
+            let value = value.root_value();
+            value.init();
+            let jsstr = unsafe { ToString(cx, value.handle_()) };
             if jsstr.is_null() {
                 debug!("JS_ValueToString failed");
                 Err(())
@@ -285,8 +289,9 @@ impl ToJSValConvertible for ByteString {
 impl FromJSValConvertible<()> for ByteString {
     fn from_jsval(cx: *mut JSContext, value: JSVal, _option: ()) -> Result<ByteString, ()> {
         unsafe {
-            let valhandle = value_handle(&value);
-            let string = ToString(cx, valhandle);
+            let value = value.root_value();
+            value.init();
+            let string = ToString(cx, value.handle_());
             if string.is_null() {
                 debug!("JS_ValueToString failed");
                 return Err(());
@@ -310,11 +315,12 @@ impl ToJSValConvertible for Reflector {
     fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
         let obj = self.get_jsobject();
         assert!(obj.is_not_null());
-        let mut value = ObjectValue(unsafe { &*obj });
-        if unsafe { !JS_WrapValue(cx, mut_value_handle(&mut value)) } {
+        let mut value = ObjectValue(unsafe { &*obj }).root_value();
+        value.init();
+        if unsafe { !JS_WrapValue(cx, value.mut_handle_()) } {
             fail!("JS_WrapValue failed.");
         }
-        value
+        *value.raw_()
     }
 }
 
