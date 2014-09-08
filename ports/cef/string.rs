@@ -11,6 +11,7 @@ use libc::types::os::arch::c95::wchar_t;
 use mem::{new0,newarray0,delete,deletearray};
 use std::mem;
 use std::ptr;
+use std::slice;
 use std::string;
 use types::{cef_string_utf16_t, cef_string_utf8_t, cef_string_wide_t};
 use types::{cef_string_userfree_utf16_t, cef_string_userfree_utf8_t, cef_string_userfree_wide_t};
@@ -99,6 +100,24 @@ pub extern "C" fn cef_string_utf8_to_utf16(src: *const u8, src_len: size_t, outp
        let result = UTF_16LE.encode(string::raw::from_buf_len(src, src_len as uint).as_slice(), EncodeStrict);
        if result.is_err() { return 0; }
        cef_string_utf16_set(mem::transmute(result.unwrap().as_slice().as_ptr()), (src_len * 2) as size_t, output, 1);
+    }
+    1
+}
+
+#[no_mangle]
+pub extern "C" fn cef_string_utf16_to_utf8(src: *const u16, src_len: size_t, output: *mut cef_string_utf8_t) -> c_int {
+    unsafe {
+       slice::raw::buf_as_slice(src, src_len as uint, |ustr| {
+            match string::String::from_utf16(ustr) {
+                Some(str) => {
+                    cef_string_utf8_set(str.as_bytes().as_ptr(), str.len() as size_t, output, 1);
+                    return 1 as c_int;
+                },
+                None => {
+                    return 0 as c_int;
+                }
+            }
+       });
     }
     1
 }
