@@ -3,12 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 
+use encoding::{Encoding, EncodeStrict};
+use encoding::all::{UTF_16LE};
 use eutil::fptr_is_null;
 use libc::{size_t, c_int, c_ushort,c_void};
 use libc::types::os::arch::c95::wchar_t;
 use mem::{new0,newarray0,delete,deletearray};
 use std::mem;
 use std::ptr;
+use std::string;
 use types::{cef_string_utf16_t, cef_string_utf8_t, cef_string_wide_t};
 use types::{cef_string_userfree_utf16_t, cef_string_userfree_utf8_t, cef_string_userfree_wide_t};
 
@@ -88,6 +91,16 @@ pub extern "C" fn cef_string_utf8_set(src: *const u8, src_len: size_t, output: *
        }
     }
     return 1;
+}
+
+#[no_mangle]
+pub extern "C" fn cef_string_utf8_to_utf16(src: *const u8, src_len: size_t, output: *mut cef_string_utf16_t) -> c_int {
+    unsafe {
+       let result = UTF_16LE.encode(string::raw::from_buf_len(src, src_len as uint).as_slice(), EncodeStrict);
+       if result.is_err() { return 0; }
+       cef_string_utf16_set(mem::transmute(result.unwrap().as_slice().as_ptr()), (src_len * 2) as size_t, output, 1);
+    }
+    1
 }
 
 #[no_mangle]
