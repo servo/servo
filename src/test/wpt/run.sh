@@ -9,7 +9,7 @@ objdir="$2"
 shift 2
 
 cd $objdir/..
-test -d _virtualenv || virtualenv _virtualenv
+test -d _virtualenv || virtualenv _virtualenv -p $(which $PYTHON)
 test -d $servo_root/src/test/wpt/metadata || mkdir -p $servo_root/src/test/wpt/metadata
 test -d $servo_root/src/test/wpt/prefs || mkdir -p $servo_root/src/test/wpt/prefs
 source _virtualenv/bin/activate
