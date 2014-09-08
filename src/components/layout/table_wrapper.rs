@@ -303,9 +303,23 @@ impl TableWrapper {
                 };
                 // The extra inline-size is distributed over the columns
                 if extra_inline_size > Au(0) {
-                    let cell_len = table_wrapper.col_inline_sizes.len() as f64;
-                    table_wrapper.col_inline_sizes = col_min_inline_sizes.iter().map(|inline_size| {
-                        inline_size + extra_inline_size.scale_by(1.0 / cell_len)
+
+                    // Get the number of cells that aren't already at preferred width
+                    let total_cell_len = table_wrapper.col_inline_sizes.len();
+                    let diff_cell_len = col_min_inline_sizes.iter().zip(
+                                        col_pref_inline_sizes.iter()).filter(|&(min_size, pref_size)| {
+                                            pref_size > min_size
+                                        }).count();
+
+                    table_wrapper.col_inline_sizes = col_min_inline_sizes.iter().zip(
+                                    col_pref_inline_sizes.iter()).map(|(min_size, pref_size)| {
+                        min_size + if diff_cell_len == 0 {
+                            extra_inline_size.scale_by(1.0 / total_cell_len as f64)
+                        } else if pref_size > min_size {
+                            extra_inline_size.scale_by(1.0 / diff_cell_len as f64)
+                        } else {
+                            Au(0)
+                        }
                     }).collect();
                 }
                 inline_size
