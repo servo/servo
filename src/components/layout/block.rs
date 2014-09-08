@@ -21,6 +21,7 @@ use flow::{BaseFlow, BlockFlowClass, FlowClass, Flow, ImmutableFlowUtils};
 use flow::{MutableFlowUtils, PreorderFlowTraversal, PostorderFlowTraversal, mut_base};
 use flow;
 use fragment::{Fragment, ImageFragment, ScannedTextFragment};
+use layout_debug;
 use model::{Auto, IntrinsicISizes, MarginCollapseInfo, MarginsCollapse};
 use model::{MarginsCollapseThrough, MaybeAuto, NoCollapsibleMargins, Specified, specified};
 use model::{specified_or_none};
@@ -48,6 +49,7 @@ use style::computed_values::{display, float, overflow};
 use sync::Arc;
 
 /// Information specific to floated blocks.
+#[deriving(Encodable)]
 pub struct FloatedBlockInfo {
     pub containing_inline_size: Au,
 
@@ -492,6 +494,7 @@ fn propagate_layer_flag_from_child(layers_needed_for_descendants: &mut bool, kid
 }
 
 // A block formatting context.
+#[deriving(Encodable)]
 pub struct BlockFlow {
     /// Data common to all flows.
     pub base: BaseFlow,
@@ -808,6 +811,8 @@ impl BlockFlow {
     pub fn assign_block_size_block_base<'a>(&mut self,
                                     layout_context: &'a LayoutContext<'a>,
                                     margins_may_collapse: MarginsMayCollapseFlag) {
+        let _scope = layout_debug_scope!("assign_block_size_block_base {:s}", self.base.debug_id());
+
         // Our current border-box position.
         let mut cur_b = Au(0);
 
@@ -1054,6 +1059,8 @@ impl BlockFlow {
     ///
     /// It does not calculate the block-size of the flow itself.
     pub fn assign_block_size_float<'a>(&mut self, ctx: &'a LayoutContext<'a>) {
+        let _scope = layout_debug_scope!("assign_block_size_float {:s}", self.base.debug_id());
+
         let mut floats = Floats::new(self.fragment.style.writing_mode);
         for kid in self.base.child_iter() {
             flow::mut_base(kid).floats = floats.clone();
@@ -1432,6 +1439,10 @@ impl Flow for BlockFlow {
         self
     }
 
+    fn as_immutable_block<'a>(&'a self) -> &'a BlockFlow {
+        self
+    }
+
     /// Returns the direction that this flow clears floats in, if any.
     fn float_clearance(&self) -> clear::T {
         self.fragment.style().get_box().clear
@@ -1446,6 +1457,8 @@ impl Flow for BlockFlow {
     ///
     /// TODO(pcwalton): Inline blocks.
     fn bubble_inline_sizes(&mut self, _: &LayoutContext) {
+        let _scope = layout_debug_scope!("bubble_inline_sizes {:s}", self.base.debug_id());
+
         let mut flags = self.base.flags;
         flags.set_has_left_floated_descendants(false);
         flags.set_has_right_floated_descendants(false);
@@ -1501,6 +1514,8 @@ impl Flow for BlockFlow {
     /// Dual fragments consume some inline-size first, and the remainder is assigned to all child (block)
     /// contexts.
     fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
+        let _scope = layout_debug_scope!("block::assign_inline_sizes {:s}", self.base.debug_id());
+
         debug!("assign_inline_sizes({}): assigning inline_size for flow",
                if self.is_float() {
                    "float"

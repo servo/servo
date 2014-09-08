@@ -10,6 +10,7 @@ use floats::{FloatLeft, Floats, PlacementInfo};
 use flow::{BaseFlow, FlowClass, Flow, InlineFlowClass};
 use flow;
 use fragment::{Fragment, ScannedTextFragment, ScannedTextFragmentInfo, SplitInfo};
+use layout_debug;
 use model::IntrinsicISizes;
 use text;
 use wrapper::ThreadSafeLayoutNode;
@@ -58,6 +59,7 @@ use sync::Arc;
 /// with a float or a horizontal wall of the containing block. The block-start
 /// inline-start corner of the green zone is the same as that of the line, but
 /// the green zone can be taller and wider than the line itself.
+#[deriving(Encodable)]
 pub struct Line {
     /// A range of line indices that describe line breaks.
     ///
@@ -140,6 +142,7 @@ pub struct Line {
 }
 
 int_range_index! {
+    #[deriving(Encodable)]
     #[doc = "The index of a fragment in a flattened vector of DOM elements."]
     struct FragmentIndex(int)
 }
@@ -147,7 +150,7 @@ int_range_index! {
 /// A line index consists of two indices: a fragment index that refers to the
 /// index of a DOM fragment within a flattened inline element; and a glyph index
 /// where the 0th glyph refers to the first glyph of that fragment.
-#[deriving(Clone, PartialEq, PartialOrd, Eq, Ord, Zero)]
+#[deriving(Clone, Encodable, PartialEq, PartialOrd, Eq, Ord, Zero)]
 pub struct LineIndices {
     /// The index of a fragment into the flattened vector of DOM elements.
     ///
@@ -625,6 +628,7 @@ impl LineBreaker {
 }
 
 /// Represents a list of inline fragments, including element ranges.
+#[deriving(Encodable)]
 pub struct InlineFragments {
     /// The fragments themselves.
     pub fragments: Vec<Fragment>,
@@ -709,6 +713,7 @@ impl InlineFragments {
 }
 
 /// Flows for inline layout.
+#[deriving(Encodable)]
 pub struct InlineFlow {
     /// Data common to all flows.
     pub base: BaseFlow,
@@ -902,6 +907,8 @@ impl Flow for InlineFlow {
     }
 
     fn bubble_inline_sizes(&mut self, _: &LayoutContext) {
+        let _scope = layout_debug_scope!("inline::bubble_inline_sizes {:s}", self.base.debug_id());
+
         let writing_mode = self.base.writing_mode;
         for kid in self.base.child_iter() {
             flow::mut_base(kid).floats = Floats::new(writing_mode);
@@ -927,6 +934,8 @@ impl Flow for InlineFlow {
     /// Recursively (top-down) determines the actual inline-size of child contexts and fragments. When called
     /// on this context, the context has had its inline-size set by the parent context.
     fn assign_inline_sizes(&mut self, _: &LayoutContext) {
+        let _scope = layout_debug_scope!("inline::assign_inline_sizes {:s}", self.base.debug_id());
+
         // Initialize content fragment inline-sizes if they haven't been initialized already.
         //
         // TODO: Combine this with `LineBreaker`'s walk in the fragment list, or put this into `Fragment`.
@@ -955,7 +964,7 @@ impl Flow for InlineFlow {
 
     /// Calculate and set the block-size of this flow. See CSS 2.1 § 10.6.1.
     fn assign_block_size(&mut self, ctx: &LayoutContext) {
-        debug!("assign_block_size_inline: assigning block_size for flow");
+        let _scope = layout_debug_scope!("inline::assign_block_size {:s}", self.base.debug_id());
 
         // Divide the fragments into lines.
         //

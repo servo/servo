@@ -9,8 +9,8 @@ use std::cmp::{min, max};
 use std::fmt::{Show, Formatter, FormatError};
 use std::num::Zero;
 
-
 bitflags!(
+    #[deriving(Encodable)]
     flags WritingMode: u8 {
         static FlagRTL = 1 << 0,
         static FlagVertical = 1 << 1,
@@ -79,11 +79,11 @@ impl Show for WritingMode {
 /// (in addition to taking it as a parameter to methods) and check it.
 /// In non-debug builds, make this storage zero-size and the checks no-ops.
 #[cfg(ndebug)]
-#[deriving(PartialEq, Eq, Clone)]
+#[deriving(Encodable, PartialEq, Eq, Clone)]
 struct DebugWritingMode;
 
 #[cfg(not(ndebug))]
-#[deriving(PartialEq, Eq, Clone)]
+#[deriving(Encodable, PartialEq, Eq, Clone)]
 struct DebugWritingMode {
     mode: WritingMode
 }
@@ -134,7 +134,7 @@ impl Show for DebugWritingMode {
 
 
 /// A 2D size in flow-relative dimensions
-#[deriving(PartialEq, Eq, Clone)]
+#[deriving(Encodable, PartialEq, Eq, Clone)]
 pub struct LogicalSize<T> {
     pub inline: T,  // inline-size, a.k.a. logical width, a.k.a. measure
     pub block: T,  // block-size, a.k.a. logical height, a.k.a. extent
@@ -271,7 +271,7 @@ impl<T: Sub<T, T>> Sub<LogicalSize<T>, LogicalSize<T>> for LogicalSize<T> {
 
 
 /// A 2D point in flow-relative dimensions
-#[deriving(PartialEq, Eq, Clone)]
+#[deriving(PartialEq, Encodable, Eq, Clone)]
 pub struct LogicalPoint<T> {
     pub i: T,  /// inline-axis coordinate
     pub b: T,  /// block-axis coordinate
@@ -444,7 +444,7 @@ impl<T: Sub<T,T>> Sub<LogicalSize<T>, LogicalPoint<T>> for LogicalPoint<T> {
 /// Represents the four sides of the margins, borders, or padding of a CSS box,
 /// or a combination of those.
 /// A positive "margin" can be added to a rectangle to obtain a bigger rectangle.
-#[deriving(PartialEq, Eq, Clone)]
+#[deriving(Encodable, PartialEq, Eq, Clone)]
 pub struct LogicalMargin<T> {
     pub block_start: T,
     pub inline_end: T,
@@ -726,7 +726,7 @@ impl<T: Sub<T, T>> Sub<LogicalMargin<T>, LogicalMargin<T>> for LogicalMargin<T> 
 
 
 /// A rectangle in flow-relative dimensions
-#[deriving(PartialEq, Eq, Clone)]
+#[deriving(Encodable, PartialEq, Eq, Clone)]
 pub struct LogicalRect<T> {
     pub start: LogicalPoint<T>,
     pub size: LogicalSize<T>,

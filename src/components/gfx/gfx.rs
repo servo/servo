@@ -21,6 +21,7 @@ extern crate native;
 extern crate rustrt;
 extern crate stb_image;
 extern crate png;
+extern crate serialize;
 #[phase(plugin)]
 extern crate servo_macros = "macros";
 extern crate servo_net = "net";

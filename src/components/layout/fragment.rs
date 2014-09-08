@@ -13,6 +13,7 @@ use floats::{ClearBoth, ClearLeft, ClearRight, ClearType};
 use flow::Flow;
 use flow;
 use inline::{InlineFragmentContext, InlineMetrics};
+use layout_debug;
 use model::{Auto, IntrinsicISizes, MaybeAuto, Specified, specified};
 use model;
 use text;
@@ -33,6 +34,7 @@ use gfx::display_list::{Upright, SidewaysLeft, SidewaysRight};
 use gfx::font::FontStyle;
 use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::TextRun;
+use serialize::{Encodable, Encoder};
 use servo_msg::constellation_msg::{ConstellationChan, FrameRectMsg, PipelineId, SubpageId};
 use servo_net::image::holder::ImageHolder;
 use servo_net::local_image_cache::LocalImageCache;
@@ -104,6 +106,20 @@ pub struct Fragment {
     /// Holds the style context information for fragments
     /// that are part of an inline formatting context.
     pub inline_context: Option<InlineFragmentContext>,
+
+    /// A debug ID that is consistent for the life of
+    /// this fragment (via transform etc).
+    pub debug_id: uint,
+}
+
+impl<E, S: Encoder<E>> Encodable<S, E> for Fragment {
+    fn encode(&self, e: &mut S) -> Result<(), E> {
+        e.emit_struct("fragment", 0, |e| {
+            try!(e.emit_struct_field("id", 0, |e| self.debug_id().encode(e)))
+            try!(e.emit_struct_field("border_box", 1, |e| self.border_box.encode(e)))
+            e.emit_struct_field("margin", 2, |e| self.margin.encode(e))
+        })
+    }
 }
 
 /// Info specific to the kind of fragment. Keep this enum small.
@@ -336,6 +352,7 @@ impl Fragment {
             specific: constructor.build_specific_fragment_info_for_node(node),
             new_line_pos: vec!(),
             inline_context: None,
+            debug_id: layout_debug::generate_unique_debug_id(),
         }
     }
 
@@ -352,6 +369,7 @@ impl Fragment {
             specific: specific,
             new_line_pos: vec!(),
             inline_context: None,
+            debug_id: layout_debug::generate_unique_debug_id(),
         }
     }
 
@@ -377,6 +395,7 @@ impl Fragment {
             specific: specific,
             new_line_pos: vec!(),
             inline_context: None,
+            debug_id: layout_debug::generate_unique_debug_id(),
         }
     }
 
@@ -395,13 +414,14 @@ impl Fragment {
             specific: specific,
             new_line_pos: vec!(),
             inline_context: None,
+            debug_id: layout_debug::generate_unique_debug_id(),
         }
     }
 
     /// Returns a debug ID of this fragment. This ID should not be considered stable across multiple
     /// layouts or fragment manipulations.
     pub fn debug_id(&self) -> uint {
-        self as *const Fragment as uint
+        self.debug_id
     }
 
     /// Transforms this fragment into another fragment of the given type, with the given size, preserving all
@@ -417,6 +437,7 @@ impl Fragment {
             specific: specific,
             new_line_pos: self.new_line_pos.clone(),
             inline_context: self.inline_context.clone(),
+            debug_id: self.debug_id,
         }
     }
 

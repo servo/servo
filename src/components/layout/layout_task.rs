@@ -14,6 +14,7 @@ use flow::{PreorderFlowTraversal, PostorderFlowTraversal};
 use flow;
 use flow_ref::FlowRef;
 use incremental::RestyleDamage;
+use layout_debug;
 use parallel::UnsafeFlow;
 use parallel;
 use util::{LayoutDataAccess, LayoutDataWrapper, OpaqueNodeMethods, ToGfxColor};
@@ -548,6 +549,8 @@ impl LayoutTask {
     fn solve_constraints<'a>(&self,
                          layout_root: &mut Flow,
                          layout_context: &'a LayoutContext<'a>) {
+        let _scope = layout_debug_scope!("solve_constraints");
+
         if layout_context.shared.opts.bubble_inline_sizes_separately {
             let mut traversal = BubbleISizesTraversal {
                 layout_context: layout_context,
@@ -689,6 +692,10 @@ impl LayoutTask {
         // memory safety but is a useful debugging tool.)
         self.verify_flow_tree(&mut layout_root);
 
+        if self.opts.trace_layout {
+            layout_debug::begin_trace(layout_root.clone());
+        }
+
         // Propagate damage.
         profile(time::LayoutDamagePropagateCategory, self.time_profiler_chan.clone(), || {
             layout_root.get_mut().traverse_preorder(&mut PropagateDamageTraversal {
@@ -800,6 +807,10 @@ impl LayoutTask {
 
                 self.render_chan.send(RenderInitMsg(layers));
             });
+        }
+
+        if self.opts.trace_layout {
+            layout_debug::end_trace();
         }
 
         // Tell script that we're done.

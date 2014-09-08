@@ -100,7 +100,7 @@ pub enum RangeRelation<I> {
 }
 
 /// A range of indices
-#[deriving(Clone)]
+#[deriving(Clone, Encodable)]
 pub struct Range<I> {
     begin: I,
     length: I,

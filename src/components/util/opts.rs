@@ -78,6 +78,11 @@ pub struct Opts {
     /// where pixel perfect results are required when using fonts such as the Ahem
     /// font for layout tests.
     pub enable_text_antialiasing: bool,
+
+    /// True if each step of layout is traced to an external JSON file
+    /// for debugging purposes. Settings this implies sequential layout
+    /// and render.
+    pub trace_layout: bool,
 }
 
 fn print_usage(app: &str, opts: &[getopts::OptGroup]) {
@@ -111,6 +116,7 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
         getopts::optflag("b", "bubble-widths", "Bubble intrinsic widths separately like other engines"),
         getopts::optflag("", "show-debug-borders", "Show debugging borders on layers and tiles."),
         getopts::optflag("", "disable-text-aa", "Disable antialiasing for text rendering."),
+        getopts::optflag("", "trace-layout", "Write layout trace to external file for debugging."),
         getopts::optflag("h", "help", "Print this message")
     );
 
@@ -163,7 +169,7 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
         ScaleFactor(from_str(dppx_str.as_slice()).unwrap())
     );
 
-    let n_render_threads: uint = match opt_match.opt_str("t") {
+    let mut n_render_threads: uint = match opt_match.opt_str("t") {
         Some(n_render_threads_str) => from_str(n_render_threads_str.as_slice()).unwrap(),
         None => 1,      // FIXME: Number of cores.
     };
@@ -178,10 +184,19 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
 
     let cpu_painting = opt_match.opt_present("c");
 
-    let layout_threads: uint = match opt_match.opt_str("y") {
+    let mut layout_threads: uint = match opt_match.opt_str("y") {
         Some(layout_threads_str) => from_str(layout_threads_str.as_slice()).unwrap(),
         None => cmp::max(rt::default_sched_threads() * 3 / 4, 1),
     };
+
+    let mut bubble_inline_sizes_separately = opt_match.opt_present("b");
+
+    let trace_layout = opt_match.opt_present("trace-layout");
+    if trace_layout {
+        n_render_threads = 1;
+        layout_threads = 1;
+        bubble_inline_sizes_separately = true;
+    }
 
     Some(Opts {
         urls: urls,
@@ -198,9 +213,10 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
         output_file: opt_match.opt_str("o"),
         headless: opt_match.opt_present("z"),
         hard_fail: opt_match.opt_present("f"),
-        bubble_inline_sizes_separately: opt_match.opt_present("b"),
+        bubble_inline_sizes_separately: bubble_inline_sizes_separately,
         show_debug_borders: opt_match.opt_present("show-debug-borders"),
         enable_text_antialiasing: !opt_match.opt_present("disable-text-aa"),
+        trace_layout: trace_layout,
     })
 }
 
