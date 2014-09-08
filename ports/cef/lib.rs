@@ -37,6 +37,8 @@ extern crate native;
 extern crate libc;
 extern crate "url" as std_url;
 
+extern crate encoding;
+
 #[cfg(target_os="macos")]
 extern crate core_graphics;
 #[cfg(target_os="macos")]
