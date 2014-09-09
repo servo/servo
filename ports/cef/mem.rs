@@ -6,7 +6,11 @@ use libc::{c_void, size_t};
 use std::mem;
 use std::ptr::set_memory;
 
+// -U _tc_* needed on OS X, but won't work on other platforms
+#[cfg(target_os="macos")]
 #[link_args="-Wl,-U,_tc_new -Wl,-U,_tc_newarray -Wl,-U,_tc_delete -Wl,-U,_tc_deletearray"]
+extern {}
+
 extern "C" {
     fn tc_new(size: size_t) -> *mut c_void;
     fn tc_delete(mem: *mut c_void);
