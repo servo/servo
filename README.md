@@ -9,6 +9,10 @@ Servo welcomes contribution from everyone.  See
 
 ## Prerequisites
 
+Note, on systems without glfw3 packages, you can compile from source. An
+example can be found in [the TravisCI install
+script](etc/ci/travis.install.sh).
+
 On OS X (homebrew):
 
 ``` sh
