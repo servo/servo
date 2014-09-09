@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::callback::ExceptionHandling::ReportExceptions;
+use dom::bindings::callback::ExceptionHandling::Report;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::js::JSRef;
 use dom::bindings::utils::Reflectable;
@@ -189,7 +189,7 @@ impl TimerManager {
         // TODO: Must handle rooting of funval and args when movable GC is turned on
         match data.callback {
             TimerCallback::FunctionTimerCallback(function) => {
-                let _ = function.Call_(this, data.args, ReportExceptions);
+                let _ = function.Call_(this, data.args, Report);
             }
             TimerCallback::StringTimerCallback(code_str) => {
                 this.evaluate_js_on_global_with_result(code_str.as_slice());
