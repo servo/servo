@@ -49,8 +49,7 @@ popd
 On Arch Linux:
 
 ``` sh
-sudo pacman -S base-devel autoconf2.13 git gperf python2 \
-    python2-virtualenv mesa libxrandr libxi libgl glu ttf-font
+sudo pacman -S base-devel git python2 mesa glfw ttf-font
 ```
 
 Note: autoconf 2.13 is required for SpiderMonkey; the autoconf project did not
