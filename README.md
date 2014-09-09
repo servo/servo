@@ -12,7 +12,7 @@ Servo welcomes contribution from everyone.  See
 On OS X (homebrew):
 
 ``` sh
-brew install automake pkg-config python
+brew install automake pkg-config python glfw3
 pip install virtualenv
 ```
 
@@ -28,7 +28,7 @@ On Debian-based Linuxes:
 sudo apt-get install curl freeglut3-dev \
     libfreetype6-dev libgl1-mesa-dri libglib2.0-dev xorg-dev \
     msttcorefonts gperf g++ cmake python-virtualenv \
-    libssl-dev
+    libssl-dev libglfw3-dev
 ```
 
 On Fedora:
@@ -37,7 +37,7 @@ On Fedora:
 sudo yum install curl freeglut-devel libtool gcc-c++ libXi-devel \
     freetype-devel mesa-libGL-devel glib2-devel libX11-devel libXrandr-devel gperf \
     fontconfig-devel cabextract ttmkfdir python python-virtualenv expat-devel \
-    rpm-build openssl-devel
+    rpm-build openssl-devel glfw-devel
 pushd .
 cd /tmp
 wget http://corefonts.sourceforge.net/msttcorefonts-2.5-1.spec
