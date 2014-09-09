@@ -11,7 +11,7 @@
 
 import os
 import fnmatch
-import licenseck
+from licenseck import licenses
 
 directories_to_check = ["src", "components"]
 filetypes_to_check = [".rs", ".rc", ".cpp", ".c", ".h", ".py"]
@@ -45,12 +45,14 @@ def should_check(file_name):
     return True
 
 
-def check_license(file_name, contents):
-    if not licenseck.check_license(file_name, contents):
+def check_license(contents):
+    valid_license = any(contents.startswith(license) for license in licenses)
+    acknowledged_bad_license = "xfail-license" in contents[:100]
+    if not (valid_license or acknowledged_bad_license):
         yield (1, "incorrect license")
 
 
-def check_whitespace(file_name, contents):
+def check_whitespace(contents):
     lines = contents.splitlines(True)
     for idx, line in enumerate(lines):
         if line[-1] == "\n":
@@ -73,7 +75,7 @@ def collect_errors_for_files(files_to_check, checking_functions):
         with open(file_name, "r") as fp:
             contents = fp.read()
             for check in checking_functions:
-                for error in check(file_name, contents):
+                for error in check(contents):
                     # filename, line, message
                     yield (file_name, error[0], error[1])
 
