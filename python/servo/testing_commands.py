@@ -105,11 +105,7 @@ class MachCommands(CommandBase):
              description='Run the source code tidiness check',
              category='testing')
     def test_tidy(self):
-        errors = 0
-        for p in ["src", "components"]:
-            ret = tidy.scan(path.join(self.context.topdir, p))
-            if ret != 0: errors = 1
-        return errors
+        return tidy.scan()
 
     @Command('test-wpt',
              description='Run the web platform tests',
