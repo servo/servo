@@ -9,8 +9,12 @@ extern crate fontconfig;
 
 use fontconfig::fontconfig::{FcChar8, FcResultMatch, FcSetSystem};
 use fontconfig::fontconfig::{
-    FcConfigGetCurrent, FcConfigGetFonts, FcPatternGetString,
+    FcConfigGetCurrent, FcConfigGetFonts,
+    FcConfigSubstitute, FcDefaultSubstitute,
+    FcFontMatch,
+    FcNameParse, FcPatternGetString,
     FcPatternDestroy, FcFontSetDestroy,
+    FcMatchPattern,
     FcPatternCreate, FcPatternAddString,
     FcFontSetList, FcObjectSetCreate, FcObjectSetDestroy,
     FcObjectSetAdd, FcPatternGetInteger
@@ -97,6 +101,36 @@ pub fn get_variations_for_family(family_name: &str, callback: |String|) {
         FcFontSetDestroy(matches);
         FcPatternDestroy(pattern);
         FcObjectSetDestroy(object_set);
+    }
+}
+
+pub fn get_system_default_family(generic_name: &str) -> Option<String> {
+    let mut generic_name_c = generic_name.to_c_str();
+    let generic_name_ptr = generic_name_c.as_mut_ptr();
+
+    unsafe {
+        let pattern = FcNameParse(generic_name_ptr as *mut FcChar8);
+
+        FcConfigSubstitute(ptr::mut_null(), pattern, FcMatchPattern);
+        FcDefaultSubstitute(pattern);
+
+        let mut result = 0;
+        let family_match = FcFontMatch(ptr::mut_null(), pattern, &mut result);
+
+        let family_name = if result == FcResultMatch {
+            let mut FC_FAMILY_C = "family".to_c_str();
+            let FC_FAMILY = FC_FAMILY_C.as_mut_ptr();
+            let mut match_string: *mut FcChar8 = ptr::mut_null();
+            FcPatternGetString(family_match, FC_FAMILY, 0, &mut match_string);
+            let result = string::raw::from_buf(match_string as *const i8 as *const u8);
+            FcPatternDestroy(family_match);
+            Some(result)
+        } else {
+            None
+        };
+
+        FcPatternDestroy(pattern);
+        family_name
     }
 }
 

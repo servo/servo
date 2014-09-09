@@ -260,13 +260,10 @@ impl FontHandleMethods for FontHandle {
 
 impl<'a> FontHandle {
     fn set_char_size(face: FT_Face, pt_size: f64) -> Result<(), ()>{
-        let char_width = float_to_fixed_ft(pt_size) as FT_F26Dot6;
-        let char_height = float_to_fixed_ft(pt_size) as FT_F26Dot6;
-        let h_dpi = 72;
-        let v_dpi = 72;
+        let char_width = float_to_fixed_ft((0.5f64 + pt_size).floor()) as FT_F26Dot6;
 
         unsafe {
-            let result = FT_Set_Char_Size(face, char_width, char_height, h_dpi, v_dpi);
+            let result = FT_Set_Char_Size(face, char_width, 0, 0, 0);
             if result.succeeded() { Ok(()) } else { Err(()) }
         }
     }

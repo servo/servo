@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use platform::font_list::get_available_families;
+use platform::font_list::get_system_default_family;
 use platform::font_list::get_variations_for_family;
 use platform::font_list::get_last_resort_font_families;
 use platform::font_context::FontContextHandle;
@@ -88,6 +89,16 @@ struct FontCache {
     web_families: HashMap<String, FontFamily>,
     font_context: FontContextHandle,
     resource_task: ResourceTask,
+}
+
+fn add_generic_font(generic_fonts: &mut HashMap<String, String>,
+                    generic_name: &str, mapped_name: &str) {
+    let opt_system_default = get_system_default_family(generic_name);
+    let family_name = match opt_system_default {
+        Some(system_default) => system_default,
+        None => mapped_name.to_string(),
+    };
+    generic_fonts.insert(generic_name.to_string(), family_name);
 }
 
 impl FontCache {
@@ -223,11 +234,11 @@ impl FontCacheTask {
         spawn(proc() {
             // TODO: Allow users to specify these.
             let mut generic_fonts = HashMap::with_capacity(5);
-            generic_fonts.insert("serif".to_string(), "Times New Roman".to_string());
-            generic_fonts.insert("sans-serif".to_string(), "Arial".to_string());
-            generic_fonts.insert("cursive".to_string(), "Apple Chancery".to_string());
-            generic_fonts.insert("fantasy".to_string(), "Papyrus".to_string());
-            generic_fonts.insert("monospace".to_string(), "Menlo".to_string());
+            add_generic_font(&mut generic_fonts, "serif", "Times New Roman");
+            add_generic_font(&mut generic_fonts, "sans-serif", "Arial");
+            add_generic_font(&mut generic_fonts, "cursive", "Apple Chancery");
+            add_generic_font(&mut generic_fonts, "fantasy", "Papyrus");
+            add_generic_font(&mut generic_fonts, "monospace", "Menlo");
 
             let mut cache = FontCache {
                 port: port,
