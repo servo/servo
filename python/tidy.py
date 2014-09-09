@@ -31,7 +31,7 @@ def collect_file_names(top_directories):
     for top_directory in top_directories:
         for dirname, dirs, files in os.walk(top_directory):
             for basename in files:
-                yield dirname + "/" + basename
+                yield os.path.join(dirname, basename)
 
 
 def should_check(file_name):
