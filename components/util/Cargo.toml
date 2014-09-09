@@ -1,0 +1,20 @@
+[package]
+name = "util"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+
+[lib]
+name = "util"
+path = "lib.rs"
+
+[dependencies.azure]
+git = "https://github.com/servo/rust-azure"
+
+[dependencies.geom]
+git = "https://github.com/servo/rust-geom"
+
+[dependencies.task_info]
+path = "../../support/rust-task_info"
+
+[dependencies.string_cache]
+git = "https://github.com/servo/string-cache"

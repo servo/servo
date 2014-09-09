@@ -27,7 +27,8 @@ On Debian-based Linuxes:
 ``` sh
 sudo apt-get install autoconf2.13 curl freeglut3-dev libtool \
     libfreetype6-dev libgl1-mesa-dri libglib2.0-dev xorg-dev \
-    msttcorefonts gperf g++ automake cmake python-virtualenv
+    msttcorefonts gperf g++ automake cmake python-virtualenv \
+    libssl-dev
 ```
 
 On Fedora:
@@ -35,7 +36,8 @@ On Fedora:
 ``` sh
 sudo yum install autoconf213 curl freeglut-devel libtool gcc-c++ libXi-devel \
     freetype-devel mesa-libGL-devel glib2-devel libX11-devel libXrandr-devel gperf \
-    fontconfig-devel cabextract ttmkfdir python python-virtualenv expat-devel rpm-build
+    fontconfig-devel cabextract ttmkfdir python python-virtualenv expat-devel \
+    rpm-build openssl-devel
 pushd .
 cd /tmp
 wget http://corefonts.sourceforge.net/msttcorefonts-2.5-1.spec
@@ -73,24 +75,21 @@ Servo cannot be built in-tree; you must create a directory in which to run
 configure and make and place the build artifacts.
 
 ``` sh
-git clone https://github.com/mozilla/servo.git
+git clone https://github.com/servo/servo.git
 cd servo
-mkdir -p build && cd build
-../configure
-make && make check
-./servo ../src/test/html/about-mozilla.html
+./mach build
+./mach run tests/html/about-mozilla.html
 ```
 
-###Building for Android target
+### Building for Android target
 
 ``` sh
-git clone https://github.com/mozilla/servo.git
+git clone https://github.com/servo/servo.git
 cd servo
-mkdir -p build && cd build
-../configure --target=arm-linux-androideabi --android-cross-path=<Android toolchain path> --android-ndk-path=<Android NDK path> --android-sdk-path=<Android SDK path>
-make
-(or make package)
-
+ANDROID_TOOLCHAIN=/path/to/toolchain ANDROID_NDK=/path/to/ndk PATH=$PATH:/path/to/toolchain/bin ./mach build --target arm-linux-androideabi
+cd ports/android
+ANDROID_NDK=/path/to/ndk ANDROID_SDK=/path/to/sdk make
+ANDROID_SDK=/path/to/sdk make install
 ```
 
 ## Running
@@ -113,15 +112,4 @@ make
 
 ## Developing
 
-There are lots of make targets you can use:
-
-- `make clean` - cleans Servo and its dependencies, but not Rust
-- `make clean-rust` - cleans Rust
-- `make clean-servo` - only cleans Servo itself (code in `src/components`)
-- `make clean-DEP` - cleans the dependency `DEP`. e.g. `make clean-rust-opengles`
-- `make bindings` - generate the Rust WebIDL bindings
-- `make DEP` - builds only the specified dependency. e.g. `make rust-opengles`
-- `make check-DEP` - build and run tests for specified dependency
-- `make package` - build and make app package for specific OS. e.g. apk file of Android
-
-The `make check-*` targets for running tests are listed [here](https://github.com/mozilla/servo/wiki/Testing)
+There are lots of mach commands you can use. You can list them with `./mach --help`.

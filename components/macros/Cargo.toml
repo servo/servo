@@ -1,0 +1,9 @@
+[package]
+name = "macros"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+
+[lib]
+name = "macros"
+path = "lib.rs"
+plugin = true

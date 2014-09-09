@@ -1,0 +1,51 @@
+[package]
+
+name = "servo"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+
+[lib]
+name = "servo"
+crate-type = ["rlib", "dylib"]
+
+[[bin]]
+name = "servo"
+test = false
+doc = false
+bench = false
+
+[[test]]
+name = "reftest"
+path = "tests/reftest.rs"
+harness = false
+
+[[test]]
+name = "contenttest"
+path = "tests/contenttest.rs"
+harness = false
+
+
+[dependencies.compositing]
+path = "components/compositing"
+
+[dependencies.net]
+path = "components/net"
+
+[dependencies.msg]
+path = "components/msg"
+
+[dependencies.util]
+path = "components/util"
+
+[dependencies.script]
+path = "components/script"
+
+[dependencies.layout]
+path = "components/layout"
+
+[dependencies.gfx]
+path = "components/gfx"
+
+[dependencies.png]
+git = "https://github.com/servo/rust-png"
+

@@ -1,3 +1,0 @@
-config = {
-    'concurrency': 6,
-}

@@ -1,0 +1,20 @@
+CC ?= gcc
+AR ?= ar
+CFLAGS += -Wall
+
+.PHONY: all
+ifeq (darwin,$(findstring darwin,$(TARGET)))
+
+all: $(OUT_DIR)/libtask_info.a
+
+$(OUT_DIR)/libtask_info.a: $(OUT_DIR)/task_info.o
+	$(AR) rcs $@ $^
+
+$(OUT_DIR)/task_info.o: src/task_info.c
+	$(CC) $(CFLAGS) $< -o $@ -c
+
+else
+
+all:
+
+endif

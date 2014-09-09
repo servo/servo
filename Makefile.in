@@ -1,2 +1,0 @@
-include config.mk
-include $(CFG_SRC_DIR)mk/main.mk

@@ -1,0 +1,62 @@
+[package]
+
+name = "gfx"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+
+[lib]
+name = "gfx"
+path = "lib.rs"
+
+[dependencies.macros]
+path = "../macros"
+
+[dependencies.net]
+path = "../net"
+
+[dependencies.util]
+path = "../util"
+
+[dependencies.msg]
+path = "../msg"
+
+[dependencies.style]
+path = "../style"
+
+[dependencies.azure]
+git = "https://github.com/servo/rust-azure"
+
+[dependencies.geom]
+git = "https://github.com/servo/rust-geom"
+
+[dependencies.layers]
+git = "https://github.com/servo/rust-layers"
+
+[dependencies.stb_image]
+git = "https://github.com/servo/rust-stb-image"
+
+[dependencies.png]
+git = "https://github.com/servo/rust-png"
+
+[dependencies.url]
+git = "https://github.com/servo/rust-url"
+
+[dependencies.harfbuzz]
+git = "https://github.com/servo/rust-harfbuzz"
+
+[dependencies.fontconfig]
+git = "https://github.com/servo/rust-fontconfig"
+
+[dependencies.freetype]
+git = "https://github.com/servo/rust-freetype"
+
+[dependencies.core_foundation]
+git = "http://github.com/servo/rust-core-foundation"
+
+[dependencies.core_graphics]
+git = "http://github.com/servo/rust-core-graphics"
+
+[dependencies.core_text]
+git = "http://github.com/servo/rust-core-text"
+
+

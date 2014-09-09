@@ -1,0 +1,56 @@
+[package]
+name = "script"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+
+build = "make -f makefile.cargo"
+
+[lib]
+name = "script"
+path = "lib.rs"
+
+[dependencies.macros]
+path = "../macros"
+
+[dependencies.util]
+path = "../util"
+
+[dependencies.msg]
+path = "../msg"
+
+[dependencies.net]
+path = "../net"
+
+[dependencies.script_traits]
+path = "../script_traits"
+
+[dependencies.style]
+path = "../style"
+
+[dependencies.gfx]
+path = "../gfx"
+
+[dependencies.canvas]
+path = "../canvas"
+
+[dependencies.cssparser]
+git = "https://github.com/servo/rust-cssparser"
+
+[dependencies.geom]
+git = "https://github.com/servo/rust-geom"
+
+[dependencies.hubbub]
+git = "https://github.com/servo/rust-hubbub"
+
+[dependencies.encoding]
+git = "https://github.com/lifthrasiir/rust-encoding"
+
+[dependencies.http]
+git = "https://github.com/servo/rust-http"
+branch = "servo"
+
+[dependencies.js]
+git = "https://github.com/servo/rust-mozjs"
+
+[dependencies.url]
+git = "https://github.com/servo/rust-url"

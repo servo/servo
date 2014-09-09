@@ -1,0 +1,20 @@
+[package]
+name = "script_traits"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+
+[lib]
+name = "script_traits"
+path = "lib.rs"
+
+[dependencies.msg]
+path = "../msg"
+
+[dependencies.net]
+path = "../net"
+
+[dependencies.geom]
+git = "https://github.com/servo/rust-geom"
+
+[dependencies.url]
+git = "https://github.com/servo/rust-url"

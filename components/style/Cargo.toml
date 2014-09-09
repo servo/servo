@@ -1,0 +1,31 @@
+[package]
+name = "style"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+
+build = "make -f makefile.cargo"
+
+[lib]
+name = "style"
+path = "lib.rs"
+
+doc = false
+
+[dependencies.macros]
+path = "../macros"
+
+[dependencies.util]
+path = "../util"
+
+[dependencies.geom]
+git = "https://github.com/servo/rust-geom"
+
+[dependencies.url]
+git = "https://github.com/servo/rust-url"
+
+[dependencies.cssparser]
+git = "https://github.com/servo/rust-cssparser"
+
+[dependencies.encoding]
+git = "https://github.com/lifthrasiir/rust-encoding"
+
