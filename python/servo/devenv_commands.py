@@ -26,7 +26,7 @@ class MachCommands(CommandBase):
              category='devenv',
              allow_all_args=True)
     @CommandArgument('params', default=None, nargs='...',
-                     help="Command-line arguments to be passed through to Cervo")
+                     help="Command-line arguments to be passed through to Cargo")
     def run(self, params):
         return subprocess.call(["cargo"] + params,
                                env=self.build_env())
