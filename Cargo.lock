@@ -125,13 +125,13 @@ name = "fontconfig"
 version = "0.1.0"
 source = "git+https://github.com/servo/rust-fontconfig#6e02b6df7815dc4bf1f8ef20b926e717891f8544"
 dependencies = [
- "fontconfig-sys 2.11.1 (git+https://github.com/servo/libfontconfig#1fc43065f581d70133d819070177094434cc3144)",
+ "fontconfig-sys 2.11.1 (git+https://github.com/servo/libfontconfig#fcc324d2c8175d2e8e8c0aab032c03a404809f6d)",
 ]
 
 [[package]]
 name = "fontconfig-sys"
 version = "2.11.1"
-source = "git+https://github.com/servo/libfontconfig#1fc43065f581d70133d819070177094434cc3144"
+source = "git+https://github.com/servo/libfontconfig#fcc324d2c8175d2e8e8c0aab032c03a404809f6d"
 dependencies = [
  "expat-sys 2.1.0 (git+https://github.com/servo/libexpat#da2ddaf78cbef836b8790807bb76b357c58df3a1)",
  "freetype-sys 2.4.11 (git+https://github.com/servo/libfreetype2#5b6499164106f094937565595c7b96d07de55521)",
