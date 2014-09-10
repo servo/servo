@@ -1448,6 +1448,10 @@ impl Flow for BlockFlow {
         self.fragment.style().get_box().clear
     }
 
+    fn float_kind(&self) -> float::T {
+        self.fragment.style().get_box().float
+    }
+
     /// Pass 1 of reflow: computes minimum and preferred inline-sizes.
     ///
     /// Recursively (bottom-up) determine the flow's minimum and preferred inline-sizes. When called on
@@ -1473,24 +1477,44 @@ impl Flow for BlockFlow {
 
         // Find the maximum inline-size from children.
         let mut intrinsic_inline_sizes = IntrinsicISizes::new();
+        let mut left_float_width = Au(0);
+        let mut right_float_width = Au(0);
         for child_ctx in self.base.child_iter() {
             assert!(child_ctx.is_block_flow() ||
                     child_ctx.is_inline_flow() ||
                     child_ctx.is_table_kind());
 
+            let float_kind = child_ctx.float_kind();
             let child_base = flow::mut_base(child_ctx);
 
             if !fixed_width {
                 intrinsic_inline_sizes.minimum_inline_size =
                     geometry::max(intrinsic_inline_sizes.minimum_inline_size,
                                   child_base.intrinsic_inline_sizes.total_minimum_inline_size());
-                intrinsic_inline_sizes.preferred_inline_size =
-                    geometry::max(intrinsic_inline_sizes.preferred_inline_size,
+
+                match float_kind {
+                    float::none => {
+                        intrinsic_inline_sizes.preferred_inline_size =
+                            geometry::max(intrinsic_inline_sizes.preferred_inline_size,
                                   child_base.intrinsic_inline_sizes.total_preferred_inline_size());
+                    }
+                    float::left => {
+                        left_float_width = left_float_width +
+                                    child_base.intrinsic_inline_sizes.total_preferred_inline_size();
+                    }
+                    float::right => {
+                        right_float_width = right_float_width +
+                                    child_base.intrinsic_inline_sizes.total_preferred_inline_size();
+                    }
+                }
             }
 
             flags.union_floated_descendants_flags(child_base.flags);
         }
+
+        intrinsic_inline_sizes.preferred_inline_size =
+            geometry::max(intrinsic_inline_sizes.preferred_inline_size,
+                          left_float_width + right_float_width);
 
         let fragment_intrinsic_inline_sizes = self.fragment.intrinsic_inline_sizes();
         intrinsic_inline_sizes.minimum_inline_size = geometry::max(intrinsic_inline_sizes.minimum_inline_size,
