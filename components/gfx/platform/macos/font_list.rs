@@ -32,6 +32,10 @@ pub fn get_variations_for_family(family_name: &str, callback: |String|) {
     }
 }
 
+pub fn get_system_default_family(_generic_name: &str) -> Option<String> {
+    None
+}
+
 pub fn get_last_resort_font_families() -> Vec<String> {
     vec!("Arial Unicode MS".to_string(), "Arial".to_string())
 }
