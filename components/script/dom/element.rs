@@ -4,7 +4,7 @@
 
 //! Element nodes.
 
-use dom::attr::{Attr, ReplacedAttr, FirstSetAttr, AttrHelpersForLayout};
+use dom::attr::{Attr, ReplacedAttr, FirstSetAttr, AttrHelpers, AttrHelpersForLayout};
 use dom::attr::{AttrValue, StringAttrValue, UIntAttrValue, AtomAttrValue};
 use dom::namednodemap::NamedNodeMap;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
@@ -178,7 +178,7 @@ impl RawLayoutElementHelpers for Element {
         let attrs: *const Vec<JS<Attr>> = mem::transmute(&self.attrs);
         (*attrs).iter().find(|attr: & &JS<Attr>| {
             let attr = attr.unsafe_get();
-            name == (*attr).local_name().as_slice() &&
+            name == (*attr).local_name_atom_forever().as_slice() &&
             (*attr).namespace == *namespace
         }).map(|attr| {
             let attr = attr.unsafe_get();
@@ -193,7 +193,7 @@ impl RawLayoutElementHelpers for Element {
         let attrs: *const Vec<JS<Attr>> = mem::transmute(&self.attrs);
         (*attrs).iter().find(|attr: & &JS<Attr>| {
             let attr = attr.unsafe_get();
-            name == (*attr).local_name().as_slice() &&
+            name == (*attr).local_name_atom_forever().as_slice() &&
             (*attr).namespace == *namespace
         }).and_then(|attr| {
             let attr = attr.unsafe_get();

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::Attr;
+use dom::attr::{Attr, AttrHelpers};
 use dom::bindings::codegen::InheritTypes::{ElementCast, TextCast, CommentCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, CharacterDataCast};
 use dom::bindings::codegen::InheritTypes::ProcessingInstructionCast;
@@ -153,7 +153,7 @@ fn serialize_attr(attr: &JSRef<Attr>, html: &mut String) {
         html.push_str(attr.deref().name.as_slice());
     };
     html.push_str("=\"");
-    escape(attr.deref().value().as_slice(), true, html);
+    escape(attr.value().as_slice(), true, html);
     html.push_char('"');
 }
 

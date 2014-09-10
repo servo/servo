@@ -110,39 +110,6 @@ impl Attr {
         let attr = Attr::new_inherited(local_name, value, name, namespace, prefix, owner);
         reflect_dom_object(box attr, &Window(*window), AttrBinding::Wrap)
     }
-
-    pub fn set_value(&self, set_type: AttrSettingType, value: AttrValue) {
-        let owner = self.owner.root();
-        let node: &JSRef<Node> = NodeCast::from_ref(&*owner);
-        let namespace_is_null = self.namespace == namespace::Null;
-
-        match set_type {
-            ReplacedAttr => {
-                if namespace_is_null {
-                    vtable_for(node).before_remove_attr(
-                        self.local_name(),
-                        self.value().as_slice().to_string())
-                }
-            }
-            FirstSetAttr => {}
-        }
-
-        *self.value.deref().borrow_mut() = value;
-
-        if namespace_is_null {
-            vtable_for(node).after_set_attr(
-                self.local_name(),
-                self.value().as_slice().to_string())
-        }
-    }
-
-    pub fn value<'a>(&'a self) -> Ref<'a, AttrValue> {
-        self.value.deref().borrow()
-    }
-
-    pub fn local_name<'a>(&'a self) -> &'a Atom {
-        &self.local_name
-    }
 }
 
 impl<'a> AttrMethods for JSRef<'a, Attr> {
@@ -177,9 +144,51 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
     }
 }
 
+pub trait AttrHelpers {
+    fn set_value(&self, set_type: AttrSettingType, value: AttrValue);
+    fn value<'a>(&'a self) -> Ref<'a, AttrValue>;
+    fn local_name<'a>(&'a self) -> &'a Atom;
+}
+
+impl<'a> AttrHelpers for JSRef<'a, Attr> {
+    fn set_value(&self, set_type: AttrSettingType, value: AttrValue) {
+        let owner = self.owner.root();
+        let node: &JSRef<Node> = NodeCast::from_ref(&*owner);
+        let namespace_is_null = self.namespace == namespace::Null;
+
+        match set_type {
+            ReplacedAttr => {
+                if namespace_is_null {
+                    vtable_for(node).before_remove_attr(
+                        self.local_name(),
+                        self.value().as_slice().to_string())
+                }
+            }
+            FirstSetAttr => {}
+        }
+
+        *self.value.deref().borrow_mut() = value;
+
+        if namespace_is_null {
+            vtable_for(node).after_set_attr(
+                self.local_name(),
+                self.value().as_slice().to_string())
+        }
+    }
+
+    fn value<'a>(&'a self) -> Ref<'a, AttrValue> {
+        self.value.deref().borrow()
+    }
+
+    fn local_name<'a>(&'a self) -> &'a Atom {
+        &self.local_name
+    }
+}
+
 pub trait AttrHelpersForLayout {
     unsafe fn value_ref_forever(&self) -> &'static str;
     unsafe fn value_atom_forever(&self) -> Option<Atom>;
+    unsafe fn local_name_atom_forever(&self) -> Atom;
 }
 
 impl AttrHelpersForLayout for Attr {
@@ -196,5 +205,9 @@ impl AttrHelpersForLayout for Attr {
             AtomAttrValue(ref val) => Some(val.clone()),
             _ => None,
         }
+    }
+
+    unsafe fn local_name_atom_forever(&self) -> Atom {
+        self.local_name.clone()
     }
 }
