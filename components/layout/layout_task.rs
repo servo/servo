@@ -59,7 +59,7 @@ use std::mem;
 use std::ptr;
 use style::{AuthorOrigin, Stylesheet, Stylist};
 use style::iter_font_face_rules;
-use sync::{Arc, Mutex};
+use sync::{Arc, Mutex, MutexGuard};
 use url::Url;
 
 /// Mutable data belonging to the LayoutTask.
@@ -325,6 +325,35 @@ impl LayoutTaskFactory for LayoutTask {
     }
 }
 
+/// The `LayoutTask` `rw_data` lock must remain locked until the first reflow,
+/// as RPC calls don't make sense until then. Use this in combination with
+/// `LayoutTask::lock_rw_data` and `LayoutTask::return_rw_data`.
+enum RWGuard<'a> {
+    /// If the lock was previously held, from when the task started.
+    Held(MutexGuard<'a, LayoutTaskData>),
+    /// If the lock was just used, and has been returned since there has been
+    /// a reflow already.
+    Used(MutexGuard<'a, LayoutTaskData>),
+}
+
+impl<'a> Deref<LayoutTaskData> for RWGuard<'a> {
+    fn deref(&self) -> &LayoutTaskData {
+        match *self {
+            Held(ref x) => x.deref(),
+            Used(ref x) => x.deref(),
+        }
+    }
+}
+
+impl<'a> DerefMut<LayoutTaskData> for RWGuard<'a> {
+    fn deref_mut(&mut self) -> &mut LayoutTaskData {
+        match *self {
+            Held(ref mut x) => x.deref_mut(),
+            Used(ref mut x) => x.deref_mut(),
+        }
+    }
+}
+
 impl LayoutTask {
     /// Creates a new `LayoutTask` structure.
     fn new(id: PipelineId,
@@ -367,13 +396,14 @@ impl LayoutTask {
                     stylist: box Stylist::new(),
                     parallel_traversal: parallel_traversal,
                     dirty: Rect::zero(),
-                })),
+              })),
         }
     }
 
     /// Starts listening on the port.
     fn start(self) {
-        while self.handle_request() {
+        let mut possibly_locked_rw_data = Some(self.rw_data.lock());
+        while self.handle_request(&mut possibly_locked_rw_data) {
             // Loop indefinitely.
         }
     }
@@ -395,7 +425,7 @@ impl LayoutTask {
     }
 
     /// Receives and dispatches messages from the script and constellation tasks
-    fn handle_request(&self) -> bool {
+    fn handle_request<'a>(&'a self, possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) -> bool {
         enum PortToRead {
             Pipeline,
             Script,
@@ -421,19 +451,42 @@ impl LayoutTask {
 
         match port_to_read {
             Pipeline => match self.pipeline_port.recv() {
-                layout_traits::ExitNowMsg => self.handle_script_request(ExitNowMsg),
+                layout_traits::ExitNowMsg => self.handle_script_request(ExitNowMsg, possibly_locked_rw_data),
             },
             Script => {
                 let msg = self.port.recv();
-                self.handle_script_request(msg)
+                self.handle_script_request(msg, possibly_locked_rw_data)
             }
         }
     }
 
+    /// If no reflow has happened yet, this will just return the lock in
+    /// `possibly_locked_rw_data`. Otherwise, it will acquire the `rw_data` lock.
+    ///
+    /// If you do not wish RPCs to remain blocked, just drop the `RWGuard`
+    /// returned from this function. If you _do_ wish for them to remain blocked,
+    /// use `return_rw_data`.
+    fn lock_rw_data<'a>(&'a self, possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) -> RWGuard<'a> {
+        match possibly_locked_rw_data.take() {
+            None    => Used(self.rw_data.lock()),
+            Some(x) => Held(x),
+        }
+    }
+
+    /// If no reflow has ever been trigger, this will keep the lock, locked
+    /// (and saved in `possibly_locked_rw_data`). If it has been, the lock will
+    /// be unlocked.
+    fn return_rw_data<'a>(possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>, rw_data: RWGuard<'a>) {
+        match rw_data {
+            Used(x) => drop(x),
+            Held(x) => *possibly_locked_rw_data = Some(x),
+        }
+    }
+
     /// Receives and dispatches messages from the script task.
-    fn handle_script_request(&self, request: Msg) -> bool {
+    fn handle_script_request<'a>(&'a self, request: Msg, possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) -> bool {
         match request {
-            AddStylesheetMsg(sheet) => self.handle_add_stylesheet(sheet),
+            AddStylesheetMsg(sheet) => self.handle_add_stylesheet(sheet, possibly_locked_rw_data),
             GetRPCMsg(response_chan) => {
                 response_chan.send(
                     box LayoutRPCImpl(
@@ -441,7 +494,7 @@ impl LayoutTask {
             },
             ReflowMsg(data) => {
                 profile(time::LayoutPerformCategory, self.time_profiler_chan.clone(), || {
-                    self.handle_reflow(&*data);
+                    self.handle_reflow(&*data, possibly_locked_rw_data);
                 });
             },
             ReapLayoutDataMsg(dead_layout_data) => {
@@ -451,12 +504,12 @@ impl LayoutTask {
             },
             PrepareToExitMsg(response_chan) => {
                 debug!("layout: PrepareToExitMsg received");
-                self.prepare_to_exit(response_chan);
+                self.prepare_to_exit(response_chan, possibly_locked_rw_data);
                 return false
             },
             ExitNowMsg => {
                 debug!("layout: ExitNowMsg received");
-                self.exit_now();
+                self.exit_now(possibly_locked_rw_data);
                 return false
             }
         }
@@ -467,7 +520,7 @@ impl LayoutTask {
     /// Enters a quiescent state in which no new messages except for `ReapLayoutDataMsg` will be
     /// processed until an `ExitNowMsg` is received. A pong is immediately sent on the given
     /// response channel.
-    fn prepare_to_exit(&self, response_chan: Sender<()>) {
+    fn prepare_to_exit<'a>(&'a self, response_chan: Sender<()>, possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) {
         response_chan.send(());
         loop {
             match self.port.recv() {
@@ -478,7 +531,7 @@ impl LayoutTask {
                 }
                 ExitNowMsg => {
                     debug!("layout task is exiting...");
-                    self.exit_now();
+                    self.exit_now(possibly_locked_rw_data);
                     break
                 }
                 _ => {
@@ -491,29 +544,31 @@ impl LayoutTask {
 
     /// Shuts down the layout task now. If there are any DOM nodes left, layout will now (safely)
     /// crash.
-    fn exit_now(&self) {
+    fn exit_now<'a>(&'a self, possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) {
         let (response_chan, response_port) = channel();
 
         {
-            let mut rw_data = self.rw_data.lock();
+            let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
             match rw_data.deref_mut().parallel_traversal {
                 None => {}
                 Some(ref mut traversal) => traversal.shutdown(),
             }
+            LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
         }
 
         self.render_chan.send(render_task::ExitMsg(Some(response_chan)));
         response_port.recv()
     }
 
-    fn handle_add_stylesheet(&self, sheet: Stylesheet) {
+    fn handle_add_stylesheet<'a>(&'a self, sheet: Stylesheet, possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) {
         // Find all font-face rules and notify the font cache of them.
         // GWTODO: Need to handle unloading web fonts (when we handle unloading stylesheets!)
         iter_font_face_rules(&sheet, |family, url| {
             self.font_cache_task.add_web_font(family.to_string(), url.clone());
         });
-        let mut rw_data = self.rw_data.lock();
+        let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
         rw_data.stylist.add_stylesheet(sheet, AuthorOrigin);
+        LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
     }
 
     /// Retrieves the flow tree root from the root node.
@@ -622,7 +677,7 @@ impl LayoutTask {
     }
 
     /// The high-level routine that performs layout tasks.
-    fn handle_reflow(&self, data: &Reflow) {
+    fn handle_reflow<'a>(&'a self, data: &Reflow, possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) {
         // FIXME: Isolate this transmutation into a "bridge" module.
         // FIXME(rust#16366): The following line had to be moved because of a
         // rustc bug. It should be in the next unsafe block.
@@ -636,7 +691,7 @@ impl LayoutTask {
         debug!("layout: parsed Node tree");
         debug!("{:?}", node.dump());
 
-        let mut rw_data = self.rw_data.lock();
+        let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
 
         {
             // Reset the image cache.
