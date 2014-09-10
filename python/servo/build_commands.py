@@ -39,6 +39,8 @@ class MachCommands(CommandBase):
         opts = []
         if release:
             opts += ["--release"]
+        if target:
+            opts += ["--target", target]
         if jobs is not None:
             opts += ["-j", jobs]
 

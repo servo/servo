@@ -8,7 +8,6 @@ all:
 	find ../../rust/lib/rustlib/arm-linux-androideabi/lib \
 		-name '*.so' -type f -size +1c | \
 		xargs -I {} cp -f {} libs/armeabi
-	cp -a extlibs/* libs/armeabi
 	$(ANDROID_SDK)/tools/android update project \
 		--name ServoAndroid \
 		--target "android-18" \
