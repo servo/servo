@@ -53,8 +53,7 @@ popd
 On Arch Linux:
 
 ``` sh
-sudo pacman -S base-devel git gperf python2 \
-    python2-virtualenv mesa libxrandr libxi libgl glu ttf-font
+sudo pacman -S base-devel git python2 python2-virtualenv mesa glfw ttf-font
 ```
 
 Cross-compilation for Android:
