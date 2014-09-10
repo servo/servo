@@ -7,7 +7,6 @@ dependencies = [
  "layout 0.0.1",
  "msg 0.0.1",
  "net 0.0.1",
- "png 0.1.0 (git+https://github.com/servo/rust-png#f3640b37e71a02ee3e140e181cc9accb0a123e16)",
  "script 0.0.1",
  "util 0.0.1",
 ]
