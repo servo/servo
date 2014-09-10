@@ -6,9 +6,59 @@
 
 //! Exports macros for use in other Servo crates.
 
+extern crate syntax;
+
+#[phase(plugin, link)]
+extern crate rustc;
 #[cfg(test)]
 extern crate sync;
 
+use syntax::ast;
+use syntax::parse::token;
+use rustc::lint::{Context, LintPass, LintPassObject, LintArray};
+use rustc::plugin::Registry;
+use rustc::middle::ty::{expr_ty, get};
+use rustc::middle::typeck::astconv::AstConv;
+use rustc::util::ppaux::Repr;
+
+declare_lint!(TRANSMUTE_TYPE_LINT, Allow,
+              "Warn and report types being transmuted")
+
+struct Pass;
+
+impl LintPass for Pass {
+    fn get_lints(&self) -> LintArray {
+        lint_array!(TRANSMUTE_TYPE_LINT)
+    }
+
+    fn check_expr(&mut self, cx: &Context, ex: &ast::Expr) {
+        match ex.node {
+            ast::ExprCall(ref expr, ref args) => {
+                match expr.node {
+                    ast::ExprPath(ref path) => {
+                        if path.segments.last()
+                                        .map_or(false, |ref segment| segment.identifier.name.as_str() == "transmute")
+                           && args.len() == 1 {
+                            let tcx = cx.tcx();
+                            cx.span_lint(TRANSMUTE_TYPE_LINT, ex.span,
+                                         format!("Transmute from {} to {} detected",
+                                                 expr_ty(tcx, ex).repr(tcx),
+                                                 expr_ty(tcx, &**args.get(0)).repr(tcx)
+                                        ).as_slice());
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+#[plugin_registrar]
+pub fn plugin_registrar(reg: &mut Registry) {
+    reg.register_lint_pass(box Pass as LintPassObject);
+}
 
 #[macro_export]
 macro_rules! bitfield(
