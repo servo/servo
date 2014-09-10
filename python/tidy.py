@@ -10,82 +10,87 @@
 #!/usr/bin/env python
 
 import os
-from licenseck import check_license
+import fnmatch
+from licenseck import licenses
 
-# FIXME(#3242): Don't use globals
-err = 0
+directories_to_check = ["src", "components"]
+filetypes_to_check = [".rs", ".rc", ".cpp", ".c", ".h", ".py"]
 
-
-def report_error_name_no(name, no, s):
-    global err
-    print("%s:%d: %s" % (name, no, s))
-    err = 1
-
-
-def do_license_check(name, contents):
-    if not check_license(name, contents):
-        report_error_name_no(name, 1, "incorrect license")
-
-
-def do_whitespace_check(name, contents):
-    for idx, line in enumerate(contents):
-        if line[-1] == "\n":
-            line = line[:-1]
-        else:
-            report_error_name_no(name, idx + 1, "No newline at EOF")
-
-        if line.endswith(' '):
-            report_error_name_no(name, idx + 1, "trailing whitespace")
-
-        if '\t' in line:
-            report_error_name_no(name, idx + 1, "tab on line")
-
-        if '\r' in line:
-            report_error_name_no(name, idx + 1, "CR on line")
-
-
-exceptions = [
+ignored_files = [
     # Upstream
-    "support",
-    "tests/wpt/web-platform-tests",
+    "support/*",
+    "tests/wpt/web-platform-tests/*",
 
     # Generated and upstream code combined with our own. Could use cleanup
-    "components/script/dom/bindings/codegen",
+    "components/script/dom/bindings/codegen/*",
     "components/style/properties/mod.rs",
 ]
 
 
-def should_check(name):
-    if ".#" in name:
+def collect_file_names(top_directories):
+    for top_directory in top_directories:
+        for dirname, dirs, files in os.walk(top_directory):
+            for basename in files:
+                yield os.path.join(dirname, basename)
+
+
+def should_check(file_name):
+    if ".#" in file_name:
         return False
-    if not (name.endswith(".rs")
-            or name.endswith(".rc")
-            or name.endswith(".cpp")
-            or name.endswith(".c")
-            or name.endswith(".h")
-            or name.endswith(".py")):
+    if os.path.splitext(file_name)[1] not in filetypes_to_check:
         return False
-    for exception in exceptions:
-        if exception in name:
+    for pattern in ignored_files:
+        if fnmatch.fnmatch(file_name, pattern):
             return False
     return True
 
 
-def scan(start_path):
-    global err
-    err = 0
+def check_license(contents):
+    valid_license = any(contents.startswith(license) for license in licenses)
+    acknowledged_bad_license = "xfail-license" in contents[:100]
+    if not (valid_license or acknowledged_bad_license):
+        yield (1, "incorrect license")
 
-    file_names = []
-    for root, dirs, files in os.walk(start_path):
-        for myfile in files:
-            file_name = root + "/" + myfile
-            if should_check(file_name):
-                file_names.append(file_name)
 
-    for path in file_names:
-        with open(path, "r") as fp:
-            lines = fp.readlines()
-            do_license_check(path, "".join(lines))
-            do_whitespace_check(path, lines)
+def check_whitespace(contents):
+    lines = contents.splitlines(True)
+    for idx, line in enumerate(lines):
+        if line[-1] == "\n":
+            line = line[:-1]
+        else:
+            yield (idx + 1, "no newline at EOF")
 
-    return err
+        if line.endswith(" "):
+            yield (idx + 1, "trailing whitespace")
+
+        if "\t" in line:
+            yield (idx + 1, "tab on line")
+
+        if "\r" in line:
+            yield (idx + 1, "CR on line")
+
+
+def collect_errors_for_files(files_to_check, checking_functions):
+    for file_name in files_to_check:
+        with open(file_name, "r") as fp:
+            contents = fp.read()
+            for check in checking_functions:
+                for error in check(contents):
+                    # filename, line, message
+                    yield (file_name, error[0], error[1])
+
+
+def scan():
+    all_files = collect_file_names(directories_to_check)
+    files_to_check = filter(should_check, all_files)
+
+    checking_functions = [check_license, check_whitespace]
+    errors = collect_errors_for_files(files_to_check, checking_functions)
+    errors = list(errors)
+
+    if errors:
+        for error in errors:
+            print("{}:{}: {}".format(*error))
+        return 1
+    else:
+        return 0
