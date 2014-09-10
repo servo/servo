@@ -27,6 +27,20 @@ fn byte_swap(data: &mut [u8]) {
     }
 }
 
+// TODO(pcwalton): Speed up with SIMD, or better yet, find some way to not do this.
+fn byte_swap_and_premultiply(data: &mut [u8]) {
+    let length = data.len();
+    for i in range_step(0, length, 4) {
+        let r = data[i + 2];
+        let g = data[i + 1];
+        let b = data[i + 0];
+        let a = data[i + 3];
+        data[i + 0] = ((r as u32) * (a as u32) / 255) as u8;
+        data[i + 1] = ((g as u32) * (a as u32) / 255) as u8;
+        data[i + 2] = ((b as u32) * (a as u32) / 255) as u8;
+    }
+}
+
 pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
     if buffer.len() == 0 {
         return None;
@@ -36,8 +50,9 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
         match png::load_png_from_memory(buffer) {
             Ok(mut png_image) => {
                 match png_image.pixels {
-                    png::RGB8(ref mut data) | png::RGBA8(ref mut data) => {
-                        byte_swap(data.as_mut_slice());
+                    png::RGB8(ref mut data) => byte_swap(data.as_mut_slice()),
+                    png::RGBA8(ref mut data) => {
+                        byte_swap_and_premultiply(data.as_mut_slice())
                     }
                     _ => {}
                 }
