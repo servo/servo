@@ -6,9 +6,10 @@ set -e
 
 servo_root=$(pwd)
 
-PYTHON=$(which python2.7 2> /dev/null || echo python)
+PYTHON=$(which python2 2> /dev/null || echo python)
+VIRTUALENV=$(which virtualenv2 2> /dev/null || echo virtualenv)
 
-test -d _virtualenv || virtualenv _virtualenv -p $PYTHON
+test -d _virtualenv || $VIRTUALENV _virtualenv -p $PYTHON
 test -d $servo_root/tests/wpt/metadata || mkdir -p $servo_root/tests/wpt/metadata
 test -d $servo_root/tests/wpt/prefs || mkdir -p $servo_root/tests/wpt/prefs
 source _virtualenv/bin/activate
