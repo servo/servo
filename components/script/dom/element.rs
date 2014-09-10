@@ -4,7 +4,7 @@
 
 //! Element nodes.
 
-use dom::attr::{Attr, ReplacedAttr, FirstSetAttr, AttrHelpersForLayout};
+use dom::attr::{Attr, ReplacedAttr, FirstSetAttr, AttrHelpers, AttrHelpersForLayout};
 use dom::attr::{AttrValue, StringAttrValue, UIntAttrValue, AtomAttrValue};
 use dom::namednodemap::NamedNodeMap;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
