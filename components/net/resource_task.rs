@@ -235,9 +235,10 @@ impl ResourceManager {
                 }
             },
             _ => {
-                debug!("resource_task: no loader for scheme {:s}", load_data.url.scheme);
+                let error = format!("no loader for scheme {:s}", load_data.url.scheme);
+                debug!("{}", error);
                 start_sending(start_chan, Metadata::default(load_data.url))
-                    .send(Done(Err("no loader for scheme".to_string())));
+                    .send(Done(Err(error)));
                 return
             }
         };
