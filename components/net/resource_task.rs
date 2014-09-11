@@ -7,6 +7,7 @@
 use file_loader;
 use http_loader;
 use data_loader;
+use javascript_loader;
 
 use std::comm::{channel, Receiver, Sender};
 use std::task::TaskBuilder;
@@ -234,6 +235,7 @@ impl ResourceManager {
                     }
                 }
             },
+            "javascript" => javascript_loader::factory(),
             _ => {
                 let error = format!("no loader for scheme {:s}", load_data.url.scheme);
                 debug!("{}", error);

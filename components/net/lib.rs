@@ -31,6 +31,7 @@ pub mod image {
 pub mod file_loader;
 pub mod http_loader;
 pub mod data_loader;
+pub mod javascript_loader;
 pub mod image_cache_task;
 pub mod local_image_cache;
 pub mod resource_task;
