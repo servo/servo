@@ -7,6 +7,7 @@
 use file_loader;
 use http_loader;
 use data_loader;
+use javascript_loader;
 
 use std::comm::{channel, Receiver, Sender};
 use std::task::TaskBuilder;
@@ -223,7 +224,7 @@ impl ResourceManager {
                         // FIXME: Find a way to load this without relying on the `../src` directory.
                         let mut path = os::self_exe_path().expect("can't get exe path");
                         path.pop();
-                        path.push_many(["src", "test", "html", "failure.html"]);
+                        path.push_many(["tests", "html", "failure.html"]);
                         load_data.url = Url::from_file_path(&path).unwrap();
                         file_loader::factory()
                     }
@@ -234,10 +235,12 @@ impl ResourceManager {
                     }
                 }
             },
+            "javascript" => javascript_loader::factory(),
             _ => {
-                debug!("resource_task: no loader for scheme {:s}", load_data.url.scheme);
+                let error = format!("no loader for scheme {:s}", load_data.url.scheme);
+                debug!("{}", error);
                 start_sending(start_chan, Metadata::default(load_data.url))
-                    .send(Done(Err("no loader for scheme".to_string())));
+                    .send(Done(Err(error)));
                 return
             }
         };
