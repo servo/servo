@@ -223,7 +223,7 @@ impl ResourceManager {
                         // FIXME: Find a way to load this without relying on the `../src` directory.
                         let mut path = os::self_exe_path().expect("can't get exe path");
                         path.pop();
-                        path.push_many(["src", "test", "html", "failure.html"]);
+                        path.push_many(["tests", "html", "failure.html"]);
                         load_data.url = Url::from_file_path(&path).unwrap();
                         file_loader::factory()
                     }
