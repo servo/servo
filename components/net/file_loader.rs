@@ -35,16 +35,23 @@ pub fn factory() -> LoaderTask {
         assert!("file" == url.scheme.as_slice());
         let progress_chan = start_sending(start_chan, Metadata::default(url.clone()));
         spawn_named("file_loader", proc() {
-            let file_path: Path = url.to_file_path().unwrap();
-            match File::open_mode(&Path::new(file_path), io::Open, io::Read) {
-                Ok(ref mut reader) => {
-                    let res = read_all(reader as &mut io::Stream, &progress_chan);
-                    progress_chan.send(Done(res));
+            let file_path: Result<Path, ()> = url.to_file_path();
+            match file_path {
+                Ok(file_path) => {
+                    match File::open_mode(&Path::new(file_path), io::Open, io::Read) {
+                        Ok(ref mut reader) => {
+                            let res = read_all(reader as &mut io::Stream, &progress_chan);
+                            progress_chan.send(Done(res));
+                        }
+                        Err(e) => {
+                            progress_chan.send(Done(Err(e.desc.to_string())));
+                        }
+                    }
                 }
-                Err(e) => {
-                    progress_chan.send(Done(Err(e.desc.to_string())));
+                Err(_) => {
+                    progress_chan.send(Done(Err(url.to_string())));
                 }
-            };
+            }
         });
     };
     f
