@@ -9,8 +9,8 @@ use context::LayoutContext;
 use floats::{FloatLeft, Floats, PlacementInfo};
 use flow::{BaseFlow, FlowClass, Flow, InlineFlowClass};
 use flow;
-use fragment::{Fragment, ScannedTextFragment, ScannedTextFragmentInfo, SplitInfo};
 use layout_debug;
+use fragment::{Fragment, InlineBlockFragment, ScannedTextFragment, ScannedTextFragmentInfo, SplitInfo};
 use model::IntrinsicISizes;
 use text;
 use wrapper::ThreadSafeLayoutNode;
@@ -20,6 +20,7 @@ use geom::Rect;
 use gfx::display_list::ContentLevel;
 use gfx::font::FontMetrics;
 use gfx::font_context::FontContext;
+use geom::Size2D;
 use gfx::text::glyph::CharIndex;
 use servo_util::geometry::Au;
 use servo_util::geometry;
@@ -760,11 +761,18 @@ impl InlineFlow {
             let rel_offset = fragment.relative_position(&self.base
                                                              .absolute_position_info
                                                              .relative_containing_block_size);
-            drop(fragment.build_display_list(&mut self.base.display_list,
+            let mut accumulator = fragment.build_display_list(&mut self.base.display_list,
                                              layout_context,
                                              self.base.abs_position.add_size(
                                                 &rel_offset.to_physical(self.base.writing_mode)),
-                                             ContentLevel));
+                                             ContentLevel);
+            match fragment.specific {
+                InlineBlockFragment(ref mut block_flow) => {
+                    let block_flow = block_flow.flow_ref.get_mut();
+                    accumulator.push_child(&mut self.base.display_list, block_flow);
+                }
+                _ => {}
+            }
         }
 
         // TODO(#225): Should `inline-block` elements have flows as children of the inline flow or
@@ -949,17 +957,6 @@ impl Flow for InlineFlow {
                 fragment.assign_replaced_inline_size_if_necessary(inline_size);
             }
         }
-
-        assert!(self.base.children.len() == 0,
-                "InlineFlow: should not have children flows in the current layout implementation.");
-
-        // There are no child contexts, so stop here.
-
-        // TODO(Issue #225): once there are 'inline-block' elements, this won't be
-        // true.  In that case, set the InlineBlockFragment's inline-size to the
-        // shrink-to-fit inline-size, perform inline flow, and set the block
-        // flow context's inline-size as the assigned inline-size of the
-        // 'inline-block' fragment that created this flow before recursing.
     }
 
     /// Calculate and set the block-size of this flow. See CSS 2.1 § 10.6.1.
@@ -1118,6 +1115,22 @@ impl Flow for InlineFlow {
         self.base.floats.translate(LogicalSize::new(
             self.base.writing_mode, Au::new(0), -self.base.position.size.block));
     }
+
+    fn compute_absolute_position(&mut self) {
+        for f in self.fragments.fragments.mut_iter() {
+            match f.specific {
+                InlineBlockFragment(ref mut info) => {
+                    let block_flow = info.flow_ref.get_mut().as_block();
+
+                    // FIXME(#2795): Get the real container size
+                    let container_size = Size2D::zero();
+                    block_flow.base.abs_position = self.base.abs_position +
+                                                    f.border_box.start.to_physical(self.base.writing_mode, container_size);
+                }
+                _ => {}
+            }
+        }
+    }
 }
 
 impl fmt::Show for InlineFlow {
@@ -1164,6 +1177,17 @@ impl InlineMetrics {
             block_size_above_baseline: font_metrics.ascent + leading.scale_by(0.5),
             depth_below_baseline: font_metrics.descent + leading.scale_by(0.5),
             ascent: font_metrics.ascent,
+        }
+    }
+
+    /// Calculates inline metrics from font metrics and line block-size per CSS 2.1 § 10.8.1.
+    #[inline]
+    pub fn from_block_height(font_metrics: &FontMetrics, block_height: Au) -> InlineMetrics {
+        let leading = block_height - (font_metrics.ascent + font_metrics.descent);
+        InlineMetrics {
+            block_size_above_baseline: font_metrics.ascent + leading.scale_by(0.5),
+            depth_below_baseline: font_metrics.descent + leading.scale_by(0.5),
+            ascent: font_metrics.ascent + leading.scale_by(0.5),
         }
     }
 }
