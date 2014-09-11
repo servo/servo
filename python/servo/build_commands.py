@@ -33,7 +33,10 @@ class MachCommands(CommandBase):
     @CommandArgument('--jobs', '-j',
                      default=None,
                      help='Number of jobs to run in parallel')
-    def build(self, target, release=False, jobs=None):
+    @CommandArgument('--verbose', '-v',
+                     action='store_true',
+                     help='Print verbose output')
+    def build(self, target, release=False, jobs=None, verbose=False):
         self.ensure_bootstrapped()
 
         opts = []
@@ -43,6 +46,8 @@ class MachCommands(CommandBase):
             opts += ["--target", target]
         if jobs is not None:
             opts += ["-j", jobs]
+        if verbose:
+            opts += ["-v"]
 
         build_start = time()
         subprocess.check_call(["cargo", "build"] + opts, env=self.build_env())
