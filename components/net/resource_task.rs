@@ -4,13 +4,13 @@
 
 //! A task that takes a URL and streams back the binary data.
 
+use about_loader;
+use data_loader;
 use file_loader;
 use http_loader;
-use data_loader;
 
 use std::comm::{channel, Receiver, Sender};
 use std::task::TaskBuilder;
-use std::os;
 use http::headers::content_type::MediaType;
 use ResponseHeaderCollection = http::headers::response::HeaderCollection;
 use RequestHeaderCollection = http::headers::request::HeaderCollection;
@@ -163,16 +163,6 @@ pub fn load_whole_resource(resource_task: &ResourceTask, url: Url)
 /// Handle to a resource task
 pub type ResourceTask = Sender<ControlMsg>;
 
-pub type LoaderTask = proc(load_data: LoadData, Sender<LoadResponse>);
-
-/**
-Creates a task to load a specific resource
-
-The ResourceManager delegates loading to a different type of loader task for
-each URL scheme
-*/
-type LoaderTaskFactory = extern "Rust" fn() -> LoaderTask;
-
 /// Create a ResourceTask
 pub fn new_resource_task() -> ResourceTask {
     let (setup_chan, setup_port) = channel();
@@ -211,29 +201,12 @@ impl ResourceManager {
         }
     }
 
-    fn load(&self, mut load_data: LoadData, start_chan: Sender<LoadResponse>) {
+    fn load(&self, load_data: LoadData, start_chan: Sender<LoadResponse>) {
         let loader = match load_data.url.scheme.as_slice() {
-            "file" => file_loader::factory(),
-            "http" | "https" => http_loader::factory(),
-            "data" => data_loader::factory(),
-            "about" => {
-                match load_data.url.non_relative_scheme_data().unwrap() {
-                    "crash" => fail!("Loading the about:crash URL."),
-                    "failure" => {
-                        // FIXME: Find a way to load this without relying on the `../src` directory.
-                        let mut path = os::self_exe_path().expect("can't get exe path");
-                        path.pop();
-                        path.push_many(["src", "test", "html", "failure.html"]);
-                        load_data.url = Url::from_file_path(&path).unwrap();
-                        file_loader::factory()
-                    }
-                    _ => {
-                        start_sending(start_chan, Metadata::default(load_data.url))
-                            .send(Done(Err("Unknown about: URL.".to_string())));
-                        return
-                    }
-                }
-            },
+            "file" => file_loader::factory,
+            "http" | "https" => http_loader::factory,
+            "data" => data_loader::factory,
+            "about" => about_loader::factory,
             _ => {
                 debug!("resource_task: no loader for scheme {:s}", load_data.url.scheme);
                 start_sending(start_chan, Metadata::default(load_data.url))

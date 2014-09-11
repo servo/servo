@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use resource_task::{ProgressMsg, Metadata, Payload, Done, LoaderTask, start_sending};
+use resource_task::{ProgressMsg, Metadata, Payload, Done, LoadData, start_sending};
+use resource_task::{LoadResponse};
 
 use std::io;
 use std::io::File;
@@ -29,30 +30,27 @@ fn read_all(reader: &mut io::Stream, progress_chan: &Sender<ProgressMsg>)
     }
 }
 
-pub fn factory() -> LoaderTask {
-    let f: LoaderTask = proc(load_data, start_chan) {
-        let url = load_data.url;
-        assert!("file" == url.scheme.as_slice());
-        let progress_chan = start_sending(start_chan, Metadata::default(url.clone()));
-        spawn_named("file_loader", proc() {
-            let file_path: Result<Path, ()> = url.to_file_path();
-            match file_path {
-                Ok(file_path) => {
-                    match File::open_mode(&Path::new(file_path), io::Open, io::Read) {
-                        Ok(ref mut reader) => {
-                            let res = read_all(reader as &mut io::Stream, &progress_chan);
-                            progress_chan.send(Done(res));
-                        }
-                        Err(e) => {
-                            progress_chan.send(Done(Err(e.desc.to_string())));
-                        }
+pub fn factory(load_data: LoadData, start_chan: Sender<LoadResponse>) {
+    let url = load_data.url;
+    assert!("file" == url.scheme.as_slice());
+    let progress_chan = start_sending(start_chan, Metadata::default(url.clone()));
+    spawn_named("file_loader", proc() {
+        let file_path: Result<Path, ()> = url.to_file_path();
+        match file_path {
+            Ok(file_path) => {
+                match File::open_mode(&Path::new(file_path), io::Open, io::Read) {
+                    Ok(ref mut reader) => {
+                        let res = read_all(reader as &mut io::Stream, &progress_chan);
+                        progress_chan.send(Done(res));
+                    }
+                    Err(e) => {
+                        progress_chan.send(Done(Err(e.desc.to_string())));
                     }
                 }
-                Err(_) => {
-                    progress_chan.send(Done(Err(url.to_string())));
-                }
             }
-        });
-    };
-    f
+            Err(_) => {
+                progress_chan.send(Done(Err(url.to_string())));
+            }
+        }
+    });
 }

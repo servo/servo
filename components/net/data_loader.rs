@@ -4,7 +4,7 @@
 
 use std::str;
 
-use resource_task::{Done, Payload, Metadata, LoadData, LoadResponse, LoaderTask, start_sending};
+use resource_task::{Done, Payload, Metadata, LoadData, LoadResponse, start_sending};
 
 use serialize::base64::FromBase64;
 
@@ -13,13 +13,12 @@ use http::headers::content_type::MediaType;
 use url::{percent_decode, NonRelativeSchemeData};
 
 
-pub fn factory() -> LoaderTask {
-    proc(url, start_chan) {
-        // NB: we don't spawn a new task.
-        // Hypothesis: data URLs are too small for parallel base64 etc. to be worth it.
-        // Should be tested at some point.
-        load(url, start_chan)
-    }
+pub fn factory(load_data: LoadData, start_chan: Sender<LoadResponse>) {
+    // NB: we don't spawn a new task.
+    // Hypothesis: data URLs are too small for parallel base64 etc. to be worth it.
+    // Should be tested at some point.
+    // Left in separate function to allow easy moving to a task, if desired.
+    load(load_data, start_chan)
 }
 
 fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use resource_task::{Metadata, Payload, Done, LoadResponse, LoadData, LoaderTask, start_sending_opt};
+use resource_task::{Metadata, Payload, Done, LoadResponse, LoadData, start_sending_opt};
 
 use std::collections::hashmap::HashSet;
 use http::client::{RequestWriter, NetworkStream};
@@ -11,11 +11,8 @@ use std::io::Reader;
 use servo_util::task::spawn_named;
 use url::Url;
 
-pub fn factory() -> LoaderTask {
-    let f: LoaderTask = proc(url, start_chan) {
-        spawn_named("http_loader", proc() load(url, start_chan))
-    };
-    f
+pub fn factory(load_data: LoadData, start_chan: Sender<LoadResponse>) {
+    spawn_named("http_loader", proc() load(load_data, start_chan))
 }
 
 fn send_error(url: Url, err: String, start_chan: Sender<LoadResponse>) {
