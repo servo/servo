@@ -740,7 +740,7 @@ impl<'a, 'b> FlowConstructor<'a, 'b> {
             float::none => {
                 FlowConstructionResult(wrapper_flow, abs_descendants)
             }
-            float_kind => {
+            _ => {
                 let float_kind = FloatKind::from_property(float_value);
                 let float_flow = box BlockFlow::float_from_node(self, node, float_kind) as Box<Flow>;
                 let mut float_flow = FlowRef::new(float_flow);
