@@ -22,7 +22,7 @@ use dom::node::{ElementNodeTypeId, Node, NodeHelpers};
 use dom::window::{TimerId, Window, WindowHelpers};
 use dom::worker::{Worker, TrustedWorkerAddress};
 use dom::xmlhttprequest::{TrustedXHRAddress, XMLHttpRequest, XHRProgress};
-use html::hubbub_html_parser::HtmlParserResult;
+use html::hubbub_html_parser::{InputString, InputUrl, HtmlParserResult};
 use html::hubbub_html_parser::{HtmlDiscoveredStyle, HtmlDiscoveredScript};
 use html::hubbub_html_parser;
 use layout_interface::AddStylesheetMsg;
@@ -578,7 +578,7 @@ impl ScriptTask {
     /// The entry point to document loading. Defines bindings, sets up the window and document
     /// objects, parses HTML and CSS, and kicks off initial layout.
     fn load(&self, pipeline_id: PipelineId, url: Url) {
-        debug!("ScriptTask: loading {:?} on page {:?}", url, pipeline_id);
+        debug!("ScriptTask: loading {} on page {:?}", url, pipeline_id);
 
         let mut page = self.page.borrow_mut();
         let page = page.find(pipeline_id).expect("ScriptTask: received a load
@@ -598,6 +598,8 @@ impl ScriptTask {
             _ => (),
         }
 
+        let is_javascript = url.scheme.as_slice() == "javascript";
+
         let cx = self.js_context.borrow();
         let cx = cx.get_ref();
         // Create the window and document objects.
@@ -611,13 +613,23 @@ impl ScriptTask {
         window.deref().init_browser_context(&*document);
 
         self.compositor.set_ready_state(Loading);
-        // Parse HTML.
-        //
-        // Note: We can parse the next document in parallel with any previous documents.
-        let html_parsing_result = hubbub_html_parser::parse_html(&*page,
-                                                                 &*document,
-                                                                 url.clone(),
-                                                                 self.resource_task.clone());
+
+        let html_parsing_result = if is_javascript {
+            // FIXME: evaluate the JS url and use that as the input HTML
+            *page.mut_url() = Some((url.clone(), true));
+            hubbub_html_parser::parse_html(&*page,
+                                           &*document,
+                                           InputString(String::from_str("<html></html>")),
+                                           self.resource_task.clone())
+        } else {
+            // Parse HTML.
+            //
+            // Note: We can parse the next document in parallel with any previous documents.
+            hubbub_html_parser::parse_html(&*page,
+                                           &*document,
+                                           InputUrl(url.clone()),
+                                           self.resource_task.clone())
+        };
 
         let HtmlParserResult {
             discovery_port
@@ -653,6 +665,7 @@ impl ScriptTask {
         }
 
         // Kick off the initial reflow of the page.
+        debug!("kicking off initial reflow of {}", url);
         document.deref().content_changed();
 
         let fragment = url.fragment.as_ref().map(|ref fragment| fragment.to_string());
@@ -674,7 +687,11 @@ impl ScriptTask {
                 let global_obj = window.reflector().get_jsobject();
                 //FIXME: this should have some kind of error handling, or explicitly
                 //       drop an exception on the floor.
-                match cx.evaluate_script(global_obj, file.data.clone(), file.url.serialize(), 1) {
+                let filename = match file.url {
+                    None => String::new(),
+                    Some(ref url) => url.serialize(),
+                };
+                match cx.evaluate_script(global_obj, file.data.clone(), filename, 1) {
                     Ok(_) => (),
                     Err(_) => println!("evaluate_script failed")
                 }
