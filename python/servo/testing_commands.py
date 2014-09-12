@@ -57,17 +57,31 @@ class MachCommands(CommandBase):
 
     @Command('test-unit',
              description='Run libservo unit tests',
-             category='testing')
-    def test_unit(self):
+             category='testing',
+             allow_all_args=True)
+    @CommandArgument('test_name', default=None, nargs="...",
+                     help="Only run tests that match this pattern")
+    @CommandArgument('params', default=None, nargs="...",
+                     help="Command-line arguments to be passed to the test harness")
+    def test_unit(self, test_name=None, params=None):
+        if params is None:
+            params = []
+        if test_name is not None:
+            params.append(test_name)
         self.ensure_bootstrapped()
         self.ensure_built_tests()
-        return self.run_test("servo")
+        return self.run_test("servo", params)
 
     @Command('test-ref',
              description='Run the reference tests',
              category='testing')
-    @CommandArgument('--kind', '-k', default=None)
-    def test_ref(self, kind=None):
+    @CommandArgument('--kind', '-k', default=None,
+                     help="'cpu' or 'gpu' (default both)")
+    @CommandArgument('test_name', default=None, nargs="?",
+                     help="Only run tests that match this pattern")
+    @CommandArgument('servo_params', default=None, nargs="...",
+                     help="Command-line arguments to be passed through to Servo")
+    def test_ref(self, kind=None, test_name=None, servo_params=None):
         self.ensure_bootstrapped()
         self.ensure_built_tests()
 
@@ -78,7 +92,12 @@ class MachCommands(CommandBase):
         test_start = time()
         for k in kinds:
             print("Running %s reftests..." % k)
-            ret = self.run_test("reftest", [k, test_path])
+            test_args = [k, test_path]
+            if test_name is not None:
+                test_args.append(test_name)
+            if servo_params is not None:
+                test_args += ["--"] + servo_params
+            ret = self.run_test("reftest", test_args)
             error = error or ret != 0
         elapsed = time() - test_start
 
@@ -88,14 +107,22 @@ class MachCommands(CommandBase):
 
     @Command('test-content',
              description='Run the content tests',
-             category='testing')
-    def test_content(self):
+             category='testing',
+             allow_all_args=True)
+    @CommandArgument('test_name', default=None, nargs="?",
+                     help="Only run tests that match this pattern")
+    def test_content(self, test_name=None):
         self.ensure_bootstrapped()
         self.ensure_built_tests()
 
         test_path = path.join(self.context.topdir, "tests", "content")
+        test_args = ["--source-dir=%s" % test_path]
+
+        if test_name is not None:
+            test_args.append(test_name)
+
         test_start = time()
-        ret = self.run_test("contenttest", ["--source-dir=%s" % test_path])
+        ret = self.run_test("contenttest", test_args)
         elapsed = time() - test_start
 
         print("Content tests completed in %0.2fs" % elapsed)
