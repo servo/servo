@@ -513,6 +513,12 @@ impl ScriptTask {
             *layout_join_port = None;
         }
         self.compositor.set_ready_state(FinishedLoading);
+
+        if page.pending_reflows.get() > 0 {
+            page.pending_reflows.set(0);
+            page.damage(MatchSelectorsDocumentDamage);
+            page.reflow(ReflowForDisplay, self.control_chan.clone(), self.compositor);
+        }
     }
 
     /// Handles a navigate forward or backward message.
@@ -758,8 +764,13 @@ impl ScriptTask {
                 let page = get_page(&*self.page.borrow(), pipeline_id);
                 let frame = page.frame();
                 if frame.is_some() {
-                    page.damage(MatchSelectorsDocumentDamage);
-                    page.reflow(ReflowForDisplay, self.control_chan.clone(), self.compositor)
+                    let in_layout = page.layout_join_port.deref().borrow().is_some();
+                    if in_layout {
+                        page.pending_reflows.set(page.pending_reflows.get() + 1);
+                    } else {
+                        page.damage(MatchSelectorsDocumentDamage);
+                        page.reflow(ReflowForDisplay, self.control_chan.clone(), self.compositor)
+                    }
                 }
             }
 
