@@ -4,7 +4,7 @@
 
 use compositor_task::{Msg, Exit, ChangeReadyState, SetIds};
 use compositor_task::{GetGraphicsMetadata, CreateOrUpdateRootLayer, CreateOrUpdateDescendantLayer};
-use compositor_task::{SetLayerClipRect, Paint, ScrollFragmentPoint, LoadComplete};
+use compositor_task::{SetLayerOrigin, Paint, ScrollFragmentPoint, LoadComplete};
 use compositor_task::{ShutdownComplete, ChangeRenderState, RenderMsgDiscarded};
 
 use geom::scale_factor::ScaleFactor;
@@ -90,7 +90,7 @@ impl NullCompositor {
 
                 CreateOrUpdateRootLayer(..) |
                 CreateOrUpdateDescendantLayer(..) |
-                SetLayerClipRect(..) | Paint(..) |
+                SetLayerOrigin(..) | Paint(..) |
                 ChangeReadyState(..) | ChangeRenderState(..) | ScrollFragmentPoint(..) |
                 LoadComplete(..) | RenderMsgDiscarded(..) => ()
             }

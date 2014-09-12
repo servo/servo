@@ -36,7 +36,6 @@
 == background_external_stylesheet.html background_ref.html
 == block_image.html 500x300_green.html
 != block_image.html noteq_500x300_white.html
-# == simple_iframe.html simple_iframe_ref.html -- disabled due to iframe crashiness
 == object_element_a.html object_element_b.html
 == append_style_a.html append_style_b.html
 == height_compute_reset.html height_compute.html
@@ -116,3 +115,6 @@ flaky_gpu,flaky_linux == acid2_noscroll.html acid2_ref_broken.html
 
 # The following tests fails the ref-tests
 #== multiple_css_class_a.html multiple_css_class_b.html
+
+== iframe/simple.html iframe/simple_ref.html
+== iframe/multiple_external.html iframe/multiple_external_ref.html

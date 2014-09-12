@@ -38,8 +38,8 @@ pub struct CompositorChan {
 
 /// Implementation of the abstract `ScriptListener` interface.
 impl ScriptListener for CompositorChan {
-    fn set_ready_state(&self, ready_state: ReadyState) {
-        let msg = ChangeReadyState(ready_state);
+    fn set_ready_state(&self, pipeline_id: PipelineId, ready_state: ReadyState) {
+        let msg = ChangeReadyState(pipeline_id, ready_state);
         self.chan.send(msg);
     }
 
@@ -117,8 +117,6 @@ impl RenderListener for CompositorChan {
             } else {
                 self.chan.send(CreateOrUpdateDescendantLayer(layer_properties));
             }
-
-            self.chan.send(SetLayerClipRect(pipeline_id, metadata.id, layer_properties.rect));
         }
     }
 
@@ -126,8 +124,8 @@ impl RenderListener for CompositorChan {
         self.chan.send(RenderMsgDiscarded);
     }
 
-    fn set_render_state(&self, render_state: RenderState) {
-        self.chan.send(ChangeRenderState(render_state))
+    fn set_render_state(&self, pipeline_id: PipelineId, render_state: RenderState) {
+        self.chan.send(ChangeRenderState(pipeline_id, render_state))
     }
 }
 
@@ -167,16 +165,16 @@ pub enum Msg {
     /// Tells the compositor to create a descendant layer for a pipeline if necessary (i.e. if no
     /// layer with that ID exists).
     CreateOrUpdateDescendantLayer(LayerProperties),
-    /// Alerts the compositor that the specified layer's clipping rect has changed.
-    SetLayerClipRect(PipelineId, LayerId, Rect<f32>),
+    /// Alerts the compositor that the specified layer's origin has changed.
+    SetLayerOrigin(PipelineId, LayerId, Point2D<f32>),
     /// Scroll a page in a window
     ScrollFragmentPoint(PipelineId, LayerId, Point2D<f32>),
     /// Requests that the compositor paint the given layer buffer set for the given page size.
     Paint(PipelineId, Epoch, Vec<(LayerId, Box<LayerBufferSet>)>),
     /// Alerts the compositor to the current status of page loading.
-    ChangeReadyState(ReadyState),
+    ChangeReadyState(PipelineId, ReadyState),
     /// Alerts the compositor to the current status of rendering.
-    ChangeRenderState(RenderState),
+    ChangeRenderState(PipelineId, RenderState),
     /// Alerts the compositor that the RenderMsg has been discarded.
     RenderMsgDiscarded,
     /// Sets the channel to the current layout and render tasks, along with their id
