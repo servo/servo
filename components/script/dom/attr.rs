@@ -188,6 +188,7 @@ impl<'a> AttrHelpers for JSRef<'a, Attr> {
 pub trait AttrHelpersForLayout {
     unsafe fn value_ref_forever(&self) -> &'static str;
     unsafe fn value_atom_forever(&self) -> Option<Atom>;
+    unsafe fn value_tokens_forever(&self) -> Option<Items<Atom>>;
     unsafe fn local_name_atom_forever(&self) -> Atom;
 }
 
@@ -203,6 +204,15 @@ impl AttrHelpersForLayout for Attr {
         let value = mem::transmute::<&RefCell<AttrValue>, &AttrValue>(self.value.deref());
         match *value {
             AtomAttrValue(ref val) => Some(val.clone()),
+            _ => None,
+        }
+    }
+
+    unsafe fn value_tokens_forever(&self) -> Option<Items<Atom>> {
+        // cast to point to T in RefCell<T> directly
+        let value = mem::transmute::<&RefCell<AttrValue>, &AttrValue>(self.value.deref());
+        match *value {
+            TokenListAttrValue(_, ref tokens) => Some(tokens.iter()),
             _ => None,
         }
     }

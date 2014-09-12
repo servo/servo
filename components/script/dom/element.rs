@@ -168,6 +168,7 @@ impl Element {
 pub trait RawLayoutElementHelpers {
     unsafe fn get_attr_val_for_layout(&self, namespace: &Namespace, name: &str) -> Option<&'static str>;
     unsafe fn get_attr_atom_for_layout(&self, namespace: &Namespace, name: &str) -> Option<Atom>;
+    unsafe fn has_class_for_layout(&self, name: &str) -> bool;
 }
 
 impl RawLayoutElementHelpers for Element {
@@ -199,6 +200,18 @@ impl RawLayoutElementHelpers for Element {
             let attr = attr.unsafe_get();
             (*attr).value_atom_forever()
         })
+    }
+
+    #[inline]
+    unsafe fn has_class_for_layout(&self, name: &str) -> bool {
+        let attrs: *const Vec<JS<Attr>> = mem::transmute(&self.attrs);
+        (*attrs).iter().find(|attr: & &JS<Attr>| {
+            let attr = attr.unsafe_get();
+            (*attr).local_name_atom_forever().as_slice() == "class"
+        }).map_or(false, |attr| {
+            let attr = attr.unsafe_get();
+            (*attr).value_tokens_forever().map(|mut tokens| { tokens.any(|atom| atom.as_slice() == name) })
+        }.take().unwrap())
     }
 }
 
@@ -954,5 +967,8 @@ impl<'a> style::TElement for JSRef<'a, Element> {
     fn get_enabled_state(&self) -> bool {
         let node: &JSRef<Node> = NodeCast::from_ref(self);
         node.get_enabled_state()
+    }
+    fn has_class(&self, name: &str) -> bool {
+        (self as &AttributeHandlers).has_class(name)
     }
 }

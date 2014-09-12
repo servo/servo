@@ -626,11 +626,7 @@ fn matches_simple_selector<E:TElement,
         // TODO: cache and intern class names on elements.
         ClassSelector(ref class) => {
             let element = element.as_element();
-            element.get_attr(&namespace::Null, "class")
-                    .map_or(false, |attr| {
-                // TODO: case-sensitivity depends on the document type and quirks mode
-                attr.split(SELECTOR_WHITESPACE).any(|c| c == class.as_slice())
-            })
+            element.has_class(class.as_slice())
         }
 
         AttrExists(ref attr) => {
