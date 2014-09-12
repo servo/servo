@@ -67,6 +67,9 @@
 == min_max_height_a.html min_max_height_b.html
 == minimum_line_height_a.html minimum_line_height_b.html
 == background_position_a.html background_position_b.html
+== background_position_keyword.html background_position_b.html
+== background_position_percent.html background_position_b.html
+== background_position_shorthand.html background_position_shorthand_ref.html
 == background_repeat_x_a.html background_repeat_x_b.html
 == background_repeat_y_a.html background_repeat_y_b.html
 == background_repeat_none_a.html background_repeat_none_b.html

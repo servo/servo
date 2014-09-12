@@ -627,6 +627,46 @@ pub mod longhands {
                 pub vertical: specified::LengthOrPercentage,
             }
 
+            impl SpecifiedValue {
+                fn new(first: specified::PositionComponent, second: specified::PositionComponent)
+                        -> Result<SpecifiedValue,()> {
+                    let (horiz, vert) = match (category(first), category(second)) {
+                        // Don't allow two vertical keywords or two horizontal keywords.
+                        (HorizontalKeyword, HorizontalKeyword) |
+                        (VerticalKeyword, VerticalKeyword) => return Err(()),
+
+                        // Swap if both are keywords and vertical precedes horizontal.
+                        (VerticalKeyword, HorizontalKeyword) |
+                        (VerticalKeyword, OtherKeyword) |
+                        (OtherKeyword, HorizontalKeyword) => (second, first),
+
+                        // By default, horizontal is first.
+                        _ => (first, second),
+                    };
+                    Ok(SpecifiedValue {
+                        horizontal: horiz.to_length_or_percentage(),
+                        vertical: vert.to_length_or_percentage(),
+                    })
+                }
+            }
+
+            // Collapse `Position` into a few categories to simplify the above `match` expression.
+            enum PositionCategory {
+                HorizontalKeyword,
+                VerticalKeyword,
+                OtherKeyword,
+                LengthOrPercentage,
+            }
+            fn category(p: specified::PositionComponent) -> PositionCategory {
+                match p {
+                    specified::Pos_Left | specified::Pos_Right => HorizontalKeyword,
+                    specified::Pos_Top | specified::Pos_Bottom => VerticalKeyword,
+                    specified::Pos_Center => OtherKeyword,
+                    specified::Pos_Length(_) |
+                    specified::Pos_Percentage(_) => LengthOrPercentage,
+                }
+            }
+
             #[inline]
             pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
                                      -> computed_value::T {
@@ -644,29 +684,32 @@ pub mod longhands {
                 }
             }
 
-            // FIXME(#1997, pcwalton): Support complete CSS2 syntax.
-            pub fn parse_horizontal_and_vertical(horiz: &ComponentValue, vert: &ComponentValue)
-                                                 -> Result<SpecifiedValue, ()> {
-                let horiz = try!(specified::LengthOrPercentage::parse_non_negative(horiz));
-                let vert = try!(specified::LengthOrPercentage::parse_non_negative(vert));
+            pub fn parse_one(first: &ComponentValue) -> Result<SpecifiedValue, ()> {
+                let first = try!(specified::PositionComponent::parse(first));
+                // If only one value is provided, use `center` for the second.
+                SpecifiedValue::new(first, specified::Pos_Center)
+            }
 
-                Ok(SpecifiedValue {
-                    horizontal: horiz,
-                    vertical: vert,
-                })
+            pub fn parse_two(first: &ComponentValue, second: &ComponentValue)
+                    -> Result<SpecifiedValue, ()> {
+                let first = try!(specified::PositionComponent::parse(first));
+                let second = try!(specified::PositionComponent::parse(second));
+                SpecifiedValue::new(first, second)
             }
 
             pub fn parse(input: &[ComponentValue], _: &Url) -> Result<SpecifiedValue, ()> {
                 let mut input_iter = input.skip_whitespace();
-                let horizontal = input_iter.next();
-                let vertical = input_iter.next();
+                let first = input_iter.next();
+                let second = input_iter.next();
                 if input_iter.next().is_some() {
                     return Err(())
                 }
-
-                match (horizontal, vertical) {
-                    (Some(horizontal), Some(vertical)) => {
-                        parse_horizontal_and_vertical(horizontal, vertical)
+                match (first, second) {
+                    (Some(first), Some(second)) => {
+                        parse_two(first, second)
+                    }
+                    (Some(first), None) => {
+                        parse_one(first)
                     }
                     _ => Err(())
                 }
@@ -1097,10 +1140,40 @@ pub mod shorthands {
 
                 let (mut color, mut image, mut position, mut repeat, mut attachment) =
                     (None, None, None, None, None);
-                let mut last_component_value = None;
+                let mut unused_component_value = None;
                 let mut any = false;
 
                 for component_value in input.skip_whitespace() {
+                    // Try `background-position` first because it might not use the value.
+                    if position.is_none() {
+                        match mem::replace(&mut unused_component_value, None) {
+                            Some(saved_component_value) => {
+                                // First try parsing a pair of values, then a single value.
+                                match background_position::parse_two(saved_component_value,
+                                                                     component_value) {
+                                    Ok(v) => {
+                                        position = Some(v);
+                                        any = true;
+                                        continue
+                                    },
+                                    Err(()) => {
+                                        match background_position::parse_one(saved_component_value) {
+                                            Ok(v) => {
+                                                position = Some(v);
+                                                any = true;
+                                                // We haven't used the current `component_value`;
+                                                // keep attempting to parse it below.
+                                            },
+                                            // If we get here, parsing failed.
+                                            Err(()) => return Err(())
+                                        }
+                                    }
+                                }
+                            }
+                            None => () // Wait until we have a pair of potential values.
+                        }
+                    }
+
                     if color.is_none() {
                         match background_color::from_component_value(component_value, base_url) {
                             Ok(v) => {
@@ -1146,32 +1219,27 @@ pub mod shorthands {
                         }
                     }
 
-                    match mem::replace(&mut last_component_value, None) {
-                        Some(saved_component_value) => {
-                            if position.is_none() {
-                                match background_position::parse_horizontal_and_vertical(
-                                        saved_component_value,
-                                        component_value) {
-                                    Ok(v) => {
-                                        position = Some(v);
-                                        any = true;
-                                        continue
-                                    },
-                                    Err(()) => (),
-                                }
-                            }
+                    // Save the component value.  It may the first of a background-position pair.
+                    unused_component_value = Some(component_value);
+                }
 
-                            // If we get here, parsing failed.
-                            return Err(())
+                if position.is_none() {
+                    // Check for a lone trailing background-position value.
+                    match mem::replace(&mut unused_component_value, None) {
+                        Some(saved_component_value) => {
+                            match background_position::parse_one(saved_component_value) {
+                                Ok(v) => {
+                                    position = Some(v);
+                                    any = true;
+                                },
+                                Err(()) => return Err(())
+                            }
                         }
-                        None => {
-                            // Save the component value.
-                            last_component_value = Some(component_value)
-                        }
+                        None => ()
                     }
                 }
 
-                if any && last_component_value.is_none() {
+                if any && unused_component_value.is_none() {
                     Ok(Longhands {
                         background_color: color,
                         background_image: image,

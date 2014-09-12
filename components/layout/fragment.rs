@@ -728,12 +728,15 @@ impl Fragment {
         };
         debug!("(building display list) building background image");
 
+        let image_width = Au::from_px(image.width as int);
+        let image_height = Au::from_px(image.height as int);
+
         // Adjust bounds for `background-position` and `background-attachment`.
         let mut bounds = *absolute_bounds;
         let horizontal_position = model::specified(background.background_position.horizontal,
-                                                   bounds.size.width);
+                                                   bounds.size.width - image_width);
         let vertical_position = model::specified(background.background_position.vertical,
-                                                 bounds.size.height);
+                                                 bounds.size.height - image_height);
 
         // TODO: These are some situations below where it is possible
         // to determine that clipping is not necessary - this is an
@@ -742,9 +745,6 @@ impl Fragment {
             base: BaseDisplayItem::new(bounds, self.node, level),
             children: DisplayList::new(),
         });
-
-        let image_width = Au::from_px(image.width as int);
-        let image_height = Au::from_px(image.height as int);
 
         match background.background_attachment {
             background_attachment::scroll => {
@@ -759,25 +759,21 @@ impl Fragment {
                     }
                     background_repeat::repeat_x => {
                         bounds.size.height = Au::min(bounds.size.height - vertical_position, image_height);
-                        if horizontal_position > Au(0) {
-                            bounds.origin.x = bounds.origin.x - image_width;
+                        if horizontal_position != Au(0) {
                             bounds.size.width = bounds.size.width + image_width;
                         }
                     }
                     background_repeat::repeat_y => {
                         bounds.size.width = Au::min(bounds.size.width - horizontal_position, image_width);
-                        if vertical_position > Au(0) {
-                            bounds.origin.y = bounds.origin.y - image_height;
+                        if vertical_position != Au(0) {
                             bounds.size.height = bounds.size.height + image_height;
                         }
                     }
                     background_repeat::repeat => {
-                        if horizontal_position > Au(0) {
-                            bounds.origin.x = bounds.origin.x - image_width;
+                        if horizontal_position != Au(0) {
                             bounds.size.width = bounds.size.width + image_width;
                         }
-                        if vertical_position > Au(0) {
-                            bounds.origin.y = bounds.origin.y - image_height;
+                        if vertical_position != Au(0) {
                             bounds.size.height = bounds.size.height + image_height;
                         }
                     }
