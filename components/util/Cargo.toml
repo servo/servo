@@ -18,3 +18,4 @@ path = "../../support/rust-task_info"
 
 [dependencies.string_cache]
 git = "https://github.com/servo/string-cache"
+
