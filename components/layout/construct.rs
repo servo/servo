@@ -833,7 +833,9 @@ impl<'a, 'b> PostorderNodeMutTraversal for FlowConstructor<'a, 'b> {
             }
 
             // Inline items contribute inline fragment construction results.
-            (display::inline, float::none, _) => {
+            //
+            // FIXME(pcwalton, #3307): This is not sufficient to handle floated generated content.
+            (display::inline, _, _) => {
                 let construction_result = self.build_fragments_for_inline(node);
                 node.set_flow_construction_result(construction_result)
             }
