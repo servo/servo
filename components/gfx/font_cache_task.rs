@@ -128,7 +128,7 @@ impl FontCache {
                             family.add_template(format!("{}", url).as_slice(), Some(bytes));
                         },
                         Err(msg) => {
-                            fail!("{}: url={}", msg, url);
+                            debug!("Failed to load web font: family={} url={}", family_name, url);
                         }
                     }
                     result.send(());
