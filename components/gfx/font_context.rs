@@ -14,7 +14,7 @@ use font::FontHandleMethods;
 use platform::font::FontHandle;
 use servo_util::cache::HashCache;
 
-use std::rc::{Rc, Weak};
+use std::rc::Rc;
 use std::cell::RefCell;
 use sync::Arc;
 
@@ -54,7 +54,7 @@ pub struct FontContext {
     platform_handle: FontContextHandle,
     font_cache_task: FontCacheTask,
 
-    /// Weak reference as the layout FontContext is persistent.
+    /// TODO: See bug https://github.com/servo/servo/issues/3300.
     layout_font_cache: Vec<Rc<RefCell<Font>>>,
 
     /// Strong reference as the render FontContext is (for now) recycled
