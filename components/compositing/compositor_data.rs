@@ -8,6 +8,7 @@ use pipeline::CompositionPipeline;
 
 use azure::azure_hl::Color;
 use geom::point::TypedPoint2D;
+use geom::scale_factor::ScaleFactor;
 use geom::size::{Size2D, TypedSize2D};
 use geom::rect::Rect;
 use gfx::render_task::UnusedBufferMsg;
@@ -74,11 +75,13 @@ impl CompositorData {
         layer.contents_changed();
 
         // Call scroll for bounds checking if the page shrunk. Use (-1, -1) as the
-        // cursor position to make sure the scroll isn't propagated downwards.
+        // cursor position to make sure the scroll isn't propagated downwards. The
+        // scale doesn't matter here since 0, 0 is 0, 0 no matter the scene scale.
         events::handle_scroll_event(layer.clone(),
                                     TypedPoint2D(0f32, 0f32),
                                     TypedPoint2D(-1f32, -1f32),
-                                    size);
+                                    size,
+                                    ScaleFactor(1.0) /* scene_scale */);
     }
 
     pub fn find_layer_with_pipeline_and_layer_id(layer: Rc<Layer<CompositorData>>,
