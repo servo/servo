@@ -30,5 +30,6 @@ pub trait TElement {
     fn get_id(&self) -> Option<Atom>;
     fn get_disabled_state(&self) -> bool;
     fn get_enabled_state(&self) -> bool;
+    fn has_class(&self, name: &str) -> bool;
 }
 

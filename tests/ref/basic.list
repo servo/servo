@@ -113,3 +113,6 @@ flaky_gpu,flaky_linux == acid2_noscroll.html acid2_ref_broken.html
 == abs_float_pref_width_a.html abs_float_pref_width_ref.html
 == alpha_png_a.html alpha_png_b.html
 == background_image_position_a.html background_image_position_ref.html
+
+# The following tests fails the ref-tests
+#== multiple_css_class_a.html multiple_css_class_b.html

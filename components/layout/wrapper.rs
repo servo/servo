@@ -417,6 +417,12 @@ impl<'le> TElement for LayoutElement<'le> {
             self.element.node.get_enabled_state_for_layout()
         }
     }
+
+    fn has_class(&self, name: &str) -> bool {
+        unsafe {
+            self.element.has_class_for_layout(name)
+        }
+    }
 }
 
 fn get_content(content_list: &content::T) -> String {
