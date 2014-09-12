@@ -481,7 +481,7 @@ pub fn parse_html(page: &Page,
                 };
 
                 let script_element: JSRef<Element> = ElementCast::from_ref(script);
-                match script_element.get_attribute(ns!(""), "src").root() {
+                match script_element.get_attribute(ns!(""), &atom!("src")).root() {
                     Some(src) => {
                         debug!("found script: {:s}", src.Value());
                         let mut url_parser = UrlParser::new();

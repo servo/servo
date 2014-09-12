@@ -317,15 +317,14 @@ impl<'ln> TNode<'ln, LayoutElement<'ln>> for LayoutNode<'ln> {
     fn match_attr(self, attr: &AttrSelector, test: |&str| -> bool) -> bool {
         assert!(self.is_element())
         let name = if self.is_html_element_in_html_document() {
-            attr.lower_name.as_slice()
+            &attr.lower_name
         } else {
-            attr.name.as_slice()
+            &attr.name
         };
         match attr.namespace {
             SpecificNamespace(ref ns) => {
                 let element = self.as_element();
-                element.get_attr(ns, name)
-                        .map_or(false, |attr| test(attr))
+                element.get_attr(ns, name).map_or(false, |attr| test(attr))
             },
             AnyNamespace => {
                 let element = self.as_element();
@@ -445,13 +444,15 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
     }
 
     #[inline]
-    fn get_attr(self, namespace: &Namespace, name: &str) -> Option<&'le str> {
+    fn get_attr(self, namespace: &Namespace, name: &Atom) -> Option<&'le str> {
         unsafe { self.element.get_attr_val_for_layout(namespace, name) }
     }
 
     #[inline]
-    fn get_attrs(self, name: &str) -> Vec<&'le str> {
-        unsafe { self.element.get_attr_vals_for_layout(name) }
+    fn get_attrs(self, name: &Atom) -> Vec<&'le str> {
+        unsafe {
+            self.element.get_attr_vals_for_layout(name)
+        }
     }
 
     fn get_link(self) -> Option<&'le str> {
@@ -462,7 +463,9 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
             ElementNodeTypeId(HTMLAnchorElementTypeId) |
             ElementNodeTypeId(HTMLAreaElementTypeId) |
             ElementNodeTypeId(HTMLLinkElementTypeId) => {
-                unsafe { self.element.get_attr_val_for_layout(&ns!(""), "href") }
+                unsafe {
+                    self.element.get_attr_val_for_layout(&ns!(""), &atom!("href"))
+                }
             }
             _ => None,
         }
@@ -476,7 +479,9 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
 
     #[inline]
     fn get_id(self) -> Option<Atom> {
-        unsafe { self.element.get_attr_atom_for_layout(&ns!(""), "id") }
+        unsafe {
+            self.element.get_attr_atom_for_layout(&ns!(""), &atom!("id"))
+        }
     }
 
     fn get_disabled_state(self) -> bool {
@@ -491,7 +496,7 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
         }
     }
 
-    fn has_class(self, name: &str) -> bool {
+    fn has_class(self, name: &Atom) -> bool {
         unsafe {
             self.element.has_class_for_layout(name)
         }
@@ -502,8 +507,8 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
         unsafe {
             match self.element.get_classes_for_layout() {
                 None => {}
-                Some(mut classes) => {
-                    for class in classes {
+                Some(ref classes) => {
+                    for class in classes.iter() {
                         callback(class)
                     }
                 }
@@ -867,8 +872,10 @@ pub struct ThreadSafeLayoutElement<'le> {
 
 impl<'le> ThreadSafeLayoutElement<'le> {
     #[inline]
-    pub fn get_attr(&self, namespace: &Namespace, name: &str) -> Option<&'le str> {
-        unsafe { self.element.get_attr_val_for_layout(namespace, name) }
+    pub fn get_attr(&self, namespace: &Namespace, name: &Atom) -> Option<&'le str> {
+        unsafe {
+            self.element.get_attr_val_for_layout(namespace, name)
+        }
     }
 }
 

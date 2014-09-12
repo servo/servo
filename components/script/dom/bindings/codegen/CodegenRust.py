@@ -5451,6 +5451,7 @@ class GlobalGenRoots():
             for protoName in descriptor.prototypeChain[1:-1]:
                 protoDescriptor = config.getDescriptor(protoName)
                 delegate = string.Template('''impl ${selfName} for ${baseName} {
+  #[inline]
   fn ${fname}(&self) -> bool {
     self.${parentName}().${fname}()
   }
