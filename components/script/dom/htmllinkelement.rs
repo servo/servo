@@ -92,11 +92,11 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLLinkElement> {
             // FIXME: workaround for https://github.com/mozilla/rust/issues/13246;
             // we get unrooting order failures if these are inside the match.
             let rel = {
-                let rel = element.get_attribute(Null, "rel").root();
+                let rel = element.get_attribute(Null, &satom!("rel")).root();
                 rel.map(|rel| rel.deref().value().as_slice().to_string())
             };
             let href = {
-                let href = element.get_attribute(Null, "href").root();
+                let href = element.get_attribute(Null, &satom!("href")).root();
                 href.map(|href| href.deref().value().as_slice().to_string())
             };
 

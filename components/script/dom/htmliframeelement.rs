@@ -75,7 +75,7 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
 
     fn get_url(&self) -> Option<Url> {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
-        element.get_attribute(Null, "src").root().and_then(|src| {
+        element.get_attribute(Null, &satom!("src")).root().and_then(|src| {
             let url = src.deref().value();
             if url.as_slice().is_empty() {
                 None
@@ -133,7 +133,7 @@ impl HTMLIFrameElement {
 impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
     fn Src(&self) -> DOMString {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
-        element.get_string_attribute("src")
+        element.get_string_attribute(&satom!("src"))
     }
 
     fn SetSrc(&self, src: DOMString) {
@@ -143,7 +143,7 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
 
     fn Sandbox(&self) -> DOMString {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
-        element.get_string_attribute("sandbox")
+        element.get_string_attribute(&satom!("sandbox"))
     }
 
     fn SetSandbox(&self, sandbox: DOMString) {

@@ -21,24 +21,23 @@ use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS};
 pub struct DOMTokenList {
     reflector_: Reflector,
     element: JS<Element>,
-    local_name: &'static str,
+    local_name: Atom,
 }
 
 impl DOMTokenList {
-    pub fn new_inherited(element: &JSRef<Element>,
-                         local_name: &'static str) -> DOMTokenList {
+    pub fn new_inherited(element: &JSRef<Element>, local_name: &Atom) -> DOMTokenList {
         DOMTokenList {
             reflector_: Reflector::new(),
             element: JS::from_rooted(element),
-            local_name: local_name,
+            local_name: local_name.clone(),
         }
     }
 
-    pub fn new(element: &JSRef<Element>,
-               local_name: &'static str) -> Temporary<DOMTokenList> {
+    pub fn new(element: &JSRef<Element>, local_name: &Atom) -> Temporary<DOMTokenList> {
         let window = window_from_node(element).root();
         reflect_dom_object(box DOMTokenList::new_inherited(element, local_name),
-                           &Window(*window), DOMTokenListBinding::Wrap)
+                           &Window(*window),
+                           DOMTokenListBinding::Wrap)
     }
 }
 
@@ -56,7 +55,7 @@ trait PrivateDOMTokenListHelpers {
 impl<'a> PrivateDOMTokenListHelpers for JSRef<'a, DOMTokenList> {
     fn attribute(&self) -> Option<Temporary<Attr>> {
         let element = self.element.root();
-        element.deref().get_attribute(Null, self.local_name)
+        element.deref().get_attribute(Null, &self.local_name)
     }
 
     fn check_token_exceptions<'a>(&self, token: &'a str) -> Fallible<&'a str> {
@@ -80,7 +79,9 @@ impl<'a> DOMTokenListMethods for JSRef<'a, DOMTokenList> {
     // http://dom.spec.whatwg.org/#dom-domtokenlist-item
     fn Item(&self, index: u32) -> Option<DOMString> {
         self.attribute().root().and_then(|attr| attr.value().tokens().and_then(|mut tokens| {
-            tokens.idx(index as uint).map(|token| token.as_slice().to_string())
+            tokens.iter()
+                  .idx(index as uint)
+                  .map(|token| token.as_slice().to_string())
         }))
     }
 
@@ -95,7 +96,7 @@ impl<'a> DOMTokenListMethods for JSRef<'a, DOMTokenList> {
         self.check_token_exceptions(token.as_slice()).map(|slice| {
             self.attribute().root().and_then(|attr| attr.value().tokens().map(|mut tokens| {
                 let atom = Atom::from_slice(slice);
-                tokens.any(|token| *token == atom)
+                tokens.iter().any(|token| *token == atom)
             })).unwrap_or(false)
         })
     }

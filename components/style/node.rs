@@ -9,7 +9,7 @@ use selectors::AttrSelector;
 use servo_util::atom::Atom;
 use servo_util::namespace::Namespace;
 
-
+// FIXME(pcwalton): When we get associated types in Rust, this can be nicer.
 pub trait TNode<E:TElement> : Clone {
     fn parent_node(&self) -> Option<Self>;
     /// Name is prefixed to avoid a conflict with TLayoutNode.
@@ -24,7 +24,7 @@ pub trait TNode<E:TElement> : Clone {
 }
 
 pub trait TElement {
-    fn get_attr(&self, namespace: &Namespace, attr: &str) -> Option<&'static str>;
+    fn get_attr(&self, namespace: &Namespace, attr: &Atom) -> Option<&'static str>;
     fn get_link(&self) -> Option<&'static str>;
     fn get_local_name<'a>(&'a self) -> &'a Atom;
     fn get_namespace<'a>(&'a self) -> &'a Namespace;
@@ -32,5 +32,13 @@ pub trait TElement {
     fn get_id(&self) -> Option<Atom>;
     fn get_disabled_state(&self) -> bool;
     fn get_enabled_state(&self) -> bool;
-    fn has_class(&self, name: &str) -> bool;
+    fn has_class(&self, name: &Atom) -> bool;
+
+    // Ordinarily I wouldn't use callbacks like this, but the alternative is
+    // really messy, since there is a `JSRef` and a `RefCell` involved. Maybe
+    // in the future when we have associated types and/or a more convenient
+    // JS GC story... --pcwalton
+    fn each_class(&self, callback: |&Atom|);
 }
+
+

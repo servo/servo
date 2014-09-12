@@ -12,7 +12,8 @@ macro_rules! make_getter(
             use dom::bindings::codegen::InheritTypes::ElementCast;
             use std::ascii::StrAsciiExt;
             let element: &JSRef<Element> = ElementCast::from_ref(self);
-            element.get_string_attribute(stringify!($attr).to_ascii_lower().as_slice())
+            element.get_string_attribute(&Atom::from_slice(stringify!($attr).to_ascii_lower()
+                                                                            .as_slice()))
         }
     );
 )
@@ -38,7 +39,8 @@ macro_rules! make_uint_getter(
             use dom::bindings::codegen::InheritTypes::ElementCast;
             use std::ascii::StrAsciiExt;
             let element: &JSRef<Element> = ElementCast::from_ref(self);
-            element.get_uint_attribute(stringify!($attr).to_ascii_lower().as_slice())
+            element.get_uint_attribute(&Atom::from_slice(stringify!($attr).to_ascii_lower()
+                                                                          .as_slice()))
         }
     );
 )
