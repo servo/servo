@@ -91,6 +91,9 @@ pub struct Page {
 
     // Child Pages.
     pub children: Traceable<RefCell<Vec<Rc<Page>>>>,
+
+    /// Number of pending reflows that were sent while layout was active.
+    pub pending_reflows: Cell<int>,
 }
 
 pub struct PageIterator {
@@ -154,6 +157,7 @@ impl Page {
             resource_task: Untraceable::new(resource_task),
             constellation_chan: Untraceable::new(constellation_chan),
             children: Traceable::new(RefCell::new(vec!())),
+            pending_reflows: Cell::new(0),
         }
     }
 
