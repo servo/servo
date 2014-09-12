@@ -719,43 +719,77 @@ impl Fragment {
         let vertical_position = model::specified(background.background_position.vertical,
                                                  bounds.size.height);
 
-        let clip_display_item;
+        // TODO: These are some situations below where it is possible
+        // to determine that clipping is not necessary - this is an
+        // optimization to make in the future.
+        let clip_display_item = Some(box ClipDisplayItem {
+            base: BaseDisplayItem::new(bounds, self.node, level),
+            children: DisplayList::new(),
+        });
+
+        let image_width = Au::from_px(image.width as int);
+        let image_height = Au::from_px(image.height as int);
+
         match background.background_attachment {
             background_attachment::scroll => {
-                clip_display_item = None;
                 bounds.origin.x = bounds.origin.x + horizontal_position;
                 bounds.origin.y = bounds.origin.y + vertical_position;
-                bounds.size.width = bounds.size.width - horizontal_position;
-                bounds.size.height = bounds.size.height - vertical_position;
+
+                // Adjust sizes for `background-repeat`.
+                match background.background_repeat {
+                    background_repeat::no_repeat => {
+                        bounds.size.width = Au::min(bounds.size.width - horizontal_position, image_width);
+                        bounds.size.height = Au::min(bounds.size.height - vertical_position, image_height);
+                    }
+                    background_repeat::repeat_x => {
+                        bounds.size.height = Au::min(bounds.size.height - vertical_position, image_height);
+                        if horizontal_position > Au(0) {
+                            bounds.origin.x = bounds.origin.x - image_width;
+                            bounds.size.width = bounds.size.width + image_width;
+                        }
+                    }
+                    background_repeat::repeat_y => {
+                        bounds.size.width = Au::min(bounds.size.width - horizontal_position, image_width);
+                        if vertical_position > Au(0) {
+                            bounds.origin.y = bounds.origin.y - image_height;
+                            bounds.size.height = bounds.size.height + image_height;
+                        }
+                    }
+                    background_repeat::repeat => {
+                        if horizontal_position > Au(0) {
+                            bounds.origin.x = bounds.origin.x - image_width;
+                            bounds.size.width = bounds.size.width + image_width;
+                        }
+                        if vertical_position > Au(0) {
+                            bounds.origin.y = bounds.origin.y - image_height;
+                            bounds.size.height = bounds.size.height + image_height;
+                        }
+                    }
+                };
             }
             background_attachment::fixed => {
-                clip_display_item = Some(box ClipDisplayItem {
-                    base: BaseDisplayItem::new(bounds, self.node, level),
-                    children: DisplayList::new(),
-                });
-
                 bounds = Rect {
                     origin: Point2D(horizontal_position, vertical_position),
                     size: Size2D(bounds.origin.x + bounds.size.width,
                                  bounds.origin.y + bounds.size.height),
-                }
+                };
+
+                // Adjust sizes for `background-repeat`.
+                match background.background_repeat {
+                    background_repeat::no_repeat => {
+                        bounds.size.width = image_width;
+                        bounds.size.height = image_height;
+                    }
+                    background_repeat::repeat_x => {
+                        bounds.size.height = image_height;
+                    }
+                    background_repeat::repeat_y => {
+                        bounds.size.width = image_width;
+                    }
+                    background_repeat::repeat => {}
+                };
             }
         }
-
-        // Adjust sizes for `background-repeat`.
-        match background.background_repeat {
-            background_repeat::no_repeat => {
-                bounds.size.width = Au::from_px(image.width as int);
-                bounds.size.height = Au::from_px(image.height as int)
-            }
-            background_repeat::repeat_x => {
-                bounds.size.height = Au::from_px(image.height as int)
-            }
-            background_repeat::repeat_y => {
-                bounds.size.width = Au::from_px(image.width as int)
-            }
-            background_repeat::repeat => {}
-        };
 
         // Create the image display item.
         let image_display_item = ImageDisplayItemClass(box ImageDisplayItem {
