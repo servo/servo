@@ -29,14 +29,15 @@ use servo_net::image_cache_task::ImageCacheTask;
 use servo_util::str::{DOMString,HTML_SPACE_CHARACTERS};
 use servo_util::task::{spawn_named};
 
-use js::jsapi::JS_CallFunctionValue;
+use js::jsapi::{JS_CallFunctionValue, JS_EvaluateUCScript};
 use js::jsapi::JSContext;
 use js::jsapi::{JS_GC, JS_GetRuntime};
 use js::jsval::JSVal;
-use js::jsval::NullValue;
+use js::jsval::{UndefinedValue, NullValue};
 use js::rust::with_compartment;
 use url::{Url, UrlParser};
 
+use libc;
 use serialize::base64::{FromBase64, ToBase64, STANDARD};
 use std::collections::hashmap::HashMap;
 use std::cell::{Cell, RefCell};
@@ -358,6 +359,7 @@ pub trait WindowHelpers {
     fn init_browser_context(&self, doc: &JSRef<Document>);
     fn load_url(&self, href: DOMString);
     fn handle_fire_timer(&self, timer_id: TimerId, cx: *mut JSContext);
+    fn evaluate_js_with_result(&self, code: &str) -> JSVal;
 }
 
 trait PrivateWindowHelpers {
@@ -365,6 +367,25 @@ trait PrivateWindowHelpers {
 }
 
 impl<'a> WindowHelpers for JSRef<'a, Window> {
+    fn evaluate_js_with_result(&self, code: &str) -> JSVal {
+        let global = self.reflector().get_jsobject();
+        let code: Vec<u16> = code.as_slice().utf16_units().collect();
+        let mut rval = UndefinedValue();
+        let filename = "".to_c_str();
+        let cx = self.get_cx();
+
+        with_compartment(cx, global, || {
+            unsafe {
+                if JS_EvaluateUCScript(cx, global, code.as_ptr(),
+                                       code.len() as libc::c_uint,
+                                       filename.as_ptr(), 1, &mut rval) == 0 {
+                    debug!("error evaluating JS string");
+                }
+                rval
+            }
+        })
+    }
+
     fn damage_and_reflow(&self, damage: DocumentDamageLevel) {
         // FIXME This should probably be ReflowForQuery, not Display. All queries currently
         // currently rely on the display list, which means we can't destroy it by

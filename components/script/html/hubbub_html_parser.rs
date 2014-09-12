@@ -55,10 +55,15 @@ macro_rules! handle_element(
 
 pub struct JSFile {
     pub data: String,
-    pub url: Url
+    pub url: Option<Url>,
 }
 
 pub type JSResult = Vec<JSFile>;
+
+pub enum HTMLInput {
+    InputString(String),
+    InputUrl(Url),
+}
 
 enum CSSMessage {
     CSSTaskNewFile(StylesheetProvenance),
@@ -67,7 +72,7 @@ enum CSSMessage {
 
 enum JSMessage {
     JSTaskNewFile(Url),
-    JSTaskNewInlineScript(String, Url),
+    JSTaskNewInlineScript(String, Option<Url>),
     JSTaskExit
 }
 
@@ -148,7 +153,7 @@ fn js_script_listener(to_parent: Sender<HtmlDiscoveryMessage>,
                         let decoded = UTF_8.decode(bytes.as_slice(), DecodeReplace).unwrap();
                         result_vec.push(JSFile {
                             data: decoded.to_string(),
-                            url: metadata.final_url,
+                            url: Some(metadata.final_url),
                         });
                     }
                 }
@@ -326,10 +331,10 @@ pub fn build_element_from_tag(tag: DOMString, ns: Namespace, document: &JSRef<Do
 
 pub fn parse_html(page: &Page,
                   document: &JSRef<Document>,
-                  url: Url,
+                  input: HTMLInput,
                   resource_task: ResourceTask)
                   -> HtmlParserResult {
-    debug!("Hubbub: parsing {:?}", url);
+    debug!("Hubbub: parsing {:?}", input);
     // Spawn a CSS parser to receive links to CSS style sheets.
 
     let (discovery_chan, discovery_port) = channel();
@@ -347,33 +352,45 @@ pub fn parse_html(page: &Page,
         js_script_listener(js_result_chan, js_msg_port, resource_task2.clone());
     });
 
-    // Wait for the LoadResponse so that the parser knows the final URL.
-    let (input_chan, input_port) = channel();
-    resource_task.send(Load(LoadData::new(url.clone()), input_chan));
-    let load_response = input_port.recv();
+    let (base_url, load_response) = match input {
+        InputUrl(ref url) => {
+            // Wait for the LoadResponse so that the parser knows the final URL.
+            let (input_chan, input_port) = channel();
+            resource_task.send(Load(LoadData::new(url.clone()), input_chan));
+            let load_response = input_port.recv();
 
-    debug!("Fetched page; metadata is {:?}", load_response.metadata);
+            debug!("Fetched page; metadata is {:?}", load_response.metadata);
 
-    load_response.metadata.headers.map(|headers| {
-        let header = headers.iter().find(|h|
-            h.header_name().as_slice().to_ascii_lower() == "last-modified".to_string()
-        );
+            load_response.metadata.headers.as_ref().map(|headers| {
+                let header = headers.iter().find(|h|
+                    h.header_name().as_slice().to_ascii_lower() == "last-modified".to_string()
+                );
 
-        match header {
-            Some(h) => document.set_last_modified(
-                parse_last_modified(h.header_value().as_slice())),
-            None => {},
-        };
-    });
+                match header {
+                    Some(h) => document.set_last_modified(
+                        parse_last_modified(h.header_value().as_slice())),
+                    None => {},
+                };
+            });
 
-    let base_url = &load_response.metadata.final_url;
+            let base_url = load_response.metadata.final_url.clone();
 
-    {
-        // Store the final URL before we start parsing, so that DOM routines
-        // (e.g. HTMLImageElement::update_image) can resolve relative URLs
-        // correctly.
-        *page.mut_url() = Some((base_url.clone(), true));
-    }
+            {
+                // Store the final URL before we start parsing, so that DOM routines
+                // (e.g. HTMLImageElement::update_image) can resolve relative URLs
+                // correctly.
+                *page.mut_url() = Some((base_url.clone(), true));
+            }
+
+            (Some(base_url), Some(load_response))
+        },
+        InputString(_) => {
+            match *page.url() {
+                Some((ref page_url, _)) => (Some(page_url.clone()), None),
+                None => (None, None),
+            }
+        },
+    };
 
     let mut parser = build_parser(unsafe { document.to_hubbub_node() });
     debug!("created parser");
@@ -457,7 +474,15 @@ pub fn parse_html(page: &Page,
                                       s.as_slice().eq_ignore_ascii_case("stylesheet")
                                   }) {
                                       debug!("found CSS stylesheet: {:s}", *href);
-                                      match UrlParser::new().base_url(base_url).parse(href.as_slice()) {
+                                      let mut url_parser = UrlParser::new();
+                                      match base_url {
+                                          None => (),
+                                          Some(ref base_url) => {
+                                              url_parser.base_url(base_url);
+                                          }
+                                      }
+
+                                      match url_parser.parse(href.as_slice()) {
                                           Ok(url) => css_chan2.send(CSSTaskNewFile(
                                               UrlProvenance(url, resource_task.clone()))),
                                           Err(e) => debug!("Parsing url {:s} failed: {:?}", *href, e)
@@ -550,8 +575,14 @@ pub fn parse_html(page: &Page,
                 match script_element.get_attribute(Null, "src").root() {
                     Some(src) => {
                         debug!("found script: {:s}", src.deref().Value());
-                        match UrlParser::new().base_url(base_url)
-                                .parse(src.deref().value().as_slice()) {
+                        let mut url_parser = UrlParser::new();
+                        match base_url {
+                            None => (),
+                            Some(ref base_url) => {
+                                url_parser.base_url(base_url);
+                            }
+                        };
+                        match url_parser.parse(src.deref().value().as_slice()) {
                             Ok(new_url) => js_chan2.send(JSTaskNewFile(new_url)),
                             Err(e) => debug!("Parsing url {:s} failed: {:?}", src.deref().Value(), e)
                         };
@@ -580,25 +611,33 @@ pub fn parse_html(page: &Page,
     parser.set_tree_handler(&mut tree_handler);
     debug!("set tree handler");
     debug!("loaded page");
-    match load_response.metadata.content_type {
-        Some((ref t, _)) if t.as_slice().eq_ignore_ascii_case("image") => {
-            let page = format!("<html><body><img src='{:s}' /></body></html>", base_url.serialize());
-            parser.parse_chunk(page.into_bytes().as_slice());
+    match input {
+        InputString(s) => {
+            parser.parse_chunk(s.into_bytes().as_slice());
         },
-        _ => loop {
-            match load_response.progress_port.recv() {
-                Payload(data) => {
-                    debug!("received data");
-                    parser.parse_chunk(data.as_slice());
-                }
-                Done(Err(err)) => {
-                    fail!("Failed to load page URL {:s}, error: {:s}", url.serialize(), err);
-                }
-                Done(..) => {
-                    break;
+        InputUrl(url) => {
+            let load_response = load_response.unwrap();
+            match load_response.metadata.content_type {
+                Some((ref t, _)) if t.as_slice().eq_ignore_ascii_case("image") => {
+                    let page = format!("<html><body><img src='{:s}' /></body></html>", base_url.get_ref().serialize());
+                    parser.parse_chunk(page.into_bytes().as_slice());
+                },
+                _ => loop {
+                    match load_response.progress_port.recv() {
+                        Payload(data) => {
+                            debug!("received data");
+                            parser.parse_chunk(data.as_slice());
+                        }
+                        Done(Err(err)) => {
+                            fail!("Failed to load page URL {:s}, error: {:s}", url.serialize(), err);
+                        }
+                        Done(..) => {
+                            break;
+                        }
+                    }
                 }
             }
-        }
+        },
     }
 
     debug!("finished parsing");
