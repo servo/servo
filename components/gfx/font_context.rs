@@ -14,7 +14,7 @@ use font::FontHandleMethods;
 use platform::font::FontHandle;
 use servo_util::cache::HashCache;
 
-use std::rc::{Rc, Weak};
+use std::rc::Rc;
 use std::cell::RefCell;
 use sync::Arc;
 
@@ -54,8 +54,8 @@ pub struct FontContext {
     platform_handle: FontContextHandle,
     font_cache_task: FontCacheTask,
 
-    /// Weak reference as the layout FontContext is persistent.
-    layout_font_cache: Vec<Weak<RefCell<Font>>>,
+    /// TODO: See bug https://github.com/servo/servo/issues/3300.
+    layout_font_cache: Vec<Rc<RefCell<Font>>>,
 
     /// Strong reference as the render FontContext is (for now) recycled
     /// per frame. TODO: Make this weak when incremental redraw is done.
@@ -95,10 +95,8 @@ impl FontContext {
     /// a cached font if this font instance has already been used by
     /// this context.
     pub fn get_layout_font_group_for_style(&mut self, style: &SpecifiedFontStyle) -> FontGroup {
-        // Remove all weak pointers that have been dropped.
-        self.layout_font_cache.retain(|maybe_font| {
-            maybe_font.upgrade().is_some()
-        });
+        // TODO: The font context holds a strong ref to the cached fonts
+        // so they will never be released. Find out a good time to drop them.
 
         let mut fonts: Vec<Rc<RefCell<Font>>> = vec!();
 
@@ -107,9 +105,9 @@ impl FontContext {
 
             // GWTODO: Check on real pages if this is faster as Vec() or HashMap().
             let mut cache_hit = false;
-            for maybe_cached_font in self.layout_font_cache.iter() {
-                let cached_font = maybe_cached_font.upgrade().unwrap();
-                if cached_font.borrow().descriptor == desc {
+            for cached_font in self.layout_font_cache.iter() {
+                if cached_font.borrow().descriptor == desc &&
+                   cached_font.borrow().pt_size == style.pt_size {
                     fonts.push(cached_font.clone());
                     cache_hit = true;
                     break;
@@ -119,7 +117,7 @@ impl FontContext {
             if !cache_hit {
                 let font_template = self.font_cache_task.get_font_template(family.clone(), desc.clone());
                 let layout_font = Rc::new(RefCell::new(self.create_layout_font(font_template, desc.clone(), style.pt_size)));
-                self.layout_font_cache.push(layout_font.downgrade());
+                self.layout_font_cache.push(layout_font.clone());
                 fonts.push(layout_font);
             }
         }
