@@ -112,7 +112,7 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
 
     fn SetIsMap(self, is_map: bool) {
         let element: JSRef<Element> = ElementCast::from_ref(self);
-        element.set_string_attribute("ismap", is_map.to_string())
+        element.set_string_attribute(&atom!("ismap"), is_map.to_string())
     }
 
     fn Width(self) -> u32 {
@@ -123,7 +123,7 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
 
     fn SetWidth(self, width: u32) {
         let elem: JSRef<Element> = ElementCast::from_ref(self);
-        elem.set_uint_attribute("width", width)
+        elem.set_uint_attribute(&atom!("width"), width)
     }
 
     fn Height(self) -> u32 {
@@ -134,7 +134,7 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
 
     fn SetHeight(self, height: u32) {
         let elem: JSRef<Element> = ElementCast::from_ref(self);
-        elem.set_uint_attribute("height", height)
+        elem.set_uint_attribute(&atom!("height"), height)
     }
 
     make_getter!(Name)
@@ -187,7 +187,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLImageElement> {
             _ => (),
         }
 
-        if "src" == name.as_slice() {
+        if atom!("src") == *name {
             self.update_image(None);
         }
     }

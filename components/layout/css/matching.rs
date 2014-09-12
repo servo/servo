@@ -15,7 +15,6 @@ use script::dom::node::{TextNodeTypeId};
 use servo_util::bloom::BloomFilter;
 use servo_util::cache::{Cache, LRUCache, SimpleHashCache};
 use servo_util::smallvec::{SmallVec, SmallVec16};
-use servo_util::str::DOMString;
 use std::mem;
 use std::hash::{Hash, sip};
 use std::slice::Items;
@@ -166,7 +165,8 @@ pub struct StyleSharingCandidate {
     pub style: Arc<ComputedValues>,
     pub parent_style: Arc<ComputedValues>,
     pub local_name: Atom,
-    pub class: Option<DOMString>,
+    // FIXME(pcwalton): Should be a list of atoms instead.
+    pub class: Option<String>,
 }
 
 impl PartialEq for StyleSharingCandidate {
@@ -223,7 +223,7 @@ impl StyleSharingCandidate {
             style: style,
             parent_style: parent_style,
             local_name: element.get_local_name().clone(),
-            class: element.get_attr(&ns!(""), "class")
+            class: element.get_attr(&ns!(""), &atom!("class"))
                           .map(|string| string.to_string()),
         })
     }
@@ -232,10 +232,12 @@ impl StyleSharingCandidate {
         if *element.get_local_name() != self.local_name {
             return false
         }
-        match (&self.class, element.get_attr(&ns!(""), "class")) {
+
+        // FIXME(pcwalton): Use `each_class` here instead of slow string comparison.
+        match (&self.class, element.get_attr(&ns!(""), &atom!("class"))) {
             (&None, Some(_)) | (&Some(_), None) => return false,
-            (&Some(ref this_class), Some(element_class))
-            if element_class != this_class.as_slice() => {
+            (&Some(ref this_class), Some(element_class)) if
+                    element_class != this_class.as_slice() => {
                 return false
             }
             (&Some(_), Some(_)) | (&None, None) => {}
@@ -458,7 +460,8 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
         }
         let ok = {
             let element = self.as_element();
-            element.style_attribute().is_none() && element.get_attr(&ns!(""), "id").is_none()
+            element.style_attribute().is_none() &&
+                element.get_attr(&ns!(""), &atom!("id")).is_none()
         };
         if !ok {
             return CannotShare(false)
@@ -505,7 +508,7 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
 
         // TODO: case-sensitivity depends on the document type and quirks mode
         element
-            .get_attr(&ns!(""), "class")
+            .get_attr(&ns!(""), &atom!("class"))
             .map(|attr| {
                 for c in attr.split(style::SELECTOR_WHITESPACE) {
                     bf.insert(&c);
@@ -524,7 +527,7 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
 
         // TODO: case-sensitivity depends on the document type and quirks mode
         element
-            .get_attr(&ns!(""), "class")
+            .get_attr(&ns!(""), &atom!("class"))
             .map(|attr| {
                 for c in attr.split(style::SELECTOR_WHITESPACE) {
                     bf.remove(&c);

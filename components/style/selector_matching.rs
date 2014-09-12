@@ -107,20 +107,14 @@ impl SelectorMap {
             None => {}
         }
 
-        match element.get_attr(&ns!(""), "class") {
-            Some(ref class_attr) => {
-                // FIXME: Store classes pre-split as atoms to make the loop below faster.
-                for class in class_attr.split(SELECTOR_WHITESPACE) {
-                    SelectorMap::get_matching_rules_from_hash(node,
-                                                              parent_bf,
-                                                              &self.class_hash,
-                                                              &Atom::from_slice(class),
-                                                              matching_rules_list,
-                                                              shareable);
-                }
-            }
-            None => {}
-        }
+        element.each_class(|class| {
+            SelectorMap::get_matching_rules_from_hash(node,
+                                                      parent_bf,
+                                                      &self.class_hash,
+                                                      class,
+                                                      matching_rules_list,
+                                                      shareable);
+        });
 
         let local_name_hash = if node.is_html_element_in_html_document() {
             &self.lower_local_name_hash
@@ -471,7 +465,12 @@ impl DeclarationBlock {
     }
 }
 
-pub fn matches<'a, E:TElement<'a>, N:TNode<'a, E>>(selector_list: &SelectorList, element: &N, parent_bf: &Option<BloomFilter>) -> bool {
+pub fn matches<'a,E,N>(
+               selector_list: &SelectorList,
+               element: &N,
+               parent_bf: &Option<BloomFilter>)
+               -> bool
+               where E: TElement<'a>, N: TNode<'a,E> {
     get_selector_list_selectors(selector_list).iter().any(|selector|
         selector.pseudo_element.is_none() &&
         matches_compound_selector(&*selector.compound_selectors, element, parent_bf, &mut false))
@@ -549,11 +548,13 @@ enum SelectorMatchingResult {
 /// Quickly figures out whether or not the compound selector is worth doing more
 /// work on. If the simple selectors don't match, or there's a child selector
 /// that does not appear in the bloom parent bloom filter, we can exit early.
-fn can_fast_reject<'a, E: TElement<'a>, N: TNode<'a, E>>(
-  mut selector: &CompoundSelector,
-  element: &N,
-  parent_bf: &Option<BloomFilter>,
-  shareable: &mut bool) -> Option<SelectorMatchingResult> {
+fn can_fast_reject<'a,E,N>(
+                   mut selector: &CompoundSelector,
+                   element: &N,
+                   parent_bf: &Option<BloomFilter>,
+                   shareable: &mut bool)
+                   -> Option<SelectorMatchingResult>
+                   where E: TElement<'a>, N: TNode<'a,E> {
     if !selector.simple_selectors.iter().all(|simple_selector| {
       matches_simple_selector(simple_selector, element, shareable) }) {
         return Some(NotMatchedAndRestartFromClosestLaterSibling);
@@ -686,12 +687,12 @@ fn matches_compound_selector_internal<'a,
 /// will almost certainly break as nodes will start mistakenly sharing styles. (See the code in
 /// `main/css/matching.rs`.)
 #[inline]
-pub fn matches_simple_selector<'a, E:TElement<'a>,
-                           N:TNode<'a, E>>(
-                           selector: &SimpleSelector,
-                           element: &N,
-                           shareable: &mut bool)
-                           -> bool {
+pub fn matches_simple_selector<'a,E,N>(
+                               selector: &SimpleSelector,
+                               element: &N,
+                               shareable: &mut bool)
+                               -> bool
+                               where E:TElement<'a>, N:TNode<'a,E> {
     match *selector {
         LocalNameSelector(LocalName { ref name, ref lower_name }) => {
             let name = if element.is_html_element_in_html_document() { lower_name } else { name };
@@ -716,7 +717,7 @@ pub fn matches_simple_selector<'a, E:TElement<'a>,
         // TODO: cache and intern class names on elements.
         ClassSelector(ref class) => {
             let element = element.as_element();
-            element.has_class(class.as_slice())
+            element.has_class(class)
         }
 
         AttrExists(ref attr) => {
@@ -860,6 +861,7 @@ pub fn matches_simple_selector<'a, E:TElement<'a>,
     }
 }
 
+#[inline]
 fn url_is_visited(_url: &str) -> bool {
     // FIXME: implement this.
     // This function will probably need to take a "session"
@@ -868,15 +870,14 @@ fn url_is_visited(_url: &str) -> bool {
 }
 
 #[inline]
-fn matches_generic_nth_child<'a,
-                             E:TElement<'a>,
-                             N:TNode<'a, E>>(
+fn matches_generic_nth_child<'a,E,N>(
                              element: &N,
                              a: i32,
                              b: i32,
                              is_of_type: bool,
                              is_from_end: bool)
-                             -> bool {
+                             -> bool
+                             where E: TElement<'a>, N: TNode<'a,E> {
     let mut node = element.clone();
     // fail if we can't find a parent or if the node is the root element
     // of the document (Cf. Selectors Level 3)
