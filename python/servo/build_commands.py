@@ -90,3 +90,23 @@ class MachCommands(CommandBase):
         if jobs is not None:
             opts += ["-j", jobs]
         subprocess.check_call(["cargo", "test", "--no-run"], env=self.build_env())
+
+    @Command('clean',
+             description='Clean the build directory.',
+             category='build')
+    @CommandArgument('--manifest-path',
+                     default=None,
+                     help='Path to the manifest to the package to clean')
+    @CommandArgument('--verbose', '-v',
+                     action='store_true',
+                     help='Print verbose output')
+    def clean(self, manifest_path, verbose=False):
+        self.ensure_bootstrapped()
+
+        opts = []
+        if manifest_path:
+            opts += ["--manifest-path", manifest_path]
+        if verbose:
+            opts += ["-v"]
+
+        subprocess.check_call(["cargo", "clean"] + opts, env=self.build_env())
