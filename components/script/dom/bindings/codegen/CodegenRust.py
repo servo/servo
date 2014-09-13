@@ -1285,7 +1285,7 @@ class ConstDefiner(PropertyDefiner):
 
         def stringDecl(const):
             name = const.identifier.name
-            return "static %s_name: &'static [u8] = b\"%s;\"\n" % (name, name + "\\0")
+            return "static %s_name: &'static [u8] = b\"%s\";\n" % (name, name + "\\0")
         
         decls = ''.join([stringDecl(m) for m in array])
 

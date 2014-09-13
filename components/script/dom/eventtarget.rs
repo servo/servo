@@ -177,9 +177,8 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
         let lineno = 0; //XXXjdm need to get a real number here
 
         let nargs = 1; //XXXjdm not true for onerror
-        static arg_name: [c_char, ..6] =
-            ['e' as c_char, 'v' as c_char, 'e' as c_char, 'n' as c_char, 't' as c_char, 0];
-        static arg_names: [*const c_char, ..1] = [&arg_name as *const c_char];
+        let arg_name: &[u8] = b"event\0";
+        let arg_names: [*const c_char, ..1] = [arg_name.as_ptr() as *const u8 as *const c_char];
 
         let source: Vec<u16> = source.as_slice().utf16_units().collect();
         let handler = unsafe {
@@ -187,7 +186,7 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
                                      ptr::mut_null(),
                                      name.as_ptr(),
                                      nargs,
-                                     &arg_names as *const *const i8 as *mut *const i8,
+                                     arg_names.as_ptr() as *mut *const c_char,
                                      source.as_ptr(),
                                      source.len() as size_t,
                                      url.as_ptr(),
