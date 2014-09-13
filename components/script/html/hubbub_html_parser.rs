@@ -20,6 +20,9 @@ use dom::types::*;
 use html::cssparse::{StylesheetProvenance, UrlProvenance, spawn_css_parser};
 use page::Page;
 
+use encoding::all::UTF_8;
+use encoding::types::{Encoding, DecodeReplace};
+
 use hubbub::hubbub;
 use hubbub::hubbub::{NullNs, HtmlNs, MathMlNs, SvgNs, XLinkNs, XmlNs, XmlNsNs};
 use servo_net::resource_task::{Load, LoadData, Payload, Done, ResourceTask, load_whole_resource};
@@ -142,8 +145,9 @@ fn js_script_listener(to_parent: Sender<HtmlDiscoveryMessage>,
                         error!("error loading script {:s}", url.serialize());
                     }
                     Ok((metadata, bytes)) => {
+                        let decoded = UTF_8.decode(bytes.as_slice(), DecodeReplace).unwrap();
                         result_vec.push(JSFile {
-                            data: String::from_utf8(bytes).unwrap().to_string(),
+                            data: decoded.to_string(),
                             url: metadata.final_url,
                         });
                     }
