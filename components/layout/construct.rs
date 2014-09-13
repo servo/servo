@@ -27,6 +27,7 @@ use flow::{Flow, ImmutableFlowUtils, MutableOwnedFlowUtils};
 use flow::{Descendants, AbsDescendants};
 use flow;
 use flow_ref::FlowRef;
+use fragment::{InlineBlockFragment, InlineBlockFragmentInfo};
 use fragment::{Fragment, GenericFragment, IframeFragment, IframeFragmentInfo};
 use fragment::{ImageFragment, ImageFragmentInfo, SpecificFragmentInfo, TableFragment};
 use fragment::{TableCellFragment, TableColumnFragment, TableColumnFragmentInfo};
@@ -266,19 +267,38 @@ impl<'a, 'b> FlowConstructor<'a, 'b> {
             }
         }
 
-        let mut inline_flow = box InlineFlow::from_fragments((*node).clone(), fragments);
-        let (ascent, descent) = inline_flow.compute_minimum_ascent_and_descent(self.layout_context.font_context(), &**node.style());
-        inline_flow.minimum_block_size_above_baseline = ascent;
-        inline_flow.minimum_depth_below_baseline = descent;
-        let mut inline_flow = inline_flow as Box<Flow>;
-        TextRunScanner::new().scan_for_runs(self.layout_context.font_context(), inline_flow);
-        let mut inline_flow = FlowRef::new(inline_flow);
-        inline_flow.finish(self.layout_context);
+        // Build a list of all the inline-block fragments before fragments is moved.
+        let mut inline_block_flows = vec!();
+        for f in fragments.fragments.iter() {
+            match f.specific {
+                InlineBlockFragment(ref info) => {
+                    inline_block_flows.push(info.flow_ref.clone());
+                },
+                _ => {}
+            }
+        }
 
-        if flow.get().need_anonymous_flow(inline_flow.get()) {
-            flow_list.push(inline_flow)
+        let mut inline_flow_ref = FlowRef::new(box InlineFlow::from_fragments((*node).clone(), fragments));
+
+        // Add all the inline-block fragments as children of the inline flow.
+        for inline_block_flow in inline_block_flows.iter() {
+            inline_flow_ref.add_new_child(inline_block_flow.clone());
+        }
+
+        {
+            let mut inline_flow = inline_flow_ref.get_mut().as_inline();
+            let (ascent, descent) = inline_flow.compute_minimum_ascent_and_descent(self.layout_context.font_context(), &**node.style());
+            inline_flow.minimum_block_size_above_baseline = ascent;
+            inline_flow.minimum_depth_below_baseline = descent;
+            TextRunScanner::new().scan_for_runs(self.layout_context.font_context(), inline_flow);
+        }
+
+        inline_flow_ref.finish(self.layout_context);
+
+        if flow.get().need_anonymous_flow(inline_flow_ref.get()) {
+            flow_list.push(inline_flow_ref)
         } else {
-            flow.add_new_child(inline_flow)
+            flow.add_new_child(inline_flow_ref)
         }
     }
 
@@ -582,6 +602,27 @@ impl<'a, 'b> FlowConstructor<'a, 'b> {
         ConstructionItemConstructionResult(construction_item)
     }
 
+    fn build_fragment_for_inline_block(&mut self, node: &ThreadSafeLayoutNode) -> ConstructionResult {
+        let block_flow_result = self.build_flow_for_block(node);
+        let block_flow = match block_flow_result {
+            FlowConstructionResult(block_flow, _) => block_flow,
+            _ => unreachable!()
+        };
+
+        let fragment_info = InlineBlockFragment(InlineBlockFragmentInfo::new(block_flow));
+        let mut fragment = Fragment::new_from_specific_info(node, fragment_info);
+
+        let mut fragment_accumulator = InlineFragmentsAccumulator::from_inline_node(node);
+        fragment_accumulator.fragments.push(&mut fragment, node.style().clone());
+
+        let construction_item = InlineFragmentsConstructionItem(InlineFragmentsConstructionResult {
+            splits: Vec::new(),
+            fragments: fragment_accumulator.finish(),
+            abs_descendants: Descendants::new(),
+        });
+        ConstructionItemConstructionResult(construction_item)
+    }
+
     /// Builds one or more fragments for a node with `display: inline`. This yields an
     /// `InlineFragmentsConstructionResult`.
     fn build_fragments_for_inline(&mut self, node: &ThreadSafeLayoutNode) -> ConstructionResult {
@@ -837,6 +878,12 @@ impl<'a, 'b> PostorderNodeMutTraversal for FlowConstructor<'a, 'b> {
             // FIXME(pcwalton, #3307): This is not sufficient to handle floated generated content.
             (display::inline, _, _) => {
                 let construction_result = self.build_fragments_for_inline(node);
+                node.set_flow_construction_result(construction_result)
+            }
+
+            // Inline-block items contribute inline fragment construction results.
+            (display::inline_block, float::none, _) => {
+                let construction_result = self.build_fragment_for_inline_block(node);
                 node.set_flow_construction_result(construction_result)
             }
 

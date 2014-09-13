@@ -10,8 +10,9 @@ use css::node_style::StyledNode;
 use construct::FlowConstructor;
 use context::LayoutContext;
 use floats::{ClearBoth, ClearLeft, ClearRight, ClearType};
-use flow::Flow;
+use flow::{Flow, MutableFlowUtils};
 use flow;
+use flow_ref::FlowRef;
 use inline::{InlineFragmentContext, InlineMetrics};
 use layout_debug;
 use model::{Auto, IntrinsicISizes, MaybeAuto, Specified, specified};
@@ -125,6 +126,7 @@ impl<E, S: Encoder<E>> Encodable<S, E> for Fragment {
 /// Info specific to the kind of fragment. Keep this enum small.
 #[deriving(Clone)]
 pub enum SpecificFragmentInfo {
+    InlineBlockFragment(InlineBlockFragmentInfo),
     GenericFragment,
     ImageFragment(ImageFragmentInfo),
     IframeFragment(IframeFragmentInfo),
@@ -135,6 +137,20 @@ pub enum SpecificFragmentInfo {
     TableRowFragment,
     TableWrapperFragment,
     UnscannedTextFragment(UnscannedTextFragmentInfo),
+}
+
+/// A fragment that represents an inline-block element.
+#[deriving(Clone)]
+pub struct InlineBlockFragmentInfo {
+    pub flow_ref: FlowRef,
+}
+
+impl InlineBlockFragmentInfo {
+    pub fn new(flow_ref: FlowRef) -> InlineBlockFragmentInfo {
+        InlineBlockFragmentInfo {
+            flow_ref: flow_ref,
+        }
+    }
 }
 
 /// A fragment that represents a replaced content image and its accompanying borders, shadows, etc.
@@ -454,7 +470,7 @@ impl Fragment {
     /// replaced elements.
     fn style_specified_intrinsic_inline_size(&self) -> IntrinsicISizes {
         let (use_margins, use_padding) = match self.specific {
-            GenericFragment | IframeFragment(_) | ImageFragment(_) => (true, true),
+            GenericFragment | IframeFragment(_) | ImageFragment(_) | InlineBlockFragment(_) => (true, true),
             TableFragment | TableCellFragment => (false, true),
             TableWrapperFragment => (true, false),
             TableRowFragment => (false, false),
@@ -1082,7 +1098,7 @@ impl Fragment {
                                                                            text_fragment))
             },
             GenericFragment | IframeFragment(..) | TableFragment | TableCellFragment | TableRowFragment |
-            TableWrapperFragment => {
+            TableWrapperFragment | InlineBlockFragment(_) => {
                 // FIXME(pcwalton): This is a bit of an abuse of the logging infrastructure. We
                 // should have a real `SERVO_DEBUG` system.
                 debug!("{:?}", self.build_debug_borders_around_fragment(display_list, flow_origin))
@@ -1151,6 +1167,11 @@ impl Fragment {
         match self.specific {
             GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment | TableColumnFragment(_) | TableRowFragment |
             TableWrapperFragment => {}
+            InlineBlockFragment(ref mut info) => {
+                let block_flow = info.flow_ref.get_mut().as_block();
+                result.minimum_inline_size = geometry::max(result.minimum_inline_size, block_flow.base.intrinsic_inline_sizes.minimum_inline_size);
+                result.preferred_inline_size = geometry::max(result.preferred_inline_size, block_flow.base.intrinsic_inline_sizes.preferred_inline_size);
+            },
             ImageFragment(ref mut image_fragment_info) => {
                 let image_inline_size = image_fragment_info.image_inline_size();
                 result.minimum_inline_size = geometry::max(result.minimum_inline_size, image_inline_size);
@@ -1191,7 +1212,7 @@ impl Fragment {
     pub fn content_inline_size(&self) -> Au {
         match self.specific {
             GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment | TableRowFragment |
-            TableWrapperFragment => Au(0),
+            TableWrapperFragment | InlineBlockFragment(_) => Au(0),
             ImageFragment(ref image_fragment_info) => {
                 image_fragment_info.computed_inline_size()
             }
@@ -1209,7 +1230,7 @@ impl Fragment {
     pub fn content_block_size(&self, layout_context: &LayoutContext) -> Au {
         match self.specific {
             GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment | TableRowFragment |
-            TableWrapperFragment => Au(0),
+            TableWrapperFragment | InlineBlockFragment(_) => Au(0),
             ImageFragment(ref image_fragment_info) => {
                 image_fragment_info.computed_block_size()
             }
@@ -1246,6 +1267,7 @@ impl Fragment {
             TableRowFragment | TableWrapperFragment => None,
             TableColumnFragment(_) => fail!("Table column fragments do not need to split"),
             UnscannedTextFragment(_) => fail!("Unscanned text fragments should have been scanned by now!"),
+            InlineBlockFragment(_) => fail!("Inline blocks do not get split"),
             ScannedTextFragment(ref text_fragment_info) => {
                 let mut new_line_pos = self.new_line_pos.clone();
                 let cur_new_line_pos = new_line_pos.remove(0).unwrap();
@@ -1283,7 +1305,7 @@ impl Fragment {
             -> Option<(Option<SplitInfo>, Option<SplitInfo>, Arc<Box<TextRun>> /* TODO(bjz): remove */)> {
         match self.specific {
             GenericFragment | IframeFragment(_) | ImageFragment(_) | TableFragment | TableCellFragment |
-            TableRowFragment | TableWrapperFragment => None,
+            TableRowFragment | TableWrapperFragment | InlineBlockFragment(_) => None,
             TableColumnFragment(_) => fail!("Table column fragments do not have inline_size"),
             UnscannedTextFragment(_) => fail!("Unscanned text fragments should have been scanned by now!"),
             ScannedTextFragment(ref text_fragment_info) => {
@@ -1390,7 +1412,7 @@ impl Fragment {
             TableWrapperFragment => return,
             TableColumnFragment(_) => fail!("Table column fragments do not have inline_size"),
             UnscannedTextFragment(_) => fail!("Unscanned text fragments should have been scanned by now!"),
-            ImageFragment(_) | ScannedTextFragment(_) => {}
+            ImageFragment(_) | ScannedTextFragment(_) | InlineBlockFragment(_) => {}
         };
 
         self.compute_border_padding_margins(container_inline_size);
@@ -1400,6 +1422,11 @@ impl Fragment {
         let noncontent_inline_size = self.border_padding.inline_start_end();
 
         match self.specific {
+            InlineBlockFragment(ref mut info) => {
+                let block_flow = info.flow_ref.get_mut().as_block();
+                self.border_box.size.inline = block_flow.base.intrinsic_inline_sizes.preferred_inline_size + noncontent_inline_size;
+                block_flow.base.position.size.inline = self.border_box.size.inline;
+            }
             ScannedTextFragment(_) => {
                 // Scanned text fragments will have already had their content inline-sizes assigned by this
                 // point.
@@ -1441,7 +1468,7 @@ impl Fragment {
             TableWrapperFragment => return,
             TableColumnFragment(_) => fail!("Table column fragments do not have block_size"),
             UnscannedTextFragment(_) => fail!("Unscanned text fragments should have been scanned by now!"),
-            ImageFragment(_) | ScannedTextFragment(_) => {}
+            ImageFragment(_) | ScannedTextFragment(_) | InlineBlockFragment(_) => {}
         }
 
         let style_inline_size = self.style().content_inline_size();
@@ -1480,6 +1507,10 @@ impl Fragment {
                 // during flow construction.
                 self.border_box.size.block = self.border_box.size.block + noncontent_block_size
             }
+            InlineBlockFragment(ref mut info) => {
+                let block_flow = info.flow_ref.get_mut().as_block();
+                self.border_box.size.block = block_flow.base.position.size.block + noncontent_block_size;
+            }
             _ => fail!("should have been handled above"),
         }
     }
@@ -1500,6 +1531,13 @@ impl Fragment {
                 // See CSS 2.1 § 10.8.1.
                 let line_height = self.calculate_line_height(layout_context);
                 InlineMetrics::from_font_metrics(&text_fragment.run.font_metrics, line_height)
+            }
+            InlineBlockFragment(ref info) => {
+                // See CSS 2.1 § 10.8.1.
+                let block_flow = info.flow_ref.get().as_immutable_block();
+                let font_style = text::computed_style_to_font_style(&*self.style);
+                let font_metrics = text::font_metrics_for_style(layout_context.font_context(), &font_style);
+                InlineMetrics::from_block_height(&font_metrics, block_flow.base.position.size.block)
             }
             _ => {
                 InlineMetrics {
@@ -1566,6 +1604,7 @@ impl fmt::Show for Fragment {
                 TableRowFragment => "TableRowFragment",
                 TableWrapperFragment => "TableWrapperFragment",
                 UnscannedTextFragment(_) => "UnscannedTextFragment",
+                InlineBlockFragment(_) => "InlineBlockFragment",
         }));
         try!(write!(f, "bp {}", self.border_padding));
         try!(write!(f, " "));

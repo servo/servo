@@ -20,7 +20,7 @@ use floats::{ClearBoth, ClearLeft, ClearRight, FloatKind, Floats, PlacementInfo}
 use flow::{BaseFlow, BlockFlowClass, FlowClass, Flow, ImmutableFlowUtils};
 use flow::{MutableFlowUtils, PreorderFlowTraversal, PostorderFlowTraversal, mut_base};
 use flow;
-use fragment::{Fragment, ImageFragment, ScannedTextFragment};
+use fragment::{Fragment, ImageFragment, InlineBlockFragment, ScannedTextFragment};
 use layout_debug;
 use model::{Auto, IntrinsicISizes, MarginCollapseInfo, MarginsCollapse};
 use model::{MarginsCollapseThrough, MaybeAuto, NoCollapsibleMargins, Specified, specified};
@@ -706,7 +706,7 @@ impl BlockFlow {
     /// and image fragments.
     fn is_replaced_content(&self) -> bool {
         match self.fragment.specific {
-            ScannedTextFragment(_) | ImageFragment(_) => true,
+            ScannedTextFragment(_) | ImageFragment(_) | InlineBlockFragment(_) => true,
             _ => false,
         }
     }
