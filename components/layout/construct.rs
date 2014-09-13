@@ -684,7 +684,8 @@ impl<'a, 'b> FlowConstructor<'a, 'b> {
 
     /// Builds a flow for a node with `display: table`. This yields a `TableWrapperFlow` with possibly
     /// other `TableCaptionFlow`s or `TableFlow`s underneath it.
-    fn build_flow_for_table_wrapper(&mut self, node: &ThreadSafeLayoutNode) -> ConstructionResult {
+    fn build_flow_for_table_wrapper(&mut self, node: &ThreadSafeLayoutNode,
+                                    float_value: float::T) -> ConstructionResult {
         let fragment = Fragment::new_from_specific_info(node, TableWrapperFragment);
         let wrapper_flow = box TableWrapperFlow::from_node_and_fragment(node, fragment);
         let mut wrapper_flow = FlowRef::new(wrapper_flow as Box<Flow>);
@@ -734,7 +735,20 @@ impl<'a, 'b> FlowConstructor<'a, 'b> {
                 abs_descendants.push(wrapper_flow.clone());
             }
         }
-        FlowConstructionResult(wrapper_flow, abs_descendants)
+
+        match float_value {
+            float::none => {
+                FlowConstructionResult(wrapper_flow, abs_descendants)
+            }
+            _ => {
+                let float_kind = FloatKind::from_property(float_value);
+                let float_flow = box BlockFlow::float_from_node(self, node, float_kind) as Box<Flow>;
+                let mut float_flow = FlowRef::new(float_flow);
+                float_flow.add_new_child(wrapper_flow);
+                float_flow.finish(self.layout_context);
+                FlowConstructionResult(float_flow, abs_descendants)
+            }
+        }
     }
 
     /// Builds a flow for a node with `display: table-caption`. This yields a `TableCaptionFlow`
@@ -858,8 +872,8 @@ impl<'a, 'b> PostorderNodeMutTraversal for FlowConstructor<'a, 'b> {
             }
 
             // Table items contribute table flow construction results.
-            (display::table, _, _) => {
-                let construction_result = self.build_flow_for_table_wrapper(node);
+            (display::table, float_value, _) => {
+                let construction_result = self.build_flow_for_table_wrapper(node, float_value);
                 node.set_flow_construction_result(construction_result)
             }
 

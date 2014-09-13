@@ -122,3 +122,4 @@ flaky_gpu,flaky_linux == acid2_noscroll.html acid2_ref_broken.html
 == inline_block_margin_a.html inline_block_margin_ref.html
 == inline_block_img_a.html inline_block_img_ref.html
 == inline_block_baseline_a.html inline_block_baseline_ref.html
+== float_table_a.html float_table_ref.html
