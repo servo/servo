@@ -28,7 +28,11 @@ pub fn factory(mut load_data: LoadData, start_chan: Sender<LoadResponse>) {
             // FIXME: Find a way to load this without relying on the `../src` directory.
             let mut path = os::self_exe_path().expect("can't get exe path");
             path.pop();
-            path.push_many(["src", "test", "html", "failure.html"]);
+            if !path.join(Path::new("./tests/")).is_dir() {
+                path.pop();
+            }
+            path.push_many(["tests", "html", "failure.html"]);
+            assert!(path.exists());
             load_data.url = Url::from_file_path(&path).unwrap();
         }
         _ => {
