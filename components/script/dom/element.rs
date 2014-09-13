@@ -252,7 +252,10 @@ impl<'a> ElementHelpers for JSRef<'a, Element> {
 }
 
 pub trait AttributeHandlers {
-    fn get_attribute(&self, namespace: Namespace, name: &str) -> Option<Temporary<Attr>>;
+    /// Returns the attribute with given namespace and case-sensitive local
+    /// name, if any.
+    fn get_attribute(&self, namespace: Namespace, local_name: &str)
+                     -> Option<Temporary<Attr>>;
     fn set_attribute_from_parser(&self, local_name: Atom,
                                  value: DOMString, namespace: Namespace,
                                  prefix: Option<DOMString>);
@@ -282,13 +285,9 @@ pub trait AttributeHandlers {
 }
 
 impl<'a> AttributeHandlers for JSRef<'a, Element> {
-    fn get_attribute(&self, namespace: Namespace, name: &str) -> Option<Temporary<Attr>> {
-        let element: &Element = self.deref();
-        let local_name = match self.html_element_in_html_document() {
-            true => Atom::from_slice(name.to_ascii_lower().as_slice()),
-            false => Atom::from_slice(name)
-        };
-        element.attrs.borrow().iter().map(|attr| attr.root()).find(|attr| {
+    fn get_attribute(&self, namespace: Namespace, local_name: &str) -> Option<Temporary<Attr>> {
+        let local_name = Atom::from_slice(local_name);
+        self.attrs.borrow().iter().map(|attr| attr.root()).find(|attr| {
             *attr.local_name() == local_name && attr.namespace == namespace
         }).map(|x| Temporary::from_rooted(&*x))
     }
@@ -423,6 +422,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 
     fn get_url_attribute(&self, name: &str) -> DOMString {
+        assert!(name == name.to_ascii_lower().as_slice());
         // XXX Resolve URL.
         self.get_string_attribute(name)
     }
@@ -431,6 +431,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 
     fn get_string_attribute(&self, name: &str) -> DOMString {
+        assert!(name == name.to_ascii_lower().as_slice());
         match self.get_attribute(Null, name) {
             Some(x) => {
                 let x = x.root();
