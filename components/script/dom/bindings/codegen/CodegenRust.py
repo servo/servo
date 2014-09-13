@@ -681,7 +681,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
 
             default = (
                 "static data: &'static [u8] = b\"%s\";\n"
-                "%s" % (defaultValue.value + "\\0"))
+                "%s" % (defaultValue.value + "\\0"), value)
 
         declType = "DOMString"
         if type.nullable():
