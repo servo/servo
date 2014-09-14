@@ -604,8 +604,8 @@ impl<'a, 'b> FlowConstructor<'a, 'b> {
 
     fn build_fragment_for_inline_block(&mut self, node: &ThreadSafeLayoutNode) -> ConstructionResult {
         let block_flow_result = self.build_flow_for_block(node);
-        let block_flow = match block_flow_result {
-            FlowConstructionResult(block_flow, _) => block_flow,
+        let (block_flow, abs_descendants) = match block_flow_result {
+            FlowConstructionResult(block_flow, abs_descendants) => (block_flow, abs_descendants),
             _ => unreachable!()
         };
 
@@ -618,7 +618,7 @@ impl<'a, 'b> FlowConstructor<'a, 'b> {
         let construction_item = InlineFragmentsConstructionItem(InlineFragmentsConstructionResult {
             splits: Vec::new(),
             fragments: fragment_accumulator.finish(),
-            abs_descendants: Descendants::new(),
+            abs_descendants: abs_descendants,
         });
         ConstructionItemConstructionResult(construction_item)
     }
