@@ -10,7 +10,7 @@ use css::node_style::StyledNode;
 use construct::FlowConstructor;
 use context::LayoutContext;
 use floats::{ClearBoth, ClearLeft, ClearRight, ClearType};
-use flow::{Flow, MutableFlowUtils};
+use flow::Flow;
 use flow;
 use flow_ref::FlowRef;
 use inline::{InlineFragmentContext, InlineMetrics};
