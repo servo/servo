@@ -4,6 +4,8 @@
 
 #![feature(macro_rules,unsafe_destructor)]
 
+#![deny(unused_imports, unused_variable)]
+
 #![feature(phase)]
 #[phase(plugin, link)]
 extern crate log;

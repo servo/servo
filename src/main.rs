@@ -5,6 +5,8 @@
 #![comment = "The Servo Parallel Browser Project"]
 #![license = "MPL"]
 
+#![deny(unused_imports, unused_variable)]
+
 extern crate servo;
 extern crate native;
 extern crate servo_util = "util";

@@ -127,7 +127,7 @@ impl FontCache {
                             let family = self.web_families.get_mut(&family_name);
                             family.add_template(format!("{}", url).as_slice(), Some(bytes));
                         },
-                        Err(msg) => {
+                        Err(_) => {
                             debug!("Failed to load web font: family={} url={}", family_name, url);
                         }
                     }

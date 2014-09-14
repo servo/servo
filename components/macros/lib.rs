@@ -4,6 +4,8 @@
 
 #![feature(macro_rules, plugin_registrar, quote, phase)]
 
+#![deny(unused_imports, unused_variable)]
+
 //! Exports macros for use in other Servo crates.
 
 extern crate syntax;
@@ -14,10 +16,9 @@ extern crate rustc;
 extern crate sync;
 
 use syntax::ast;
-use syntax::parse::token;
 use rustc::lint::{Context, LintPass, LintPassObject, LintArray};
 use rustc::plugin::Registry;
-use rustc::middle::ty::{expr_ty, get};
+use rustc::middle::ty::expr_ty;
 use rustc::middle::typeck::astconv::AstConv;
 use rustc::util::ppaux::Repr;
 

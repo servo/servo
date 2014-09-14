@@ -286,7 +286,7 @@ impl<'a, 'b> FlowConstructor<'a, 'b> {
         }
 
         {
-            let mut inline_flow = inline_flow_ref.get_mut().as_inline();
+            let inline_flow = inline_flow_ref.get_mut().as_inline();
             let (ascent, descent) = inline_flow.compute_minimum_ascent_and_descent(self.layout_context.font_context(), &**node.style());
             inline_flow.minimum_block_size_above_baseline = ascent;
             inline_flow.minimum_depth_below_baseline = descent;

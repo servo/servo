@@ -5,6 +5,8 @@
 #![comment = "The Servo Parallel Browser Project"]
 #![license = "MPL"]
 
+#![deny(unused_imports, unused_variable)]
+
 extern crate geom;
 extern crate servo_msg = "msg";
 extern crate servo_net = "net";

@@ -7,11 +7,10 @@
 
 #![feature(globs, macro_rules, struct_variant, phase, unsafe_destructor)]
 
-#![feature(phase)]
+#![deny(unused_imports, unused_variable)]
+#![allow(non_snake_case_functions)]
 
 #![doc="The script crate contains all matters DOM."]
-
-#![allow(non_snake_case_functions)]
 
 #[phase(plugin, link)]
 extern crate log;
