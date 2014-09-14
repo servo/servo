@@ -30,3 +30,12 @@ class MachCommands(CommandBase):
     def run(self, params):
         return subprocess.call(["cargo"] + params,
                                env=self.build_env())
+
+    @Command('rustc',
+             description='Run the Rust compiler',
+             category='devenv',
+             allow_all_args=True)
+    @CommandArgument('params', default=None, nargs='...',
+                     help="Command-line arguments to be passed through to rustc")
+    def run(self, params):
+        return subprocess.call(["rustc"] + params, env=self.build_env())
