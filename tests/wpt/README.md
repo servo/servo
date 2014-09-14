@@ -15,7 +15,7 @@ In particular, this folder contains:
 Running the tests
 =================
 
-The simplest way to run the tests in Servo is `make check-wpt` in the build
+The simplest way to run the tests in Servo is `./mach test` in the root
 directory. This will run the subset of JavaScript tests defined in
 `include.ini` and log the output to stdout.
 
@@ -32,18 +32,16 @@ variable. Some useful options are:
   Servo simultaneously to run multiple tests in parallel for more efficiency
   (especially on multi-core processors).
 
-Running the tests without make
+Running the tests without mach
 ------------------------------
 
-When avoiding `make` for some reason, one can run `run.py` directly. However,
-this requires in the first place that the virtualenv has been set up (which can
-be done by running `make check-wpt` in advance). Then run from the build
-directory:
+When avoiding `mach` for some reason, one can run `run.py` directly. However,
+this requires in the first place that the virtualenv has been set up. To set up
+the virtualenv and run the tests run the following from the root directory:
 
-    source _virtualenv/bin/activate
-    python $srcdir/src/test/wpt/run.py --config srcdir/src/test/wpt/config.ini
+    bash tests/wpt/run.sh
 
-with any other desired arguments.
+You can substitute `bash` for another shell which supports `source`.
 
 Running the tests manually
 --------------------------
@@ -59,7 +57,7 @@ first adding the following to the system's hosts file:
     127.0.0.1   xn--n8j6ds53lwwkrqhv28a.web-platform.test
     127.0.0.1   xn--lve-6lad.web-platform.test
 
-and then running `python serve.py` from `src/tests/wpt/web-platform-tests`.
+and then running `python serve.py` from `tests/wpt/web-platform-tests`.
 Then navigate Servo to `http://web-platform.test:8000/path/to/test`.
 
 Updating test expectations
@@ -73,13 +71,13 @@ remove `.ini` files that no longer contain any expectations.
 
 When a larger number of changes is required, this process can be automated.
 This first requires saving the raw, unformatted log from a test run, for
-example by running `WPTARGS=--log-raw /tmp/servo.log make check-wpt`. Once the
-log is saved, run from the build directory:
+example by running `./mach test-wpt --log-raw /tmp/servo.log`. Once the
+log is saved, run from the root directory:
 
     source _virtualenv/bin/activate
     _virtualenv/bin/wptupdate \
       --ignore-existing \
-      --config $srcdir/src/test/wpt/config.ini \
+      --config tests/wpt/config.ini \
       /tmp/servo.log
 
 This will update the `.ini` files under the `metadata` folder; commit those
