@@ -569,7 +569,6 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         let window = self.window.root();
 
         match interface.as_slice().to_ascii_lower().as_slice() {
-            // FIXME: Implement CustomEvent (http://dom.spec.whatwg.org/#customevent)
             "uievents" | "uievent" => Ok(EventCast::from_temporary(UIEvent::new_uninitialized(&*window))),
             "mouseevents" | "mouseevent" => Ok(EventCast::from_temporary(MouseEvent::new_uninitialized(&*window))),
             "customevent" => Ok(EventCast::from_temporary(CustomEvent::new_uninitialized(&Window(*window)))),
