@@ -419,6 +419,12 @@ impl ScriptTask {
 
         loop {
             match event {
+                // This has to be handled before the ResizeMsg below,
+                // otherwise the page may not have been added to the
+                // child list yet, causing the find() to fail.
+                FromConstellation(AttachLayoutMsg(new_layout_info)) => {
+                    self.handle_new_layout(new_layout_info);
+                }
                 FromConstellation(ResizeMsg(id, size)) => {
                     let mut page = self.page.borrow_mut();
                     let page = page.find(id).expect("resize sent to nonexistent pipeline");
@@ -442,8 +448,7 @@ impl ScriptTask {
         for msg in sequential.move_iter() {
             match msg {
                 // TODO(tkuehn) need to handle auxiliary layouts for iframes
-                FromConstellation(AttachLayoutMsg(new_layout_info)) =>
-                    self.handle_new_layout(new_layout_info),
+                FromConstellation(AttachLayoutMsg(_)) => fail!("should have handled AttachLayoutMsg already"),
                 FromConstellation(LoadMsg(id, url)) => self.load(id, url),
                 FromScript(TriggerLoadMsg(id, url)) => self.trigger_load(id, url),
                 FromScript(TriggerFragmentMsg(id, url)) => self.trigger_fragment(id, url),
