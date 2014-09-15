@@ -766,3 +766,12 @@ pub fn xml_name_type(name: &str) -> XMLName {
         true => Name
     }
 }
+
+pub fn dump_js_backtrace(cx: *mut JSContext) {
+    extern {
+        fn js_DumpBacktrace(cx: *mut JSContext);
+    }
+    unsafe {
+        js_DumpBacktrace(cx);
+    }
+}
