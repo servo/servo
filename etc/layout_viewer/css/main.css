@@ -1,0 +1,9 @@
+body {
+    padding-top: 70px;
+    padding-bottom: 30px;
+}
+
+.primary {
+    border: 1px solid gray;
+    border-radius: 8px;
+}
