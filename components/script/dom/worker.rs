@@ -9,6 +9,7 @@ use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::error::{Fallible, Syntax};
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JS, JSRef, Temporary, RootableValue};
+use dom::bindings::refcounted::LiveReferences;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, WorkerTypeId};
@@ -21,10 +22,10 @@ use js::glue::JS_STRUCTURED_CLONE_VERSION;
 use js::jsapi::{JSContext/*, JS_AddObjectRoot, JS_RemoveObjectRoot*/};
 use js::jsfriendapi::{JS_ReadStructuredClone, JS_WriteStructuredClone};
 use js::jsval::{JSVal, UndefinedValue};
+use js::rust::JSAutoCompartment;
 use url::UrlParser;
 
 use libc::{c_void, size_t};
-use std::cell::Cell;
 use std::ptr;
 
 pub struct TrustedWorkerAddress(pub *const c_void);
@@ -33,7 +34,6 @@ pub struct TrustedWorkerAddress(pub *const c_void);
 #[must_root]
 pub struct Worker {
     eventtarget: EventTarget,
-    refcount: Cell<uint>,
     global: GlobalField,
     /// Sender to the Receiver associated with the DedicatedWorkerGlobalScope
     /// this Worker created.
@@ -44,7 +44,6 @@ impl Worker {
     fn new_inherited(global: &GlobalRef, sender: ScriptChan) -> Worker {
         Worker {
             eventtarget: EventTarget::new_inherited(WorkerTypeId),
-            refcount: Cell::new(0),
             global: GlobalField::from_rooted(global),
             sender: sender,
         }
@@ -83,6 +82,8 @@ impl Worker {
         let worker = unsafe { JS::from_trusted_worker_address(address).root() };
 
         let global = worker.global.root();
+        let cx = global.root_ref().get_cx();
+        let _ac = JSAutoCompartment::new(cx, global.root_ref().reflector().get_jsobject());
 
         let mut message = UndefinedValue().root_value();
         unsafe {
@@ -100,27 +101,12 @@ impl Worker {
 impl Worker {
     // Creates a trusted address to the object, and roots it. Always pair this with a release()
     pub fn addref(&self) -> TrustedWorkerAddress {
-        let refcount = self.refcount.get();
-        if refcount == 0 {
-            let _cx = self.global.root().root_ref().get_cx();
-            unsafe {
-                //JS_AddObjectRoot(cx, self.reflector().rootable()); //XXXjdm
-            }
-        }
-        self.refcount.set(refcount + 1);
+        LiveReferences.get().unwrap().addref(self);
         TrustedWorkerAddress(self as *const Worker as *const c_void)
     }
 
     pub fn release(&self) {
-        let refcount = self.refcount.get();
-        assert!(refcount > 0)
-        self.refcount.set(refcount - 1);
-        if refcount == 1 {
-            let _cx = self.global.root().root_ref().get_cx();
-            unsafe {
-                //JS_RemoveObjectRoot(cx, self.reflector().rootable()); //XXXjdm
-            }
-        }
+        LiveReferences.get().unwrap().release(self);
     }
 
     pub fn handle_release(address: TrustedWorkerAddress) {

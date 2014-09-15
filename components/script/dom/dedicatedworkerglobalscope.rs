@@ -29,7 +29,7 @@ use js::glue::JS_STRUCTURED_CLONE_VERSION;
 use js::jsapi::JSContext;
 use js::jsfriendapi::{JS_ReadStructuredClone, JS_WriteStructuredClone};
 use js::jsval::{JSVal, UndefinedValue};
-use js::rust::Cx;
+use js::rust::{Cx, JSAutoRequest, JSAutoCompartment};
 
 use std::rc::Rc;
 use std::ptr;
@@ -106,10 +106,13 @@ impl DedicatedWorkerGlobalScope {
             let (_js_runtime, js_context) = ScriptTask::new_rt_and_cx();
             let roots = RootCollection::new(js_context.ptr);
             let _stack_roots_tls = StackRootTLS::new(&roots);
+            let mut _ar = Some(JSAutoRequest::new(js_context.deref().ptr));
 
             let global = DedicatedWorkerGlobalScope::new(
                 worker_url, worker, js_context.clone(), resource_task,
                 parent_sender, own_sender, receiver).root();
+            let _ac = JSAutoCompartment::new(js_context.deref().ptr, global.reflector().get_jsobject());
+
             match js_context.evaluate_script(
                 global.reflector().get_jsobject(), source, url.serialize(), 1) {
                 Ok(_) => (),
@@ -155,7 +158,7 @@ impl DedicatedWorkerGlobalScope {
 impl<'a> DedicatedWorkerGlobalScopeMethods for JSRef<'a, DedicatedWorkerGlobalScope> {
     fn PostMessage(self, cx: *mut JSContext, message: JSVal) {
         let message = message.root_value();
-        let mut data = ptr::mut_null();
+        let mut data = ptr::null_mut();
         let mut nbytes = 0;
         let transferable = UndefinedValue().root_value();
         unsafe {

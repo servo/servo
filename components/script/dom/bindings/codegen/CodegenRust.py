@@ -900,6 +900,7 @@ def instantiateJSToNativeConversionTemplate(templateBody, replacements,
     if needsRooting:
         rootBody = "let %s = %s.root();" % (declName, declName)
         result.append(CGGeneric(rootBody))
+        result.append(CGGeneric("%s.init();" % declName))
         result.append(CGGeneric(""))
 
     return result;
@@ -2202,6 +2203,7 @@ let traps = ProxyTraps {
   nativeCall: ptr::null(),
   hasInstance: None,
   objectClassIs: None,
+  className: Some(className),
   fun_toString: None,
   //regexp_toShared: ptr::null(),
   defaultValue: None,
@@ -2286,6 +2288,8 @@ class CGCallGenerator(CGThing):
             call = CGWrapper(call, pre="%s." % object)
         call = CGList([call, CGWrapper(args, pre="(", post=")")])
 
+        self.cgRoot.append(CGGeneric("debug!(\"calling %s::%s\");\n" % (descriptorProvider.interface.identifier.name, nativeMethodName)))
+
         self.cgRoot.append(CGList([
             CGGeneric("let result: "),
             result,
@@ -2293,6 +2297,7 @@ class CGCallGenerator(CGThing):
             call,
             CGGeneric(";"),
         ]))
+        self.cgRoot.append(CGGeneric("debug!(\"finished calling %s::%s\");\n" % (descriptorProvider.interface.identifier.name, nativeMethodName)))
 
         if isFallible:
             if static:
@@ -4061,36 +4066,20 @@ return true;""" % (getIndexedOrExpando, getNamed)
     def definition_body(self):
         return CGGeneric(self.getBody())
 
-class CGDOMJSProxyHandler_obj_toString(CGAbstractExternMethod):
+
+class CGDOMJSProxyHandler_className(CGAbstractExternMethod):
     def __init__(self, descriptor):
-        args = [Argument('*mut JSContext', 'cx'), Argument('JSHandleObject', 'proxy')]
-        CGAbstractExternMethod.__init__(self, descriptor, "obj_toString", "*mut JSString", args)
+        args = [Argument('*mut JSContext', 'cx'),
+                Argument('JSHandleObject', 'proxy')]
+        CGAbstractExternMethod.__init__(self, descriptor, "className", "*const libc::c_char", args)
         self.descriptor = descriptor
-    def getBody(self):
-        stringifier = self.descriptor.operations['Stringifier']
-        if stringifier:
-            nativeName = MakeNativeName(stringifier.identifier.name)
-            signature = stringifier.signatures()[0]
-            returnType = signature[0]
-            extendedAttributes = self.descriptor.getExtendedAttributes(stringifier)
-            infallible = 'infallible' in extendedAttributes
-            if not infallible:
-                error = CGGeneric(
-                    ('ThrowMethodFailedWithDetails(cx, rv, "%s", "toString");\n' +
-                     "return NULL;") % self.descriptor.interface.identifier.name)
-            else:
-                error = None
-            call = CGCallGenerator(error, [], "", returnType, extendedAttributes, self.descriptor, nativeName, False, object="UnwrapProxy(proxy)")
-            return call.define() + """
-
-JSString* jsresult;
-return xpc_qsStringToJsstring(cx, result, &jsresult) ? jsresult : NULL;""" 
-
-        return """let s = "%s".to_c_str();
-  _obj_toString(cx, s.as_ptr())""" % self.descriptor.name
 
     def definition_body(self):
-        return CGGeneric(self.getBody())
+        return CGGeneric('static ClassName: [u8, ..%d] = [%s];\n'
+                         'return &ClassName as *const u8 as *const libc::c_char;\n' % \
+                         (len(self.descriptor.name) + 1,
+                          ', '.join(map(lambda x: "'" + x + "' as u8", self.descriptor.name) + ['0 as u8'])))
+
 
 class CGAbstractClassHook(CGAbstractExternMethod):
     """
@@ -4154,6 +4143,7 @@ class CGClassConstructHook(CGAbstractExternMethod):
         preamble = CGGeneric("""\
 let global = global_object_for_js_object(JS_CALLEE(cx, vp).to_object());
 let global = global.root();
+global.init();
 """)
         nativeName = MakeNativeName(self._ctor.identifier.name)
         callGenerator = CGMethodCall(["&global.root_ref()"], nativeName, True,
@@ -4360,7 +4350,7 @@ class CGDescriptor(CGThing):
                 cgThings.append(CGDOMProxyJSClass(descriptor))
                 cgThings.append(CGProxyUnwrap(descriptor))
                 cgThings.append(CGDOMJSProxyHandler_getOwnPropertyDescriptor(descriptor))
-                cgThings.append(CGDOMJSProxyHandler_obj_toString(descriptor))
+                cgThings.append(CGDOMJSProxyHandler_className(descriptor))
                 cgThings.append(CGDOMJSProxyHandler_get(descriptor))
                 cgThings.append(CGDOMJSProxyHandler_hasOwn(descriptor))
                 if descriptor.operations['IndexedSetter'] or descriptor.operations['NamedSetter']:
@@ -4724,7 +4714,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::js::{OptionalRootable, OptionalRootedRootable, ResultRootable}',
             'dom::bindings::js::{OptionalRootedReference, OptionalOptionalRootedRootable}',
             'dom::bindings::js::RootableValue',
-            'dom::bindings::utils::{CreateDOMGlobal, CreateInterfaceObjects2, ConstantSpec}',
+            'dom::bindings::utils::{CreateDOMGlobal, CreateInterfaceObjects2, ConstantSpec, dump_js_backtrace}',
             'dom::bindings::utils::{dom_object_slot, DOM_OBJECT_SLOT, DOMClass}',
             'dom::bindings::utils::{DOMJSClass, JSCLASS_DOM_GLOBAL}',
             'dom::bindings::utils::{FindEnumStringIndex, GetArrayIndexFromId}',
@@ -4750,7 +4740,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::error::throw_dom_exception',
             'dom::bindings::error::throw_type_error',
             'dom::bindings::proxyhandler',
-            'dom::bindings::proxyhandler::{_obj_toString, defineProperty}',
+            'dom::bindings::proxyhandler::{defineProperty}',
             'dom::bindings::proxyhandler::{FillPropertyDescriptor, GetExpandoObject}',
             'dom::bindings::proxyhandler::{delete_, getPropertyDescriptor}',
             'dom::bindings::str::ByteString',

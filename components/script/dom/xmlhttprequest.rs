@@ -14,6 +14,7 @@ use dom::bindings::error::{Error, ErrorResult, Fallible, InvalidState, InvalidAc
 use dom::bindings::error::{Network, Syntax, Security, Abort, Timeout};
 use dom::bindings::global::{GlobalField, GlobalRef, WorkerField};
 use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, OptionalRootedRootable, RootableValue};
+use dom::bindings::refcounted::LiveReferences;
 use dom::bindings::str::ByteString;
 use dom::bindings::trace::{Traceable, Untraceable};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
@@ -129,7 +130,6 @@ pub struct XMLHttpRequest {
     send_flag: Traceable<Cell<bool>>,
 
     global: GlobalField,
-    pinned_count: Traceable<Cell<uint>>,
     timer: Untraceable<RefCell<Timer>>,
     fetch_time: Traceable<Cell<i64>>,
     timeout_pinned: Traceable<Cell<bool>>,
@@ -163,7 +163,6 @@ impl XMLHttpRequest {
             upload_events: Traceable::new(Cell::new(false)),
 
             global: GlobalField::from_rooted(global),
-            pinned_count: Traceable::new(Cell::new(0)),
             timer: Untraceable::new(RefCell::new(Timer::new().unwrap())),
             fetch_time: Traceable::new(Cell::new(0)),
             timeout_pinned: Traceable::new(Cell::new(false)),
@@ -472,8 +471,8 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             }
 
             // Step 8
-            let upload_target = *self.upload.root();
-            let event_target: JSRef<EventTarget> = EventTargetCast::from_ref(upload_target);
+            let upload_target = self.upload.root();
+            let event_target: JSRef<EventTarget> = EventTargetCast::from_ref(*upload_target);
             if event_target.has_handlers() {
                 self.upload_events.deref().set(true);
             }
@@ -715,11 +714,7 @@ trait PrivateXMLHttpRequestHelpers {
 impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
     // Creates a trusted address to the object, and roots it. Always pair this with a release()
     unsafe fn to_trusted(self) -> TrustedXHRAddress {
-        if self.pinned_count.deref().get() == 0 {
-            //XXX JS_AddObjectRoot(self.global.root().root_ref().get_cx(), self.reflector().rootable());
-        }
-        let pinned_count = self.pinned_count.deref().get();
-        self.pinned_count.deref().set(pinned_count + 1);
+        LiveReferences.get().unwrap().addref(&self);
         TrustedXHRAddress(self.deref() as *const XMLHttpRequest as *const libc::c_void)
     }
 
@@ -730,14 +725,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
             // meaningful during an async fetch
             return;
         }
-        assert!(self.pinned_count.deref().get() > 0)
-        let pinned_count = self.pinned_count.deref().get();
-        self.pinned_count.deref().set(pinned_count - 1);
-        if self.pinned_count.deref().get() == 0 {
-            unsafe {
-                //XXX JS_RemoveObjectRoot(self.global.root().root_ref().get_cx(), self.reflector().rootable());
-            }
-        }
+        LiveReferences.get().unwrap().release(&self);
     }
 
     fn change_ready_state(self, rs: XMLHttpRequestState) {
@@ -865,6 +853,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
 
     fn dispatch_progress_event(self, upload: bool, type_: DOMString, loaded: u64, total: Option<u64>) {
         let global = self.global.root();
+        global.init();
         let upload_target = *self.upload.root();
         let progressevent = ProgressEvent::new(&global.root_ref(),
                                                type_, false, false,
@@ -911,8 +900,8 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
             match oneshot.recv_opt() {
                 Ok(_) => {
                     let ScriptChan(ref chan) = script_chan;
-                    terminate_sender.map(|s| s.send_opt(Timeout));
                     chan.send(XHRProgressMsg(addr, TimeoutMsg));
+                    terminate_sender.map(|s| s.send_opt(Timeout));
                 },
                 Err(_) => {
                     // This occurs if xhr.timeout (the sender) goes out of scope (i.e, xhr went out of scope)

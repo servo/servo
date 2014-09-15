@@ -14,6 +14,7 @@ use dom::bindings::conversions::{FromJSValConvertible, Empty};
 use dom::bindings::global;
 use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, OptionalSettable};
 use dom::bindings::js::OptionalRootable;
+use dom::bindings::refcounted::{LiveReferences, LiveDOMReferences, trace_refcounted_objects};
 use dom::bindings::trace::{JSTraceable, RootedCollections, trace_collections};
 use dom::bindings::utils::Reflectable;
 use dom::document::{Document, HTMLDocument, DocumentHelpers};
@@ -293,7 +294,6 @@ impl ScriptTask {
                devtools_chan: Option<DevtoolsControlChan>,
                window_size: WindowSizeData)
                -> Rc<ScriptTask> {
-        RootedCollections.replace(Some(RefCell::new(HashSet::new())));
         let (js_runtime, js_context) = ScriptTask::new_rt_and_cx();
         /*unsafe {
             // JS_SetWrapObjectCallbacks clobbers the existing wrap callback,
@@ -344,6 +344,9 @@ impl ScriptTask {
     }
 
     pub fn new_rt_and_cx() -> (js::rust::rt, Rc<Cx>) {
+        js::rust::init_thread();
+        RootedCollections.replace(Some(RefCell::new(HashSet::new())));
+        LiveDOMReferences::initialize();
         let js_runtime = js::rust::rt();
         assert!({
             let ptr: *mut JSRuntime = (*js_runtime).ptr;
@@ -352,6 +355,8 @@ impl ScriptTask {
         unsafe {
             JS_AddExtraGCRootsTracer((*js_runtime).ptr, Some(trace_collections),
                                      RootedCollections.get().get_ref().deref() as *const _ as *mut _);
+            JS_AddExtraGCRootsTracer((*js_runtime).ptr, Some(trace_refcounted_objects),
+                                     LiveReferences.get().get_ref().deref() as *const _ as *mut _);
         }
 
         // Unconstrain the runtime's threshold on nominal heap size, to avoid

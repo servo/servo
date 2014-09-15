@@ -115,7 +115,7 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
                 self.reflector().get_jsobject(), source, url.serialize(), 1) {
                 Ok(_) => (),
                 Err(_) => {
-                    println!("evaluate_script failed");
+                    println!("worker evaluate_script failed");
                     return Err(FailureUnknown);
                 }
             }
