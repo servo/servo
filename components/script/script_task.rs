@@ -6,6 +6,7 @@
 //! and layout tasks.
 
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, EventCast};
+use dom::bindings::conversions::{FromJSValConvertible, Empty};
 use dom::bindings::global::Window;
 use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, OptionalSettable};
 use dom::bindings::js::OptionalRootable;
@@ -22,7 +23,7 @@ use dom::node::{ElementNodeTypeId, Node, NodeHelpers};
 use dom::window::{TimerId, Window, WindowHelpers};
 use dom::worker::{Worker, TrustedWorkerAddress};
 use dom::xmlhttprequest::{TrustedXHRAddress, XMLHttpRequest, XHRProgress};
-use html::hubbub_html_parser::HtmlParserResult;
+use html::hubbub_html_parser::{InputString, InputUrl, HtmlParserResult};
 use html::hubbub_html_parser::{HtmlDiscoveredStyle, HtmlDiscoveredScript};
 use html::hubbub_html_parser;
 use layout_interface::AddStylesheetMsg;
@@ -590,7 +591,7 @@ impl ScriptTask {
     /// The entry point to document loading. Defines bindings, sets up the window and document
     /// objects, parses HTML and CSS, and kicks off initial layout.
     fn load(&self, pipeline_id: PipelineId, url: Url) {
-        debug!("ScriptTask: loading {:?} on page {:?}", url, pipeline_id);
+        debug!("ScriptTask: loading {} on page {:?}", url, pipeline_id);
 
         let mut page = self.page.borrow_mut();
         let page = page.find(pipeline_id).expect("ScriptTask: received a load
@@ -610,6 +611,9 @@ impl ScriptTask {
             _ => (),
         }
 
+        let is_javascript = url.scheme.as_slice() == "javascript";
+        let last_url = last_loaded_url.map(|(ref loaded, _)| loaded.clone());
+
         let cx = self.js_context.borrow();
         let cx = cx.get_ref();
         // Create the window and document objects.
@@ -619,17 +623,39 @@ impl ScriptTask {
                                  self.control_chan.clone(),
                                  self.compositor.dup(),
                                  self.image_cache_task.clone()).root();
-        let document = Document::new(&*window, Some(url.clone()), HTMLDocument, None).root();
+        let doc_url = if is_javascript {
+            let doc_url = match last_url {
+                Some(url) => Some(url.clone()),
+                None => Url::parse("about:blank").ok(),
+            };
+            *page.mut_url() = Some((doc_url.get_ref().clone(), true));
+            doc_url
+        } else {
+            Some(url.clone())
+        };
+        let document = Document::new(&*window, doc_url, HTMLDocument, None).root();
+
         window.deref().init_browser_context(&*document);
 
         self.compositor.set_ready_state(pipeline_id, Loading);
+
+        let parser_input = if !is_javascript {
+            InputUrl(url.clone())
+        } else {
+            let evalstr = url.non_relative_scheme_data().unwrap();
+            let jsval = window.evaluate_js_with_result(evalstr);
+            let strval = FromJSValConvertible::from_jsval(self.get_cx(), jsval, Empty);
+            InputString(strval.unwrap_or("".to_string()))
+        };
+
         // Parse HTML.
         //
         // Note: We can parse the next document in parallel with any previous documents.
-        let html_parsing_result = hubbub_html_parser::parse_html(&*page,
-                                                                 &*document,
-                                                                 url.clone(),
-                                                                 self.resource_task.clone());
+        let html_parsing_result =
+            hubbub_html_parser::parse_html(&*page,
+                                           &*document,
+                                           parser_input,
+                                           self.resource_task.clone());
 
         let HtmlParserResult {
             discovery_port
@@ -665,6 +691,7 @@ impl ScriptTask {
         }
 
         // Kick off the initial reflow of the page.
+        debug!("kicking off initial reflow of {}", url);
         document.deref().content_changed();
 
         let fragment = url.fragment.as_ref().map(|ref fragment| fragment.to_string());
@@ -684,9 +711,14 @@ impl ScriptTask {
             // Evaluate every script in the document.
             for file in js_scripts.iter() {
                 let global_obj = window.reflector().get_jsobject();
+                let filename = match file.url {
+                    None => String::new(),
+                    Some(ref url) => url.serialize(),
+                };
+
                 //FIXME: this should have some kind of error handling, or explicitly
                 //       drop an exception on the floor.
-                match cx.evaluate_script(global_obj, file.data.clone(), file.url.serialize(), 1) {
+                match cx.evaluate_script(global_obj, file.data.clone(), filename, 1) {
                     Ok(_) => (),
                     Err(_) => println!("evaluate_script failed")
                 }
