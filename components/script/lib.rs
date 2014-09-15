@@ -56,6 +56,7 @@ pub mod dom {
         pub mod conversions;
         mod proxyhandler;
         pub mod str;
+        pub mod refcounted;
         pub mod trace;
 
         /// Generated JS-Rust bindings.
@@ -212,6 +213,7 @@ pub mod script_task;
 pub fn init() {
     unsafe {
         unsafe {
+            js::jsfriendapi::PR_GetCurrentThread();
             js::jsapi::JS_Init();
         }
     }

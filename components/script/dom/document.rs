@@ -571,6 +571,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     // http://dom.spec.whatwg.org/#dom-document-createevent
     fn CreateEvent(&self, interface: DOMString) -> Fallible<Temporary<Event>> {
         let window = self.window.root();
+        window.init();
 
         match interface.as_slice().to_ascii_lower().as_slice() {
             "uievents" | "uievent" => Ok(EventCast::from_temporary(UIEvent::new_uninitialized(&*window))),

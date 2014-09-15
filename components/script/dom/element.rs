@@ -916,6 +916,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
             Some(attr) => {
                 attr.init();
                 let doc = document_from_node(self).root();
+                doc.init();
                 let value = attr.deref().Value();
                 if !value.is_empty() {
                     doc.deref().register_named_element(self, value);
@@ -937,6 +938,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
             Some(attr) => {
                 attr.init();
                 let doc = document_from_node(self).root();
+                doc.init();
                 let value = attr.deref().Value();
                 if !value.is_empty() {
                     doc.deref().unregister_named_element(self, value);
