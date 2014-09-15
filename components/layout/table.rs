@@ -18,6 +18,7 @@ use wrapper::ThreadSafeLayoutNode;
 
 use servo_util::geometry::Au;
 use servo_util::geometry;
+use servo_util::logical_geometry::LogicalRect;
 use std::fmt;
 use style::computed_values::table_layout;
 
@@ -289,6 +290,10 @@ impl Flow for TableFlow {
 
     fn compute_absolute_position(&mut self) {
         self.block_flow.compute_absolute_position()
+    }
+
+    fn generated_containing_block_rect(&self) -> LogicalRect<Au> {
+        self.block_flow.generated_containing_block_rect()
     }
 }
 
