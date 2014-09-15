@@ -50,10 +50,11 @@ class MachCommands(CommandBase):
             opts += ["-v"]
 
         build_start = time()
-        subprocess.check_call(["cargo", "build"] + opts, env=self.build_env())
+        status = subprocess.call(["cargo", "build"] + opts, env=self.build_env())
         elapsed = time() - build_start
 
         print("Build completed in %0.2fs" % elapsed)
+        return status
 
     @Command('build-cef',
              description='Build the Chromium Embedding Framework library',
@@ -89,7 +90,7 @@ class MachCommands(CommandBase):
         opts = []
         if jobs is not None:
             opts += ["-j", jobs]
-        subprocess.check_call(["cargo", "test", "--no-run"], env=self.build_env())
+        return subprocess.call(["cargo", "test", "--no-run"], env=self.build_env())
 
     @Command('clean',
              description='Clean the build directory.',
@@ -109,4 +110,4 @@ class MachCommands(CommandBase):
         if verbose:
             opts += ["-v"]
 
-        subprocess.check_call(["cargo", "clean"] + opts, env=self.build_env())
+        return subprocess.call(["cargo", "clean"] + opts, env=self.build_env())
