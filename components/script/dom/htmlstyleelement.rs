@@ -13,9 +13,9 @@ use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, NodeHelpers, ElementNodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
-use html::cssparse::parse_inline_css;
 use layout_interface::{AddStylesheetMsg, LayoutChan};
 use servo_util::str::DOMString;
+use style::Stylesheet;
 
 #[deriving(Encodable)]
 pub struct HTMLStyleElement {
@@ -54,7 +54,7 @@ impl<'a> StyleElementHelpers for JSRef<'a, HTMLStyleElement> {
         let url = win.deref().page().get_url();
 
         let data = node.GetTextContent().expect("Element.textContent must be a string");
-        let sheet = parse_inline_css(url, data);
+        let sheet = Stylesheet::from_str(data.as_slice(), url);
         let LayoutChan(ref layout_chan) = *win.deref().page().layout_chan;
         layout_chan.send(AddStylesheetMsg(sheet));
     }

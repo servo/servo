@@ -2,20 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLLinkElementDerived;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, NodeCast};
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
+use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::HTMLLinkElementTypeId;
+use dom::element::{AttributeHandlers, Element, HTMLLinkElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, NodeHelpers, ElementNodeTypeId};
+use dom::node::{Node, NodeHelpers, ElementNodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
-
+use layout_interface::{LayoutChan, LoadStylesheetMsg};
 use servo_util::atom::Atom;
-use servo_util::str::DOMString;
+use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS};
+use servo_util::namespace::Null;
+
+use std::ascii::StrAsciiExt;
+use url::UrlParser;
 
 #[deriving(Encodable)]
 pub struct HTMLLinkElement {
@@ -70,6 +75,55 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLLinkElement> {
         match name.as_slice() {
             "href" => node.set_enabled_state(false),
             _ => ()
+        }
+    }
+
+    fn bind_to_tree(&self, tree_in_doc: bool) {
+        match self.super_type() {
+            Some(ref s) => s.bind_to_tree(tree_in_doc),
+            _ => ()
+        }
+
+        if tree_in_doc {
+            let element: &JSRef<Element> = ElementCast::from_ref(self);
+
+            // FIXME: workaround for https://github.com/mozilla/rust/issues/13246;
+            // we get unrooting order failures if these are inside the match.
+            let rel = {
+                let rel = element.get_attribute(Null, "rel").root();
+                rel.map(|rel| rel.deref().value().as_slice().to_string())
+            };
+            let href = {
+                let href = element.get_attribute(Null, "href").root();
+                href.map(|href| href.deref().value().as_slice().to_string())
+            };
+
+            match (rel, href) {
+                (Some(ref rel), Some(ref href)) => {
+                    if rel.as_slice().split(HTML_SPACE_CHARACTERS.as_slice())
+                          .any(|s| s.as_slice().eq_ignore_ascii_case("stylesheet")) {
+                        self.handle_stylesheet_url(href.as_slice());
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+}
+
+trait PrivateHTMLLinkElementHelpers {
+    fn handle_stylesheet_url(&self, href: &str);
+}
+
+impl<'a> PrivateHTMLLinkElementHelpers for JSRef<'a, HTMLLinkElement> {
+    fn handle_stylesheet_url(&self, href: &str) {
+        let window = window_from_node(self).root();
+        match UrlParser::new().base_url(&window.deref().page().get_url()).parse(href) {
+            Ok(url) => {
+                let LayoutChan(ref layout_chan) = *window.deref().page().layout_chan;
+                layout_chan.send(LoadStylesheetMsg(url));
+            }
+            Err(e) => debug!("Parsing url {:s} failed: {:?}", href, e)
         }
     }
 }

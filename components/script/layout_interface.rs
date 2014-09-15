@@ -29,6 +29,9 @@ pub enum Msg {
     /// Adds the given stylesheet to the document.
     AddStylesheetMsg(Stylesheet),
 
+    /// Adds the given stylesheet to the document.
+    LoadStylesheetMsg(Url),
+
     /// Requests a reflow.
     ReflowMsg(Box<Reflow>),
 

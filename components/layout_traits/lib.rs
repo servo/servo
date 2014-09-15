@@ -23,6 +23,7 @@ use gfx::render_task::RenderChan;
 use servo_msg::constellation_msg::{ConstellationChan, PipelineId};
 use servo_msg::constellation_msg::Failure;
 use servo_net::image_cache_task::ImageCacheTask;
+use servo_net::resource_task::ResourceTask;
 use servo_util::opts::Opts;
 use servo_util::time::TimeProfilerChan;
 use script_traits::{ScriptControlChan, OpaqueScriptLayoutChannel};
@@ -48,6 +49,7 @@ pub trait LayoutTaskFactory {
               failure_msg: Failure,
               script_chan: ScriptControlChan,
               render_chan: RenderChan,
+              resource_task: ResourceTask,
               img_cache_task: ImageCacheTask,
               font_cache_task: FontCacheTask,
               opts: Opts,

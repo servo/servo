@@ -29,6 +29,7 @@ extern crate servo_msg = "msg";
 extern crate servo_util = "util";
 
 extern crate collections;
+extern crate encoding;
 extern crate green;
 extern crate libc;
 extern crate sync;

@@ -219,6 +219,34 @@ impl ResourceManager {
     }
 }
 
+/// Load a URL asynchronously and iterate over chunks of bytes from the response.
+pub fn load_bytes_iter(resource_task: &ResourceTask, url: Url) -> (Metadata, ProgressMsgPortIterator) {
+    let (input_chan, input_port) = channel();
+    resource_task.send(Load(LoadData::new(url), input_chan));
+
+    let response = input_port.recv();
+    let iter = ProgressMsgPortIterator { progress_port: response.progress_port };
+    (response.metadata, iter)
+}
+
+/// Iterator that reads chunks of bytes from a ProgressMsg port
+pub struct ProgressMsgPortIterator {
+    progress_port: Receiver<ProgressMsg>
+}
+
+impl Iterator<Vec<u8>> for ProgressMsgPortIterator {
+    fn next(&mut self) -> Option<Vec<u8>> {
+        match self.progress_port.recv() {
+            Payload(data) => Some(data),
+            Done(Ok(()))  => None,
+            Done(Err(e))  => {
+                error!("error receiving bytes: {}", e);
+                None
+            }
+        }
+    }
+}
+
 #[test]
 fn test_exit() {
     let resource_task = new_resource_task();

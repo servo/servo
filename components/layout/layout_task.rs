@@ -21,6 +21,8 @@ use util::{LayoutDataAccess, LayoutDataWrapper, OpaqueNodeMethods, ToGfxColor};
 use wrapper::{LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
 
 use collections::dlist::DList;
+use encoding::EncodingRef;
+use encoding::all::UTF_8;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
@@ -33,7 +35,7 @@ use layout_traits::{LayoutControlMsg, LayoutTaskFactory};
 use script::dom::bindings::js::JS;
 use script::dom::node::{ElementNodeTypeId, LayoutDataRef, Node};
 use script::dom::element::{HTMLBodyElementTypeId, HTMLHtmlElementTypeId};
-use script::layout_interface::{AddStylesheetMsg, ScriptLayoutChan};
+use script::layout_interface::{AddStylesheetMsg, LoadStylesheetMsg, ScriptLayoutChan};
 use script::layout_interface::{TrustedNodeAddress, ContentBoxesResponse, ExitNowMsg};
 use script::layout_interface::{ContentBoxResponse, HitTestResponse, MouseOverResponse};
 use script::layout_interface::{ContentChangedDocumentDamage, LayoutChan, Msg, PrepareToExitMsg};
@@ -46,6 +48,7 @@ use servo_net::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use gfx::font_cache_task::{FontCacheTask};
 use servo_net::local_image_cache::{ImageResponder, LocalImageCache};
 use servo_util::bloom::BloomFilter;
+use servo_net::resource_task::{ResourceTask, load_bytes_iter};
 use servo_util::geometry::Au;
 use servo_util::geometry;
 use servo_util::logical_geometry::LogicalPoint;
@@ -111,6 +114,9 @@ pub struct LayoutTask {
 
     /// The channel on which messages can be sent to the time profiler.
     pub time_profiler_chan: TimeProfilerChan,
+
+    /// The channel on which messages can be sent to the resource task.
+    pub resource_task: ResourceTask,
 
     /// The channel on which messages can be sent to the image cache.
     pub image_cache_task: ImageCacheTask,
@@ -298,6 +304,7 @@ impl LayoutTaskFactory for LayoutTask {
                   failure_msg: Failure,
                   script_chan: ScriptControlChan,
                   render_chan: RenderChan,
+                  resource_task: ResourceTask,
                   img_cache_task: ImageCacheTask,
                   font_cache_task: FontCacheTask,
                   opts: Opts,
@@ -316,6 +323,7 @@ impl LayoutTaskFactory for LayoutTask {
                         constellation_chan,
                         script_chan,
                         render_chan,
+                        resource_task,
                         img_cache_task,
                         font_cache_task,
                         &opts,
@@ -365,6 +373,7 @@ impl LayoutTask {
            constellation_chan: ConstellationChan,
            script_chan: ScriptControlChan,
            render_chan: RenderChan,
+           resource_task: ResourceTask,
            image_cache_task: ImageCacheTask,
            font_cache_task: FontCacheTask,
            opts: &Opts,
@@ -387,6 +396,7 @@ impl LayoutTask {
             script_chan: script_chan,
             render_chan: render_chan,
             time_profiler_chan: time_profiler_chan,
+            resource_task: resource_task,
             image_cache_task: image_cache_task.clone(),
             font_cache_task: font_cache_task,
             opts: opts.clone(),
@@ -494,6 +504,7 @@ impl LayoutTask {
     fn handle_script_request<'a>(&'a self, request: Msg, possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) -> bool {
         match request {
             AddStylesheetMsg(sheet) => self.handle_add_stylesheet(sheet, possibly_locked_rw_data),
+            LoadStylesheetMsg(url) => self.handle_load_stylesheet(url, possibly_locked_rw_data),
             GetRPCMsg(response_chan) => {
                 response_chan.send(
                     box LayoutRPCImpl(
@@ -565,6 +576,18 @@ impl LayoutTask {
 
         self.render_chan.send(render_task::ExitMsg(Some(response_chan)));
         response_port.recv()
+    }
+
+    fn handle_load_stylesheet<'a>(&'a self, url: Url, possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) {
+        // TODO: Get the actual value. http://dev.w3.org/csswg/css-syntax/#environment-encoding
+        let environment_encoding = UTF_8 as EncodingRef;
+
+        let (metadata, iter) = load_bytes_iter(&self.resource_task, url);
+        let protocol_encoding_label = metadata.charset.as_ref().map(|s| s.as_slice());
+        let final_url = metadata.final_url;
+
+        let sheet = Stylesheet::from_bytes_iter(iter, final_url, protocol_encoding_label, Some(environment_encoding));
+        self.handle_add_stylesheet(sheet, possibly_locked_rw_data);
     }
 
     fn handle_add_stylesheet<'a>(&'a self, sheet: Stylesheet, possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) {
