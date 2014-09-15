@@ -61,8 +61,8 @@ def PowerParser(OutputDir, LayoutThreads):
     ExperimentNum = 21
     ResultTable = OutputDir + "ResultTable.csv"
     ResultFile = open(ResultTable, "w")
-    ResultFile.write("LayoutThreads, MeanPower, MeanTime , MaxTime, "
-                     "MinTime , MaxPower , MinPower \n")
+    ResultFile.write("LayoutThreads, MeanPower, MaxPower , MinPower, MeanTime , MaxTime, "
+                     "MinTime  \n")
 
     for layoutT in range(1, LayoutThreads+1):
         MaxTime = 0
@@ -71,6 +71,8 @@ def PowerParser(OutputDir, LayoutThreads):
         MinPower = 1000000
         TotalPower = 0
         TotalTime = 0
+        TimeGen = 0
+        PowerGen = 0
         for ExpNum in range(1, ExperimentNum):
             Files = OutputDir + 'power/' + 'power-Layout' + str(layoutT) + \
                 "-set" + str(ExpNum) + ".csv"
@@ -118,13 +120,15 @@ def PowerParser(OutputDir, LayoutThreads):
                 MaxTime = TotalTime
             if TotalTime < MinTime:
                 MinTime = TotalTime
+            TimeGen = TimeGen + TotalTime
+            PowerGen = PowerGen + TotalPower
 
-        TotalPower = TotalPower / float(ExperimentNum-1)
-        TotalTime = TotalTime / float(ExperimentNum-1)
+        TotalPower = PowerGen / float(ExperimentNum-1)
+        TotalTime = TimeGen / float(ExperimentNum-1)
         ResultFile.write(str(layoutT) + " , " + str(TotalPower) + " , " +
+                         str(MaxPower) + " , " + str(MinPower) + " , " +
                          str(TotalTime) + " , " + str(MaxTime) + " , " +
-                         str(MinTime) + " , " + str(MaxPower) + " , " +
-                         str(MinPower) + "\n")
+                         str(MinTime) + "\n")
     ResultFile.close()
     Opener = ResultFile = open(ResultTable, "r")
     for line in Opener:
