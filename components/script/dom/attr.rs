@@ -71,6 +71,7 @@ impl Str for AttrValue {
 }
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct Attr {
     reflector_: Reflector,
     local_name: Atom,

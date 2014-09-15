@@ -19,12 +19,14 @@ use std::cell::RefCell;
 use std::collections::hashmap::HashMap;
 
 #[deriving(Encodable, Clone)]
+#[must_root]
 pub enum FormDatum {
     StringData(DOMString),
     FileData(JS<File>)
 }
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct FormData {
     data: Traceable<RefCell<HashMap<DOMString, Vec<FormDatum>>>>,
     reflector_: Reflector,

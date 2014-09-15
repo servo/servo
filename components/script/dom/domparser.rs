@@ -14,6 +14,7 @@ use dom::window::Window;
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct DOMParser {
     window: JS<Window>, //XXXjdm Document instead?
     reflector_: Reflector

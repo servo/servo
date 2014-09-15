@@ -14,6 +14,7 @@ use time;
 pub type DOMHighResTimeStamp = f64;
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct Performance {
     reflector_: Reflector,
     timing: JS<PerformanceTiming>,

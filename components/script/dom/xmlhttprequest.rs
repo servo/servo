@@ -98,6 +98,7 @@ enum SyncOrAsync<'a, 'b> {
 
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct XMLHttpRequest {
     eventtarget: XMLHttpRequestEventTarget,
     ready_state: Traceable<Cell<XMLHttpRequestState>>,

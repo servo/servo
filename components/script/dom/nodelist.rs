@@ -11,18 +11,21 @@ use dom::node::{Node, NodeHelpers};
 use dom::window::Window;
 
 #[deriving(Encodable)]
+#[must_root]
 pub enum NodeListType {
     Simple(Vec<JS<Node>>),
     Children(JS<Node>)
 }
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct NodeList {
     list_type: NodeListType,
     reflector_: Reflector,
 }
 
 impl NodeList {
+    #[allow(unrooted_must_root)]
     pub fn new_inherited(list_type: NodeListType) -> NodeList {
         NodeList {
             list_type: list_type,
@@ -30,6 +33,7 @@ impl NodeList {
         }
     }
 
+    #[allow(unrooted_must_root)]
     pub fn new(window: &JSRef<Window>,
                list_type: NodeListType) -> Temporary<NodeList> {
         reflect_dom_object(box NodeList::new_inherited(list_type),

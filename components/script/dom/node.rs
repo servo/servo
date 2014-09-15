@@ -850,6 +850,7 @@ impl<'a> Iterator<JSRef<'a, Node>> for TreeIterator<'a> {
     }
 }
 
+#[must_root]
 pub struct NodeIterator {
     pub start_node: JS<Node>,
     pub current_node: Option<JS<Node>>,

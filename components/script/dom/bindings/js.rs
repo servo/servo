@@ -61,6 +61,7 @@ use std::mem;
 /// Importantly, it requires explicit rooting in order to interact with the inner value.
 /// Can be assigned into JS-owned member fields (i.e. `JS<T>` types) safely via the
 /// `JS<T>::assign` method or `OptionalSettable::assign` (for `Option<JS<T>>` fields).
+#[allow(unrooted_must_root)]
 pub struct Temporary<T> {
     inner: JS<T>,
     /// On-stack JS pointer to assuage conservative stack scanner
@@ -106,6 +107,7 @@ impl<T: Reflectable> Temporary<T> {
 }
 
 /// A rooted, JS-owned value. Must only be used as a field in other JS-owned types.
+#[must_root]
 pub struct JS<T> {
     ptr: *const T
 }

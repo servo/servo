@@ -69,6 +69,7 @@ pub enum IsHTMLDocument {
 }
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct Document {
     pub node: Node,
     reflector_: Reflector,

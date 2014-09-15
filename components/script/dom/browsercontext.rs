@@ -67,6 +67,7 @@ impl BrowserContext {
 }
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct SessionHistoryEntry {
     document: JS<Document>,
     children: Vec<BrowserContext>

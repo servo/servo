@@ -30,12 +30,14 @@ impl<S: Encoder<E>, E> Encodable<S, E> for Box<CollectionFilter> {
 }
 
 #[deriving(Encodable)]
+#[must_root]
 pub enum CollectionTypeId {
     Static(Vec<JS<Element>>),
     Live(JS<Node>, Box<CollectionFilter>)
 }
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct HTMLCollection {
     collection: CollectionTypeId,
     reflector_: Reflector,
