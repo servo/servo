@@ -92,8 +92,6 @@ pub fn run(opts: opts::Opts) {
     pool_config.event_loop_factory = rustuv::event_loop;
     let mut pool = green::SchedPool::new(pool_config);
 
-    script::init();
-
     let (compositor_port, compositor_chan) = CompositorChan::new();
     let time_profiler_chan = TimeProfiler::create(opts.time_profiler_period);
     let memory_profiler_chan = MemoryProfiler::create(opts.memory_profiler_period);

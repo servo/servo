@@ -261,6 +261,7 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
     fn node_inserted(self) {
         assert!(self.parent_node().is_some());
         let document = document_from_node(self).root();
+        document.init();
         let is_in_doc = self.is_in_doc();
 
         for node in self.traverse_preorder() {
@@ -268,7 +269,8 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
         }
 
         let parent = self.parent_node().root();
-        parent.map(|parent| vtable_for(&*parent).child_inserted(self));
+        parent.init();
+        parent.as_ref().map(|parent| vtable_for(&**parent).child_inserted(self));
 
         document.deref().content_changed();
     }
@@ -665,7 +667,11 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
 
     fn children(&self) -> AbstractNodeChildrenIterator<'n> {
         AbstractNodeChildrenIterator {
-            current_node: self.first_child.get().map(|node| (*node.root()).clone()),
+            current_node: self.first_child.get().map(|node| {
+                let node = node.root();
+                node.init();
+                (*node).clone()
+            }),
         }
     }
 

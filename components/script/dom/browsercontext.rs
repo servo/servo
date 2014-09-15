@@ -179,6 +179,7 @@ static proxy_handler: ProxyTraps = ProxyTraps {
     nativeCall: 0 as *const u8,
     hasInstance: None,
     objectClassIs: None,
+    className: None,
     fun_toString: None,
     //regexp_toShared: 0 as *const u8,
     defaultValue: None,

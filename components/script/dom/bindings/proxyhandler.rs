@@ -6,8 +6,8 @@
 
 use dom::bindings::js::RootablePointer;
 use dom::bindings::utils::delete_property_by_id;
-use js::jsapi::{JSContext, JSPropertyDescriptor, JSObject, JSString, jschar};
-use js::jsapi::{JS_GetPropertyDescriptorById, JS_NewUCString, JS_malloc, JS_free};
+use js::jsapi::{JSContext, JSPropertyDescriptor, JSObject};
+use js::jsapi::{JS_GetPropertyDescriptorById};
 use js::jsapi::{JS_DefinePropertyById, JS_NewObjectWithGivenProto, MutableHandle};
 use js::jsapi::{JS_StrictPropertyStub, JSHandleObject, JSHandleId};
 use js::jsapi::{JSREPORT_WARNING, JSREPORT_STRICT, JSREPORT_STRICT_MODE_ERROR};
@@ -22,8 +22,6 @@ use js::{JSPROP_GETTER, JSPROP_ENUMERATE, JSPROP_READONLY, JSRESOLVE_QUALIFIED};
 use libc;
 use std::mem;
 use std::ptr;
-use std::string;
-use std::mem::size_of;
 
 static JSPROXYSLOT_EXPANDO: u32 = 0;
 
@@ -93,29 +91,6 @@ pub unsafe extern fn delete_(cx: *mut JSContext, proxy: JSHandleObject, id: JSHa
     return delete_property_by_id(cx, expando.handle(), id, &mut *bp);
 }
 
-pub fn _obj_toString(cx: *mut JSContext, className: *const libc::c_char) -> *mut JSString {
-  unsafe {
-    let name = string::raw::from_buf(className as *const i8 as *const u8);
-    let nchars = "[object ]".len() + name.len();
-    let chars = JS_malloc(cx, (nchars + 1) as libc::size_t * (size_of::<jschar>() as libc::size_t)) as *mut jschar;
-    if chars.is_null() {
-        return ptr::null_mut();
-    }
-
-    let result = format!("[object {}]", name);
-    let result = result.as_slice();
-    for (i, c) in result.chars().enumerate() {
-      *chars.offset(i as int) = c as jschar;
-    }
-    *chars.offset(nchars as int) = 0;
-    let jsstr = JS_NewUCString(cx, chars, nchars as libc::size_t);
-    if jsstr.is_null() {
-        JS_free(cx, chars as *mut libc::c_void);
-    }
-    jsstr
-  }
-}
-
 pub fn GetExpandoObject(obj: *mut JSObject) -> *mut JSObject {
     unsafe {
         //XXXjdm it would be nice to assert that obj's class is a proxy class
@@ -131,17 +106,23 @@ pub fn GetExpandoObject(obj: *mut JSObject) -> *mut JSObject {
 pub fn EnsureExpandoObject(cx: *mut JSContext, obj: *mut JSObject) -> *mut JSObject {
     unsafe {
         //XXXjdm it would be nice to assert that obj's class is a proxy class
-        let mut expando = GetExpandoObject(obj).root_ptr();
-        if expando.raw().is_null() {
-            let o = ptr::null_mut().root_ptr();
-            let parent = GetObjectParent(obj).root_ptr();
-            expando = JS_NewObjectWithGivenProto(cx, ptr::null(), o.handle(), parent.handle()).root_ptr();
-            if expando.raw().is_null() {
-                return ptr::null_mut();
-            }
-
-            SetProxyExtra(obj, JSPROXYSLOT_EXPANDO, ObjectValue(&**expando.raw()));
+        let expando = GetExpandoObject(obj).root_ptr();
+        expando.init();
+        if !expando.raw().is_null() {
+            return *expando.raw();
         }
+
+        let o = ptr::null_mut().root_ptr();
+        o.init();
+        let parent = GetObjectParent(obj).root_ptr();
+        parent.init();
+        let expando = JS_NewObjectWithGivenProto(cx, ptr::null(), o.handle(), parent.handle()).root_ptr();
+        expando.init();
+        if expando.raw().is_null() {
+            return ptr::null_mut();
+        }
+
+        SetProxyExtra(obj, JSPROXYSLOT_EXPANDO, ObjectValue(&**expando.raw()));
         return *expando.raw();
     }
 }

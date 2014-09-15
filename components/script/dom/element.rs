@@ -918,6 +918,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
             Some(attr) => {
                 attr.init();
                 let doc = document_from_node(*self).root();
+                doc.init();
                 let value = attr.deref().Value();
                 if !value.is_empty() {
                     let value = Atom::from_slice(value.as_slice());
@@ -940,6 +941,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
             Some(attr) => {
                 attr.init();
                 let doc = document_from_node(*self).root();
+                doc.init();
                 let value = attr.deref().Value();
                 if !value.is_empty() {
                     let value = Atom::from_slice(value.as_slice());
