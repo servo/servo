@@ -82,29 +82,29 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
     }
 
     fn process_the_iframe_attributes(&self) {
-        match self.get_url() {
-            Some(url) => {
-                let sandboxed = if self.is_sandboxed() {
-                    IFrameSandboxed
-                } else {
-                    IFrameUnsandboxed
-                };
+        let url = match self.get_url() {
+            Some(url) => url.clone(),
+            None => Url::parse("about:blank").unwrap(),
+        };
 
-                // Subpage Id
-                let window = window_from_node(self).root();
-                let page = window.deref().page();
-                let subpage_id = page.get_next_subpage_id();
+        let sandboxed = if self.is_sandboxed() {
+            IFrameSandboxed
+        } else {
+            IFrameUnsandboxed
+        };
 
-                self.deref().size.deref().set(Some(IFrameSize {
-                    pipeline_id: page.id,
-                    subpage_id: subpage_id,
-                }));
+        // Subpage Id
+        let window = window_from_node(self).root();
+        let page = window.deref().page();
+        let subpage_id = page.get_next_subpage_id();
 
-                let ConstellationChan(ref chan) = *page.constellation_chan.deref();
-                chan.send(LoadIframeUrlMsg(url, page.id, subpage_id, sandboxed));
-            }
-            _ => ()
-        }
+        self.deref().size.deref().set(Some(IFrameSize {
+            pipeline_id: page.id,
+            subpage_id: subpage_id,
+        }));
+
+        let ConstellationChan(ref chan) = *page.constellation_chan.deref();
+        chan.send(LoadIframeUrlMsg(url, page.id, subpage_id, sandboxed));
     }
 }
 
