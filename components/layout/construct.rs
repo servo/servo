@@ -186,15 +186,15 @@ enum WhitespaceStrippingMode {
 }
 
 /// An object that knows how to create flows.
-pub struct FlowConstructor<'a, 'b> {
+pub struct FlowConstructor<'a> {
     /// The layout context.
-    pub layout_context: &'b LayoutContext<'b>,
+    pub layout_context: &'a LayoutContext<'a>,
 }
 
-impl<'a, 'b> FlowConstructor<'a, 'b> {
+impl<'a> FlowConstructor<'a> {
     /// Creates a new flow constructor.
-    pub fn new<'b>(layout_context: &'b LayoutContext)
-               -> FlowConstructor<'a, 'b> {
+    pub fn new<'a>(layout_context: &'a LayoutContext<'a>)
+               -> FlowConstructor<'a> {
         FlowConstructor {
             layout_context: layout_context,
         }
@@ -826,7 +826,7 @@ impl<'a, 'b> FlowConstructor<'a, 'b> {
     }
 }
 
-impl<'a, 'b> PostorderNodeMutTraversal for FlowConstructor<'a, 'b> {
+impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
     // Construct Flow based on 'display', 'position', and 'float' values.
     //
     // CSS 2.1 Section 9.7
@@ -1109,4 +1109,3 @@ impl FlowConstructionUtils for FlowRef {
         }
     }
 }
-

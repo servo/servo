@@ -12,6 +12,8 @@ use servo_util::namespace::Namespace;
 
 pub trait TNode<E:TElement> : Clone {
     fn parent_node(&self) -> Option<Self>;
+    /// Name is prefixed to avoid a conflict with TLayoutNode.
+    fn tnode_first_child(&self) -> Option<Self>;
     fn prev_sibling(&self) -> Option<Self>;
     fn next_sibling(&self) -> Option<Self>;
     fn is_document(&self) -> bool;
@@ -32,4 +34,3 @@ pub trait TElement {
     fn get_enabled_state(&self) -> bool;
     fn has_class(&self, name: &str) -> bool;
 }
-

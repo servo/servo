@@ -288,4 +288,3 @@ impl<QueueData: Send, WorkData: Send> WorkQueue<QueueData, WorkData> {
         }
     }
 }
-

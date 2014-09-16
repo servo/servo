@@ -45,6 +45,7 @@ use servo_msg::constellation_msg::{ConstellationChan, PipelineId, Failure, Failu
 use servo_net::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use gfx::font_cache_task::{FontCacheTask};
 use servo_net::local_image_cache::{ImageResponder, LocalImageCache};
+use servo_util::bloom::BloomFilter;
 use servo_util::geometry::Au;
 use servo_util::geometry;
 use servo_util::logical_geometry::LogicalPoint;
@@ -57,6 +58,7 @@ use servo_util::workqueue::WorkQueue;
 use std::comm::{channel, Sender, Receiver, Select};
 use std::mem;
 use std::ptr;
+use style;
 use style::{AuthorOrigin, Stylesheet, Stylist};
 use style::iter_font_face_rules;
 use sync::{Arc, Mutex, MutexGuard};
@@ -409,7 +411,12 @@ impl LayoutTask {
     }
 
     // Create a layout context for use in building display lists, hit testing, &c.
-    fn build_shared_layout_context(&self, rw_data: &LayoutTaskData, reflow_root: &LayoutNode, url: &Url) -> SharedLayoutContext {
+    fn build_shared_layout_context(
+      &self,
+      rw_data: &LayoutTaskData,
+      reflow_root: &LayoutNode,
+      url: &Url)
+          -> SharedLayoutContext {
         SharedLayoutContext {
             image_cache: rw_data.local_image_cache.clone(),
             screen_size: rw_data.screen_size.clone(),
@@ -718,7 +725,11 @@ impl LayoutTask {
         rw_data.screen_size = current_screen_size;
 
         // Create a layout context for use throughout the following passes.
-        let mut shared_layout_ctx = self.build_shared_layout_context(rw_data.deref(), node, &data.url);
+        let mut shared_layout_ctx =
+            self.build_shared_layout_context(
+                rw_data.deref(),
+                node,
+                &data.url);
 
         let mut layout_root = profile(time::LayoutStyleRecalcCategory,
                                       self.time_profiler_chan.clone(),
@@ -729,8 +740,11 @@ impl LayoutTask {
                 None => {
                     let layout_ctx = LayoutContext::new(&shared_layout_ctx);
                     let mut applicable_declarations = ApplicableDeclarations::new();
+                    let mut parent_bf = Some(BloomFilter::new(
+                        style::RECOMMENDED_SELECTOR_BLOOM_FILTER_SIZE));
                     node.recalc_style_for_subtree(&*rw_data.stylist,
                                                    &layout_ctx,
+                                                   &mut parent_bf,
                                                    &mut applicable_declarations,
                                                    None)
                 }

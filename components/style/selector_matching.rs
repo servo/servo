@@ -10,6 +10,7 @@ use sync::Arc;
 use url::Url;
 
 use servo_util::atom::Atom;
+use servo_util::bloom::BloomFilter;
 use servo_util::namespace;
 use servo_util::smallvec::VecLike;
 use servo_util::sort;
@@ -27,7 +28,7 @@ pub enum StylesheetOrigin {
 }
 
 /// The definition of whitespace per CSS Selectors Level 3 § 4.
-static SELECTOR_WHITESPACE: &'static [char] = &[' ', '\t', '\n', '\r', '\x0C'];
+pub static SELECTOR_WHITESPACE: &'static [char] = &[' ', '\t', '\n', '\r', '\x0C'];
 
 /// Map node attributes to Rules whose last simple selector starts with them.
 ///
@@ -83,6 +84,7 @@ impl SelectorMap {
                               V:VecLike<DeclarationBlock>>(
                               &self,
                               node: &N,
+                              parent_bf: &Option<BloomFilter>,
                               matching_rules_list: &mut V,
                               shareable: &mut bool) {
         if self.empty {
@@ -95,6 +97,7 @@ impl SelectorMap {
         match element.get_id() {
             Some(id) => {
                 SelectorMap::get_matching_rules_from_hash(node,
+                                                          parent_bf,
                                                           &self.id_hash,
                                                           &id,
                                                           matching_rules_list,
@@ -108,10 +111,11 @@ impl SelectorMap {
                 // FIXME: Store classes pre-split as atoms to make the loop below faster.
                 for class in class_attr.split(SELECTOR_WHITESPACE) {
                     SelectorMap::get_matching_rules_from_hash(node,
-                                                                &self.class_hash,
-                                                                &Atom::from_slice(class),
-                                                                matching_rules_list,
-                                                                shareable);
+                                                              parent_bf,
+                                                              &self.class_hash,
+                                                              &Atom::from_slice(class),
+                                                              matching_rules_list,
+                                                              shareable);
                 }
             }
             None => {}
@@ -123,12 +127,14 @@ impl SelectorMap {
             &self.local_name_hash
         };
         SelectorMap::get_matching_rules_from_hash(node,
+                                                  parent_bf,
                                                   local_name_hash,
                                                   element.get_local_name(),
                                                   matching_rules_list,
                                                   shareable);
 
         SelectorMap::get_matching_rules(node,
+                                        parent_bf,
                                         self.universal_rules.as_slice(),
                                         matching_rules_list,
                                         shareable);
@@ -145,13 +151,14 @@ impl SelectorMap {
                                     N:TNode<E>,
                                     V:VecLike<DeclarationBlock>>(
                                     node: &N,
+                                    parent_bf: &Option<BloomFilter>,
                                     hash: &HashMap<Atom, Vec<Rule>>,
                                     key: &Atom,
                                     matching_rules: &mut V,
                                     shareable: &mut bool) {
         match hash.find(key) {
             Some(rules) => {
-                SelectorMap::get_matching_rules(node, rules.as_slice(), matching_rules, shareable)
+                SelectorMap::get_matching_rules(node, parent_bf, rules.as_slice(), matching_rules, shareable)
             }
             None => {}
         }
@@ -162,11 +169,12 @@ impl SelectorMap {
                           N:TNode<E>,
                           V:VecLike<DeclarationBlock>>(
                           node: &N,
+                          parent_bf: &Option<BloomFilter>,
                           rules: &[Rule],
                           matching_rules: &mut V,
                           shareable: &mut bool) {
         for rule in rules.iter() {
-            if matches_compound_selector(&*rule.selector, node, shareable) {
+            if matches_compound_selector(&*rule.selector, node, parent_bf, shareable) {
                 matching_rules.vec_push(rule.declarations.clone());
             }
         }
@@ -246,6 +254,11 @@ impl SelectorMap {
         return None
     }
 }
+
+// The bloom filter for descendant CSS selectors will have a <1% false
+// positive rate until it has this many selectors in it, then it will
+// rapidly increase.
+pub static RECOMMENDED_SELECTOR_BLOOM_FILTER_SIZE: uint = 4096;
 
 pub struct Stylist {
     element_map: PerPseudoElementSelectorMap,
@@ -336,6 +349,7 @@ impl Stylist {
                                         V:VecLike<DeclarationBlock>>(
                                         &self,
                                         element: &N,
+                                        parent_bf: &Option<BloomFilter>,
                                         style_attribute: Option<&PropertyDeclarationBlock>,
                                         pseudo_element: Option<PseudoElement>,
                                         applicable_declarations: &mut V)
@@ -354,10 +368,11 @@ impl Stylist {
 
         // Step 1: Normal rules.
         map.user_agent.normal.get_all_matching_rules(element,
+                                                     parent_bf,
                                                      applicable_declarations,
                                                      &mut shareable);
-        map.user.normal.get_all_matching_rules(element, applicable_declarations, &mut shareable);
-        map.author.normal.get_all_matching_rules(element, applicable_declarations, &mut shareable);
+        map.user.normal.get_all_matching_rules(element, parent_bf, applicable_declarations, &mut shareable);
+        map.author.normal.get_all_matching_rules(element, parent_bf, applicable_declarations, &mut shareable);
 
         // Step 2: Normal style attributes.
         style_attribute.map(|sa| {
@@ -367,6 +382,7 @@ impl Stylist {
 
         // Step 3: Author-supplied `!important` rules.
         map.author.important.get_all_matching_rules(element,
+                                                    parent_bf,
                                                     applicable_declarations,
                                                     &mut shareable);
 
@@ -378,9 +394,11 @@ impl Stylist {
 
         // Step 5: User and UA `!important` rules.
         map.user.important.get_all_matching_rules(element,
+                                                  parent_bf,
                                                   applicable_declarations,
                                                   &mut shareable);
         map.user_agent.important.get_all_matching_rules(element,
+                                                        parent_bf,
                                                         applicable_declarations,
                                                         &mut shareable);
 
@@ -449,12 +467,11 @@ impl DeclarationBlock {
     }
 }
 
-pub fn matches<E:TElement, N:TNode<E>>(selector_list: &SelectorList, element: &N) -> bool {
+pub fn matches<E:TElement, N:TNode<E>>(selector_list: &SelectorList, element: &N, parent_bf: &Option<BloomFilter>) -> bool {
     get_selector_list_selectors(selector_list).iter().any(|selector|
         selector.pseudo_element.is_none() &&
-        matches_compound_selector(&*selector.compound_selectors, element, &mut false))
+        matches_compound_selector(&*selector.compound_selectors, element, parent_bf, &mut false))
 }
-
 
 /// Determines whether the given element matches the given single or compound selector.
 ///
@@ -466,9 +483,10 @@ fn matches_compound_selector<E:TElement,
                              N:TNode<E>>(
                              selector: &CompoundSelector,
                              element: &N,
+                             parent_bf: &Option<BloomFilter>,
                              shareable: &mut bool)
                              -> bool {
-    match matches_compound_selector_internal(selector, element, shareable) {
+    match matches_compound_selector_internal(selector, element, parent_bf, shareable) {
         Matched => true,
         _ => false
     }
@@ -523,17 +541,82 @@ enum SelectorMatchingResult {
     NotMatchedGlobally,
 }
 
+/// Quickly figures out whether or not the compound selector is worth doing more
+/// work on. If the simple selectors don't match, or there's a child selector
+/// that does not appear in the bloom parent bloom filter, we can exit early.
+fn can_fast_reject<E: TElement, N: TNode<E>>(
+  mut selector: &CompoundSelector,
+  element: &N,
+  parent_bf: &Option<BloomFilter>,
+  shareable: &mut bool) -> Option<SelectorMatchingResult> {
+    if !selector.simple_selectors.iter().all(|simple_selector| {
+      matches_simple_selector(simple_selector, element, shareable) }) {
+        return Some(NotMatchedAndRestartFromClosestLaterSibling);
+    }
+
+    let bf: &BloomFilter =
+        match *parent_bf {
+            None => return None,
+            Some(ref bf) => bf,
+        };
+
+    // See if the bloom filter can exclude any of the descendant selectors, and
+    // reject if we can.
+    loop {
+         match selector.next {
+             None => break,
+             Some((ref cs, Descendant)) => selector = &**cs,
+             Some((ref cs, _)) => {
+                 selector = &**cs;
+                 continue;
+             }
+         };
+
+        for ss in selector.simple_selectors.iter() {
+            match *ss {
+                LocalNameSelector(LocalNameSelector { ref name, ref lower_name })  => {
+                    if bf.definitely_excludes(name)
+                    && bf.definitely_excludes(lower_name) {
+                        return Some(NotMatchedGlobally);
+                    }
+                },
+                NamespaceSelector(ref namespace) => {
+                    if bf.definitely_excludes(namespace) {
+                        return Some(NotMatchedGlobally);
+                    }
+                },
+                IDSelector(ref id) => {
+                    if bf.definitely_excludes(id) {
+                        return Some(NotMatchedGlobally);
+                    }
+                },
+                ClassSelector(ref class) => {
+                    if bf.definitely_excludes(&class.as_slice()) {
+                        return Some(NotMatchedGlobally);
+                    }
+                },
+                _ => {},
+            }
+        }
+
+    }
+
+    // Can't fast reject.
+    return None;
+}
+
 fn matches_compound_selector_internal<E:TElement,
                                       N:TNode<E>>(
                                       selector: &CompoundSelector,
                                       element: &N,
+                                      parent_bf: &Option<BloomFilter>,
                                       shareable: &mut bool)
                                       -> SelectorMatchingResult {
-    if !selector.simple_selectors.iter().all(|simple_selector| {
-            matches_simple_selector(simple_selector, element, shareable)
-    }) {
-        return NotMatchedAndRestartFromClosestLaterSibling
-    }
+    match can_fast_reject(selector, element, parent_bf, shareable) {
+        None => {},
+        Some(result) => return result,
+    };
+
     match selector.next {
         None => Matched,
         Some((ref next_selector, combinator)) => {
@@ -557,6 +640,7 @@ fn matches_compound_selector_internal<E:TElement,
                 if node.is_element() {
                     let result = matches_compound_selector_internal(&**next_selector,
                                                                     &node,
+                                                                    parent_bf,
                                                                     shareable);
                     match (result, combinator) {
                         // Return the status immediately.
@@ -596,7 +680,7 @@ fn matches_compound_selector_internal<E:TElement,
 /// will almost certainly break as nodes will start mistakenly sharing styles. (See the code in
 /// `main/css/matching.rs`.)
 #[inline]
-fn matches_simple_selector<E:TElement,
+pub fn matches_simple_selector<E:TElement,
                            N:TNode<E>>(
                            selector: &SimpleSelector,
                            element: &N,

@@ -12,6 +12,7 @@ use util::{LayoutDataAccess, LayoutDataWrapper};
 use wrapper::{LayoutElement, LayoutNode, PostorderNodeMutTraversal, ThreadSafeLayoutNode};
 
 use servo_util::atom::Atom;
+use servo_util::bloom::BloomFilter;
 use servo_util::cache::{Cache, LRUCache, SimpleHashCache};
 use servo_util::namespace::Null;
 use servo_util::smallvec::{SmallVec, SmallVec16};
@@ -19,7 +20,9 @@ use servo_util::str::DOMString;
 use std::mem;
 use std::hash::{Hash, sip};
 use std::slice::Items;
-use style::{After, Before, ComputedValues, DeclarationBlock, Stylist, TElement, TNode, cascade};
+use style;
+use style::{After, Before, ComputedValues, DeclarationBlock, Stylist, TElement, TNode};
+use style::cascade;
 use sync::Arc;
 
 pub struct ApplicableDeclarations {
@@ -211,16 +214,14 @@ impl StyleSharingCandidate {
             }
         };
 
-        let mut style = Some(style);
-        let mut parent_style = Some(parent_style);
         let element = node.as_element();
         if element.style_attribute().is_some() {
             return None
         }
 
         Some(StyleSharingCandidate {
-            style: style.take_unwrap(),
-            parent_style: parent_style.take_unwrap(),
+            style: style,
+            parent_style: parent_style,
             local_name: element.get_local_name().clone(),
             class: element.get_attr(&Null, "class")
                           .map(|string| string.to_string()),
@@ -278,16 +279,31 @@ pub enum StyleSharingResult<'ln> {
 }
 
 pub trait MatchMethods {
+    /// Inserts and removes the matching `Descendant` selectors from a bloom
+    /// filter. This is used to speed up CSS selector matching to remove
+    /// unnecessary tree climbs for `Descendant` queries.
+    ///
+    /// A bloom filter of the local names, namespaces, IDs, and classes is kept.
+    /// Therefore, each node must have its matching selectors inserted _after_
+    /// its own selector matching and _before_ its children start.
+    fn insert_into_bloom_filter(&self, bf: &mut BloomFilter);
+
+    /// After all the children are done css selector matching, this must be
+    /// called to reset the bloom filter after an `insert`.
+    fn remove_from_bloom_filter(&self, bf: &mut BloomFilter);
+
     /// Performs aux initialization, selector matching, cascading, and flow construction
     /// sequentially.
     fn recalc_style_for_subtree(&self,
                                 stylist: &Stylist,
                                 layout_context: &LayoutContext,
+                                parent_bf: &mut Option<BloomFilter>,
                                 applicable_declarations: &mut ApplicableDeclarations,
                                 parent: Option<LayoutNode>);
 
     fn match_node(&self,
                   stylist: &Stylist,
+                  parent_bf: &Option<BloomFilter>,
                   applicable_declarations: &mut ApplicableDeclarations,
                   shareable: &mut bool);
 
@@ -403,20 +419,24 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
 impl<'ln> MatchMethods for LayoutNode<'ln> {
     fn match_node(&self,
                   stylist: &Stylist,
+                  parent_bf: &Option<BloomFilter>,
                   applicable_declarations: &mut ApplicableDeclarations,
                   shareable: &mut bool) {
         let style_attribute = self.as_element().style_attribute().as_ref();
 
         applicable_declarations.normal_shareable =
             stylist.push_applicable_declarations(self,
+                                                 parent_bf,
                                                  style_attribute,
                                                  None,
                                                  &mut applicable_declarations.normal);
         stylist.push_applicable_declarations(self,
+                                             parent_bf,
                                              None,
                                              Some(Before),
                                              &mut applicable_declarations.before);
         stylist.push_applicable_declarations(self,
+                                             parent_bf,
                                              None,
                                              Some(After),
                                              &mut applicable_declarations.after);
@@ -455,9 +475,63 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
         CannotShare(true)
     }
 
+    // The below two functions are copy+paste because I can't figure out how to
+    // write a function which takes a generic function. I don't think it can
+    // be done.
+    //
+    // Ideally, I'd want something like:
+    //
+    //   > fn with_really_simple_selectors(&self, f: <H: Hash>|&H|);
+
+
+    // In terms of `SimpleSelector`s, these two functions will insert and remove:
+    //   - `LocalNameSelector`
+    //   - `NamepaceSelector`
+    //   - `IDSelector`
+    //   - `ClassSelector`
+
+    fn insert_into_bloom_filter(&self, bf: &mut BloomFilter) {
+        // Only elements are interesting.
+        if !self.is_element() { return; }
+        let element = self.as_element();
+
+        bf.insert(element.get_local_name());
+        bf.insert(element.get_namespace());
+        element.get_id().map(|id| bf.insert(&id));
+
+        // TODO: case-sensitivity depends on the document type and quirks mode
+        element
+            .get_attr(&Null, "class")
+            .map(|attr| {
+                for c in attr.split(style::SELECTOR_WHITESPACE) {
+                    bf.insert(&c);
+                }
+            });
+    }
+
+    fn remove_from_bloom_filter(&self, bf: &mut BloomFilter) {
+        // Only elements are interesting.
+        if !self.is_element() { return; }
+        let element = self.as_element();
+
+        bf.remove(element.get_local_name());
+        bf.remove(element.get_namespace());
+        element.get_id().map(|id| bf.remove(&id));
+
+        // TODO: case-sensitivity depends on the document type and quirks mode
+        element
+            .get_attr(&Null, "class")
+            .map(|attr| {
+                for c in attr.split(style::SELECTOR_WHITESPACE) {
+                    bf.remove(&c);
+                }
+            });
+    }
+
     fn recalc_style_for_subtree(&self,
                                 stylist: &Stylist,
                                 layout_context: &LayoutContext,
+                                parent_bf: &mut Option<BloomFilter>,
                                 applicable_declarations: &mut ApplicableDeclarations,
                                 parent: Option<LayoutNode>) {
         self.initialize_layout_data(layout_context.shared.layout_chan.clone());
@@ -471,7 +545,7 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
         match sharing_result {
             CannotShare(mut shareable) => {
                 if self.is_element() {
-                    self.match_node(stylist, applicable_declarations, &mut shareable)
+                    self.match_node(stylist, &*parent_bf, applicable_declarations, &mut shareable);
                 }
 
                 unsafe {
@@ -490,11 +564,22 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
             StyleWasShared(index) => layout_context.style_sharing_candidate_cache().touch(index),
         }
 
+        match *parent_bf {
+            None => {},
+            Some(ref mut pbf) => self.insert_into_bloom_filter(pbf),
+        }
+
         for kid in self.children() {
             kid.recalc_style_for_subtree(stylist,
-                                        layout_context,
-                                        applicable_declarations,
-                                        Some(self.clone()))
+                                         layout_context,
+                                         parent_bf,
+                                         applicable_declarations,
+                                         Some(self.clone()));
+        }
+
+        match *parent_bf {
+            None => {},
+            Some(ref mut pbf) => self.remove_from_bloom_filter(pbf),
         }
 
         // Construct flows.
@@ -555,4 +640,3 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
         }
     }
 }
-

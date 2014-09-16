@@ -38,6 +38,7 @@ pub enum TimeProfilerCategory {
     CompositingCategory,
     LayoutQueryCategory,
     LayoutPerformCategory,
+    LayoutMaxSelectorMatchesCategory,
     LayoutStyleRecalcCategory,
     LayoutSelectorMatchCategory,
     LayoutTreeBuilderCategory,
@@ -66,6 +67,7 @@ impl TimeProfilerCategory {
         buckets.insert(CompositingCategory, vec!());
         buckets.insert(LayoutQueryCategory, vec!());
         buckets.insert(LayoutPerformCategory, vec!());
+        buckets.insert(LayoutMaxSelectorMatchesCategory, vec!());
         buckets.insert(LayoutStyleRecalcCategory, vec!());
         buckets.insert(LayoutSelectorMatchCategory, vec!());
         buckets.insert(LayoutTreeBuilderCategory, vec!());
