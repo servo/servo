@@ -20,5 +20,5 @@ You can define the maximum number of threads in layout level, rendering by cpu, 
 This command will measure power and performance for 1 to 5 threads in layout with CPU rendering when we are running the about-mozilla.html benchmark
 
 ``` sh
-sudo python PowerMeasure.py -L 5 -c cpu -b "/Desktop/servo/src/test/html/about-mozilla.html -o /Desktop/Results/"
+sudo python PowerMeasure.py -L 5 -c cpu -b "/Desktop/servo/src/test/html/about-mozilla.html" -o /Desktop/Results/
 ```
