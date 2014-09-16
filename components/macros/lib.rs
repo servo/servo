@@ -62,14 +62,11 @@ impl LintPass for TransmutePass {
 }
 
 fn lint_unrooted_ty(cx: &Context, ty: &ast::Ty, warning: &str) {
-        let ty = match ty.node {
-            ast::TyBox(ref t) | ast::TyUniq(ref t) |
-            ast::TyVec(ref t) | ast::TyFixedLengthVec(ref t, _) |
-            ast::TyPtr(ast::MutTy { ty: ref t, ..}) | ast::TyRptr(_, ast::MutTy { ty: ref t, ..}) => &**t,
-            _ => ty
-        };
-        match ty.node {
-            ast::TyPath(_, _, id) => {
+    match ty.node {
+        ast::TyBox(ref t) | ast::TyUniq(ref t) |
+        ast::TyVec(ref t) | ast::TyFixedLengthVec(ref t, _) |
+        ast::TyPtr(ast::MutTy { ty: ref t, ..}) | ast::TyRptr(_, ast::MutTy { ty: ref t, ..}) => lint_unrooted_ty(cx, &**t, warning),
+        ast::TyPath(_, _, id) => {
                 match cx.tcx.def_map.borrow().get_copy(&id) {
                     def::DefTy(def_id) => {
                         if ty::has_attr(cx.tcx, def_id, "must_root") {
@@ -80,7 +77,7 @@ fn lint_unrooted_ty(cx: &Context, ty: &ast::Ty, warning: &str) {
                 }
             }
             _ => (),
-    }
+    };
 }
 
 impl LintPass for UnrootedPass {
@@ -125,7 +122,7 @@ impl LintPass for UnrootedPass {
             ast::DefaultBlock => {
                 for arg in decl.inputs.iter() {
                     lint_unrooted_ty(cx, &*arg.ty,
-                                     "Type must be rooted, use #[must_root] on the struct definition to propagate")
+                                     "Type must be rooted, use #[must_root] on the fn definition to propagate")
                 }
             }
             _ => () // fn is `unsafe`
