@@ -269,6 +269,7 @@ dependencies = [
 name = "layout"
 version = "0.0.1"
 dependencies = [
+ "encoding 0.1.0 (git+https://github.com/lifthrasiir/rust-encoding#12b6610adff6eddc060691888c36017cd3ad57f7)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#2982b770db6e5e3270305e0fd6b8068f6f80a489)",
  "gfx 0.0.1",
  "layout_traits 0.0.1",
@@ -415,6 +416,7 @@ dependencies = [
  "msg 0.0.1",
  "net 0.0.1",
  "script 0.0.1",
+ "url 0.1.0 (git+https://github.com/servo/rust-url#678bb4d52638b1cfdab78ef8e521566c9240fb1a)",
  "util 0.0.1",
 ]
 
@@ -445,17 +447,17 @@ source = "git+https://github.com/servo/rust-stb-image#f5022de4ad6bb474a03493d1f2
 [[package]]
 name = "string_cache"
 version = "0.0.0"
-source = "git+https://github.com/servo/string-cache#3e5a5178088729772d95fe8f1450511497e08289"
+source = "git+https://github.com/servo/string-cache?ref=pre-rustup#df34aaaaed9c4598eef5f4445d28aeb5afac574a"
 dependencies = [
  "phf 0.0.0 (git+https://github.com/sfackler/rust-phf#fa5d803428dd760287330571c919c7c5e11b2e1b)",
  "phf_mac 0.0.0 (git+https://github.com/sfackler/rust-phf#fa5d803428dd760287330571c919c7c5e11b2e1b)",
- "string_cache_macros 0.0.0 (git+https://github.com/servo/string-cache#3e5a5178088729772d95fe8f1450511497e08289)",
+ "string_cache_macros 0.0.0 (git+https://github.com/servo/string-cache?ref=pre-rustup#df34aaaaed9c4598eef5f4445d28aeb5afac574a)",
 ]
 
 [[package]]
 name = "string_cache_macros"
 version = "0.0.0"
-source = "git+https://github.com/servo/string-cache#3e5a5178088729772d95fe8f1450511497e08289"
+source = "git+https://github.com/servo/string-cache?ref=pre-rustup#df34aaaaed9c4598eef5f4445d28aeb5afac574a"
 
 [[package]]
 name = "style"
@@ -487,7 +489,7 @@ version = "0.0.1"
 dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure#9c5567b79d8b87e8ef3b48c5842f453978035d21)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#2982b770db6e5e3270305e0fd6b8068f6f80a489)",
- "string_cache 0.0.0 (git+https://github.com/servo/string-cache#3e5a5178088729772d95fe8f1450511497e08289)",
+ "string_cache 0.0.0 (git+https://github.com/servo/string-cache?ref=pre-rustup#df34aaaaed9c4598eef5f4445d28aeb5afac574a)",
  "task_info 0.0.1",
 ]
 
@@ -495,3 +497,4 @@ dependencies = [
 name = "xlib"
 version = "0.1.0"
 source = "git+https://github.com/servo/rust-xlib#79904fb42ff8a0e888f70fae336fbf6c11f1e6c8"
+
