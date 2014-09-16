@@ -3,6 +3,7 @@
 set -e
 
 build_docs() {
+    echo "Uploading documentation"
     ./mach doc
     cp etc/doc.servo.org/* target/doc/
     cp -R rust/doc/* target/doc/
@@ -13,14 +14,6 @@ build_docs() {
         ghp-import -n target/doc
         git push -qf https://${TOKEN}@github.com/servo/doc.servo.org.git gh-pages
     fi
-}
-
-build_servo() {
-    ./mach build -j 2
-}
-
-build_cef() {
-    ./mach build-cef -j 2
 }
 
 IFS="," read -ra tasks <<< "${TASKS}"
@@ -41,6 +34,9 @@ for t in "${tasks[@]}"; do
             ;;
         build-cef)
             ./mach build-cef -j 2
+            ;;
+        doc)
+            build_docs
             ;;
         test-content)
             ./mach test-content
