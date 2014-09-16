@@ -2,12 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use dom::bindings::codegen::Bindings::HTMLOptionElementBinding;
 use dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
-use dom::bindings::codegen::InheritTypes::HTMLOptionElementDerived;
+use dom::bindings::codegen::InheritTypes::{CharacterDataCast, ElementCast, HTMLElementCast, NodeCast};
+use dom::bindings::codegen::InheritTypes::{HTMLOptionElementDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived};
+use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
+use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::element::{AttributeHandlers, Element, HTMLOptionElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -16,7 +20,8 @@ use dom::node::{DisabledStateHelpers, Node, NodeHelpers, ElementNodeTypeId};
 use dom::virtualmethods::VirtualMethods;
 
 use servo_util::atom::Atom;
-use servo_util::str::DOMString;
+use servo_util::namespace;
+use servo_util::str::{DOMString, split_html_space_chars};
 
 #[deriving(Encodable)]
 #[must_root]
@@ -44,6 +49,24 @@ impl HTMLOptionElement {
     }
 }
 
+fn collect_text(node: &JSRef<Node>, value: &mut DOMString) {
+    let elem: JSRef<Element> = ElementCast::to_ref(*node).unwrap();
+    let svg_script = elem.namespace == namespace::SVG && elem.local_name.as_slice() == "script";
+    let html_script = node.is_htmlscriptelement();
+    if svg_script || html_script {
+        return;
+    } else {
+        for child in node.children() {
+            if child.is_text() {
+                let characterdata: JSRef<CharacterData> = CharacterDataCast::to_ref(child).unwrap();
+                value.push_str(characterdata.Data().as_slice());
+            } else {
+                collect_text(&child, value);
+            }
+        }
+    }
+}
+
 impl<'a> HTMLOptionElementMethods for JSRef<'a, HTMLOptionElement> {
     // http://www.whatwg.org/html/#dom-option-disabled
     make_bool_getter!(Disabled)
@@ -52,6 +75,21 @@ impl<'a> HTMLOptionElementMethods for JSRef<'a, HTMLOptionElement> {
     fn SetDisabled(&self, disabled: bool) {
         let elem: JSRef<Element> = ElementCast::from_ref(*self);
         elem.set_bool_attribute("disabled", disabled)
+    }
+
+    // http://www.whatwg.org/html/#dom-option-text
+    fn Text(&self) -> DOMString {
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        let mut content = String::new();
+        collect_text(&node, &mut content);
+        let v: Vec<&str> = split_html_space_chars(content.as_slice()).collect();
+        v.connect(" ")
+    }
+
+    // http://www.whatwg.org/html/#dom-option-text
+    fn SetText(&self, value: DOMString) {
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        node.SetTextContent(Some(value))
     }
 }
 
