@@ -45,9 +45,6 @@ impl Comment {
     }
 }
 
-pub trait CommentMethods {
-}
-
 impl Reflectable for Comment {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.characterdata.reflector()
