@@ -140,6 +140,8 @@ class MachCommands(CommandBase):
              allow_all_args=True)
     @CommandArgument('params', default=None, nargs='...',
                      help="Command-line arguments to be passed through to wpt/run.sh")
-    def test_wpt(self, params):
+    def test_wpt(self, params=None):
+        if params is None:
+            params = []
         return subprocess.call(["bash", path.join("tests", "wpt", "run.sh")] + params,
                                env=self.build_env())
