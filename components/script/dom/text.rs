@@ -17,6 +17,7 @@ use servo_util::str::DOMString;
 
 /// An HTML text node.
 #[deriving(Encodable)]
+#[must_root]
 pub struct Text {
     pub characterdata: CharacterData,
 }

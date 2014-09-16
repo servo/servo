@@ -25,7 +25,6 @@ pub struct NodeList {
 }
 
 impl NodeList {
-    #[allow(unrooted_must_root)]
     pub fn new_inherited(list_type: NodeListType) -> NodeList {
         NodeList {
             list_type: list_type,
@@ -33,7 +32,6 @@ impl NodeList {
         }
     }
 
-    #[allow(unrooted_must_root)]
     pub fn new(window: &JSRef<Window>,
                list_type: NodeListType) -> Temporary<NodeList> {
         reflect_dom_object(box NodeList::new_inherited(list_type),

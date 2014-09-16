@@ -60,6 +60,7 @@ impl DOMErrorName {
 }
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct DOMException {
     pub code: DOMErrorName,
     pub reflector_: Reflector

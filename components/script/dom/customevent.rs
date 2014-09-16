@@ -19,6 +19,7 @@ use servo_util::str::DOMString;
 use std::cell::Cell;
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct CustomEvent {
     event: Event,
     detail: Traceable<Cell<Traceable<JSVal>>>,

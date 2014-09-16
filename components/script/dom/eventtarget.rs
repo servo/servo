@@ -62,6 +62,7 @@ pub struct EventListenerEntry {
 }
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct EventTarget {
     pub type_id: EventTargetTypeId,
     reflector_: Reflector,

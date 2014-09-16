@@ -30,6 +30,7 @@ pub enum WorkerGlobalScopeId {
 }
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct WorkerGlobalScope {
     pub eventtarget: EventTarget,
     worker_url: Untraceable<Url>,

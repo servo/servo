@@ -11,6 +11,7 @@ use dom::window::Window;
 use servo_util::geometry::Au;
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct DOMRect {
     reflector_: Reflector,
     top: f32,
@@ -34,8 +35,8 @@ impl DOMRect {
     pub fn new(window: &JSRef<Window>,
                top: Au, bottom: Au,
                left: Au, right: Au) -> Temporary<DOMRect> {
-        let rect = DOMRect::new_inherited(top, bottom, left, right);
-        reflect_dom_object(box rect, &Window(*window), DOMRectBinding::Wrap)
+        reflect_dom_object(box DOMRect::new_inherited(top, bottom, left, right),
+                           &Window(*window), DOMRectBinding::Wrap)
     }
 }
 

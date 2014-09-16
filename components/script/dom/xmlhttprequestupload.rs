@@ -12,6 +12,7 @@ use dom::xmlhttprequest::{XMLHttpRequestUploadTypeId};
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct XMLHttpRequestUpload {
     eventtarget: XMLHttpRequestEventTarget
 }

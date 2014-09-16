@@ -455,8 +455,9 @@ pub fn reflect_dom_object<T: Reflectable>
 }
 
 /// A struct to store a reference to the reflector of a DOM object.
-#[allow(raw_pointer_deriving)]
+#[allow(raw_pointer_deriving, unrooted_must_root)]
 #[deriving(PartialEq)]
+#[must_root]
 pub struct Reflector {
     object: Cell<*mut JSObject>,
 }

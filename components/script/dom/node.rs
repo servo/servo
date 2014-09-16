@@ -68,6 +68,7 @@ use serialize::{Encoder, Encodable};
 
 /// An HTML node.
 #[deriving(Encodable)]
+#[must_root]
 pub struct Node {
     /// The JavaScript reflector for this node.
     pub eventtarget: EventTarget,

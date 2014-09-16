@@ -12,6 +12,7 @@ use dom::eventtarget::{EventTarget, EventTargetHelpers, XMLHttpRequestTargetType
 use dom::xmlhttprequest::XMLHttpRequestId;
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct XMLHttpRequestEventTarget {
     pub eventtarget: EventTarget,
 }

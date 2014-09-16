@@ -12,6 +12,7 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::document::Document;
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct Range {
     reflector_: Reflector
 }

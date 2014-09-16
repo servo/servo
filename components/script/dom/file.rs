@@ -11,6 +11,7 @@ use dom::blob::{Blob, BlobType, FileTypeId};
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct File {
     pub blob: Blob,
     pub name: DOMString,

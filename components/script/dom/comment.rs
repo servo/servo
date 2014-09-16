@@ -17,6 +17,7 @@ use servo_util::str::DOMString;
 
 /// An HTML comment.
 #[deriving(Encodable)]
+#[must_root]
 pub struct Comment {
     pub characterdata: CharacterData,
 }
@@ -35,8 +36,8 @@ impl Comment {
     }
 
     pub fn new(text: DOMString, document: &JSRef<Document>) -> Temporary<Comment> {
-        let node = Comment::new_inherited(text, document);
-        Node::reflect_node(box node, document, CommentBinding::Wrap)
+        Node::reflect_node(box Comment::new_inherited(text, document),
+                           document, CommentBinding::Wrap)
     }
 
     pub fn Constructor(global: &GlobalRef, data: DOMString) -> Fallible<Temporary<Comment>> {

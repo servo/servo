@@ -14,6 +14,7 @@ use servo_util::str::DOMString;
 
 /// The `DOCTYPE` tag.
 #[deriving(Encodable)]
+#[must_root]
 pub struct DocumentType {
     pub node: Node,
     pub name: DOMString,
@@ -40,7 +41,7 @@ impl DocumentType {
             system_id: system_id.unwrap_or("".to_string())
         }
     }
-
+    #[allow(unrooted_must_root)]
     pub fn new(name: DOMString,
                public_id: Option<DOMString>,
                system_id: Option<DOMString>,
