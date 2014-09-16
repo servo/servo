@@ -513,6 +513,10 @@ pub struct BlockFlow {
     /// block formatting contexts.
     previous_float_inline_size: Option<Au>,
 
+    /// The block-size of the block container of this block, if it is an explicit size (does not
+    /// depend on content heights).  Used for computing percentage values for `height`.
+    block_container_explicit_block_size: Option<Au>,
+
     /// Additional floating flow members.
     pub float: Option<Box<FloatedBlockInfo>>
 }
@@ -525,6 +529,7 @@ impl BlockFlow {
             is_root: false,
             static_b_offset: Au::new(0),
             previous_float_inline_size: None,
+            block_container_explicit_block_size: None,
             float: None
         }
     }
@@ -536,6 +541,7 @@ impl BlockFlow {
             is_root: false,
             static_b_offset: Au::new(0),
             previous_float_inline_size: None,
+            block_container_explicit_block_size: None,
             float: None
         }
     }
@@ -550,6 +556,7 @@ impl BlockFlow {
             is_root: false,
             static_b_offset: Au::new(0),
             previous_float_inline_size: None,
+            block_container_explicit_block_size: None,
             float: Some(box FloatedBlockInfo::new(float_kind, base.writing_mode)),
             base: base,
         }
@@ -974,8 +981,9 @@ impl BlockFlow {
             return
         }
 
-        let mut candidate_block_size_iterator = CandidateBSizeIterator::new(self.fragment.style(),
-                                                                         None);
+        let mut candidate_block_size_iterator = CandidateBSizeIterator::new(
+            self.fragment.style(),
+            self.block_container_explicit_block_size);
         for candidate_block_size in candidate_block_size_iterator {
             candidate_block_size_iterator.candidate_value = match candidate_block_size {
                 Auto => block_size,
@@ -1353,6 +1361,17 @@ impl BlockFlow {
         // seen before it.)
         let mut last_float_inline_size = None;
 
+        // Calculate non-auto block size to pass to children.
+        let content_block_size = self.fragment.style().content_block_size();
+        let explicit_content_size = match (content_block_size,
+                                           self.block_container_explicit_block_size) {
+            (LPA_Percentage(percent), Some(container_size)) => {
+                Some(container_size.scale_by(percent))
+            }
+            (LPA_Percentage(_), None) | (LPA_Auto, _) => None,
+            (LPA_Length(length), _) => Some(length),
+        };
+
         for (i, kid) in self.base.child_iter().enumerate() {
             if kid.is_block_flow() {
                 let kid_block = kid.as_block();
@@ -1364,6 +1383,7 @@ impl BlockFlow {
                 } else {
                     kid_block.previous_float_inline_size = last_float_inline_size
                 }
+                kid_block.block_container_explicit_block_size = explicit_content_size;
             }
 
             // The inline-start margin edge of the child flow is at our inline-start content edge, and its inline-size
@@ -1609,7 +1629,8 @@ impl Flow for BlockFlow {
     ///
     /// This is called on child flows by the parent. Hence, we can assume that `assign_block-size` has
     /// already been called on the child (because of the bottom-up traversal).
-    fn assign_block_size_for_inorder_child_if_necessary<'a>(&mut self, layout_context: &'a LayoutContext<'a>)
+    fn assign_block_size_for_inorder_child_if_necessary<'a>(&mut self,
+                                                            layout_context: &'a LayoutContext<'a>)
                                                     -> bool {
         if self.is_float() {
             self.place_float();
@@ -1624,7 +1645,6 @@ impl Flow for BlockFlow {
     }
 
     fn assign_block_size<'a>(&mut self, ctx: &'a LayoutContext<'a>) {
-
         if self.is_replaced_content() {
             // Assign block-size for fragment if it is an image fragment.
             self.fragment.assign_replaced_block_size_if_necessary();
