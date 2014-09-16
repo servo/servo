@@ -220,6 +220,7 @@ pub trait LayoutElementHelpers {
 }
 
 impl LayoutElementHelpers for JS<Element> {
+    #[allow(unrooted_must_root)]
     unsafe fn html_element_in_html_document_for_layout(&self) -> bool {
         if (*self.unsafe_get()).namespace != namespace::HTML {
             return false

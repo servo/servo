@@ -58,6 +58,7 @@ pub mod dom {
 
         /// Generated JS-Rust bindings.
         pub mod codegen {
+            #[allow(unrooted_must_root)]
             pub mod Bindings;
             pub mod InterfaceTypes;
             pub mod InheritTypes;

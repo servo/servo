@@ -108,8 +108,8 @@ impl Attr {
     pub fn new(window: &JSRef<Window>, local_name: Atom, value: AttrValue,
                name: Atom, namespace: Namespace,
                prefix: Option<DOMString>, owner: &JSRef<Element>) -> Temporary<Attr> {
-        let attr = Attr::new_inherited(local_name, value, name, namespace, prefix, owner);
-        reflect_dom_object(box attr, &Window(*window), AttrBinding::Wrap)
+        reflect_dom_object(box Attr::new_inherited(local_name, value, name, namespace, prefix, owner),
+                           &Window(*window), AttrBinding::Wrap)
     }
 }
 

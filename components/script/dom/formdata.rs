@@ -55,6 +55,7 @@ impl FormData {
 }
 
 impl<'a> FormDataMethods for JSRef<'a, FormData> {
+    #[allow(unrooted_must_root)]
     fn Append(&self, name: DOMString, value: &JSRef<Blob>, filename: Option<DOMString>) {
         let file = FileData(JS::from_rooted(&self.get_file_from_blob(value, filename)));
         self.data.deref().borrow_mut().insert_or_update_with(name.clone(), vec!(file.clone()),
@@ -86,7 +87,7 @@ impl<'a> FormDataMethods for JSRef<'a, FormData> {
     fn Has(&self, name: DOMString) -> bool {
         self.data.deref().borrow().contains_key_equiv(&name)
     }
-
+    #[allow(unrooted_must_root)]
     fn Set(&self, name: DOMString, value: &JSRef<Blob>, filename: Option<DOMString>) {
         let file = FileData(JS::from_rooted(&self.get_file_from_blob(value, filename)));
         self.data.deref().borrow_mut().insert(name, vec!(file));

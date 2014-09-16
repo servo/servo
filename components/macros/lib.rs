@@ -85,7 +85,8 @@ impl LintPass for UnrootedPass {
     fn check_struct_def(&mut self, cx: &Context, def: &ast::StructDef, _i: ast::Ident, _gen: &ast::Generics, id: ast::NodeId) {
         if cx.tcx.map.expect_item(id).attrs.iter().all(|a| !a.check_name("must_root")) {
             for ref field in def.fields.iter() {
-                lint_unrooted_ty(cx, &*field.node.ty, "Type must be rooted, use #[must_root] on the struct definition to propagate");
+                lint_unrooted_ty(cx, &*field.node.ty,
+                                 "Type must be rooted, use #[must_root] on the struct definition to propagate");
             }
         }
     }
@@ -96,7 +97,8 @@ impl LintPass for UnrootedPass {
             match var.node.kind {
                 ast::TupleVariantKind(ref vec) => {
                     for ty in vec.iter() {
-                        lint_unrooted_ty(cx, &*ty.ty, "Type must be rooted, use #[must_root] on the enum definition to propagate")
+                        lint_unrooted_ty(cx, &*ty.ty,
+                                         "Type must be rooted, use #[must_root] on the enum definition to propagate")
                     }
                 }
                 _ => () // Struct variants already caught by check_struct_def
@@ -104,21 +106,53 @@ impl LintPass for UnrootedPass {
         }
     }
 
-    fn check_fn(&mut self, cx: &Context, kind: &syntax::visit::FnKind, decl: &ast::FnDecl, block: &ast::Block, _span: syntax::codemap::Span, _id: ast::NodeId) {
+    fn check_fn(&mut self, cx: &Context, kind: &syntax::visit::FnKind, decl: &ast::FnDecl,
+                block: &ast::Block, _span: syntax::codemap::Span, _id: ast::NodeId) {
         match *kind {
             syntax::visit::FkItemFn(i, _, _, _) |
             syntax::visit::FkMethod(i, _, _) if i.as_str() == "new" || i.as_str() == "new_inherited" => {
-
+                return;
             }
             _ => ()
         }
         match block.rules {
             ast::DefaultBlock => {
                 for arg in decl.inputs.iter() {
-                    lint_unrooted_ty(cx, &*arg.ty, "Type must be rooted, use #[must_root] on the struct definition to propagate")
+                    lint_unrooted_ty(cx, &*arg.ty,
+                                     "Type must be rooted, use #[must_root] on the struct definition to propagate")
                 }
             }
             _ => () // fn is `unsafe`
+        }
+    }
+
+    // Partially copied from rustc::middle::lint::builtin
+    // Catches `let` statements which store a #[must_root] value
+    // Expressions which return out of blocks eventually end up in a `let`
+    // statement or a function return (which will be caught when it is used elsewhere)
+    fn check_stmt(&mut self, cx: &Context, s: &ast::Stmt) {
+        // Catch the let binding
+        let expr = match s.node {
+            ast::StmtDecl(ref decl, _) => match decl.node {
+                ast::DeclLocal(ref loc) => match loc.init {
+                        Some(ref e) => &**e,
+                        _ => return
+                },
+                _ => return
+            },
+            _ => return
+        };
+
+        let t = expr_ty(cx.tcx, &*expr);
+        match ty::get(t).sty {
+            ty::ty_struct(did, _) |
+            ty::ty_enum(did, _) => {
+                if ty::has_attr(cx.tcx, did, "must_root") {
+                    cx.span_lint(UNROOTED_MUST_ROOT, expr.span,
+                                 format!("Expression of type {} must be rooted", t.repr(cx.tcx)).as_slice());
+                }
+            }
+            _ => {}
         }
     }
 }
