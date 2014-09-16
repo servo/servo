@@ -8,8 +8,7 @@ extern crate azure;
 extern crate geom;
 extern crate layers;
 extern crate serialize;
-extern crate servo_util = "util";
-extern crate std;
+extern crate "util" as servo_util;
 extern crate url;
 
 #[cfg(target_os="macos")]

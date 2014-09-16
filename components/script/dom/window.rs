@@ -48,6 +48,7 @@ use std::hash::{Hash, sip};
 use std::io::timer::Timer;
 use std::ptr;
 use std::rc::Rc;
+use std::time::duration::Duration;
 use time;
 
 #[deriving(PartialEq, Encodable, Eq)]
@@ -85,7 +86,7 @@ pub struct Window {
     pub image_cache_task: ImageCacheTask,
     pub active_timers: Traceable<RefCell<HashMap<TimerId, TimerHandle>>>,
     next_timer_handle: Traceable<Cell<i32>>,
-    pub compositor: Untraceable<Box<ScriptListener>>,
+    pub compositor: Untraceable<Box<ScriptListener+'static>>,
     pub browser_context: Traceable<RefCell<Option<BrowserContext>>>,
     pub page: Rc<Page>,
     performance: Cell<Option<JS<Performance>>>,
@@ -444,7 +445,7 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
             let mut rval = NullValue();
             unsafe {
                 JS_CallFunctionValue(cx, this_value, *data.funval,
-                                     0, ptr::mut_null(), &mut rval);
+                                     0, ptr::null_mut(), &mut rval);
             }
         });
 
@@ -473,10 +474,11 @@ impl<'a> PrivateWindowHelpers for JSRef<'a, Window> {
         };
         spawn_named(spawn_name, proc() {
             let mut tm = tm;
+            let duration = Duration::milliseconds(timeout as i64);
             let timeout_port = if is_interval {
-                tm.periodic(timeout)
+                tm.periodic(duration)
             } else {
-                tm.oneshot(timeout)
+                tm.oneshot(duration)
             };
             let cancel_port = cancel_port;
 
@@ -519,7 +521,7 @@ impl Window {
                page: Rc<Page>,
                script_chan: ScriptChan,
                control_chan: ScriptControlChan,
-               compositor: Box<ScriptListener>,
+               compositor: Box<ScriptListener+'static>,
                image_cache_task: ImageCacheTask)
                -> Temporary<Window> {
         let win = box Window {

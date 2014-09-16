@@ -138,82 +138,82 @@ pub trait VirtualMethods {
 /// method call on the trait object will invoke the corresponding method on the
 /// concrete type, propagating up the parent hierarchy unless otherwise
 /// interrupted.
-pub fn vtable_for<'a>(node: &'a JSRef<Node>) -> &'a VirtualMethods {
+pub fn vtable_for<'a>(node: &'a JSRef<'a, Node>) -> &'a VirtualMethods + 'a {
     match node.type_id() {
         ElementNodeTypeId(HTMLAnchorElementTypeId) => {
-            let element: &JSRef<HTMLAnchorElement> = HTMLAnchorElementCast::to_borrowed_ref(node).unwrap();
-            element as &VirtualMethods
+            let element: &'a JSRef<'a, HTMLAnchorElement> = HTMLAnchorElementCast::to_borrowed_ref(node).unwrap();
+            element as &'a VirtualMethods + 'a
         }
         ElementNodeTypeId(HTMLAreaElementTypeId) => {
-            let element: &JSRef<HTMLAreaElement> = HTMLAreaElementCast::to_borrowed_ref(node).unwrap();
-            element as &VirtualMethods
+            let element: &'a JSRef<'a, HTMLAreaElement> = HTMLAreaElementCast::to_borrowed_ref(node).unwrap();
+            element as &'a VirtualMethods + 'a
         }
         ElementNodeTypeId(HTMLBodyElementTypeId) => {
-            let element: &JSRef<HTMLBodyElement> = HTMLBodyElementCast::to_borrowed_ref(node).unwrap();
-            element as &VirtualMethods
+            let element: &'a JSRef<'a, HTMLBodyElement> = HTMLBodyElementCast::to_borrowed_ref(node).unwrap();
+            element as &'a VirtualMethods + 'a
         }
         ElementNodeTypeId(HTMLButtonElementTypeId) => {
-            let element: &JSRef<HTMLButtonElement> = HTMLButtonElementCast::to_borrowed_ref(node).unwrap();
-            element as &VirtualMethods
+            let element: &'a JSRef<'a, HTMLButtonElement> = HTMLButtonElementCast::to_borrowed_ref(node).unwrap();
+            element as &'a VirtualMethods + 'a
         }
         ElementNodeTypeId(HTMLCanvasElementTypeId) => {
-            let element: &JSRef<HTMLCanvasElement> = HTMLCanvasElementCast::to_borrowed_ref(node).unwrap();
-            element as &VirtualMethods
+            let element: &'a JSRef<'a, HTMLCanvasElement> = HTMLCanvasElementCast::to_borrowed_ref(node).unwrap();
+            element as &'a VirtualMethods + 'a
         }
         ElementNodeTypeId(HTMLFieldSetElementTypeId) => {
-            let element: &JSRef<HTMLFieldSetElement> = HTMLFieldSetElementCast::to_borrowed_ref(node).unwrap();
-            element as &VirtualMethods
+            let element: &'a JSRef<'a, HTMLFieldSetElement> = HTMLFieldSetElementCast::to_borrowed_ref(node).unwrap();
+            element as &'a VirtualMethods + 'a
         }
         ElementNodeTypeId(HTMLImageElementTypeId) => {
-            let element: &JSRef<HTMLImageElement> = HTMLImageElementCast::to_borrowed_ref(node).unwrap();
-            element as &VirtualMethods
+            let element: &'a JSRef<'a, HTMLImageElement> = HTMLImageElementCast::to_borrowed_ref(node).unwrap();
+            element as &'a VirtualMethods + 'a
         }
         ElementNodeTypeId(HTMLIFrameElementTypeId) => {
-            let element: &JSRef<HTMLIFrameElement> = HTMLIFrameElementCast::to_borrowed_ref(node).unwrap();
-            element as &VirtualMethods
+            let element: &'a JSRef<'a, HTMLIFrameElement> = HTMLIFrameElementCast::to_borrowed_ref(node).unwrap();
+            element as &'a VirtualMethods + 'a
         }
         ElementNodeTypeId(HTMLInputElementTypeId) => {
-            let element: &JSRef<HTMLInputElement> = HTMLInputElementCast::to_borrowed_ref(node).unwrap();
-            element as &VirtualMethods
+            let element: &'a JSRef<'a, HTMLInputElement> = HTMLInputElementCast::to_borrowed_ref(node).unwrap();
+            element as &'a VirtualMethods + 'a
         }
         ElementNodeTypeId(HTMLLinkElementTypeId) => {
-            let element: &JSRef<HTMLLinkElement> = HTMLLinkElementCast::to_borrowed_ref(node).unwrap();
-            element as &VirtualMethods
+            let element: &'a JSRef<'a, HTMLLinkElement> = HTMLLinkElementCast::to_borrowed_ref(node).unwrap();
+            element as &'a VirtualMethods + 'a
         }
         ElementNodeTypeId(HTMLObjectElementTypeId) => {
-            let element: &JSRef<HTMLObjectElement> = HTMLObjectElementCast::to_borrowed_ref(node).unwrap();
-            element as &VirtualMethods
+            let element: &'a JSRef<'a, HTMLObjectElement> = HTMLObjectElementCast::to_borrowed_ref(node).unwrap();
+            element as &'a VirtualMethods + 'a
         }
         ElementNodeTypeId(HTMLOptGroupElementTypeId) => {
-            let element: &JSRef<HTMLOptGroupElement> = HTMLOptGroupElementCast::to_borrowed_ref(node).unwrap();
-            element as &VirtualMethods
+            let element: &'a JSRef<'a, HTMLOptGroupElement> = HTMLOptGroupElementCast::to_borrowed_ref(node).unwrap();
+            element as &'a VirtualMethods + 'a
         }
         ElementNodeTypeId(HTMLOptionElementTypeId) => {
-            let element: &JSRef<HTMLOptionElement> = HTMLOptionElementCast::to_borrowed_ref(node).unwrap();
-            element as &VirtualMethods
+            let element: &'a JSRef<'a, HTMLOptionElement> = HTMLOptionElementCast::to_borrowed_ref(node).unwrap();
+            element as &'a VirtualMethods + 'a
         }
         ElementNodeTypeId(HTMLSelectElementTypeId) => {
-            let element: &JSRef<HTMLSelectElement> = HTMLSelectElementCast::to_borrowed_ref(node).unwrap();
-            element as &VirtualMethods
+            let element: &'a JSRef<'a, HTMLSelectElement> = HTMLSelectElementCast::to_borrowed_ref(node).unwrap();
+            element as &'a VirtualMethods + 'a
         }
         ElementNodeTypeId(HTMLStyleElementTypeId) => {
-            let element: &JSRef<HTMLStyleElement> = HTMLStyleElementCast::to_borrowed_ref(node).unwrap();
-            element as &VirtualMethods
+            let element: &'a JSRef<'a, HTMLStyleElement> = HTMLStyleElementCast::to_borrowed_ref(node).unwrap();
+            element as &'a VirtualMethods + 'a
         }
         ElementNodeTypeId(HTMLTextAreaElementTypeId) => {
-            let element: &JSRef<HTMLTextAreaElement> = HTMLTextAreaElementCast::to_borrowed_ref(node).unwrap();
-            element as &VirtualMethods
+            let element: &'a JSRef<'a, HTMLTextAreaElement> = HTMLTextAreaElementCast::to_borrowed_ref(node).unwrap();
+            element as &'a VirtualMethods + 'a
         }
         ElementNodeTypeId(ElementTypeId) => {
-            let element: &JSRef<Element> = ElementCast::to_borrowed_ref(node).unwrap();
-            element as &VirtualMethods
+            let element: &'a JSRef<'a, Element> = ElementCast::to_borrowed_ref(node).unwrap();
+            element as &'a VirtualMethods + 'a
         }
         ElementNodeTypeId(_) => {
-            let element: &JSRef<HTMLElement> = HTMLElementCast::to_borrowed_ref(node).unwrap();
-            element as &VirtualMethods
+            let element: &'a JSRef<'a, HTMLElement> = HTMLElementCast::to_borrowed_ref(node).unwrap();
+            element as &'a VirtualMethods + 'a
         }
         _ => {
-            node as &VirtualMethods
+            node as &'a VirtualMethods + 'a
         }
     }
 }

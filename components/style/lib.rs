@@ -24,8 +24,8 @@ extern crate cssparser;
 extern crate encoding;
 
 #[phase(plugin)]
-extern crate servo_macros = "macros";
-extern crate servo_util = "util";
+extern crate "macros" as servo_macros;
+extern crate "util" as servo_util;
 
 
 // Public API

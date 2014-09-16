@@ -113,10 +113,10 @@ pub trait ScriptListener : Clone {
                              layer_id: LayerId,
                              point: Point2D<f32>);
     fn close(&self);
-    fn dup(&self) -> Box<ScriptListener>;
+    fn dup(&self) -> Box<ScriptListener+'static>;
 }
 
-impl<E, S: Encoder<E>> Encodable<S, E> for Box<ScriptListener> {
+impl<E, S: Encoder<E>> Encodable<S, E> for Box<ScriptListener+'static> {
     fn encode(&self, _s: &mut S) -> Result<(), E> {
         Ok(())
     }

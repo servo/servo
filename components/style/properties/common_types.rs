@@ -17,7 +17,7 @@ pub mod specified {
     use cssparser::ast;
     use cssparser::ast::*;
     use super::{Au, CSSFloat};
-    pub use CSSColor = cssparser::Color;
+    pub use cssparser::Color as CSSColor;
 
     #[deriving(Clone)]
     pub enum Length {
@@ -204,11 +204,10 @@ pub mod specified {
 }
 
 pub mod computed {
-    pub use CSSColor = cssparser::Color;
-    pub use compute_CSSColor = super::super::longhands::computed_as_specified;
+    pub use cssparser::Color as CSSColor;
+    pub use super::super::longhands::computed_as_specified as compute_CSSColor;
     use super::*;
     use super::super::longhands;
-    pub use servo_util::geometry::Au;
 
     pub struct Context {
         pub inherited_font_weight: longhands::font_weight::computed_value::T,

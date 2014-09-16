@@ -76,7 +76,7 @@ impl<E, S: Encoder<E>> Encodable<S, E> for ImageCacheTask {
     }
 }
 
-type DecoderFactory = fn() -> proc(&[u8]) -> Option<Image>;
+type DecoderFactory = fn() -> (proc(&[u8]) : 'static -> Option<Image>);
 
 impl ImageCacheTask {
     pub fn new(resource_task: ResourceTask) -> ImageCacheTask {

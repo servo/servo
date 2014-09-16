@@ -9,9 +9,9 @@
 
 extern crate gfx;
 extern crate script_traits;
-extern crate servo_msg = "msg";
-extern crate servo_net = "net";
-extern crate servo_util = "util";
+extern crate "msg" as servo_msg;
+extern crate "net" as servo_net;
+extern crate "util" as servo_util;
 
 // This module contains traits in layout used generically
 //   in the rest of Servo.

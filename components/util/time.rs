@@ -10,6 +10,7 @@ use std::comm::{Sender, channel, Receiver};
 use std::f64;
 use std::iter::AdditiveIterator;
 use std::io::timer::sleep;
+use std::time::duration::Duration;
 use task::{spawn_named};
 use url::Url;
 
@@ -127,7 +128,7 @@ impl TimeProfiler {
         let (chan, port) = channel();
         match period {
             Some(period) => {
-                let period = (period * 1000f64) as u64;
+                let period = Duration::milliseconds((period * 1000f64) as i64);
                 let chan = chan.clone();
                 spawn_named("Time profiler timer", proc() {
                     loop {

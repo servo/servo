@@ -22,6 +22,7 @@ use windowing::PinchZoomWindowEvent;
 use azure::azure_hl::SourceSurfaceMethods;
 use azure::azure_hl;
 use std::cmp;
+use std::time::duration::Duration;
 use geom::point::{Point2D, TypedPoint2D};
 use geom::rect::Rect;
 use geom::size::TypedSize2D;
@@ -223,7 +224,7 @@ impl IOCompositor {
                 self.composite();
             }
 
-            sleep(10);
+            sleep(Duration::milliseconds(10));
 
             // If a pinch-zoom happened recently, ask for tiles at the new resolution
             if self.zoom_action && precise_time_s() - self.zoom_time > 0.3 {

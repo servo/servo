@@ -67,7 +67,7 @@ use style::computed_values::{clear, float, position, text_align};
 ///
 /// Note that virtual methods have a cost; we should not overuse them in Servo. Consider adding
 /// methods to `ImmutableFlowUtils` or `MutableFlowUtils` before adding more methods here.
-pub trait Flow: fmt::Show + ToString + Share {
+pub trait Flow: fmt::Show + ToString + Sync {
     // RTTI
     //
     // TODO(pcwalton): Use Rust's RTTI, once that works.
@@ -310,7 +310,7 @@ pub trait Flow: fmt::Show + ToString + Share {
     }
 }
 
-impl<'a, E, S: Encoder<E>> Encodable<S, E> for &'a Flow {
+impl<'a, E, S: Encoder<E>> Encodable<S, E> for &'a Flow + 'a {
     fn encode(&self, e: &mut S) -> Result<(), E> {
         e.emit_struct("flow", 0, |e| {
             try!(e.emit_struct_field("class", 0, |e| self.class().encode(e)))
@@ -637,8 +637,8 @@ pub struct DescendantIter<'a> {
     iter: MutItems<'a, FlowRef>,
 }
 
-impl<'a> Iterator<&'a mut Flow> for DescendantIter<'a> {
-    fn next(&mut self) -> Option<&'a mut Flow> {
+impl<'a> Iterator<&'a mut Flow + 'a> for DescendantIter<'a> {
+    fn next(&mut self) -> Option<&'a mut Flow + 'a> {
         match self.iter.next() {
             None => None,
             Some(ref mut flow) => {
@@ -836,7 +836,7 @@ impl BaseFlow {
     }
 }
 
-impl<'a> ImmutableFlowUtils for &'a Flow {
+impl<'a> ImmutableFlowUtils for &'a Flow + 'a {
     /// Returns true if this flow is a block or a float flow.
     fn is_block_like(self) -> bool {
         match self.class() {
@@ -1004,7 +1004,7 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
     }
 }
 
-impl<'a> MutableFlowUtils for &'a mut Flow {
+impl<'a> MutableFlowUtils for &'a mut Flow + 'a {
     /// Traverses the tree in preorder.
     fn traverse_preorder<T:PreorderFlowTraversal>(self, traversal: &mut T) -> bool {
         if traversal.should_prune(self) {

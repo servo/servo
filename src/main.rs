@@ -9,7 +9,7 @@
 
 extern crate servo;
 extern crate native;
-extern crate servo_util = "util";
+extern crate "util" as servo_util;
 
 #[cfg(not(test),not(target_os="android"))]
 use servo_util::opts;

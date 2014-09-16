@@ -175,9 +175,9 @@ impl Shaper {
             // configure static function callbacks.
             // NB. This funcs structure could be reused globally, as it never changes.
             let hb_funcs: *mut hb_font_funcs_t = hb_font_funcs_create();
-            hb_font_funcs_set_glyph_func(hb_funcs, glyph_func, ptr::mut_null(), None);
-            hb_font_funcs_set_glyph_h_advance_func(hb_funcs, glyph_h_advance_func, ptr::mut_null(), None);
-            hb_font_funcs_set_glyph_h_kerning_func(hb_funcs, glyph_h_kerning_func, ptr::mut_null(), ptr::mut_null());
+            hb_font_funcs_set_glyph_func(hb_funcs, glyph_func, ptr::null_mut(), None);
+            hb_font_funcs_set_glyph_h_advance_func(hb_funcs, glyph_h_advance_func, ptr::null_mut(), None);
+            hb_font_funcs_set_glyph_h_kerning_func(hb_funcs, glyph_h_kerning_func, ptr::null_mut(), ptr::null_mut());
             hb_font_set_funcs(hb_font, hb_funcs, font_ptr as *mut c_void, None);
 
             Shaper {
@@ -211,7 +211,7 @@ impl ShaperMethods for Shaper {
                                0,
                                text.len() as c_int);
 
-            hb_shape(self.hb_font, hb_buffer, ptr::mut_null(), 0);
+            hb_shape(self.hb_font, hb_buffer, ptr::null_mut(), 0);
             self.save_glyph_results(text, glyphs, hb_buffer);
             hb_buffer_destroy(hb_buffer);
         }
@@ -511,11 +511,11 @@ extern fn get_font_table_func(_: *mut hb_face_t, tag: hb_tag_t, user_data: *mut 
 
         // TODO(Issue #197): reuse font table data, which will change the unsound trickery here.
         match (*font).get_table_for_tag(tag as FontTableTag) {
-            None => ptr::mut_null(),
+            None => ptr::null_mut(),
             Some(ref font_table) => {
                 let skinny_font_table_ptr: *const FontTable = font_table;   // private context
 
-                let mut blob: *mut hb_blob_t = ptr::mut_null();
+                let mut blob: *mut hb_blob_t = ptr::null_mut();
                 (*skinny_font_table_ptr).with_buffer(|buf: *const u8, len: uint| {
                     // HarfBuzz calls `destroy_blob_func` when the buffer is no longer needed.
                     blob = hb_blob_create(buf as *const c_char,

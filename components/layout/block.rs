@@ -977,10 +977,16 @@ impl BlockFlow {
         let mut candidate_block_size_iterator = CandidateBSizeIterator::new(
             self.fragment.style(),
             self.base.block_container_explicit_block_size);
-        for candidate_block_size in candidate_block_size_iterator {
-            candidate_block_size_iterator.candidate_value = match candidate_block_size {
-                Auto => block_size,
-                Specified(value) => value
+        // Can't use `for` because we assign to candidate_block_size_iterator.candidate_value
+        loop {
+            match candidate_block_size_iterator.next() {
+                Some(candidate_block_size) => {
+                    candidate_block_size_iterator.candidate_value = match candidate_block_size {
+                        Auto => block_size,
+                        Specified(value) => value
+                    }
+                }
+                None => break,
             }
         }
 
@@ -1097,10 +1103,16 @@ impl BlockFlow {
         let mut candidate_block_size_iterator =
             CandidateBSizeIterator::new(self.fragment.style(),
                                         self.base.block_container_explicit_block_size);
-        for candidate_block_size in candidate_block_size_iterator {
-            candidate_block_size_iterator.candidate_value = match candidate_block_size {
-                Auto => content_block_size,
-                Specified(value) => value,
+        // Can't use `for` because we assign to candidate_block_size_iterator.candidate_value
+        loop {
+            match candidate_block_size_iterator.next() {
+                Some(candidate_block_size) => {
+                    candidate_block_size_iterator.candidate_value = match candidate_block_size {
+                        Auto => content_block_size,
+                        Specified(value) => value,
+                    }
+                }
+                None => break,
             }
         }
 
@@ -1241,19 +1253,26 @@ impl BlockFlow {
                 let mut candidate_block_size_iterator =
                     CandidateBSizeIterator::new(style, Some(containing_block_block_size));
 
-                for block_size_used_val in candidate_block_size_iterator {
-                    solution =
-                        Some(BSizeConstraintSolution::solve_vertical_constraints_abs_nonreplaced(
-                            block_size_used_val,
-                            margin_block_start,
-                            margin_block_end,
-                            block_start,
-                            block_end,
-                            content_block_size,
-                            available_block_size,
-                            static_b_offset));
+                // Can't use `for` because we assign to candidate_block_size_iterator.candidate_value
+                loop {
+                    match candidate_block_size_iterator.next() {
+                        Some(block_size_used_val) => {
+                            solution =
+                                Some(BSizeConstraintSolution::solve_vertical_constraints_abs_nonreplaced(
+                                    block_size_used_val,
+                                    margin_block_start,
+                                    margin_block_end,
+                                    block_start,
+                                    block_end,
+                                    content_block_size,
+                                    available_block_size,
+                                    static_b_offset));
 
-                    candidate_block_size_iterator.candidate_value = solution.unwrap().block_size
+                            candidate_block_size_iterator.candidate_value
+                                = solution.unwrap().block_size;
+                        }
+                        None => break,
+                    }
                 }
             }
         }
@@ -1773,7 +1792,7 @@ impl Flow for BlockFlow {
         // FIXME(#2010, pcwalton): This is a hack and is totally bogus in the presence of pseudo-
         // elements. But until we have incremental reflow we can't do better--we recreate the flow
         // for every DOM node so otherwise we nuke layers on every reflow.
-        LayerId(self.fragment.node.id(), fragment_index)
+        LayerId(self.fragment.node.id() as uint, fragment_index)
     }
 
     fn is_absolute_containing_block(&self) -> bool {

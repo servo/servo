@@ -11,7 +11,8 @@ use std::io::File;
 use std::mem::size_of;
 #[cfg(target_os="linux")]
 use std::os::page_size;
-use std::ptr::mut_null;
+use std::ptr::null_mut;
+use std::time::duration::Duration;
 use task::spawn_named;
 #[cfg(target_os="macos")]
 use task_info::task_basic_info::{virtual_size,resident_size};
@@ -41,7 +42,7 @@ impl MemoryProfiler {
         let (chan, port) = channel();
         match period {
             Some(period) => {
-                let period = (period * 1000f64) as u64;
+                let period = Duration::milliseconds((period * 1000f64) as i64);
                 let chan = chan.clone();
                 spawn_named("Memory profiler timer", proc() {
                     loop {
@@ -154,7 +155,7 @@ fn get_jemalloc_stat(name: &'static str) -> Option<u64> {
     let mut oldlen = size_of::<size_t>() as size_t;
     let rv: c_int;
     unsafe {
-        rv = je_mallctl(c_name.unwrap(), oldp, &mut oldlen, mut_null(), 0);
+        rv = je_mallctl(c_name.unwrap(), oldp, &mut oldlen, null_mut(), 0);
     }
     if rv == 0 { Some(old as u64) } else { None }
 }

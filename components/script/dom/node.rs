@@ -2023,12 +2023,12 @@ impl Reflectable for Node {
     }
 }
 
-pub fn document_from_node<T: NodeBase>(derived: JSRef<T>) -> Temporary<Document> {
+pub fn document_from_node<T: NodeBase+Reflectable>(derived: JSRef<T>) -> Temporary<Document> {
     let node: JSRef<Node> = NodeCast::from_ref(derived);
     node.owner_doc()
 }
 
-pub fn window_from_node<T: NodeBase>(derived: JSRef<T>) -> Temporary<Window> {
+pub fn window_from_node<T: NodeBase+Reflectable>(derived: JSRef<T>) -> Temporary<Window> {
     let document = document_from_node(derived).root();
     Temporary::new(document.deref().window.clone())
 }

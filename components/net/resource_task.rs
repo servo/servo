@@ -12,12 +12,12 @@ use http_loader;
 use std::comm::{channel, Receiver, Sender};
 use std::task::TaskBuilder;
 use http::headers::content_type::MediaType;
-use ResponseHeaderCollection = http::headers::response::HeaderCollection;
-use RequestHeaderCollection = http::headers::request::HeaderCollection;
+use http::headers::response::HeaderCollection as ResponseHeaderCollection;
+use http::headers::request::HeaderCollection as RequestHeaderCollection;
 use http::method::{Method, Get};
 use url::Url;
 
-use StatusOk = http::status::Ok;
+use http::status::Ok as StatusOk;
 use http::status::Status;
 
 

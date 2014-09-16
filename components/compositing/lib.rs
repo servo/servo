@@ -28,10 +28,10 @@ extern crate layout_traits;
 extern crate opengles;
 extern crate png;
 extern crate script_traits;
-extern crate servo_msg = "msg";
-extern crate servo_net = "net";
+extern crate "msg" as servo_msg;
+extern crate "net" as servo_net;
 #[phase(plugin, link)]
-extern crate servo_util = "util";
+extern crate "util" as servo_util;
 
 extern crate libc;
 extern crate time;

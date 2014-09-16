@@ -22,10 +22,9 @@ extern crate collections;
 extern crate core;
 extern crate devtools_traits;
 extern crate debug;
-extern crate std;
 extern crate serialize;
 extern crate sync;
-extern crate servo_msg = "msg";
+extern crate "msg" as servo_msg;
 
 use actor::{Actor, ActorRegistry};
 use actors::console::ConsoleActor;
@@ -181,8 +180,8 @@ fn run_server(port: Receiver<DevtoolsControlMsg>) {
     //TODO: make constellation send ServerExitMsg on shutdown.
 
     // accept connections and process them, spawning a new tasks for each one
-    for stream in acceptor.incoming() {
-        match stream {
+    loop {
+        match acceptor.accept() {
             Err(ref e) if e.kind == TimedOut => {
                 match port.try_recv() {
                     Ok(ServerExitMsg) | Err(Disconnected) => break,

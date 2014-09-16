@@ -109,9 +109,9 @@ impl LintPass for UnrootedPass {
         }
     }
 
-    fn check_fn(&mut self, cx: &Context, kind: &syntax::visit::FnKind, decl: &ast::FnDecl,
+    fn check_fn(&mut self, cx: &Context, kind: syntax::visit::FnKind, decl: &ast::FnDecl,
                 block: &ast::Block, _span: syntax::codemap::Span, _id: ast::NodeId) {
-        match *kind {
+        match kind {
             syntax::visit::FkItemFn(i, _, _, _) |
             syntax::visit::FkMethod(i, _, _) if i.as_str() == "new" || i.as_str() == "new_inherited" => {
                 return;

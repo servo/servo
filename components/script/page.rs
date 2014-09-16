@@ -56,7 +56,7 @@ pub struct Page {
     pub layout_chan: Untraceable<LayoutChan>,
 
     /// A handle to perform RPC calls into the layout, quickly.
-    layout_rpc: Untraceable<Box<LayoutRPC>>,
+    layout_rpc: Untraceable<Box<LayoutRPC+'static>>,
 
     /// The port that we will use to join layout. If this is `None`, then layout is not running.
     pub layout_join_port: Untraceable<RefCell<Option<Receiver<()>>>>,
@@ -170,7 +170,7 @@ impl Page {
         if damaged {
             let frame = self.frame();
             let window = frame.get_ref().window.root();
-            self.reflow(goal, window.control_chan.clone(), *window.compositor);
+            self.reflow(goal, window.control_chan.clone(), &**window.compositor);
         } else {
             self.avoided_reflows.set(self.avoided_reflows.get() + 1);
         }
@@ -182,7 +182,7 @@ impl Page {
         // doing a query reflow.
         self.flush_layout(ReflowForDisplay);
         self.join_layout(); //FIXME: is this necessary, or is layout_rpc's mutex good enough?
-        let layout_rpc: &LayoutRPC = *self.layout_rpc;
+        let layout_rpc: &LayoutRPC = &**self.layout_rpc;
         layout_rpc
     }
 

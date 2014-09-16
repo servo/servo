@@ -97,7 +97,7 @@ static ERROR_FORMAT_STRING: JSErrorFormatString = JSErrorFormatString {
 };
 
 /// Callback used to throw `TypeError`s.
-extern fn get_error_message(_user_ref: *mut libc::c_void,
+unsafe extern fn get_error_message(_user_ref: *mut libc::c_void,
                             _locale: *const libc::c_char,
                             error_number: libc::c_uint) -> *const JSErrorFormatString
 {
@@ -109,6 +109,6 @@ extern fn get_error_message(_user_ref: *mut libc::c_void,
 pub fn throw_type_error(cx: *mut JSContext, error: &str) {
     let error = error.to_c_str();
     unsafe {
-        JS_ReportErrorNumber(cx, Some(get_error_message), ptr::mut_null(), 0, error.as_ptr());
+        JS_ReportErrorNumber(cx, Some(get_error_message), ptr::null_mut(), 0, error.as_ptr());
     }
 }

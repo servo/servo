@@ -56,8 +56,8 @@ impl ScriptListener for CompositorChan {
         port.recv();
     }
 
-    fn dup(&self) -> Box<ScriptListener> {
-        box self.clone() as Box<ScriptListener>
+    fn dup(&self) -> Box<ScriptListener+'static> {
+        box self.clone() as Box<ScriptListener+'static>
     }
 }
 

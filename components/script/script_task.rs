@@ -163,7 +163,7 @@ pub struct ScriptTask {
     /// For communicating load url messages to the constellation
     constellation_chan: ConstellationChan,
     /// A handle to the compositor for communicating ready state messages.
-    compositor: Box<ScriptListener>,
+    compositor: Box<ScriptListener+'static>,
 
     /// For providing instructions to an optional devtools server.
     devtools_chan: Option<DevtoolsControlChan>,
@@ -243,7 +243,7 @@ impl ScriptTaskFactory for ScriptTask {
         box pair.sender() as Box<Any+Send>
     }
 
-    fn create<C:ScriptListener + Send>(
+    fn create<C:ScriptListener + Send + 'static>(
                   _phantom: Option<&mut ScriptTask>,
                   id: PipelineId,
                   compositor: Box<C>,
@@ -284,7 +284,7 @@ impl ScriptTaskFactory for ScriptTask {
 impl ScriptTask {
     /// Creates a new script task.
     pub fn new(id: PipelineId,
-               compositor: Box<ScriptListener>,
+               compositor: Box<ScriptListener+'static>,
                layout_chan: LayoutChan,
                port: Receiver<ScriptMsg>,
                chan: ScriptChan,
@@ -638,7 +638,7 @@ impl ScriptTask {
         if page.pending_reflows.get() > 0 {
             page.pending_reflows.set(0);
             page.damage(MatchSelectorsDocumentDamage);
-            page.reflow(ReflowForDisplay, self.control_chan.clone(), self.compositor);
+            page.reflow(ReflowForDisplay, self.control_chan.clone(), &*self.compositor);
         }
     }
 
@@ -718,7 +718,7 @@ impl ScriptTask {
                 *page.mut_url() = Some((loaded.clone(), false));
                 if needs_reflow {
                     page.damage(ContentChangedDocumentDamage);
-                    page.reflow(ReflowForDisplay, self.control_chan.clone(), self.compositor);
+                    page.reflow(ReflowForDisplay, self.control_chan.clone(), &*self.compositor);
                 }
                 return;
             },
@@ -879,7 +879,7 @@ impl ScriptTask {
                     let frame = page.frame();
                     if frame.is_some() {
                         page.damage(ReflowDocumentDamage);
-                        page.reflow(ReflowForDisplay, self.control_chan.clone(), self.compositor)
+                        page.reflow(ReflowForDisplay, self.control_chan.clone(), &*self.compositor)
                     }
 
                     let mut fragment_node = page.fragment_node.get();
@@ -919,7 +919,7 @@ impl ScriptTask {
                         page.pending_reflows.set(page.pending_reflows.get() + 1);
                     } else {
                         page.damage(MatchSelectorsDocumentDamage);
-                        page.reflow(ReflowForDisplay, self.control_chan.clone(), self.compositor)
+                        page.reflow(ReflowForDisplay, self.control_chan.clone(), &*self.compositor)
                     }
                 }
             }
@@ -1018,7 +1018,7 @@ impl ScriptTask {
                         if target_compare {
                             if mouse_over_targets.is_some() {
                                 page.damage(MatchSelectorsDocumentDamage);
-                                page.reflow(ReflowForDisplay, self.control_chan.clone(), self.compositor);
+                                page.reflow(ReflowForDisplay, self.control_chan.clone(), &*self.compositor);
                             }
                             *mouse_over_targets = Some(target_list);
                         }

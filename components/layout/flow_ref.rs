@@ -23,7 +23,7 @@ impl FlowRef {
     pub fn new(mut flow: Box<Flow>) -> FlowRef {
         unsafe {
             let result = {
-                let flow_ref: &mut Flow = flow;
+                let flow_ref: &mut Flow = &mut *flow;
                 let object = mem::transmute::<&mut Flow, raw::TraitObject>(flow_ref);
                 FlowRef { object: object }
             };
@@ -56,14 +56,14 @@ impl Drop for FlowRef {
             }
             let flow_ref: FlowRef = mem::replace(self, FlowRef {
                 object: raw::TraitObject {
-                    vtable: ptr::mut_null(),
-                    data: ptr::mut_null(),
+                    vtable: ptr::null_mut(),
+                    data: ptr::null_mut(),
                 }
             });
             drop(mem::transmute::<raw::TraitObject, Box<Flow>>(flow_ref.object));
             mem::forget(flow_ref);
-            self.object.vtable = ptr::mut_null();
-            self.object.data = ptr::mut_null();
+            self.object.vtable = ptr::null_mut();
+            self.object.data = ptr::null_mut();
         }
     }
 }

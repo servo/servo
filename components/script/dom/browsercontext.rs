@@ -28,7 +28,7 @@ impl BrowserContext {
         let mut context = BrowserContext {
             history: vec!(SessionHistoryEntry::new(document)),
             active_index: 0,
-            window_proxy: Traceable::new(ptr::mut_null()),
+            window_proxy: Traceable::new(ptr::null_mut()),
         };
         context.create_window_proxy();
         context

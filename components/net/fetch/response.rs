@@ -4,7 +4,7 @@
 
 use url::Url;
 use http::status::{Status, UnregisteredStatus};
-use StatusOk = http::status::Ok;
+use http::status::Ok as StatusOk;
 use http::headers::HeaderEnum;
 use http::headers::response::HeaderCollection;
 use std::ascii::OwnedStrAsciiExt;

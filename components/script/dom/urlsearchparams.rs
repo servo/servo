@@ -14,7 +14,7 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use servo_util::str::DOMString;
 
 use encoding::all::UTF_8;
-use encoding::types::{Encoding, EncodeReplace};
+use encoding::types::{EncodingRef, EncodeReplace};
 
 use std::cell::RefCell;
 use std::collections::hashmap::HashMap;
@@ -93,14 +93,14 @@ impl Reflectable for URLSearchParams {
 }
 
 pub trait URLSearchParamsHelpers {
-    fn serialize(&self, encoding: Option<&'static Encoding>) -> Vec<u8>;
+    fn serialize(&self, encoding: Option<EncodingRef>) -> Vec<u8>;
     fn update_steps(&self);
 }
 
 impl URLSearchParamsHelpers for URLSearchParams {
-    fn serialize(&self, encoding: Option<&'static Encoding>) -> Vec<u8> {
+    fn serialize(&self, encoding: Option<EncodingRef>) -> Vec<u8> {
         // http://url.spec.whatwg.org/#concept-urlencoded-serializer
-        fn serialize_string(value: &DOMString, encoding: &'static Encoding) -> Vec<u8> {
+        fn serialize_string(value: &DOMString, encoding: EncodingRef) -> Vec<u8> {
             // http://url.spec.whatwg.org/#concept-urlencoded-byte-serializer
 
             let value = value.as_slice();
@@ -126,7 +126,7 @@ impl URLSearchParamsHelpers for URLSearchParams {
             }
             buf
         }
-        let encoding = encoding.unwrap_or(UTF_8 as &'static Encoding);
+        let encoding = encoding.unwrap_or(UTF_8 as EncodingRef);
         let mut buf = vec!();
         let mut first_pair = true;
         for (k, v) in self.data.deref().borrow().iter() {

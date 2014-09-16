@@ -10,7 +10,6 @@
 #![deny(unused_imports, unused_variable)]
 
 extern crate png;
-extern crate std;
 extern crate test;
 extern crate regex;
 extern crate url;
@@ -19,6 +18,7 @@ use std::ascii::StrAsciiExt;
 use std::io;
 use std::io::{File, Reader, Command};
 use std::io::process::ExitStatus;
+use std::io::fs::PathExtensions;
 use std::os;
 use std::path::Path;
 use test::{AutoColor, DynTestName, DynTestFn, TestDesc, TestOpts, TestDescAndFn};

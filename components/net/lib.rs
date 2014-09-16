@@ -14,7 +14,7 @@ extern crate png;
 #[phase(plugin, link)]
 extern crate log;
 extern crate serialize;
-extern crate servo_util = "util";
+extern crate "util" as servo_util;
 extern crate stb_image;
 extern crate sync;
 extern crate time;

@@ -37,7 +37,7 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
         },
         None => ()
     }
-    let parts: Vec<&str> = scheme_data.as_slice().splitn(',', 1).collect();
+    let parts: Vec<&str> = scheme_data.as_slice().splitn(1, ',').collect();
     if parts.len() != 2 {
         start_sending(start_chan, metadata).send(Done(Err("invalid data uri".to_string())));
         return;

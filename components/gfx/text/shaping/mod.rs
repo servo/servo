@@ -9,7 +9,7 @@
 
 use text::glyph::GlyphStore;
 
-pub use Shaper = text::shaping::harfbuzz::Shaper;
+pub use text::shaping::harfbuzz::Shaper;
 
 pub mod harfbuzz;
 

@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use azure::AzFloat;
-use AzColor = azure::azure_hl::Color;
+use azure::azure_hl::Color as AzColor;
 
 pub type Color = AzColor;
 

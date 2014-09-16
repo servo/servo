@@ -255,7 +255,7 @@ impl<T> Assignable<T> for JS<T> {
     }
 }
 
-impl<'a, T> Assignable<T> for JSRef<'a, T> {
+impl<'a, T: Reflectable> Assignable<T> for JSRef<'a, T> {
     unsafe fn get_js(&self) -> JS<T> {
         self.unrooted()
     }

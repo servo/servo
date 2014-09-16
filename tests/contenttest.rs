@@ -9,7 +9,6 @@
 
 #![deny(unused_imports, unused_variable)]
 
-extern crate std;
 extern crate getopts;
 extern crate regex;
 extern crate test;
@@ -30,7 +29,7 @@ struct Config {
 
 fn main() {
     let args = os::args();
-    let config = parse_config(args.move_iter().collect());
+    let config = parse_config(args.into_iter().collect());
     let opts = test_options(config.clone());
     let tests = find_tests(config);
     match run_tests_console(&opts, tests) {
@@ -111,7 +110,7 @@ fn run_test(file: String) {
     };
     let mut output = Vec::new();
     loop {
-        let byte = prc.stdout.get_mut_ref().read_byte();
+        let byte = prc.stdout.as_mut().unwrap().read_byte();
         match byte {
             Ok(byte) => {
                 print!("{}", byte as char);

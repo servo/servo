@@ -17,10 +17,10 @@ extern crate debug;
 extern crate compositing;
 extern crate devtools;
 extern crate rustuv;
-extern crate servo_net = "net";
-extern crate servo_msg = "msg";
+extern crate "net" as servo_net;
+extern crate "msg" as servo_msg;
 #[phase(plugin, link)]
-extern crate servo_util = "util";
+extern crate "util" as servo_util;
 extern crate script;
 extern crate layout;
 extern crate green;
@@ -132,11 +132,11 @@ pub fn run(opts: opts::Opts) {
 
         // Send the URL command to the constellation.
         let cwd = os::getcwd();
-        for &url in opts.urls.iter() {
+        for url in opts.urls.iter() {
             let url = match url::Url::parse(url.as_slice()) {
                 Ok(url) => url,
                 Err(url::RelativeUrlWithoutBase)
-                => url::Url::from_file_path(&cwd.join(url)).unwrap(),
+                => url::Url::from_file_path(&cwd.join(url.as_slice())).unwrap(),
                 Err(_) => fail!("URL parsing failed"),
             };
 

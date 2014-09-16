@@ -69,7 +69,7 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
 
         // Preserve the `host` header set automatically by RequestWriter.
         let host = writer.headers.host.clone();
-        writer.headers = box load_data.headers.clone();
+        writer.headers = load_data.headers.clone();
         writer.headers.host = host;
         if writer.headers.accept_encoding.is_none() {
             // We currently don't support HTTP Compression (FIXME #2587)
@@ -130,7 +130,7 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
 
         let mut metadata = Metadata::default(url);
         metadata.set_content_type(&response.headers.content_type);
-        metadata.headers = Some(*response.headers.clone());
+        metadata.headers = Some(response.headers.clone());
         metadata.status = response.status.clone();
 
         let progress_chan = match start_sending_opt(start_chan, metadata) {

@@ -6,8 +6,9 @@ use resource_task::{LoadResponse, Metadata, Done, LoadData, start_sending};
 use file_loader;
 
 use std::os;
+use std::io::fs::PathExtensions;
 use url::Url;
-use StatusOk = http::status::Ok;
+use http::status::Ok as StatusOk;
 
 
 pub fn factory(mut load_data: LoadData, start_chan: Sender<LoadResponse>) {

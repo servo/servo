@@ -134,7 +134,7 @@ impl ScaledFontExtensionMethods for ScaledFont {
                                    &mut glyphbuf,
                                    azure_pattern,
                                    &mut options,
-                                   ptr::mut_null());
+                                   ptr::null_mut());
         }
     }
 }
