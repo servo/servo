@@ -1,6 +1,7 @@
 == basic_width_px.html basic_width_em.html
 == br.html br-ref.html
-== hello_a.html hello_b.html
+# `?` and `#` in the name is a test for https://github.com/servo/servo/issues/3340
+== hello_a?foo#bar.html hello_b.html
 == margin_a.html margin_b.html
 == root_pseudo_a.html root_pseudo_b.html
 == first_child_pseudo_a.html first_child_pseudo_b.html

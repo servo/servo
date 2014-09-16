@@ -57,8 +57,6 @@ use std::os;
 use std::task::TaskBuilder;
 #[cfg(not(test), target_os="android")]
 use std::string;
-#[cfg(not(test))]
-use url::{Url, UrlParser};
 
 #[cfg(not(test), target_os="android")]
 #[no_mangle]
@@ -125,12 +123,15 @@ pub fn run(opts: opts::Opts) {
                                                       font_cache_task,
                                                       time_profiler_chan_clone);
 
-        let base_url = Url::from_directory_path(&os::getcwd()).unwrap();
-        let mut url_parser = UrlParser::new();
-        let url_parser = url_parser.base_url(&base_url);
         // Send the URL command to the constellation.
-        for url in opts.urls.iter() {
-            let url = url_parser.parse(url.as_slice()).ok().expect("URL parsing failed");
+        let cwd = os::getcwd();
+        for &url in opts.urls.iter() {
+            let url = match url::Url::parse(url.as_slice()) {
+                Ok(url) => url,
+                Err(url::RelativeUrlWithoutBase)
+                => url::Url::from_file_path(&cwd.join(url)).unwrap(),
+                Err(_) => fail!("URL parsing failed"),
+            };
 
             let ConstellationChan(ref chan) = constellation_chan;
             chan.send(InitLoadUrlMsg(url));
