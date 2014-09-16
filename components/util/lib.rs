@@ -27,6 +27,7 @@ extern crate sync;
 extern crate task_info;
 extern crate std_time = "time";
 extern crate string_cache;
+extern crate url;
 
 pub mod atom;
 pub mod bloom;

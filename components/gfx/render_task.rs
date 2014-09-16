@@ -287,7 +287,7 @@ impl<C:RenderListener + Send> RenderTask<C> {
               tiles: Vec<BufferRequest>,
               scale: f32,
               layer_id: LayerId) {
-        time::profile(time::RenderingCategory, self.time_profiler_chan.clone(), || {
+        time::profile(time::RenderingCategory, None, self.time_profiler_chan.clone(), || {
             // FIXME: Try not to create a new array here.
             let mut new_buffers = vec!();
 
@@ -350,7 +350,7 @@ impl<C:RenderListener + Send> RenderTask<C> {
                     ctx.clear();
 
                     // Draw the display list.
-                    profile(time::RenderingDrawingCategory, self.time_profiler_chan.clone(), || {
+                    profile(time::RenderingDrawingCategory, None, self.time_profiler_chan.clone(), || {
                         display_list.draw_into_context(&mut ctx, &matrix);
                         ctx.draw_target.flush();
                     });
@@ -439,4 +439,3 @@ impl<C:RenderListener + Send> RenderTask<C> {
         })
     }
 }
-

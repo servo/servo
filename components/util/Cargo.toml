@@ -20,3 +20,5 @@ path = "../../support/rust-task_info"
 git = "https://github.com/servo/string-cache"
 branch = "pre-rustup"
 
+[dependencies.url]
+git = "https://github.com/servo/rust-url"
