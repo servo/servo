@@ -160,6 +160,47 @@ pub mod specified {
             LengthOrPercentageOrNone::parse_internal(input, /* negative_ok = */ false)
         }
     }
+
+    // http://dev.w3.org/csswg/css2/colors.html#propdef-background-position
+    #[deriving(Clone)]
+    pub enum PositionComponent {
+        Pos_Length(Length),
+        Pos_Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
+        Pos_Center,
+        Pos_Left,
+        Pos_Right,
+        Pos_Top,
+        Pos_Bottom,
+    }
+    impl PositionComponent {
+        pub fn parse(input: &ComponentValue) -> Result<PositionComponent, ()> {
+            match input {
+                &Dimension(ref value, ref unit) =>
+                    Length::parse_dimension(value.value, unit.as_slice()).map(Pos_Length),
+                &ast::Percentage(ref value) => Ok(Pos_Percentage(value.value / 100.)),
+                &Number(ref value) if value.value == 0. => Ok(Pos_Length(Au_(Au(0)))),
+                &Ident(ref value) => {
+                    if value.as_slice().eq_ignore_ascii_case("center") { Ok(Pos_Center) }
+                    else if value.as_slice().eq_ignore_ascii_case("left") { Ok(Pos_Left) }
+                    else if value.as_slice().eq_ignore_ascii_case("right") { Ok(Pos_Right) }
+                    else if value.as_slice().eq_ignore_ascii_case("top") { Ok(Pos_Top) }
+                    else if value.as_slice().eq_ignore_ascii_case("bottom") { Ok(Pos_Bottom) }
+                    else { Err(()) }
+                }
+                _ => Err(())
+            }
+        }
+        #[inline]
+        pub fn to_length_or_percentage(self) -> LengthOrPercentage {
+            match self {
+                Pos_Length(x) => LP_Length(x),
+                Pos_Percentage(x) => LP_Percentage(x),
+                Pos_Center => LP_Percentage(0.5),
+                Pos_Left | Pos_Top => LP_Percentage(0.0),
+                Pos_Right | Pos_Bottom => LP_Percentage(1.0),
+            }
+        }
+    }
 }
 
 pub mod computed {
