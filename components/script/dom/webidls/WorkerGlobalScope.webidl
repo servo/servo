@@ -23,7 +23,7 @@ partial interface WorkerGlobalScope { // not obsolete
   readonly attribute WorkerNavigator navigator;
 };
 //WorkerGlobalScope implements WindowTimers;
-//WorkerGlobalScope implements WindowBase64;
+WorkerGlobalScope implements WindowBase64;
 
 // Proprietary
 partial interface WorkerGlobalScope {
