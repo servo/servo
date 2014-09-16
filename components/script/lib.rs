@@ -199,7 +199,6 @@ pub mod dom {
 
 /// Parsers for HTML and CSS.
 pub mod html {
-    pub mod cssparse;
     pub mod hubbub_html_parser;
 }
 

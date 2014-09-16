@@ -23,10 +23,8 @@ use dom::node::{ElementNodeTypeId, Node, NodeHelpers};
 use dom::window::{TimerId, Window, WindowHelpers};
 use dom::worker::{Worker, TrustedWorkerAddress};
 use dom::xmlhttprequest::{TrustedXHRAddress, XMLHttpRequest, XHRProgress};
-use html::hubbub_html_parser::{InputString, InputUrl, HtmlParserResult};
-use html::hubbub_html_parser::{HtmlDiscoveredStyle, HtmlDiscoveredScript};
+use html::hubbub_html_parser::{InputString, InputUrl, HtmlParserResult, HtmlDiscoveredScript};
 use html::hubbub_html_parser;
-use layout_interface::AddStylesheetMsg;
 use layout_interface::{ScriptLayoutChan, LayoutChan, MatchSelectorsDocumentDamage};
 use layout_interface::{ReflowDocumentDamage, ReflowForDisplay};
 use layout_interface::ContentChangedDocumentDamage;
@@ -681,10 +679,6 @@ impl ScriptTask {
                 Ok(HtmlDiscoveredScript(scripts)) => {
                     assert!(js_scripts.is_none());
                     js_scripts = Some(scripts);
-                }
-                Ok(HtmlDiscoveredStyle(sheet)) => {
-                    let LayoutChan(ref chan) = *page.layout_chan;
-                    chan.send(AddStylesheetMsg(sheet));
                 }
                 Err(()) => break
             }

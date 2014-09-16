@@ -256,6 +256,7 @@ dependencies = [
 name = "layout"
 version = "0.0.1"
 dependencies = [
+ "encoding 0.1.0 (git+https://github.com/lifthrasiir/rust-encoding#12b6610adff6eddc060691888c36017cd3ad57f7)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#2982b770db6e5e3270305e0fd6b8068f6f80a489)",
  "gfx 0.0.1",
  "layout_traits 0.0.1",

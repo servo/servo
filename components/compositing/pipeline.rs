@@ -80,7 +80,7 @@ impl Pipeline {
                                           script_port,
                                           constellation_chan.clone(),
                                           failure.clone(),
-                                          resource_task,
+                                          resource_task.clone(),
                                           image_cache_task.clone(),
                                           window_size);
                 ScriptControlChan(script_chan)
@@ -117,6 +117,7 @@ impl Pipeline {
                                   failure,
                                   script_chan.clone(),
                                   render_chan.clone(),
+                                  resource_task,
                                   image_cache_task,
                                   font_cache_task,
                                   opts.clone(),
