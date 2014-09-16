@@ -693,6 +693,7 @@ impl ScriptTask {
         // Kick off the initial reflow of the page.
         debug!("kicking off initial reflow of {}", url);
         document.deref().content_changed();
+        window.flush_layout(ReflowForDisplay);
 
         let fragment = url.fragment.as_ref().map(|ref fragment| fragment.to_string());
 
@@ -722,6 +723,8 @@ impl ScriptTask {
                     Ok(_) => (),
                     Err(_) => println!("evaluate_script failed")
                 }
+
+                window.flush_layout(ReflowForDisplay);
             }
         });
 
