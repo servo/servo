@@ -8,6 +8,7 @@ dependencies = [
  "msg 0.0.1",
  "net 0.0.1",
  "script 0.0.1",
+ "url 0.1.0 (git+https://github.com/servo/rust-url#678bb4d52638b1cfdab78ef8e521566c9240fb1a)",
  "util 0.0.1",
 ]
 
