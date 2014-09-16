@@ -38,6 +38,11 @@ fn create_scaled_font(backend: BackendType, template: &Arc<FontTemplateData>, pt
     ScaledFont::new(backend, &cgfont, pt_size as AzFloat)
 }
 
+struct LayoutFontCacheEntry {
+    family: String,
+    font: Rc<RefCell<Font>>,
+}
+
 /// A cached azure font (per render task) that
 /// can be shared by multiple text runs.
 struct RenderFontCacheEntry {
@@ -55,7 +60,7 @@ pub struct FontContext {
     font_cache_task: FontCacheTask,
 
     /// TODO: See bug https://github.com/servo/servo/issues/3300.
-    layout_font_cache: Vec<Rc<RefCell<Font>>>,
+    layout_font_cache: Vec<LayoutFontCacheEntry>,
 
     /// Strong reference as the render FontContext is (for now) recycled
     /// per frame. TODO: Make this weak when incremental redraw is done.
@@ -105,19 +110,25 @@ impl FontContext {
 
             // GWTODO: Check on real pages if this is faster as Vec() or HashMap().
             let mut cache_hit = false;
-            for cached_font in self.layout_font_cache.iter() {
-                if cached_font.borrow().descriptor == desc &&
-                   cached_font.borrow().pt_size == style.pt_size {
-                    fonts.push(cached_font.clone());
-                    cache_hit = true;
-                    break;
+            for cached_font_entry in self.layout_font_cache.iter() {
+                if cached_font_entry.family == *family {
+                    let cached_font = cached_font_entry.font.borrow();
+                    if cached_font.descriptor == desc &&
+                       cached_font.pt_size == style.pt_size {
+                        fonts.push(cached_font_entry.font.clone());
+                        cache_hit = true;
+                        break;
+                    }
                 }
             }
 
             if !cache_hit {
                 let font_template = self.font_cache_task.get_font_template(family.clone(), desc.clone());
                 let layout_font = Rc::new(RefCell::new(self.create_layout_font(font_template, desc.clone(), style.pt_size)));
-                self.layout_font_cache.push(layout_font.clone());
+                self.layout_font_cache.push(LayoutFontCacheEntry {
+                    family: family.clone(),
+                    font: layout_font.clone(),
+                });
                 fonts.push(layout_font);
             }
         }
