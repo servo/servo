@@ -27,6 +27,7 @@ use servo_util::str::DOMString;
 use url::Url;
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct HTMLObjectElement {
     pub htmlelement: HTMLElement,
 }
@@ -44,6 +45,7 @@ impl HTMLObjectElement {
         }
     }
 
+    #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLObjectElement> {
         let element = HTMLObjectElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLObjectElementBinding::Wrap)

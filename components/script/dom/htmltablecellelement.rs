@@ -13,6 +13,7 @@ use dom::node::ElementNodeTypeId;
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct HTMLTableCellElement {
     pub htmlelement: HTMLElement,
 }

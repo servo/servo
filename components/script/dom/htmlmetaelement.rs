@@ -14,6 +14,7 @@ use dom::node::{Node, ElementNodeTypeId};
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct HTMLMetaElement {
     pub htmlelement: HTMLElement,
 }
@@ -31,6 +32,7 @@ impl HTMLMetaElement {
         }
     }
 
+    #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLMetaElement> {
         let element = HTMLMetaElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLMetaElementBinding::Wrap)

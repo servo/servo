@@ -18,6 +18,7 @@ use dom::node::{Node, NodeHelpers, ElementNodeTypeId};
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct HTMLTableElement {
     pub htmlelement: HTMLElement,
 }
@@ -35,6 +36,7 @@ impl HTMLTableElement {
         }
     }
 
+    #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLTableElement> {
         let element = HTMLTableElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLTableElementBinding::Wrap)

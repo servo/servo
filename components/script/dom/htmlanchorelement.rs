@@ -24,6 +24,7 @@ use servo_util::namespace::Null;
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct HTMLAnchorElement {
     pub htmlelement: HTMLElement
 }
@@ -41,6 +42,7 @@ impl HTMLAnchorElement {
         }
     }
 
+    #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLAnchorElement> {
         let element = HTMLAnchorElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLAnchorElementBinding::Wrap)

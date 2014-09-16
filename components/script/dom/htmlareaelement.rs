@@ -18,6 +18,7 @@ use servo_util::atom::Atom;
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct HTMLAreaElement {
     pub htmlelement: HTMLElement
 }
@@ -35,6 +36,7 @@ impl HTMLAreaElement {
         }
     }
 
+    #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLAreaElement> {
         let element = HTMLAreaElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLAreaElementBinding::Wrap)

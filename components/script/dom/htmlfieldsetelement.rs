@@ -22,6 +22,7 @@ use servo_util::atom::Atom;
 use servo_util::str::{DOMString, StaticStringVec};
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct HTMLFieldSetElement {
     pub htmlelement: HTMLElement
 }
@@ -39,6 +40,7 @@ impl HTMLFieldSetElement {
         }
     }
 
+    #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLFieldSetElement> {
         let element = HTMLFieldSetElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLFieldSetElementBinding::Wrap)

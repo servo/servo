@@ -24,6 +24,7 @@ pub enum HeadingLevel {
 }
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct HTMLHeadingElement {
     pub htmlelement: HTMLElement,
     pub level: HeadingLevel,
@@ -43,6 +44,7 @@ impl HTMLHeadingElement {
         }
     }
 
+    #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString, document: &JSRef<Document>, level: HeadingLevel) -> Temporary<HTMLHeadingElement> {
         let element = HTMLHeadingElement::new_inherited(localName, document, level);
         Node::reflect_node(box element, document, HTMLHeadingElementBinding::Wrap)

@@ -19,6 +19,7 @@ use servo_util::atom::Atom;
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct HTMLInputElement {
     pub htmlelement: HTMLElement,
 }
@@ -36,6 +37,7 @@ impl HTMLInputElement {
         }
     }
 
+    #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLInputElement> {
         let element = HTMLInputElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLInputElementBinding::Wrap)
