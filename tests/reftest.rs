@@ -13,15 +13,18 @@ extern crate png;
 extern crate std;
 extern crate test;
 extern crate regex;
+extern crate url;
 
 use std::ascii::StrAsciiExt;
 use std::io;
 use std::io::{File, Reader, Command};
 use std::io::process::ExitStatus;
 use std::os;
+use std::path::Path;
 use test::{AutoColor, DynTestName, DynTestFn, TestDesc, TestOpts, TestDescAndFn};
 use test::run_tests_console;
 use regex::Regex;
+use url::Url;
 
 
 bitflags!(
@@ -71,9 +74,8 @@ fn main() {
         match maybe_extension {
             Some(extension) => {
                 if extension.to_ascii_lower().as_slice() == "list" && file.is_file() {
-                    let manifest = file.as_str().unwrap();
-                    let tests = parse_lists(manifest, servo_args, render_mode, all_tests.len());
-                    println!("\t{} [{} tests]", manifest, tests.len());
+                    let tests = parse_lists(&file, servo_args, render_mode, all_tests.len());
+                    println!("\t{} [{} tests]", file.display(), tests.len());
                     all_tests.push_all_move(tests);
                 }
             }
@@ -111,12 +113,13 @@ enum ReftestKind {
 struct Reftest {
     name: String,
     kind: ReftestKind,
-    files: [String, ..2],
+    files: [Path, ..2],
     id: uint,
     servo_args: Vec<String>,
     render_mode: RenderMode,
     is_flaky: bool,
     experimental: bool,
+    fragment_identifier: Option<String>,
 }
 
 struct TestLine<'a> {
@@ -126,10 +129,9 @@ struct TestLine<'a> {
     file_right: &'a str,
 }
 
-fn parse_lists(file: &str, servo_args: &[String], render_mode: RenderMode, id_offset: uint) -> Vec<TestDescAndFn> {
+fn parse_lists(file: &Path, servo_args: &[String], render_mode: RenderMode, id_offset: uint) -> Vec<TestDescAndFn> {
     let mut tests = Vec::new();
-    let file_path = Path::new(file);
-    let contents = File::open_mode(&file_path, io::Open, io::Read)
+    let contents = File::open_mode(file, io::Open, io::Read)
                        .and_then(|mut f| f.read_to_string())
                        .ok().expect("Could not read file");
 
@@ -162,14 +164,14 @@ fn parse_lists(file: &str, servo_args: &[String], render_mode: RenderMode, id_of
             "!=" => Different,
             part => fail!("reftest line: '{:s}' has invalid kind '{:s}'", line, part)
         };
-        let src_path = file_path.dir_path();
-        let src_dir = src_path.display().to_string();
-        let file_left =  src_dir.clone().append("/").append(test_line.file_left);
-        let file_right = src_dir.append("/").append(test_line.file_right);
+        let base = file.dir_path();
+        let file_left =  base.join(test_line.file_left);
+        let file_right = base.join(test_line.file_right);
 
         let mut conditions_list = test_line.conditions.split(',');
         let mut flakiness = RenderMode::empty();
         let mut experimental = false;
+        let mut fragment_identifier = None;
         for condition in conditions_list {
             match condition {
                 "flaky_cpu" => flakiness.insert(CpuRendering),
@@ -178,6 +180,9 @@ fn parse_lists(file: &str, servo_args: &[String], render_mode: RenderMode, id_of
                 "flaky_macos" => flakiness.insert(MacOsTarget),
                 "experimental" => experimental = true,
                 _ => (),
+            }
+            if condition.starts_with("fragment=") {
+                fragment_identifier = Some(condition.slice_from("fragment=".len()).to_string());
             }
         }
 
@@ -190,6 +195,7 @@ fn parse_lists(file: &str, servo_args: &[String], render_mode: RenderMode, id_of
             servo_args: servo_args.iter().map(|x| x.clone()).collect(),
             is_flaky: render_mode.intersects(flakiness),
             experimental: experimental,
+            fragment_identifier: fragment_identifier,
         };
 
         tests.push(make_test(reftest));
@@ -212,27 +218,33 @@ fn make_test(reftest: Reftest) -> TestDescAndFn {
 }
 
 fn capture(reftest: &Reftest, side: uint) -> (u32, u32, Vec<u8>) {
-    let filename = format!("/tmp/servo-reftest-{:06u}-{:u}.png", reftest.id, side);
-    let mut args = reftest.servo_args.clone();
+    let png_filename = format!("/tmp/servo-reftest-{:06u}-{:u}.png", reftest.id, side);
+    let mut command = Command::new("target/servo");
+    command
+        .args(reftest.servo_args.as_slice())
+        // Allows pixel perfect rendering of Ahem font for reftests.
+        .arg("--disable-text-aa")
+        .args(["-f", "-o"])
+        .arg(png_filename.as_slice())
+        .arg({
+            let mut url = Url::from_file_path(&reftest.files[side]).unwrap();
+            url.fragment = reftest.fragment_identifier.clone();
+            url.to_string()
+        });
     // GPU rendering is the default
     if reftest.render_mode.contains(CpuRendering) {
-        args.push("-c".to_string());
+        command.arg("-c");
     }
     if reftest.experimental {
-        args.push("--experimental".to_string());
+        command.arg("--experimental");
     }
-    // Allows pixel perfect rendering of Ahem font for reftests.
-    args.push("--disable-text-aa".to_string());
-    args.push_all(["-f".to_string(), "-o".to_string(), filename.clone(),
-                   reftest.files[side].clone()]);
-
-    let retval = match Command::new("target/servo").args(args.as_slice()).status() {
+    let retval = match command.status() {
         Ok(status) => status,
         Err(e) => fail!("failed to execute process: {}", e),
     };
     assert!(retval == ExitStatus(0));
 
-    let image = png::load_png(&from_str::<Path>(filename.as_slice()).unwrap()).unwrap();
+    let image = png::load_png(&from_str::<Path>(png_filename.as_slice()).unwrap()).unwrap();
     let rgba8_bytes = match image.pixels {
         png::RGBA8(pixels) => pixels,
         _ => fail!(),

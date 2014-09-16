@@ -1,6 +1,7 @@
 == basic_width_px.html basic_width_em.html
 == br.html br-ref.html
-== hello_a.html hello_b.html
+# `?` and `#` in the name is a test for https://github.com/servo/servo/issues/3340
+== hello_a?foo#bar.html hello_b.html
 == margin_a.html margin_b.html
 == root_pseudo_a.html root_pseudo_b.html
 == first_child_pseudo_a.html first_child_pseudo_b.html
@@ -100,11 +101,11 @@ experimental == vertical-lr-blocks.html vertical-lr-blocks_ref.html
 == root_margin_collapse_a.html root_margin_collapse_b.html
 
 # Should be == with expected failure:
-!= ../html/acid2.html#top acid2_ref.html
+fragment=top != ../html/acid2.html acid2_ref.html
 
 # Should be != with expected failure:
 # FIXME: use the real test when pixel-snapping for scrolling is fixed.
-#== ../html/acid2.html#top acid2_ref_broken.html
+#fragment=top == ../html/acid2.html acid2_ref_broken.html
 flaky_gpu,flaky_linux == acid2_noscroll.html acid2_ref_broken.html
 
 != inline_background_a.html inline_background_ref.html
