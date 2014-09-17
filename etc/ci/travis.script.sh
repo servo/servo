@@ -16,11 +16,11 @@ build_docs() {
 }
 
 build_servo() {
-    ./mach build -j 2
+    ./mach build -j 1
 }
 
 build_cef() {
-    ./mach build-cef -j 2
+    ./mach build-cef -j 1
 }
 
 IFS="," read -ra tasks <<< "${TASKS}"
@@ -37,10 +37,10 @@ for t in "${tasks[@]}"; do
 
     case $t in
         build)
-            ./mach build -j 2
+            ./mach build -j 1
             ;;
         build-cef)
-            ./mach build-cef -j 2
+            ./mach build-cef -j 1
             ;;
         test-content)
             ./mach test-content
