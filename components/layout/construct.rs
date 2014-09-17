@@ -109,14 +109,17 @@ pub struct InlineFragmentsConstructionResult {
 /// Represents an {ib} split that has not yet found the containing block that it belongs to. This
 /// is somewhat tricky. An example may be helpful. For this DOM fragment:
 ///
+/// ```html
 ///     <span>
 ///     A
 ///     <div>B</div>
 ///     C
 ///     </span>
+/// ```
 ///
 /// The resulting `ConstructionItem` for the outer `span` will be:
 ///
+/// ```ignore
 ///     InlineFragmentsConstructionItem(Some(~[
 ///         InlineBlockSplit {
 ///             predecessor_fragments: ~[
@@ -128,6 +131,7 @@ pub struct InlineFragmentsConstructionResult {
 ///         }),~[
 ///             C
 ///         ])
+/// ```
 pub struct InlineBlockSplit {
     /// The inline fragments that precede the flow.
     pub predecessors: InlineFragments,

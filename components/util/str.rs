@@ -33,8 +33,7 @@ pub fn is_whitespace(s: &str) -> bool {
 
 /// A "space character" according to:
 ///
-///     http://www.whatwg.org/specs/web-apps/current-work/multipage/common-microsyntaxes.html#
-///     space-character
+/// http://www.whatwg.org/specs/web-apps/current-work/multipage/common-microsyntaxes.html#space-character
 pub static HTML_SPACE_CHARACTERS: StaticCharVec = &[
     '\u0020',
     '\u0009',

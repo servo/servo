@@ -137,7 +137,7 @@ impl<I: RangeIndex> Range<I> {
     /// Create a new range from beginning and length offsets. This could be
     /// denoted as `[begin, begin + length)`.
     ///
-    /// ~~~
+    /// ~~~ignore
     ///    |-- begin ->|-- length ->|
     ///    |           |            |
     /// <- o - - - - - +============+ - - - ->
@@ -154,7 +154,7 @@ impl<I: RangeIndex> Range<I> {
 
     /// The index offset to the beginning of the range.
     ///
-    /// ~~~
+    /// ~~~ignore
     ///    |-- begin ->|
     ///    |           |
     /// <- o - - - - - +============+ - - - ->
@@ -164,7 +164,7 @@ impl<I: RangeIndex> Range<I> {
 
     /// The index offset from the beginning to the end of the range.
     ///
-    /// ~~~
+    /// ~~~ignore
     ///                |-- length ->|
     ///                |            |
     /// <- o - - - - - +============+ - - - ->
@@ -174,7 +174,7 @@ impl<I: RangeIndex> Range<I> {
 
     /// The index offset to the end of the range.
     ///
-    /// ~~~
+    /// ~~~ignore
     ///    |--------- end --------->|
     ///    |                        |
     /// <- o - - - - - +============+ - - - ->
@@ -184,7 +184,7 @@ impl<I: RangeIndex> Range<I> {
 
     /// `true` if the index is between the beginning and the end of the range.
     ///
-    /// ~~~
+    /// ~~~ignore
     ///        false        true      false
     ///          |           |          |
     /// <- o - - + - - +=====+======+ - + - ->
@@ -202,7 +202,7 @@ impl<I: RangeIndex> Range<I> {
 
     /// Shift the entire range by the supplied index delta.
     ///
-    /// ~~~
+    /// ~~~ignore
     ///                     |-- delta ->|
     ///                     |           |
     /// <- o - +============+ - - - - - | - - - ->
@@ -216,7 +216,7 @@ impl<I: RangeIndex> Range<I> {
 
     /// Extend the end of the range by the supplied index delta.
     ///
-    /// ~~~
+    /// ~~~ignore
     ///                     |-- delta ->|
     ///                     |           |
     /// <- o - - - - - +====+ - - - - - | - - - ->
@@ -230,7 +230,7 @@ impl<I: RangeIndex> Range<I> {
 
     /// Move the end of the range to the target index.
     ///
-    /// ~~~
+    /// ~~~ignore
     ///                               target
     ///                                 |
     /// <- o - - - - - +====+ - - - - - | - - - ->
