@@ -79,6 +79,10 @@ pub struct SharedLayoutContext {
 
     /// The dirty rectangle, used during display list building.
     pub dirty: Rect<Au>,
+
+    /// Starts at zero, and increased by one every time a layout completes.
+    /// This can be used to easily check for invalid stale data.
+    pub generation: uint,
 }
 
 pub struct LayoutContext<'a> {

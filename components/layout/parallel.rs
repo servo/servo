@@ -22,6 +22,7 @@ use wrapper::{ThreadSafeLayoutNode, UnsafeLayoutNode};
 
 use gfx::display_list::OpaqueNode;
 use servo_util::bloom::BloomFilter;
+use servo_util::tid::tid;
 use servo_util::time::{TimeProfilerChan, profile};
 use servo_util::time;
 use servo_util::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
@@ -216,6 +217,10 @@ impl<'a> ParallelPreorderFlowTraversal for AssignISizesTraversal<'a> {
 
 impl<'a> ParallelPostorderFlowTraversal for AssignBSizesAndStoreOverflowTraversal<'a> {}
 
+/// Every time we do another layout, the old bloom filters are invalid. This is
+/// detected by ticking a generation number every layout.
+type Generation = uint;
+
 /// A pair of the bloom filter used for css selector matching, and the node to
 /// which it applies. This is used to efficiently do `Descendant` selector
 /// matches. Thanks to the bloom filter, we can avoid walking up the tree
@@ -236,7 +241,7 @@ impl<'a> ParallelPostorderFlowTraversal for AssignBSizesAndStoreOverflowTraversa
 /// Since a work-stealing queue is used for styling, sometimes, the bloom filter
 /// will no longer be the for the parent of the node we're currently on. When
 /// this happens, the task local bloom filter will be thrown away and rebuilt.
-local_data_key!(style_bloom: (BloomFilter, UnsafeLayoutNode))
+local_data_key!(style_bloom: (BloomFilter, UnsafeLayoutNode, Generation))
 
 /// Returns the task local bloom filter.
 ///
@@ -251,6 +256,9 @@ fn take_task_local_bloom_filter(
         |p: Option<LayoutNode>| -> BloomFilter {
             let mut bf = BloomFilter::new(style::RECOMMENDED_SELECTOR_BLOOM_FILTER_SIZE);
             p.map(|p| insert_ancestors_into_bloom_filter(&mut bf, p, layout_context));
+            if p.is_none() {
+                debug!("[{}] No parent, but new bloom filter!", tid());
+            }
             bf
         };
 
@@ -260,9 +268,11 @@ fn take_task_local_bloom_filter(
         // No bloom filter for this thread yet.
         (Some(p), None) => new_bloom(Some(p)),
         // Found cached bloom filter.
-        (Some(p), Some((bf, old_node))) => {
+        (Some(p), Some((bf, old_node, old_generation))) => {
             // Hey, the cached parent is our parent! We can reuse the bloom filter.
-            if old_node == layout_node_to_unsafe_layout_node(&p) {
+            if old_node == layout_node_to_unsafe_layout_node(&p) &&
+                old_generation == layout_context.shared.generation {
+                debug!("[{}] Parent matches (={}). Reusing bloom filter.", tid(), old_node.val0());
                 bf
             // Oh no. the cached parent is stale. I guess we need a new one...
             } else {
@@ -272,8 +282,8 @@ fn take_task_local_bloom_filter(
     }
 }
 
-fn put_task_local_bloom_filter(bf: BloomFilter, unsafe_node: &UnsafeLayoutNode) {
-    match style_bloom.replace(Some((bf, *unsafe_node))) {
+fn put_task_local_bloom_filter(bf: BloomFilter, unsafe_node: &UnsafeLayoutNode, layout_context: &LayoutContext) {
+    match style_bloom.replace(Some((bf, *unsafe_node, layout_context.shared.generation))) {
         None => {},
         Some(_) => fail!("Putting into a never-taken task-local bloom filter"),
     }
@@ -282,13 +292,18 @@ fn put_task_local_bloom_filter(bf: BloomFilter, unsafe_node: &UnsafeLayoutNode) 
 /// "Ancestors" in this context is inclusive of ourselves.
 fn insert_ancestors_into_bloom_filter(
   bf: &mut BloomFilter, mut n: LayoutNode, layout_context: &LayoutContext) {
+    debug!("[{}] Inserting ancestors.", tid());
+    let mut ancestors = 0u;
     loop {
+        ancestors += 1;
+
         n.insert_into_bloom_filter(bf);
         n = match parent_node(&n, layout_context) {
-            None => return,
+            None => break,
             Some(p) => p,
         };
     }
+    debug!("[{}] Inserted {} ancestors.", tid(), ancestors);
 }
 
 fn parent_node<'ln>(node: &LayoutNode<'ln>, layout_context: &LayoutContext) -> Option<LayoutNode<'ln>> {
@@ -378,6 +393,7 @@ fn recalc_style_for_node(mut unsafe_layout_node: UnsafeLayoutNode,
 
     // Before running the children, we need to insert our nodes into the bloom
     // filter.
+    debug!("[{}] + {:X}", tid(), unsafe_layout_node.val0());
     bf.as_mut().map(|bf| node.insert_into_bloom_filter(bf));
 
     // It's *very* important that this block is in a separate scope to the block above,
@@ -399,7 +415,7 @@ fn recalc_style_for_node(mut unsafe_layout_node: UnsafeLayoutNode,
         construct_flows(&mut unsafe_layout_node, &mut bf, &layout_context);
     }
 
-    bf.map(|bf| put_task_local_bloom_filter(bf, &unsafe_layout_node));
+    bf.map(|bf| put_task_local_bloom_filter(bf, &unsafe_layout_node, &layout_context));
 }
 
 fn construct_flows<'a>(unsafe_layout_node: &mut UnsafeLayoutNode,
@@ -437,9 +453,11 @@ fn construct_flows<'a>(unsafe_layout_node: &mut UnsafeLayoutNode,
         // If this is the reflow root, we're done.
         let opaque_node: OpaqueNode = OpaqueNodeMethods::from_layout_node(&node);
         if layout_context.shared.reflow_root == opaque_node {
+            debug!("[{}] - {:X}, and deleting BF.", tid(), unsafe_layout_node.val0());
             *parent_bf = None;
             break;
         } else {
+            debug!("[{}] - {:X}", tid(), unsafe_layout_node.val0());
             parent_bf.as_mut().map(|parent_bf| node.remove_from_bloom_filter(parent_bf));
         }
 
@@ -611,6 +629,7 @@ fn build_display_list(mut unsafe_flow: UnsafeFlow,
 pub fn recalc_style_for_subtree(root_node: &LayoutNode,
                                 shared_layout_context: &SharedLayoutContext,
                                 queue: &mut WorkQueue<*const SharedLayoutContext,UnsafeLayoutNode>) {
+    debug!("[{}] Style Recalc START", tid());
     queue.data = shared_layout_context as *const _;
 
     // Enqueue the root node.
