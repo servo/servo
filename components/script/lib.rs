@@ -59,6 +59,7 @@ pub mod dom {
         pub mod callback;
         pub mod error;
         pub mod conversions;
+        pub mod init;
         mod proxyhandler;
         pub mod str;
         pub mod refcounted;
@@ -221,6 +222,7 @@ pub fn init() {
         js::jsfriendapi::PR_GetCurrentThread();
         js::jsapi::JS_Init();
     }
+    self::dom::bindings::init::global_init();
 }
 
 pub fn shutdown() {

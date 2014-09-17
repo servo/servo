@@ -5,6 +5,7 @@
 //! The script task is the task that owns the DOM in memory, runs JavaScript, and spawns parsing
 //! and layout tasks.
 
+use dom::bindings;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
@@ -352,6 +353,7 @@ impl ScriptTask {
             let ptr: *mut JSRuntime = (*js_runtime).ptr;
             ptr.is_not_null()
         });
+        bindings::init::init((*js_runtime).ptr);
         unsafe {
             JS_AddExtraGCRootsTracer((*js_runtime).ptr, Some(trace_collections),
                                      RootedCollections.get().get_ref().deref() as *const _ as *mut _);
