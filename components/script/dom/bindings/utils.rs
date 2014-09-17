@@ -176,6 +176,7 @@ pub fn jsid_to_str(cx: *mut JSContext, id: jsid) -> DOMString {
 // globals and non-globals.
 pub static DOM_OBJECT_SLOT: uint = 0;
 
+#[allow(dead_code)]
 #[static_assert]
 static DOM_SLOT_IS_PROXY_PRIVATE: bool = DOM_OBJECT_SLOT == js::JSSLOT_PROXY_PRIVATE as uint;
 
@@ -596,7 +597,7 @@ pub fn get_dictionary_property(cx: *mut JSContext,
     }*/
 
     let property = property.to_c_str();
-    if unsafe { (*object.unnamed_field1).is_null() } {
+    if object.is_null() {
         return Ok(None);
     }
 
@@ -609,17 +610,11 @@ pub fn get_dictionary_property(cx: *mut JSContext,
     /*if !get_property(cx, object, &property, mut_value_handle(&mut value)) {
         return Err(());
     }*/
-    if unsafe {
-        property.with_ref(|s| {
-            !JS_GetProperty(cx, object, s, value.mut_handle_())
-        })
-    } {
+    if unsafe { !JS_GetProperty(cx, object, property.as_ptr(), value.mut_handle_()) } {
         return Err(());
     }
 
-    unsafe {
-        Ok(Some(*value.raw_()))
-    }
+    Ok(Some(*value.raw_()))
 }
 
 pub fn HasPropertyOnPrototype(cx: *mut JSContext, proxy: JSHandleObject, id: JSHandleId) -> bool {
@@ -674,17 +669,14 @@ pub extern fn pre_wrap(cx: *mut JSContext, _scope: *mut JSObject,
 
 /// Callback to outerize windows.
 pub extern fn outerize_global(_cx: *mut JSContext, obj: JSHandleObject) -> *mut JSObject {
-    unsafe {
-        debug!("outerizing");
-        let obj = *obj.unnamed_field1;
-        let win: Root<window::Window> =
-            unwrap_jsmanaged(obj,
-                             IDLInterface::get_prototype_id(None::<window::Window>),
-                             IDLInterface::get_prototype_depth(None::<window::Window>))
-            .unwrap()
-            .root();
-        win.deref().browser_context.deref().borrow().get_ref().window_proxy()
-    }
+    debug!("outerizing");
+    let win: Root<window::Window> =
+        unwrap_jsmanaged(*obj,
+                         IDLInterface::get_prototype_id(None::<window::Window>),
+                         IDLInterface::get_prototype_depth(None::<window::Window>))
+        .unwrap()
+        .root();
+    win.deref().browser_context.deref().borrow().get_ref().window_proxy()
 }
 
 /// Returns the global object of the realm that the given JS object was created in.

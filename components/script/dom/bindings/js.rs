@@ -74,14 +74,14 @@ use std::ptr;
 #[allow(unrooted_must_root)]
 pub struct Temporary<T> {
     inner: JS<T>,
-    js_ptr: Box<PersistentRootedObjectElement>,
+    _js_ptr: Box<PersistentRootedObjectElement>,
 }
 
 struct PersistentRootedObjectElement {
     next: *mut PersistentRootedObjectElement,
     prev: *mut PersistentRootedObjectElement,
-    isSentinel: bool,
-    ptr: *mut JSObject,
+    _isSentinel: bool,
+    _ptr: *mut JSObject,
 }
 
 impl PersistentRootedObjectElement {
@@ -89,8 +89,8 @@ impl PersistentRootedObjectElement {
         PersistentRootedObjectElement {
             next: ptr::mut_null(),
             prev: ptr::mut_null(),
-            isSentinel: false,
-            ptr: ptr,
+            _isSentinel: false,
+            _ptr: ptr,
         }
     }
 
@@ -137,7 +137,7 @@ impl<T: Reflectable> Temporary<T> {
         js_ptr.init();
         Temporary {
             inner: inner,
-            js_ptr: js_ptr,
+            _js_ptr: js_ptr,
         }
     }
 
@@ -317,7 +317,7 @@ impl<T: Reflectable> MutNullableJS<T> {
                                   .unwrap_or(ptr::mut_null());
             unsafe {
                 objectRelocate(raw_ptr);
-                self.ptr.set(val.map(|val| unsafe { val.get_js() }));
+                self.ptr.set(val.map(|val| val.get_js()));
             }
         } else {
             self.ptr.set(val.map(|val| unsafe { val.get_js() }));
@@ -552,8 +552,6 @@ pub struct Root<'a, 'b, T, S=*mut JSObject> {
     prev: Cell<*const *const libc::c_void>,
     js_ptr: S,
     _mCheckNotUsedAsTemporary_statementDone: bool,
-    /// Pointer to underlying Rust data
-    ptr: *const T,
     /// List that ensures correct dynamic root ordering
     root_list: &'a RootCollection,
     /// Reference to rooted value that must not outlive this container
@@ -655,7 +653,6 @@ impl<'a, 'b, S: RootableSMPointerType> Root<'a, 'b, libc::c_void, *mut S> {
                 ptr: ptr::null(),
                 chain: ContravariantLifetime,
             },
-            ptr: ptr::null(),
             js_ptr: unrooted,
         }
     }
@@ -696,7 +693,6 @@ impl<'a, 'b, S: RootableSMValueType+'static> Root<'a, 'b, libc::c_void, S> {
                 ptr: ptr::null(),
                 chain: ContravariantLifetime,
             },
-            ptr: ptr::null(),
             js_ptr: unrooted,
         }
     }
@@ -735,10 +731,9 @@ impl<'a, 'b, T: Reflectable> Root<'a, 'b, T> {
             root_list: roots,
             _mCheckNotUsedAsTemporary_statementDone: true,
             jsref: JSRef {
-                ptr: unrooted.ptr.clone(),
+                ptr: unrooted.ptr,
                 chain: ContravariantLifetime,
             },
-            ptr: unrooted.ptr,
             js_ptr: unrooted.reflector().get_jsobject(),
         }
     }
