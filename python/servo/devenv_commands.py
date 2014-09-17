@@ -27,7 +27,7 @@ class MachCommands(CommandBase):
              allow_all_args=True)
     @CommandArgument('params', default=None, nargs='...',
                      help="Command-line arguments to be passed through to Cargo")
-    def run(self, params):
+    def cargo(self, params):
         return subprocess.call(["cargo"] + params,
                                env=self.build_env())
 
@@ -37,5 +37,5 @@ class MachCommands(CommandBase):
              allow_all_args=True)
     @CommandArgument('params', default=None, nargs='...',
                      help="Command-line arguments to be passed through to rustc")
-    def run(self, params):
+    def rustc(self, params):
         return subprocess.call(["rustc"] + params, env=self.build_env())
