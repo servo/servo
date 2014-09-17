@@ -13,7 +13,7 @@ use dom::document::{Document, DocumentHelpers};
 use dom::element::{Element, AttributeHandlers};
 use dom::node::{Node, NodeHelpers};
 use dom::window::Window;
-use layout_interface::{DocumentDamage};
+use layout_interface::{DocumentDamage, ReflowForDisplay};
 use layout_interface::{DocumentDamageLevel, HitTestResponse, MouseOverResponse};
 use layout_interface::{GetRPCMsg, LayoutChan, LayoutRPC};
 use layout_interface::{Reflow, ReflowGoal, ReflowMsg};
@@ -57,7 +57,7 @@ pub struct Page {
     pub layout_chan: Untraceable<LayoutChan>,
 
     /// A handle to perform RPC calls into the layout, quickly.
-    pub layout_rpc: Untraceable<Box<LayoutRPC>>,
+    layout_rpc: Untraceable<Box<LayoutRPC>>,
 
     /// The port that we will use to join layout. If this is `None`, then layout is not running.
     pub layout_join_port: Untraceable<RefCell<Option<Receiver<()>>>>,
@@ -95,6 +95,9 @@ pub struct Page {
 
     /// Number of pending reflows that were sent while layout was active.
     pub pending_reflows: Cell<int>,
+
+    /// Number of unnecessary potential reflows that were skipped since the last reflow
+    pub avoided_reflows: Cell<int>,
 }
 
 pub struct PageIterator {
@@ -159,7 +162,29 @@ impl Page {
             constellation_chan: Untraceable::new(constellation_chan),
             children: Traceable::new(RefCell::new(vec!())),
             pending_reflows: Cell::new(0),
+            avoided_reflows: Cell::new(0),
         }
+    }
+
+    pub fn flush_layout(&self, goal: ReflowGoal) {
+        let damaged = self.damage.borrow().is_some();
+        if damaged {
+            let frame = self.frame();
+            let window = frame.get_ref().window.root();
+            self.reflow(goal, window.control_chan.clone(), *window.compositor);
+        } else {
+            self.avoided_reflows.set(self.avoided_reflows.get() + 1);
+        }
+    }
+
+    pub fn layout(&self) -> &LayoutRPC {
+        // FIXME This should probably be ReflowForQuery, not Display. All queries currently
+        // currently rely on the display list, which means we can't destroy it by
+        // doing a query reflow.
+        self.flush_layout(ReflowForDisplay);
+        self.join_layout(); //FIXME: is this necessary, or is layout_rpc's mutex good enough?
+        let layout_rpc: &LayoutRPC = *self.layout_rpc;
+        layout_rpc
     }
 
     // must handle root case separately
@@ -323,6 +348,9 @@ impl Page {
         match root.root() {
             None => {},
             Some(root) => {
+                debug!("avoided {:d} reflows", self.avoided_reflows.get());
+                self.avoided_reflows.set(0);
+
                 debug!("script: performing reflow for goal {:?}", goal);
 
                 // Now, join the layout so that they will see the latest changes we have made.
@@ -393,7 +421,7 @@ impl Page {
         }
         let root = root.unwrap();
         let root: &JSRef<Node> = NodeCast::from_ref(&*root);
-        let address = match self.layout_rpc.hit_test(root.to_trusted_node_address(), *point) {
+        let address = match self.layout().hit_test(root.to_trusted_node_address(), *point) {
             Ok(HitTestResponse(node_address)) => {
                 Some(node_address)
             }
@@ -414,7 +442,7 @@ impl Page {
         }
         let root = root.unwrap();
         let root: &JSRef<Node> = NodeCast::from_ref(&*root);
-        let address = match self.layout_rpc.mouse_over(root.to_trusted_node_address(), *point) {
+        let address = match self.layout().mouse_over(root.to_trusted_node_address(), *point) {
             Ok(MouseOverResponse(node_address)) => {
                 Some(node_address)
             }

@@ -589,7 +589,7 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
         let page = window.deref().page();
         let addr = self.to_trusted_node_address();
 
-        let ContentBoxResponse(rect) = page.layout_rpc.content_box(addr);
+        let ContentBoxResponse(rect) = page.layout().content_box(addr);
         rect
     }
 
@@ -597,7 +597,7 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
         let window = window_from_node(self).root();
         let page = window.deref().page();
         let addr = self.to_trusted_node_address();
-        let ContentBoxesResponse(rects) = page.layout_rpc.content_boxes(addr);
+        let ContentBoxesResponse(rects) = page.layout().content_boxes(addr);
         rects
     }
 

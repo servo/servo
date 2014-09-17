@@ -19,7 +19,7 @@ use dom::location::Location;
 use dom::navigator::Navigator;
 use dom::performance::Performance;
 use dom::screen::Screen;
-use layout_interface::{ReflowForDisplay, DocumentDamageLevel};
+use layout_interface::{ReflowGoal, DocumentDamageLevel};
 use page::Page;
 use script_task::{ExitWindowMsg, FireTimerMsg, ScriptChan, TriggerLoadMsg, TriggerFragmentMsg};
 use script_traits::ScriptControlChan;
@@ -78,14 +78,14 @@ impl TimerHandle {
 pub struct Window {
     eventtarget: EventTarget,
     pub script_chan: ScriptChan,
-    control_chan: ScriptControlChan,
+    pub control_chan: ScriptControlChan,
     console: Cell<Option<JS<Console>>>,
     location: Cell<Option<JS<Location>>>,
     navigator: Cell<Option<JS<Navigator>>>,
     pub image_cache_task: ImageCacheTask,
     pub active_timers: Traceable<RefCell<HashMap<TimerId, TimerHandle>>>,
     next_timer_handle: Traceable<Cell<i32>>,
-    compositor: Untraceable<Box<ScriptListener>>,
+    pub compositor: Untraceable<Box<ScriptListener>>,
     pub browser_context: Traceable<RefCell<Option<BrowserContext>>>,
     pub page: Rc<Page>,
     performance: Cell<Option<JS<Performance>>>,
@@ -365,6 +365,7 @@ impl Reflectable for Window {
 
 pub trait WindowHelpers {
     fn damage_and_reflow(&self, damage: DocumentDamageLevel);
+    fn flush_layout(&self, goal: ReflowGoal);
     fn wait_until_safe_to_modify_dom(&self);
     fn init_browser_context(&self, doc: &JSRef<Document>);
     fn load_url(&self, href: DOMString);
@@ -397,11 +398,12 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
     }
 
     fn damage_and_reflow(&self, damage: DocumentDamageLevel) {
-        // FIXME This should probably be ReflowForQuery, not Display. All queries currently
-        // currently rely on the display list, which means we can't destroy it by
-        // doing a query reflow.
         self.page().damage(damage);
-        self.page().reflow(ReflowForDisplay, self.control_chan.clone(), *self.compositor);
+        self.page().avoided_reflows.set(self.page().avoided_reflows.get() + 1);
+    }
+
+    fn flush_layout(&self, goal: ReflowGoal) {
+        self.page().flush_layout(goal);
     }
 
     fn wait_until_safe_to_modify_dom(&self) {
