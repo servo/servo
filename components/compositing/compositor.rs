@@ -142,7 +142,8 @@ impl IOCompositor {
                constellation_chan: ConstellationChan,
                time_profiler_chan: TimeProfilerChan,
                memory_profiler_chan: MemoryProfilerChan) -> IOCompositor {
-        let window: Rc<Window> = WindowMethods::new(app, opts.output_file.is_none());
+        let window: Rc<Window> = WindowMethods::new(app, opts.output_file.is_none(),
+                                                    opts.initial_window_size);
 
         // Create an initial layer tree.
         //

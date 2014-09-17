@@ -104,10 +104,13 @@ pub struct Window {
 
 impl WindowMethods<Application> for Window {
     /// Creates a new window.
-    fn new(app: &Application, is_foreground: bool) -> Rc<Window> {
+    fn new(app: &Application, is_foreground: bool, size: TypedSize2D<DevicePixel, uint>) -> Rc<Window> {
         // Create the GLFW window.
+        let window_size = size.to_untyped();
         app.glfw.window_hint(glfw::Visible(is_foreground));
-        let (glfw_window, events) = app.glfw.create_window(800, 600, "Servo", glfw::Windowed)
+        let (glfw_window, events) = app.glfw.create_window(window_size.width as u32,
+                                                            window_size.height as u32,
+                                                            "Servo", glfw::Windowed)
             .expect("Failed to create GLFW window");
         glfw_window.make_current();
 
