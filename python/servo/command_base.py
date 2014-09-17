@@ -54,6 +54,9 @@ class CommandBase(object):
         if not hasattr(self.context, "bootstrapped"):
             self.context.bootstrapped = False
 
+        if not hasattr(self.context, "sharedir"):
+            self.context.sharedir = path.join(path.expanduser("~/"), ".servo")
+
         config_path = path.join(context.topdir, ".servobuild")
         if path.exists(config_path):
             self.config = toml.loads(open(config_path).read())
@@ -68,10 +71,10 @@ class CommandBase(object):
         self.config["tools"].setdefault("cargo-root", "")
         if not self.config["tools"]["system-rust"]:
             self.config["tools"]["rust-root"] = path.join(
-                context.topdir, "rust", *self.rust_snapshot_path().split("/"))
+                context.sharedir, "rust", *self.rust_snapshot_path().split("/"))
         if not self.config["tools"]["system-cargo"]:
             self.config["tools"]["cargo-root"] = path.join(
-                context.topdir, "cargo")
+                context.sharedir, "cargo")
 
         self.config.setdefault("build", {})
         self.config["build"].setdefault("android", False)
@@ -148,7 +151,7 @@ class CommandBase(object):
             Registrar.dispatch("bootstrap-rust", context=self.context)
         if not self.config["tools"]["system-cargo"] and \
            not path.exists(path.join(
-                self.context.topdir, "cargo", "bin", "cargo")):
+                self.config["tools"]["cargo-root"], "bin", "cargo")):
             Registrar.dispatch("bootstrap-cargo", context=self.context)
 
         self.context.bootstrapped = True
