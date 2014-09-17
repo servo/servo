@@ -19,6 +19,7 @@ use servo_util::atom::Atom;
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct HTMLOptionElement {
     pub htmlelement: HTMLElement
 }
@@ -36,6 +37,7 @@ impl HTMLOptionElement {
         }
     }
 
+    #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLOptionElement> {
         let element = HTMLOptionElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLOptionElementBinding::Wrap)

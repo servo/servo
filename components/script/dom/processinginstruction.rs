@@ -15,6 +15,7 @@ use servo_util::str::DOMString;
 
 /// An HTML processing instruction node.
 #[deriving(Encodable)]
+#[must_root]
 pub struct ProcessingInstruction {
     pub characterdata: CharacterData,
     pub target: DOMString,
@@ -35,8 +36,8 @@ impl ProcessingInstruction {
     }
 
     pub fn new(target: DOMString, data: DOMString, document: &JSRef<Document>) -> Temporary<ProcessingInstruction> {
-        let node = ProcessingInstruction::new_inherited(target, data, document);
-        Node::reflect_node(box node, document, ProcessingInstructionBinding::Wrap)
+        Node::reflect_node(box ProcessingInstruction::new_inherited(target, data, document),
+                           document, ProcessingInstructionBinding::Wrap)
     }
 }
 

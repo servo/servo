@@ -74,6 +74,7 @@ impl TimerHandle {
 }
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct Window {
     eventtarget: EventTarget,
     pub script_chan: ScriptChan,

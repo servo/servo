@@ -19,6 +19,7 @@ use dom::nodelist::NodeList;
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct DocumentFragment {
     pub node: Node,
 }
@@ -38,8 +39,8 @@ impl DocumentFragment {
     }
 
     pub fn new(document: &JSRef<Document>) -> Temporary<DocumentFragment> {
-        let node = DocumentFragment::new_inherited(document);
-        Node::reflect_node(box node, document, DocumentFragmentBinding::Wrap)
+        Node::reflect_node(box DocumentFragment::new_inherited(document),
+                           document, DocumentFragmentBinding::Wrap)
     }
 
     pub fn Constructor(global: &GlobalRef) -> Fallible<Temporary<DocumentFragment>> {

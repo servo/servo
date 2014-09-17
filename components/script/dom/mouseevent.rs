@@ -19,6 +19,7 @@ use servo_util::str::DOMString;
 use std::cell::Cell;
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct MouseEvent {
     pub mouseevent: UIEvent,
     pub screen_x: Traceable<Cell<i32>>,

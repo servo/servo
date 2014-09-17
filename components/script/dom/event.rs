@@ -35,6 +35,7 @@ pub enum EventTypeId {
 }
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct Event {
     pub type_id: EventTypeId,
     reflector_: Reflector,

@@ -14,6 +14,7 @@ use dom::event::{Event, ProgressEventTypeId};
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct ProgressEvent {
     event: Event,
     length_computable: bool,

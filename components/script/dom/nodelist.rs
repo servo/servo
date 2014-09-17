@@ -11,12 +11,14 @@ use dom::node::{Node, NodeHelpers};
 use dom::window::Window;
 
 #[deriving(Encodable)]
+#[must_root]
 pub enum NodeListType {
     Simple(Vec<JS<Node>>),
     Children(JS<Node>)
 }
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct NodeList {
     list_type: NodeListType,
     reflector_: Reflector,

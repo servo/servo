@@ -37,6 +37,7 @@ use native::task::NativeTaskBuilder;
 use url::Url;
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct DedicatedWorkerGlobalScope {
     workerglobalscope: WorkerGlobalScope,
     receiver: Untraceable<Receiver<ScriptMsg>>,

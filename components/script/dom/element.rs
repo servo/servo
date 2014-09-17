@@ -42,6 +42,7 @@ use std::cell::{Cell, RefCell};
 use std::mem;
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct Element {
     pub node: Node,
     pub local_name: Atom,
@@ -160,8 +161,8 @@ impl Element {
     }
 
     pub fn new(local_name: DOMString, namespace: Namespace, prefix: Option<DOMString>, document: &JSRef<Document>) -> Temporary<Element> {
-        let element = Element::new_inherited(ElementTypeId, local_name, namespace, prefix, document);
-        Node::reflect_node(box element, document, ElementBinding::Wrap)
+        Node::reflect_node(box Element::new_inherited(ElementTypeId, local_name, namespace, prefix, document),
+                           document, ElementBinding::Wrap)
     }
 }
 
@@ -173,6 +174,7 @@ pub trait RawLayoutElementHelpers {
 
 impl RawLayoutElementHelpers for Element {
     #[inline]
+    #[allow(unrooted_must_root)]
     unsafe fn get_attr_val_for_layout(&self, namespace: &Namespace, name: &str)
                                       -> Option<&'static str> {
         // cast to point to T in RefCell<T> directly
@@ -188,6 +190,7 @@ impl RawLayoutElementHelpers for Element {
     }
 
     #[inline]
+    #[allow(unrooted_must_root)]
     unsafe fn get_attr_atom_for_layout(&self, namespace: &Namespace, name: &str)
                                       -> Option<Atom> {
         // cast to point to T in RefCell<T> directly
@@ -203,6 +206,7 @@ impl RawLayoutElementHelpers for Element {
     }
 
     #[inline]
+    #[allow(unrooted_must_root)]
     unsafe fn has_class_for_layout(&self, name: &str) -> bool {
         let attrs: *const Vec<JS<Attr>> = mem::transmute(&self.attrs);
         (*attrs).iter().find(|attr: & &JS<Attr>| {
@@ -220,6 +224,7 @@ pub trait LayoutElementHelpers {
 }
 
 impl LayoutElementHelpers for JS<Element> {
+    #[allow(unrooted_must_root)]
     unsafe fn html_element_in_html_document_for_layout(&self) -> bool {
         if (*self.unsafe_get()).namespace != namespace::HTML {
             return false

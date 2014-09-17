@@ -10,6 +10,7 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::window::Window;
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct Screen {
     reflector_: Reflector,
 }

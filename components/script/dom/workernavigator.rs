@@ -11,6 +11,7 @@ use dom::workerglobalscope::WorkerGlobalScope;
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct WorkerNavigator {
     reflector_: Reflector,
 }

@@ -10,6 +10,7 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::window::Window;
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct PerformanceTiming {
     reflector_: Reflector,
     navigationStart: u64,
@@ -26,6 +27,7 @@ impl PerformanceTiming {
         }
     }
 
+    #[allow(unrooted_must_root)]
     pub fn new(window: &JSRef<Window>) -> Temporary<PerformanceTiming> {
         let timing = PerformanceTiming::new_inherited(window.navigationStart,
                                                       window.navigationStartPrecise);

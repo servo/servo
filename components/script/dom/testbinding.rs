@@ -19,6 +19,7 @@ use js::jsapi::JSContext;
 use js::jsval::{JSVal, NullValue};
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct TestBinding {
     reflector: Reflector,
     global: GlobalField,

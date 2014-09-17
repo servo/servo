@@ -11,6 +11,7 @@ use dom::window::Window;
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct Navigator {
     pub reflector_: Reflector //XXXjdm cycle: window->navigator->window
 }

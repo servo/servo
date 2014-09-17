@@ -29,6 +29,7 @@ static DefaultWidth: u32 = 300;
 static DefaultHeight: u32 = 150;
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct HTMLCanvasElement {
     pub htmlelement: HTMLElement,
     context: Traceable<Cell<Option<JS<CanvasRenderingContext2D>>>>,
@@ -52,6 +53,7 @@ impl HTMLCanvasElement {
         }
     }
 
+    #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLCanvasElement> {
         let element = HTMLCanvasElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLCanvasElementBinding::Wrap)

@@ -30,6 +30,7 @@ use std::ptr;
 pub struct TrustedWorkerAddress(pub *const c_void);
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct Worker {
     eventtarget: EventTarget,
     refcount: Cell<uint>,

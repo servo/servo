@@ -17,6 +17,7 @@ use geom::size::Size2D;
 use canvas::canvas_render_task::{CanvasMsg, CanvasRenderTask, ClearRect, Close, FillRect, Recreate, StrokeRect};
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct CanvasRenderingContext2D {
     reflector_: Reflector,
     global: GlobalField,

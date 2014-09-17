@@ -9,6 +9,7 @@ use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct NodeIterator {
     pub reflector_: Reflector
 }

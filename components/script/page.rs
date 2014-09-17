@@ -425,6 +425,7 @@ impl Page {
 
 /// Information for one frame in the browsing context.
 #[deriving(Encodable)]
+#[must_root]
 pub struct Frame {
     /// The document for this frame.
     pub document: JS<Document>,

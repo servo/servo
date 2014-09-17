@@ -42,6 +42,7 @@ enum SandboxAllowance {
 }
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct HTMLIFrameElement {
     pub htmlelement: HTMLElement,
     pub size: Traceable<Cell<Option<IFrameSize>>>,
@@ -122,6 +123,7 @@ impl HTMLIFrameElement {
         }
     }
 
+    #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLIFrameElement> {
         let element = HTMLIFrameElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLIFrameElementBinding::Wrap)

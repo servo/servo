@@ -12,6 +12,7 @@ use dom::element::Element;
 use dom::window::Window;
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct NamedNodeMap {
     reflector_: Reflector,
     owner: JS<Element>,

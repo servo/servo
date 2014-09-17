@@ -23,6 +23,7 @@ use dom::text::Text;
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct DOMImplementation {
     document: JS<Document>,
     reflector_: Reflector,

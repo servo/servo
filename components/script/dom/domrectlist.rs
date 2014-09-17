@@ -11,6 +11,7 @@ use dom::domrect::DOMRect;
 use dom::window::Window;
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct DOMRectList {
     reflector_: Reflector,
     rects: Vec<JS<DOMRect>>,

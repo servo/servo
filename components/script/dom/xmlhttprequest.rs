@@ -98,6 +98,7 @@ enum SyncOrAsync<'a, 'b> {
 
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct XMLHttpRequest {
     eventtarget: XMLHttpRequestEventTarget,
     ready_state: Traceable<Cell<XMLHttpRequestState>>,
@@ -132,7 +133,7 @@ pub struct XMLHttpRequest {
 
 impl XMLHttpRequest {
     pub fn new_inherited(global: &GlobalRef) -> XMLHttpRequest {
-        let xhr = XMLHttpRequest {
+        XMLHttpRequest {
             eventtarget: XMLHttpRequestEventTarget::new_inherited(XMLHttpRequestTypeId),
             ready_state: Traceable::new(Cell::new(Unsent)),
             timeout: Traceable::new(Cell::new(0u32)),
@@ -162,8 +163,7 @@ impl XMLHttpRequest {
             fetch_time: Traceable::new(Cell::new(0)),
             timeout_pinned: Traceable::new(Cell::new(false)),
             terminate_sender: Untraceable::new(RefCell::new(None)),
-        };
-        xhr
+        }
     }
     pub fn new(global: &GlobalRef) -> Temporary<XMLHttpRequest> {
         reflect_dom_object(box XMLHttpRequest::new_inherited(global),

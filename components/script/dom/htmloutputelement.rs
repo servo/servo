@@ -16,6 +16,7 @@ use dom::validitystate::ValidityState;
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct HTMLOutputElement {
     pub htmlelement: HTMLElement
 }
@@ -33,6 +34,7 @@ impl HTMLOutputElement {
         }
     }
 
+    #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLOutputElement> {
         let element = HTMLOutputElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLOutputElementBinding::Wrap)

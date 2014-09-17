@@ -23,6 +23,7 @@ use std::ascii::StrAsciiExt;
 use url::UrlParser;
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct HTMLLinkElement {
     pub htmlelement: HTMLElement,
 }
@@ -40,6 +41,7 @@ impl HTMLLinkElement {
         }
     }
 
+    #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLLinkElement> {
         let element = HTMLLinkElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLLinkElementBinding::Wrap)

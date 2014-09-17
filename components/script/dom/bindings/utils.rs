@@ -455,8 +455,9 @@ pub fn reflect_dom_object<T: Reflectable>
 }
 
 /// A struct to store a reference to the reflector of a DOM object.
-#[allow(raw_pointer_deriving)]
+#[allow(raw_pointer_deriving, unrooted_must_root)]
 #[deriving(PartialEq)]
+#[must_root]
 pub struct Reflector {
     object: Cell<*mut JSObject>,
 }
@@ -668,6 +669,7 @@ pub extern fn outerize_global(_cx: *mut JSContext, obj: JSHandleObject) -> *mut 
 }
 
 /// Returns the global object of the realm that the given JS object was created in.
+#[allow(unrooted_must_root)]
 pub fn global_object_for_js_object(obj: *mut JSObject) -> GlobalField {
     unsafe {
         let global = GetGlobalForObjectCrossCompartment(obj);
@@ -689,6 +691,7 @@ pub fn global_object_for_js_object(obj: *mut JSObject) -> GlobalField {
 
 /// Get the `JSContext` for the `JSRuntime` associated with the thread
 /// this object is on.
+#[allow(unrooted_must_root)]
 fn cx_for_dom_reflector(obj: *mut JSObject) -> *mut JSContext {
     let global = global_object_for_js_object(obj);
     let global = global.root();

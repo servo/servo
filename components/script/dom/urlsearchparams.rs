@@ -22,6 +22,7 @@ use std::fmt::radix;
 use std::ascii::OwnedStrAsciiExt;
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct URLSearchParams {
     data: Traceable<RefCell<HashMap<DOMString, Vec<DOMString>>>>,
     reflector_: Reflector,

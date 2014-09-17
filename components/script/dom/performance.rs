@@ -14,6 +14,7 @@ use time;
 pub type DOMHighResTimeStamp = f64;
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct Performance {
     reflector_: Reflector,
     timing: JS<PerformanceTiming>,
@@ -28,8 +29,8 @@ impl Performance {
     }
 
     pub fn new(window: &JSRef<Window>) -> Temporary<Performance> {
-        let performance = Performance::new_inherited(window);
-        reflect_dom_object(box performance, &Window(*window),
+        reflect_dom_object(box Performance::new_inherited(window),
+                           &Window(*window),
                            PerformanceBinding::Wrap)
     }
 }

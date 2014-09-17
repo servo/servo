@@ -20,6 +20,7 @@ use js::jsapi::JSContext;
 use js::jsval::JSVal;
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct MessageEvent {
     event: Event,
     data: Traceable<JSVal>,

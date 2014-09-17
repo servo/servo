@@ -14,6 +14,7 @@ use dom::node::{Node, ElementNodeTypeId};
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct HTMLBaseElement {
     pub htmlelement: HTMLElement
 }
@@ -31,6 +32,7 @@ impl HTMLBaseElement {
         }
     }
 
+    #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLBaseElement> {
         let element = HTMLBaseElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLBaseElementBinding::Wrap)

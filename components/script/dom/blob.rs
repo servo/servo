@@ -16,6 +16,7 @@ pub enum BlobType {
 }
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct Blob {
     reflector_: Reflector,
     type_: BlobType

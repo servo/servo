@@ -69,6 +69,7 @@ pub enum IsHTMLDocument {
 }
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct Document {
     pub node: Node,
     reflector_: Reflector,
@@ -309,8 +310,8 @@ impl Document {
     }
 
     pub fn new(window: &JSRef<Window>, url: Option<Url>, doctype: IsHTMLDocument, content_type: Option<DOMString>) -> Temporary<Document> {
-        let document = Document::new_inherited(window, url, doctype, content_type);
-        let document = reflect_dom_object(box document, &Window(*window),
+        let document = reflect_dom_object(box Document::new_inherited(window, url, doctype, content_type),
+                                          &Window(*window),
                                           DocumentBinding::Wrap).root();
 
         let node: &JSRef<Node> = NodeCast::from_ref(&*document);

@@ -15,6 +15,7 @@ use servo_util::str::DOMString;
 use url::Url;
 
 #[deriving(Encodable)]
+#[must_root]
 pub struct WorkerLocation {
     reflector_: Reflector,
     url: Untraceable<Url>,
