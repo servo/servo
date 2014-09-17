@@ -29,7 +29,7 @@ use css::node_style::StyledNode;
 use block::BlockFlow;
 use context::LayoutContext;
 use floats::Floats;
-use flow_list::{FlowList, Link, FlowListIterator, MutFlowListIterator};
+use flow_list::{FlowList, FlowListIterator, MutFlowListIterator};
 use flow_ref::FlowRef;
 use fragment::{Fragment, TableRowFragment, TableCellFragment};
 use incremental::RestyleDamage;
@@ -691,16 +691,6 @@ pub struct BaseFlow {
     /// The children of this flow.
     pub children: FlowList,
 
-    /// The flow's next sibling.
-    ///
-    /// FIXME(pcwalton): Make this private. Misuse of this can lead to data races.
-    pub next_sibling: Link,
-
-    /// The flow's previous sibling.
-    ///
-    /// FIXME(pcwalton): Make this private. Misuse of this can lead to data races.
-    pub prev_sibling: Link,
-
     /* layout computations */
     // TODO: min/pref and position are used during disjoint phases of
     // layout; maybe combine into a single enum to save space.
@@ -809,8 +799,6 @@ impl BaseFlow {
             restyle_damage: node.restyle_damage(),
 
             children: FlowList::new(),
-            next_sibling: None,
-            prev_sibling: None,
 
             intrinsic_inline_sizes: IntrinsicISizes::new(),
             position: LogicalRect::zero(writing_mode),
