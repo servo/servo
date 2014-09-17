@@ -46,3 +46,7 @@ pub mod task;
 pub mod time;
 pub mod vec;
 pub mod workqueue;
+
+pub fn breakpoint() {
+    unsafe { ::std::intrinsics::breakpoint() };
+}
