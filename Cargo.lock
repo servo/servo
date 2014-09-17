@@ -252,9 +252,9 @@ dependencies = [
 [[package]]
 name = "js"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-mozjs#5c3e798e2dd880799cb32199338cd2445f30ba2b"
+source = "git+https://github.com/servo/rust-mozjs#839adf39f30cec81b096ac7cdba1412dbbc3ad38"
 dependencies = [
- "mozjs-sys 0.0.0 (git+https://github.com/servo/mozjs#5869198ea31f911da76993c47f6a9de04ddf5fb7)",
+ "mozjs-sys 0.0.0 (git+https://github.com/servo/mozjs#bf557df22e7f10993c7ff0568299a098df4fd8f4)",
 ]
 
 [[package]]
@@ -310,7 +310,7 @@ version = "0.0.1"
 [[package]]
 name = "mozjs-sys"
 version = "0.0.0"
-source = "git+https://github.com/servo/mozjs#5869198ea31f911da76993c47f6a9de04ddf5fb7"
+source = "git+https://github.com/servo/mozjs#bf557df22e7f10993c7ff0568299a098df4fd8f4"
 
 [[package]]
 name = "msg"
@@ -387,7 +387,7 @@ dependencies = [
  "gfx 0.0.1",
  "http 0.1.0-pre (git+https://github.com/servo/rust-http?ref=servo#13be91d968d3e5ba032d19a3bb3438c2c4c6b372)",
  "hubbub 0.1.0 (git+https://github.com/servo/rust-hubbub#c7f868e688de6e9cbdc26aa09292ed072bc2648b)",
- "js 0.1.0 (git+https://github.com/servo/rust-mozjs#5c3e798e2dd880799cb32199338cd2445f30ba2b)",
+ "js 0.1.0 (git+https://github.com/servo/rust-mozjs#839adf39f30cec81b096ac7cdba1412dbbc3ad38)",
  "macros 0.0.1",
  "msg 0.0.1",
  "net 0.0.1",

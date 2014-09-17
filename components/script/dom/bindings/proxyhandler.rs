@@ -7,15 +7,17 @@
 use dom::bindings::js::RootablePointer;
 use dom::bindings::utils::delete_property_by_id;
 use js::jsapi::{JSContext, JSPropertyDescriptor, JSObject};
-use js::jsapi::{JS_GetPropertyDescriptorById};
+use js::jsapi::{JS_GetPropertyDescriptorById, JS_AlreadyHasOwnPropertyById};
 use js::jsapi::{JS_DefinePropertyById, JS_NewObjectWithGivenProto, MutableHandle};
 use js::jsapi::{JS_StrictPropertyStub, JSHandleObject, JSHandleId};
 use js::jsapi::{JSREPORT_WARNING, JSREPORT_STRICT, JSREPORT_STRICT_MODE_ERROR};
 use js::jsapi::{JS_ReportErrorFlagsAndNumber};
+use js::jsfriendapi::{DOMProxyShadowsResult, DoesntShadowUnique, ShadowCheckFailed, Shadows};
+use js::jsfriendapi::DoesntShadow;
 use js::jsval::ObjectValue;
 use js::glue::GetProxyExtra;
 use js::glue::{GetObjectProto, GetObjectParent, SetProxyExtra, GetProxyHandler};
-use js::glue::InvokeGetOwnPropertyDescriptor;
+use js::glue::{InvokeGetOwnPropertyDescriptor, InvokeHasOwn};
 use js::glue::RUST_js_GetErrorMessage;
 use js::{JSPROP_GETTER, JSPROP_ENUMERATE, JSPROP_READONLY, JSRESOLVE_QUALIFIED};
 
@@ -135,4 +137,38 @@ pub fn FillPropertyDescriptor(desc: &mut JSPropertyDescriptor, obj: *mut JSObjec
     desc.attrs = if readonly { JSPROP_READONLY } else { 0 } | JSPROP_ENUMERATE;
     desc.getter = None;
     desc.setter = None;
+}
+
+pub unsafe extern fn dom_proxy_shadows(cx: *mut JSContext,
+                                       proxy: JSHandleObject,
+                                       id: JSHandleId) -> DOMProxyShadowsResult {
+    let v = GetProxyExtra(*proxy, JSPROXYSLOT_EXPANDO);
+    if v.is_object() {
+        let object = v.to_object().root_ptr();
+        let mut hasOwn = false;
+        if !JS_AlreadyHasOwnPropertyById(cx, object.handle(), id, &mut hasOwn) {
+            return ShadowCheckFailed;
+        }
+        return if hasOwn {
+            Shadows
+        } else {
+            DoesntShadow
+        };
+    }
+
+    if v.is_undefined() {
+        return DoesntShadow;
+    }
+
+    let mut hasOwn = false;
+    let handler = GetProxyHandler(*proxy);
+    if !InvokeHasOwn(handler, cx, proxy, id, &mut hasOwn) {
+        return ShadowCheckFailed;
+    }
+
+    if hasOwn {
+        Shadows
+    } else {
+        DoesntShadowUnique
+    }
 }

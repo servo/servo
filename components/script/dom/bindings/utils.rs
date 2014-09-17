@@ -820,3 +820,12 @@ pub fn dump_js_backtrace(cx: *mut JSContext) {
         js_DumpBacktrace(cx);
     }
 }
+
+pub extern fn instance_class_matches_proto(protoObject: *mut JSObject,
+                                           protoID: u32,
+                                           depth: u32) -> bool {
+    match unsafe { get_dom_class(protoObject) } {
+        Ok(clasp) => clasp.interface_chain[depth as uint] as u32 == protoID,
+        _ => false,
+    }
+}
