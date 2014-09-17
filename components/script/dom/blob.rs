@@ -40,9 +40,6 @@ impl Blob {
     }
 }
 
-pub trait BlobMethods {
-}
-
 impl Reflectable for Blob {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         &self.reflector_
