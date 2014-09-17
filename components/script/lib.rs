@@ -36,6 +36,9 @@ extern crate servo_macros = "macros";
 extern crate servo_net = "net";
 extern crate servo_util = "util";
 extern crate style;
+extern crate string_cache;
+#[phase(plugin)]
+extern crate string_cache_macros;
 extern crate sync;
 extern crate servo_msg = "msg";
 extern crate url;
