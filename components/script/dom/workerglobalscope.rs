@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
-use dom::bindings::error::{ErrorResult, Syntax, Network, FailureUnknown};
+use dom::bindings::error::{ErrorResult, Fallible, Syntax, Network, FailureUnknown};
 use dom::bindings::trace::Untraceable;
 use dom::bindings::global;
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalSettable};
@@ -12,6 +12,7 @@ use dom::console::Console;
 use dom::eventtarget::{EventTarget, WorkerGlobalScopeTypeId};
 use dom::workerlocation::WorkerLocation;
 use dom::workernavigator::WorkerNavigator;
+use dom::window::{base64_atob, base64_btoa};
 use script_task::ScriptChan;
 
 use servo_net::resource_task::{ResourceTask, load_whole_resource};
@@ -136,6 +137,14 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
             self.console.assign(Some(console));
         }
         Temporary::new(self.console.get().get_ref().clone())
+    }
+
+    fn Btoa(&self, btoa: DOMString) -> Fallible<DOMString> {
+        base64_btoa(btoa)
+    }
+
+    fn Atob(&self, atob: DOMString) -> Fallible<DOMString> {
+        base64_atob(atob)
     }
 }
 
