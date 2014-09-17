@@ -19,7 +19,6 @@ use servo_util::str::DOMString;
 use std::mem;
 use std::hash::{Hash, sip};
 use std::slice::Items;
-use style;
 use style::{After, Before, ComputedValues, DeclarationBlock, Stylist, TElement, TNode};
 use style::cascade;
 use sync::Arc;
@@ -299,13 +298,13 @@ pub trait MatchMethods {
     fn recalc_style_for_subtree(&self,
                                 stylist: &Stylist,
                                 layout_context: &LayoutContext,
-                                parent_bf: &mut Option<BloomFilter>,
+                                parent_bf: &mut Option<Box<BloomFilter>>,
                                 applicable_declarations: &mut ApplicableDeclarations,
                                 parent: Option<LayoutNode>);
 
     fn match_node(&self,
                   stylist: &Stylist,
-                  parent_bf: &Option<BloomFilter>,
+                  parent_bf: &Option<Box<BloomFilter>>,
                   applicable_declarations: &mut ApplicableDeclarations,
                   shareable: &mut bool);
 
@@ -421,7 +420,7 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
 impl<'ln> MatchMethods for LayoutNode<'ln> {
     fn match_node(&self,
                   stylist: &Stylist,
-                  parent_bf: &Option<BloomFilter>,
+                  parent_bf: &Option<Box<BloomFilter>>,
                   applicable_declarations: &mut ApplicableDeclarations,
                   shareable: &mut bool) {
         let style_attribute = self.as_element().style_attribute().as_ref();
@@ -506,13 +505,7 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
         element.get_id().map(|id| bf.insert(&id));
 
         // TODO: case-sensitivity depends on the document type and quirks mode
-        element
-            .get_attr(&ns!(""), "class")
-            .map(|attr| {
-                for c in attr.split(style::SELECTOR_WHITESPACE) {
-                    bf.insert(&c);
-                }
-            });
+        element.each_class(|class| bf.insert(class));
     }
 
     fn remove_from_bloom_filter(&self, bf: &mut BloomFilter) {
@@ -525,19 +518,13 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
         element.get_id().map(|id| bf.remove(&id));
 
         // TODO: case-sensitivity depends on the document type and quirks mode
-        element
-            .get_attr(&ns!(""), "class")
-            .map(|attr| {
-                for c in attr.split(style::SELECTOR_WHITESPACE) {
-                    bf.remove(&c);
-                }
-            });
+        element.each_class(|class| bf.remove(class));
     }
 
     fn recalc_style_for_subtree(&self,
                                 stylist: &Stylist,
                                 layout_context: &LayoutContext,
-                                parent_bf: &mut Option<BloomFilter>,
+                                parent_bf: &mut Option<Box<BloomFilter>>,
                                 applicable_declarations: &mut ApplicableDeclarations,
                                 parent: Option<LayoutNode>) {
         self.initialize_layout_data(layout_context.shared.layout_chan.clone());
@@ -573,7 +560,7 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
 
         match *parent_bf {
             None => {},
-            Some(ref mut pbf) => self.insert_into_bloom_filter(pbf),
+            Some(ref mut pbf) => self.insert_into_bloom_filter(&mut **pbf),
         }
 
         for kid in self.children() {
@@ -586,7 +573,7 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
 
         match *parent_bf {
             None => {},
-            Some(ref mut pbf) => self.remove_from_bloom_filter(pbf),
+            Some(ref mut pbf) => self.remove_from_bloom_filter(&mut **pbf),
         }
 
         // Construct flows.

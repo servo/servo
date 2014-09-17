@@ -38,4 +38,5 @@ pub trait TElement<'a> : Copy {
     fn get_disabled_state(self) -> bool;
     fn get_enabled_state(self) -> bool;
     fn has_class(self, name: &str) -> bool;
+    fn each_class(self, callback: |&Atom|);
 }
