@@ -653,8 +653,8 @@ mod tests {
         assert!(parse_ns("[Foo]", &namespaces) == Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(AttrExists(AttrSelector {
-                    name: "Foo".to_string(),
-                    lower_name: "foo".to_string(),
+                    name: Atom::from_slice("Foo"),
+                    lower_name: Atom::from_slice("foo"),
                     namespace: SpecificNamespace(namespace::Null),
                 })),
                 next: None,
@@ -668,8 +668,8 @@ mod tests {
         assert!(parse_ns("[Foo]", &namespaces) == Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(AttrExists(AttrSelector {
-                    name: "Foo".to_string(),
-                    lower_name: "foo".to_string(),
+                    name: Atom::from_slice("Foo"),
+                    lower_name: Atom::from_slice("foo"),
                     namespace: SpecificNamespace(namespace::Null),
                 })),
                 next: None,

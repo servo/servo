@@ -250,7 +250,7 @@ impl CORSCache for CORSCacheSender {
 /// A simple task-based CORS Cache that can be sent messages
 ///
 /// #Example
-/// ```
+/// ```ignore
 /// let task = CORSCacheTask::new();
 /// let builder = TaskBuilder::new().named("XHRTask");
 /// let mut sender = task.get_sender();
