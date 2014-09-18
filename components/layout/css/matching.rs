@@ -17,7 +17,6 @@ use servo_util::cache::{Cache, LRUCache, SimpleHashCache};
 use servo_util::namespace::Null;
 use servo_util::smallvec::{SmallVec, SmallVec16};
 use servo_util::str::DOMString;
-use servo_util::tid::tid;
 use std::mem;
 use std::hash::{Hash, sip};
 use std::slice::Items;
