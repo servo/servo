@@ -37,8 +37,8 @@ for t in "${tasks[@]}"; do
             if [ "${TRAVIS_BRANCH}" = "master" ] && [ "${TRAVIS_PULL_REQUEST}" = "false" ]
             then
                 mkdir -p target/doc
-                cp etc/doc.servo.org/* target/doc/
                 cp -R rust/doc/* target/doc/
+                cp etc/doc.servo.org/* target/doc/
                 ./mach doc  # After copying rust/doc, so that the crate index is correct.
                 sudo pip install ghp-import
                 ghp-import -n target/doc
