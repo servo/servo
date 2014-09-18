@@ -1165,8 +1165,12 @@ impl Fragment {
             TableWrapperFragment => {}
             InlineBlockFragment(ref mut info) => {
                 let block_flow = info.flow_ref.get_mut().as_block();
-                result.minimum_inline_size = geometry::max(result.minimum_inline_size, block_flow.base.intrinsic_inline_sizes.minimum_inline_size);
-                result.preferred_inline_size = geometry::max(result.preferred_inline_size, block_flow.base.intrinsic_inline_sizes.preferred_inline_size);
+                result.minimum_inline_size = geometry::max(result.minimum_inline_size,
+                        block_flow.base.intrinsic_inline_sizes.minimum_inline_size +
+                        block_flow.base.intrinsic_inline_sizes.surround_inline_size);
+                result.preferred_inline_size = geometry::max(result.preferred_inline_size,
+                        block_flow.base.intrinsic_inline_sizes.preferred_inline_size +
+                        block_flow.base.intrinsic_inline_sizes.surround_inline_size);
             },
             ImageFragment(ref mut image_fragment_info) => {
                 let image_inline_size = image_fragment_info.image_inline_size();
@@ -1420,7 +1424,9 @@ impl Fragment {
         match self.specific {
             InlineBlockFragment(ref mut info) => {
                 let block_flow = info.flow_ref.get_mut().as_block();
-                self.border_box.size.inline = block_flow.base.intrinsic_inline_sizes.preferred_inline_size + noncontent_inline_size;
+                self.border_box.size.inline = block_flow.base.intrinsic_inline_sizes.preferred_inline_size +
+                                                block_flow.base.intrinsic_inline_sizes.surround_inline_size +
+                                                noncontent_inline_size;
                 block_flow.base.position.size.inline = self.border_box.size.inline;
             }
             ScannedTextFragment(_) => {
