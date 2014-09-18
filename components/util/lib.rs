@@ -44,6 +44,7 @@ pub mod smallvec;
 pub mod sort;
 pub mod str;
 pub mod task;
+pub mod tid;
 pub mod time;
 pub mod vec;
 pub mod workqueue;

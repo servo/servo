@@ -88,6 +88,10 @@ pub struct LayoutTaskData {
 
     /// The dirty rect. Used during display list construction.
     pub dirty: Rect<Au>,
+
+    /// Starts at zero, and increased by one every time a layout completes.
+    /// This can be used to easily check for invalid stale data.
+    pub generation: uint,
 }
 
 /// Information needed by the layout task.
@@ -413,6 +417,7 @@ impl LayoutTask {
                     stylist: box Stylist::new(),
                     parallel_traversal: parallel_traversal,
                     dirty: Rect::zero(),
+                    generation: 0,
               })),
         }
     }
@@ -443,6 +448,7 @@ impl LayoutTask {
             reflow_root: OpaqueNodeMethods::from_layout_node(reflow_root),
             opts: self.opts.clone(),
             dirty: Rect::zero(),
+            generation: rw_data.generation,
         }
     }
 
@@ -924,6 +930,8 @@ impl LayoutTask {
         if self.opts.trace_layout {
             layout_debug::end_trace();
         }
+
+        rw_data.generation += 1;
 
         // Tell script that we're done.
         //
