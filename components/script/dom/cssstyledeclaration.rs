@@ -4,8 +4,8 @@
 
 use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use dom::bindings::error::{ErrorResult, Fallible};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::bindings::js::JSRef;
+use dom::bindings::utils::{Reflectable, Reflector};
 use servo_util::str::DOMString;
 use string_cache::atom::Atom;
 use std::ascii::AsciiExt;
@@ -42,6 +42,14 @@ fn serialize_declaration(_declaration: &Declaration) -> DOMString {
 
 fn get_declaration(_property: &Atom) -> Option<Declaration> {
     None
+}
+
+impl CSSStyleDeclaration {
+    pub fn new_inherited() -> CSSStyleDeclaration {
+        CSSStyleDeclaration {
+            reflector_: Reflector::new()
+        }
+    }
 }
 
 impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {

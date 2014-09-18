@@ -10,10 +10,12 @@ use dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLFrameSetElementDerived};
-use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLInputElementCast};
+use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLInputElementCast, CSSStyleDeclarationCast};
 use dom::bindings::codegen::InheritTypes::{HTMLElementDerived, HTMLBodyElementDerived};
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary, MutNullableJS};
 use dom::bindings::utils::{Reflectable, Reflector};
+use dom::cssstyledeclaration::CSSStyleDeclaration;
+use dom::css2properties::CSS2Properties;
 use dom::document::Document;
 use dom::element::{Element, ElementTypeId, ActivationElementHelpers};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
@@ -24,9 +26,12 @@ use servo_util::str::DOMString;
 
 use string_cache::Atom;
 
+use std::default::Default;
+
 #[dom_struct]
 pub struct HTMLElement {
-    element: Element
+    element: Element,
+    style_decl: MutNullableJS<CSSStyleDeclaration>,
 }
 
 impl HTMLElementDerived for EventTarget {
@@ -42,7 +47,8 @@ impl HTMLElementDerived for EventTarget {
 impl HTMLElement {
     pub fn new_inherited(type_id: ElementTypeId, tag_name: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLElement {
         HTMLElement {
-            element: Element::new_inherited(type_id, tag_name, ns!(HTML), prefix, document)
+            element: Element::new_inherited(type_id, tag_name, ns!(HTML), prefix, document),
+            style_decl: Default::default(),
         }
     }
 
@@ -65,6 +71,16 @@ impl<'a> PrivateHTMLElementHelpers for JSRef<'a, HTMLElement> {
 }
 
 impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
+    fn Style(self) -> Temporary<CSSStyleDeclaration> {
+        if self.style_decl.get().is_none() {
+            let global = window_from_node(self);
+            let style_props = CSS2Properties::new(&*global.root()).root();
+            let style_decl: JSRef<CSSStyleDeclaration> = CSSStyleDeclarationCast::from_ref(*style_props);
+            self.style_decl.assign(Some(style_decl));
+        }
+        self.style_decl.get().unwrap()
+    }
+
     make_getter!(Title)
     make_setter!(SetTitle, "title")
 

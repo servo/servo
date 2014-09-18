@@ -2,17 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::Bindings::CSS2PropertiesBinding;
 use dom::bindings::codegen::Bindings::CSS2PropertiesBinding::CSS2PropertiesMethods;
 use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use dom::bindings::codegen::InheritTypes::CSSStyleDeclarationCast;
-use dom::bindings::utils::{Reflectable, Reflector};
-use dom::bindings::js::JSRef;
+use dom::bindings::global;
+use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::cssstyledeclaration::CSSStyleDeclaration;
+use dom::window::Window;
 use servo_util::str::DOMString;
 
 #[dom_struct]
 pub struct CSS2Properties {
-    declaration: CSSStyleDeclaration,
+    cssstyledeclaration: CSSStyleDeclaration,
 }
 
 macro_rules! css_getter(
@@ -32,6 +35,20 @@ macro_rules! css_setter(
         }
     );
 )
+
+impl CSS2Properties {
+    fn new_inherited() -> CSS2Properties {
+        CSS2Properties {
+            cssstyledeclaration: CSSStyleDeclaration::new_inherited(),
+        }
+    }
+
+    pub fn new(global: &JSRef<Window>) -> Temporary<CSS2Properties> {
+        reflect_dom_object(box CSS2Properties::new_inherited(),
+                           global::Window(*global),
+                           CSS2PropertiesBinding::Wrap)
+    }
+}
 
 impl<'a> CSS2PropertiesMethods for JSRef<'a, CSS2Properties> {
     css_getter!(Color, "color")
@@ -72,6 +89,6 @@ impl<'a> CSS2PropertiesMethods for JSRef<'a, CSS2Properties> {
 
 impl Reflectable for CSS2Properties {
     fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.declaration.reflector()
+        self.cssstyledeclaration.reflector()
     }
 }
