@@ -374,6 +374,7 @@ impl Page {
                 let reflow = box Reflow {
                     document_root: root.to_trusted_node_address(),
                     url: self.get_url(),
+                    iframe: self.subpage_id.is_some(),
                     goal: goal,
                     window_size: window_size,
                     script_chan: script_chan,

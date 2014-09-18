@@ -142,6 +142,8 @@ pub struct Reflow {
     pub goal: ReflowGoal,
     /// The URL of the page.
     pub url: Url,
+    /// Is the current reflow of an iframe, as opposed to a root window?
+    pub iframe: bool,
     /// The channel through which messages can be sent back to the script task.
     pub script_chan: ScriptControlChan,
     /// The current window size.

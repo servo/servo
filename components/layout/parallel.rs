@@ -15,6 +15,7 @@ use flow;
 use flow_ref::FlowRef;
 use layout_task::{AssignBSizesAndStoreOverflowTraversal, AssignISizesTraversal};
 use layout_task::{BubbleISizesTraversal};
+use url::Url;
 use util::{LayoutDataAccess, LayoutDataWrapper, OpaqueNodeMethods};
 use wrapper::{layout_node_to_unsafe_layout_node, layout_node_from_unsafe_layout_node, LayoutNode, PostorderNodeMutTraversal};
 use wrapper::{ThreadSafeLayoutNode, UnsafeLayoutNode};
@@ -624,12 +625,15 @@ pub fn recalc_style_for_subtree(root_node: &LayoutNode,
 }
 
 pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
+                                   url: &Url,
+                                   iframe: bool,
+                                   first_reflow: bool,
                                    time_profiler_chan: TimeProfilerChan,
                                    shared_layout_context: &SharedLayoutContext,
                                    queue: &mut WorkQueue<*const SharedLayoutContext,UnsafeFlow>) {
     queue.data = shared_layout_context as *const _;
 
-    profile(time::LayoutParallelWarmupCategory, time_profiler_chan, || {
+    profile(time::LayoutParallelWarmupCategory, Some((url, iframe, first_reflow)), time_profiler_chan, || {
         queue.push(WorkUnit {
             fun: assign_inline_sizes,
             data: mut_owned_flow_to_unsafe_flow(root),
@@ -642,12 +646,15 @@ pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
 }
 
 pub fn build_display_list_for_subtree(root: &mut FlowRef,
+                                      url: &Url,
+                                      iframe: bool,
+                                      first_reflow: bool,
                                       time_profiler_chan: TimeProfilerChan,
                                       shared_layout_context: &SharedLayoutContext,
                                       queue: &mut WorkQueue<*const SharedLayoutContext,UnsafeFlow>) {
     queue.data = shared_layout_context as *const _;
 
-    profile(time::LayoutParallelWarmupCategory, time_profiler_chan, || {
+    profile(time::LayoutParallelWarmupCategory, Some((url, iframe, first_reflow)), time_profiler_chan, || {
         queue.push(WorkUnit {
             fun: compute_absolute_position,
             data: mut_owned_flow_to_unsafe_flow(root),

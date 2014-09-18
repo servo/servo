@@ -58,6 +58,7 @@ use servo_util::time::{TimeProfilerChan, profile};
 use servo_util::time;
 use servo_util::task::spawn_named_with_send_on_failure;
 use servo_util::workqueue::WorkQueue;
+use std::cell::Cell;
 use std::comm::{channel, Sender, Receiver, Select};
 use std::mem;
 use std::ptr;
@@ -126,6 +127,9 @@ pub struct LayoutTask {
 
     /// The command-line options.
     pub opts: Opts,
+
+    /// Is this the first reflow in this LayoutTask?
+    pub first_reflow: Cell<bool>,
 
     /// A mutex to allow for fast, read-only RPC of layout's internal data
     /// structures, while still letting the LayoutTask modify them.
@@ -400,6 +404,7 @@ impl LayoutTask {
             image_cache_task: image_cache_task.clone(),
             font_cache_task: font_cache_task,
             opts: opts.clone(),
+            first_reflow: Cell::new(true),
             rw_data: Arc::new(Mutex::new(
                 LayoutTaskData {
                     local_image_cache: local_image_cache,
@@ -511,7 +516,8 @@ impl LayoutTask {
                         self.rw_data.clone()) as Box<LayoutRPC + Send>);
             },
             ReflowMsg(data) => {
-                profile(time::LayoutPerformCategory, self.time_profiler_chan.clone(), || {
+                profile(time::LayoutPerformCategory, Some((&data.url, data.iframe, self.first_reflow.get())),
+                self.time_profiler_chan.clone(), || {
                     self.handle_reflow(&*data, possibly_locked_rw_data);
                 });
             },
@@ -670,6 +676,7 @@ impl LayoutTask {
     /// benchmarked against those two. It is marked `#[inline(never)]` to aid profiling.
     #[inline(never)]
     fn solve_constraints_parallel(&self,
+                                  data: &Reflow,
                                   rw_data: &mut LayoutTaskData,
                                   layout_root: &mut FlowRef,
                                   shared_layout_context: &SharedLayoutContext) {
@@ -686,6 +693,9 @@ impl LayoutTask {
                 // NOTE: this currently computes borders, so any pruning should separate that
                 // operation out.
                 parallel::traverse_flow_tree_preorder(layout_root,
+                                                      &data.url,
+                                                      data.iframe,
+                                                      self.first_reflow.get(),
                                                       self.time_profiler_chan.clone(),
                                                       shared_layout_context,
                                                       traversal);
@@ -755,6 +765,9 @@ impl LayoutTask {
                 &data.url);
 
         let mut layout_root = profile(time::LayoutStyleRecalcCategory,
+                                      Some((&data.url,
+                                      data.iframe,
+                                      self.first_reflow.get())),
                                       self.time_profiler_chan.clone(),
                                       || {
             // Perform CSS selector matching and flow construction.
@@ -789,7 +802,8 @@ impl LayoutTask {
         }
 
         // Propagate damage.
-        profile(time::LayoutDamagePropagateCategory, self.time_profiler_chan.clone(), || {
+        profile(time::LayoutDamagePropagateCategory, Some((&data.url, data.iframe, self.first_reflow.get())),
+                self.time_profiler_chan.clone(), || {
             layout_root.get_mut().traverse_preorder(&mut PropagateDamageTraversal {
                 all_style_damage: all_style_damage
             });
@@ -798,7 +812,8 @@ impl LayoutTask {
 
         // Perform the primary layout passes over the flow tree to compute the locations of all
         // the boxes.
-        profile(time::LayoutMainCategory, self.time_profiler_chan.clone(), || {
+        profile(time::LayoutMainCategory, Some((&data.url, data.iframe, self.first_reflow.get())),
+                self.time_profiler_chan.clone(), || {
             let rw_data = rw_data.deref_mut();
             match rw_data.parallel_traversal {
                 None => {
@@ -808,7 +823,7 @@ impl LayoutTask {
                 }
                 Some(_) => {
                     // Parallel mode.
-                    self.solve_constraints_parallel(rw_data, &mut layout_root, &mut shared_layout_ctx)
+                    self.solve_constraints_parallel(data, rw_data, &mut layout_root, &mut shared_layout_ctx)
                 }
             }
         });
@@ -816,7 +831,7 @@ impl LayoutTask {
         // Build the display list if necessary, and send it to the renderer.
         if data.goal == ReflowForDisplay {
             let writing_mode = flow::base(layout_root.get()).writing_mode;
-            profile(time::LayoutDispListBuildCategory, self.time_profiler_chan.clone(), || {
+            profile(time::LayoutDispListBuildCategory, Some((&data.url, data.iframe, self.first_reflow.get())), self.time_profiler_chan.clone(), || {
                 shared_layout_ctx.dirty = flow::base(layout_root.get()).position.to_physical(
                     writing_mode, rw_data.screen_size);
                 flow::mut_base(layout_root.get_mut()).abs_position =
@@ -833,6 +848,9 @@ impl LayoutTask {
                     }
                     Some(ref mut traversal) => {
                         parallel::build_display_list_for_subtree(&mut layout_root,
+                                                                 &data.url,
+                                                                 data.iframe,
+                                                                 self.first_reflow.get(),
                                                                  self.time_profiler_chan.clone(),
                                                                  &mut shared_layout_ctx,
                                                                  traversal);
@@ -900,6 +918,8 @@ impl LayoutTask {
                 self.render_chan.send(RenderInitMsg(layers));
             });
         }
+
+        self.first_reflow.set(false);
 
         if self.opts.trace_layout {
             layout_debug::end_trace();

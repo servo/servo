@@ -11,6 +11,7 @@ use std::f64;
 use std::iter::AdditiveIterator;
 use std::io::timer::sleep;
 use task::{spawn_named};
+use url::Url;
 
 // front-end representation of the profiler used to communicate with the profiler
 #[deriving(Clone)]
@@ -23,9 +24,37 @@ impl TimeProfilerChan {
     }
 }
 
+#[deriving(PartialEq, Clone, PartialOrd, Eq, Ord)]
+pub struct TimerMetadata {
+    url:          String,
+    iframe:       bool,
+    first_reflow: bool,
+}
+
+pub trait Formatable {
+    fn format(&self) -> String;
+}
+
+impl Formatable for Option<TimerMetadata> {
+    fn format(&self) -> String {
+        match self {
+            // TODO(cgaebel): Center-align in the format strings as soon as rustc supports it.
+            &Some(ref meta) => {
+                let url = meta.url.as_slice();
+                let first_reflow = if meta.first_reflow { "    yes" } else { "    no " };
+                let iframe = if meta.iframe { "  yes" } else { "  no " };
+                format!(" {:14} {:9} {:30}", first_reflow, iframe, url)
+            },
+            &None =>
+                format!(" {:14} {:9} {:30}", "    N/A", "  N/A", "             N/A")
+        }
+    }
+}
+
+#[deriving(Clone)]
 pub enum TimeProfilerMsg {
     /// Normal message used for reporting time
-    TimeMsg(TimeProfilerCategory, f64),
+    TimeMsg((TimeProfilerCategory, Option<TimerMetadata>), f64),
     /// Message used to force print the profiling metrics
     PrintMsg,
     /// Tells the profiler to shut down.
@@ -36,9 +65,7 @@ pub enum TimeProfilerMsg {
 #[deriving(PartialEq, Clone, PartialOrd, Eq, Ord)]
 pub enum TimeProfilerCategory {
     CompositingCategory,
-    LayoutQueryCategory,
     LayoutPerformCategory,
-    LayoutMaxSelectorMatchesCategory,
     LayoutStyleRecalcCategory,
     LayoutSelectorMatchCategory,
     LayoutTreeBuilderCategory,
@@ -47,47 +74,16 @@ pub enum TimeProfilerCategory {
     LayoutParallelWarmupCategory,
     LayoutShapingCategory,
     LayoutDispListBuildCategory,
-    GfxRegenAvailableFontsCategory,
     RenderingDrawingCategory,
     RenderingPrepBuffCategory,
     RenderingCategory,
-    // FIXME(rust#8803): workaround for lack of CTFE function on enum types to return length
-    NumBuckets,
 }
 
-impl TimeProfilerCategory {
-    // convenience function to not have to cast every time
-    pub fn num_buckets() -> uint {
-        NumBuckets as uint
-    }
-
-    // enumeration of all TimeProfilerCategory types
-    fn empty_buckets() -> TimeProfilerBuckets {
-        let mut buckets = TreeMap::new();
-        buckets.insert(CompositingCategory, vec!());
-        buckets.insert(LayoutQueryCategory, vec!());
-        buckets.insert(LayoutPerformCategory, vec!());
-        buckets.insert(LayoutMaxSelectorMatchesCategory, vec!());
-        buckets.insert(LayoutStyleRecalcCategory, vec!());
-        buckets.insert(LayoutSelectorMatchCategory, vec!());
-        buckets.insert(LayoutTreeBuilderCategory, vec!());
-        buckets.insert(LayoutMainCategory, vec!());
-        buckets.insert(LayoutParallelWarmupCategory, vec!());
-        buckets.insert(LayoutShapingCategory, vec!());
-        buckets.insert(LayoutDamagePropagateCategory, vec!());
-        buckets.insert(LayoutDispListBuildCategory, vec!());
-        buckets.insert(GfxRegenAvailableFontsCategory, vec!());
-        buckets.insert(RenderingDrawingCategory, vec!());
-        buckets.insert(RenderingPrepBuffCategory, vec!());
-        buckets.insert(RenderingCategory, vec!());
-
-        buckets
-    }
-
+impl Formatable for TimeProfilerCategory {
     // some categories are subcategories of LayoutPerformCategory
     // and should be printed to indicate this
-    pub fn format(self) -> String {
-        let padding = match self {
+    fn format(&self) -> String {
+        let padding = match *self {
             LayoutStyleRecalcCategory |
             LayoutMainCategory |
             LayoutDispListBuildCategory |
@@ -98,11 +94,26 @@ impl TimeProfilerCategory {
             LayoutTreeBuilderCategory => "| + ",
             _ => ""
         };
-        format!("{:s}{:?}", padding, self)
+        let name = match *self {
+            CompositingCategory => "Compositing",
+            LayoutPerformCategory => "Layout",
+            LayoutStyleRecalcCategory => "Style Recalc",
+            LayoutSelectorMatchCategory => "Selector Matching",
+            LayoutTreeBuilderCategory => "Tree Building",
+            LayoutDamagePropagateCategory => "Damage Propagation",
+            LayoutMainCategory => "Primary Layout Pass",
+            LayoutParallelWarmupCategory => "Parallel Warmup",
+            LayoutShapingCategory => "Shaping",
+            LayoutDispListBuildCategory => "Display List Construction",
+            RenderingDrawingCategory => "Draw",
+            RenderingPrepBuffCategory => "Buffer Prep",
+            RenderingCategory => "Rendering",
+        };
+        format!("{:s}{}", padding, name)
     }
 }
 
-type TimeProfilerBuckets = TreeMap<TimeProfilerCategory, Vec<f64>>;
+type TimeProfilerBuckets = TreeMap<(TimeProfilerCategory, Option<TimerMetadata>), Vec<f64>>;
 
 // back end of the profiler that handles data aggregation and performance metrics
 pub struct TimeProfiler {
@@ -151,7 +162,7 @@ impl TimeProfiler {
     pub fn new(port: Receiver<TimeProfilerMsg>) -> TimeProfiler {
         TimeProfiler {
             port: port,
-            buckets: TimeProfilerCategory::empty_buckets(),
+            buckets: TreeMap::new(),
             last_msg: None,
         }
     }
@@ -170,9 +181,18 @@ impl TimeProfiler {
         }
     }
 
+    fn find_or_insert(&mut self, k: (TimeProfilerCategory, Option<TimerMetadata>), t: f64) {
+        match self.buckets.find_mut(&k) {
+            None => {},
+            Some(v) => { v.push(t); return; },
+        }
+
+        self.buckets.insert(k, vec!(t));
+    }
+
     fn handle_msg(&mut self, msg: TimeProfilerMsg) -> bool {
-        match msg {
-            TimeMsg(category, t) => self.buckets.find_mut(&category).unwrap().push(t),
+        match msg.clone() {
+            TimeMsg(k, t) => self.find_or_insert(k, t),
             PrintMsg => match self.last_msg {
                 // only print if more data has arrived since the last printout
                 Some(TimeMsg(..)) => self.print_buckets(),
@@ -185,10 +205,11 @@ impl TimeProfiler {
     }
 
     fn print_buckets(&mut self) {
-        println!("{:39s} {:15s} {:15s} {:15s} {:15s} {:15s}",
-                 "_category_", "_mean (ms)_", "_median (ms)_",
-                 "_min (ms)_", "_max (ms)_", "_bucket size_");
-        for (category, data) in self.buckets.mut_iter() {
+        println!("{:35s} {:14} {:9} {:30} {:15s} {:15s} {:-15s} {:-15s} {:-15s}",
+                 "_category_", "_incremental?_", "_iframe?_",
+                 "            _url_", "    _mean (ms)_", "  _median (ms)_",
+                 "     _min (ms)_", "     _max (ms)_", "      _events_");
+        for (&(ref category, ref meta), ref mut data) in self.buckets.mut_iter() {
             data.sort_by(|a, b| {
                 if a < b {
                     Less
@@ -200,11 +221,11 @@ impl TimeProfiler {
             if data_len > 0 {
                 let (mean, median, min, max) =
                     (data.iter().map(|&x|x).sum() / (data_len as f64),
-                     (*data)[data_len / 2],
+                     data.as_slice()[data_len / 2],
                      data.iter().fold(f64::INFINITY, |a, &b| a.min(b)),
                      data.iter().fold(-f64::INFINITY, |a, &b| a.max(b)));
-                println!("{:-35s}: {:15.4f} {:15.4f} {:15.4f} {:15.4f} {:15u}",
-                         category.format(), mean, median, min, max, data_len);
+                println!("{:-35s}{} {:15.4f} {:15.4f} {:15.4f} {:15.4f} {:15u}",
+                         category.format(), meta.format(), mean, median, min, max, data_len);
             }
         }
         println!("");
@@ -213,6 +234,8 @@ impl TimeProfiler {
 
 
 pub fn profile<T>(category: TimeProfilerCategory,
+                  // url, iframe?, first reflow?
+                  meta: Option<(&Url, bool, bool)>,
                   time_profiler_chan: TimeProfilerChan,
                   callback: || -> T)
                   -> T {
@@ -220,7 +243,13 @@ pub fn profile<T>(category: TimeProfilerCategory,
     let val = callback();
     let end_time = precise_time_ns();
     let ms = (end_time - start_time) as f64 / 1000000f64;
-    time_profiler_chan.send(TimeMsg(category, ms));
+    let meta = meta.map(|(url, iframe, first_reflow)|
+        TimerMetadata {
+            url: url.serialize(),
+            iframe: iframe,
+            first_reflow: first_reflow,
+        });
+    time_profiler_chan.send(TimeMsg((category, meta), ms));
     return val;
 }
 
@@ -233,11 +262,4 @@ pub fn time<T>(msg: &str, callback: || -> T) -> T{
         debug!("{:s} took {} ms", msg, ms);
     }
     return val;
-}
-
-// ensure that the order of the buckets matches the order of the enum categories
-#[test]
-fn check_order() {
-    let buckets = TimeProfilerCategory::empty_buckets();
-    assert!(buckets.len() == NumBuckets as uint);
 }
