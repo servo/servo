@@ -22,3 +22,16 @@ macro_rules! bitfield(
         }
     )
 )
+
+// NB: if your crate uses these then you also need
+// #[phase(plugin)] extern crate string_cache;
+
+#[macro_export]
+macro_rules! satom(
+    ($str:tt) => (::servo_util::atom::Atom { atom: atom!($str) })
+)
+
+#[macro_export]
+macro_rules! sns(
+    ($str:tt) => (::servo_util::atom::Atom { atom: ns!($str) })
+)

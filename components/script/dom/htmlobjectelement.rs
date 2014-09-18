@@ -21,7 +21,6 @@ use dom::virtualmethods::VirtualMethods;
 use servo_net::image_cache_task;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_util::atom::Atom;
-use servo_util::namespace::Null;
 use servo_util::str::DOMString;
 
 use url::Url;
@@ -63,8 +62,8 @@ impl<'a> ProcessDataURL for JSRef<'a, HTMLObjectElement> {
         let elem: JSRef<Element> = ElementCast::from_ref(*self);
 
         // TODO: support other values
-        match (elem.get_attribute(Null, "type").map(|x| x.root().Value()),
-               elem.get_attribute(Null, "data").map(|x| x.root().Value())) {
+        match (elem.get_attribute(satom!(""), "type").map(|x| x.root().Value()),
+               elem.get_attribute(satom!(""), "data").map(|x| x.root().Value())) {
             (None, Some(uri)) => {
                 if is_image_data(uri.as_slice()) {
                     let data_url = Url::parse(uri.as_slice()).unwrap();

@@ -36,7 +36,6 @@ use std::cell::{Cell, RefCell};
 
 use url::Url;
 use servo_util::atom::Atom;
-use servo_util::namespace::Namespace;
 use msg::constellation_msg::{PipelineId, SubpageId, WindowSizeData};
 use net::image_cache_task::ImageCacheTask;
 use script_traits::ScriptControlChan;
@@ -226,7 +225,7 @@ untraceable!(uint, u8, u16, u32, u64)
 untraceable!(int, i8, i16, i32, i64)
 untraceable!(Untraceable<T>)
 untraceable!(ImageCacheTask, ScriptControlChan)
-untraceable!(Atom, Namespace)
+untraceable!(Atom)
 untraceable!(PropertyDeclarationBlock)
 // These three are interdependent, if you plan to put jsmanaged data
 // in one of these make sure it is propagated properly to containing structs

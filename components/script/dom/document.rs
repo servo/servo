@@ -54,10 +54,8 @@ use dom::window::{Window, WindowHelpers};
 use html::hubbub_html_parser::build_element_from_tag;
 use hubbub::hubbub::{QuirksMode, NoQuirks, LimitedQuirks, FullQuirks};
 use layout_interface::{DocumentDamageLevel, ContentChangedDocumentDamage};
-use servo_util::atom::Atom;
-use servo_util::namespace;
-use servo_util::namespace::{Namespace, Null};
 use servo_util::str::{DOMString, split_html_space_chars};
+use servo_util::atom::Atom;
 
 use std::collections::hashmap::HashMap;
 use std::ascii::StrAsciiExt;
@@ -465,14 +463,14 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             return Err(InvalidCharacter);
         }
         let local_name = local_name.as_slice().to_ascii_lower();
-        Ok(build_element_from_tag(local_name, namespace::HTML, self))
+        Ok(build_element_from_tag(local_name, sns!(HTML), self))
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createelementns
     fn CreateElementNS(self,
                        namespace: Option<DOMString>,
                        qualified_name: DOMString) -> Fallible<Temporary<Element>> {
-        let ns = Namespace::from_str(namespace);
+        let ns = Atom::from_option_domstring(&namespace);
         match xml_name_type(qualified_name.as_slice()) {
             InvalidXMLName => {
                 debug!("Not a valid element name");
@@ -489,26 +487,26 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
              local_name_from_qname) = get_attribute_parts(qualified_name.as_slice());
         match (&ns, prefix_from_qname.clone(), local_name_from_qname.as_slice()) {
             // throw if prefix is not null and namespace is null
-            (&namespace::Null, Some(_), _) => {
+            (&satom!(""), Some(_), _) => {
                 debug!("Namespace can't be null with a non-null prefix");
                 return Err(NamespaceError);
             },
             // throw if prefix is "xml" and namespace is not the XML namespace
-            (_, Some(ref prefix), _) if "xml" == prefix.as_slice() && ns != namespace::XML => {
+            (_, Some(ref prefix), _) if "xml" == prefix.as_slice() && ns != sns!(XML) => {
                 debug!("Namespace must be the xml namespace if the prefix is 'xml'");
                 return Err(NamespaceError);
             },
             // throw if namespace is the XMLNS namespace and neither qualifiedName nor prefix is "xmlns"
-            (&namespace::XMLNS, Some(ref prefix), _) if "xmlns" == prefix.as_slice() => {},
-            (&namespace::XMLNS, _, "xmlns") => {},
-            (&namespace::XMLNS, _, _) => {
+            (&sns!(XMLNS), Some(ref prefix), _) if "xmlns" == prefix.as_slice() => {},
+            (&sns!(XMLNS), _, "xmlns") => {},
+            (&sns!(XMLNS), _, _) => {
                 debug!("The prefix or the qualified name must be 'xmlns' if namespace is the XMLNS namespace ");
                 return Err(NamespaceError);
             },
             _ => {}
         }
 
-        if ns == namespace::HTML {
+        if ns == sns!(HTML) {
             Ok(build_element_from_tag(local_name_from_qname.to_string(), ns, self))
         } else {
             Ok(Element::new(local_name_from_qname.to_string(), ns,
@@ -750,7 +748,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             }
 
             let element: JSRef<Element> = ElementCast::to_ref(node).unwrap();
-            element.get_attribute(Null, "name").root().map_or(false, |attr| {
+            element.get_attribute(satom!(""), "name").root().map_or(false, |attr| {
                 attr.value().as_slice() == name.as_slice()
             })
         })

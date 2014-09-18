@@ -20,7 +20,6 @@ use dom::node::{DisabledStateHelpers, Node, NodeHelpers, ElementNodeTypeId};
 use dom::virtualmethods::VirtualMethods;
 
 use servo_util::atom::Atom;
-use servo_util::namespace;
 use servo_util::str::{DOMString, split_html_space_chars};
 
 #[jstraceable]
@@ -51,7 +50,7 @@ impl HTMLOptionElement {
 
 fn collect_text(node: &JSRef<Node>, value: &mut DOMString) {
     let elem: JSRef<Element> = ElementCast::to_ref(*node).unwrap();
-    let svg_script = elem.namespace == namespace::SVG && elem.local_name.as_slice() == "script";
+    let svg_script = elem.namespace == sns!(SVG) && elem.local_name.as_slice() == "script";
     let html_script = node.is_htmlscriptelement();
     if svg_script || html_script {
         return;

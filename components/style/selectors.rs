@@ -10,8 +10,6 @@ use cssparser::ast::*;
 use cssparser::{tokenize, parse_nth};
 
 use servo_util::atom::Atom;
-use servo_util::namespace::Namespace;
-use servo_util::namespace;
 
 use namespaces::NamespaceMap;
 
@@ -59,7 +57,7 @@ pub enum SimpleSelector {
     IDSelector(Atom),
     ClassSelector(Atom),
     LocalNameSelector(LocalNameSelector),
-    NamespaceSelector(Namespace),
+    NamespaceSelector(Atom),
 
     // Attribute selectors
     AttrExists(AttrSelector),  // [foo]
@@ -108,7 +106,7 @@ pub struct AttrSelector {
 #[deriving(Eq, PartialEq, Clone, Hash)]
 pub enum NamespaceConstraint {
     AnyNamespace,
-    SpecificNamespace(Namespace),
+    SpecificNamespace(Atom),
 }
 
 
@@ -414,7 +412,7 @@ fn parse_qualified_name<I: Iterator<ComponentValue>>(
                     explicit_namespace(iter, SpecificNamespace(namespace))
                 },
                 _ if in_attr_selector => Ok(Some(
-                    (SpecificNamespace(namespace::Null), Some(value)))),
+                    (SpecificNamespace(satom!("")), Some(value)))),
                 _ => default_namespace(Some(value)),
             }
         },
@@ -428,7 +426,7 @@ fn parse_qualified_name<I: Iterator<ComponentValue>>(
                 },
             }
         },
-        Some(&Delim('|')) => explicit_namespace(iter, SpecificNamespace(namespace::Null)),
+        Some(&Delim('|')) => explicit_namespace(iter, SpecificNamespace(satom!(""))),
         _ => Ok(None),
     }
 }
@@ -576,7 +574,6 @@ mod tests {
     use sync::Arc;
     use cssparser;
     use servo_util::atom::Atom;
-    use servo_util::namespace;
     use namespaces::NamespaceMap;
     use super::*;
 
@@ -655,7 +652,7 @@ mod tests {
                 simple_selectors: vec!(AttrExists(AttrSelector {
                     name: Atom::from_slice("Foo"),
                     lower_name: Atom::from_slice("foo"),
-                    namespace: SpecificNamespace(namespace::Null),
+                    namespace: SpecificNamespace(satom!("")),
                 })),
                 next: None,
             }),
@@ -664,13 +661,13 @@ mod tests {
         })))
         // Default namespace does not apply to attribute selectors
         // https://github.com/mozilla/servo/pull/1652
-        namespaces.default = Some(namespace::MathML);
+        namespaces.default = Some(sns!(MathML));
         assert!(parse_ns("[Foo]", &namespaces) == Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(AttrExists(AttrSelector {
                     name: Atom::from_slice("Foo"),
                     lower_name: Atom::from_slice("foo"),
-                    namespace: SpecificNamespace(namespace::Null),
+                    namespace: SpecificNamespace(satom!("")),
                 })),
                 next: None,
             }),
@@ -681,7 +678,7 @@ mod tests {
         assert!(parse_ns("e", &namespaces) == Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(
-                    NamespaceSelector(namespace::MathML),
+                    NamespaceSelector(sns!(MathML)),
                     LocalNameSelector(LocalNameSelector {
                         name: Atom::from_slice("e"),
                         lower_name: Atom::from_slice("e") }),

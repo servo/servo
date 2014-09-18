@@ -145,4 +145,3 @@ impl LintPass for UnrootedPass {
         }
     }
 }
-
