@@ -29,7 +29,7 @@ impl HTMLTableCellElementDerived for EventTarget {
 }
 
 impl HTMLTableCellElement {
-    pub fn new_inherited(type_id: ElementTypeId, tag_name: DOMString, document: &JSRef<Document>) -> HTMLTableCellElement {
+    pub fn new_inherited(type_id: ElementTypeId, tag_name: DOMString, document: JSRef<Document>) -> HTMLTableCellElement {
         HTMLTableCellElement {
             htmlelement: HTMLElement::new_inherited(type_id, tag_name, document)
         }

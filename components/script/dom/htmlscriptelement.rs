@@ -32,14 +32,14 @@ impl HTMLScriptElementDerived for EventTarget {
 }
 
 impl HTMLScriptElement {
-    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLScriptElement {
+    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLScriptElement {
         HTMLScriptElement {
             htmlelement: HTMLElement::new_inherited(HTMLScriptElementTypeId, localName, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLScriptElement> {
+    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLScriptElement> {
         let element = HTMLScriptElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLScriptElementBinding::Wrap)
     }
@@ -74,7 +74,7 @@ static SCRIPT_JS_MIMES: StaticStringVec = &[
 
 impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
     fn is_javascript(&self) -> bool {
-        let element: &JSRef<Element> = ElementCast::from_ref(self);
+        let element: JSRef<Element> = ElementCast::from_ref(*self);
         match element.get_attribute(Null, "type").root().map(|s| s.Value()) {
             Some(ref s) if s.is_empty() => {
                 // type attr exists, but empty means js
@@ -108,19 +108,19 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
 
 impl<'a> HTMLScriptElementMethods for JSRef<'a, HTMLScriptElement> {
     fn Src(&self) -> DOMString {
-        let element: &JSRef<Element> = ElementCast::from_ref(self);
+        let element: JSRef<Element> = ElementCast::from_ref(*self);
         element.get_url_attribute("src")
     }
 
     // http://www.whatwg.org/html/#dom-script-text
     fn Text(&self) -> DOMString {
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
         Node::collect_text_contents(node.children())
     }
 
     // http://www.whatwg.org/html/#dom-script-text
     fn SetText(&self, value: DOMString) {
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
         node.SetTextContent(Some(value))
     }
 }

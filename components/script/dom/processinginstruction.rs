@@ -28,14 +28,14 @@ impl ProcessingInstructionDerived for EventTarget {
 }
 
 impl ProcessingInstruction {
-    pub fn new_inherited(target: DOMString, data: DOMString, document: &JSRef<Document>) -> ProcessingInstruction {
+    pub fn new_inherited(target: DOMString, data: DOMString, document: JSRef<Document>) -> ProcessingInstruction {
         ProcessingInstruction {
             characterdata: CharacterData::new_inherited(ProcessingInstructionNodeTypeId, data, document),
             target: target
         }
     }
 
-    pub fn new(target: DOMString, data: DOMString, document: &JSRef<Document>) -> Temporary<ProcessingInstruction> {
+    pub fn new(target: DOMString, data: DOMString, document: JSRef<Document>) -> Temporary<ProcessingInstruction> {
         Node::reflect_node(box ProcessingInstruction::new_inherited(target, data, document),
                            document, ProcessingInstructionBinding::Wrap)
     }

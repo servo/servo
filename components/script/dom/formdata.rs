@@ -40,7 +40,7 @@ impl FormData {
             data: Traceable::new(RefCell::new(HashMap::new())),
             reflector_: Reflector::new(),
             global: GlobalField::from_rooted(global),
-            form: form.map(|f| JS::from_rooted(&f)),
+            form: form.map(|f| JS::from_rooted(f)),
         }
     }
 
@@ -56,8 +56,8 @@ impl FormData {
 
 impl<'a> FormDataMethods for JSRef<'a, FormData> {
     #[allow(unrooted_must_root)]
-    fn Append(&self, name: DOMString, value: &JSRef<Blob>, filename: Option<DOMString>) {
-        let file = FileData(JS::from_rooted(&self.get_file_from_blob(value, filename)));
+    fn Append(&self, name: DOMString, value: JSRef<Blob>, filename: Option<DOMString>) {
+        let file = FileData(JS::from_rooted(self.get_file_from_blob(value, filename)));
         self.data.deref().borrow_mut().insert_or_update_with(name.clone(), vec!(file.clone()),
                                         |_k, v| {v.push(file.clone());});
     }
@@ -88,8 +88,8 @@ impl<'a> FormDataMethods for JSRef<'a, FormData> {
         self.data.deref().borrow().contains_key_equiv(&name)
     }
     #[allow(unrooted_must_root)]
-    fn Set(&self, name: DOMString, value: &JSRef<Blob>, filename: Option<DOMString>) {
-        let file = FileData(JS::from_rooted(&self.get_file_from_blob(value, filename)));
+    fn Set(&self, name: DOMString, value: JSRef<Blob>, filename: Option<DOMString>) {
+        let file = FileData(JS::from_rooted(self.get_file_from_blob(value, filename)));
         self.data.deref().borrow_mut().insert(name, vec!(file));
     }
 
@@ -105,13 +105,13 @@ impl Reflectable for FormData {
 }
 
 trait PrivateFormDataHelpers{
-  fn get_file_from_blob(&self, value: &JSRef<Blob>, filename: Option<DOMString>) -> Temporary<File>;
+  fn get_file_from_blob(&self, value: JSRef<Blob>, filename: Option<DOMString>) -> Temporary<File>;
 }
 
 impl PrivateFormDataHelpers for FormData {
-    fn get_file_from_blob(&self, value: &JSRef<Blob>, filename: Option<DOMString>) -> Temporary<File> {
+    fn get_file_from_blob(&self, value: JSRef<Blob>, filename: Option<DOMString>) -> Temporary<File> {
         let global = self.global.root();
-        let f: Option<&JSRef<File>> = FileCast::to_ref(value);
+        let f: Option<JSRef<File>> = FileCast::to_ref(value);
         let name = filename.unwrap_or(f.map(|inner| inner.name.clone()).unwrap_or("blob".to_string()));
         File::new(&global.root_ref(), value, name)
     }

@@ -74,13 +74,13 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
     }
 
     fn get_url(&self) -> Option<Url> {
-        let element: &JSRef<Element> = ElementCast::from_ref(self);
+        let element: JSRef<Element> = ElementCast::from_ref(*self);
         element.get_attribute(Null, "src").root().and_then(|src| {
             let url = src.deref().value();
             if url.as_slice().is_empty() {
                 None
             } else {
-                let window = window_from_node(self).root();
+                let window = window_from_node(*self).root();
                 UrlParser::new().base_url(&window.deref().page().get_url())
                     .parse(url.as_slice()).ok()
             }
@@ -100,7 +100,7 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
         };
 
         // Subpage Id
-        let window = window_from_node(self).root();
+        let window = window_from_node(*self).root();
         let page = window.deref().page();
         let subpage_id = page.get_next_subpage_id();
 
@@ -115,7 +115,7 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
 }
 
 impl HTMLIFrameElement {
-    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLIFrameElement {
+    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLIFrameElement {
         HTMLIFrameElement {
             htmlelement: HTMLElement::new_inherited(HTMLIFrameElementTypeId, localName, document),
             size: Traceable::new(Cell::new(None)),
@@ -124,7 +124,7 @@ impl HTMLIFrameElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLIFrameElement> {
+    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLIFrameElement> {
         let element = HTMLIFrameElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLIFrameElementBinding::Wrap)
     }
@@ -132,28 +132,28 @@ impl HTMLIFrameElement {
 
 impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
     fn Src(&self) -> DOMString {
-        let element: &JSRef<Element> = ElementCast::from_ref(self);
+        let element: JSRef<Element> = ElementCast::from_ref(*self);
         element.get_string_attribute("src")
     }
 
     fn SetSrc(&self, src: DOMString) {
-        let element: &JSRef<Element> = ElementCast::from_ref(self);
+        let element: JSRef<Element> = ElementCast::from_ref(*self);
         element.set_url_attribute("src", src)
     }
 
     fn Sandbox(&self) -> DOMString {
-        let element: &JSRef<Element> = ElementCast::from_ref(self);
+        let element: JSRef<Element> = ElementCast::from_ref(*self);
         element.get_string_attribute("sandbox")
     }
 
     fn SetSandbox(&self, sandbox: DOMString) {
-        let element: &JSRef<Element> = ElementCast::from_ref(self);
+        let element: JSRef<Element> = ElementCast::from_ref(*self);
         element.set_string_attribute("sandbox", sandbox);
     }
 
     fn GetContentWindow(&self) -> Option<Temporary<Window>> {
         self.size.deref().get().and_then(|size| {
-            let window = window_from_node(self).root();
+            let window = window_from_node(*self).root();
             let children = &*window.deref().page.children.deref().borrow();
             let child = children.iter().find(|child| {
                 child.subpage_id.unwrap() == size.subpage_id
@@ -169,7 +169,7 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
     fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
-        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_ref(self);
+        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
@@ -196,7 +196,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
         }
 
         if "src" == name.as_slice() {
-            let node: &JSRef<Node> = NodeCast::from_ref(self);
+            let node: JSRef<Node> = NodeCast::from_ref(*self);
             if node.is_in_doc() {
                 self.process_the_iframe_attributes()
             }

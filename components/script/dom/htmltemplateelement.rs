@@ -26,14 +26,14 @@ impl HTMLTemplateElementDerived for EventTarget {
 }
 
 impl HTMLTemplateElement {
-    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLTemplateElement {
+    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLTemplateElement {
         HTMLTemplateElement {
             htmlelement: HTMLElement::new_inherited(HTMLTemplateElementTypeId, localName, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLTemplateElement> {
+    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLTemplateElement> {
         let element = HTMLTemplateElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLTemplateElementBinding::Wrap)
     }

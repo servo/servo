@@ -36,7 +36,7 @@ impl CharacterDataDerived for EventTarget {
 }
 
 impl CharacterData {
-    pub fn new_inherited(id: NodeTypeId, data: DOMString, document: &JSRef<Document>) -> CharacterData {
+    pub fn new_inherited(id: NodeTypeId, data: DOMString, document: JSRef<Document>) -> CharacterData {
         CharacterData {
             node: Node::new_inherited(id, document),
             data: Traceable::new(RefCell::new(data)),
@@ -95,7 +95,7 @@ impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
 
     // http://dom.spec.whatwg.org/#dom-childnode-remove
     fn Remove(&self) {
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
         node.remove_self();
     }
 }

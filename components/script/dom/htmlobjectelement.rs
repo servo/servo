@@ -39,14 +39,14 @@ impl HTMLObjectElementDerived for EventTarget {
 }
 
 impl HTMLObjectElement {
-    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLObjectElement {
+    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLObjectElement {
         HTMLObjectElement {
             htmlelement: HTMLElement::new_inherited(HTMLObjectElementTypeId, localName, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLObjectElement> {
+    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLObjectElement> {
         let element = HTMLObjectElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLObjectElementBinding::Wrap)
     }
@@ -60,7 +60,7 @@ impl<'a> ProcessDataURL for JSRef<'a, HTMLObjectElement> {
     // Makes the local `data` member match the status of the `data` attribute and starts
     /// prefetching the image. This method must be called after `data` is changed.
     fn process_data_url(&self, image_cache: ImageCacheTask) {
-        let elem: &JSRef<Element> = ElementCast::from_ref(self);
+        let elem: JSRef<Element> = ElementCast::from_ref(*self);
 
         // TODO: support other values
         match (elem.get_attribute(Null, "type").map(|x| x.root().Value()),
@@ -84,14 +84,14 @@ pub fn is_image_data(uri: &str) -> bool {
 
 impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
     fn Validity(&self) -> Temporary<ValidityState> {
-        let window = window_from_node(self).root();
-        ValidityState::new(&*window)
+        let window = window_from_node(*self).root();
+        ValidityState::new(*window)
     }
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLObjectElement> {
     fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
-        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_ref(self);
+        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
@@ -102,7 +102,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLObjectElement> {
         }
 
         if "data" == name.as_slice() {
-            let window = window_from_node(self).root();
+            let window = window_from_node(*self).root();
             self.process_data_url(window.deref().image_cache_task.clone());
         }
     }

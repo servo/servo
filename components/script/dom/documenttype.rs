@@ -32,7 +32,7 @@ impl DocumentType {
     pub fn new_inherited(name: DOMString,
                          public_id: Option<DOMString>,
                          system_id: Option<DOMString>,
-                         document: &JSRef<Document>)
+                         document: JSRef<Document>)
             -> DocumentType {
         DocumentType {
             node: Node::new_inherited(DoctypeNodeTypeId, document),
@@ -45,7 +45,7 @@ impl DocumentType {
     pub fn new(name: DOMString,
                public_id: Option<DOMString>,
                system_id: Option<DOMString>,
-               document: &JSRef<Document>)
+               document: JSRef<Document>)
                -> Temporary<DocumentType> {
         let documenttype = DocumentType::new_inherited(name,
                                                        public_id,
@@ -70,7 +70,7 @@ impl<'a> DocumentTypeMethods for JSRef<'a, DocumentType> {
 
     // http://dom.spec.whatwg.org/#dom-childnode-remove
     fn Remove(&self) {
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
         node.remove_self();
     }
 }

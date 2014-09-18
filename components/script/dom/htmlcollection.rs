@@ -20,7 +20,7 @@ use serialize::{Encoder, Encodable};
 use std::ascii::StrAsciiExt;
 
 pub trait CollectionFilter {
-    fn filter(&self, elem: &JSRef<Element>, root: &JSRef<Node>) -> bool;
+    fn filter(&self, elem: JSRef<Element>, root: JSRef<Node>) -> bool;
 }
 
 impl<S: Encoder<E>, E> Encodable<S, E> for Box<CollectionFilter> {
@@ -51,25 +51,25 @@ impl HTMLCollection {
         }
     }
 
-    pub fn new(window: &JSRef<Window>, collection: CollectionTypeId) -> Temporary<HTMLCollection> {
+    pub fn new(window: JSRef<Window>, collection: CollectionTypeId) -> Temporary<HTMLCollection> {
         reflect_dom_object(box HTMLCollection::new_inherited(collection),
-                           &Window(*window), HTMLCollectionBinding::Wrap)
+                           &Window(window), HTMLCollectionBinding::Wrap)
     }
 }
 
 impl HTMLCollection {
-    pub fn create(window: &JSRef<Window>, root: &JSRef<Node>,
+    pub fn create(window: JSRef<Window>, root: JSRef<Node>,
                   filter: Box<CollectionFilter>) -> Temporary<HTMLCollection> {
         HTMLCollection::new(window, Live(JS::from_rooted(root), filter))
     }
 
-    fn all_elements(window: &JSRef<Window>, root: &JSRef<Node>,
+    fn all_elements(window: JSRef<Window>, root: JSRef<Node>,
                     namespace_filter: Option<Namespace>) -> Temporary<HTMLCollection> {
         struct AllElementFilter {
             namespace_filter: Option<Namespace>
         }
         impl CollectionFilter for AllElementFilter {
-            fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
+            fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {
                 match self.namespace_filter {
                     None => true,
                     Some(ref namespace) => elem.namespace == *namespace
@@ -80,7 +80,7 @@ impl HTMLCollection {
         HTMLCollection::create(window, root, box filter)
     }
 
-    pub fn by_tag_name(window: &JSRef<Window>, root: &JSRef<Node>, tag: DOMString)
+    pub fn by_tag_name(window: JSRef<Window>, root: JSRef<Node>, tag: DOMString)
                        -> Temporary<HTMLCollection> {
         if tag.as_slice() == "*" {
             return HTMLCollection::all_elements(window, root, None);
@@ -91,7 +91,7 @@ impl HTMLCollection {
             ascii_lower_tag: Atom,
         }
         impl CollectionFilter for TagNameFilter {
-            fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
+            fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {
                 if elem.html_element_in_html_document() {
                     elem.local_name == self.ascii_lower_tag
                 } else {
@@ -106,7 +106,7 @@ impl HTMLCollection {
         HTMLCollection::create(window, root, box filter)
     }
 
-    pub fn by_tag_name_ns(window: &JSRef<Window>, root: &JSRef<Node>, tag: DOMString,
+    pub fn by_tag_name_ns(window: JSRef<Window>, root: JSRef<Node>, tag: DOMString,
                           maybe_ns: Option<DOMString>) -> Temporary<HTMLCollection> {
         let namespace_filter = match maybe_ns {
             Some(namespace) => {
@@ -126,7 +126,7 @@ impl HTMLCollection {
             namespace_filter: Option<Namespace>
         }
         impl CollectionFilter for TagNameNSFilter {
-            fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
+            fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {
                 let ns_match = match self.namespace_filter {
                     Some(ref namespace) => {
                         elem.deref().namespace == *namespace
@@ -143,13 +143,13 @@ impl HTMLCollection {
         HTMLCollection::create(window, root, box filter)
     }
 
-    pub fn by_class_name(window: &JSRef<Window>, root: &JSRef<Node>, classes: DOMString)
+    pub fn by_class_name(window: JSRef<Window>, root: JSRef<Node>, classes: DOMString)
                          -> Temporary<HTMLCollection> {
         struct ClassNameFilter {
             classes: Vec<DOMString>
         }
         impl CollectionFilter for ClassNameFilter {
-            fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
+            fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {
                 self.classes.iter().all(|class| elem.has_class(class.as_slice()))
             }
         }
@@ -159,10 +159,10 @@ impl HTMLCollection {
         HTMLCollection::create(window, root, box filter)
     }
 
-    pub fn children(window: &JSRef<Window>, root: &JSRef<Node>) -> Temporary<HTMLCollection> {
+    pub fn children(window: JSRef<Window>, root: JSRef<Node>) -> Temporary<HTMLCollection> {
         struct ElementChildFilter;
         impl CollectionFilter for ElementChildFilter {
-            fn filter(&self, elem: &JSRef<Element>, root: &JSRef<Node>) -> bool {
+            fn filter(&self, elem: JSRef<Element>, root: JSRef<Node>) -> bool {
                 root.is_parent_of(NodeCast::from_ref(elem))
             }
         }
@@ -179,8 +179,8 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
                 let root = root.root();
                 root.deref().traverse_preorder()
                     .filter(|&child| {
-                        let elem: Option<&JSRef<Element>> = ElementCast::to_ref(&child);
-                        elem.map_or(false, |elem| filter.filter(elem, &*root))
+                        let elem: Option<JSRef<Element>> = ElementCast::to_ref(child);
+                        elem.map_or(false, |elem| filter.filter(elem, *root))
                     }).count() as u32
             }
         }
@@ -197,13 +197,13 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
                 let root = root.root();
                 root.deref().traverse_preorder()
                     .filter_map(|node| {
-                        let elem: Option<&JSRef<Element>> = ElementCast::to_ref(&node);
-                        elem.filtered(|&elem| filter.filter(elem, &*root))
+                        let elem: Option<JSRef<Element>> = ElementCast::to_ref(node);
+                        elem.filtered(|&elem| filter.filter(elem, *root))
                             .map(|elem| elem.clone())
                     })
                     .nth(index as uint)
                     .clone()
-                    .map(|elem| Temporary::from_rooted(&elem))
+                    .map(|elem| Temporary::from_rooted(elem))
             }
         }
     }
@@ -222,19 +222,19 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
                 .find(|elem| {
                     elem.get_string_attribute("name") == key ||
                     elem.get_string_attribute("id") == key })
-                .map(|maybe_elem| Temporary::from_rooted(&*maybe_elem)),
+                .map(|maybe_elem| Temporary::from_rooted(*maybe_elem)),
             Live(ref root, ref filter) => {
                 let root = root.root();
                 root.deref().traverse_preorder()
                     .filter_map(|node| {
-                        let elem: Option<&JSRef<Element>> = ElementCast::to_ref(&node);
-                        elem.filtered(|&elem| filter.filter(elem, &*root))
+                        let elem: Option<JSRef<Element>> = ElementCast::to_ref(node);
+                        elem.filtered(|&elem| filter.filter(elem, *root))
                             .map(|elem| elem.clone())
                     })
                     .find(|elem| {
                         elem.get_string_attribute("name") == key ||
                         elem.get_string_attribute("id") == key })
-                    .map(|maybe_elem| Temporary::from_rooted(&maybe_elem))
+                    .map(|maybe_elem| Temporary::from_rooted(maybe_elem))
             }
         }
     }

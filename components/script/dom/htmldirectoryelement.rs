@@ -26,14 +26,14 @@ impl HTMLDirectoryElementDerived for EventTarget {
 }
 
 impl HTMLDirectoryElement {
-    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLDirectoryElement {
+    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLDirectoryElement {
         HTMLDirectoryElement {
             htmlelement: HTMLElement::new_inherited(HTMLDirectoryElementTypeId, localName, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLDirectoryElement> {
+    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLDirectoryElement> {
         let element = HTMLDirectoryElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLDirectoryElementBinding::Wrap)
     }

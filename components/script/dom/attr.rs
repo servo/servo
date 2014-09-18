@@ -95,7 +95,7 @@ impl Reflectable for Attr {
 impl Attr {
     fn new_inherited(local_name: Atom, value: AttrValue,
                      name: Atom, namespace: Namespace,
-                     prefix: Option<DOMString>, owner: &JSRef<Element>) -> Attr {
+                     prefix: Option<DOMString>, owner: JSRef<Element>) -> Attr {
         Attr {
             reflector_: Reflector::new(),
             local_name: local_name,
@@ -107,11 +107,11 @@ impl Attr {
         }
     }
 
-    pub fn new(window: &JSRef<Window>, local_name: Atom, value: AttrValue,
+    pub fn new(window: JSRef<Window>, local_name: Atom, value: AttrValue,
                name: Atom, namespace: Namespace,
-               prefix: Option<DOMString>, owner: &JSRef<Element>) -> Temporary<Attr> {
+               prefix: Option<DOMString>, owner: JSRef<Element>) -> Temporary<Attr> {
         reflect_dom_object(box Attr::new_inherited(local_name, value, name, namespace, prefix, owner),
-                           &Window(*window), AttrBinding::Wrap)
+                           &Window(window), AttrBinding::Wrap)
     }
 }
 
@@ -157,13 +157,13 @@ pub trait AttrHelpers {
 impl<'a> AttrHelpers for JSRef<'a, Attr> {
     fn set_value(&self, set_type: AttrSettingType, value: AttrValue) {
         let owner = self.owner.root();
-        let node: &JSRef<Node> = NodeCast::from_ref(&*owner);
+        let node: JSRef<Node> = NodeCast::from_ref(*owner);
         let namespace_is_null = self.namespace == namespace::Null;
 
         match set_type {
             ReplacedAttr => {
                 if namespace_is_null {
-                    vtable_for(node).before_remove_attr(
+                    vtable_for(&node).before_remove_attr(
                         self.local_name(),
                         self.value().as_slice().to_string())
                 }
@@ -174,7 +174,7 @@ impl<'a> AttrHelpers for JSRef<'a, Attr> {
         *self.value.deref().borrow_mut() = value;
 
         if namespace_is_null {
-            vtable_for(node).after_set_attr(
+            vtable_for(&node).after_set_attr(
                 self.local_name(),
                 self.value().as_slice().to_string())
         }

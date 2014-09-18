@@ -24,7 +24,7 @@ pub struct BrowserContext {
 }
 
 impl BrowserContext {
-    pub fn new(document: &JSRef<Document>) -> BrowserContext {
+    pub fn new(document: JSRef<Document>) -> BrowserContext {
         let mut context = BrowserContext {
             history: vec!(SessionHistoryEntry::new(document)),
             active_index: 0,
@@ -74,7 +74,7 @@ pub struct SessionHistoryEntry {
 }
 
 impl SessionHistoryEntry {
-    fn new(document: &JSRef<Document>) -> SessionHistoryEntry {
+    fn new(document: JSRef<Document>) -> SessionHistoryEntry {
         SessionHistoryEntry {
             document: JS::from_rooted(document),
             children: vec!()

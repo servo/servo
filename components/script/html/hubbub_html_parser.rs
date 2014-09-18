@@ -152,7 +152,7 @@ fn parse_last_modified(timestamp: &str) -> String {
 // Silly macros to handle constructing      DOM nodes. This produces bad code and should be optimized
 // via atomization (issue #85).
 
-pub fn build_element_from_tag(tag: DOMString, ns: Namespace, document: &JSRef<Document>) -> Temporary<Element> {
+pub fn build_element_from_tag(tag: DOMString, ns: Namespace, document: JSRef<Document>) -> Temporary<Element> {
     if ns != namespace::HTML {
         return Element::new(tag, ns, None, document);
     }
@@ -285,7 +285,7 @@ pub fn build_element_from_tag(tag: DOMString, ns: Namespace, document: &JSRef<Do
 }
 
 pub fn parse_html(page: &Page,
-                  document: &JSRef<Document>,
+                  document: JSRef<Document>,
                   input: HTMLInput,
                   resource_task: ResourceTask)
                   -> HtmlParserResult {
@@ -354,7 +354,7 @@ pub fn parse_html(page: &Page,
             let tmp_borrow = doc_cell.borrow();
             let tmp = &*tmp_borrow;
             let comment = Comment::new(data, *tmp).root();
-            let comment: &JSRef<Node> = NodeCast::from_ref(&*comment);
+            let comment: JSRef<Node> = NodeCast::from_ref(*comment);
             unsafe { comment.to_hubbub_node() }
         },
         create_doctype: |box hubbub::Doctype { name: name, public_id: public_id, system_id: system_id, ..}: Box<hubbub::Doctype>| {
@@ -412,7 +412,7 @@ pub fn parse_html(page: &Page,
                 debug!("append child {:x} {:x}", parent, child);
                 let child: Root<Node> = from_hubbub_node(child).root();
                 let parent: Root<Node> = from_hubbub_node(parent).root();
-                assert!(parent.deref().AppendChild(&*child).is_ok());
+                assert!(parent.deref().AppendChild(*child).is_ok());
             }
             child
         },
@@ -464,14 +464,14 @@ pub fn parse_html(page: &Page,
         complete_script: |script| {
             unsafe {
                 let script = from_hubbub_node::<Node>(script).root();
-                let script: Option<&JSRef<HTMLScriptElement>> =
-                    HTMLScriptElementCast::to_ref(&*script);
+                let script: Option<JSRef<HTMLScriptElement>> =
+                    HTMLScriptElementCast::to_ref(*script);
                 let script = match script {
                     Some(script) if script.is_javascript() => script,
                     _ => return,
                 };
 
-                let script_element: &JSRef<Element> = ElementCast::from_ref(script);
+                let script_element: JSRef<Element> = ElementCast::from_ref(script);
                 match script_element.get_attribute(Null, "src").root() {
                     Some(src) => {
                         debug!("found script: {:s}", src.deref().Value());
@@ -489,11 +489,11 @@ pub fn parse_html(page: &Page,
                     }
                     None => {
                         let mut data = String::new();
-                        let scriptnode: &JSRef<Node> = NodeCast::from_ref(script);
+                        let scriptnode: JSRef<Node> = NodeCast::from_ref(script);
                         debug!("iterating over children {:?}", scriptnode.first_child());
                         for child in scriptnode.children() {
                             debug!("child = {:?}", child);
-                            let text: &JSRef<Text> = TextCast::to_ref(&child).unwrap();
+                            let text: JSRef<Text> = TextCast::to_ref(child).unwrap();
                             data.push_str(text.deref().characterdata.data.deref().borrow().as_slice());
                         }
 

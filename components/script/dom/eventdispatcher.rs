@@ -12,9 +12,9 @@ use dom::node::{Node, NodeHelpers};
 use dom::virtualmethods::vtable_for;
 
 // See http://dom.spec.whatwg.org/#concept-event-dispatch for the full dispatch algorithm
-pub fn dispatch_event<'a, 'b>(target: &JSRef<'a, EventTarget>,
+pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
                               pseudo_target: Option<JSRef<'b, EventTarget>>,
-                              event: &JSRef<Event>) -> bool {
+                              event: JSRef<Event>) -> bool {
     assert!(!event.deref().dispatching.deref().get());
 
     event.target.assign(Some(match pseudo_target {
@@ -27,9 +27,9 @@ pub fn dispatch_event<'a, 'b>(target: &JSRef<'a, EventTarget>,
 
     //TODO: no chain if not participating in a tree
     let mut chain: Vec<Root<EventTarget>> = if target.deref().is_node() {
-        let target_node: &JSRef<Node> = NodeCast::to_ref(target).unwrap();
+        let target_node: JSRef<Node> = NodeCast::to_ref(target).unwrap();
         target_node.ancestors().map(|ancestor| {
-            let ancestor_target: &JSRef<EventTarget> = EventTargetCast::from_ref(&ancestor);
+            let ancestor_target: JSRef<EventTarget> = EventTargetCast::from_ref(ancestor);
             JS::from_rooted(ancestor_target).root()
         }).collect()
     } else {
@@ -47,7 +47,7 @@ pub fn dispatch_event<'a, 'b>(target: &JSRef<'a, EventTarget>,
                 event.current_target.assign(Some(cur_target.deref().clone()));
                 for listener in listeners.iter() {
                     // Explicitly drop any exception on the floor.
-                    let _ = listener.HandleEvent_(&**cur_target, event, ReportExceptions);
+                    let _ = listener.HandleEvent_(**cur_target, event, ReportExceptions);
 
                     if event.deref().stop_immediate.deref().get() {
                         break;
@@ -92,7 +92,7 @@ pub fn dispatch_event<'a, 'b>(target: &JSRef<'a, EventTarget>,
                     event.deref().current_target.assign(Some(cur_target.deref().clone()));
                     for listener in listeners.iter() {
                         // Explicitly drop any exception on the floor.
-                        let _ = listener.HandleEvent_(&**cur_target, event, ReportExceptions);
+                        let _ = listener.HandleEvent_(**cur_target, event, ReportExceptions);
 
                         if event.deref().stop_immediate.deref().get() {
                             break;
@@ -113,10 +113,10 @@ pub fn dispatch_event<'a, 'b>(target: &JSRef<'a, EventTarget>,
     let target = event.GetTarget().root();
     match target {
         Some(target) => {
-            let node: Option<&JSRef<Node>> = NodeCast::to_ref(&*target);
+            let node: Option<JSRef<Node>> = NodeCast::to_ref(*target);
             match node {
                 Some(node) => {
-                    let vtable = vtable_for(node);
+                    let vtable = vtable_for(&node);
                     vtable.handle_event(event);
                 }
                 None => {}

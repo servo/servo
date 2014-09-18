@@ -87,7 +87,7 @@ impl Event {
                cancelable: bool) -> Temporary<Event> {
         let event = Event::new_uninitialized(global).root();
         event.deref().InitEvent(type_, can_bubble, cancelable);
-        Temporary::from_rooted(&*event)
+        Temporary::from_rooted(*event)
     }
 
     pub fn Constructor(global: &GlobalRef,

@@ -29,14 +29,14 @@ impl HTMLDataListElementDerived for EventTarget {
 }
 
 impl HTMLDataListElement {
-    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLDataListElement {
+    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLDataListElement {
         HTMLDataListElement {
             htmlelement: HTMLElement::new_inherited(HTMLDataListElementTypeId, localName, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLDataListElement> {
+    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLDataListElement> {
         let element = HTMLDataListElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLDataListElementBinding::Wrap)
     }
@@ -46,14 +46,14 @@ impl<'a> HTMLDataListElementMethods for JSRef<'a, HTMLDataListElement> {
     fn Options(&self) -> Temporary<HTMLCollection> {
         struct HTMLDataListOptionsFilter;
         impl CollectionFilter for HTMLDataListOptionsFilter {
-            fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
+            fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {
                 elem.is_htmloptionelement()
             }
         }
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
         let filter = box HTMLDataListOptionsFilter;
         let window = window_from_node(node).root();
-        HTMLCollection::create(&*window, node, filter)
+        HTMLCollection::create(*window, node, filter)
     }
 }
 

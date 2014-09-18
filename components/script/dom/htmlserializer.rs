@@ -34,24 +34,24 @@ pub fn serialize(iterator: &mut NodeIterator) -> String {
         }
         match node.type_id() {
             ElementNodeTypeId(..) => {
-                let elem: &JSRef<Element> = ElementCast::to_ref(&node).unwrap();
+                let elem: JSRef<Element> = ElementCast::to_ref(node).unwrap();
                 serialize_elem(elem, &mut open_elements, &mut html)
             }
             CommentNodeTypeId => {
-                let comment: &JSRef<Comment> = CommentCast::to_ref(&node).unwrap();
+                let comment: JSRef<Comment> = CommentCast::to_ref(node).unwrap();
                 serialize_comment(comment, &mut html)
             }
             TextNodeTypeId => {
-                let text: &JSRef<Text> = TextCast::to_ref(&node).unwrap();
+                let text: JSRef<Text> = TextCast::to_ref(node).unwrap();
                 serialize_text(text, &mut html)
             }
             DoctypeNodeTypeId => {
-                let doctype: &JSRef<DocumentType> = DocumentTypeCast::to_ref(&node).unwrap();
+                let doctype: JSRef<DocumentType> = DocumentTypeCast::to_ref(node).unwrap();
                 serialize_doctype(doctype, &mut html)
             }
             ProcessingInstructionNodeTypeId => {
-                let processing_instruction: &JSRef<ProcessingInstruction> =
-                    ProcessingInstructionCast::to_ref(&node).unwrap();
+                let processing_instruction: JSRef<ProcessingInstruction> =
+                    ProcessingInstructionCast::to_ref(node).unwrap();
                 serialize_processing_instruction(processing_instruction, &mut html)
             }
             DocumentFragmentNodeTypeId => {}
@@ -68,17 +68,17 @@ pub fn serialize(iterator: &mut NodeIterator) -> String {
     html
 }
 
-fn serialize_comment(comment: &JSRef<Comment>, html: &mut String) {
+fn serialize_comment(comment: JSRef<Comment>, html: &mut String) {
     html.push_str("<!--");
     html.push_str(comment.deref().characterdata.data.deref().borrow().as_slice());
     html.push_str("-->");
 }
 
-fn serialize_text(text: &JSRef<Text>, html: &mut String) {
-    let text_node: &JSRef<Node> = NodeCast::from_ref(text);
+fn serialize_text(text: JSRef<Text>, html: &mut String) {
+    let text_node: JSRef<Node> = NodeCast::from_ref(text);
     match text_node.parent_node().map(|node| node.root()) {
         Some(ref parent) if parent.is_element() => {
-            let elem: &JSRef<Element> = ElementCast::to_ref(&**parent).unwrap();
+            let elem: JSRef<Element> = ElementCast::to_ref(**parent).unwrap();
             match elem.deref().local_name.as_slice() {
                 "style" | "script" | "xmp" | "iframe" |
                 "noembed" | "noframes" | "plaintext" |
@@ -91,7 +91,7 @@ fn serialize_text(text: &JSRef<Text>, html: &mut String) {
     }
 }
 
-fn serialize_processing_instruction(processing_instruction: &JSRef<ProcessingInstruction>,
+fn serialize_processing_instruction(processing_instruction: JSRef<ProcessingInstruction>,
                                     html: &mut String) {
     html.push_str("<?");
     html.push_str(processing_instruction.deref().target.as_slice());
@@ -100,27 +100,27 @@ fn serialize_processing_instruction(processing_instruction: &JSRef<ProcessingIns
     html.push_str("?>");
 }
 
-fn serialize_doctype(doctype: &JSRef<DocumentType>, html: &mut String) {
+fn serialize_doctype(doctype: JSRef<DocumentType>, html: &mut String) {
     html.push_str("<!DOCTYPE");
     html.push_str(doctype.deref().name.as_slice());
     html.push_char('>');
 }
 
-fn serialize_elem(elem: &JSRef<Element>, open_elements: &mut Vec<String>, html: &mut String) {
+fn serialize_elem(elem: JSRef<Element>, open_elements: &mut Vec<String>, html: &mut String) {
     html.push_char('<');
     html.push_str(elem.deref().local_name.as_slice());
     for attr in elem.deref().attrs.borrow().iter() {
         let attr = attr.root();
-        serialize_attr(&*attr, html);
+        serialize_attr(*attr, html);
     };
     html.push_char('>');
 
     match elem.deref().local_name.as_slice() {
         "pre" | "listing" | "textarea" if elem.deref().namespace == namespace::HTML => {
-            let node: &JSRef<Node> = NodeCast::from_ref(elem);
+            let node: JSRef<Node> = NodeCast::from_ref(elem);
             match node.first_child().map(|child| child.root()) {
                 Some(ref child) if child.is_text() => {
-                    let text: &JSRef<CharacterData> = CharacterDataCast::to_ref(&**child).unwrap();
+                    let text: JSRef<CharacterData> = CharacterDataCast::to_ref(**child).unwrap();
                     if text.deref().data.deref().borrow().len() > 0 && text.deref().data.deref().borrow().as_slice().char_at(0) == '\n' {
                         html.push_char('\x0A');
                     }
@@ -136,7 +136,7 @@ fn serialize_elem(elem: &JSRef<Element>, open_elements: &mut Vec<String>, html: 
     }
 }
 
-fn serialize_attr(attr: &JSRef<Attr>, html: &mut String) {
+fn serialize_attr(attr: JSRef<Attr>, html: &mut String) {
     html.push_char(' ');
     if attr.deref().namespace == namespace::XML {
         html.push_str("xml:");

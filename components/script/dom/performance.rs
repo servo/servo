@@ -21,16 +21,16 @@ pub struct Performance {
 }
 
 impl Performance {
-    fn new_inherited(window: &JSRef<Window>) -> Performance {
+    fn new_inherited(window: JSRef<Window>) -> Performance {
         Performance {
             reflector_: Reflector::new(),
-            timing: JS::from_rooted(&PerformanceTiming::new(window)),
+            timing: JS::from_rooted(PerformanceTiming::new(window)),
         }
     }
 
-    pub fn new(window: &JSRef<Window>) -> Temporary<Performance> {
+    pub fn new(window: JSRef<Window>) -> Temporary<Performance> {
         reflect_dom_object(box Performance::new_inherited(window),
-                           &Window(*window),
+                           &Window(window),
                            PerformanceBinding::Wrap)
     }
 }

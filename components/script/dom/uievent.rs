@@ -40,13 +40,13 @@ impl UIEvent {
         }
     }
 
-    pub fn new_uninitialized(window: &JSRef<Window>) -> Temporary<UIEvent> {
+    pub fn new_uninitialized(window: JSRef<Window>) -> Temporary<UIEvent> {
         reflect_dom_object(box UIEvent::new_inherited(UIEventTypeId),
-                           &Window(*window),
+                           &Window(window),
                            UIEventBinding::Wrap)
     }
 
-    pub fn new(window: &JSRef<Window>,
+    pub fn new(window: JSRef<Window>,
                type_: DOMString,
                can_bubble: bool,
                cancelable: bool,
@@ -54,7 +54,7 @@ impl UIEvent {
                detail: i32) -> Temporary<UIEvent> {
         let ev = UIEvent::new_uninitialized(window).root();
         ev.deref().InitUIEvent(type_, can_bubble, cancelable, view, detail);
-        Temporary::from_rooted(&*ev)
+        Temporary::from_rooted(*ev)
     }
 
     pub fn Constructor(global: &GlobalRef,
@@ -82,7 +82,7 @@ impl<'a> UIEventMethods for JSRef<'a, UIEvent> {
                    cancelable: bool,
                    view: Option<JSRef<Window>>,
                    detail: i32) {
-        let event: &JSRef<Event> = EventCast::from_ref(self);
+        let event: JSRef<Event> = EventCast::from_ref(*self);
         event.InitEvent(type_, can_bubble, cancelable);
         self.view.assign(view);
         self.detail.deref().set(detail);

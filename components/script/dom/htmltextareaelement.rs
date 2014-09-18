@@ -31,14 +31,14 @@ impl HTMLTextAreaElementDerived for EventTarget {
 }
 
 impl HTMLTextAreaElement {
-    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLTextAreaElement {
+    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLTextAreaElement {
         HTMLTextAreaElement {
             htmlelement: HTMLElement::new_inherited(HTMLTextAreaElementTypeId, localName, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLTextAreaElement> {
+    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLTextAreaElement> {
         let element = HTMLTextAreaElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLTextAreaElementBinding::Wrap)
     }
@@ -50,14 +50,14 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
 
     // http://www.whatwg.org/html/#dom-fe-disabled
     fn SetDisabled(&self, disabled: bool) {
-        let elem: &JSRef<Element> = ElementCast::from_ref(self);
+        let elem: JSRef<Element> = ElementCast::from_ref(*self);
         elem.set_bool_attribute("disabled", disabled)
     }
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
     fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
-        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_ref(self);
+        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
@@ -67,7 +67,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
             _ => (),
         }
 
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
         match name.as_slice() {
             "disabled" => {
                 node.set_disabled_state(true);
@@ -83,7 +83,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
             _ => (),
         }
 
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
         match name.as_slice() {
             "disabled" => {
                 node.set_disabled_state(false);
@@ -100,7 +100,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
             _ => (),
         }
 
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
         node.check_ancestors_disabled_state_for_form_control();
     }
 
@@ -110,7 +110,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
             _ => (),
         }
 
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
         if node.ancestors().any(|ancestor| ancestor.is_htmlfieldsetelement()) {
             node.check_ancestors_disabled_state_for_form_control();
         } else {

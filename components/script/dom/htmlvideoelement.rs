@@ -26,14 +26,14 @@ impl HTMLVideoElementDerived for EventTarget {
 }
 
 impl HTMLVideoElement {
-    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLVideoElement {
+    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLVideoElement {
         HTMLVideoElement {
             htmlmediaelement: HTMLMediaElement::new_inherited(HTMLVideoElementTypeId, localName, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLVideoElement> {
+    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLVideoElement> {
         let element = HTMLVideoElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLVideoElementBinding::Wrap)
     }

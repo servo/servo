@@ -57,13 +57,13 @@ impl MouseEvent {
         }
     }
 
-    pub fn new_uninitialized(window: &JSRef<Window>) -> Temporary<MouseEvent> {
+    pub fn new_uninitialized(window: JSRef<Window>) -> Temporary<MouseEvent> {
         reflect_dom_object(box MouseEvent::new_inherited(),
-                           &Window(*window),
+                           &Window(window),
                            MouseEventBinding::Wrap)
     }
 
-    pub fn new(window: &JSRef<Window>,
+    pub fn new(window: JSRef<Window>,
                type_: DOMString,
                canBubble: bool,
                cancelable: bool,
@@ -84,7 +84,7 @@ impl MouseEvent {
                                   screenX, screenY, clientX, clientY,
                                   ctrlKey, altKey, shiftKey, metaKey,
                                   button, relatedTarget);
-        Temporary::from_rooted(&*ev)
+        Temporary::from_rooted(*ev)
     }
 
     pub fn Constructor(global: &GlobalRef,
@@ -160,7 +160,7 @@ impl<'a> MouseEventMethods for JSRef<'a, MouseEvent> {
                       metaKeyArg: bool,
                       buttonArg: i16,
                       relatedTargetArg: Option<JSRef<EventTarget>>) {
-        let uievent: &JSRef<UIEvent> = UIEventCast::from_ref(self);
+        let uievent: JSRef<UIEvent> = UIEventCast::from_ref(*self);
         uievent.InitUIEvent(typeArg, canBubbleArg, cancelableArg, viewArg, detailArg);
         self.screen_x.deref().set(screenXArg);
         self.screen_y.deref().set(screenYArg);

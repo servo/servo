@@ -26,14 +26,14 @@ impl HTMLBRElementDerived for EventTarget {
 }
 
 impl HTMLBRElement {
-    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLBRElement {
+    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLBRElement {
         HTMLBRElement {
             htmlelement: HTMLElement::new_inherited(HTMLBRElementTypeId, localName, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLBRElement> {
+    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLBRElement> {
         let element = HTMLBRElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLBRElementBinding::Wrap)
     }

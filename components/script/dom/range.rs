@@ -24,7 +24,7 @@ impl Range {
         }
     }
 
-    pub fn new(document: &JSRef<Document>) -> Temporary<Range> {
+    pub fn new(document: JSRef<Document>) -> Temporary<Range> {
         let window = document.window.root();
         reflect_dom_object(box Range::new_inherited(),
                            &Window(*window),
@@ -33,7 +33,7 @@ impl Range {
 
     pub fn Constructor(global: &GlobalRef) -> Fallible<Temporary<Range>> {
         let document = global.as_window().Document().root();
-        Ok(Range::new(&*document))
+        Ok(Range::new(*document))
     }
 }
 

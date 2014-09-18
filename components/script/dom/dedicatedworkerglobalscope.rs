@@ -115,10 +115,10 @@ impl DedicatedWorkerGlobalScope {
             }
             global.delayed_release_worker();
 
-            let scope: &JSRef<WorkerGlobalScope> =
-                WorkerGlobalScopeCast::from_ref(&*global);
-            let target: &JSRef<EventTarget> =
-                EventTargetCast::from_ref(&*global);
+            let scope: JSRef<WorkerGlobalScope> =
+                WorkerGlobalScopeCast::from_ref(*global);
+            let target: JSRef<EventTarget> =
+                EventTargetCast::from_ref(*global);
             loop {
                 match global.receiver.recv_opt() {
                     Ok(DOMMessage(data, nbytes)) => {
@@ -130,7 +130,7 @@ impl DedicatedWorkerGlobalScope {
                                 ptr::null(), ptr::mut_null()) != 0);
                         }
 
-                        MessageEvent::dispatch_jsval(target, &Worker(*scope), message);
+                        MessageEvent::dispatch_jsval(target, &Worker(scope), message);
                         global.delayed_release_worker();
                     },
                     Ok(XHRProgressMsg(addr, progress)) => {
@@ -164,12 +164,12 @@ impl<'a> DedicatedWorkerGlobalScopeMethods for JSRef<'a, DedicatedWorkerGlobalSc
     }
 
     fn GetOnmessage(&self) -> Option<EventHandlerNonNull> {
-        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
         eventtarget.get_event_handler_common("message")
     }
 
     fn SetOnmessage(&self, listener: Option<EventHandlerNonNull>) {
-        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
         eventtarget.set_event_handler_common("message", listener)
     }
 }

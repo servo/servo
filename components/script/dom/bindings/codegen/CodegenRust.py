@@ -2170,10 +2170,7 @@ class CGCallGenerator(CGThing):
         args = CGList([CGGeneric(arg) for arg in argsPre], ", ")
         for (a, name) in arguments:
             #XXXjdm Perhaps we should pass all nontrivial types by borrowed pointer
-            if a.type.isGeckoInterface():
-                if not (a.type.nullable() or a.optional):
-                    name = "&" + name
-            elif a.type.isDictionary():
+            if a.type.isDictionary():
                 name = "&" + name
             args.append(CGGeneric(name))
 
@@ -3996,9 +3993,7 @@ class CGInterfaceTrait(CGThing):
             elif optional and not defaultValue:
                 declType = CGWrapper(declType, pre="Option<", post=">")
 
-            if ty.isGeckoInterface() and not (ty.nullable() or optional):
-                declType = CGWrapper(declType, pre="&")
-            elif ty.isDictionary():
+            if ty.isDictionary():
                 declType = CGWrapper(declType, pre="&")
 
             return declType.define()
@@ -4854,27 +4849,22 @@ class CGNativeMember(ClassMethod):
         decl = CGGeneric(decl)
         if handleNullable and type.nullable():
             decl = CGTemplatedType("Nullable", decl)
-            ref = True
         if isMember == "Variadic":
             arrayType = "Sequence" if self.variadicIsSequence else "nsTArray"
             decl = CGTemplatedType(arrayType, decl)
-            ref = True
         elif optional:
             # Note: All variadic args claim to be optional, but we can just use
             # empty arrays to represent them not being present.
             decl = CGTemplatedType("Option", decl)
-            ref = False
-        return (decl, ref)
+        return decl
 
     def getArg(self, arg):
         """
         Get the full argument declaration for an argument
         """
-        (decl, ref) = self.getArgType(arg.type,
-                                      arg.optional and not arg.defaultValue,
-                                      "Variadic" if arg.variadic else False)
-        if ref:
-            decl = CGWrapper(decl, pre="&")
+        decl = self.getArgType(arg.type,
+                               arg.optional and not arg.defaultValue,
+                               "Variadic" if arg.variadic else False)
 
         return Argument(decl.define(), arg.identifier.name)
 
@@ -4931,17 +4921,17 @@ class CGCallback(CGClass):
         args.append(Argument("ExceptionHandling", "aExceptionHandling",
                              "ReportExceptions"))
 
-        args[0] = Argument('&' + args[0].argType, args[0].name, args[0].default)
+        args[0] = Argument(args[0].argType, args[0].name, args[0].default)
         method.args[2] = args[0]
 
         # And now insert our template argument.
         argsWithoutThis = list(args)
-        args.insert(0, Argument("&JSRef<T>",  "thisObj"))
+        args.insert(0, Argument("JSRef<T>",  "thisObj"))
 
         # And the self argument
-        method.args.insert(0, Argument(None, "&self"))
-        args.insert(0, Argument(None, "&self"))
-        argsWithoutThis.insert(0, Argument(None, "&self"))
+        method.args.insert(0, Argument(None, "self"))
+        args.insert(0, Argument(None, "self"))
+        argsWithoutThis.insert(0, Argument(None, "self"))
 
         setupCall = ("let s = CallSetup::new(self, aExceptionHandling);\n"
                      "if s.GetContext().is_null() {\n"
@@ -5471,7 +5461,7 @@ class GlobalGenRoots():
 
             cast = [CGGeneric(string.Template('''pub trait ${castTraitName} {
   #[inline(always)]
-  fn to_ref<'a, 'b, T: ${toBound}+Reflectable>(base: &'a JSRef<'b, T>) -> Option<&'a JSRef<'b, Self>> {
+  fn to_ref<'a, T: ${toBound}+Reflectable>(base: JSRef<'a, T>) -> Option<JSRef<'a, Self>> {
     match base.deref().${checkFn}() {
         true => unsafe { Some(base.transmute()) },
         false => None
@@ -5479,8 +5469,21 @@ class GlobalGenRoots():
   }
 
   #[inline(always)]
-  fn from_ref<'a, 'b, T: ${fromBound}>(derived: &'a JSRef<'b, T>) -> &'a JSRef<'b, Self> {
+  fn to_borrowed_ref<'a, 'b, T: ${toBound}+Reflectable>(base: &'a JSRef<'b, T>) -> Option<&'a JSRef<'b, Self>> {
+    match base.deref().${checkFn}() {
+        true => unsafe { Some(base.transmute_borrowed()) },
+        false => None
+    }
+  }
+
+  #[inline(always)]
+  fn from_ref<'a, T: ${fromBound}>(derived: JSRef<'a, T>) -> JSRef<'a, Self> {
     unsafe { derived.transmute() }
+  }
+
+  #[inline(always)]
+  fn from_borrowed_ref<'a, 'b, T: ${fromBound}>(derived: &'a JSRef<'b, T>) -> &'a JSRef<'b, Self> {
+    unsafe { derived.transmute_borrowed() }
   }
 
   #[inline(always)]

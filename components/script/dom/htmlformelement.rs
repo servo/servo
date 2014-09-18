@@ -26,14 +26,14 @@ impl HTMLFormElementDerived for EventTarget {
 }
 
 impl HTMLFormElement {
-    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLFormElement {
+    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLFormElement {
         HTMLFormElement {
             htmlelement: HTMLElement::new_inherited(HTMLFormElementTypeId, localName, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLFormElement> {
+    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLFormElement> {
         let element = HTMLFormElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLFormElementBinding::Wrap)
     }

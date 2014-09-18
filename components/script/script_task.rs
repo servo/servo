@@ -543,7 +543,7 @@ impl ScriptTask {
         let frame = page.frame();
         let document = frame.get_ref().document.root();
 
-        let node: &JSRef<Node> = NodeCast::from_ref(&*document);
+        let node: JSRef<Node> = NodeCast::from_ref(*document);
         reply.send(node.summarize());
     }
 
@@ -553,7 +553,7 @@ impl ScriptTask {
         let document = frame.get_ref().document.root();
         let document_element = document.GetDocumentElement().root().unwrap();
 
-        let node: &JSRef<Node> = NodeCast::from_ref(&*document_element);
+        let node: JSRef<Node> = NodeCast::from_ref(*document_element);
         reply.send(node.summarize());
     }
 
@@ -561,11 +561,11 @@ impl ScriptTask {
         let page = get_page(&*self.page.borrow(), pipeline);
         let frame = page.frame();
         let document = frame.get_ref().document.root();
-        let node: &JSRef<Node> = NodeCast::from_ref(&*document);
+        let node: JSRef<Node> = NodeCast::from_ref(*document);
 
         for candidate in node.traverse_preorder() {
             if candidate.get_unique_id().as_slice() == node_id.as_slice() {
-                return Temporary::from_rooted(&candidate);
+                return Temporary::from_rooted(candidate);
             }
         }
 
@@ -580,7 +580,7 @@ impl ScriptTask {
 
     fn handle_get_layout(&self, pipeline: PipelineId, node_id: String, reply: Sender<(f32, f32)>) {
         let node = self.find_node_by_unique_id(pipeline, node_id).root();
-        let elem: &JSRef<Element> = ElementCast::to_ref(&*node).expect("should be getting layout of element");
+        let elem: JSRef<Element> = ElementCast::to_ref(*node).expect("should be getting layout of element");
         let rect = elem.GetBoundingClientRect().root();
         reply.send((rect.Width(), rect.Height()));
     }
@@ -747,9 +747,9 @@ impl ScriptTask {
         } else {
             Some(url.clone())
         };
-        let document = Document::new(&*window, doc_url, HTMLDocument, None).root();
+        let document = Document::new(*window, doc_url, HTMLDocument, None).root();
 
-        window.deref().init_browser_context(&*document);
+        window.deref().init_browser_context(*document);
 
         self.compositor.set_ready_state(pipeline_id, Loading);
 
@@ -767,7 +767,7 @@ impl ScriptTask {
         // Note: We can parse the next document in parallel with any previous documents.
         let html_parsing_result =
             hubbub_html_parser::parse_html(&*page,
-                                           &*document,
+                                           *document,
                                            parser_input,
                                            self.resource_task.clone());
 
@@ -779,8 +779,8 @@ impl ScriptTask {
             // Create the root frame.
             let mut frame = page.mut_frame();
             *frame = Some(Frame {
-                document: JS::from_rooted(document.deref()),
-                window: JS::from_rooted(window.deref()),
+                document: JS::from_rooted(*document),
+                window: JS::from_rooted(*window),
             });
         }
 
@@ -842,10 +842,9 @@ impl ScriptTask {
         // "load" event as soon as we've finished executing all scripts parsed during
         // the initial load.
         let event = Event::new(&Window(*window), "load".to_string(), false, false).root();
-        let doctarget: &JSRef<EventTarget> = EventTargetCast::from_ref(&*document);
-        let wintarget: &JSRef<EventTarget> = EventTargetCast::from_ref(&*window);
-        let _ = wintarget.dispatch_event_with_target(Some((*doctarget).clone()),
-                                                     &*event);
+        let doctarget: JSRef<EventTarget> = EventTargetCast::from_ref(*document);
+        let wintarget: JSRef<EventTarget> = EventTargetCast::from_ref(*window);
+        let _ = wintarget.dispatch_event_with_target(Some(doctarget), *event);
 
         page.fragment_node.assign(fragment.map_or(None, |fragid| page.find_fragment_node(fragid)));
 
@@ -853,8 +852,8 @@ impl ScriptTask {
         chan.send(LoadCompleteMsg(page.id, url));
     }
 
-    fn scroll_fragment_point(&self, pipeline_id: PipelineId, node: &JSRef<Element>) {
-        let node: &JSRef<Node> = NodeCast::from_ref(node);
+    fn scroll_fragment_point(&self, pipeline_id: PipelineId, node: JSRef<Element>) {
+        let node: JSRef<Node> = NodeCast::from_ref(node);
         let rect = node.get_bounding_content_box();
         let point = Point2D(to_frac_px(rect.origin.x).to_f32().unwrap(),
                             to_frac_px(rect.origin.y).to_f32().unwrap());
@@ -885,7 +884,7 @@ impl ScriptTask {
 
                     let mut fragment_node = page.fragment_node.get();
                     match fragment_node.take().map(|node| node.root()) {
-                        Some(node) => self.scroll_fragment_point(pipeline_id, &*node),
+                        Some(node) => self.scroll_fragment_point(pipeline_id, *node),
                         None => {}
                     }
 
@@ -896,13 +895,13 @@ impl ScriptTask {
                     Some(window) => {
                         // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
                         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#event-type-resize
-                        let uievent = UIEvent::new(&window.clone(),
+                        let uievent = UIEvent::new(window.clone(),
                                                    "resize".to_string(), false,
                                                    false, Some(window.clone()),
                                                    0i32).root();
-                        let event: &JSRef<Event> = EventCast::from_ref(&*uievent);
+                        let event: JSRef<Event> = EventCast::from_ref(*uievent);
 
-                        let wintarget: &JSRef<EventTarget> = EventTargetCast::from_ref(&*window);
+                        let wintarget: JSRef<EventTarget> = EventTargetCast::from_ref(*window);
                         let _ = wintarget.dispatch_event_with_target(None, event);
                     }
                     None => ()
@@ -949,8 +948,8 @@ impl ScriptTask {
                                             Event::new(&Window(*window),
                                                        "click".to_string(),
                                                        true, true).root();
-                                        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(&node);
-                                        let _ = eventtarget.dispatch_event_with_target(None, &*event);
+                                        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(node);
+                                        let _ = eventtarget.dispatch_event_with_target(None, *event);
                                     }
                                     None => {}
                                 }
@@ -997,12 +996,12 @@ impl ScriptTask {
                                     match *mouse_over_targets {
                                         Some(ref mouse_over_targets) => {
                                             if !target_compare {
-                                                target_compare = !mouse_over_targets.contains(&JS::from_rooted(&node));
+                                                target_compare = !mouse_over_targets.contains(&JS::from_rooted(node));
                                             }
                                         }
                                         None => {}
                                     }
-                                    target_list.push(JS::from_rooted(&node));
+                                    target_list.push(JS::from_rooted(node));
                                 }
                                 None => {}
                             }
@@ -1044,7 +1043,7 @@ impl ScriptTask {
         let page = get_page(&*self.page.borrow(), pipeline_id);
         match page.find_fragment_node(url.fragment.unwrap()).root() {
             Some(node) => {
-                self.scroll_fragment_point(pipeline_id, &*node);
+                self.scroll_fragment_point(pipeline_id, *node);
             }
             None => {}
          }

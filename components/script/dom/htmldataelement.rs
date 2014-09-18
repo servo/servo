@@ -26,14 +26,14 @@ impl HTMLDataElementDerived for EventTarget {
 }
 
 impl HTMLDataElement {
-    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLDataElement {
+    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLDataElement {
         HTMLDataElement {
             htmlelement: HTMLElement::new_inherited(HTMLDataElementTypeId, localName, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLDataElement> {
+    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLDataElement> {
         let element = HTMLDataElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLDataElementBinding::Wrap)
     }

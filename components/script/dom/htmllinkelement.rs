@@ -35,14 +35,14 @@ impl HTMLLinkElementDerived for EventTarget {
 }
 
 impl HTMLLinkElement {
-    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLLinkElement {
+    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLLinkElement {
         HTMLLinkElement {
             htmlelement: HTMLElement::new_inherited(HTMLLinkElementTypeId, localName, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLLinkElement> {
+    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLLinkElement> {
         let element = HTMLLinkElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLLinkElementBinding::Wrap)
     }
@@ -50,7 +50,7 @@ impl HTMLLinkElement {
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLLinkElement> {
     fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
-        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_ref(self);
+        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
@@ -60,7 +60,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLLinkElement> {
             _ => (),
         }
 
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
         match name.as_slice() {
             "href" => node.set_enabled_state(true),
             _ => ()
@@ -73,7 +73,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLLinkElement> {
             _ => (),
         }
 
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
         match name.as_slice() {
             "href" => node.set_enabled_state(false),
             _ => ()
@@ -87,7 +87,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLLinkElement> {
         }
 
         if tree_in_doc {
-            let element: &JSRef<Element> = ElementCast::from_ref(self);
+            let element: JSRef<Element> = ElementCast::from_ref(*self);
 
             // FIXME: workaround for https://github.com/mozilla/rust/issues/13246;
             // we get unrooting order failures if these are inside the match.
@@ -119,7 +119,7 @@ trait PrivateHTMLLinkElementHelpers {
 
 impl<'a> PrivateHTMLLinkElementHelpers for JSRef<'a, HTMLLinkElement> {
     fn handle_stylesheet_url(&self, href: &str) {
-        let window = window_from_node(self).root();
+        let window = window_from_node(*self).root();
         match UrlParser::new().base_url(&window.deref().page().get_url()).parse(href) {
             Ok(url) => {
                 let LayoutChan(ref layout_chan) = *window.deref().page().layout_chan;

@@ -37,7 +37,7 @@ impl HTMLHeadingElementDerived for EventTarget {
 }
 
 impl HTMLHeadingElement {
-    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>, level: HeadingLevel) -> HTMLHeadingElement {
+    pub fn new_inherited(localName: DOMString, document: JSRef<Document>, level: HeadingLevel) -> HTMLHeadingElement {
         HTMLHeadingElement {
             htmlelement: HTMLElement::new_inherited(HTMLHeadingElementTypeId, localName, document),
             level: level,
@@ -45,7 +45,7 @@ impl HTMLHeadingElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: &JSRef<Document>, level: HeadingLevel) -> Temporary<HTMLHeadingElement> {
+    pub fn new(localName: DOMString, document: JSRef<Document>, level: HeadingLevel) -> Temporary<HTMLHeadingElement> {
         let element = HTMLHeadingElement::new_inherited(localName, document, level);
         Node::reflect_node(box element, document, HTMLHeadingElementBinding::Wrap)
     }

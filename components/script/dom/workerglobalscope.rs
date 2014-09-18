@@ -80,12 +80,12 @@ impl WorkerGlobalScope {
 
 impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
     fn Self(&self) -> Temporary<WorkerGlobalScope> {
-        Temporary::from_rooted(self)
+        Temporary::from_rooted(*self)
     }
 
     fn Location(&self) -> Temporary<WorkerLocation> {
         if self.location.get().is_none() {
-            let location = WorkerLocation::new(self, self.worker_url.clone());
+            let location = WorkerLocation::new(*self, self.worker_url.clone());
             self.location.assign(Some(location));
         }
         Temporary::new(self.location.get().get_ref().clone())
@@ -125,7 +125,7 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
 
     fn Navigator(&self) -> Temporary<WorkerNavigator> {
         if self.navigator.get().is_none() {
-            let navigator = WorkerNavigator::new(self);
+            let navigator = WorkerNavigator::new(*self);
             self.navigator.assign(Some(navigator));
         }
         Temporary::new(self.navigator.get().get_ref().clone())

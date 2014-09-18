@@ -26,14 +26,14 @@ impl HTMLTableHeaderCellElementDerived for EventTarget {
 }
 
 impl HTMLTableHeaderCellElement {
-    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLTableHeaderCellElement {
+    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLTableHeaderCellElement {
         HTMLTableHeaderCellElement {
             htmltablecellelement: HTMLTableCellElement::new_inherited(HTMLTableHeaderCellElementTypeId, localName, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLTableHeaderCellElement> {
+    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLTableHeaderCellElement> {
         let element = HTMLTableHeaderCellElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLTableHeaderCellElementBinding::Wrap)
     }

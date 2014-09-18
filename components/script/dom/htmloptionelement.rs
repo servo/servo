@@ -31,14 +31,14 @@ impl HTMLOptionElementDerived for EventTarget {
 }
 
 impl HTMLOptionElement {
-    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLOptionElement {
+    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLOptionElement {
         HTMLOptionElement {
             htmlelement: HTMLElement::new_inherited(HTMLOptionElementTypeId, localName, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLOptionElement> {
+    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLOptionElement> {
         let element = HTMLOptionElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLOptionElementBinding::Wrap)
     }
@@ -50,14 +50,14 @@ impl<'a> HTMLOptionElementMethods for JSRef<'a, HTMLOptionElement> {
 
     // http://www.whatwg.org/html/#dom-option-disabled
     fn SetDisabled(&self, disabled: bool) {
-        let elem: &JSRef<Element> = ElementCast::from_ref(self);
+        let elem: JSRef<Element> = ElementCast::from_ref(*self);
         elem.set_bool_attribute("disabled", disabled)
     }
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLOptionElement> {
     fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
-        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_ref(self);
+        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
@@ -67,7 +67,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLOptionElement> {
             _ => (),
         }
 
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
         match name.as_slice() {
             "disabled" => {
                 node.set_disabled_state(true);
@@ -83,7 +83,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLOptionElement> {
             _ => (),
         }
 
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
         match name.as_slice() {
             "disabled" => {
                 node.set_disabled_state(false);
@@ -100,7 +100,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLOptionElement> {
             _ => (),
         }
 
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
         node.check_parent_disabled_state_for_option();
     }
 
@@ -110,7 +110,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLOptionElement> {
             _ => (),
         }
 
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
         if node.parent_node().is_some() {
             node.check_parent_disabled_state_for_option();
         } else {

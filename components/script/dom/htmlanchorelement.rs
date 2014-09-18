@@ -36,33 +36,33 @@ impl HTMLAnchorElementDerived for EventTarget {
 }
 
 impl HTMLAnchorElement {
-    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLAnchorElement {
+    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLAnchorElement {
         HTMLAnchorElement {
             htmlelement: HTMLElement::new_inherited(HTMLAnchorElementTypeId, localName, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLAnchorElement> {
+    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLAnchorElement> {
         let element = HTMLAnchorElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLAnchorElementBinding::Wrap)
     }
 }
 
 trait PrivateHTMLAnchorElementHelpers {
-    fn handle_event_impl(&self, event: &JSRef<Event>);
+    fn handle_event_impl(&self, event: JSRef<Event>);
 }
 
 impl<'a> PrivateHTMLAnchorElementHelpers for JSRef<'a, HTMLAnchorElement> {
-    fn handle_event_impl(&self, event: &JSRef<Event>) {
+    fn handle_event_impl(&self, event: JSRef<Event>) {
         if "click" == event.Type().as_slice() && !event.DefaultPrevented() {
-            let element: &JSRef<Element> = ElementCast::from_ref(self);
+            let element: JSRef<Element> = ElementCast::from_ref(*self);
             let attr = element.get_attribute(Null, "href").root();
             match attr {
                 Some(ref href) => {
                     let value = href.Value();
                     debug!("clicked on link to {:s}", value);
-                    let node: &JSRef<Node> = NodeCast::from_ref(self);
+                    let node: JSRef<Node> = NodeCast::from_ref(*self);
                     let doc = node.owner_doc().root();
                     doc.load_anchor_href(value);
                 }
@@ -74,7 +74,7 @@ impl<'a> PrivateHTMLAnchorElementHelpers for JSRef<'a, HTMLAnchorElement> {
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLAnchorElement> {
     fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
-        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_ref(self);
+        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
@@ -84,7 +84,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLAnchorElement> {
             _ => (),
         }
 
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
         match name.as_slice() {
             "href" => node.set_enabled_state(true),
             _ => ()
@@ -97,14 +97,14 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLAnchorElement> {
             _ => (),
         }
 
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
         match name.as_slice() {
             "href" => node.set_enabled_state(false),
             _ => ()
         }
     }
 
-    fn handle_event(&self, event: &JSRef<Event>) {
+    fn handle_event(&self, event: JSRef<Event>) {
         match self.super_type() {
             Some(s) => {
                 s.handle_event(event);
@@ -123,12 +123,12 @@ impl Reflectable for HTMLAnchorElement {
 
 impl<'a> HTMLAnchorElementMethods for JSRef<'a, HTMLAnchorElement> {
     fn Text(&self) -> DOMString {
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
         node.GetTextContent().unwrap()
     }
 
     fn SetText(&self, value: DOMString) {
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
         node.SetTextContent(Some(value))
     }
 }

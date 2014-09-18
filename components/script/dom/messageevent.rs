@@ -52,9 +52,9 @@ impl MessageEvent {
         let ev = reflect_dom_object(box MessageEvent::new_inherited(data, origin, lastEventId),
                                     global,
                                     MessageEventBinding::Wrap).root();
-        let event: &JSRef<Event> = EventCast::from_ref(&*ev);
+        let event: JSRef<Event> = EventCast::from_ref(*ev);
         event.InitEvent(type_, bubbles, cancelable);
-        Temporary::from_rooted(&*ev)
+        Temporary::from_rooted(*ev)
     }
 
     pub fn Constructor(global: &GlobalRef,
@@ -68,14 +68,14 @@ impl MessageEvent {
 }
 
 impl MessageEvent {
-    pub fn dispatch_jsval(target: &JSRef<EventTarget>,
+    pub fn dispatch_jsval(target: JSRef<EventTarget>,
                           scope: &GlobalRef,
                           message: JSVal) {
         let messageevent = MessageEvent::new(
             scope, "message".to_string(), false, false, message,
             "".to_string(), "".to_string()).root();
-        let event: &JSRef<Event> = EventCast::from_ref(&*messageevent);
-        target.dispatch_event_with_target(None, &*event).unwrap();
+        let event: JSRef<Event> = EventCast::from_ref(*messageevent);
+        target.dispatch_event_with_target(None, event).unwrap();
     }
 }
 

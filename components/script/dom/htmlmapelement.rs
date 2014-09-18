@@ -26,14 +26,14 @@ impl HTMLMapElementDerived for EventTarget {
 }
 
 impl HTMLMapElement {
-    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLMapElement {
+    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLMapElement {
         HTMLMapElement {
             htmlelement: HTMLElement::new_inherited(HTMLMapElementTypeId, localName, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLMapElement> {
+    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLMapElement> {
         let element = HTMLMapElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLMapElementBinding::Wrap)
     }

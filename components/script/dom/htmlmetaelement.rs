@@ -26,14 +26,14 @@ impl HTMLMetaElementDerived for EventTarget {
 }
 
 impl HTMLMetaElement {
-    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLMetaElement {
+    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLMetaElement {
         HTMLMetaElement {
             htmlelement: HTMLElement::new_inherited(HTMLMetaElementTypeId, localName, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLMetaElement> {
+    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLMetaElement> {
         let element = HTMLMetaElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLMetaElementBinding::Wrap)
     }
