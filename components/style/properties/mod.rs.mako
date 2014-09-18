@@ -1438,17 +1438,17 @@ mod property_bit_field {
             self.storage[bit / uint::BITS] &= !(1 << (bit % uint::BITS))
         }
         % for i, property in enumerate(LONGHANDS):
-            #[allow(non_snake_case_functions)]
+            #[allow(non_snake_case)]
             #[inline]
             pub fn get_${property.ident}(&self) -> bool {
                 self.get(${i})
             }
-            #[allow(non_snake_case_functions)]
+            #[allow(non_snake_case)]
             #[inline]
             pub fn set_${property.ident}(&mut self) {
                 self.set(${i})
             }
-            #[allow(non_snake_case_functions)]
+            #[allow(non_snake_case)]
             #[inline]
             pub fn clear_${property.ident}(&mut self) {
                 self.clear(${i})
@@ -1484,7 +1484,7 @@ pub fn parse_property_declaration_list<I: Iterator<Node>>(input: I, base_url: &U
     let mut normal_seen = PropertyBitField::new();
     let items: Vec<DeclarationListItem> =
         ErrorLoggerIterator(parse_declaration_list(input)).collect();
-    for item in items.move_iter().rev() {
+    for item in items.into_iter().rev() {
         match item {
             DeclAtRule(rule) => log_css_error(
                 rule.location, format!("Unsupported at-rule in declaration list: @{:s}", rule.name).as_slice()),

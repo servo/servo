@@ -115,7 +115,7 @@ impl Font {
         let shaper = &self.shaper;
         self.shape_cache.find_or_create(&text, |txt| {
             let mut glyphs = GlyphStore::new(text.as_slice().char_len() as int, is_whitespace);
-            shaper.get_ref().shape_text(txt.as_slice(), &mut glyphs);
+            shaper.as_ref().unwrap().shape_text(txt.as_slice(), &mut glyphs);
             Arc::new(glyphs)
         })
     }
@@ -132,7 +132,7 @@ impl Font {
 
         let shaper = Shaper::new(self);
         self.shaper = Some(shaper);
-        self.shaper.get_ref()
+        self.shaper.as_ref().unwrap()
     }
 
     pub fn get_table_for_tag(&self, tag: FontTableTag) -> Option<FontTable> {

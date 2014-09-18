@@ -519,7 +519,7 @@ pub fn parse_html(page: &Page,
             let load_response = load_response.unwrap();
             match load_response.metadata.content_type {
                 Some((ref t, _)) if t.as_slice().eq_ignore_ascii_case("image") => {
-                    let page = format!("<html><body><img src='{:s}' /></body></html>", base_url.get_ref().serialize());
+                    let page = format!("<html><body><img src='{:s}' /></body></html>", base_url.as_ref().unwrap().serialize());
                     parser.parse_chunk(page.into_bytes().as_slice());
                 },
                 _ => loop {

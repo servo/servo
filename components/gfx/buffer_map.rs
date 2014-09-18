@@ -103,7 +103,7 @@ impl BufferMap {
             };
             if {
                 let list = &mut self.map.get_mut(&old_key).buffers;
-                let condemned_buffer = list.pop().take_unwrap();
+                let condemned_buffer = list.pop().take().unwrap();
                 self.mem -= condemned_buffer.get_mem();
                 condemned_buffer.destroy(graphics_context);
                 list.is_empty()
@@ -126,7 +126,7 @@ impl BufferMap {
                 buffer_val.last_action = self.counter;
                 self.counter += 1;
 
-                let buffer = buffer_val.buffers.pop().take_unwrap();
+                let buffer = buffer_val.buffers.pop().take().unwrap();
                 self.mem -= buffer.get_mem();
                 if buffer_val.buffers.is_empty() {
                     flag = true;
@@ -146,8 +146,8 @@ impl BufferMap {
     /// Destroys all buffers.
     pub fn clear(&mut self, graphics_context: &NativePaintingGraphicsContext) {
         let map = mem::replace(&mut self.map, HashMap::new());
-        for (_, value) in map.move_iter() {
-            for tile in value.buffers.move_iter() {
+        for (_, value) in map.into_iter() {
+            for tile in value.buffers.into_iter() {
                 tile.destroy(graphics_context)
             }
         }

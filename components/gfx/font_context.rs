@@ -34,7 +34,7 @@ fn create_scaled_font(backend: BackendType, template: &Arc<FontTemplateData>, pt
 
 #[cfg(target_os="macos")]
 fn create_scaled_font(backend: BackendType, template: &Arc<FontTemplateData>, pt_size: f64) -> ScaledFont {
-    let cgfont = template.ctfont.get_ref().copy_to_CGFont();
+    let cgfont = template.ctfont.as_ref().unwrap().copy_to_CGFont();
     ScaledFont::new(backend, &cgfont, pt_size as AzFloat)
 }
 

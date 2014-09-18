@@ -210,7 +210,7 @@ impl TimeProfiler {
                  "_category_", "_incremental?_", "_iframe?_",
                  "            _url_", "    _mean (ms)_", "  _median (ms)_",
                  "     _min (ms)_", "     _max (ms)_", "      _events_");
-        for (&(ref category, ref meta), ref mut data) in self.buckets.mut_iter() {
+        for (&(ref category, ref meta), ref mut data) in self.buckets.iter_mut() {
             data.sort_by(|a, b| {
                 if a < b {
                     Less

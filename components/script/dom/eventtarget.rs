@@ -254,7 +254,7 @@ impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {
             Some(listener) => {
                 let mut handlers = self.handlers.deref().borrow_mut();
                 let mut entry = handlers.find_mut(&ty);
-                for entry in entry.mut_iter() {
+                for entry in entry.iter_mut() {
                     let phase = if capture { Capturing } else { Bubbling };
                     let old_entry = EventListenerEntry {
                         phase: phase,

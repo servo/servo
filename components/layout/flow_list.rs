@@ -63,7 +63,7 @@ impl FlowList {
     /// Add an element first in the list
     ///
     /// O(1)
-    pub fn push_front(&mut self, mut new_head: FlowRef) {
+    pub fn push_front(&mut self, new_head: FlowRef) {
         self.flows.push_front(new_head);
     }
 
@@ -78,7 +78,7 @@ impl FlowList {
     ///
     /// O(1)
     pub fn push_back(&mut self, new_tail: FlowRef) {
-        self.flows.push_back(new_tail);
+        self.flows.push(new_tail);
     }
 
     /// Create an empty list
@@ -99,9 +99,9 @@ impl FlowList {
 
     /// Provide a forward iterator with mutable references
     #[inline]
-    pub fn mut_iter<'a>(&'a mut self) -> MutFlowListIterator<'a> {
+    pub fn iter_mut<'a>(&'a mut self) -> MutFlowListIterator<'a> {
         MutFlowListIterator {
-            it: self.flows.mut_iter(),
+            it: self.flows.iter_mut(),
         }
     }
 }

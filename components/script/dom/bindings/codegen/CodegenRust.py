@@ -1798,7 +1798,7 @@ let obj = with_compartment(aCx, proto, || {
   NewProxyObject(aCx, handler,
                  &private,
                  proto, %s,
-                 ptr::mut_null(), ptr::mut_null())
+                 ptr::null_mut(), ptr::null_mut())
 });
 assert!(obj.is_not_null());
 
@@ -3666,7 +3666,7 @@ if expando.is_not_null() {
   }
 }
 """ + namedGet + """
-(*desc).obj = ptr::mut_null();
+(*desc).obj = ptr::null_mut();
 return true;"""
 
     def definition_body(self):
@@ -4303,11 +4303,11 @@ class CGDictionary(CGThing):
         return string.Template(
             "impl<'a, 'b> ${selfName}<'a, 'b> {\n"
             "  pub fn empty() -> ${selfName}<'a, 'b> {\n"
-            "    ${selfName}::new(ptr::mut_null(), NullValue()).unwrap()\n"
+            "    ${selfName}::new(ptr::null_mut(), NullValue()).unwrap()\n"
             "  }\n"
             "  pub fn new(cx: *mut JSContext, val: JSVal) -> Result<${selfName}<'a, 'b>, ()> {\n"
             "    let object = if val.is_null_or_undefined() {\n"
-            "        ptr::mut_null()\n"
+            "        ptr::null_mut()\n"
             "    } else if val.is_object() {\n"
             "        val.to_object()\n"
             "    } else {\n"
@@ -4914,7 +4914,7 @@ class CGCallback(CGClass):
         # the private method.
         argnames = [arg.name for arg in args]
         argnamesWithThis = ["s.GetContext()", "thisObjJS"] + argnames
-        argnamesWithoutThis = ["s.GetContext()", "ptr::mut_null()"] + argnames
+        argnamesWithoutThis = ["s.GetContext()", "ptr::null_mut()"] + argnames
         # Now that we've recorded the argnames for our call to our private
         # method, insert our optional argument for deciding whether the
         # CallSetup should re-throw exceptions on aRv.

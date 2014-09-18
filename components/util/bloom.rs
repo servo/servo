@@ -262,7 +262,7 @@ impl BloomFilter {
     /// on every element.
     pub fn clear(&mut self) {
         self.number_of_insertions = 0;
-        for x in self.buf.as_mut_slice().mut_iter() {
+        for x in self.buf.as_mut_slice().iter_mut() {
             *x = 0u;
         }
     }

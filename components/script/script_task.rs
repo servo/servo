@@ -376,7 +376,7 @@ impl ScriptTask {
     }
 
     pub fn get_cx(&self) -> *mut JSContext {
-        (**self.js_context.borrow().get_ref()).ptr
+        (**self.js_context.borrow().as_ref().unwrap()).ptr
     }
 
     /// Starts the script task. After calling this method, the script task will loop receiving
@@ -412,7 +412,7 @@ impl ScriptTask {
             }
         }
 
-        for (id, size) in resizes.move_iter() {
+        for (id, size) in resizes.into_iter() {
             self.handle_event(id, ResizeEvent(size));
         }
 
@@ -485,7 +485,7 @@ impl ScriptTask {
         }
 
         // Process the gathered events.
-        for msg in sequential.move_iter() {
+        for msg in sequential.into_iter() {
             match msg {
                 // TODO(tkuehn) need to handle auxiliary layouts for iframes
                 FromConstellation(AttachLayoutMsg(_)) => fail!("should have handled AttachLayoutMsg already"),
@@ -605,7 +605,7 @@ impl ScriptTask {
                       window_size,
                       parent_page.resource_task.deref().clone(),
                       self.constellation_chan.clone(),
-                      self.js_context.borrow().get_ref().clone())
+                      self.js_context.borrow().as_ref().unwrap().clone())
         };
         parent_page.children.deref().borrow_mut().push(Rc::new(new_page));
     }
@@ -616,7 +616,7 @@ impl ScriptTask {
         let page = page.find(id).expect("ScriptTask: received fire timer msg for a
             pipeline ID not associated with this script task. This is a bug.");
         let frame = page.frame();
-        let window = frame.get_ref().window.root();
+        let window = frame.as_ref().unwrap().window.root();
         window.handle_fire_timer(timer_id, self.get_cx());
     }
 
@@ -729,7 +729,7 @@ impl ScriptTask {
         let last_url = last_loaded_url.map(|(ref loaded, _)| loaded.clone());
 
         let cx = self.js_context.borrow();
-        let cx = cx.get_ref();
+        let cx = cx.as_ref().unwrap();
         // Create the window and document objects.
         let window = Window::new(cx.deref().ptr,
                                  page.clone(),
@@ -742,7 +742,7 @@ impl ScriptTask {
                 Some(url) => Some(url.clone()),
                 None => Url::parse("about:blank").ok(),
             };
-            *page.mut_url() = Some((doc_url.get_ref().clone(), true));
+            *page.mut_url() = Some((doc_url.as_ref().unwrap().clone(), true));
             doc_url
         } else {
             Some(url.clone())
@@ -974,7 +974,7 @@ impl ScriptTask {
                         let mouse_over_targets = &mut *self.mouse_over_targets.borrow_mut();
                         match *mouse_over_targets {
                             Some(ref mut mouse_over_targets) => {
-                                for node in mouse_over_targets.mut_iter() {
+                                for node in mouse_over_targets.iter_mut() {
                                     let node = node.root();
                                     node.deref().set_hover_state(false);
                                 }

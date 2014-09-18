@@ -98,7 +98,7 @@ pub struct Window {
 impl Window {
     pub fn get_cx(&self) -> *mut JSContext {
         let js_info = self.page().js_info();
-        (**js_info.get_ref().js_context).ptr
+        (**js_info.as_ref().unwrap().js_context).ptr
     }
 
     pub fn page<'a>(&'a self) -> &'a Page {
@@ -112,7 +112,7 @@ impl Window {
 #[unsafe_destructor]
 impl Drop for Window {
     fn drop(&mut self) {
-        for (_, timer_handle) in self.active_timers.borrow_mut().mut_iter() {
+        for (_, timer_handle) in self.active_timers.borrow_mut().iter_mut() {
             timer_handle.cancel();
         }
     }
@@ -215,7 +215,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
 
     fn Document(self) -> Temporary<Document> {
         let frame = self.page().frame();
-        Temporary::new(frame.get_ref().document.clone())
+        Temporary::new(frame.as_ref().unwrap().document.clone())
     }
 
     fn Location(self) -> Temporary<Location> {
@@ -224,7 +224,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
             let location = Location::new(self, page);
             self.location.assign(Some(location));
         }
-        Temporary::new(self.location.get().get_ref().clone())
+        Temporary::new(self.location.get().as_ref().unwrap().clone())
     }
 
     fn Console(self) -> Temporary<Console> {
@@ -232,7 +232,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
             let console = Console::new(&global::Window(self));
             self.console.assign(Some(console));
         }
-        Temporary::new(self.console.get().get_ref().clone())
+        Temporary::new(self.console.get().as_ref().unwrap().clone())
     }
 
     fn Navigator(self) -> Temporary<Navigator> {
@@ -240,7 +240,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
             let navigator = Navigator::new(self);
             self.navigator.assign(Some(navigator));
         }
-        Temporary::new(self.navigator.get().get_ref().clone())
+        Temporary::new(self.navigator.get().as_ref().unwrap().clone())
     }
 
     fn SetTimeout(self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32 {
@@ -288,7 +288,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
             let performance = Performance::new(self);
             self.performance.assign(Some(performance));
         }
-        Temporary::new(self.performance.get().get_ref().clone())
+        Temporary::new(self.performance.get().as_ref().unwrap().clone())
     }
 
     fn GetOnclick(self) -> Option<EventHandlerNonNull> {
@@ -336,7 +336,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
             let screen = Screen::new(self);
             self.screen.assign(Some(screen));
         }
-        Temporary::new(self.screen.get().get_ref().clone())
+        Temporary::new(self.screen.get().as_ref().unwrap().clone())
     }
 
     fn Debug(self, message: DOMString) {

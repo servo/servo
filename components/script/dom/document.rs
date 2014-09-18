@@ -356,12 +356,14 @@ impl<'a> PrivateDocumentHelpers for JSRef<'a, Document> {
     }
 
     fn get_html_element(self) -> Option<Temporary<HTMLHtmlElement>> {
-        self.GetDocumentElement().root().filtered(|root| {
-            let root: JSRef<Node> = NodeCast::from_ref(**root);
-            root.type_id() == ElementNodeTypeId(HTMLHtmlElementTypeId)
-        }).map(|elem| {
-            Temporary::from_rooted(HTMLHtmlElementCast::to_ref(*elem).unwrap())
-        })
+        match self.GetDocumentElement().root() {
+            Some(ref root) if {
+                let root: JSRef<Node> = NodeCast::from_ref(**root);
+                root.type_id() == ElementNodeTypeId(HTMLHtmlElementTypeId)
+            } => Some(Temporary::from_rooted(HTMLHtmlElementCast::to_ref(**root).unwrap())),
+
+            _ => None,
+        }
     }
 }
 
@@ -371,7 +373,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         if self.implementation.get().is_none() {
             self.implementation.assign(Some(DOMImplementation::new(self)));
         }
-        Temporary::new(self.implementation.get().get_ref().clone())
+        Temporary::new(self.implementation.get().as_ref().unwrap().clone())
     }
 
     // http://dom.spec.whatwg.org/#dom-document-url
@@ -751,7 +753,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             let filter = box ImagesFilter;
             self.images.assign(Some(HTMLCollection::create(*window, root, filter)));
         }
-        Temporary::new(self.images.get().get_ref().clone())
+        Temporary::new(self.images.get().as_ref().unwrap().clone())
     }
 
     fn Embeds(self) -> Temporary<HTMLCollection> {
@@ -761,7 +763,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             let filter = box EmbedsFilter;
             self.embeds.assign(Some(HTMLCollection::create(*window, root, filter)));
         }
-        Temporary::new(self.embeds.get().get_ref().clone())
+        Temporary::new(self.embeds.get().as_ref().unwrap().clone())
     }
 
     fn Plugins(self) -> Temporary<HTMLCollection> {
@@ -775,7 +777,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             let filter = box LinksFilter;
             self.links.assign(Some(HTMLCollection::create(*window, root, filter)));
         }
-        Temporary::new(self.links.get().get_ref().clone())
+        Temporary::new(self.links.get().as_ref().unwrap().clone())
     }
 
     fn Forms(self) -> Temporary<HTMLCollection> {
@@ -785,7 +787,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             let filter = box FormsFilter;
             self.forms.assign(Some(HTMLCollection::create(*window, root, filter)));
         }
-        Temporary::new(self.forms.get().get_ref().clone())
+        Temporary::new(self.forms.get().as_ref().unwrap().clone())
     }
 
     fn Scripts(self) -> Temporary<HTMLCollection> {
@@ -795,7 +797,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             let filter = box ScriptsFilter;
             self.scripts.assign(Some(HTMLCollection::create(*window, root, filter)));
         }
-        Temporary::new(self.scripts.get().get_ref().clone())
+        Temporary::new(self.scripts.get().as_ref().unwrap().clone())
     }
 
     fn Anchors(self) -> Temporary<HTMLCollection> {
@@ -805,7 +807,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             let filter = box AnchorsFilter;
             self.anchors.assign(Some(HTMLCollection::create(*window, root, filter)));
         }
-        Temporary::new(self.anchors.get().get_ref().clone())
+        Temporary::new(self.anchors.get().as_ref().unwrap().clone())
     }
 
     fn Applets(self) -> Temporary<HTMLCollection> {
@@ -816,7 +818,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             let filter = box AppletsFilter;
             self.applets.assign(Some(HTMLCollection::create(*window, root, filter)));
         }
-        Temporary::new(self.applets.get().get_ref().clone())
+        Temporary::new(self.applets.get().as_ref().unwrap().clone())
     }
 
     fn Location(self) -> Temporary<Location> {

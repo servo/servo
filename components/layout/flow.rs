@@ -355,7 +355,7 @@ pub fn mut_base<'a>(this: &'a mut Flow) -> &'a mut BaseFlow {
 
 /// Iterates over the children of this flow.
 pub fn child_iter<'a>(flow: &'a mut Flow) -> MutFlowListIterator<'a> {
-    mut_base(flow).children.mut_iter()
+    mut_base(flow).children.iter_mut()
 }
 
 pub trait ImmutableFlowUtils {
@@ -610,7 +610,7 @@ impl Descendants {
     ///
     /// Ignore any static y offsets, because they are None before layout.
     pub fn push_descendants(&mut self, given_descendants: Descendants) {
-        for elem in given_descendants.descendant_links.move_iter() {
+        for elem in given_descendants.descendant_links.into_iter() {
             self.descendant_links.push(elem);
         }
     }
@@ -618,16 +618,16 @@ impl Descendants {
     /// Return an iterator over the descendant flows.
     pub fn iter<'a>(&'a mut self) -> DescendantIter<'a> {
         DescendantIter {
-            iter: self.descendant_links.mut_slice_from(0).mut_iter(),
+            iter: self.descendant_links.slice_from_mut(0).iter_mut(),
         }
     }
 
     /// Return an iterator over (descendant, static y offset).
     pub fn iter_with_offset<'a>(&'a mut self) -> DescendantOffsetIter<'a> {
         let descendant_iter = DescendantIter {
-            iter: self.descendant_links.mut_slice_from(0).mut_iter(),
+            iter: self.descendant_links.slice_from_mut(0).iter_mut(),
         };
-        descendant_iter.zip(self.static_b_offsets.mut_slice_from(0).mut_iter())
+        descendant_iter.zip(self.static_b_offsets.slice_from_mut(0).iter_mut())
     }
 }
 
@@ -824,7 +824,7 @@ impl BaseFlow {
     }
 
     pub fn child_iter<'a>(&'a mut self) -> MutFlowListIterator<'a> {
-        self.children.mut_iter()
+        self.children.iter_mut()
     }
 
     pub unsafe fn ref_count<'a>(&'a self) -> &'a AtomicUint {

@@ -909,7 +909,7 @@ impl LayoutTask {
                 let mut layers = SmallVec1::new();
                 layers.push(render_layer);
                 for layer in mem::replace(&mut flow::mut_base(layout_root.get_mut()).layers,
-                                          DList::new()).move_iter() {
+                                          DList::new()).into_iter() {
                     layers.push(layer)
                 }
 

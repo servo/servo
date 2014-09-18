@@ -63,7 +63,7 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
     if is_base64 {
         // FIXME(#2909): It’s unclear what to do with non-alphabet characters,
         // but Acid 3 apparently depends on spaces being ignored.
-        let bytes = bytes.move_iter().filter(|&b| b != ' ' as u8).collect::<Vec<u8>>();
+        let bytes = bytes.into_iter().filter(|&b| b != ' ' as u8).collect::<Vec<u8>>();
         match bytes.as_slice().from_base64() {
             Err(..) => {
                 progress_chan.send(Done(Err("non-base64 data uri".to_string())));

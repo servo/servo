@@ -36,7 +36,7 @@ impl FontFamily {
 
         // TODO(Issue #190): if not in the fast path above, do
         // expensive matching of weights, etc.
-        for template in self.templates.mut_iter() {
+        for template in self.templates.iter_mut() {
             let maybe_template = template.get_if_matches(fctx, desc);
             if maybe_template.is_some() {
                 return maybe_template;
@@ -46,7 +46,7 @@ impl FontFamily {
         // If a request is made for a font family that exists,
         // pick the first valid font in the family if we failed
         // to find an exact match for the descriptor.
-        for template in self.templates.mut_iter() {
+        for template in self.templates.iter_mut() {
             let maybe_template = template.get();
             if maybe_template.is_some() {
                 return maybe_template;

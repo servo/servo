@@ -581,7 +581,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         let window = doc.deref().window.root();
         let list = NamedNodeMap::new(*window, self);
         self.attr_list.assign(Some(list));
-        Temporary::new(self.attr_list.get().get_ref().clone())
+        Temporary::new(self.attr_list.get().as_ref().unwrap().clone())
     }
 
     // http://dom.spec.whatwg.org/#dom-element-getattribute

@@ -237,7 +237,7 @@ impl<C:RenderListener + Send> RenderTask<C> {
                     let mut replies = Vec::new();
                     self.compositor.set_render_state(self.id, RenderingRenderState);
                     for RenderRequest { buffer_requests, scale, layer_id, epoch }
-                          in requests.move_iter() {
+                          in requests.into_iter() {
                         if self.epoch == epoch {
                             self.render(&mut replies, buffer_requests, scale, layer_id);
                         } else {
@@ -251,7 +251,7 @@ impl<C:RenderListener + Send> RenderTask<C> {
                     self.compositor.paint(self.id, self.epoch, replies);
                 }
                 UnusedBufferMsg(unused_buffers) => {
-                    for buffer in unused_buffers.move_iter().rev() {
+                    for buffer in unused_buffers.into_iter().rev() {
                         self.buffer_map.insert(native_graphics_context!(self), buffer);
                     }
                 }

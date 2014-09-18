@@ -70,7 +70,7 @@ pub fn parse_font_face_rule(rule: AtRule, parent_rules: &mut Vec<CSSRule>, base_
     let mut maybe_family = None;
     let mut maybe_sources = None;
 
-    for item in ErrorLoggerIterator(parse_declaration_list(block.move_iter())) {
+    for item in ErrorLoggerIterator(parse_declaration_list(block.into_iter())) {
         match item {
             DeclAtRule(rule) => log_css_error(
                 rule.location, format!("Unsupported at-rule in declaration list: @{:s}", rule.name).as_slice()),

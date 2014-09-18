@@ -156,8 +156,8 @@ fn is_simple_glyph_id(id: GlyphId) -> bool {
 }
 
 fn is_simple_advance(advance: Au) -> bool {
-    let unsignedAu = advance.to_u32().unwrap();
-    (unsignedAu & (GLYPH_ADVANCE_MASK >> GLYPH_ADVANCE_SHIFT as uint)) == unsignedAu
+    let unsigned_au = advance.to_u32().unwrap();
+    (unsigned_au & (GLYPH_ADVANCE_MASK >> GLYPH_ADVANCE_SHIFT as uint)) == unsigned_au
 }
 
 type DetailedGlyphCount = u16;
@@ -700,7 +700,7 @@ impl<'a> GlyphIterator<'a> {
     // Slow path when there is a glyph range.
     #[inline(never)]
     fn next_glyph_range(&mut self) -> Option<(CharIndex, GlyphInfo<'a>)> {
-        match self.glyph_range.get_mut_ref().next() {
+        match self.glyph_range.as_mut().unwrap().next() {
             Some(j) => Some((self.char_index,
                 DetailGlyphInfo(self.store, self.char_index, j.get() as u16 /* ??? */))),
             None => {

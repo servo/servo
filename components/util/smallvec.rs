@@ -21,12 +21,12 @@ pub trait VecLike<T> {
     fn vec_len(&self) -> uint;
     fn vec_push(&mut self, value: T);
 
-    fn vec_mut_slice<'a>(&'a mut self, start: uint, end: uint) -> &'a mut [T];
+    fn vec_slice_mut<'a>(&'a mut self, start: uint, end: uint) -> &'a mut [T];
 
     #[inline]
-    fn vec_mut_slice_from<'a>(&'a mut self, start: uint) -> &'a mut [T] {
+    fn vec_slice_from_mut<'a>(&'a mut self, start: uint) -> &'a mut [T] {
         let len = self.vec_len();
-        self.vec_mut_slice(start, len)
+        self.vec_slice_mut(start, len)
     }
 }
 
@@ -42,8 +42,8 @@ impl<T> VecLike<T> for Vec<T> {
     }
 
     #[inline]
-    fn vec_mut_slice<'a>(&'a mut self, start: uint, end: uint) -> &'a mut [T] {
-        self.mut_slice(start, end)
+    fn vec_slice_mut<'a>(&'a mut self, start: uint, end: uint) -> &'a mut [T] {
+        self.slice_mut(start, end)
     }
 }
 
@@ -102,7 +102,7 @@ pub trait SmallVec<T> : SmallVecPrivate<T> where T: 'static {
 
     /// NB: For efficiency reasons (avoiding making a second copy of the inline elements), this
     /// actually clears out the original array instead of moving it.
-    fn move_iter<'a>(&'a mut self) -> SmallVecMoveIterator<'a,T> {
+    fn into_iter<'a>(&'a mut self) -> SmallVecMoveIterator<'a,T> {
         unsafe {
             let iter = mem::transmute(self.iter());
             let ptr_opt = if self.spilled() {
@@ -136,7 +136,7 @@ pub trait SmallVec<T> : SmallVecPrivate<T> where T: 'static {
     }
 
     fn push_all_move<V:SmallVec<T>>(&mut self, mut other: V) {
-        for value in other.move_iter() {
+        for value in other.into_iter() {
             self.push(value)
         }
     }
@@ -219,12 +219,12 @@ pub trait SmallVec<T> : SmallVecPrivate<T> where T: 'static {
         self.slice(0, self.len())
     }
 
-    fn as_mut_slice<'a>(&'a mut self) -> &'a mut [T] {
+    fn as_slice_mut<'a>(&'a mut self) -> &'a mut [T] {
         let len = self.len();
-        self.mut_slice(0, len)
+        self.slice_mut(0, len)
     }
 
-    fn mut_slice<'a>(&'a mut self, start: uint, end: uint) -> &'a mut [T] {
+    fn slice_mut<'a>(&'a mut self, start: uint, end: uint) -> &'a mut [T] {
         assert!(start <= end);
         assert!(end <= self.len());
         unsafe {
@@ -235,9 +235,9 @@ pub trait SmallVec<T> : SmallVecPrivate<T> where T: 'static {
         }
     }
 
-    fn mut_slice_from<'a>(&'a mut self, start: uint) -> &'a mut [T] {
+    fn slice_from_mut<'a>(&'a mut self, start: uint) -> &'a mut [T] {
         let len = self.len();
-        self.mut_slice(start, len)
+        self.slice_mut(start, len)
     }
 
     fn fail_bounds_check(&self, index: uint) {
@@ -400,8 +400,8 @@ macro_rules! def_small_vector(
             }
 
             #[inline]
-            fn vec_mut_slice<'a>(&'a mut self, start: uint, end: uint) -> &'a mut [T] {
-                self.mut_slice(start, end)
+            fn vec_slice_mut<'a>(&'a mut self, start: uint, end: uint) -> &'a mut [T] {
+                self.slice_mut(start, end)
             }
         }
 

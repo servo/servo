@@ -753,7 +753,7 @@ impl BlockFlow {
                 // Avoid copying the offset vector.
                 let offsets = mem::replace(&mut kid_base.abs_descendants.static_b_offsets, Vec::new());
                 // Consume all the static y-offsets bubbled up by kid.
-                for y_offset in offsets.move_iter() {
+                for y_offset in offsets.into_iter() {
                     // The offsets are wrt the kid flow box. Translate them to current flow.
                     abs_descendant_y_offsets.push(y_offset + kid_base.position.start.b);
                 }
@@ -1046,15 +1046,15 @@ impl BlockFlow {
                     self.fragment.border_padding.inline_start_end(),
                 block_size + margin_block_size),
             ceiling: clearance + self.base.position.start.b,
-            max_inline_size: self.float.get_ref().containing_inline_size,
-            kind: self.float.get_ref().float_kind,
+            max_inline_size: self.float.as_ref().unwrap().containing_inline_size,
+            kind: self.float.as_ref().unwrap().float_kind,
         };
 
         // Place the float and return the `Floats` back to the parent flow.
         // After, grab the position and use that to set our position.
         self.base.floats.add_float(&info);
 
-        self.float.get_mut_ref().rel_pos = self.base.floats.last_float_pos().unwrap();
+        self.float.as_mut().unwrap().rel_pos = self.base.floats.last_float_pos().unwrap();
     }
 
     /// Assign block-size for current flow.
@@ -1185,7 +1185,7 @@ impl BlockFlow {
     }
 
     pub fn build_display_list_float(&mut self, layout_context: &LayoutContext) {
-        let float_offset = self.float.get_ref().rel_pos;
+        let float_offset = self.float.as_ref().unwrap().rel_pos;
         self.build_display_list_block_common(layout_context,
                                              float_offset,
                                              RootOfStackingContextLevel);
@@ -1599,7 +1599,7 @@ impl Flow for BlockFlow {
         let containing_block_inline_size = self.base.position.size.inline;
         self.compute_used_inline_size(layout_context, containing_block_inline_size);
         if self.is_float() {
-            self.float.get_mut_ref().containing_inline_size = containing_block_inline_size;
+            self.float.as_mut().unwrap().containing_inline_size = containing_block_inline_size;
         }
 
         // Formatting contexts are never impacted by floats.
@@ -1720,7 +1720,7 @@ impl Flow for BlockFlow {
         }
 
         let float_offset = if self.is_float() {
-            self.float.get_ref().rel_pos
+            self.float.as_ref().unwrap().rel_pos
         } else {
             LogicalPoint::zero(self.base.writing_mode)
         };

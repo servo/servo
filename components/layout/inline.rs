@@ -495,7 +495,7 @@ impl LineBreaker {
             inline_start.new_line_pos = vec![];
             self.push_fragment_to_line(inline_start);
 
-            for inline_end in inline_end.move_iter() {
+            for inline_end in inline_end.into_iter() {
                 debug!("LineBreaker: Deferring the fragment to the inline_end of the new-line \
                        character to the line.");
                 let mut inline_end = split_fragment(inline_end);
@@ -680,7 +680,7 @@ impl InlineFragments {
 
         // FIXME (rust#16151): This can be reverted back to using skip_while once
         // the upstream bug is fixed.
-        let mut fragments = mem::replace(&mut self.fragments, vec![]).move_iter();
+        let mut fragments = mem::replace(&mut self.fragments, vec![]).into_iter();
         let mut new_fragments = Vec::new();
         let mut skipping = true;
         for fragment in fragments {
@@ -703,7 +703,7 @@ impl InlineFragments {
         }
 
         let mut new_fragments = self.fragments.clone();
-        while new_fragments.len() > 0 && new_fragments.as_slice().last().get_ref().is_whitespace_only() {
+        while new_fragments.len() > 0 && new_fragments.as_slice().last().as_ref().unwrap().is_whitespace_only() {
             debug!("stripping ignorable whitespace from end");
             drop(new_fragments.pop());
         }
@@ -757,7 +757,7 @@ impl InlineFlow {
         // not recurse on a line if nothing in it can intersect the dirty region.
         debug!("Flow: building display list for {:u} inline fragments", self.fragments.len());
 
-        for fragment in self.fragments.fragments.mut_iter() {
+        for fragment in self.fragments.fragments.iter_mut() {
             let rel_offset = fragment.relative_position(&self.base
                                                              .absolute_position_info
                                                              .relative_containing_block_size);
@@ -923,7 +923,7 @@ impl Flow for InlineFlow {
         }
 
         let mut intrinsic_inline_sizes = IntrinsicISizes::new();
-        for fragment in self.fragments.fragments.mut_iter() {
+        for fragment in self.fragments.fragments.iter_mut() {
             debug!("Flow: measuring {}", *fragment);
 
             let fragment_intrinsic_inline_sizes =
@@ -953,7 +953,7 @@ impl Flow for InlineFlow {
         {
             let inline_size = self.base.position.size.inline;
             let this = &mut *self;
-            for fragment in this.fragments.fragments.mut_iter() {
+            for fragment in this.fragments.fragments.iter_mut() {
                 fragment.assign_replaced_inline_size_if_necessary(inline_size);
             }
         }
@@ -982,7 +982,7 @@ impl Flow for InlineFlow {
         debug!("assign_block_size_inline: floats in: {:?}", self.base.floats);
 
         // assign block-size for inline fragments
-        for fragment in self.fragments.fragments.mut_iter() {
+        for fragment in self.fragments.fragments.iter_mut() {
             fragment.assign_replaced_block_size_if_necessary();
         }
 
@@ -995,7 +995,7 @@ impl Flow for InlineFlow {
 
         // Now, go through each line and lay out the fragments inside.
         let mut line_distance_from_flow_block_start = Au(0);
-        for line in self.lines.mut_iter() {
+        for line in self.lines.iter_mut() {
             // Lay out fragments horizontally.
             InlineFlow::set_horizontal_fragment_positions(&mut self.fragments, line, text_align);
 
@@ -1124,7 +1124,7 @@ impl Flow for InlineFlow {
     }
 
     fn compute_absolute_position(&mut self) {
-        for f in self.fragments.fragments.mut_iter() {
+        for f in self.fragments.fragments.iter_mut() {
             match f.specific {
                 InlineBlockFragment(ref mut info) => {
                     let block_flow = info.flow_ref.get_mut().as_block();

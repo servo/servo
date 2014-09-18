@@ -91,7 +91,7 @@ pub mod test {
             let len: uint = rng.gen();
             let mut v: Vec<int> = rng.gen_iter::<int>().take((len % 32) + 1).collect();
             fn compare_ints(a: &int, b: &int) -> Ordering { a.cmp(b) }
-            sort::quicksort_by(v.as_mut_slice(), compare_ints);
+            sort::quicksort_by(v.as_slice_mut(), compare_ints);
             for i in range(0, v.len() - 1) {
                 assert!(v.get(i) <= v.get(i + 1))
             }

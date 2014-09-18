@@ -315,7 +315,7 @@ impl CORSCache {
     #[allow(dead_code)]
     fn clear (&mut self, request: &CORSRequest) {
         let CORSCache(buf) = self.clone();
-        let new_buf: Vec<CORSCacheEntry> = buf.move_iter().filter(|e| e.origin == request.origin && request.destination == e.url).collect();
+        let new_buf: Vec<CORSCacheEntry> = buf.into_iter().filter(|e| e.origin == request.origin && request.destination == e.url).collect();
         *self = CORSCache(new_buf);
     }
 
@@ -323,7 +323,7 @@ impl CORSCache {
     fn cleanup(&mut self) {
         let CORSCache(buf) = self.clone();
         let now = time::now().to_timespec();
-        let new_buf: Vec<CORSCacheEntry> = buf.move_iter().filter(|e| now.sec > e.created.sec + e.max_age as i64).collect();
+        let new_buf: Vec<CORSCacheEntry> = buf.into_iter().filter(|e| now.sec > e.created.sec + e.max_age as i64).collect();
         *self = CORSCache(new_buf);
     }
 
@@ -332,7 +332,7 @@ impl CORSCache {
         self.cleanup();
         let CORSCache(ref mut buf) = *self;
         // Credentials are not yet implemented here
-        let entry = buf.mut_iter().find(|e| e.origin.scheme == request.origin.scheme &&
+        let entry = buf.iter_mut().find(|e| e.origin.scheme == request.origin.scheme &&
                             e.origin.host() == request.origin.host() &&
                             e.origin.port() == request.origin.port() &&
                             e.url == request.destination &&
@@ -353,7 +353,7 @@ impl CORSCache {
         self.cleanup();
         let CORSCache(ref mut buf) = *self;
         // Credentials are not yet implemented here
-        let entry = buf.mut_iter().find(|e| e.origin.scheme == request.origin.scheme &&
+        let entry = buf.iter_mut().find(|e| e.origin.scheme == request.origin.scheme &&
                             e.origin.host() == request.origin.host() &&
                             e.origin.port() == request.origin.port() &&
                             e.url == request.destination &&
