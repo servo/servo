@@ -47,8 +47,11 @@ def download(desc, src, dst):
         print("\rDownloading %s: %5.1f%%" % (desc, pct), end="")
         sys.stdout.flush()
 
-    urllib.urlretrieve(src, dst, report)
-    print()
+    print("Downloading %s..." % desc)
+    dumb = os.environ.get("TERM") == "dumb"
+    urllib.urlretrieve(src, dst, None if dumb else report)
+    if not dumb:
+        print()
 
 def extract(src, dst, movedir=None):
     tarfile.open(src).extractall(dst)
