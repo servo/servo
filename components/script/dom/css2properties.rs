@@ -15,41 +15,54 @@ pub struct CSS2Properties {
     declaration: CSSStyleDeclaration,
 }
 
+macro_rules! css_getter(
+    ( $idlattr:ident, $cssprop:expr ) => (
+        fn $idlattr(self) -> DOMString {
+            let decl: JSRef<CSSStyleDeclaration> = CSSStyleDeclarationCast::from_ref(self);
+            decl.GetPropertyValue($cssprop.to_string())
+        }
+    );
+)
+
+macro_rules! css_setter(
+    ( $fnname:ident, $cssprop:expr ) => (
+        fn $fnname(self, value: DOMString) {
+            let decl: JSRef<CSSStyleDeclaration> = CSSStyleDeclarationCast::from_ref(self);
+            decl.SetPropertyValue($cssprop.to_string(), value).unwrap();
+        }
+    );
+)
+
 impl<'a> CSS2PropertiesMethods for JSRef<'a, CSS2Properties> {
-    fn Color(self) -> DOMString {
-        "".to_string()
-    }
+    css_getter!(Color, "color")
+    css_setter!(SetColor, "color")
 
-    fn SetColor(self, _value: DOMString) {
-    }
+    css_getter!(Background, "background")
+    css_setter!(SetBackground, "background")
 
-    fn Background(self) -> DOMString {
-        "".to_string()
-    }
+    css_getter!(BackgroundColor, "background-color")
+    css_setter!(SetBackgroundColor, "background-color")
 
-    fn SetBackground(self, _value: DOMString) {
-    }
+    css_getter!(BackgroundPosition, "background-position")
+    css_setter!(SetBackgroundPosition, "background-position")
 
-    fn Display(self) -> DOMString {
-        "".to_string()
-    }
+    css_getter!(BackgroundImage, "background-image")
+    css_setter!(SetBackgroundImage, "background-image")
 
-    fn SetDisplay(self, _value: DOMString) {
-    }
+    css_getter!(BackgroundRepeat, "background-repeat")
+    css_setter!(SetBackgroundRepeat, "background-repeat")
 
-    fn Width(self) -> DOMString {
-        "".to_string()
-    }
+    css_getter!(BackgroundAttachment, "background-attachment")
+    css_setter!(SetBackgroundAttachment, "background-attachment")
 
-    fn SetWidth(self, _value: DOMString) {
-    }
+    css_getter!(Display, "display")
+    css_setter!(SetDisplay, "display")
 
-    fn Height(self) -> DOMString {
-        "".to_string()
-    }
+    css_getter!(Width, "width")
+    css_setter!(SetWidth, "width")
 
-    fn SetHeight(self, _value: DOMString) {
-    }
+    css_getter!(Height, "height")
+    css_setter!(SetHeight, "height")
 
     fn IndexedGetter(self, index: u32, found: &mut bool) -> DOMString {
         let decl: JSRef<CSSStyleDeclaration> = CSSStyleDeclarationCast::from_ref(self);

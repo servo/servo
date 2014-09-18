@@ -12,6 +12,11 @@ interface CSS2Properties : CSSStyleDeclaration {
   [TreatNullAs=EmptyString] attribute DOMString color;
   [TreatNullAs=EmptyString] attribute DOMString display;
   [TreatNullAs=EmptyString] attribute DOMString background;
+  [TreatNullAs=EmptyString] attribute DOMString backgroundColor;
+  [TreatNullAs=EmptyString] attribute DOMString backgroundPosition;
+  [TreatNullAs=EmptyString] attribute DOMString backgroundRepeat;
+  [TreatNullAs=EmptyString] attribute DOMString backgroundImage;
+  [TreatNullAs=EmptyString] attribute DOMString backgroundAttachment;
   [TreatNullAs=EmptyString] attribute DOMString width;
   [TreatNullAs=EmptyString] attribute DOMString height;
 };
