@@ -60,9 +60,6 @@ git = "https://github.com/servo/rust-opengles"
 [dependencies.png]
 git = "https://github.com/servo/rust-png"
 
-[dependencies.sharegl]
-git = "https://github.com/servo/sharegl"
-
 [dependencies.stb_image]
 git = "https://github.com/servo/rust-stb-image"
 

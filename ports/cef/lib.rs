@@ -32,7 +32,6 @@ extern crate "net" as servo_net;
 extern crate "msg" as servo_msg;
 extern crate "util" as servo_util;
 extern crate style;
-extern crate sharegl;
 extern crate stb_image;
 
 extern crate green;
