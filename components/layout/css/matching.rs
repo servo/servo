@@ -533,34 +533,36 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
                                 parent_bf: &mut Option<BloomFilter>,
                                 applicable_declarations: &mut ApplicableDeclarations,
                                 parent: Option<LayoutNode>) {
-        self.initialize_layout_data(layout_context.shared.layout_chan.clone());
+        if self.is_dirty() {
+            self.initialize_layout_data(layout_context.shared.layout_chan.clone());
 
-        // First, check to see whether we can share a style with someone.
-        let sharing_result = unsafe {
-            self.share_style_if_possible(layout_context.style_sharing_candidate_cache(), parent.clone())
-        };
+            // First, check to see whether we can share a style with someone.
+            let sharing_result = unsafe {
+                self.share_style_if_possible(layout_context.style_sharing_candidate_cache(), parent.clone())
+            };
 
-        // Otherwise, match and cascade selectors.
-        match sharing_result {
-            CannotShare(mut shareable) => {
-                if self.is_element() {
-                    self.match_node(stylist, &*parent_bf, applicable_declarations, &mut shareable);
+            // Otherwise, match and cascade selectors.
+            match sharing_result {
+                CannotShare(mut shareable) => {
+                    if self.is_element() {
+                        self.match_node(stylist, &*parent_bf, applicable_declarations, &mut shareable);
+                    }
+
+                    unsafe {
+                        self.cascade_node(parent,
+                                          applicable_declarations,
+                                          layout_context.applicable_declarations_cache())
+                    }
+
+                    applicable_declarations.clear();
+
+                    // Add ourselves to the LRU cache.
+                    if shareable {
+                        layout_context.style_sharing_candidate_cache().insert_if_possible(self)
+                    }
                 }
-
-                unsafe {
-                    self.cascade_node(parent,
-                                      applicable_declarations,
-                                      layout_context.applicable_declarations_cache())
-                }
-
-                applicable_declarations.clear();
-
-                // Add ourselves to the LRU cache.
-                if shareable {
-                    layout_context.style_sharing_candidate_cache().insert_if_possible(self)
-                }
+                StyleWasShared(index) => layout_context.style_sharing_candidate_cache().touch(index),
             }
-            StyleWasShared(index) => layout_context.style_sharing_candidate_cache().touch(index),
         }
 
         match *parent_bf {
@@ -568,12 +570,14 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
             Some(ref mut pbf) => self.insert_into_bloom_filter(pbf),
         }
 
-        for kid in self.children() {
-            kid.recalc_style_for_subtree(stylist,
-                                         layout_context,
-                                         parent_bf,
-                                         applicable_declarations,
-                                         Some(self.clone()));
+        if self.has_dirty_descendants() || self.has_fragment_children() {
+            for kid in self.children() {
+                kid.recalc_style_for_subtree(stylist,
+                                             layout_context,
+                                             parent_bf,
+                                             applicable_declarations,
+                                             Some(self.clone()));
+            }
         }
 
         match *parent_bf {
@@ -581,10 +585,17 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
             Some(ref mut pbf) => self.remove_from_bloom_filter(pbf),
         }
 
-        // Construct flows.
-        let layout_node = ThreadSafeLayoutNode::new(self);
-        let mut flow_constructor = FlowConstructor::new(layout_context);
-        flow_constructor.process(&layout_node);
+        // Construct flows if necessary.
+        if self.is_dirty() || self.has_dirty_descendants() || self.is_fragment() {
+            let layout_node = ThreadSafeLayoutNode::new(self);
+            let mut flow_constructor = FlowConstructor::new(layout_context);
+            flow_constructor.process(&layout_node);
+
+            unsafe {
+                self.set_is_dirty(false);
+                self.set_has_dirty_descendants(false);
+            }
+        }
     }
 
     unsafe fn cascade_node(&self,

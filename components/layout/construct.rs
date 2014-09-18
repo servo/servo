@@ -10,12 +10,8 @@
 //! intermediate data that goes with a DOM node and hasn't found its "home" yet-maybe it's a box,
 //! maybe it's an absolute or fixed position thing that hasn't found its containing block yet.
 //! Construction items bubble up the tree from children to parents until they find their homes.
-//!
-//! TODO(pcwalton): There is no incremental reflow yet. This scheme requires that nodes either have
-//! weak references to flows or that there be some mechanism to efficiently (O(1) time) "blow
-//! apart" a flow tree and have the flows migrate "home" to their respective DOM nodes while we
-//! perform flow tree construction. The precise mechanism for this will take some experimentation
-//! to get right.
+//! Flow construction items remain on the nodes even after construction is done, to allow for
+//! incremental reflow.
 
 #![deny(unsafe_block)]
 
@@ -26,6 +22,7 @@ use floats::FloatKind;
 use flow::{Flow, ImmutableFlowUtils, MutableOwnedFlowUtils};
 use flow::{Descendants, AbsDescendants};
 use flow;
+use flow_list::TreeMutationMethods;
 use flow_ref::FlowRef;
 use fragment::{InlineBlockFragment, InlineBlockFragmentInfo};
 use fragment::{Fragment, GenericFragment, IframeFragment, IframeFragmentInfo};
@@ -34,7 +31,6 @@ use fragment::{TableCellFragment, TableColumnFragment, TableColumnFragmentInfo};
 use fragment::{TableRowFragment, TableWrapperFragment, UnscannedTextFragment};
 use fragment::{UnscannedTextFragmentInfo};
 use inline::{InlineFragments, InlineFlow};
-use parallel;
 use table_wrapper::TableWrapperFlow;
 use table::TableFlow;
 use table_caption::TableCaptionFlow;
@@ -79,6 +75,20 @@ pub enum ConstructionResult {
     /// This node contributed some object or objects that will be needed to construct a proper flow
     /// later up the tree, but these objects have not yet found their home.
     ConstructionItemConstructionResult(ConstructionItem),
+}
+
+impl ConstructionResult {
+    #[inline]
+    fn swap_out(&mut self) -> ConstructionResult {
+        match *self {
+            NoConstructionResult => return NoConstructionResult,
+            FlowConstructionResult(ref flow, ref descendants) => {
+                return FlowConstructionResult((*flow).clone(), (*descendants).clone())
+            }
+            ConstructionItemConstructionResult(_) => {} // Fall through.
+        }
+        mem::replace(self, NoConstructionResult)
+    }
 }
 
 /// Represents the output of flow construction for a DOM node that has not yet resulted in a
@@ -334,7 +344,7 @@ impl<'a> FlowConstructor<'a> {
                                                            &mut InlineFragmentsAccumulator,
                                                            abs_descendants: &mut Descendants,
                                                            first_fragment: &mut bool) {
-        match kid.swap_out_construction_result() {
+        match kid.swap_out_construction_result(node) {
             NoConstructionResult => {}
             FlowConstructionResult(kid_flow, kid_abs_descendants) => {
                 // If kid_flow is TableCaptionFlow, kid_flow should be added under
@@ -533,7 +543,7 @@ impl<'a> FlowConstructor<'a> {
             if kid.get_pseudo_element_type() != Normal {
                 self.process(&kid);
             }
-            match kid.swap_out_construction_result() {
+            match kid.swap_out_construction_result(node) {
                 NoConstructionResult => {}
                 FlowConstructionResult(flow, kid_abs_descendants) => {
                     // {ib} split. Flush the accumulator to our new split and make a new
@@ -690,12 +700,13 @@ impl<'a> FlowConstructor<'a> {
                                                table_wrapper_flow: &mut FlowRef,
                                                node: &ThreadSafeLayoutNode) {
         for kid in node.children() {
-            match kid.swap_out_construction_result() {
+            match kid.swap_out_construction_result(node) {
                 NoConstructionResult | ConstructionItemConstructionResult(_) => {}
                 FlowConstructionResult(kid_flow, _) => {
                     // Only kid flows with table-caption are matched here.
-                    assert!(kid_flow.get().is_table_caption());
-                    table_wrapper_flow.add_new_child(kid_flow);
+                    if table_wrapper_flow.get().is_table_caption() {
+                        table_wrapper_flow.add_new_child(kid_flow);
+                    }
                 }
             }
         }
@@ -858,7 +869,7 @@ impl<'a> FlowConstructor<'a> {
         for kid in node.children() {
             // CSS 2.1 § 17.2.1. Treat all non-column child fragments of `table-column-group`
             // as `display: none`.
-            match kid.swap_out_construction_result() {
+            match kid.swap_out_construction_result(node) {
                 ConstructionItemConstructionResult(TableColumnFragmentConstructionItem(
                         fragment)) => {
                     col_fragments.push(fragment);
@@ -920,7 +931,7 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             // results of children.
             (display::none, _, _) => {
                 for child in node.children() {
-                    drop(child.swap_out_construction_result())
+                    drop(child.delete_construction_result())
                 }
             }
 
@@ -1020,9 +1031,12 @@ trait NodeUtils {
     /// Sets the construction result of a flow.
     fn set_flow_construction_result(&self, result: ConstructionResult);
 
-    /// Replaces the flow construction result in a node with `NoConstructionResult` and returns the
-    /// old value.
-    fn swap_out_construction_result(&self) -> ConstructionResult;
+    /// Deletes the construction result for a flow.
+    fn delete_construction_result(&self);
+
+    /// Returns the flow construction result of a child, replacing it with `NoConstructionResult`
+    /// if it was a construction item.
+    fn swap_out_construction_result(&self, parent: &ThreadSafeLayoutNode) -> ConstructionResult;
 }
 
 impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
@@ -1043,6 +1057,12 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
 
     #[inline(always)]
     fn set_flow_construction_result(&self, result: ConstructionResult) {
+        // Set the `IsFragment` flag on the node if necessary.
+        match result {
+            ConstructionItemConstructionResult(..) => self.set_is_fragment(true),
+            NoConstructionResult | FlowConstructionResult(..) => self.set_is_fragment(false),
+        }
+
         let mut layout_data_ref = self.mutate_layout_data();
         match &mut *layout_data_ref {
             &Some(ref mut layout_data) =>{
@@ -1060,25 +1080,48 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
         }
     }
 
-    #[inline(always)]
-    fn swap_out_construction_result(&self) -> ConstructionResult {
+    fn delete_construction_result(&self) {
         let mut layout_data_ref = self.mutate_layout_data();
         match &mut *layout_data_ref {
             &Some(ref mut layout_data) => {
                 match self.get_pseudo_element_type() {
                     Before | BeforeBlock => {
-                        mem::replace(&mut layout_data.data.before_flow_construction_result,
-                                     NoConstructionResult)
+                        layout_data.data.before_flow_construction_result = NoConstructionResult
                     }
                     After | AfterBlock => {
-                        mem::replace(&mut layout_data.data.after_flow_construction_result,
-                                     NoConstructionResult)
+                        layout_data.data.after_flow_construction_result = NoConstructionResult
                     }
-                    Normal => {
-                        mem::replace(&mut layout_data.data.flow_construction_result,
-                                     NoConstructionResult)
+                    Normal => layout_data.data.flow_construction_result = NoConstructionResult,
+                }
+            }
+            &None => fail!("no layout data"),
+        }
+    }
+
+    #[inline]
+    fn swap_out_construction_result(&self, parent: &ThreadSafeLayoutNode) -> ConstructionResult {
+        let mut layout_data_ref = self.mutate_layout_data();
+        match &mut *layout_data_ref {
+            &Some(ref mut layout_data) => {
+                let construction_result = match self.get_pseudo_element_type() {
+                    Before | BeforeBlock => {
+                        layout_data.data.before_flow_construction_result.swap_out()
+                    }
+                    After | AfterBlock => {
+                        layout_data.data.after_flow_construction_result.swap_out()
+                    }
+                    Normal => layout_data.data.flow_construction_result.swap_out(),
+                };
+
+                // Set the `HasFragmentChildren` flag on the parent if needed.
+                match construction_result {
+                    NoConstructionResult | FlowConstructionResult(..) => {}
+                    ConstructionItemConstructionResult(..) => {
+                        parent.set_has_fragment_children(true)
                     }
                 }
+
+                construction_result
             }
             &None => fail!("no layout data"),
         }
@@ -1136,16 +1179,21 @@ impl FlowConstructionUtils for FlowRef {
     /// Adds a new flow as a child of this flow. Fails if this flow is marked as a leaf.
     ///
     /// This must not be public because only the layout constructor can do this.
-    fn add_new_child(&mut self, mut new_child: FlowRef) {
+    fn add_new_child(&mut self, new_child: FlowRef) {
         {
-            let kid_base = flow::mut_base(new_child.get_mut());
-            kid_base.parallel.parent = parallel::mut_owned_flow_to_unsafe_flow(self);
+            let base = flow::mut_base(self.get_mut());
+            let _ = base.parallel.children_count.fetch_add(1, Relaxed);
         }
 
-        let base = flow::mut_base(self.get_mut());
-        base.children.push_back(new_child);
-        let _ = base.parallel.children_count.fetch_add(1, Relaxed);
-        let _ = base.parallel.children_and_absolute_descendant_count.fetch_add(1, Relaxed);
+        if !new_child.get().is_absolutely_positioned() {
+            let base = flow::mut_base(self.get_mut());
+            drop(base.parallel
+                     .in_flow_children_and_absolute_descendant_count
+                     .fetch_add(1, Relaxed));
+            base.parallel.in_flow_children_count += 1;
+        }
+
+        self.push_back(new_child);
     }
 
     /// Finishes a flow. Once a flow is finished, no more child flows or fragments may be added to

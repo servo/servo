@@ -324,7 +324,7 @@ pub fn child_iter<'a>(flow: &'a mut Flow) -> MutFlowListIterator<'a> {
     mut_base(flow).children.mut_iter()
 }
 
-pub trait ImmutableFlowUtils {
+pub trait ImmutableFlowUtils<'a> {
     // Convenience functions
 
     /// Returns true if this flow is a block or a float flow.
@@ -401,9 +401,12 @@ pub trait MutableFlowUtils {
 }
 
 pub trait MutableOwnedFlowUtils {
-    /// Set absolute descendants for this flow.
+    /// Sets absolute descendants for this flow, establishing it as the containing block for all
+    /// of them.
     ///
-    /// Set this flow as the Containing Block for all the absolute descendants.
+    /// This is called during flow construction, so nothing else can be accessing the descendant
+    /// flows. This is enforced by the fact that we have a mutable `FlowRef`, which only flow
+    /// construction is allowed to possess.
     fn set_absolute_descendants(&mut self, abs_descendants: AbsDescendants);
 }
 
@@ -547,6 +550,7 @@ impl FlowFlags {
 /// The Descendants of a flow.
 ///
 /// Also, details about their position wrt this flow.
+#[deriving(Clone)]
 pub struct Descendants {
     /// Links to every descendant. This must be private because it is unsafe to leak `FlowRef`s to
     /// layout.
@@ -667,9 +671,15 @@ pub struct BaseFlow {
     /// FIXME(pcwalton): Make this private. Misuse of this can lead to data races.
     pub prev_sibling: Link,
 
-    /* layout computations */
-    // TODO: min/pref and position are used during disjoint phases of
-    // layout; maybe combine into a single enum to save space.
+    /// The flow's parent. This is private because misuse of it can lead to data races.
+    parent: Link,
+
+    /// Data used during parallel traversals.
+    ///
+    /// FIXME(pcwalton): Make this private. Misuse of this can lead to data races.
+    pub parallel: FlowParallelInfo,
+
+    /// Intrinsic (minimum and preferred) widths.
     pub intrinsic_inline_sizes: IntrinsicISizes,
 
     /// The upper left corner of the box representing this flow, relative to the box representing
@@ -685,11 +695,6 @@ pub struct BaseFlow {
     /// The amount of overflow of this flow, relative to the containing block. Must include all the
     /// pixels of all the display list items for correct invalidation.
     pub overflow: LogicalRect<Au>,
-
-    /// Data used during parallel traversals.
-    ///
-    /// TODO(pcwalton): Group with other transient data to save space.
-    pub parallel: FlowParallelInfo,
 
     /// The floats next to this flow.
     pub floats: Floats,
@@ -773,6 +778,7 @@ impl BaseFlow {
             children: FlowList::new(),
             next_sibling: None,
             prev_sibling: None,
+            parent: None,
 
             intrinsic_inline_sizes: IntrinsicISizes::new(),
             position: LogicalRect::zero(writing_mode),
@@ -807,9 +813,17 @@ impl BaseFlow {
     pub fn debug_id(&self) -> String {
         format!("{:p}", self as *const _)
     }
+
+    pub unsafe fn parent<'a>(&'a mut self) -> &'a mut Option<FlowRef> {
+        &mut self.parent
+    }
+
+    pub unsafe fn set_parent<'a>(&'a mut self, new_parent: Option<FlowRef>) {
+        self.parent = new_parent
+    }
 }
 
-impl<'a> ImmutableFlowUtils for &'a Flow {
+impl<'a> ImmutableFlowUtils<'a> for &'a Flow {
     /// Returns true if this flow is a block or a float flow.
     fn is_block_like(self) -> bool {
         match self.class() {
@@ -1087,22 +1101,16 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
 }
 
 impl MutableOwnedFlowUtils for FlowRef {
-    /// Set absolute descendants for this flow.
-    ///
-    /// Set yourself as the Containing Block for all the absolute descendants.
-    ///
-    /// This is called during flow construction, so nothing else can be accessing the descendant
-    /// flows. This is enforced by the fact that we have a mutable `FlowRef`, which only flow
-    /// construction is allowed to possess.
     fn set_absolute_descendants(&mut self, abs_descendants: AbsDescendants) {
         let this = self.clone();
 
         let block = self.get_mut().as_block();
         block.base.abs_descendants = abs_descendants;
+        let real_child_count = block.base.parallel.in_flow_children_count;
         block.base
              .parallel
-             .children_and_absolute_descendant_count
-             .fetch_add(block.base.abs_descendants.len() as int, Relaxed);
+             .in_flow_children_and_absolute_descendant_count
+             .store(real_child_count + block.base.abs_descendants.len() as int, Relaxed);
 
         for descendant_link in block.base.abs_descendants.iter() {
             let base = mut_base(descendant_link);

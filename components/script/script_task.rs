@@ -25,9 +25,7 @@ use dom::worker::{Worker, TrustedWorkerAddress};
 use dom::xmlhttprequest::{TrustedXHRAddress, XMLHttpRequest, XHRProgress};
 use html::hubbub_html_parser::{InputString, InputUrl, HtmlParserResult, HtmlDiscoveredScript};
 use html::hubbub_html_parser;
-use layout_interface::{ScriptLayoutChan, LayoutChan, MatchSelectorsDocumentDamage};
-use layout_interface::{ReflowDocumentDamage, ReflowForDisplay};
-use layout_interface::ContentChangedDocumentDamage;
+use layout_interface::{ScriptLayoutChan, LayoutChan, ReflowForDisplay};
 use layout_interface;
 use page::{Page, IterablePage, Frame};
 
@@ -521,7 +519,7 @@ impl ScriptTask {
 
         if page.pending_reflows.get() > 0 {
             page.pending_reflows.set(0);
-            page.damage(MatchSelectorsDocumentDamage);
+            page.damage();
             page.reflow(ReflowForDisplay, self.control_chan.clone(), self.compositor);
         }
     }
@@ -601,7 +599,7 @@ impl ScriptTask {
             Some((ref loaded, needs_reflow)) if *loaded == url => {
                 *page.mut_url() = Some((loaded.clone(), false));
                 if needs_reflow {
-                    page.damage(ContentChangedDocumentDamage);
+                    page.damage();
                     page.reflow(ReflowForDisplay, self.control_chan.clone(), self.compositor);
                 }
                 return;
@@ -686,7 +684,11 @@ impl ScriptTask {
 
         // Kick off the initial reflow of the page.
         debug!("kicking off initial reflow of {}", url);
-        document.deref().content_changed();
+        {
+            let document_js_ref = (&*document).clone();
+            let document_as_node = NodeCast::from_ref(&document_js_ref);
+            document.content_changed(document_as_node);
+        }
         window.flush_layout(ReflowForDisplay);
 
         let fragment = url.fragment.as_ref().map(|ref fragment| fragment.to_string());
@@ -763,7 +765,6 @@ impl ScriptTask {
 
                     let frame = page.frame();
                     if frame.is_some() {
-                        page.damage(ReflowDocumentDamage);
                         page.reflow(ReflowForDisplay, self.control_chan.clone(), self.compositor)
                     }
 
@@ -803,7 +804,7 @@ impl ScriptTask {
                     if in_layout {
                         page.pending_reflows.set(page.pending_reflows.get() + 1);
                     } else {
-                        page.damage(MatchSelectorsDocumentDamage);
+                        page.damage();
                         page.reflow(ReflowForDisplay, self.control_chan.clone(), self.compositor)
                     }
                 }
@@ -902,8 +903,10 @@ impl ScriptTask {
 
                         if target_compare {
                             if mouse_over_targets.is_some() {
-                                page.damage(MatchSelectorsDocumentDamage);
-                                page.reflow(ReflowForDisplay, self.control_chan.clone(), self.compositor);
+                                page.damage();
+                                page.reflow(ReflowForDisplay,
+                                            self.control_chan.clone(),
+                                            self.compositor);
                             }
                             *mouse_over_targets = Some(target_list);
                         }

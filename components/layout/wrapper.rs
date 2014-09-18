@@ -43,8 +43,9 @@ use script::dom::element::{Element, HTMLAreaElementTypeId, HTMLAnchorElementType
 use script::dom::element::{HTMLLinkElementTypeId, LayoutElementHelpers, RawLayoutElementHelpers};
 use script::dom::htmliframeelement::HTMLIFrameElement;
 use script::dom::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
-use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, Node, NodeTypeId};
-use script::dom::node::{LayoutNodeHelpers, RawLayoutNodeHelpers, SharedLayoutData, TextNodeTypeId};
+use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, HasDirtyDescendants};
+use script::dom::node::{HasFragmentChildren, IsDirty, IsFragment, LayoutNodeHelpers, Node};
+use script::dom::node::{NodeTypeId, RawLayoutNodeHelpers, SharedLayoutData, TextNodeTypeId};
 use script::dom::text::Text;
 use script::layout_interface::LayoutChan;
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
@@ -240,6 +241,11 @@ impl<'ln> LayoutNode<'ln> {
             Some(_) => {}
         }
     }
+
+    /// Returns true if this node has children or false otherwise.
+    pub fn has_children(&self) -> bool {
+        self.first_child().is_some()
+    }
 }
 
 impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
@@ -313,6 +319,70 @@ impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
                 element.html_element_in_html_document_for_layout()
             }
         }
+    }
+
+    fn is_dirty(&self) -> bool {
+        unsafe {
+            self.node.get_flags().contains(IsDirty)
+        }
+    }
+
+    unsafe fn set_is_dirty(&self, value: bool) {
+        let mut flags = self.node.get_flags();
+        if value {
+            flags.insert(IsDirty);
+        } else {
+            flags.remove(IsDirty);
+        }
+        self.node.set_flags(flags)
+    }
+
+    fn has_dirty_descendants(&self) -> bool {
+        unsafe {
+            self.node.get_flags().contains(HasDirtyDescendants)
+        }
+    }
+
+    unsafe fn set_has_dirty_descendants(&self, value: bool) {
+        let mut flags = self.node.get_flags();
+        if value {
+            flags.insert(HasDirtyDescendants);
+        } else {
+            flags.remove(HasDirtyDescendants);
+        }
+        self.node.set_flags(flags)
+    }
+
+    fn is_fragment(&self) -> bool {
+        unsafe {
+            self.node.get_flags().contains(IsFragment)
+        }
+    }
+
+    unsafe fn set_is_fragment(&self, value: bool) {
+        let mut flags = self.node.get_flags();
+        if value {
+            flags.insert(IsFragment);
+        } else {
+            flags.remove(IsFragment);
+        }
+        self.node.set_flags(flags)
+    }
+
+    fn has_fragment_children(&self) -> bool {
+        unsafe {
+            self.node.get_flags().contains(HasFragmentChildren)
+        }
+    }
+
+    unsafe fn set_has_fragment_children(&self, value: bool) {
+        let mut flags = self.node.get_flags();
+        if value {
+            flags.insert(HasFragmentChildren);
+        } else {
+            flags.remove(HasFragmentChildren);
+        }
+        self.node.set_flags(flags)
     }
 }
 
@@ -502,10 +572,6 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
         self.node.type_id()
     }
 
-    unsafe fn get_jsmanaged<'a>(&'a self) -> &'a JS<Node> {
-        self.node.get_jsmanaged()
-    }
-
     unsafe fn get<'a>(&'a self) -> &'a Node { // this change.
         mem::transmute::<*mut Node,&'a Node>(self.get_jsmanaged().unsafe_get())
     }
@@ -551,6 +617,10 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
             let text: JS<Text> = self.get_jsmanaged().transmute_copy();
             (*text.unsafe_get()).characterdata.data.deref().borrow().clone()
         }
+    }
+
+    unsafe fn get_jsmanaged<'a>(&'a self) -> &'a JS<Node> {
+        self.node.get_jsmanaged()
     }
 }
 
@@ -707,6 +777,18 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
                 }
             }
             _ => false
+        }
+    }
+
+    pub fn set_is_fragment(&self, value: bool) {
+        unsafe {
+            self.node.set_is_fragment(value)
+        }
+    }
+
+    pub fn set_has_fragment_children(&self, value: bool) {
+        unsafe {
+            self.node.set_has_fragment_children(value)
         }
     }
 }

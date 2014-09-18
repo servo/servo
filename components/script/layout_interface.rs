@@ -16,7 +16,6 @@ use script_traits::{ScriptControlChan, OpaqueScriptLayoutChannel};
 use servo_msg::constellation_msg::WindowSizeData;
 use servo_util::geometry::Au;
 use std::any::{Any, AnyRefExt};
-use std::cmp;
 use std::comm::{channel, Receiver, Sender};
 use std::owned::BoxAny;
 use style::Stylesheet;
@@ -94,35 +93,6 @@ pub struct ContentBoxesResponse(pub Vec<Rect<Au>>);
 pub struct HitTestResponse(pub UntrustedNodeAddress);
 pub struct MouseOverResponse(pub Vec<UntrustedNodeAddress>);
 
-/// Determines which part of the
-#[deriving(PartialEq, PartialOrd, Eq, Ord, Encodable)]
-pub enum DocumentDamageLevel {
-    /// Reflow, but do not perform CSS selector matching.
-    ReflowDocumentDamage,
-    /// Perform CSS selector matching and reflow.
-    MatchSelectorsDocumentDamage,
-    /// Content changed; set full style damage and do the above.
-    ContentChangedDocumentDamage,
-}
-
-impl DocumentDamageLevel {
-    /// Sets this damage to the maximum of this damage and the given damage.
-    pub fn add(&mut self, new_damage: DocumentDamageLevel) {
-        *self = cmp::max(*self, new_damage);
-    }
-}
-
-/// What parts of the document have changed, as far as the script task can tell.
-///
-/// Note that this is fairly coarse-grained and is separate from layout's notion of the document
-#[deriving(Encodable)]
-pub struct DocumentDamage {
-    /// The topmost node in the tree that has changed.
-    pub root: TrustedNodeAddress,
-    /// The amount of damage that occurred.
-    pub level: DocumentDamageLevel,
-}
-
 /// Why we're doing reflow.
 #[deriving(PartialEq)]
 pub enum ReflowGoal {
@@ -136,8 +106,6 @@ pub enum ReflowGoal {
 pub struct Reflow {
     /// The document node.
     pub document_root: TrustedNodeAddress,
-    /// The style changes that need to be done.
-    pub damage: DocumentDamage,
     /// The goal of reflow: either to render to the screen or to flush layout info for script.
     pub goal: ReflowGoal,
     /// The URL of the page.
@@ -190,20 +158,3 @@ impl ScriptLayoutChan for OpaqueScriptLayoutChannel {
     }
 }
 
-#[test]
-fn test_add_damage() {
-    fn assert_add(mut a: DocumentDamageLevel, b: DocumentDamageLevel,
-                  result: DocumentDamageLevel) {
-        a.add(b);
-        assert!(a == result);
-    }
-
-    assert_add(ReflowDocumentDamage, ReflowDocumentDamage, ReflowDocumentDamage);
-    assert_add(ContentChangedDocumentDamage, ContentChangedDocumentDamage, ContentChangedDocumentDamage);
-    assert_add(ReflowDocumentDamage, MatchSelectorsDocumentDamage, MatchSelectorsDocumentDamage);
-    assert_add(MatchSelectorsDocumentDamage, ReflowDocumentDamage, MatchSelectorsDocumentDamage);
-    assert_add(ReflowDocumentDamage, ContentChangedDocumentDamage, ContentChangedDocumentDamage);
-    assert_add(ContentChangedDocumentDamage, ReflowDocumentDamage, ContentChangedDocumentDamage);
-    assert_add(MatchSelectorsDocumentDamage, ContentChangedDocumentDamage, ContentChangedDocumentDamage);
-    assert_add(ContentChangedDocumentDamage, MatchSelectorsDocumentDamage, ContentChangedDocumentDamage);
-}

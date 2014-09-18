@@ -7,13 +7,12 @@
 
 use css::matching::{ApplicableDeclarations, MatchMethods};
 use css::node_style::StyledNode;
-use construct::{FlowConstructionResult, NoConstructionResult};
+use construct::FlowConstructionResult;
 use context::{LayoutContext, SharedLayoutContext};
 use flow::{Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
 use flow::{PreorderFlowTraversal, PostorderFlowTraversal};
 use flow;
 use flow_ref::FlowRef;
-use incremental::RestyleDamage;
 use layout_debug;
 use parallel::UnsafeFlow;
 use parallel;
@@ -38,7 +37,7 @@ use script::dom::element::{HTMLBodyElementTypeId, HTMLHtmlElementTypeId};
 use script::layout_interface::{AddStylesheetMsg, LoadStylesheetMsg, ScriptLayoutChan};
 use script::layout_interface::{TrustedNodeAddress, ContentBoxesResponse, ExitNowMsg};
 use script::layout_interface::{ContentBoxResponse, HitTestResponse, MouseOverResponse};
-use script::layout_interface::{ContentChangedDocumentDamage, LayoutChan, Msg, PrepareToExitMsg};
+use script::layout_interface::{LayoutChan, Msg, PrepareToExitMsg};
 use script::layout_interface::{GetRPCMsg, LayoutRPC, ReapLayoutDataMsg, Reflow, UntrustedNodeAddress};
 use script::layout_interface::{ReflowForDisplay, ReflowMsg};
 use script_traits::{SendEventMsg, ReflowEvent, ReflowCompleteMsg, OpaqueScriptLayoutChannel, ScriptControlChan};
@@ -63,7 +62,7 @@ use std::comm::{channel, Sender, Receiver, Select};
 use std::mem;
 use std::ptr;
 use style;
-use style::{AuthorOrigin, Stylesheet, Stylist};
+use style::{AuthorOrigin, Stylesheet, Stylist, TNode};
 use style::iter_font_face_rules;
 use sync::{Arc, Mutex, MutexGuard};
 use url::Url;
@@ -92,6 +91,10 @@ pub struct LayoutTaskData {
     /// Starts at zero, and increased by one every time a layout completes.
     /// This can be used to easily check for invalid stale data.
     pub generation: uint,
+
+    /// True if a style sheet was added since the last reflow. Currently, this causes all nodes to
+    /// be dirtied at the next reflow.
+    pub stylesheet_dirty: bool,
 }
 
 /// Information needed by the layout task.
@@ -140,47 +143,6 @@ pub struct LayoutTask {
     ///
     /// All the other elements of this struct are read-only.
     pub rw_data: Arc<Mutex<LayoutTaskData>>,
-}
-
-/// The damage computation traversal.
-#[deriving(Clone)]
-struct ComputeDamageTraversal;
-
-impl PostorderFlowTraversal for ComputeDamageTraversal {
-    #[inline]
-    fn process(&mut self, flow: &mut Flow) -> bool {
-        let mut damage = flow::base(flow).restyle_damage;
-        for child in flow::child_iter(flow) {
-            damage.insert(flow::base(child).restyle_damage.propagate_up())
-        }
-        flow::mut_base(flow).restyle_damage = damage;
-        true
-    }
-}
-
-/// Propagates restyle damage up and down the tree as appropriate.
-///
-/// FIXME(pcwalton): Merge this with flow tree building and/or other traversals.
-struct PropagateDamageTraversal {
-    all_style_damage: bool,
-}
-
-impl PreorderFlowTraversal for PropagateDamageTraversal {
-    #[inline]
-    fn process(&mut self, flow: &mut Flow) -> bool {
-        if self.all_style_damage {
-            flow::mut_base(flow).restyle_damage.insert(RestyleDamage::all())
-        }
-        debug!("restyle damage = {:?}", flow::base(flow).restyle_damage);
-
-        let prop = flow::base(flow).restyle_damage.propagate_down();
-        if !prop.is_empty() {
-            for kid_ctx in flow::child_iter(flow) {
-                flow::mut_base(kid_ctx).restyle_damage.insert(prop)
-            }
-        }
-        true
-    }
 }
 
 /// The flow tree verification traversal. This is only on in debug builds.
@@ -418,6 +380,7 @@ impl LayoutTask {
                     parallel_traversal: parallel_traversal,
                     dirty: Rect::zero(),
                     generation: 0,
+                    stylesheet_dirty: false,
               })),
         }
     }
@@ -610,29 +573,32 @@ impl LayoutTask {
         });
         let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
         rw_data.stylist.add_stylesheet(sheet, AuthorOrigin);
+        rw_data.stylesheet_dirty = true;
         LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
     }
 
     /// Retrieves the flow tree root from the root node.
     fn get_layout_root(&self, node: LayoutNode) -> FlowRef {
         let mut layout_data_ref = node.mutate_layout_data();
-        let result = match &mut *layout_data_ref {
+        let mut flow = match &mut *layout_data_ref {
             &Some(ref mut layout_data) => {
-                mem::replace(&mut layout_data.data.flow_construction_result, NoConstructionResult)
-            }
-            &None => fail!("no layout data for root node"),
-        };
-        let mut flow = match result {
-            FlowConstructionResult(mut flow, abs_descendants) => {
-                // Note: Assuming that the root has display 'static' (as per
-                // CSS Section 9.3.1). Otherwise, if it were absolutely
-                // positioned, it would return a reference to itself in
-                // `abs_descendants` and would lead to a circular reference.
-                // Set Root as CB for any remaining absolute descendants.
+                let (mut flow, abs_descendants) = match layout_data.data.flow_construction_result {
+                    FlowConstructionResult(ref flow, ref abs_descendants) => {
+                        // Note: Assuming that the root has display 'static' (as per
+                        // CSS Section 9.3.1). Otherwise, if it were absolutely
+                        // positioned, it would return a reference to itself in
+                        // `abs_descendants` and would lead to a circular reference.
+                        // Set Root as CB for any remaining absolute descendants.
+                        (flow.clone(), abs_descendants.clone())
+                    }
+                    _ => {
+                        fail!("Flow construction didn't result in a flow at the root of the tree!")
+                    }
+                };
                 flow.set_absolute_descendants(abs_descendants);
                 flow
             }
-            _ => fail!("Flow construction didn't result in a flow at the root of the tree!"),
+            &None => fail!("No layout data for root node!"),
         };
         flow.get_mut().mark_as_root();
         flow
@@ -739,22 +705,12 @@ impl LayoutTask {
             local_image_cache.next_round(self.make_on_image_available_cb());
         }
 
-        // true => Do the reflow with full style damage, because content
-        // changed or the window was resized.
-        let mut all_style_damage = match data.damage.level {
-            ContentChangedDocumentDamage => true,
-            _ => false
-        };
-
         // TODO: Calculate the "actual viewport":
         // http://www.w3.org/TR/css-device-adapt/#actual-viewport
         let viewport_size = data.window_size.initial_viewport;
 
         let current_screen_size = Size2D(Au::from_frac32_px(viewport_size.width.get()),
                                          Au::from_frac32_px(viewport_size.height.get()));
-        if rw_data.screen_size != current_screen_size {
-            all_style_damage = true
-        }
         rw_data.screen_size = current_screen_size;
 
         // Create a layout context for use throughout the following passes.
@@ -763,6 +719,14 @@ impl LayoutTask {
                 rw_data.deref(),
                 node,
                 &data.url);
+
+        // If the stylesheet was dirty, then reflow all nodes.
+        if rw_data.stylesheet_dirty {
+            unsafe {
+                self.dirty_all_nodes(node);
+            }
+            rw_data.stylesheet_dirty = false;
+        }
 
         let mut layout_root = profile(time::LayoutStyleRecalcCategory,
                                       Some((&data.url,
@@ -800,15 +764,6 @@ impl LayoutTask {
         if self.opts.trace_layout {
             layout_debug::begin_trace(layout_root.clone());
         }
-
-        // Propagate damage.
-        profile(time::LayoutDamagePropagateCategory, Some((&data.url, data.iframe, self.first_reflow.get())),
-                self.time_profiler_chan.clone(), || {
-            layout_root.get_mut().traverse_preorder(&mut PropagateDamageTraversal {
-                all_style_damage: all_style_damage
-            });
-            layout_root.get_mut().traverse_postorder(&mut ComputeDamageTraversal.clone());
-        });
 
         // Perform the primary layout passes over the flow tree to compute the locations of all
         // the boxes.
@@ -959,6 +914,17 @@ impl LayoutTask {
         let mut layout_data_ref = layout_data.borrow_mut();
         let _: Option<LayoutDataWrapper> = mem::transmute(
             mem::replace(&mut *layout_data_ref, None));
+    }
+
+    /// Dirties the entire tree. This should rarely ever be used.
+    unsafe fn dirty_all_nodes(&self, node: &mut LayoutNode) {
+        node.set_is_dirty(true);
+        if node.has_children() {
+            node.set_has_dirty_descendants(true);
+        }
+        for mut kid in node.children() {
+            self.dirty_all_nodes(&mut kid);
+        }
     }
 }
 
