@@ -5479,21 +5479,8 @@ class GlobalGenRoots():
   }
 
   #[inline(always)]
-  fn to_mut_ref<'a, 'b, T: ${toBound}+Reflectable>(base: &'a mut JSRef<'b, T>) -> Option<&'a mut JSRef<'b, Self>> {
-    match base.deref().${checkFn}() {
-        true => unsafe { Some(base.transmute_mut()) },
-        false => None
-    }
-  }
-
-  #[inline(always)]
   fn from_ref<'a, 'b, T: ${fromBound}>(derived: &'a JSRef<'b, T>) -> &'a JSRef<'b, Self> {
     unsafe { derived.transmute() }
-  }
-
-  #[inline(always)]
-  fn from_mut_ref<'a, 'b, T: ${fromBound}>(derived: &'a mut JSRef<'b, T>) -> &'a mut JSRef<'b, Self> {
-    unsafe { derived.transmute_mut() }
   }
 
   #[inline(always)]
