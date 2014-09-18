@@ -495,7 +495,7 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
 
     /// Returns `None` if this is a pseudo-element.
     fn type_id(&self) -> Option<NodeTypeId> {
-        if self.pseudo == Before || self.pseudo == After {
+        if self.pseudo != Normal {
             return None
         }
 
@@ -511,7 +511,7 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
     }
 
     fn first_child(&self) -> Option<ThreadSafeLayoutNode<'ln>> {
-        if self.pseudo == Before || self.pseudo == After {
+        if self.pseudo != Normal {
             return None
         }
 
@@ -531,11 +531,11 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
     }
 
     fn text(&self) -> String {
-        if self.pseudo == Before || self.pseudo == After {
+        if self.pseudo != Normal {
             let layout_data_ref = self.borrow_layout_data();
             let node_layout_data_wrapper = layout_data_ref.get_ref();
 
-            if self.pseudo == Before {
+            if self.pseudo == Before || self.pseudo == BeforeBlock {
                 let before_style = node_layout_data_wrapper.data.before_style.get_ref();
                 return get_content(&before_style.get_box().content)
             } else {
@@ -748,7 +748,7 @@ impl<'a> Iterator<ThreadSafeLayoutNode<'a>> for ThreadSafeLayoutNodeChildrenIter
                             let pseudo_after_node = if parent_node.is_block(After) && parent_node.pseudo == Normal {
                                 let pseudo_after_node = parent_node.with_pseudo(AfterBlock);
                                 Some(pseudo_after_node)
-                            } else if parent_node.pseudo == Normal || parent_node.pseudo == AfterBlock {
+                            } else if parent_node.pseudo == Normal {
                                 let pseudo_after_node = parent_node.with_pseudo(After);
                                 Some(pseudo_after_node)
                             } else {
