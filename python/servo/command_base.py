@@ -31,7 +31,7 @@ class CommandBase(object):
 
         if not hasattr(self.context, "shareddir"):
             self.context.sharedir = path.join(path.expanduser("~/"), ".servo")
-
+        
         config_path = path.join(context.topdir, ".servobuild")
         if path.exists(config_path):
             self.config = toml.loads(open(config_path).read())
@@ -88,8 +88,9 @@ class CommandBase(object):
                 subprocess.check_call(["git", "submodule", "update",
                                        "--init", "--recursive", "--", module_path])
 
+        snapshot_hash = open(path.join(self.context.topdir, "rust-snapshot-hash")).read().strip()
         if not self.config["tools"]["system-rust"] and \
-           not path.exists(path.join(self.context.sharedir, "rust", "bin", "rustc")):
+           not path.exists(path.join(self.context.sharedir, snapshot_hash, "bin", "rustc")):
             Registrar.dispatch("bootstrap-rust", context=self.context)
         if not self.config["tools"]["system-cargo"] and \
            not path.exists(path.join(self.context.sharedir, "cargo", "bin", "cargo")):
