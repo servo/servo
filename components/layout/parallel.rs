@@ -9,7 +9,6 @@
 use css::matching::{ApplicableDeclarations, CannotShare, MatchMethods, StyleWasShared};
 use construct::FlowConstructor;
 use context::{LayoutContext, SharedLayoutContext};
-use extra::LayoutAuxMethods;
 use flow::{Flow, MutableFlowUtils, PreorderFlowTraversal, PostorderFlowTraversal};
 use flow;
 use flow_ref::FlowRef;
@@ -109,8 +108,7 @@ trait ParallelPostorderFlowTraversal : PostorderFlowTraversal {
     /// Process current flow and potentially traverse its ancestors.
     ///
     /// If we are the last child that finished processing, recursively process
-    /// our parent. Else, stop.
-    /// Also, stop at the root (obviously :P).
+    /// our parent. Else, stop. Also, stop at the root.
     ///
     /// Thus, if we start with all the leaves of a tree, we end up traversing
     /// the whole tree bottom-up because each parent will be processed exactly

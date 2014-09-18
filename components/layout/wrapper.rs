@@ -34,7 +34,7 @@
 //!     `html_element_in_html_document_for_layout()`.
 
 use css::node_style::StyledNode;
-use util::LayoutDataWrapper;
+use util::{LayoutDataAccess, LayoutDataWrapper, PrivateLayoutData};
 
 use script::dom::bindings::codegen::InheritTypes::{HTMLIFrameElementDerived};
 use script::dom::bindings::codegen::InheritTypes::{HTMLImageElementDerived, TextDerived};
@@ -44,8 +44,9 @@ use script::dom::element::{HTMLLinkElementTypeId, LayoutElementHelpers, RawLayou
 use script::dom::htmliframeelement::HTMLIFrameElement;
 use script::dom::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
 use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, Node, NodeTypeId};
-use script::dom::node::{LayoutNodeHelpers, RawLayoutNodeHelpers, TextNodeTypeId};
+use script::dom::node::{LayoutNodeHelpers, RawLayoutNodeHelpers, SharedLayoutData, TextNodeTypeId};
 use script::dom::text::Text;
+use script::layout_interface::LayoutChan;
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use servo_util::atom::Atom;
 use servo_util::namespace::Namespace;
@@ -219,9 +220,26 @@ impl<'ln> LayoutNode<'ln> {
         }
     }
 
-   pub unsafe fn get_jsmanaged<'a>(&'a self) -> &'a JS<Node> {
-       &self.node
-   }
+    pub unsafe fn get_jsmanaged<'a>(&'a self) -> &'a JS<Node> {
+        &self.node
+    }
+
+    /// Resets layout data and styles for the node.
+    ///
+    /// FIXME(pcwalton): Do this as part of fragment building instead of in a traversal.
+    pub fn initialize_layout_data(&self, chan: LayoutChan) {
+        let mut layout_data_ref = self.mutate_layout_data();
+        match *layout_data_ref {
+            None => {
+                *layout_data_ref = Some(LayoutDataWrapper {
+                    chan: Some(chan),
+                    shared_data: SharedLayoutData { style: None },
+                    data: box PrivateLayoutData::new(),
+                });
+            }
+            Some(_) => {}
+        }
+    }
 }
 
 impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
@@ -536,7 +554,6 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
     }
 }
 
-
 impl<'ln> ThreadSafeLayoutNode<'ln> {
     /// Creates a new `ThreadSafeLayoutNode` from the given `LayoutNode`.
     pub fn new<'a>(node: &LayoutNode<'a>) -> ThreadSafeLayoutNode<'a> {
@@ -793,3 +810,4 @@ pub unsafe fn layout_node_from_unsafe_layout_node(node: &UnsafeLayoutNode) -> La
     let (node, _) = *node;
     mem::transmute(node)
 }
+

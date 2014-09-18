@@ -54,9 +54,9 @@ use servo_util::geometry;
 use servo_util::logical_geometry::LogicalPoint;
 use servo_util::opts::Opts;
 use servo_util::smallvec::{SmallVec, SmallVec1};
+use servo_util::task::spawn_named_with_send_on_failure;
 use servo_util::time::{TimeProfilerChan, profile};
 use servo_util::time;
-use servo_util::task::spawn_named_with_send_on_failure;
 use servo_util::workqueue::WorkQueue;
 use std::cell::Cell;
 use std::comm::{channel, Sender, Receiver, Select};
@@ -629,7 +629,7 @@ impl LayoutTask {
                 // positioned, it would return a reference to itself in
                 // `abs_descendants` and would lead to a circular reference.
                 // Set Root as CB for any remaining absolute descendants.
-                flow.set_abs_descendants(abs_descendants);
+                flow.set_absolute_descendants(abs_descendants);
                 flow
             }
             _ => fail!("Flow construction didn't result in a flow at the root of the tree!"),
@@ -655,11 +655,7 @@ impl LayoutTask {
             layout_root.traverse_postorder(&mut traversal);
         }
 
-        // FIXME(kmc): We want to prune nodes without the Reflow restyle damage
-        // bit, but FloatContext values can't be reused, so we need to
-        // recompute them every time.
-        // NOTE: this currently computes borders, so any pruning should separate that operation
-        // out.
+        // FIXME(pcwalton): Prune these two passes.
         {
             let mut traversal = AssignISizesTraversal {
                 layout_context: layout_context,
@@ -667,7 +663,6 @@ impl LayoutTask {
             layout_root.traverse_preorder(&mut traversal);
         }
 
-        // FIXME(pcwalton): Prune this pass as well.
         {
             let mut traversal = AssignBSizesAndStoreOverflowTraversal {
                 layout_context: layout_context,
@@ -733,7 +728,6 @@ impl LayoutTask {
         };
 
         debug!("layout: received layout request for: {:s}", data.url.serialize());
-        debug!("layout: damage is {:?}", data.damage);
         debug!("layout: parsed Node tree");
         debug!("{:?}", node.dump());
 
