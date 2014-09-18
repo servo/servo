@@ -85,7 +85,8 @@ class MachCommands(CommandBase):
                      action='store_true',
                      help='Force download even if a snapshot already exists')
     def bootstrap_rustc(self, force=False):
-        rust_dir = path.join(self.context.sharedir, ".servo", "rust")
+        snapshot_hash = open(path.join(self.context.topdir, "rust-snapshot-hash")).read().strip()
+        rust_dir = path.join(self.context.sharedir, snapshot_hash)
         if not force and path.exists(path.join(rust_dir, "bin", "rustc")):
             print("Snapshot Rust compiler already downloaded.", end=" ")
             print("Use |bootstrap_rust --force| to download again.")
@@ -95,7 +96,6 @@ class MachCommands(CommandBase):
             shutil.rmtree(rust_dir)
         os.makedirs(rust_dir)
 
-        snapshot_hash = open(path.join(self.context.topdir, "rust-snapshot-hash")).read().strip()
         snapshot_path = "%s-%s.tar.gz" % (snapshot_hash, host_triple())
         snapshot_url = "https://servo-rust.s3.amazonaws.com/%s" % snapshot_path
         tgz_file = path.join(rust_dir, path.basename(snapshot_path))

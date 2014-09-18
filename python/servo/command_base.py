@@ -45,7 +45,8 @@ class CommandBase(object):
         self.config["tools"].setdefault("rust-root", "")
         self.config["tools"].setdefault("cargo-root", "")
         if not self.config["tools"]["system-rust"]:
-            self.config["tools"]["rust-root"] = path.join(context.sharedir, "rust")
+            snapshot_hash = open(path.join(self.context.topdir, "rust-snapshot-hash")).read().strip()
+            self.config["tools"]["rust-root"] = path.join(context.sharedir, snapshot_hash)
         if not self.config["tools"]["system-cargo"]:
             self.config["tools"]["cargo-root"] = path.join(context.sharedir, "cargo")
 
