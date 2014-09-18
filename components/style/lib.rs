@@ -11,14 +11,12 @@
 
 #![feature(phase)]
 #[phase(plugin, link)] extern crate log;
-#[phase(plugin)] extern crate string_cache_macros;
 
 extern crate debug;
 extern crate collections;
 extern crate geom;
 extern crate num;
 extern crate serialize;
-extern crate string_cache;
 extern crate sync;
 extern crate url;
 

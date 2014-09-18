@@ -29,11 +29,3 @@ git = "https://github.com/servo/rust-cssparser"
 [dependencies.encoding]
 git = "https://github.com/lifthrasiir/rust-encoding"
 
-[dependencies.string_cache]
-git = "https://github.com/servo/string-cache"
-branch = "pre-rustup"
-
-[dependencies.string_cache_macros]
-git = "https://github.com/servo/string-cache"
-branch = "pre-rustup"
-

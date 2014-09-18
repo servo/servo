@@ -29,10 +29,6 @@ extern crate servo_msg = "msg";
 #[phase(plugin, link)]
 extern crate servo_util = "util";
 
-#[phase(plugin)]
-extern crate string_cache_macros;
-extern crate string_cache;
-
 extern crate collections;
 extern crate encoding;
 extern crate green;

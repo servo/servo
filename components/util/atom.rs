@@ -18,13 +18,6 @@ pub struct Atom {
 
 impl Atom {
     #[inline(always)]
-    pub fn new(atom: atom::Atom) -> Atom {
-        Atom {
-            atom: atom,
-        }
-    }
-
-    #[inline(always)]
     pub fn from_slice(slice: &str) -> Atom {
         Atom {
             atom: atom::Atom::from_slice(slice)

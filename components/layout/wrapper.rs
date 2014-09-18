@@ -273,14 +273,15 @@ impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
     fn match_attr(&self, attr: &AttrSelector, test: |&str| -> bool) -> bool {
         assert!(self.is_element())
         let name = if self.is_html_element_in_html_document() {
-            &attr.lower_name
+            attr.lower_name.as_slice()
         } else {
-            &attr.name
+            attr.name.as_slice()
         };
         match attr.namespace {
             SpecificNamespace(ref ns) => {
                 let element = self.as_element();
-                element.get_attr(ns, name).map_or(false, |attr| test(attr))
+                element.get_attr(ns, name)
+                        .map_or(false, |attr| test(attr))
             },
             // FIXME: https://github.com/mozilla/servo/issues/1558
             AnyNamespace => false,
@@ -382,7 +383,7 @@ impl<'le> TElement for LayoutElement<'le> {
     }
 
     #[inline]
-    fn get_attr(&self, namespace: &Namespace, name: &Atom) -> Option<&'static str> {
+    fn get_attr(&self, namespace: &Namespace, name: &str) -> Option<&'static str> {
         unsafe { self.element.get_attr_val_for_layout(namespace, name) }
     }
 
@@ -394,9 +395,7 @@ impl<'le> TElement for LayoutElement<'le> {
             ElementNodeTypeId(HTMLAnchorElementTypeId) |
             ElementNodeTypeId(HTMLAreaElementTypeId) |
             ElementNodeTypeId(HTMLLinkElementTypeId) => {
-                unsafe {
-                    self.element.get_attr_val_for_layout(&namespace::Null, &satom!("href"))
-                }
+                unsafe { self.element.get_attr_val_for_layout(&namespace::Null, "href") }
             }
             _ => None,
         }
@@ -410,9 +409,7 @@ impl<'le> TElement for LayoutElement<'le> {
 
     #[inline]
     fn get_id(&self) -> Option<Atom> {
-        unsafe {
-            self.element.get_attr_atom_for_layout(&namespace::Null, &satom!("id"))
-        }
+        unsafe { self.element.get_attr_atom_for_layout(&namespace::Null, "id") }
     }
 
     fn get_disabled_state(&self) -> bool {
@@ -427,22 +424,9 @@ impl<'le> TElement for LayoutElement<'le> {
         }
     }
 
-    fn has_class(&self, name: &Atom) -> bool {
+    fn has_class(&self, name: &str) -> bool {
         unsafe {
             self.element.has_class_for_layout(name)
-        }
-    }
-
-    fn each_class(&self, callback: |&Atom|) {
-        unsafe {
-            match self.element.get_classes_for_layout() {
-                None => {}
-                Some(ref classes) => {
-                    for class in classes.iter() {
-                        callback(class)
-                    }
-                }
-            }
         }
     }
 }
@@ -774,10 +758,8 @@ pub struct ThreadSafeLayoutElement<'le> {
 
 impl<'le> ThreadSafeLayoutElement<'le> {
     #[inline]
-    pub fn get_attr(&self, namespace: &Namespace, name: &Atom) -> Option<&'static str> {
-        unsafe {
-            self.element.get_attr_val_for_layout(namespace, name)
-        }
+    pub fn get_attr(&self, namespace: &Namespace, name: &str) -> Option<&'static str> {
+        unsafe { self.element.get_attr_val_for_layout(namespace, name) }
     }
 }
 

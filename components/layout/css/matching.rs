@@ -223,7 +223,8 @@ impl StyleSharingCandidate {
             style: style,
             parent_style: parent_style,
             local_name: element.get_local_name().clone(),
-            class: element.get_attr(&Null, &satom!("class")).map(|string| string.to_string()),
+            class: element.get_attr(&Null, "class")
+                          .map(|string| string.to_string()),
         })
     }
 
@@ -231,7 +232,7 @@ impl StyleSharingCandidate {
         if *element.get_local_name() != self.local_name {
             return false
         }
-        match (&self.class, element.get_attr(&Null, &satom!("class"))) {
+        match (&self.class, element.get_attr(&Null, "class")) {
             (&None, Some(_)) | (&Some(_), None) => return false,
             (&Some(ref this_class), Some(element_class)) if element_class != this_class.as_slice() => {
                 return false
@@ -453,7 +454,7 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
         }
         let ok = {
             let element = self.as_element();
-            element.style_attribute().is_none() && element.get_attr(&Null, &satom!("id")).is_none()
+            element.style_attribute().is_none() && element.get_attr(&Null, "id").is_none()
         };
         if !ok {
             return CannotShare(false)
@@ -500,7 +501,7 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
 
         // TODO: case-sensitivity depends on the document type and quirks mode
         element
-            .get_attr(&Null, &satom!("class"))
+            .get_attr(&Null, "class")
             .map(|attr| {
                 for c in attr.split(style::SELECTOR_WHITESPACE) {
                     bf.insert(&c);
@@ -519,7 +520,7 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
 
         // TODO: case-sensitivity depends on the document type and quirks mode
         element
-            .get_attr(&Null, &satom!("class"))
+            .get_attr(&Null, "class")
             .map(|attr| {
                 for c in attr.split(style::SELECTOR_WHITESPACE) {
                     bf.remove(&c);

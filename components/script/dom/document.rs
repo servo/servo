@@ -52,7 +52,6 @@ use dom::window::{Window, WindowHelpers};
 use html::hubbub_html_parser::build_element_from_tag;
 use hubbub::hubbub::{QuirksMode, NoQuirks, LimitedQuirks, FullQuirks};
 use layout_interface::{DocumentDamageLevel, ContentChangedDocumentDamage};
-use servo_util::atom::Atom;
 use servo_util::namespace;
 use servo_util::namespace::{Namespace, Null};
 use servo_util::str::{DOMString, null_str_as_empty_ref, split_html_space_chars};
@@ -731,7 +730,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             }
 
             let element: &JSRef<Element> = ElementCast::to_ref(node).unwrap();
-            element.get_attribute(Null, &satom!("name")).root().map_or(false, |attr| {
+            element.get_attribute(Null, "name").root().map_or(false, |attr| {
                 attr.value().as_slice() == name.as_slice()
             })
         })

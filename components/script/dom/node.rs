@@ -769,19 +769,16 @@ pub trait RawLayoutNodeHelpers {
 }
 
 impl RawLayoutNodeHelpers for Node {
-    #[inline]
     unsafe fn get_hover_state_for_layout(&self) -> bool {
         (*self.unsafe_get_flags()).contains(InHoverState)
     }
-    #[inline]
     unsafe fn get_disabled_state_for_layout(&self) -> bool {
         (*self.unsafe_get_flags()).contains(InDisabledState)
     }
-    #[inline]
     unsafe fn get_enabled_state_for_layout(&self) -> bool {
         (*self.unsafe_get_flags()).contains(InEnabledState)
     }
-    #[inline]
+
     fn type_id_for_layout(&self) -> NodeTypeId {
         self.type_id
     }
@@ -1416,7 +1413,6 @@ impl Node {
         }
     }
 
-    #[inline]
     pub unsafe fn unsafe_get_flags(&self) -> *const NodeFlags {
         mem::transmute(&self.flags)
     }
@@ -1991,7 +1987,7 @@ impl<'a> VirtualMethods for JSRef<'a, Node> {
     }
 }
 
-impl<'a> style::TNode<JSRef<'a,Element>> for JSRef<'a,Node> {
+impl<'a> style::TNode<JSRef<'a, Element>> for JSRef<'a, Node> {
     fn parent_node(&self) -> Option<JSRef<'a, Node>> {
         (self as &NodeHelpers).parent_node().map(|node| *node.root())
     }
@@ -2025,9 +2021,9 @@ impl<'a> style::TNode<JSRef<'a,Element>> for JSRef<'a,Node> {
     fn match_attr(&self, attr: &style::AttrSelector, test: |&str| -> bool) -> bool {
         let name = {
             if self.is_html_element_in_html_document() {
-                &attr.lower_name
+                attr.lower_name.as_slice()
             } else {
-                &attr.name
+                attr.name.as_slice()
             }
         };
         match attr.namespace {

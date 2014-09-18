@@ -146,17 +146,15 @@ impl HTMLCollection {
     pub fn by_class_name(window: &JSRef<Window>, root: &JSRef<Node>, classes: DOMString)
                          -> Temporary<HTMLCollection> {
         struct ClassNameFilter {
-            classes: Vec<Atom>
+            classes: Vec<DOMString>
         }
         impl CollectionFilter for ClassNameFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                self.classes.iter().all(|class| elem.has_class(class))
+                self.classes.iter().all(|class| elem.has_class(class.as_slice()))
             }
         }
         let filter = ClassNameFilter {
-            classes: split_html_space_chars(classes.as_slice()).map(|class| {
-                         Atom::from_slice(class)
-                     }).collect()
+            classes: split_html_space_chars(classes.as_slice()).map(|class| class.to_string()).collect()
         };
         HTMLCollection::create(window, root, box filter)
     }
@@ -222,8 +220,8 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
             Static(ref elems) => elems.iter()
                 .map(|elem| elem.root())
                 .find(|elem| {
-                    elem.get_string_attribute(&satom!("name")) == key ||
-                    elem.get_string_attribute(&satom!("id")) == key })
+                    elem.get_string_attribute("name") == key ||
+                    elem.get_string_attribute("id") == key })
                 .map(|maybe_elem| Temporary::from_rooted(&*maybe_elem)),
             Live(ref root, ref filter) => {
                 let root = root.root();
@@ -234,8 +232,8 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
                             .map(|elem| elem.clone())
                     })
                     .find(|elem| {
-                        elem.get_string_attribute(&satom!("name")) == key ||
-                        elem.get_string_attribute(&satom!("id")) == key })
+                        elem.get_string_attribute("name") == key ||
+                        elem.get_string_attribute("id") == key })
                     .map(|maybe_elem| Temporary::from_rooted(&maybe_elem))
             }
         }

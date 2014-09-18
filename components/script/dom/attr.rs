@@ -13,13 +13,13 @@ use dom::element::{Element, AttributeHandlers};
 use dom::node::Node;
 use dom::window::Window;
 use dom::virtualmethods::vtable_for;
-
 use servo_util::atom::Atom;
 use servo_util::namespace;
 use servo_util::namespace::Namespace;
 use servo_util::str::{DOMString, split_html_space_chars};
 use std::cell::{Ref, RefCell};
 use std::mem;
+use std::slice::Items;
 
 pub enum AttrSettingType {
     FirstSetAttr,
@@ -51,9 +51,9 @@ impl AttrValue {
         AtomAttrValue(value)
     }
 
-    pub fn tokens<'a>(&'a self) -> Option<&'a [Atom]> {
+    pub fn tokens<'a>(&'a self) -> Option<Items<'a, Atom>> {
         match *self {
-            TokenListAttrValue(_, ref tokens) => Some(tokens.as_slice()),
+            TokenListAttrValue(_, ref tokens) => Some(tokens.iter()),
             _ => None
         }
     }
@@ -189,19 +189,17 @@ impl<'a> AttrHelpers for JSRef<'a, Attr> {
 pub trait AttrHelpersForLayout {
     unsafe fn value_ref_forever(&self) -> &'static str;
     unsafe fn value_atom_forever(&self) -> Option<Atom>;
-    unsafe fn value_tokens_forever(&self) -> Option<&'static [Atom]>;
+    unsafe fn value_tokens_forever(&self) -> Option<Items<Atom>>;
     unsafe fn local_name_atom_forever(&self) -> Atom;
 }
 
 impl AttrHelpersForLayout for Attr {
-    #[inline]
     unsafe fn value_ref_forever(&self) -> &'static str {
         // cast to point to T in RefCell<T> directly
         let value = mem::transmute::<&RefCell<AttrValue>, &AttrValue>(self.value.deref());
         value.as_slice()
     }
 
-    #[inline]
     unsafe fn value_atom_forever(&self) -> Option<Atom> {
         // cast to point to T in RefCell<T> directly
         let value = mem::transmute::<&RefCell<AttrValue>, &AttrValue>(self.value.deref());
@@ -211,17 +209,15 @@ impl AttrHelpersForLayout for Attr {
         }
     }
 
-    #[inline]
-    unsafe fn value_tokens_forever(&self) -> Option<&'static [Atom]> {
+    unsafe fn value_tokens_forever(&self) -> Option<Items<Atom>> {
         // cast to point to T in RefCell<T> directly
         let value = mem::transmute::<&RefCell<AttrValue>, &AttrValue>(self.value.deref());
         match *value {
-            TokenListAttrValue(_, ref tokens) => Some(tokens.as_slice()),
+            TokenListAttrValue(_, ref tokens) => Some(tokens.iter()),
             _ => None,
         }
     }
 
-    #[inline]
     unsafe fn local_name_atom_forever(&self) -> Atom {
         self.local_name.clone()
     }

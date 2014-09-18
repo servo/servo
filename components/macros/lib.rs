@@ -210,10 +210,6 @@ macro_rules! lazy_init(
     )
 )
 
-#[macro_export]
-macro_rules! satom(
-    ($str:tt) => (Atom::new(atom!($str)))
-)
 
 #[cfg(test)]
 mod tests {

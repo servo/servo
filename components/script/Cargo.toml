@@ -52,14 +52,5 @@ branch = "servo"
 [dependencies.js]
 git = "https://github.com/servo/rust-mozjs"
 
-[dependencies.string_cache]
-git = "https://github.com/servo/string-cache"
-branch = "pre-rustup"
-
-[dependencies.string_cache_macros]
-git = "https://github.com/servo/string-cache"
-branch = "pre-rustup"
-
 [dependencies.url]
 git = "https://github.com/servo/rust-url"
-

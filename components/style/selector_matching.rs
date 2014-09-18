@@ -11,6 +11,7 @@ use url::Url;
 
 use servo_util::atom::Atom;
 use servo_util::bloom::BloomFilter;
+use servo_util::namespace;
 use servo_util::smallvec::VecLike;
 use servo_util::sort;
 
@@ -105,14 +106,20 @@ impl SelectorMap {
             None => {}
         }
 
-        element.each_class(|class| {
-            SelectorMap::get_matching_rules_from_hash(node,
-                                                      parent_bf,
-                                                      &self.class_hash,
-                                                      class,
-                                                      matching_rules_list,
-                                                      shareable);
-        });
+        match element.get_attr(&namespace::Null, "class") {
+            Some(ref class_attr) => {
+                // FIXME: Store classes pre-split as atoms to make the loop below faster.
+                for class in class_attr.split(SELECTOR_WHITESPACE) {
+                    SelectorMap::get_matching_rules_from_hash(node,
+                                                              parent_bf,
+                                                              &self.class_hash,
+                                                              &Atom::from_slice(class),
+                                                              matching_rules_list,
+                                                              shareable);
+                }
+            }
+            None => {}
+        }
 
         let local_name_hash = if node.is_html_element_in_html_document() {
             &self.lower_local_name_hash
@@ -460,12 +467,7 @@ impl DeclarationBlock {
     }
 }
 
-pub fn matches<E:TElement,
-               N:TNode<E>>(
-               selector_list: &SelectorList,
-               element: &N,
-               parent_bf: &Option<BloomFilter>)
-               -> bool {
+pub fn matches<E:TElement, N:TNode<E>>(selector_list: &SelectorList, element: &N, parent_bf: &Option<BloomFilter>) -> bool {
     get_selector_list_selectors(selector_list).iter().any(|selector|
         selector.pseudo_element.is_none() &&
         matches_compound_selector(&*selector.compound_selectors, element, parent_bf, &mut false))
@@ -542,13 +544,11 @@ enum SelectorMatchingResult {
 /// Quickly figures out whether or not the compound selector is worth doing more
 /// work on. If the simple selectors don't match, or there's a child selector
 /// that does not appear in the bloom parent bloom filter, we can exit early.
-fn can_fast_reject<E:TElement,
-                   N:TNode<E>>(
-                   mut selector: &CompoundSelector,
-                   element: &N,
-                   parent_bf: &Option<BloomFilter>,
-                   shareable: &mut bool)
-                   -> Option<SelectorMatchingResult> {
+fn can_fast_reject<E: TElement, N: TNode<E>>(
+  mut selector: &CompoundSelector,
+  element: &N,
+  parent_bf: &Option<BloomFilter>,
+  shareable: &mut bool) -> Option<SelectorMatchingResult> {
     if !selector.simple_selectors.iter().all(|simple_selector| {
       matches_simple_selector(simple_selector, element, shareable) }) {
         return Some(NotMatchedAndRestartFromClosestLaterSibling);
@@ -681,11 +681,11 @@ fn matches_compound_selector_internal<E:TElement,
 /// `main/css/matching.rs`.)
 #[inline]
 pub fn matches_simple_selector<E:TElement,
-                               N:TNode<E>>(
-                               selector: &SimpleSelector,
-                               element: &N,
-                               shareable: &mut bool)
-                               -> bool {
+                           N:TNode<E>>(
+                           selector: &SimpleSelector,
+                           element: &N,
+                           shareable: &mut bool)
+                           -> bool {
     match *selector {
         LocalNameSelector(LocalNameSelector { ref name, ref lower_name }) => {
             let name = if element.is_html_element_in_html_document() { lower_name } else { name };
@@ -710,7 +710,7 @@ pub fn matches_simple_selector<E:TElement,
         // TODO: cache and intern class names on elements.
         ClassSelector(ref class) => {
             let element = element.as_element();
-            element.has_class(class)
+            element.has_class(class.as_slice())
         }
 
         AttrExists(ref attr) => {
@@ -854,7 +854,6 @@ pub fn matches_simple_selector<E:TElement,
     }
 }
 
-#[inline]
 fn url_is_visited(_url: &str) -> bool {
     // FIXME: implement this.
     // This function will probably need to take a "session"
@@ -863,7 +862,8 @@ fn url_is_visited(_url: &str) -> bool {
 }
 
 #[inline]
-fn matches_generic_nth_child<E:TElement,
+fn matches_generic_nth_child<'a,
+                             E:TElement,
                              N:TNode<E>>(
                              element: &N,
                              a: i32,

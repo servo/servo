@@ -57,7 +57,6 @@ use script::dom::node::{CommentNodeTypeId, DoctypeNodeTypeId, DocumentFragmentNo
 use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, ProcessingInstructionNodeTypeId};
 use script::dom::node::{TextNodeTypeId};
 use script::dom::htmlobjectelement::is_image_data;
-use servo_util::atom::Atom;
 use servo_util::namespace;
 use std::mem;
 use std::sync::atomics::Relaxed;
@@ -1052,8 +1051,7 @@ trait ObjectElement {
 impl<'ln> ObjectElement for ThreadSafeLayoutNode<'ln> {
     fn get_type_and_data(&self) -> (Option<&'static str>, Option<&'static str>) {
         let elem = self.as_element();
-        (elem.get_attr(&namespace::Null, &satom!("type")),
-         elem.get_attr(&namespace::Null, &satom!("data")))
+        (elem.get_attr(&namespace::Null, "type"), elem.get_attr(&namespace::Null, "data"))
     }
 
     fn has_object_data(&self) -> bool {

@@ -100,8 +100,8 @@ pub struct LocalNameSelector {
 
 #[deriving(Eq, PartialEq, Clone, Hash)]
 pub struct AttrSelector {
-    pub name: Atom,
-    pub lower_name: Atom,
+    pub name: String,
+    pub lower_name: String,
     pub namespace: NamespaceConstraint,
 }
 
@@ -442,8 +442,8 @@ fn parse_attribute_selector(content: Vec<ComponentValue>, namespaces: &Namespace
         Some((_, None)) => fail!("Implementation error, this should not happen."),
         Some((namespace, Some(local_name))) => AttrSelector {
             namespace: namespace,
-            lower_name: Atom::from_slice(local_name.as_slice().to_ascii_lower().as_slice()),
-            name: Atom::from_slice(local_name.as_slice()),
+            lower_name: local_name.as_slice().to_ascii_lower(),
+            name: local_name,
         },
     };
     skip_whitespace(iter);
