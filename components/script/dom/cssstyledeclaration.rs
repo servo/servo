@@ -65,4 +65,3 @@ impl Reflectable for CSSStyleDeclaration {
         &self.reflector_
     }
 }
-
