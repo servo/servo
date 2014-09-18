@@ -254,7 +254,7 @@ name = "js"
 version = "0.1.0"
 source = "git+https://github.com/servo/rust-mozjs#839adf39f30cec81b096ac7cdba1412dbbc3ad38"
 dependencies = [
- "mozjs-sys 0.0.0 (git+https://github.com/servo/mozjs#bf557df22e7f10993c7ff0568299a098df4fd8f4)",
+ "mozjs-sys 0.0.0 (git+https://github.com/servo/mozjs#91920c749d53386acdbc890b6cee68b440626475)",
 ]
 
 [[package]]
@@ -310,7 +310,7 @@ version = "0.0.1"
 [[package]]
 name = "mozjs-sys"
 version = "0.0.0"
-source = "git+https://github.com/servo/mozjs#bf557df22e7f10993c7ff0568299a098df4fd8f4"
+source = "git+https://github.com/servo/mozjs#91920c749d53386acdbc890b6cee68b440626475"
 
 [[package]]
 name = "msg"
