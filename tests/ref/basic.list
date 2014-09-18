@@ -130,3 +130,4 @@ flaky_gpu,flaky_linux == acid2_noscroll.html acid2_ref_broken.html
 == table_containing_block_a.html table_containing_block_ref.html
 == link_style_order.html link_style_order_ref.html
 == percent_height.html percent_height_ref.html
+== inline_block_with_margin_a.html inline_block_with_margin_ref.html
