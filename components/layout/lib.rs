@@ -62,7 +62,6 @@ pub mod text;
 pub mod util;
 pub mod incremental;
 pub mod wrapper;
-pub mod extra;
 
 pub mod css {
     mod node_util;

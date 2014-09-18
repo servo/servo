@@ -8,9 +8,9 @@
 /// inline and block layout.
 ///
 /// Flows are interior nodes in the layout tree and correspond closely to *flow contexts* in the
-/// CSS specification. Flows are responsible for positioning their child flow contexts and fragments.
-/// Flows have purpose-specific fields, such as auxiliary line structs, out-of-flow child
-/// lists, and so on.
+/// CSS specification. Flows are responsible for positioning their child flow contexts and
+/// fragments. Flows have purpose-specific fields, such as auxiliary line structs, out-of-flow
+/// child lists, and so on.
 ///
 /// Currently, the important types of flows are:
 ///
@@ -36,13 +36,13 @@ use incremental::RestyleDamage;
 use inline::InlineFlow;
 use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
 use parallel::FlowParallelInfo;
-use table_wrapper::TableWrapperFlow;
 use table::TableFlow;
-use table_colgroup::TableColGroupFlow;
-use table_rowgroup::TableRowGroupFlow;
-use table_row::TableRowFlow;
 use table_caption::TableCaptionFlow;
 use table_cell::TableCellFlow;
+use table_colgroup::TableColGroupFlow;
+use table_row::TableRowFlow;
+use table_rowgroup::TableRowGroupFlow;
+use table_wrapper::TableWrapperFlow;
 use wrapper::ThreadSafeLayoutNode;
 
 use collections::dlist::DList;
@@ -404,7 +404,7 @@ pub trait MutableOwnedFlowUtils {
     /// Set absolute descendants for this flow.
     ///
     /// Set this flow as the Containing Block for all the absolute descendants.
-    fn set_abs_descendants(&mut self, abs_descendants: AbsDescendants);
+    fn set_absolute_descendants(&mut self, abs_descendants: AbsDescendants);
 }
 
 #[deriving(Encodable, PartialEq, Show)]
@@ -656,7 +656,15 @@ pub struct BaseFlow {
 
     /// The children of this flow.
     pub children: FlowList,
+
+    /// The flow's next sibling.
+    ///
+    /// FIXME(pcwalton): Make this private. Misuse of this can lead to data races.
     pub next_sibling: Link,
+
+    /// The flow's previous sibling.
+    ///
+    /// FIXME(pcwalton): Make this private. Misuse of this can lead to data races.
     pub prev_sibling: Link,
 
     /* layout computations */
@@ -1086,7 +1094,7 @@ impl MutableOwnedFlowUtils for FlowRef {
     /// This is called during flow construction, so nothing else can be accessing the descendant
     /// flows. This is enforced by the fact that we have a mutable `FlowRef`, which only flow
     /// construction is allowed to possess.
-    fn set_abs_descendants(&mut self, abs_descendants: AbsDescendants) {
+    fn set_absolute_descendants(&mut self, abs_descendants: AbsDescendants) {
         let this = self.clone();
 
         let block = self.get_mut().as_block();
