@@ -77,20 +77,20 @@ pub trait LayoutDataAccess {
 impl<'ln> LayoutDataAccess for LayoutNode<'ln> {
     #[inline(always)]
     unsafe fn borrow_layout_data_unchecked(&self) -> *const Option<LayoutDataWrapper> {
-        mem::transmute(self.get().layout_data.borrow_unchecked())
+        mem::transmute(self.get().layout_data.deref().borrow_unchecked())
     }
 
     #[inline(always)]
     fn borrow_layout_data<'a>(&'a self) -> Ref<'a,Option<LayoutDataWrapper>> {
         unsafe {
-            mem::transmute(self.get().layout_data.borrow())
+            mem::transmute(self.get().layout_data.deref().borrow())
         }
     }
 
     #[inline(always)]
     fn mutate_layout_data<'a>(&'a self) -> RefMut<'a,Option<LayoutDataWrapper>> {
         unsafe {
-            mem::transmute(self.get().layout_data.borrow_mut())
+            mem::transmute(self.get().layout_data.deref().borrow_mut())
         }
     }
 }
