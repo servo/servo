@@ -273,7 +273,7 @@ impl Flow for TableFlow {
                         *col_inline_size = (*col_inline_size).scale_by(ratio);
                     }
                 } else if num_unspecified_inline_sizes != 0 {
-                    let extra_column_inline_size = (content_inline_size - total_column_inline_size) / Au::new(num_unspecified_inline_sizes);
+                    let extra_column_inline_size = (content_inline_size - total_column_inline_size) / num_unspecified_inline_sizes;
                     for col_inline_size in self.col_inline_sizes.mut_iter() {
                         if *col_inline_size == Au(0) {
                             *col_inline_size = extra_column_inline_size;
