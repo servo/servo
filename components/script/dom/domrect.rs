@@ -41,27 +41,27 @@ impl DOMRect {
 }
 
 impl<'a> DOMRectMethods for JSRef<'a, DOMRect> {
-    fn Top(&self) -> f32 {
+    fn Top(self) -> f32 {
         self.top
     }
 
-    fn Bottom(&self) -> f32 {
+    fn Bottom(self) -> f32 {
         self.bottom
     }
 
-    fn Left(&self) -> f32 {
+    fn Left(self) -> f32 {
         self.left
     }
 
-    fn Right(&self) -> f32 {
+    fn Right(self) -> f32 {
         self.right
     }
 
-    fn Width(&self) -> f32 {
+    fn Width(self) -> f32 {
         (self.right - self.left).abs()
     }
 
-    fn Height(&self) -> f32 {
+    fn Height(self) -> f32 {
         (self.bottom - self.top).abs()
     }
 }

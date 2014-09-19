@@ -116,33 +116,32 @@ impl Attr {
 }
 
 impl<'a> AttrMethods for JSRef<'a, Attr> {
-    fn LocalName(&self) -> DOMString {
+    fn LocalName(self) -> DOMString {
         self.local_name().as_slice().to_string()
     }
 
-    fn Value(&self) -> DOMString {
+    fn Value(self) -> DOMString {
         self.value().as_slice().to_string()
     }
 
-    fn SetValue(&self, value: DOMString) {
+    fn SetValue(self, value: DOMString) {
         let owner = self.owner.root();
-        let value = owner.deref().parse_attribute(
-            &self.namespace, self.local_name(), value);
+        let value = owner.deref().parse_attribute(&self.namespace, self.local_name(), value);
         self.set_value(ReplacedAttr, value);
     }
 
-    fn Name(&self) -> DOMString {
+    fn Name(self) -> DOMString {
         self.name.as_slice().to_string()
     }
 
-    fn GetNamespaceURI(&self) -> Option<DOMString> {
+    fn GetNamespaceURI(self) -> Option<DOMString> {
         match self.namespace.to_str() {
             "" => None,
             url => Some(url.to_string()),
         }
     }
 
-    fn GetPrefix(&self) -> Option<DOMString> {
+    fn GetPrefix(self) -> Option<DOMString> {
         self.prefix.clone()
     }
 }

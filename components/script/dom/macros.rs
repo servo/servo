@@ -7,11 +7,11 @@
 #[macro_export]
 macro_rules! make_getter(
     ( $attr:ident ) => (
-        fn $attr(&self) -> DOMString {
+        fn $attr(self) -> DOMString {
             use dom::element::{Element, AttributeHandlers};
             use dom::bindings::codegen::InheritTypes::ElementCast;
             use std::ascii::StrAsciiExt;
-            let element: JSRef<Element> = ElementCast::from_ref(*self);
+            let element: JSRef<Element> = ElementCast::from_ref(self);
             element.get_string_attribute(stringify!($attr).to_ascii_lower().as_slice())
         }
     );
@@ -20,11 +20,11 @@ macro_rules! make_getter(
 #[macro_export]
 macro_rules! make_bool_getter(
     ( $attr:ident ) => (
-        fn $attr(&self) -> bool {
+        fn $attr(self) -> bool {
             use dom::element::{Element, AttributeHandlers};
             use dom::bindings::codegen::InheritTypes::ElementCast;
             use std::ascii::StrAsciiExt;
-            let element: JSRef<Element> = ElementCast::from_ref(*self);
+            let element: JSRef<Element> = ElementCast::from_ref(self);
             element.has_attribute(stringify!($attr).to_ascii_lower().as_slice())
         }
     );
@@ -33,11 +33,11 @@ macro_rules! make_bool_getter(
 #[macro_export]
 macro_rules! make_uint_getter(
     ( $attr:ident ) => (
-        fn $attr(&self) -> u32 {
+        fn $attr(self) -> u32 {
             use dom::element::{Element, AttributeHandlers};
             use dom::bindings::codegen::InheritTypes::ElementCast;
             use std::ascii::StrAsciiExt;
-            let element: JSRef<Element> = ElementCast::from_ref(*self);
+            let element: JSRef<Element> = ElementCast::from_ref(self);
             element.get_uint_attribute(stringify!($attr).to_ascii_lower().as_slice())
         }
     );

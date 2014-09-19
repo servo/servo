@@ -42,8 +42,8 @@ impl HTMLOutputElement {
 }
 
 impl<'a> HTMLOutputElementMethods for JSRef<'a, HTMLOutputElement> {
-    fn Validity(&self) -> Temporary<ValidityState> {
-        let window = window_from_node(*self).root();
+    fn Validity(self) -> Temporary<ValidityState> {
+        let window = window_from_node(self).root();
         ValidityState::new(*window)
     }
 }

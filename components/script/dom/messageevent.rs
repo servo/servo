@@ -80,15 +80,15 @@ impl MessageEvent {
 }
 
 impl<'a> MessageEventMethods for JSRef<'a, MessageEvent> {
-    fn Data(&self, _cx: *mut JSContext) -> JSVal {
+    fn Data(self, _cx: *mut JSContext) -> JSVal {
         *self.data
     }
 
-    fn Origin(&self) -> DOMString {
+    fn Origin(self) -> DOMString {
         self.origin.clone()
     }
 
-    fn LastEventId(&self) -> DOMString {
+    fn LastEventId(self) -> DOMString {
         self.lastEventId.clone()
     }
 }

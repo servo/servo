@@ -202,51 +202,51 @@ pub fn base64_atob(atob: DOMString) -> Fallible<DOMString> {
 
 
 impl<'a> WindowMethods for JSRef<'a, Window> {
-    fn Alert(&self, s: DOMString) {
+    fn Alert(self, s: DOMString) {
         // Right now, just print to the console
         println!("ALERT: {:s}", s);
     }
 
-    fn Close(&self) {
+    fn Close(self) {
         let ScriptChan(ref chan) = self.script_chan;
         chan.send(ExitWindowMsg(self.page.id.clone()));
     }
 
-    fn Document(&self) -> Temporary<Document> {
+    fn Document(self) -> Temporary<Document> {
         let frame = self.page().frame();
         Temporary::new(frame.get_ref().document.clone())
     }
 
-    fn Location(&self) -> Temporary<Location> {
+    fn Location(self) -> Temporary<Location> {
         if self.location.get().is_none() {
             let page = self.deref().page.clone();
-            let location = Location::new(*self, page);
+            let location = Location::new(self, page);
             self.location.assign(Some(location));
         }
         Temporary::new(self.location.get().get_ref().clone())
     }
 
-    fn Console(&self) -> Temporary<Console> {
+    fn Console(self) -> Temporary<Console> {
         if self.console.get().is_none() {
-            let console = Console::new(&global::Window(*self));
+            let console = Console::new(&global::Window(self));
             self.console.assign(Some(console));
         }
         Temporary::new(self.console.get().get_ref().clone())
     }
 
-    fn Navigator(&self) -> Temporary<Navigator> {
+    fn Navigator(self) -> Temporary<Navigator> {
         if self.navigator.get().is_none() {
-            let navigator = Navigator::new(*self);
+            let navigator = Navigator::new(self);
             self.navigator.assign(Some(navigator));
         }
         Temporary::new(self.navigator.get().get_ref().clone())
     }
 
-    fn SetTimeout(&self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32 {
+    fn SetTimeout(self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32 {
         self.set_timeout_or_interval(callback, timeout, false)
     }
 
-    fn ClearTimeout(&self, handle: i32) {
+    fn ClearTimeout(self, handle: i32) {
         let mut timers = self.active_timers.deref().borrow_mut();
         let mut timer_handle = timers.pop(&TimerId(handle));
         match timer_handle {
@@ -256,103 +256,103 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         timers.remove(&TimerId(handle));
     }
 
-    fn SetInterval(&self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32 {
+    fn SetInterval(self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32 {
         self.set_timeout_or_interval(callback, timeout, true)
     }
 
-    fn ClearInterval(&self, handle: i32) {
+    fn ClearInterval(self, handle: i32) {
         self.ClearTimeout(handle);
     }
 
-    fn Window(&self) -> Temporary<Window> {
-        Temporary::from_rooted(*self)
+    fn Window(self) -> Temporary<Window> {
+        Temporary::from_rooted(self)
     }
 
-    fn Self(&self) -> Temporary<Window> {
+    fn Self(self) -> Temporary<Window> {
         self.Window()
     }
 
     // http://www.whatwg.org/html/#dom-frames
-    fn Frames(&self) -> Temporary<Window> {
+    fn Frames(self) -> Temporary<Window> {
         self.Window()
     }
 
-    fn Parent(&self) -> Temporary<Window> {
+    fn Parent(self) -> Temporary<Window> {
         //TODO - Once we support iframes correctly this needs to return the parent frame
         self.Window()
     }
 
-    fn Performance(&self) -> Temporary<Performance> {
+    fn Performance(self) -> Temporary<Performance> {
         if self.performance.get().is_none() {
-            let performance = Performance::new(*self);
+            let performance = Performance::new(self);
             self.performance.assign(Some(performance));
         }
         Temporary::new(self.performance.get().get_ref().clone())
     }
 
-    fn GetOnclick(&self) -> Option<EventHandlerNonNull> {
-        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
+    fn GetOnclick(self) -> Option<EventHandlerNonNull> {
+        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
         eventtarget.get_event_handler_common("click")
     }
 
-    fn SetOnclick(&self, listener: Option<EventHandlerNonNull>) {
-        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
+    fn SetOnclick(self, listener: Option<EventHandlerNonNull>) {
+        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
         eventtarget.set_event_handler_common("click", listener)
     }
 
-    fn GetOnload(&self) -> Option<EventHandlerNonNull> {
-        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
+    fn GetOnload(self) -> Option<EventHandlerNonNull> {
+        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
         eventtarget.get_event_handler_common("load")
     }
 
-    fn SetOnload(&self, listener: Option<EventHandlerNonNull>) {
-        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
+    fn SetOnload(self, listener: Option<EventHandlerNonNull>) {
+        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
         eventtarget.set_event_handler_common("load", listener)
     }
 
-    fn GetOnunload(&self) -> Option<EventHandlerNonNull> {
-        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
+    fn GetOnunload(self) -> Option<EventHandlerNonNull> {
+        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
         eventtarget.get_event_handler_common("unload")
     }
 
-    fn SetOnunload(&self, listener: Option<EventHandlerNonNull>) {
-        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
+    fn SetOnunload(self, listener: Option<EventHandlerNonNull>) {
+        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
         eventtarget.set_event_handler_common("unload", listener)
     }
 
-    fn GetOnerror(&self) -> Option<OnErrorEventHandlerNonNull> {
-        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
+    fn GetOnerror(self) -> Option<OnErrorEventHandlerNonNull> {
+        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
         eventtarget.get_event_handler_common("error")
     }
 
-    fn SetOnerror(&self, listener: Option<OnErrorEventHandlerNonNull>) {
-        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
+    fn SetOnerror(self, listener: Option<OnErrorEventHandlerNonNull>) {
+        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
         eventtarget.set_event_handler_common("error", listener)
     }
 
-    fn Screen(&self) -> Temporary<Screen> {
+    fn Screen(self) -> Temporary<Screen> {
         if self.screen.get().is_none() {
-            let screen = Screen::new(*self);
+            let screen = Screen::new(self);
             self.screen.assign(Some(screen));
         }
         Temporary::new(self.screen.get().get_ref().clone())
     }
 
-    fn Debug(&self, message: DOMString) {
+    fn Debug(self, message: DOMString) {
         debug!("{:s}", message);
     }
 
-    fn Gc(&self) {
+    fn Gc(self) {
         unsafe {
             JS_GC(JS_GetRuntime(self.get_cx()));
         }
     }
 
-    fn Btoa(&self, btoa: DOMString) -> Fallible<DOMString> {
+    fn Btoa(self, btoa: DOMString) -> Fallible<DOMString> {
         base64_btoa(btoa)
     }
 
-    fn Atob(&self, atob: DOMString) -> Fallible<DOMString> {
+    fn Atob(self, atob: DOMString) -> Fallible<DOMString> {
         base64_atob(atob)
     }
 }

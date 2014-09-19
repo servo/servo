@@ -122,13 +122,13 @@ impl Reflectable for HTMLAnchorElement {
 }
 
 impl<'a> HTMLAnchorElementMethods for JSRef<'a, HTMLAnchorElement> {
-    fn Text(&self) -> DOMString {
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+    fn Text(self) -> DOMString {
+        let node: JSRef<Node> = NodeCast::from_ref(self);
         node.GetTextContent().unwrap()
     }
 
-    fn SetText(&self, value: DOMString) {
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+    fn SetText(self, value: DOMString) {
+        let node: JSRef<Node> = NodeCast::from_ref(self);
         node.SetTextContent(Some(value))
     }
 }

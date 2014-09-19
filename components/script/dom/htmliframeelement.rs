@@ -131,29 +131,29 @@ impl HTMLIFrameElement {
 }
 
 impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
-    fn Src(&self) -> DOMString {
-        let element: JSRef<Element> = ElementCast::from_ref(*self);
+    fn Src(self) -> DOMString {
+        let element: JSRef<Element> = ElementCast::from_ref(self);
         element.get_string_attribute("src")
     }
 
-    fn SetSrc(&self, src: DOMString) {
-        let element: JSRef<Element> = ElementCast::from_ref(*self);
+    fn SetSrc(self, src: DOMString) {
+        let element: JSRef<Element> = ElementCast::from_ref(self);
         element.set_url_attribute("src", src)
     }
 
-    fn Sandbox(&self) -> DOMString {
-        let element: JSRef<Element> = ElementCast::from_ref(*self);
+    fn Sandbox(self) -> DOMString {
+        let element: JSRef<Element> = ElementCast::from_ref(self);
         element.get_string_attribute("sandbox")
     }
 
-    fn SetSandbox(&self, sandbox: DOMString) {
-        let element: JSRef<Element> = ElementCast::from_ref(*self);
+    fn SetSandbox(self, sandbox: DOMString) {
+        let element: JSRef<Element> = ElementCast::from_ref(self);
         element.set_string_attribute("sandbox", sandbox);
     }
 
-    fn GetContentWindow(&self) -> Option<Temporary<Window>> {
+    fn GetContentWindow(self) -> Option<Temporary<Window>> {
         self.size.deref().get().and_then(|size| {
-            let window = window_from_node(*self).root();
+            let window = window_from_node(self).root();
             let children = &*window.deref().page.children.deref().borrow();
             let child = children.iter().find(|child| {
                 child.subpage_id.unwrap() == size.subpage_id

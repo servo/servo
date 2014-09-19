@@ -107,20 +107,20 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
 }
 
 impl<'a> HTMLScriptElementMethods for JSRef<'a, HTMLScriptElement> {
-    fn Src(&self) -> DOMString {
-        let element: JSRef<Element> = ElementCast::from_ref(*self);
+    fn Src(self) -> DOMString {
+        let element: JSRef<Element> = ElementCast::from_ref(self);
         element.get_url_attribute("src")
     }
 
     // http://www.whatwg.org/html/#dom-script-text
-    fn Text(&self) -> DOMString {
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+    fn Text(self) -> DOMString {
+        let node: JSRef<Node> = NodeCast::from_ref(self);
         Node::collect_text_contents(node.children())
     }
 
     // http://www.whatwg.org/html/#dom-script-text
-    fn SetText(&self, value: DOMString) {
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+    fn SetText(self, value: DOMString) {
+        let node: JSRef<Node> = NodeCast::from_ref(self);
         node.SetTextContent(Some(value))
     }
 }

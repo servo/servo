@@ -57,18 +57,18 @@ impl CustomEvent {
 }
 
 impl<'a> CustomEventMethods for JSRef<'a, CustomEvent> {
-    fn Detail(&self, _cx: *mut JSContext) -> JSVal {
+    fn Detail(self, _cx: *mut JSContext) -> JSVal {
         *self.detail.deref().get()
     }
 
-    fn InitCustomEvent(&self,
+    fn InitCustomEvent(self,
                        _cx: *mut JSContext,
                        type_: DOMString,
                        can_bubble: bool,
                        cancelable: bool,
                        detail: JSVal) {
         self.detail.deref().set(Traceable::new(detail));
-        let event: JSRef<Event> = EventCast::from_ref(*self);
+        let event: JSRef<Event> = EventCast::from_ref(self);
         event.InitEvent(type_, can_bubble, cancelable);
     }
 }

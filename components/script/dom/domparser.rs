@@ -39,7 +39,7 @@ impl DOMParser {
 }
 
 impl<'a> DOMParserMethods for JSRef<'a, DOMParser> {
-    fn ParseFromString(&self,
+    fn ParseFromString(self,
                        _s: DOMString,
                        ty: DOMParserBinding::SupportedType)
                        -> Fallible<Temporary<Document>> {

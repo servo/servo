@@ -31,23 +31,23 @@ impl Navigator {
 }
 
 impl<'a> NavigatorMethods for JSRef<'a, Navigator> {
-    fn Product(&self) -> DOMString {
+    fn Product(self) -> DOMString {
         "Gecko".to_string()
     }
 
-    fn TaintEnabled(&self) -> bool {
+    fn TaintEnabled(self) -> bool {
         false
     }
 
-    fn AppName(&self) -> DOMString {
+    fn AppName(self) -> DOMString {
         "Netscape".to_string() // Like Gecko/Webkit
     }
 
-    fn AppCodeName(&self) -> DOMString {
+    fn AppCodeName(self) -> DOMString {
         "Mozilla".to_string()
     }
 
-    fn Platform(&self) -> DOMString {
+    fn Platform(self) -> DOMString {
         "".to_string()
     }
 }

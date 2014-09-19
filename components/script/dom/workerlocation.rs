@@ -37,11 +37,11 @@ impl WorkerLocation {
 }
 
 impl<'a> WorkerLocationMethods for JSRef<'a, WorkerLocation> {
-    fn Href(&self) -> DOMString {
+    fn Href(self) -> DOMString {
         self.url.serialize()
     }
 
-    fn Search(&self) -> DOMString {
+    fn Search(self) -> DOMString {
         match self.url.query {
             None => "".to_string(),
             Some(ref query) if query.as_slice() == "" => "".to_string(),
@@ -49,7 +49,7 @@ impl<'a> WorkerLocationMethods for JSRef<'a, WorkerLocation> {
         }
     }
 
-    fn Hash(&self) -> DOMString {
+    fn Hash(self) -> DOMString {
         match self.url.fragment {
             None => "".to_string(),
             Some(ref hash) if hash.as_slice() == "" => "".to_string(),
