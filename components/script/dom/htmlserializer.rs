@@ -10,7 +10,7 @@ use dom::bindings::js::JSRef;
 use dom::characterdata::CharacterData;
 use dom::comment::Comment;
 use dom::documenttype::DocumentType;
-use dom::element::Element;
+use dom::element::{Element, ElementHelpers};
 use dom::node::{Node, NodeIterator};
 use dom::node::{DoctypeNodeTypeId, DocumentFragmentNodeTypeId, CommentNodeTypeId};
 use dom::node::{DocumentNodeTypeId, ElementNodeTypeId, ProcessingInstructionNodeTypeId};
@@ -131,7 +131,7 @@ fn serialize_elem(elem: JSRef<Element>, open_elements: &mut Vec<String>, html: &
         _ => {}
     }
 
-    if !elem.deref().is_void() {
+    if !(elem.is_void()) {
         open_elements.push(elem.deref().local_name.as_slice().to_string());
     }
 }
