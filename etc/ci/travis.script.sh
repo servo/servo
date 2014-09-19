@@ -30,7 +30,7 @@ for t in "${tasks[@]}"; do
         test-wpt1)
             ./mach test-wpt --processes=2 --total-chunks=2 --this-chunk=1
             ;;
-        test-wpt1)
+        test-wpt2)
             ./mach test-wpt --processes=2 --total-chunks=2 --this-chunk=2
             ;;
         push-doc)
