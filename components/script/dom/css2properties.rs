@@ -10,6 +10,7 @@ use dom::bindings::global;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::cssstyledeclaration::CSSStyleDeclaration;
+use dom::htmlelement::HTMLElement;
 use dom::window::Window;
 use servo_util::str::DOMString;
 
@@ -37,15 +38,15 @@ macro_rules! css_setter(
 )
 
 impl CSS2Properties {
-    fn new_inherited() -> CSS2Properties {
+    fn new_inherited(owner: JSRef<HTMLElement>) -> CSS2Properties {
         CSS2Properties {
-            cssstyledeclaration: CSSStyleDeclaration::new_inherited(),
+            cssstyledeclaration: CSSStyleDeclaration::new_inherited(Some(owner)),
         }
     }
 
-    pub fn new(global: &JSRef<Window>) -> Temporary<CSS2Properties> {
-        reflect_dom_object(box CSS2Properties::new_inherited(),
-                           global::Window(*global),
+    pub fn new(global: JSRef<Window>, owner: JSRef<HTMLElement>) -> Temporary<CSS2Properties> {
+        reflect_dom_object(box CSS2Properties::new_inherited(owner),
+                           global::Window(global),
                            CSS2PropertiesBinding::Wrap)
     }
 }

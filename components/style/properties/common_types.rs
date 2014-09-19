@@ -13,6 +13,7 @@ pub type CSSFloat = f64;
 pub mod specified {
     use std::ascii::AsciiExt;
     use std::f64::consts::PI;
+    use std::fmt::{Formatter, FormatError, Show};
     use url::Url;
     use cssparser::ast;
     use cssparser::ast::*;
@@ -20,7 +21,7 @@ pub mod specified {
     use super::{Au, CSSFloat};
     pub use cssparser::Color as CSSColor;
 
-    #[deriving(Clone, Show)]
+    #[deriving(Clone)]
     pub enum Length {
         Au(Au),  // application units
         Em(CSSFloat),
@@ -39,6 +40,17 @@ pub mod specified {
 //        Vh(CSSFloat),
 //        Vmin(CSSFloat),
 //        Vmax(CSSFloat),
+    }
+    impl Show for Length {
+        fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
+            match self {
+                &Length::Au(length) => write!(f, "{}", length),
+                &Length::Em(length) => write!(f, "{}em", length),
+                &Length::Ex(length) => write!(f, "{}ex", length),
+                &Length::Rem(length) => write!(f, "{}rem", length),
+                &Length::ServoCharacterWidth(_) => panic!("internal CSS values should never be serialized"),
+            }
+        }
     }
     const AU_PER_PX: CSSFloat = 60.;
     const AU_PER_IN: CSSFloat = AU_PER_PX * 96.;
@@ -83,12 +95,19 @@ pub mod specified {
         }
     }
 
-    #[deriving(Clone, Show)]
+    #[deriving(Clone)]
     pub enum LengthOrPercentage {
         Length(Length),
         Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
     }
-
+    impl Show for LengthOrPercentage {
+        fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
+            match self {
+                &LengthOrPercentage::Length(length) => write!(f, "{}", length),
+                &LengthOrPercentage::Percentage(percentage) => write!(f, "{}%", percentage),
+            }
+        }
+    }
     impl LengthOrPercentage {
         fn parse_internal(input: &ComponentValue, negative_ok: bool)
                               -> Result<LengthOrPercentage, ()> {
@@ -120,6 +139,15 @@ pub mod specified {
         Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
         Auto,
     }
+    impl Show for LengthOrPercentageOrAuto {
+        fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
+            match self {
+                &LengthOrPercentageOrAuto::Length(length) => write!(f, "{}", length),
+                &LengthOrPercentageOrAuto::Percentage(percentage) => write!(f, "{}%", percentage),
+                &LengthOrPercentageOrAuto::Auto => write!(f, "auto"),
+            }
+        }
+    }
     impl LengthOrPercentageOrAuto {
         fn parse_internal(input: &ComponentValue, negative_ok: bool)
                      -> Result<LengthOrPercentageOrAuto, ()> {
@@ -150,6 +178,15 @@ pub mod specified {
         Length(Length),
         Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
         None,
+    }
+    impl Show for LengthOrPercentageOrNone {
+        fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
+            match self {
+                &LengthOrPercentageOrNone::Length(length) => write!(f, "{}", length),
+                &LengthOrPercentageOrNone::Percentage(percentage) => write!(f, "{}%", percentage),
+                &LengthOrPercentageOrNone::None => write!(f, "none"),
+            }
+        }
     }
     impl LengthOrPercentageOrNone {
         fn parse_internal(input: &ComponentValue, negative_ok: bool)
@@ -219,6 +256,13 @@ pub mod specified {
     #[deriving(Clone, PartialEq, PartialOrd)]
     pub struct Angle(pub CSSFloat);
 
+    impl Show for Angle {
+        fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
+            let Angle(value) = *self;
+            write!(f, "{}", value)
+        }
+    }
+
     impl Angle {
         pub fn radians(self) -> f64 {
             let Angle(radians) = self;
@@ -251,6 +295,15 @@ pub mod specified {
     pub enum Image {
         Url(Url),
         LinearGradient(LinearGradient),
+    }
+
+    impl Show for Image {
+        fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
+            match self {
+                &Image::Url(ref url) => write!(f, "url({})", url),
+                &Image::LinearGradient(ref grad) => write!(f, "linear-gradient({})", grad),
+            }
+        }
     }
 
     impl Image {
@@ -296,11 +349,30 @@ pub mod specified {
         pub stops: Vec<ColorStop>,
     }
 
+    impl Show for LinearGradient {
+        fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
+            let _ = write!(f, "{}", self.angle_or_corner);
+            for stop in self.stops.iter() {
+                let _ = write!(f, ", {}", stop);
+            }
+            Ok(())
+        }
+    }
+
     /// Specified values for an angle or a corner in a linear gradient.
     #[deriving(Clone, PartialEq)]
     pub enum AngleOrCorner {
         Angle(Angle),
         Corner(HorizontalDirection, VerticalDirection),
+    }
+
+    impl Show for AngleOrCorner {
+        fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
+            match self {
+                &AngleOrCorner::Angle(angle) => write!(f, "{}", angle),
+                &AngleOrCorner::Corner(horiz, vert) => write!(f, "to {} {}", horiz, vert),
+            }
+        }
     }
 
     /// Specified values for one color stop in a linear gradient.
@@ -314,16 +386,44 @@ pub mod specified {
         pub position: Option<LengthOrPercentage>,
     }
 
+    impl Show for ColorStop {
+        fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
+            let _ = write!(f, "{}", self.color);
+            self.position.map(|pos| {
+                let _ = write!(f, " {}", pos);
+            });
+            Ok(())
+        }
+    }
+
     #[deriving(Clone, PartialEq)]
     pub enum HorizontalDirection {
         Left,
         Right,
     }
 
+    impl Show for HorizontalDirection {
+        fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
+            match self {
+                &HorizontalDirection::Left => write!(f, "left"),
+                &HorizontalDirection::Right => write!(f, "right"),
+            }
+        }
+    }
+
     #[deriving(Clone, PartialEq)]
     pub enum VerticalDirection {
         Top,
         Bottom,
+    }
+
+    impl Show for VerticalDirection {
+        fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
+            match self {
+                &VerticalDirection::Top => write!(f, "top"),
+                &VerticalDirection::Bottom => write!(f, "bottom"),
+            }
+        }
     }
 
     fn parse_color_stop(source: ParserIter) -> Result<ColorStop,()> {
@@ -466,6 +566,7 @@ pub mod computed {
     pub use super::super::longhands::computed_as_specified as compute_CSSColor;
     use super::*;
     use super::super::longhands;
+    use std::fmt;
     use url::Url;
 
     pub struct Context {
@@ -518,10 +619,18 @@ pub mod computed {
         }
     }
 
-    #[deriving(PartialEq, Clone, Show)]
+    #[deriving(PartialEq, Clone)]
     pub enum LengthOrPercentage {
         Length(Au),
         Percentage(CSSFloat),
+    }
+    impl fmt::Show for LengthOrPercentage {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            match self {
+                &LengthOrPercentage::Length(length) => write!(f, "{}", length),
+                &LengthOrPercentage::Percentage(percentage) => write!(f, "{}%", percentage),
+            }
+        }
     }
 
     #[allow(non_snake_case)]
@@ -535,7 +644,7 @@ pub mod computed {
         }
     }
 
-    #[deriving(PartialEq, Clone, Show)]
+    #[deriving(PartialEq, Clone)]
     pub enum LengthOrPercentageOrAuto {
         Length(Au),
         Percentage(CSSFloat),
@@ -554,7 +663,7 @@ pub mod computed {
         }
     }
 
-    #[deriving(PartialEq, Clone, Show)]
+    #[deriving(PartialEq, Clone)]
     pub enum LengthOrPercentageOrNone {
         Length(Au),
         Percentage(CSSFloat),

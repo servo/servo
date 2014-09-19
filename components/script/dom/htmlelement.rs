@@ -73,8 +73,8 @@ impl<'a> PrivateHTMLElementHelpers for JSRef<'a, HTMLElement> {
 impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
     fn Style(self) -> Temporary<CSSStyleDeclaration> {
         if self.style_decl.get().is_none() {
-            let global = window_from_node(self);
-            let style_props = CSS2Properties::new(&*global.root()).root();
+            let global = window_from_node(self).root();
+            let style_props = CSS2Properties::new(*global, self).root();
             let style_decl: JSRef<CSSStyleDeclaration> = CSSStyleDeclarationCast::from_ref(*style_props);
             self.style_decl.assign(Some(style_decl));
         }
