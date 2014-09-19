@@ -45,9 +45,9 @@ use dom::text::Text;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use dom::window::Window;
 use geom::rect::Rect;
-use html::hubbub_html_parser::build_element_from_tag;
+use parse::html::build_element_from_tag;
 use layout_interface::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC,
-                       LayoutChan, ReapLayoutDataMsg, TrustedNodeAddress, UntrustedNodeAddress};
+                       LayoutChan, ReapLayoutDataMsg, UntrustedNodeAddress};
 use devtools_traits::NodeInfo;
 use servo_util::geometry::Au;
 use servo_util::str::{DOMString, null_str_as_empty};
@@ -56,7 +56,7 @@ use style::{parse_selector_list_from_str, matches};
 use js::jsapi::{JSContext, JSObject, JSTracer, JSRuntime};
 use js::jsfriendapi;
 use libc;
-use libc::uintptr_t;
+use libc::{uintptr_t, c_void};
 use std::cell::{RefCell, Ref, RefMut};
 use std::default::Default;
 use std::iter::{Map, Filter};
@@ -65,6 +65,7 @@ use style;
 use style::ComputedValues;
 use sync::Arc;
 use uuid;
+use string_cache::QualName;
 
 //
 // The basic Node structure
@@ -1381,8 +1382,9 @@ impl Node {
             ElementNodeTypeId(..) => {
                 let element: JSRef<Element> = ElementCast::to_ref(node).unwrap();
                 let element = element.deref();
-                let element = build_element_from_tag(element.local_name.as_slice().to_string(),
-                    element.namespace.clone(), *document);
+                let element = build_element_from_tag(QualName {
+                    ns: element.namespace.clone(),
+                    local: element.local_name.clone()}, *document);
                 NodeCast::from_temporary(element)
             },
             TextNodeTypeId => {
@@ -2017,6 +2019,23 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 impl Reflectable for Node {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.eventtarget.reflector()
+    }
+}
+
+/// The address of a node known to be valid. These are sent from script to layout,
+/// and are also used in the HTML parser interface.
+
+#[allow(raw_pointer_deriving)]
+#[deriving(Clone, PartialEq, Eq)]
+pub struct TrustedNodeAddress(pub *const c_void);
+
+impl JSTraceable for TrustedNodeAddress {
+    fn trace(&self, s: *mut JSTracer) {
+        let TrustedNodeAddress(addr) = *self;
+        let node = addr as *const Node;
+        unsafe {
+            JS::from_raw(node).trace(s)
+        }
     }
 }
 

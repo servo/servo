@@ -52,13 +52,12 @@ use dom::range::Range;
 use dom::treewalker::TreeWalker;
 use dom::uievent::UIEvent;
 use dom::window::{Window, WindowHelpers};
-use html::hubbub_html_parser::build_element_from_tag;
-use hubbub::hubbub::{QuirksMode, NoQuirks, LimitedQuirks, FullQuirks};
+use parse::html::build_element_from_tag;
 use layout_interface::{DocumentDamageLevel, ContentChangedDocumentDamage};
 use servo_util::namespace;
 use servo_util::str::{DOMString, split_html_space_chars};
 
-use string_cache::Atom;
+use string_cache::{Atom, QualName};
 use url::Url;
 
 use std::collections::hashmap::HashMap;
@@ -66,6 +65,7 @@ use std::ascii::StrAsciiExt;
 use std::cell::{Cell, RefCell};
 use std::default::Default;
 use time;
+use html5ever::tree_builder::{QuirksMode, NoQuirks, LimitedQuirks, Quirks};
 
 #[deriving(PartialEq)]
 #[jstraceable]
@@ -420,7 +420,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     fn CompatMode(self) -> DOMString {
         match self.quirks_mode.get() {
             LimitedQuirks | NoQuirks => "CSS1Compat".to_string(),
-            FullQuirks => "BackCompat".to_string()
+            Quirks => "BackCompat".to_string()
         }
     }
 
@@ -486,7 +486,8 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             return Err(InvalidCharacter);
         }
         let local_name = local_name.as_slice().to_ascii_lower();
-        Ok(build_element_from_tag(local_name, ns!(HTML), self))
+        let name = QualName::new(ns!(HTML), Atom::from_slice(local_name.as_slice()));
+        Ok(build_element_from_tag(name, self))
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createelementns
@@ -530,7 +531,9 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         }
 
         if ns == ns!(HTML) {
-            Ok(build_element_from_tag(local_name_from_qname.to_string(), ns, self))
+            let name = QualName::new(ns!(HTML),
+                Atom::from_slice(local_name_from_qname.as_slice()));
+            Ok(build_element_from_tag(name, self))
         } else {
             Ok(Element::new(local_name_from_qname.to_string(), ns,
                             prefix_from_qname.map(|s| s.to_string()), self))
