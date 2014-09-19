@@ -44,9 +44,9 @@ use dom::text::Text;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use dom::window::Window;
 use geom::rect::Rect;
-use html::hubbub_html_parser::build_element_from_tag;
+use parse::html::build_element_from_tag;
 use layout_interface::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC,
-                       LayoutChan, ReapLayoutDataMsg, TrustedNodeAddress};
+                       LayoutChan, ReapLayoutDataMsg};
 use devtools_traits::NodeInfo;
 use script_traits::UntrustedNodeAddress;
 use servo_util::geometry::Au;
@@ -56,7 +56,7 @@ use style::{parse_selector_list_from_str, matches};
 use js::jsapi::{JSContext, JSObject, JSTracer, JSRuntime};
 use js::jsfriendapi;
 use libc;
-use libc::uintptr_t;
+use libc::{uintptr_t, c_void};
 use std::cell::{Cell, RefCell, Ref, RefMut};
 use std::default::Default;
 use std::iter::{Map, Filter};
@@ -65,6 +65,7 @@ use style;
 use style::ComputedValues;
 use sync::Arc;
 use uuid;
+use string_cache::QualName;
 
 //
 // The basic Node structure
@@ -1530,8 +1531,12 @@ impl Node {
             },
             ElementNodeTypeId(..) => {
                 let element: JSRef<Element> = ElementCast::to_ref(node).unwrap();
-                let element = build_element_from_tag(element.local_name().as_slice().to_string(),
-                    element.namespace().clone(), Some(element.prefix().as_slice().to_string()), *document);
+                let name = QualName {
+                    ns: element.namespace().clone(),
+                    local: element.local_name().clone()
+                };
+                let element = build_element_from_tag(name,
+                    Some(element.prefix().as_slice().to_string()), *document);
                 NodeCast::from_temporary(element)
             },
             TextNodeTypeId => {
@@ -2158,6 +2163,13 @@ impl Reflectable for Node {
         self.eventtarget.reflector()
     }
 }
+
+/// The address of a node known to be valid. These are sent from script to layout,
+/// and are also used in the HTML parser interface.
+
+#[allow(raw_pointer_deriving)]
+#[deriving(Clone, PartialEq, Eq)]
+pub struct TrustedNodeAddress(pub *const c_void);
 
 pub fn document_from_node<T: NodeBase+Reflectable>(derived: JSRef<T>) -> Temporary<Document> {
     let node: JSRef<Node> = NodeCast::from_ref(derived);
