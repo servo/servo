@@ -9,6 +9,7 @@
 use context::LayoutContext;
 use flow::{BaseFlow, TableColGroupFlowClass, FlowClass, Flow};
 use fragment::{Fragment, TableColumnFragment};
+use layout_debug;
 use model::{MaybeAuto};
 use wrapper::ThreadSafeLayoutNode;
 
@@ -53,6 +54,9 @@ impl Flow for TableColGroupFlow {
     }
 
     fn bubble_inline_sizes(&mut self, _: &LayoutContext) {
+        let _scope = layout_debug_scope!("table_colgroup::bubble_inline_sizes {:s}",
+                                            self.base.debug_id());
+
         for fragment in self.cols.iter() {
             // get the specified value from inline-size property
             let inline_size = MaybeAuto::from_style(fragment.style().content_inline_size(),
