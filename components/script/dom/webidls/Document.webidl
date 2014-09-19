@@ -45,6 +45,12 @@ interface Document : Node {
   Event createEvent(DOMString interface_);
 
   Range createRange();
+
+  // NodeFilter.SHOW_ALL = 0xFFFFFFFF
+  // [NewObject]
+  // NodeIterator createNodeIterator(Node root, optional unsigned long whatToShow = 0xFFFFFFFF, optional NodeFilter? filter = null);
+  [NewObject]
+  TreeWalker createTreeWalker(Node root, optional unsigned long whatToShow = 0xFFFFFFFF, optional NodeFilter? filter = null);
 };
 
 /* http://www.whatwg.org/specs/web-apps/current-work/#the-document-object */
