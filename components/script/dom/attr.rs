@@ -157,6 +157,7 @@ pub trait AttrHelpers {
 impl<'a> AttrHelpers for JSRef<'a, Attr> {
     fn set_value(&self, set_type: AttrSettingType, value: AttrValue) {
         let owner = self.owner.root();
+        owner.init();
         let node: &JSRef<Node> = NodeCast::from_ref(&*owner);
         let namespace_is_null = self.namespace == namespace::Null;
 

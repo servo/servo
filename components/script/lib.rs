@@ -5,7 +5,7 @@
 #![comment = "The Servo Parallel Browser Project"]
 #![license = "MPL"]
 
-#![feature(globs, macro_rules, struct_variant, phase, unsafe_destructor)]
+#![feature(globs, macro_rules, struct_variant, phase, unsafe_destructor, default_type_params)]
 
 #![deny(unused_imports, unused_variable)]
 #![allow(non_snake_case_functions)]
@@ -54,8 +54,10 @@ pub mod dom {
         pub mod callback;
         pub mod error;
         pub mod conversions;
+        pub mod init;
         mod proxyhandler;
         pub mod str;
+        pub mod refcounted;
         pub mod trace;
 
         /// Generated JS-Rust bindings.
@@ -208,3 +210,18 @@ pub mod html {
 pub mod layout_interface;
 pub mod page;
 pub mod script_task;
+
+pub fn init() {
+    unsafe {
+        js::jsfriendapi::PR_GetCurrentThread();
+        js::jsapi::JS_Init();
+    }
+    self::dom::bindings::init::global_init();
+}
+
+pub fn shutdown() {
+    // Not strictly necessary, and hard to synchronize with native script tasks
+    /*unsafe {
+        js::jsapi::JS_ShutDown();
+    }*/
+}

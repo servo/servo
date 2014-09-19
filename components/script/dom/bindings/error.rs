@@ -6,11 +6,12 @@
 
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::global::GlobalRef;
+use dom::bindings::js::RootableValue;
 use dom::domexception::DOMException;
 
-use js::jsapi::{JSContext, JSBool, JSObject};
+use js::jsapi::{JSContext, JSObject};
 use js::jsapi::{JS_IsExceptionPending, JS_SetPendingException, JS_ReportPendingException};
-use js::jsapi::{JS_ReportErrorNumber, JSErrorFormatString, JSEXN_TYPEERR};
+use js::jsapi::{JS_ReportErrorNumber, JSErrorFormatString, Struct_JSErrorFormatString, JSEXN_TYPEERR};
 use js::jsapi::{JS_SaveFrameChain, JS_RestoreFrameChain};
 use js::glue::{ReportError};
 use js::rust::with_compartment;
@@ -47,23 +48,23 @@ pub type ErrorResult = Fallible<()>;
 /// Set a pending DOM exception for the given `result` on `cx`.
 pub fn throw_dom_exception(cx: *mut JSContext, global: &GlobalRef,
                            result: Error) {
-    assert!(unsafe { JS_IsExceptionPending(cx) } == 0);
+    assert!(unsafe { !JS_IsExceptionPending(cx) });
     let exception = DOMException::new_from_error(global, result).root();
-    let thrown = exception.to_jsval(cx);
+    let thrown = exception.to_jsval(cx).root_value();
     unsafe {
-        JS_SetPendingException(cx, thrown);
+        JS_SetPendingException(cx, thrown.handle_());
     }
 }
 
 /// Report a pending exception, thereby clearing it.
 pub fn report_pending_exception(cx: *mut JSContext, obj: *mut JSObject) {
     unsafe {
-        if JS_IsExceptionPending(cx) != 0 {
+        if JS_IsExceptionPending(cx) {
             let saved = JS_SaveFrameChain(cx);
             with_compartment(cx, obj, || {
                 JS_ReportPendingException(cx);
             });
-            if saved != 0 {
+            if saved {
                 JS_RestoreFrameChain(cx);
             }
         }
@@ -72,13 +73,13 @@ pub fn report_pending_exception(cx: *mut JSContext, obj: *mut JSObject) {
 
 /// Throw an exception to signal that a `JSVal` can not be converted to any of
 /// the types in an IDL union type.
-pub fn throw_not_in_union(cx: *mut JSContext, names: &'static str) -> JSBool {
-    assert!(unsafe { JS_IsExceptionPending(cx) } == 0);
+pub fn throw_not_in_union(cx: *mut JSContext, names: &'static str) -> bool {
+    assert!(unsafe { !JS_IsExceptionPending(cx) });
     let message = format!("argument could not be converted to any of: {}", names);
     message.with_c_str(|string| {
         unsafe { ReportError(cx, string) };
     });
-    return 0;
+    return false;
 }
 
 /// Format string used to throw `TypeError`s.
@@ -89,8 +90,7 @@ static ERROR_FORMAT_STRING_STRING: [libc::c_char, ..4] = [
     0 as libc::c_char,
 ];
 
-/// Format string struct used to throw `TypeError`s.
-static ERROR_FORMAT_STRING: JSErrorFormatString = JSErrorFormatString {
+static ERROR_FORMAT_STRING: JSErrorFormatString = Struct_JSErrorFormatString {
     format: &ERROR_FORMAT_STRING_STRING as *const libc::c_char,
     argCount: 1,
     exnType: JSEXN_TYPEERR as i16,

@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::error::{Fallible, InvalidState, report_pending_exception};
-use dom::bindings::js::JSRef;
+use dom::bindings::js::{JSRef, RootablePointer};
 use dom::bindings::trace::Traceable;
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::event::Event;
@@ -16,14 +16,16 @@ use dom::node::NodeTypeId;
 use dom::workerglobalscope::WorkerGlobalScopeId;
 use dom::xmlhttprequest::XMLHttpRequestId;
 use dom::virtualmethods::VirtualMethods;
-use js::jsapi::{JS_CompileUCFunction, JS_GetFunctionObject, JS_CloneFunctionObject};
-use js::jsapi::{JSContext, JSObject};
 use servo_util::str::DOMString;
-use libc::{c_char, size_t};
-use std::cell::RefCell;
-use std::ptr;
+
+use js::glue::CompileEventHandler;
+use js::jsapi::{JS_CloneFunctionObject};
+use js::jsapi::{JSContext, JSObject};
+use js::rust::{JSAutoRequest, JSAutoCompartment};
 use url::Url;
 
+use libc::{c_char, size_t};
+use std::cell::RefCell;
 use std::collections::hashmap::HashMap;
 
 #[deriving(PartialEq,Encodable)]
@@ -173,6 +175,8 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
                                     scope: *mut JSObject,
                                     ty: &str,
                                     source: DOMString) {
+        let scope = scope.root_ptr();
+        scope.init();
         let url = url.serialize().to_c_str();
         let name = ty.to_c_str();
         let lineno = 0; //XXXjdm need to get a real number here
@@ -183,24 +187,27 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
         static arg_names: [*const c_char, ..1] = [&arg_name as *const c_char];
 
         let source: Vec<u16> = source.as_slice().utf16_units().collect();
+
+        let _ar = JSAutoRequest::new(cx);
+        let _ac = JSAutoCompartment::new(cx, *scope.raw());
         let handler = unsafe {
-                JS_CompileUCFunction(cx,
-                                     ptr::mut_null(),
-                                     name.as_ptr(),
-                                     nargs,
-                                     &arg_names as *const *const i8 as *mut *const i8,
-                                     source.as_ptr(),
-                                     source.len() as size_t,
-                                     url.as_ptr(),
-                                     lineno)
+            CompileEventHandler(cx,
+                                name.as_ptr(),
+                                nargs,
+                                arg_names.as_ptr(),
+                                source.as_ptr(),
+                                source.len() as size_t,
+                                url.as_ptr(),
+                                lineno).root_ptr()
         };
-        if handler.is_null() {
+        handler.init();
+        if handler.raw().is_null() {
             report_pending_exception(cx, self.reflector().get_jsobject());
             return;
         }
 
         let funobj = unsafe {
-            JS_CloneFunctionObject(cx, JS_GetFunctionObject(handler), scope)
+            JS_CloneFunctionObject(cx, handler.handle(), scope.handle())
         };
         assert!(funobj.is_not_null());
         self.set_event_handler_common(ty, Some(EventHandlerNonNull::new(funobj)));

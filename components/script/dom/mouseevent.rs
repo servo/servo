@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use dom::bindings::codegen::InheritTypes::{UIEventCast, MouseEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::{GlobalRef, Window};
-use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, OptionalSettable};
+use dom::bindings::js::{MutNullableJS, JSRef, RootedReference, Temporary, OptionalSettable};
 use dom::bindings::trace::Traceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{Event, MouseEventTypeId};
@@ -17,6 +17,7 @@ use dom::uievent::UIEvent;
 use dom::window::Window;
 use servo_util::str::DOMString;
 use std::cell::Cell;
+use std::default::Default;
 
 #[deriving(Encodable)]
 #[must_root]
@@ -31,7 +32,7 @@ pub struct MouseEvent {
     pub alt_key: Traceable<Cell<bool>>,
     pub meta_key: Traceable<Cell<bool>>,
     pub button: Traceable<Cell<i16>>,
-    pub related_target: Cell<Option<JS<EventTarget>>>
+    pub related_target: MutNullableJS<EventTarget>
 }
 
 impl MouseEventDerived for Event {
@@ -53,7 +54,7 @@ impl MouseEvent {
             alt_key: Traceable::new(Cell::new(false)),
             meta_key: Traceable::new(Cell::new(false)),
             button: Traceable::new(Cell::new(0)),
-            related_target: Cell::new(None)
+            related_target: Default::default(),
         }
     }
 
@@ -141,7 +142,7 @@ impl<'a> MouseEventMethods for JSRef<'a, MouseEvent> {
     }
 
     fn GetRelatedTarget(&self) -> Option<Temporary<EventTarget>> {
-        self.related_target.get().clone().map(|target| Temporary::new(target))
+        self.related_target.get()
     }
 
     fn InitMouseEvent(&self,

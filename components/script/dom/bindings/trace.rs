@@ -26,16 +26,18 @@
 //! 7. `trace_object()` calls `JS_CallTracer()` to notify the GC, which will
 //!    add the object to the graph, and will trace that object as well.
 
-use dom::bindings::js::JS;
+use dom::bindings::js::{MutNullableJS, JS};
 use dom::bindings::utils::{Reflectable, Reflector};
+use dom::eventtarget::EventTarget;
 
-use js::jsapi::{JSObject, JSTracer, JS_CallTracer, JSTRACE_OBJECT};
+use js::jsapi::{JSObject, JSTracer, JS_CallValueTracer, JS_CallObjectTracer};
 use js::jsval::JSVal;
 
-use libc;
+use std::collections::HashSet;
 use std::mem;
 use std::cell::{Cell, RefCell};
 use serialize::{Encodable, Encoder};
+use libc;
 
 // IMPORTANT: We rely on the fact that we never attempt to encode DOM objects using
 //            any encoder but JSTracer. Since we derive trace hooks automatically,
@@ -55,6 +57,12 @@ impl<T: Reflectable+Encodable<S, E>, S: Encoder<E>, E> Encodable<S, E> for JS<T>
     }
 }
 
+impl<T: Reflectable+Encodable<S, E>, S: Encoder<E>, E> Encodable<S, E> for MutNullableJS<T> {
+    fn encode(&self, s: &mut S) -> Result<(), E> {
+        unsafe { self.get_inner() }.map(|inner| inner.encode(s)).unwrap_or(Ok(()))
+    }
+}
+
 impl<S: Encoder<E>, E> Encodable<S, E> for Reflector {
     fn encode(&self, _s: &mut S) -> Result<(), E> {
         Ok(())
@@ -67,19 +75,18 @@ pub trait JSTraceable {
 }
 
 /// Trace a `JSVal`.
-pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: JSVal) {
-    if !val.is_markable() {
+pub fn trace_jsval(tracer: *mut JSTracer, description: &str, orig_val: JSVal) {
+    if !orig_val.is_markable() {
         return;
     }
 
+    debug!("tracing value {:s}", description);
+    let name = description.to_c_str();
+    let mut val = orig_val;
     unsafe {
-        let name = description.to_c_str();
-        (*tracer).debugPrinter = None;
-        (*tracer).debugPrintIndex = -1;
-        (*tracer).debugPrintArg = name.as_ptr() as *const libc::c_void;
-        debug!("tracing value {:s}", description);
-        JS_CallTracer(tracer, val.to_gcthing(), val.trace_kind());
+        JS_CallValueTracer(tracer, &mut val, name.as_ptr());
     }
+    assert!(val == orig_val);
 }
 
 /// Trace the `JSObject` held by `reflector`.
@@ -89,15 +96,20 @@ pub fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Ref
 }
 
 /// Trace a `JSObject`.
-pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: *mut JSObject) {
+pub fn trace_object(tracer: *mut JSTracer, description: &str, orig_obj: *mut JSObject) {
+    debug!("tracing {:s}", description);
+    let name = description.to_c_str();
+    let mut obj = orig_obj;
     unsafe {
-        let name = description.to_c_str();
-        (*tracer).debugPrinter = None;
-        (*tracer).debugPrintIndex = -1;
-        (*tracer).debugPrintArg = name.as_ptr() as *const libc::c_void;
-        debug!("tracing {:s}", description);
-        JS_CallTracer(tracer, obj as *mut libc::c_void, JSTRACE_OBJECT);
+        JS_CallObjectTracer(tracer, &mut obj, name.as_ptr());
     }
+    // FIXME: JS_CallObjectTracer could theoretically do something that can
+    //        cause pointers to shuffle around. We need to pass a *mut *mut JSObject
+    //        to JS_CallObjectTracer, but the Encodable trait doesn't allow us
+    //        to obtain a mutable reference to self (and thereby self.cb);
+    //        All we can do right now is scream loudly if this actually causes
+    //        a problem in practice.
+    assert!(obj == orig_obj);
 }
 
 /// Encapsulates a type that cannot easily have `Encodable` derived automagically,
@@ -182,5 +194,65 @@ impl<S: Encoder<E>, E> Encodable<S, E> for Traceable<JSVal> {
     fn encode(&self, s: &mut S) -> Result<(), E> {
         trace_jsval(get_jstracer(s), "val", **self);
         Ok(())
+    }
+}
+
+pub struct RootedVec<T> {
+    v: Vec<JS<T>>
+}
+
+local_data_key!(pub RootedCollections: RefCell<HashSet<*const RootedVec<()>>>)
+
+#[unsafe_destructor]
+impl<T> Drop for RootedVec<T> {
+    fn drop(&mut self) {
+        let collections = RootedCollections.get();
+        let mut collections = collections.get_ref().borrow_mut();
+        assert!(collections.remove(&(self as *mut RootedVec<T> as *const RootedVec<()>)));
+    }
+}
+
+impl<T: Reflectable> RootedVec<T> {
+    pub fn new() -> RootedVec<T> {
+        RootedVec {
+            v: vec!()
+        }
+    }
+
+    pub fn init(&self) {
+        let collections = RootedCollections.get();
+        let mut collections = collections.get_ref().borrow_mut();
+        collections.insert(self as *const RootedVec<T> as *const RootedVec<()>);
+    }
+}
+
+impl<T: Reflectable> Deref<Vec<JS<T>>> for RootedVec<T> {
+    fn deref<'a>(&'a self) -> &'a Vec<JS<T>> {
+        &self.v
+    }
+}
+
+impl<T: Reflectable> DerefMut<Vec<JS<T>>> for RootedVec<T> {
+    fn deref_mut<'a>(&'a mut self) -> &'a mut Vec<JS<T>> {
+        &mut self.v
+    }
+}
+
+impl<T: Reflectable+Encodable<S, E>, S: Encoder<E>, E> Encodable<S, E> for RootedVec<T> {
+    fn encode(&self, s: &mut S) -> Result<(), E> {
+        for item in self.v.iter() {
+            let _ = item.encode(s);
+        }
+        Ok(())
+    }
+}
+
+pub extern fn trace_collections(tracer: *mut JSTracer, data: *mut libc::c_void) {
+    let collections = data as *const RefCell<HashSet<*const RootedVec<EventTarget>>>; //XXXjdm
+    let collections = unsafe { (*collections).borrow() };
+    for collection in collections.iter() {
+        unsafe {
+            let _ = (**collection).encode(&mut *tracer);
+        }
     }
 }
