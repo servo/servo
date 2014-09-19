@@ -13,8 +13,8 @@ use geom::SideOffsets2D;
 use style::computed_values::{LPA_Auto, LPA_Length, LPA_Percentage, LP_Length, LP_Percentage};
 use style::ComputedValues;
 use servo_util::geometry::Au;
-use servo_util::geometry;
 use servo_util::logical_geometry::LogicalMargin;
+use std::cmp::{max, min};
 use std::fmt;
 
 /// A collapsible margin. See CSS 2.1 § 8.3.1.
@@ -50,8 +50,8 @@ impl AdjoiningMargins {
     }
 
     pub fn union(&mut self, other: AdjoiningMargins) {
-        self.most_positive = geometry::max(self.most_positive, other.most_positive);
-        self.most_negative = geometry::min(self.most_negative, other.most_negative)
+        self.most_positive = max(self.most_positive, other.most_positive);
+        self.most_negative = min(self.most_negative, other.most_negative)
     }
 
     pub fn collapse(&self) -> Au {

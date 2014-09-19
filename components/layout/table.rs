@@ -17,8 +17,8 @@ use table_wrapper::{TableLayout, FixedLayout, AutoLayout};
 use wrapper::ThreadSafeLayoutNode;
 
 use servo_util::geometry::Au;
-use servo_util::geometry;
 use servo_util::logical_geometry::LogicalRect;
+use std::cmp::max;
 use std::fmt;
 use style::computed_values::table_layout;
 
@@ -233,7 +233,7 @@ impl Flow for TableFlow {
         let fragment_intrinsic_inline_sizes = self.block_flow.fragment.intrinsic_inline_sizes();
         self.block_flow.base.intrinsic_inline_sizes.minimum_inline_size = min_inline_size;
         self.block_flow.base.intrinsic_inline_sizes.preferred_inline_size =
-            geometry::max(min_inline_size, pref_inline_size);
+            max(min_inline_size, pref_inline_size);
         self.block_flow.base.intrinsic_inline_sizes.surround_inline_size =
             fragment_intrinsic_inline_sizes.surround_inline_size;
     }

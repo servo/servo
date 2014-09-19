@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use servo_util::geometry::{Au, max, min};
+use servo_util::geometry::Au;
 use servo_util::logical_geometry::WritingMode;
 use servo_util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize};
+use std::cmp::{max, min};
 use std::i32;
 use std::fmt;
 use style::computed_values::float;

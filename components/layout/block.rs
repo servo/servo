@@ -38,9 +38,9 @@ use gfx::display_list::{RootOfStackingContextLevel};
 use gfx::render_task::RenderLayer;
 use servo_msg::compositor_msg::{FixedPosition, LayerId, Scrollable};
 use servo_util::geometry::Au;
-use servo_util::geometry;
 use servo_util::logical_geometry::WritingMode;
 use servo_util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize};
+use std::cmp::{max, min};
 use std::fmt;
 use std::mem;
 use style::computed_values::{LPA_Auto, LPA_Length, LPA_Percentage, LPN_Length, LPN_None};
@@ -723,8 +723,8 @@ impl BlockFlow {
     /// This is where we use the preferred inline-sizes and minimum inline-sizes
     /// calculated in the bubble-inline-sizes traversal.
     fn get_shrink_to_fit_inline_size(&self, available_inline_size: Au) -> Au {
-        geometry::min(self.base.intrinsic_inline_sizes.preferred_inline_size,
-                      geometry::max(self.base.intrinsic_inline_sizes.minimum_inline_size, available_inline_size))
+        min(self.base.intrinsic_inline_sizes.preferred_inline_size,
+                      max(self.base.intrinsic_inline_sizes.minimum_inline_size, available_inline_size))
     }
 
     /// Collect and update static y-offsets bubbled up by kids.
@@ -1090,7 +1090,7 @@ impl BlockFlow {
 
         // Intrinsic height should include floating descendants with a margin
         // below the element's bottom edge (see CSS Section 10.6.7).
-        let content_block_size = geometry::max(
+        let content_block_size = max(
             cur_b - block_start_offset,
             floats.clearance(ClearBoth));
 
@@ -1509,13 +1509,13 @@ impl Flow for BlockFlow {
 
             if !fixed_width {
                 intrinsic_inline_sizes.minimum_inline_size =
-                    geometry::max(intrinsic_inline_sizes.minimum_inline_size,
+                    max(intrinsic_inline_sizes.minimum_inline_size,
                                   child_base.intrinsic_inline_sizes.total_minimum_inline_size());
 
                 match float_kind {
                     float::none => {
                         intrinsic_inline_sizes.preferred_inline_size =
-                            geometry::max(intrinsic_inline_sizes.preferred_inline_size,
+                            max(intrinsic_inline_sizes.preferred_inline_size,
                                   child_base.intrinsic_inline_sizes.total_preferred_inline_size());
                     }
                     float::left => {
@@ -1533,13 +1533,13 @@ impl Flow for BlockFlow {
         }
 
         intrinsic_inline_sizes.preferred_inline_size =
-            geometry::max(intrinsic_inline_sizes.preferred_inline_size,
+            max(intrinsic_inline_sizes.preferred_inline_size,
                           left_float_width + right_float_width);
 
         let fragment_intrinsic_inline_sizes = self.fragment.intrinsic_inline_sizes();
-        intrinsic_inline_sizes.minimum_inline_size = geometry::max(intrinsic_inline_sizes.minimum_inline_size,
+        intrinsic_inline_sizes.minimum_inline_size = max(intrinsic_inline_sizes.minimum_inline_size,
                                                        fragment_intrinsic_inline_sizes.minimum_inline_size);
-        intrinsic_inline_sizes.preferred_inline_size = geometry::max(intrinsic_inline_sizes.preferred_inline_size,
+        intrinsic_inline_sizes.preferred_inline_size = max(intrinsic_inline_sizes.preferred_inline_size,
                                                          fragment_intrinsic_inline_sizes.preferred_inline_size);
         intrinsic_inline_sizes.surround_inline_size = fragment_intrinsic_inline_sizes.surround_inline_size;
         self.base.intrinsic_inline_sizes = intrinsic_inline_sizes;

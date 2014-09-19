@@ -17,7 +17,7 @@ use table::{InternalTable, TableFlow};
 use wrapper::ThreadSafeLayoutNode;
 
 use servo_util::geometry::Au;
-use servo_util::geometry;
+use std::cmp::max;
 use std::fmt;
 
 /// A table formatting context.
@@ -169,8 +169,8 @@ impl Flow for TableRowGroupFlow {
         }
 
         self.block_flow.base.intrinsic_inline_sizes.minimum_inline_size = min_inline_size;
-        self.block_flow.base.intrinsic_inline_sizes.preferred_inline_size = geometry::max(min_inline_size,
-                                                                              pref_inline_size);
+        self.block_flow.base.intrinsic_inline_sizes.preferred_inline_size = max(
+            min_inline_size, pref_inline_size);
     }
 
     /// Recursively (top-down) determines the actual inline-size of child contexts and fragments. When

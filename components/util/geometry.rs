@@ -134,10 +134,6 @@ impl Neg<Au> for Au {
     }
 }
 
-#[inline]
-pub fn min(x: Au, y: Au) -> Au { if x < y { x } else { y } }
-#[inline]
-pub fn max(x: Au, y: Au) -> Au { if x > y { x } else { y } }
 
 impl NumCast for Au {
     #[inline]
