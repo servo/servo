@@ -1779,7 +1779,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                 } else {
                     match prev_text {
                         Some(ref mut text_node) => {
-                            let prev_characterdata: &mut JSRef<CharacterData> = CharacterDataCast::to_mut_ref(text_node).unwrap();
+                            let prev_characterdata: &JSRef<CharacterData> = CharacterDataCast::to_ref(text_node).unwrap();
                             let _ = prev_characterdata.AppendData(characterdata.Data());
                             self.remove_child(&child);
                         },
