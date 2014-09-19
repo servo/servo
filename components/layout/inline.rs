@@ -499,7 +499,7 @@ impl LineBreaker {
                 debug!("LineBreaker: Deferring the fragment to the inline_end of the new-line \
                        character to the line.");
                 let mut inline_end = split_fragment(inline_end);
-                inline_end.new_line_pos = in_fragment.new_line_pos.clone();
+                inline_end.new_line_pos.remove(0);
                 self.work_list.push_front(inline_end);
             }
             false
