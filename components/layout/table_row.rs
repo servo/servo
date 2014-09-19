@@ -18,7 +18,7 @@ use model::{MaybeAuto, Specified, Auto};
 use wrapper::ThreadSafeLayoutNode;
 
 use servo_util::geometry::Au;
-use servo_util::geometry;
+use std::cmp::max;
 use std::fmt;
 
 /// A table formatting context.
@@ -91,19 +91,19 @@ impl TableRowFlow {
                 let child_specified_block_size = MaybeAuto::from_style(child_fragment.style().content_block_size(),
                                                                    Au::new(0)).specified_or_zero();
                 max_y =
-                    geometry::max(max_y,
+                    max(max_y,
                                   child_specified_block_size + child_fragment.border_padding.block_start_end());
             }
             let child_node = flow::mut_base(kid);
             child_node.position.start.b = cur_y;
-            max_y = geometry::max(max_y, child_node.position.size.block);
+            max_y = max(max_y, child_node.position.size.block);
         }
 
         let mut block_size = max_y;
         // TODO: Percentage block-size
         block_size = match MaybeAuto::from_style(self.block_flow.fragment.style().content_block_size(), Au(0)) {
             Auto => block_size,
-            Specified(value) => geometry::max(value, block_size)
+            Specified(value) => max(value, block_size)
         };
         // cur_y = cur_y + block-size;
 
@@ -188,8 +188,8 @@ impl Flow for TableRowFlow {
             pref_inline_size = pref_inline_size + child_base.intrinsic_inline_sizes.preferred_inline_size;
         }
         self.block_flow.base.intrinsic_inline_sizes.minimum_inline_size = min_inline_size;
-        self.block_flow.base.intrinsic_inline_sizes.preferred_inline_size = geometry::max(min_inline_size,
-                                                                              pref_inline_size);
+        self.block_flow.base.intrinsic_inline_sizes.preferred_inline_size = max(
+            min_inline_size, pref_inline_size);
     }
 
     /// Recursively (top-down) determines the actual inline-size of child contexts and fragments. When called

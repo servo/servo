@@ -17,7 +17,7 @@ use model::{Specified, Auto, specified};
 use wrapper::ThreadSafeLayoutNode;
 
 use servo_util::geometry::Au;
-use servo_util::geometry;
+use std::cmp::max;
 use std::fmt;
 use style::computed_values::table_layout;
 
@@ -250,7 +250,7 @@ impl TableWrapper {
 
                 // Compare border-edge inline-sizes. Because fixed_cells_inline-size indicates content-inline-size,
                 // padding and border values are added to fixed_cells_inline-size.
-                computed_inline_size = geometry::max(
+                computed_inline_size = max(
                     fixed_cells_inline_size + padding_and_borders, computed_inline_size);
                 computed_inline_size
             },
@@ -276,7 +276,7 @@ impl TableWrapper {
                 // required by all columns. It will be distributed over the columns.
                 let (inline_size, extra_inline_size) = match input.computed_inline_size {
                     Auto => {
-                        if input.available_inline_size > geometry::max(cols_max, cap_min) {
+                        if input.available_inline_size > max(cols_max, cap_min) {
                             if cols_max > cap_min {
                                 table_wrapper.col_inline_sizes = col_pref_inline_sizes.clone();
                                 (cols_max, Au(0))
@@ -288,7 +288,7 @@ impl TableWrapper {
                                 table_wrapper.col_inline_sizes = col_min_inline_sizes.clone();
                                 cols_min
                             } else {
-                                geometry::max(input.available_inline_size, cap_min)
+                                max(input.available_inline_size, cap_min)
                             };
                             (max, max - cols_min)
                         }
@@ -298,7 +298,7 @@ impl TableWrapper {
                             table_wrapper.col_inline_sizes = col_min_inline_sizes.clone();
                             cols_min
                         } else {
-                            geometry::max(inline_size, cap_min)
+                            max(inline_size, cap_min)
                         };
                         (max, max - cols_min)
                     }

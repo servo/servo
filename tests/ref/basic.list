@@ -23,8 +23,7 @@
 == text_decoration_cached.html text_decoration_cached_ref.html
 # text_decoration_propagation_a.html text_decoration_propagation_b.html
 # inline_text_align_a.html inline_text_align_b.html
-== font_size_em.html font_size_em_ref.html
-== font_size_percentage.html font_size_em_ref.html
+== font_size.html font_size_ref.html
 == img_size_a.html img_size_b.html
 == img_dynamic_remove.html img_dynamic_remove_ref.html
 == upper_id_attr.html upper_id_attr_ref.html

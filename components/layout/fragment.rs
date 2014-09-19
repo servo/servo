@@ -46,6 +46,7 @@ use servo_util::range::*;
 use servo_util::namespace;
 use servo_util::smallvec::SmallVec;
 use servo_util::str::is_whitespace;
+use std::cmp::{max, min};
 use std::fmt;
 use std::from_str::FromStr;
 use std::mem;
@@ -1168,17 +1169,17 @@ impl Fragment {
             TableWrapperFragment => {}
             InlineBlockFragment(ref mut info) => {
                 let block_flow = info.flow_ref.get_mut().as_block();
-                result.minimum_inline_size = geometry::max(result.minimum_inline_size,
+                result.minimum_inline_size = max(result.minimum_inline_size,
                         block_flow.base.intrinsic_inline_sizes.minimum_inline_size +
                         block_flow.base.intrinsic_inline_sizes.surround_inline_size);
-                result.preferred_inline_size = geometry::max(result.preferred_inline_size,
+                result.preferred_inline_size = max(result.preferred_inline_size,
                         block_flow.base.intrinsic_inline_sizes.preferred_inline_size +
                         block_flow.base.intrinsic_inline_sizes.surround_inline_size);
             },
             ImageFragment(ref mut image_fragment_info) => {
                 let image_inline_size = image_fragment_info.image_inline_size();
-                result.minimum_inline_size = geometry::max(result.minimum_inline_size, image_inline_size);
-                result.preferred_inline_size = geometry::max(result.preferred_inline_size, image_inline_size);
+                result.minimum_inline_size = max(result.minimum_inline_size, image_inline_size);
+                result.preferred_inline_size = max(result.preferred_inline_size, image_inline_size);
             }
             ScannedTextFragment(ref text_fragment_info) => {
                 let range = &text_fragment_info.range;
@@ -1188,8 +1189,8 @@ impl Fragment {
                 // TODO: Account for soft wrap opportunities.
                 let max_line_inline_size = text_fragment_info.run.metrics_for_range(range).advance_width;
 
-                result.minimum_inline_size = geometry::max(result.minimum_inline_size, min_line_inline_size);
-                result.preferred_inline_size = geometry::max(result.preferred_inline_size, max_line_inline_size);
+                result.minimum_inline_size = max(result.minimum_inline_size, min_line_inline_size);
+                result.preferred_inline_size = max(result.preferred_inline_size, max_line_inline_size);
             }
             UnscannedTextFragment(..) => fail!("Unscanned text fragments should have been scanned by now!"),
         }

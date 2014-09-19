@@ -904,8 +904,9 @@ pub mod longhands {
             use super::super::Au;
             pub type T = Au;
         }
+        static MEDIUM_PX: int = 16;
         #[inline] pub fn get_initial_value() -> computed_value::T {
-            Au::from_px(16)  // medium
+            Au::from_px(MEDIUM_PX)
         }
         #[inline]
         pub fn to_computed_value(_value: SpecifiedValue, context: &computed::Context)
@@ -913,16 +914,26 @@ pub mod longhands {
             // We already computed this element's font size; no need to compute it again.
             return context.font_size
         }
-        /// <length> | <percentage>
-        /// TODO: support <absolute-size> and <relative-size>
+        /// <length> | <percentage> | <absolute-size>
+        /// TODO: support <relative-size>
         pub fn from_component_value(input: &ComponentValue, _base_url: &Url)
                                     -> Result<SpecifiedValue, ()> {
-            specified::LengthOrPercentage::parse_non_negative(input).map(|value| {
-                match value {
-                    specified::LP_Length(value) => value,
-                    specified::LP_Percentage(value) => specified::Em(value),
-                }
-            })
+            match specified::LengthOrPercentage::parse_non_negative(input) {
+                Ok(specified::LP_Length(value)) => return Ok(value),
+                Ok(specified::LP_Percentage(value)) => return Ok(specified::Em(value)),
+                Err(()) => (),
+            }
+            let au = match try!(get_ident_lower(input)).as_slice() {
+                "xx-small" => Au::from_px(MEDIUM_PX) * 3 / 5,
+                "x-small" => Au::from_px(MEDIUM_PX) * 3 / 4,
+                "small" => Au::from_px(MEDIUM_PX) * 8 / 9,
+                "medium" => Au::from_px(MEDIUM_PX),
+                "large" => Au::from_px(MEDIUM_PX) * 6 / 5,
+                "x-large" => Au::from_px(MEDIUM_PX) * 3 / 2,
+                "xx-large" => Au::from_px(MEDIUM_PX) * 2,
+                _ => return Err(())
+            };
+            Ok(specified::Au_(au))
         }
     </%self:single_component_value>
 

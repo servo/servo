@@ -9,7 +9,7 @@ use geom::size::Size2D;
 
 use serialize::{Encodable, Encoder};
 use std::default::Default;
-use std::num::{NumCast, One, Zero};
+use std::num::{NumCast, Zero};
 use std::fmt;
 
 // Units for use with geom::length and geom::scale_factor.
@@ -102,30 +102,27 @@ impl Sub<Au,Au> for Au {
 
 }
 
-impl Mul<Au,Au> for Au {
+impl Mul<i32, Au> for Au {
     #[inline]
-    fn mul(&self, other: &Au) -> Au {
+    fn mul(&self, other: &i32) -> Au {
         let Au(s) = *self;
-        let Au(o) = *other;
-        Au(s * o)
+        Au(s * *other)
     }
 }
 
-impl Div<Au,Au> for Au {
+impl Div<i32, Au> for Au {
     #[inline]
-    fn div(&self, other: &Au) -> Au {
+    fn div(&self, other: &i32) -> Au {
         let Au(s) = *self;
-        let Au(o) = *other;
-        Au(s / o)
+        Au(s / *other)
     }
 }
 
-impl Rem<Au,Au> for Au {
+impl Rem<i32, Au> for Au {
     #[inline]
-    fn rem(&self, other: &Au) -> Au {
+    fn rem(&self, other: &i32) -> Au {
         let Au(s) = *self;
-        let Au(o) = *other;
-        Au(s % o)
+        Au(s % *other)
     }
 }
 
@@ -137,17 +134,6 @@ impl Neg<Au> for Au {
     }
 }
 
-impl One for Au {
-    #[inline]
-    fn one() -> Au { Au(1) }
-}
-
-impl Num for Au {}
-
-#[inline]
-pub fn min(x: Au, y: Au) -> Au { if x < y { x } else { y } }
-#[inline]
-pub fn max(x: Au, y: Au) -> Au { if x > y { x } else { y } }
 
 impl NumCast for Au {
     #[inline]

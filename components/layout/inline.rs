@@ -23,10 +23,10 @@ use gfx::font_context::FontContext;
 use geom::Size2D;
 use gfx::text::glyph::CharIndex;
 use servo_util::geometry::Au;
-use servo_util::geometry;
 use servo_util::logical_geometry::{LogicalRect, LogicalSize};
 use servo_util::range;
 use servo_util::range::{EachIndex, Range, RangeIndex, IntRangeIndex};
+use std::cmp::max;
 use std::fmt;
 use std::mem;
 use std::num;
@@ -928,7 +928,7 @@ impl Flow for InlineFlow {
 
             let fragment_intrinsic_inline_sizes =
                 fragment.intrinsic_inline_sizes();
-            intrinsic_inline_sizes.minimum_inline_size = geometry::max(
+            intrinsic_inline_sizes.minimum_inline_size = max(
                 intrinsic_inline_sizes.minimum_inline_size,
                 fragment_intrinsic_inline_sizes.minimum_inline_size);
             intrinsic_inline_sizes.preferred_inline_size =
