@@ -228,24 +228,26 @@ impl TableWrapper {
         let mut input = self.compute_inline_size_constraint_inputs(&mut table_wrapper.block_flow,
                                                              parent_flow_inline_size,
                                                              ctx);
+        let style = table_wrapper.block_flow.fragment.style();
+
+        // Get inline-start and inline-end paddings, borders for table.
+        // We get these values from the fragment's style since table_wrapper doesn't have it's own border or padding.
+        // input.available_inline-size is same as containing_block_inline-size in table_wrapper.
+        let padding = style.logical_padding();
+        let border = style.logical_border_width();
+        let padding_and_borders =
+            specified(padding.inline_start, input.available_inline_size) +
+            specified(padding.inline_end, input.available_inline_size) +
+            border.inline_start +
+            border.inline_end;
+
         let computed_inline_size = match table_wrapper.table_layout {
             FixedLayout => {
                 let fixed_cells_inline_size = table_wrapper.col_inline_sizes.iter().fold(Au(0),
                                                                              |sum, inline_size| sum.add(inline_size));
 
                 let mut computed_inline_size = input.computed_inline_size.specified_or_zero();
-                let style = table_wrapper.block_flow.fragment.style();
 
-                // Get inline-start and inline-end paddings, borders for table.
-                // We get these values from the fragment's style since table_wrapper doesn't have it's own border or padding.
-                // input.available_inline-size is same as containing_block_inline-size in table_wrapper.
-                let padding = style.logical_padding();
-                let border = style.logical_border_width();
-                let padding_and_borders =
-                    specified(padding.inline_start, input.available_inline_size) +
-                    specified(padding.inline_end, input.available_inline_size) +
-                    border.inline_start +
-                    border.inline_end;
                 // Compare border-edge inline-sizes. Because fixed_cells_inline-size indicates content-inline-size,
                 // padding and border values are added to fixed_cells_inline-size.
                 computed_inline_size = geometry::max(
@@ -308,7 +310,7 @@ impl TableWrapper {
                         inline_size + extra_inline_size.scale_by(1.0 / cell_len)
                     }).collect();
                 }
-                inline_size
+                inline_size + padding_and_borders
             }
         };
         input.computed_inline_size = Specified(computed_inline_size);
