@@ -79,7 +79,7 @@ impl<'a> DOMTokenListMethods for JSRef<'a, DOMTokenList> {
 
     // http://dom.spec.whatwg.org/#dom-domtokenlist-item
     fn Item(&self, index: u32) -> Option<DOMString> {
-        self.attribute().root().and_then(|attr| attr.value().tokens().and_then(|mut tokens| {
+        self.attribute().root().and_then(|attr| attr.value().tokens().and_then(|tokens| {
             tokens.idx(index as uint).map(|token| token.as_slice().to_string())
         }))
     }
@@ -93,7 +93,7 @@ impl<'a> DOMTokenListMethods for JSRef<'a, DOMTokenList> {
     // http://dom.spec.whatwg.org/#dom-domtokenlist-contains
     fn Contains(&self, token: DOMString) -> Fallible<bool> {
         self.check_token_exceptions(token.as_slice()).map(|slice| {
-            self.attribute().root().and_then(|attr| attr.value().tokens().map(|mut tokens| {
+            self.attribute().root().and_then(|attr| attr.value().tokens().map(|tokens| {
                 let atom = Atom::from_slice(slice);
                 tokens.any(|token| *token == atom)
             })).unwrap_or(false)

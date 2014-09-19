@@ -214,7 +214,7 @@ impl RawLayoutElementHelpers for Element {
             (*attr).local_name_atom_forever().as_slice() == "class"
         }).map_or(false, |attr| {
             let attr = attr.unsafe_get();
-            (*attr).value_tokens_forever().map(|mut tokens| { tokens.any(|atom| atom.as_slice() == name) })
+            (*attr).value_tokens_forever().map(|tokens| { tokens.any(|atom| atom.as_slice() == name) })
         }.take().unwrap())
     }
 }
