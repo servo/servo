@@ -46,8 +46,8 @@ impl HTMLButtonElement {
 }
 
 impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
-    fn Validity(&self) -> Temporary<ValidityState> {
-        let window = window_from_node(*self).root();
+    fn Validity(self) -> Temporary<ValidityState> {
+        let window = window_from_node(self).root();
         ValidityState::new(*window)
     }
 
@@ -55,8 +55,8 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
     make_bool_getter!(Disabled)
 
     // http://www.whatwg.org/html/#dom-fe-disabled
-    fn SetDisabled(&self, disabled: bool) {
-        let elem: JSRef<Element> = ElementCast::from_ref(*self);
+    fn SetDisabled(self, disabled: bool) {
+        let elem: JSRef<Element> = ElementCast::from_ref(self);
         elem.set_bool_attribute("disabled", disabled)
     }
 }

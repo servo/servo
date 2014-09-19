@@ -91,7 +91,7 @@ impl Reflectable for DOMException {
 
 impl<'a> DOMExceptionMethods for JSRef<'a, DOMException> {
     // http://dom.spec.whatwg.org/#dom-domexception-code
-    fn Code(&self) -> u16 {
+    fn Code(self) -> u16 {
         match self.code {
             // http://dom.spec.whatwg.org/#concept-throw
             EncodingError => 0,
@@ -100,12 +100,12 @@ impl<'a> DOMExceptionMethods for JSRef<'a, DOMException> {
     }
 
     // http://dom.spec.whatwg.org/#error-names-0
-    fn Name(&self) -> DOMString {
+    fn Name(self) -> DOMString {
         self.code.to_string()
     }
 
     // http://dom.spec.whatwg.org/#error-names-0
-    fn Message(&self) -> DOMString {
+    fn Message(self) -> DOMString {
         match self.code {
             IndexSizeError => "The index is not in the allowed range.".to_string(),
             HierarchyRequestError => "The operation would yield an incorrect node tree.".to_string(),

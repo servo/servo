@@ -225,7 +225,7 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
 }
 
 impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {
-    fn AddEventListener(&self,
+    fn AddEventListener(self,
                         ty: DOMString,
                         listener: Option<EventListener>,
                         capture: bool) {
@@ -246,7 +246,7 @@ impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {
         }
     }
 
-    fn RemoveEventListener(&self,
+    fn RemoveEventListener(self,
                            ty: DOMString,
                            listener: Option<EventListener>,
                            capture: bool) {
@@ -270,7 +270,7 @@ impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {
         }
     }
 
-    fn DispatchEvent(&self, event: JSRef<Event>) -> Fallible<bool> {
+    fn DispatchEvent(self, event: JSRef<Event>) -> Fallible<bool> {
         self.dispatch_event_with_target(None, event)
     }
 }

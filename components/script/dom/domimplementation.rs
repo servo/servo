@@ -54,7 +54,7 @@ impl Reflectable for DOMImplementation {
 // http://dom.spec.whatwg.org/#domimplementation
 impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
     // http://dom.spec.whatwg.org/#dom-domimplementation-createdocumenttype
-    fn CreateDocumentType(&self, qname: DOMString, pubid: DOMString, sysid: DOMString) -> Fallible<Temporary<DocumentType>> {
+    fn CreateDocumentType(self, qname: DOMString, pubid: DOMString, sysid: DOMString) -> Fallible<Temporary<DocumentType>> {
         match xml_name_type(qname.as_slice()) {
             // Step 1.
             InvalidXMLName => Err(InvalidCharacter),
@@ -69,7 +69,7 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
     }
 
     // http://dom.spec.whatwg.org/#dom-domimplementation-createdocument
-    fn CreateDocument(&self, namespace: Option<DOMString>, qname: DOMString,
+    fn CreateDocument(self, namespace: Option<DOMString>, qname: DOMString,
                       maybe_doctype: Option<JSRef<DocumentType>>) -> Fallible<Temporary<Document>> {
         let doc = self.document.root();
         let win = doc.window.root();
@@ -115,7 +115,7 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
     }
 
     // http://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
-    fn CreateHTMLDocument(&self, title: Option<DOMString>) -> Temporary<Document> {
+    fn CreateHTMLDocument(self, title: Option<DOMString>) -> Temporary<Document> {
         let document = self.document.root();
         let win = document.window.root();
 

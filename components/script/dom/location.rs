@@ -38,15 +38,15 @@ impl Location {
 }
 
 impl<'a> LocationMethods for JSRef<'a, Location> {
-    fn Href(&self) -> DOMString {
+    fn Href(self) -> DOMString {
         UrlHelper::Href(&self.page.get_url())
     }
 
-    fn Search(&self) -> DOMString {
+    fn Search(self) -> DOMString {
         UrlHelper::Search(&self.page.get_url())
     }
 
-    fn Hash(&self) -> DOMString {
+    fn Hash(self) -> DOMString {
         UrlHelper::Hash(&self.page.get_url())
     }
 }

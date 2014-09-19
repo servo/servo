@@ -38,15 +38,15 @@ impl WorkerLocation {
 }
 
 impl<'a> WorkerLocationMethods for JSRef<'a, WorkerLocation> {
-    fn Href(&self) -> DOMString {
+    fn Href(self) -> DOMString {
         UrlHelper::Href(self.url.deref())
     }
 
-    fn Search(&self) -> DOMString {
+    fn Search(self) -> DOMString {
         UrlHelper::Search(self.url.deref())
     }
 
-    fn Hash(&self) -> DOMString {
+    fn Hash(self) -> DOMString {
         UrlHelper::Hash(self.url.deref())
     }
 }

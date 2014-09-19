@@ -30,11 +30,11 @@ impl Screen {
 }
 
 impl<'a> ScreenMethods for JSRef<'a, Screen> {
-    fn ColorDepth(&self) -> u32 {
+    fn ColorDepth(self) -> u32 {
         24
     }
 
-    fn PixelDepth(&self) -> u32 {
+    fn PixelDepth(self) -> u32 {
         24
     }
 }

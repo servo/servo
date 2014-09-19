@@ -37,7 +37,7 @@ impl PerformanceTiming {
 }
 
 impl<'a> PerformanceTimingMethods for JSRef<'a, PerformanceTiming> {
-    fn NavigationStart(&self) -> u64 {
+    fn NavigationStart(self) -> u64 {
         self.navigationStart
     }
 }

@@ -61,26 +61,26 @@ impl URLSearchParams {
 }
 
 impl<'a> URLSearchParamsMethods for JSRef<'a, URLSearchParams> {
-    fn Append(&self, name: DOMString, value: DOMString) {
+    fn Append(self, name: DOMString, value: DOMString) {
         self.data.deref().borrow_mut().insert_or_update_with(name, vec!(value.clone()),
                                                              |_k, v| v.push(value.clone()));
         self.update_steps();
     }
 
-    fn Delete(&self, name: DOMString) {
+    fn Delete(self, name: DOMString) {
         self.data.deref().borrow_mut().remove(&name);
         self.update_steps();
     }
 
-    fn Get(&self, name: DOMString) -> Option<DOMString> {
+    fn Get(self, name: DOMString) -> Option<DOMString> {
         self.data.deref().borrow().find_equiv(&name).map(|v| v[0].clone())
     }
 
-    fn Has(&self, name: DOMString) -> bool {
+    fn Has(self, name: DOMString) -> bool {
         self.data.deref().borrow().contains_key_equiv(&name)
     }
 
-    fn Set(&self, name: DOMString, value: DOMString) {
+    fn Set(self, name: DOMString, value: DOMString) {
         self.data.deref().borrow_mut().insert(name, vec!(value));
         self.update_steps();
     }

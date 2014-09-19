@@ -28,27 +28,27 @@ impl Console {
 }
 
 impl<'a> ConsoleMethods for JSRef<'a, Console> {
-    fn Log(&self, message: DOMString) {
+    fn Log(self, message: DOMString) {
         println!("{:s}", message);
     }
 
-    fn Debug(&self, message: DOMString) {
+    fn Debug(self, message: DOMString) {
         println!("{:s}", message);
     }
 
-    fn Info(&self, message: DOMString) {
+    fn Info(self, message: DOMString) {
         println!("{:s}", message);
     }
 
-    fn Warn(&self, message: DOMString) {
+    fn Warn(self, message: DOMString) {
         println!("{:s}", message);
     }
 
-    fn Error(&self, message: DOMString) {
+    fn Error(self, message: DOMString) {
         println!("{:s}", message);
     }
 
-    fn Assert(&self, condition: bool, message: Option<DOMString>) {
+    fn Assert(self, condition: bool, message: Option<DOMString>) {
         if !condition {
             let message = match message {
                 Some(ref message) => message.as_slice(),

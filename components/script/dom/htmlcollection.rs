@@ -172,7 +172,7 @@ impl HTMLCollection {
 
 impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
     // http://dom.spec.whatwg.org/#dom-htmlcollection-length
-    fn Length(&self) -> u32 {
+    fn Length(self) -> u32 {
         match self.collection {
             Static(ref elems) => elems.len() as u32,
             Live(ref root, ref filter) => {
@@ -187,7 +187,7 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
     }
 
     // http://dom.spec.whatwg.org/#dom-htmlcollection-item
-    fn Item(&self, index: u32) -> Option<Temporary<Element>> {
+    fn Item(self, index: u32) -> Option<Temporary<Element>> {
         match self.collection {
             Static(ref elems) => elems
                 .as_slice()
@@ -209,7 +209,7 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
     }
 
     // http://dom.spec.whatwg.org/#dom-htmlcollection-nameditem
-    fn NamedItem(&self, key: DOMString) -> Option<Temporary<Element>> {
+    fn NamedItem(self, key: DOMString) -> Option<Temporary<Element>> {
         // Step 1.
         if key.is_empty() {
             return None;
@@ -239,13 +239,13 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
         }
     }
 
-    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Temporary<Element>> {
+    fn IndexedGetter(self, index: u32, found: &mut bool) -> Option<Temporary<Element>> {
         let maybe_elem = self.Item(index);
         *found = maybe_elem.is_some();
         maybe_elem
     }
 
-    fn NamedGetter(&self, name: DOMString, found: &mut bool) -> Option<Temporary<Element>> {
+    fn NamedGetter(self, name: DOMString, found: &mut bool) -> Option<Temporary<Element>> {
         let maybe_elem = self.NamedItem(name);
         *found = maybe_elem.is_some();
         maybe_elem

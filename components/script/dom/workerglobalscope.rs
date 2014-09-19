@@ -79,19 +79,19 @@ impl WorkerGlobalScope {
 }
 
 impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
-    fn Self(&self) -> Temporary<WorkerGlobalScope> {
-        Temporary::from_rooted(*self)
+    fn Self(self) -> Temporary<WorkerGlobalScope> {
+        Temporary::from_rooted(self)
     }
 
-    fn Location(&self) -> Temporary<WorkerLocation> {
+    fn Location(self) -> Temporary<WorkerLocation> {
         if self.location.get().is_none() {
-            let location = WorkerLocation::new(*self, self.worker_url.deref().clone());
+            let location = WorkerLocation::new(self, self.worker_url.deref().clone());
             self.location.assign(Some(location));
         }
         Temporary::new(self.location.get().get_ref().clone())
     }
 
-    fn ImportScripts(&self, url_strings: Vec<DOMString>) -> ErrorResult {
+    fn ImportScripts(self, url_strings: Vec<DOMString>) -> ErrorResult {
         let mut urls = Vec::with_capacity(url_strings.len());
         for url in url_strings.move_iter() {
             let url = UrlParser::new().base_url(&*self.worker_url)
@@ -123,27 +123,27 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
         Ok(())
     }
 
-    fn Navigator(&self) -> Temporary<WorkerNavigator> {
+    fn Navigator(self) -> Temporary<WorkerNavigator> {
         if self.navigator.get().is_none() {
-            let navigator = WorkerNavigator::new(*self);
+            let navigator = WorkerNavigator::new(self);
             self.navigator.assign(Some(navigator));
         }
         Temporary::new(self.navigator.get().get_ref().clone())
     }
 
-    fn Console(&self) -> Temporary<Console> {
+    fn Console(self) -> Temporary<Console> {
         if self.console.get().is_none() {
-            let console = Console::new(&global::Worker(*self));
+            let console = Console::new(&global::Worker(self));
             self.console.assign(Some(console));
         }
         Temporary::new(self.console.get().get_ref().clone())
     }
 
-    fn Btoa(&self, btoa: DOMString) -> Fallible<DOMString> {
+    fn Btoa(self, btoa: DOMString) -> Fallible<DOMString> {
         base64_btoa(btoa)
     }
 
-    fn Atob(&self, atob: DOMString) -> Fallible<DOMString> {
+    fn Atob(self, atob: DOMString) -> Fallible<DOMString> {
         base64_atob(atob)
     }
 }
