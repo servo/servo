@@ -120,7 +120,7 @@ impl DedicatedWorkerGlobalScope {
             let target: JSRef<EventTarget> =
                 EventTargetCast::from_ref(*global);
             loop {
-                match global.receiver.recv_opt() {
+                match global.receiver.deref().recv_opt() {
                     Ok(DOMMessage(data, nbytes)) => {
                         let mut message = UndefinedValue();
                         unsafe {

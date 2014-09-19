@@ -38,7 +38,7 @@ impl WorkerLocation {
 
 impl<'a> WorkerLocationMethods for JSRef<'a, WorkerLocation> {
     fn Href(&self) -> DOMString {
-        self.url.serialize()
+        self.url.deref().serialize()
     }
 
     fn Search(&self) -> DOMString {
