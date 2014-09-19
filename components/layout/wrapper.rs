@@ -34,7 +34,7 @@
 //!     `html_element_in_html_document_for_layout()`.
 
 use css::node_style::StyledNode;
-use util::LayoutDataWrapper;
+use util::{LayoutDataAccess, LayoutDataWrapper, PrivateLayoutData};
 
 use script::dom::bindings::codegen::InheritTypes::{HTMLIFrameElementDerived};
 use script::dom::bindings::codegen::InheritTypes::{HTMLImageElementDerived, TextDerived};
@@ -43,9 +43,11 @@ use script::dom::element::{Element, HTMLAreaElementTypeId, HTMLAnchorElementType
 use script::dom::element::{HTMLLinkElementTypeId, LayoutElementHelpers, RawLayoutElementHelpers};
 use script::dom::htmliframeelement::HTMLIFrameElement;
 use script::dom::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
-use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, Node, NodeTypeId};
-use script::dom::node::{LayoutNodeHelpers, RawLayoutNodeHelpers, TextNodeTypeId};
+use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, HasDirtyDescendants};
+use script::dom::node::{HasFragmentChildren, IsDirty, IsFragment, LayoutNodeHelpers, Node};
+use script::dom::node::{NodeTypeId, RawLayoutNodeHelpers, SharedLayoutData, TextNodeTypeId};
 use script::dom::text::Text;
+use script::layout_interface::LayoutChan;
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use servo_util::atom::Atom;
 use servo_util::namespace::Namespace;
@@ -219,9 +221,31 @@ impl<'ln> LayoutNode<'ln> {
         }
     }
 
-   pub unsafe fn get_jsmanaged<'a>(&'a self) -> &'a JS<Node> {
-       &self.node
-   }
+    pub unsafe fn get_jsmanaged<'a>(&'a self) -> &'a JS<Node> {
+        &self.node
+    }
+
+    /// Resets layout data and styles for the node.
+    ///
+    /// FIXME(pcwalton): Do this as part of fragment building instead of in a traversal.
+    pub fn initialize_layout_data(&self, chan: LayoutChan) {
+        let mut layout_data_ref = self.mutate_layout_data();
+        match *layout_data_ref {
+            None => {
+                *layout_data_ref = Some(LayoutDataWrapper {
+                    chan: Some(chan),
+                    shared_data: SharedLayoutData { style: None },
+                    data: box PrivateLayoutData::new(),
+                });
+            }
+            Some(_) => {}
+        }
+    }
+
+    /// Returns true if this node has children or false otherwise.
+    pub fn has_children(&self) -> bool {
+        self.first_child().is_some()
+    }
 }
 
 impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
@@ -295,6 +319,70 @@ impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
                 element.html_element_in_html_document_for_layout()
             }
         }
+    }
+
+    fn is_dirty(&self) -> bool {
+        unsafe {
+            self.node.get_flags().contains(IsDirty)
+        }
+    }
+
+    unsafe fn set_is_dirty(&self, value: bool) {
+        let mut flags = self.node.get_flags();
+        if value {
+            flags.insert(IsDirty);
+        } else {
+            flags.remove(IsDirty);
+        }
+        self.node.set_flags(flags)
+    }
+
+    fn has_dirty_descendants(&self) -> bool {
+        unsafe {
+            self.node.get_flags().contains(HasDirtyDescendants)
+        }
+    }
+
+    unsafe fn set_has_dirty_descendants(&self, value: bool) {
+        let mut flags = self.node.get_flags();
+        if value {
+            flags.insert(HasDirtyDescendants);
+        } else {
+            flags.remove(HasDirtyDescendants);
+        }
+        self.node.set_flags(flags)
+    }
+
+    fn is_fragment(&self) -> bool {
+        unsafe {
+            self.node.get_flags().contains(IsFragment)
+        }
+    }
+
+    unsafe fn set_is_fragment(&self, value: bool) {
+        let mut flags = self.node.get_flags();
+        if value {
+            flags.insert(IsFragment);
+        } else {
+            flags.remove(IsFragment);
+        }
+        self.node.set_flags(flags)
+    }
+
+    fn has_fragment_children(&self) -> bool {
+        unsafe {
+            self.node.get_flags().contains(HasFragmentChildren)
+        }
+    }
+
+    unsafe fn set_has_fragment_children(&self, value: bool) {
+        let mut flags = self.node.get_flags();
+        if value {
+            flags.insert(HasFragmentChildren);
+        } else {
+            flags.remove(HasFragmentChildren);
+        }
+        self.node.set_flags(flags)
     }
 }
 
@@ -477,15 +565,11 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
 
     /// Returns `None` if this is a pseudo-element.
     fn type_id(&self) -> Option<NodeTypeId> {
-        if self.pseudo == Before || self.pseudo == After {
+        if self.pseudo != Normal {
             return None
         }
 
         self.node.type_id()
-    }
-
-    unsafe fn get_jsmanaged<'a>(&'a self) -> &'a JS<Node> {
-        self.node.get_jsmanaged()
     }
 
     unsafe fn get<'a>(&'a self) -> &'a Node { // this change.
@@ -493,7 +577,7 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
     }
 
     fn first_child(&self) -> Option<ThreadSafeLayoutNode<'ln>> {
-        if self.pseudo == Before || self.pseudo == After {
+        if self.pseudo != Normal {
             return None
         }
 
@@ -513,11 +597,11 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
     }
 
     fn text(&self) -> String {
-        if self.pseudo == Before || self.pseudo == After {
+        if self.pseudo != Normal {
             let layout_data_ref = self.borrow_layout_data();
             let node_layout_data_wrapper = layout_data_ref.get_ref();
 
-            if self.pseudo == Before {
+            if self.pseudo == Before || self.pseudo == BeforeBlock {
                 let before_style = node_layout_data_wrapper.data.before_style.get_ref();
                 return get_content(&before_style.get_box().content)
             } else {
@@ -534,8 +618,11 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
             (*text.unsafe_get()).characterdata.data.deref().borrow().clone()
         }
     }
-}
 
+    unsafe fn get_jsmanaged<'a>(&'a self) -> &'a JS<Node> {
+        self.node.get_jsmanaged()
+    }
+}
 
 impl<'ln> ThreadSafeLayoutNode<'ln> {
     /// Creates a new `ThreadSafeLayoutNode` from the given `LayoutNode`.
@@ -692,6 +779,18 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
             _ => false
         }
     }
+
+    pub fn set_is_fragment(&self, value: bool) {
+        unsafe {
+            self.node.set_is_fragment(value)
+        }
+    }
+
+    pub fn set_has_fragment_children(&self, value: bool) {
+        unsafe {
+            self.node.set_has_fragment_children(value)
+        }
+    }
 }
 
 pub struct ThreadSafeLayoutNodeChildrenIterator<'a> {
@@ -731,7 +830,7 @@ impl<'a> Iterator<ThreadSafeLayoutNode<'a>> for ThreadSafeLayoutNodeChildrenIter
                             let pseudo_after_node = if parent_node.is_block(After) && parent_node.pseudo == Normal {
                                 let pseudo_after_node = parent_node.with_pseudo(AfterBlock);
                                 Some(pseudo_after_node)
-                            } else if parent_node.pseudo == Normal || parent_node.pseudo == AfterBlock {
+                            } else if parent_node.pseudo == Normal {
                                 let pseudo_after_node = parent_node.with_pseudo(After);
                                 Some(pseudo_after_node)
                             } else {
@@ -793,3 +892,4 @@ pub unsafe fn layout_node_from_unsafe_layout_node(node: &UnsafeLayoutNode) -> La
     let (node, _) = *node;
     mem::transmute(node)
 }
+

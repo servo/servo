@@ -98,7 +98,7 @@ pub struct Node {
     child_list: Cell<Option<JS<NodeList>>>,
 
     /// A bitfield of flags for node items.
-    flags: Traceable<RefCell<NodeFlags>>,
+    flags: Traceable<Cell<NodeFlags>>,
 
     /// Layout information. Only the layout task may touch this data.
     ///
@@ -133,14 +133,26 @@ bitflags! {
         #[doc = "Specifies whether this node is in disabled state."]
         static InDisabledState = 0x04,
         #[doc = "Specifies whether this node is in enabled state."]
-        static InEnabledState = 0x08
+        static InEnabledState = 0x08,
+        #[doc = "Specifies whether this node is dirty (i.e. has been modified since the last \
+                 layout)."]
+        static IsDirty = 0x10,
+        #[doc = "Specifies whether this node has dirty descendants."]
+        static HasDirtyDescendants = 0x20,
+        #[doc = "Specifies whether any of this node's layout items are fragments. If not set, the \
+                 node's layout items are either `display: none` or represent an entire flow."]
+        static IsFragment = 0x40,
+        #[doc = "Specifies whether any immediate children of this node have layout items that \
+                 consist of fragments rather than flows. That is, if not set, all of the node's \
+                 children are either `display: none` or represent an entire flow."]
+        static HasFragmentChildren = 0x80
     }
 }
 
 impl NodeFlags {
     pub fn new(type_id: NodeTypeId) -> NodeFlags {
         match type_id {
-            DocumentNodeTypeId => IsInDoc,
+            DocumentNodeTypeId => IsInDoc | IsDirty | HasDirtyDescendants,
             // The following elements are enabled by default.
             ElementNodeTypeId(HTMLButtonElementTypeId) |
             ElementNodeTypeId(HTMLInputElementTypeId) |
@@ -149,8 +161,10 @@ impl NodeFlags {
             ElementNodeTypeId(HTMLOptGroupElementTypeId) |
             ElementNodeTypeId(HTMLOptionElementTypeId) |
             //ElementNodeTypeId(HTMLMenuItemElementTypeId) |
-            ElementNodeTypeId(HTMLFieldSetElementTypeId) => InEnabledState,
-            _ => NodeFlags::empty(),
+            ElementNodeTypeId(HTMLFieldSetElementTypeId) => {
+                InEnabledState | IsDirty | HasDirtyDescendants
+            }
+            _ => IsDirty | HasDirtyDescendants,
         }
     }
 }
@@ -269,7 +283,7 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
         let parent = self.parent_node().root();
         parent.map(|parent| vtable_for(&*parent).child_inserted(self));
 
-        document.deref().content_changed();
+        document.deref().content_changed(self);
     }
 
     // http://dom.spec.whatwg.org/#node-is-removed
@@ -281,7 +295,7 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
             vtable_for(&node).unbind_from_tree(parent_in_doc);
         }
 
-        document.deref().content_changed();
+        document.deref().content_changed(self);
     }
 
     //
@@ -402,6 +416,12 @@ pub trait NodeHelpers<'m, 'n> {
     fn get_enabled_state(&self) -> bool;
     fn set_enabled_state(&self, state: bool);
 
+    fn get_dirty(&self) -> bool;
+    fn set_dirty(&self, state: bool);
+
+    fn get_has_dirty_descendants(&self) -> bool;
+    fn set_has_dirty_descendants(&self, state: bool);
+
     fn dump(&self);
     fn dump_indent(&self, indent: uint);
     fn debug_str(&self) -> String;
@@ -449,7 +469,7 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
     }
 
     fn is_in_doc(&self) -> bool {
-        self.deref().flags.deref().borrow().contains(IsInDoc)
+        self.deref().flags.deref().get().contains(IsInDoc)
     }
 
     /// Returns the type ID of this node. Fails if this node is borrowed mutably.
@@ -508,39 +528,73 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
     }
 
     fn get_hover_state(&self) -> bool {
-        self.flags.deref().borrow().contains(InHoverState)
+        self.flags.deref().get().contains(InHoverState)
     }
 
     fn set_hover_state(&self, state: bool) {
+        let mut flags = self.flags.get();
         if state {
-            self.flags.deref().borrow_mut().insert(InHoverState);
+            flags.insert(InHoverState);
         } else {
-            self.flags.deref().borrow_mut().remove(InHoverState);
+            flags.remove(InHoverState);
         }
+        self.flags.set(flags)
     }
 
     fn get_disabled_state(&self) -> bool {
-        self.flags.deref().borrow().contains(InDisabledState)
+        self.flags.deref().get().contains(InDisabledState)
     }
 
     fn set_disabled_state(&self, state: bool) {
+        let mut flags = self.flags.get();
         if state {
-            self.flags.deref().borrow_mut().insert(InDisabledState);
+            flags.insert(InDisabledState);
         } else {
-            self.flags.deref().borrow_mut().remove(InDisabledState);
+            flags.remove(InDisabledState);
         }
+        self.flags.set(flags)
     }
 
     fn get_enabled_state(&self) -> bool {
-        self.flags.deref().borrow().contains(InEnabledState)
+        self.flags.deref().get().contains(InEnabledState)
     }
 
     fn set_enabled_state(&self, state: bool) {
+        let mut flags = self.flags.get();
         if state {
-            self.flags.deref().borrow_mut().insert(InEnabledState);
+            flags.insert(InEnabledState);
         } else {
-            self.flags.deref().borrow_mut().remove(InEnabledState);
+            flags.remove(InEnabledState);
         }
+        self.flags.set(flags)
+    }
+
+    fn get_dirty(&self) -> bool {
+        self.flags.deref().get().contains(IsDirty)
+    }
+
+    fn set_dirty(&self, state: bool) {
+        let mut flags = self.flags.get();
+        if state {
+            flags.insert(IsDirty);
+        } else {
+            flags.remove(IsDirty);
+        }
+        self.flags.set(flags)
+    }
+
+    fn get_has_dirty_descendants(&self) -> bool {
+        self.flags.deref().get().contains(HasDirtyDescendants)
+    }
+
+    fn set_has_dirty_descendants(&self, state: bool) {
+        let mut flags = self.flags.get();
+        if state {
+            flags.insert(HasDirtyDescendants);
+        } else {
+            flags.remove(HasDirtyDescendants);
+        }
+        self.flags.set(flags)
     }
 
     /// Iterates over this node and all its descendants, in preorder.
@@ -717,6 +771,8 @@ pub trait LayoutNodeHelpers {
     unsafe fn owner_doc_for_layout(&self) -> JS<Document>;
 
     unsafe fn is_element_for_layout(&self) -> bool;
+    unsafe fn get_flags(&self) -> NodeFlags;
+    unsafe fn set_flags(&self, flags: NodeFlags);
 }
 
 impl LayoutNodeHelpers for JS<Node> {
@@ -758,6 +814,16 @@ impl LayoutNodeHelpers for JS<Node> {
     #[inline]
     unsafe fn owner_doc_for_layout(&self) -> JS<Document> {
         (*self.unsafe_get()).owner_doc.get().unwrap()
+    }
+
+    #[inline]
+    unsafe fn get_flags(&self) -> NodeFlags {
+        (*self.unsafe_get()).flags.get()
+    }
+
+    #[inline]
+    unsafe fn set_flags(&self, flags: NodeFlags) {
+        (*self.unsafe_get()).flags.set(flags)
     }
 }
 
@@ -988,7 +1054,7 @@ impl Node {
             owner_doc: Cell::new(doc.unrooted()),
             child_list: Cell::new(None),
 
-            flags: Traceable::new(RefCell::new(NodeFlags::new(type_id))),
+            flags: Traceable::new(Cell::new(NodeFlags::new(type_id))),
 
             layout_data: LayoutDataRef::new(),
         }
@@ -1187,11 +1253,13 @@ impl Node {
             parent.add_child(node, child);
             let is_in_doc = parent.is_in_doc();
             for kid in node.traverse_preorder() {
+                let mut flags = kid.deref().flags.deref().get();
                 if is_in_doc {
-                    kid.flags.deref().borrow_mut().insert(IsInDoc);
+                    flags.insert(IsInDoc);
                 } else {
-                    kid.flags.deref().borrow_mut().remove(IsInDoc);
+                    flags.remove(IsInDoc);
                 }
+                kid.flags.set(flags);
             }
         }
 
@@ -1277,7 +1345,9 @@ impl Node {
         // Step 8.
         parent.remove_child(node);
 
-        node.deref().flags.deref().borrow_mut().remove(IsInDoc);
+        let mut flags = node.deref().flags.deref().get();
+        flags.remove(IsInDoc);
+        node.deref().flags.deref().set(flags);
 
         // Step 9.
         match suppress_observers {
@@ -1616,7 +1686,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 
                 // Notify the document that the content of this node is different
                 let document = self.owner_doc().root();
-                document.deref().content_changed();
+                document.deref().content_changed(self);
             }
             DoctypeNodeTypeId |
             DocumentNodeTypeId => {}
@@ -2041,6 +2111,56 @@ impl<'a> style::TNode<JSRef<'a, Element>> for JSRef<'a, Node> {
         assert!(elem.is_some());
         let elem: &ElementHelpers = elem.unwrap() as &ElementHelpers;
         elem.html_element_in_html_document()
+    }
+
+    fn is_dirty(&self) -> bool {
+        self.get_dirty()
+    }
+
+    fn set_is_dirty(&self, value: bool) {
+        self.set_dirty(value)
+    }
+
+    fn has_dirty_descendants(&self) -> bool {
+        self.get_has_dirty_descendants()
+    }
+
+    fn set_has_dirty_descendants(&self, value: bool) {
+        let mut flags = self.flags.get();
+        if value {
+            flags.insert(HasDirtyDescendants);
+        } else {
+            flags.remove(HasDirtyDescendants);
+        }
+        self.flags.set(flags)
+    }
+
+    fn is_fragment(&self) -> bool {
+        self.flags.deref().get().contains(IsFragment)
+    }
+
+    fn set_is_fragment(&self, state: bool) {
+        let mut flags = self.flags.get();
+        if state {
+            flags.insert(IsFragment);
+        } else {
+            flags.remove(IsFragment);
+        }
+        self.flags.set(flags)
+    }
+
+    fn has_fragment_children(&self) -> bool {
+        self.flags.deref().get().contains(HasFragmentChildren)
+    }
+
+    fn set_has_fragment_children(&self, state: bool) {
+        let mut flags = self.flags.get();
+        if state {
+            flags.insert(HasFragmentChildren);
+        } else {
+            flags.remove(HasFragmentChildren);
+        }
+        self.flags.set(flags)
     }
 }
 

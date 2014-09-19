@@ -69,7 +69,6 @@ pub enum TimeProfilerCategory {
     LayoutStyleRecalcCategory,
     LayoutSelectorMatchCategory,
     LayoutTreeBuilderCategory,
-    LayoutDamagePropagateCategory,
     LayoutMainCategory,
     LayoutParallelWarmupCategory,
     LayoutShapingCategory,
@@ -87,8 +86,7 @@ impl Formatable for TimeProfilerCategory {
             LayoutStyleRecalcCategory |
             LayoutMainCategory |
             LayoutDispListBuildCategory |
-            LayoutShapingCategory |
-            LayoutDamagePropagateCategory => "+ ",
+            LayoutShapingCategory => "+ ",
             LayoutParallelWarmupCategory |
             LayoutSelectorMatchCategory |
             LayoutTreeBuilderCategory => "| + ",
@@ -100,7 +98,6 @@ impl Formatable for TimeProfilerCategory {
             LayoutStyleRecalcCategory => "Style Recalc",
             LayoutSelectorMatchCategory => "Selector Matching",
             LayoutTreeBuilderCategory => "Tree Building",
-            LayoutDamagePropagateCategory => "Damage Propagation",
             LayoutMainCategory => "Primary Layout Pass",
             LayoutParallelWarmupCategory => "Parallel Warmup",
             LayoutShapingCategory => "Shaping",
