@@ -7,7 +7,6 @@
 use css::node_style::StyledNode;
 use construct::FlowConstructor;
 use context::LayoutContext;
-use extra::LayoutAuxMethods;
 use util::{LayoutDataAccess, LayoutDataWrapper};
 use wrapper::{LayoutElement, LayoutNode, PostorderNodeMutTraversal, ThreadSafeLayoutNode};
 
