@@ -16,6 +16,7 @@ extern crate debug;
 
 extern crate alert;
 extern crate azure;
+extern crate devtools_traits;
 extern crate geom;
 extern crate gfx;
 #[cfg(not(target_os="android"))]

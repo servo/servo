@@ -5,7 +5,11 @@
 //! The script task is the task that owns the DOM in memory, runs JavaScript, and spawns parsing
 //! and layout tasks.
 
-use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, EventCast};
+use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
+use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
+use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
+use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, EventCast, ElementCast};
+use dom::bindings::conversions;
 use dom::bindings::conversions::{FromJSValConvertible, Empty};
 use dom::bindings::global::Window;
 use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, OptionalSettable};
@@ -31,6 +35,10 @@ use layout_interface::ContentChangedDocumentDamage;
 use layout_interface;
 use page::{Page, IterablePage, Frame};
 
+use devtools_traits;
+use devtools_traits::{DevtoolsControlChan, DevtoolsControlPort, NewGlobal, NodeInfo, GetRootNode};
+use devtools_traits::{DevtoolScriptControlMsg, EvaluateJS, EvaluateJSReply, GetDocumentElement};
+use devtools_traits::{GetChildren, GetLayout};
 use script_traits::{CompositorEvent, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent};
 use script_traits::{MouseMoveEvent, MouseUpEvent, ConstellationControlMsg, ScriptTaskFactory};
 use script_traits::{ResizeMsg, AttachLayoutMsg, LoadMsg, SendEventMsg, ResizeInactiveMsg};
@@ -157,6 +165,12 @@ pub struct ScriptTask {
     /// A handle to the compositor for communicating ready state messages.
     compositor: Box<ScriptListener>,
 
+    /// For providing instructions to an optional devtools server.
+    devtools_chan: Option<DevtoolsControlChan>,
+    /// For receiving commands from an optional devtools server. Will be ignored if
+    /// no such server exists.
+    devtools_port: DevtoolsControlPort,
+
     /// The JavaScript runtime.
     js_runtime: js::rust::rt,
     /// The JSContext.
@@ -240,6 +254,7 @@ impl ScriptTaskFactory for ScriptTask {
                   failure_msg: Failure,
                   resource_task: ResourceTask,
                   image_cache_task: ImageCacheTask,
+                  devtools_chan: Option<DevtoolsControlChan>,
                   window_size: WindowSizeData) {
         let ConstellationChan(const_chan) = constellation_chan.clone();
         let (script_chan, script_port) = channel();
@@ -255,6 +270,7 @@ impl ScriptTaskFactory for ScriptTask {
                                               constellation_chan,
                                               resource_task,
                                               image_cache_task,
+                                              devtools_chan,
                                               window_size);
             let mut failsafe = ScriptMemoryFailsafe::new(&*script_task);
             script_task.start();
@@ -277,6 +293,7 @@ impl ScriptTask {
                constellation_chan: ConstellationChan,
                resource_task: ResourceTask,
                img_cache_task: ImageCacheTask,
+               devtools_chan: Option<DevtoolsControlChan>,
                window_size: WindowSizeData)
                -> Rc<ScriptTask> {
         let (js_runtime, js_context) = ScriptTask::new_rt_and_cx();
@@ -299,6 +316,14 @@ impl ScriptTask {
                              resource_task.clone(),
                              constellation_chan.clone(),
                              js_context.clone());
+
+        // Notify devtools that a new script global exists.
+        //FIXME: Move this into handle_load after we create a window instead.
+        let (devtools_sender, devtools_receiver) = channel();
+        devtools_chan.as_ref().map(|chan| {
+            chan.send(NewGlobal(id, devtools_sender.clone()));
+        });
+
         Rc::new(ScriptTask {
             page: RefCell::new(Rc::new(page)),
 
@@ -311,6 +336,8 @@ impl ScriptTask {
             control_port: control_port,
             constellation_chan: constellation_chan,
             compositor: compositor,
+            devtools_chan: devtools_chan,
+            devtools_port: devtools_receiver,
 
             js_runtime: js_runtime,
             js_context: RefCell::new(Some(js_context)),
@@ -392,6 +419,7 @@ impl ScriptTask {
         enum MixedMessage {
             FromConstellation(ConstellationControlMsg),
             FromScript(ScriptMsg),
+            FromDevtools(DevtoolScriptControlMsg),
         }
 
         // Store new resizes, and gather all other events.
@@ -402,20 +430,27 @@ impl ScriptTask {
             let sel = Select::new();
             let mut port1 = sel.handle(&self.port);
             let mut port2 = sel.handle(&self.control_port);
+            let mut port3 = sel.handle(&self.devtools_port);
             unsafe {
                 port1.add();
                 port2.add();
+                if self.devtools_chan.is_some() {
+                    port3.add();
+                }
             }
             let ret = sel.wait();
             if ret == port1.id() {
                 FromScript(self.port.recv())
             } else if ret == port2.id() {
                 FromConstellation(self.control_port.recv())
+            } else if ret == port3.id() {
+                FromDevtools(self.devtools_port.recv())
             } else {
                 fail!("unexpected select result")
             }
         };
 
+        // Squash any pending resize events in the queue.
         loop {
             match event {
                 // This has to be handled before the ResizeMsg below,
@@ -434,9 +469,15 @@ impl ScriptTask {
                 }
             }
 
+            // If any of our input sources has an event pending, we'll perform another iteration
+            // and check for more resize events. If there are no events pending, we'll move
+            // on and execute the sequential non-resize events we've seen.
             match self.control_port.try_recv() {
                 Err(_) => match self.port.try_recv() {
-                    Err(_) => break,
+                    Err(_) => match self.devtools_port.try_recv() {
+                        Err(_) => break,
+                        Ok(ev) => event = FromDevtools(ev),
+                    },
                     Ok(ev) => event = FromScript(ev),
                 },
                 Ok(ev) => event = FromConstellation(ev),
@@ -463,10 +504,85 @@ impl ScriptTask {
                 FromScript(DOMMessage(..)) => fail!("unexpected message"),
                 FromScript(WorkerPostMessage(addr, data, nbytes)) => Worker::handle_message(addr, data, nbytes),
                 FromScript(WorkerRelease(addr)) => Worker::handle_release(addr),
+                FromDevtools(EvaluateJS(id, s, reply)) => self.handle_evaluate_js(id, s, reply),
+                FromDevtools(GetRootNode(id, reply)) => self.handle_get_root_node(id, reply),
+                FromDevtools(GetDocumentElement(id, reply)) => self.handle_get_document_element(id, reply),
+                FromDevtools(GetChildren(id, node_id, reply)) => self.handle_get_children(id, node_id, reply),
+                FromDevtools(GetLayout(id, node_id, reply)) => self.handle_get_layout(id, node_id, reply),
             }
         }
 
         true
+    }
+
+    fn handle_evaluate_js(&self, pipeline: PipelineId, eval: String, reply: Sender<EvaluateJSReply>) {
+        let page = get_page(&*self.page.borrow(), pipeline);
+        let frame = page.frame();
+        let window = frame.get_ref().window.root();
+        let cx = window.get_cx();
+        let rval = window.evaluate_js_with_result(eval.as_slice());
+
+        reply.send(if rval.is_undefined() {
+            devtools_traits::VoidValue
+        } else if rval.is_boolean() {
+            devtools_traits::BooleanValue(rval.to_boolean())
+        } else if rval.is_double() {
+            devtools_traits::NumberValue(FromJSValConvertible::from_jsval(cx, rval, ()).unwrap())
+        } else if rval.is_string() {
+            //FIXME: use jsstring_to_str when jsval grows to_jsstring
+            devtools_traits::StringValue(FromJSValConvertible::from_jsval(cx, rval, conversions::Default).unwrap())
+        } else {
+            //FIXME: jsvals don't have an is_int32/is_number yet
+            assert!(rval.is_object_or_null());
+            fail!("object values unimplemented")
+        });
+    }
+
+    fn handle_get_root_node(&self, pipeline: PipelineId, reply: Sender<NodeInfo>) {
+        let page = get_page(&*self.page.borrow(), pipeline);
+        let frame = page.frame();
+        let document = frame.get_ref().document.root();
+
+        let node: &JSRef<Node> = NodeCast::from_ref(&*document);
+        reply.send(node.summarize());
+    }
+
+    fn handle_get_document_element(&self, pipeline: PipelineId, reply: Sender<NodeInfo>) {
+        let page = get_page(&*self.page.borrow(), pipeline);
+        let frame = page.frame();
+        let document = frame.get_ref().document.root();
+        let document_element = document.GetDocumentElement().root().unwrap();
+
+        let node: &JSRef<Node> = NodeCast::from_ref(&*document_element);
+        reply.send(node.summarize());
+    }
+
+    fn find_node_by_unique_id(&self, pipeline: PipelineId, node_id: String) -> Temporary<Node> {
+        let page = get_page(&*self.page.borrow(), pipeline);
+        let frame = page.frame();
+        let document = frame.get_ref().document.root();
+        let node: &JSRef<Node> = NodeCast::from_ref(&*document);
+
+        for candidate in node.traverse_preorder() {
+            if candidate.get_unique_id().as_slice() == node_id.as_slice() {
+                return Temporary::from_rooted(&candidate);
+            }
+        }
+
+        fail!("couldn't find node with unique id {:s}", node_id)
+    }
+
+    fn handle_get_children(&self, pipeline: PipelineId, node_id: String, reply: Sender<Vec<NodeInfo>>) {
+        let parent = self.find_node_by_unique_id(pipeline, node_id).root();
+        let children = parent.children().map(|child| child.summarize()).collect();
+        reply.send(children);
+    }
+
+    fn handle_get_layout(&self, pipeline: PipelineId, node_id: String, reply: Sender<(f32, f32)>) {
+        let node = self.find_node_by_unique_id(pipeline, node_id).root();
+        let elem: &JSRef<Element> = ElementCast::to_ref(&*node).expect("should be getting layout of element");
+        let rect = elem.GetBoundingClientRect().root();
+        reply.send((rect.Width(), rect.Height()));
     }
 
     fn handle_new_layout(&self, new_layout_info: NewLayoutInfo) {

@@ -16,6 +16,7 @@
 extern crate log;
 
 extern crate debug;
+extern crate devtools_traits;
 extern crate cssparser;
 extern crate collections;
 extern crate geom;
@@ -39,6 +40,7 @@ extern crate style;
 extern crate sync;
 extern crate servo_msg = "msg";
 extern crate url;
+extern crate uuid;
 
 pub mod cors;
 

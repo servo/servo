@@ -1,0 +1,14 @@
+[package]
+name = "devtools"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+
+[lib]
+name = "devtools"
+path = "lib.rs"
+
+[dependencies.devtools_traits]
+path = "../devtools_traits"
+
+[dependencies.msg]
+path = "../msg"

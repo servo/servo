@@ -67,6 +67,7 @@ pub extern "C" fn cef_run_message_loop() {
         show_debug_borders: false,
         enable_text_antialiasing: true,
         trace_layout: false,
+        devtools_server: false,
     };
     native::start(0, 0 as *const *const u8, proc() {
        servo::run(opts);

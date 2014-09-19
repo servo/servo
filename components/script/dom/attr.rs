@@ -13,6 +13,8 @@ use dom::element::{Element, AttributeHandlers};
 use dom::node::Node;
 use dom::window::Window;
 use dom::virtualmethods::vtable_for;
+
+use devtools_traits::AttrInfo;
 use servo_util::atom::Atom;
 use servo_util::namespace;
 use servo_util::namespace::Namespace;
@@ -149,6 +151,7 @@ pub trait AttrHelpers {
     fn set_value(&self, set_type: AttrSettingType, value: AttrValue);
     fn value<'a>(&'a self) -> Ref<'a, AttrValue>;
     fn local_name<'a>(&'a self) -> &'a Atom;
+    fn summarize(&self) -> AttrInfo;
 }
 
 impl<'a> AttrHelpers for JSRef<'a, Attr> {
@@ -183,6 +186,14 @@ impl<'a> AttrHelpers for JSRef<'a, Attr> {
 
     fn local_name<'a>(&'a self) -> &'a Atom {
         &self.local_name
+    }
+
+    fn summarize(&self) -> AttrInfo {
+        AttrInfo {
+            namespace: self.namespace.to_str().to_string(),
+            name: self.Name(),
+            value: self.Value(),
+        }
     }
 }
 

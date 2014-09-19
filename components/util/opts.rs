@@ -83,6 +83,9 @@ pub struct Opts {
     /// for debugging purposes. Settings this implies sequential layout
     /// and render.
     pub trace_layout: bool,
+
+    /// True if we should start a server to listen to remote Firefox devtools connections.
+    pub devtools_server: bool,
 }
 
 fn print_usage(app: &str, opts: &[getopts::OptGroup]) {
@@ -117,6 +120,7 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
         getopts::optflag("", "show-debug-borders", "Show debugging borders on layers and tiles."),
         getopts::optflag("", "disable-text-aa", "Disable antialiasing for text rendering."),
         getopts::optflag("", "trace-layout", "Write layout trace to external file for debugging."),
+        getopts::optflag("", "devtools", "Start remote devtools server"),
         getopts::optflag("h", "help", "Print this message")
     );
 
@@ -217,6 +221,7 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
         show_debug_borders: opt_match.opt_present("show-debug-borders"),
         enable_text_antialiasing: !opt_match.opt_present("disable-text-aa"),
         trace_layout: trace_layout,
+        devtools_server: opt_match.opt_present("devtools"),
     })
 }
 

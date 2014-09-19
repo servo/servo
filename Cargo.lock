@@ -60,6 +60,8 @@ dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure#9c5567b79d8b87e8ef3b48c5842f453978035d21)",
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics#04bd18a4eb83a645a1a32326a33149ba2d0e81be)",
  "core_text 0.1.0 (git+https://github.com/servo/rust-core-text#e2280222889c030df27ded9a378c14a0e31ab463)",
+ "devtools 0.0.1",
+ "devtools_traits 0.0.1",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#2982b770db6e5e3270305e0fd6b8068f6f80a489)",
  "gfx 0.0.1",
  "glfw 0.0.1 (git+https://github.com/servo/glfw-rs?ref=servo#dd1a111c827994886d2cdebf91a1838603256390)",
@@ -103,6 +105,21 @@ version = "0.1.0"
 source = "git+https://github.com/servo/rust-cssparser#42346400a6629b17a48d06f0a9b28ae498947c6f"
 dependencies = [
  "encoding 0.1.0 (git+https://github.com/lifthrasiir/rust-encoding#12b6610adff6eddc060691888c36017cd3ad57f7)",
+]
+
+[[package]]
+name = "devtools"
+version = "0.0.1"
+dependencies = [
+ "devtools_traits 0.0.1",
+ "msg 0.0.1",
+]
+
+[[package]]
+name = "devtools_traits"
+version = "0.0.1"
+dependencies = [
+ "msg 0.0.1",
 ]
 
 [[package]]
@@ -364,6 +381,7 @@ version = "0.0.1"
 dependencies = [
  "canvas 0.0.1",
  "cssparser 0.1.0 (git+https://github.com/servo/rust-cssparser#42346400a6629b17a48d06f0a9b28ae498947c6f)",
+ "devtools_traits 0.0.1",
  "encoding 0.1.0 (git+https://github.com/lifthrasiir/rust-encoding#12b6610adff6eddc060691888c36017cd3ad57f7)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#2982b770db6e5e3270305e0fd6b8068f6f80a489)",
  "gfx 0.0.1",
@@ -383,6 +401,7 @@ dependencies = [
 name = "script_traits"
 version = "0.0.1"
 dependencies = [
+ "devtools_traits 0.0.1",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#2982b770db6e5e3270305e0fd6b8068f6f80a489)",
  "msg 0.0.1",
  "net 0.0.1",

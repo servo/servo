@@ -9,7 +9,9 @@ use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
+use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::{NodeConstants, NodeMethods};
+use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
 use dom::bindings::codegen::InheritTypes::{CommentCast, DocumentCast, DocumentTypeCast};
 use dom::bindings::codegen::InheritTypes::{ElementCast, TextCast, NodeCast, ElementDerived};
@@ -36,7 +38,7 @@ use dom::element::{HTMLInputElementTypeId, HTMLSelectElementTypeId};
 use dom::element::{HTMLTextAreaElementTypeId, HTMLOptGroupElementTypeId};
 use dom::element::{HTMLOptionElementTypeId, HTMLFieldSetElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
-use dom::nodelist::{NodeList};
+use dom::nodelist::NodeList;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
@@ -45,6 +47,7 @@ use geom::rect::Rect;
 use html::hubbub_html_parser::build_element_from_tag;
 use layout_interface::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC,
                        LayoutChan, ReapLayoutDataMsg, TrustedNodeAddress, UntrustedNodeAddress};
+use devtools_traits::NodeInfo;
 use servo_util::geometry::Au;
 use servo_util::str::{DOMString, null_str_as_empty};
 use style::{parse_selector_list_from_str, matches};
@@ -59,6 +62,7 @@ use std::mem;
 use style;
 use style::ComputedValues;
 use sync::Arc;
+use uuid;
 
 use serialize::{Encoder, Encodable};
 
@@ -105,6 +109,8 @@ pub struct Node {
     /// Must be sent back to the layout task to be destroyed when this
     /// node is finalized.
     pub layout_data: LayoutDataRef,
+
+    unique_id: RefCell<String>,
 }
 
 impl<S: Encoder<E>, E> Encodable<S, E> for LayoutDataRef {
@@ -419,6 +425,9 @@ pub trait NodeHelpers<'m, 'n> {
     fn query_selector_all(&self, selectors: DOMString) -> Fallible<Temporary<NodeList>>;
 
     fn remove_self(&self);
+
+    fn get_unique_id(&self) -> String;
+    fn summarize(&self) -> NodeInfo;
 }
 
 impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
@@ -685,6 +694,48 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
         match self.parent_node().root() {
             Some(ref parent) => parent.remove_child(self),
             None => ()
+        }
+    }
+
+    fn get_unique_id(&self) -> String {
+        self.unique_id.borrow().clone()
+    }
+
+    fn summarize(&self) -> NodeInfo {
+        if self.unique_id.borrow().is_empty() {
+            let mut unique_id = self.unique_id.borrow_mut();
+            *unique_id = uuid::Uuid::new_v4().to_simple_str();
+        }
+
+        NodeInfo {
+            uniqueId: self.unique_id.borrow().clone(),
+            baseURI: self.GetBaseURI().unwrap_or("".to_string()),
+            parent: self.GetParentNode().root().map(|node| node.get_unique_id()).unwrap_or("".to_string()),
+            nodeType: self.NodeType() as uint,
+            namespaceURI: "".to_string(), //FIXME
+            nodeName: self.NodeName(),
+            numChildren: self.ChildNodes().root().Length() as uint,
+
+            //FIXME doctype nodes only
+            name: "".to_string(),
+            publicId: "".to_string(),
+            systemId: "".to_string(),
+
+            attrs: if self.is_element() {
+                let elem: &JSRef<Element> = ElementCast::to_ref(self).unwrap();
+                elem.summarize()
+            } else {
+                vec!()
+            },
+
+            isDocumentElement:
+                self.owner_doc().root()
+                    .GetDocumentElement()
+                    .map(|elem| NodeCast::from_ref(&*elem.root()) == self)
+                    .unwrap_or(false),
+
+            shortValue: self.GetNodeValue().unwrap_or("".to_string()), //FIXME: truncate
+            incompleteValue: false, //FIXME: reflect truncation
         }
     }
 }
@@ -991,6 +1042,8 @@ impl Node {
             flags: Traceable::new(RefCell::new(NodeFlags::new(type_id))),
 
             layout_data: LayoutDataRef::new(),
+
+            unique_id: RefCell::new("".to_string()),
         }
     }
 
