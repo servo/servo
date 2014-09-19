@@ -351,10 +351,12 @@ impl TableColumnFragmentInfo {
 impl Fragment {
     /// Constructs a new `Fragment` instance for the given node.
     ///
+    /// This does *not* construct the text for generated content. See comments in
+    /// `FlowConstructor::build_specific_fragment_info_for_node()` for more details.
+    ///
     /// Arguments:
     ///
     ///   * `constructor`: The flow constructor.
-    ///
     ///   * `node`: The node to create a fragment for.
     pub fn new(constructor: &mut FlowConstructor, node: &ThreadSafeLayoutNode) -> Fragment {
         let style = node.style().clone();
@@ -373,7 +375,8 @@ impl Fragment {
     }
 
     /// Constructs a new `Fragment` instance from a specific info.
-    pub fn new_from_specific_info(node: &ThreadSafeLayoutNode, specific: SpecificFragmentInfo) -> Fragment {
+    pub fn new_from_specific_info(node: &ThreadSafeLayoutNode, specific: SpecificFragmentInfo)
+                                  -> Fragment {
         let style = node.style().clone();
         let writing_mode = style.writing_mode;
         Fragment {

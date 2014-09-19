@@ -212,14 +212,24 @@ impl<'a> FlowConstructor<'a> {
             Some(url) => {
                 // FIXME(pcwalton): The fact that image fragments store the cache within them makes
                 // little sense to me.
-                ImageFragment(ImageFragmentInfo::new(node, url, self.layout_context.shared.image_cache.clone()))
+                ImageFragment(ImageFragmentInfo::new(node,
+                                                     url,
+                                                     self.layout_context
+                                                         .shared
+                                                         .image_cache
+                                                         .clone()))
             }
         }
     }
 
     /// Builds specific `Fragment` info for the given node.
+    ///
+    /// This does *not* construct the text for generated content (but, for generated content with
+    /// `display: block`, it does construct the generic fragment corresponding to the block).
+    /// Construction of the text fragment is done specially by `build_flow_using_children()` and
+    /// `build_fragments_for_replaced_inline_content()`.
     pub fn build_specific_fragment_info_for_node(&mut self, node: &ThreadSafeLayoutNode)
-                                            -> SpecificFragmentInfo {
+                                                 -> SpecificFragmentInfo {
         match node.type_id() {
             Some(ElementNodeTypeId(HTMLImageElementTypeId)) => {
                 self.build_fragment_info_for_image(node, node.image_url())
@@ -239,8 +249,11 @@ impl<'a> FlowConstructor<'a> {
             Some(ElementNodeTypeId(HTMLTableHeaderCellElementTypeId)) => TableCellFragment,
             Some(ElementNodeTypeId(HTMLTableRowElementTypeId)) |
             Some(ElementNodeTypeId(HTMLTableSectionElementTypeId)) => TableRowFragment,
-            None | Some(TextNodeTypeId) => UnscannedTextFragment(UnscannedTextFragmentInfo::new(node)),
-            _ => GenericFragment,
+            Some(TextNodeTypeId) => UnscannedTextFragment(UnscannedTextFragmentInfo::new(node)),
+            _ => {
+                // This includes pseudo-elements.
+                GenericFragment
+            }
         }
     }
 
@@ -431,6 +444,15 @@ impl<'a> FlowConstructor<'a> {
         let mut consecutive_siblings = vec!();
         let mut first_fragment = true;
 
+        // Special case: If this is generated content, then we need to initialize the accumulator
+        // with the fragment corresponding to that content.
+        if node.get_pseudo_element_type() != Normal {
+            let fragment_info = UnscannedTextFragment(UnscannedTextFragmentInfo::new(node));
+            let mut fragment = Fragment::new_from_specific_info(node, fragment_info);
+            inline_fragment_accumulator.fragments.push(&mut fragment, node.style().clone());
+            first_fragment = false;
+        }
+
         // List of absolute descendants, in tree order.
         let mut abs_descendants = Descendants::new();
         for kid in node.children() {
@@ -587,8 +609,9 @@ impl<'a> FlowConstructor<'a> {
         }
     }
 
-    /// Creates an `InlineFragmentsConstructionResult` for replaced content. Replaced content doesn't
-    /// render its children, so this just nukes a child's fragments and creates a `Fragment`.
+    /// Creates an `InlineFragmentsConstructionResult` for replaced content. Replaced content
+    /// doesn't render its children, so this just nukes a child's fragments and creates a
+    /// `Fragment`.
     fn build_fragments_for_replaced_inline_content(&mut self, node: &ThreadSafeLayoutNode)
                                                -> ConstructionResult {
         for kid in node.children() {
@@ -605,8 +628,18 @@ impl<'a> FlowConstructor<'a> {
                 node.style().clone()))
         }
 
+        // If this is generated content, then we need to initialize the accumulator with the
+        // fragment corresponding to that content. Otherwise, just initialize with the ordinary
+        // fragment that needs to be generated for this inline node.
+        let mut fragment = if node.get_pseudo_element_type() != Normal {
+            let fragment_info = UnscannedTextFragment(UnscannedTextFragmentInfo::new(node));
+            Fragment::new_from_specific_info(node, fragment_info)
+        } else {
+            Fragment::new(self, node)
+        };
+
         let mut fragments = InlineFragments::new();
-        fragments.push(&mut Fragment::new(self, node), node.style().clone());
+        fragments.push(&mut fragment, node.style().clone());
 
         let construction_item = InlineFragmentsConstructionItem(InlineFragmentsConstructionResult {
             splits: Vec::new(),
@@ -853,17 +886,17 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
     //
     // TODO: This should actually consult the table in that section to get the
     // final computed value for 'display'.
-    //
-    // `#[inline(always)]` because this is always called from the traversal function and for some
-    // reason LLVM's inlining heuristics go awry here.
-    #[inline(always)]
     fn process(&mut self, node: &ThreadSafeLayoutNode) -> bool {
         // Get the `display` property for this node, and determine whether this node is floated.
         let (display, float, positioning) = match node.type_id() {
             None => {
                 // Pseudo-element.
                 let style = node.style();
-                (display::inline, style.get_box().float, style.get_box().position)
+                let display = match node.get_pseudo_element_type() {
+                    Normal | Before | After => display::inline,
+                    BeforeBlock | AfterBlock => display::block,
+                };
+                (display, style.get_box().float, style.get_box().position)
             }
             Some(ElementNodeTypeId(_)) => {
                 let style = node.style();
