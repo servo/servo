@@ -11,8 +11,8 @@ path = "lib.rs"
 
 doc = false
 
-[dependencies.macros]
-path = "../macros"
+[dependencies.plugins]
+path = "../plugins"
 
 [dependencies.util]
 path = "../util"

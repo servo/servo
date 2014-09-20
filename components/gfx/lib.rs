@@ -22,7 +22,7 @@ extern crate stb_image;
 extern crate png;
 extern crate serialize;
 #[phase(plugin)]
-extern crate "macros" as servo_macros;
+extern crate "plugins" as servo_plugins;
 extern crate "net" as servo_net;
 #[phase(plugin, link)]
 extern crate "util" as servo_util;

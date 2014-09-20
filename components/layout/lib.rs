@@ -23,7 +23,7 @@ extern crate script_traits;
 extern crate serialize;
 extern crate style;
 #[phase(plugin)]
-extern crate "macros" as servo_macros;
+extern crate "plugins" as servo_plugins;
 extern crate "net" as servo_net;
 extern crate "msg" as servo_msg;
 #[phase(plugin, link)]

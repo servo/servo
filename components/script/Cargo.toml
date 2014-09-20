@@ -9,8 +9,8 @@ build = "make -f makefile.cargo"
 name = "script"
 path = "lib.rs"
 
-[dependencies.macros]
-path = "../macros"
+[dependencies.plugins]
+path = "../plugins"
 
 [dependencies.util]
 path = "../util"
