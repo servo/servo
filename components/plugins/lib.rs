@@ -20,8 +20,6 @@ use rustc::plugin::Registry;
 
 mod lints;
 mod macros;
-#[cfg(test)]
-mod tests;
 
 
 #[plugin_registrar]

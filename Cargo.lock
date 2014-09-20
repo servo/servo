@@ -364,6 +364,10 @@ version = "0.0.0"
 source = "git+https://github.com/sfackler/rust-phf#06254fdde7708630a6397c41c6c17ef81a4b66a0"
 
 [[package]]
+name = "plugins"
+version = "0.0.1"
+
+[[package]]
 name = "png"
 version = "0.1.0"
 source = "git+https://github.com/servo/rust-png#74418ffbf20e94b0d3bed4a9d004062a13342c79"

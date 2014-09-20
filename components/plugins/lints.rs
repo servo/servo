@@ -1,7 +1,3 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
 use syntax::{ast, codemap, visit};
 use syntax::attr::AttrMetaMethods;
 use rustc::lint::{Context, LintPass, LintArray};
@@ -95,9 +91,9 @@ impl LintPass for UnrootedPass {
         }
     }
 
-    fn check_fn(&mut self, cx: &Context, kind: &visit::FnKind, decl: &ast::FnDecl,
+    fn check_fn(&mut self, cx: &Context, kind: visit::FnKind, decl: &ast::FnDecl,
                 block: &ast::Block, _span: codemap::Span, _id: ast::NodeId) {
-        match *kind {
+        match kind {
             visit::FkItemFn(i, _, _, _) |
             visit::FkMethod(i, _, _) if i.as_str() == "new" || i.as_str() == "new_inherited" => {
                 return;

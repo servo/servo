@@ -12,7 +12,7 @@ dependencies = [
  "glut 0.0.1 (git+https://github.com/servo/rust-glut#01af0162ea0322ad1a40d6adb023a39813605949)",
  "js 0.1.0 (git+https://github.com/servo/rust-mozjs#41fb0d80a5ed5614ca13a120cdb3281e599d4e04)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers#ef89918471815dfced7aaf2f1594d5469f03eab7)",
- "macros 0.0.1",
+"plugins 0.0.1",
  "msg 0.0.1",
  "net 0.0.1",
  "opengles 0.1.0 (git+https://github.com/servo/rust-opengles#6776e9c07feb149d34b087039ecf6b2c143e3afc)",
@@ -194,7 +194,7 @@ dependencies = [
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#50a294fd997f0c6eb43e9a58ad6e227fdc2a4692)",
  "harfbuzz 0.1.0 (git+https://github.com/servo/rust-harfbuzz#ad520942cc17232e1a40cdd8a99c2905623d35f6)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers#ef89918471815dfced7aaf2f1594d5469f03eab7)",
- "macros 0.0.1",
+ "plugins 0.0.1",
  "msg 0.0.1",
  "net 0.0.1",
  "png 0.1.0 (git+https://github.com/servo/rust-png#74418ffbf20e94b0d3bed4a9d004062a13342c79)",
@@ -295,7 +295,7 @@ dependencies = [
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#50a294fd997f0c6eb43e9a58ad6e227fdc2a4692)",
  "gfx 0.0.1",
  "layout_traits 0.0.1",
- "macros 0.0.1",
+ "plugins 0.0.1",
  "net 0.0.1",
  "script 0.0.1",
  "script_traits 0.0.1",
@@ -321,7 +321,7 @@ version = "0.1.0"
 source = "git+https://github.com/Kimundi/lazy-static.rs#e62a65372f1dd9019e37eb9381d819edff80e360"
 
 [[package]]
-name = "macros"
+name = "plugins"
 version = "0.0.1"
 
 [[package]]
@@ -405,7 +405,7 @@ dependencies = [
  "http 0.1.0-pre (git+https://github.com/servo/rust-http?ref=servo#4fdedeea8fc77149adf51bb24a37372af21c25b7)",
  "hubbub 0.1.0 (git+https://github.com/servo/rust-hubbub#c7f868e688de6e9cbdc26aa09292ed072bc2648b)",
  "js 0.1.0 (git+https://github.com/servo/rust-mozjs#41fb0d80a5ed5614ca13a120cdb3281e599d4e04)",
- "macros 0.0.1",
+ "plugins 0.0.1",
  "msg 0.0.1",
  "net 0.0.1",
  "script_traits 0.0.1",
@@ -484,7 +484,7 @@ dependencies = [
  "encoding 0.1.0 (git+https://github.com/lifthrasiir/rust-encoding#35f0d70f65f73ba16f296f9ec675eddee661ba79)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#50a294fd997f0c6eb43e9a58ad6e227fdc2a4692)",
  "lazy_static 0.1.0 (git+https://github.com/Kimundi/lazy-static.rs#e62a65372f1dd9019e37eb9381d819edff80e360)",
- "macros 0.0.1",
+ "plugins 0.0.1",
  "url 0.1.0 (git+https://github.com/servo/rust-url#bfdf809365600a7941a77524f9bb065886de3379)",
  "util 0.0.1",
 ]
