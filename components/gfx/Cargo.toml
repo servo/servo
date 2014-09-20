@@ -51,12 +51,12 @@ git = "https://github.com/servo/rust-fontconfig"
 git = "https://github.com/servo/rust-freetype"
 
 [dependencies.core_foundation]
-git = "http://github.com/servo/rust-core-foundation"
+git = "https://github.com/servo/rust-core-foundation"
 
 [dependencies.core_graphics]
-git = "http://github.com/servo/rust-core-graphics"
+git = "https://github.com/servo/rust-core-graphics"
 
 [dependencies.core_text]
-git = "http://github.com/servo/rust-core-text"
+git = "https://github.com/servo/rust-core-text"
 
 
