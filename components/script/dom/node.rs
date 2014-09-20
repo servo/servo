@@ -929,7 +929,7 @@ impl NodeIterator {
     fn next_child<'b>(&self, node: JSRef<'b, Node>) -> Option<JSRef<'b, Node>> {
         if !self.include_descendants_of_void && node.is_element() {
             let elem: JSRef<Element> = ElementCast::to_ref(node).unwrap();
-            if elem.deref().is_void() {
+            if elem.is_void() {
                 None
             } else {
                 node.first_child().map(|child| (*child.root()).clone())

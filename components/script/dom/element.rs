@@ -242,6 +242,7 @@ pub trait ElementHelpers {
     fn get_local_name<'a>(&'a self) -> &'a Atom;
     fn get_namespace<'a>(&'a self) -> &'a Namespace;
     fn summarize(&self) -> Vec<AttrInfo>;
+    fn is_void(&self) -> bool;
 }
 
 impl<'a> ElementHelpers for JSRef<'a, Element> {
@@ -268,6 +269,20 @@ impl<'a> ElementHelpers for JSRef<'a, Element> {
             i += 1;
         }
         summarized
+    }
+
+   fn is_void(&self) -> bool {
+        if self.namespace != namespace::HTML {
+            return false
+        }
+        match self.local_name.as_slice() {
+            /* List of void elements from
+            http://www.whatwg.org/specs/web-apps/current-work/multipage/the-end.html#html-fragment-serialization-algorithm */
+            "area" | "base" | "basefont" | "bgsound" | "br" | "col" | "embed" |
+            "frame" | "hr" | "img" | "input" | "keygen" | "link" | "menuitem" |
+            "meta" | "param" | "source" | "track" | "wbr" => true,
+            _ => false
+        }
     }
 }
 
@@ -486,22 +501,6 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     fn set_uint_attribute(&self, name: &str, value: u32) {
         assert!(name == name.to_ascii_lower().as_slice());
         self.set_attribute(name, UIntAttrValue(value.to_string(), value));
-    }
-}
-
-impl Element {
-    pub fn is_void(&self) -> bool {
-        if self.namespace != namespace::HTML {
-            return false
-        }
-        match self.local_name.as_slice() {
-            /* List of void elements from
-            http://www.whatwg.org/specs/web-apps/current-work/multipage/the-end.html#html-fragment-serialization-algorithm */
-            "area" | "base" | "basefont" | "bgsound" | "br" | "col" | "embed" |
-            "frame" | "hr" | "img" | "input" | "keygen" | "link" | "menuitem" |
-            "meta" | "param" | "source" | "track" | "wbr" => true,
-            _ => false
-        }
     }
 }
 
