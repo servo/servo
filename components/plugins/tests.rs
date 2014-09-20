@@ -1,4 +1,8 @@
- use std::collections::hashmap::HashMap;
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+use std::collections::hashmap::HashMap;
 
 lazy_init! {
     static ref NUMBER: uint = times_two(3);
@@ -32,3 +36,4 @@ fn test_repeat() {
     assert_eq!(*NUMBER, 6);
     assert_eq!(*NUMBER, 6);
 }
+
