@@ -513,10 +513,6 @@ pub struct BlockFlow {
     /// block formatting contexts.
     previous_float_inline_size: Option<Au>,
 
-    /// The block-size of the block container of this block, if it is an explicit size (does not
-    /// depend on content heights).  Used for computing percentage values for `height`.
-    block_container_explicit_block_size: Option<Au>,
-
     /// Additional floating flow members.
     pub float: Option<Box<FloatedBlockInfo>>
 }
@@ -529,7 +525,6 @@ impl BlockFlow {
             is_root: false,
             static_b_offset: Au::new(0),
             previous_float_inline_size: None,
-            block_container_explicit_block_size: None,
             float: None
         }
     }
@@ -541,7 +536,6 @@ impl BlockFlow {
             is_root: false,
             static_b_offset: Au::new(0),
             previous_float_inline_size: None,
-            block_container_explicit_block_size: None,
             float: None
         }
     }
@@ -556,7 +550,6 @@ impl BlockFlow {
             is_root: false,
             static_b_offset: Au::new(0),
             previous_float_inline_size: None,
-            block_container_explicit_block_size: None,
             float: Some(box FloatedBlockInfo::new(float_kind, base.writing_mode)),
             base: base,
         }
@@ -983,7 +976,7 @@ impl BlockFlow {
 
         let mut candidate_block_size_iterator = CandidateBSizeIterator::new(
             self.fragment.style(),
-            self.block_container_explicit_block_size);
+            self.base.block_container_explicit_block_size);
         for candidate_block_size in candidate_block_size_iterator {
             candidate_block_size_iterator.candidate_value = match candidate_block_size {
                 Auto => block_size,
@@ -1101,7 +1094,9 @@ impl BlockFlow {
         self.fragment.border_box.start.b = self.fragment.margin.block_start;
 
         // Calculate content block-size, taking `min-block-size` and `max-block-size` into account.
-        let mut candidate_block_size_iterator = CandidateBSizeIterator::new(self.fragment.style(), None);
+        let mut candidate_block_size_iterator =
+            CandidateBSizeIterator::new(self.fragment.style(),
+                                        self.base.block_container_explicit_block_size);
         for candidate_block_size in candidate_block_size_iterator {
             candidate_block_size_iterator.candidate_value = match candidate_block_size {
                 Auto => content_block_size,
@@ -1324,11 +1319,11 @@ impl BlockFlow {
         self.base.position.start.b
     }
 
-    /// Assigns the computed inline-start content edge and inline-size to all the children of this block flow.
-    /// Also computes whether each child will be impacted by floats.
+    /// Assigns the computed inline-start content edge and inline-size to all the children of this
+    /// block flow. Also computes whether each child will be impacted by floats.
     ///
-    /// `#[inline(always)]` because this is called only from block or table inline-size assignment and
-    /// the code for block layout is significantly simpler.
+    /// `#[inline(always)]` because this is called only from block or table inline-size assignment
+    /// and the code for block layout is significantly simpler.
     #[inline(always)]
     pub fn propagate_assigned_inline_size_to_children(&mut self,
                                                 inline_start_content_edge: Au,
@@ -1355,16 +1350,16 @@ impl BlockFlow {
         // This value is used only for table cells.
         let mut inline_start_margin_edge = inline_start_content_edge;
 
-        // The inline-size of the last float, if there was one. This is used for estimating the inline-sizes of
-        // block formatting contexts. (We estimate that the inline-size of any block formatting context
-        // that we see will be based on the inline-size of the containing block as well as the last float
-        // seen before it.)
+        // The inline-size of the last float, if there was one. This is used for estimating the
+        // inline-sizes of block formatting contexts. (We estimate that the inline-size of any
+        // block formatting context that we see will be based on the inline-size of the containing
+        // block as well as the last float seen before it.)
         let mut last_float_inline_size = None;
 
         // Calculate non-auto block size to pass to children.
         let content_block_size = self.fragment.style().content_block_size();
         let explicit_content_size = match (content_block_size,
-                                           self.block_container_explicit_block_size) {
+                                           self.base.block_container_explicit_block_size) {
             (LPA_Percentage(percent), Some(container_size)) => {
                 Some(container_size.scale_by(percent))
             }
@@ -1373,6 +1368,8 @@ impl BlockFlow {
         };
 
         for (i, kid) in self.base.child_iter().enumerate() {
+            flow::mut_base(kid).block_container_explicit_block_size = explicit_content_size;
+
             if kid.is_block_flow() {
                 let kid_block = kid.as_block();
                 kid_block.base.absolute_static_i_offset = absolute_static_i_offset;
@@ -1383,7 +1380,6 @@ impl BlockFlow {
                 } else {
                     kid_block.previous_float_inline_size = last_float_inline_size
                 }
-                kid_block.block_container_explicit_block_size = explicit_content_size;
             }
 
             // The inline-start margin edge of the child flow is at our inline-start content edge, and its inline-size

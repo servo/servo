@@ -738,6 +738,10 @@ pub struct BaseFlow {
     /// containing block. This is in tree order. This includes any direct children.
     pub abs_descendants: AbsDescendants,
 
+    /// The block-size of the block container of this flow, if it is an explicit size (does not
+    /// depend on content heights).  Used for computing percentage values for `height`.
+    pub block_container_explicit_block_size: Option<Au>,
+
     /// Offset wrt the nearest positioned ancestor - aka the Containing Block
     /// for any absolutely positioned elements.
     pub absolute_static_i_offset: Au,
@@ -820,6 +824,7 @@ impl BaseFlow {
             abs_descendants: Descendants::new(),
             absolute_static_i_offset: Au::new(0),
             fixed_static_i_offset: Au::new(0),
+            block_container_explicit_block_size: None,
             absolute_cb: ContainingBlockLink::new(),
             display_list: DisplayList::new(),
             layers: DList::new(),
