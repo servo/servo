@@ -1481,7 +1481,7 @@ impl Flow for BlockFlow {
     ///
     /// TODO(pcwalton): Inline blocks.
     fn bubble_inline_sizes(&mut self, _: &LayoutContext) {
-        let _scope = layout_debug_scope!("bubble_inline_sizes {:s}", self.base.debug_id());
+        let _scope = layout_debug_scope!("block::bubble_inline_sizes {:s}", self.base.debug_id());
 
         let mut flags = self.base.flags;
         flags.set_has_left_floated_descendants(false);

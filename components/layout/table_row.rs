@@ -13,6 +13,7 @@ use context::LayoutContext;
 use flow::{TableRowFlowClass, FlowClass, Flow, ImmutableFlowUtils};
 use flow;
 use fragment::Fragment;
+use layout_debug;
 use table::InternalTable;
 use model::{MaybeAuto, Specified, Auto};
 use wrapper::ThreadSafeLayoutNode;
@@ -22,6 +23,7 @@ use std::cmp::max;
 use std::fmt;
 
 /// A table formatting context.
+#[deriving(Encodable)]
 pub struct TableRowFlow {
     pub block_flow: BlockFlow,
 
@@ -143,6 +145,10 @@ impl Flow for TableRowFlow {
         self
     }
 
+    fn as_immutable_table_row<'a>(&'a self) -> &'a TableRowFlow {
+        self
+    }
+
     fn as_block<'a>(&'a mut self) -> &'a mut BlockFlow {
         &mut self.block_flow
     }
@@ -166,6 +172,9 @@ impl Flow for TableRowFlow {
     /// Min/pref inline-sizes set by this function are used in automatic table layout calculation.
     /// The specified column inline-sizes of children cells are used in fixed table layout calculation.
     fn bubble_inline_sizes(&mut self, _: &LayoutContext) {
+        let _scope = layout_debug_scope!("table_row::bubble_inline_sizes {:s}",
+                                            self.block_flow.base.debug_id());
+
         let mut min_inline_size = Au(0);
         let mut pref_inline_size = Au(0);
         /* find the specified inline_sizes from child table-cell contexts */
@@ -195,6 +204,8 @@ impl Flow for TableRowFlow {
     /// Recursively (top-down) determines the actual inline-size of child contexts and fragments. When called
     /// on this context, the context has had its inline-size set by the parent context.
     fn assign_inline_sizes(&mut self, ctx: &LayoutContext) {
+        let _scope = layout_debug_scope!("table_row::assign_inline_sizes {:s}",
+                                            self.block_flow.base.debug_id());
         debug!("assign_inline_sizes({}): assigning inline_size for flow", "table_row");
 
         // The position was set to the containing block by the flow's parent.

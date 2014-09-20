@@ -13,6 +13,7 @@ use context::LayoutContext;
 use floats::FloatKind;
 use flow::{TableFlowClass, FlowClass, Flow, ImmutableFlowUtils};
 use fragment::Fragment;
+use layout_debug;
 use table_wrapper::{TableLayout, FixedLayout, AutoLayout};
 use wrapper::ThreadSafeLayoutNode;
 
@@ -25,6 +26,7 @@ use style::computed_values::table_layout;
 /// A table flow corresponded to the table's internal table fragment under a table wrapper flow.
 /// The properties `position`, `float`, and `margin-*` are used on the table wrapper fragment,
 /// not table fragment per CSS 2.1 § 10.5.
+#[deriving(Encodable)]
 pub struct TableFlow {
     pub block_flow: BlockFlow,
 
@@ -145,6 +147,10 @@ impl Flow for TableFlow {
         self
     }
 
+    fn as_immutable_table<'a>(&'a self) -> &'a TableFlow {
+        self
+    }
+
     fn as_block<'a>(&'a mut self) -> &'a mut BlockFlow {
         &mut self.block_flow
     }
@@ -166,6 +172,9 @@ impl Flow for TableFlow {
     /// The maximum min/pref inline-sizes of each column are set from the rows for the automatic
     /// table layout calculation.
     fn bubble_inline_sizes(&mut self, _: &LayoutContext) {
+        let _scope = layout_debug_scope!("table::bubble_inline_sizes {:s}",
+                                            self.block_flow.base.debug_id());
+
         let mut min_inline_size = Au(0);
         let mut pref_inline_size = Au(0);
         let mut did_first_row = false;
@@ -241,6 +250,8 @@ impl Flow for TableFlow {
     /// Recursively (top-down) determines the actual inline-size of child contexts and fragments. When
     /// called on this context, the context has had its inline-size set by the parent context.
     fn assign_inline_sizes(&mut self, ctx: &LayoutContext) {
+        let _scope = layout_debug_scope!("table::assign_inline_sizes {:s}",
+                                            self.block_flow.base.debug_id());
         debug!("assign_inline_sizes({}): assigning inline_size for flow", "table");
 
         // The position was set to the containing block by the flow's parent.

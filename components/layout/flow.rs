@@ -103,8 +103,19 @@ pub trait Flow: fmt::Show + ToString + Share {
         fail!("called as_table_wrapper() on a non-tablewrapper flow")
     }
 
+    /// If this is a table wrapper flow, returns the underlying object, borrowed immutably. Fails
+    /// otherwise.
+    fn as_immutable_table_wrapper<'a>(&'a self) -> &'a TableWrapperFlow {
+        fail!("called as_immutable_table_wrapper() on a non-tablewrapper flow")
+    }
+
     /// If this is a table flow, returns the underlying object. Fails otherwise.
     fn as_table<'a>(&'a mut self) -> &'a mut TableFlow {
+        fail!("called as_table() on a non-table flow")
+    }
+
+    /// If this is a table flow, returns the underlying object, borrowed immutably. Fails otherwise.
+    fn as_immutable_table<'a>(&'a self) -> &'a TableFlow {
         fail!("called as_table() on a non-table flow")
     }
 
@@ -118,8 +129,20 @@ pub trait Flow: fmt::Show + ToString + Share {
         fail!("called as_table_rowgroup() on a non-tablerowgroup flow")
     }
 
+    /// If this is a table rowgroup flow, returns the underlying object, borrowed immutably. Fails
+    /// otherwise.
+    fn as_immutable_table_rowgroup<'a>(&'a self) -> &'a TableRowGroupFlow {
+        fail!("called as_table_rowgroup() on a non-tablerowgroup flow")
+    }
+
     /// If this is a table row flow, returns the underlying object. Fails otherwise.
     fn as_table_row<'a>(&'a mut self) -> &'a mut TableRowFlow {
+        fail!("called as_table_row() on a non-tablerow flow")
+    }
+
+    /// If this is a table row flow, returns the underlying object, borrowed immutably. Fails
+    /// otherwise.
+    fn as_immutable_table_row<'a>(&'a self) -> &'a TableRowFlow {
         fail!("called as_table_row() on a non-tablerow flow")
     }
 
@@ -130,6 +153,12 @@ pub trait Flow: fmt::Show + ToString + Share {
 
     /// If this is a table cell flow, returns the underlying object. Fails otherwise.
     fn as_table_cell<'a>(&'a mut self) -> &'a mut TableCellFlow {
+        fail!("called as_table_cell() on a non-tablecell flow")
+    }
+
+    /// If this is a table cell flow, returns the underlying object, borrowed immutably. Fails
+    /// otherwise.
+    fn as_immutable_table_cell<'a>(&'a self) -> &'a TableCellFlow {
         fail!("called as_table_cell() on a non-tablecell flow")
     }
 
@@ -289,7 +318,12 @@ impl<'a, E, S: Encoder<E>> Encodable<S, E> for &'a Flow {
                 match self.class() {
                     BlockFlowClass => self.as_immutable_block().encode(e),
                     InlineFlowClass => self.as_immutable_inline().encode(e),
-                    _ => { Ok(()) } // TODO: Support tables
+                    TableFlowClass => self.as_immutable_table().encode(e),
+                    TableWrapperFlowClass => self.as_immutable_table_wrapper().encode(e),
+                    TableRowGroupFlowClass => self.as_immutable_table_rowgroup().encode(e),
+                    TableRowFlowClass => self.as_immutable_table_row().encode(e),
+                    TableCellFlowClass => self.as_immutable_table_cell().encode(e),
+                    _ => { Ok(()) }     // TODO: Support captions
                 }
             })
         })

@@ -89,16 +89,26 @@
         <script src="js/formatters.min.js"></script>
 
         <script>
+            function get_base(node) {
+                if (node.data.base !== undefined) {
+                    return node.data.base;
+                }
+                if (node.data.block_flow.base !== undefined) {
+                    return node.data.block_flow.base;
+                }
+                throw "Unknown node type";
+            }
+
             function create_flow_tree(trace_node) {
                 var node = {
-                    text: trace_node.class + " (" + trace_node.data.base.id + ")",
-                    id: trace_node.data.base.id,
+                    text: trace_node.class + " (" + get_base(trace_node).id + ")",
+                    id: get_base(trace_node).id,
                     icon: "dummy",
                 };
 
                 var children = [];
-                for (var i=0 ; i < trace_node.data.base.children.length ; ++i) {
-                    children.push(create_flow_tree(trace_node.data.base.children[i]));
+                for (var i=0 ; i < get_base(trace_node).children.length ; ++i) {
+                    children.push(create_flow_tree(get_base(trace_node).children[i]));
                 }
 
                 if (children.length > 0) {
@@ -109,13 +119,13 @@
             }
 
             function create_flow_hash(trace_node, flow_hash) {
-                flow_hash[trace_node.data.base.id] = trace_node;
+                flow_hash[get_base(trace_node).id] = trace_node;
 
-                for (var i=0 ; i < trace_node.data.base.children.length ; ++i) {
-                    create_flow_hash(trace_node.data.base.children[i], flow_hash);
+                for (var i=0 ; i < get_base(trace_node).children.length ; ++i) {
+                    create_flow_hash(get_base(trace_node).children[i], flow_hash);
                 }
 
-                delete trace_node.data.base.children;
+                delete get_base(trace_node).children;
             }
 
             function flatten_trace(trace_node) {
@@ -181,6 +191,10 @@
                             objectHash: function(obj) {
                                 if (obj.data !== undefined && obj.data.base !== undefined) {
                                     return obj.data.base.id;
+                                }
+                                if (obj.data !== undefined && obj.data.block_flow !== undefined &&
+                                    obj.data.block_flow.base !== undefined) {
+                                    return obj.data.block_flow.base.id;
                                 }
                                 if (obj.id !== undefined) {
                                     return obj.id;
