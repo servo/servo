@@ -41,7 +41,7 @@ impl CanvasRenderingContext2D {
     }
 
     pub fn recreate(&self, size: Size2D<i32>) {
-        self.renderer.send(Recreate(size));
+        self.renderer.deref().send(Recreate(size));
     }
 }
 
@@ -52,17 +52,17 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
 
     fn FillRect(&self, x: f64, y: f64, width: f64, height: f64) {
         let rect = Rect(Point2D(x as f32, y as f32), Size2D(width as f32, height as f32));
-        self.renderer.send(FillRect(rect));
+        self.renderer.deref().send(FillRect(rect));
     }
 
     fn ClearRect(&self, x: f64, y: f64, width: f64, height: f64) {
         let rect = Rect(Point2D(x as f32, y as f32), Size2D(width as f32, height as f32));
-        self.renderer.send(ClearRect(rect));
+        self.renderer.deref().send(ClearRect(rect));
     }
 
     fn StrokeRect(&self, x: f64, y: f64, width: f64, height: f64) {
         let rect = Rect(Point2D(x as f32, y as f32), Size2D(width as f32, height as f32));
-        self.renderer.send(StrokeRect(rect));
+        self.renderer.deref().send(StrokeRect(rect));
     }
 }
 

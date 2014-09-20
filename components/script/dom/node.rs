@@ -24,7 +24,7 @@ use dom::bindings::global::{GlobalRef, Window};
 use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, Root, OptionalUnrootable};
 use dom::bindings::js::{OptionalSettable, TemporaryPushable, OptionalRootedRootable};
 use dom::bindings::js::{ResultRootable, OptionalRootable};
-use dom::bindings::trace::Traceable;
+use dom::bindings::trace::{Traceable, Untraceable};
 use dom::bindings::utils;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::characterdata::CharacterData;
@@ -108,7 +108,7 @@ pub struct Node {
     ///
     /// Must be sent back to the layout task to be destroyed when this
     /// node is finalized.
-    pub layout_data: LayoutDataRef,
+    pub layout_data: Untraceable<LayoutDataRef>,
 
     unique_id: RefCell<String>,
 }
@@ -1041,7 +1041,7 @@ impl Node {
 
             flags: Traceable::new(RefCell::new(NodeFlags::new(type_id))),
 
-            layout_data: LayoutDataRef::new(),
+            layout_data: Untraceable::new(LayoutDataRef::new()),
 
             unique_id: RefCell::new("".to_string()),
         }
@@ -1454,7 +1454,7 @@ impl Node {
     /// Sends layout data, if any, back to the layout task to be destroyed.
     unsafe fn reap_layout_data(&mut self) {
         if self.layout_data.is_present() {
-            let layout_data = mem::replace(&mut self.layout_data, LayoutDataRef::new());
+            let layout_data = mem::replace(self.layout_data.deref_mut(), LayoutDataRef::new());
             let layout_chan = layout_data.take_chan();
             match layout_chan {
                 None => {}

@@ -85,7 +85,7 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
 
     fn Location(&self) -> Temporary<WorkerLocation> {
         if self.location.get().is_none() {
-            let location = WorkerLocation::new(*self, self.worker_url.clone());
+            let location = WorkerLocation::new(*self, self.worker_url.deref().clone());
             self.location.assign(Some(location));
         }
         Temporary::new(self.location.get().get_ref().clone())
@@ -110,7 +110,7 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
                 }
             };
 
-            match self.js_context.evaluate_script(
+            match self.js_context.deref().evaluate_script(
                 self.reflector().get_jsobject(), source, url.serialize(), 1) {
                 Ok(_) => (),
                 Err(_) => {
