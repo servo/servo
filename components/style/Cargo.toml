@@ -29,3 +29,5 @@ git = "https://github.com/servo/rust-cssparser"
 [dependencies.encoding]
 git = "https://github.com/lifthrasiir/rust-encoding"
 
+[dependencies.lazy_static]
+git = "https://github.com/Kimundi/lazy-static.rs"
