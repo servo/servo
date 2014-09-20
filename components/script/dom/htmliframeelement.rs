@@ -154,7 +154,7 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
     fn GetContentWindow(self) -> Option<Temporary<Window>> {
         self.size.deref().get().and_then(|size| {
             let window = window_from_node(self).root();
-            let children = &*window.deref().page.children.deref().borrow();
+            let children = window.deref().page.children.deref().borrow();
             let child = children.iter().find(|child| {
                 child.subpage_id.unwrap() == size.subpage_id
             });

@@ -317,8 +317,8 @@ impl Document {
                                           DocumentBinding::Wrap).root();
 
         let node: JSRef<Node> = NodeCast::from_ref(*document);
-        node.set_owner_doc(*&*document);
-        Temporary::from_rooted(*&*document)
+        node.set_owner_doc(*document);
+        Temporary::from_rooted(*document)
     }
 }
 

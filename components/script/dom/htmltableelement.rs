@@ -67,8 +67,8 @@ impl<'a> HTMLTableElementMethods for JSRef<'a, HTMLTableElement> {
 
         match old_caption {
             Some(htmlelem) => {
-                let htmlelem_jsref = &*htmlelem.root();
-                let old_caption_node: JSRef<Node> = NodeCast::from_ref(*htmlelem_jsref);
+                let htmlelem_root = htmlelem.root();
+                let old_caption_node: JSRef<Node> = NodeCast::from_ref(*htmlelem_root);
                 assert!(node.RemoveChild(old_caption_node).is_ok());
             }
             None => ()
