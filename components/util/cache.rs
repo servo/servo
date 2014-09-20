@@ -238,7 +238,7 @@ impl<K:Clone+PartialEq+Hash,V:Clone> Cache<K,V> for SimpleHashCache<K,V> {
     }
 
     fn evict_all(&mut self) {
-        for slot in self.entries.mut_iter() {
+        for slot in self.entries.iter_mut() {
             *slot = None
         }
     }

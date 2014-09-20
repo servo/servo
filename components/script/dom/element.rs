@@ -581,7 +581,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         let window = doc.deref().window.root();
         let list = NamedNodeMap::new(*window, self);
         self.attr_list.assign(Some(list));
-        Temporary::new(self.attr_list.get().get_ref().clone())
+        Temporary::new(self.attr_list.get().as_ref().unwrap().clone())
     }
 
     // http://dom.spec.whatwg.org/#dom-element-getattribute
@@ -830,7 +830,7 @@ pub fn get_attribute_parts<'a>(name: &'a str) -> (Option<&'a str>, &'a str) {
     //FIXME: Throw for XML-invalid names
     //FIXME: Throw for XMLNS-invalid names
     let (prefix, local_name) = if name.contains(":")  {
-        let mut parts = name.splitn(':', 1);
+        let mut parts = name.splitn(1, ':');
         (Some(parts.next().unwrap()), parts.next().unwrap())
     } else {
         (None, name)

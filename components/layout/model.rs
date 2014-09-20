@@ -8,7 +8,7 @@
 
 use fragment::Fragment;
 
-use computed = style::computed_values;
+use style::computed_values as computed;
 use geom::SideOffsets2D;
 use style::computed_values::{LPA_Auto, LPA_Length, LPA_Percentage, LP_Length, LP_Percentage};
 use style::ComputedValues;

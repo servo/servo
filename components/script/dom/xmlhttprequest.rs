@@ -28,8 +28,8 @@ use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{DecodeReplace, Encoding, EncodingRef, EncodeReplace};
 
-use ResponseHeaderCollection = http::headers::response::HeaderCollection;
-use RequestHeaderCollection = http::headers::request::HeaderCollection;
+use http::headers::response::HeaderCollection as ResponseHeaderCollection;
+use http::headers::request::HeaderCollection as RequestHeaderCollection;
 use http::headers::content_type::MediaType;
 use http::headers::{HeaderEnum, HeaderValueByteIterator};
 use http::headers::request::Header;
@@ -56,6 +56,8 @@ use std::io::{BufReader, MemWriter, Timer};
 use std::from_str::FromStr;
 use std::path::BytesContainer;
 use std::task::TaskBuilder;
+use std::time::duration::Duration;
+use std::num::Zero;
 use time;
 use url::{Url, UrlParser};
 
@@ -538,7 +540,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
                 referer_url.serialize_host().map(|ref h| buf.push_str(h.as_slice()));
                 referer_url.port().as_ref().map(|&p| {
                     buf.push_str(":".as_slice());
-                    buf.push_str(p);
+                    buf.push_str(format!("{:u}", p).as_slice());
                 });
                 referer_url.serialize_path().map(|ref h| buf.push_str(h.as_slice()));
                 self.request_headers.deref().borrow_mut().referer = Some(buf);
@@ -888,7 +890,8 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
     fn set_timeout(self, timeout: u32) {
         // Sets up the object to timeout in a given number of milliseconds
         // This will cancel all previous timeouts
-        let oneshot = self.timer.deref().borrow_mut().oneshot(timeout as u64);
+        let oneshot = self.timer.deref().borrow_mut()
+                          .oneshot(Duration::milliseconds(timeout as i64));
         let addr = unsafe {
             self.to_trusted() // This will increment the pin counter by one
         };
@@ -923,7 +926,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
             self.release_once();
         }
         // oneshot() closes the previous channel, canceling the timeout
-        self.timer.deref().borrow_mut().oneshot(0);
+        self.timer.deref().borrow_mut().oneshot(Zero::zero());
     }
     fn text_response(self) -> DOMString {
         let mut encoding = UTF_8 as EncodingRef;

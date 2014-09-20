@@ -12,7 +12,7 @@ extern crate log;
 
 extern crate rustuv;
 
-extern crate servo_macros = "macros";
+extern crate "macros" as servo_macros;
 extern crate servo;
 
 extern crate azure;
@@ -28,17 +28,16 @@ extern crate opengles;
 extern crate png;
 extern crate script;
 
-extern crate servo_net = "net";
-extern crate servo_msg = "msg";
-extern crate servo_util = "util";
+extern crate "net" as servo_net;
+extern crate "msg" as servo_msg;
+extern crate "util" as servo_util;
 extern crate style;
-extern crate sharegl;
 extern crate stb_image;
 
 extern crate green;
 extern crate native;
 extern crate libc;
-extern crate std_url = "url";
+extern crate "url" as std_url;
 
 #[cfg(target_os="macos")]
 extern crate core_graphics;

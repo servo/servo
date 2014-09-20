@@ -1757,6 +1757,7 @@ class CGAbstractMethod(CGThing):
             decorators.append('#[inline(always)]')
 
         if self.extern:
+            decorators.append('unsafe')
             decorators.append('extern')
 
         if self.pub:
@@ -1797,7 +1798,7 @@ let obj = with_compartment(aCx, proto, || {
   NewProxyObject(aCx, handler,
                  &private,
                  proto, %s,
-                 ptr::mut_null(), ptr::mut_null())
+                 ptr::null_mut(), ptr::null_mut())
 });
 assert!(obj.is_not_null());
 
@@ -3665,7 +3666,7 @@ if expando.is_not_null() {
   }
 }
 """ + namedGet + """
-(*desc).obj = ptr::mut_null();
+(*desc).obj = ptr::null_mut();
 return true;"""
 
     def definition_body(self):
@@ -4302,11 +4303,11 @@ class CGDictionary(CGThing):
         return string.Template(
             "impl<'a, 'b> ${selfName}<'a, 'b> {\n"
             "  pub fn empty() -> ${selfName}<'a, 'b> {\n"
-            "    ${selfName}::new(ptr::mut_null(), NullValue()).unwrap()\n"
+            "    ${selfName}::new(ptr::null_mut(), NullValue()).unwrap()\n"
             "  }\n"
             "  pub fn new(cx: *mut JSContext, val: JSVal) -> Result<${selfName}<'a, 'b>, ()> {\n"
             "    let object = if val.is_null_or_undefined() {\n"
-            "        ptr::mut_null()\n"
+            "        ptr::null_mut()\n"
             "    } else if val.is_object() {\n"
             "        val.to_object()\n"
             "    } else {\n"
@@ -4538,7 +4539,6 @@ class CGBindingRoot(CGThing):
             'dom::bindings::conversions::{Default, Empty}',
             'dom::bindings::codegen::*',
             'dom::bindings::codegen::Bindings::*',
-            'dom::bindings::codegen::RegisterBindings',
             'dom::bindings::codegen::UnionTypes::*',
             'dom::bindings::error::{FailureUnknown, Fallible, Error, ErrorResult}',
             'dom::bindings::error::throw_dom_exception',
@@ -4914,7 +4914,7 @@ class CGCallback(CGClass):
         # the private method.
         argnames = [arg.name for arg in args]
         argnamesWithThis = ["s.GetContext()", "thisObjJS"] + argnames
-        argnamesWithoutThis = ["s.GetContext()", "ptr::mut_null()"] + argnames
+        argnamesWithoutThis = ["s.GetContext()", "ptr::null_mut()"] + argnames
         # Now that we've recorded the argnames for our call to our private
         # method, insert our optional argument for deciding whether the
         # CallSetup should re-throw exceptions on aRv.
@@ -5477,12 +5477,12 @@ class GlobalGenRoots():
   }
 
   #[inline(always)]
-  fn from_ref<'a, T: ${fromBound}>(derived: JSRef<'a, T>) -> JSRef<'a, Self> {
+  fn from_ref<'a, T: ${fromBound}+Reflectable>(derived: JSRef<'a, T>) -> JSRef<'a, Self> {
     unsafe { derived.transmute() }
   }
 
   #[inline(always)]
-  fn from_borrowed_ref<'a, 'b, T: ${fromBound}>(derived: &'a JSRef<'b, T>) -> &'a JSRef<'b, Self> {
+  fn from_borrowed_ref<'a, 'b, T: ${fromBound}+Reflectable>(derived: &'a JSRef<'b, T>) -> &'a JSRef<'b, Self> {
     unsafe { derived.transmute_borrowed() }
   }
 

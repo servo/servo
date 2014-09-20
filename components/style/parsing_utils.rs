@@ -71,11 +71,11 @@ pub fn parse_comma_separated<T>(iter: ParserIter,
                                 parse_one: |ParserIter| -> Result<T, ()>)
                                 -> Result<Vec<T>, ()> {
     let mut values = vec![try!(parse_one(iter))];
-    for component_value in iter {
-        match component_value {
-            &Comma => values.push(try!(parse_one(iter))),
-            _ => return Err(())
+    loop {
+        match iter.next() {
+            Some(&Comma) => values.push(try!(parse_one(iter))),
+            Some(_) => return Err(()),
+            None => return Ok(values),
         }
     }
-    Ok(values)
 }

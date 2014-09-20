@@ -436,7 +436,7 @@ fn parse_qualified_name<I: Iterator<ComponentValue>>(
 
 fn parse_attribute_selector(content: Vec<ComponentValue>, namespaces: &NamespaceMap)
                             -> Result<SimpleSelector, ()> {
-    let iter = &mut content.move_iter().peekable();
+    let iter = &mut content.into_iter().peekable();
     let attr = match try!(parse_qualified_name(iter, /* in_attr_selector = */ true, namespaces)) {
         None => return Err(()),
         Some((_, None)) => fail!("Implementation error, this should not happen."),
@@ -537,7 +537,7 @@ fn parse_pseudo_element(name: String) -> Result<PseudoElement, ()> {
 /// Level 3: Parse **one** simple_selector
 fn parse_negation(arguments: Vec<ComponentValue>, namespaces: &NamespaceMap)
                   -> Result<SimpleSelector, ()> {
-    let iter = &mut arguments.move_iter().peekable();
+    let iter = &mut arguments.into_iter().peekable();
     match try!(parse_type_selector(iter, namespaces)) {
         Some(type_selector) => Ok(Negation(type_selector)),
         None => {

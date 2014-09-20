@@ -189,13 +189,13 @@ pub mod longhands {
                                        values="${values}"
                                        experimental="${experimental}">
             // The computed value is the same as the specified value.
-            pub use to_computed_value = super::computed_as_specified;
+            pub use super::computed_as_specified as to_computed_value;
         </%self:single_keyword_computed>
     </%def>
 
     <%def name="predefined_type(name, type, initial_value, parse_method='parse')">
         <%self:single_component_value name="${name}">
-            pub use to_computed_value = super::super::common_types::computed::compute_${type};
+            pub use super::super::common_types::computed::compute_${type} as to_computed_value;
             pub type SpecifiedValue = specified::${type};
             pub mod computed_value {
                 pub type T = super::super::computed::${type};
@@ -425,12 +425,7 @@ pub mod longhands {
     </%self:single_component_value>
 
     <%self:longhand name="-servo-minimum-line-height" derived_from="line-height">
-        use super::Au;
-        use super::super::common_types::DEFAULT_LINE_HEIGHT;
-        use super::super::longhands::display;
-        use super::super::longhands::line_height;
-
-        pub use to_computed_value = super::computed_as_specified;
+        pub use super::computed_as_specified as to_computed_value;
 
         pub type SpecifiedValue = line_height::SpecifiedValue;
 
@@ -534,7 +529,7 @@ pub mod longhands {
     ${switch_to_style_struct("Box")}
 
     <%self:longhand name="content">
-            pub use to_computed_value = super::computed_as_specified;
+            pub use super::computed_as_specified as to_computed_value;
             pub mod computed_value {
                 #[deriving(PartialEq, Clone)]
                 pub enum Content {
@@ -585,7 +580,7 @@ pub mod longhands {
 
     <%self:single_component_value name="background-image">
             // The computed value is the same as the specified value.
-            pub use to_computed_value = super::computed_as_specified;
+            pub use super::computed_as_specified as to_computed_value;
             pub mod computed_value {
                 pub use url::Url;
                 pub type T = Option<Url>;
@@ -609,8 +604,6 @@ pub mod longhands {
     </%self:single_component_value>
 
     <%self:longhand name="background-position">
-            use super::super::common_types::specified;
-
             pub mod computed_value {
                 use super::super::super::common_types::computed::LengthOrPercentage;
 
@@ -723,7 +716,7 @@ pub mod longhands {
     ${new_style_struct("Color", is_inherited=True)}
 
     <%self:raw_longhand name="color">
-        pub use to_computed_value = super::computed_as_specified;
+        pub use super::computed_as_specified as to_computed_value;
         pub type SpecifiedValue = RGBA;
         pub mod computed_value {
             pub type T = super::SpecifiedValue;
@@ -746,7 +739,7 @@ pub mod longhands {
     ${new_style_struct("Font", is_inherited=True)}
 
     <%self:longhand name="font-family">
-        pub use to_computed_value = super::computed_as_specified;
+        pub use super::computed_as_specified as to_computed_value;
         pub mod computed_value {
             #[deriving(PartialEq, Clone)]
             pub enum FontFamily {
@@ -790,16 +783,17 @@ pub mod longhands {
                 }
                 _ => return Err(())
             };
-            for component_value in iter {
-                match component_value {
-                    &Ident(ref value) => {
+            loop {
+                match iter.next() {
+                    Some(&Ident(ref value)) => {
                         idents.push(value.as_slice());
                         iter.next();
-                    },
-                    _ => {
+                    }
+                    Some(component_value) => {
                         iter.push_back(component_value);
                         break
                     }
+                    None => break,
                 }
             }
             Ok(FamilyName(idents.connect(" ")))
@@ -947,7 +941,7 @@ pub mod longhands {
     ${new_style_struct("Text", is_inherited=False)}
 
     <%self:longhand name="text-decoration">
-        pub use to_computed_value = super::computed_as_specified;
+        pub use super::computed_as_specified as to_computed_value;
         #[deriving(PartialEq, Clone)]
         pub struct SpecifiedValue {
             pub underline: bool,
@@ -999,10 +993,7 @@ pub mod longhands {
 
     <%self:longhand name="-servo-text-decorations-in-effect"
                     derived_from="display text-decoration">
-        use super::RGBA;
-        use super::super::longhands::display;
-
-        pub use to_computed_value = super::computed_as_specified;
+        pub use super::computed_as_specified as to_computed_value;
 
         #[deriving(Clone, PartialEq)]
         pub struct SpecifiedValue {
@@ -1447,17 +1438,17 @@ mod property_bit_field {
             self.storage[bit / uint::BITS] &= !(1 << (bit % uint::BITS))
         }
         % for i, property in enumerate(LONGHANDS):
-            #[allow(non_snake_case_functions)]
+            #[allow(non_snake_case)]
             #[inline]
             pub fn get_${property.ident}(&self) -> bool {
                 self.get(${i})
             }
-            #[allow(non_snake_case_functions)]
+            #[allow(non_snake_case)]
             #[inline]
             pub fn set_${property.ident}(&mut self) {
                 self.set(${i})
             }
-            #[allow(non_snake_case_functions)]
+            #[allow(non_snake_case)]
             #[inline]
             pub fn clear_${property.ident}(&mut self) {
                 self.clear(${i})
@@ -1493,7 +1484,7 @@ pub fn parse_property_declaration_list<I: Iterator<Node>>(input: I, base_url: &U
     let mut normal_seen = PropertyBitField::new();
     let items: Vec<DeclarationListItem> =
         ErrorLoggerIterator(parse_declaration_list(input)).collect();
-    for item in items.move_iter().rev() {
+    for item in items.into_iter().rev() {
         match item {
             DeclAtRule(rule) => log_css_error(
                 rule.location, format!("Unsupported at-rule in declaration list: @{:s}", rule.name).as_slice()),
@@ -1831,7 +1822,7 @@ fn get_writing_mode(inheritedbox_style: &style_structs::InheritedBox) -> Writing
 
 
 /// The initial values for all style structs as defined by the specification.
-lazy_init! {
+lazy_static! {
     static ref INITIAL_VALUES: ComputedValues = ComputedValues {
         % for style_struct in STYLE_STRUCTS:
             ${style_struct.ident}: Arc::new(style_structs::${style_struct.name} {
@@ -1857,7 +1848,7 @@ fn initial_writing_mode_is_empty() {
 trait ArcExperimental<T> {
     fn make_unique_experimental<'a>(&'a mut self) -> &'a mut T;
 }
-impl<T: Send + Share + Clone> ArcExperimental<T> for Arc<T> {
+impl<T: Send + Sync + Clone> ArcExperimental<T> for Arc<T> {
     #[inline]
     #[allow(experimental)]
     fn make_unique_experimental<'a>(&'a mut self) -> &'a mut T {
@@ -2209,10 +2200,10 @@ pub fn cascade_anonymous(parent_style: &ComputedValues) -> ComputedValues {
 // Only re-export the types for computed values.
 pub mod computed_values {
     % for property in LONGHANDS:
-        pub use ${property.ident} = super::longhands::${property.ident}::computed_value;
+        pub use super::longhands::${property.ident}::computed_value as ${property.ident};
     % endfor
     // Don't use a side-specific name needlessly:
-    pub use border_style = super::longhands::border_top_style::computed_value;
+    pub use super::longhands::border_top_style::computed_value as border_style;
 
     pub use cssparser::RGBA;
     pub use super::common_types::computed::{

@@ -134,7 +134,7 @@ impl ScaledFontExtensionMethods for ScaledFont {
                                    &mut glyphbuf,
                                    azure_pattern,
                                    &mut options,
-                                   ptr::mut_null());
+                                   ptr::null_mut());
         }
     }
 }
@@ -198,7 +198,7 @@ impl StackingContext {
             positioned_descendants: Vec::new(),
         };
 
-        for item in list.move_iter() {
+        for item in list.into_iter() {
             match item {
                 ClipDisplayItemClass(box ClipDisplayItem {
                     base: base,
@@ -219,7 +219,7 @@ impl StackingContext {
                         ContentStackingLevel => stacking_context.content.push(item),
                         PositionedDescendantStackingLevel(z_index) => {
                             match stacking_context.positioned_descendants
-                                                  .mut_iter()
+                                                  .iter_mut()
                                                   .find(|& &(z, _)| z_index == z) {
                                 Some(&(_, ref mut my_list)) => {
                                     my_list.push(item);
@@ -270,9 +270,9 @@ impl StackingContext {
         push(&mut self.floats, floats, FloatStackingLevel);
         push(&mut self.content, content, ContentStackingLevel);
 
-        for (z_index, list) in positioned_descendants.move_iter() {
+        for (z_index, list) in positioned_descendants.into_iter() {
             match self.positioned_descendants
-                      .mut_iter()
+                      .iter_mut()
                       .find(|& &(existing_z_index, _)| z_index == existing_z_index) {
                 Some(&(_, ref mut existing_list)) => {
                     push(existing_list, list, PositionedDescendantStackingLevel(z_index));
@@ -386,7 +386,7 @@ impl DisplayList {
         // TODO(pcwalton): Sort positioned children according to z-index.
 
         // Step 3: Positioned descendants with negative z-indices.
-        for &(ref mut z_index, ref mut list) in positioned_descendants.mut_iter() {
+        for &(ref mut z_index, ref mut list) in positioned_descendants.iter_mut() {
             if *z_index < 0 {
                 result.push_all_move(mem::replace(list, DisplayList::new()))
             }
@@ -404,7 +404,7 @@ impl DisplayList {
         result.push_all_move(content);
 
         // Steps 8 and 9: Positioned descendants with nonnegative z-indices.
-        for &(ref mut z_index, ref mut list) in positioned_descendants.mut_iter() {
+        for &(ref mut z_index, ref mut list) in positioned_descendants.iter_mut() {
             if *z_index >= 0 {
                 result.push_all_move(mem::replace(list, DisplayList::new()))
             }
@@ -418,7 +418,7 @@ impl DisplayList {
 
     /// Sets the stacking level for this display list and all its subitems.
     fn set_stacking_level(&mut self, new_level: StackingLevel) {
-        for item in self.list.mut_iter() {
+        for item in self.list.iter_mut() {
             item.mut_base().level = new_level;
             match item.mut_sublist() {
                 None => {}

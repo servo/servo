@@ -231,7 +231,7 @@ impl TextRunScanner {
                         continue
                     }
 
-                    let new_text_fragment_info = ScannedTextFragmentInfo::new(run.get_ref().clone(), range);
+                    let new_text_fragment_info = ScannedTextFragmentInfo::new(run.as_ref().unwrap().clone(), range);
                     let old_fragment = &in_fragments[i.to_uint()];
                     let new_metrics = new_text_fragment_info.run.metrics_for_range(&range);
                     let bounding_box_size = bounding_box_for_run_metrics(

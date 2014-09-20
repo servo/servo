@@ -88,12 +88,12 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
             let location = WorkerLocation::new(self, self.worker_url.deref().clone());
             self.location.assign(Some(location));
         }
-        Temporary::new(self.location.get().get_ref().clone())
+        Temporary::new(self.location.get().as_ref().unwrap().clone())
     }
 
     fn ImportScripts(self, url_strings: Vec<DOMString>) -> ErrorResult {
         let mut urls = Vec::with_capacity(url_strings.len());
-        for url in url_strings.move_iter() {
+        for url in url_strings.into_iter() {
             let url = UrlParser::new().base_url(&*self.worker_url)
                                       .parse(url.as_slice());
             match url {
@@ -102,7 +102,7 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
             };
         }
 
-        for url in urls.move_iter() {
+        for url in urls.into_iter() {
             let (url, source) = match load_whole_resource(&*self.resource_task, url) {
                 Err(_) => return Err(Network),
                 Ok((metadata, bytes)) => {
@@ -128,7 +128,7 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
             let navigator = WorkerNavigator::new(self);
             self.navigator.assign(Some(navigator));
         }
-        Temporary::new(self.navigator.get().get_ref().clone())
+        Temporary::new(self.navigator.get().as_ref().unwrap().clone())
     }
 
     fn Console(self) -> Temporary<Console> {
@@ -136,7 +136,7 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
             let console = Console::new(&global::Worker(self));
             self.console.assign(Some(console));
         }
-        Temporary::new(self.console.get().get_ref().clone())
+        Temporary::new(self.console.get().as_ref().unwrap().clone())
     }
 
     fn Btoa(self, btoa: DOMString) -> Fallible<DOMString> {

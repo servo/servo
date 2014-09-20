@@ -16,9 +16,9 @@ use std::str::StrSlice;
 use time;
 use time::{now, Timespec};
 
-use ResponseHeaderCollection = http::headers::response::HeaderCollection;
-use RequestHeaderCollection = http::headers::request::HeaderCollection;
-use RequestHeader = http::headers::request::Header;
+use http::headers::response::HeaderCollection as ResponseHeaderCollection;
+use http::headers::request::HeaderCollection as RequestHeaderCollection;
+use http::headers::request::Header as RequestHeader;
 
 use http::client::{RequestWriter, NetworkStream};
 use http::headers::{HeaderConvertible, HeaderEnum, HeaderValueByteIterator};
@@ -146,7 +146,7 @@ impl CORSRequest {
         };
 
         let host = writer.headers.host.clone();
-        writer.headers = box preflight.headers.clone();
+        writer.headers = preflight.headers.clone();
         writer.headers.host = host;
         let response = match writer.read_response() {
             Ok(r) => r,
@@ -158,19 +158,19 @@ impl CORSRequest {
          200 .. 299 => {}
          _ => return error
         }
-        cors_response.headers = *response.headers.clone();
+        cors_response.headers = response.headers.clone();
         // Substeps 1-3 (parsing rules: http://fetch.spec.whatwg.org/#http-new-header-syntax)
         fn find_header(headers: &ResponseHeaderCollection, name: &str) -> Option<String> {
             headers.iter().find(|h| h.header_name().as_slice()
                                                    .eq_ignore_ascii_case(name))
                                     .map(|h| h.header_value())
         }
-        let methods_string = match find_header(&*response.headers, "Access-Control-Allow-Methods") {
+        let methods_string = match find_header(&response.headers, "Access-Control-Allow-Methods") {
             Some(s) => s,
             _ => return error
         };
         let methods = methods_string.as_slice().split(',');
-        let headers_string = match find_header(&*response.headers, "Access-Control-Allow-Headers") {
+        let headers_string = match find_header(&response.headers, "Access-Control-Allow-Headers") {
             Some(s) => s,
             _ => return error
         };
@@ -197,7 +197,7 @@ impl CORSRequest {
             }
         }
         // Substep 7, 8
-        let max_age: uint = find_header(&*response.headers, "Access-Control-Max-Age")
+        let max_age: uint = find_header(&response.headers, "Access-Control-Max-Age")
                                 .and_then(|h| FromStr::from_str(h.as_slice())).unwrap_or(0);
         // Substep 9: Impose restrictions on max-age, if any (unimplemented)
         // Substeps 10-12: Add a cache (partially implemented, XXXManishearth)
@@ -315,7 +315,7 @@ impl CORSCache {
     #[allow(dead_code)]
     fn clear (&mut self, request: &CORSRequest) {
         let CORSCache(buf) = self.clone();
-        let new_buf: Vec<CORSCacheEntry> = buf.move_iter().filter(|e| e.origin == request.origin && request.destination == e.url).collect();
+        let new_buf: Vec<CORSCacheEntry> = buf.into_iter().filter(|e| e.origin == request.origin && request.destination == e.url).collect();
         *self = CORSCache(new_buf);
     }
 
@@ -323,7 +323,7 @@ impl CORSCache {
     fn cleanup(&mut self) {
         let CORSCache(buf) = self.clone();
         let now = time::now().to_timespec();
-        let new_buf: Vec<CORSCacheEntry> = buf.move_iter().filter(|e| now.sec > e.created.sec + e.max_age as i64).collect();
+        let new_buf: Vec<CORSCacheEntry> = buf.into_iter().filter(|e| now.sec > e.created.sec + e.max_age as i64).collect();
         *self = CORSCache(new_buf);
     }
 
@@ -332,7 +332,7 @@ impl CORSCache {
         self.cleanup();
         let CORSCache(ref mut buf) = *self;
         // Credentials are not yet implemented here
-        let entry = buf.mut_iter().find(|e| e.origin.scheme == request.origin.scheme &&
+        let entry = buf.iter_mut().find(|e| e.origin.scheme == request.origin.scheme &&
                             e.origin.host() == request.origin.host() &&
                             e.origin.port() == request.origin.port() &&
                             e.url == request.destination &&
@@ -353,7 +353,7 @@ impl CORSCache {
         self.cleanup();
         let CORSCache(ref mut buf) = *self;
         // Credentials are not yet implemented here
-        let entry = buf.mut_iter().find(|e| e.origin.scheme == request.origin.scheme &&
+        let entry = buf.iter_mut().find(|e| e.origin.scheme == request.origin.scheme &&
                             e.origin.host() == request.origin.host() &&
                             e.origin.port() == request.origin.port() &&
                             e.url == request.destination &&

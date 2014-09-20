@@ -61,13 +61,13 @@ impl FontContextHandle {
             let ptr = libc::malloc(mem::size_of::<struct_FT_MemoryRec_>() as size_t);
             let allocator: &mut struct_FT_MemoryRec_ = mem::transmute(ptr);
             ptr::write(allocator, struct_FT_MemoryRec_ {
-                user: ptr::mut_null(),
+                user: ptr::null_mut(),
                 alloc: ft_alloc,
                 free: ft_free,
                 realloc: ft_realloc,
             });
 
-            let mut ctx: FT_Library = ptr::mut_null();
+            let mut ctx: FT_Library = ptr::null_mut();
 
             let result = FT_New_Library(ptr as FT_Memory, &mut ctx);
             if !result.succeeded() { fail!("Unable to initialize FreeType library"); }

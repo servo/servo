@@ -57,7 +57,7 @@ impl<'ln> NodeUtil for ThreadSafeLayoutNode<'ln> {
     /// Does this node have a computed style yet?
     fn have_css_select_results(&self) -> bool {
         let layout_data_ref = self.borrow_layout_data();
-        layout_data_ref.get_ref().shared_data.style.is_some()
+        layout_data_ref.as_ref().unwrap().shared_data.style.is_some()
     }
 
     /// Get the description of how to account for recent style changes.
@@ -73,7 +73,7 @@ impl<'ln> NodeUtil for ThreadSafeLayoutNode<'ln> {
 
         let layout_data_ref = self.borrow_layout_data();
         layout_data_ref
-            .get_ref()
+            .as_ref().unwrap()
             .data
             .restyle_damage
             .unwrap_or(default)

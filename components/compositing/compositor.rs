@@ -22,6 +22,7 @@ use windowing::PinchZoomWindowEvent;
 use azure::azure_hl::SourceSurfaceMethods;
 use azure::azure_hl;
 use std::cmp;
+use std::time::duration::Duration;
 use geom::point::{Point2D, TypedPoint2D};
 use geom::rect::Rect;
 use geom::size::TypedSize2D;
@@ -223,7 +224,7 @@ impl IOCompositor {
                 self.composite();
             }
 
-            sleep(10);
+            sleep(Duration::milliseconds(10));
 
             // If a pinch-zoom happened recently, ask for tiles at the new resolution
             if self.zoom_action && precise_time_s() - self.zoom_time > 0.3 {
@@ -316,7 +317,7 @@ impl IOCompositor {
                 }
 
                 (Ok(Paint(pipeline_id, epoch, replies)), NotShuttingDown) => {
-                    for (layer_id, new_layer_buffer_set) in replies.move_iter() {
+                    for (layer_id, new_layer_buffer_set) in replies.into_iter() {
                         self.paint(pipeline_id, layer_id, new_layer_buffer_set, epoch);
                     }
                     self.remove_outstanding_render_msg();
@@ -838,7 +839,7 @@ impl IOCompositor {
         let mut results:
             HashMap<PipelineId, (RenderChan, Vec<RenderRequest>)> = HashMap::new();
 
-        for (layer, mut layer_requests) in requests.move_iter() {
+        for (layer, mut layer_requests) in requests.into_iter() {
             let pipeline_id = layer.extra_data.borrow().pipeline.id;
             let &(_, ref mut vec) = results.find_or_insert_with(pipeline_id, |_| {
                 (layer.extra_data.borrow().pipeline.render_chan.clone(), Vec::new())
@@ -846,7 +847,7 @@ impl IOCompositor {
 
             // All the BufferRequests are in layer/device coordinates, but the render task
             // wants to know the page coordinates. We scale them before sending them.
-            for request in layer_requests.mut_iter() {
+            for request in layer_requests.iter_mut() {
                 request.page_rect = request.page_rect / scale.get();
             }
 
@@ -894,7 +895,7 @@ impl IOCompositor {
             self.convert_buffer_requests_to_pipeline_requests_map(layers_and_requests);
 
         let mut num_render_msgs_sent = 0;
-        for (_pipeline_id, (chan, requests)) in pipeline_requests.move_iter() {
+        for (_pipeline_id, (chan, requests)) in pipeline_requests.into_iter() {
             num_render_msgs_sent += 1;
             let _ = chan.send_opt(RenderMsg(requests));
         }
@@ -948,7 +949,7 @@ impl IOCompositor {
             // We must read from the back buffer (ie, before self.window.present()) as
             // OpenGL ES 2 does not have glReadBuffer().
             let (width, height) = (self.window_size.width.get(), self.window_size.height.get());
-            let path = from_str::<Path>(self.opts.output_file.get_ref().as_slice()).unwrap();
+            let path = from_str::<Path>(self.opts.output_file.as_ref().unwrap().as_slice()).unwrap();
             let mut pixels = gl2::read_pixels(0, 0,
                                               width as gl2::GLsizei,
                                               height as gl2::GLsizei,
@@ -961,7 +962,7 @@ impl IOCompositor {
                 let src_start = (height - y - 1) * stride;
                 unsafe {
                     let src_slice = orig_pixels.slice(src_start, src_start + stride);
-                    pixels.mut_slice(dst_start, dst_start + stride)
+                    pixels.slice_mut(dst_start, dst_start + stride)
                           .copy_memory(src_slice.slice_to(stride));
                 }
             }

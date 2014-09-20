@@ -28,7 +28,7 @@ impl BrowserContext {
         let mut context = BrowserContext {
             history: vec!(SessionHistoryEntry::new(document)),
             active_index: 0,
-            window_proxy: Traceable::new(ptr::mut_null()),
+            window_proxy: Traceable::new(ptr::null_mut()),
         };
         context.create_window_proxy();
         context
@@ -53,11 +53,11 @@ impl BrowserContext {
         let page = win.deref().page();
         let js_info = page.js_info();
 
-        let handler = js_info.get_ref().dom_static.windowproxy_handler;
+        let handler = js_info.as_ref().unwrap().dom_static.windowproxy_handler;
         assert!(handler.deref().is_not_null());
 
         let parent = win.deref().reflector().get_jsobject();
-        let cx = js_info.get_ref().js_context.deref().deref().ptr;
+        let cx = js_info.as_ref().unwrap().js_context.deref().deref().ptr;
         let wrapper = with_compartment(cx, parent, || unsafe {
             WrapperNew(cx, parent, *handler.deref())
         });

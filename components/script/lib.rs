@@ -8,7 +8,7 @@
 #![feature(globs, macro_rules, struct_variant, phase, unsafe_destructor)]
 
 #![deny(unused_imports, unused_variable)]
-#![allow(non_snake_case_functions)]
+#![allow(non_snake_case)]
 
 #![doc="The script crate contains all matters DOM."]
 
@@ -33,12 +33,12 @@ extern crate time;
 extern crate canvas;
 extern crate script_traits;
 #[phase(plugin)]
-extern crate servo_macros = "macros";
-extern crate servo_net = "net";
-extern crate servo_util = "util";
+extern crate "macros" as servo_macros;
+extern crate "net" as servo_net;
+extern crate "util" as servo_util;
 extern crate style;
 extern crate sync;
-extern crate servo_msg = "msg";
+extern crate "msg" as servo_msg;
 extern crate url;
 extern crate uuid;
 

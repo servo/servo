@@ -76,7 +76,7 @@ impl<E, S: Encoder<E>> Encodable<S, E> for ImageCacheTask {
     }
 }
 
-type DecoderFactory = fn() -> proc(&[u8]) -> Option<Image>;
+type DecoderFactory = fn() -> (proc(&[u8]) : 'static -> Option<Image>);
 
 impl ImageCacheTask {
     pub fn new(resource_task: ResourceTask) -> ImageCacheTask {
@@ -464,7 +464,7 @@ fn load_image_data(url: Url, resource_task: ResourceTask) -> Result<Vec<u8>, ()>
                 image_data.push_all(data.as_slice());
             }
             resource_task::Done(result::Ok(..)) => {
-                return Ok(image_data.move_iter().collect());
+                return Ok(image_data.into_iter().collect());
             }
             resource_task::Done(result::Err(..)) => {
                 return Err(());

@@ -56,7 +56,7 @@ pub struct Page {
     pub layout_chan: Untraceable<LayoutChan>,
 
     /// A handle to perform RPC calls into the layout, quickly.
-    layout_rpc: Untraceable<Box<LayoutRPC>>,
+    layout_rpc: Untraceable<Box<LayoutRPC+'static>>,
 
     /// The port that we will use to join layout. If this is `None`, then layout is not running.
     pub layout_join_port: Untraceable<RefCell<Option<Receiver<()>>>>,
@@ -169,8 +169,8 @@ impl Page {
         let damaged = self.damage.borrow().is_some();
         if damaged {
             let frame = self.frame();
-            let window = frame.get_ref().window.root();
-            self.reflow(goal, window.control_chan.clone(), *window.compositor);
+            let window = frame.as_ref().unwrap().window.root();
+            self.reflow(goal, window.control_chan.clone(), &**window.compositor);
         } else {
             self.avoided_reflows.set(self.avoided_reflows.get() + 1);
         }
@@ -182,7 +182,7 @@ impl Page {
         // doing a query reflow.
         self.flush_layout(ReflowForDisplay);
         self.join_layout(); //FIXME: is this necessary, or is layout_rpc's mutex good enough?
-        let layout_rpc: &LayoutRPC = *self.layout_rpc;
+        let layout_rpc: &LayoutRPC = &**self.layout_rpc;
         layout_rpc
     }
 
@@ -192,7 +192,7 @@ impl Page {
             self.children
                 .deref()
                 .borrow_mut()
-                .mut_iter()
+                .iter_mut()
                 .enumerate()
                 .find(|&(_idx, ref page_tree)| {
                     // FIXME: page_tree has a lifetime such that it's unusable for anything.
@@ -204,7 +204,7 @@ impl Page {
         match remove_idx {
             Some(idx) => return Some(self.children.deref().borrow_mut().remove(idx).unwrap()),
             None => {
-                for page_tree in self.children.deref().borrow_mut().mut_iter() {
+                for page_tree in self.children.deref().borrow_mut().iter_mut() {
                     match page_tree.remove(id) {
                         found @ Some(_) => return found,
                         None => (), // keep going...
@@ -292,7 +292,7 @@ impl Page {
     }
 
     pub fn get_url(&self) -> Url {
-        self.url().get_ref().ref0().clone()
+        self.url().as_ref().unwrap().ref0().clone()
     }
 
     // FIXME(cgaebel): join_layout is racey. What if the compositor triggers a
@@ -393,7 +393,7 @@ impl Page {
 
     /// Attempt to find a named element in this page's document.
     pub fn find_fragment_node(&self, fragid: DOMString) -> Option<Temporary<Element>> {
-        let document = self.frame().get_ref().document.root();
+        let document = self.frame().as_ref().unwrap().document.root();
         match document.deref().GetElementById(fragid.to_string()) {
             Some(node) => Some(node),
             None => {
@@ -412,7 +412,7 @@ impl Page {
 
     pub fn hit_test(&self, point: &Point2D<f32>) -> Option<UntrustedNodeAddress> {
         let frame = self.frame();
-        let document = frame.get_ref().document.root();
+        let document = frame.as_ref().unwrap().document.root();
         let root = document.deref().GetDocumentElement().root();
         if root.is_none() {
             return None;
@@ -433,7 +433,7 @@ impl Page {
 
     pub fn get_nodes_under_mouse(&self, point: &Point2D<f32>) -> Option<Vec<UntrustedNodeAddress>> {
         let frame = self.frame();
-        let document = frame.get_ref().document.root();
+        let document = frame.as_ref().unwrap().document.root();
         let root = document.deref().GetDocumentElement().root();
         if root.is_none() {
             return None;

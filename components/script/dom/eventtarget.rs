@@ -185,7 +185,7 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
         let source: Vec<u16> = source.as_slice().utf16_units().collect();
         let handler = unsafe {
                 JS_CompileUCFunction(cx,
-                                     ptr::mut_null(),
+                                     ptr::null_mut(),
                                      name.as_ptr(),
                                      nargs,
                                      &arg_names as *const *const i8 as *mut *const i8,
@@ -254,7 +254,7 @@ impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {
             Some(listener) => {
                 let mut handlers = self.handlers.deref().borrow_mut();
                 let mut entry = handlers.find_mut(&ty);
-                for entry in entry.mut_iter() {
+                for entry in entry.iter_mut() {
                     let phase = if capture { Capturing } else { Bubbling };
                     let old_entry = EventListenerEntry {
                         phase: phase,

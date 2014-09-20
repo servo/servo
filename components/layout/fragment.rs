@@ -467,7 +467,7 @@ impl Fragment {
         if self.inline_context.is_none() {
             self.inline_context = Some(InlineFragmentContext::new());
         }
-        self.inline_context.get_mut_ref().styles.push(style.clone());
+        self.inline_context.as_mut().unwrap().styles.push(style.clone());
     }
 
     /// Uses the style only to estimate the intrinsic inline-sizes. These may be modified for text or

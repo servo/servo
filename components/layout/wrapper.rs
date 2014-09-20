@@ -452,7 +452,7 @@ impl<'le> TElement for LayoutElement<'le> {
 fn get_content(content_list: &content::T) -> String {
     match *content_list {
         content::Content(ref value) => {
-            let iter = &mut value.clone().move_iter().peekable();
+            let iter = &mut value.clone().into_iter().peekable();
             match iter.next() {
                 Some(content::StringContent(content)) => content,
                 _ => "".to_string(),
@@ -533,13 +533,13 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
     fn text(&self) -> String {
         if self.pseudo != Normal {
             let layout_data_ref = self.borrow_layout_data();
-            let node_layout_data_wrapper = layout_data_ref.get_ref();
+            let node_layout_data_wrapper = layout_data_ref.as_ref().unwrap();
 
             if self.pseudo == Before || self.pseudo == BeforeBlock {
-                let before_style = node_layout_data_wrapper.data.before_style.get_ref();
+                let before_style = node_layout_data_wrapper.data.before_style.as_ref().unwrap();
                 return get_content(&before_style.get_box().content)
             } else {
-                let after_style = node_layout_data_wrapper.data.after_style.get_ref();
+                let after_style = node_layout_data_wrapper.data.after_style.as_ref().unwrap();
                 return get_content(&after_style.get_box().content)
             }
         }
@@ -610,19 +610,19 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
 
     pub fn is_block(&self, kind: PseudoElementType) -> bool {
         let mut layout_data_ref = self.mutate_layout_data();
-        let node_layout_data_wrapper = layout_data_ref.get_mut_ref();
+        let node_layout_data_wrapper = layout_data_ref.as_mut().unwrap();
 
         let display = match kind {
             Before | BeforeBlock => {
-                let before_style = node_layout_data_wrapper.data.before_style.get_ref();
+                let before_style = node_layout_data_wrapper.data.before_style.as_ref().unwrap();
                 before_style.get_box().display
             }
             After | AfterBlock => {
-                let after_style = node_layout_data_wrapper.data.after_style.get_ref();
+                let after_style = node_layout_data_wrapper.data.after_style.as_ref().unwrap();
                 after_style.get_box().display
             }
             Normal => {
-                let after_style = node_layout_data_wrapper.shared_data.style.get_ref();
+                let after_style = node_layout_data_wrapper.shared_data.style.as_ref().unwrap();
                 after_style.get_box().display
             }
         };
@@ -632,13 +632,13 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
 
     pub fn has_before_pseudo(&self) -> bool {
         let layout_data_wrapper = self.borrow_layout_data();
-        let layout_data_wrapper_ref = layout_data_wrapper.get_ref();
+        let layout_data_wrapper_ref = layout_data_wrapper.as_ref().unwrap();
         layout_data_wrapper_ref.data.before_style.is_some()
     }
 
     pub fn has_after_pseudo(&self) -> bool {
         let layout_data_wrapper = self.borrow_layout_data();
-        let layout_data_wrapper_ref = layout_data_wrapper.get_ref();
+        let layout_data_wrapper_ref = layout_data_wrapper.as_ref().unwrap();
         layout_data_wrapper_ref.data.after_style.is_some()
     }
 

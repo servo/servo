@@ -17,7 +17,7 @@ pub mod specified {
     use cssparser::ast;
     use cssparser::ast::*;
     use super::{Au, CSSFloat};
-    pub use CSSColor = cssparser::Color;
+    pub use cssparser::Color as CSSColor;
 
     #[deriving(Clone)]
     pub enum Length {
@@ -204,11 +204,10 @@ pub mod specified {
 }
 
 pub mod computed {
-    pub use CSSColor = cssparser::Color;
-    pub use compute_CSSColor = super::super::longhands::computed_as_specified;
+    pub use cssparser::Color as CSSColor;
+    pub use super::super::longhands::computed_as_specified as compute_CSSColor;
     use super::*;
     use super::super::longhands;
-    pub use servo_util::geometry::Au;
 
     pub struct Context {
         pub inherited_font_weight: longhands::font_weight::computed_value::T,
@@ -230,14 +229,14 @@ pub mod computed {
         // TODO, as needed: root font size, viewport size, etc.
     }
 
-    #[allow(non_snake_case_functions)]
+    #[allow(non_snake_case)]
     #[inline]
     pub fn compute_Au(value: specified::Length, context: &Context) -> Au {
         compute_Au_with_font_size(value, context.font_size)
     }
 
     /// A special version of `compute_Au` used for `font-size`.
-    #[allow(non_snake_case_functions)]
+    #[allow(non_snake_case)]
     #[inline]
     pub fn compute_Au_with_font_size(value: specified::Length, reference_font_size: Au) -> Au {
         match value {
@@ -255,7 +254,7 @@ pub mod computed {
         LP_Length(Au),
         LP_Percentage(CSSFloat),
     }
-    #[allow(non_snake_case_functions)]
+    #[allow(non_snake_case)]
     pub fn compute_LengthOrPercentage(value: specified::LengthOrPercentage, context: &Context)
                                    -> LengthOrPercentage {
         match value {
@@ -270,7 +269,7 @@ pub mod computed {
         LPA_Percentage(CSSFloat),
         LPA_Auto,
     }
-    #[allow(non_snake_case_functions)]
+    #[allow(non_snake_case)]
     pub fn compute_LengthOrPercentageOrAuto(value: specified::LengthOrPercentageOrAuto,
                                             context: &Context) -> LengthOrPercentageOrAuto {
         match value {
@@ -286,7 +285,7 @@ pub mod computed {
         LPN_Percentage(CSSFloat),
         LPN_None,
     }
-    #[allow(non_snake_case_functions)]
+    #[allow(non_snake_case)]
     pub fn compute_LengthOrPercentageOrNone(value: specified::LengthOrPercentageOrNone,
                                             context: &Context) -> LengthOrPercentageOrNone {
         match value {

@@ -81,7 +81,7 @@ impl Drop for Scope {
                 let mut state = refcell.borrow_mut();
                 let mut current_scope = state.scope_stack.pop().unwrap();
                 current_scope.post = json::encode(&state.flow_root.get());
-                let previous_scope = state.scope_stack.mut_last().unwrap();
+                let previous_scope = state.scope_stack.last_mut().unwrap();
                 previous_scope.children.push(current_scope);
             }
             None => {}

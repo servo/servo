@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::iter::range_step;
-use stb_image = stb_image::image;
+use stb_image::image as stb_image;
 use png;
 
 // FIXME: Images must not be copied every frame. Instead we should atomically

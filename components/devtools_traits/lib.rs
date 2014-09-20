@@ -8,7 +8,7 @@
 #![comment = "The Servo Parallel Browser Project"]
 #![license = "MPL"]
 
-extern crate servo_msg = "msg";
+extern crate "msg" as servo_msg;
 
 /// This module contains shared types and messages for use by devtools/script.
 /// The traits are here instead of in script so that the devtools crate can be

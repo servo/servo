@@ -25,7 +25,7 @@ extern crate serialize;
 extern crate sync;
 #[cfg(target_os="macos")]
 extern crate task_info;
-extern crate std_time = "time";
+extern crate "time" as std_time;
 extern crate string_cache;
 extern crate url;
 

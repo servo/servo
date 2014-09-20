@@ -127,7 +127,7 @@ impl DedicatedWorkerGlobalScope {
                             assert!(JS_ReadStructuredClone(
                                 js_context.ptr, data as *const u64, nbytes,
                                 JS_STRUCTURED_CLONE_VERSION, &mut message,
-                                ptr::null(), ptr::mut_null()) != 0);
+                                ptr::null(), ptr::null_mut()) != 0);
                         }
 
                         MessageEvent::dispatch_jsval(target, &Worker(scope), message);
@@ -152,11 +152,11 @@ impl DedicatedWorkerGlobalScope {
 
 impl<'a> DedicatedWorkerGlobalScopeMethods for JSRef<'a, DedicatedWorkerGlobalScope> {
     fn PostMessage(self, cx: *mut JSContext, message: JSVal) {
-        let mut data = ptr::mut_null();
+        let mut data = ptr::null_mut();
         let mut nbytes = 0;
         unsafe {
             assert!(JS_WriteStructuredClone(cx, message, &mut data, &mut nbytes,
-                                            ptr::null(), ptr::mut_null()) != 0);
+                                            ptr::null(), ptr::null_mut()) != 0);
         }
 
         let ScriptChan(ref sender) = self.parent_sender;

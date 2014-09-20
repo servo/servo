@@ -79,7 +79,7 @@ pub struct Request {
     pub manual_redirect: bool,
     pub redirect_count: uint,
     pub response_tainting: ResponseTainting,
-    pub cache: Option<Box<CORSCache>>
+    pub cache: Option<Box<CORSCache+'static>>
 }
 
 impl Request {

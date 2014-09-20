@@ -59,7 +59,7 @@ pub fn parse_media_rule(rule: AtRule, parent_rules: &mut Vec<CSSRule>,
         }
     };
     let mut rules = vec!();
-    for rule in ErrorLoggerIterator(parse_rule_list(block.move_iter())) {
+    for rule in ErrorLoggerIterator(parse_rule_list(block.into_iter())) {
         match rule {
             QualifiedRule(rule) => parse_style_rule(rule, &mut rules, namespaces, base_url),
             AtRule(rule) => parse_nested_at_rule(
@@ -94,13 +94,13 @@ pub fn parse_media_query_list(input: &[ComponentValue]) -> MediaQueryList {
         };
         match iter.next() {
             None => {
-                for mq in mq.move_iter() {
+                for mq in mq.into_iter() {
                     queries.push(mq);
                 }
                 return MediaQueryList{ media_queries: queries }
             },
             Some(&Comma) => {
-                for mq in mq.move_iter() {
+                for mq in mq.into_iter() {
                     queries.push(mq);
                 }
             },

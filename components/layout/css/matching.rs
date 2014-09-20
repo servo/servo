@@ -464,7 +464,7 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
                 Some(shared_style) => {
                     // Yay, cache hit. Share the style.
                     let mut layout_data_ref = self.mutate_layout_data();
-                    layout_data_ref.get_mut_ref().shared_data.style = Some(shared_style);
+                    layout_data_ref.as_mut().unwrap().shared_data.style = Some(shared_style);
                     return StyleWasShared(i)
                 }
                 None => {}
@@ -622,14 +622,14 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
                                                  applicable_declarations_cache,
                                                  applicable_declarations.normal_shareable);
                 if applicable_declarations.before.len() > 0 {
-                    self.cascade_node_pseudo_element(Some(layout_data.shared_data.style.get_ref()),
+                    self.cascade_node_pseudo_element(Some(layout_data.shared_data.style.as_ref().unwrap()),
                                                      applicable_declarations.before.as_slice(),
                                                      &mut layout_data.data.before_style,
                                                      applicable_declarations_cache,
                                                      false);
                 }
                 if applicable_declarations.after.len() > 0 {
-                    self.cascade_node_pseudo_element(Some(layout_data.shared_data.style.get_ref()),
+                    self.cascade_node_pseudo_element(Some(layout_data.shared_data.style.as_ref().unwrap()),
                                                      applicable_declarations.after.as_slice(),
                                                      &mut layout_data.data.after_style,
                                                      applicable_declarations_cache,

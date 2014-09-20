@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![allow(uppercase_variables)]
+#![allow(non_snake_case)]
 
 extern crate freetype;
 extern crate fontconfig;
@@ -35,7 +35,7 @@ pub fn get_available_families(callback: |String|) {
         let fontSet = FcConfigGetFonts(config, FcSetSystem);
         for i in range(0, (*fontSet).nfont as int) {
             let font = (*fontSet).fonts.offset(i);
-            let mut family: *mut FcChar8 = ptr::mut_null();
+            let mut family: *mut FcChar8 = ptr::null_mut();
             let mut v: c_int = 0;
             while FcPatternGetString(*font, FC_FAMILY.as_ptr() as *mut i8, v, &mut family) == FcResultMatch {
                 let family_name = string::raw::from_buf(family as *const i8 as *const u8);
@@ -71,7 +71,7 @@ pub fn get_variations_for_family(family_name: &str, callback: |String|) {
 
         for i in range(0, (*matches).nfont as int) {
             let font = (*matches).fonts.offset(i);
-            let mut file: *mut FcChar8 = ptr::mut_null();
+            let mut file: *mut FcChar8 = ptr::null_mut();
             let file = if FcPatternGetString(*font, FC_FILE.as_ptr() as *mut i8, 0, &mut file) == FcResultMatch {
                 string::raw::from_buf(file as *const i8 as *const u8)
             } else {
@@ -103,14 +103,14 @@ pub fn get_system_default_family(generic_name: &str) -> Option<String> {
     unsafe {
         let pattern = FcNameParse(generic_name_ptr as *mut FcChar8);
 
-        FcConfigSubstitute(ptr::mut_null(), pattern, FcMatchPattern);
+        FcConfigSubstitute(ptr::null_mut(), pattern, FcMatchPattern);
         FcDefaultSubstitute(pattern);
 
         let mut result = 0;
-        let family_match = FcFontMatch(ptr::mut_null(), pattern, &mut result);
+        let family_match = FcFontMatch(ptr::null_mut(), pattern, &mut result);
 
         let family_name = if result == FcResultMatch {
-            let mut match_string: *mut FcChar8 = ptr::mut_null();
+            let mut match_string: *mut FcChar8 = ptr::null_mut();
             FcPatternGetString(family_match, FC_FAMILY.as_ptr() as *mut i8, 0, &mut match_string);
             let result = string::raw::from_buf(match_string as *const i8 as *const u8);
             FcPatternDestroy(family_match);

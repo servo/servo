@@ -78,8 +78,8 @@ impl<'a> HTMLOptionElementMethods for JSRef<'a, HTMLOptionElement> {
     }
 
     // http://www.whatwg.org/html/#dom-option-text
-    fn Text(&self) -> DOMString {
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+    fn Text(self) -> DOMString {
+        let node: JSRef<Node> = NodeCast::from_ref(self);
         let mut content = String::new();
         collect_text(&node, &mut content);
         let v: Vec<&str> = split_html_space_chars(content.as_slice()).collect();
@@ -87,8 +87,8 @@ impl<'a> HTMLOptionElementMethods for JSRef<'a, HTMLOptionElement> {
     }
 
     // http://www.whatwg.org/html/#dom-option-text
-    fn SetText(&self, value: DOMString) {
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+    fn SetText(self, value: DOMString) {
+        let node: JSRef<Node> = NodeCast::from_ref(self);
         node.SetTextContent(Some(value))
     }
 }

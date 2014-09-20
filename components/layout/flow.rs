@@ -29,7 +29,7 @@ use css::node_style::StyledNode;
 use block::BlockFlow;
 use context::LayoutContext;
 use floats::Floats;
-use flow_list::{FlowList, Link, FlowListIterator, MutFlowListIterator};
+use flow_list::{FlowList, FlowListIterator, MutFlowListIterator};
 use flow_ref::FlowRef;
 use fragment::{Fragment, TableRowFragment, TableCellFragment};
 use incremental::RestyleDamage;
@@ -67,7 +67,7 @@ use style::computed_values::{clear, float, position, text_align};
 ///
 /// Note that virtual methods have a cost; we should not overuse them in Servo. Consider adding
 /// methods to `ImmutableFlowUtils` or `MutableFlowUtils` before adding more methods here.
-pub trait Flow: fmt::Show + ToString + Share {
+pub trait Flow: fmt::Show + ToString + Sync {
     // RTTI
     //
     // TODO(pcwalton): Use Rust's RTTI, once that works.
@@ -310,7 +310,7 @@ pub trait Flow: fmt::Show + ToString + Share {
     }
 }
 
-impl<'a, E, S: Encoder<E>> Encodable<S, E> for &'a Flow {
+impl<'a, E, S: Encoder<E>> Encodable<S, E> for &'a Flow + 'a {
     fn encode(&self, e: &mut S) -> Result<(), E> {
         e.emit_struct("flow", 0, |e| {
             try!(e.emit_struct_field("class", 0, |e| self.class().encode(e)))
@@ -355,7 +355,7 @@ pub fn mut_base<'a>(this: &'a mut Flow) -> &'a mut BaseFlow {
 
 /// Iterates over the children of this flow.
 pub fn child_iter<'a>(flow: &'a mut Flow) -> MutFlowListIterator<'a> {
-    mut_base(flow).children.mut_iter()
+    mut_base(flow).children.iter_mut()
 }
 
 pub trait ImmutableFlowUtils {
@@ -610,7 +610,7 @@ impl Descendants {
     ///
     /// Ignore any static y offsets, because they are None before layout.
     pub fn push_descendants(&mut self, given_descendants: Descendants) {
-        for elem in given_descendants.descendant_links.move_iter() {
+        for elem in given_descendants.descendant_links.into_iter() {
             self.descendant_links.push(elem);
         }
     }
@@ -618,16 +618,16 @@ impl Descendants {
     /// Return an iterator over the descendant flows.
     pub fn iter<'a>(&'a mut self) -> DescendantIter<'a> {
         DescendantIter {
-            iter: self.descendant_links.mut_slice_from(0).mut_iter(),
+            iter: self.descendant_links.slice_from_mut(0).iter_mut(),
         }
     }
 
     /// Return an iterator over (descendant, static y offset).
     pub fn iter_with_offset<'a>(&'a mut self) -> DescendantOffsetIter<'a> {
         let descendant_iter = DescendantIter {
-            iter: self.descendant_links.mut_slice_from(0).mut_iter(),
+            iter: self.descendant_links.slice_from_mut(0).iter_mut(),
         };
-        descendant_iter.zip(self.static_b_offsets.mut_slice_from(0).mut_iter())
+        descendant_iter.zip(self.static_b_offsets.slice_from_mut(0).iter_mut())
     }
 }
 
@@ -637,8 +637,8 @@ pub struct DescendantIter<'a> {
     iter: MutItems<'a, FlowRef>,
 }
 
-impl<'a> Iterator<&'a mut Flow> for DescendantIter<'a> {
-    fn next(&mut self) -> Option<&'a mut Flow> {
+impl<'a> Iterator<&'a mut Flow + 'a> for DescendantIter<'a> {
+    fn next(&mut self) -> Option<&'a mut Flow + 'a> {
         match self.iter.next() {
             None => None,
             Some(ref mut flow) => {
@@ -690,16 +690,6 @@ pub struct BaseFlow {
 
     /// The children of this flow.
     pub children: FlowList,
-
-    /// The flow's next sibling.
-    ///
-    /// FIXME(pcwalton): Make this private. Misuse of this can lead to data races.
-    pub next_sibling: Link,
-
-    /// The flow's previous sibling.
-    ///
-    /// FIXME(pcwalton): Make this private. Misuse of this can lead to data races.
-    pub prev_sibling: Link,
 
     /* layout computations */
     // TODO: min/pref and position are used during disjoint phases of
@@ -809,8 +799,6 @@ impl BaseFlow {
             restyle_damage: node.restyle_damage(),
 
             children: FlowList::new(),
-            next_sibling: None,
-            prev_sibling: None,
 
             intrinsic_inline_sizes: IntrinsicISizes::new(),
             position: LogicalRect::zero(writing_mode),
@@ -836,7 +824,7 @@ impl BaseFlow {
     }
 
     pub fn child_iter<'a>(&'a mut self) -> MutFlowListIterator<'a> {
-        self.children.mut_iter()
+        self.children.iter_mut()
     }
 
     pub unsafe fn ref_count<'a>(&'a self) -> &'a AtomicUint {
@@ -848,7 +836,7 @@ impl BaseFlow {
     }
 }
 
-impl<'a> ImmutableFlowUtils for &'a Flow {
+impl<'a> ImmutableFlowUtils for &'a Flow + 'a {
     /// Returns true if this flow is a block or a float flow.
     fn is_block_like(self) -> bool {
         match self.class() {
@@ -1016,7 +1004,7 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
     }
 }
 
-impl<'a> MutableFlowUtils for &'a mut Flow {
+impl<'a> MutableFlowUtils for &'a mut Flow + 'a {
     /// Traverses the tree in preorder.
     fn traverse_preorder<T:PreorderFlowTraversal>(self, traversal: &mut T) -> bool {
         if traversal.should_prune(self) {

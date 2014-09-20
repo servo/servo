@@ -753,7 +753,7 @@ impl BlockFlow {
                 // Avoid copying the offset vector.
                 let offsets = mem::replace(&mut kid_base.abs_descendants.static_b_offsets, Vec::new());
                 // Consume all the static y-offsets bubbled up by kid.
-                for y_offset in offsets.move_iter() {
+                for y_offset in offsets.into_iter() {
                     // The offsets are wrt the kid flow box. Translate them to current flow.
                     abs_descendant_y_offsets.push(y_offset + kid_base.position.start.b);
                 }
@@ -977,10 +977,16 @@ impl BlockFlow {
         let mut candidate_block_size_iterator = CandidateBSizeIterator::new(
             self.fragment.style(),
             self.base.block_container_explicit_block_size);
-        for candidate_block_size in candidate_block_size_iterator {
-            candidate_block_size_iterator.candidate_value = match candidate_block_size {
-                Auto => block_size,
-                Specified(value) => value
+        // Can't use `for` because we assign to candidate_block_size_iterator.candidate_value
+        loop {
+            match candidate_block_size_iterator.next() {
+                Some(candidate_block_size) => {
+                    candidate_block_size_iterator.candidate_value = match candidate_block_size {
+                        Auto => block_size,
+                        Specified(value) => value
+                    }
+                }
+                None => break,
             }
         }
 
@@ -1040,15 +1046,15 @@ impl BlockFlow {
                     self.fragment.border_padding.inline_start_end(),
                 block_size + margin_block_size),
             ceiling: clearance + self.base.position.start.b,
-            max_inline_size: self.float.get_ref().containing_inline_size,
-            kind: self.float.get_ref().float_kind,
+            max_inline_size: self.float.as_ref().unwrap().containing_inline_size,
+            kind: self.float.as_ref().unwrap().float_kind,
         };
 
         // Place the float and return the `Floats` back to the parent flow.
         // After, grab the position and use that to set our position.
         self.base.floats.add_float(&info);
 
-        self.float.get_mut_ref().rel_pos = self.base.floats.last_float_pos().unwrap();
+        self.float.as_mut().unwrap().rel_pos = self.base.floats.last_float_pos().unwrap();
     }
 
     /// Assign block-size for current flow.
@@ -1097,10 +1103,16 @@ impl BlockFlow {
         let mut candidate_block_size_iterator =
             CandidateBSizeIterator::new(self.fragment.style(),
                                         self.base.block_container_explicit_block_size);
-        for candidate_block_size in candidate_block_size_iterator {
-            candidate_block_size_iterator.candidate_value = match candidate_block_size {
-                Auto => content_block_size,
-                Specified(value) => value,
+        // Can't use `for` because we assign to candidate_block_size_iterator.candidate_value
+        loop {
+            match candidate_block_size_iterator.next() {
+                Some(candidate_block_size) => {
+                    candidate_block_size_iterator.candidate_value = match candidate_block_size {
+                        Auto => content_block_size,
+                        Specified(value) => value,
+                    }
+                }
+                None => break,
             }
         }
 
@@ -1173,7 +1185,7 @@ impl BlockFlow {
     }
 
     pub fn build_display_list_float(&mut self, layout_context: &LayoutContext) {
-        let float_offset = self.float.get_ref().rel_pos;
+        let float_offset = self.float.as_ref().unwrap().rel_pos;
         self.build_display_list_block_common(layout_context,
                                              float_offset,
                                              RootOfStackingContextLevel);
@@ -1241,19 +1253,26 @@ impl BlockFlow {
                 let mut candidate_block_size_iterator =
                     CandidateBSizeIterator::new(style, Some(containing_block_block_size));
 
-                for block_size_used_val in candidate_block_size_iterator {
-                    solution =
-                        Some(BSizeConstraintSolution::solve_vertical_constraints_abs_nonreplaced(
-                            block_size_used_val,
-                            margin_block_start,
-                            margin_block_end,
-                            block_start,
-                            block_end,
-                            content_block_size,
-                            available_block_size,
-                            static_b_offset));
+                // Can't use `for` because we assign to candidate_block_size_iterator.candidate_value
+                loop {
+                    match candidate_block_size_iterator.next() {
+                        Some(block_size_used_val) => {
+                            solution =
+                                Some(BSizeConstraintSolution::solve_vertical_constraints_abs_nonreplaced(
+                                    block_size_used_val,
+                                    margin_block_start,
+                                    margin_block_end,
+                                    block_start,
+                                    block_end,
+                                    content_block_size,
+                                    available_block_size,
+                                    static_b_offset));
 
-                    candidate_block_size_iterator.candidate_value = solution.unwrap().block_size
+                            candidate_block_size_iterator.candidate_value
+                                = solution.unwrap().block_size;
+                        }
+                        None => break,
+                    }
                 }
             }
         }
@@ -1580,7 +1599,7 @@ impl Flow for BlockFlow {
         let containing_block_inline_size = self.base.position.size.inline;
         self.compute_used_inline_size(layout_context, containing_block_inline_size);
         if self.is_float() {
-            self.float.get_mut_ref().containing_inline_size = containing_block_inline_size;
+            self.float.as_mut().unwrap().containing_inline_size = containing_block_inline_size;
         }
 
         // Formatting contexts are never impacted by floats.
@@ -1701,7 +1720,7 @@ impl Flow for BlockFlow {
         }
 
         let float_offset = if self.is_float() {
-            self.float.get_ref().rel_pos
+            self.float.as_ref().unwrap().rel_pos
         } else {
             LogicalPoint::zero(self.base.writing_mode)
         };
@@ -1773,7 +1792,7 @@ impl Flow for BlockFlow {
         // FIXME(#2010, pcwalton): This is a hack and is totally bogus in the presence of pseudo-
         // elements. But until we have incremental reflow we can't do better--we recreate the flow
         // for every DOM node so otherwise we nuke layers on every reflow.
-        LayerId(self.fragment.node.id(), fragment_index)
+        LayerId(self.fragment.node.id() as uint, fragment_index)
     }
 
     fn is_absolute_containing_block(&self) -> bool {

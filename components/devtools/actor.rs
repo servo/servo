@@ -8,7 +8,7 @@ use std::any::{Any, AnyRefExt, AnyMutRefExt};
 use std::collections::hashmap::HashMap;
 use std::cell::{Cell, RefCell};
 use std::io::TcpStream;
-use std::mem::{transmute, transmute_copy};
+use std::mem::{transmute, transmute_copy, replace};
 use std::raw::TraitObject;
 use serialize::json;
 
@@ -24,7 +24,7 @@ pub trait Actor: Any {
     fn name(&self) -> String;
 }
 
-impl<'a> AnyMutRefExt<'a> for &'a mut Actor {
+impl<'a> AnyMutRefExt<'a> for &'a mut Actor + 'a {
     fn downcast_mut<T: 'static>(self) -> Option<&'a mut T> {
         if self.is::<T>() {
             unsafe {
@@ -40,7 +40,7 @@ impl<'a> AnyMutRefExt<'a> for &'a mut Actor {
     }
 }
 
-impl<'a> AnyRefExt<'a> for &'a Actor {
+impl<'a> AnyRefExt<'a> for &'a Actor + 'a {
     fn is<T: 'static>(self) -> bool {
         //FIXME: This implementation is bogus since get_type_id is private now.
         //       However, this implementation is only needed so long as there's a Rust bug
@@ -162,10 +162,9 @@ impl ActorRegistry {
                 }
             }
         }
-        let mut new_actors = self.new_actors.borrow_mut();
-        for &actor in new_actors.iter() {
+        let mut new_actors = replace(&mut *self.new_actors.borrow_mut(), vec!());
+        for actor in new_actors.into_iter() {
             self.actors.insert(actor.name().to_string(), actor);
         }
-        new_actors.clear();
     }
 }

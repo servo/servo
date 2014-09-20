@@ -129,7 +129,7 @@ pub fn unwrap_jsmanaged<T: Reflectable>(mut obj: *mut JSObject,
         let dom_class = get_dom_class(obj).or_else(|_| {
             if IsWrapper(obj) == 1 {
                 debug!("found wrapper");
-                obj = UnwrapObject(obj, /* stopAtOuter = */ 0, ptr::mut_null());
+                obj = UnwrapObject(obj, /* stopAtOuter = */ 0, ptr::null_mut());
                 if obj.is_null() {
                     debug!("unwrapping security wrapper failed");
                     Err(())
@@ -421,7 +421,7 @@ fn CreateInterfacePrototypeObject(cx: *mut JSContext, global: *mut JSObject,
 
 /// A throwing constructor, for those interfaces that have neither
 /// `NoInterfaceObject` nor `Constructor`.
-pub extern fn ThrowingConstructor(cx: *mut JSContext, _argc: c_uint, _vp: *mut JSVal) -> JSBool {
+pub unsafe extern fn ThrowingConstructor(cx: *mut JSContext, _argc: c_uint, _vp: *mut JSVal) -> JSBool {
     throw_type_error(cx, "Illegal constructor.");
     return 0;
 }
@@ -488,7 +488,7 @@ impl Reflector {
     /// Create an uninitialized `Reflector`.
     pub fn new() -> Reflector {
         Reflector {
-            object: Cell::new(ptr::mut_null()),
+            object: Cell::new(ptr::null_mut()),
         }
     }
 }
@@ -613,7 +613,7 @@ pub fn get_dictionary_property(cx: *mut JSContext,
 pub fn HasPropertyOnPrototype(cx: *mut JSContext, proxy: *mut JSObject, id: jsid) -> bool {
     //  MOZ_ASSERT(js::IsProxy(proxy) && js::GetProxyHandler(proxy) == handler);
     let mut found = false;
-    return !GetPropertyOnPrototype(cx, proxy, id, &mut found, ptr::mut_null()) || found;
+    return !GetPropertyOnPrototype(cx, proxy, id, &mut found, ptr::null_mut()) || found;
 }
 
 /// Returns whether `obj` can be converted to a callback interface per IDL.
@@ -626,9 +626,9 @@ pub fn IsConvertibleToCallbackInterface(cx: *mut JSContext, obj: *mut JSObject) 
 /// Create a DOM global object with the given class.
 pub fn CreateDOMGlobal(cx: *mut JSContext, class: *const JSClass) -> *mut JSObject {
     unsafe {
-        let obj = JS_NewGlobalObject(cx, class, ptr::mut_null());
+        let obj = JS_NewGlobalObject(cx, class, ptr::null_mut());
         if obj.is_null() {
-            return ptr::mut_null();
+            return ptr::null_mut();
         }
         with_compartment(cx, obj, || {
             JS_InitStandardClasses(cx, obj);
@@ -639,18 +639,14 @@ pub fn CreateDOMGlobal(cx: *mut JSContext, class: *const JSClass) -> *mut JSObje
 }
 
 /// Callback to outerize windows when wrapping.
-pub extern fn wrap_for_same_compartment(cx: *mut JSContext, obj: *mut JSObject) -> *mut JSObject {
-    unsafe {
-        JS_ObjectToOuterObject(cx, obj)
-    }
+pub unsafe extern fn wrap_for_same_compartment(cx: *mut JSContext, obj: *mut JSObject) -> *mut JSObject {
+    JS_ObjectToOuterObject(cx, obj)
 }
 
 /// Callback to outerize windows before wrapping.
-pub extern fn pre_wrap(cx: *mut JSContext, _scope: *mut JSObject,
+pub unsafe extern fn pre_wrap(cx: *mut JSContext, _scope: *mut JSObject,
                        obj: *mut JSObject, _flags: c_uint) -> *mut JSObject {
-    unsafe {
-        JS_ObjectToOuterObject(cx, obj)
-    }
+    JS_ObjectToOuterObject(cx, obj)
 }
 
 /// Callback to outerize windows.
@@ -664,7 +660,7 @@ pub extern fn outerize_global(_cx: *mut JSContext, obj: JSHandleObject) -> *mut 
                              IDLInterface::get_prototype_depth(None::<window::Window>))
             .unwrap()
             .root();
-        win.deref().browser_context.deref().borrow().get_ref().window_proxy()
+        win.deref().browser_context.deref().borrow().as_ref().unwrap().window_proxy()
     }
 }
 
@@ -675,12 +671,12 @@ pub fn global_object_for_js_object(obj: *mut JSObject) -> GlobalField {
         let global = GetGlobalForObjectCrossCompartment(obj);
         let clasp = JS_GetClass(global);
         assert!(((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)) != 0);
-        match FromJSValConvertible::from_jsval(ptr::mut_null(), ObjectOrNullValue(global), ()) {
+        match FromJSValConvertible::from_jsval(ptr::null_mut(), ObjectOrNullValue(global), ()) {
             Ok(window) => return WindowField(window),
             Err(_) => (),
         }
 
-        match FromJSValConvertible::from_jsval(ptr::mut_null(), ObjectOrNullValue(global), ()) {
+        match FromJSValConvertible::from_jsval(ptr::null_mut(), ObjectOrNullValue(global), ()) {
             Ok(worker) => return WorkerField(worker),
             Err(_) => (),
         }

@@ -96,7 +96,7 @@ impl FontHandleMethods for FontHandle {
         fn create_face_from_buffer(lib: FT_Library, cbuf: *const u8, cbuflen: uint, pt_size: Option<f64>)
                                    -> Result<FT_Face, ()> {
             unsafe {
-                let mut face: FT_Face = ptr::mut_null();
+                let mut face: FT_Face = ptr::null_mut();
                 let face_index = 0 as FT_Long;
                 let result = FT_New_Memory_Face(lib, cbuf, cbuflen as FT_Long,
                                                 face_index, &mut face);

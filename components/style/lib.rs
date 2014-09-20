@@ -22,10 +22,10 @@ extern crate url;
 
 extern crate cssparser;
 extern crate encoding;
-
 #[phase(plugin)]
-extern crate servo_macros = "macros";
-extern crate servo_util = "util";
+extern crate lazy_static;
+
+extern crate "util" as servo_util;
 
 
 // Public API

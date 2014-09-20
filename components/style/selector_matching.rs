@@ -140,7 +140,7 @@ impl SelectorMap {
                                         shareable);
 
         // Sort only the rules we just added.
-        sort::quicksort_by(matching_rules_list.vec_mut_slice_from(init_len), compare);
+        sort::quicksort_by(matching_rules_list.vec_slice_from_mut(init_len), compare);
 
         fn compare(a: &DeclarationBlock, b: &DeclarationBlock) -> Ordering {
             (a.specificity, a.source_order).cmp(&(b.specificity, b.source_order))
@@ -1006,7 +1006,7 @@ mod tests {
         let namespaces = NamespaceMap::new();
         css_selectors.iter().enumerate().map(|(i, selectors)| {
             parse_selector_list(tokenize(*selectors).map(|(c, _)| c), &namespaces)
-            .unwrap().move_iter().map(|s| {
+            .unwrap().into_iter().map(|s| {
                 Rule {
                     selector: s.compound_selectors.clone(),
                     declarations: DeclarationBlock {

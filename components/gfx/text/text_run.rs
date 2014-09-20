@@ -104,7 +104,7 @@ impl<'a> Iterator<Range<CharIndex>> for LineIterator<'a> {
                 None => {
                     // flush any remaining chars as a line
                     if self.clump.is_some() {
-                        let mut c = self.clump.take_unwrap();
+                        let mut c = self.clump.take().unwrap();
                         c.extend_to(self.range.end());
                         return Some(c);
                     } else {

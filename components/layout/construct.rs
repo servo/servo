@@ -173,7 +173,7 @@ impl InlineFragmentsAccumulator {
 
         match enclosing_style {
             Some(enclosing_style) => {
-                for frag in fragments.fragments.mut_iter() {
+                for frag in fragments.fragments.iter_mut() {
                     frag.add_inline_context_style(enclosing_style.clone());
                 }
             }
@@ -372,7 +372,7 @@ impl<'a> FlowConstructor<'a> {
                         abs_descendants: kid_abs_descendants,
                     })) => {
                 // Add any {ib} splits.
-                for split in splits.move_iter() {
+                for split in splits.into_iter() {
                     // Pull apart the {ib} split object and push its predecessor fragments
                     // onto the list.
                     let InlineBlockSplit {
@@ -556,7 +556,7 @@ impl<'a> FlowConstructor<'a> {
                         })) => {
 
                     // Bubble up {ib} splits.
-                    for split in splits.move_iter() {
+                    for split in splits.into_iter() {
                         let InlineBlockSplit {
                             predecessors: predecessors,
                             flow: kid_flow
@@ -709,7 +709,7 @@ impl<'a> FlowConstructor<'a> {
                                         node: &ThreadSafeLayoutNode) {
         let mut anonymous_flow = flow.get().generate_missing_child_flow(node);
         let mut consecutive_siblings = vec!();
-        for kid_flow in child_flows.move_iter() {
+        for kid_flow in child_flows.into_iter() {
             if anonymous_flow.get().need_anonymous_flow(kid_flow.get()) {
                 consecutive_siblings.push(kid_flow);
                 continue;

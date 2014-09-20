@@ -175,9 +175,9 @@ impl Shaper {
             // configure static function callbacks.
             // NB. This funcs structure could be reused globally, as it never changes.
             let hb_funcs: *mut hb_font_funcs_t = hb_font_funcs_create();
-            hb_font_funcs_set_glyph_func(hb_funcs, glyph_func, ptr::mut_null(), None);
-            hb_font_funcs_set_glyph_h_advance_func(hb_funcs, glyph_h_advance_func, ptr::mut_null(), None);
-            hb_font_funcs_set_glyph_h_kerning_func(hb_funcs, glyph_h_kerning_func, ptr::mut_null(), ptr::mut_null());
+            hb_font_funcs_set_glyph_func(hb_funcs, glyph_func, ptr::null_mut(), None);
+            hb_font_funcs_set_glyph_h_advance_func(hb_funcs, glyph_h_advance_func, ptr::null_mut(), None);
+            hb_font_funcs_set_glyph_h_kerning_func(hb_funcs, glyph_h_kerning_func, ptr::null_mut(), ptr::null_mut());
             hb_font_set_funcs(hb_font, hb_funcs, font_ptr as *mut c_void, None);
 
             Shaper {
@@ -211,7 +211,7 @@ impl ShaperMethods for Shaper {
                                0,
                                text.len() as c_int);
 
-            hb_shape(self.hb_font, hb_buffer, ptr::mut_null(), 0);
+            hb_shape(self.hb_font, hb_buffer, ptr::null_mut(), 0);
             self.save_glyph_results(text, glyphs, hb_buffer);
             hb_buffer_destroy(hb_buffer);
         }
@@ -241,15 +241,15 @@ impl Shaper {
         }
 
         // make map of what chars have glyphs
-        let mut byteToGlyph: Vec<i32>;
+        let mut byte_to_glyph: Vec<i32>;
 
         // fast path: all chars are single-byte.
         if byte_max == char_max {
-            byteToGlyph = Vec::from_elem(byte_max as uint, NO_GLYPH);
+            byte_to_glyph = Vec::from_elem(byte_max as uint, NO_GLYPH);
         } else {
-            byteToGlyph = Vec::from_elem(byte_max as uint, CONTINUATION_BYTE);
+            byte_to_glyph = Vec::from_elem(byte_max as uint, CONTINUATION_BYTE);
             for (i, _) in text.char_indices() {
-                *byteToGlyph.get_mut(i) = NO_GLYPH;
+                *byte_to_glyph.get_mut(i) = NO_GLYPH;
             }
         }
 
@@ -258,10 +258,10 @@ impl Shaper {
             // loc refers to a *byte* offset within the utf8 string.
             let loc = glyph_data.byte_offset_of_glyph(i);
             if loc < byte_max {
-                assert!(*byteToGlyph.get(loc as uint) != CONTINUATION_BYTE);
-                *byteToGlyph.get_mut(loc as uint) = i as i32;
+                assert!(*byte_to_glyph.get(loc as uint) != CONTINUATION_BYTE);
+                *byte_to_glyph.get_mut(loc as uint) = i as i32;
             } else {
-                debug!("ERROR: tried to set out of range byteToGlyph: idx={}, glyph idx={}",
+                debug!("ERROR: tried to set out of range byte_to_glyph: idx={}, glyph idx={}",
                        loc,
                        i);
             }
@@ -271,7 +271,7 @@ impl Shaper {
         debug!("text: {:s}", text);
         debug!("(char idx): char->(glyph index):");
         for (i, ch) in text.char_indices() {
-            debug!("{}: {} --> {:d}", i, ch, *byteToGlyph.get(i) as int);
+            debug!("{}: {} --> {:d}", i, ch, *byte_to_glyph.get(i) as int);
         }
 
         // some helpers
@@ -303,7 +303,7 @@ impl Shaper {
                        char_byte_span.begin(), char_byte_span.length(), glyph_span.begin());
 
                 while char_byte_span.end() != byte_max &&
-                        byteToGlyph[char_byte_span.end() as uint] == NO_GLYPH {
+                        byte_to_glyph[char_byte_span.end() as uint] == NO_GLYPH {
                     debug!("Extending char byte span to include byte offset={} with no associated \
                             glyph", char_byte_span.end());
                     let range = text.char_range_at(char_byte_span.end() as uint);
@@ -315,8 +315,8 @@ impl Shaper {
                 // in cases where one char made several glyphs and left some unassociated chars.
                 let mut max_glyph_idx = glyph_span.end();
                 for i in char_byte_span.each_index() {
-                    if byteToGlyph[i as uint] > NO_GLYPH {
-                        max_glyph_idx = cmp::max(byteToGlyph[i as uint] as int + 1, max_glyph_idx);
+                    if byte_to_glyph[i as uint] > NO_GLYPH {
+                        max_glyph_idx = cmp::max(byte_to_glyph[i as uint] as int + 1, max_glyph_idx);
                     }
                 }
 
@@ -375,7 +375,7 @@ impl Shaper {
             let mut covered_byte_span = char_byte_span.clone();
             // extend, clipping at end of text range.
             while covered_byte_span.end() < byte_max
-                    && byteToGlyph[covered_byte_span.end() as uint] == NO_GLYPH {
+                    && byte_to_glyph[covered_byte_span.end() as uint] == NO_GLYPH {
                 let range = text.char_range_at(covered_byte_span.end() as uint);
                 drop(range.ch);
                 covered_byte_span.extend_to(range.next as int);
@@ -511,11 +511,11 @@ extern fn get_font_table_func(_: *mut hb_face_t, tag: hb_tag_t, user_data: *mut 
 
         // TODO(Issue #197): reuse font table data, which will change the unsound trickery here.
         match (*font).get_table_for_tag(tag as FontTableTag) {
-            None => ptr::mut_null(),
+            None => ptr::null_mut(),
             Some(ref font_table) => {
                 let skinny_font_table_ptr: *const FontTable = font_table;   // private context
 
-                let mut blob: *mut hb_blob_t = ptr::mut_null();
+                let mut blob: *mut hb_blob_t = ptr::null_mut();
                 (*skinny_font_table_ptr).with_buffer(|buf: *const u8, len: uint| {
                     // HarfBuzz calls `destroy_blob_func` when the buffer is no longer needed.
                     blob = hb_blob_create(buf as *const c_char,

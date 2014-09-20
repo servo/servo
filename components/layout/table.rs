@@ -107,7 +107,7 @@ impl TableFlow {
     pub fn update_col_inline_sizes(self_inline_sizes: &mut Vec<Au>, kid_inline_sizes: &Vec<Au>) -> Au {
         let mut sum_inline_sizes = Au(0);
         let mut kid_inline_sizes_it = kid_inline_sizes.iter();
-        for self_inline_size in self_inline_sizes.mut_iter() {
+        for self_inline_size in self_inline_sizes.iter_mut() {
             match kid_inline_sizes_it.next() {
                 Some(kid_inline_size) => {
                     if *self_inline_size < *kid_inline_size {
@@ -197,7 +197,7 @@ impl Flow for TableFlow {
                         if !did_first_row {
                             did_first_row = true;
                             let mut child_inline_sizes = kid_col_inline_sizes.iter();
-                            for col_inline_size in self.col_inline_sizes.mut_iter() {
+                            for col_inline_size in self.col_inline_sizes.iter_mut() {
                                 match child_inline_sizes.next() {
                                     Some(child_inline_size) => {
                                         if *col_inline_size == Au::new(0) {
@@ -280,12 +280,12 @@ impl Flow for TableFlow {
                 // any, or among all the columns if all are specified.
                 if (total_column_inline_size < content_inline_size) && (num_unspecified_inline_sizes == 0) {
                     let ratio = content_inline_size.to_f64().unwrap() / total_column_inline_size.to_f64().unwrap();
-                    for col_inline_size in self.col_inline_sizes.mut_iter() {
+                    for col_inline_size in self.col_inline_sizes.iter_mut() {
                         *col_inline_size = (*col_inline_size).scale_by(ratio);
                     }
                 } else if num_unspecified_inline_sizes != 0 {
                     let extra_column_inline_size = (content_inline_size - total_column_inline_size) / num_unspecified_inline_sizes;
-                    for col_inline_size in self.col_inline_sizes.mut_iter() {
+                    for col_inline_size in self.col_inline_sizes.iter_mut() {
                         if *col_inline_size == Au(0) {
                             *col_inline_size = extra_column_inline_size;
                         }

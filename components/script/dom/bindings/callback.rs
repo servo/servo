@@ -121,7 +121,7 @@ pub fn WrapCallThisObject<T: Reflectable>(cx: *mut JSContext,
 
     unsafe {
         if JS_WrapObject(cx, &mut obj) == 0 {
-            return ptr::mut_null();
+            return ptr::null_mut();
         }
     }
 

@@ -8,7 +8,7 @@ use std::mem;
 use types::{cef_browser_settings_t, cef_browser_t, cef_client_t, cef_request_context_t, cef_string_t, cef_window_info_t};
 
 #[no_mangle]
-pub extern "C" fn cef_browser_host_create_browser(_windowInfo: *const cef_window_info_t,
+pub extern "C" fn cef_browser_host_create_browser(_window_info: *const cef_window_info_t,
                                                   _client: *mut cef_client_t,
                                                   _url: *const cef_string_t,
                                                   _settings: *const cef_browser_settings_t,
@@ -18,7 +18,7 @@ pub extern "C" fn cef_browser_host_create_browser(_windowInfo: *const cef_window
 }
 
 #[no_mangle]
-pub extern "C" fn cef_browser_host_create_browser_sync(_windowInfo: *const cef_window_info_t,
+pub extern "C" fn cef_browser_host_create_browser_sync(_window_info: *const cef_window_info_t,
                                                        _client: *mut cef_client_t,
                                                        _url: *const cef_string_t,
                                                        _settings: *const cef_browser_settings_t,

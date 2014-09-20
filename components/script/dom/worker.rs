@@ -89,7 +89,7 @@ impl Worker {
             assert!(JS_ReadStructuredClone(
                 global.root_ref().get_cx(), data as *const u64, nbytes,
                 JS_STRUCTURED_CLONE_VERSION, &mut message,
-                ptr::null(), ptr::mut_null()) != 0);
+                ptr::null(), ptr::null_mut()) != 0);
         }
 
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(*worker);
@@ -131,11 +131,11 @@ impl Worker {
 
 impl<'a> WorkerMethods for JSRef<'a, Worker> {
     fn PostMessage(self, cx: *mut JSContext, message: JSVal) {
-        let mut data = ptr::mut_null();
+        let mut data = ptr::null_mut();
         let mut nbytes = 0;
         unsafe {
             assert!(JS_WriteStructuredClone(cx, message, &mut data, &mut nbytes,
-                                            ptr::null(), ptr::mut_null()) != 0);
+                                            ptr::null(), ptr::null_mut()) != 0);
         }
 
         self.addref();

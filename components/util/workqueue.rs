@@ -156,13 +156,13 @@ impl<QueueData: Send, WorkData: Send> WorkerThread<QueueData, WorkData> {
 }
 
 /// A handle to the work queue that individual work units have.
-pub struct WorkerProxy<'a, QueueData, WorkData> {
+pub struct WorkerProxy<'a, QueueData: 'a, WorkData: 'a> {
     worker: &'a mut Worker<WorkUnit<QueueData, WorkData>>,
     ref_count: *mut AtomicUint,
     queue_data: *const QueueData,
 }
 
-impl<'a, QueueData, WorkData: Send> WorkerProxy<'a, QueueData, WorkData> {
+impl<'a, QueueData: 'static, WorkData: Send> WorkerProxy<'a, QueueData, WorkData> {
     /// Enqueues a block into the work queue.
     #[inline]
     pub fn push(&mut self, work_unit: WorkUnit<QueueData, WorkData>) {
@@ -229,7 +229,7 @@ impl<QueueData: Send, WorkData: Send> WorkQueue<QueueData, WorkData> {
         }
 
         // Spawn threads.
-        for thread in threads.move_iter() {
+        for thread in threads.into_iter() {
             TaskBuilder::new().named(task_name).native().spawn(proc() {
                 let mut thread = thread;
                 thread.start()
@@ -260,8 +260,8 @@ impl<QueueData: Send, WorkData: Send> WorkQueue<QueueData, WorkData> {
     pub fn run(&mut self) {
         // Tell the workers to start.
         let mut work_count = AtomicUint::new(self.work_count);
-        for worker in self.workers.mut_iter() {
-            worker.chan.send(StartMsg(worker.deque.take_unwrap(), &mut work_count, &self.data))
+        for worker in self.workers.iter_mut() {
+            worker.chan.send(StartMsg(worker.deque.take().unwrap(), &mut work_count, &self.data))
         }
 
         // Wait for the work to finish.

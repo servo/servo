@@ -108,7 +108,7 @@ impl BasicCORSCache {
     fn find_entry_by_header<'a>(&'a mut self, request: &CacheRequestDetails, header_name: &str) -> Option<&'a mut CORSCacheEntry> {
         self.cleanup();
         let BasicCORSCache(ref mut buf) = *self;
-        let entry = buf.mut_iter().find(|e| e.origin.scheme == request.origin.scheme &&
+        let entry = buf.iter_mut().find(|e| e.origin.scheme == request.origin.scheme &&
                             e.origin.host() == request.origin.host() &&
                             e.origin.port() == request.origin.port() &&
                             e.url == request.destination &&
@@ -121,7 +121,7 @@ impl BasicCORSCache {
         // we can take the method from CORSRequest itself
         self.cleanup();
         let BasicCORSCache(ref mut buf) = *self;
-        let entry = buf.mut_iter().find(|e| e.origin.scheme == request.origin.scheme &&
+        let entry = buf.iter_mut().find(|e| e.origin.scheme == request.origin.scheme &&
                             e.origin.host() == request.origin.host() &&
                             e.origin.port() == request.origin.port() &&
                             e.url == request.destination &&
@@ -136,7 +136,7 @@ impl CORSCache for BasicCORSCache {
     #[allow(dead_code)]
     fn clear (&mut self, request: CacheRequestDetails) {
         let BasicCORSCache(buf) = self.clone();
-        let new_buf: Vec<CORSCacheEntry> = buf.move_iter().filter(|e| e.origin == request.origin && request.destination == e.url).collect();
+        let new_buf: Vec<CORSCacheEntry> = buf.into_iter().filter(|e| e.origin == request.origin && request.destination == e.url).collect();
         *self = BasicCORSCache(new_buf);
     }
 
@@ -144,7 +144,7 @@ impl CORSCache for BasicCORSCache {
     fn cleanup(&mut self) {
         let BasicCORSCache(buf) = self.clone();
         let now = time::now().to_timespec();
-        let new_buf: Vec<CORSCacheEntry> = buf.move_iter().filter(|e| now.sec > e.created.sec + e.max_age as i64).collect();
+        let new_buf: Vec<CORSCacheEntry> = buf.into_iter().filter(|e| now.sec > e.created.sec + e.max_age as i64).collect();
         *self = BasicCORSCache(new_buf);
     }
 

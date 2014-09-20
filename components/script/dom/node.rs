@@ -657,7 +657,7 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
     }
 
     fn owner_doc(&self) -> Temporary<Document> {
-        Temporary::new(self.owner_doc.get().get_ref().clone())
+        Temporary::new(self.owner_doc.get().as_ref().unwrap().clone())
     }
 
     fn set_owner_doc(&self, document: JSRef<Document>) {
@@ -869,7 +869,7 @@ impl<'a> Iterator<JSRef<'a, Node>> for AncestorIterator<'a> {
         }
 
         // FIXME: Do we need two clones here?
-        let x = self.current.get_ref().clone();
+        let x = self.current.as_ref().unwrap().clone();
         self.current = x.parent_node().map(|node| (*node.root()).clone());
         Some(x)
     }
@@ -1236,7 +1236,7 @@ impl Node {
 
         // Step 7: mutation records.
         // Step 8.
-        for node in nodes.mut_iter() {
+        for node in nodes.iter_mut() {
             parent.add_child(*node, child);
             let is_in_doc = parent.is_in_doc();
             for kid in node.traverse_preorder() {
@@ -1571,7 +1571,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         let window = doc.deref().window.root();
         let child_list = NodeList::new_child_list(*window, self);
         self.child_list.assign(Some(child_list));
-        Temporary::new(self.child_list.get().get_ref().clone())
+        Temporary::new(self.child_list.get().as_ref().unwrap().clone())
     }
 
     // http://dom.spec.whatwg.org/#dom-node-firstchild
@@ -2023,12 +2023,12 @@ impl Reflectable for Node {
     }
 }
 
-pub fn document_from_node<T: NodeBase>(derived: JSRef<T>) -> Temporary<Document> {
+pub fn document_from_node<T: NodeBase+Reflectable>(derived: JSRef<T>) -> Temporary<Document> {
     let node: JSRef<Node> = NodeCast::from_ref(derived);
     node.owner_doc()
 }
 
-pub fn window_from_node<T: NodeBase>(derived: JSRef<T>) -> Temporary<Window> {
+pub fn window_from_node<T: NodeBase+Reflectable>(derived: JSRef<T>) -> Temporary<Window> {
     let document = document_from_node(derived).root();
     Temporary::new(document.deref().window.clone())
 }
