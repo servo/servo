@@ -30,14 +30,14 @@ impl HTMLAreaElementDerived for EventTarget {
 }
 
 impl HTMLAreaElement {
-    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLAreaElement {
+    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLAreaElement {
         HTMLAreaElement {
             htmlelement: HTMLElement::new_inherited(HTMLAreaElementTypeId, localName, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLAreaElement> {
+    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLAreaElement> {
         let element = HTMLAreaElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLAreaElementBinding::Wrap)
     }
@@ -45,7 +45,7 @@ impl HTMLAreaElement {
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLAreaElement> {
     fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
-        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_ref(self);
+        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
@@ -55,7 +55,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLAreaElement> {
             _ => (),
         }
 
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
         match name.as_slice() {
             "href" => node.set_enabled_state(true),
             _ => ()
@@ -68,7 +68,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLAreaElement> {
             _ => (),
         }
 
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
         match name.as_slice() {
             "href" => node.set_enabled_state(false),
             _ => ()

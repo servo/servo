@@ -26,14 +26,14 @@ impl HTMLFrameElementDerived for EventTarget {
 }
 
 impl HTMLFrameElement {
-    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLFrameElement {
+    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLFrameElement {
         HTMLFrameElement {
             htmlelement: HTMLElement::new_inherited(HTMLFrameElementTypeId, localName, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLFrameElement> {
+    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLFrameElement> {
         let element = HTMLFrameElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLFrameElementBinding::Wrap)
     }

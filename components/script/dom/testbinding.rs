@@ -58,7 +58,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
         let global = self.global.root();
         Blob::new(&global.root_ref())
     }
-    fn SetInterfaceAttribute(&self, _: &JSRef<Blob>) {}
+    fn SetInterfaceAttribute(&self, _: JSRef<Blob>) {}
     fn UnionAttribute(&self) -> HTMLElementOrLong { eLong(0) }
     fn SetUnionAttribute(&self, _: HTMLElementOrLong) {}
     fn Union2Attribute(&self) -> EventOrString { eString("".to_string()) }
@@ -160,7 +160,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn PassString(&self, _: DOMString) {}
     fn PassByteString(&self, _: ByteString) {}
     fn PassEnum(&self, _: TestEnum) {}
-    fn PassInterface(&self, _: &JSRef<Blob>) {}
+    fn PassInterface(&self, _: JSRef<Blob>) {}
     fn PassUnion(&self, _: HTMLElementOrLong) {}
     fn PassUnion2(&self, _: EventOrString) {}
     fn PassUnion3(&self, _: BlobOrString) {}

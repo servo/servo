@@ -34,14 +34,14 @@ impl HTMLSelectElementDerived for EventTarget {
 }
 
 impl HTMLSelectElement {
-    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLSelectElement {
+    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLSelectElement {
         HTMLSelectElement {
             htmlelement: HTMLElement::new_inherited(HTMLSelectElementTypeId, localName, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLSelectElement> {
+    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLSelectElement> {
         let element = HTMLSelectElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLSelectElementBinding::Wrap)
     }
@@ -49,8 +49,8 @@ impl HTMLSelectElement {
 
 impl<'a> HTMLSelectElementMethods for JSRef<'a, HTMLSelectElement> {
     fn Validity(&self) -> Temporary<ValidityState> {
-        let window = window_from_node(self).root();
-        ValidityState::new(&*window)
+        let window = window_from_node(*self).root();
+        ValidityState::new(*window)
     }
 
     // Note: this function currently only exists for test_union.html.
@@ -62,14 +62,14 @@ impl<'a> HTMLSelectElementMethods for JSRef<'a, HTMLSelectElement> {
 
     // http://www.whatwg.org/html/#dom-fe-disabled
     fn SetDisabled(&self, disabled: bool) {
-        let elem: &JSRef<Element> = ElementCast::from_ref(self);
+        let elem: JSRef<Element> = ElementCast::from_ref(*self);
         elem.set_bool_attribute("disabled", disabled)
     }
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLSelectElement> {
     fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
-        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_ref(self);
+        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
@@ -79,7 +79,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLSelectElement> {
             _ => (),
         }
 
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
         match name.as_slice() {
             "disabled" => {
                 node.set_disabled_state(true);
@@ -95,7 +95,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLSelectElement> {
             _ => (),
         }
 
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
         match name.as_slice() {
             "disabled" => {
                 node.set_disabled_state(false);
@@ -112,7 +112,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLSelectElement> {
             _ => (),
         }
 
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
         node.check_ancestors_disabled_state_for_form_control();
     }
 
@@ -122,7 +122,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLSelectElement> {
             _ => (),
         }
 
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
         if node.ancestors().any(|ancestor| ancestor.is_htmlfieldsetelement()) {
             node.check_ancestors_disabled_state_for_form_control();
         } else {

@@ -30,14 +30,14 @@ impl HTMLTableElementDerived for EventTarget {
 }
 
 impl HTMLTableElement {
-    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLTableElement {
+    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLTableElement {
         HTMLTableElement {
             htmlelement: HTMLElement::new_inherited(HTMLTableElementTypeId, localName, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLTableElement> {
+    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLTableElement> {
         let element = HTMLTableElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLTableElementBinding::Wrap)
     }
@@ -53,30 +53,30 @@ impl<'a> HTMLTableElementMethods for JSRef<'a, HTMLTableElement> {
 
     //  http://www.whatwg.org/html/#dom-table-caption
     fn GetCaption(&self) -> Option<Temporary<HTMLTableCaptionElement>> {
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
         node.children().find(|child| {
             child.type_id() == ElementNodeTypeId(HTMLTableCaptionElementTypeId)
         }).map(|node| {
-            Temporary::from_rooted(HTMLTableCaptionElementCast::to_ref(&node).unwrap())
+            Temporary::from_rooted(HTMLTableCaptionElementCast::to_ref(node).unwrap())
         })
     }
 
     // http://www.whatwg.org/html/#dom-table-caption
     fn SetCaption(&self, new_caption: Option<JSRef<HTMLTableCaptionElement>>) {
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
         let old_caption = self.GetCaption();
 
         match old_caption {
             Some(htmlelem) => {
                 let htmlelem_jsref = &*htmlelem.root();
-                let old_caption_node: &JSRef<Node> = NodeCast::from_ref(htmlelem_jsref);
+                let old_caption_node: JSRef<Node> = NodeCast::from_ref(*htmlelem_jsref);
                 assert!(node.RemoveChild(old_caption_node).is_ok());
             }
             None => ()
         }
 
         new_caption.map(|caption| {
-            let new_caption_node: &JSRef<Node> = NodeCast::from_ref(&caption);
+            let new_caption_node: JSRef<Node> = NodeCast::from_ref(caption);
             assert!(node.AppendChild(new_caption_node).is_ok());
         });
     }

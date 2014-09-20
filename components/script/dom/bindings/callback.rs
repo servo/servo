@@ -115,7 +115,7 @@ impl CallbackInterface {
 
 /// Wraps the reflector for `p` into the compartment of `cx`.
 pub fn WrapCallThisObject<T: Reflectable>(cx: *mut JSContext,
-                                          p: &JSRef<T>) -> *mut JSObject {
+                                          p: JSRef<T>) -> *mut JSObject {
     let mut obj = p.reflector().get_jsobject();
     assert!(obj.is_not_null());
 
@@ -140,7 +140,7 @@ pub struct CallSetup {
 impl CallSetup {
     /// Performs the setup needed to make a call.
     #[allow(unrooted_must_root)]
-    pub fn new<T: CallbackContainer>(callback: &T, handling: ExceptionHandling) -> CallSetup {
+    pub fn new<T: CallbackContainer>(callback: T, handling: ExceptionHandling) -> CallSetup {
         let global = global_object_for_js_object(callback.callback());
         let global = global.root();
         let cx = global.root_ref().get_cx();

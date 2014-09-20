@@ -32,11 +32,11 @@ impl DOMRect {
         }
     }
 
-    pub fn new(window: &JSRef<Window>,
+    pub fn new(window: JSRef<Window>,
                top: Au, bottom: Au,
                left: Au, right: Au) -> Temporary<DOMRect> {
         reflect_dom_object(box DOMRect::new_inherited(top, bottom, left, right),
-                           &Window(*window), DOMRectBinding::Wrap)
+                           &Window(window), DOMRectBinding::Wrap)
     }
 }
 

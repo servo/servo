@@ -19,16 +19,16 @@ pub struct NamedNodeMap {
 }
 
 impl NamedNodeMap {
-    pub fn new_inherited(elem: &JSRef<Element>) -> NamedNodeMap {
+    pub fn new_inherited(elem: JSRef<Element>) -> NamedNodeMap {
         NamedNodeMap {
             reflector_: Reflector::new(),
             owner: JS::from_rooted(elem),
         }
     }
 
-    pub fn new(window: &JSRef<Window>, elem: &JSRef<Element>) -> Temporary<NamedNodeMap> {
+    pub fn new(window: JSRef<Window>, elem: JSRef<Element>) -> Temporary<NamedNodeMap> {
         reflect_dom_object(box NamedNodeMap::new_inherited(elem),
-                           &Window(*window), NamedNodeMapBinding::Wrap)
+                           &Window(window), NamedNodeMapBinding::Wrap)
     }
 }
 

@@ -26,14 +26,14 @@ impl HTMLParamElementDerived for EventTarget {
 }
 
 impl HTMLParamElement {
-    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLParamElement {
+    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLParamElement {
         HTMLParamElement {
             htmlelement: HTMLElement::new_inherited(HTMLParamElementTypeId, localName, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLParamElement> {
+    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLParamElement> {
         let element = HTMLParamElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLParamElementBinding::Wrap)
     }

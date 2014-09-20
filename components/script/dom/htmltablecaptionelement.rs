@@ -26,14 +26,14 @@ impl HTMLTableCaptionElementDerived for EventTarget {
 }
 
 impl HTMLTableCaptionElement {
-    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLTableCaptionElement {
+    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLTableCaptionElement {
         HTMLTableCaptionElement {
             htmlelement: HTMLElement::new_inherited(HTMLTableCaptionElementTypeId, localName, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLTableCaptionElement> {
+    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLTableCaptionElement> {
         let element = HTMLTableCaptionElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLTableCaptionElementBinding::Wrap)
     }

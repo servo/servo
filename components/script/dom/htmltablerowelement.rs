@@ -26,14 +26,14 @@ impl HTMLTableRowElementDerived for EventTarget {
 }
 
 impl HTMLTableRowElement {
-    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLTableRowElement {
+    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLTableRowElement {
         HTMLTableRowElement {
             htmlelement: HTMLElement::new_inherited(HTMLTableRowElementTypeId, localName, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLTableRowElement> {
+    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLTableRowElement> {
         let element = HTMLTableRowElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLTableRowElementBinding::Wrap)
     }

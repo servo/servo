@@ -30,14 +30,14 @@ impl HTMLStyleElementDerived for EventTarget {
 }
 
 impl HTMLStyleElement {
-    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLStyleElement {
+    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLStyleElement {
         HTMLStyleElement {
             htmlelement: HTMLElement::new_inherited(HTMLStyleElementTypeId, localName, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLStyleElement> {
+    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLStyleElement> {
         let element = HTMLStyleElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLStyleElementBinding::Wrap)
     }
@@ -49,7 +49,7 @@ pub trait StyleElementHelpers {
 
 impl<'a> StyleElementHelpers for JSRef<'a, HTMLStyleElement> {
     fn parse_own_css(&self) {
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
         assert!(node.is_in_doc());
 
         let win = window_from_node(node).root();
@@ -64,17 +64,17 @@ impl<'a> StyleElementHelpers for JSRef<'a, HTMLStyleElement> {
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLStyleElement> {
     fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
-        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_ref(self);
+        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn child_inserted(&self, child: &JSRef<Node>) {
+    fn child_inserted(&self, child: JSRef<Node>) {
         match self.super_type() {
             Some(ref s) => s.child_inserted(child),
             _ => (),
         }
 
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
         if node.is_in_doc() {
             self.parse_own_css();
         }

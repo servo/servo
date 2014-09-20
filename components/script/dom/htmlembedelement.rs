@@ -26,14 +26,14 @@ impl HTMLEmbedElementDerived for EventTarget {
 }
 
 impl HTMLEmbedElement {
-    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLEmbedElement {
+    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLEmbedElement {
         HTMLEmbedElement {
             htmlelement: HTMLElement::new_inherited(HTMLEmbedElementTypeId, localName, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLEmbedElement> {
+    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLEmbedElement> {
         let element = HTMLEmbedElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLEmbedElementBinding::Wrap)
     }

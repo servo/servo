@@ -32,13 +32,13 @@ impl DocumentFragmentDerived for EventTarget {
 
 impl DocumentFragment {
     /// Creates a new DocumentFragment.
-    pub fn new_inherited(document: &JSRef<Document>) -> DocumentFragment {
+    pub fn new_inherited(document: JSRef<Document>) -> DocumentFragment {
         DocumentFragment {
             node: Node::new_inherited(DocumentFragmentNodeTypeId, document),
         }
     }
 
-    pub fn new(document: &JSRef<Document>) -> Temporary<DocumentFragment> {
+    pub fn new(document: JSRef<Document>) -> Temporary<DocumentFragment> {
         Node::reflect_node(box DocumentFragment::new_inherited(document),
                            document, DocumentFragmentBinding::Wrap)
     }
@@ -47,26 +47,26 @@ impl DocumentFragment {
         let document = global.as_window().Document();
         let document = document.root();
 
-        Ok(DocumentFragment::new(&document.root_ref()))
+        Ok(DocumentFragment::new(*document))
     }
 }
 
 impl<'a> DocumentFragmentMethods for JSRef<'a, DocumentFragment> {
     // http://dom.spec.whatwg.org/#dom-parentnode-children
     fn Children(&self) -> Temporary<HTMLCollection> {
-        let window = window_from_node(self).root();
-        HTMLCollection::children(&window.root_ref(), NodeCast::from_ref(self))
+        let window = window_from_node(*self).root();
+        HTMLCollection::children(*window, NodeCast::from_ref(*self))
     }
 
     // http://dom.spec.whatwg.org/#dom-parentnode-queryselector
     fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>> {
-        let root: &JSRef<Node> = NodeCast::from_ref(self);
+        let root: JSRef<Node> = NodeCast::from_ref(*self);
         root.query_selector(selectors)
     }
 
     // http://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
     fn QuerySelectorAll(&self, selectors: DOMString) -> Fallible<Temporary<NodeList>> {
-        let root: &JSRef<Node> = NodeCast::from_ref(self);
+        let root: JSRef<Node> = NodeCast::from_ref(*self);
         root.query_selector_all(selectors)
     }
 

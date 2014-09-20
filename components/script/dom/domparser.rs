@@ -21,15 +21,15 @@ pub struct DOMParser {
 }
 
 impl DOMParser {
-    pub fn new_inherited(window: &JSRef<Window>) -> DOMParser {
+    pub fn new_inherited(window: JSRef<Window>) -> DOMParser {
         DOMParser {
             window: JS::from_rooted(window),
             reflector_: Reflector::new()
         }
     }
 
-    pub fn new(window: &JSRef<Window>) -> Temporary<DOMParser> {
-        reflect_dom_object(box DOMParser::new_inherited(window), &Window(*window),
+    pub fn new(window: JSRef<Window>) -> Temporary<DOMParser> {
+        reflect_dom_object(box DOMParser::new_inherited(window), &Window(window),
                            DOMParserBinding::Wrap)
     }
 
@@ -46,10 +46,10 @@ impl<'a> DOMParserMethods for JSRef<'a, DOMParser> {
         let window = self.window.root();
         match ty {
             Text_html => {
-                Ok(Document::new(&window.root_ref(), None, HTMLDocument, Some("text/html".to_string())))
+                Ok(Document::new(*window, None, HTMLDocument, Some("text/html".to_string())))
             }
             Text_xml => {
-                Ok(Document::new(&window.root_ref(), None, NonHTMLDocument, Some("text/xml".to_string())))
+                Ok(Document::new(*window, None, NonHTMLDocument, Some("text/xml".to_string())))
             }
             _ => {
                 Err(FailureUnknown)

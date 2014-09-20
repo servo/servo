@@ -52,9 +52,9 @@ impl<'a> GlobalRef<'a> {
 
     /// Extract a `Window`, causing task failure if the global object is not
     /// a `Window`.
-    pub fn as_window<'b>(&'b self) -> &'b JSRef<'b, Window> {
+    pub fn as_window<'b>(&'b self) -> JSRef<'b, Window> {
         match *self {
-            Window(ref window) => window,
+            Window(window) => window,
             Worker(_) => fail!("expected a Window scope"),
         }
     }
@@ -107,8 +107,8 @@ impl GlobalField {
     /// Create a new `GlobalField` from a rooted reference.
     pub fn from_rooted(global: &GlobalRef) -> GlobalField {
         match *global {
-            Window(ref window) => WindowField(JS::from_rooted(window)),
-            Worker(ref worker) => WorkerField(JS::from_rooted(worker)),
+            Window(window) => WindowField(JS::from_rooted(window)),
+            Worker(worker) => WorkerField(JS::from_rooted(worker)),
         }
     }
 

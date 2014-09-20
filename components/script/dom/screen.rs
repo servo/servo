@@ -22,9 +22,9 @@ impl Screen {
         }
     }
 
-    pub fn new(window: &JSRef<Window>) -> Temporary<Screen> {
+    pub fn new(window: JSRef<Window>) -> Temporary<Screen> {
         reflect_dom_object(box Screen::new_inherited(),
-                           &Window(*window),
+                           &Window(window),
                            ScreenBinding::Wrap)
     }
 }

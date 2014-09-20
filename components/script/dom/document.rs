@@ -101,49 +101,49 @@ impl DocumentDerived for EventTarget {
 
 struct ImagesFilter;
 impl CollectionFilter for ImagesFilter {
-    fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
+    fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {
         elem.is_htmlimageelement()
     }
 }
 
 struct EmbedsFilter;
 impl CollectionFilter for EmbedsFilter {
-    fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
+    fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {
         elem.is_htmlembedelement()
     }
 }
 
 struct LinksFilter;
 impl CollectionFilter for LinksFilter {
-    fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
+    fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {
         (elem.is_htmlanchorelement() || elem.is_htmlareaelement()) && elem.has_attribute("href")
     }
 }
 
 struct FormsFilter;
 impl CollectionFilter for FormsFilter {
-    fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
+    fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {
         elem.is_htmlformelement()
     }
 }
 
 struct ScriptsFilter;
 impl CollectionFilter for ScriptsFilter {
-    fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
+    fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {
         elem.is_htmlscriptelement()
     }
 }
 
 struct AnchorsFilter;
 impl CollectionFilter for AnchorsFilter {
-    fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
+    fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {
         elem.is_htmlanchorelement() && elem.has_attribute("href")
     }
 }
 
 struct AppletsFilter;
 impl CollectionFilter for AppletsFilter {
-    fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
+    fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {
         elem.is_htmlappletelement()
     }
 }
@@ -157,8 +157,8 @@ pub trait DocumentHelpers {
     fn content_changed(&self);
     fn damage_and_reflow(&self, damage: DocumentDamageLevel);
     fn wait_until_safe_to_modify_dom(&self);
-    fn unregister_named_element(&self, to_unregister: &JSRef<Element>, id: DOMString);
-    fn register_named_element(&self, element: &JSRef<Element>, id: DOMString);
+    fn unregister_named_element(&self, to_unregister: JSRef<Element>, id: DOMString);
+    fn register_named_element(&self, element: JSRef<Element>, id: DOMString);
     fn load_anchor_href(&self, href: DOMString);
 }
 
@@ -198,7 +198,7 @@ impl<'a> DocumentHelpers for JSRef<'a, Document> {
 
     /// Remove any existing association between the provided id and any elements in this document.
     fn unregister_named_element(&self,
-                                to_unregister: &JSRef<Element>,
+                                to_unregister: JSRef<Element>,
                                 id: DOMString) {
         let mut idmap = self.idmap.deref().borrow_mut();
         let is_empty = match idmap.find_mut(&id) {
@@ -206,7 +206,7 @@ impl<'a> DocumentHelpers for JSRef<'a, Document> {
             Some(elements) => {
                 let position = elements.iter()
                                        .map(|elem| elem.root())
-                                       .position(|element| &*element == to_unregister)
+                                       .position(|element| *element == to_unregister)
                                        .expect("This element should be in registered.");
                 elements.remove(position);
                 elements.is_empty()
@@ -219,10 +219,10 @@ impl<'a> DocumentHelpers for JSRef<'a, Document> {
 
     /// Associate an element present in this document with the provided id.
     fn register_named_element(&self,
-                              element: &JSRef<Element>,
+                              element: JSRef<Element>,
                               id: DOMString) {
         assert!({
-            let node: &JSRef<Node> = NodeCast::from_ref(element);
+            let node: JSRef<Node> = NodeCast::from_ref(element);
             node.is_in_doc()
         });
         assert!(!id.is_empty());
@@ -234,30 +234,30 @@ impl<'a> DocumentHelpers for JSRef<'a, Document> {
         let root = self.GetDocumentElement().expect("The element is in the document, so there must be a document element.").root();
         match idmap.find_mut(&id) {
             Some(elements) => {
-                let new_node: &JSRef<Node> = NodeCast::from_ref(element);
+                let new_node: JSRef<Node> = NodeCast::from_ref(element);
                 let mut head : uint = 0u;
-                let root: &JSRef<Node> = NodeCast::from_ref(&*root);
+                let root: JSRef<Node> = NodeCast::from_ref(*root);
                 for node in root.traverse_preorder() {
-                    let elem: Option<&JSRef<Element>> = ElementCast::to_ref(&node);
+                    let elem: Option<JSRef<Element>> = ElementCast::to_ref(node);
                     match elem {
                         Some(elem) => {
-                            if &*(*elements)[head].root() == elem {
+                            if *(*elements)[head].root() == elem {
                                 head = head + 1;
                             }
-                            if new_node == &node || head == elements.len() {
+                            if new_node == node || head == elements.len() {
                                 break;
                             }
                         }
                         None => {}
                     }
                 }
-                elements.insert_unrooted(head, element);
+                elements.insert_unrooted(head, &element);
                 return;
             },
             None => (),
         }
         let mut elements = vec!();
-        elements.push_unrooted(element);
+        elements.push_unrooted(&element);
         idmap.insert(id, elements);
     }
 
@@ -268,7 +268,7 @@ impl<'a> DocumentHelpers for JSRef<'a, Document> {
 }
 
 impl Document {
-    pub fn new_inherited(window: &JSRef<Window>,
+    pub fn new_inherited(window: JSRef<Window>,
                          url: Option<Url>,
                          is_html_document: IsHTMLDocument,
                          content_type: Option<DOMString>) -> Document {
@@ -311,14 +311,14 @@ impl Document {
         Ok(Document::new(global.as_window(), None, NonHTMLDocument, None))
     }
 
-    pub fn new(window: &JSRef<Window>, url: Option<Url>, doctype: IsHTMLDocument, content_type: Option<DOMString>) -> Temporary<Document> {
+    pub fn new(window: JSRef<Window>, url: Option<Url>, doctype: IsHTMLDocument, content_type: Option<DOMString>) -> Temporary<Document> {
         let document = reflect_dom_object(box Document::new_inherited(window, url, doctype, content_type),
-                                          &Window(*window),
+                                          &Window(window),
                                           DocumentBinding::Wrap).root();
 
-        let node: &JSRef<Node> = NodeCast::from_ref(&*document);
-        node.set_owner_doc(&*document);
-        Temporary::from_rooted(&*document)
+        let node: JSRef<Node> = NodeCast::from_ref(*document);
+        node.set_owner_doc(*&*document);
+        Temporary::from_rooted(*&*document)
     }
 }
 
@@ -329,27 +329,27 @@ impl Reflectable for Document {
 }
 
 trait PrivateDocumentHelpers {
-    fn createNodeList(&self, callback: |node: &JSRef<Node>| -> bool) -> Temporary<NodeList>;
+    fn createNodeList(&self, callback: |node: JSRef<Node>| -> bool) -> Temporary<NodeList>;
     fn get_html_element(&self) -> Option<Temporary<HTMLHtmlElement>>;
 }
 
 impl<'a> PrivateDocumentHelpers for JSRef<'a, Document> {
-    fn createNodeList(&self, callback: |node: &JSRef<Node>| -> bool) -> Temporary<NodeList> {
+    fn createNodeList(&self, callback: |node: JSRef<Node>| -> bool) -> Temporary<NodeList> {
         let window = self.window.root();
 
         match self.GetDocumentElement().root() {
             None => {
-                NodeList::new_simple_list(&*window, vec!())
+                NodeList::new_simple_list(*window, vec!())
             },
             Some(root) => {
                 let mut nodes = vec!();
-                let root: &JSRef<Node> = NodeCast::from_ref(&*root);
+                let root: JSRef<Node> = NodeCast::from_ref(*root);
                 for child in root.traverse_preorder() {
-                    if callback(&child) {
+                    if callback(child) {
                         nodes.push(child);
                     }
                 }
-                NodeList::new_simple_list(&*window, nodes)
+                NodeList::new_simple_list(*window, nodes)
             }
         }
 
@@ -357,10 +357,10 @@ impl<'a> PrivateDocumentHelpers for JSRef<'a, Document> {
 
     fn get_html_element(&self) -> Option<Temporary<HTMLHtmlElement>> {
         self.GetDocumentElement().root().filtered(|root| {
-            let root: &JSRef<Node> = NodeCast::from_ref(&**root);
+            let root: JSRef<Node> = NodeCast::from_ref(**root);
             root.type_id() == ElementNodeTypeId(HTMLHtmlElementTypeId)
         }).map(|elem| {
-            Temporary::from_rooted(HTMLHtmlElementCast::to_ref(&*elem).unwrap())
+            Temporary::from_rooted(HTMLHtmlElementCast::to_ref(*elem).unwrap())
         })
     }
 }
@@ -369,7 +369,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     // http://dom.spec.whatwg.org/#dom-document-implementation
     fn Implementation(&self) -> Temporary<DOMImplementation> {
         if self.implementation.get().is_none() {
-            self.implementation.assign(Some(DOMImplementation::new(self)));
+            self.implementation.assign(Some(DOMImplementation::new(*self)));
         }
         Temporary::new(self.implementation.get().get_ref().clone())
     }
@@ -404,38 +404,38 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     // http://dom.spec.whatwg.org/#dom-document-doctype
     fn GetDoctype(&self) -> Option<Temporary<DocumentType>> {
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
         node.children().find(|child| {
             child.is_doctype()
         }).map(|node| {
-            let doctype: &JSRef<DocumentType> = DocumentTypeCast::to_ref(&node).unwrap();
+            let doctype: JSRef<DocumentType> = DocumentTypeCast::to_ref(node).unwrap();
             Temporary::from_rooted(doctype)
         })
     }
 
     // http://dom.spec.whatwg.org/#dom-document-documentelement
     fn GetDocumentElement(&self) -> Option<Temporary<Element>> {
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
-        node.child_elements().next().map(|elem| Temporary::from_rooted(&elem))
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        node.child_elements().next().map(|elem| Temporary::from_rooted(elem))
     }
 
     // http://dom.spec.whatwg.org/#dom-document-getelementsbytagname
     fn GetElementsByTagName(&self, tag_name: DOMString) -> Temporary<HTMLCollection> {
         let window = self.window.root();
-        HTMLCollection::by_tag_name(&*window, NodeCast::from_ref(self), tag_name)
+        HTMLCollection::by_tag_name(*window, NodeCast::from_ref(*self), tag_name)
     }
 
     // http://dom.spec.whatwg.org/#dom-document-getelementsbytagnamens
     fn GetElementsByTagNameNS(&self, maybe_ns: Option<DOMString>, tag_name: DOMString) -> Temporary<HTMLCollection> {
         let window = self.window.root();
-        HTMLCollection::by_tag_name_ns(&*window, NodeCast::from_ref(self), tag_name, maybe_ns)
+        HTMLCollection::by_tag_name_ns(*window, NodeCast::from_ref(*self), tag_name, maybe_ns)
     }
 
     // http://dom.spec.whatwg.org/#dom-document-getelementsbyclassname
     fn GetElementsByClassName(&self, classes: DOMString) -> Temporary<HTMLCollection> {
         let window = self.window.root();
 
-        HTMLCollection::by_class_name(&*window, NodeCast::from_ref(self), classes)
+        HTMLCollection::by_class_name(*window, NodeCast::from_ref(*self), classes)
     }
 
     // http://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
@@ -453,7 +453,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             return Err(InvalidCharacter);
         }
         let local_name = local_name.as_slice().to_ascii_lower();
-        Ok(build_element_from_tag(local_name, namespace::HTML, self))
+        Ok(build_element_from_tag(local_name, namespace::HTML, *self))
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createelementns
@@ -497,27 +497,27 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         }
 
         if ns == namespace::HTML {
-            Ok(build_element_from_tag(local_name_from_qname.to_string(), ns, self))
+            Ok(build_element_from_tag(local_name_from_qname.to_string(), ns, *self))
         } else {
             Ok(Element::new(local_name_from_qname.to_string(), ns,
-                            prefix_from_qname.map(|s| s.to_string()), self))
+                            prefix_from_qname.map(|s| s.to_string()), *self))
         }
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createdocumentfragment
     fn CreateDocumentFragment(&self) -> Temporary<DocumentFragment> {
-        DocumentFragment::new(self)
+        DocumentFragment::new(*self)
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createtextnode
     fn CreateTextNode(&self, data: DOMString)
                           -> Temporary<Text> {
-        Text::new(data, self)
+        Text::new(data, *self)
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createcomment
     fn CreateComment(&self, data: DOMString) -> Temporary<Comment> {
-        Comment::new(data, self)
+        Comment::new(data, *self)
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createprocessinginstruction
@@ -534,11 +534,11 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         }
 
         // Step 3.
-        Ok(ProcessingInstruction::new(target, data, self))
+        Ok(ProcessingInstruction::new(target, data, *self))
     }
 
     // http://dom.spec.whatwg.org/#dom-document-importnode
-    fn ImportNode(&self, node: &JSRef<Node>, deep: bool) -> Fallible<Temporary<Node>> {
+    fn ImportNode(&self, node: JSRef<Node>, deep: bool) -> Fallible<Temporary<Node>> {
         // Step 1.
         if node.is_document() {
             return Err(NotSupported);
@@ -550,18 +550,18 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             false => DoNotCloneChildren
         };
 
-        Ok(Node::clone(node, Some(self), clone_children))
+        Ok(Node::clone(node, Some(*self), clone_children))
     }
 
     // http://dom.spec.whatwg.org/#dom-document-adoptnode
-    fn AdoptNode(&self, node: &JSRef<Node>) -> Fallible<Temporary<Node>> {
+    fn AdoptNode(&self, node: JSRef<Node>) -> Fallible<Temporary<Node>> {
         // Step 1.
         if node.is_document() {
             return Err(NotSupported);
         }
 
         // Step 2.
-        Node::adopt(node, self);
+        Node::adopt(node, *self);
 
         // Step 3.
         Ok(Temporary::from_rooted(node))
@@ -572,8 +572,8 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         let window = self.window.root();
 
         match interface.as_slice().to_ascii_lower().as_slice() {
-            "uievents" | "uievent" => Ok(EventCast::from_temporary(UIEvent::new_uninitialized(&*window))),
-            "mouseevents" | "mouseevent" => Ok(EventCast::from_temporary(MouseEvent::new_uninitialized(&*window))),
+            "uievents" | "uievent" => Ok(EventCast::from_temporary(UIEvent::new_uninitialized(*window))),
+            "mouseevents" | "mouseevent" => Ok(EventCast::from_temporary(MouseEvent::new_uninitialized(*window))),
             "customevent" => Ok(EventCast::from_temporary(CustomEvent::new_uninitialized(&Window(*window)))),
             "htmlevents" | "events" | "event" => Ok(Event::new_uninitialized(&Window(*window))),
             _ => Err(NotSupported)
@@ -590,26 +590,26 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     // http://dom.spec.whatwg.org/#dom-document-createrange
     fn CreateRange(&self) -> Temporary<Range> {
-        Range::new(self)
+        Range::new(*self)
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createtreewalker
-    fn CreateTreeWalker(&self, root: &JSRef<Node>, whatToShow: u32, filter: Option<NodeFilter>)
+    fn CreateTreeWalker(&self, root: JSRef<Node>, whatToShow: u32, filter: Option<NodeFilter>)
                         -> Temporary<TreeWalker> {
-        TreeWalker::new(self, root, whatToShow, filter)
+        TreeWalker::new(*self, root, whatToShow, filter)
     }
 
     // http://www.whatwg.org/specs/web-apps/current-work/#document.title
     fn Title(&self) -> DOMString {
         let mut title = String::new();
         self.GetDocumentElement().root().map(|root| {
-            let root: &JSRef<Node> = NodeCast::from_ref(&*root);
+            let root: JSRef<Node> = NodeCast::from_ref(*root);
             root.traverse_preorder()
                 .find(|node| node.type_id() == ElementNodeTypeId(HTMLTitleElementTypeId))
                 .map(|title_elem| {
                     for child in title_elem.children() {
                         if child.is_text() {
-                            let text: &JSRef<Text> = TextCast::to_ref(&child).unwrap();
+                            let text: JSRef<Text> = TextCast::to_ref(child).unwrap();
                             title.push_str(text.deref().characterdata.data.deref().borrow().as_slice());
                         }
                     }
@@ -622,7 +622,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     // http://www.whatwg.org/specs/web-apps/current-work/#document.title
     fn SetTitle(&self, title: DOMString) -> ErrorResult {
         self.GetDocumentElement().root().map(|root| {
-            let root: &JSRef<Node> = NodeCast::from_ref(&*root);
+            let root: JSRef<Node> = NodeCast::from_ref(*root);
             let head_node = root.traverse_preorder().find(|child| {
                 child.type_id() == ElementNodeTypeId(HTMLHeadElementTypeId)
             });
@@ -634,20 +634,20 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                 match title_node {
                     Some(ref title_node) => {
                         for title_child in title_node.children() {
-                            assert!(title_node.RemoveChild(&title_child).is_ok());
+                            assert!(title_node.RemoveChild(title_child).is_ok());
                         }
                         if !title.is_empty() {
                             let new_text = self.CreateTextNode(title.clone()).root();
-                            assert!(title_node.AppendChild(NodeCast::from_ref(&*new_text)).is_ok());
+                            assert!(title_node.AppendChild(NodeCast::from_ref(*new_text)).is_ok());
                         }
                     },
                     None => {
-                        let new_title = HTMLTitleElement::new("title".to_string(), self).root();
-                        let new_title: &JSRef<Node> = NodeCast::from_ref(&*new_title);
+                        let new_title = HTMLTitleElement::new("title".to_string(), *self).root();
+                        let new_title: JSRef<Node> = NodeCast::from_ref(*new_title);
 
                         if !title.is_empty() {
                             let new_text = self.CreateTextNode(title.clone()).root();
-                            assert!(new_title.AppendChild(NodeCast::from_ref(&*new_text)).is_ok());
+                            assert!(new_title.AppendChild(NodeCast::from_ref(*new_text)).is_ok());
                         }
                         assert!(head.AppendChild(new_title).is_ok());
                     },
@@ -661,11 +661,11 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     fn GetHead(&self) -> Option<Temporary<HTMLHeadElement>> {
         self.get_html_element().and_then(|root| {
             let root = root.root();
-            let node: &JSRef<Node> = NodeCast::from_ref(&*root);
+            let node: JSRef<Node> = NodeCast::from_ref(*root);
             node.children().find(|child| {
                 child.type_id() == ElementNodeTypeId(HTMLHeadElementTypeId)
             }).map(|node| {
-                Temporary::from_rooted(HTMLHeadElementCast::to_ref(&node).unwrap())
+                Temporary::from_rooted(HTMLHeadElementCast::to_ref(node).unwrap())
             })
         })
     }
@@ -674,7 +674,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     fn GetBody(&self) -> Option<Temporary<HTMLElement>> {
         self.get_html_element().and_then(|root| {
             let root = root.root();
-            let node: &JSRef<Node> = NodeCast::from_ref(&*root);
+            let node: JSRef<Node> = NodeCast::from_ref(*root);
             node.children().find(|child| {
                 match child.type_id() {
                     ElementNodeTypeId(HTMLBodyElementTypeId) |
@@ -682,7 +682,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                     _ => false
                 }
             }).map(|node| {
-                Temporary::from_rooted(HTMLElementCast::to_ref(&node).unwrap())
+                Temporary::from_rooted(HTMLElementCast::to_ref(node).unwrap())
             })
         })
     }
@@ -692,7 +692,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         // Step 1.
         match new_body {
             Some(ref htmlelem) => {
-                let node: &JSRef<Node> = NodeCast::from_ref(htmlelem);
+                let node: JSRef<Node> = NodeCast::from_ref(*htmlelem);
                 match node.type_id() {
                     ElementNodeTypeId(HTMLBodyElementTypeId) | ElementNodeTypeId(HTMLFrameSetElementTypeId) => {}
                     _ => return Err(HierarchyRequest)
@@ -714,12 +714,12 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             None => return Err(HierarchyRequest),
             Some(ref root) => {
                 let new_body_unwrapped = new_body.unwrap();
-                let new_body: &JSRef<Node> = NodeCast::from_ref(&new_body_unwrapped);
+                let new_body: JSRef<Node> = NodeCast::from_ref(new_body_unwrapped);
 
-                let root: &JSRef<Node> = NodeCast::from_ref(&**root);
+                let root: JSRef<Node> = NodeCast::from_ref(**root);
                 match old_body {
                     Some(ref child) => {
-                        let child: &JSRef<Node> = NodeCast::from_ref(&**child);
+                        let child: JSRef<Node> = NodeCast::from_ref(**child);
 
                         assert!(root.ReplaceChild(new_body, child).is_ok())
                     }
@@ -737,7 +737,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                 return false;
             }
 
-            let element: &JSRef<Element> = ElementCast::to_ref(node).unwrap();
+            let element: JSRef<Element> = ElementCast::to_ref(node).unwrap();
             element.get_attribute(Null, "name").root().map_or(false, |attr| {
                 attr.value().as_slice() == name.as_slice()
             })
@@ -747,9 +747,9 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     fn Images(&self) -> Temporary<HTMLCollection> {
         if self.images.get().is_none() {
             let window = self.window.root();
-            let root = NodeCast::from_ref(self);
+            let root = NodeCast::from_ref(*self);
             let filter = box ImagesFilter;
-            self.images.assign(Some(HTMLCollection::create(&*window, root, filter)));
+            self.images.assign(Some(HTMLCollection::create(*window, root, filter)));
         }
         Temporary::new(self.images.get().get_ref().clone())
     }
@@ -757,9 +757,9 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     fn Embeds(&self) -> Temporary<HTMLCollection> {
         if self.embeds.get().is_none() {
             let window = self.window.root();
-            let root = NodeCast::from_ref(self);
+            let root = NodeCast::from_ref(*self);
             let filter = box EmbedsFilter;
-            self.embeds.assign(Some(HTMLCollection::create(&*window, root, filter)));
+            self.embeds.assign(Some(HTMLCollection::create(*window, root, filter)));
         }
         Temporary::new(self.embeds.get().get_ref().clone())
     }
@@ -771,9 +771,9 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     fn Links(&self) -> Temporary<HTMLCollection> {
         if self.links.get().is_none() {
             let window = self.window.root();
-            let root = NodeCast::from_ref(self);
+            let root = NodeCast::from_ref(*self);
             let filter = box LinksFilter;
-            self.links.assign(Some(HTMLCollection::create(&*window, root, filter)));
+            self.links.assign(Some(HTMLCollection::create(*window, root, filter)));
         }
         Temporary::new(self.links.get().get_ref().clone())
     }
@@ -781,9 +781,9 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     fn Forms(&self) -> Temporary<HTMLCollection> {
         if self.forms.get().is_none() {
             let window = self.window.root();
-            let root = NodeCast::from_ref(self);
+            let root = NodeCast::from_ref(*self);
             let filter = box FormsFilter;
-            self.forms.assign(Some(HTMLCollection::create(&*window, root, filter)));
+            self.forms.assign(Some(HTMLCollection::create(*window, root, filter)));
         }
         Temporary::new(self.forms.get().get_ref().clone())
     }
@@ -791,9 +791,9 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     fn Scripts(&self) -> Temporary<HTMLCollection> {
         if self.scripts.get().is_none() {
             let window = self.window.root();
-            let root = NodeCast::from_ref(self);
+            let root = NodeCast::from_ref(*self);
             let filter = box ScriptsFilter;
-            self.scripts.assign(Some(HTMLCollection::create(&*window, root, filter)));
+            self.scripts.assign(Some(HTMLCollection::create(*window, root, filter)));
         }
         Temporary::new(self.scripts.get().get_ref().clone())
     }
@@ -801,9 +801,9 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     fn Anchors(&self) -> Temporary<HTMLCollection> {
         if self.anchors.get().is_none() {
             let window = self.window.root();
-            let root = NodeCast::from_ref(self);
+            let root = NodeCast::from_ref(*self);
             let filter = box AnchorsFilter;
-            self.anchors.assign(Some(HTMLCollection::create(&*window, root, filter)));
+            self.anchors.assign(Some(HTMLCollection::create(*window, root, filter)));
         }
         Temporary::new(self.anchors.get().get_ref().clone())
     }
@@ -812,9 +812,9 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         // FIXME: This should be return OBJECT elements containing applets.
         if self.applets.get().is_none() {
             let window = self.window.root();
-            let root = NodeCast::from_ref(self);
+            let root = NodeCast::from_ref(*self);
             let filter = box AppletsFilter;
-            self.applets.assign(Some(HTMLCollection::create(&*window, root, filter)));
+            self.applets.assign(Some(HTMLCollection::create(*window, root, filter)));
         }
         Temporary::new(self.applets.get().get_ref().clone())
     }
@@ -827,38 +827,38 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     // http://dom.spec.whatwg.org/#dom-parentnode-children
     fn Children(&self) -> Temporary<HTMLCollection> {
         let window = self.window.root();
-        HTMLCollection::children(&*window, NodeCast::from_ref(self))
+        HTMLCollection::children(*window, NodeCast::from_ref(*self))
     }
 
     // http://dom.spec.whatwg.org/#dom-parentnode-queryselector
     fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>> {
-        let root: &JSRef<Node> = NodeCast::from_ref(self);
+        let root: JSRef<Node> = NodeCast::from_ref(*self);
         root.query_selector(selectors)
     }
 
     // http://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
     fn QuerySelectorAll(&self, selectors: DOMString) -> Fallible<Temporary<NodeList>> {
-        let root: &JSRef<Node> = NodeCast::from_ref(self);
+        let root: JSRef<Node> = NodeCast::from_ref(*self);
         root.query_selector_all(selectors)
     }
 
     fn GetOnclick(&self) -> Option<EventHandlerNonNull> {
-        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
         eventtarget.get_event_handler_common("click")
     }
 
     fn SetOnclick(&self, listener: Option<EventHandlerNonNull>) {
-        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
         eventtarget.set_event_handler_common("click", listener)
     }
 
     fn GetOnload(&self) -> Option<EventHandlerNonNull> {
-        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
         eventtarget.get_event_handler_common("load")
     }
 
     fn SetOnload(&self, listener: Option<EventHandlerNonNull>) {
-        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
         eventtarget.set_event_handler_common("load", listener)
     }
 }

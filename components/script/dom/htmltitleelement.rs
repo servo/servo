@@ -29,14 +29,14 @@ impl HTMLTitleElementDerived for EventTarget {
 }
 
 impl HTMLTitleElement {
-    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLTitleElement {
+    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLTitleElement {
         HTMLTitleElement {
             htmlelement: HTMLElement::new_inherited(HTMLTitleElementTypeId, localName, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLTitleElement> {
+    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLTitleElement> {
         let element = HTMLTitleElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLTitleElementBinding::Wrap)
     }
@@ -45,10 +45,10 @@ impl HTMLTitleElement {
 impl<'a> HTMLTitleElementMethods for JSRef<'a, HTMLTitleElement> {
     // http://www.whatwg.org/html/#dom-title-text
     fn Text(&self) -> DOMString {
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
         let mut content = String::new();
         for child in node.children() {
-            let text: Option<&JSRef<Text>> = TextCast::to_ref(&child);
+            let text: Option<JSRef<Text>> = TextCast::to_ref(child);
             match text {
                 Some(text) => content.push_str(text.characterdata.data.borrow().as_slice()),
                 None => (),
@@ -59,7 +59,7 @@ impl<'a> HTMLTitleElementMethods for JSRef<'a, HTMLTitleElement> {
 
     // http://www.whatwg.org/html/#dom-title-text
     fn SetText(&self, value: DOMString) {
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
         node.SetTextContent(Some(value))
     }
 }

@@ -220,7 +220,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     fn Location(&self) -> Temporary<Location> {
         if self.location.get().is_none() {
             let page = self.deref().page.clone();
-            let location = Location::new(self, page);
+            let location = Location::new(*self, page);
             self.location.assign(Some(location));
         }
         Temporary::new(self.location.get().get_ref().clone())
@@ -236,7 +236,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
 
     fn Navigator(&self) -> Temporary<Navigator> {
         if self.navigator.get().is_none() {
-            let navigator = Navigator::new(self);
+            let navigator = Navigator::new(*self);
             self.navigator.assign(Some(navigator));
         }
         Temporary::new(self.navigator.get().get_ref().clone())
@@ -265,7 +265,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     }
 
     fn Window(&self) -> Temporary<Window> {
-        Temporary::from_rooted(self)
+        Temporary::from_rooted(*self)
     }
 
     fn Self(&self) -> Temporary<Window> {
@@ -284,55 +284,55 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
 
     fn Performance(&self) -> Temporary<Performance> {
         if self.performance.get().is_none() {
-            let performance = Performance::new(self);
+            let performance = Performance::new(*self);
             self.performance.assign(Some(performance));
         }
         Temporary::new(self.performance.get().get_ref().clone())
     }
 
     fn GetOnclick(&self) -> Option<EventHandlerNonNull> {
-        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
         eventtarget.get_event_handler_common("click")
     }
 
     fn SetOnclick(&self, listener: Option<EventHandlerNonNull>) {
-        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
         eventtarget.set_event_handler_common("click", listener)
     }
 
     fn GetOnload(&self) -> Option<EventHandlerNonNull> {
-        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
         eventtarget.get_event_handler_common("load")
     }
 
     fn SetOnload(&self, listener: Option<EventHandlerNonNull>) {
-        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
         eventtarget.set_event_handler_common("load", listener)
     }
 
     fn GetOnunload(&self) -> Option<EventHandlerNonNull> {
-        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
         eventtarget.get_event_handler_common("unload")
     }
 
     fn SetOnunload(&self, listener: Option<EventHandlerNonNull>) {
-        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
         eventtarget.set_event_handler_common("unload", listener)
     }
 
     fn GetOnerror(&self) -> Option<OnErrorEventHandlerNonNull> {
-        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
         eventtarget.get_event_handler_common("error")
     }
 
     fn SetOnerror(&self, listener: Option<OnErrorEventHandlerNonNull>) {
-        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
         eventtarget.set_event_handler_common("error", listener)
     }
 
     fn Screen(&self) -> Temporary<Screen> {
         if self.screen.get().is_none() {
-            let screen = Screen::new(self);
+            let screen = Screen::new(*self);
             self.screen.assign(Some(screen));
         }
         Temporary::new(self.screen.get().get_ref().clone())
@@ -367,7 +367,7 @@ pub trait WindowHelpers {
     fn damage_and_reflow(&self, damage: DocumentDamageLevel);
     fn flush_layout(&self, goal: ReflowGoal);
     fn wait_until_safe_to_modify_dom(&self);
-    fn init_browser_context(&self, doc: &JSRef<Document>);
+    fn init_browser_context(&self, doc: JSRef<Document>);
     fn load_url(&self, href: DOMString);
     fn handle_fire_timer(&self, timer_id: TimerId, cx: *mut JSContext);
     fn evaluate_js_with_result(&self, code: &str) -> JSVal;
@@ -412,7 +412,7 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         self.page().join_layout();
     }
 
-    fn init_browser_context(&self, doc: &JSRef<Document>) {
+    fn init_browser_context(&self, doc: JSRef<Document>) {
         *self.browser_context.deref().borrow_mut() = Some(BrowserContext::new(doc));
     }
 

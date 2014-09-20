@@ -31,14 +31,14 @@ impl HTMLOptGroupElementDerived for EventTarget {
 }
 
 impl HTMLOptGroupElement {
-    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLOptGroupElement {
+    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLOptGroupElement {
         HTMLOptGroupElement {
             htmlelement: HTMLElement::new_inherited(HTMLOptGroupElementTypeId, localName, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLOptGroupElement> {
+    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLOptGroupElement> {
         let element = HTMLOptGroupElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLOptGroupElementBinding::Wrap)
     }
@@ -50,14 +50,14 @@ impl<'a> HTMLOptGroupElementMethods for JSRef<'a, HTMLOptGroupElement> {
 
     // http://www.whatwg.org/html#dom-optgroup-disabled
     fn SetDisabled(&self, disabled: bool) {
-        let elem: &JSRef<Element> = ElementCast::from_ref(self);
+        let elem: JSRef<Element> = ElementCast::from_ref(*self);
         elem.set_bool_attribute("disabled", disabled)
     }
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLOptGroupElement> {
     fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
-        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_ref(self);
+        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
@@ -67,7 +67,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLOptGroupElement> {
             _ => (),
         }
 
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
         match name.as_slice() {
             "disabled" => {
                 node.set_disabled_state(true);
@@ -87,7 +87,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLOptGroupElement> {
             _ => (),
         }
 
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
         match name.as_slice() {
             "disabled" => {
                 node.set_disabled_state(false);

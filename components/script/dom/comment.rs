@@ -29,20 +29,20 @@ impl CommentDerived for EventTarget {
 }
 
 impl Comment {
-    pub fn new_inherited(text: DOMString, document: &JSRef<Document>) -> Comment {
+    pub fn new_inherited(text: DOMString, document: JSRef<Document>) -> Comment {
         Comment {
             characterdata: CharacterData::new_inherited(CommentNodeTypeId, text, document)
         }
     }
 
-    pub fn new(text: DOMString, document: &JSRef<Document>) -> Temporary<Comment> {
+    pub fn new(text: DOMString, document: JSRef<Document>) -> Temporary<Comment> {
         Node::reflect_node(box Comment::new_inherited(text, document),
                            document, CommentBinding::Wrap)
     }
 
     pub fn Constructor(global: &GlobalRef, data: DOMString) -> Fallible<Temporary<Comment>> {
         let document = global.as_window().Document().root();
-        Ok(Comment::new(data, &*document))
+        Ok(Comment::new(data, *&*document))
     }
 }
 

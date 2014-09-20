@@ -21,7 +21,7 @@
 //!
 //! - All methods return `Temporary<T>`, to ensure the value remains alive until it is stored
 //!   somewhere that is reachable by the GC.
-//! - All functions take `&JSRef<T>` arguments, to ensure that they will remain uncollected for
+//! - All functions take `JSRef<T>` arguments, to ensure that they will remain uncollected for
 //!   the duration of their usage.
 //! - All types contain `JS<T>` fields and derive the `Encodable` trait, to ensure that they are
 //!   transitively marked as reachable by the GC if the enclosing value is reachable.
@@ -84,7 +84,7 @@ impl<T: Reflectable> Temporary<T> {
     }
 
     /// Create a new `Temporary` value from a rooted value.
-    pub fn from_rooted<'a>(root: &JSRef<'a, T>) -> Temporary<T> {
+    pub fn from_rooted<'a>(root: JSRef<'a, T>) -> Temporary<T> {
         Temporary::new(JS::from_rooted(root))
     }
 
@@ -175,7 +175,7 @@ impl<T: Reflectable> JS<T> {
 }
 
 impl<T: Assignable<U>, U: Reflectable> JS<U> {
-    pub fn from_rooted(root: &T) -> JS<U> {
+    pub fn from_rooted(root: T) -> JS<U> {
         unsafe {
             root.get_js()
         }
@@ -298,7 +298,7 @@ pub trait OptionalUnrootable<T> {
 
 impl<'a, T: Reflectable> OptionalUnrootable<T> for Option<JSRef<'a, T>> {
     fn unrooted(&self) -> Option<JS<T>> {
-        self.as_ref().map(|inner| JS::from_rooted(inner))
+        self.as_ref().map(|inner| JS::from_rooted(*inner))
     }
 }
 
@@ -477,12 +477,12 @@ impl<'a, T> PartialEq for JSRef<'a, T> {
 
 impl<'a,T> JSRef<'a,T> {
     //XXXjdm It would be lovely if this could be private.
-    pub unsafe fn transmute<'b, To>(&'b self) -> &'b JSRef<'a, To> {
+    pub unsafe fn transmute<To>(self) -> JSRef<'a, To> {
         mem::transmute(self)
     }
 
-    //XXXjdm It would be lovely if this could be private.
-    pub unsafe fn transmute_mut<'b, To>(&'b mut self) -> &'b mut JSRef<'a, To> {
+    // FIXME(zwarich): It would be nice to get rid of this entirely.
+    pub unsafe fn transmute_borrowed<'b, To>(&'b self) -> &'b JSRef<'a, To> {
         mem::transmute(self)
     }
 

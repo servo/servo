@@ -56,7 +56,7 @@ impl URLSearchParams {
             },
             None => {}
         }
-        Ok(Temporary::from_rooted(&*usp))
+        Ok(Temporary::from_rooted(*usp))
     }
 }
 

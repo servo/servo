@@ -19,9 +19,9 @@ pub struct DOMRectList {
 }
 
 impl DOMRectList {
-    pub fn new_inherited(window: &JSRef<Window>,
+    pub fn new_inherited(window: JSRef<Window>,
                          rects: Vec<JSRef<DOMRect>>) -> DOMRectList {
-        let rects = rects.iter().map(|rect| JS::from_rooted(rect)).collect();
+        let rects = rects.iter().map(|rect| JS::from_rooted(*rect)).collect();
         DOMRectList {
             reflector_: Reflector::new(),
             rects: rects,
@@ -29,10 +29,10 @@ impl DOMRectList {
         }
     }
 
-    pub fn new(window: &JSRef<Window>,
+    pub fn new(window: JSRef<Window>,
                rects: Vec<JSRef<DOMRect>>) -> Temporary<DOMRectList> {
         reflect_dom_object(box DOMRectList::new_inherited(window, rects),
-                           &Window(*window), DOMRectListBinding::Wrap)
+                           &Window(window), DOMRectListBinding::Wrap)
     }
 }
 

@@ -257,15 +257,15 @@ pub enum NodeTypeId {
 trait PrivateNodeHelpers {
     fn node_inserted(&self);
     fn node_removed(&self, parent_in_doc: bool);
-    fn add_child(&self, new_child: &JSRef<Node>, before: Option<JSRef<Node>>);
-    fn remove_child(&self, child: &JSRef<Node>);
+    fn add_child(&self, new_child: JSRef<Node>, before: Option<JSRef<Node>>);
+    fn remove_child(&self, child: JSRef<Node>);
 }
 
 impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
     // http://dom.spec.whatwg.org/#node-is-inserted
     fn node_inserted(&self) {
         assert!(self.parent_node().is_some());
-        let document = document_from_node(self).root();
+        let document = document_from_node(*self).root();
         let is_in_doc = self.is_in_doc();
 
         for node in self.traverse_preorder() {
@@ -273,7 +273,7 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
         }
 
         let parent = self.parent_node().root();
-        parent.map(|parent| vtable_for(&*parent).child_inserted(self));
+        parent.map(|parent| vtable_for(&*parent).child_inserted(*self));
 
         document.deref().content_changed();
     }
@@ -281,7 +281,7 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
     // http://dom.spec.whatwg.org/#node-is-removed
     fn node_removed(&self, parent_in_doc: bool) {
         assert!(self.parent_node().is_none());
-        let document = document_from_node(self).root();
+        let document = document_from_node(*self).root();
 
         for node in self.traverse_preorder() {
             vtable_for(&node).unbind_from_tree(parent_in_doc);
@@ -297,7 +297,7 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
     /// Adds a new child to the end of this node's list of children.
     ///
     /// Fails unless `new_child` is disconnected from the tree.
-    fn add_child(&self, new_child: &JSRef<Node>, before: Option<JSRef<Node>>) {
+    fn add_child(&self, new_child: JSRef<Node>, before: Option<JSRef<Node>>) {
         let doc = self.owner_doc().root();
         doc.deref().wait_until_safe_to_modify_dom();
 
@@ -310,27 +310,27 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
                 match before.prev_sibling().root() {
                     None => {
                         assert!(Some(*before) == self.first_child().root().root_ref());
-                        self.first_child.assign(Some(*new_child));
+                        self.first_child.assign(Some(new_child));
                     },
-                    Some(ref prev_sibling) => {
-                        prev_sibling.next_sibling.assign(Some(*new_child));
-                        new_child.prev_sibling.assign(Some(**prev_sibling));
+                    Some(prev_sibling) => {
+                        prev_sibling.next_sibling.assign(Some(new_child));
+                        new_child.prev_sibling.assign(Some(*prev_sibling));
                     },
                 }
-                before.prev_sibling.assign(Some(*new_child));
+                before.prev_sibling.assign(Some(new_child));
                 new_child.next_sibling.assign(Some(*before));
             },
             None => {
                 match self.last_child().root() {
-                    None => self.first_child.assign(Some(*new_child)),
-                    Some(ref last_child) => {
+                    None => self.first_child.assign(Some(new_child)),
+                    Some(last_child) => {
                         assert!(last_child.next_sibling().is_none());
-                        last_child.next_sibling.assign(Some(*new_child));
-                        new_child.prev_sibling.assign(Some(**last_child));
+                        last_child.next_sibling.assign(Some(new_child));
+                        new_child.prev_sibling.assign(Some(*last_child));
                     }
                 }
 
-                self.last_child.assign(Some(*new_child));
+                self.last_child.assign(Some(new_child));
             },
         }
 
@@ -340,7 +340,7 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
     /// Removes the given child from this node's list of children.
     ///
     /// Fails unless `child` is a child of this node.
-    fn remove_child(&self, child: &JSRef<Node>) {
+    fn remove_child(&self, child: JSRef<Node>) {
         let doc = self.owner_doc().root();
         doc.deref().wait_until_safe_to_modify_dom();
 
@@ -350,7 +350,7 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
             None => {
                 self.first_child.assign(child.next_sibling.get());
             }
-            Some(ref prev_sibling) => {
+            Some(prev_sibling) => {
                 prev_sibling.next_sibling.assign(child.next_sibling.get());
             }
         }
@@ -359,7 +359,7 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
             None => {
                 self.last_child.assign(child.prev_sibling.get());
             }
-            Some(ref next_sibling) => {
+            Some(next_sibling) => {
                 next_sibling.prev_sibling.assign(child.prev_sibling.get());
             }
         }
@@ -376,8 +376,8 @@ pub trait NodeHelpers<'m, 'n> {
     fn child_elements(&self) -> ChildElementIterator<'m, 'n>;
     fn following_siblings(&self) -> AbstractNodeChildrenIterator<'n>;
     fn is_in_doc(&self) -> bool;
-    fn is_inclusive_ancestor_of(&self, parent: &JSRef<Node>) -> bool;
-    fn is_parent_of(&self, child: &JSRef<Node>) -> bool;
+    fn is_inclusive_ancestor_of(&self, parent: JSRef<Node>) -> bool;
+    fn is_parent_of(&self, child: JSRef<Node>) -> bool;
 
     fn type_id(&self) -> NodeTypeId;
 
@@ -388,7 +388,7 @@ pub trait NodeHelpers<'m, 'n> {
     fn next_sibling(&self) -> Option<Temporary<Node>>;
 
     fn owner_doc(&self) -> Temporary<Document>;
-    fn set_owner_doc(&self, document: &JSRef<Document>);
+    fn set_owner_doc(&self, document: JSRef<Document>);
     fn is_in_html_doc(&self) -> bool;
 
     fn wait_until_safe_to_modify_dom(&self);
@@ -555,14 +555,14 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
     /// Iterates over this node and all its descendants, in preorder.
     fn traverse_preorder(&self) -> TreeIterator<'n> {
         let mut nodes = vec!();
-        gather_abstract_nodes(self, &mut nodes, false);
+        gather_abstract_nodes(*self, &mut nodes, false);
         TreeIterator::new(nodes)
     }
 
     /// Iterates over this node and all its descendants, in postorder.
     fn sequential_traverse_postorder(&self) -> TreeIterator<'n> {
         let mut nodes = vec!();
-        gather_abstract_nodes(self, &mut nodes, true);
+        gather_abstract_nodes(*self, &mut nodes, true);
         TreeIterator::new(nodes)
     }
 
@@ -572,8 +572,8 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
         }
     }
 
-    fn is_inclusive_ancestor_of(&self, parent: &JSRef<Node>) -> bool {
-        self == parent || parent.ancestors().any(|ancestor| &ancestor == self)
+    fn is_inclusive_ancestor_of(&self, parent: JSRef<Node>) -> bool {
+        *self == parent || parent.ancestors().any(|ancestor| &ancestor == self)
     }
 
     fn following_siblings(&self) -> AbstractNodeChildrenIterator<'n> {
@@ -582,9 +582,9 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
         }
     }
 
-    fn is_parent_of(&self, child: &JSRef<Node>) -> bool {
+    fn is_parent_of(&self, child: JSRef<Node>) -> bool {
         match child.parent_node() {
-            Some(ref parent) if *parent == Temporary::from_rooted(self) => true,
+            Some(parent) if parent == Temporary::from_rooted(*self) => true,
             _ => false
         }
     }
@@ -594,7 +594,7 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
     }
 
     fn get_bounding_content_box(&self) -> Rect<Au> {
-        let window = window_from_node(self).root();
+        let window = window_from_node(*self).root();
         let page = window.deref().page();
         let addr = self.to_trusted_node_address();
 
@@ -603,7 +603,7 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
     }
 
     fn get_content_boxes(&self) -> Vec<Rect<Au>> {
-        let window = window_from_node(self).root();
+        let window = window_from_node(*self).root();
         let page = window.deref().page();
         let addr = self.to_trusted_node_address();
         let ContentBoxesResponse(rects) = page.layout().content_boxes(addr);
@@ -621,7 +621,7 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
                 let root = self.ancestors().last().unwrap_or(self.clone());
                 for node in root.traverse_preorder() {
                     if node.is_element() && matches(selectors, &node, &mut None) {
-                        let elem: &JSRef<Element> = ElementCast::to_ref(&node).unwrap();
+                        let elem: JSRef<Element> = ElementCast::to_ref(node).unwrap();
                         return Ok(Some(Temporary::from_rooted(elem)));
                     }
                 }
@@ -646,8 +646,8 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
                     |node| node.is_element() && matches(selectors, node, &mut None)).collect()
             }
         }
-        let window = window_from_node(self).root();
-        Ok(NodeList::new_simple_list(&window.root_ref(), nodes))
+        let window = window_from_node(*self).root();
+        Ok(NodeList::new_simple_list(*window, nodes))
     }
 
     fn ancestors(&self) -> AncestorIterator<'n> {
@@ -660,7 +660,7 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
         Temporary::new(self.owner_doc.get().get_ref().clone())
     }
 
-    fn set_owner_doc(&self, document: &JSRef<Document>) {
+    fn set_owner_doc(&self, document: JSRef<Document>) {
         self.owner_doc.assign(Some(document.clone()));
     }
 
@@ -680,7 +680,7 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
                 node.is_element()
             })
             .map(|node| {
-                let elem: &JSRef<Element> = ElementCast::to_ref(&node).unwrap();
+                let elem: JSRef<Element> = ElementCast::to_ref(node).unwrap();
                 elem.clone()
             })
     }
@@ -692,7 +692,7 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
 
     fn remove_self(&self) {
         match self.parent_node().root() {
-            Some(ref parent) => parent.remove_child(self),
+            Some(parent) => parent.remove_child(*self),
             None => ()
         }
     }
@@ -722,7 +722,7 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
             systemId: "".to_string(),
 
             attrs: if self.is_element() {
-                let elem: &JSRef<Element> = ElementCast::to_ref(self).unwrap();
+                let elem: JSRef<Element> = ElementCast::to_ref(*self).unwrap();
                 elem.summarize()
             } else {
                 vec!()
@@ -731,7 +731,7 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
             isDocumentElement:
                 self.owner_doc().root()
                     .GetDocumentElement()
-                    .map(|elem| NodeCast::from_ref(&*elem.root()) == self)
+                    .map(|elem| NodeCast::from_ref(*elem.root()) == *self)
                     .unwrap_or(false),
 
             shortValue: self.GetNodeValue().unwrap_or("".to_string()), //FIXME: truncate
@@ -914,7 +914,7 @@ pub struct NodeIterator {
 }
 
 impl NodeIterator {
-    pub fn new<'a>(start_node: &JSRef<'a, Node>,
+    pub fn new<'a>(start_node: JSRef<'a, Node>,
                    include_start: bool,
                    include_descendants_of_void: bool) -> NodeIterator {
         NodeIterator {
@@ -926,9 +926,9 @@ impl NodeIterator {
         }
     }
 
-    fn next_child<'b>(&self, node: &JSRef<'b, Node>) -> Option<JSRef<'b, Node>> {
+    fn next_child<'b>(&self, node: JSRef<'b, Node>) -> Option<JSRef<'b, Node>> {
         if !self.include_descendants_of_void && node.is_element() {
-            let elem: &JSRef<Element> = ElementCast::to_ref(node).unwrap();
+            let elem: JSRef<Element> = ElementCast::to_ref(node).unwrap();
             if elem.deref().is_void() {
                 None
             } else {
@@ -947,20 +947,20 @@ impl<'a> Iterator<JSRef<'a, Node>> for NodeIterator {
                 if self.include_start {
                     Some(self.start_node)
                 } else {
-                    self.next_child(&*self.start_node.root())
-                        .map(|child| JS::from_rooted(&child))
+                    self.next_child(*self.start_node.root())
+                        .map(|child| JS::from_rooted(child))
                 }
             },
             Some(node) => {
-                match self.next_child(&*node) {
+                match self.next_child(*node) {
                     Some(child) => {
                         self.depth += 1;
-                        Some(JS::from_rooted(&child))
+                        Some(JS::from_rooted(child))
                     },
-                    None if JS::from_rooted(&*node) == self.start_node => None,
+                    None if JS::from_rooted(*node) == self.start_node => None,
                     None => {
                         match node.deref().next_sibling().root() {
-                            Some(sibling) => Some(JS::from_rooted(&*sibling)),
+                            Some(sibling) => Some(JS::from_rooted(*sibling)),
                             None => {
                                 let mut candidate = node.deref().clone();
                                 while candidate.next_sibling().is_none() {
@@ -968,12 +968,12 @@ impl<'a> Iterator<JSRef<'a, Node>> for NodeIterator {
                                                           .expect("Got to root without reaching start node")
                                                           .root()).clone();
                                     self.depth -= 1;
-                                    if JS::from_rooted(&candidate) == self.start_node {
+                                    if JS::from_rooted(candidate) == self.start_node {
                                         break;
                                     }
                                 }
-                                if JS::from_rooted(&candidate) != self.start_node {
-                                    candidate.next_sibling().map(|node| JS::from_rooted(node.root().deref()))
+                                if JS::from_rooted(candidate) != self.start_node {
+                                    candidate.next_sibling().map(|node| JS::from_rooted(*node.root().deref()))
                                 } else {
                                     None
                                 }
@@ -987,12 +987,12 @@ impl<'a> Iterator<JSRef<'a, Node>> for NodeIterator {
     }
 }
 
-fn gather_abstract_nodes<'a>(cur: &JSRef<'a, Node>, refs: &mut Vec<JSRef<'a, Node>>, postorder: bool) {
+fn gather_abstract_nodes<'a>(cur: JSRef<'a, Node>, refs: &mut Vec<JSRef<'a, Node>>, postorder: bool) {
     if !postorder {
         refs.push(cur.clone());
     }
     for kid in cur.children() {
-        gather_abstract_nodes(&kid, refs, postorder)
+        gather_abstract_nodes(kid, refs, postorder)
     }
     if postorder {
         refs.push(cur.clone());
@@ -1011,14 +1011,14 @@ fn as_uintptr<T>(t: &T) -> uintptr_t { t as *const T as uintptr_t }
 impl Node {
     pub fn reflect_node<N: Reflectable+NodeBase>
             (node:      Box<N>,
-             document:  &JSRef<Document>,
+             document:  JSRef<Document>,
              wrap_fn:   extern "Rust" fn(*mut JSContext, &GlobalRef, Box<N>) -> Temporary<N>)
              -> Temporary<N> {
         let window = document.window.root();
         reflect_dom_object(node, &Window(*window), wrap_fn)
     }
 
-    pub fn new_inherited(type_id: NodeTypeId, doc: &JSRef<Document>) -> Node {
+    pub fn new_inherited(type_id: NodeTypeId, doc: JSRef<Document>) -> Node {
         Node::new_(type_id, Some(doc.clone()))
     }
 
@@ -1048,18 +1048,18 @@ impl Node {
     }
 
     // http://dom.spec.whatwg.org/#concept-node-adopt
-    pub fn adopt(node: &JSRef<Node>, document: &JSRef<Document>) {
+    pub fn adopt(node: JSRef<Node>, document: JSRef<Document>) {
         // Step 1.
         match node.parent_node().root() {
             Some(parent) => {
-                Node::remove(node, &*parent, Unsuppressed);
+                Node::remove(node, *parent, Unsuppressed);
             }
             None => (),
         }
 
         // Step 2.
         let node_doc = document_from_node(node).root();
-        if &*node_doc != document {
+        if *node_doc != document {
             for descendant in node.traverse_preorder() {
                 descendant.set_owner_doc(document);
             }
@@ -1070,7 +1070,7 @@ impl Node {
     }
 
     // http://dom.spec.whatwg.org/#concept-node-pre-insert
-    fn pre_insert(node: &JSRef<Node>, parent: &JSRef<Node>, child: Option<JSRef<Node>>)
+    fn pre_insert(node: JSRef<Node>, parent: JSRef<Node>, child: Option<JSRef<Node>>)
                   -> Fallible<Temporary<Node>> {
         // Step 1.
         match parent.type_id() {
@@ -1087,7 +1087,7 @@ impl Node {
 
         // Step 3.
         match child {
-            Some(ref child) if !parent.is_parent_of(child) => return Err(NotFound),
+            Some(child) if !parent.is_parent_of(child) => return Err(NotFound),
             _ => ()
         }
 
@@ -1132,7 +1132,7 @@ impl Node {
                                     return Err(HierarchyRequest);
                                 }
                                 match child {
-                                    Some(ref child) => {
+                                    Some(child) => {
                                         if child.inclusively_following_siblings()
                                             .any(|child| child.is_doctype()) {
                                                 return Err(HierarchyRequest)
@@ -1195,13 +1195,13 @@ impl Node {
 
         // Step 7-8.
         let referenceChild = match child {
-            Some(ref child) if child == node => node.next_sibling().map(|node| (*node.root()).clone()),
+            Some(child) if child == node => node.next_sibling().map(|node| (*node.root()).clone()),
             _ => child
         };
 
         // Step 9.
         let document = document_from_node(parent).root();
-        Node::adopt(node, &*document);
+        Node::adopt(node, *document);
 
         // Step 10.
         Node::insert(node, parent, referenceChild, Unsuppressed);
@@ -1211,8 +1211,8 @@ impl Node {
     }
 
     // http://dom.spec.whatwg.org/#concept-node-insert
-    fn insert(node: &JSRef<Node>,
-              parent: &JSRef<Node>,
+    fn insert(node: JSRef<Node>,
+              parent: JSRef<Node>,
               child: Option<JSRef<Node>>,
               suppress_observers: SuppressObserver) {
         // XXX assert owner_doc
@@ -1228,7 +1228,7 @@ impl Node {
         match node.type_id() {
             DocumentFragmentNodeTypeId => {
                 for c in node.children() {
-                    Node::remove(&c, node, Suppressed);
+                    Node::remove(c, node, Suppressed);
                 }
             },
             _ => (),
@@ -1237,7 +1237,7 @@ impl Node {
         // Step 7: mutation records.
         // Step 8.
         for node in nodes.mut_iter() {
-            parent.add_child(node, child);
+            parent.add_child(*node, child);
             let is_in_doc = parent.is_in_doc();
             for kid in node.traverse_preorder() {
                 if is_in_doc {
@@ -1260,13 +1260,13 @@ impl Node {
     }
 
     // http://dom.spec.whatwg.org/#concept-node-replace-all
-    fn replace_all(node: Option<JSRef<Node>>, parent: &JSRef<Node>) {
+    fn replace_all(node: Option<JSRef<Node>>, parent: JSRef<Node>) {
 
         // Step 1.
         match node {
-            Some(ref node) => {
+            Some(node) => {
                 let document = document_from_node(parent).root();
-                Node::adopt(node, &*document);
+                Node::adopt(node, *document);
             }
             None => (),
         }
@@ -1277,7 +1277,7 @@ impl Node {
         // Step 3.
         let addedNodes = match node {
             None => vec!(),
-            Some(ref node) => match node.type_id() {
+            Some(node) => match node.type_id() {
                 DocumentFragmentNodeTypeId => node.children().collect(),
                 _ => vec!(node.clone()),
             },
@@ -1285,12 +1285,12 @@ impl Node {
 
         // Step 4.
         for child in parent.children() {
-            Node::remove(&child, parent, Suppressed);
+            Node::remove(child, parent, Suppressed);
         }
 
         // Step 5.
         match node {
-            Some(ref node) => Node::insert(node, parent, None, Suppressed),
+            Some(node) => Node::insert(node, parent, None, Suppressed),
             None => (),
         }
 
@@ -1307,10 +1307,10 @@ impl Node {
     }
 
     // http://dom.spec.whatwg.org/#concept-node-pre-remove
-    fn pre_remove(child: &JSRef<Node>, parent: &JSRef<Node>) -> Fallible<Temporary<Node>> {
+    fn pre_remove(child: JSRef<Node>, parent: JSRef<Node>) -> Fallible<Temporary<Node>> {
         // Step 1.
         match child.parent_node() {
-            Some(ref node) if *node != Temporary::from_rooted(parent) => return Err(NotFound),
+            Some(node) if node != Temporary::from_rooted(parent) => return Err(NotFound),
             _ => ()
         }
 
@@ -1322,7 +1322,7 @@ impl Node {
     }
 
     // http://dom.spec.whatwg.org/#concept-node-remove
-    fn remove(node: &JSRef<Node>, parent: &JSRef<Node>, suppress_observers: SuppressObserver) {
+    fn remove(node: JSRef<Node>, parent: JSRef<Node>, suppress_observers: SuppressObserver) {
         assert!(node.parent_node().map_or(false, |node_parent| node_parent == Temporary::from_rooted(parent)));
 
         // Step 1-5: ranges.
@@ -1340,7 +1340,7 @@ impl Node {
     }
 
     // http://dom.spec.whatwg.org/#concept-node-clone
-    pub fn clone(node: &JSRef<Node>, maybe_doc: Option<&JSRef<Document>>,
+    pub fn clone(node: JSRef<Node>, maybe_doc: Option<JSRef<Document>>,
                  clone_children: CloneChildrenFlag) -> Temporary<Node> {
 
         // Step 1.
@@ -1353,82 +1353,82 @@ impl Node {
         // XXXabinader: clone() for each node as trait?
         let copy: Root<Node> = match node.type_id() {
             DoctypeNodeTypeId => {
-                let doctype: &JSRef<DocumentType> = DocumentTypeCast::to_ref(node).unwrap();
+                let doctype: JSRef<DocumentType> = DocumentTypeCast::to_ref(node).unwrap();
                 let doctype = doctype.deref();
                 let doctype = DocumentType::new(doctype.name.clone(),
                                                 Some(doctype.public_id.clone()),
-                                                Some(doctype.system_id.clone()), &*document);
+                                                Some(doctype.system_id.clone()), *document);
                 NodeCast::from_temporary(doctype)
             },
             DocumentFragmentNodeTypeId => {
-                let doc_fragment = DocumentFragment::new(&*document);
+                let doc_fragment = DocumentFragment::new(*document);
                 NodeCast::from_temporary(doc_fragment)
             },
             CommentNodeTypeId => {
-                let comment: &JSRef<Comment> = CommentCast::to_ref(node).unwrap();
+                let comment: JSRef<Comment> = CommentCast::to_ref(node).unwrap();
                 let comment = comment.deref();
-                let comment = Comment::new(comment.characterdata.data.deref().borrow().clone(), &*document);
+                let comment = Comment::new(comment.characterdata.data.deref().borrow().clone(), *document);
                 NodeCast::from_temporary(comment)
             },
             DocumentNodeTypeId => {
-                let document: &JSRef<Document> = DocumentCast::to_ref(node).unwrap();
+                let document: JSRef<Document> = DocumentCast::to_ref(node).unwrap();
                 let is_html_doc = match document.is_html_document {
                     true => HTMLDocument,
                     false => NonHTMLDocument
                 };
                 let window = document.window.root();
-                let document = Document::new(&*window, Some(document.url().clone()),
+                let document = Document::new(*window, Some(document.url().clone()),
                                              is_html_doc, None);
                 NodeCast::from_temporary(document)
             },
             ElementNodeTypeId(..) => {
-                let element: &JSRef<Element> = ElementCast::to_ref(node).unwrap();
+                let element: JSRef<Element> = ElementCast::to_ref(node).unwrap();
                 let element = element.deref();
                 let element = build_element_from_tag(element.local_name.as_slice().to_string(),
-                    element.namespace.clone(), &*document);
+                    element.namespace.clone(), *document);
                 NodeCast::from_temporary(element)
             },
             TextNodeTypeId => {
-                let text: &JSRef<Text> = TextCast::to_ref(node).unwrap();
+                let text: JSRef<Text> = TextCast::to_ref(node).unwrap();
                 let text = text.deref();
-                let text = Text::new(text.characterdata.data.deref().borrow().clone(), &*document);
+                let text = Text::new(text.characterdata.data.deref().borrow().clone(), *document);
                 NodeCast::from_temporary(text)
             },
             ProcessingInstructionNodeTypeId => {
-                let pi: &JSRef<ProcessingInstruction> = ProcessingInstructionCast::to_ref(node).unwrap();
+                let pi: JSRef<ProcessingInstruction> = ProcessingInstructionCast::to_ref(node).unwrap();
                 let pi = pi.deref();
                 let pi = ProcessingInstruction::new(pi.target.clone(),
-                                                    pi.characterdata.data.deref().borrow().clone(), &*document);
+                                                    pi.characterdata.data.deref().borrow().clone(), *document);
                 NodeCast::from_temporary(pi)
             },
         }.root();
 
         // Step 3.
         let document = if copy.is_document() {
-            let doc: &JSRef<Document> = DocumentCast::to_ref(&*copy).unwrap();
+            let doc: JSRef<Document> = DocumentCast::to_ref(*copy).unwrap();
             JS::from_rooted(doc).root()
         } else {
-            JS::from_rooted(&*document).root()
+            JS::from_rooted(*document).root()
         };
         assert!(&*copy.owner_doc().root() == &*document);
 
         // Step 4 (some data already copied in step 2).
         match node.type_id() {
             DocumentNodeTypeId => {
-                let node_doc: &JSRef<Document> = DocumentCast::to_ref(node).unwrap();
-                let copy_doc: &JSRef<Document> = DocumentCast::to_ref(&*copy).unwrap();
+                let node_doc: JSRef<Document> = DocumentCast::to_ref(node).unwrap();
+                let copy_doc: JSRef<Document> = DocumentCast::to_ref(*copy).unwrap();
                 copy_doc.set_encoding_name(node_doc.encoding_name.deref().borrow().clone());
                 copy_doc.set_quirks_mode(node_doc.quirks_mode());
             },
             ElementNodeTypeId(..) => {
-                let node_elem: &JSRef<Element> = ElementCast::to_ref(node).unwrap();
-                let copy_elem: &JSRef<Element> = ElementCast::to_ref(&*copy).unwrap();
+                let node_elem: JSRef<Element> = ElementCast::to_ref(node).unwrap();
+                let copy_elem: JSRef<Element> = ElementCast::to_ref(*copy).unwrap();
 
                 // FIXME: https://github.com/mozilla/servo/issues/1737
                 let window = document.deref().window.root();
                 for attr in node_elem.deref().attrs.borrow().iter().map(|attr| attr.root()) {
                     copy_elem.deref().attrs.borrow_mut().push_unrooted(
-                        &Attr::new(&*window,
+                        &Attr::new(*window,
                                    attr.local_name().clone(), attr.deref().value().clone(),
                                    attr.deref().name.clone(), attr.deref().namespace.clone(),
                                    attr.deref().prefix.clone(), copy_elem));
@@ -1441,14 +1441,14 @@ impl Node {
 
         // Step 6.
         if clone_children == CloneChildren {
-            for ref child in node.children() {
-                let child_copy = Node::clone(&*child, Some(&*document), clone_children).root();
-                let _inserted_node = Node::pre_insert(&*child_copy, &*copy, None);
+            for child in node.children() {
+                let child_copy = Node::clone(child, Some(*document), clone_children).root();
+                let _inserted_node = Node::pre_insert(*child_copy, *copy, None);
             }
         }
 
         // Step 7.
-        Temporary::from_rooted(&*copy)
+        Temporary::from_rooted(*copy)
     }
 
     /// Sends layout data, if any, back to the layout task to be destroyed.
@@ -1473,7 +1473,7 @@ impl Node {
     pub fn collect_text_contents<'a, T: Iterator<JSRef<'a, Node>>>(mut iterator: T) -> String {
         let mut content = String::new();
         for node in iterator {
-            let text: Option<&JSRef<Text>> = TextCast::to_ref(&node);
+            let text: Option<JSRef<Text>> = TextCast::to_ref(node);
             match text {
                 Some(text) => content.push_str(text.characterdata.data.borrow().as_slice()),
                 None => (),
@@ -1501,18 +1501,18 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     fn NodeName(&self) -> DOMString {
         match self.type_id {
             ElementNodeTypeId(..) => {
-                let elem: &JSRef<Element> = ElementCast::to_ref(self).unwrap();
+                let elem: JSRef<Element> = ElementCast::to_ref(*self).unwrap();
                 elem.TagName()
             }
             TextNodeTypeId => "#text".to_string(),
             ProcessingInstructionNodeTypeId => {
-                let processing_instruction: &JSRef<ProcessingInstruction> =
-                    ProcessingInstructionCast::to_ref(self).unwrap();
+                let processing_instruction: JSRef<ProcessingInstruction> =
+                    ProcessingInstructionCast::to_ref(*self).unwrap();
                 processing_instruction.Target()
             }
             CommentNodeTypeId => "#comment".to_string(),
             DoctypeNodeTypeId => {
-                let doctype: &JSRef<DocumentType> = DocumentTypeCast::to_ref(self).unwrap();
+                let doctype: JSRef<DocumentType> = DocumentTypeCast::to_ref(*self).unwrap();
                 doctype.deref().name.clone()
             },
             DocumentFragmentNodeTypeId => "#document-fragment".to_string(),
@@ -1549,7 +1549,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         self.parent_node.get()
                         .and_then(|parent| {
                             let parent = parent.root();
-                            ElementCast::to_ref(&*parent).map(|elem| {
+                            ElementCast::to_ref(*parent).map(|elem| {
                                 Temporary::from_rooted(elem)
                             })
                         })
@@ -1569,7 +1569,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 
         let doc = self.owner_doc().root();
         let window = doc.deref().window.root();
-        let child_list = NodeList::new_child_list(&*window, self);
+        let child_list = NodeList::new_child_list(*window, *self);
         self.child_list.assign(Some(child_list));
         Temporary::new(self.child_list.get().get_ref().clone())
     }
@@ -1600,7 +1600,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
             CommentNodeTypeId |
             TextNodeTypeId |
             ProcessingInstructionNodeTypeId => {
-                let chardata: &JSRef<CharacterData> = CharacterDataCast::to_ref(self).unwrap();
+                let chardata: JSRef<CharacterData> = CharacterDataCast::to_ref(*self).unwrap();
                 Some(chardata.Data())
             }
             _ => {
@@ -1632,7 +1632,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
             CommentNodeTypeId |
             TextNodeTypeId |
             ProcessingInstructionNodeTypeId => {
-                let characterdata: &JSRef<CharacterData> = CharacterDataCast::to_ref(self).unwrap();
+                let characterdata: JSRef<CharacterData> = CharacterDataCast::to_ref(*self).unwrap();
                 Some(characterdata.Data())
             }
             DoctypeNodeTypeId |
@@ -1657,14 +1657,14 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                 }.root();
 
                 // Step 3.
-                Node::replace_all(node.root_ref(), self);
+                Node::replace_all(node.root_ref(), *self);
             }
             CommentNodeTypeId |
             TextNodeTypeId |
             ProcessingInstructionNodeTypeId => {
                 self.wait_until_safe_to_modify_dom();
 
-                let characterdata: &JSRef<CharacterData> = CharacterDataCast::to_ref(self).unwrap();
+                let characterdata: JSRef<CharacterData> = CharacterDataCast::to_ref(*self).unwrap();
                 *characterdata.data.deref().borrow_mut() = value;
 
                 // Notify the document that the content of this node is different
@@ -1677,17 +1677,17 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     }
 
     // http://dom.spec.whatwg.org/#dom-node-insertbefore
-    fn InsertBefore(&self, node: &JSRef<Node>, child: Option<JSRef<Node>>) -> Fallible<Temporary<Node>> {
-        Node::pre_insert(node, self, child)
+    fn InsertBefore(&self, node: JSRef<Node>, child: Option<JSRef<Node>>) -> Fallible<Temporary<Node>> {
+        Node::pre_insert(node, *self, child)
     }
 
     // http://dom.spec.whatwg.org/#dom-node-appendchild
-    fn AppendChild(&self, node: &JSRef<Node>) -> Fallible<Temporary<Node>> {
-        Node::pre_insert(node, self, None)
+    fn AppendChild(&self, node: JSRef<Node>) -> Fallible<Temporary<Node>> {
+        Node::pre_insert(node, *self, None)
     }
 
     // http://dom.spec.whatwg.org/#concept-node-replace
-    fn ReplaceChild(&self, node: &JSRef<Node>, child: &JSRef<Node>) -> Fallible<Temporary<Node>> {
+    fn ReplaceChild(&self, node: JSRef<Node>, child: JSRef<Node>) -> Fallible<Temporary<Node>> {
 
         // Step 1.
         match self.type_id {
@@ -1698,7 +1698,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         }
 
         // Step 2.
-        if node.is_inclusive_ancestor_of(self) {
+        if node.is_inclusive_ancestor_of(*self) {
             return Err(HierarchyRequest);
         }
 
@@ -1734,7 +1734,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                             0 => (),
                             // Step 6.1.2
                             1 => {
-                                if self.child_elements().any(|c| NodeCast::from_ref(&c) != child) {
+                                if self.child_elements().any(|c| NodeCast::from_ref(c) != child) {
                                     return Err(HierarchyRequest);
                                 }
                                 if child.following_siblings()
@@ -1748,7 +1748,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                     },
                     // Step 6.2
                     ElementNodeTypeId(..) => {
-                        if self.child_elements().any(|c| NodeCast::from_ref(&c) != child) {
+                        if self.child_elements().any(|c| NodeCast::from_ref(c) != child) {
                             return Err(HierarchyRequest);
                         }
                         if child.following_siblings()
@@ -1758,11 +1758,11 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                     },
                     // Step 6.3
                     DoctypeNodeTypeId => {
-                        if self.children().any(|c| c.is_doctype() && &c != child) {
+                        if self.children().any(|c| c.is_doctype() && c != child) {
                             return Err(HierarchyRequest);
                         }
                         if self.children()
-                            .take_while(|c| c != child)
+                            .take_while(|c| *c != child)
                             .any(|c| c.is_element()) {
                             return Err(HierarchyRequest);
                         }
@@ -1777,27 +1777,27 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         }
 
         // Ok if not caught by previous error checks.
-        if *node == *child {
+        if node == child {
             return Ok(Temporary::from_rooted(child));
         }
 
         // Step 7-8.
         let next_sibling = child.next_sibling().map(|node| (*node.root()).clone());
         let reference_child = match next_sibling {
-            Some(ref sibling) if sibling == node => node.next_sibling().map(|node| (*node.root()).clone()),
+            Some(sibling) if sibling == node => node.next_sibling().map(|node| (*node.root()).clone()),
             _ => next_sibling
         };
 
         // Step 9.
-        let document = document_from_node(self).root();
-        Node::adopt(node, &*document);
+        let document = document_from_node(*self).root();
+        Node::adopt(node, *document);
 
         {
             // Step 10.
-            Node::remove(child, self, Suppressed);
+            Node::remove(child, *self, Suppressed);
 
             // Step 11.
-            Node::insert(node, self, reference_child, Suppressed);
+            Node::insert(node, *self, reference_child, Suppressed);
         }
 
         // Step 12-14.
@@ -1816,9 +1816,9 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     }
 
     // http://dom.spec.whatwg.org/#dom-node-removechild
-    fn RemoveChild(&self, node: &JSRef<Node>)
+    fn RemoveChild(&self, node: JSRef<Node>)
                        -> Fallible<Temporary<Node>> {
-        Node::pre_remove(node, self)
+        Node::pre_remove(node, *self)
     }
 
     // http://dom.spec.whatwg.org/#dom-node-normalize
@@ -1826,15 +1826,15 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         let mut prev_text = None;
         for child in self.children() {
             if child.is_text() {
-                let characterdata: &JSRef<CharacterData> = CharacterDataCast::to_ref(&child).unwrap();
+                let characterdata: JSRef<CharacterData> = CharacterDataCast::to_ref(child).unwrap();
                 if characterdata.Length() == 0 {
-                    self.remove_child(&child);
+                    self.remove_child(child);
                 } else {
                     match prev_text {
-                        Some(ref mut text_node) => {
-                            let prev_characterdata: &JSRef<CharacterData> = CharacterDataCast::to_ref(text_node).unwrap();
+                        Some(text_node) => {
+                            let prev_characterdata: JSRef<CharacterData> = CharacterDataCast::to_ref(text_node).unwrap();
                             let _ = prev_characterdata.AppendData(characterdata.Data());
-                            self.remove_child(&child);
+                            self.remove_child(child);
                         },
                         None => prev_text = Some(child)
                     }
@@ -1850,23 +1850,23 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     // http://dom.spec.whatwg.org/#dom-node-clonenode
     fn CloneNode(&self, deep: bool) -> Temporary<Node> {
         match deep {
-            true => Node::clone(self, None, CloneChildren),
-            false => Node::clone(self, None, DoNotCloneChildren)
+            true => Node::clone(*self, None, CloneChildren),
+            false => Node::clone(*self, None, DoNotCloneChildren)
         }
     }
 
     // http://dom.spec.whatwg.org/#dom-node-isequalnode
     fn IsEqualNode(&self, maybe_node: Option<JSRef<Node>>) -> bool {
-        fn is_equal_doctype(node: &JSRef<Node>, other: &JSRef<Node>) -> bool {
-            let doctype: &JSRef<DocumentType> = DocumentTypeCast::to_ref(node).unwrap();
-            let other_doctype: &JSRef<DocumentType> = DocumentTypeCast::to_ref(other).unwrap();
+        fn is_equal_doctype(node: JSRef<Node>, other: JSRef<Node>) -> bool {
+            let doctype: JSRef<DocumentType> = DocumentTypeCast::to_ref(node).unwrap();
+            let other_doctype: JSRef<DocumentType> = DocumentTypeCast::to_ref(other).unwrap();
             (doctype.deref().name == other_doctype.deref().name) &&
             (doctype.deref().public_id == other_doctype.deref().public_id) &&
             (doctype.deref().system_id == other_doctype.deref().system_id)
         }
-        fn is_equal_element(node: &JSRef<Node>, other: &JSRef<Node>) -> bool {
-            let element: &JSRef<Element> = ElementCast::to_ref(node).unwrap();
-            let other_element: &JSRef<Element> = ElementCast::to_ref(other).unwrap();
+        fn is_equal_element(node: JSRef<Node>, other: JSRef<Node>) -> bool {
+            let element: JSRef<Element> = ElementCast::to_ref(node).unwrap();
+            let other_element: JSRef<Element> = ElementCast::to_ref(other).unwrap();
             // FIXME: namespace prefix
             let element = element.deref();
             let other_element = other_element.deref();
@@ -1874,20 +1874,20 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
             (element.local_name == other_element.local_name) &&
             (element.attrs.borrow().len() == other_element.attrs.borrow().len())
         }
-        fn is_equal_processinginstruction(node: &JSRef<Node>, other: &JSRef<Node>) -> bool {
-            let pi: &JSRef<ProcessingInstruction> = ProcessingInstructionCast::to_ref(node).unwrap();
-            let other_pi: &JSRef<ProcessingInstruction> = ProcessingInstructionCast::to_ref(other).unwrap();
+        fn is_equal_processinginstruction(node: JSRef<Node>, other: JSRef<Node>) -> bool {
+            let pi: JSRef<ProcessingInstruction> = ProcessingInstructionCast::to_ref(node).unwrap();
+            let other_pi: JSRef<ProcessingInstruction> = ProcessingInstructionCast::to_ref(other).unwrap();
             (pi.deref().target == other_pi.deref().target) &&
             (*pi.deref().characterdata.data.deref().borrow() == *other_pi.deref().characterdata.data.deref().borrow())
         }
-        fn is_equal_characterdata(node: &JSRef<Node>, other: &JSRef<Node>) -> bool {
-            let characterdata: &JSRef<CharacterData> = CharacterDataCast::to_ref(node).unwrap();
-            let other_characterdata: &JSRef<CharacterData> = CharacterDataCast::to_ref(other).unwrap();
+        fn is_equal_characterdata(node: JSRef<Node>, other: JSRef<Node>) -> bool {
+            let characterdata: JSRef<CharacterData> = CharacterDataCast::to_ref(node).unwrap();
+            let other_characterdata: JSRef<CharacterData> = CharacterDataCast::to_ref(other).unwrap();
             *characterdata.deref().data.deref().borrow() == *other_characterdata.deref().data.deref().borrow()
         }
-        fn is_equal_element_attrs(node: &JSRef<Node>, other: &JSRef<Node>) -> bool {
-            let element: &JSRef<Element> = ElementCast::to_ref(node).unwrap();
-            let other_element: &JSRef<Element> = ElementCast::to_ref(other).unwrap();
+        fn is_equal_element_attrs(node: JSRef<Node>, other: JSRef<Node>) -> bool {
+            let element: JSRef<Element> = ElementCast::to_ref(node).unwrap();
+            let other_element: JSRef<Element> = ElementCast::to_ref(other).unwrap();
             let element = element.deref();
             let other_element = other_element.deref();
             assert!(element.attrs.borrow().len() == other_element.attrs.borrow().len());
@@ -1899,7 +1899,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                 })
             })
         }
-        fn is_equal_node(this: &JSRef<Node>, node: &JSRef<Node>) -> bool {
+        fn is_equal_node(this: JSRef<Node>, node: JSRef<Node>) -> bool {
             // Step 2.
             if this.type_id() != node.type_id() {
                 return false;
@@ -1924,27 +1924,27 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 
             // Step 6.
             this.children().zip(node.children()).all(|(ref child, ref other_child)| {
-                is_equal_node(child, other_child)
+                is_equal_node(*child, *other_child)
             })
         }
         match maybe_node {
             // Step 1.
             None => false,
             // Step 2-6.
-            Some(ref node) => is_equal_node(self, node)
+            Some(node) => is_equal_node(*self, node)
         }
     }
 
     // http://dom.spec.whatwg.org/#dom-node-comparedocumentposition
-    fn CompareDocumentPosition(&self, other: &JSRef<Node>) -> u16 {
-        if self == other {
+    fn CompareDocumentPosition(&self, other: JSRef<Node>) -> u16 {
+        if *self == other {
             // step 2.
             0
         } else {
             let mut lastself = self.clone();
             let mut lastother = other.clone();
             for ancestor in self.ancestors() {
-                if &ancestor == other {
+                if ancestor == other {
                     // step 4.
                     return NodeConstants::DOCUMENT_POSITION_CONTAINS +
                            NodeConstants::DOCUMENT_POSITION_PRECEDING;
@@ -1952,7 +1952,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                 lastself = ancestor.clone();
             }
             for ancestor in other.ancestors() {
-                if &ancestor == self {
+                if ancestor == *self {
                     // step 5.
                     return NodeConstants::DOCUMENT_POSITION_CONTAINED_BY +
                            NodeConstants::DOCUMENT_POSITION_FOLLOWING;
@@ -1976,11 +1976,11 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
             }
 
             for child in lastself.traverse_preorder() {
-                if &child == other {
+                if child == other {
                     // step 6.
                     return NodeConstants::DOCUMENT_POSITION_PRECEDING;
                 }
-                if &child == self {
+                if child == *self {
                     // step 7.
                     return NodeConstants::DOCUMENT_POSITION_FOLLOWING;
                 }
@@ -1993,7 +1993,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     fn Contains(&self, maybe_other: Option<JSRef<Node>>) -> bool {
         match maybe_other {
             None => false,
-            Some(ref other) => self.is_inclusive_ancestor_of(other)
+            Some(other) => self.is_inclusive_ancestor_of(other)
         }
     }
 
@@ -2023,19 +2023,19 @@ impl Reflectable for Node {
     }
 }
 
-pub fn document_from_node<T: NodeBase>(derived: &JSRef<T>) -> Temporary<Document> {
-    let node: &JSRef<Node> = NodeCast::from_ref(derived);
+pub fn document_from_node<T: NodeBase>(derived: JSRef<T>) -> Temporary<Document> {
+    let node: JSRef<Node> = NodeCast::from_ref(derived);
     node.owner_doc()
 }
 
-pub fn window_from_node<T: NodeBase>(derived: &JSRef<T>) -> Temporary<Window> {
+pub fn window_from_node<T: NodeBase>(derived: JSRef<T>) -> Temporary<Window> {
     let document = document_from_node(derived).root();
     Temporary::new(document.deref().window.clone())
 }
 
 impl<'a> VirtualMethods for JSRef<'a, Node> {
     fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
-        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_borrowed_ref(self);
         Some(eventtarget as &VirtualMethods)
     }
 }
@@ -2066,9 +2066,9 @@ impl<'a> style::TNode<JSRef<'a, Element>> for JSRef<'a, Node> {
     }
 
     fn as_element(&self) -> JSRef<'a, Element> {
-        let elem: Option<&JSRef<'a, Element>> = ElementCast::to_ref(self);
+        let elem: Option<JSRef<'a, Element>> = ElementCast::to_ref(*self);
         assert!(elem.is_some());
-        *elem.unwrap()
+        elem.unwrap()
     }
 
     fn match_attr(&self, attr: &style::AttrSelector, test: |&str| -> bool) -> bool {
@@ -2090,9 +2090,9 @@ impl<'a> style::TNode<JSRef<'a, Element>> for JSRef<'a, Node> {
     }
 
     fn is_html_element_in_html_document(&self) -> bool {
-        let elem: Option<&JSRef<'a, Element>> = ElementCast::to_ref(self);
+        let elem: Option<JSRef<'a, Element>> = ElementCast::to_ref(*self);
         assert!(elem.is_some());
-        let elem: &ElementHelpers = elem.unwrap() as &ElementHelpers;
+        let elem: &ElementHelpers = &elem.unwrap() as &ElementHelpers;
         elem.html_element_in_html_document()
     }
 }
@@ -2108,15 +2108,15 @@ impl<'a> DisabledStateHelpers for JSRef<'a, Node> {
         if self.get_disabled_state() { return; }
         for ancestor in self.ancestors().filter(|ancestor| ancestor.is_htmlfieldsetelement()) {
             if !ancestor.get_disabled_state() { continue; }
-            if ancestor.is_parent_of(self) {
+            if ancestor.is_parent_of(*self) {
                 self.set_disabled_state(true);
                 self.set_enabled_state(false);
                 return;
             }
             match ancestor.children().find(|child| child.is_htmllegendelement()) {
-                Some(ref legend) => {
+                Some(legend) => {
                     // XXXabinader: should we save previous ancestor to avoid this iteration?
-                    if self.ancestors().any(|ancestor| ancestor == *legend) { continue; }
+                    if self.ancestors().any(|ancestor| ancestor == legend) { continue; }
                 },
                 None => ()
             }
@@ -2138,7 +2138,7 @@ impl<'a> DisabledStateHelpers for JSRef<'a, Node> {
     }
 
     fn check_disabled_attribute(&self) {
-        let elem: &JSRef<'a, Element> = ElementCast::to_ref(self).unwrap();
+        let elem: JSRef<'a, Element> = ElementCast::to_ref(*self).unwrap();
         let has_disabled_attrib = elem.has_attribute("disabled");
         self.set_disabled_state(has_disabled_attrib);
         self.set_enabled_state(!has_disabled_attrib);

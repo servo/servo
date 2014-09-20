@@ -25,7 +25,7 @@ pub struct DOMTokenList {
 }
 
 impl DOMTokenList {
-    pub fn new_inherited(element: &JSRef<Element>,
+    pub fn new_inherited(element: JSRef<Element>,
                          local_name: &'static str) -> DOMTokenList {
         DOMTokenList {
             reflector_: Reflector::new(),
@@ -34,7 +34,7 @@ impl DOMTokenList {
         }
     }
 
-    pub fn new(element: &JSRef<Element>,
+    pub fn new(element: JSRef<Element>,
                local_name: &'static str) -> Temporary<DOMTokenList> {
         let window = window_from_node(element).root();
         reflect_dom_object(box DOMTokenList::new_inherited(element, local_name),

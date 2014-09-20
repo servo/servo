@@ -75,7 +75,7 @@ impl Worker {
             worker_url, worker_ref, resource_task, global.script_chan().clone(),
             sender, receiver);
 
-        Ok(Temporary::from_rooted(&*worker))
+        Ok(Temporary::from_rooted(*worker))
     }
 
     pub fn handle_message(address: TrustedWorkerAddress,
@@ -92,7 +92,7 @@ impl Worker {
                 ptr::null(), ptr::mut_null()) != 0);
         }
 
-        let target: &JSRef<EventTarget> = EventTargetCast::from_ref(&*worker);
+        let target: JSRef<EventTarget> = EventTargetCast::from_ref(*worker);
         MessageEvent::dispatch_jsval(target, &global.root_ref(), message);
     }
 }
@@ -144,12 +144,12 @@ impl<'a> WorkerMethods for JSRef<'a, Worker> {
     }
 
     fn GetOnmessage(&self) -> Option<EventHandlerNonNull> {
-        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
         eventtarget.get_event_handler_common("message")
     }
 
     fn SetOnmessage(&self, listener: Option<EventHandlerNonNull>) {
-        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
         eventtarget.set_event_handler_common("message", listener)
     }
 }

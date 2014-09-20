@@ -26,14 +26,14 @@ impl HTMLProgressElementDerived for EventTarget {
 }
 
 impl HTMLProgressElement {
-    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLProgressElement {
+    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLProgressElement {
         HTMLProgressElement {
             htmlelement: HTMLElement::new_inherited(HTMLProgressElementTypeId, localName, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLProgressElement> {
+    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLProgressElement> {
         let element = HTMLProgressElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLProgressElementBinding::Wrap)
     }

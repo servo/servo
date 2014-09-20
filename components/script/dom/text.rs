@@ -29,20 +29,20 @@ impl TextDerived for EventTarget {
 }
 
 impl Text {
-    pub fn new_inherited(text: DOMString, document: &JSRef<Document>) -> Text {
+    pub fn new_inherited(text: DOMString, document: JSRef<Document>) -> Text {
         Text {
             characterdata: CharacterData::new_inherited(TextNodeTypeId, text, document)
         }
     }
 
-    pub fn new(text: DOMString, document: &JSRef<Document>) -> Temporary<Text> {
+    pub fn new(text: DOMString, document: JSRef<Document>) -> Temporary<Text> {
         Node::reflect_node(box Text::new_inherited(text, document),
                            document, TextBinding::Wrap)
     }
 
     pub fn Constructor(global: &GlobalRef, text: DOMString) -> Fallible<Temporary<Text>> {
         let document = global.as_window().Document().root();
-        Ok(Text::new(text, &*document))
+        Ok(Text::new(text, *document))
     }
 }
 

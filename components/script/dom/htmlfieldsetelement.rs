@@ -34,14 +34,14 @@ impl HTMLFieldSetElementDerived for EventTarget {
 }
 
 impl HTMLFieldSetElement {
-    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLFieldSetElement {
+    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLFieldSetElement {
         HTMLFieldSetElement {
             htmlelement: HTMLElement::new_inherited(HTMLFieldSetElementTypeId, localName, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLFieldSetElement> {
+    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLFieldSetElement> {
         let element = HTMLFieldSetElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLFieldSetElementBinding::Wrap)
     }
@@ -52,22 +52,22 @@ impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
     fn Elements(&self) -> Temporary<HTMLCollection> {
         struct ElementsFilter;
         impl CollectionFilter for ElementsFilter {
-            fn filter(&self, elem: &JSRef<Element>, root: &JSRef<Node>) -> bool {
+            fn filter(&self, elem: JSRef<Element>, root: JSRef<Node>) -> bool {
                 static tag_names: StaticStringVec = &["button", "fieldset", "input",
                     "keygen", "object", "output", "select", "textarea"];
-                let root: &JSRef<Element> = ElementCast::to_ref(root).unwrap();
+                let root: JSRef<Element> = ElementCast::to_ref(root).unwrap();
                 elem != root && tag_names.iter().any(|&tag_name| tag_name == elem.deref().local_name.as_slice())
             }
         }
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
         let filter = box ElementsFilter;
         let window = window_from_node(node).root();
-        HTMLCollection::create(&*window, node, filter)
+        HTMLCollection::create(*window, node, filter)
     }
 
     fn Validity(&self) -> Temporary<ValidityState> {
-        let window = window_from_node(self).root();
-        ValidityState::new(&*window)
+        let window = window_from_node(*self).root();
+        ValidityState::new(*window)
     }
 
     // http://www.whatwg.org/html/#dom-fieldset-disabled
@@ -75,14 +75,14 @@ impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
 
     // http://www.whatwg.org/html/#dom-fieldset-disabled
     fn SetDisabled(&self, disabled: bool) {
-        let elem: &JSRef<Element> = ElementCast::from_ref(self);
+        let elem: JSRef<Element> = ElementCast::from_ref(*self);
         elem.set_bool_attribute("disabled", disabled)
     }
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLFieldSetElement> {
     fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
-        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_ref(self);
+        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
@@ -92,7 +92,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLFieldSetElement> {
             _ => (),
         }
 
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
         match name.as_slice() {
             "disabled" => {
                 node.set_disabled_state(true);
@@ -124,7 +124,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLFieldSetElement> {
             _ => (),
         }
 
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
         match name.as_slice() {
             "disabled" => {
                 node.set_disabled_state(false);

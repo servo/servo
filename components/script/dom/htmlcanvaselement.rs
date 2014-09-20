@@ -44,7 +44,7 @@ impl HTMLCanvasElementDerived for EventTarget {
 }
 
 impl HTMLCanvasElement {
-    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLCanvasElement {
+    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLCanvasElement {
         HTMLCanvasElement {
             htmlelement: HTMLElement::new_inherited(HTMLCanvasElementTypeId, localName, document),
             context: Traceable::new(Cell::new(None)),
@@ -54,7 +54,7 @@ impl HTMLCanvasElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLCanvasElement> {
+    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLCanvasElement> {
         let element = HTMLCanvasElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLCanvasElementBinding::Wrap)
     }
@@ -66,7 +66,7 @@ impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
     }
 
     fn SetWidth(&self, width: u32) {
-        let elem: &JSRef<Element> = ElementCast::from_ref(self);
+        let elem: JSRef<Element> = ElementCast::from_ref(*self);
         elem.set_uint_attribute("width", width)
     }
 
@@ -75,7 +75,7 @@ impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
     }
 
     fn SetHeight(&self, height: u32) {
-        let elem: &JSRef<Element> = ElementCast::from_ref(self);
+        let elem: JSRef<Element> = ElementCast::from_ref(*self);
         elem.set_uint_attribute("height", height)
     }
 
@@ -85,9 +85,9 @@ impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
         }
 
         if self.context.get().is_none() {
-            let window = window_from_node(self).root();
+            let window = window_from_node(*self).root();
             let (w, h) = (self.width.get() as i32, self.height.get() as i32);
-            let context = CanvasRenderingContext2D::new(&Window(*window), self, Size2D(w, h));
+            let context = CanvasRenderingContext2D::new(&Window(*window), *self, Size2D(w, h));
             self.context.assign(Some(context));
         }
         self.context.get().map(|context| Temporary::new(context))
@@ -96,7 +96,7 @@ impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLCanvasElement> {
     fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
-        let element: &JSRef<HTMLElement> = HTMLElementCast::from_ref(self);
+        let element: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
         Some(element as &VirtualMethods)
     }
 

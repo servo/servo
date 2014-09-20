@@ -32,17 +32,17 @@ impl NodeList {
         }
     }
 
-    pub fn new(window: &JSRef<Window>,
+    pub fn new(window: JSRef<Window>,
                list_type: NodeListType) -> Temporary<NodeList> {
         reflect_dom_object(box NodeList::new_inherited(list_type),
-                           &Window(*window), NodeListBinding::Wrap)
+                           &Window(window), NodeListBinding::Wrap)
     }
 
-    pub fn new_simple_list(window: &JSRef<Window>, elements: Vec<JSRef<Node>>) -> Temporary<NodeList> {
-        NodeList::new(window, Simple(elements.iter().map(|element| JS::from_rooted(element)).collect()))
+    pub fn new_simple_list(window: JSRef<Window>, elements: Vec<JSRef<Node>>) -> Temporary<NodeList> {
+        NodeList::new(window, Simple(elements.iter().map(|element| JS::from_rooted(*element)).collect()))
     }
 
-    pub fn new_child_list(window: &JSRef<Window>, node: &JSRef<Node>) -> Temporary<NodeList> {
+    pub fn new_child_list(window: JSRef<Window>, node: JSRef<Node>) -> Temporary<NodeList> {
         NodeList::new(window, Children(JS::from_rooted(node)))
     }
 }
@@ -65,7 +65,7 @@ impl<'a> NodeListMethods for JSRef<'a, NodeList> {
             Children(ref node) => {
                 let node = node.root();
                 node.deref().children().nth(index as uint)
-                                       .map(|child| Temporary::from_rooted(&child))
+                                       .map(|child| Temporary::from_rooted(child))
             }
         }
     }

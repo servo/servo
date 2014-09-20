@@ -33,14 +33,14 @@ impl HTMLBodyElementDerived for EventTarget {
 }
 
 impl HTMLBodyElement {
-    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLBodyElement {
+    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLBodyElement {
         HTMLBodyElement {
             htmlelement: HTMLElement::new_inherited(HTMLBodyElementTypeId, localName, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLBodyElement> {
+    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLBodyElement> {
         let element = HTMLBodyElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLBodyElementBinding::Wrap)
     }
@@ -48,19 +48,19 @@ impl HTMLBodyElement {
 
 impl<'a> HTMLBodyElementMethods for JSRef<'a, HTMLBodyElement> {
     fn GetOnunload(&self) -> Option<EventHandlerNonNull> {
-        let win = window_from_node(self).root();
+        let win = window_from_node(*self).root();
         win.deref().GetOnunload()
     }
 
     fn SetOnunload(&self, listener: Option<EventHandlerNonNull>) {
-        let win = window_from_node(self).root();
+        let win = window_from_node(*self).root();
         win.deref().SetOnunload(listener)
     }
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLBodyElement> {
     fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
-        let element: &JSRef<HTMLElement> = HTMLElementCast::from_ref(self);
+        let element: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
         Some(element as &VirtualMethods)
     }
 
@@ -76,15 +76,15 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLBodyElement> {
                   "onbeforeunload", "onhashchange", "onlanguagechange", "onmessage",
                   "onoffline", "ononline", "onpagehide", "onpageshow", "onpopstate",
                   "onstorage", "onresize", "onunload", "onerror"];
-            let window = window_from_node(self).root();
+            let window = window_from_node(*self).root();
             let (cx, url, reflector) = (window.get_cx(),
                                         window.get_url(),
                                         window.reflector().get_jsobject());
-            let evtarget: &JSRef<EventTarget> =
+            let evtarget: JSRef<EventTarget> =
                 if forwarded_events.iter().any(|&event| name.as_slice() == event) {
-                    EventTargetCast::from_ref(&*window)
+                    EventTargetCast::from_ref(*window)
                 } else {
-                    EventTargetCast::from_ref(self)
+                    EventTargetCast::from_ref(*self)
                 };
             evtarget.set_event_handler_uncompiled(cx, url, reflector,
                                                   name.as_slice().slice_from(2),

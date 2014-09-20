@@ -138,7 +138,7 @@ impl XMLHttpRequest {
             ready_state: Traceable::new(Cell::new(Unsent)),
             timeout: Traceable::new(Cell::new(0u32)),
             with_credentials: Traceable::new(Cell::new(false)),
-            upload: JS::from_rooted(&XMLHttpRequestUpload::new(global)),
+            upload: JS::from_rooted(XMLHttpRequestUpload::new(global)),
             response_url: "".to_string(),
             status: Traceable::new(Cell::new(0)),
             status_text: Traceable::new(RefCell::new(ByteString::new(vec!()))),
@@ -260,12 +260,12 @@ impl XMLHttpRequest {
 
 impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
     fn GetOnreadystatechange(&self) -> Option<EventHandlerNonNull> {
-        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
         eventtarget.get_event_handler_common("readystatechange")
     }
 
     fn SetOnreadystatechange(&self, listener: Option<EventHandlerNonNull>) {
-        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
         eventtarget.set_event_handler_common("readystatechange", listener)
     }
 
@@ -467,8 +467,8 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             }
 
             // Step 8
-            let upload_target = &*self.upload.root();
-            let event_target: &JSRef<EventTarget> = EventTargetCast::from_ref(upload_target);
+            let upload_target = *self.upload.root();
+            let event_target: JSRef<EventTarget> = EventTargetCast::from_ref(upload_target);
             if event_target.has_handlers() {
                 self.upload_events.deref().set(true);
             }
@@ -741,8 +741,8 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         let event = Event::new(&global.root_ref(),
                                "readystatechange".to_string(),
                                false, true).root();
-        let target: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        target.dispatch_event_with_target(None, &*event).ok();
+        let target: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
+        target.dispatch_event_with_target(None, *event).ok();
     }
 
     fn process_partial_response(&self, progress: XHRProgress) {
@@ -859,17 +859,17 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
 
     fn dispatch_progress_event(&self, upload: bool, type_: DOMString, loaded: u64, total: Option<u64>) {
         let global = self.global.root();
-        let upload_target = &*self.upload.root();
+        let upload_target = *self.upload.root();
         let progressevent = ProgressEvent::new(&global.root_ref(),
                                                type_, false, false,
                                                total.is_some(), loaded,
                                                total.unwrap_or(0)).root();
-        let target: &JSRef<EventTarget> = if upload {
+        let target: JSRef<EventTarget> = if upload {
             EventTargetCast::from_ref(upload_target)
         } else {
-            EventTargetCast::from_ref(self)
+            EventTargetCast::from_ref(*self)
         };
-        let event: &JSRef<Event> = EventCast::from_ref(&*progressevent);
+        let event: JSRef<Event> = EventCast::from_ref(*progressevent);
         target.dispatch_event_with_target(None, event).ok();
     }
 

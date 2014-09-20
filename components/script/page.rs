@@ -271,7 +271,7 @@ impl Page {
         match root.root() {
             None => {},
             Some(root) => {
-                let root: &JSRef<Node> = NodeCast::from_ref(&*root);
+                let root: JSRef<Node> = NodeCast::from_ref(*root);
                 let mut damage = *self.damage.deref().borrow_mut();
                 match damage {
                     None => {}
@@ -366,7 +366,7 @@ impl Page {
                 let last_reflow_id = self.last_reflow_id.deref();
                 last_reflow_id.set(last_reflow_id.get() + 1);
 
-                let root: &JSRef<Node> = NodeCast::from_ref(&*root);
+                let root: JSRef<Node> = NodeCast::from_ref(*root);
                 let mut damage = self.damage.deref().borrow_mut();
                 let window_size = self.window_size.deref().get();
 
@@ -397,15 +397,15 @@ impl Page {
         match document.deref().GetElementById(fragid.to_string()) {
             Some(node) => Some(node),
             None => {
-                let doc_node: &JSRef<Node> = NodeCast::from_ref(&*document);
+                let doc_node: JSRef<Node> = NodeCast::from_ref(*document);
                 let mut anchors = doc_node.traverse_preorder()
                                           .filter(|node| node.is_anchor_element());
                 anchors.find(|node| {
-                    let elem: &JSRef<Element> = ElementCast::to_ref(node).unwrap();
+                    let elem: JSRef<Element> = ElementCast::to_ref(*node).unwrap();
                     elem.get_attribute(Null, "name").root().map_or(false, |attr| {
                         attr.deref().value().as_slice() == fragid.as_slice()
                     })
-                }).map(|node| Temporary::from_rooted(ElementCast::to_ref(&node).unwrap()))
+                }).map(|node| Temporary::from_rooted(ElementCast::to_ref(node).unwrap()))
             }
         }
     }
@@ -418,7 +418,7 @@ impl Page {
             return None;
         }
         let root = root.unwrap();
-        let root: &JSRef<Node> = NodeCast::from_ref(&*root);
+        let root: JSRef<Node> = NodeCast::from_ref(*root);
         let address = match self.layout().hit_test(root.to_trusted_node_address(), *point) {
             Ok(HitTestResponse(node_address)) => {
                 Some(node_address)
@@ -439,7 +439,7 @@ impl Page {
             return None;
         }
         let root = root.unwrap();
-        let root: &JSRef<Node> = NodeCast::from_ref(&*root);
+        let root: JSRef<Node> = NodeCast::from_ref(*root);
         let address = match self.layout().mouse_over(root.to_trusted_node_address(), *point) {
             Ok(MouseOverResponse(node_address)) => {
                 Some(node_address)
