@@ -735,7 +735,13 @@ impl<'a> FlowConstructor<'a> {
     fn build_flow_for_table_wrapper(&mut self, node: &ThreadSafeLayoutNode,
                                     float_value: float::T) -> ConstructionResult {
         let fragment = Fragment::new_from_specific_info(node, TableWrapperFragment);
-        let wrapper_flow = box TableWrapperFlow::from_node_and_fragment(node, fragment);
+        let wrapper_flow = match float_value {
+            float::none => box TableWrapperFlow::from_node_and_fragment(node, fragment),
+            _ => {
+                let float_kind = FloatKind::from_property(float_value);
+                box TableWrapperFlow::float_from_node_and_fragment(node, fragment, float_kind)
+            }
+        };
         let mut wrapper_flow = FlowRef::new(wrapper_flow as Box<Flow>);
 
         let table_fragment = Fragment::new_from_specific_info(node, TableFragment);
@@ -784,19 +790,7 @@ impl<'a> FlowConstructor<'a> {
             }
         }
 
-        match float_value {
-            float::none => {
-                FlowConstructionResult(wrapper_flow, abs_descendants)
-            }
-            _ => {
-                let float_kind = FloatKind::from_property(float_value);
-                let float_flow = box BlockFlow::float_from_node(self, node, float_kind) as Box<Flow>;
-                let mut float_flow = FlowRef::new(float_flow);
-                float_flow.add_new_child(wrapper_flow);
-                float_flow.finish(self.layout_context);
-                FlowConstructionResult(float_flow, abs_descendants)
-            }
-        }
+        FlowConstructionResult(wrapper_flow, abs_descendants)
     }
 
     /// Builds a flow for a node with `display: table-caption`. This yields a `TableCaptionFlow`

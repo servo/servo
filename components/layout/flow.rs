@@ -228,12 +228,6 @@ pub trait Flow: fmt::Show + ToString + Sync {
         float::none
     }
 
-    /// Returns true if this float is a block formatting context and false otherwise. The default
-    /// implementation returns false.
-    fn is_block_formatting_context(&self, _only_impactable_by_floats: bool) -> bool {
-        false
-    }
-
     fn compute_collapsible_block_start_margin(&mut self,
                                       _layout_context: &mut LayoutContext,
                                       _margin_collapse_info: &mut MarginCollapseInfo) {
@@ -837,7 +831,7 @@ impl BaseFlow {
 }
 
 impl<'a> ImmutableFlowUtils for &'a Flow + 'a {
-    /// Returns true if this flow is a block or a float flow.
+    /// Returns true if this flow is a block flow.
     fn is_block_like(self) -> bool {
         match self.class() {
             BlockFlowClass => true,
