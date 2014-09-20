@@ -22,9 +22,9 @@ extern crate url;
 
 extern crate cssparser;
 extern crate encoding;
-
 #[phase(plugin)]
-extern crate "macros" as servo_macros;
+extern crate lazy_static;
+
 extern crate "util" as servo_util;
 
 

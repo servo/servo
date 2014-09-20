@@ -457,6 +457,7 @@ dependencies = [
  "cssparser 0.1.0 (git+https://github.com/servo/rust-cssparser#fa619d4ffd6920dee6e7ea79f42d9cceb9015407)",
  "encoding 0.1.0 (git+https://github.com/lifthrasiir/rust-encoding#35f0d70f65f73ba16f296f9ec675eddee661ba79)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#50a294fd997f0c6eb43e9a58ad6e227fdc2a4692)",
+ "lazy_static 0.1.0 (git+https://github.com/Kimundi/lazy-static.rs#e62a65372f1dd9019e37eb9381d819edff80e360)",
  "macros 0.0.1",
  "url 0.1.0 (git+https://github.com/servo/rust-url#bfdf809365600a7941a77524f9bb065886de3379)",
  "util 0.0.1",
