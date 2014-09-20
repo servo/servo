@@ -862,7 +862,8 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
                 let node: JSRef<Node> = NodeCast::from_ref(*self);
                 if node.is_in_doc() && !value.is_empty() {
                     let doc = document_from_node(*self).root();
-                    doc.register_named_element(*self, value.clone());
+                    let value = Atom::from_slice(value.as_slice());
+                    doc.register_named_element(*self, value);
                 }
             }
             _ => ()
@@ -885,6 +886,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
                 let node: JSRef<Node> = NodeCast::from_ref(*self);
                 if node.is_in_doc() && !value.is_empty() {
                     let doc = document_from_node(*self).root();
+                    let value = Atom::from_slice(value.as_slice());
                     doc.unregister_named_element(*self, value);
                 }
             }
@@ -915,6 +917,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
                 let doc = document_from_node(*self).root();
                 let value = attr.deref().Value();
                 if !value.is_empty() {
+                    let value = Atom::from_slice(value.as_slice());
                     doc.deref().register_named_element(*self, value);
                 }
             }
@@ -935,6 +938,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
                 let doc = document_from_node(*self).root();
                 let value = attr.deref().Value();
                 if !value.is_empty() {
+                    let value = Atom::from_slice(value.as_slice());
                     doc.deref().unregister_named_element(*self, value);
                 }
             }
