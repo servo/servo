@@ -50,19 +50,19 @@ impl HTMLAnchorElement {
 }
 
 trait PrivateHTMLAnchorElementHelpers {
-    fn handle_event_impl(&self, event: JSRef<Event>);
+    fn handle_event_impl(self, event: JSRef<Event>);
 }
 
 impl<'a> PrivateHTMLAnchorElementHelpers for JSRef<'a, HTMLAnchorElement> {
-    fn handle_event_impl(&self, event: JSRef<Event>) {
+    fn handle_event_impl(self, event: JSRef<Event>) {
         if "click" == event.Type().as_slice() && !event.DefaultPrevented() {
-            let element: JSRef<Element> = ElementCast::from_ref(*self);
+            let element: JSRef<Element> = ElementCast::from_ref(self);
             let attr = element.get_attribute(Null, "href").root();
             match attr {
                 Some(ref href) => {
                     let value = href.Value();
                     debug!("clicked on link to {:s}", value);
-                    let node: JSRef<Node> = NodeCast::from_ref(*self);
+                    let node: JSRef<Node> = NodeCast::from_ref(self);
                     let doc = node.owner_doc().root();
                     doc.load_anchor_href(value);
                 }

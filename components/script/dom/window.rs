@@ -364,21 +364,21 @@ impl Reflectable for Window {
 }
 
 pub trait WindowHelpers {
-    fn damage_and_reflow(&self, damage: DocumentDamageLevel);
-    fn flush_layout(&self, goal: ReflowGoal);
-    fn wait_until_safe_to_modify_dom(&self);
-    fn init_browser_context(&self, doc: JSRef<Document>);
-    fn load_url(&self, href: DOMString);
-    fn handle_fire_timer(&self, timer_id: TimerId, cx: *mut JSContext);
-    fn evaluate_js_with_result(&self, code: &str) -> JSVal;
+    fn damage_and_reflow(self, damage: DocumentDamageLevel);
+    fn flush_layout(self, goal: ReflowGoal);
+    fn wait_until_safe_to_modify_dom(self);
+    fn init_browser_context(self, doc: JSRef<Document>);
+    fn load_url(self, href: DOMString);
+    fn handle_fire_timer(self, timer_id: TimerId, cx: *mut JSContext);
+    fn evaluate_js_with_result(self, code: &str) -> JSVal;
 }
 
 trait PrivateWindowHelpers {
-    fn set_timeout_or_interval(&self, callback: JSVal, timeout: i32, is_interval: bool) -> i32;
+    fn set_timeout_or_interval(self, callback: JSVal, timeout: i32, is_interval: bool) -> i32;
 }
 
 impl<'a> WindowHelpers for JSRef<'a, Window> {
-    fn evaluate_js_with_result(&self, code: &str) -> JSVal {
+    fn evaluate_js_with_result(self, code: &str) -> JSVal {
         let global = self.reflector().get_jsobject();
         let code: Vec<u16> = code.as_slice().utf16_units().collect();
         let mut rval = UndefinedValue();
@@ -397,27 +397,27 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         })
     }
 
-    fn damage_and_reflow(&self, damage: DocumentDamageLevel) {
+    fn damage_and_reflow(self, damage: DocumentDamageLevel) {
         self.page().damage(damage);
         self.page().avoided_reflows.set(self.page().avoided_reflows.get() + 1);
     }
 
-    fn flush_layout(&self, goal: ReflowGoal) {
+    fn flush_layout(self, goal: ReflowGoal) {
         self.page().flush_layout(goal);
     }
 
-    fn wait_until_safe_to_modify_dom(&self) {
+    fn wait_until_safe_to_modify_dom(self) {
         // FIXME: This disables concurrent layout while we are modifying the DOM, since
         //        our current architecture is entirely unsafe in the presence of races.
         self.page().join_layout();
     }
 
-    fn init_browser_context(&self, doc: JSRef<Document>) {
+    fn init_browser_context(self, doc: JSRef<Document>) {
         *self.browser_context.deref().borrow_mut() = Some(BrowserContext::new(doc));
     }
 
     /// Commence a new URL load which will either replace this window or scroll to a fragment.
-    fn load_url(&self, href: DOMString) {
+    fn load_url(self, href: DOMString) {
         let base_url = self.page().get_url();
         debug!("current page url is {:?}", base_url);
         let url = UrlParser::new().base_url(&base_url).parse(href.as_slice());
@@ -431,7 +431,7 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         }
     }
 
-    fn handle_fire_timer(&self, timer_id: TimerId, cx: *mut JSContext) {
+    fn handle_fire_timer(self, timer_id: TimerId, cx: *mut JSContext) {
         let this_value = self.reflector().get_jsobject();
 
         let data = match self.active_timers.deref().borrow().find(&timer_id) {
@@ -455,7 +455,7 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
 }
 
 impl<'a> PrivateWindowHelpers for JSRef<'a, Window> {
-    fn set_timeout_or_interval(&self, callback: JSVal, timeout: i32, is_interval: bool) -> i32 {
+    fn set_timeout_or_interval(self, callback: JSVal, timeout: i32, is_interval: bool) -> i32 {
         let timeout = cmp::max(0, timeout) as u64;
         let handle = self.next_timer_handle.deref().get();
         self.next_timer_handle.deref().set(handle + 1);

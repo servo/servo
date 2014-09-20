@@ -175,11 +175,11 @@ impl<'a> DedicatedWorkerGlobalScopeMethods for JSRef<'a, DedicatedWorkerGlobalSc
 }
 
 trait PrivateDedicatedWorkerGlobalScopeHelpers {
-    fn delayed_release_worker(&self);
+    fn delayed_release_worker(self);
 }
 
 impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerGlobalScope> {
-    fn delayed_release_worker(&self) {
+    fn delayed_release_worker(self) {
         let ScriptChan(ref sender) = self.parent_sender;
         sender.send(WorkerRelease(*self.worker));
     }

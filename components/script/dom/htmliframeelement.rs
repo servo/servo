@@ -62,32 +62,32 @@ pub struct IFrameSize {
 }
 
 pub trait HTMLIFrameElementHelpers {
-    fn is_sandboxed(&self) -> bool;
-    fn get_url(&self) -> Option<Url>;
+    fn is_sandboxed(self) -> bool;
+    fn get_url(self) -> Option<Url>;
     /// http://www.whatwg.org/html/#process-the-iframe-attributes
-    fn process_the_iframe_attributes(&self);
+    fn process_the_iframe_attributes(self);
 }
 
 impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
-    fn is_sandboxed(&self) -> bool {
+    fn is_sandboxed(self) -> bool {
         self.sandbox.deref().get().is_some()
     }
 
-    fn get_url(&self) -> Option<Url> {
-        let element: JSRef<Element> = ElementCast::from_ref(*self);
+    fn get_url(self) -> Option<Url> {
+        let element: JSRef<Element> = ElementCast::from_ref(self);
         element.get_attribute(Null, "src").root().and_then(|src| {
             let url = src.deref().value();
             if url.as_slice().is_empty() {
                 None
             } else {
-                let window = window_from_node(*self).root();
+                let window = window_from_node(self).root();
                 UrlParser::new().base_url(&window.deref().page().get_url())
                     .parse(url.as_slice()).ok()
             }
         })
     }
 
-    fn process_the_iframe_attributes(&self) {
+    fn process_the_iframe_attributes(self) {
         let url = match self.get_url() {
             Some(url) => url.clone(),
             None => Url::parse("about:blank").unwrap(),
@@ -100,7 +100,7 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
         };
 
         // Subpage Id
-        let window = window_from_node(*self).root();
+        let window = window_from_node(self).root();
         let page = window.deref().page();
         let subpage_id = page.get_next_subpage_id();
 

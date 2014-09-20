@@ -48,7 +48,7 @@ impl HTMLScriptElement {
 pub trait HTMLScriptElementHelpers {
     /// Prepare a script (<http://www.whatwg.org/html/#prepare-a-script>),
     /// steps 6 and 7.
-    fn is_javascript(&self) -> bool;
+    fn is_javascript(self) -> bool;
 }
 
 /// Supported script types as defined by
@@ -73,8 +73,8 @@ static SCRIPT_JS_MIMES: StaticStringVec = &[
 ];
 
 impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
-    fn is_javascript(&self) -> bool {
-        let element: JSRef<Element> = ElementCast::from_ref(*self);
+    fn is_javascript(self) -> bool {
+        let element: JSRef<Element> = ElementCast::from_ref(self);
         match element.get_attribute(Null, "type").root().map(|s| s.Value()) {
             Some(ref s) if s.is_empty() => {
                 // type attr exists, but empty means js

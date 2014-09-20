@@ -44,12 +44,12 @@ impl HTMLStyleElement {
 }
 
 pub trait StyleElementHelpers {
-    fn parse_own_css(&self);
+    fn parse_own_css(self);
 }
 
 impl<'a> StyleElementHelpers for JSRef<'a, HTMLStyleElement> {
-    fn parse_own_css(&self) {
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+    fn parse_own_css(self) {
+        let node: JSRef<Node> = NodeCast::from_ref(self);
         assert!(node.is_in_doc());
 
         let win = window_from_node(node).root();

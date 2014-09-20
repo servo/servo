@@ -692,23 +692,23 @@ impl TrustedXHRAddress {
 
 
 trait PrivateXMLHttpRequestHelpers {
-    unsafe fn to_trusted(&self) -> TrustedXHRAddress;
-    fn release_once(&self);
-    fn change_ready_state(&self, XMLHttpRequestState);
-    fn process_partial_response(&self, progress: XHRProgress);
-    fn insert_trusted_header(&self, name: String, value: String);
-    fn dispatch_progress_event(&self, upload: bool, type_: DOMString, loaded: u64, total: Option<u64>);
-    fn dispatch_upload_progress_event(&self, type_: DOMString, partial_load: Option<u64>);
-    fn dispatch_response_progress_event(&self, type_: DOMString);
-    fn text_response(&self) -> DOMString;
-    fn set_timeout(&self, timeout:u32);
-    fn cancel_timeout(&self);
-    fn filter_response_headers(&self) -> ResponseHeaderCollection;
+    unsafe fn to_trusted(self) -> TrustedXHRAddress;
+    fn release_once(self);
+    fn change_ready_state(self, XMLHttpRequestState);
+    fn process_partial_response(self, progress: XHRProgress);
+    fn insert_trusted_header(self, name: String, value: String);
+    fn dispatch_progress_event(self, upload: bool, type_: DOMString, loaded: u64, total: Option<u64>);
+    fn dispatch_upload_progress_event(self, type_: DOMString, partial_load: Option<u64>);
+    fn dispatch_response_progress_event(self, type_: DOMString);
+    fn text_response(self) -> DOMString;
+    fn set_timeout(self, timeout:u32);
+    fn cancel_timeout(self);
+    fn filter_response_headers(self) -> ResponseHeaderCollection;
 }
 
 impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
     // Creates a trusted address to the object, and roots it. Always pair this with a release()
-    unsafe fn to_trusted(&self) -> TrustedXHRAddress {
+    unsafe fn to_trusted(self) -> TrustedXHRAddress {
         if self.pinned_count.deref().get() == 0 {
             JS_AddObjectRoot(self.global.root().root_ref().get_cx(), self.reflector().rootable());
         }
@@ -717,7 +717,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         TrustedXHRAddress(self.deref() as *const XMLHttpRequest as *const libc::c_void)
     }
 
-    fn release_once(&self) {
+    fn release_once(self) {
         if self.sync.deref().get() {
             // Lets us call this at various termination cases without having to
             // check self.sync every time, since the pinning mechanism only is
@@ -734,18 +734,18 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         }
     }
 
-    fn change_ready_state(&self, rs: XMLHttpRequestState) {
+    fn change_ready_state(self, rs: XMLHttpRequestState) {
         assert!(self.ready_state.deref().get() != rs)
         self.ready_state.deref().set(rs);
         let global = self.global.root();
         let event = Event::new(&global.root_ref(),
                                "readystatechange".to_string(),
                                false, true).root();
-        let target: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
+        let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
         target.dispatch_event_with_target(None, *event).ok();
     }
 
-    fn process_partial_response(&self, progress: XHRProgress) {
+    fn process_partial_response(self, progress: XHRProgress) {
         match progress {
             HeadersReceivedMsg(headers, status) => {
                 // For synchronous requests, this should not fire any events, and just store data
@@ -845,7 +845,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         }
     }
 
-    fn insert_trusted_header(&self, name: String, value: String) {
+    fn insert_trusted_header(self, name: String, value: String) {
         // Insert a header without checking spec-compliance
         // Use for hardcoded headers
         let mut collection = self.request_headers.deref().borrow_mut();
@@ -857,7 +857,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         collection.insert(maybe_header.unwrap());
     }
 
-    fn dispatch_progress_event(&self, upload: bool, type_: DOMString, loaded: u64, total: Option<u64>) {
+    fn dispatch_progress_event(self, upload: bool, type_: DOMString, loaded: u64, total: Option<u64>) {
         let global = self.global.root();
         let upload_target = *self.upload.root();
         let progressevent = ProgressEvent::new(&global.root_ref(),
@@ -867,25 +867,25 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         let target: JSRef<EventTarget> = if upload {
             EventTargetCast::from_ref(upload_target)
         } else {
-            EventTargetCast::from_ref(*self)
+            EventTargetCast::from_ref(self)
         };
         let event: JSRef<Event> = EventCast::from_ref(*progressevent);
         target.dispatch_event_with_target(None, event).ok();
     }
 
-    fn dispatch_upload_progress_event(&self, type_: DOMString, partial_load: Option<u64>) {
+    fn dispatch_upload_progress_event(self, type_: DOMString, partial_load: Option<u64>) {
         // If partial_load is None, loading has completed and we can just use the value from the request body
 
         let total = self.request_body_len.get() as u64;
         self.dispatch_progress_event(true, type_, partial_load.unwrap_or(total), Some(total));
     }
 
-    fn dispatch_response_progress_event(&self, type_: DOMString) {
+    fn dispatch_response_progress_event(self, type_: DOMString) {
         let len = self.response.deref().borrow().len() as u64;
         let total = self.response_headers.deref().borrow().content_length.map(|x| {x as u64});
         self.dispatch_progress_event(false, type_, len, total);
     }
-    fn set_timeout(&self, timeout: u32) {
+    fn set_timeout(self, timeout: u32) {
         // Sets up the object to timeout in a given number of milliseconds
         // This will cancel all previous timeouts
         let oneshot = self.timer.deref().borrow_mut().oneshot(timeout as u64);
@@ -916,7 +916,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         }
     );
     }
-    fn cancel_timeout(&self) {
+    fn cancel_timeout(self) {
         // Cancels timeouts on the object, if any
         if self.timeout_pinned.deref().get() {
             self.timeout_pinned.deref().set(false);
@@ -925,7 +925,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         // oneshot() closes the previous channel, canceling the timeout
         self.timer.deref().borrow_mut().oneshot(0);
     }
-    fn text_response(&self) -> DOMString {
+    fn text_response(self) -> DOMString {
         let mut encoding = UTF_8 as EncodingRef;
         match self.response_headers.deref().borrow().content_type {
             Some(ref x) => {
@@ -941,7 +941,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         // the result should be fine. XXXManishearth have a closer look at this later
         encoding.decode(self.response.deref().borrow().as_slice(), DecodeReplace).unwrap().to_string()
     }
-    fn filter_response_headers(&self) -> ResponseHeaderCollection {
+    fn filter_response_headers(self) -> ResponseHeaderCollection {
         // http://fetch.spec.whatwg.org/#concept-response-header-list
         let mut headers = ResponseHeaderCollection::new();
         for header in self.response_headers.deref().borrow().iter() {

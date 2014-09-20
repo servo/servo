@@ -49,17 +49,17 @@ impl Reflectable for DOMTokenList {
 }
 
 trait PrivateDOMTokenListHelpers {
-    fn attribute(&self) -> Option<Temporary<Attr>>;
-    fn check_token_exceptions<'a>(&self, token: &'a str) -> Fallible<&'a str>;
+    fn attribute(self) -> Option<Temporary<Attr>>;
+    fn check_token_exceptions<'a>(self, token: &'a str) -> Fallible<&'a str>;
 }
 
 impl<'a> PrivateDOMTokenListHelpers for JSRef<'a, DOMTokenList> {
-    fn attribute(&self) -> Option<Temporary<Attr>> {
+    fn attribute(self) -> Option<Temporary<Attr>> {
         let element = self.element.root();
         element.deref().get_attribute(Null, self.local_name)
     }
 
-    fn check_token_exceptions<'a>(&self, token: &'a str) -> Fallible<&'a str> {
+    fn check_token_exceptions<'a>(self, token: &'a str) -> Fallible<&'a str> {
         match token {
             "" => Err(Syntax),
             token if token.find(HTML_SPACE_CHARACTERS).is_some() => Err(InvalidCharacter),

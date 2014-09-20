@@ -150,16 +150,16 @@ impl CollectionFilter for AppletsFilter {
 
 pub trait DocumentHelpers {
     fn url<'a>(&'a self) -> &'a Url;
-    fn quirks_mode(&self) -> QuirksMode;
-    fn set_quirks_mode(&self, mode: QuirksMode);
-    fn set_last_modified(&self, value: DOMString);
-    fn set_encoding_name(&self, name: DOMString);
-    fn content_changed(&self);
-    fn damage_and_reflow(&self, damage: DocumentDamageLevel);
-    fn wait_until_safe_to_modify_dom(&self);
-    fn unregister_named_element(&self, to_unregister: JSRef<Element>, id: DOMString);
-    fn register_named_element(&self, element: JSRef<Element>, id: DOMString);
-    fn load_anchor_href(&self, href: DOMString);
+    fn quirks_mode(self) -> QuirksMode;
+    fn set_quirks_mode(self, mode: QuirksMode);
+    fn set_last_modified(self, value: DOMString);
+    fn set_encoding_name(self, name: DOMString);
+    fn content_changed(self);
+    fn damage_and_reflow(self, damage: DocumentDamageLevel);
+    fn wait_until_safe_to_modify_dom(self);
+    fn unregister_named_element(self, to_unregister: JSRef<Element>, id: DOMString);
+    fn register_named_element(self, element: JSRef<Element>, id: DOMString);
+    fn load_anchor_href(self, href: DOMString);
 }
 
 impl<'a> DocumentHelpers for JSRef<'a, Document> {
@@ -167,37 +167,37 @@ impl<'a> DocumentHelpers for JSRef<'a, Document> {
         &*self.url
     }
 
-    fn quirks_mode(&self) -> QuirksMode {
+    fn quirks_mode(self) -> QuirksMode {
         self.quirks_mode.deref().get()
     }
 
-    fn set_quirks_mode(&self, mode: QuirksMode) {
+    fn set_quirks_mode(self, mode: QuirksMode) {
         self.quirks_mode.deref().set(mode);
     }
 
-    fn set_last_modified(&self, value: DOMString) {
+    fn set_last_modified(self, value: DOMString) {
         *self.last_modified.deref().borrow_mut() = Some(value);
     }
 
-    fn set_encoding_name(&self, name: DOMString) {
+    fn set_encoding_name(self, name: DOMString) {
         *self.encoding_name.deref().borrow_mut() = name;
     }
 
-    fn content_changed(&self) {
+    fn content_changed(self) {
         self.damage_and_reflow(ContentChangedDocumentDamage);
     }
 
-    fn damage_and_reflow(&self, damage: DocumentDamageLevel) {
+    fn damage_and_reflow(self, damage: DocumentDamageLevel) {
         self.window.root().damage_and_reflow(damage);
     }
 
-    fn wait_until_safe_to_modify_dom(&self) {
+    fn wait_until_safe_to_modify_dom(self) {
         self.window.root().wait_until_safe_to_modify_dom();
     }
 
 
     /// Remove any existing association between the provided id and any elements in this document.
-    fn unregister_named_element(&self,
+    fn unregister_named_element(self,
                                 to_unregister: JSRef<Element>,
                                 id: DOMString) {
         let mut idmap = self.idmap.deref().borrow_mut();
@@ -218,7 +218,7 @@ impl<'a> DocumentHelpers for JSRef<'a, Document> {
     }
 
     /// Associate an element present in this document with the provided id.
-    fn register_named_element(&self,
+    fn register_named_element(self,
                               element: JSRef<Element>,
                               id: DOMString) {
         assert!({
@@ -261,7 +261,7 @@ impl<'a> DocumentHelpers for JSRef<'a, Document> {
         idmap.insert(id, elements);
     }
 
-    fn load_anchor_href(&self, href: DOMString) {
+    fn load_anchor_href(self, href: DOMString) {
         let window = self.window.root();
         window.load_url(href);
     }
@@ -329,12 +329,12 @@ impl Reflectable for Document {
 }
 
 trait PrivateDocumentHelpers {
-    fn createNodeList(&self, callback: |node: JSRef<Node>| -> bool) -> Temporary<NodeList>;
-    fn get_html_element(&self) -> Option<Temporary<HTMLHtmlElement>>;
+    fn createNodeList(self, callback: |node: JSRef<Node>| -> bool) -> Temporary<NodeList>;
+    fn get_html_element(self) -> Option<Temporary<HTMLHtmlElement>>;
 }
 
 impl<'a> PrivateDocumentHelpers for JSRef<'a, Document> {
-    fn createNodeList(&self, callback: |node: JSRef<Node>| -> bool) -> Temporary<NodeList> {
+    fn createNodeList(self, callback: |node: JSRef<Node>| -> bool) -> Temporary<NodeList> {
         let window = self.window.root();
 
         match self.GetDocumentElement().root() {
@@ -355,7 +355,7 @@ impl<'a> PrivateDocumentHelpers for JSRef<'a, Document> {
 
     }
 
-    fn get_html_element(&self) -> Option<Temporary<HTMLHtmlElement>> {
+    fn get_html_element(self) -> Option<Temporary<HTMLHtmlElement>> {
         self.GetDocumentElement().root().filtered(|root| {
             let root: JSRef<Node> = NodeCast::from_ref(**root);
             root.type_id() == ElementNodeTypeId(HTMLHtmlElementTypeId)

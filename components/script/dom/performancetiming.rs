@@ -43,11 +43,11 @@ impl<'a> PerformanceTimingMethods for JSRef<'a, PerformanceTiming> {
 }
 
 pub trait PerformanceTimingHelpers {
-    fn NavigationStartPrecise(&self) -> f64;
+    fn NavigationStartPrecise(self) -> f64;
 }
 
 impl<'a> PerformanceTimingHelpers for JSRef<'a, PerformanceTiming> {
-    fn NavigationStartPrecise(&self) -> f64 {
+    fn NavigationStartPrecise(self) -> f64 {
         self.navigationStartPrecise
     }
 }

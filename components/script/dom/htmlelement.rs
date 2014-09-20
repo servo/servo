@@ -52,12 +52,12 @@ impl HTMLElement {
 }
 
 trait PrivateHTMLElementHelpers {
-    fn is_body_or_frameset(&self) -> bool;
+    fn is_body_or_frameset(self) -> bool;
 }
 
 impl<'a> PrivateHTMLElementHelpers for JSRef<'a, HTMLElement> {
-    fn is_body_or_frameset(&self) -> bool {
-        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
+    fn is_body_or_frameset(self) -> bool {
+        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
         eventtarget.is_htmlbodyelement() || eventtarget.is_htmlframesetelement()
     }
 }

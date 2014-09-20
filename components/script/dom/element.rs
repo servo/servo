@@ -241,8 +241,8 @@ pub trait ElementHelpers {
     fn html_element_in_html_document(&self) -> bool;
     fn get_local_name<'a>(&'a self) -> &'a Atom;
     fn get_namespace<'a>(&'a self) -> &'a Namespace;
-    fn summarize(&self) -> Vec<AttrInfo>;
-    fn is_void(&self) -> bool;
+    fn summarize(self) -> Vec<AttrInfo>;
+    fn is_void(self) -> bool;
 }
 
 impl<'a> ElementHelpers for JSRef<'a, Element> {
@@ -259,7 +259,7 @@ impl<'a> ElementHelpers for JSRef<'a, Element> {
         &self.deref().namespace
     }
 
-    fn summarize(&self) -> Vec<AttrInfo> {
+    fn summarize(self) -> Vec<AttrInfo> {
         let attrs = self.Attributes().root();
         let mut i = 0;
         let mut summarized = vec!();
@@ -289,45 +289,45 @@ impl<'a> ElementHelpers for JSRef<'a, Element> {
 pub trait AttributeHandlers {
     /// Returns the attribute with given namespace and case-sensitive local
     /// name, if any.
-    fn get_attribute(&self, namespace: Namespace, local_name: &str)
+    fn get_attribute(self, namespace: Namespace, local_name: &str)
                      -> Option<Temporary<Attr>>;
-    fn set_attribute_from_parser(&self, local_name: Atom,
+    fn set_attribute_from_parser(self, local_name: Atom,
                                  value: DOMString, namespace: Namespace,
                                  prefix: Option<DOMString>);
-    fn set_attribute(&self, name: &str, value: AttrValue);
-    fn do_set_attribute(&self, local_name: Atom, value: AttrValue,
+    fn set_attribute(self, name: &str, value: AttrValue);
+    fn do_set_attribute(self, local_name: Atom, value: AttrValue,
                         name: Atom, namespace: Namespace,
                         prefix: Option<DOMString>, cb: |JSRef<Attr>| -> bool);
-    fn parse_attribute(&self, namespace: &Namespace, local_name: &Atom,
+    fn parse_attribute(self, namespace: &Namespace, local_name: &Atom,
                        value: DOMString) -> AttrValue;
 
-    fn remove_attribute(&self, namespace: Namespace, name: &str);
-    fn notify_attribute_changed(&self, local_name: &Atom);
+    fn remove_attribute(self, namespace: Namespace, name: &str);
+    fn notify_attribute_changed(self, local_name: &Atom);
     fn has_class(&self, name: &str) -> bool;
 
-    fn set_atomic_attribute(&self, name: &str, value: DOMString);
+    fn set_atomic_attribute(self, name: &str, value: DOMString);
 
     // http://www.whatwg.org/html/#reflecting-content-attributes-in-idl-attributes
-    fn has_attribute(&self, name: &str) -> bool;
-    fn set_bool_attribute(&self, name: &str, value: bool);
-    fn get_url_attribute(&self, name: &str) -> DOMString;
-    fn set_url_attribute(&self, name: &str, value: DOMString);
-    fn get_string_attribute(&self, name: &str) -> DOMString;
-    fn set_string_attribute(&self, name: &str, value: DOMString);
-    fn set_tokenlist_attribute(&self, name: &str, value: DOMString);
-    fn get_uint_attribute(&self, name: &str) -> u32;
-    fn set_uint_attribute(&self, name: &str, value: u32);
+    fn has_attribute(self, name: &str) -> bool;
+    fn set_bool_attribute(self, name: &str, value: bool);
+    fn get_url_attribute(self, name: &str) -> DOMString;
+    fn set_url_attribute(self, name: &str, value: DOMString);
+    fn get_string_attribute(self, name: &str) -> DOMString;
+    fn set_string_attribute(self, name: &str, value: DOMString);
+    fn set_tokenlist_attribute(self, name: &str, value: DOMString);
+    fn get_uint_attribute(self, name: &str) -> u32;
+    fn set_uint_attribute(self, name: &str, value: u32);
 }
 
 impl<'a> AttributeHandlers for JSRef<'a, Element> {
-    fn get_attribute(&self, namespace: Namespace, local_name: &str) -> Option<Temporary<Attr>> {
+    fn get_attribute(self, namespace: Namespace, local_name: &str) -> Option<Temporary<Attr>> {
         let local_name = Atom::from_slice(local_name);
         self.attrs.borrow().iter().map(|attr| attr.root()).find(|attr| {
             *attr.local_name() == local_name && attr.namespace == namespace
         }).map(|x| Temporary::from_rooted(*x))
     }
 
-    fn set_attribute_from_parser(&self, local_name: Atom,
+    fn set_attribute_from_parser(self, local_name: Atom,
                                  value: DOMString, namespace: Namespace,
                                  prefix: Option<DOMString>) {
         let name = match prefix {
@@ -341,11 +341,11 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         self.do_set_attribute(local_name, value, name, namespace, prefix, |_| false)
     }
 
-    fn set_attribute(&self, name: &str, value: AttrValue) {
+    fn set_attribute(self, name: &str, value: AttrValue) {
         assert!(name == name.to_ascii_lower().as_slice());
         assert!(!name.contains(":"));
 
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        let node: JSRef<Node> = NodeCast::from_ref(self);
         node.wait_until_safe_to_modify_dom();
 
         let name = Atom::from_slice(name);
@@ -353,7 +353,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             namespace::Null, None, |attr| *attr.local_name() == name);
     }
 
-    fn do_set_attribute(&self, local_name: Atom, value: AttrValue,
+    fn do_set_attribute(self, local_name: Atom, value: AttrValue,
                         name: Atom, namespace: Namespace,
                         prefix: Option<DOMString>, cb: |JSRef<Attr>| -> bool) {
         let idx = self.deref().attrs.borrow().iter()
@@ -362,9 +362,9 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         let (idx, set_type) = match idx {
             Some(idx) => (idx, ReplacedAttr),
             None => {
-                let window = window_from_node(*self).root();
+                let window = window_from_node(self).root();
                 let attr = Attr::new(*window, local_name, value.clone(),
-                                     name, namespace.clone(), prefix, *self);
+                                     name, namespace.clone(), prefix, self);
                 self.deref().attrs.borrow_mut().push_unrooted(&attr);
                 (self.deref().attrs.borrow().len() - 1, FirstSetAttr)
             }
@@ -373,17 +373,17 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         (*self.deref().attrs.borrow())[idx].root().set_value(set_type, value);
     }
 
-    fn parse_attribute(&self, namespace: &Namespace, local_name: &Atom,
+    fn parse_attribute(self, namespace: &Namespace, local_name: &Atom,
                        value: DOMString) -> AttrValue {
         if *namespace == namespace::Null {
-            vtable_for(&NodeCast::from_ref(*self))
+            vtable_for(&NodeCast::from_ref(self))
                 .parse_plain_attribute(local_name.as_slice(), value)
         } else {
             StringAttrValue(value)
         }
     }
 
-    fn remove_attribute(&self, namespace: Namespace, name: &str) {
+    fn remove_attribute(self, namespace: Namespace, name: &str) {
         let (_, local_name) = get_attribute_parts(name);
         let local_name = Atom::from_slice(local_name);
 
@@ -395,13 +395,13 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             None => (),
             Some(idx) => {
                 {
-                    let node: JSRef<Node> = NodeCast::from_ref(*self);
+                    let node: JSRef<Node> = NodeCast::from_ref(self);
                     node.wait_until_safe_to_modify_dom();
                 }
 
                 if namespace == namespace::Null {
                     let removed_raw_value = (*self.deref().attrs.borrow())[idx].root().Value();
-                    vtable_for(&NodeCast::from_ref(*self))
+                    vtable_for(&NodeCast::from_ref(self))
                         .before_remove_attr(&local_name,
                                             removed_raw_value);
                 }
@@ -411,8 +411,8 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         };
     }
 
-    fn notify_attribute_changed(&self, local_name: &Atom) {
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+    fn notify_attribute_changed(self, local_name: &Atom) {
+        let node: JSRef<Node> = NodeCast::from_ref(self);
         if node.is_in_doc() {
             let damage = match local_name.as_slice() {
                 "style" | "id" | "class" => MatchSelectorsDocumentDamage,
@@ -431,13 +431,13 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         }).unwrap_or(false)
     }
 
-    fn set_atomic_attribute(&self, name: &str, value: DOMString) {
+    fn set_atomic_attribute(self, name: &str, value: DOMString) {
         assert!(name == name.to_ascii_lower().as_slice());
         let value = AttrValue::from_atomic(value);
         self.set_attribute(name, value);
     }
 
-    fn has_attribute(&self, name: &str) -> bool {
+    fn has_attribute(self, name: &str) -> bool {
         let name = match self.html_element_in_html_document() {
             true => Atom::from_slice(name.to_ascii_lower().as_slice()),
             false => Atom::from_slice(name)
@@ -447,7 +447,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         })
     }
 
-    fn set_bool_attribute(&self, name: &str, value: bool) {
+    fn set_bool_attribute(self, name: &str, value: bool) {
         if self.has_attribute(name) == value { return; }
         if value {
             self.set_string_attribute(name, String::new());
@@ -456,16 +456,16 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         }
     }
 
-    fn get_url_attribute(&self, name: &str) -> DOMString {
+    fn get_url_attribute(self, name: &str) -> DOMString {
         assert!(name == name.to_ascii_lower().as_slice());
         // XXX Resolve URL.
         self.get_string_attribute(name)
     }
-    fn set_url_attribute(&self, name: &str, value: DOMString) {
+    fn set_url_attribute(self, name: &str, value: DOMString) {
         self.set_string_attribute(name, value);
     }
 
-    fn get_string_attribute(&self, name: &str) -> DOMString {
+    fn get_string_attribute(self, name: &str) -> DOMString {
         assert!(name == name.to_ascii_lower().as_slice());
         match self.get_attribute(Null, name) {
             Some(x) => {
@@ -475,17 +475,17 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             None => "".to_string()
         }
     }
-    fn set_string_attribute(&self, name: &str, value: DOMString) {
+    fn set_string_attribute(self, name: &str, value: DOMString) {
         assert!(name == name.to_ascii_lower().as_slice());
         self.set_attribute(name, StringAttrValue(value));
     }
 
-    fn set_tokenlist_attribute(&self, name: &str, value: DOMString) {
+    fn set_tokenlist_attribute(self, name: &str, value: DOMString) {
         assert!(name == name.to_ascii_lower().as_slice());
         self.set_attribute(name, AttrValue::from_tokenlist(value));
     }
 
-    fn get_uint_attribute(&self, name: &str) -> u32 {
+    fn get_uint_attribute(self, name: &str) -> u32 {
         assert!(name == name.to_ascii_lower().as_slice());
         let attribute = self.get_attribute(Null, name).root();
         match attribute {
@@ -498,7 +498,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             None => 0,
         }
     }
-    fn set_uint_attribute(&self, name: &str, value: u32) {
+    fn set_uint_attribute(self, name: &str, value: u32) {
         assert!(name == name.to_ascii_lower().as_slice());
         self.set_attribute(name, UIntAttrValue(value.to_string(), value));
     }

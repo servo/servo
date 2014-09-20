@@ -39,14 +39,14 @@ impl HTMLImageElementDerived for EventTarget {
 }
 
 trait PrivateHTMLImageElementHelpers {
-    fn update_image(&self, value: Option<(DOMString, &Url)>);
+    fn update_image(self, value: Option<(DOMString, &Url)>);
 }
 
 impl<'a> PrivateHTMLImageElementHelpers for JSRef<'a, HTMLImageElement> {
     /// Makes the local `image` member match the status of the `src` attribute and starts
     /// prefetching the image. This method must be called after `src` is changed.
-    fn update_image(&self, value: Option<(DOMString, &Url)>) {
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+    fn update_image(self, value: Option<(DOMString, &Url)>) {
+        let node: JSRef<Node> = NodeCast::from_ref(self);
         let document = node.owner_doc().root();
         let window = document.deref().window.root();
         let image_cache = &window.image_cache_task;
