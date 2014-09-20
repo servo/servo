@@ -8,6 +8,7 @@ use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::global::Worker;
 use dom::bindings::trace::Untraceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::urlhelper::UrlHelper;
 use dom::workerglobalscope::WorkerGlobalScope;
 
 use servo_util::str::DOMString;
@@ -38,23 +39,15 @@ impl WorkerLocation {
 
 impl<'a> WorkerLocationMethods for JSRef<'a, WorkerLocation> {
     fn Href(&self) -> DOMString {
-        self.url.deref().serialize()
+        UrlHelper::Href(self.url.deref())
     }
 
     fn Search(&self) -> DOMString {
-        match self.url.query {
-            None => "".to_string(),
-            Some(ref query) if query.as_slice() == "" => "".to_string(),
-            Some(ref query) => "?".to_string().append(query.as_slice())
-        }
+        UrlHelper::Search(self.url.deref())
     }
 
     fn Hash(&self) -> DOMString {
-        match self.url.fragment {
-            None => "".to_string(),
-            Some(ref hash) if hash.as_slice() == "" => "".to_string(),
-            Some(ref hash) => "#".to_string().append(hash.as_slice())
-        }
+        UrlHelper::Hash(self.url.deref())
     }
 }
 

@@ -7,6 +7,7 @@ use dom::bindings::codegen::Bindings::WorkerNavigatorBinding::WorkerNavigatorMet
 use dom::bindings::global::Worker;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::navigatorinfo::NavigatorInfo;
 use dom::workerglobalscope::WorkerGlobalScope;
 use servo_util::str::DOMString;
 
@@ -32,23 +33,23 @@ impl WorkerNavigator {
 
 impl<'a> WorkerNavigatorMethods for JSRef<'a, WorkerNavigator> {
     fn Product(&self) -> DOMString {
-        "Gecko".to_string()
+        NavigatorInfo::Product()
     }
 
     fn TaintEnabled(&self) -> bool {
-        false
+        NavigatorInfo::TaintEnabled()
     }
 
     fn AppName(&self) -> DOMString {
-        "Netscape".to_string() // Like Gecko/Webkit
+        NavigatorInfo::AppName()
     }
 
     fn AppCodeName(&self) -> DOMString {
-        "Mozilla".to_string()
+        NavigatorInfo::AppCodeName()
     }
 
     fn Platform(&self) -> DOMString {
-        "".to_string()
+        NavigatorInfo::Platform()
     }
 }
 
