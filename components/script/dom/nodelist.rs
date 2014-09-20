@@ -48,7 +48,7 @@ impl NodeList {
 }
 
 impl<'a> NodeListMethods for JSRef<'a, NodeList> {
-    fn Length(&self) -> u32 {
+    fn Length(self) -> u32 {
         match self.list_type {
             Simple(ref elems) => elems.len() as u32,
             Children(ref node) => {
@@ -58,7 +58,7 @@ impl<'a> NodeListMethods for JSRef<'a, NodeList> {
         }
     }
 
-    fn Item(&self, index: u32) -> Option<Temporary<Node>> {
+    fn Item(self, index: u32) -> Option<Temporary<Node>> {
         match self.list_type {
             _ if index >= self.Length() => None,
             Simple(ref elems) => Some(Temporary::new(elems[index as uint].clone())),
@@ -70,7 +70,7 @@ impl<'a> NodeListMethods for JSRef<'a, NodeList> {
         }
     }
 
-    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Temporary<Node>> {
+    fn IndexedGetter(self, index: u32, found: &mut bool) -> Option<Temporary<Node>> {
         let item = self.Item(index);
         *found = item.is_some();
         item

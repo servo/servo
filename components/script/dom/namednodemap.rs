@@ -33,15 +33,15 @@ impl NamedNodeMap {
 }
 
 impl<'a> NamedNodeMapMethods for JSRef<'a, NamedNodeMap> {
-    fn Length(&self) -> u32 {
+    fn Length(self) -> u32 {
         self.owner.root().attrs.borrow().len() as u32
     }
 
-    fn Item(&self, index: u32) -> Option<Temporary<Attr>> {
+    fn Item(self, index: u32) -> Option<Temporary<Attr>> {
         self.owner.root().attrs.borrow().as_slice().get(index as uint).map(|x| Temporary::new(x.clone()))
     }
 
-    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Temporary<Attr>> {
+    fn IndexedGetter(self, index: u32, found: &mut bool) -> Option<Temporary<Attr>> {
         let item = self.Item(index);
         *found = item.is_some();
         item

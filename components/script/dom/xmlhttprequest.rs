@@ -91,8 +91,8 @@ pub enum XHRProgress {
     TimeoutMsg
 }
 
-enum SyncOrAsync<'a, 'b> {
-    Sync(&'b JSRef<'a, XMLHttpRequest>),
+enum SyncOrAsync<'a> {
+    Sync(JSRef<'a, XMLHttpRequest>),
     Async(TrustedXHRAddress, ScriptChan)
 }
 
@@ -186,7 +186,7 @@ impl XMLHttpRequest {
              cors_request: Result<Option<CORSRequest>,()>) -> ErrorResult {
         fn notify_partial_progress(fetch_type: &SyncOrAsync, msg: XHRProgress) {
             match *fetch_type {
-                Sync(ref xhr) => {
+                Sync(xhr) => {
                     xhr.process_partial_response(msg);
                 },
                 Async(addr, ref script_chan) => {
@@ -259,21 +259,21 @@ impl XMLHttpRequest {
 }
 
 impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
-    fn GetOnreadystatechange(&self) -> Option<EventHandlerNonNull> {
-        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
+    fn GetOnreadystatechange(self) -> Option<EventHandlerNonNull> {
+        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
         eventtarget.get_event_handler_common("readystatechange")
     }
 
-    fn SetOnreadystatechange(&self, listener: Option<EventHandlerNonNull>) {
-        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
+    fn SetOnreadystatechange(self, listener: Option<EventHandlerNonNull>) {
+        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
         eventtarget.set_event_handler_common("readystatechange", listener)
     }
 
-    fn ReadyState(&self) -> u16 {
+    fn ReadyState(self) -> u16 {
         self.ready_state.deref().get() as u16
     }
 
-    fn Open(&self, method: ByteString, url: DOMString) -> ErrorResult {
+    fn Open(self, method: ByteString, url: DOMString) -> ErrorResult {
         // Clean up from previous requests, if any:
         self.cancel_timeout();
         let uppercase_method = method.as_str().map(|s| {
@@ -334,12 +334,12 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             _ => Err(Syntax), // Step 3
         }
     }
-    fn Open_(&self, method: ByteString, url: DOMString, async: bool,
+    fn Open_(self, method: ByteString, url: DOMString, async: bool,
                  _username: Option<DOMString>, _password: Option<DOMString>) -> ErrorResult {
         self.sync.deref().set(!async);
         self.Open(method, url)
     }
-    fn SetRequestHeader(&self, name: ByteString, mut value: ByteString) -> ErrorResult {
+    fn SetRequestHeader(self, name: ByteString, mut value: ByteString) -> ErrorResult {
         if self.ready_state.deref().get() != Opened || self.send_flag.deref().get() {
             return Err(InvalidState); // Step 1, 2
         }
@@ -403,10 +403,10 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             None => Err(Syntax)
         }
     }
-    fn Timeout(&self) -> u32 {
+    fn Timeout(self) -> u32 {
         self.timeout.deref().get()
     }
-    fn SetTimeout(&self, timeout: u32) -> ErrorResult {
+    fn SetTimeout(self, timeout: u32) -> ErrorResult {
         if self.sync.deref().get() {
             // FIXME: Not valid for a worker environment
             Err(InvalidState)
@@ -428,16 +428,16 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             Ok(())
         }
     }
-    fn WithCredentials(&self) -> bool {
+    fn WithCredentials(self) -> bool {
         self.with_credentials.deref().get()
     }
-    fn SetWithCredentials(&self, with_credentials: bool) {
+    fn SetWithCredentials(self, with_credentials: bool) {
         self.with_credentials.deref().set(with_credentials);
     }
-    fn Upload(&self) -> Temporary<XMLHttpRequestUpload> {
+    fn Upload(self) -> Temporary<XMLHttpRequestUpload> {
         Temporary::new(self.upload)
     }
-    fn Send(&self, data: Option<SendParam>) -> ErrorResult {
+    fn Send(self, data: Option<SendParam>) -> ErrorResult {
         if self.ready_state.deref().get() != Opened || self.send_flag.deref().get() {
             return Err(InvalidState); // Step 1, 2
         }
@@ -566,7 +566,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         }
         Ok(())
     }
-    fn Abort(&self) {
+    fn Abort(self) {
         self.terminate_sender.deref().borrow().as_ref().map(|s| s.send_opt(Abort));
         match self.ready_state.deref().get() {
             Opened if self.send_flag.deref().get() => self.process_partial_response(ErroredMsg(Some(Abort))),
@@ -575,16 +575,16 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         };
         self.ready_state.deref().set(Unsent);
     }
-    fn ResponseURL(&self) -> DOMString {
+    fn ResponseURL(self) -> DOMString {
         self.response_url.clone()
     }
-    fn Status(&self) -> u16 {
+    fn Status(self) -> u16 {
         self.status.deref().get()
     }
-    fn StatusText(&self) -> ByteString {
+    fn StatusText(self) -> ByteString {
         self.status_text.deref().borrow().clone()
     }
-    fn GetResponseHeader(&self, name: ByteString) -> Option<ByteString> {
+    fn GetResponseHeader(self, name: ByteString) -> Option<ByteString> {
         self.filter_response_headers().iter().find(|h| {
             name.eq_ignore_case(&FromStr::from_str(h.header_name().as_slice()).unwrap())
         }).map(|h| {
@@ -592,7 +592,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             ByteString::new(h.header_value().as_slice().chars().map(|c| { assert!(c <= '\u00FF'); c as u8 }).collect())
         })
     }
-    fn GetAllResponseHeaders(&self) -> ByteString {
+    fn GetAllResponseHeaders(self) -> ByteString {
         let mut writer = MemWriter::new();
         self.filter_response_headers().write_all(&mut writer).ok().expect("Writing response headers failed");
         let mut vec = writer.unwrap();
@@ -603,10 +603,10 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
 
         ByteString::new(vec)
     }
-    fn ResponseType(&self) -> XMLHttpRequestResponseType {
+    fn ResponseType(self) -> XMLHttpRequestResponseType {
         self.response_type.deref().get()
     }
-    fn SetResponseType(&self, response_type: XMLHttpRequestResponseType) -> ErrorResult {
+    fn SetResponseType(self, response_type: XMLHttpRequestResponseType) -> ErrorResult {
         match self.global {
             WorkerField(_) if response_type == Document => return Ok(()),
             _ => {}
@@ -620,7 +620,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             }
         }
     }
-    fn Response(&self, cx: *mut JSContext) -> JSVal {
+    fn Response(self, cx: *mut JSContext) -> JSVal {
          match self.response_type.deref().get() {
             _empty | Text => {
                 let ready_state = self.ready_state.deref().get();
@@ -649,7 +649,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             }
         }
     }
-    fn GetResponseText(&self) -> Fallible<DOMString> {
+    fn GetResponseText(self) -> Fallible<DOMString> {
         match self.response_type.deref().get() {
             _empty | Text => {
                 match self.ready_state.deref().get() {
@@ -660,7 +660,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             _ => Err(InvalidState)
         }
     }
-    fn GetResponseXML(&self) -> Option<Temporary<Document>> {
+    fn GetResponseXML(self) -> Option<Temporary<Document>> {
         self.response_xml.get().map(|response| Temporary::new(response))
     }
 }

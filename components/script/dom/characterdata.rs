@@ -45,37 +45,37 @@ impl CharacterData {
 }
 
 impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
-    fn Data(&self) -> DOMString {
+    fn Data(self) -> DOMString {
         self.data.deref().borrow().clone()
     }
 
-    fn SetData(&self, arg: DOMString) -> ErrorResult {
+    fn SetData(self, arg: DOMString) -> ErrorResult {
         *self.data.deref().borrow_mut() = arg;
         Ok(())
     }
 
-    fn Length(&self) -> u32 {
+    fn Length(self) -> u32 {
         self.data.deref().borrow().len() as u32
     }
 
-    fn SubstringData(&self, offset: u32, count: u32) -> Fallible<DOMString> {
+    fn SubstringData(self, offset: u32, count: u32) -> Fallible<DOMString> {
         Ok(self.data.deref().borrow().as_slice().slice(offset as uint, count as uint).to_string())
     }
 
-    fn AppendData(&self, arg: DOMString) -> ErrorResult {
+    fn AppendData(self, arg: DOMString) -> ErrorResult {
         self.data.deref().borrow_mut().push_str(arg.as_slice());
         Ok(())
     }
 
-    fn InsertData(&self, offset: u32, arg: DOMString) -> ErrorResult {
+    fn InsertData(self, offset: u32, arg: DOMString) -> ErrorResult {
         self.ReplaceData(offset, 0, arg)
     }
 
-    fn DeleteData(&self, offset: u32, count: u32) -> ErrorResult {
+    fn DeleteData(self, offset: u32, count: u32) -> ErrorResult {
         self.ReplaceData(offset, count, "".to_string())
     }
 
-    fn ReplaceData(&self, offset: u32, count: u32, arg: DOMString) -> ErrorResult {
+    fn ReplaceData(self, offset: u32, count: u32, arg: DOMString) -> ErrorResult {
         let length = self.data.deref().borrow().len() as u32;
         if offset > length {
             return Err(IndexSize);
@@ -94,8 +94,8 @@ impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
     }
 
     // http://dom.spec.whatwg.org/#dom-childnode-remove
-    fn Remove(&self) {
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+    fn Remove(self) {
+        let node: JSRef<Node> = NodeCast::from_ref(self);
         node.remove_self();
     }
 }

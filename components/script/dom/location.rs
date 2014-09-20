@@ -37,11 +37,11 @@ impl Location {
 }
 
 impl<'a> LocationMethods for JSRef<'a, Location> {
-    fn Href(&self) -> DOMString {
+    fn Href(self) -> DOMString {
         self.page.get_url().serialize()
     }
 
-    fn Search(&self) -> DOMString {
+    fn Search(self) -> DOMString {
         match self.page.get_url().query {
             None => "".to_string(),
             Some(ref query) if query.as_slice() == "" => "".to_string(),
@@ -49,7 +49,7 @@ impl<'a> LocationMethods for JSRef<'a, Location> {
         }
     }
 
-    fn Hash(&self) -> DOMString {
+    fn Hash(self) -> DOMString {
         match self.page.get_url().fragment {
             None => "".to_string(),
             Some(ref hash) if hash.as_slice() == "" => "".to_string(),

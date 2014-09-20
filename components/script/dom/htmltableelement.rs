@@ -50,10 +50,9 @@ impl Reflectable for HTMLTableElement {
 }
 
 impl<'a> HTMLTableElementMethods for JSRef<'a, HTMLTableElement> {
-
     //  http://www.whatwg.org/html/#dom-table-caption
-    fn GetCaption(&self) -> Option<Temporary<HTMLTableCaptionElement>> {
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+    fn GetCaption(self) -> Option<Temporary<HTMLTableCaptionElement>> {
+        let node: JSRef<Node> = NodeCast::from_ref(self);
         node.children().find(|child| {
             child.type_id() == ElementNodeTypeId(HTMLTableCaptionElementTypeId)
         }).map(|node| {
@@ -62,8 +61,8 @@ impl<'a> HTMLTableElementMethods for JSRef<'a, HTMLTableElement> {
     }
 
     // http://www.whatwg.org/html/#dom-table-caption
-    fn SetCaption(&self, new_caption: Option<JSRef<HTMLTableCaptionElement>>) {
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+    fn SetCaption(self, new_caption: Option<JSRef<HTMLTableCaptionElement>>) {
+        let node: JSRef<Node> = NodeCast::from_ref(self);
         let old_caption = self.GetCaption();
 
         match old_caption {

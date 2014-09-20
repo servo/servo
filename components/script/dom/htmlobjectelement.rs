@@ -83,8 +83,8 @@ pub fn is_image_data(uri: &str) -> bool {
 }
 
 impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
-    fn Validity(&self) -> Temporary<ValidityState> {
-        let window = window_from_node(*self).root();
+    fn Validity(self) -> Temporary<ValidityState> {
+        let window = window_from_node(self).root();
         ValidityState::new(*window)
     }
 }

@@ -48,21 +48,21 @@ impl HTMLSelectElement {
 }
 
 impl<'a> HTMLSelectElementMethods for JSRef<'a, HTMLSelectElement> {
-    fn Validity(&self) -> Temporary<ValidityState> {
-        let window = window_from_node(*self).root();
+    fn Validity(self) -> Temporary<ValidityState> {
+        let window = window_from_node(self).root();
         ValidityState::new(*window)
     }
 
     // Note: this function currently only exists for test_union.html.
-    fn Add(&self, _element: HTMLOptionElementOrHTMLOptGroupElement, _before: Option<HTMLElementOrLong>) {
+    fn Add(self, _element: HTMLOptionElementOrHTMLOptGroupElement, _before: Option<HTMLElementOrLong>) {
     }
 
     // http://www.whatwg.org/html/#dom-fe-disabled
     make_bool_getter!(Disabled)
 
     // http://www.whatwg.org/html/#dom-fe-disabled
-    fn SetDisabled(&self, disabled: bool) {
-        let elem: JSRef<Element> = ElementCast::from_ref(*self);
+    fn SetDisabled(self, disabled: bool) {
+        let elem: JSRef<Element> = ElementCast::from_ref(self);
         elem.set_bool_attribute("disabled", disabled)
     }
 }

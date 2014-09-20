@@ -98,54 +98,54 @@ impl Event {
 }
 
 impl<'a> EventMethods for JSRef<'a, Event> {
-    fn EventPhase(&self) -> u16 {
+    fn EventPhase(self) -> u16 {
         self.phase.deref().get() as u16
     }
 
-    fn Type(&self) -> DOMString {
+    fn Type(self) -> DOMString {
         self.type_.deref().borrow().clone()
     }
 
-    fn GetTarget(&self) -> Option<Temporary<EventTarget>> {
+    fn GetTarget(self) -> Option<Temporary<EventTarget>> {
         self.target.get().as_ref().map(|target| Temporary::new(target.clone()))
     }
 
-    fn GetCurrentTarget(&self) -> Option<Temporary<EventTarget>> {
+    fn GetCurrentTarget(self) -> Option<Temporary<EventTarget>> {
         self.current_target.get().as_ref().map(|target| Temporary::new(target.clone()))
     }
 
-    fn DefaultPrevented(&self) -> bool {
+    fn DefaultPrevented(self) -> bool {
         self.canceled.deref().get()
     }
 
-    fn PreventDefault(&self) {
+    fn PreventDefault(self) {
         if self.cancelable.deref().get() {
             self.canceled.deref().set(true)
         }
     }
 
-    fn StopPropagation(&self) {
+    fn StopPropagation(self) {
         self.stop_propagation.deref().set(true);
     }
 
-    fn StopImmediatePropagation(&self) {
+    fn StopImmediatePropagation(self) {
         self.stop_immediate.deref().set(true);
         self.stop_propagation.deref().set(true);
     }
 
-    fn Bubbles(&self) -> bool {
+    fn Bubbles(self) -> bool {
         self.bubbles.deref().get()
     }
 
-    fn Cancelable(&self) -> bool {
+    fn Cancelable(self) -> bool {
         self.cancelable.deref().get()
     }
 
-    fn TimeStamp(&self) -> u64 {
+    fn TimeStamp(self) -> u64 {
         self.timestamp
     }
 
-    fn InitEvent(&self,
+    fn InitEvent(self,
                  type_: DOMString,
                  bubbles: bool,
                  cancelable: bool) {
@@ -163,7 +163,7 @@ impl<'a> EventMethods for JSRef<'a, Event> {
         self.cancelable.deref().set(cancelable);
     }
 
-    fn IsTrusted(&self) -> bool {
+    fn IsTrusted(self) -> bool {
         self.trusted.deref().get()
     }
 }
