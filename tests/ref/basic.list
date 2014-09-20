@@ -134,3 +134,4 @@ flaky_gpu,flaky_linux == acid2_noscroll.html acid2_ref_broken.html
 == table_padding_a.html table_padding_ref.html
 == img_block_display_a.html img_block_display_ref.html
 == after_block_iteration.html after_block_iteration_ref.html
+== inline_block_percentage_height_a.html inline_block_percentage_height_ref.html
