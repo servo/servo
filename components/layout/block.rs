@@ -1094,7 +1094,9 @@ impl BlockFlow {
         self.fragment.border_box.start.b = self.fragment.margin.block_start;
 
         // Calculate content block-size, taking `min-block-size` and `max-block-size` into account.
-        let mut candidate_block_size_iterator = CandidateBSizeIterator::new(self.fragment.style(), None);
+        let mut candidate_block_size_iterator =
+            CandidateBSizeIterator::new(self.fragment.style(),
+                                        self.base.block_container_explicit_block_size);
         for candidate_block_size in candidate_block_size_iterator {
             candidate_block_size_iterator.candidate_value = match candidate_block_size {
                 Auto => content_block_size,
