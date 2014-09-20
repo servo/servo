@@ -13,6 +13,6 @@ interface HTMLOptionElement : HTMLElement {
   //         attribute boolean selected;
   //         attribute DOMString value;
 
-  //         attribute DOMString text;
+             attribute DOMString text;
   //readonly attribute long index;
 };
