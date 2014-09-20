@@ -151,7 +151,7 @@ impl DedicatedWorkerGlobalScope {
 }
 
 impl<'a> DedicatedWorkerGlobalScopeMethods for JSRef<'a, DedicatedWorkerGlobalScope> {
-    fn PostMessage(&self, cx: *mut JSContext, message: JSVal) {
+    fn PostMessage(self, cx: *mut JSContext, message: JSVal) {
         let mut data = ptr::mut_null();
         let mut nbytes = 0;
         unsafe {
@@ -163,23 +163,23 @@ impl<'a> DedicatedWorkerGlobalScopeMethods for JSRef<'a, DedicatedWorkerGlobalSc
         sender.send(WorkerPostMessage(*self.worker, data, nbytes));
     }
 
-    fn GetOnmessage(&self) -> Option<EventHandlerNonNull> {
-        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
+    fn GetOnmessage(self) -> Option<EventHandlerNonNull> {
+        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
         eventtarget.get_event_handler_common("message")
     }
 
-    fn SetOnmessage(&self, listener: Option<EventHandlerNonNull>) {
-        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
+    fn SetOnmessage(self, listener: Option<EventHandlerNonNull>) {
+        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
         eventtarget.set_event_handler_common("message", listener)
     }
 }
 
 trait PrivateDedicatedWorkerGlobalScopeHelpers {
-    fn delayed_release_worker(&self);
+    fn delayed_release_worker(self);
 }
 
 impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerGlobalScope> {
-    fn delayed_release_worker(&self) {
+    fn delayed_release_worker(self) {
         let ScriptChan(ref sender) = self.parent_sender;
         sender.send(WorkerRelease(*self.worker));
     }

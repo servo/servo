@@ -104,47 +104,47 @@ impl MouseEvent {
 }
 
 impl<'a> MouseEventMethods for JSRef<'a, MouseEvent> {
-    fn ScreenX(&self) -> i32 {
+    fn ScreenX(self) -> i32 {
         self.screen_x.deref().get()
     }
 
-    fn ScreenY(&self) -> i32 {
+    fn ScreenY(self) -> i32 {
         self.screen_y.deref().get()
     }
 
-    fn ClientX(&self) -> i32 {
+    fn ClientX(self) -> i32 {
         self.client_x.deref().get()
     }
 
-    fn ClientY(&self) -> i32 {
+    fn ClientY(self) -> i32 {
         self.client_y.deref().get()
     }
 
-    fn CtrlKey(&self) -> bool {
+    fn CtrlKey(self) -> bool {
         self.ctrl_key.deref().get()
     }
 
-    fn ShiftKey(&self) -> bool {
+    fn ShiftKey(self) -> bool {
         self.shift_key.deref().get()
     }
 
-    fn AltKey(&self) -> bool {
+    fn AltKey(self) -> bool {
         self.alt_key.deref().get()
     }
 
-    fn MetaKey(&self) -> bool {
+    fn MetaKey(self) -> bool {
         self.meta_key.deref().get()
     }
 
-    fn Button(&self) -> i16 {
+    fn Button(self) -> i16 {
         self.button.deref().get()
     }
 
-    fn GetRelatedTarget(&self) -> Option<Temporary<EventTarget>> {
+    fn GetRelatedTarget(self) -> Option<Temporary<EventTarget>> {
         self.related_target.get().clone().map(|target| Temporary::new(target))
     }
 
-    fn InitMouseEvent(&self,
+    fn InitMouseEvent(self,
                       typeArg: DOMString,
                       canBubbleArg: bool,
                       cancelableArg: bool,
@@ -160,7 +160,7 @@ impl<'a> MouseEventMethods for JSRef<'a, MouseEvent> {
                       metaKeyArg: bool,
                       buttonArg: i16,
                       relatedTargetArg: Option<JSRef<EventTarget>>) {
-        let uievent: JSRef<UIEvent> = UIEventCast::from_ref(*self);
+        let uievent: JSRef<UIEvent> = UIEventCast::from_ref(self);
         uievent.InitUIEvent(typeArg, canBubbleArg, cancelableArg, viewArg, detailArg);
         self.screen_x.deref().set(screenXArg);
         self.screen_y.deref().set(screenYArg);

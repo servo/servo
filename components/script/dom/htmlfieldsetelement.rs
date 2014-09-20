@@ -49,7 +49,7 @@ impl HTMLFieldSetElement {
 
 impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
     // http://www.whatwg.org/html/#dom-fieldset-elements
-    fn Elements(&self) -> Temporary<HTMLCollection> {
+    fn Elements(self) -> Temporary<HTMLCollection> {
         struct ElementsFilter;
         impl CollectionFilter for ElementsFilter {
             fn filter(&self, elem: JSRef<Element>, root: JSRef<Node>) -> bool {
@@ -59,14 +59,14 @@ impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
                 elem != root && tag_names.iter().any(|&tag_name| tag_name == elem.deref().local_name.as_slice())
             }
         }
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        let node: JSRef<Node> = NodeCast::from_ref(self);
         let filter = box ElementsFilter;
         let window = window_from_node(node).root();
         HTMLCollection::create(*window, node, filter)
     }
 
-    fn Validity(&self) -> Temporary<ValidityState> {
-        let window = window_from_node(*self).root();
+    fn Validity(self) -> Temporary<ValidityState> {
+        let window = window_from_node(self).root();
         ValidityState::new(*window)
     }
 
@@ -74,8 +74,8 @@ impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
     make_bool_getter!(Disabled)
 
     // http://www.whatwg.org/html/#dom-fieldset-disabled
-    fn SetDisabled(&self, disabled: bool) {
-        let elem: JSRef<Element> = ElementCast::from_ref(*self);
+    fn SetDisabled(self, disabled: bool) {
+        let elem: JSRef<Element> = ElementCast::from_ref(self);
         elem.set_bool_attribute("disabled", disabled)
     }
 }

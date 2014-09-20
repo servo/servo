@@ -43,14 +43,14 @@ impl HTMLDataListElement {
 }
 
 impl<'a> HTMLDataListElementMethods for JSRef<'a, HTMLDataListElement> {
-    fn Options(&self) -> Temporary<HTMLCollection> {
+    fn Options(self) -> Temporary<HTMLCollection> {
         struct HTMLDataListOptionsFilter;
         impl CollectionFilter for HTMLDataListOptionsFilter {
             fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {
                 elem.is_htmloptionelement()
             }
         }
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        let node: JSRef<Node> = NodeCast::from_ref(self);
         let filter = box HTMLDataListOptionsFilter;
         let window = window_from_node(node).root();
         HTMLCollection::create(*window, node, filter)

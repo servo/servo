@@ -130,7 +130,7 @@ impl Worker {
 }
 
 impl<'a> WorkerMethods for JSRef<'a, Worker> {
-    fn PostMessage(&self, cx: *mut JSContext, message: JSVal) {
+    fn PostMessage(self, cx: *mut JSContext, message: JSVal) {
         let mut data = ptr::mut_null();
         let mut nbytes = 0;
         unsafe {
@@ -143,13 +143,13 @@ impl<'a> WorkerMethods for JSRef<'a, Worker> {
         sender.send(DOMMessage(data, nbytes));
     }
 
-    fn GetOnmessage(&self) -> Option<EventHandlerNonNull> {
-        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
+    fn GetOnmessage(self) -> Option<EventHandlerNonNull> {
+        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
         eventtarget.get_event_handler_common("message")
     }
 
-    fn SetOnmessage(&self, listener: Option<EventHandlerNonNull>) {
-        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
+    fn SetOnmessage(self, listener: Option<EventHandlerNonNull>) {
+        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
         eventtarget.set_event_handler_common("message", listener)
     }
 }

@@ -116,46 +116,45 @@ impl Attr {
 }
 
 impl<'a> AttrMethods for JSRef<'a, Attr> {
-    fn LocalName(&self) -> DOMString {
+    fn LocalName(self) -> DOMString {
         self.local_name().as_slice().to_string()
     }
 
-    fn Value(&self) -> DOMString {
+    fn Value(self) -> DOMString {
         self.value().as_slice().to_string()
     }
 
-    fn SetValue(&self, value: DOMString) {
+    fn SetValue(self, value: DOMString) {
         let owner = self.owner.root();
-        let value = owner.deref().parse_attribute(
-            &self.namespace, self.local_name(), value);
+        let value = owner.deref().parse_attribute(&self.namespace, self.local_name(), value);
         self.set_value(ReplacedAttr, value);
     }
 
-    fn Name(&self) -> DOMString {
+    fn Name(self) -> DOMString {
         self.name.as_slice().to_string()
     }
 
-    fn GetNamespaceURI(&self) -> Option<DOMString> {
+    fn GetNamespaceURI(self) -> Option<DOMString> {
         match self.namespace.to_str() {
             "" => None,
             url => Some(url.to_string()),
         }
     }
 
-    fn GetPrefix(&self) -> Option<DOMString> {
+    fn GetPrefix(self) -> Option<DOMString> {
         self.prefix.clone()
     }
 }
 
 pub trait AttrHelpers {
-    fn set_value(&self, set_type: AttrSettingType, value: AttrValue);
+    fn set_value(self, set_type: AttrSettingType, value: AttrValue);
     fn value<'a>(&'a self) -> Ref<'a, AttrValue>;
     fn local_name<'a>(&'a self) -> &'a Atom;
-    fn summarize(&self) -> AttrInfo;
+    fn summarize(self) -> AttrInfo;
 }
 
 impl<'a> AttrHelpers for JSRef<'a, Attr> {
-    fn set_value(&self, set_type: AttrSettingType, value: AttrValue) {
+    fn set_value(self, set_type: AttrSettingType, value: AttrValue) {
         let owner = self.owner.root();
         let node: JSRef<Node> = NodeCast::from_ref(*owner);
         let namespace_is_null = self.namespace == namespace::Null;
@@ -188,7 +187,7 @@ impl<'a> AttrHelpers for JSRef<'a, Attr> {
         &self.local_name
     }
 
-    fn summarize(&self) -> AttrInfo {
+    fn summarize(self) -> AttrInfo {
         AttrInfo {
             namespace: self.namespace.to_str().to_string(),
             name: self.Name(),

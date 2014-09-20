@@ -42,7 +42,7 @@ impl ProcessingInstruction {
 }
 
 impl<'a> ProcessingInstructionMethods for JSRef<'a, ProcessingInstruction> {
-    fn Target(&self) -> DOMString {
+    fn Target(self) -> DOMString {
         self.target.clone()
     }
 }

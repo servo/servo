@@ -46,21 +46,21 @@ impl CanvasRenderingContext2D {
 }
 
 impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D> {
-    fn Canvas(&self) -> Temporary<HTMLCanvasElement> {
+    fn Canvas(self) -> Temporary<HTMLCanvasElement> {
         Temporary::new(self.canvas)
     }
 
-    fn FillRect(&self, x: f64, y: f64, width: f64, height: f64) {
+    fn FillRect(self, x: f64, y: f64, width: f64, height: f64) {
         let rect = Rect(Point2D(x as f32, y as f32), Size2D(width as f32, height as f32));
         self.renderer.deref().send(FillRect(rect));
     }
 
-    fn ClearRect(&self, x: f64, y: f64, width: f64, height: f64) {
+    fn ClearRect(self, x: f64, y: f64, width: f64, height: f64) {
         let rect = Rect(Point2D(x as f32, y as f32), Size2D(width as f32, height as f32));
         self.renderer.deref().send(ClearRect(rect));
     }
 
-    fn StrokeRect(&self, x: f64, y: f64, width: f64, height: f64) {
+    fn StrokeRect(self, x: f64, y: f64, width: f64, height: f64) {
         let rect = Rect(Point2D(x as f32, y as f32), Size2D(width as f32, height as f32));
         self.renderer.deref().send(StrokeRect(rect));
     }

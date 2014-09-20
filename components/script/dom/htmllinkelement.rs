@@ -114,12 +114,12 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLLinkElement> {
 }
 
 trait PrivateHTMLLinkElementHelpers {
-    fn handle_stylesheet_url(&self, href: &str);
+    fn handle_stylesheet_url(self, href: &str);
 }
 
 impl<'a> PrivateHTMLLinkElementHelpers for JSRef<'a, HTMLLinkElement> {
-    fn handle_stylesheet_url(&self, href: &str) {
-        let window = window_from_node(*self).root();
+    fn handle_stylesheet_url(self, href: &str) {
+        let window = window_from_node(self).root();
         match UrlParser::new().base_url(&window.deref().page().get_url()).parse(href) {
             Ok(url) => {
                 let LayoutChan(ref layout_chan) = *window.deref().page().layout_chan;

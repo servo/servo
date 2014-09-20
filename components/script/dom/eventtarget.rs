@@ -94,37 +94,37 @@ impl EventTarget {
 }
 
 pub trait EventTargetHelpers {
-    fn dispatch_event_with_target<'a>(&self,
-                                      target: Option<JSRef<'a, EventTarget>>,
-                                      event: JSRef<Event>) -> Fallible<bool>;
-    fn set_inline_event_listener(&self,
+    fn dispatch_event_with_target(self,
+                                  target: Option<JSRef<EventTarget>>,
+                                  event: JSRef<Event>) -> Fallible<bool>;
+    fn set_inline_event_listener(self,
                                  ty: DOMString,
                                  listener: Option<EventListener>);
-    fn get_inline_event_listener(&self, ty: DOMString) -> Option<EventListener>;
-    fn set_event_handler_uncompiled(&self,
+    fn get_inline_event_listener(self, ty: DOMString) -> Option<EventListener>;
+    fn set_event_handler_uncompiled(self,
                                     cx: *mut JSContext,
                                     url: Url,
                                     scope: *mut JSObject,
                                     ty: &str,
                                     source: DOMString);
-    fn set_event_handler_common<T: CallbackContainer>(&self, ty: &str,
+    fn set_event_handler_common<T: CallbackContainer>(self, ty: &str,
                                                       listener: Option<T>);
-    fn get_event_handler_common<T: CallbackContainer>(&self, ty: &str) -> Option<T>;
+    fn get_event_handler_common<T: CallbackContainer>(self, ty: &str) -> Option<T>;
 
-    fn has_handlers(&self) -> bool;
+    fn has_handlers(self) -> bool;
 }
 
 impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
-    fn dispatch_event_with_target<'b>(&self,
-                                      target: Option<JSRef<'b, EventTarget>>,
-                                      event: JSRef<Event>) -> Fallible<bool> {
+    fn dispatch_event_with_target(self,
+                                  target: Option<JSRef<EventTarget>>,
+                                  event: JSRef<Event>) -> Fallible<bool> {
         if event.deref().dispatching.deref().get() || !event.deref().initialized.deref().get() {
             return Err(InvalidState);
         }
-        Ok(dispatch_event(*self, target, event))
+        Ok(dispatch_event(self, target, event))
     }
 
-    fn set_inline_event_listener(&self,
+    fn set_inline_event_listener(self,
                                  ty: DOMString,
                                  listener: Option<EventListener>) {
         let mut handlers = self.handlers.deref().borrow_mut();
@@ -156,7 +156,7 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
         }
     }
 
-    fn get_inline_event_listener(&self, ty: DOMString) -> Option<EventListener> {
+    fn get_inline_event_listener(self, ty: DOMString) -> Option<EventListener> {
         let handlers = self.handlers.deref().borrow();
         let entries = handlers.find(&ty);
         entries.and_then(|entries| entries.iter().find(|entry| {
@@ -167,7 +167,7 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
         }).map(|entry| entry.listener.get_listener()))
     }
 
-    fn set_event_handler_uncompiled(&self,
+    fn set_event_handler_uncompiled(self,
                                     cx: *mut JSContext,
                                     url: Url,
                                     scope: *mut JSObject,
@@ -207,25 +207,25 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
     }
 
     fn set_event_handler_common<T: CallbackContainer>(
-        &self, ty: &str, listener: Option<T>)
+        self, ty: &str, listener: Option<T>)
     {
         let event_listener = listener.map(|listener|
                                           EventListener::new(listener.callback()));
         self.set_inline_event_listener(ty.to_string(), event_listener);
     }
 
-    fn get_event_handler_common<T: CallbackContainer>(&self, ty: &str) -> Option<T> {
+    fn get_event_handler_common<T: CallbackContainer>(self, ty: &str) -> Option<T> {
         let listener = self.get_inline_event_listener(ty.to_string());
         listener.map(|listener| CallbackContainer::new(listener.parent.callback()))
     }
 
-    fn has_handlers(&self) -> bool {
+    fn has_handlers(self) -> bool {
         !self.handlers.deref().borrow().is_empty()
     }
 }
 
 impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {
-    fn AddEventListener(&self,
+    fn AddEventListener(self,
                         ty: DOMString,
                         listener: Option<EventListener>,
                         capture: bool) {
@@ -246,7 +246,7 @@ impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {
         }
     }
 
-    fn RemoveEventListener(&self,
+    fn RemoveEventListener(self,
                            ty: DOMString,
                            listener: Option<EventListener>,
                            capture: bool) {
@@ -270,7 +270,7 @@ impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {
         }
     }
 
-    fn DispatchEvent(&self, event: JSRef<Event>) -> Fallible<bool> {
+    fn DispatchEvent(self, event: JSRef<Event>) -> Fallible<bool> {
         self.dispatch_event_with_target(None, event)
     }
 }

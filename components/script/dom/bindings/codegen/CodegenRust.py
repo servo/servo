@@ -2186,7 +2186,7 @@ class CGCallGenerator(CGThing):
         if static:
             call = CGWrapper(call, pre="%s::" % descriptorProvider.interface.identifier.name)
         else: 
-            call = CGWrapper(call, pre="(*%s)." % object)
+            call = CGWrapper(call, pre="%s." % object)
         call = CGList([call, CGWrapper(args, pre="(", post=")")])
 
         self.cgRoot.append(CGList([
@@ -4064,7 +4064,7 @@ class CGInterfaceTrait(CGThing):
             return "".join(", %s: %s" % argument for argument in arguments)
 
         methods = CGList([
-            CGGeneric("fn %s(&self%s) -> %s;\n" % (name, fmt(arguments), rettype))
+            CGGeneric("fn %s(self%s) -> %s;\n" % (name, fmt(arguments), rettype))
             for name, arguments, rettype in members()
         ], "")
         self.cgRoot = CGWrapper(CGIndenter(methods),

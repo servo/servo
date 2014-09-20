@@ -50,10 +50,9 @@ impl Reflectable for HTMLTableElement {
 }
 
 impl<'a> HTMLTableElementMethods for JSRef<'a, HTMLTableElement> {
-
     //  http://www.whatwg.org/html/#dom-table-caption
-    fn GetCaption(&self) -> Option<Temporary<HTMLTableCaptionElement>> {
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+    fn GetCaption(self) -> Option<Temporary<HTMLTableCaptionElement>> {
+        let node: JSRef<Node> = NodeCast::from_ref(self);
         node.children().find(|child| {
             child.type_id() == ElementNodeTypeId(HTMLTableCaptionElementTypeId)
         }).map(|node| {
@@ -62,14 +61,14 @@ impl<'a> HTMLTableElementMethods for JSRef<'a, HTMLTableElement> {
     }
 
     // http://www.whatwg.org/html/#dom-table-caption
-    fn SetCaption(&self, new_caption: Option<JSRef<HTMLTableCaptionElement>>) {
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+    fn SetCaption(self, new_caption: Option<JSRef<HTMLTableCaptionElement>>) {
+        let node: JSRef<Node> = NodeCast::from_ref(self);
         let old_caption = self.GetCaption();
 
         match old_caption {
             Some(htmlelem) => {
-                let htmlelem_jsref = &*htmlelem.root();
-                let old_caption_node: JSRef<Node> = NodeCast::from_ref(*htmlelem_jsref);
+                let htmlelem_root = htmlelem.root();
+                let old_caption_node: JSRef<Node> = NodeCast::from_ref(*htmlelem_root);
                 assert!(node.RemoveChild(old_caption_node).is_ok());
             }
             None => ()

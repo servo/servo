@@ -36,8 +36,8 @@ impl File {
     }
 }
 
-impl FileMethods for File {
-    fn Name(&self) -> DOMString {
+impl<'a> FileMethods for JSRef<'a, File> {
+    fn Name(self) -> DOMString {
         self.name.clone()
     }
 }

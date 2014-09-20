@@ -56,21 +56,21 @@ impl DocumentType {
 }
 
 impl<'a> DocumentTypeMethods for JSRef<'a, DocumentType> {
-    fn Name(&self) -> DOMString {
+    fn Name(self) -> DOMString {
         self.name.clone()
     }
 
-    fn PublicId(&self) -> DOMString {
+    fn PublicId(self) -> DOMString {
         self.public_id.clone()
     }
 
-    fn SystemId(&self) -> DOMString {
+    fn SystemId(self) -> DOMString {
         self.system_id.clone()
     }
 
     // http://dom.spec.whatwg.org/#dom-childnode-remove
-    fn Remove(&self) {
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+    fn Remove(self) {
+        let node: JSRef<Node> = NodeCast::from_ref(self);
         node.remove_self();
     }
 }

@@ -32,23 +32,23 @@ impl Navigator {
 }
 
 impl<'a> NavigatorMethods for JSRef<'a, Navigator> {
-    fn Product(&self) -> DOMString {
+    fn Product(self) -> DOMString {
         NavigatorInfo::Product()
     }
 
-    fn TaintEnabled(&self) -> bool {
+    fn TaintEnabled(self) -> bool {
         NavigatorInfo::TaintEnabled()
     }
 
-    fn AppName(&self) -> DOMString {
+    fn AppName(self) -> DOMString {
         NavigatorInfo::AppName()
     }
 
-    fn AppCodeName(&self) -> DOMString {
+    fn AppCodeName(self) -> DOMString {
         NavigatorInfo::AppCodeName()
     }
 
-    fn Platform(&self) -> DOMString {
+    fn Platform(self) -> DOMString {
         NavigatorInfo::Platform()
     }
 }

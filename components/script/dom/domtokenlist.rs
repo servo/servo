@@ -49,17 +49,17 @@ impl Reflectable for DOMTokenList {
 }
 
 trait PrivateDOMTokenListHelpers {
-    fn attribute(&self) -> Option<Temporary<Attr>>;
-    fn check_token_exceptions<'a>(&self, token: &'a str) -> Fallible<&'a str>;
+    fn attribute(self) -> Option<Temporary<Attr>>;
+    fn check_token_exceptions<'a>(self, token: &'a str) -> Fallible<&'a str>;
 }
 
 impl<'a> PrivateDOMTokenListHelpers for JSRef<'a, DOMTokenList> {
-    fn attribute(&self) -> Option<Temporary<Attr>> {
+    fn attribute(self) -> Option<Temporary<Attr>> {
         let element = self.element.root();
         element.deref().get_attribute(Null, self.local_name)
     }
 
-    fn check_token_exceptions<'a>(&self, token: &'a str) -> Fallible<&'a str> {
+    fn check_token_exceptions<'a>(self, token: &'a str) -> Fallible<&'a str> {
         match token {
             "" => Err(Syntax),
             token if token.find(HTML_SPACE_CHARACTERS).is_some() => Err(InvalidCharacter),
@@ -71,27 +71,27 @@ impl<'a> PrivateDOMTokenListHelpers for JSRef<'a, DOMTokenList> {
 // http://dom.spec.whatwg.org/#domtokenlist
 impl<'a> DOMTokenListMethods for JSRef<'a, DOMTokenList> {
     // http://dom.spec.whatwg.org/#dom-domtokenlist-length
-    fn Length(&self) -> u32 {
+    fn Length(self) -> u32 {
         self.attribute().root().map(|attr| {
             attr.value().tokens().map(|tokens| tokens.len()).unwrap_or(0)
         }).unwrap_or(0) as u32
     }
 
     // http://dom.spec.whatwg.org/#dom-domtokenlist-item
-    fn Item(&self, index: u32) -> Option<DOMString> {
+    fn Item(self, index: u32) -> Option<DOMString> {
         self.attribute().root().and_then(|attr| attr.value().tokens().and_then(|mut tokens| {
             tokens.idx(index as uint).map(|token| token.as_slice().to_string())
         }))
     }
 
-    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<DOMString> {
+    fn IndexedGetter(self, index: u32, found: &mut bool) -> Option<DOMString> {
         let item = self.Item(index);
         *found = item.is_some();
         item
     }
 
     // http://dom.spec.whatwg.org/#dom-domtokenlist-contains
-    fn Contains(&self, token: DOMString) -> Fallible<bool> {
+    fn Contains(self, token: DOMString) -> Fallible<bool> {
         self.check_token_exceptions(token.as_slice()).map(|slice| {
             self.attribute().root().and_then(|attr| attr.value().tokens().map(|mut tokens| {
                 let atom = Atom::from_slice(slice);

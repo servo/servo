@@ -36,11 +36,11 @@ impl Performance {
 }
 
 impl<'a> PerformanceMethods for JSRef<'a, Performance> {
-    fn Timing(&self) -> Temporary<PerformanceTiming> {
+    fn Timing(self) -> Temporary<PerformanceTiming> {
         Temporary::new(self.timing.clone())
     }
 
-    fn Now(&self) -> DOMHighResTimeStamp {
+    fn Now(self) -> DOMHighResTimeStamp {
         let navStart = self.timing.root().NavigationStartPrecise() as f64;
         (time::precise_time_s() - navStart) as DOMHighResTimeStamp
     }
