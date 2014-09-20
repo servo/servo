@@ -299,6 +299,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "lazy_static"
+version = "0.1.0"
+source = "git+https://github.com/Kimundi/lazy-static.rs#6d724cc9f1b7e0845e0f1e9a61d5c2e32377443c"
+
+[[package]]
 name = "link_glfw"
 version = "0.1.0"
 source = "git+https://github.com/servo/glfw-rs?ref=servo#dd1a111c827994886d2cdebf91a1838603256390"
@@ -449,6 +454,7 @@ dependencies = [
  "cssparser 0.1.0 (git+https://github.com/servo/rust-cssparser#42346400a6629b17a48d06f0a9b28ae498947c6f)",
  "encoding 0.1.0 (git+https://github.com/lifthrasiir/rust-encoding#12b6610adff6eddc060691888c36017cd3ad57f7)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#2982b770db6e5e3270305e0fd6b8068f6f80a489)",
+ "lazy_static 0.1.0 (git+https://github.com/Kimundi/lazy-static.rs#6d724cc9f1b7e0845e0f1e9a61d5c2e32377443c)",
  "macros 0.0.1",
  "url 0.1.0 (git+https://github.com/servo/rust-url#678bb4d52638b1cfdab78ef8e521566c9240fb1a)",
  "util 0.0.1",

@@ -1831,7 +1831,7 @@ fn get_writing_mode(inheritedbox_style: &style_structs::InheritedBox) -> Writing
 
 
 /// The initial values for all style structs as defined by the specification.
-lazy_init! {
+lazy_static! {
     static ref INITIAL_VALUES: ComputedValues = ComputedValues {
         % for style_struct in STYLE_STRUCTS:
             ${style_struct.ident}: Arc::new(style_structs::${style_struct.name} {
