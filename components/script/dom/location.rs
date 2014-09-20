@@ -7,6 +7,7 @@ use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use dom::bindings::global::Window;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::urlhelper::UrlHelper;
 use dom::window::Window;
 use page::Page;
 
@@ -38,23 +39,15 @@ impl Location {
 
 impl<'a> LocationMethods for JSRef<'a, Location> {
     fn Href(&self) -> DOMString {
-        self.page.get_url().serialize()
+        UrlHelper::Href(&self.page.get_url())
     }
 
     fn Search(&self) -> DOMString {
-        match self.page.get_url().query {
-            None => "".to_string(),
-            Some(ref query) if query.as_slice() == "" => "".to_string(),
-            Some(ref query) => "?".to_string().append(query.as_slice())
-        }
+        UrlHelper::Search(&self.page.get_url())
     }
 
     fn Hash(&self) -> DOMString {
-        match self.page.get_url().fragment {
-            None => "".to_string(),
-            Some(ref hash) if hash.as_slice() == "" => "".to_string(),
-            Some(ref hash) => "#".to_string().append(hash.as_slice())
-        }
+        UrlHelper::Hash(&self.page.get_url())
     }
 }
 

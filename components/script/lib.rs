@@ -173,6 +173,7 @@ pub mod dom {
     pub mod mouseevent;
     pub mod namednodemap;
     pub mod navigator;
+    pub mod navigatorinfo;
     pub mod node;
     pub mod nodeiterator;
     pub mod nodelist;
@@ -185,6 +186,7 @@ pub mod dom {
     pub mod text;
     pub mod treewalker;
     pub mod uievent;
+    pub mod urlhelper;
     pub mod urlsearchparams;
     pub mod validitystate;
     pub mod virtualmethods;
