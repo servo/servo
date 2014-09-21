@@ -425,7 +425,7 @@ def typeNeedsRooting(type, descriptorProvider):
 
 def union_native_type(t):
     name = t.unroll().name
-    return '%s::%s' % (name, name)
+    return 'UnionTypes::%s::%s' % (name, name)
 
 
 def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
@@ -4543,9 +4543,8 @@ class CGBindingRoot(CGThing):
             'dom::bindings::conversions::{FromJSValConvertible, ToJSValConvertible}',
             'dom::bindings::conversions::IDLInterface',
             'dom::bindings::conversions::{Default, Empty}',
-            'dom::bindings::codegen::{PrototypeList, RegisterBindings}',
+            'dom::bindings::codegen::{PrototypeList, RegisterBindings, UnionTypes}',
             'dom::bindings::codegen::Bindings::*',
-            'dom::bindings::codegen::UnionTypes::*',
             'dom::bindings::error::{FailureUnknown, Fallible, Error, ErrorResult}',
             'dom::bindings::error::throw_dom_exception',
             'dom::bindings::error::throw_type_error',
