@@ -54,6 +54,7 @@ use dom::window::{Window, WindowHelpers};
 use html::hubbub_html_parser::build_element_from_tag;
 use hubbub::hubbub::{QuirksMode, NoQuirks, LimitedQuirks, FullQuirks};
 use layout_interface::{DocumentDamageLevel, ContentChangedDocumentDamage};
+use servo_util::atom::Atom;
 use servo_util::namespace;
 use servo_util::namespace::{Namespace, Null};
 use servo_util::str::{DOMString, null_str_as_empty_ref, split_html_space_chars};
@@ -76,7 +77,7 @@ pub struct Document {
     pub node: Node,
     reflector_: Reflector,
     pub window: JS<Window>,
-    idmap: Traceable<RefCell<HashMap<DOMString, Vec<JS<Element>>>>>,
+    idmap: Traceable<RefCell<HashMap<Atom, Vec<JS<Element>>>>>,
     implementation: Cell<Option<JS<DOMImplementation>>>,
     content_type: DOMString,
     last_modified: Traceable<RefCell<Option<DOMString>>>,
@@ -157,8 +158,8 @@ pub trait DocumentHelpers {
     fn content_changed(self);
     fn damage_and_reflow(self, damage: DocumentDamageLevel);
     fn wait_until_safe_to_modify_dom(self);
-    fn unregister_named_element(self, to_unregister: JSRef<Element>, id: DOMString);
-    fn register_named_element(self, element: JSRef<Element>, id: DOMString);
+    fn unregister_named_element(self, to_unregister: JSRef<Element>, id: Atom);
+    fn register_named_element(self, element: JSRef<Element>, id: Atom);
     fn load_anchor_href(self, href: DOMString);
 }
 
@@ -199,7 +200,7 @@ impl<'a> DocumentHelpers for JSRef<'a, Document> {
     /// Remove any existing association between the provided id and any elements in this document.
     fn unregister_named_element(self,
                                 to_unregister: JSRef<Element>,
-                                id: DOMString) {
+                                id: Atom) {
         let mut idmap = self.idmap.deref().borrow_mut();
         let is_empty = match idmap.find_mut(&id) {
             None => false,
@@ -220,12 +221,12 @@ impl<'a> DocumentHelpers for JSRef<'a, Document> {
     /// Associate an element present in this document with the provided id.
     fn register_named_element(self,
                               element: JSRef<Element>,
-                              id: DOMString) {
+                              id: Atom) {
         assert!({
             let node: JSRef<Node> = NodeCast::from_ref(element);
             node.is_in_doc()
         });
-        assert!(!id.is_empty());
+        assert!(!id.as_slice().is_empty());
 
         let mut idmap = self.idmap.deref().borrow_mut();
 
@@ -442,7 +443,8 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     // http://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
     fn GetElementById(self, id: DOMString) -> Option<Temporary<Element>> {
-        match self.idmap.deref().borrow().find_equiv(&id) {
+        let id = Atom::from_slice(id.as_slice());
+        match self.idmap.deref().borrow().find(&id) {
             None => None,
             Some(ref elements) => Some(Temporary::new((*elements)[0].clone())),
         }
