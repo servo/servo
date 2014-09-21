@@ -125,7 +125,7 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
         getopts::optflag("", "disable-text-aa", "Disable antialiasing for text rendering."),
         getopts::optflag("", "trace-layout", "Write layout trace to external file for debugging."),
         getopts::optflag("", "devtools", "Start remote devtools server"),
-        getopts::optopt("", "resolution", "Set window resolution.", "1280x1024"),
+        getopts::optopt("", "resolution", "Set window resolution.", "800x600"),
         getopts::optflag("h", "help", "Print this message")
     );
 
@@ -213,7 +213,7 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
             TypedSize2D(res[0], res[1])
         }
         None => {
-            TypedSize2D(1280, 1024)
+            TypedSize2D(800, 600)
         }
     };
 
