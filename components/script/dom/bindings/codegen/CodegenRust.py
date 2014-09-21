@@ -422,6 +422,12 @@ def typeIsSequenceOrHasSequenceMember(type):
 def typeNeedsRooting(type, descriptorProvider):
     return type.isGeckoInterface() and descriptorProvider.getDescriptor(type.name).needsRooting
 
+
+def union_native_type(t):
+    name = t.unroll().name
+    return 'UnionTypes::%s::%s' % (name, name)
+
+
 def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                                     isDefinitelyObject=False,
                                     isMember=False,
@@ -576,7 +582,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         raise TypeError("Can't handle sequence arguments yet")
 
     if type.isUnion():
-        declType = CGGeneric(type.name + "::" + type.name)
+        declType = CGGeneric(union_native_type(type))
         if type.nullable():
             declType = CGWrapper(declType, pre="Option<", post=" >")
 
@@ -1075,7 +1081,7 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
             result = CGWrapper(result, pre="Option<", post=">")
         return result
     if returnType.isUnion():
-        result = CGGeneric('%s::%s' % (returnType.unroll().name, returnType.unroll().name))
+        result = CGGeneric(union_native_type(returnType))
         if returnType.nullable():
             result = CGWrapper(result, pre="Option<", post=">")
         return result
@@ -4537,9 +4543,8 @@ class CGBindingRoot(CGThing):
             'dom::bindings::conversions::{FromJSValConvertible, ToJSValConvertible}',
             'dom::bindings::conversions::IDLInterface',
             'dom::bindings::conversions::{Default, Empty}',
-            'dom::bindings::codegen::{PrototypeList, RegisterBindings}',
+            'dom::bindings::codegen::{PrototypeList, RegisterBindings, UnionTypes}',
             'dom::bindings::codegen::Bindings::*',
-            'dom::bindings::codegen::UnionTypes::*',
             'dom::bindings::error::{FailureUnknown, Fallible, Error, ErrorResult}',
             'dom::bindings::error::throw_dom_exception',
             'dom::bindings::error::throw_type_error',
@@ -4751,9 +4756,7 @@ class CGNativeMember(ClassMethod):
             return decl.define(), True, True
 
         if type.isUnion():
-            if type.nullable():
-                type = type.inner
-            return str(type) + "::" + str(type), False, True
+            return union_native_type(type), False, True
 
         if type.isGeckoInterface() and not type.isCallbackInterface():
             iface = type.unroll().inner
