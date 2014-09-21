@@ -158,8 +158,8 @@ pub trait DocumentHelpers {
     fn content_changed(self);
     fn damage_and_reflow(self, damage: DocumentDamageLevel);
     fn wait_until_safe_to_modify_dom(self);
-    fn unregister_named_element(self, to_unregister: JSRef<Element>, id: Atom);
-    fn register_named_element(self, element: JSRef<Element>, id: Atom);
+    fn unregister_named_element(self, to_unregister: JSRef<Element>, id: &Atom);
+    fn register_named_element(self, element: JSRef<Element>, id: &Atom);
     fn load_anchor_href(self, href: DOMString);
 }
 
@@ -200,9 +200,9 @@ impl<'a> DocumentHelpers for JSRef<'a, Document> {
     /// Remove any existing association between the provided id and any elements in this document.
     fn unregister_named_element(self,
                                 to_unregister: JSRef<Element>,
-                                id: Atom) {
+                                id: &Atom) {
         let mut idmap = self.idmap.deref().borrow_mut();
-        let is_empty = match idmap.find_mut(&id) {
+        let is_empty = match idmap.find_mut(id) {
             None => false,
             Some(elements) => {
                 let position = elements.iter()
@@ -214,14 +214,14 @@ impl<'a> DocumentHelpers for JSRef<'a, Document> {
             }
         };
         if is_empty {
-            idmap.remove(&id);
+            idmap.remove(id);
         }
     }
 
     /// Associate an element present in this document with the provided id.
     fn register_named_element(self,
                               element: JSRef<Element>,
-                              id: Atom) {
+                              id: &Atom) {
         assert!({
             let node: JSRef<Node> = NodeCast::from_ref(element);
             node.is_in_doc()
@@ -233,7 +233,7 @@ impl<'a> DocumentHelpers for JSRef<'a, Document> {
         // FIXME https://github.com/mozilla/rust/issues/13195
         //       Use mangle() when it exists again.
         let root = self.GetDocumentElement().expect("The element is in the document, so there must be a document element.").root();
-        match idmap.find_mut(&id) {
+        match idmap.find_mut(id) {
             Some(elements) => {
                 let new_node: JSRef<Node> = NodeCast::from_ref(element);
                 let mut head : uint = 0u;
@@ -259,7 +259,7 @@ impl<'a> DocumentHelpers for JSRef<'a, Document> {
         }
         let mut elements = vec!();
         elements.push_unrooted(&element);
-        idmap.insert(id, elements);
+        idmap.insert(id.clone(), elements);
     }
 
     fn load_anchor_href(self, href: DOMString) {
