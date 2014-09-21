@@ -12,19 +12,19 @@ path = "lib.rs"
 path = "../util"
 
 [dependencies.azure]
-git = "http://github.com/servo/rust-azure"
+git = "https://github.com/servo/rust-azure"
 
 [dependencies.geom]
-git = "http://github.com/servo/rust-geom"
+git = "https://github.com/servo/rust-geom"
 
 [dependencies.layers]
-git = "http://github.com/servo/rust-layers"
+git = "https://github.com/servo/rust-layers"
 
 [dependencies.core_foundation]
-git = "http://github.com/servo/rust-core-foundation"
+git = "https://github.com/servo/rust-core-foundation"
 
 [dependencies.io_surface]
-git = "http://github.com/servo/rust-io-surface"
+git = "https://github.com/servo/rust-io-surface"
 
 [dependencies.url]
-git = "http://github.com/servo/rust-url"
+git = "https://github.com/servo/rust-url"

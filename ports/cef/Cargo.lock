@@ -253,7 +253,7 @@ name = "hubbub-sys"
 version = "0.1.2"
 source = "git+https://github.com/servo/libhubbub#6d09893991dedc616b264058442a304c03842213"
 dependencies = [
- "parserutils-sys 0.1.1 (git+http://github.com/servo/libparserutils#651b636ba1214bceeb0907adb1eab60efe0d4598)",
+ "parserutils-sys 0.1.1 (git+https://github.com/servo/libparserutils#651b636ba1214bceeb0907adb1eab60efe0d4598)",
 ]
 
 [[package]]
@@ -367,7 +367,7 @@ source = "git+https://github.com/sfackler/rust-openssl.git#a495465b75ffb18ff2303
 [[package]]
 name = "parserutils-sys"
 version = "0.1.1"
-source = "git+http://github.com/servo/libparserutils#651b636ba1214bceeb0907adb1eab60efe0d4598"
+source = "git+https://github.com/servo/libparserutils#651b636ba1214bceeb0907adb1eab60efe0d4598"
 
 [[package]]
 name = "phf"
