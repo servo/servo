@@ -60,6 +60,7 @@ use std::ascii::AsciiExt;
 use std::cell::{Ref, RefMut};
 use std::default::Default;
 use std::mem;
+use std::sync::Arc;
 use string_cache::{Atom, Namespace, QualName};
 use url::UrlParser;
 
@@ -465,6 +466,8 @@ pub trait ElementHelpers<'a> {
     fn style_attribute(self) -> &'a DOMRefCell<Option<style::PropertyDeclarationBlock>>;
     fn summarize(self) -> Vec<AttrInfo>;
     fn is_void(self) -> bool;
+    fn update_inline_style(self, property_decl: style::PropertyDeclaration);
+    fn get_inline_style_declaration(self, property: &Atom) -> Option<style::PropertyDeclaration>;
 }
 
 impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
@@ -521,6 +524,40 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
             "meta" | "param" | "source" | "track" | "wbr" => true,
             _ => false
         }
+    }
+
+    fn update_inline_style(self, property_decl: style::PropertyDeclaration) {
+        let mut inline_declarations = self.style_attribute.borrow_mut();
+        let exists = inline_declarations.is_some();
+        if exists {
+            let declarations = inline_declarations.as_mut().unwrap();
+            for declaration in declarations.normal.make_unique()
+                                                  .iter_mut()
+                                                  .chain(declarations.important.make_unique().iter_mut()) {
+                if declaration.name().as_slice() == property_decl.name().as_slice() {
+                    *declaration = property_decl;
+                    return;
+                }
+            }
+            declarations.normal.make_unique().push(property_decl);
+        } else {
+            *inline_declarations = Some(style::PropertyDeclarationBlock {
+                important: Arc::new(vec!()),
+                normal: Arc::new(vec!(property_decl)),
+            });
+        }
+    }
+
+    fn get_inline_style_declaration(self, property: &Atom) -> Option<style::PropertyDeclaration> {
+        let mut inline_declarations = self.style_attribute.borrow();
+        inline_declarations.as_ref().and_then(|declarations| {
+            for declaration in declarations.normal.iter().chain(declarations.important.iter()) {
+                if declaration.matches(property.as_slice()) {
+                    return Some(declaration.clone());
+                }
+            }
+            None
+        })
     }
 }
 

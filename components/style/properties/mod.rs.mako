@@ -593,11 +593,21 @@ pub mod longhands {
         }
         pub mod computed_value {
             use super::super::{Au, CSSFloat};
+            use std::fmt;
             #[deriving(PartialEq, Clone)]
             pub enum T {
                 Normal,
                 Length(Au),
                 Number(CSSFloat),
+            }
+            impl fmt::Show for T {
+                fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                    match self {
+                        &T::Normal => write!(f, "normal"),
+                        &T::Length(length) => write!(f, "{}%", length),
+                        &T::Number(number) => write!(f, "{}", number),
+                    }
+                }
             }
         }
         #[inline]
@@ -656,6 +666,7 @@ pub mod longhands {
         }
         pub mod computed_value {
             use super::super::{Au, CSSFloat};
+            use std::fmt;
             #[allow(non_camel_case_types)]
             #[deriving(PartialEq, Clone)]
             pub enum T {
@@ -664,6 +675,17 @@ pub mod longhands {
                 % endfor
                 Length(Au),
                 Percentage(CSSFloat),
+            }
+            impl fmt::Show for T {
+                fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                    match self {
+                        % for keyword in vertical_align_keywords:
+                            &T::${to_rust_ident(keyword)} => write!(f, "${keyword}"),
+                        % endfor
+                        &T::Length(length) => write!(f, "{}", length),
+                        &T::Percentage(number) => write!(f, "{}%", number),
+                    }
+                }
             }
         }
         #[inline]
@@ -1143,11 +1165,21 @@ pub mod longhands {
             }
         }
         pub mod computed_value {
+            use std::fmt;
             #[deriving(PartialEq, Clone)]
             pub enum T {
                 % for weight in range(100, 901, 100):
                     Weight${weight},
                 % endfor
+            }
+            impl fmt::Show for T {
+                fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                    match self {
+                        % for weight in range(100, 901, 100):
+                            &T::Weight${weight} => write!(f, "{}", ${weight}i),
+                        % endfor
+                    }
+                }
             }
             impl T {
                 pub fn is_bold(self) -> bool {
@@ -1672,6 +1704,7 @@ pub mod longhands {
         pub mod computed_value {
             use super::super::Au;
             use super::super::super::computed;
+            use std::fmt;
 
             pub type T = Vec<BoxShadow>;
 
@@ -1683,6 +1716,17 @@ pub mod longhands {
                 pub spread_radius: Au,
                 pub color: computed::CSSColor,
                 pub inset: bool,
+            }
+
+            impl fmt::Show for BoxShadow {
+                fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                    if self.inset {
+                        let _ = write!(f, "inset ");
+                    }
+                    let _ = write!(f, "{} {} {} {} {}", self.offset_x, self.offset_y,
+                                   self.blur_radius, self.spread_radius, self.color);
+		    Ok(())
+                }
             }
         }
 
@@ -2456,7 +2500,8 @@ impl<T: Show> DeclaredValue<T> {
     pub fn specified_value(&self) -> Option<String> {
         match self {
             &DeclaredValue::SpecifiedValue(ref inner) => Some(format!("{}", inner)),
-            _ => None,
+            &DeclaredValue::Initial => None,
+            &DeclaredValue::Inherit => Some("inherit".to_string()),
         }
     }
 }
@@ -2488,14 +2533,16 @@ impl PropertyDeclaration {
         }
     }
 
-    pub fn value(&self) -> Option<String> {
+    pub fn value(&self) -> String {
         match self {
             % for property in LONGHANDS:
                 % if property.derived_from is None:
-                    &PropertyDeclaration::${property.camel_case}Declaration(ref value) => value.specified_value(),
+                    &PropertyDeclaration::${property.camel_case}Declaration(ref value) =>
+                        value.specified_value()
+                             .unwrap_or_else(|| format!("{}", longhands::${property.ident}::get_initial_value())),
 		% endif
             % endfor
-            _ => None,
+            decl => panic!("unsupported property declaration: {}", decl.name()),
         }
     }
 
@@ -3142,6 +3189,18 @@ pub fn cascade_anonymous(parent_style: &ComputedValues) -> ComputedValues {
     }
     // None of the teaks on 'display' apply here.
     result
+}
+
+pub fn is_supported_property(property: &str) -> bool {
+    match property {
+        % for property in SHORTHANDS:
+            "${property.name}" => true,
+        % endfor
+        % for property in LONGHANDS:
+            "${property.name}" => true,
+        % endfor
+        _ => false,
+    }
 }
 
 pub fn longhands_from_shorthand(shorthand: &str) -> Option<Vec<String>> {

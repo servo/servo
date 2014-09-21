@@ -3,16 +3,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
-use dom::bindings::codegen::InheritTypes::ElementCast;
+use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast};
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::js::{JS, JSRef, OptionalRootedRootable};
 use dom::bindings::utils::{Reflectable, Reflector};
+use dom::document::DocumentHelpers;
 use dom::element::{Element, ElementHelpers};
 use dom::htmlelement::HTMLElement;
+use dom::node::{document_from_node, NodeDamage, Node};
 use servo_util::str::DOMString;
-use string_cache::atom::Atom;
-use style::longhands_from_shorthand;
+use string_cache::Atom;
+use style::{is_supported_property, longhands_from_shorthand, parse_style_attribute};
 use style::PropertyDeclaration;
+use url::Url;
+
 use std::ascii::AsciiExt;
 
 #[dom_struct]
@@ -31,7 +35,7 @@ fn serialize_list(list: &Vec<PropertyDeclaration>) -> DOMString {
 }
 
 fn serialize_value(declaration: &PropertyDeclaration) -> DOMString {
-    declaration.value().unwrap()
+    declaration.value()
 }
 
 impl CSSStyleDeclaration {
@@ -51,15 +55,7 @@ impl<'a> PrivateCSSStyleDeclarationHelpers for JSRef<'a, CSSStyleDeclaration> {
     fn get_declaration(self, property: &Atom) -> Option<PropertyDeclaration> {
         self.owner.root().and_then(|owner| {
             let element: JSRef<Element> = ElementCast::from_ref(*owner);
-            let inline_declarations = element.style_attribute().borrow();
-            inline_declarations.as_ref().and_then(|declarations| {
-                for declaration in declarations.normal.iter().chain(declarations.important.iter()) {
-                    if declaration.matches(property.as_slice()) {
-                        return Some(declaration.clone());
-                    }
-                }
-                None
-            })
+            element.get_inline_style_declaration(property).map(|decl| decl.clone())
         })
     }
 }
@@ -131,7 +127,60 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
         Ok(())
     }
 
-    fn SetPropertyValue(self, _property: DOMString, _value: DOMString) -> ErrorResult {
+    fn SetPropertyValue(self, property: DOMString, value: DOMString) -> ErrorResult {
+        // 1. If the readonly flag is set, throw a NoModificationAllowedError exception
+        //    and terminate these steps.
+        //TODO
+
+        // 2. Let property be property converted to ASCII lowercase.
+        let property = Atom::from_slice(property.as_slice().to_ascii_lower().as_slice());
+
+        // 3. If property is not a case-sensitive match for a supported CSS property,
+        //    terminate this algorithm.
+        if !is_supported_property(property.as_slice()) {
+            return Ok(());
+        }
+
+        // 4. If value is the empty string, invoke removeProperty() with property as argument
+        //    and terminate this algorithm.
+        if value.is_empty() {
+            //TODO: self.RemoveProperty(property)
+            return Ok(());
+        }
+
+        // 5. Let component value list be the result of parsing value for property property.
+        let mut synthesized_declaration = property.as_slice().to_string();
+        synthesized_declaration.push_str(": ");
+        synthesized_declaration.push_str(value.as_slice());
+        //XXXjdm need page url
+        let decl_block = parse_style_attribute(synthesized_declaration.as_slice(),
+                                               &Url::parse("http://localhost").unwrap());
+
+        // 6. If component value list is null terminate these steps.
+        if decl_block.normal.len() == 0 {
+            return Ok(());
+        }
+
+        let owner = self.owner.root();
+        let element: JSRef<Element> = ElementCast::from_ref(**owner.as_ref().unwrap());
+
+        assert!(decl_block.important.len() == 0);
+        for decl in decl_block.normal.iter() {
+            // 7. If property is a shorthand property, then for each longhand property
+            //    longhand that property maps to, in canonical order, set the CSS
+            //    declaration value longhand to the appropriate value(s) from component
+            //    value list, and with the list of declarations being the declarations.
+
+            // 8. Otherwise, set the CSS declaration value property to the
+            //    value component value list, and with the list of declarations
+            //    being the declarations.
+
+            element.update_inline_style(decl.clone());
+        }
+
+        let document = document_from_node(element).root();
+        let node: JSRef<Node> = NodeCast::from_ref(element);
+        document.content_changed(node, NodeDamage::NodeStyleDamaged);
         Ok(())
     }
 

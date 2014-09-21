@@ -1,6 +1,11 @@
-<div id="test" style="display: block; background-color: black; background-position: top left;"></div>
+<div id="test" style="display: block; background-color: black; background-position: top left;">test text!</div>
 <script>
-alert(document.getElementById('test').style.display);
+var id = document.getElementById('test');
+/*alert(id.style.display);
+id.style.display = 'none';
+alert(id.style.display);*/
+
+id.style.background = "black";
 alert(document.getElementById('test').style.background);
 alert(document.getElementById('test').style.backgroundColor);
 alert(document.getElementById('test').style.backgroundPosition);

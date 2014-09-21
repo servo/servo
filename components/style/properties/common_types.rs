@@ -650,6 +650,15 @@ pub mod computed {
         Percentage(CSSFloat),
         Auto,
     }
+    impl fmt::Show for LengthOrPercentageOrAuto {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            match self {
+                &LengthOrPercentageOrAuto::Length(length) => write!(f, "{}", length),
+                &LengthOrPercentageOrAuto::Percentage(percentage) => write!(f, "{}%", percentage),
+                &LengthOrPercentageOrAuto::Auto => write!(f, "auto"),
+            }
+        }
+    }
     #[allow(non_snake_case)]
     pub fn compute_LengthOrPercentageOrAuto(value: specified::LengthOrPercentageOrAuto,
                                             context: &Context) -> LengthOrPercentageOrAuto {
@@ -668,6 +677,15 @@ pub mod computed {
         Length(Au),
         Percentage(CSSFloat),
         None,
+    }
+    impl fmt::Show for LengthOrPercentageOrNone {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            match self {
+                &LengthOrPercentageOrNone::Length(length) => write!(f, "{}", length),
+                &LengthOrPercentageOrNone::Percentage(percentage) => write!(f, "{}%", percentage),
+                &LengthOrPercentageOrNone::None => write!(f, "none"),
+            }
+        }
     }
     #[allow(non_snake_case)]
     pub fn compute_LengthOrPercentageOrNone(value: specified::LengthOrPercentageOrNone,
@@ -689,6 +707,15 @@ pub mod computed {
         LinearGradient(LinearGradient),
     }
 
+    impl fmt::Show for Image {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            match self {
+                &Image::Url(ref url) => write!(f, "url({})", url),
+                &Image::LinearGradient(ref grad) => write!(f, "linear-gradient({})", grad),
+            }
+        }
+    }
+
     /// Computed values for a CSS linear gradient.
     #[deriving(Clone, PartialEq)]
     pub struct LinearGradient {
@@ -697,6 +724,16 @@ pub mod computed {
 
         /// The color stops.
         pub stops: Vec<ColorStop>,
+    }
+
+    impl fmt::Show for LinearGradient {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            let _ = write!(f, "{}", self.angle_or_corner);
+            for stop in self.stops.iter() {
+                let _ = write!(f, ", {}", stop);
+            }
+            Ok(())
+        }
     }
 
     /// Computed values for one color stop in a linear gradient.
@@ -708,6 +745,16 @@ pub mod computed {
         /// The position of this stop. If not specified, this stop is placed halfway between the
         /// point that precedes it and the point that follows it per CSS-IMAGES § 3.4.
         pub position: Option<LengthOrPercentage>,
+    }
+
+    impl fmt::Show for ColorStop {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            let _ = write!(f, "{}", self.color);
+            self.position.map(|pos| {
+                let _ = write!(f, " {}", pos);
+            });
+            Ok(())
+        }
     }
 
     impl LinearGradient {
