@@ -863,7 +863,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
                 if node.is_in_doc() && !value.is_empty() {
                     let doc = document_from_node(*self).root();
                     let value = Atom::from_slice(value.as_slice());
-                    doc.register_named_element(*self, value);
+                    doc.register_named_element(*self, &value);
                 }
             }
             _ => ()
@@ -887,7 +887,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
                 if node.is_in_doc() && !value.is_empty() {
                     let doc = document_from_node(*self).root();
                     let value = Atom::from_slice(value.as_slice());
-                    doc.unregister_named_element(*self, value);
+                    doc.unregister_named_element(*self, &value);
                 }
             }
             _ => ()
@@ -918,7 +918,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
                 let value = attr.deref().Value();
                 if !value.is_empty() {
                     let value = Atom::from_slice(value.as_slice());
-                    doc.deref().register_named_element(*self, value);
+                    doc.deref().register_named_element(*self, &value);
                 }
             }
             _ => ()
@@ -939,7 +939,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
                 let value = attr.deref().Value();
                 if !value.is_empty() {
                     let value = Atom::from_slice(value.as_slice());
-                    doc.deref().unregister_named_element(*self, value);
+                    doc.deref().unregister_named_element(*self, &value);
                 }
             }
             _ => ()
