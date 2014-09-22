@@ -527,10 +527,12 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
     }
 
     fn update_inline_style(self, property_decl: style::PropertyDeclaration) {
+        //FIXME: Rust bug incorrectly thinks inline_declarations doesn't need mut,
+        //       and allow(unused_mut) on this method does nothing.
         let mut inline_declarations = self.style_attribute.borrow_mut();
         let exists = inline_declarations.is_some();
         if exists {
-            let declarations = inline_declarations.as_mut().unwrap();
+            let declarations = inline_declarations.deref_mut().as_mut().unwrap();
             for declaration in declarations.normal.make_unique()
                                                   .iter_mut()
                                                   .chain(declarations.important.make_unique().iter_mut()) {

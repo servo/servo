@@ -15,11 +15,39 @@ pub mod specified {
     use std::f64::consts::PI;
     use std::fmt::{Formatter, FormatError, Show};
     use url::Url;
+    use cssparser;
     use cssparser::ast;
     use cssparser::ast::*;
     use parsing_utils::{mod, BufferedIter, ParserIter};
     use super::{Au, CSSFloat};
-    pub use cssparser::Color as CSSColor;
+    #[deriving(Clone)]
+    pub struct CSSColor {
+        pub parsed: cssparser::Color,
+        pub authored: Option<String>,
+    }
+    impl CSSColor {
+        pub fn parse(component_value: &ComponentValue) -> Result<CSSColor, ()> {
+            let parsed = cssparser::Color::parse(component_value);
+            parsed.map(|parsed| {
+                let authored = match component_value {
+                    &Ident(ref s) | &QuotedString(ref s) => Some(s.clone()),
+                    _ => None,
+                };
+                CSSColor {
+                    parsed: parsed,
+                    authored: authored,
+                }
+            })
+        }
+    }
+    impl Show for CSSColor {
+        fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
+            match self.authored {
+                Some(ref s) => write!(f, "{}", s),
+                None => write!(f, "{}", self.parsed),
+            }
+        }
+    }
 
     #[deriving(Clone)]
     pub enum Length {
@@ -563,7 +591,6 @@ pub mod computed {
     pub use super::specified::{Angle, AngleOrCorner, HorizontalDirection};
     pub use super::specified::{VerticalDirection};
     pub use cssparser::Color as CSSColor;
-    pub use super::super::longhands::computed_as_specified as compute_CSSColor;
     use super::*;
     use super::super::longhands;
     use std::fmt;
@@ -587,6 +614,12 @@ pub mod computed {
         pub border_left_present: bool,
         pub is_root_element: bool,
         // TODO, as needed: viewport size, etc.
+    }
+
+    #[allow(non_snake_case)]
+    #[inline]
+    pub fn compute_CSSColor(value: specified::CSSColor, _context: &computed::Context) -> CSSColor {
+        value.parsed
     }
 
     #[allow(non_snake_case)]
@@ -767,7 +800,7 @@ pub mod computed {
                 angle_or_corner: angle_or_corner,
                 stops: stops.into_iter().map(|stop| {
                     ColorStop {
-                        color: stop.color,
+                        color: stop.color.parsed,
                         position: match stop.position {
                             None => None,
                             Some(value) => Some(compute_LengthOrPercentage(value, context)),

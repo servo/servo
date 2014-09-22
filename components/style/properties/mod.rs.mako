@@ -1875,9 +1875,9 @@ pub mod shorthands {
             // three values set top, (left, right) and bottom
             // four values set them in order
             let top = iter.next().unwrap_or(None);
-            let right = iter.next().unwrap_or(top);
-            let bottom = iter.next().unwrap_or(top);
-            let left = iter.next().unwrap_or(right);
+            let right = iter.next().unwrap_or(top.clone());
+            let bottom = iter.next().unwrap_or(top.clone());
+            let left = iter.next().unwrap_or(right.clone());
             if top.is_some() && right.is_some() && bottom.is_some() && left.is_some()
             && iter.next().is_none() {
                 Ok(Longhands {
@@ -2078,7 +2078,7 @@ pub mod shorthands {
             Longhands {
                 % for side in ["top", "right", "bottom", "left"]:
                     % for prop in ["color", "style", "width"]:
-                        ${"border_%s_%s: %s," % (side, prop, prop)}
+                        ${"border_%s_%s: %s.clone()," % (side, prop, prop)}
                     % endfor
                 % endfor
             }
