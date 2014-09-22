@@ -2746,6 +2746,10 @@
         "url": "/html/semantics/embedded-content/the-img-element/image-1.jpg"
       },
       {
+        "path": "html/semantics/embedded-content/the-img-element/srcset/common.js",
+        "url": "/html/semantics/embedded-content/the-img-element/srcset/common.js"
+      },
+      {
         "path": "html/semantics/embedded-content/the-video-element/video_content-ref.htm",
         "url": "html/semantics/embedded-content/the-video-element/video_content-ref.htm"
       },
@@ -3812,10 +3816,6 @@
       {
         "path": "user-timing/resources/webperftestharnessextension.js",
         "url": "/user-timing/resources/webperftestharnessextension.js"
-      },
-      {
-        "path": "vibration/TODO.txt",
-        "url": "/vibration/TODO.txt"
       },
       {
         "path": "web-animations/README.md",
@@ -5422,6 +5422,10 @@
         "url": "/workers/constructors/Worker/undefined"
       },
       {
+        "path": "workers/interfaces/DedicatedWorkerGlobalScope/postMessage/message-event.js",
+        "url": "/workers/interfaces/DedicatedWorkerGlobalScope/postMessage/message-event.js"
+      },
+      {
         "path": "workers/interfaces/WorkerGlobalScope/location/helper-redirect.py",
         "url": "/workers/interfaces/WorkerGlobalScope/location/helper-redirect.py"
       },
@@ -6504,8 +6508,16 @@
         "url": "/touch-events/single-touch-manual.html"
       },
       {
+        "path": "vibration/cancel-when-hidden-manual.html",
+        "url": "/vibration/cancel-when-hidden-manual.html"
+      },
+      {
         "path": "vibration/cancel-with-0-manual.html",
         "url": "/vibration/cancel-with-0-manual.html"
+      },
+      {
+        "path": "vibration/cancel-with-array-0-manual.html",
+        "url": "/vibration/cancel-with-array-0-manual.html"
       },
       {
         "path": "vibration/cancel-with-empty-array-manual.html",
@@ -11984,6 +11996,10 @@
         "url": "/FileAPI/Blob-slice.html"
       },
       {
+        "path": "FileAPI/File-constructor.html",
+        "url": "/FileAPI/File-constructor.html"
+      },
+      {
         "path": "FileAPI/FileReader-interface/filereader_abort.html",
         "url": "/FileAPI/FileReader-interface/filereader_abort.html"
       },
@@ -12903,10 +12919,6 @@
       {
         "path": "XMLHttpRequest/anonymous-mode-unsupported.htm",
         "url": "/XMLHttpRequest/anonymous-mode-unsupported.htm"
-      },
-      {
-        "path": "XMLHttpRequest/data-uri-basic.htm",
-        "url": "/XMLHttpRequest/data-uri-basic.htm"
       },
       {
         "path": "XMLHttpRequest/data-uri.htm",
@@ -14258,6 +14270,10 @@
         "url": "/dom/nodes/Element-classlist.html"
       },
       {
+        "path": "dom/nodes/Element-closest.html",
+        "url": "/dom/nodes/Element-closest.html"
+      },
+      {
         "path": "dom/nodes/Element-firstElementChild-entity.svg",
         "url": "/dom/nodes/Element-firstElementChild-entity.svg"
       },
@@ -14396,6 +14412,10 @@
       {
         "path": "dom/nodes/Node-nodeName.xhtml",
         "url": "/dom/nodes/Node-nodeName.xhtml"
+      },
+      {
+        "path": "dom/nodes/Node-nodeValue.html",
+        "url": "/dom/nodes/Node-nodeValue.html"
       },
       {
         "path": "dom/nodes/Node-normalize.html",
@@ -15123,6 +15143,11 @@
       {
         "path": "html/browsers/offline/manifest_url_check.html",
         "url": "/html/browsers/offline/manifest_url_check.html"
+      },
+      {
+        "path": "html/browsers/origin/cross-origin-objects/cross-origin-objects.html",
+        "timeout": "long",
+        "url": "/html/browsers/origin/cross-origin-objects/cross-origin-objects.html"
       },
       {
         "path": "html/browsers/the-window-object/accessing-other-browsing-contexts/indexed-browsing-contexts-01.html",
@@ -17406,8 +17431,36 @@
         "url": "/html/semantics/embedded-content/the-iframe-element/iframe_sandbox_allow_script.html"
       },
       {
+        "path": "html/semantics/embedded-content/the-img-element/current-pixel-density/basic.html",
+        "url": "/html/semantics/embedded-content/the-img-element/current-pixel-density/basic.html"
+      },
+      {
+        "path": "html/semantics/embedded-content/the-img-element/current-pixel-density/error.html",
+        "url": "/html/semantics/embedded-content/the-img-element/current-pixel-density/error.html"
+      },
+      {
         "path": "html/semantics/embedded-content/the-img-element/img.complete.html",
         "url": "/html/semantics/embedded-content/the-img-element/img.complete.html"
+      },
+      {
+        "path": "html/semantics/embedded-content/the-img-element/relevant-mutations.html",
+        "url": "/html/semantics/embedded-content/the-img-element/relevant-mutations.html"
+      },
+      {
+        "path": "html/semantics/embedded-content/the-img-element/sizes/parse-a-sizes-attribute.html",
+        "url": "/html/semantics/embedded-content/the-img-element/sizes/parse-a-sizes-attribute.html"
+      },
+      {
+        "path": "html/semantics/embedded-content/the-img-element/srcset/parse-a-srcset-attribute.html",
+        "url": "/html/semantics/embedded-content/the-img-element/srcset/parse-a-srcset-attribute.html"
+      },
+      {
+        "path": "html/semantics/embedded-content/the-img-element/srcset/select-an-image-source.html",
+        "url": "/html/semantics/embedded-content/the-img-element/srcset/select-an-image-source.html"
+      },
+      {
+        "path": "html/semantics/embedded-content/the-img-element/update-the-source-set.html",
+        "url": "/html/semantics/embedded-content/the-img-element/update-the-source-set.html"
       },
       {
         "path": "html/semantics/embedded-content/the-object-element/object-attributes.html",
@@ -19825,6 +19878,14 @@
         "url": "/pointerevents/pointerevent_constructor.html"
       },
       {
+        "path": "pointerevents/pointerevent_pointerleave_after_pointercancel_touch.html",
+        "url": "/pointerevents/pointerevent_pointerleave_after_pointercancel_touch.html"
+      },
+      {
+        "path": "pointerevents/pointerevent_pointerleave_after_pointerup_nohover.html",
+        "url": "/pointerevents/pointerevent_pointerleave_after_pointerup_nohover.html"
+      },
+      {
         "path": "pointerevents/pointerevent_pointerout_after_pointercancel_touch.html",
         "url": "/pointerevents/pointerevent_pointerout_after_pointercancel_touch.html"
       },
@@ -20567,6 +20628,10 @@
       {
         "path": "vibration/api-is-present.html",
         "url": "/vibration/api-is-present.html"
+      },
+      {
+        "path": "vibration/invalid-values.html",
+        "url": "/vibration/invalid-values.html"
       },
       {
         "path": "vibration/silent-ignore.html",
@@ -21442,86 +21507,82 @@
         "url": "/websockets/interfaces.html"
       },
       {
-        "path": "websockets/interfaces/CloseEvent/001.html",
-        "url": "/websockets/interfaces/CloseEvent/001.html"
+        "path": "websockets/interfaces/CloseEvent/clean-close.html",
+        "url": "/websockets/interfaces/CloseEvent/clean-close.html"
       },
       {
-        "path": "websockets/interfaces/CloseEvent/002.html",
-        "url": "/websockets/interfaces/CloseEvent/002.html"
+        "path": "websockets/interfaces/CloseEvent/constructor.html",
+        "url": "/websockets/interfaces/CloseEvent/constructor.html"
       },
       {
-        "path": "websockets/interfaces/CloseEvent/003.html",
-        "url": "/websockets/interfaces/CloseEvent/003.html"
+        "path": "websockets/interfaces/CloseEvent/historical.html",
+        "url": "/websockets/interfaces/CloseEvent/historical.html"
       },
       {
-        "path": "websockets/interfaces/CloseEvent/004.html",
-        "url": "/websockets/interfaces/CloseEvent/004.html"
+        "path": "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-arraybuffer.html",
+        "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-arraybuffer.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/bufferedAmount/001.html",
-        "url": "/websockets/interfaces/WebSocket/bufferedAmount/001.html"
+        "path": "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-blob.html",
+        "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-blob.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/bufferedAmount/002.html",
-        "url": "/websockets/interfaces/WebSocket/bufferedAmount/002.html"
+        "path": "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-defineProperty-getter.html",
+        "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-defineProperty-getter.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/bufferedAmount/003.html",
-        "url": "/websockets/interfaces/WebSocket/bufferedAmount/003.html"
+        "path": "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-defineProperty-setter.html",
+        "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-defineProperty-setter.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/bufferedAmount/004.html",
-        "url": "/websockets/interfaces/WebSocket/bufferedAmount/004.html"
+        "path": "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-deleting.html",
+        "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-deleting.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/bufferedAmount/005.html",
-        "url": "/websockets/interfaces/WebSocket/bufferedAmount/005.html"
+        "path": "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-getting.html",
+        "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-getting.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/bufferedAmount/006.html",
-        "url": "/websockets/interfaces/WebSocket/bufferedAmount/006.html"
+        "path": "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-initial.html",
+        "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-initial.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/bufferedAmount/007.html",
-        "url": "/websockets/interfaces/WebSocket/bufferedAmount/007.html"
-      },
-      {
-        "path": "websockets/interfaces/WebSocket/bufferedAmount/008.html",
-        "url": "/websockets/interfaces/WebSocket/bufferedAmount/008.html"
-      },
-      {
-        "path": "websockets/interfaces/WebSocket/bufferedAmount/009.html",
+        "path": "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-large.html",
         "timeout": "long",
-        "url": "/websockets/interfaces/WebSocket/bufferedAmount/009.html"
+        "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-large.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/bufferedAmount/010.html",
-        "url": "/websockets/interfaces/WebSocket/bufferedAmount/010.html"
+        "path": "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-readonly.html",
+        "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-readonly.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/close/001.html",
-        "url": "/websockets/interfaces/WebSocket/close/001.html"
+        "path": "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-unicode.html",
+        "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-unicode.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/close/002.html",
-        "url": "/websockets/interfaces/WebSocket/close/002.html"
+        "path": "websockets/interfaces/WebSocket/close/close-basic.html",
+        "url": "/websockets/interfaces/WebSocket/close/close-basic.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/close/003.html",
-        "url": "/websockets/interfaces/WebSocket/close/003.html"
-      },
-      {
-        "path": "websockets/interfaces/WebSocket/close/004.html",
-        "url": "/websockets/interfaces/WebSocket/close/004.html"
-      },
-      {
-        "path": "websockets/interfaces/WebSocket/close/005.html",
-        "url": "/websockets/interfaces/WebSocket/close/005.html"
-      },
-      {
-        "path": "websockets/interfaces/WebSocket/close/006.html",
+        "path": "websockets/interfaces/WebSocket/close/close-connecting.html",
         "timeout": "long",
-        "url": "/websockets/interfaces/WebSocket/close/006.html"
+        "url": "/websockets/interfaces/WebSocket/close/close-connecting.html"
+      },
+      {
+        "path": "websockets/interfaces/WebSocket/close/close-multiple.html",
+        "url": "/websockets/interfaces/WebSocket/close/close-multiple.html"
+      },
+      {
+        "path": "websockets/interfaces/WebSocket/close/close-nested.html",
+        "url": "/websockets/interfaces/WebSocket/close/close-nested.html"
+      },
+      {
+        "path": "websockets/interfaces/WebSocket/close/close-replace.html",
+        "url": "/websockets/interfaces/WebSocket/close/close-replace.html"
+      },
+      {
+        "path": "websockets/interfaces/WebSocket/close/close-return.html",
+        "url": "/websockets/interfaces/WebSocket/close/close-return.html"
       },
       {
         "path": "websockets/interfaces/WebSocket/constants/001.html",
@@ -21628,8 +21689,8 @@
         "url": "/websockets/interfaces/WebSocket/extensions/001.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/protocol/001.html",
-        "url": "/websockets/interfaces/WebSocket/protocol/001.html"
+        "path": "websockets/interfaces/WebSocket/protocol/protocol-initial.html",
+        "url": "/websockets/interfaces/WebSocket/protocol/protocol-initial.html"
       },
       {
         "path": "websockets/interfaces/WebSocket/readyState/001.html",
@@ -22333,6 +22394,10 @@
         "url": "/workers/interfaces/DedicatedWorkerGlobalScope/postMessage/imagedata-cloned-canvas-in-array.html"
       },
       {
+        "path": "workers/interfaces/DedicatedWorkerGlobalScope/postMessage/message-event.html",
+        "url": "/workers/interfaces/DedicatedWorkerGlobalScope/postMessage/message-event.html"
+      },
+      {
         "path": "workers/interfaces/DedicatedWorkerGlobalScope/postMessage/return-value.html",
         "url": "/workers/interfaces/DedicatedWorkerGlobalScope/postMessage/return-value.html"
       },
@@ -22732,5 +22797,5 @@
     ]
   },
   "local_changes": [],
-  "rev": "2c4d2713ef1eca473ab6df02cc5b0f9fdbcffd29"
+  "rev": "71eea34fa3b60dc9c2e9c73ce397510c329aa365"
 }
