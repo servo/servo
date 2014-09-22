@@ -908,8 +908,7 @@ pub mod longhands {
             // We already computed this element's font size; no need to compute it again.
             return context.font_size
         }
-        /// <length> | <percentage> | <absolute-size>
-        /// TODO: support <relative-size>
+        /// <length> | <percentage> | <absolute-size> | <relative-size>
         pub fn from_component_value(input: &ComponentValue, _base_url: &Url)
                                     -> Result<SpecifiedValue, ()> {
             match specified::LengthOrPercentage::parse_non_negative(input) {
@@ -917,17 +916,21 @@ pub mod longhands {
                 Ok(specified::LP_Percentage(value)) => return Ok(specified::Em(value)),
                 Err(()) => (),
             }
-            let au = match try!(get_ident_lower(input)).as_slice() {
-                "xx-small" => Au::from_px(MEDIUM_PX) * 3 / 5,
-                "x-small" => Au::from_px(MEDIUM_PX) * 3 / 4,
-                "small" => Au::from_px(MEDIUM_PX) * 8 / 9,
-                "medium" => Au::from_px(MEDIUM_PX),
-                "large" => Au::from_px(MEDIUM_PX) * 6 / 5,
-                "x-large" => Au::from_px(MEDIUM_PX) * 3 / 2,
-                "xx-large" => Au::from_px(MEDIUM_PX) * 2,
+            match try!(get_ident_lower(input)).as_slice() {
+                "xx-small" => Ok(specified::Au_(Au::from_px(MEDIUM_PX) * 3 / 5)),
+                "x-small" => Ok(specified::Au_(Au::from_px(MEDIUM_PX) * 3 / 4)),
+                "small" => Ok(specified::Au_(Au::from_px(MEDIUM_PX) * 8 / 9)),
+                "medium" => Ok(specified::Au_(Au::from_px(MEDIUM_PX))),
+                "large" => Ok(specified::Au_(Au::from_px(MEDIUM_PX) * 6 / 5)),
+                "x-large" => Ok(specified::Au_(Au::from_px(MEDIUM_PX) * 3 / 2)),
+                "xx-large" => Ok(specified::Au_(Au::from_px(MEDIUM_PX) * 2)),
+
+                // https://github.com/servo/servo/issues/3423#issuecomment-56321664
+                "smaller" => Ok(specified::Em(0.85)),
+                "larger" => Ok(specified::Em(1.2)),
+
                 _ => return Err(())
-            };
-            Ok(specified::Au_(au))
+            }
         }
     </%self:single_component_value>
 
