@@ -35,8 +35,8 @@ use layers::rendergl::RenderContext;
 use layers::scene::Scene;
 use opengles::gl2;
 use png;
-use servo_msg::compositor_msg::{Blank, Epoch, FixedPosition, FinishedLoading, IdleRenderState};
-use servo_msg::compositor_msg::{LayerId, ReadyState, RenderingRenderState, RenderState};
+use servo_msg::compositor_msg::{Blank, Epoch, FinishedLoading, IdleRenderState, LayerId};
+use servo_msg::compositor_msg::{ReadyState, RenderingRenderState, RenderState, Scrollable};
 use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, LoadUrlMsg, NavigateMsg};
 use servo_msg::constellation_msg::{PipelineId, ResizedWindowMsg, WindowSizeData};
 use servo_msg::constellation_msg;
@@ -433,7 +433,7 @@ impl IOCompositor {
             id: LayerId::null(),
             rect: Rect::zero(),
             background_color: azure_hl::Color::new(0., 0., 0., 0.),
-            scroll_policy: FixedPosition,
+            scroll_policy: Scrollable,
         };
         let root_layer = CompositorData::new_layer(frame_tree.pipeline.clone(),
                                                    layer_properties,

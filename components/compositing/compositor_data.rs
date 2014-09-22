@@ -74,6 +74,7 @@ impl CompositorData {
 
     pub fn update_layer(layer: Rc<Layer<CompositorData>>, layer_properties: LayerProperties) {
         layer.extra_data.borrow_mut().epoch = layer_properties.epoch;
+        layer.extra_data.borrow_mut().scroll_policy = layer_properties.scroll_policy;
         layer.extra_data.borrow_mut().background_color = layer_properties.background_color;
 
         let size: TypedSize2D<DevicePixel, f32> = Size2D::from_untyped(&layer_properties.rect.size);
