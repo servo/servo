@@ -52,7 +52,9 @@ use std::from_str::FromStr;
 use std::mem;
 use std::num::Zero;
 use style::{ComputedValues, TElement, TNode, cascade_anonymous, RGBA};
-use style::computed_values::{LengthOrPercentageOrAuto, overflow, LPA_Auto, background_attachment};
+use style::computed_values::{LengthOrPercentage, LengthOrPercentageOrAuto};
+use style::computed_values::{LengthOrPercentageOrNone};
+use style::computed_values::{overflow, LPA_Auto, background_attachment};
 use style::computed_values::{background_repeat, border_style, clear, position, text_align};
 use style::computed_values::{text_decoration, vertical_align, visibility, white_space};
 use sync::{Arc, Mutex};
@@ -236,6 +238,18 @@ impl ImageFragmentInfo {
                 Auto
             }
         }
+    }
+
+    /// Clamp a value obtained from style_length, based on min / max lengths.
+    pub fn clamp_size(size: Au, min_size: LengthOrPercentage, max_size: LengthOrPercentageOrNone,
+                        container_inline_size: Au) -> Au {
+        let min_size = model::specified(min_size, container_inline_size);
+        let max_size = model::specified_or_none(max_size, container_inline_size);
+
+        Au::max(min_size, match max_size {
+            None => size,
+            Some(max_size) => Au::min(size, max_size),
+        })
     }
 }
 
@@ -1423,6 +1437,10 @@ impl Fragment {
 
         let style_inline_size = self.style().content_inline_size();
         let style_block_size = self.style().content_block_size();
+        let style_min_inline_size = self.style().min_inline_size();
+        let style_max_inline_size = self.style().max_inline_size();
+        let style_min_block_size = self.style().min_block_size();
+        let style_max_block_size = self.style().max_block_size();
         let noncontent_inline_size = self.border_padding.inline_start_end();
 
         match self.specific {
@@ -1441,21 +1459,41 @@ impl Fragment {
             ImageFragment(ref mut image_fragment_info) => {
                 // TODO(ksh8281): compute border,margin
                 let inline_size = ImageFragmentInfo::style_length(style_inline_size,
-                                                       image_fragment_info.dom_inline_size,
-                                                       container_inline_size);
-                let block_size = ImageFragmentInfo::style_length(style_block_size,
-                                                        image_fragment_info.dom_block_size,
-                                                        Au(0));
+                                                        image_fragment_info.dom_inline_size,
+                                                        container_inline_size);
 
-                let inline_size = match (inline_size,block_size) {
-                    (Auto, Auto) => image_fragment_info.image_inline_size(),
-                    (Auto,Specified(h)) => {
-                        let scale = image_fragment_info.
-                            image_block_size().to_f32().unwrap() / h.to_f32().unwrap();
-                        Au::new((image_fragment_info.image_inline_size().to_f32().unwrap() / scale) as i32)
+                let inline_size = match inline_size {
+                    Auto => {
+                        let intrinsic_width = image_fragment_info.image_inline_size();
+                        let intrinsic_height = image_fragment_info.image_block_size();
+
+                        if intrinsic_height == Au(0) {
+                            intrinsic_width
+                        } else {
+                            let ratio = intrinsic_width.to_f32().unwrap() /
+                                        intrinsic_height.to_f32().unwrap();
+
+                            let specified_height = ImageFragmentInfo::style_length(style_block_size,
+                                                            image_fragment_info.dom_block_size,
+                                                            Au(0));
+                            let specified_height = match specified_height {
+                                Auto => intrinsic_height,
+                                Specified(h) => h,
+                            };
+                            let specified_height = ImageFragmentInfo::clamp_size(specified_height,
+                                                                                 style_min_block_size,
+                                                                                 style_max_block_size,
+                                                                                 Au(0));
+                            Au::new((specified_height.to_f32().unwrap() * ratio) as i32)
+                        }
                     },
-                    (Specified(w), _) => w,
+                    Specified(w) => w,
                 };
+
+                let inline_size = ImageFragmentInfo::clamp_size(inline_size,
+                                                                style_min_inline_size,
+                                                                style_max_inline_size,
+                                                                container_inline_size);
 
                 self.border_box.size.inline = inline_size + noncontent_inline_size;
                 image_fragment_info.computed_inline_size = Some(inline_size);
@@ -1477,8 +1515,9 @@ impl Fragment {
             ImageFragment(_) | ScannedTextFragment(_) | InlineBlockFragment(_) => {}
         }
 
-        let style_inline_size = self.style().content_inline_size();
         let style_block_size = self.style().content_block_size();
+        let style_min_block_size = self.style().min_block_size();
+        let style_max_block_size = self.style().max_block_size();
         let noncontent_block_size = self.border_padding.block_start_end();
 
         match self.specific {
@@ -1491,19 +1530,20 @@ impl Fragment {
                                                         image_fragment_info.dom_block_size,
                                                         Au(0));
 
-                let block_size = match (style_inline_size, image_fragment_info.dom_inline_size, block_size) {
-                    (LPA_Auto, None, Auto) => {
-                        image_fragment_info.image_block_size()
-                    },
-                    (_,_,Auto) => {
+                let block_size = match block_size {
+                    Auto => {
                         let scale = image_fragment_info.image_inline_size().to_f32().unwrap()
                             / inline_size.to_f32().unwrap();
                         Au::new((image_fragment_info.image_block_size().to_f32().unwrap() / scale) as i32)
                     },
-                    (_,_,Specified(h)) => {
+                    Specified(h) => {
                         h
                     }
                 };
+
+                let block_size = ImageFragmentInfo::clamp_size(block_size, style_min_block_size,
+                                                               style_max_block_size,
+                                                               Au(0));
 
                 image_fragment_info.computed_block_size = Some(block_size);
                 self.border_box.size.block = block_size + noncontent_block_size
