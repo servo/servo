@@ -887,7 +887,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
                 if node.is_in_doc() && !value.is_empty() {
                     let doc = document_from_node(*self).root();
                     let value = Atom::from_slice(value.as_slice());
-                    doc.unregister_named_element (*self, &value);
+                    doc.unregister_named_element(*self, &value);
                 }
             }
             _ => ()
