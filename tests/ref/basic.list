@@ -138,3 +138,4 @@ flaky_gpu,flaky_linux == acid2_noscroll.html acid2_ref_broken.html
 == percentage_height_float_a.html percentage_height_float_ref.html
 == img_block_maxwidth_a.html img_block_maxwidth_ref.html
 == img_block_maxwidth_b.html img_block_maxwidth_ref.html
+== float_clearance_a.html float_clearance_ref.html
