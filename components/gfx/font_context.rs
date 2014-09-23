@@ -38,6 +38,8 @@ fn create_scaled_font(backend: BackendType, template: &Arc<FontTemplateData>, pt
     ScaledFont::new(backend, &cgfont, pt_size as AzFloat)
 }
 
+static SMALL_CAPS_SCALE_FACTOR: f64 = 0.8;      // Matches FireFox (see gfxFont.h)
+
 struct LayoutFontCacheEntry {
     family: String,
     font: Rc<RefCell<Font>>,
@@ -82,8 +84,11 @@ impl FontContext {
     fn create_layout_font(&self, template: Arc<FontTemplateData>,
                             descriptor: FontTemplateDescriptor, pt_size: f64,
                             variant: font_variant::T) -> Font {
+        // TODO: (Bug #3463): Currently we only support fake small-caps
+        // rendering. We should also support true small-caps (where the
+        // font supports it) in the future.
         let actual_pt_size = match variant {
-            font_variant::small_caps => pt_size * 0.7,
+            font_variant::small_caps => pt_size * SMALL_CAPS_SCALE_FACTOR,
             font_variant::normal => pt_size,
         };
 
