@@ -802,7 +802,7 @@ pub mod longhands {
 
 
     ${single_keyword("font-style", "normal italic oblique")}
-    ${single_keyword("font-variant", "normal")}  // Add small-caps when supported
+    ${single_keyword("font-variant", "normal small-caps")}
 
     <%self:single_component_value name="font-weight">
         #[deriving(Clone)]

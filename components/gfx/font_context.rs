@@ -5,7 +5,7 @@
 use font::{Font, FontGroup};
 use font::SpecifiedFontStyle;
 use platform::font_context::FontContextHandle;
-use style::computed_values::font_style;
+use style::computed_values::{font_style, font_variant};
 
 use font_cache_task::FontCacheTask;
 use font_template::FontTemplateDescriptor;
@@ -80,16 +80,24 @@ impl FontContext {
 
     /// Create a font for use in layout calculations.
     fn create_layout_font(&self, template: Arc<FontTemplateData>,
-                            descriptor: FontTemplateDescriptor, pt_size: f64) -> Font {
+                            descriptor: FontTemplateDescriptor, pt_size: f64,
+                            variant: font_variant::T) -> Font {
+        let actual_pt_size = match variant {
+            font_variant::small_caps => pt_size * 0.7,
+            font_variant::normal => pt_size,
+        };
 
-        let handle: FontHandle = FontHandleMethods::new_from_template(&self.platform_handle, template, Some(pt_size)).unwrap();
+        let handle: FontHandle = FontHandleMethods::new_from_template(&self.platform_handle,
+                                    template, Some(actual_pt_size)).unwrap();
         let metrics = handle.get_metrics();
 
         Font {
             handle: handle,
             shaper: None,
+            variant: variant,
             descriptor: descriptor,
-            pt_size: pt_size,
+            requested_pt_size: pt_size,
+            actual_pt_size: actual_pt_size,
             metrics: metrics,
             shape_cache: HashCache::new(),
             glyph_advance_cache: HashCache::new(),
@@ -114,7 +122,8 @@ impl FontContext {
                 if cached_font_entry.family == *family {
                     let cached_font = cached_font_entry.font.borrow();
                     if cached_font.descriptor == desc &&
-                       cached_font.pt_size == style.pt_size {
+                       cached_font.requested_pt_size == style.pt_size &&
+                       cached_font.variant == style.variant {
                         fonts.push(cached_font_entry.font.clone());
                         cache_hit = true;
                         break;
@@ -124,7 +133,8 @@ impl FontContext {
 
             if !cache_hit {
                 let font_template = self.font_cache_task.get_font_template(family.clone(), desc.clone());
-                let layout_font = Rc::new(RefCell::new(self.create_layout_font(font_template, desc.clone(), style.pt_size)));
+                let layout_font = Rc::new(RefCell::new(self.create_layout_font(font_template,
+                                                        desc.clone(), style.pt_size, style.variant)));
                 self.layout_font_cache.push(LayoutFontCacheEntry {
                     family: family.clone(),
                     font: layout_font.clone(),
