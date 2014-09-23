@@ -143,8 +143,9 @@ fn scroll_layer_and_all_child_layers(layer: Rc<Layer<CompositorData>>,
         result = true
     }
 
+    let offset_for_children = new_offset + layer.extra_data.borrow().scroll_offset;
     for child in layer.children().iter() {
-        result |= scroll_layer_and_all_child_layers(child.clone(), new_offset);
+        result |= scroll_layer_and_all_child_layers(child.clone(), offset_for_children);
     }
 
     return result;
