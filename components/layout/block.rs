@@ -510,9 +510,13 @@ pub struct BlockFlow {
     /// Static y offset of an absolute flow from its CB.
     pub static_b_offset: Au,
 
-    /// The inline-size of the last float prior to this block. This is used to speculatively lay out
-    /// block formatting contexts.
-    previous_float_inline_size: Option<Au>,
+    /// The sum of the inline-sizes of all logically left floats that precede this block. This is
+    /// used to speculatively lay out block formatting contexts.
+    inline_size_of_preceding_left_floats: Au,
+
+    /// The sum of the inline-sizes of all logically right floats that precede this block. This is
+    /// used to speculatively lay out block formatting contexts.
+    inline_size_of_preceding_right_floats: Au,
 
     /// Additional floating flow members.
     pub float: Option<Box<FloatedBlockInfo>>
@@ -525,7 +529,8 @@ impl BlockFlow {
             fragment: Fragment::new(constructor, node),
             is_root: false,
             static_b_offset: Au::new(0),
-            previous_float_inline_size: None,
+            inline_size_of_preceding_left_floats: Au(0),
+            inline_size_of_preceding_right_floats: Au(0),
             float: None
         }
     }
@@ -536,7 +541,8 @@ impl BlockFlow {
             fragment: fragment,
             is_root: false,
             static_b_offset: Au::new(0),
-            previous_float_inline_size: None,
+            inline_size_of_preceding_left_floats: Au(0),
+            inline_size_of_preceding_right_floats: Au(0),
             float: None
         }
     }
@@ -550,7 +556,8 @@ impl BlockFlow {
             fragment: Fragment::new(constructor, node),
             is_root: false,
             static_b_offset: Au::new(0),
-            previous_float_inline_size: None,
+            inline_size_of_preceding_left_floats: Au(0),
+            inline_size_of_preceding_right_floats: Au(0),
             float: Some(box FloatedBlockInfo::new(float_kind)),
             base: base,
         }
@@ -565,7 +572,8 @@ impl BlockFlow {
             fragment: fragment,
             is_root: false,
             static_b_offset: Au::new(0),
-            previous_float_inline_size: None,
+            inline_size_of_preceding_left_floats: Au(0),
+            inline_size_of_preceding_right_floats: Au(0),
             float: Some(box FloatedBlockInfo::new(float_kind)),
             base: base,
         }
@@ -1321,11 +1329,17 @@ impl BlockFlow {
         // This value is used only for table cells.
         let mut inline_start_margin_edge = inline_start_content_edge;
 
-        // The inline-size of the last float, if there was one. This is used for estimating the
-        // inline-sizes of block formatting contexts. (We estimate that the inline-size of any
-        // block formatting context that we see will be based on the inline-size of the containing
-        // block as well as the last float seen before it.)
-        let mut last_float_inline_size = None;
+        // Remember the inline-sizes of the last left and right floats, if there were any. These
+        // are used for estimating the inline-sizes of block formatting contexts. (We estimate that
+        // the inline-size of any block formatting context that we see will be based on the
+        // inline-size of the containing block as well as the last float seen before it in each
+        // direction.)
+        let mut inline_size_of_preceding_left_floats = Au(0);
+        let mut inline_size_of_preceding_right_floats = Au(0);
+        if self.formatting_context_type() == NonformattingContext {
+            inline_size_of_preceding_left_floats = self.inline_size_of_preceding_left_floats;
+            inline_size_of_preceding_right_floats = self.inline_size_of_preceding_right_floats;
+        }
 
         // Calculate non-auto block size to pass to children.
         let content_block_size = self.fragment.style().content_block_size();
@@ -1345,29 +1359,44 @@ impl BlockFlow {
                 let kid_block = kid.as_block();
                 kid_block.base.absolute_static_i_offset = absolute_static_i_offset;
                 kid_block.base.fixed_static_i_offset = fixed_static_i_offset;
+            }
 
-                if kid_block.is_float() {
-                    last_float_inline_size = Some(kid_block.base.intrinsic_inline_sizes.preferred_inline_size)
-                } else {
-                    kid_block.previous_float_inline_size = last_float_inline_size
+            match kid.float_kind() {
+                float::none => {}
+                float::left => {
+                    inline_size_of_preceding_left_floats = inline_size_of_preceding_left_floats +
+                        flow::base(kid).intrinsic_inline_sizes.preferred_inline_size;
+                }
+                float::right => {
+                    inline_size_of_preceding_right_floats = inline_size_of_preceding_right_floats +
+                        flow::base(kid).intrinsic_inline_sizes.preferred_inline_size;
                 }
             }
 
-            // The inline-start margin edge of the child flow is at our inline-start content edge, and its inline-size
-            // is our content inline-size.
+            // The inline-start margin edge of the child flow is at our inline-start content edge,
+            // and its inline-size is our content inline-size.
             flow::mut_base(kid).position.start.i = inline_start_content_edge;
             flow::mut_base(kid).position.size.inline = content_inline_size;
 
             // Determine float impaction.
             match kid.float_clearance() {
                 clear::none => {}
-                clear::left => inline_start_floats_impact_child = false,
-                clear::right => inline_end_floats_impact_child = false,
+                clear::left => {
+                    inline_start_floats_impact_child = false;
+                    inline_size_of_preceding_left_floats = Au(0);
+                }
+                clear::right => {
+                    inline_end_floats_impact_child = false;
+                    inline_size_of_preceding_right_floats = Au(0);
+                }
                 clear::both => {
                     inline_start_floats_impact_child = false;
                     inline_end_floats_impact_child = false;
+                    inline_size_of_preceding_left_floats = Au(0);
+                    inline_size_of_preceding_right_floats = Au(0);
                 }
             }
+
             {
                 let kid_base = flow::mut_base(kid);
                 inline_start_floats_impact_child = inline_start_floats_impact_child ||
@@ -1376,6 +1405,14 @@ impl BlockFlow {
                     kid_base.flags.has_right_floated_descendants();
                 kid_base.flags.set_impacted_by_left_floats(inline_start_floats_impact_child);
                 kid_base.flags.set_impacted_by_right_floats(inline_end_floats_impact_child);
+            }
+
+            if kid.is_block_flow() {
+                let kid_block = kid.as_block();
+                kid_block.inline_size_of_preceding_left_floats =
+                    inline_size_of_preceding_left_floats;
+                kid_block.inline_size_of_preceding_right_floats =
+                    inline_size_of_preceding_right_floats;
             }
 
             // Handle tables.
@@ -1591,16 +1628,13 @@ impl Flow for BlockFlow {
                 self.base.flags.set_impacted_by_left_floats(false);
                 self.base.flags.set_impacted_by_right_floats(false);
 
-                // We can't actually compute the inline-size of this block now, because floats might
-                // affect it. Speculate that its inline-size is equal to the inline-size computed above minus
-                // the inline-size of the previous float.
-                match self.previous_float_inline_size {
-                    None => {}
-                    Some(previous_float_inline_size) => {
-                        self.fragment.border_box.size.inline =
-                            self.fragment.border_box.size.inline - previous_float_inline_size
-                    }
-                }
+                // We can't actually compute the inline-size of this block now, because floats
+                // might affect it. Speculate that its inline-size is equal to the inline-size
+                // computed above minus the inline-size of the previous left and/or right floats.
+                self.fragment.border_box.size.inline =
+                    self.fragment.border_box.size.inline -
+                    self.inline_size_of_preceding_left_floats -
+                    self.inline_size_of_preceding_right_floats;
             }
             OtherFormattingContext => {
                 self.base.flags.set_impacted_by_left_floats(false);

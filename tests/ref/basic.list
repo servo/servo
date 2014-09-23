@@ -146,3 +146,4 @@ flaky_gpu,flaky_linux == acid2_noscroll.html acid2_ref_broken.html
 == block_formatting_context_translation_a.html block_formatting_context_translation_ref.html
 == floated_table_with_margin_a.html floated_table_with_margin_ref.html
 == margins_inside_floats_a.html margins_inside_floats_ref.html
+== block_formatting_context_complex_a.html block_formatting_context_complex_ref.html
