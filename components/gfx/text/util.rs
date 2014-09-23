@@ -82,7 +82,7 @@ pub fn transform_text(text: &str, mode: CompressionMode,
         }
     };
 
-    return (out_str.into_string(), out_whitespace);
+    return (out_str, out_whitespace);
 
     fn is_in_whitespace(ch: char, mode: CompressionMode) -> bool {
         match (ch, mode) {

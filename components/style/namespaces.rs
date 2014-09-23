@@ -36,7 +36,7 @@ pub fn parse_namespace_rule(rule: AtRule, namespaces: &mut NamespaceMap) {
         match component_value {
             Ident(value) => {
                 if prefix.is_some() { syntax_error!() }
-                prefix = Some(value.into_string());
+                prefix = Some(value);
             },
             URL(value) | String(value) => {
                 if ns.is_some() { syntax_error!() }
