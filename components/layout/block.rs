@@ -906,7 +906,7 @@ impl BlockFlow {
                 clear::right => floats.clearance(ClearRight),
                 clear::both => floats.clearance(ClearBoth),
             };
-            cur_b = cur_b + clearance;
+            translate_including_floats(&mut cur_b, clearance, &mut floats);
 
             // At this point, `cur_b` is at the border edge of the child.
             flow::mut_base(kid).position.start.b = cur_b;
