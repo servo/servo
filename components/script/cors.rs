@@ -404,7 +404,7 @@ pub fn allow_cross_origin_request(req: &CORSRequest, headers: &ResponseHeaderCol
     match allow_cross_origin_request {
         Some(h) => {
             let origin_str = h.header_value();
-            if origin_str == "*".to_string() {
+            if origin_str.as_slice() == "*" {
                 return true; // Not always true, depends on credentials mode
             }
             match UrlParser::new().parse(origin_str.as_slice()) {
