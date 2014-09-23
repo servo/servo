@@ -22,7 +22,7 @@ use dom::node::Node;
 use dom::text::Text;
 use servo_util::str::DOMString;
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct DOMImplementation {
     document: JS<Document>,

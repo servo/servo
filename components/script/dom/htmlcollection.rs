@@ -7,6 +7,7 @@ use dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMetho
 use dom::bindings::codegen::InheritTypes::{ElementCast, NodeCast};
 use dom::bindings::global::Window;
 use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::element::{Element, AttributeHandlers, ElementHelpers};
 use dom::node::{Node, NodeHelpers};
@@ -16,27 +17,20 @@ use servo_util::namespace;
 use servo_util::namespace::Namespace;
 use servo_util::str::{DOMString, split_html_space_chars};
 
-use serialize::{Encoder, Encodable};
 use std::ascii::StrAsciiExt;
 
-pub trait CollectionFilter {
+pub trait CollectionFilter : JSTraceable {
     fn filter(&self, elem: JSRef<Element>, root: JSRef<Node>) -> bool;
 }
 
-impl<S: Encoder<E>, E> Encodable<S, E> for Box<CollectionFilter+'static> {
-    fn encode(&self, _s: &mut S) -> Result<(), E> {
-        Ok(())
-    }
-}
-
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub enum CollectionTypeId {
     Static(Vec<JS<Element>>),
     Live(JS<Node>, Box<CollectionFilter+'static>)
 }
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct HTMLCollection {
     collection: CollectionTypeId,
@@ -65,7 +59,8 @@ impl HTMLCollection {
 
     fn all_elements(window: JSRef<Window>, root: JSRef<Node>,
                     namespace_filter: Option<Namespace>) -> Temporary<HTMLCollection> {
-        struct AllElementFilter {
+        #[jstraceable]
+struct AllElementFilter {
             namespace_filter: Option<Namespace>
         }
         impl CollectionFilter for AllElementFilter {
@@ -86,7 +81,8 @@ impl HTMLCollection {
             return HTMLCollection::all_elements(window, root, None);
         }
 
-        struct TagNameFilter {
+        #[jstraceable]
+struct TagNameFilter {
             tag: Atom,
             ascii_lower_tag: Atom,
         }
@@ -121,7 +117,8 @@ impl HTMLCollection {
         if tag.as_slice() == "*" {
             return HTMLCollection::all_elements(window, root, namespace_filter);
         }
-        struct TagNameNSFilter {
+        #[jstraceable]
+struct TagNameNSFilter {
             tag: Atom,
             namespace_filter: Option<Namespace>
         }
@@ -145,7 +142,8 @@ impl HTMLCollection {
 
     pub fn by_class_name(window: JSRef<Window>, root: JSRef<Node>, classes: DOMString)
                          -> Temporary<HTMLCollection> {
-        struct ClassNameFilter {
+        #[jstraceable]
+struct ClassNameFilter {
             classes: Vec<DOMString>
         }
         impl CollectionFilter for ClassNameFilter {
@@ -160,7 +158,8 @@ impl HTMLCollection {
     }
 
     pub fn children(window: JSRef<Window>, root: JSRef<Node>) -> Temporary<HTMLCollection> {
-        struct ElementChildFilter;
+        #[jstraceable]
+struct ElementChildFilter;
         impl CollectionFilter for ElementChildFilter {
             fn filter(&self, elem: JSRef<Element>, root: JSRef<Node>) -> bool {
                 root.is_parent_of(NodeCast::from_ref(elem))

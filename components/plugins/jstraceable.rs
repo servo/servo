@@ -49,16 +49,7 @@ fn jstraceable_substructure(cx: &mut ExtCtxt, trait_span: Span, substr: &Substru
 
     let fields = match *substr.fields {
         Struct(ref fs) => fs,
-        EnumMatching(index, variant, ref fs) => {
-            // Determine the discriminant. We will feed this value to the byte
-            // iteration function.
-            let discriminant = match variant.node.disr_expr {
-                Some(ref d) => d.clone(),
-                None => cx.expr_uint(trait_span, index)
-            };
-
-            stmts.push(call_hash(trait_span, discriminant));
-
+        EnumMatching(_, _, ref fs) => {
             fs
         }
         _ => cx.span_bug(trait_span, "impossible substructure in `jstraceable`")
@@ -66,10 +57,6 @@ fn jstraceable_substructure(cx: &mut ExtCtxt, trait_span: Span, substr: &Substru
 
     for &FieldInfo { ref self_, span, .. } in fields.iter() {
         stmts.push(call_hash(span, self_.clone()));
-    }
-
-    if stmts.len() == 0 {
-        cx.span_bug(trait_span, "#[jstraceable] needs at least one field");
     }
 
     cx.expr_block(cx.block(trait_span, stmts, None))

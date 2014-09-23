@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![macro_escape]
-
 #[macro_export]
 macro_rules! make_getter(
     ( $attr:ident ) => (
@@ -48,7 +46,7 @@ macro_rules! make_uint_getter(
 /// Use #[jstraceable] on JS managed types
 macro_rules! untraceable(
     ($($ty:ident),+) => (
-        $(
+        $(  
             impl JSTraceable for $ty {
                 #[inline]
                 fn trace(&self, _: *mut JSTracer) {
@@ -56,5 +54,13 @@ macro_rules! untraceable(
                 }
             }
         )+
+    );
+    ($ty:ident<$($gen:ident),+>) => (
+        impl<$($gen),+> JSTraceable for $ty<$($gen),+> {
+            #[inline]
+            fn trace(&self, _: *mut JSTracer) {
+                // Do nothing
+            }
+        }
     );
 )

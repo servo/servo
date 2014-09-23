@@ -13,7 +13,8 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use servo_util::str::DOMString;
 
 #[repr(uint)]
-#[deriving(Show, Encodable)]
+#[deriving(Show)]
+#[jstraceable]
 pub enum DOMErrorName {
     IndexSizeError = DOMExceptionConstants::INDEX_SIZE_ERR as uint,
     HierarchyRequestError = DOMExceptionConstants::HIERARCHY_REQUEST_ERR as uint,
@@ -59,7 +60,7 @@ impl DOMErrorName {
     }
 }
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct DOMException {
     pub code: DOMErrorName,

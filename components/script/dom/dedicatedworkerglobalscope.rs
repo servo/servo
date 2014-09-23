@@ -36,7 +36,7 @@ use std::task::TaskBuilder;
 use native::task::NativeTaskBuilder;
 use url::Url;
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct DedicatedWorkerGlobalScope {
     workerglobalscope: WorkerGlobalScope,

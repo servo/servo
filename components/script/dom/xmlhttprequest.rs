@@ -65,13 +65,15 @@ use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams::{eString, eURLS
 pub type SendParam = StringOrURLSearchParams;
 
 
-#[deriving(PartialEq,Encodable)]
+#[deriving(PartialEq)]
+#[jstraceable]
 pub enum XMLHttpRequestId {
     XMLHttpRequestTypeId,
     XMLHttpRequestUploadTypeId
 }
 
-#[deriving(PartialEq, Encodable)]
+#[deriving(PartialEq)]
+#[jstraceable]
 enum XMLHttpRequestState {
     Unsent = 0,
     Opened = 1,
@@ -99,7 +101,7 @@ enum SyncOrAsync<'a> {
 }
 
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct XMLHttpRequest {
     eventtarget: XMLHttpRequestEventTarget,

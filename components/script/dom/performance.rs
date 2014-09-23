@@ -13,7 +13,7 @@ use time;
 
 pub type DOMHighResTimeStamp = f64;
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct Performance {
     reflector_: Reflector,

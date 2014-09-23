@@ -14,6 +14,7 @@ use dom::bindings::conversions::{FromJSValConvertible, Empty};
 use dom::bindings::global::Window;
 use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, OptionalSettable};
 use dom::bindings::js::OptionalRootable;
+use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::Reflectable;
 use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
 use dom::document::{Document, HTMLDocument, DocumentHelpers};
@@ -56,7 +57,7 @@ use servo_util::task::spawn_named_with_send_on_failure;
 
 use geom::point::Point2D;
 use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ, JS_GC};
-use js::jsapi::{JSContext, JSRuntime};
+use js::jsapi::{JSContext, JSRuntime, JSTracer};
 use js::jsapi::{JS_SetGCParameter, JSGC_MAX_BYTES};
 use js::rust::{Cx, RtUtils};
 use js::rust::with_compartment;
@@ -64,7 +65,6 @@ use js;
 use url::Url;
 
 use libc::size_t;
-use serialize::{Encoder, Encodable};
 use std::any::{Any, AnyRefExt};
 use std::cell::RefCell;
 use std::comm::{channel, Sender, Receiver, Select};
@@ -106,11 +106,7 @@ pub enum ScriptMsg {
 #[deriving(Clone)]
 pub struct ScriptChan(pub Sender<ScriptMsg>);
 
-impl<S: Encoder<E>, E> Encodable<S, E> for ScriptChan {
-    fn encode(&self, _s: &mut S) -> Result<(), E> {
-        Ok(())
-    }
-}
+untraceable!(ScriptChan)
 
 impl ScriptChan {
     /// Creates a new script chan.

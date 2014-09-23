@@ -26,7 +26,7 @@ use servo_util::str::DOMString;
 
 use url::Url;
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct HTMLObjectElement {
     pub htmlelement: HTMLElement,

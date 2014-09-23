@@ -23,7 +23,7 @@ use servo_util::atom::Atom;
 use servo_util::namespace;
 use servo_util::str::{DOMString, split_html_space_chars};
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct HTMLOptionElement {
     pub htmlelement: HTMLElement

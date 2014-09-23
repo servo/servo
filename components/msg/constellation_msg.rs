@@ -9,7 +9,6 @@ use geom::rect::Rect;
 use geom::size::TypedSize2D;
 use geom::scale_factor::ScaleFactor;
 use layers::geometry::DevicePixel;
-use serialize::Encodable;
 use servo_util::geometry::{PagePx, ViewportPx};
 use std::comm::{channel, Sender, Receiver};
 use url::Url;
@@ -37,7 +36,6 @@ pub struct Failure {
     pub subpage_id: Option<SubpageId>,
 }
 
-#[deriving(Encodable)]
 pub struct WindowSizeData {
     /// The size of the initial layout viewport, before parsing an
     /// http://www.w3.org/TR/css-device-adapt/#initial-viewport
@@ -77,8 +75,8 @@ pub enum NavigationDirection {
     Back,
 }
 
-#[deriving(Clone, PartialEq, Eq, Hash, Encodable)]
+#[deriving(Clone, PartialEq, Eq, Hash)]
 pub struct PipelineId(pub uint);
 
-#[deriving(Clone, PartialEq, Eq, Hash, Encodable)]
+#[deriving(Clone, PartialEq, Eq, Hash)]
 pub struct SubpageId(pub uint);

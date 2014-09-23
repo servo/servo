@@ -19,7 +19,7 @@ use dom::node::{Node, NodeHelpers, ElementNodeTypeId};
 use servo_util::namespace::Null;
 use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS, StaticStringVec};
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct HTMLScriptElement {
     pub htmlelement: HTMLElement,

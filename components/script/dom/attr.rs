@@ -28,7 +28,8 @@ pub enum AttrSettingType {
     ReplacedAttr,
 }
 
-#[deriving(PartialEq, Clone, Encodable)]
+#[deriving(PartialEq, Clone)]
+#[jstraceable]
 pub enum AttrValue {
     StringAttrValue(DOMString),
     TokenListAttrValue(DOMString, Vec<Atom>),
@@ -72,7 +73,7 @@ impl Str for AttrValue {
     }
 }
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct Attr {
     reflector_: Reflector,

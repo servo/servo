@@ -11,7 +11,7 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::element::Element;
 use dom::window::Window;
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct NamedNodeMap {
     reflector_: Reflector,

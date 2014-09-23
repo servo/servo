@@ -16,7 +16,7 @@ use servo_util::atom::Atom;
 use servo_util::namespace::Null;
 use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS};
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct DOMTokenList {
     reflector_: Reflector,

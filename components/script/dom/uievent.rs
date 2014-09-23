@@ -17,7 +17,7 @@ use servo_util::str::DOMString;
 
 use std::cell::Cell;
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct UIEvent {
     pub event: Event,

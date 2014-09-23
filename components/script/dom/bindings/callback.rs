@@ -13,8 +13,6 @@ use js::jsval::{JSVal, UndefinedValue};
 
 use std::ptr;
 
-use serialize::{Encodable, Encoder};
-
 /// The exception handling used for a call.
 pub enum ExceptionHandling {
     /// Report any exception and don't throw it to the caller code.
@@ -28,7 +26,8 @@ pub enum ExceptionHandling {
 }
 
 /// A common base class for representing IDL callback function types.
-#[deriving(Clone,PartialEq,Encodable)]
+#[deriving(Clone,PartialEq)]
+#[jstraceable]
 pub struct CallbackFunction {
     object: CallbackObject
 }
@@ -44,7 +43,8 @@ impl CallbackFunction {
 }
 
 /// A common base class for representing IDL callback interface types.
-#[deriving(Clone,PartialEq,Encodable)]
+#[deriving(Clone,PartialEq)]
+#[jstraceable]
 pub struct CallbackInterface {
     object: CallbackObject
 }
@@ -52,7 +52,8 @@ pub struct CallbackInterface {
 /// A common base class for representing IDL callback function and
 /// callback interface types.
 #[allow(raw_pointer_deriving)]
-#[deriving(Clone,PartialEq,Encodable)]
+#[deriving(Clone,PartialEq)]
+#[jstraceable]
 struct CallbackObject {
     /// The underlying `JSObject`.
     callback: Traceable<*mut JSObject>,

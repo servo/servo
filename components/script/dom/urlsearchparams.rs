@@ -21,7 +21,7 @@ use std::collections::hashmap::HashMap;
 use std::fmt::radix;
 use std::ascii::OwnedStrAsciiExt;
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct URLSearchParams {
     data: Traceable<RefCell<HashMap<DOMString, Vec<DOMString>>>>,

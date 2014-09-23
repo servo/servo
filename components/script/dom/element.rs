@@ -43,7 +43,7 @@ use std::ascii::StrAsciiExt;
 use std::cell::{Cell, RefCell};
 use std::mem;
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct Element {
     pub node: Node,
@@ -71,7 +71,8 @@ impl Reflectable for Element {
     }
 }
 
-#[deriving(PartialEq,Encodable)]
+#[deriving(PartialEq)]
+#[jstraceable]
 pub enum ElementTypeId {
     HTMLElementTypeId,
     HTMLAnchorElementTypeId,

@@ -13,7 +13,7 @@ use dom::htmltablecellelement::HTMLTableCellElement;
 use dom::node::{Node, ElementNodeTypeId};
 use servo_util::str::DOMString;
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct HTMLTableDataCellElement {
     pub htmltablecellelement: HTMLTableCellElement,

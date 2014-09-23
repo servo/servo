@@ -65,13 +65,14 @@ use std::cell::{Cell, RefCell};
 use url::Url;
 use time;
 
-#[deriving(PartialEq,Encodable)]
+#[deriving(PartialEq)]
+#[jstraceable]
 pub enum IsHTMLDocument {
     HTMLDocument,
     NonHTMLDocument,
 }
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct Document {
     pub node: Node,
@@ -100,6 +101,7 @@ impl DocumentDerived for EventTarget {
     }
 }
 
+#[jstraceable]
 struct ImagesFilter;
 impl CollectionFilter for ImagesFilter {
     fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {
@@ -107,6 +109,7 @@ impl CollectionFilter for ImagesFilter {
     }
 }
 
+#[jstraceable]
 struct EmbedsFilter;
 impl CollectionFilter for EmbedsFilter {
     fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {
@@ -114,6 +117,7 @@ impl CollectionFilter for EmbedsFilter {
     }
 }
 
+#[jstraceable]
 struct LinksFilter;
 impl CollectionFilter for LinksFilter {
     fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {
@@ -121,6 +125,7 @@ impl CollectionFilter for LinksFilter {
     }
 }
 
+#[jstraceable]
 struct FormsFilter;
 impl CollectionFilter for FormsFilter {
     fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {
@@ -128,6 +133,7 @@ impl CollectionFilter for FormsFilter {
     }
 }
 
+#[jstraceable]
 struct ScriptsFilter;
 impl CollectionFilter for ScriptsFilter {
     fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {
@@ -135,6 +141,7 @@ impl CollectionFilter for ScriptsFilter {
     }
 }
 
+#[jstraceable]
 struct AnchorsFilter;
 impl CollectionFilter for AnchorsFilter {
     fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {
@@ -142,6 +149,7 @@ impl CollectionFilter for AnchorsFilter {
     }
 }
 
+#[jstraceable]
 struct AppletsFilter;
 impl CollectionFilter for AppletsFilter {
     fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {

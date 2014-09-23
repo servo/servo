@@ -11,7 +11,7 @@ use dom::navigatorinfo::NavigatorInfo;
 use dom::window::Window;
 use servo_util::str::DOMString;
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct Navigator {
     pub reflector_: Reflector //XXXjdm cycle: window->navigator->window

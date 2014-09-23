@@ -9,7 +9,7 @@ use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::window::Window;
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct Screen {
     reflector_: Reflector,

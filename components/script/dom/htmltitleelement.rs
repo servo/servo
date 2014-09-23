@@ -16,7 +16,7 @@ use dom::node::{Node, NodeHelpers, ElementNodeTypeId};
 use dom::text::Text;
 use servo_util::str::DOMString;
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct HTMLTitleElement {
     pub htmlelement: HTMLElement,

@@ -19,7 +19,7 @@ use servo_util::str::DOMString;
 use js::jsapi::JSContext;
 use js::jsval::JSVal;
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct MessageEvent {
     event: Event,

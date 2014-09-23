@@ -17,7 +17,7 @@ use layout_interface::{AddStylesheetMsg, LayoutChan};
 use servo_util::str::DOMString;
 use style::Stylesheet;
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct HTMLStyleElement {
     pub htmlelement: HTMLElement,

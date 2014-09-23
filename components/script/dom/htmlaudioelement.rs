@@ -13,7 +13,7 @@ use dom::htmlmediaelement::HTMLMediaElement;
 use dom::node::{Node, ElementNodeTypeId};
 use servo_util::str::DOMString;
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct HTMLAudioElement {
     pub htmlmediaelement: HTMLMediaElement
