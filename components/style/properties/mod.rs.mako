@@ -1067,7 +1067,7 @@ pub mod longhands {
         }
     </%self:longhand>
 
-    ${single_keyword("white-space", "normal pre")}
+    ${single_keyword("white-space", "normal pre nowrap")}
 
     // CSS 2.1, Section 17 - Tables
     ${new_style_struct("Table", is_inherited=False)}
