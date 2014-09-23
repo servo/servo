@@ -1,24 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
-#![feature(macro_rules, plugin_registrar, quote, phase)]
-
-#![deny(unused_imports, unused_variable)]
-
-//! Exports macros for use in other Servo crates.
-
-extern crate syntax;
-
-#[phase(plugin, link)]
-extern crate rustc;
-#[cfg(test)]
-extern crate sync;
-
-use syntax::ast;
+use syntax::{ast, codemap, visit};
 use syntax::attr::AttrMetaMethods;
-use rustc::lint::{Context, LintPass, LintPassObject, LintArray};
-use rustc::plugin::Registry;
+use rustc::lint::{Context, LintPass, LintArray};
 use rustc::middle::ty::expr_ty;
 use rustc::middle::{ty, def};
 use rustc::middle::typeck::astconv::AstConv;
@@ -29,8 +11,8 @@ declare_lint!(TRANSMUTE_TYPE_LINT, Allow,
 declare_lint!(UNROOTED_MUST_ROOT, Deny,
               "Warn and report usage of unrooted jsmanaged objects")
 
-struct TransmutePass;
-struct UnrootedPass;
+pub struct TransmutePass;
+pub struct UnrootedPass;
 
 impl LintPass for TransmutePass {
     fn get_lints(&self) -> LintArray {
@@ -109,11 +91,11 @@ impl LintPass for UnrootedPass {
         }
     }
 
-    fn check_fn(&mut self, cx: &Context, kind: syntax::visit::FnKind, decl: &ast::FnDecl,
-                block: &ast::Block, _span: syntax::codemap::Span, _id: ast::NodeId) {
+    fn check_fn(&mut self, cx: &Context, kind: visit::FnKind, decl: &ast::FnDecl,
+                block: &ast::Block, _span: codemap::Span, _id: ast::NodeId) {
         match kind {
-            syntax::visit::FkItemFn(i, _, _, _) |
-            syntax::visit::FkMethod(i, _, _) if i.as_str() == "new" || i.as_str() == "new_inherited" => {
+            visit::FkItemFn(i, _, _, _) |
+            visit::FkMethod(i, _, _) if i.as_str() == "new" || i.as_str() == "new_inherited" => {
                 return;
             }
             _ => ()
@@ -159,28 +141,3 @@ impl LintPass for UnrootedPass {
         }
     }
 }
-
-#[plugin_registrar]
-pub fn plugin_registrar(reg: &mut Registry) {
-    reg.register_lint_pass(box TransmutePass as LintPassObject);
-    reg.register_lint_pass(box UnrootedPass as LintPassObject);
-}
-
-#[macro_export]
-macro_rules! bitfield(
-    ($bitfieldname:ident, $getter:ident, $setter:ident, $value:expr) => (
-        impl $bitfieldname {
-            #[inline]
-            pub fn $getter(self) -> bool {
-                let $bitfieldname(this) = self;
-                (this & $value) != 0
-            }
-
-            #[inline]
-            pub fn $setter(&mut self, value: bool) {
-                let $bitfieldname(this) = *self;
-                *self = $bitfieldname((this & !$value) | (if value { $value } else { 0 }))
-            }
-        }
-    )
-)

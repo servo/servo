@@ -12,7 +12,7 @@
 * `components/net`: Networking, caching, image decoding.
 * `components/msg`: Message structure definitions for inter-task communication.
 * `components/*_traits`: Trait definitions to break crate dependencies.
-* `components/macros`: Macros used by the rest of Servo.
+* `components/plugins`: Various compiler plugins and macros used by the rest of Servo.
 * `components/util`: Various utility functions used by other Servo components.
 
 ## Supporting libraries

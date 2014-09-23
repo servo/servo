@@ -1,9 +1,9 @@
 [package]
-name = "macros"
+name = "plugins"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 
 [lib]
-name = "macros"
+name = "plugins"
 path = "lib.rs"
 plugin = true

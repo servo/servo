@@ -22,8 +22,8 @@ path = "../script_traits"
 [dependencies.style]
 path = "../style"
 
-[dependencies.macros]
-path = "../macros"
+[dependencies.plugins]
+path = "../plugins"
 
 [dependencies.net]
 path = "../net"

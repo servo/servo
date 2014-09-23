@@ -11,8 +11,8 @@ crate-type = ["dylib"]
 [dependencies.servo]
 path = "../.."
 
-[dependencies.macros]
-path = "../../components/macros"
+[dependencies.plugins]
+path = "../../components/plugins"
 
 [dependencies.gfx]
 path = "../../components/gfx"

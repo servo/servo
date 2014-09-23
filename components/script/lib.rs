@@ -33,7 +33,7 @@ extern crate time;
 extern crate canvas;
 extern crate script_traits;
 #[phase(plugin)]
-extern crate "macros" as servo_macros;
+extern crate "plugins" as servo_plugins;
 extern crate "net" as servo_net;
 extern crate "util" as servo_util;
 extern crate style;
