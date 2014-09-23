@@ -39,6 +39,13 @@ impl Clampable for f32 {
     }
 }
 
+#[deriving(PartialEq)]
+pub enum ScrollEventResult {
+    ScrollEventUnhandled,
+    ScrollPositionChanged,
+    ScrollPositionUnchanged,
+}
+
 /// Move the layer's descendants that don't want scroll events and scroll by a relative
 /// specified amount in page coordinates. This also takes in a cursor position to see if the
 /// mouse is over child layers first. If a layer successfully scrolled, returns true; otherwise
@@ -48,11 +55,11 @@ pub fn handle_scroll_event(layer: Rc<Layer<CompositorData>>,
                            cursor: TypedPoint2D<DevicePixel, f32>,
                            window_size: TypedSize2D<DevicePixel, f32>,
                            scale: ScaleFactor<PagePx, DevicePixel, f32>)
-                           -> bool {
+                           -> ScrollEventResult {
     // If this layer doesn't want scroll events, neither it nor its children can handle scroll
     // events.
     if layer.extra_data.borrow().wants_scroll_events != WantsScrollEvents {
-        return false
+        return ScrollEventUnhandled;
     }
 
     // Allow children to scroll.
@@ -61,13 +68,15 @@ pub fn handle_scroll_event(layer: Rc<Layer<CompositorData>>,
     let new_cursor = cursor - scroll_offset_in_device_pixels;
     for child in layer.children().iter() {
         let child_bounds = child.bounds.borrow();
-        if child_bounds.contains(&new_cursor) &&
-           handle_scroll_event(child.clone(),
-                               delta,
-                               new_cursor - child_bounds.origin,
-                               child_bounds.size,
-                               scale) {
-            return true
+        if child_bounds.contains(&new_cursor) {
+            let result = handle_scroll_event(child.clone(),
+                                             delta,
+                                             new_cursor - child_bounds.origin,
+                                             child_bounds.size,
+                                             scale);
+            if result != ScrollEventUnhandled {
+                return result;
+            }
         }
     }
 
@@ -81,7 +90,7 @@ pub fn clamp_scroll_offset_and_scroll_layer(layer: Rc<Layer<CompositorData>>,
                                             new_offset: TypedPoint2D<DevicePixel, f32>,
                                             window_size: TypedSize2D<DevicePixel, f32>,
                                             scale: ScaleFactor<PagePx, DevicePixel, f32>)
-                                            -> bool {
+                                            -> ScrollEventResult {
     let layer_size = layer.bounds.borrow().size;
     let min_x = (window_size.width - layer_size.width).get().min(0.0);
     let min_y = (window_size.height - layer_size.height).get().min(0.0);
@@ -91,7 +100,7 @@ pub fn clamp_scroll_offset_and_scroll_layer(layer: Rc<Layer<CompositorData>>,
 
     let new_offset_in_page_px = new_offset / scale;
     if layer.extra_data.borrow().scroll_offset == new_offset_in_page_px {
-        return false
+        return ScrollPositionUnchanged;
     }
 
     // The scroll offset is just a record of the scroll position of this scrolling root,
@@ -102,7 +111,12 @@ pub fn clamp_scroll_offset_and_scroll_layer(layer: Rc<Layer<CompositorData>>,
     for child in layer.children().iter() {
         result |= scroll_layer_and_all_child_layers(child.clone(), new_offset_in_page_px);
     }
-    return result;
+
+    if result {
+        return ScrollPositionChanged;
+    } else {
+        return ScrollPositionUnchanged;
+    }
 }
 
 fn scroll_layer_and_all_child_layers(layer: Rc<Layer<CompositorData>>,

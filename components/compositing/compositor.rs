@@ -9,6 +9,7 @@ use compositor_task::{SetLayerOrigin, Paint, ScrollFragmentPoint, LoadComplete};
 use compositor_task::{ShutdownComplete, ChangeRenderState, RenderMsgDiscarded};
 use constellation::SendableFrameTree;
 use events;
+use events::ScrollPositionChanged;
 use pipeline::CompositionPipeline;
 use platform::{Application, Window};
 use windowing;
@@ -766,7 +767,7 @@ impl IOCompositor {
                                                      delta,
                                                      cursor.as_f32(),
                                                      window_size,
-                                                     scene_scale) || scroll;
+                                                     scene_scale) == ScrollPositionChanged;
             }
             None => { }
         }
