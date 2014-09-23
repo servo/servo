@@ -89,7 +89,7 @@ pub struct Opts {
     pub devtools_server: bool,
 
     /// The initial requested size of the window.
-    pub initial_window_size: TypedSize2D<DevicePixel, uint>,
+    pub initial_window_size: TypedSize2D<ScreenPx, uint>,
 }
 
 fn print_usage(app: &str, opts: &[getopts::OptGroup]) {
