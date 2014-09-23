@@ -33,7 +33,9 @@ use js::jsapi::{JSObject, JSTracer, JS_CallTracer, JSTRACE_OBJECT};
 use js::jsval::JSVal;
 
 use libc;
+use url::Url;
 use std::mem;
+use std::num;
 use std::cell::{Cell, RefCell};
 use serialize::{Encodable, Encoder};
 

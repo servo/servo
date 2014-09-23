@@ -42,3 +42,19 @@ macro_rules! make_uint_getter(
         }
     );
 )
+
+
+/// For use on non-jsmanaged types
+/// Use #[jstraceable] on JS managed types
+macro_rules! untraceable(
+    ($($ty:ident),+) => (
+        $(
+            impl JSTraceable for $ty {
+                #[inline]
+                fn trace(&self, _: *mut JSTracer) {
+                    // Do nothing
+                }
+            }
+        )+
+    );
+)
