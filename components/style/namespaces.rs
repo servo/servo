@@ -40,7 +40,7 @@ pub fn parse_namespace_rule(rule: AtRule, namespaces: &mut NamespaceMap) {
             },
             URL(value) | String(value) => {
                 if ns.is_some() { syntax_error!() }
-                ns = Some(Namespace::from_str(value.as_slice()));
+                ns = Some(Namespace::from_str(Some(value)));
                 break
             },
             _ => syntax_error!(),

@@ -37,7 +37,7 @@ use style;
 use servo_util::atom::Atom;
 use servo_util::namespace;
 use servo_util::namespace::{Namespace, Null};
-use servo_util::str::{DOMString, null_str_as_empty_ref};
+use servo_util::str::DOMString;
 
 use std::ascii::StrAsciiExt;
 use std::cell::{Cell, RefCell};
@@ -599,7 +599,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     fn GetAttributeNS(self,
                       namespace: Option<DOMString>,
                       local_name: DOMString) -> Option<DOMString> {
-        let namespace = Namespace::from_str(null_str_as_empty_ref(&namespace));
+        let namespace = Namespace::from_str(namespace);
         self.get_attribute(namespace, local_name.as_slice()).root()
                      .map(|attr| attr.deref().Value())
     }
@@ -646,7 +646,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         }
 
         // Step 1.
-        let namespace = Namespace::from_str(null_str_as_empty_ref(&namespace_url));
+        let namespace = Namespace::from_str(namespace_url);
 
         let name_type = xml_name_type(name.as_slice());
         match name_type {
@@ -718,7 +718,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     fn RemoveAttributeNS(self,
                          namespace: Option<DOMString>,
                          localname: DOMString) {
-        let namespace = Namespace::from_str(null_str_as_empty_ref(&namespace));
+        let namespace = Namespace::from_str(namespace);
         self.remove_attribute(namespace, localname.as_slice())
     }
 
