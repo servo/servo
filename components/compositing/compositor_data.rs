@@ -72,14 +72,17 @@ impl CompositorData {
                            tile_size, new_compositor_data))
     }
 
-    pub fn update_layer(layer: Rc<Layer<CompositorData>>, layer_properties: LayerProperties) {
+    pub fn update_layer_except_size(layer: Rc<Layer<CompositorData>>,
+                                    layer_properties: LayerProperties) {
         layer.extra_data.borrow_mut().epoch = layer_properties.epoch;
         layer.extra_data.borrow_mut().scroll_policy = layer_properties.scroll_policy;
         layer.extra_data.borrow_mut().background_color = layer_properties.background_color;
+        layer.contents_changed();
+    }
 
+    pub fn update_layer(layer: Rc<Layer<CompositorData>>, layer_properties: LayerProperties) {
         let size: TypedSize2D<DevicePixel, f32> = Size2D::from_untyped(&layer_properties.rect.size);
         layer.resize(size);
-        layer.contents_changed();
 
         // Call scroll for bounds checking if the page shrunk. Use (-1, -1) as the
         // cursor position to make sure the scroll isn't propagated downwards. The
@@ -89,6 +92,7 @@ impl CompositorData {
                                     TypedPoint2D(-1f32, -1f32),
                                     size,
                                     ScaleFactor(1.0) /* scene_scale */);
+        CompositorData::update_layer_except_size(layer, layer_properties);
     }
 
     pub fn find_layer_with_pipeline_and_layer_id(layer: Rc<Layer<CompositorData>>,

@@ -500,7 +500,7 @@ impl IOCompositor {
         let need_new_root_layer = !self.update_layer_if_exists(layer_properties);
         if need_new_root_layer {
             let root_layer = self.find_pipeline_root_layer(layer_properties.pipeline_id);
-            CompositorData::update_layer(root_layer.clone(), layer_properties);
+            CompositorData::update_layer_except_size(root_layer.clone(), layer_properties);
 
             let root_layer_pipeline = root_layer.extra_data.borrow().pipeline.clone();
             let first_child = CompositorData::new_layer(root_layer_pipeline.clone(),

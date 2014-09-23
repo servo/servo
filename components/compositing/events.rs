@@ -8,6 +8,7 @@ use windowing::MouseWindowMouseUpEvent;
 
 use geom::length::Length;
 use geom::point::{Point2D, TypedPoint2D};
+use geom::rect::Rect;
 use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
 use layers::geometry::DevicePixel;
@@ -86,12 +87,20 @@ pub fn handle_scroll_event(layer: Rc<Layer<CompositorData>>,
                                          scale)
 }
 
+pub fn calculate_content_size_for_layer(layer: Rc<Layer<CompositorData>>)
+                                         -> TypedSize2D<DevicePixel, f32> {
+    layer.children().iter().fold(Rect::zero(),
+                                 |unioned_rect, child_rect| {
+                                    unioned_rect.union(&*child_rect.bounds.borrow())
+                                 }).size
+}
+
 pub fn clamp_scroll_offset_and_scroll_layer(layer: Rc<Layer<CompositorData>>,
                                             new_offset: TypedPoint2D<DevicePixel, f32>,
                                             window_size: TypedSize2D<DevicePixel, f32>,
                                             scale: ScaleFactor<PagePx, DevicePixel, f32>)
                                             -> ScrollEventResult {
-    let layer_size = layer.bounds.borrow().size;
+    let layer_size = calculate_content_size_for_layer(layer.clone());
     let min_x = (window_size.width - layer_size.width).get().min(0.0);
     let min_y = (window_size.height - layer_size.height).get().min(0.0);
     let new_offset : TypedPoint2D<DevicePixel, f32> =
