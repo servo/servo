@@ -24,7 +24,7 @@ use azure::azure_hl;
 use std::cmp;
 use std::time::duration::Duration;
 use geom::point::{Point2D, TypedPoint2D};
-use geom::rect::Rect;
+use geom::rect::{Rect, TypedRect};
 use geom::size::TypedSize2D;
 use geom::scale_factor::ScaleFactor;
 use gfx::render_task::{RenderChan, RenderMsg, RenderRequest, UnusedBufferMsg};
@@ -413,7 +413,8 @@ impl IOCompositor {
             Some(ref mut layer) => CompositorData::clear_all_tiles(layer.clone()),
             None => { }
         }
-        self.scene.root = Some(self.create_frame_tree_root_layers(frame_tree));
+        self.scene.root = Some(self.create_frame_tree_root_layers(frame_tree, None));
+        self.scene.set_root_layer_size(self.window_size.as_f32());
 
         // Initialize the new constellation channel by sending it the root window size.
         self.constellation_chan = new_constellation_chan;
@@ -421,7 +422,8 @@ impl IOCompositor {
     }
 
     fn create_frame_tree_root_layers(&mut self,
-                                     frame_tree: &SendableFrameTree)
+                                     frame_tree: &SendableFrameTree,
+                                     frame_rect: Option<TypedRect<PagePx, f32>>)
                                      -> Rc<Layer<CompositorData>> {
         // Initialize the ReadyState and RenderState for this pipeline.
         self.ready_states.insert(frame_tree.pipeline.id, Blank);
@@ -440,8 +442,15 @@ impl IOCompositor {
                                                    WantsScrollEvents,
                                                    self.opts.tile_size);
 
+        match frame_rect {
+            Some(ref frame_rect) => {
+                *root_layer.bounds.borrow_mut() = frame_rect * self.device_pixels_per_page_px();
+            }
+            None => {}
+        }
+
         for kid in frame_tree.children.iter() {
-            root_layer.add_child(self.create_frame_tree_root_layers(&kid.frame_tree));
+            root_layer.add_child(self.create_frame_tree_root_layers(&kid.frame_tree, kid.rect));
         }
         return root_layer;
     }
@@ -701,13 +710,15 @@ impl IOCompositor {
             self.hidpi_factor = new_hidpi_factor;
             self.update_zoom_transform();
         }
-        if self.window_size != new_size {
-            debug!("osmain: window resized to {:?}", new_size);
-            self.window_size = new_size;
-            self.send_window_size();
-        } else {
-            debug!("osmain: dropping window resize since size is still {:?}", new_size);
+
+        if self.window_size == new_size {
+            return;
         }
+
+        debug!("osmain: window resized to {:?}", new_size);
+        self.window_size = new_size;
+        self.scene.set_root_layer_size(new_size.as_f32());
+        self.send_window_size();
     }
 
     fn on_load_url_window_event(&mut self, url_string: String) {
