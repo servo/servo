@@ -9,6 +9,7 @@ use geom::size::Size2D;
 
 use serialize::{Encodable, Encoder};
 use std::default::Default;
+use std::i32;
 use std::num::{NumCast, Zero};
 use std::fmt;
 
@@ -71,6 +72,8 @@ impl Default for Au {
         Au(0)
     }
 }
+
+pub static MAX_AU: Au = Au(i32::MAX);
 
 impl<E, S: Encoder<E>> Encodable<S, E> for Au {
     fn encode(&self, e: &mut S) -> Result<(), E> {
