@@ -8,6 +8,8 @@
 #![comment = "The Servo Parallel Browser Project"]
 #![license = "MPL"]
 
+#![allow(non_snake_case)]
+
 extern crate "msg" as servo_msg;
 
 /// This module contains shared types and messages for use by devtools/script.
