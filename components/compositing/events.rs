@@ -56,10 +56,9 @@ pub fn handle_scroll_event(layer: Rc<Layer<CompositorData>>,
     }
 
     // Allow children to scroll.
-    let content_offset_in_page_pixels : TypedPoint2D<PagePx, f32> =
-        Point2D::from_untyped(&*layer.content_offset.borrow());
-    let content_offset : TypedPoint2D<DevicePixel, f32> = content_offset_in_page_pixels * scale;
-    let new_cursor = cursor - content_offset;
+    let scroll_offset = layer.extra_data.borrow().scroll_offset;
+    let scroll_offset_in_device_pixels = scroll_offset * scale;
+    let new_cursor = cursor - scroll_offset_in_device_pixels;
     for child in layer.children().iter() {
         let child_bounds = child.bounds.borrow();
         if child_bounds.contains(&new_cursor) &&
@@ -72,8 +71,10 @@ pub fn handle_scroll_event(layer: Rc<Layer<CompositorData>>,
         }
     }
 
-    clamp_scroll_offset_and_scroll_layer(layer, content_offset + delta, window_size, scale)
-
+    clamp_scroll_offset_and_scroll_layer(layer,
+                                         scroll_offset_in_device_pixels + delta,
+                                         window_size,
+                                         scale)
 }
 
 pub fn clamp_scroll_offset_and_scroll_layer(layer: Rc<Layer<CompositorData>>,
@@ -89,15 +90,19 @@ pub fn clamp_scroll_offset_and_scroll_layer(layer: Rc<Layer<CompositorData>>,
                 Length(new_offset.y.get().clamp(&min_y, &0.0)));
 
     let new_offset_in_page_px = new_offset / scale;
-    let untyped_new_offset = new_offset_in_page_px.to_untyped();
-    if *layer.content_offset.borrow() == untyped_new_offset {
+    if layer.extra_data.borrow().scroll_offset == new_offset_in_page_px {
         return false
     }
 
-    // FIXME: This allows the base layer to record the current content offset without
-    // updating its transform. This should be replaced with something less strange.
-    *layer.content_offset.borrow_mut() = untyped_new_offset;
-    scroll_layer_and_all_child_layers(layer.clone(), new_offset_in_page_px)
+    // The scroll offset is just a record of the scroll position of this scrolling root,
+    // but scroll_layer_and_all_child_layers actually moves the child layers.
+    layer.extra_data.borrow_mut().scroll_offset = new_offset_in_page_px;
+
+    let mut result = false;
+    for child in layer.children().iter() {
+        result |= scroll_layer_and_all_child_layers(child.clone(), new_offset_in_page_px);
+    }
+    return result;
 }
 
 fn scroll_layer_and_all_child_layers(layer: Rc<Layer<CompositorData>>,

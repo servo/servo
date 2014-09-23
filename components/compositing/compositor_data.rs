@@ -18,6 +18,7 @@ use layers::platform::surface::NativeSurfaceMethods;
 use servo_msg::compositor_msg::{Epoch, LayerId};
 use servo_msg::compositor_msg::ScrollPolicy;
 use servo_msg::constellation_msg::PipelineId;
+use servo_util::geometry::PagePx;
 use std::rc::Rc;
 
 pub struct CompositorData {
@@ -39,6 +40,10 @@ pub struct CompositorData {
     /// A monotonically increasing counter that keeps track of the current epoch.
     /// add_buffer() calls that don't match the current epoch will be ignored.
     pub epoch: Epoch,
+
+    /// The scroll offset originating from this scrolling root. This allows scrolling roots
+    /// to track their current scroll position even while their content_offset does not change.
+    pub scroll_offset: TypedPoint2D<PagePx, f32>,
 }
 
 #[deriving(PartialEq, Clone)]
@@ -60,6 +65,7 @@ impl CompositorData {
             scroll_policy: layer_properties.scroll_policy,
             background_color: layer_properties.background_color,
             epoch: layer_properties.epoch,
+            scroll_offset: TypedPoint2D(0., 0.),
         };
 
         Rc::new(Layer::new(Rect::from_untyped(&layer_properties.rect),
