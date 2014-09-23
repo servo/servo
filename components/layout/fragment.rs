@@ -1178,9 +1178,9 @@ impl Fragment {
                             -> IntrinsicISizes {
         let mut result = self.style_specified_intrinsic_inline_size();
 
-        match self.specific {
+        let use_border_padding = match self.specific {
             GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment | TableColumnFragment(_) | TableRowFragment |
-            TableWrapperFragment => {}
+            TableWrapperFragment => { true }
             InlineBlockFragment(ref mut info) => {
                 let block_flow = info.flow_ref.get_mut().as_block();
                 result.minimum_inline_size = max(result.minimum_inline_size,
@@ -1189,11 +1189,13 @@ impl Fragment {
                 result.preferred_inline_size = max(result.preferred_inline_size,
                         block_flow.base.intrinsic_inline_sizes.preferred_inline_size +
                         block_flow.base.intrinsic_inline_sizes.surround_inline_size);
+                false
             },
             ImageFragment(ref mut image_fragment_info) => {
                 let image_inline_size = image_fragment_info.image_inline_size();
                 result.minimum_inline_size = max(result.minimum_inline_size, image_inline_size);
                 result.preferred_inline_size = max(result.preferred_inline_size, image_inline_size);
+                true
             }
             ScannedTextFragment(ref text_fragment_info) => {
                 let range = &text_fragment_info.range;
@@ -1205,19 +1207,22 @@ impl Fragment {
 
                 result.minimum_inline_size = max(result.minimum_inline_size, min_line_inline_size);
                 result.preferred_inline_size = max(result.preferred_inline_size, max_line_inline_size);
+                true
             }
             UnscannedTextFragment(..) => fail!("Unscanned text fragments should have been scanned by now!"),
-        }
+        };
 
         // Take borders and padding for parent inline fragments into account, if necessary.
-        match self.inline_context {
-            None => {}
-            Some(ref context) => {
-                for style in context.styles.iter() {
-                    let border_width = style.logical_border_width().inline_start_end();
-                    let padding_inline_size = model::padding_from_style(&**style, Au(0)).inline_start_end();
-                    result.minimum_inline_size = result.minimum_inline_size + border_width + padding_inline_size;
-                    result.preferred_inline_size = result.preferred_inline_size + border_width + padding_inline_size;
+        if use_border_padding {
+            match self.inline_context {
+                None => {}
+                Some(ref context) => {
+                    for style in context.styles.iter() {
+                        let border_width = style.logical_border_width().inline_start_end();
+                        let padding_inline_size = model::padding_from_style(&**style, Au(0)).inline_start_end();
+                        result.minimum_inline_size = result.minimum_inline_size + border_width + padding_inline_size;
+                        result.preferred_inline_size = result.preferred_inline_size + border_width + padding_inline_size;
+                    }
                 }
             }
         }
@@ -1447,8 +1452,7 @@ impl Fragment {
             InlineBlockFragment(ref mut info) => {
                 let block_flow = info.flow_ref.get_mut().as_block();
                 self.border_box.size.inline = block_flow.base.intrinsic_inline_sizes.preferred_inline_size +
-                                                block_flow.base.intrinsic_inline_sizes.surround_inline_size +
-                                                noncontent_inline_size;
+                                                block_flow.base.intrinsic_inline_sizes.surround_inline_size;
                 block_flow.base.position.size.inline = self.border_box.size.inline;
             }
             ScannedTextFragment(_) => {
