@@ -8,6 +8,8 @@
 #![comment = "The Servo Parallel Browser Project"]
 #![license = "MPL"]
 
+#![allow(non_snake_case)]
+
 #![feature(phase)]
 
 #![feature(phase)]

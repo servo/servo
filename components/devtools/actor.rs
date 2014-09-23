@@ -136,7 +136,7 @@ impl ActorRegistry {
         //       fails for unknown reasons.
         /*let actor: &Actor+Send+Sized = *self.actors.find(&name.to_string()).unwrap();
         (actor as &Any).downcast_ref::<T>().unwrap()*/
-        self.actors.find(&name.to_string()).unwrap().as_ref::<T>().unwrap()
+        self.actors.find(&name.to_string()).unwrap().downcast_ref::<T>().unwrap()
     }
 
     /// Find an actor by registered name
@@ -162,7 +162,7 @@ impl ActorRegistry {
                 }
             }
         }
-        let mut new_actors = replace(&mut *self.new_actors.borrow_mut(), vec!());
+        let new_actors = replace(&mut *self.new_actors.borrow_mut(), vec!());
         for actor in new_actors.into_iter() {
             self.actors.insert(actor.name().to_string(), actor);
         }

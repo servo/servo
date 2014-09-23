@@ -157,7 +157,7 @@ impl NodeInfoToProtocol for NodeInfo {
             publicId: self.publicId,
             systemId: self.systemId,
 
-            attrs: self.attrs.move_iter().map(|attr| {
+            attrs: self.attrs.into_iter().map(|attr| {
                 AttrMsg {
                     namespace: attr.namespace,
                     name: attr.name,
@@ -262,7 +262,7 @@ impl Actor for WalkerActor {
                 let msg = ChildrenReply {
                     hasFirst: true,
                     hasLast: true,
-                    nodes: children.move_iter().map(|child| {
+                    nodes: children.into_iter().map(|child| {
                         child.encode(registry, true)
                     }).collect(),
                     from: self.name(),
