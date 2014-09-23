@@ -16,7 +16,7 @@
 
 use construct::FlowConstructor;
 use context::LayoutContext;
-use floats::{ClearBoth, ClearLeft, ClearRight, FloatKind, Floats, PlacementInfo};
+use floats::{ClearBoth, ClearLeft, ClearRight, FloatKind, FloatLeft, Floats, PlacementInfo};
 use flow::{BaseFlow, BlockFlowClass, FlowClass, Flow, ImmutableFlowUtils};
 use flow::{MutableFlowUtils, PreorderFlowTraversal, PostorderFlowTraversal, mut_base};
 use flow;
@@ -37,7 +37,7 @@ use gfx::display_list::{FloatStackingLevel, PositionedDescendantStackingLevel};
 use gfx::display_list::{RootOfStackingContextLevel};
 use gfx::render_task::RenderLayer;
 use servo_msg::compositor_msg::{FixedPosition, LayerId, Scrollable};
-use servo_util::geometry::Au;
+use servo_util::geometry::{Au, MAX_AU};
 use servo_util::logical_geometry::WritingMode;
 use servo_util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize};
 use std::cmp::{max, min};
@@ -1463,6 +1463,39 @@ impl BlockFlow {
             _ => NonformattingContext,
         }
     }
+
+    /// Per CSS 2.1 § 9.5, block formatting contexts' inline widths and positions are affected by
+    /// the presence of floats. This is the part of the assign-heights traversal that computes
+    /// the final inline position and width for such flows.
+    ///
+    /// Note that this is part of the assign-block-sizes traversal, not the assign-inline-sizes
+    /// traversal as one might expect. That is because, in general, float placement cannot occur
+    /// until heights are assigned. To work around this unfortunate circular dependency, by the
+    /// time we get here we have already estimated the width of the block formatting context based
+    /// on the floats we could see at the time of inline-size assignment. The job of this function,
+    /// therefore, is not only to assign the final size but also to perform the layout again for
+    /// this block formatting context if our speculation was wrong.
+    fn assign_inline_position_for_formatting_context(&mut self) {
+        debug_assert!(self.formatting_context_type() != NonformattingContext);
+
+        let info = PlacementInfo {
+            size: LogicalSize::new(
+                self.fragment.style.writing_mode,
+                self.base.position.size.inline + self.fragment.margin.inline_start_end() +
+                    self.fragment.border_padding.inline_start_end(),
+                self.fragment.border_box.size.block),
+            ceiling: self.base.position.start.b,
+            max_inline_size: MAX_AU,
+            kind: FloatLeft,
+        };
+
+        // Offset our position by whatever displacement is needed to not impact the floats.
+        let rect = self.base.floats.place_between_floats(&info);
+        self.base.position.start.i = self.base.position.start.i + rect.start.i;
+
+        // TODO(pcwalton): If the inline-size of this flow is different from the size we estimated
+        // earlier, lay it out again.
+    }
 }
 
 impl Flow for BlockFlow {
@@ -1626,7 +1659,7 @@ impl Flow for BlockFlow {
             }
         }
 
-        // Move in from the inline-start border edge
+        // Move in from the inline-start border edge.
         let inline_start_content_edge = self.fragment.border_box.start.i + self.fragment.border_padding.inline_start;
         let padding_and_borders = self.fragment.border_padding.inline_start_end();
         let content_inline_size = self.fragment.border_box.size.inline - padding_and_borders;
@@ -1650,6 +1683,10 @@ impl Flow for BlockFlow {
         if self.is_float() {
             self.place_float();
             return true
+        }
+
+        if self.formatting_context_type() != NonformattingContext {
+            self.assign_inline_position_for_formatting_context();
         }
 
         let impacted = self.base.flags.impacted_by_floats();
