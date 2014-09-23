@@ -309,6 +309,7 @@ pub fn computed_style_to_font_style(style: &ComputedValues) -> FontStyle {
         pt_size: font_size,
         weight: style.get_font().font_weight,
         style: style.get_font().font_style,
+        variant: style.get_font().font_variant,
         families: font_families.collect(),
     }
 }

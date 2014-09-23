@@ -17,7 +17,7 @@ use platform::font_template::FontTemplateData;
 pub struct TextRun {
     pub text: Arc<String>,
     pub font_template: Arc<FontTemplateData>,
-    pub pt_size: f64,
+    pub actual_pt_size: f64,
     pub font_metrics: FontMetrics,
     /// The glyph runs that make up this text run.
     pub glyphs: Arc<Vec<GlyphRun>>,
@@ -123,7 +123,7 @@ impl<'a> TextRun {
             text: Arc::new(text),
             font_metrics: font.metrics.clone(),
             font_template: font.handle.get_template(),
-            pt_size: font.pt_size,
+            actual_pt_size: font.actual_pt_size,
             glyphs: Arc::new(glyphs),
         };
         return run;

@@ -634,7 +634,7 @@ impl DisplayItem {
 
                 render_context.font_ctx.get_render_font_from_template(
                     &text.text_run.font_template,
-                    text.text_run.pt_size,
+                    text.text_run.actual_pt_size,
                     render_context.opts.render_backend
                 ).borrow().draw_text_into_context(
                     render_context,

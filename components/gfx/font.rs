@@ -8,7 +8,7 @@ use std::string;
 use std::rc::Rc;
 use std::cell::RefCell;
 use servo_util::cache::{Cache, HashCache};
-use style::computed_values::{font_weight, font_style};
+use style::computed_values::{font_weight, font_style, font_variant};
 use sync::Arc;
 
 use servo_util::geometry::Au;
@@ -93,7 +93,8 @@ pub struct FontStyle {
     pub weight: font_weight::T,
     pub style: font_style::T,
     pub families: Vec<String>,
-    // TODO(Issue #198): font-stretch, text-decoration, font-variant, size-adjust
+    pub variant: font_variant::T,
+    // TODO(Issue #198): font-stretch, text-decoration, size-adjust
 }
 
 pub type SpecifiedFontStyle = FontStyle;
@@ -102,8 +103,10 @@ pub type UsedFontStyle = FontStyle;
 pub struct Font {
     pub handle: FontHandle,
     pub metrics: FontMetrics,
+    pub variant: font_variant::T,
     pub descriptor: FontTemplateDescriptor,
-    pub pt_size: f64,
+    pub requested_pt_size: f64,
+    pub actual_pt_size: f64,
     pub shaper: Option<Shaper>,
     pub shape_cache: HashCache<String, Arc<GlyphStore>>,
     pub glyph_advance_cache: HashCache<u32, FractionalPixel>,
@@ -147,6 +150,10 @@ impl Font {
     }
 
     pub fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {
+        let codepoint = match self.variant {
+            font_variant::small_caps => codepoint.to_uppercase(),
+            font_variant::normal => codepoint,
+        };
         self.handle.glyph_index(codepoint)
     }
 
