@@ -32,7 +32,7 @@ dependencies = [
  "egl 0.1.0 (git+https://github.com/servo/rust-egl#88f2a13812ddbce2bf2317221663a61c31b3e220)",
  "freetype 0.1.0 (git+https://github.com/servo/rust-freetype#0b03da276e4bdeae2300596dabc4ccb16733ad70)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#50a294fd997f0c6eb43e9a58ad6e227fdc2a4692)",
- "glfw 0.0.1 (git+https://github.com/servo/glfw-rs?ref=servo#955dbe919870b0536f79123232d87c0efe3c552e)",
+ "glfw 0.0.1 (git+https://github.com/servo/glfw-rs?ref=servo#7ccfaca315a43d97914e1601c90ad348ef190edf)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers#ef89918471815dfced7aaf2f1594d5469f03eab7)",
  "opengles 0.1.0 (git+https://github.com/servo/rust-opengles#6776e9c07feb149d34b087039ecf6b2c143e3afc)",
  "skia-sys 0.0.20130412 (git+https://github.com/servo/skia#6d696712962fd0d41120b7a414a48417da8e6a92)",
@@ -64,7 +64,7 @@ dependencies = [
  "devtools_traits 0.0.1",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#50a294fd997f0c6eb43e9a58ad6e227fdc2a4692)",
  "gfx 0.0.1",
- "glfw 0.0.1 (git+https://github.com/servo/glfw-rs?ref=servo#955dbe919870b0536f79123232d87c0efe3c552e)",
+ "glfw 0.0.1 (git+https://github.com/servo/glfw-rs?ref=servo#7ccfaca315a43d97914e1601c90ad348ef190edf)",
  "glut 0.0.1 (git+https://github.com/servo/rust-glut#01af0162ea0322ad1a40d6adb023a39813605949)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers#ef89918471815dfced7aaf2f1594d5469f03eab7)",
  "layout_traits 0.0.1",
@@ -195,7 +195,7 @@ dependencies = [
 [[package]]
 name = "glfw"
 version = "0.0.1"
-source = "git+https://github.com/servo/glfw-rs?ref=servo#955dbe919870b0536f79123232d87c0efe3c552e"
+source = "git+https://github.com/servo/glfw-rs?ref=servo#7ccfaca315a43d97914e1601c90ad348ef190edf"
 dependencies = [
  "glfw-sys 3.0.4 (git+https://github.com/servo/glfw?ref=cargo-3.0.4#65a2b4721276589d9de24f6a9999a2db37286cae)",
  "semver 0.0.1 (git+https://github.com/rust-lang/semver#d04583a173395b76c1eaa15cc630a5f6f8f0ae10)",
