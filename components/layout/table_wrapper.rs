@@ -282,7 +282,7 @@ impl Flow for TableWrapperFlow {
         // Now compute the real value.
         let containing_block_inline_size = self.block_flow.base.position.size.inline;
         if self.is_float() {
-            self.block_flow.float.get_mut_ref().containing_inline_size =
+            self.block_flow.float.as_mut().unwrap().containing_inline_size =
                 containing_block_inline_size;
         }
 

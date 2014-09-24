@@ -685,9 +685,7 @@ pub struct BaseFlow {
     /// The children of this flow.
     pub children: FlowList,
 
-    /* layout computations */
-    // TODO: min/pref and position are used during disjoint phases of
-    // layout; maybe combine into a single enum to save space.
+    /// Intrinsic inline sizes for this flow.
     pub intrinsic_inline_sizes: IntrinsicISizes,
 
     /// The upper left corner of the box representing this flow, relative to the box representing
