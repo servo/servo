@@ -122,6 +122,8 @@ flaky_linux == acid2_noscroll.html acid2_ref_broken.html
 
 == iframe/simple.html iframe/simple_ref.html
 == iframe/multiple_external.html iframe/multiple_external_ref.html
+== iframe/overflow.html iframe/overflow_ref.html
+
 == floated_generated_content_a.html floated_generated_content_b.html
 == inline_block_margin_a.html inline_block_margin_ref.html
 == inline_block_img_a.html inline_block_img_ref.html
