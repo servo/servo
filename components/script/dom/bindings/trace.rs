@@ -13,13 +13,13 @@
 //!    through `ProxyTraps.trace` otherwise.)
 //! 2. `_trace` calls `Foo::trace()` (an implementation of `JSTraceable`).
 //!     This is typically derived via a #[jstraceable] annotation
-//! 4. For all fields (except those wrapped in `Untraceable`), `Foo::trace()`
+//! 3. For all fields (except those wrapped in `Untraceable`), `Foo::trace()`
 //!    calls `trace()` on the field.
 //!    For example, for fields of type `JS<T>`, `JS<T>::trace()` calls
 //!    `trace_reflector()`.
-//! 6. `trace_reflector()` calls `trace_object()` with the `JSObject` for the
+//! 4. `trace_reflector()` calls `trace_object()` with the `JSObject` for the
 //!    reflector.
-//! 7. `trace_object()` calls `JS_CallTracer()` to notify the GC, which will
+//! 5. `trace_object()` calls `JS_CallTracer()` to notify the GC, which will
 //!    add the object to the graph, and will trace that object as well.
 //! 
 //! The untraceable!() macro adds an empty implementation of JSTraceable to 
@@ -43,11 +43,6 @@ use script_traits::ScriptControlChan;
 use std::collections::hashmap::HashMap;
 use collections::hash::Hash;
 use style::PropertyDeclarationBlock;
-
-// IMPORTANT: We rely on the fact that we never attempt to encode DOM objects using
-//            any encoder but JSTracer. Since we derive trace hooks automatically,
-//            we are unfortunately required to use generic types everywhere and
-//            unsafely cast to the concrete JSTracer we actually require.
 
 impl<T: Reflectable> JSTraceable for JS<T> {
     fn trace(&self, trc: *mut JSTracer) {
