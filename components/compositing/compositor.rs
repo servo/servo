@@ -29,7 +29,7 @@ use geom::rect::{Rect, TypedRect};
 use geom::size::TypedSize2D;
 use geom::scale_factor::ScaleFactor;
 use gfx::render_task::{RenderChan, RenderMsg, RenderRequest, UnusedBufferMsg};
-use layers::geometry::DevicePixel;
+use layers::geometry::{DevicePixel, LayerPixel};
 use layers::layers::{BufferRequest, Layer, LayerBufferSet};
 use layers::rendergl;
 use layers::rendergl::RenderContext;
@@ -457,7 +457,9 @@ impl IOCompositor {
         match frame_rect {
             Some(ref frame_rect) => {
                 *root_layer.masks_to_bounds.borrow_mut() = true;
-                *root_layer.bounds.borrow_mut() = frame_rect * self.device_pixels_per_page_px();
+
+                let frame_rect = frame_rect.to_untyped();
+                *root_layer.bounds.borrow_mut() = Rect::from_untyped(&frame_rect);
             }
             None => {}
         }
@@ -500,15 +502,7 @@ impl IOCompositor {
         }
     }
 
-    // rust-layers keeps everything in layer coordinates, so we must convert all rectangles
-    // from page coordinates into layer coordinates based on our current scale.
-    fn convert_page_rect_to_layer_coordinates(&self, page_rect: Rect<f32>) -> Rect<f32> {
-        page_rect * self.device_pixels_per_page_px().get()
-    }
-
-    fn create_or_update_root_layer(&mut self, mut layer_properties: LayerProperties) {
-        layer_properties.rect = self.convert_page_rect_to_layer_coordinates(layer_properties.rect);
-
+    fn create_or_update_root_layer(&mut self, layer_properties: LayerProperties) {
         let need_new_root_layer = !self.update_layer_if_exists(layer_properties);
         if need_new_root_layer {
             let root_layer = self.find_pipeline_root_layer(layer_properties.pipeline_id);
@@ -532,8 +526,7 @@ impl IOCompositor {
         self.send_buffer_requests_for_all_layers();
     }
 
-    fn create_or_update_descendant_layer(&mut self, mut layer_properties: LayerProperties) {
-        layer_properties.rect = self.convert_page_rect_to_layer_coordinates(layer_properties.rect);
+    fn create_or_update_descendant_layer(&mut self, layer_properties: LayerProperties) {
         if !self.update_layer_if_exists(layer_properties) {
             self.create_descendant_layer(layer_properties);
         }
@@ -569,15 +562,15 @@ impl IOCompositor {
     pub fn move_layer(&self,
                       pipeline_id: PipelineId,
                       layer_id: LayerId,
-                      origin: TypedPoint2D<DevicePixel, f32>)
+                      origin: TypedPoint2D<LayerPixel, f32>)
                       -> bool {
+        let window_size = self.window_size.as_f32() / self.scene.scale;
         match self.find_layer_with_pipeline_and_layer_id(pipeline_id, layer_id) {
             Some(ref layer) => {
                 if layer.extra_data.borrow().wants_scroll_events == WantsScrollEvents {
                     events::clamp_scroll_offset_and_scroll_layer(layer.clone(),
                                                                  TypedPoint2D(0f32, 0f32) - origin,
-                                                                 self.window_size.as_f32(),
-                                                                 self.device_pixels_per_page_px());
+                                                                 window_size);
                 }
                 true
             }
@@ -588,10 +581,8 @@ impl IOCompositor {
     fn scroll_layer_to_fragment_point_if_necessary(&mut self,
                                                    pipeline_id: PipelineId,
                                                    layer_id: LayerId) {
-        let device_pixels_per_page_px = self.device_pixels_per_page_px();
         match self.fragment_point.take() {
             Some(point) => {
-                let point = point * device_pixels_per_page_px.get();
                 if !self.move_layer(pipeline_id, layer_id, Point2D::from_untyped(&point)) {
                     fail!("Compositor: Tried to scroll to fragment with unknown layer.");
                 }
@@ -606,11 +597,9 @@ impl IOCompositor {
                         pipeline_id: PipelineId,
                         layer_id: LayerId,
                         new_origin: Point2D<f32>) {
-        let new_origin_in_device_coordinates = new_origin * self.device_pixels_per_page_px().get();
         match self.find_layer_with_pipeline_and_layer_id(pipeline_id, layer_id) {
             Some(ref layer) => {
-                layer.bounds.borrow_mut().origin =
-                    Point2D::from_untyped(&new_origin_in_device_coordinates)
+                layer.bounds.borrow_mut().origin = Point2D::from_untyped(&new_origin)
             }
             None => fail!("Compositor received SetLayerOrigin for nonexistent layer"),
         };
@@ -647,9 +636,7 @@ impl IOCompositor {
                                 pipeline_id: PipelineId,
                                 layer_id: LayerId,
                                 point: Point2D<f32>) {
-        let device_pixels_per_page_px = self.device_pixels_per_page_px();
-        let device_point = point * device_pixels_per_page_px.get();
-        if self.move_layer(pipeline_id, layer_id, Point2D::from_untyped(&device_point)) {
+        if self.move_layer(pipeline_id, layer_id, Point2D::from_untyped(&point)) {
             self.recomposite = true;
             self.send_buffer_requests_for_all_layers();
         } else {
@@ -749,37 +736,36 @@ impl IOCompositor {
     }
 
     fn on_mouse_window_event_class(&self, mouse_window_event: MouseWindowEvent) {
-        let scale = self.device_pixels_per_page_px();
         let point = match mouse_window_event {
             MouseWindowClickEvent(_, p) => p,
             MouseWindowMouseDownEvent(_, p) => p,
             MouseWindowMouseUpEvent(_, p) => p,
         };
         for layer in self.scene.root.iter() {
-            events::send_mouse_event(layer.clone(), mouse_window_event, point, scale);
+            events::send_mouse_event(layer.clone(), mouse_window_event, point / self.scene.scale);
         }
     }
 
     fn on_mouse_window_move_event_class(&self, cursor: TypedPoint2D<DevicePixel, f32>) {
-        let scale = self.device_pixels_per_page_px();
         for layer in self.scene.root.iter() {
-            events::send_mouse_move_event(layer.clone(), cursor / scale);
+            events::send_mouse_move_event(layer.clone(), cursor / self.scene.scale);
         }
     }
 
     fn on_scroll_window_event(&mut self,
                               delta: TypedPoint2D<DevicePixel, f32>,
                               cursor: TypedPoint2D<DevicePixel, i32>) {
+        let delta = delta / self.scene.scale;
+        let cursor = cursor.as_f32() / self.scene.scale;
+        let window_size = self.window_size.as_f32() / self.scene.scale;
+
         let mut scroll = false;
-        let window_size = self.window_size.as_f32();
-        let scene_scale = self.device_pixels_per_page_px();
         match self.scene.root {
             Some(ref mut layer) => {
                 scroll = events::handle_scroll_event(layer.clone(),
                                                      delta,
-                                                     cursor.as_f32(),
-                                                     window_size,
-                                                     scene_scale) == ScrollPositionChanged;
+                                                     cursor,
+                                                     window_size) == ScrollPositionChanged;
             }
             None => { }
         }
@@ -803,7 +789,11 @@ impl IOCompositor {
 
     fn update_zoom_transform(&mut self) {
         let scale = self.device_pixels_per_page_px();
-        self.scene.scale = scale.get();
+        self.scene.scale = ScaleFactor(scale.get());
+
+        // We need to set the size of the root layer again, since the window size
+        // has changed in unscaled layer pixels.
+        self.scene.set_root_layer_size(self.window_size.as_f32());
     }
 
     fn on_zoom_window_event(&mut self, magnification: f32) {
@@ -824,20 +814,18 @@ impl IOCompositor {
 
         // Scroll as needed
         let window_size = self.window_size.as_f32();
-        let page_delta: TypedPoint2D<PagePx, f32> = TypedPoint2D(
+        let page_delta: TypedPoint2D<LayerPixel, f32> = TypedPoint2D(
             window_size.width.get() * (viewport_zoom.inv() - old_viewport_zoom.inv()).get() * 0.5,
             window_size.height.get() * (viewport_zoom.inv() - old_viewport_zoom.inv()).get() * 0.5);
 
-        let delta = page_delta * self.device_pixels_per_page_px();
         let cursor = TypedPoint2D(-1f32, -1f32);  // Make sure this hits the base layer.
-        let scene_scale = self.device_pixels_per_page_px();
+        let window_size = self.window_size.as_f32() / self.scene.scale;
         match self.scene.root {
             Some(ref mut layer) => {
                 events::handle_scroll_event(layer.clone(),
-                                            delta,
+                                            page_delta,
                                             cursor,
-                                            window_size,
-                                            scene_scale);
+                                            window_size);
             }
             None => { }
         }
