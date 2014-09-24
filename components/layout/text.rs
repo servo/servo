@@ -124,7 +124,7 @@ impl TextRunScanner {
                 let font_style = old_fragment.font_style();
 
                 let compression = match old_fragment.white_space() {
-                    white_space::normal => CompressWhitespaceNewline,
+                    white_space::normal | white_space::nowrap => CompressWhitespaceNewline,
                     white_space::pre => CompressNone,
                 };
 
@@ -168,7 +168,7 @@ impl TextRunScanner {
                 let fontgroup = font_context.get_layout_font_group_for_style(&font_style);
 
                 let compression = match in_fragment.white_space() {
-                    white_space::normal => CompressWhitespaceNewline,
+                    white_space::normal | white_space::nowrap => CompressWhitespaceNewline,
                     white_space::pre => CompressNone,
                 };
 
