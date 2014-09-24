@@ -16,7 +16,7 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, ElementNodeTypeId, window_from_node};
 use servo_util::str::DOMString;
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct HTMLDataListElement {
     pub htmlelement: HTMLElement
@@ -44,6 +44,7 @@ impl HTMLDataListElement {
 
 impl<'a> HTMLDataListElementMethods for JSRef<'a, HTMLDataListElement> {
     fn Options(self) -> Temporary<HTMLCollection> {
+        #[jstraceable]
         struct HTMLDataListOptionsFilter;
         impl CollectionFilter for HTMLDataListOptionsFilter {
             fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {

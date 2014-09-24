@@ -15,7 +15,7 @@ use std::cell::{Cell, RefCell};
 
 use time;
 
-#[deriving(Encodable)]
+#[jstraceable]
 pub enum EventPhase {
     PhaseNone      = EventConstants::NONE as int,
     PhaseCapturing = EventConstants::CAPTURING_PHASE as int,
@@ -23,7 +23,8 @@ pub enum EventPhase {
     PhaseBubbling  = EventConstants::BUBBLING_PHASE as int,
 }
 
-#[deriving(PartialEq, Encodable)]
+#[deriving(PartialEq)]
+#[jstraceable]
 pub enum EventTypeId {
     CustomEventTypeId,
     HTMLEventTypeId,
@@ -34,7 +35,7 @@ pub enum EventTypeId {
     UIEventTypeId
 }
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct Event {
     pub type_id: EventTypeId,

@@ -9,13 +9,13 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::error::Fallible;
 use dom::bindings::codegen::Bindings::BlobBinding;
 
-#[deriving(Encodable)]
+#[jstraceable]
 pub enum BlobType {
     BlobTypeId,
     FileTypeId
 }
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct Blob {
     reflector_: Reflector,

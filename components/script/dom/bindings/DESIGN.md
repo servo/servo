@@ -13,13 +13,14 @@ This is very tricky and magically mechanism helped by Rust Compiler.
 The outline is:
 
 1. SpiderMonkey's GC calls `JSClass.trace` defined in `FooBinding` when marking phase. This JSClass is basis of each wrapper JSObject.
-2. `JSClass.trace` calls `Foo::trace()` defined in InhertTypes.rs.
-3. `Foo::trace()` calls `Foo::encode()`. This `encode()` method is derived by the annotation of `#[deriving(Encodable)]` for a Rust DOM Element struct.
-4. `Foo::encode()` calls `JS<T>::encode()` method of  `JS<T>` which is contained to `Foo`’s member. So this is the compiler magic!  Rust compiler generates [codes like this](https://github.com/mozilla/rust/blob/db5206c32a879d5058d6a5cdce39c13c763fbdd5/src/libsyntax/ext/deriving/encodable.rs) for all structs annotated `#[deriving(Encodable)]`. This is based on [the assumption](https://github.com/mozilla/servo/blob/54da52fa774ce2ee59fcf811af595bf292169ad8/src/components/script/dom/bindings/trace.rs#L16).
-5. `JS<T>::encode()` calls `dom::bindings::trace::trace_reflector()`.
-6. `trace_reflector()` fetches the reflector that is reachable from a Rust object, and notifies it to the GC with using JSTracer.
-7. This operation continues to the end of the graph.
-8. Finally, GC gets whether Rust object lives or not from JSObjects which is hold by Rust object.
+2. `JSClass.trace` calls `Foo::trace()` (an implementation of `JSTraceable`).
+     This is typically derived via a #[jstraceable] annotation
+3. For all fields (except those wrapped in `Untraceable`), `Foo::trace()`
+   calls `trace()` on the field. For example, for fields of type `JS<T>`, `JS<T>::trace()` calls
+   `trace_reflector()`.
+4. `trace_reflector()` fetches the reflector that is reachable from a Rust object, and notifies it to the GC with using JSTracer.
+5. This operation continues to the end of the graph.
+6. Finally, GC gets whether Rust object lives or not from JSObjects which is hold by Rust object.
 
 
 ## Destruct

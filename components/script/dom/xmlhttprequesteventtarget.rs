@@ -11,7 +11,7 @@ use dom::bindings::utils::{Reflectable, Reflector};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, XMLHttpRequestTargetTypeId};
 use dom::xmlhttprequest::XMLHttpRequestId;
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct XMLHttpRequestEventTarget {
     pub eventtarget: EventTarget,

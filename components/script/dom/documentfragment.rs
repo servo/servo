@@ -18,7 +18,7 @@ use dom::node::{DocumentFragmentNodeTypeId, Node, NodeHelpers, window_from_node}
 use dom::nodelist::NodeList;
 use servo_util::str::DOMString;
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct DocumentFragment {
     pub node: Node,

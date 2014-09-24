@@ -18,7 +18,7 @@ use servo_util::str::DOMString;
 use js::jsapi::JSContext;
 use js::jsval::{JSVal, NullValue};
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct TestBinding {
     reflector: Reflector,

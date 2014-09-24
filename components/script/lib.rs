@@ -25,6 +25,7 @@ extern crate encoding;
 extern crate http;
 extern crate js;
 extern crate libc;
+extern crate msg;
 extern crate native;
 extern crate net;
 extern crate rustrt;
@@ -45,7 +46,11 @@ extern crate uuid;
 pub mod cors;
 
 /// The implementation of the DOM.
+#[macro_escape]
 pub mod dom {
+    #[macro_escape]
+    pub mod macros;
+
     /// The code to expose the DOM to JavaScript through IDL bindings.
     pub mod bindings {
         pub mod global;
@@ -72,7 +77,6 @@ pub mod dom {
 
     #[path="bindings/codegen/InterfaceTypes.rs"]
     pub mod types;
-    pub mod macros;
 
     pub mod attr;
     pub mod blob;

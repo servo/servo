@@ -10,7 +10,7 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::window::Window;
 use servo_util::geometry::Au;
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct DOMRect {
     reflector_: Reflector,

@@ -29,7 +29,7 @@ use std::ptr;
 
 pub struct TrustedWorkerAddress(pub *const c_void);
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct Worker {
     eventtarget: EventTarget,

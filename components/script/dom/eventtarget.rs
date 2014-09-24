@@ -26,13 +26,15 @@ use url::Url;
 
 use std::collections::hashmap::HashMap;
 
-#[deriving(PartialEq,Encodable)]
+#[deriving(PartialEq)]
+#[jstraceable]
 pub enum ListenerPhase {
     Capturing,
     Bubbling,
 }
 
-#[deriving(PartialEq,Encodable)]
+#[deriving(PartialEq)]
+#[jstraceable]
 pub enum EventTargetTypeId {
     NodeTargetTypeId(NodeTypeId),
     WindowTypeId,
@@ -41,7 +43,8 @@ pub enum EventTargetTypeId {
     XMLHttpRequestTargetTypeId(XMLHttpRequestId)
 }
 
-#[deriving(PartialEq, Encodable)]
+#[deriving(PartialEq)]
+#[jstraceable]
 pub enum EventListenerType {
     Additive(EventListener),
     Inline(EventListener),
@@ -55,13 +58,14 @@ impl EventListenerType {
     }
 }
 
-#[deriving(PartialEq,Encodable)]
+#[deriving(PartialEq)]
+#[jstraceable]
 pub struct EventListenerEntry {
     pub phase: ListenerPhase,
     pub listener: EventListenerType
 }
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct EventTarget {
     pub type_id: EventTargetTypeId,

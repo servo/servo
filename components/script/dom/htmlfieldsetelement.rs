@@ -21,7 +21,7 @@ use dom::virtualmethods::VirtualMethods;
 use servo_util::atom::Atom;
 use servo_util::str::{DOMString, StaticStringVec};
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct HTMLFieldSetElement {
     pub htmlelement: HTMLElement
@@ -50,6 +50,7 @@ impl HTMLFieldSetElement {
 impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
     // http://www.whatwg.org/html/#dom-fieldset-elements
     fn Elements(self) -> Temporary<HTMLCollection> {
+        #[jstraceable]
         struct ElementsFilter;
         impl CollectionFilter for ElementsFilter {
             fn filter(&self, elem: JSRef<Element>, root: JSRef<Node>) -> bool {

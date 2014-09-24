@@ -28,7 +28,7 @@ use std::cell::Cell;
 static DefaultWidth: u32 = 300;
 static DefaultHeight: u32 = 150;
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct HTMLCanvasElement {
     pub htmlelement: HTMLElement,

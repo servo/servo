@@ -10,14 +10,14 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::node::{Node, NodeHelpers};
 use dom::window::Window;
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub enum NodeListType {
     Simple(Vec<JS<Node>>),
     Children(JS<Node>)
 }
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct NodeList {
     list_type: NodeListType,

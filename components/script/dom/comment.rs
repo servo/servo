@@ -16,7 +16,7 @@ use dom::node::{CommentNodeTypeId, Node};
 use servo_util::str::DOMString;
 
 /// An HTML comment.
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct Comment {
     pub characterdata: CharacterData,

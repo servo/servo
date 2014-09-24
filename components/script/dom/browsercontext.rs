@@ -16,7 +16,7 @@ use libc::c_void;
 use std::ptr;
 
 #[allow(raw_pointer_deriving)]
-#[deriving(Encodable)]
+#[jstraceable]
 pub struct BrowserContext {
     history: Vec<SessionHistoryEntry>,
     active_index: uint,
@@ -66,7 +66,7 @@ impl BrowserContext {
     }
 }
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct SessionHistoryEntry {
     document: JS<Document>,

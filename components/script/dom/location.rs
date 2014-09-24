@@ -15,7 +15,7 @@ use servo_util::str::DOMString;
 
 use std::rc::Rc;
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct Location {
     reflector_: Reflector, //XXXjdm cycle: window->Location->window

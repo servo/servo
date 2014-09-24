@@ -14,7 +14,7 @@ use dom::node::{Node, ProcessingInstructionNodeTypeId};
 use servo_util::str::DOMString;
 
 /// An HTML processing instruction node.
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct ProcessingInstruction {
     pub characterdata: CharacterData,

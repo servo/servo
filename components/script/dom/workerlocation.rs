@@ -15,7 +15,7 @@ use servo_util::str::DOMString;
 
 use url::Url;
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct WorkerLocation {
     reflector_: Reflector,

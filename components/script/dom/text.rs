@@ -16,7 +16,7 @@ use dom::node::{Node, TextNodeTypeId};
 use servo_util::str::DOMString;
 
 /// An HTML text node.
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct Text {
     pub characterdata: CharacterData,

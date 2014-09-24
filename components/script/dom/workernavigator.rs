@@ -11,7 +11,7 @@ use dom::navigatorinfo::NavigatorInfo;
 use dom::workerglobalscope::WorkerGlobalScope;
 use servo_util::str::DOMString;
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct WorkerNavigator {
     reflector_: Reflector,

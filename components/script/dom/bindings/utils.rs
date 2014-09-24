@@ -52,7 +52,7 @@ use js::{JSFUN_CONSTRUCTOR, JSPROP_READONLY};
 use js;
 
 #[allow(raw_pointer_deriving)]
-#[deriving(Encodable)]
+#[jstraceable]
 pub struct GlobalStaticData {
     pub windowproxy_handler: Untraceable<*const libc::c_void>,
 }

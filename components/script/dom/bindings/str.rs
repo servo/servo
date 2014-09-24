@@ -10,7 +10,8 @@ use std::path::BytesContainer;
 use std::str;
 
 /// Encapsulates the IDL `ByteString` type.
-#[deriving(Encodable,Clone,Eq,PartialEq)]
+#[deriving(Clone,Eq,PartialEq)]
+#[jstraceable]
 pub struct ByteString(Vec<u8>);
 
 impl ByteString {

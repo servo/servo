@@ -25,12 +25,13 @@ use std::cell::Cell;
 use std::rc::Rc;
 use url::{Url, UrlParser};
 
-#[deriving(PartialEq,Encodable)]
+#[deriving(PartialEq)]
+#[jstraceable]
 pub enum WorkerGlobalScopeId {
     DedicatedGlobalScope,
 }
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct WorkerGlobalScope {
     pub eventtarget: EventTarget,

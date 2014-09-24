@@ -22,7 +22,7 @@ use servo_util::namespace::Null;
 use std::ascii::StrAsciiExt;
 use url::UrlParser;
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct HTMLLinkElement {
     pub htmlelement: HTMLElement,

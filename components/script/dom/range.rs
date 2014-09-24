@@ -11,7 +11,7 @@ use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::document::Document;
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct Range {
     reflector_: Reflector

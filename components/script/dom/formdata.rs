@@ -18,14 +18,15 @@ use servo_util::str::DOMString;
 use std::cell::RefCell;
 use std::collections::hashmap::HashMap;
 
-#[deriving(Encodable, Clone)]
+#[deriving(Clone)]
+#[jstraceable]
 #[must_root]
 pub enum FormDatum {
     StringData(DOMString),
     FileData(JS<File>)
 }
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct FormData {
     data: Traceable<RefCell<HashMap<DOMString, Vec<FormDatum>>>>,

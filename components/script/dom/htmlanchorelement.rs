@@ -23,7 +23,7 @@ use servo_util::atom::Atom;
 use servo_util::namespace::Null;
 use servo_util::str::DOMString;
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct HTMLAnchorElement {
     pub htmlelement: HTMLElement

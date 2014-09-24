@@ -51,10 +51,11 @@ use std::rc::Rc;
 use std::time::duration::Duration;
 use time;
 
-#[deriving(PartialEq, Encodable, Eq)]
+#[deriving(PartialEq, Eq)]
+#[jstraceable]
 pub struct TimerId(i32);
 
-#[deriving(Encodable)]
+#[jstraceable]
 pub struct TimerHandle {
     handle: TimerId,
     pub data: TimerData,
@@ -74,7 +75,7 @@ impl TimerHandle {
     }
 }
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct Window {
     eventtarget: EventTarget,
@@ -121,7 +122,7 @@ impl Drop for Window {
 // Holder for the various JS values associated with setTimeout
 // (ie. function value to invoke and all arguments to pass
 //      to the function when calling it)
-#[deriving(Encodable)]
+#[jstraceable]
 pub struct TimerData {
     pub is_interval: bool,
     pub funval: Traceable<JSVal>,

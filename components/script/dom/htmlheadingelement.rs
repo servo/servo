@@ -13,7 +13,7 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, ElementNodeTypeId};
 use servo_util::str::DOMString;
 
-#[deriving(Encodable)]
+#[jstraceable]
 pub enum HeadingLevel {
     Heading1,
     Heading2,
@@ -23,7 +23,7 @@ pub enum HeadingLevel {
     Heading6,
 }
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct HTMLHeadingElement {
     pub htmlelement: HTMLElement,

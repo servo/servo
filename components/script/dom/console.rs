@@ -9,7 +9,7 @@ use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use servo_util::str::DOMString;
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct Console {
     pub reflector_: Reflector

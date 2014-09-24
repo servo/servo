@@ -41,7 +41,7 @@ enum SandboxAllowance {
     AllowPopups = 0x20
 }
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct HTMLIFrameElement {
     pub htmlelement: HTMLElement,
@@ -55,7 +55,7 @@ impl HTMLIFrameElementDerived for EventTarget {
     }
 }
 
-#[deriving(Encodable)]
+#[jstraceable]
 pub struct IFrameSize {
     pub pipeline_id: PipelineId,
     pub subpage_id: SubpageId,

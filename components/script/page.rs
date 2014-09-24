@@ -35,10 +35,8 @@ use std::mem::replace;
 use std::rc::Rc;
 use url::Url;
 
-use serialize::{Encoder, Encodable};
-
 /// Encapsulates a handle to a frame and its associated layout information.
-#[deriving(Encodable)]
+#[jstraceable]
 pub struct Page {
     /// Pipeline id associated with this page.
     pub id: PipelineId,
@@ -453,7 +451,7 @@ impl Page {
 }
 
 /// Information for one frame in the browsing context.
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct Frame {
     /// The document for this frame.
@@ -463,7 +461,7 @@ pub struct Frame {
 }
 
 /// Encapsulation of the javascript information associated with each frame.
-#[deriving(Encodable)]
+#[jstraceable]
 pub struct JSPageInfo {
     /// Global static data related to the DOM.
     pub dom_static: GlobalStaticData,

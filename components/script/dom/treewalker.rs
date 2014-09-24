@@ -19,11 +19,10 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::document::Document;
 use dom::node::{Node, NodeHelpers};
 
-use serialize::{Encoder, Encodable};
 use std::cell::Cell;
 
 // http://dom.spec.whatwg.org/#interface-treewalker
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct TreeWalker {
     pub reflector_: Reflector,
@@ -552,7 +551,7 @@ impl<'a> Iterator<JSRef<'a, Node>> for JSRef<'a, TreeWalker> {
    }
 }
 
-#[deriving(Encodable)]
+#[jstraceable]
 pub enum Filter {
     FilterNone,
     FilterNative(Untraceable<fn (node: JSRef<Node>) -> u16>),

@@ -25,7 +25,7 @@ use url::{Url, UrlParser};
 
 use std::cell::RefCell;
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct HTMLImageElement {
     pub htmlelement: HTMLElement,

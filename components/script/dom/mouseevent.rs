@@ -18,7 +18,7 @@ use dom::window::Window;
 use servo_util::str::DOMString;
 use std::cell::Cell;
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct MouseEvent {
     pub mouseevent: UIEvent,

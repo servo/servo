@@ -33,7 +33,7 @@ pub enum GlobalRoot<'a, 'b> {
 
 /// A traced reference to a global object, for use in fields of traced Rust
 /// structures.
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub enum GlobalField {
     WindowField(JS<Window>),

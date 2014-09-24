@@ -7,10 +7,12 @@
 /// from layout.
 
 use dom::bindings::js::JS;
+use dom::bindings::trace::JSTraceable;
 use dom::node::{Node, LayoutDataRef};
 
 use geom::point::Point2D;
 use geom::rect::Rect;
+use js::jsapi::JSTracer;
 use libc::c_void;
 use script_traits::{ScriptControlChan, OpaqueScriptLayoutChannel};
 use servo_msg::constellation_msg::WindowSizeData;
@@ -21,8 +23,6 @@ use std::comm::{channel, Receiver, Sender};
 use std::owned::BoxAny;
 use style::Stylesheet;
 use url::Url;
-
-use serialize::{Encodable, Encoder};
 
 /// Asynchronous messages that script can send to layout.
 pub enum Msg {
@@ -75,12 +75,12 @@ pub trait LayoutRPC {
 /// because we do not trust layout.
 pub struct TrustedNodeAddress(pub *const c_void);
 
-impl<S: Encoder<E>, E> Encodable<S, E> for TrustedNodeAddress {
-    fn encode(&self, s: &mut S) -> Result<(), E> {
+impl JSTraceable for TrustedNodeAddress {
+    fn trace(&self, s: *mut JSTracer) {
         let TrustedNodeAddress(addr) = *self;
         let node = addr as *const Node;
         unsafe {
-            JS::from_raw(node).encode(s)
+            JS::from_raw(node).trace(s)
         }
     }
 }
@@ -95,7 +95,8 @@ pub struct HitTestResponse(pub UntrustedNodeAddress);
 pub struct MouseOverResponse(pub Vec<UntrustedNodeAddress>);
 
 /// Determines which part of the
-#[deriving(PartialEq, PartialOrd, Eq, Ord, Encodable)]
+#[deriving(PartialEq, PartialOrd, Eq, Ord)]
+#[jstraceable]
 pub enum DocumentDamageLevel {
     /// Reflow, but do not perform CSS selector matching.
     ReflowDocumentDamage,
@@ -115,7 +116,7 @@ impl DocumentDamageLevel {
 /// What parts of the document have changed, as far as the script task can tell.
 ///
 /// Note that this is fairly coarse-grained and is separate from layout's notion of the document
-#[deriving(Encodable)]
+#[jstraceable]
 pub struct DocumentDamage {
     /// The topmost node in the tree that has changed.
     pub root: TrustedNodeAddress,

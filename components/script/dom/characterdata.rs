@@ -17,7 +17,7 @@ use servo_util::str::DOMString;
 
 use std::cell::RefCell;
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct CharacterData {
     pub node: Node,

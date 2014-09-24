@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![macro_escape]
-
 #[macro_export]
 macro_rules! make_getter(
     ( $attr:ident ) => (
@@ -39,6 +37,30 @@ macro_rules! make_uint_getter(
             use std::ascii::StrAsciiExt;
             let element: JSRef<Element> = ElementCast::from_ref(self);
             element.get_uint_attribute(stringify!($attr).to_ascii_lower().as_slice())
+        }
+    );
+)
+
+
+/// For use on non-jsmanaged types
+/// Use #[jstraceable] on JS managed types
+macro_rules! untraceable(
+    ($($ty:ident),+) => (
+        $(
+            impl JSTraceable for $ty {
+                #[inline]
+                fn trace(&self, _: *mut JSTracer) {
+                    // Do nothing
+                }
+            }
+        )+
+    );
+    ($ty:ident<$($gen:ident),+>) => (
+        impl<$($gen),+> JSTraceable for $ty<$($gen),+> {
+            #[inline]
+            fn trace(&self, _: *mut JSTracer) {
+                // Do nothing
+            }
         }
     );
 )

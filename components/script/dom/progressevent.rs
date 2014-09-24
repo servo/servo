@@ -13,7 +13,7 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{Event, ProgressEventTypeId};
 use servo_util::str::DOMString;
 
-#[deriving(Encodable)]
+#[jstraceable]
 #[must_root]
 pub struct ProgressEvent {
     event: Event,
