@@ -35,8 +35,6 @@ use std::mem::replace;
 use std::rc::Rc;
 use url::Url;
 
-
-
 /// Encapsulates a handle to a frame and its associated layout information.
 #[jstraceable]
 pub struct Page {

@@ -31,7 +31,7 @@ use syntax::ext::deriving::generic::{combine_substructure, EnumMatching, FieldIn
             }
         )
     };
-    trait_def.expand(cx, mitem, item, push)    
+    trait_def.expand(cx, mitem, item, push)
 }
 
 // Mostly copied from syntax::ext::deriving::hash
@@ -40,23 +40,20 @@ fn jstraceable_substructure(cx: &mut ExtCtxt, trait_span: Span, substr: &Substru
         [ref state_expr] => state_expr,
         _ => cx.span_bug(trait_span, "incorrect number of arguments in `jstraceable`")
     };
-    let hash_ident = substr.method_ident;
-    let call_hash = |span, thing_expr| {
-        let expr = cx.expr_method_call(span, thing_expr, hash_ident, vec!(state_expr.clone()));
+    let trace_ident = substr.method_ident;
+    let call_trace = |span, thing_expr| {
+        let expr = cx.expr_method_call(span, thing_expr, trace_ident, vec!(state_expr.clone()));
         cx.stmt_expr(expr)
     };
     let mut stmts = Vec::new();
 
     let fields = match *substr.fields {
-        Struct(ref fs) => fs,
-        EnumMatching(_, _, ref fs) => {
-            fs
-        }
+        Struct(ref fs) | EnumMatching(_, _, ref fs) => fs,
         _ => cx.span_bug(trait_span, "impossible substructure in `jstraceable`")
     };
 
     for &FieldInfo { ref self_, span, .. } in fields.iter() {
-        stmts.push(call_hash(span, self_.clone()));
+        stmts.push(call_trace(span, self_.clone()));
     }
 
     cx.expr_block(cx.block(trait_span, stmts, None))

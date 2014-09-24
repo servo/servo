@@ -60,7 +60,7 @@ impl HTMLCollection {
     fn all_elements(window: JSRef<Window>, root: JSRef<Node>,
                     namespace_filter: Option<Namespace>) -> Temporary<HTMLCollection> {
         #[jstraceable]
-struct AllElementFilter {
+        struct AllElementFilter {
             namespace_filter: Option<Namespace>
         }
         impl CollectionFilter for AllElementFilter {
@@ -82,7 +82,7 @@ struct AllElementFilter {
         }
 
         #[jstraceable]
-struct TagNameFilter {
+        struct TagNameFilter {
             tag: Atom,
             ascii_lower_tag: Atom,
         }
@@ -118,7 +118,7 @@ struct TagNameFilter {
             return HTMLCollection::all_elements(window, root, namespace_filter);
         }
         #[jstraceable]
-struct TagNameNSFilter {
+        struct TagNameNSFilter {
             tag: Atom,
             namespace_filter: Option<Namespace>
         }
@@ -143,7 +143,7 @@ struct TagNameNSFilter {
     pub fn by_class_name(window: JSRef<Window>, root: JSRef<Node>, classes: DOMString)
                          -> Temporary<HTMLCollection> {
         #[jstraceable]
-struct ClassNameFilter {
+        struct ClassNameFilter {
             classes: Vec<DOMString>
         }
         impl CollectionFilter for ClassNameFilter {
@@ -159,7 +159,7 @@ struct ClassNameFilter {
 
     pub fn children(window: JSRef<Window>, root: JSRef<Node>) -> Temporary<HTMLCollection> {
         #[jstraceable]
-struct ElementChildFilter;
+        struct ElementChildFilter;
         impl CollectionFilter for ElementChildFilter {
             fn filter(&self, elem: JSRef<Element>, root: JSRef<Node>) -> bool {
                 root.is_parent_of(NodeCast::from_ref(elem))

@@ -45,7 +45,7 @@ impl HTMLDataListElement {
 impl<'a> HTMLDataListElementMethods for JSRef<'a, HTMLDataListElement> {
     fn Options(self) -> Temporary<HTMLCollection> {
         #[jstraceable]
-struct HTMLDataListOptionsFilter;
+        struct HTMLDataListOptionsFilter;
         impl CollectionFilter for HTMLDataListOptionsFilter {
             fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {
                 elem.is_htmloptionelement()

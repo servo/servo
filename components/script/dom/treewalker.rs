@@ -19,7 +19,6 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::document::Document;
 use dom::node::{Node, NodeHelpers};
 
-
 use std::cell::Cell;
 
 // http://dom.spec.whatwg.org/#interface-treewalker

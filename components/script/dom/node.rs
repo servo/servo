@@ -64,8 +64,6 @@ use style::ComputedValues;
 use sync::Arc;
 use uuid;
 
-
-
 //
 // The basic Node structure
 //

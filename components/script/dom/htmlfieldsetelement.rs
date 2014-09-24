@@ -51,7 +51,7 @@ impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
     // http://www.whatwg.org/html/#dom-fieldset-elements
     fn Elements(self) -> Temporary<HTMLCollection> {
         #[jstraceable]
-struct ElementsFilter;
+        struct ElementsFilter;
         impl CollectionFilter for ElementsFilter {
             fn filter(&self, elem: JSRef<Element>, root: JSRef<Node>) -> bool {
                 static tag_names: StaticStringVec = &["button", "fieldset", "input",

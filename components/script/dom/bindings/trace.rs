@@ -21,7 +21,7 @@
 //!    reflector.
 //! 5. `trace_object()` calls `JS_CallTracer()` to notify the GC, which will
 //!    add the object to the graph, and will trace that object as well.
-//! 
+//!
 //! The untraceable!() macro adds an empty implementation of JSTraceable to 
 //! a datatype.
 
@@ -158,13 +158,13 @@ impl<T: JSTraceable> JSTraceable for RefCell<T> {
 
 impl<T: JSTraceable> JSTraceable for Rc<T> {
     fn trace(&self, trc: *mut JSTracer) {
-        self.trace(trc)
+        self.deref().trace(trc)
     }
 }
 
 impl<T: JSTraceable> JSTraceable for Box<T> {
     fn trace(&self, trc: *mut JSTracer) {
-        self.trace(trc)
+        (**self).trace(trc)
     }
 }
 
@@ -221,13 +221,15 @@ impl<K: Eq+Hash, V: JSTraceable> JSTraceable for HashMap<K, V> {
 }
 
 untraceable!(bool, f32, f64, String, Url)
-untraceable!(SubpageId, WindowSizeData, PipelineId)
 untraceable!(uint, u8, u16, u32, u64)
 untraceable!(int, i8, i16, i32, i64)
 untraceable!(Untraceable<T>)
 untraceable!(ImageCacheTask, ScriptControlChan)
 untraceable!(Atom, Namespace)
 untraceable!(PropertyDeclarationBlock)
+// These three are interdependent, if you plan to put jsmanaged data
+// in one of these make sure it is propagated properly to containing structs
+untraceable!(SubpageId, WindowSizeData, PipelineId)
 
 impl<'a> JSTraceable for &'a str {
     #[inline]
