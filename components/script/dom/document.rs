@@ -57,7 +57,7 @@ use layout_interface::{DocumentDamageLevel, ContentChangedDocumentDamage};
 use servo_util::atom::Atom;
 use servo_util::namespace;
 use servo_util::namespace::{Namespace, Null};
-use servo_util::str::{DOMString, null_str_as_empty_ref, split_html_space_chars};
+use servo_util::str::{DOMString, split_html_space_chars};
 
 use std::collections::hashmap::HashMap;
 use std::ascii::StrAsciiExt;
@@ -464,7 +464,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     fn CreateElementNS(self,
                        namespace: Option<DOMString>,
                        qualified_name: DOMString) -> Fallible<Temporary<Element>> {
-        let ns = Namespace::from_str(null_str_as_empty_ref(&namespace));
+        let ns = Namespace::from_str(namespace);
         match xml_name_type(qualified_name.as_slice()) {
             InvalidXMLName => {
                 debug!("Not a valid element name");

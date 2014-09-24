@@ -12,7 +12,6 @@ use dom::element::{Element, AttributeHandlers, ElementHelpers};
 use dom::node::{Node, NodeHelpers};
 use dom::window::Window;
 use servo_util::atom::Atom;
-use servo_util::namespace;
 use servo_util::namespace::Namespace;
 use servo_util::str::{DOMString, split_html_space_chars};
 
@@ -109,13 +108,8 @@ impl HTMLCollection {
     pub fn by_tag_name_ns(window: JSRef<Window>, root: JSRef<Node>, tag: DOMString,
                           maybe_ns: Option<DOMString>) -> Temporary<HTMLCollection> {
         let namespace_filter = match maybe_ns {
-            Some(namespace) => {
-                match namespace.as_slice() {
-                    "*" => None,
-                    ns => Some(Namespace::from_str(ns)),
-                }
-            },
-            None => Some(namespace::Null),
+            Some(ref namespace) if namespace.as_slice() == "*" => None,
+            ns => Some(Namespace::from_str(ns)),
         };
 
         if tag.as_slice() == "*" {
