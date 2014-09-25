@@ -142,3 +142,5 @@ flaky_gpu,flaky_linux == acid2_noscroll.html acid2_ref_broken.html
 == block_formatting_context_a.html block_formatting_context_ref.html
 == inline_block_parent_padding_a.html inline_block_parent_padding_ref.html
 == whitespace_nowrap_a.html whitespace_nowrap_ref.html
+== block_formatting_context_relative_a.html block_formatting_context_ref.html
+== block_formatting_context_translation_a.html block_formatting_context_translation_ref.html
