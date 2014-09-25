@@ -8,7 +8,7 @@ use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
 use dom::bindings::conversions::IDLInterface;
 use dom::bindings::error::throw_type_error;
-use dom::bindings::global::{GlobalRef, global_object_for_js_object};
+use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Temporary, Root};
 use dom::bindings::trace::Untraceable;
 use dom::browsercontext;
@@ -661,21 +661,6 @@ pub extern fn outerize_global(_cx: *mut JSContext, obj: JSHandleObject) -> *mut 
             .root();
         win.deref().browser_context.deref().borrow().as_ref().unwrap().window_proxy()
     }
-}
-
-/// Get the `JSContext` for the `JSRuntime` associated with the thread
-/// this object is on.
-#[allow(unrooted_must_root)]
-fn cx_for_dom_reflector(obj: *mut JSObject) -> *mut JSContext {
-    let global = global_object_for_js_object(obj);
-    let global = global.root();
-    global.root_ref().get_cx()
-}
-
-/// Get the `JSContext` for the `JSRuntime` associated with the thread
-/// this DOM object is on.
-pub fn cx_for_dom_object<T: Reflectable>(obj: &T) -> *mut JSContext {
-    cx_for_dom_reflector(obj.reflector().get_jsobject())
 }
 
 pub unsafe fn delete_property_by_id(cx: *mut JSContext, object: *mut JSObject,
