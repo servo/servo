@@ -865,9 +865,9 @@ impl BlockFlow {
                     margin_collapse_info.current_float_ceiling();
                 propagate_layer_flag_from_child(&mut layers_needed_for_descendants, kid);
 
-                let kid_was_impacted_by_floats =
+                let need_to_process_child_floats =
                     kid.assign_block_size_for_inorder_child_if_necessary(layout_context);
-                assert!(kid_was_impacted_by_floats);    // As it was a float itself...
+                assert!(need_to_process_child_floats);  // As it was a float itself...
 
                 let kid_base = flow::mut_base(kid);
                 kid_base.position.start.b = cur_b;
@@ -888,7 +888,7 @@ impl BlockFlow {
             }
 
             // Lay the child out if this was an in-order traversal.
-            let kid_was_impacted_by_floats =
+            let need_to_process_child_floats =
                 kid.assign_block_size_for_inorder_child_if_necessary(layout_context);
 
             // Mark flows for layerization if necessary to handle painting order correctly.
@@ -914,7 +914,7 @@ impl BlockFlow {
             // Now pull out the child's outgoing floats. We didn't do this immediately after the
             // `assign_block-size_for_inorder_child_if_necessary` call because clearance on a block
             // operates on the floats that come *in*, not the floats that go *out*.
-            if kid_was_impacted_by_floats {
+            if need_to_process_child_floats {
                 floats = flow::mut_base(kid).floats.clone()
             }
 
@@ -1456,10 +1456,7 @@ impl BlockFlow {
             display::table_cell | display::table_caption | display::inline_block => {
                 OtherFormattingContext
             }
-            _ if style.get_box().position == position::static_ &&
-                    style.get_box().overflow != overflow::visible => {
-                BlockFormattingContext
-            }
+            _ if style.get_box().overflow != overflow::visible => BlockFormattingContext,
             _ => NonformattingContext,
         }
     }
@@ -1672,28 +1669,40 @@ impl Flow for BlockFlow {
     }
 
     /// Assigns block-sizes in-order; or, if this is a float, places the float. The default
-    /// implementation simply assigns block-sizes if this flow is impacted by floats. Returns true if
-    /// this child was impacted by floats or false otherwise.
+    /// implementation simply assigns block-sizes if this flow is impacted by floats. Returns true
+    /// if this child affected the floats in the flow somehow or false otherwise; thus, if true,
+    /// then the parent flow is expected to take the `floats` member of this flow into account.
     ///
-    /// This is called on child flows by the parent. Hence, we can assume that `assign_block-size` has
-    /// already been called on the child (because of the bottom-up traversal).
+    /// This is called on child flows by the parent. Hence, we can assume that `assign_block_size`
+    /// has already been called on the child (because of the bottom-up traversal).
     fn assign_block_size_for_inorder_child_if_necessary<'a>(&mut self,
                                                             layout_context: &'a LayoutContext<'a>)
-                                                    -> bool {
+                                                            -> bool {
         if self.is_float() {
             self.place_float();
             return true
         }
 
-        if self.formatting_context_type() != NonformattingContext {
+        let is_formatting_context = self.formatting_context_type() != NonformattingContext;
+        if is_formatting_context {
             self.assign_inline_position_for_formatting_context();
         }
 
-        let impacted = self.base.flags.impacted_by_floats();
-        if impacted {
+        if self.base.flags.impacted_by_floats() {
             self.assign_block_size(layout_context);
+            return true
         }
-        impacted
+
+        if is_formatting_context {
+            // If this is a formatting context and was *not* impacted by floats, then we must
+            // translate the floats past us.
+            let writing_mode = self.base.floats.writing_mode;
+            let delta = self.base.position.size.block;
+            self.base.floats.translate(LogicalSize::new(writing_mode, Au(0), -delta));
+            return true
+        }
+
+        false
     }
 
     fn assign_block_size<'a>(&mut self, ctx: &'a LayoutContext<'a>) {
