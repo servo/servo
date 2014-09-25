@@ -7,6 +7,7 @@
 //! This module contains smart pointers to global scopes, to simplify writing
 //! code that works in workers as well as window scopes.
 
+use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::js::{JS, JSRef, Root};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::workerglobalscope::WorkerGlobalScope;
@@ -15,9 +16,14 @@ use script_task::ScriptChan;
 
 use servo_net::resource_task::ResourceTask;
 
-use js::jsapi::JSContext;
-
+use js::{JSCLASS_IS_GLOBAL, JSCLASS_IS_DOMJSCLASS};
+use js::glue::{GetGlobalForObjectCrossCompartment};
+use js::jsapi::{JSContext, JSObject};
+use js::jsapi::{JS_GetClass};
+use js::jsval::ObjectOrNullValue;
 use url::Url;
+
+use std::ptr;
 
 /// A freely-copyable reference to a rooted global object.
 pub enum GlobalRef<'a> {
@@ -118,5 +124,26 @@ impl GlobalField {
             WindowField(ref window) => WindowRoot(window.root()),
             WorkerField(ref worker) => WorkerRoot(worker.root()),
         }
+    }
+}
+
+/// Returns the global object of the realm that the given JS object was created in.
+#[allow(unrooted_must_root)]
+pub fn global_object_for_js_object(obj: *mut JSObject) -> GlobalField {
+    unsafe {
+        let global = GetGlobalForObjectCrossCompartment(obj);
+        let clasp = JS_GetClass(global);
+        assert!(((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)) != 0);
+        match FromJSValConvertible::from_jsval(ptr::null_mut(), ObjectOrNullValue(global), ()) {
+            Ok(window) => return WindowField(window),
+            Err(_) => (),
+        }
+
+        match FromJSValConvertible::from_jsval(ptr::null_mut(), ObjectOrNullValue(global), ()) {
+            Ok(worker) => return WorkerField(worker),
+            Err(_) => (),
+        }
+
+        fail!("found DOM global that doesn't unwrap to Window or WorkerGlobalScope")
     }
 }
