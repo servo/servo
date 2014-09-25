@@ -46,9 +46,8 @@ use js::jsval::JSVal;
 use js::jsval::{PrivateValue, ObjectValue, NullValue};
 use js::jsval::{Int32Value, UInt32Value, DoubleValue, BooleanValue, UndefinedValue};
 use js::rust::with_compartment;
-use js::JSPROP_ENUMERATE;
-use js::JSPROP_PERMANENT;
-use js::{JSFUN_CONSTRUCTOR, JSPROP_READONLY};
+use js::{JSPROP_ENUMERATE, JSPROP_READONLY, JSPROP_PERMANENT};
+use js::JSFUN_CONSTRUCTOR;
 use js;
 
 #[allow(raw_pointer_deriving)]
