@@ -12,7 +12,7 @@ use style::computed_values::float;
 use sync::Arc;
 
 /// The kind of float: left or right.
-#[deriving(Clone, Encodable)]
+#[deriving(Clone, Encodable, Show)]
 pub enum FloatKind {
     FloatLeft,
     FloatRight

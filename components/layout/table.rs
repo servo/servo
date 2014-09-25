@@ -295,6 +295,10 @@ impl Flow for TableFlow {
             _ => {}
         }
 
+        // As tables are always wrapped inside a table wrapper, they are never impacted by floats. 
+        self.block_flow.base.flags.set_impacted_by_left_floats(false);
+        self.block_flow.base.flags.set_impacted_by_right_floats(false);
+
         self.block_flow.propagate_assigned_inline_size_to_children(inline_start_content_edge, content_inline_size, Some(self.col_inline_sizes.clone()));
     }
 

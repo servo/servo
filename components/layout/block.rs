@@ -555,6 +555,21 @@ impl BlockFlow {
         }
     }
 
+    pub fn float_from_node_and_fragment(node: &ThreadSafeLayoutNode,
+                                        fragment: Fragment,
+                                        float_kind: FloatKind)
+                                        -> BlockFlow {
+        let base = BaseFlow::new((*node).clone());
+        BlockFlow {
+            fragment: fragment,
+            is_root: false,
+            static_b_offset: Au::new(0),
+            previous_float_inline_size: None,
+            float: Some(box FloatedBlockInfo::new(float_kind, base.writing_mode)),
+            base: base,
+        }
+    }
+
     /// Return the type of this block.
     ///
     /// This determines the algorithm used to calculate inline-size, block-size, and the
@@ -582,7 +597,9 @@ impl BlockFlow {
     }
 
     /// Compute the used value of inline-size for this Block.
-    fn compute_used_inline_size(&mut self, ctx: &LayoutContext, containing_block_inline_size: Au) {
+    pub fn compute_used_inline_size(&mut self,
+                                    ctx: &LayoutContext,
+                                    containing_block_inline_size: Au) {
         let block_type = self.block_type();
         match block_type {
             AbsoluteReplacedType => {
@@ -875,7 +892,6 @@ impl BlockFlow {
                 continue
             }
 
-
             // If we have clearance, assume there are no floats in.
             //
             // FIXME(#2008, pcwalton): This could be wrong if we have `clear: left` or `clear:
@@ -1028,7 +1044,7 @@ impl BlockFlow {
     /// This does not give any information about any float descendants because they do not affect
     /// elements outside of the subtree rooted at this float.
     ///
-    /// This function is called on a kid flow by a parent. Therefore, `assign_block-size_float` was
+    /// This function is called on a kid flow by a parent. Therefore, `assign_block_size_float` was
     /// already called on this kid flow by the traversal function. So, the values used are
     /// well-defined.
     pub fn place_float(&mut self) {
@@ -2026,9 +2042,9 @@ pub trait ISizeAndMarginsComputer {
     ///
     /// CSS Section 10.4: Minimum and Maximum inline-sizes
     fn compute_used_inline_size(&self,
-                          block: &mut BlockFlow,
-                          ctx: &LayoutContext,
-                          parent_flow_inline_size: Au) {
+                                block: &mut BlockFlow,
+                                ctx: &LayoutContext,
+                                parent_flow_inline_size: Au) {
         let mut input = self.compute_inline_size_constraint_inputs(block, parent_flow_inline_size, ctx);
 
         let containing_block_inline_size = self.containing_block_inline_size(block, parent_flow_inline_size, ctx);
@@ -2128,12 +2144,12 @@ pub trait ISizeAndMarginsComputer {
 ///
 /// They mainly differ in the way inline-size and block-sizes and margins are calculated
 /// for them.
-struct AbsoluteNonReplaced;
-struct AbsoluteReplaced;
-struct BlockNonReplaced;
-struct BlockReplaced;
-struct FloatNonReplaced;
-struct FloatReplaced;
+pub struct AbsoluteNonReplaced;
+pub struct AbsoluteReplaced;
+pub struct BlockNonReplaced;
+pub struct BlockReplaced;
+pub struct FloatNonReplaced;
+pub struct FloatReplaced;
 
 impl ISizeAndMarginsComputer for AbsoluteNonReplaced {
     /// Solve the horizontal constraint equation for absolute non-replaced elements.
