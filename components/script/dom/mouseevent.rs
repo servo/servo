@@ -7,7 +7,8 @@ use dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use dom::bindings::codegen::InheritTypes::{UIEventCast, MouseEventDerived};
 use dom::bindings::error::Fallible;
-use dom::bindings::global::{GlobalRef, Window};
+use dom::bindings::global::GlobalRef;
+use dom::bindings::global;
 use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, OptionalSettable};
 use dom::bindings::trace::Traceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
@@ -59,7 +60,7 @@ impl MouseEvent {
 
     pub fn new_uninitialized(window: JSRef<Window>) -> Temporary<MouseEvent> {
         reflect_dom_object(box MouseEvent::new_inherited(),
-                           &Window(window),
+                           &global::Window(window),
                            MouseEventBinding::Wrap)
     }
 

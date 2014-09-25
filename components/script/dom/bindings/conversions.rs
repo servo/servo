@@ -23,7 +23,7 @@ use js::jsval::{UndefinedValue, NullValue, BooleanValue, Int32Value, UInt32Value
 use js::jsval::{StringValue, ObjectValue, ObjectOrNullValue};
 use js::glue::RUST_JS_NumberValue;
 use libc;
-use std::default::Default;
+use std::default;
 use std::slice;
 
 use dom::bindings::codegen::PrototypeList;
@@ -67,10 +67,10 @@ impl ToJSValConvertible for JSVal {
     }
 }
 
-unsafe fn convert_from_jsval<T: Default>(
+unsafe fn convert_from_jsval<T: default::Default>(
     cx: *mut JSContext, value: JSVal,
     convert_fn: unsafe extern "C" fn(*mut JSContext, JSVal, *mut T) -> JSBool) -> Result<T, ()> {
-    let mut ret = Default::default();
+    let mut ret = default::Default::default();
     if convert_fn(cx, value, &mut ret) == 0 {
         Err(())
     } else {
@@ -246,7 +246,7 @@ pub enum StringificationBehavior {
     Empty,
 }
 
-impl Default for StringificationBehavior {
+impl default::Default for StringificationBehavior {
     fn default() -> StringificationBehavior {
         Default
     }
@@ -355,12 +355,12 @@ impl<T: ToJSValConvertible> ToJSValConvertible for Option<T> {
     }
 }
 
-impl<X: Default, T: FromJSValConvertible<X>> FromJSValConvertible<()> for Option<T> {
+impl<X: default::Default, T: FromJSValConvertible<X>> FromJSValConvertible<()> for Option<T> {
     fn from_jsval(cx: *mut JSContext, value: JSVal, _: ()) -> Result<Option<T>, ()> {
         if value.is_null_or_undefined() {
             Ok(None)
         } else {
-            let option: X = Default::default();
+            let option: X = default::Default::default();
             let result: Result<T, ()> = FromJSValConvertible::from_jsval(cx, value, option);
             result.map(Some)
         }

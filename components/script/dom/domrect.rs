@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::DOMRectBinding;
 use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
-use dom::bindings::global::Window;
+use dom::bindings::global;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::window::Window;
@@ -36,7 +36,7 @@ impl DOMRect {
                top: Au, bottom: Au,
                left: Au, right: Au) -> Temporary<DOMRect> {
         reflect_dom_object(box DOMRect::new_inherited(top, bottom, left, right),
-                           &Window(window), DOMRectBinding::Wrap)
+                           &global::Window(window), DOMRectBinding::Wrap)
     }
 }
 

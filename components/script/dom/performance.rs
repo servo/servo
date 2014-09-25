@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::PerformanceBinding;
 use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
-use dom::bindings::global::Window;
+use dom::bindings::global;
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::performancetiming::{PerformanceTiming, PerformanceTimingHelpers};
@@ -30,7 +30,7 @@ impl Performance {
 
     pub fn new(window: JSRef<Window>) -> Temporary<Performance> {
         reflect_dom_object(box Performance::new_inherited(window),
-                           &Window(window),
+                           &global::Window(window),
                            PerformanceBinding::Wrap)
     }
 }

@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding::Dedicat
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::InheritTypes::DedicatedWorkerGlobalScopeDerived;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, WorkerGlobalScopeCast};
-use dom::bindings::global::Worker;
+use dom::bindings::global;
 use dom::bindings::js::{JSRef, Temporary, RootCollection};
 use dom::bindings::trace::Untraceable;
 use dom::bindings::utils::{Reflectable, Reflector};
@@ -130,7 +130,7 @@ impl DedicatedWorkerGlobalScope {
                                 ptr::null(), ptr::null_mut()) != 0);
                         }
 
-                        MessageEvent::dispatch_jsval(target, &Worker(scope), message);
+                        MessageEvent::dispatch_jsval(target, &global::Worker(scope), message);
                         global.delayed_release_worker();
                     },
                     Ok(XHRProgressMsg(addr, progress)) => {

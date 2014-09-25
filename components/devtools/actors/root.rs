@@ -53,7 +53,7 @@ impl Actor for RootActor {
     fn handle_message(&self,
                       registry: &ActorRegistry,
                       msg_type: &String,
-                      _msg: &json::Object,
+                      _msg: &json::JsonObject,
                       stream: &mut TcpStream) -> bool {
         match msg_type.as_slice() {
             "listAddons" => {

@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::HTMLCollectionBinding;
 use dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, NodeCast};
-use dom::bindings::global::Window;
+use dom::bindings::global;
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
@@ -46,7 +46,7 @@ impl HTMLCollection {
 
     pub fn new(window: JSRef<Window>, collection: CollectionTypeId) -> Temporary<HTMLCollection> {
         reflect_dom_object(box HTMLCollection::new_inherited(collection),
-                           &Window(window), HTMLCollectionBinding::Wrap)
+                           &global::Window(window), HTMLCollectionBinding::Wrap)
     }
 }
 
@@ -191,8 +191,10 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
                 root.deref().traverse_preorder()
                     .filter_map(|node| {
                         let elem: Option<JSRef<Element>> = ElementCast::to_ref(node);
-                        elem.filtered(|&elem| filter.filter(elem, *root))
-                            .map(|elem| elem.clone())
+                        match elem {
+                            Some(ref elem) if filter.filter(*elem, *root) => Some(elem.clone()),
+                            _ => None
+                        }
                     })
                     .nth(index as uint)
                     .clone()
@@ -221,8 +223,10 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
                 root.deref().traverse_preorder()
                     .filter_map(|node| {
                         let elem: Option<JSRef<Element>> = ElementCast::to_ref(node);
-                        elem.filtered(|&elem| filter.filter(elem, *root))
-                            .map(|elem| elem.clone())
+                        match elem {
+                            Some(ref elem) if filter.filter(*elem, *root) => Some(elem.clone()),
+                            _ => None
+                        }
                     })
                     .find(|elem| {
                         elem.get_string_attribute("name") == key ||

@@ -11,7 +11,7 @@ use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::js::{JS, JSRef, Root};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::workerglobalscope::WorkerGlobalScope;
-use dom::window::Window;
+use dom::window;
 use script_task::ScriptChan;
 
 use servo_net::resource_task::ResourceTask;
@@ -27,13 +27,13 @@ use std::ptr;
 
 /// A freely-copyable reference to a rooted global object.
 pub enum GlobalRef<'a> {
-    Window(JSRef<'a, Window>),
+    Window(JSRef<'a, window::Window>),
     Worker(JSRef<'a, WorkerGlobalScope>),
 }
 
 /// A stack-based rooted reference to a global object.
 pub enum GlobalRoot<'a, 'b> {
-    WindowRoot(Root<'a, 'b, Window>),
+    WindowRoot(Root<'a, 'b, window::Window>),
     WorkerRoot(Root<'a, 'b, WorkerGlobalScope>),
 }
 
@@ -42,7 +42,7 @@ pub enum GlobalRoot<'a, 'b> {
 #[jstraceable]
 #[must_root]
 pub enum GlobalField {
-    WindowField(JS<Window>),
+    WindowField(JS<window::Window>),
     WorkerField(JS<WorkerGlobalScope>),
 }
 
@@ -58,7 +58,7 @@ impl<'a> GlobalRef<'a> {
 
     /// Extract a `Window`, causing task failure if the global object is not
     /// a `Window`.
-    pub fn as_window<'b>(&'b self) -> JSRef<'b, Window> {
+    pub fn as_window<'b>(&'b self) -> JSRef<'b, window::Window> {
         match *self {
             Window(window) => window,
             Worker(_) => fail!("expected a Window scope"),

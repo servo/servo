@@ -225,7 +225,7 @@ impl<QueueData: Send, WorkData: Send> WorkQueue<QueueData, WorkData> {
                     threads.get_mut(i).other_deques.push(infos[j].thief.clone())
                 }
             }
-            assert!(threads.get(i).other_deques.len() == thread_count - 1)
+            assert!(threads[i].other_deques.len() == thread_count - 1)
         }
 
         // Spawn threads.

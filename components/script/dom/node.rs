@@ -20,7 +20,8 @@ use dom::bindings::codegen::InheritTypes::{ProcessingInstructionCast, EventTarge
 use dom::bindings::codegen::InheritTypes::{HTMLLegendElementDerived, HTMLFieldSetElementDerived};
 use dom::bindings::codegen::InheritTypes::HTMLOptGroupElementDerived;
 use dom::bindings::error::{Fallible, NotFound, HierarchyRequest, Syntax};
-use dom::bindings::global::{GlobalRef, Window};
+use dom::bindings::global::GlobalRef;
+use dom::bindings::global;
 use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, Root, OptionalUnrootable};
 use dom::bindings::js::{OptionalSettable, TemporaryPushable, OptionalRootedRootable};
 use dom::bindings::js::{ResultRootable, OptionalRootable};
@@ -203,9 +204,9 @@ impl LayoutDataRef {
     /// Take the chan out of the layout data if it is present.
     pub fn take_chan(&self) -> Option<LayoutChan> {
         let mut layout_data = self.data_cell.borrow_mut();
-        match *layout_data {
-            None => None,
-            Some(..) => Some(layout_data.get_mut_ref().chan.take_unwrap()),
+        match &mut *layout_data {
+            &None => None,
+            &Some(ref mut layout_data) => Some(layout_data.chan.take().unwrap()),
         }
     }
 
@@ -697,7 +698,7 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
     fn summarize(&self) -> NodeInfo {
         if self.unique_id.borrow().is_empty() {
             let mut unique_id = self.unique_id.borrow_mut();
-            *unique_id = uuid::Uuid::new_v4().to_simple_str();
+            *unique_id = uuid::Uuid::new_v4().to_simple_string();
         }
 
         NodeInfo {
@@ -1008,7 +1009,7 @@ impl Node {
              wrap_fn:   extern "Rust" fn(*mut JSContext, &GlobalRef, Box<N>) -> Temporary<N>)
              -> Temporary<N> {
         let window = document.window.root();
-        reflect_dom_object(node, &Window(*window), wrap_fn)
+        reflect_dom_object(node, &global::Window(*window), wrap_fn)
     }
 
     pub fn new_inherited(type_id: NodeTypeId, doc: JSRef<Document>) -> Node {

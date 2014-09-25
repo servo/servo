@@ -73,11 +73,11 @@ impl Stylesheet {
         for rule in ErrorLoggerIterator(parse_stylesheet_rules(tokenize(css))) {
             let next_state;  // Unitialized to force each branch to set it.
             match rule {
-                QualifiedRule(rule) => {
+                QualifiedRule_(rule) => {
                     next_state = STATE_BODY;
                     parse_style_rule(rule, &mut rules, &namespaces, &base_url)
                 },
-                AtRule(rule) => {
+                AtRule_(rule) => {
                     let lower_name = rule.name.as_slice().to_ascii_lower();
                     match lower_name.as_slice() {
                         "charset" => {

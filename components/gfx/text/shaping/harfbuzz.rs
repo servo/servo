@@ -258,7 +258,7 @@ impl Shaper {
             // loc refers to a *byte* offset within the utf8 string.
             let loc = glyph_data.byte_offset_of_glyph(i);
             if loc < byte_max {
-                assert!(*byte_to_glyph.get(loc as uint) != CONTINUATION_BYTE);
+                assert!(byte_to_glyph[loc as uint] != CONTINUATION_BYTE);
                 *byte_to_glyph.get_mut(loc as uint) = i as i32;
             } else {
                 debug!("ERROR: tried to set out of range byte_to_glyph: idx={}, glyph idx={}",

@@ -142,7 +142,7 @@ pub enum ElementTypeId {
     HTMLVideoElementTypeId,
     HTMLUnknownElementTypeId,
 
-    ElementTypeId,
+    ElementTypeId_,
 }
 
 //
@@ -164,7 +164,7 @@ impl Element {
     }
 
     pub fn new(local_name: DOMString, namespace: Namespace, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<Element> {
-        Node::reflect_node(box Element::new_inherited(ElementTypeId, local_name, namespace, prefix, document),
+        Node::reflect_node(box Element::new_inherited(ElementTypeId_, local_name, namespace, prefix, document),
                            document, ElementBinding::Wrap)
     }
 }

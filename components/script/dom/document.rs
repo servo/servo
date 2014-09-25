@@ -19,7 +19,8 @@ use dom::bindings::codegen::InheritTypes::{HTMLFormElementDerived, HTMLImageElem
 use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived};
 use dom::bindings::error::{ErrorResult, Fallible, NotSupported, InvalidCharacter};
 use dom::bindings::error::{HierarchyRequest, NamespaceError};
-use dom::bindings::global::{GlobalRef, Window};
+use dom::bindings::global::GlobalRef;
+use dom::bindings::global;
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalSettable, TemporaryPushable};
 use dom::bindings::js::OptionalRootable;
 use dom::bindings::trace::{Traceable, Untraceable};
@@ -322,7 +323,7 @@ impl Document {
 
     pub fn new(window: JSRef<Window>, url: Option<Url>, doctype: IsHTMLDocument, content_type: Option<DOMString>) -> Temporary<Document> {
         let document = reflect_dom_object(box Document::new_inherited(window, url, doctype, content_type),
-                                          &Window(window),
+                                          &global::Window(window),
                                           DocumentBinding::Wrap).root();
 
         let node: JSRef<Node> = NodeCast::from_ref(*document);
@@ -584,10 +585,14 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         let window = self.window.root();
 
         match interface.as_slice().to_ascii_lower().as_slice() {
-            "uievents" | "uievent" => Ok(EventCast::from_temporary(UIEvent::new_uninitialized(*window))),
-            "mouseevents" | "mouseevent" => Ok(EventCast::from_temporary(MouseEvent::new_uninitialized(*window))),
-            "customevent" => Ok(EventCast::from_temporary(CustomEvent::new_uninitialized(&Window(*window)))),
-            "htmlevents" | "events" | "event" => Ok(Event::new_uninitialized(&Window(*window))),
+            "uievents" | "uievent" => Ok(EventCast::from_temporary(
+                UIEvent::new_uninitialized(*window))),
+            "mouseevents" | "mouseevent" => Ok(EventCast::from_temporary(
+                MouseEvent::new_uninitialized(*window))),
+            "customevent" => Ok(EventCast::from_temporary(
+                CustomEvent::new_uninitialized(&global::Window(*window)))),
+            "htmlevents" | "events" | "event" => Ok(Event::new_uninitialized(
+                &global::Window(*window))),
             _ => Err(NotSupported)
         }
     }

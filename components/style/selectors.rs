@@ -58,7 +58,7 @@ pub enum Combinator {
 pub enum SimpleSelector {
     IDSelector(Atom),
     ClassSelector(Atom),
-    LocalNameSelector(LocalNameSelector),
+    LocalNameSelector(LocalName),
     NamespaceSelector(Namespace),
 
     // Attribute selectors
@@ -93,7 +93,7 @@ pub enum SimpleSelector {
 }
 
 #[deriving(Eq, PartialEq, Clone, Hash)]
-pub struct LocalNameSelector {
+pub struct LocalName {
     pub name: Atom,
     pub lower_name: Atom,
 }
@@ -292,7 +292,7 @@ fn parse_type_selector<I: Iterator<ComponentValue>>(
             }
             match local_name {
                 Some(name) => {
-                    simple_selectors.push(LocalNameSelector(LocalNameSelector {
+                    simple_selectors.push(LocalNameSelector(LocalName {
                         name: Atom::from_slice(name.as_slice()),
                         lower_name: Atom::from_slice(name.into_ascii_lower().as_slice())
                     }))
@@ -451,7 +451,7 @@ fn parse_attribute_selector(content: Vec<ComponentValue>, namespaces: &Namespace
     macro_rules! get_value( () => {{
         skip_whitespace(iter);
         match iter.next() {
-            Some(Ident(value)) | Some(String(value)) => value,
+            Some(Ident(value)) | Some(QuotedString(value)) => value,
             _ => return Err(())
         }
     }};)
@@ -597,7 +597,7 @@ mod tests {
         assert!(parse("") == Err(()))
         assert!(parse("EeÉ") == Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: vec!(LocalNameSelector(LocalNameSelector {
+                simple_selectors: vec!(LocalNameSelector(LocalName {
                     name: Atom::from_slice("EeÉ"),
                     lower_name: Atom::from_slice("eeÉ") })),
                 next: None,
@@ -623,7 +623,7 @@ mod tests {
         })))
         assert!(parse("e.foo#bar") == Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: vec!(LocalNameSelector(LocalNameSelector {
+                simple_selectors: vec!(LocalNameSelector(LocalName {
                                             name: Atom::from_slice("e"),
                                             lower_name: Atom::from_slice("e") }),
                                        ClassSelector(Atom::from_slice("foo")),
@@ -637,7 +637,7 @@ mod tests {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(IDSelector(Atom::from_slice("bar"))),
                 next: Some((box CompoundSelector {
-                    simple_selectors: vec!(LocalNameSelector(LocalNameSelector {
+                    simple_selectors: vec!(LocalNameSelector(LocalName {
                                                 name: Atom::from_slice("e"),
                                                 lower_name: Atom::from_slice("e") }),
                                            ClassSelector(Atom::from_slice("foo"))),
@@ -682,7 +682,7 @@ mod tests {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(
                     NamespaceSelector(namespace::MathML),
-                    LocalNameSelector(LocalNameSelector {
+                    LocalNameSelector(LocalName {
                         name: Atom::from_slice("e"),
                         lower_name: Atom::from_slice("e") }),
                 ),
@@ -704,7 +704,7 @@ mod tests {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(),
                 next: Some((box CompoundSelector {
-                    simple_selectors: vec!(LocalNameSelector(LocalNameSelector {
+                    simple_selectors: vec!(LocalNameSelector(LocalName {
                         name: Atom::from_slice("div"),
                         lower_name: Atom::from_slice("div") })),
                     next: None,

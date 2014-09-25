@@ -76,7 +76,7 @@ fn main() {
                 if extension.to_ascii_lower().as_slice() == "list" && file.is_file() {
                     let tests = parse_lists(&file, servo_args, render_mode, all_tests.len());
                     println!("\t{} [{} tests]", file.display(), tests.len());
-                    all_tests.push_all_move(tests);
+                    all_tests.extend(tests.into_iter());
                 }
             }
             _ => {}
