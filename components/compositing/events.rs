@@ -8,6 +8,7 @@ use windowing::MouseWindowMouseUpEvent;
 
 use geom::length::Length;
 use geom::point::{Point2D, TypedPoint2D};
+use geom::rect::Rect;
 use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
 use layers::geometry::DevicePixel;
@@ -39,6 +40,13 @@ impl Clampable for f32 {
     }
 }
 
+#[deriving(PartialEq)]
+pub enum ScrollEventResult {
+    ScrollEventUnhandled,
+    ScrollPositionChanged,
+    ScrollPositionUnchanged,
+}
+
 /// Move the layer's descendants that don't want scroll events and scroll by a relative
 /// specified amount in page coordinates. This also takes in a cursor position to see if the
 /// mouse is over child layers first. If a layer successfully scrolled, returns true; otherwise
@@ -48,40 +56,51 @@ pub fn handle_scroll_event(layer: Rc<Layer<CompositorData>>,
                            cursor: TypedPoint2D<DevicePixel, f32>,
                            window_size: TypedSize2D<DevicePixel, f32>,
                            scale: ScaleFactor<PagePx, DevicePixel, f32>)
-                           -> bool {
+                           -> ScrollEventResult {
     // If this layer doesn't want scroll events, neither it nor its children can handle scroll
     // events.
     if layer.extra_data.borrow().wants_scroll_events != WantsScrollEvents {
-        return false
+        return ScrollEventUnhandled;
     }
 
     // Allow children to scroll.
-    let content_offset_in_page_pixels : TypedPoint2D<PagePx, f32> =
-        Point2D::from_untyped(&*layer.content_offset.borrow());
-    let content_offset : TypedPoint2D<DevicePixel, f32> = content_offset_in_page_pixels * scale;
-    let new_cursor = cursor - content_offset;
+    let scroll_offset = layer.extra_data.borrow().scroll_offset;
+    let scroll_offset_in_device_pixels = scroll_offset * scale;
+    let new_cursor = cursor - scroll_offset_in_device_pixels;
     for child in layer.children().iter() {
         let child_bounds = child.bounds.borrow();
-        if child_bounds.contains(&new_cursor) &&
-           handle_scroll_event(child.clone(),
-                               delta,
-                               new_cursor - child_bounds.origin,
-                               child_bounds.size,
-                               scale) {
-            return true
+        if child_bounds.contains(&new_cursor) {
+            let result = handle_scroll_event(child.clone(),
+                                             delta,
+                                             new_cursor - child_bounds.origin,
+                                             child_bounds.size,
+                                             scale);
+            if result != ScrollEventUnhandled {
+                return result;
+            }
         }
     }
 
-    clamp_scroll_offset_and_scroll_layer(layer, content_offset + delta, window_size, scale)
+    clamp_scroll_offset_and_scroll_layer(layer,
+                                         scroll_offset_in_device_pixels + delta,
+                                         window_size,
+                                         scale)
+}
 
+pub fn calculate_content_size_for_layer(layer: Rc<Layer<CompositorData>>)
+                                         -> TypedSize2D<DevicePixel, f32> {
+    layer.children().iter().fold(Rect::zero(),
+                                 |unioned_rect, child_rect| {
+                                    unioned_rect.union(&*child_rect.bounds.borrow())
+                                 }).size
 }
 
 pub fn clamp_scroll_offset_and_scroll_layer(layer: Rc<Layer<CompositorData>>,
                                             new_offset: TypedPoint2D<DevicePixel, f32>,
                                             window_size: TypedSize2D<DevicePixel, f32>,
                                             scale: ScaleFactor<PagePx, DevicePixel, f32>)
-                                            -> bool {
-    let layer_size = layer.bounds.borrow().size;
+                                            -> ScrollEventResult {
+    let layer_size = calculate_content_size_for_layer(layer.clone());
     let min_x = (window_size.width - layer_size.width).get().min(0.0);
     let min_y = (window_size.height - layer_size.height).get().min(0.0);
     let new_offset : TypedPoint2D<DevicePixel, f32> =
@@ -89,15 +108,24 @@ pub fn clamp_scroll_offset_and_scroll_layer(layer: Rc<Layer<CompositorData>>,
                 Length(new_offset.y.get().clamp(&min_y, &0.0)));
 
     let new_offset_in_page_px = new_offset / scale;
-    let untyped_new_offset = new_offset_in_page_px.to_untyped();
-    if *layer.content_offset.borrow() == untyped_new_offset {
-        return false
+    if layer.extra_data.borrow().scroll_offset == new_offset_in_page_px {
+        return ScrollPositionUnchanged;
     }
 
-    // FIXME: This allows the base layer to record the current content offset without
-    // updating its transform. This should be replaced with something less strange.
-    *layer.content_offset.borrow_mut() = untyped_new_offset;
-    scroll_layer_and_all_child_layers(layer.clone(), new_offset_in_page_px)
+    // The scroll offset is just a record of the scroll position of this scrolling root,
+    // but scroll_layer_and_all_child_layers actually moves the child layers.
+    layer.extra_data.borrow_mut().scroll_offset = new_offset_in_page_px;
+
+    let mut result = false;
+    for child in layer.children().iter() {
+        result |= scroll_layer_and_all_child_layers(child.clone(), new_offset_in_page_px);
+    }
+
+    if result {
+        return ScrollPositionChanged;
+    } else {
+        return ScrollPositionUnchanged;
+    }
 }
 
 fn scroll_layer_and_all_child_layers(layer: Rc<Layer<CompositorData>>,
@@ -115,8 +143,9 @@ fn scroll_layer_and_all_child_layers(layer: Rc<Layer<CompositorData>>,
         result = true
     }
 
+    let offset_for_children = new_offset + layer.extra_data.borrow().scroll_offset;
     for child in layer.children().iter() {
-        result |= scroll_layer_and_all_child_layers(child.clone(), new_offset);
+        result |= scroll_layer_and_all_child_layers(child.clone(), offset_for_children);
     }
 
     return result;

@@ -9,6 +9,7 @@ use compositor_task::{SetLayerOrigin, Paint, ScrollFragmentPoint, LoadComplete};
 use compositor_task::{ShutdownComplete, ChangeRenderState, RenderMsgDiscarded};
 use constellation::SendableFrameTree;
 use events;
+use events::ScrollPositionChanged;
 use pipeline::CompositionPipeline;
 use platform::{Application, Window};
 use windowing;
@@ -24,7 +25,7 @@ use azure::azure_hl;
 use std::cmp;
 use std::time::duration::Duration;
 use geom::point::{Point2D, TypedPoint2D};
-use geom::rect::Rect;
+use geom::rect::{Rect, TypedRect};
 use geom::size::TypedSize2D;
 use geom::scale_factor::ScaleFactor;
 use gfx::render_task::{RenderChan, RenderMsg, RenderRequest, UnusedBufferMsg};
@@ -35,8 +36,8 @@ use layers::rendergl::RenderContext;
 use layers::scene::Scene;
 use opengles::gl2;
 use png;
-use servo_msg::compositor_msg::{Blank, Epoch, FixedPosition, FinishedLoading, IdleRenderState};
-use servo_msg::compositor_msg::{LayerId, ReadyState, RenderingRenderState, RenderState};
+use servo_msg::compositor_msg::{Blank, Epoch, FinishedLoading, IdleRenderState, LayerId};
+use servo_msg::compositor_msg::{ReadyState, RenderingRenderState, RenderState, Scrollable};
 use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, LoadUrlMsg, NavigateMsg};
 use servo_msg::constellation_msg::{PipelineId, ResizedWindowMsg, WindowSizeData};
 use servo_msg::constellation_msg;
@@ -413,7 +414,8 @@ impl IOCompositor {
             Some(ref mut layer) => CompositorData::clear_all_tiles(layer.clone()),
             None => { }
         }
-        self.scene.root = Some(self.create_frame_tree_root_layers(frame_tree));
+        self.scene.root = Some(self.create_frame_tree_root_layers(frame_tree, None));
+        self.scene.set_root_layer_size(self.window_size.as_f32());
 
         // Initialize the new constellation channel by sending it the root window size.
         self.constellation_chan = new_constellation_chan;
@@ -421,7 +423,8 @@ impl IOCompositor {
     }
 
     fn create_frame_tree_root_layers(&mut self,
-                                     frame_tree: &SendableFrameTree)
+                                     frame_tree: &SendableFrameTree,
+                                     frame_rect: Option<TypedRect<PagePx, f32>>)
                                      -> Rc<Layer<CompositorData>> {
         // Initialize the ReadyState and RenderState for this pipeline.
         self.ready_states.insert(frame_tree.pipeline.id, Blank);
@@ -433,15 +436,22 @@ impl IOCompositor {
             id: LayerId::null(),
             rect: Rect::zero(),
             background_color: azure_hl::Color::new(0., 0., 0., 0.),
-            scroll_policy: FixedPosition,
+            scroll_policy: Scrollable,
         };
         let root_layer = CompositorData::new_layer(frame_tree.pipeline.clone(),
                                                    layer_properties,
                                                    WantsScrollEvents,
                                                    self.opts.tile_size);
 
+        match frame_rect {
+            Some(ref frame_rect) => {
+                *root_layer.bounds.borrow_mut() = frame_rect * self.device_pixels_per_page_px();
+            }
+            None => {}
+        }
+
         for kid in frame_tree.children.iter() {
-            root_layer.add_child(self.create_frame_tree_root_layers(&kid.frame_tree));
+            root_layer.add_child(self.create_frame_tree_root_layers(&kid.frame_tree, kid.rect));
         }
         return root_layer;
     }
@@ -490,7 +500,7 @@ impl IOCompositor {
         let need_new_root_layer = !self.update_layer_if_exists(layer_properties);
         if need_new_root_layer {
             let root_layer = self.find_pipeline_root_layer(layer_properties.pipeline_id);
-            CompositorData::update_layer(root_layer.clone(), layer_properties);
+            CompositorData::update_layer_except_size(root_layer.clone(), layer_properties);
 
             let root_layer_pipeline = root_layer.extra_data.borrow().pipeline.clone();
             let first_child = CompositorData::new_layer(root_layer_pipeline.clone(),
@@ -701,13 +711,15 @@ impl IOCompositor {
             self.hidpi_factor = new_hidpi_factor;
             self.update_zoom_transform();
         }
-        if self.window_size != new_size {
-            debug!("osmain: window resized to {:?}", new_size);
-            self.window_size = new_size;
-            self.send_window_size();
-        } else {
-            debug!("osmain: dropping window resize since size is still {:?}", new_size);
+
+        if self.window_size == new_size {
+            return;
         }
+
+        debug!("osmain: window resized to {:?}", new_size);
+        self.window_size = new_size;
+        self.scene.set_root_layer_size(new_size.as_f32());
+        self.send_window_size();
     }
 
     fn on_load_url_window_event(&mut self, url_string: String) {
@@ -755,7 +767,7 @@ impl IOCompositor {
                                                      delta,
                                                      cursor.as_f32(),
                                                      window_size,
-                                                     scene_scale) || scroll;
+                                                     scene_scale) == ScrollPositionChanged;
             }
             None => { }
         }
