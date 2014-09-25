@@ -6,9 +6,9 @@
 
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
-use dom::bindings::conversions::{FromJSValConvertible, IDLInterface};
+use dom::bindings::conversions::IDLInterface;
 use dom::bindings::error::throw_type_error;
-use dom::bindings::global::{GlobalRef, GlobalField, WindowField, WorkerField};
+use dom::bindings::global::{GlobalRef, global_object_for_js_object};
 use dom::bindings::js::{JS, Temporary, Root};
 use dom::bindings::trace::Untraceable;
 use dom::browsercontext;
@@ -23,7 +23,7 @@ use std::cmp::PartialEq;
 use std::ptr;
 use std::slice;
 use js::glue::{js_IsObjectProxyClass, js_IsFunctionProxyClass, IsProxyHandlerFamily};
-use js::glue::{GetGlobalForObjectCrossCompartment, UnwrapObject, GetProxyHandlerExtra};
+use js::glue::{UnwrapObject, GetProxyHandlerExtra};
 use js::glue::{IsWrapper, RUST_JSID_TO_STRING, RUST_JSID_IS_INT};
 use js::glue::{RUST_JSID_IS_STRING, RUST_JSID_TO_INT};
 use js::jsapi::{JS_AlreadyHasOwnProperty, JS_NewFunction};
@@ -43,10 +43,10 @@ use js::jsapi::JS_DeletePropertyById2;
 use js::jsfriendapi::JS_ObjectToOuterObject;
 use js::jsfriendapi::bindgen::JS_NewObjectWithUniqueType;
 use js::jsval::JSVal;
-use js::jsval::{PrivateValue, ObjectValue, NullValue, ObjectOrNullValue};
+use js::jsval::{PrivateValue, ObjectValue, NullValue};
 use js::jsval::{Int32Value, UInt32Value, DoubleValue, BooleanValue, UndefinedValue};
 use js::rust::with_compartment;
-use js::{JSPROP_ENUMERATE, JSCLASS_IS_GLOBAL, JSCLASS_IS_DOMJSCLASS};
+use js::JSPROP_ENUMERATE;
 use js::JSPROP_PERMANENT;
 use js::{JSFUN_CONSTRUCTOR, JSPROP_READONLY};
 use js;
@@ -661,27 +661,6 @@ pub extern fn outerize_global(_cx: *mut JSContext, obj: JSHandleObject) -> *mut 
             .unwrap()
             .root();
         win.deref().browser_context.deref().borrow().as_ref().unwrap().window_proxy()
-    }
-}
-
-/// Returns the global object of the realm that the given JS object was created in.
-#[allow(unrooted_must_root)]
-pub fn global_object_for_js_object(obj: *mut JSObject) -> GlobalField {
-    unsafe {
-        let global = GetGlobalForObjectCrossCompartment(obj);
-        let clasp = JS_GetClass(global);
-        assert!(((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)) != 0);
-        match FromJSValConvertible::from_jsval(ptr::null_mut(), ObjectOrNullValue(global), ()) {
-            Ok(window) => return WindowField(window),
-            Err(_) => (),
-        }
-
-        match FromJSValConvertible::from_jsval(ptr::null_mut(), ObjectOrNullValue(global), ()) {
-            Ok(worker) => return WorkerField(worker),
-            Err(_) => (),
-        }
-
-        fail!("found DOM global that doesn't unwrap to Window or WorkerGlobalScope")
     }
 }
 

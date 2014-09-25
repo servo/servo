@@ -4,9 +4,10 @@
 
 //! Base classes to work with IDL callbacks.
 
+use dom::bindings::global::global_object_for_js_object;
 use dom::bindings::js::JSRef;
 use dom::bindings::trace::Traceable;
-use dom::bindings::utils::{Reflectable, global_object_for_js_object};
+use dom::bindings::utils::Reflectable;
 use js::jsapi::{JSContext, JSObject, JS_WrapObject, JS_ObjectIsCallable};
 use js::jsapi::JS_GetProperty;
 use js::jsval::{JSVal, UndefinedValue};
