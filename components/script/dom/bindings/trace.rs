@@ -22,7 +22,7 @@
 //! 5. `trace_object()` calls `JS_CallTracer()` to notify the GC, which will
 //!    add the object to the graph, and will trace that object as well.
 //!
-//! The untraceable!() macro adds an empty implementation of JSTraceable to 
+//! The untraceable!() macro adds an empty implementation of JSTraceable to
 //! a datatype.
 
 use dom::bindings::js::JS;
@@ -237,3 +237,4 @@ impl<'a> JSTraceable for &'a str {
         // Do nothing
     }
 }
+

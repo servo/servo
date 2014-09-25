@@ -295,7 +295,7 @@ impl Flow for TableFlow {
             _ => {}
         }
 
-        // As tables are always wrapped inside a table wrapper, they are never impacted by floats. 
+        // As tables are always wrapped inside a table wrapper, they are never impacted by floats.
         self.block_flow.base.flags.set_impacted_by_left_floats(false);
         self.block_flow.base.flags.set_impacted_by_right_floats(false);
 
