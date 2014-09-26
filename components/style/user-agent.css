@@ -25,8 +25,8 @@ hr, menu, pre       { display: block; unicode-bidi: embed }
     h3              { font-size: 1.17em; margin: .83em 0 }
 h4,
 blockquote,
-fieldset, form,
-dir, menu           { margin: 1.12em 0 }
+fieldset, dir,
+menu                { margin: 1.12em 0 }
     h5              { font-size: .83em; margin: 1.5em 0 }
     h6              { font-size: .75em; margin: 1.67em 0 }
 h1, h2, h3, h4,
@@ -113,6 +113,7 @@ ul, ol, dl          { page-break-before: avoid }
 /* Servo additions */
 a:link,
 area:link,
-link:link           { color: blue }
-script              { display: none }
-style               { display: none }
+link:link               { color: blue }
+script                  { display: none }
+style                   { display: none }
+input[type="hidden"]    { display: none !important }
