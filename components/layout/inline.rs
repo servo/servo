@@ -917,6 +917,9 @@ impl InlineFlow {
         let mut block_size_above_baseline = inline_metrics.block_size_above_baseline;
         let mut depth_below_baseline = inline_metrics.depth_below_baseline;
 
+        // CSS section 10.8
+        // line-height of any inline element specifies the minimal height of line
+        // boxes within the element.
         for frag in self.fragments.fragments.iter() {
             match frag.inline_context {
                 Some(ref inline_context) => {

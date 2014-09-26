@@ -419,7 +419,7 @@ impl<'a> FlowConstructor<'a> {
                 // between block elements, and retained when between inline elements.
                 let fragment_info = UnscannedTextFragment(UnscannedTextFragmentInfo::from_text(" ".to_string()));
                 let mut fragment = Fragment::from_opaque_node_and_style(whitespace_node,
-                                                                    whitespace_style.clone(),
+                                                                    whitespace_style,
                                                                     fragment_info);
                 inline_fragment_accumulator.fragments.push(&mut fragment);
             }
@@ -583,7 +583,7 @@ impl<'a> FlowConstructor<'a> {
                     // Instantiate the whitespace fragment.
                     let fragment_info = UnscannedTextFragment(UnscannedTextFragmentInfo::from_text(" ".to_string()));
                     let mut fragment = Fragment::from_opaque_node_and_style(whitespace_node,
-                                                                        whitespace_style.clone(),
+                                                                        whitespace_style,
                                                                         fragment_info);
                     fragment_accumulator.fragments.push(&mut fragment)
                 }

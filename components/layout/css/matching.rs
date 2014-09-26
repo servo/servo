@@ -619,6 +619,10 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
             &Some(ref mut layout_data) => {
                 match self.type_id() {
                     Some(TextNodeTypeId) => {
+                        // Text nodes get a copy of the parent style. This ensures
+                        // that during fragment construction any non-inherited
+                        // CSS properties (such as vertical-align) are correctly
+                        // set on the fragment(s).
                         let cloned_parent_style = parent_style.unwrap().clone();
                         layout_data.shared_data.style = Some(cloned_parent_style);
                     }
