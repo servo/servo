@@ -43,7 +43,7 @@ use std::cmp::{max, min};
 use std::fmt;
 use std::mem;
 use style::computed_values::{LPA_Auto, LPA_Length, LPA_Percentage, LPN_Length, LPN_None};
-use style::computed_values::{LPN_Percentage, LP_Length, LP_Percentage};
+use style::computed_values::{LPN_Percentage, LP_Length, LP_Percentage, box_sizing};
 use style::computed_values::{display, float, overflow};
 use sync::Arc;
 
@@ -978,14 +978,30 @@ impl BlockFlow {
             }
         }
 
-        // Adjust `cur_b` as necessary to account for the explicitly-specified block-size.
-        block_size = candidate_block_size_iterator.candidate_value;
-        let delta = block_size - (cur_b - block_start_offset);
-        translate_including_floats(&mut cur_b, delta, &mut floats);
 
-        // Compute content block-size and noncontent block-size.
-        let block_end_offset = self.fragment.border_padding.block_end;
-        translate_including_floats(&mut cur_b, block_end_offset, &mut floats);
+        match self.fragment.style().get_box().box_sizing {
+            box_sizing::content_box => {
+                // Adjust `cur_b` as necessary to account for the explicitly-specified block-size.
+                block_size = candidate_block_size_iterator.candidate_value;
+                let delta = block_size - (cur_b - block_start_offset);
+                translate_including_floats(&mut cur_b, delta, &mut floats);
+
+                // Take border and padding into account.
+                let block_end_offset = self.fragment.border_padding.block_end;
+                translate_including_floats(&mut cur_b, block_end_offset, &mut floats);
+            }
+            box_sizing::border_box => {
+                // Adjust `cur_b` as necessary to account for the explicitly-specified block-size.
+                block_size = candidate_block_size_iterator.candidate_value;
+                let delta = block_size - cur_b;
+                translate_including_floats(&mut cur_b, delta, &mut floats);
+
+                // Take padding into account.
+                let block_end_offset = self.fragment.border_padding.block_end -
+                    self.fragment.border_width().block_end;
+                translate_including_floats(&mut cur_b, block_end_offset, &mut floats);
+            }
+        }
 
         // Now that `cur_b` is at the block-end of the border box, compute the final border box
         // position.
@@ -1203,10 +1219,17 @@ impl BlockFlow {
         self.fragment.margin.block_start = solution.margin_block_start;
         self.fragment.margin.block_end = solution.margin_block_end;
         self.fragment.border_box.start.b = Au(0);
-        self.fragment.border_box.size.block = solution.block_size + self.fragment.border_padding.block_start_end();
 
         self.base.position.start.b = solution.block_start + self.fragment.margin.block_start;
-        self.base.position.size.block = solution.block_size + self.fragment.border_padding.block_start_end();
+
+        let block_size = match self.fragment.style().get_box().box_sizing {
+            box_sizing::content_box => {
+                solution.block_size + self.fragment.border_padding.block_start_end()
+            }
+            box_sizing::border_box => solution.block_size,
+        };
+        self.fragment.border_box.size.block = block_size;
+        self.base.position.size.block = block_size;
     }
 
     /// Add display items for Absolutely Positioned flow.
@@ -1919,28 +1942,35 @@ pub trait ISizeAndMarginsComputer {
             block.static_i_offset());
     }
 
-    /// Set the used values for inline-size and margins got from the relevant constraint equation.
-    ///
+    /// Set the used values for inline-size and margins from the relevant constraint equation.
     /// This is called only once.
     ///
     /// Set:
-    /// + used values for content inline-size, inline-start margin, and inline-end margin for this flow's box.
-    /// + x-coordinate of this flow's box.
-    /// + x-coordinate of the flow wrt its Containing Block (if this is an absolute flow).
+    /// * Used values for content inline-size, inline-start margin, and inline-end margin for this
+    ///   flow's box;
+    /// * Inline-start coordinate of this flow's box;
+    /// * Inline-start coordinate of the flow with respect to its containing block (if this is an
+    ///   absolute flow).
     fn set_inline_size_constraint_solutions(&self,
-                                      block: &mut BlockFlow,
-                                      solution: ISizeConstraintSolution) {
+                                            block: &mut BlockFlow,
+                                            solution: ISizeConstraintSolution) {
         let inline_size;
         {
             let fragment = block.fragment();
             fragment.margin.inline_start = solution.margin_inline_start;
             fragment.margin.inline_end = solution.margin_inline_end;
 
-            // The associated fragment has the border box of this flow.
             // Left border edge.
             fragment.border_box.start.i = fragment.margin.inline_start;
-            // Border box inline-size.
-            inline_size = solution.inline_size + fragment.border_padding.inline_start_end();
+
+            // The associated fragment has the border box of this flow.
+            inline_size = match fragment.style().get_box().box_sizing {
+                box_sizing::content_box => {
+                    solution.inline_size + fragment.border_padding.inline_start_end()
+                }
+                box_sizing::border_box => solution.inline_size,
+            };
+
             fragment.border_box.size.inline = inline_size;
         }
 
@@ -1966,7 +1996,9 @@ pub trait ISizeAndMarginsComputer {
                               ctx: &LayoutContext)
                               -> MaybeAuto {
         MaybeAuto::from_style(block.fragment().style().content_inline_size(),
-                              self.containing_block_inline_size(block, parent_flow_inline_size, ctx))
+                              self.containing_block_inline_size(block,
+                                                                parent_flow_inline_size,
+                                                                ctx))
     }
 
     fn containing_block_inline_size(&self,
@@ -1984,15 +2016,21 @@ pub trait ISizeAndMarginsComputer {
                                 block: &mut BlockFlow,
                                 ctx: &LayoutContext,
                                 parent_flow_inline_size: Au) {
-        let mut input = self.compute_inline_size_constraint_inputs(block, parent_flow_inline_size, ctx);
+        let mut input = self.compute_inline_size_constraint_inputs(block,
+                                                                   parent_flow_inline_size,
+                                                                   ctx);
 
-        let containing_block_inline_size = self.containing_block_inline_size(block, parent_flow_inline_size, ctx);
+        let containing_block_inline_size = self.containing_block_inline_size(
+            block,
+            parent_flow_inline_size, ctx);
 
         let mut solution = self.solve_inline_size_constraints(block, &input);
 
-        // If the tentative used inline-size is greater than 'max-inline-size', inline-size should be recalculated,
-        // but this time using the computed value of 'max-inline-size' as the computed value for 'inline-size'.
-        match specified_or_none(block.fragment().style().max_inline_size(), containing_block_inline_size) {
+        // If the tentative used inline-size is greater than 'max-inline-size', inline-size should
+        // be recalculated, but this time using the computed value of 'max-inline-size' as the
+        // computed value for 'inline-size'.
+        match specified_or_none(block.fragment().style().max_inline_size(),
+                                containing_block_inline_size) {
             Some(max_inline_size) if max_inline_size < solution.inline_size => {
                 input.computed_inline_size = Specified(max_inline_size);
                 solution = self.solve_inline_size_constraints(block, &input);
@@ -2000,8 +2038,9 @@ pub trait ISizeAndMarginsComputer {
             _ => {}
         }
 
-        // If the resulting inline-size is smaller than 'min-inline-size', inline-size should be recalculated,
-        // but this time using the value of 'min-inline-size' as the computed value for 'inline-size'.
+        // If the resulting inline-size is smaller than 'min-inline-size', inline-size should be
+        // recalculated, but this time using the value of 'min-inline-size' as the computed value
+        // for 'inline-size'.
         let computed_min_inline_size = specified(block.fragment().style().min_inline_size(),
                                            containing_block_inline_size);
         if computed_min_inline_size > solution.inline_size {
@@ -2018,16 +2057,18 @@ pub trait ISizeAndMarginsComputer {
     /// This is used by both replaced and non-replaced Blocks.
     ///
     /// CSS 2.1 Section 10.3.3.
-    /// Constraint Equation: margin-inline-start + margin-inline-end + inline-size = available_inline-size
+    /// Constraint Equation: margin-inline-start + margin-inline-end + inline-size =
+    /// available_inline-size
     /// where available_inline-size = CB inline-size - (horizontal border + padding)
     fn solve_block_inline_size_constraints(&self,
                                      _: &mut BlockFlow,
                                      input: &ISizeConstraintInput)
                                      -> ISizeConstraintSolution {
-        let (computed_inline_size, inline_start_margin, inline_end_margin, available_inline_size) = (input.computed_inline_size,
-                                                                            input.inline_start_margin,
-                                                                            input.inline_end_margin,
-                                                                            input.available_inline_size);
+        let (computed_inline_size, inline_start_margin, inline_end_margin, available_inline_size) =
+            (input.computed_inline_size,
+             input.inline_start_margin,
+             input.inline_end_margin,
+             input.available_inline_size);
 
         // If inline-size is not 'auto', and inline-size + margins > available_inline-size, all
         // 'auto' margins are treated as 0.
@@ -2045,36 +2086,41 @@ pub trait ISizeAndMarginsComputer {
             }
         };
 
-        // Invariant: inline-start_margin + inline-size + inline-end_margin == available_inline-size
-        let (inline_start_margin, inline_size, inline_end_margin) = match (inline_start_margin, computed_inline_size, inline_end_margin) {
-            // If all have a computed value other than 'auto', the system is
-            // over-constrained so we discard the end margin.
-            (Specified(margin_start), Specified(inline_size), Specified(_margin_end)) =>
-                (margin_start, inline_size, available_inline_size - (margin_start + inline_size)),
+        // Invariant: inline-start_margin + inline-size + inline-end_margin ==
+        // available_inline-size
+        let (inline_start_margin, inline_size, inline_end_margin) =
+            match (inline_start_margin, computed_inline_size, inline_end_margin) {
+                // If all have a computed value other than 'auto', the system is
+                // over-constrained so we discard the end margin.
+                (Specified(margin_start), Specified(inline_size), Specified(_margin_end)) =>
+                    (margin_start, inline_size, available_inline_size -
+                     (margin_start + inline_size)),
 
-            // If exactly one value is 'auto', solve for it
-            (Auto, Specified(inline_size), Specified(margin_end)) =>
-                (available_inline_size - (inline_size + margin_end), inline_size, margin_end),
-            (Specified(margin_start), Auto, Specified(margin_end)) =>
-                (margin_start, available_inline_size - (margin_start + margin_end), margin_end),
-            (Specified(margin_start), Specified(inline_size), Auto) =>
-                (margin_start, inline_size, available_inline_size - (margin_start + inline_size)),
+                // If exactly one value is 'auto', solve for it
+                (Auto, Specified(inline_size), Specified(margin_end)) =>
+                    (available_inline_size - (inline_size + margin_end), inline_size, margin_end),
+                (Specified(margin_start), Auto, Specified(margin_end)) =>
+                    (margin_start, available_inline_size - (margin_start + margin_end),
+                     margin_end),
+                (Specified(margin_start), Specified(inline_size), Auto) =>
+                    (margin_start, inline_size, available_inline_size -
+                     (margin_start + inline_size)),
 
-            // If inline-size is set to 'auto', any other 'auto' value becomes '0',
-            // and inline-size is solved for
-            (Auto, Auto, Specified(margin_end)) =>
-                (Au::new(0), available_inline_size - margin_end, margin_end),
-            (Specified(margin_start), Auto, Auto) =>
-                (margin_start, available_inline_size - margin_start, Au::new(0)),
-            (Auto, Auto, Auto) =>
-                (Au::new(0), available_inline_size, Au::new(0)),
+                // If inline-size is set to 'auto', any other 'auto' value becomes '0',
+                // and inline-size is solved for
+                (Auto, Auto, Specified(margin_end)) =>
+                    (Au::new(0), available_inline_size - margin_end, margin_end),
+                (Specified(margin_start), Auto, Auto) =>
+                    (margin_start, available_inline_size - margin_start, Au::new(0)),
+                (Auto, Auto, Auto) =>
+                    (Au::new(0), available_inline_size, Au::new(0)),
 
-            // If inline-start and inline-end margins are auto, they become equal
-            (Auto, Specified(inline_size), Auto) => {
-                let margin = (available_inline_size - inline_size).scale_by(0.5);
-                (margin, inline_size, margin)
-            }
-        };
+                // If inline-start and inline-end margins are auto, they become equal
+                (Auto, Specified(inline_size), Auto) => {
+                    let margin = (available_inline_size - inline_size).scale_by(0.5);
+                    (margin, inline_size, margin)
+                }
+            };
         ISizeConstraintSolution::new(inline_size, inline_start_margin, inline_end_margin)
     }
 }
@@ -2363,9 +2409,9 @@ impl ISizeAndMarginsComputer for AbsoluteReplaced {
 impl ISizeAndMarginsComputer for BlockNonReplaced {
     /// Compute inline-start and inline-end margins and inline-size.
     fn solve_inline_size_constraints(&self,
-                               block: &mut BlockFlow,
-                               input: &ISizeConstraintInput)
-                               -> ISizeConstraintSolution {
+                                     block: &mut BlockFlow,
+                                     input: &ISizeConstraintInput)
+                                     -> ISizeConstraintSolution {
         self.solve_block_inline_size_constraints(block, input)
     }
 }
@@ -2376,9 +2422,9 @@ impl ISizeAndMarginsComputer for BlockReplaced {
     /// ISize has already been calculated. We now calculate the margins just
     /// like for non-replaced blocks.
     fn solve_inline_size_constraints(&self,
-                               block: &mut BlockFlow,
-                               input: &ISizeConstraintInput)
-                               -> ISizeConstraintSolution {
+                                     block: &mut BlockFlow,
+                                     input: &ISizeConstraintInput)
+                                     -> ISizeConstraintSolution {
         match input.computed_inline_size {
             Specified(_) => {},
             Auto => fail!("BlockReplaced: inline_size should have been computed by now")
