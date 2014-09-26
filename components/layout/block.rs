@@ -978,13 +978,15 @@ impl BlockFlow {
         // root element as having `overflow: scroll` and use the layers-based scrolling
         // infrastructure to make it scrollable.
         let mut block_size = cur_b - block_start_offset;
-        if self.is_root() {
+        let is_root = self.is_root();
+        if is_root {
             let screen_size = LogicalSize::from_physical(
                 self.fragment.style.writing_mode, layout_context.shared.screen_size);
             block_size = Au::max(screen_size.block, block_size)
         }
 
-        if self.is_float() || self.is_absolutely_positioned() {
+        if is_root || self.formatting_context_type() != NonformattingContext ||
+                self.is_absolutely_positioned() {
             // The content block-size includes all the floats per CSS 2.1 § 10.6.7. The easiest way
             // to handle this is to just treat this as clearance.
             block_size = block_size + floats.clearance(ClearBoth);
