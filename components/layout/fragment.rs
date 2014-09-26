@@ -1011,11 +1011,16 @@ impl Fragment {
                 }
                 None => {}
             }
-            self.build_display_list_for_background_if_applicable(&*self.style,
-                                                                 display_list,
-                                                                 layout_context,
-                                                                 level,
-                                                                 &absolute_fragment_bounds);
+            match self.specific {
+                ScannedTextFragment(_) => {},
+                _ => {
+                        self.build_display_list_for_background_if_applicable(&*self.style,
+                                                                             display_list,
+                                                                             layout_context,
+                                                                             level,
+                                                                             &absolute_fragment_bounds);
+                }
+            }
 
             // Add a border, if applicable.
             //
