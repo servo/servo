@@ -19,7 +19,7 @@ use wrapper::ThreadSafeLayoutNode;
 use servo_util::geometry::Au;
 use std::cmp::max;
 use std::fmt;
-use style::computed_values::{float, table_layout};
+use style::computed_values::{clear, float, table_layout};
 
 #[deriving(Encodable)]
 pub enum TableLayout {
@@ -246,6 +246,10 @@ impl Flow for TableWrapperFlow {
 
     fn as_block<'a>(&'a mut self) -> &'a mut BlockFlow {
         &mut self.block_flow
+    }
+
+    fn float_clearance(&self) -> clear::T {
+        self.block_flow.float_clearance()
     }
 
     fn float_kind(&self) -> float::T {

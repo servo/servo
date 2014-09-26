@@ -5,7 +5,7 @@
 use incremental::RestyleDamage;
 use util::LayoutDataAccess;
 use wrapper::{TLayoutNode, ThreadSafeLayoutNode};
-use wrapper::{After, AfterBlock, Before, BeforeBlock, Normal};
+use wrapper::{After, Before, Normal};
 use std::mem;
 use style::ComputedValues;
 use sync::Arc;
@@ -26,7 +26,7 @@ impl<'ln> NodeUtil for ThreadSafeLayoutNode<'ln> {
         unsafe {
             let layout_data_ref = self.borrow_layout_data();
             match self.get_pseudo_element_type() {
-                Before | BeforeBlock => {
+                Before(_) => {
                      mem::transmute(layout_data_ref.as_ref()
                                                    .unwrap()
                                                    .data
@@ -34,7 +34,7 @@ impl<'ln> NodeUtil for ThreadSafeLayoutNode<'ln> {
                                                    .as_ref()
                                                    .unwrap())
                 }
-                After | AfterBlock => {
+                After(_) => {
                     mem::transmute(layout_data_ref.as_ref()
                                                   .unwrap()
                                                   .data

@@ -45,7 +45,7 @@ use table_cell::TableCellFlow;
 use text::TextRunScanner;
 use util::{LayoutDataAccess, OpaqueNodeMethods};
 use wrapper::{PostorderNodeMutTraversal, TLayoutNode, ThreadSafeLayoutNode};
-use wrapper::{Before, BeforeBlock, After, AfterBlock, Normal};
+use wrapper::{Before, After, Normal};
 
 use gfx::display_list::OpaqueNode;
 use script::dom::element::{HTMLIFrameElementTypeId, HTMLImageElementTypeId};
@@ -887,8 +887,9 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
                 // Pseudo-element.
                 let style = node.style();
                 let display = match node.get_pseudo_element_type() {
-                    Normal | Before | After => display::inline,
-                    BeforeBlock | AfterBlock => display::block,
+                    Normal => display::inline,
+                    Before(display) => display,
+                    After(display) => display,
                 };
                 (display, style.get_box().float, style.get_box().position)
             }
@@ -1041,12 +1042,8 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
         match &mut *layout_data_ref {
             &Some(ref mut layout_data) =>{
                 match self.get_pseudo_element_type() {
-                    Before | BeforeBlock => {
-                        layout_data.data.before_flow_construction_result = result
-                    },
-                    After | AfterBlock => {
-                        layout_data.data.after_flow_construction_result = result
-                    },
+                    Before(_) => layout_data.data.before_flow_construction_result = result,
+                    After(_) => layout_data.data.after_flow_construction_result = result,
                     Normal => layout_data.data.flow_construction_result = result,
                 }
             },
@@ -1060,11 +1057,11 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
         match &mut *layout_data_ref {
             &Some(ref mut layout_data) => {
                 match self.get_pseudo_element_type() {
-                    Before | BeforeBlock => {
+                    Before(_) => {
                         mem::replace(&mut layout_data.data.before_flow_construction_result,
                                      NoConstructionResult)
                     }
-                    After | AfterBlock => {
+                    After(_) => {
                         mem::replace(&mut layout_data.data.after_flow_construction_result,
                                      NoConstructionResult)
                     }
