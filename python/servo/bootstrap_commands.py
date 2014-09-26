@@ -16,6 +16,7 @@ from mach.decorators import (
 
 from servo.command_base import CommandBase, cd
 
+
 def host_triple():
     os_type = subprocess.check_output(["uname", "-s"]).strip().lower()
     if os_type == "linux":
@@ -39,8 +40,10 @@ def host_triple():
 
     return "%s-%s" % (cpu_type, os_type)
 
+
 def download(desc, src, dst):
     recved = [0]
+
     def report(count, bsize, fsize):
         recved[0] += bsize
         pct = recved[0] * 100.0 / fsize
@@ -53,6 +56,7 @@ def download(desc, src, dst):
     if not dumb:
         print()
 
+
 def extract(src, dst, movedir=None):
     tarfile.open(src).extractall(dst)
 
@@ -64,6 +68,7 @@ def extract(src, dst, movedir=None):
         os.rmdir(movedir)
 
     os.remove(src)
+
 
 @CommandProvider
 class MachCommands(CommandBase):
@@ -95,7 +100,8 @@ class MachCommands(CommandBase):
             shutil.rmtree(rust_dir)
         os.mkdir(rust_dir)
 
-        snapshot_hash = open(path.join(self.context.topdir, "rust-snapshot-hash")).read().strip()
+        filename = path.join(self.context.topdir, "rust-snapshot-hash")
+        snapshot_hash = open(filename).read().strip()
         snapshot_path = "%s-%s.tar.gz" % (snapshot_hash, host_triple())
         snapshot_url = "https://servo-rust.s3.amazonaws.com/%s" % snapshot_path
         tgz_file = path.join(rust_dir, path.basename(snapshot_path))
@@ -147,10 +153,14 @@ class MachCommands(CommandBase):
                 module_path = components[1]
                 if path.exists(module_path):
                     with cd(module_path):
-                        output = subprocess.check_output(["git", "status", "--porcelain"])
+                        output = subprocess.check_output(
+                            ["git", "status", "--porcelain"])
                         if len(output) != 0:
-                            print("error: submodule %s is not clean" % module_path)
+                            print("error: submodule %s is not clean"
+                                  % module_path)
                             print("\nClean the submodule and try again.")
                             return 1
-        subprocess.check_call(["git", "submodule", "--quiet", "sync", "--recursive"])
-        subprocess.check_call(["git", "submodule", "update", "--init", "--recursive"])
+        subprocess.check_call(
+            ["git", "submodule", "--quiet", "sync", "--recursive"])
+        subprocess.check_call(
+            ["git", "submodule", "update", "--init", "--recursive"])

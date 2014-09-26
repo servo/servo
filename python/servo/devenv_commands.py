@@ -1,16 +1,7 @@
 from __future__ import print_function, unicode_literals
 
-import json
-import os
-import os.path as path
-import shutil
 import subprocess
-import sys
-import tarfile
-from time import time
-import urllib
 
-from mach.registrar import Registrar
 from mach.decorators import (
     CommandArgument,
     CommandProvider,
@@ -19,14 +10,16 @@ from mach.decorators import (
 
 from servo.command_base import CommandBase
 
+
 @CommandProvider
 class MachCommands(CommandBase):
     @Command('cargo',
              description='Run Cargo',
              category='devenv',
              allow_all_args=True)
-    @CommandArgument('params', default=None, nargs='...',
-                     help="Command-line arguments to be passed through to Cargo")
+    @CommandArgument(
+        'params', default=None, nargs='...',
+        help="Command-line arguments to be passed through to Cargo")
     def cargo(self, params):
         return subprocess.call(["cargo"] + params,
                                env=self.build_env())
@@ -35,7 +28,8 @@ class MachCommands(CommandBase):
              description='Run the Rust compiler',
              category='devenv',
              allow_all_args=True)
-    @CommandArgument('params', default=None, nargs='...',
-                     help="Command-line arguments to be passed through to rustc")
+    @CommandArgument(
+        'params', default=None, nargs='...',
+        help="Command-line arguments to be passed through to rustc")
     def rustc(self, params):
         return subprocess.call(["rustc"] + params, env=self.build_env())
