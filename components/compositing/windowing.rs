@@ -61,7 +61,7 @@ pub trait ApplicationMethods {
 
 pub trait WindowMethods<A> {
     /// Creates a new window.
-    fn new(app: &A, is_foreground: bool) -> Rc<Self>;
+    fn new(app: &A, is_foreground: bool, size: TypedSize2D<DevicePixel, uint>) -> Rc<Self>;
     /// Returns the size of the window in hardware pixels.
     fn framebuffer_size(&self) -> TypedSize2D<DevicePixel, uint>;
     /// Returns the size of the window in density-independent "px" units.

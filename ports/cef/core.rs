@@ -6,6 +6,7 @@
 use azure;
 use command_line::command_line_init;
 use eutil::fptr_is_null;
+use geom::size::TypedSize2D;
 use libc::{c_int, c_void};
 use native;
 use servo;
@@ -68,6 +69,7 @@ pub extern "C" fn cef_run_message_loop() {
         enable_text_antialiasing: true,
         trace_layout: false,
         devtools_server: false,
+        initial_window_size: TypedSize2D(800, 600),
     };
     native::start(0, 0 as *const *const u8, proc() {
        servo::run(opts);

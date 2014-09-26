@@ -7,7 +7,6 @@ use devtools_traits::DevtoolsControlChan;
 use std::collections::hashmap::{HashMap, HashSet};
 use geom::rect::{Rect, TypedRect};
 use geom::scale_factor::ScaleFactor;
-use geom::size::TypedSize2D;
 use gfx::render_task;
 use libc;
 use pipeline::{Pipeline, CompositionPipeline};
@@ -268,8 +267,8 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 pending_sizes: HashMap::new(),
                 time_profiler_chan: time_profiler_chan,
                 window_size: WindowSizeData {
-                    visible_viewport: TypedSize2D(800_f32, 600_f32),
-                    initial_viewport: TypedSize2D(800_f32, 600_f32),
+                    visible_viewport: opts_clone.initial_window_size.as_f32() * ScaleFactor(1.0),
+                    initial_viewport: opts_clone.initial_window_size.as_f32() * ScaleFactor(1.0),
                     device_pixel_ratio: ScaleFactor(1.0),
                 },
                 opts: opts_clone,

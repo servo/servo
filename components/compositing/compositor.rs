@@ -143,7 +143,15 @@ impl IOCompositor {
                constellation_chan: ConstellationChan,
                time_profiler_chan: TimeProfilerChan,
                memory_profiler_chan: MemoryProfilerChan) -> IOCompositor {
-        let window: Rc<Window> = WindowMethods::new(app, opts.output_file.is_none());
+
+        let scale_factor = match opts.device_pixels_per_px {
+            Some(device_pixels_per_px) => device_pixels_per_px,
+            None => ScaleFactor(1.0),
+        };
+        let framebuffer_size = opts.initial_window_size.as_f32() * scale_factor;
+
+        let window: Rc<Window> = WindowMethods::new(app, opts.output_file.is_none(),
+                                                    framebuffer_size.as_uint());
 
         // Create an initial layer tree.
         //

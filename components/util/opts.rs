@@ -10,6 +10,7 @@ use geometry::ScreenPx;
 use azure::azure_hl::{BackendType, CairoBackend, CoreGraphicsBackend};
 use azure::azure_hl::{CoreGraphicsAcceleratedBackend, Direct2DBackend, SkiaBackend};
 use geom::scale_factor::ScaleFactor;
+use geom::size::TypedSize2D;
 use layers::geometry::DevicePixel;
 use getopts;
 use std::cmp;
@@ -86,6 +87,9 @@ pub struct Opts {
 
     /// True if we should start a server to listen to remote Firefox devtools connections.
     pub devtools_server: bool,
+
+    /// The initial requested size of the window.
+    pub initial_window_size: TypedSize2D<ScreenPx, uint>,
 }
 
 fn print_usage(app: &str, opts: &[getopts::OptGroup]) {
@@ -121,6 +125,7 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
         getopts::optflag("", "disable-text-aa", "Disable antialiasing for text rendering."),
         getopts::optflag("", "trace-layout", "Write layout trace to external file for debugging."),
         getopts::optflag("", "devtools", "Start remote devtools server"),
+        getopts::optopt("", "resolution", "Set window resolution.", "800x600"),
         getopts::optflag("h", "help", "Print this message")
     );
 
@@ -202,6 +207,16 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
         bubble_inline_sizes_separately = true;
     }
 
+    let initial_window_size = match opt_match.opt_str("resolution") {
+        Some(res_string) => {
+            let res: Vec<uint> = res_string.as_slice().split('x').map(|r| from_str(r).unwrap()).collect();
+            TypedSize2D(res[0], res[1])
+        }
+        None => {
+            TypedSize2D(800, 600)
+        }
+    };
+
     Some(Opts {
         urls: urls,
         render_backend: render_backend,
@@ -222,6 +237,7 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
         enable_text_antialiasing: !opt_match.opt_present("disable-text-aa"),
         trace_layout: trace_layout,
         devtools_server: opt_match.opt_present("devtools"),
+        initial_window_size: initial_window_size,
     })
 }
 
