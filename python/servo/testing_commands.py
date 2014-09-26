@@ -1,14 +1,9 @@
 from __future__ import print_function, unicode_literals
 
-import json
 import os
 import os.path as path
-import shutil
 import subprocess
-import sys
-import tarfile
 from time import time
-import urllib
 
 from mach.registrar import Registrar
 from mach.decorators import (
@@ -20,6 +15,7 @@ from mach.decorators import (
 from servo.command_base import CommandBase
 import tidy
 
+
 @CommandProvider
 class MachCommands(CommandBase):
     def __init__(self, context):
@@ -28,13 +24,15 @@ class MachCommands(CommandBase):
             self.context.built_tests = False
 
     def ensure_built_tests(self):
-        if self.context.built_tests: return
+        if self.context.built_tests:
+            return
         Registrar.dispatch('build-tests', context=self.context)
         self.context.built_tests = True
 
     def find_test(self, prefix):
-        candidates = [f for f in os.listdir(path.join(self.context.topdir, "target"))
-                      if f.startswith(prefix + "-")]
+        candidates = [
+            f for f in os.listdir(path.join(self.context.topdir, "target"))
+            if f.startswith(prefix + "-")]
         if candidates:
             return path.join(self.context.topdir, "target", candidates[0])
         return None
@@ -61,8 +59,9 @@ class MachCommands(CommandBase):
              allow_all_args=True)
     @CommandArgument('test_name', default=None, nargs="...",
                      help="Only run tests that match this pattern")
-    @CommandArgument('params', default=None, nargs="...",
-                     help="Command-line arguments to be passed to the test harness")
+    @CommandArgument(
+        'params', default=None, nargs="...",
+        help="Command-line arguments to be passed to the test harness")
     def test_unit(self, test_name=None, params=None):
         if params is None:
             params = []
@@ -79,8 +78,9 @@ class MachCommands(CommandBase):
                      help="'cpu' or 'gpu' (default both)")
     @CommandArgument('test_name', default=None, nargs="?",
                      help="Only run tests that match this pattern")
-    @CommandArgument('servo_params', default=None, nargs="...",
-                     help="Command-line arguments to be passed through to Servo")
+    @CommandArgument(
+        'servo_params', default=None, nargs="...",
+        help="Command-line arguments to be passed through to Servo")
     def test_ref(self, kind=None, test_name=None, servo_params=None):
         self.ensure_bootstrapped()
         self.ensure_built_tests()
@@ -103,7 +103,8 @@ class MachCommands(CommandBase):
 
         print("Reference tests completed in %0.2fs" % elapsed)
 
-        if error: return 1
+        if error:
+            return 1
 
     @Command('test-content',
              description='Run the content tests',
@@ -138,10 +139,12 @@ class MachCommands(CommandBase):
              description='Run the web platform tests',
              category='testing',
              allow_all_args=True)
-    @CommandArgument('params', default=None, nargs='...',
-                     help="Command-line arguments to be passed through to wpt/run.sh")
+    @CommandArgument(
+        'params', default=None, nargs='...',
+        help="Command-line arguments to be passed through to wpt/run.sh")
     def test_wpt(self, params=None):
         if params is None:
             params = []
-        return subprocess.call(["bash", path.join("tests", "wpt", "run.sh")] + params,
-                               env=self.build_env())
+        return subprocess.call(
+            ["bash", path.join("tests", "wpt", "run.sh")] + params,
+            env=self.build_env())

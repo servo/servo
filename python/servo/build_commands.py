@@ -1,16 +1,9 @@
 from __future__ import print_function, unicode_literals
 
-import json
-import os
 import os.path as path
-import shutil
 import subprocess
-import sys
-import tarfile
 from time import time
-import urllib
 
-from mach.registrar import Registrar
 from mach.decorators import (
     CommandArgument,
     CommandProvider,
@@ -18,6 +11,7 @@ from mach.decorators import (
 )
 
 from servo.command_base import CommandBase, cd
+
 
 @CommandProvider
 class MachCommands(CommandBase):
@@ -50,7 +44,9 @@ class MachCommands(CommandBase):
             opts += ["-v"]
 
         build_start = time()
-        status = subprocess.call(["cargo", "build"] + opts, env=self.build_env())
+        status = subprocess.call(
+            ["cargo", "build"] + opts,
+            env=self.build_env())
         elapsed = time() - build_start
 
         print("Build completed in %0.2fs" % elapsed)
@@ -90,7 +86,8 @@ class MachCommands(CommandBase):
         opts = []
         if jobs is not None:
             opts += ["-j", jobs]
-        return subprocess.call(["cargo", "test", "--no-run"], env=self.build_env())
+        return subprocess.call(
+            ["cargo", "test", "--no-run"], env=self.build_env())
 
     @Command('clean',
              description='Clean the build directory.',
