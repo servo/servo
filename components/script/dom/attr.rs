@@ -147,14 +147,14 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
     }
 }
 
-pub trait AttrHelpers {
+pub trait AttrHelpers<'a> {
     fn set_value(self, set_type: AttrSettingType, value: AttrValue);
-    fn value<'a>(&'a self) -> Ref<'a, AttrValue>;
-    fn local_name<'a>(&'a self) -> &'a Atom;
+    fn value(self) -> Ref<'a, AttrValue>;
+    fn local_name(self) -> &'a Atom;
     fn summarize(self) -> AttrInfo;
 }
 
-impl<'a> AttrHelpers for JSRef<'a, Attr> {
+impl<'a> AttrHelpers<'a> for JSRef<'a, Attr> {
     fn set_value(self, set_type: AttrSettingType, value: AttrValue) {
         let owner = self.owner.root();
         let node: JSRef<Node> = NodeCast::from_ref(*owner);
@@ -180,12 +180,12 @@ impl<'a> AttrHelpers for JSRef<'a, Attr> {
         }
     }
 
-    fn value<'a>(&'a self) -> Ref<'a, AttrValue> {
-        self.value.deref().borrow()
+    fn value(self) -> Ref<'a, AttrValue> {
+        self.extended_deref().value.borrow()
     }
 
-    fn local_name<'a>(&'a self) -> &'a Atom {
-        &self.local_name
+    fn local_name(self) -> &'a Atom {
+        &self.extended_deref().local_name
     }
 
     fn summarize(self) -> AttrInfo {
