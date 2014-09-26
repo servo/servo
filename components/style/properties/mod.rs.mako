@@ -424,36 +424,6 @@ pub mod longhands {
         }
     </%self:single_component_value>
 
-    <%self:longhand name="-servo-minimum-line-height" derived_from="line-height">
-        pub use super::computed_as_specified as to_computed_value;
-
-        pub type SpecifiedValue = line_height::SpecifiedValue;
-
-        pub mod computed_value {
-            pub type T = super::super::Au;
-        }
-
-        #[inline]
-        pub fn get_initial_value() -> computed_value::T {
-            Au(0)
-        }
-
-        #[inline]
-        pub fn derive_from_line_height(value: line_height::computed_value::T,
-                                       context: &computed::Context)
-                                       -> Au {
-            if context.display != display::computed_value::inline {
-                match value {
-                    line_height::Normal => context.font_size.scale_by(DEFAULT_LINE_HEIGHT),
-                    line_height::Number(percentage) => context.font_size.scale_by(percentage),
-                    line_height::Length(length) => length,
-                }
-            } else {
-                context.inherited_minimum_line_height
-            }
-        }
-    </%self:longhand>
-
     ${switch_to_style_struct("Box")}
 
     <%self:single_component_value name="vertical-align">
@@ -1983,8 +1953,6 @@ pub fn cascade(applicable_declarations: &[DeclarationBlock],
             inherited_font_weight: inherited_font_style.font_weight,
             inherited_font_size: inherited_font_style.font_size,
             inherited_height: inherited_style.get_box().height,
-            inherited_minimum_line_height: inherited_style.get_inheritedbox()
-                                                          ._servo_minimum_line_height,
             inherited_text_decorations_in_effect:
                 inherited_style.get_inheritedtext()._servo_text_decorations_in_effect,
             // To be overridden by applicable declarations:

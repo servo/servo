@@ -212,7 +212,6 @@ pub mod computed {
     pub struct Context {
         pub inherited_font_weight: longhands::font_weight::computed_value::T,
         pub inherited_font_size: longhands::font_size::computed_value::T,
-        pub inherited_minimum_line_height: longhands::_servo_minimum_line_height::T,
         pub inherited_text_decorations_in_effect: longhands::_servo_text_decorations_in_effect::T,
         pub inherited_height: longhands::height::T,
         pub color: longhands::color::computed_value::T,
