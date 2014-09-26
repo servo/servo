@@ -29,6 +29,9 @@ class CommandBase(object):
         if not hasattr(self.context, "bootstrapped"):
             self.context.bootstrapped = False
 
+        if not hasattr(self.context, "shareddir"):
+            self.context.sharedir = path.join(path.expanduser("~/"), ".servo")
+        
         config_path = path.join(context.topdir, ".servobuild")
         if path.exists(config_path):
             self.config = toml.loads(open(config_path).read())
@@ -42,9 +45,10 @@ class CommandBase(object):
         self.config["tools"].setdefault("rust-root", "")
         self.config["tools"].setdefault("cargo-root", "")
         if not self.config["tools"]["system-rust"]:
-            self.config["tools"]["rust-root"] = path.join(context.topdir, "rust")
+            snapshot_hash = open(path.join(self.context.topdir, "rust-snapshot-hash")).read().strip()
+            self.config["tools"]["rust-root"] = path.join(context.sharedir, snapshot_hash)
         if not self.config["tools"]["system-cargo"]:
-            self.config["tools"]["cargo-root"] = path.join(context.topdir, "cargo")
+            self.config["tools"]["cargo-root"] = path.join(context.sharedir, "cargo")
 
     def build_env(self):
         """Return an extended environment dictionary."""
@@ -84,11 +88,12 @@ class CommandBase(object):
                 subprocess.check_call(["git", "submodule", "update",
                                        "--init", "--recursive", "--", module_path])
 
+        snapshot_hash = open(path.join(self.context.topdir, "rust-snapshot-hash")).read().strip()
         if not self.config["tools"]["system-rust"] and \
-           not path.exists(path.join(self.context.topdir, "rust", "bin", "rustc")):
+           not path.exists(path.join(self.context.sharedir, snapshot_hash, "bin", "rustc")):
             Registrar.dispatch("bootstrap-rust", context=self.context)
         if not self.config["tools"]["system-cargo"] and \
-           not path.exists(path.join(self.context.topdir, "cargo", "bin", "cargo")):
+           not path.exists(path.join(self.context.sharedir, "cargo", "bin", "cargo")):
             Registrar.dispatch("bootstrap-cargo", context=self.context)
 
         self.context.bootstrapped = True
