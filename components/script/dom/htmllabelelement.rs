@@ -26,7 +26,7 @@ impl HTMLLabelElementDerived for EventTarget {
 }
 
 impl HTMLLabelElement {
-    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLLabelElement {
+    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLLabelElement {
         HTMLLabelElement {
             htmlelement: HTMLElement::new_inherited(HTMLLabelElementTypeId, localName, document)
         }

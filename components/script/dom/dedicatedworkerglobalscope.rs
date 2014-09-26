@@ -47,7 +47,7 @@ pub struct DedicatedWorkerGlobalScope {
 }
 
 impl DedicatedWorkerGlobalScope {
-    pub fn new_inherited(worker_url: Url,
+    fn new_inherited(worker_url: Url,
                          worker: TrustedWorkerAddress,
                          cx: Rc<Cx>,
                          resource_task: ResourceTask,

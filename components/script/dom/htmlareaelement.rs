@@ -30,7 +30,7 @@ impl HTMLAreaElementDerived for EventTarget {
 }
 
 impl HTMLAreaElement {
-    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLAreaElement {
+    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLAreaElement {
         HTMLAreaElement {
             htmlelement: HTMLElement::new_inherited(HTMLAreaElementTypeId, localName, document)
         }

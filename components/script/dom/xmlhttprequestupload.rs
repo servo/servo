@@ -18,7 +18,7 @@ pub struct XMLHttpRequestUpload {
 }
 
 impl XMLHttpRequestUpload {
-    pub fn new_inherited() -> XMLHttpRequestUpload {
+    fn new_inherited() -> XMLHttpRequestUpload {
         XMLHttpRequestUpload {
             eventtarget:XMLHttpRequestEventTarget::new_inherited(XMLHttpRequestUploadTypeId)
         }

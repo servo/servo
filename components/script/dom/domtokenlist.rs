@@ -25,7 +25,7 @@ pub struct DOMTokenList {
 }
 
 impl DOMTokenList {
-    pub fn new_inherited(element: JSRef<Element>,
+    fn new_inherited(element: JSRef<Element>,
                          local_name: &'static str) -> DOMTokenList {
         DOMTokenList {
             reflector_: Reflector::new(),

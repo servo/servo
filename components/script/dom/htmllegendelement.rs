@@ -26,7 +26,7 @@ impl HTMLLegendElementDerived for EventTarget {
 }
 
 impl HTMLLegendElement {
-    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLLegendElement {
+    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLLegendElement {
         HTMLLegendElement {
             htmlelement: HTMLElement::new_inherited(HTMLLegendElementTypeId, localName, document)
         }

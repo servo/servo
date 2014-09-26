@@ -29,7 +29,7 @@ impl TextDerived for EventTarget {
 }
 
 impl Text {
-    pub fn new_inherited(text: DOMString, document: JSRef<Document>) -> Text {
+    fn new_inherited(text: DOMString, document: JSRef<Document>) -> Text {
         Text {
             characterdata: CharacterData::new_inherited(TextNodeTypeId, text, document)
         }

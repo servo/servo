@@ -34,7 +34,7 @@ impl HTMLFieldSetElementDerived for EventTarget {
 }
 
 impl HTMLFieldSetElement {
-    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLFieldSetElement {
+    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLFieldSetElement {
         HTMLFieldSetElement {
             htmlelement: HTMLElement::new_inherited(HTMLFieldSetElementTypeId, localName, document)
         }

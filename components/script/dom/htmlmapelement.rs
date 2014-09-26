@@ -26,7 +26,7 @@ impl HTMLMapElementDerived for EventTarget {
 }
 
 impl HTMLMapElement {
-    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLMapElement {
+    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLMapElement {
         HTMLMapElement {
             htmlelement: HTMLElement::new_inherited(HTMLMapElementTypeId, localName, document)
         }

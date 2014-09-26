@@ -29,7 +29,7 @@ impl HTMLTitleElementDerived for EventTarget {
 }
 
 impl HTMLTitleElement {
-    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLTitleElement {
+    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLTitleElement {
         HTMLTitleElement {
             htmlelement: HTMLElement::new_inherited(HTMLTitleElementTypeId, localName, document)
         }

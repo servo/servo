@@ -29,7 +29,7 @@ pub struct URLSearchParams {
 }
 
 impl URLSearchParams {
-    pub fn new_inherited() -> URLSearchParams {
+    fn new_inherited() -> URLSearchParams {
         URLSearchParams {
             data: Traceable::new(RefCell::new(HashMap::new())),
             reflector_: Reflector::new(),

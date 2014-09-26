@@ -26,7 +26,7 @@ impl HTMLTemplateElementDerived for EventTarget {
 }
 
 impl HTMLTemplateElement {
-    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLTemplateElement {
+    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLTemplateElement {
         HTMLTemplateElement {
             htmlelement: HTMLElement::new_inherited(HTMLTemplateElementTypeId, localName, document)
         }

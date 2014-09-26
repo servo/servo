@@ -18,7 +18,7 @@ pub struct Navigator {
 }
 
 impl Navigator {
-    pub fn new_inherited() -> Navigator {
+    fn new_inherited() -> Navigator {
         Navigator {
             reflector_: Reflector::new()
         }

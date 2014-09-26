@@ -26,7 +26,7 @@ impl HTMLLIElementDerived for EventTarget {
 }
 
 impl HTMLLIElement {
-    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLLIElement {
+    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLLIElement {
         HTMLLIElement {
             htmlelement: HTMLElement::new_inherited(HTMLLIElementTypeId, localName, document)
         }

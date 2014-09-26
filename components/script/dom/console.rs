@@ -16,7 +16,7 @@ pub struct Console {
 }
 
 impl Console {
-    pub fn new_inherited() -> Console {
+    fn new_inherited() -> Console {
         Console {
             reflector_: Reflector::new()
         }

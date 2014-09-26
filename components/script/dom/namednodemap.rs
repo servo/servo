@@ -19,7 +19,7 @@ pub struct NamedNodeMap {
 }
 
 impl NamedNodeMap {
-    pub fn new_inherited(elem: JSRef<Element>) -> NamedNodeMap {
+    fn new_inherited(elem: JSRef<Element>) -> NamedNodeMap {
         NamedNodeMap {
             reflector_: Reflector::new(),
             owner: JS::from_rooted(elem),

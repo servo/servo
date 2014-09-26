@@ -26,7 +26,7 @@ impl HTMLTableCaptionElementDerived for EventTarget {
 }
 
 impl HTMLTableCaptionElement {
-    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLTableCaptionElement {
+    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLTableCaptionElement {
         HTMLTableCaptionElement {
             htmlelement: HTMLElement::new_inherited(HTMLTableCaptionElementTypeId, localName, document)
         }

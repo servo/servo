@@ -36,7 +36,7 @@ pub struct FormData {
 }
 
 impl FormData {
-    pub fn new_inherited(form: Option<JSRef<HTMLFormElement>>, global: &GlobalRef) -> FormData {
+    fn new_inherited(form: Option<JSRef<HTMLFormElement>>, global: &GlobalRef) -> FormData {
         FormData {
             data: Traceable::new(RefCell::new(HashMap::new())),
             reflector_: Reflector::new(),

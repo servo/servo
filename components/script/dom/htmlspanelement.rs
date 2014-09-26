@@ -26,7 +26,7 @@ impl HTMLSpanElementDerived for EventTarget {
 }
 
 impl HTMLSpanElement {
-    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLSpanElement {
+    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLSpanElement {
         HTMLSpanElement {
             htmlelement: HTMLElement::new_inherited(HTMLSpanElementTypeId, localName, document)
         }

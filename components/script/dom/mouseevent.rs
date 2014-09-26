@@ -41,7 +41,7 @@ impl MouseEventDerived for Event {
 }
 
 impl MouseEvent {
-    pub fn new_inherited() -> MouseEvent {
+    fn new_inherited() -> MouseEvent {
         MouseEvent {
             mouseevent: UIEvent::new_inherited(MouseEventTypeId),
             screen_x: Traceable::new(Cell::new(0)),

@@ -18,7 +18,7 @@ pub struct WorkerNavigator {
 }
 
 impl WorkerNavigator {
-    pub fn new_inherited() -> WorkerNavigator {
+    fn new_inherited() -> WorkerNavigator {
         WorkerNavigator {
             reflector_: Reflector::new(),
         }

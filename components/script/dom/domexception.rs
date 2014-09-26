@@ -68,7 +68,7 @@ pub struct DOMException {
 }
 
 impl DOMException {
-    pub fn new_inherited(code: DOMErrorName) -> DOMException {
+    fn new_inherited(code: DOMErrorName) -> DOMException {
         DOMException {
             code: code,
             reflector_: Reflector::new()

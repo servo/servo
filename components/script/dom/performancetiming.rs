@@ -18,7 +18,7 @@ pub struct PerformanceTiming {
 }
 
 impl PerformanceTiming {
-    pub fn new_inherited(navStart: u64, navStartPrecise: f64)
+    fn new_inherited(navStart: u64, navStartPrecise: f64)
                          -> PerformanceTiming {
         PerformanceTiming {
             reflector_: Reflector::new(),

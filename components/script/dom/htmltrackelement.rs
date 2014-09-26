@@ -26,7 +26,7 @@ impl HTMLTrackElementDerived for EventTarget {
 }
 
 impl HTMLTrackElement {
-    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLTrackElement {
+    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLTrackElement {
         HTMLTrackElement {
             htmlelement: HTMLElement::new_inherited(HTMLTrackElementTypeId, localName, document)
         }

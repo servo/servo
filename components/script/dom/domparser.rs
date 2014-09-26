@@ -21,7 +21,7 @@ pub struct DOMParser {
 }
 
 impl DOMParser {
-    pub fn new_inherited(window: JSRef<Window>) -> DOMParser {
+    fn new_inherited(window: JSRef<Window>) -> DOMParser {
         DOMParser {
             window: JS::from_rooted(window),
             reflector_: Reflector::new()

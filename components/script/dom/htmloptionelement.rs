@@ -36,7 +36,7 @@ impl HTMLOptionElementDerived for EventTarget {
 }
 
 impl HTMLOptionElement {
-    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLOptionElement {
+    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLOptionElement {
         HTMLOptionElement {
             htmlelement: HTMLElement::new_inherited(HTMLOptionElementTypeId, localName, document)
         }

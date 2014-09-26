@@ -23,7 +23,7 @@ pub struct WorkerLocation {
 }
 
 impl WorkerLocation {
-    pub fn new_inherited(url: Url) -> WorkerLocation {
+    fn new_inherited(url: Url) -> WorkerLocation {
         WorkerLocation {
             reflector_: Reflector::new(),
             url: Untraceable::new(url),

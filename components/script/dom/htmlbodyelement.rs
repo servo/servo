@@ -33,7 +33,7 @@ impl HTMLBodyElementDerived for EventTarget {
 }
 
 impl HTMLBodyElement {
-    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLBodyElement {
+    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLBodyElement {
         HTMLBodyElement {
             htmlelement: HTMLElement::new_inherited(HTMLBodyElementTypeId, localName, document)
         }

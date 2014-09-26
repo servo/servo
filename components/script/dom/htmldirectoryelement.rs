@@ -26,7 +26,7 @@ impl HTMLDirectoryElementDerived for EventTarget {
 }
 
 impl HTMLDirectoryElement {
-    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLDirectoryElement {
+    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLDirectoryElement {
         HTMLDirectoryElement {
             htmlelement: HTMLElement::new_inherited(HTMLDirectoryElementTypeId, localName, document)
         }

@@ -26,7 +26,7 @@ impl HTMLQuoteElementDerived for EventTarget {
 }
 
 impl HTMLQuoteElement {
-    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLQuoteElement {
+    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLQuoteElement {
         HTMLQuoteElement {
             htmlelement: HTMLElement::new_inherited(HTMLQuoteElementTypeId, localName, document)
         }

@@ -33,7 +33,7 @@ pub struct TreeWalker {
 }
 
 impl TreeWalker {
-    pub fn new_inherited(root_node: JSRef<Node>,
+    fn new_inherited(root_node: JSRef<Node>,
                          what_to_show: u32,
                          filter: Filter) -> TreeWalker {
         TreeWalker {

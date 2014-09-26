@@ -26,7 +26,7 @@ impl HTMLAudioElementDerived for EventTarget {
 }
 
 impl HTMLAudioElement {
-    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLAudioElement {
+    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLAudioElement {
         HTMLAudioElement {
             htmlmediaelement: HTMLMediaElement::new_inherited(HTMLAudioElementTypeId, localName, document)
         }

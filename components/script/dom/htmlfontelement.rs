@@ -26,7 +26,7 @@ impl HTMLFontElementDerived for EventTarget {
 }
 
 impl HTMLFontElement {
-    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLFontElement {
+    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLFontElement {
         HTMLFontElement {
             htmlelement: HTMLElement::new_inherited(HTMLFontElementTypeId, localName, document)
         }

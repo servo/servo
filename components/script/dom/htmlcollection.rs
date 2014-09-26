@@ -37,7 +37,7 @@ pub struct HTMLCollection {
 }
 
 impl HTMLCollection {
-    pub fn new_inherited(collection: CollectionTypeId) -> HTMLCollection {
+    fn new_inherited(collection: CollectionTypeId) -> HTMLCollection {
         HTMLCollection {
             collection: collection,
             reflector_: Reflector::new(),

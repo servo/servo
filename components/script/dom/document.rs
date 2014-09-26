@@ -277,7 +277,7 @@ impl<'a> DocumentHelpers for JSRef<'a, Document> {
 }
 
 impl Document {
-    pub fn new_inherited(window: JSRef<Window>,
+    fn new_inherited(window: JSRef<Window>,
                          url: Option<Url>,
                          is_html_document: IsHTMLDocument,
                          content_type: Option<DOMString>) -> Document {

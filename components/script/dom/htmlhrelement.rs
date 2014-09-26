@@ -26,7 +26,7 @@ impl HTMLHRElementDerived for EventTarget {
 }
 
 impl HTMLHRElement {
-    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLHRElement {
+    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLHRElement {
         HTMLHRElement {
             htmlelement: HTMLElement::new_inherited(HTMLHRElementTypeId, localName, document)
         }

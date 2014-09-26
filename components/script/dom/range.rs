@@ -18,7 +18,7 @@ pub struct Range {
 }
 
 impl Range {
-    pub fn new_inherited() -> Range {
+    fn new_inherited() -> Range {
         Range {
             reflector_: Reflector::new()
         }

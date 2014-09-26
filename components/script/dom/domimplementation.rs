@@ -30,7 +30,7 @@ pub struct DOMImplementation {
 }
 
 impl DOMImplementation {
-    pub fn new_inherited(document: JSRef<Document>) -> DOMImplementation {
+    fn new_inherited(document: JSRef<Document>) -> DOMImplementation {
         DOMImplementation {
             document: JS::from_rooted(document),
             reflector_: Reflector::new(),

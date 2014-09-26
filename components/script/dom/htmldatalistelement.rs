@@ -29,7 +29,7 @@ impl HTMLDataListElementDerived for EventTarget {
 }
 
 impl HTMLDataListElement {
-    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLDataListElement {
+    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLDataListElement {
         HTMLDataListElement {
             htmlelement: HTMLElement::new_inherited(HTMLDataListElementTypeId, localName, document)
         }

@@ -28,7 +28,7 @@ impl HTMLOutputElementDerived for EventTarget {
 }
 
 impl HTMLOutputElement {
-    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLOutputElement {
+    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLOutputElement {
         HTMLOutputElement {
             htmlelement: HTMLElement::new_inherited(HTMLOutputElementTypeId, localName, document)
         }

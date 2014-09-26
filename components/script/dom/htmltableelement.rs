@@ -30,7 +30,7 @@ impl HTMLTableElementDerived for EventTarget {
 }
 
 impl HTMLTableElement {
-    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLTableElement {
+    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLTableElement {
         HTMLTableElement {
             htmlelement: HTMLElement::new_inherited(HTMLTableElementTypeId, localName, document)
         }

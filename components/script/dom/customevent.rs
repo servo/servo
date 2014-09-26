@@ -32,7 +32,7 @@ impl CustomEventDerived for Event {
 }
 
 impl CustomEvent {
-    pub fn new_inherited(type_id: EventTypeId) -> CustomEvent {
+    fn new_inherited(type_id: EventTypeId) -> CustomEvent {
         CustomEvent {
             event: Event::new_inherited(type_id),
             detail: Traceable::new(Cell::new(Traceable::new(NullValue()))),

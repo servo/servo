@@ -21,7 +21,7 @@ pub struct DOMRect {
 }
 
 impl DOMRect {
-    pub fn new_inherited(top: Au, bottom: Au,
+    fn new_inherited(top: Au, bottom: Au,
                          left: Au, right: Au) -> DOMRect {
         DOMRect {
             top: top.to_nearest_px() as f32,

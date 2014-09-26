@@ -26,7 +26,7 @@ impl HTMLParagraphElementDerived for EventTarget {
 }
 
 impl HTMLParagraphElement {
-    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLParagraphElement {
+    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLParagraphElement {
         HTMLParagraphElement {
             htmlelement: HTMLElement::new_inherited(HTMLParagraphElementTypeId, localName, document)
         }

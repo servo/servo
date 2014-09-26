@@ -36,7 +36,7 @@ impl HTMLAnchorElementDerived for EventTarget {
 }
 
 impl HTMLAnchorElement {
-    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLAnchorElement {
+    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLAnchorElement {
         HTMLAnchorElement {
             htmlelement: HTMLElement::new_inherited(HTMLAnchorElementTypeId, localName, document)
         }
