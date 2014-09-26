@@ -48,6 +48,21 @@ impl HTMLLinkElement {
     }
 }
 
+fn get_attr(element: JSRef<Element>, name: &str) -> Option<String> {
+    let elem = element.get_attribute(Null, name).root();
+    elem.map(|e| e.deref().value().as_slice().to_string())
+}
+
+fn is_stylesheet(value: &Option<String>) -> bool {
+    match *value {
+        Some(ref value) => {
+            value.as_slice().split(HTML_SPACE_CHARACTERS.as_slice())
+                .any(|s| s.as_slice().eq_ignore_ascii_case("stylesheet"))
+        },
+        None => false,
+    }
+}
+
 impl<'a> VirtualMethods for JSRef<'a, HTMLLinkElement> {
     fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
         let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
@@ -60,10 +75,19 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLLinkElement> {
             _ => (),
         }
 
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
-        match name.as_slice() {
-            "href" => node.set_enabled_state(true),
-            _ => ()
+        let element: JSRef<Element> = ElementCast::from_ref(*self);
+        let rel = get_attr(element, "rel");
+
+        match (rel, name.as_slice()) {
+            (ref rel, "href") => {
+                if is_stylesheet(rel) {
+                    self.handle_stylesheet_url(value.as_slice());
+                }
+
+                let node: JSRef<Node> = NodeCast::from_ref(*self);
+                node.set_enabled_state(true)
+            }
+            (_, _) => ()
         }
     }
 
@@ -89,23 +113,12 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLLinkElement> {
         if tree_in_doc {
             let element: JSRef<Element> = ElementCast::from_ref(*self);
 
-            // FIXME: workaround for https://github.com/mozilla/rust/issues/13246;
-            // we get unrooting order failures if these are inside the match.
-            let rel = {
-                let rel = element.get_attribute(Null, "rel").root();
-                rel.map(|rel| rel.deref().value().as_slice().to_string())
-            };
-            let href = {
-                let href = element.get_attribute(Null, "href").root();
-                href.map(|href| href.deref().value().as_slice().to_string())
-            };
+            let rel = get_attr(element, "rel");
+            let href = get_attr(element, "href");
 
             match (rel, href) {
-                (Some(ref rel), Some(ref href)) => {
-                    if rel.as_slice().split(HTML_SPACE_CHARACTERS.as_slice())
-                          .any(|s| s.as_slice().eq_ignore_ascii_case("stylesheet")) {
-                        self.handle_stylesheet_url(href.as_slice());
-                    }
+                (ref rel, Some(ref href)) if is_stylesheet(rel) => {
+                    self.handle_stylesheet_url(href.as_slice());
                 }
                 _ => {}
             }
@@ -135,3 +148,4 @@ impl Reflectable for HTMLLinkElement {
         self.htmlelement.reflector()
     }
 }
+
