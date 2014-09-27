@@ -242,7 +242,7 @@ impl<'ln> LayoutNode<'ln> {
     }
 }
 
-impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
+impl<'ln> TNode<'ln, LayoutElement<'ln>> for LayoutNode<'ln> {
     fn parent_node(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
             self.node.parent_node_ref().map(|node| self.new_with_this_lifetime(&node))
@@ -389,7 +389,7 @@ impl<'le> LayoutElement<'le> {
     }
 }
 
-impl<'le> TElement for LayoutElement<'le> {
+impl<'le> TElement<'le> for LayoutElement<'le> {
     #[inline]
     fn get_local_name<'a>(&'a self) -> &'a Atom {
         &self.element.local_name
@@ -401,11 +401,11 @@ impl<'le> TElement for LayoutElement<'le> {
     }
 
     #[inline]
-    fn get_attr(&self, namespace: &Namespace, name: &str) -> Option<&'static str> {
+    fn get_attr(&self, namespace: &Namespace, name: &str) -> Option<&'le str> {
         unsafe { self.element.get_attr_val_for_layout(namespace, name) }
     }
 
-    fn get_link(&self) -> Option<&'static str> {
+    fn get_link(&self) -> Option<&'le str> {
         // FIXME: This is HTML only.
         match self.element.node.type_id_for_layout() {
             // http://www.whatwg.org/specs/web-apps/current-work/multipage/selectors.html#
@@ -611,7 +611,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
 
     /// If this is an element, accesses the element data. Fails if this is not an element node.
     #[inline]
-    pub fn as_element(&self) -> ThreadSafeLayoutElement {
+    pub fn as_element(&self) -> ThreadSafeLayoutElement<'ln> {
         unsafe {
             assert!(self.get_jsmanaged().is_element_for_layout());
             let elem: JS<Element> = self.get_jsmanaged().transmute_copy();
@@ -791,7 +791,7 @@ pub struct ThreadSafeLayoutElement<'le> {
 
 impl<'le> ThreadSafeLayoutElement<'le> {
     #[inline]
-    pub fn get_attr(&self, namespace: &Namespace, name: &str) -> Option<&'static str> {
+    pub fn get_attr(&self, namespace: &Namespace, name: &str) -> Option<&'le str> {
         unsafe { self.element.get_attr_val_for_layout(namespace, name) }
     }
 }

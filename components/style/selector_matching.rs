@@ -79,8 +79,9 @@ impl SelectorMap {
     ///
     /// Extract matching rules as per node's ID, classes, tag name, etc..
     /// Sort the Rules at the end to maintain cascading order.
-    fn get_all_matching_rules<E:TElement,
-                              N:TNode<E>,
+    fn get_all_matching_rules<'a,
+                              E:TElement<'a>,
+                              N:TNode<'a, E>,
                               V:VecLike<DeclarationBlock>>(
                               &self,
                               node: &N,
@@ -147,8 +148,9 @@ impl SelectorMap {
         }
     }
 
-    fn get_matching_rules_from_hash<E:TElement,
-                                    N:TNode<E>,
+    fn get_matching_rules_from_hash<'a,
+                                    E:TElement<'a>,
+                                    N:TNode<'a, E>,
                                     V:VecLike<DeclarationBlock>>(
                                     node: &N,
                                     parent_bf: &Option<BloomFilter>,
@@ -165,8 +167,9 @@ impl SelectorMap {
     }
 
     /// Adds rules in `rules` that match `node` to the `matching_rules` list.
-    fn get_matching_rules<E:TElement,
-                          N:TNode<E>,
+    fn get_matching_rules<'a,
+                          E:TElement<'a>,
+                          N:TNode<'a, E>,
                           V:VecLike<DeclarationBlock>>(
                           node: &N,
                           parent_bf: &Option<BloomFilter>,
@@ -344,8 +347,9 @@ impl Stylist {
     /// The returned boolean indicates whether the style is *shareable*; that is, whether the
     /// matched selectors are simple enough to allow the matching logic to be reduced to the logic
     /// in `css::matching::PrivateMatchMethods::candidate_element_allows_for_style_sharing`.
-    pub fn push_applicable_declarations<E:TElement,
-                                        N:TNode<E>,
+    pub fn push_applicable_declarations<'a,
+                                        E:TElement<'a>,
+                                        N:TNode<'a, E>,
                                         V:VecLike<DeclarationBlock>>(
                                         &self,
                                         element: &N,
@@ -467,7 +471,7 @@ impl DeclarationBlock {
     }
 }
 
-pub fn matches<E:TElement, N:TNode<E>>(selector_list: &SelectorList, element: &N, parent_bf: &Option<BloomFilter>) -> bool {
+pub fn matches<'a, E:TElement<'a>, N:TNode<'a, E>>(selector_list: &SelectorList, element: &N, parent_bf: &Option<BloomFilter>) -> bool {
     get_selector_list_selectors(selector_list).iter().any(|selector|
         selector.pseudo_element.is_none() &&
         matches_compound_selector(&*selector.compound_selectors, element, parent_bf, &mut false))
@@ -479,8 +483,9 @@ pub fn matches<E:TElement, N:TNode<E>>(selector_list: &SelectorList, element: &N
 /// `shareable` to false unless you are willing to update the style sharing logic. Otherwise things
 /// will almost certainly break as nodes will start mistakenly sharing styles. (See the code in
 /// `main/css/matching.rs`.)
-fn matches_compound_selector<E:TElement,
-                             N:TNode<E>>(
+fn matches_compound_selector<'a,
+                             E:TElement<'a>,
+                             N:TNode<'a, E>>(
                              selector: &CompoundSelector,
                              element: &N,
                              parent_bf: &Option<BloomFilter>,
@@ -544,7 +549,7 @@ enum SelectorMatchingResult {
 /// Quickly figures out whether or not the compound selector is worth doing more
 /// work on. If the simple selectors don't match, or there's a child selector
 /// that does not appear in the bloom parent bloom filter, we can exit early.
-fn can_fast_reject<E: TElement, N: TNode<E>>(
+fn can_fast_reject<'a, E: TElement<'a>, N: TNode<'a, E>>(
   mut selector: &CompoundSelector,
   element: &N,
   parent_bf: &Option<BloomFilter>,
@@ -605,8 +610,9 @@ fn can_fast_reject<E: TElement, N: TNode<E>>(
     return None;
 }
 
-fn matches_compound_selector_internal<E:TElement,
-                                      N:TNode<E>>(
+fn matches_compound_selector_internal<'a,
+                                      E:TElement<'a>,
+                                      N:TNode<'a, E>>(
                                       selector: &CompoundSelector,
                                       element: &N,
                                       parent_bf: &Option<BloomFilter>,
@@ -680,8 +686,8 @@ fn matches_compound_selector_internal<E:TElement,
 /// will almost certainly break as nodes will start mistakenly sharing styles. (See the code in
 /// `main/css/matching.rs`.)
 #[inline]
-pub fn matches_simple_selector<E:TElement,
-                           N:TNode<E>>(
+pub fn matches_simple_selector<'a, E:TElement<'a>,
+                           N:TNode<'a, E>>(
                            selector: &SimpleSelector,
                            element: &N,
                            shareable: &mut bool)
@@ -863,8 +869,8 @@ fn url_is_visited(_url: &str) -> bool {
 
 #[inline]
 fn matches_generic_nth_child<'a,
-                             E:TElement,
-                             N:TNode<E>>(
+                             E:TElement<'a>,
+                             N:TNode<'a, E>>(
                              element: &N,
                              a: i32,
                              b: i32,
@@ -919,7 +925,7 @@ fn matches_generic_nth_child<'a,
 }
 
 #[inline]
-fn matches_root<E:TElement,N:TNode<E>>(element: &N) -> bool {
+fn matches_root<'a, E:TElement<'a>,N:TNode<'a, E>>(element: &N) -> bool {
     match element.parent_node() {
         Some(parent) => parent.is_document(),
         None => false
@@ -927,7 +933,7 @@ fn matches_root<E:TElement,N:TNode<E>>(element: &N) -> bool {
 }
 
 #[inline]
-fn matches_first_child<E:TElement,N:TNode<E>>(element: &N) -> bool {
+fn matches_first_child<'a, E:TElement<'a>,N:TNode<'a, E>>(element: &N) -> bool {
     let mut node = element.clone();
     loop {
         match node.prev_sibling() {
@@ -949,7 +955,7 @@ fn matches_first_child<E:TElement,N:TNode<E>>(element: &N) -> bool {
 }
 
 #[inline]
-fn matches_last_child<E:TElement,N:TNode<E>>(element: &N) -> bool {
+fn matches_last_child<'a, E:TElement<'a>,N:TNode<'a, E>>(element: &N) -> bool {
     let mut node = element.clone();
     loop {
         match node.next_sibling() {

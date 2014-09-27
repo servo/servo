@@ -2033,7 +2033,7 @@ impl<'a> VirtualMethods for JSRef<'a, Node> {
     }
 }
 
-impl<'a> style::TNode<JSRef<'a, Element>> for JSRef<'a, Node> {
+impl<'a> style::TNode<'a, JSRef<'a, Element>> for JSRef<'a, Node> {
     fn parent_node(&self) -> Option<JSRef<'a, Node>> {
         (self as &NodeHelpers).parent_node().map(|node| *node.root())
     }

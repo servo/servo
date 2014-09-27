@@ -170,7 +170,7 @@ impl Element {
 }
 
 pub trait RawLayoutElementHelpers {
-    unsafe fn get_attr_val_for_layout(&self, namespace: &Namespace, name: &str) -> Option<&'static str>;
+    unsafe fn get_attr_val_for_layout<'a>(&'a self, namespace: &Namespace, name: &str) -> Option<&'a str>;
     unsafe fn get_attr_atom_for_layout(&self, namespace: &Namespace, name: &str) -> Option<Atom>;
     unsafe fn has_class_for_layout(&self, name: &str) -> bool;
 }
@@ -178,8 +178,8 @@ pub trait RawLayoutElementHelpers {
 impl RawLayoutElementHelpers for Element {
     #[inline]
     #[allow(unrooted_must_root)]
-    unsafe fn get_attr_val_for_layout(&self, namespace: &Namespace, name: &str)
-                                      -> Option<&'static str> {
+    unsafe fn get_attr_val_for_layout<'a>(&'a self, namespace: &Namespace, name: &str)
+                                          -> Option<&'a str> {
         // cast to point to T in RefCell<T> directly
         let attrs: *const Vec<JS<Attr>> = mem::transmute(&self.attrs);
         (*attrs).iter().find(|attr: & &JS<Attr>| {
@@ -948,13 +948,13 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
     }
 }
 
-impl<'a> style::TElement for JSRef<'a, Element> {
-    fn get_attr(&self, namespace: &Namespace, attr: &str) -> Option<&'static str> {
+impl<'a> style::TElement<'a> for JSRef<'a, Element> {
+    fn get_attr(&self, namespace: &Namespace, attr: &str) -> Option<&'a str> {
         self.get_attribute(namespace.clone(), attr).root().map(|attr| {
             unsafe { mem::transmute(attr.deref().value().as_slice()) }
         })
     }
-    fn get_link(&self) -> Option<&'static str> {
+    fn get_link(&self) -> Option<&'a str> {
         // FIXME: This is HTML only.
         let node: JSRef<Node> = NodeCast::from_ref(*self);
         match node.type_id() {
@@ -966,10 +966,10 @@ impl<'a> style::TElement for JSRef<'a, Element> {
             _ => None,
          }
     }
-    fn get_local_name<'a>(&'a self) -> &'a Atom {
+    fn get_local_name<'b>(&'b self) -> &'b Atom {
         (self as &ElementHelpers).get_local_name()
     }
-    fn get_namespace<'a>(&'a self) -> &'a Namespace {
+    fn get_namespace<'b>(&'b self) -> &'b Namespace {
         (self as &ElementHelpers).get_namespace()
     }
     fn get_hover_state(&self) -> bool {

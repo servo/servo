@@ -1077,9 +1077,9 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
 }
 
 /// Methods for interacting with HTMLObjectElement nodes
-trait ObjectElement {
+trait ObjectElement<'a> {
     /// Returns None if this node is not matching attributes.
-    fn get_type_and_data(&self) -> (Option<&'static str>, Option<&'static str>);
+    fn get_type_and_data(&self) -> (Option<&'a str>, Option<&'a str>);
 
     /// Returns true if this node has object data that is correct uri.
     fn has_object_data(&self) -> bool;
@@ -1088,8 +1088,8 @@ trait ObjectElement {
     fn get_object_data(&self) -> Option<Url>;
 }
 
-impl<'ln> ObjectElement for ThreadSafeLayoutNode<'ln> {
-    fn get_type_and_data(&self) -> (Option<&'static str>, Option<&'static str>) {
+impl<'ln> ObjectElement<'ln> for ThreadSafeLayoutNode<'ln> {
+    fn get_type_and_data(&self) -> (Option<&'ln str>, Option<&'ln str>) {
         let elem = self.as_element();
         (elem.get_attr(&namespace::Null, "type"), elem.get_attr(&namespace::Null, "data"))
     }
