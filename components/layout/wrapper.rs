@@ -401,11 +401,11 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
     }
 
     #[inline]
-    fn get_attr(&self, namespace: &Namespace, name: &str) -> Option<&'static str> {
+    fn get_attr(&self, namespace: &Namespace, name: &str) -> Option<&'le str> {
         unsafe { self.element.get_attr_val_for_layout(namespace, name) }
     }
 
-    fn get_link(&self) -> Option<&'static str> {
+    fn get_link(&self) -> Option<&'le str> {
         // FIXME: This is HTML only.
         match self.element.node.type_id_for_layout() {
             // http://www.whatwg.org/specs/web-apps/current-work/multipage/selectors.html#
@@ -791,7 +791,7 @@ pub struct ThreadSafeLayoutElement<'le> {
 
 impl<'le> ThreadSafeLayoutElement<'le> {
     #[inline]
-    pub fn get_attr(&self, namespace: &Namespace, name: &str) -> Option<&'static str> {
+    pub fn get_attr(&self, namespace: &Namespace, name: &str) -> Option<&'le str> {
         unsafe { self.element.get_attr_val_for_layout(namespace, name) }
     }
 }

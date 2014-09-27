@@ -24,10 +24,10 @@ pub trait TNode<'a, E: TElement<'a>> : Clone {
 }
 
 pub trait TElement<'a> {
-    fn get_attr(&self, namespace: &Namespace, attr: &str) -> Option<&'static str>;
-    fn get_link(&self) -> Option<&'static str>;
-    fn get_local_name<'a>(&'a self) -> &'a Atom;
-    fn get_namespace<'a>(&'a self) -> &'a Namespace;
+    fn get_attr(&self, namespace: &Namespace, attr: &str) -> Option<&'a str>;
+    fn get_link(&self) -> Option<&'a str>;
+    fn get_local_name<'b>(&'b self) -> &'b Atom;
+    fn get_namespace<'b>(&'b self) -> &'b Namespace;
     fn get_hover_state(&self) -> bool;
     fn get_id(&self) -> Option<Atom>;
     fn get_disabled_state(&self) -> bool;
