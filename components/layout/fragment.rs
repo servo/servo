@@ -540,7 +540,7 @@ impl Fragment {
     /// `border_padding`. Other consumers of this information should simply consult that field.
     #[inline]
     fn border_width(&self) -> LogicalMargin<Au> {
-        let mut style_border_width = match self.specific {
+        let style_border_width = match self.specific {
             ScannedTextFragment(_) => LogicalMargin::zero(self.style.writing_mode),
             _ => self.style().logical_border_width(),
         };
@@ -584,7 +584,7 @@ impl Fragment {
             TableColumnFragment(_) | TableRowFragment |
             TableWrapperFragment => LogicalMargin::zero(self.style.writing_mode),
             _ => {
-                let mut style_padding = match self.specific {
+                let style_padding = match self.specific {
                     ScannedTextFragment(_) => LogicalMargin::zero(self.style.writing_mode),
                     _ => model::padding_from_style(self.style(), containing_block_inline_size),
                 };
