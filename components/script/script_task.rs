@@ -651,10 +651,9 @@ impl ScriptTask {
         let page = page.find(id).expect("Received resize message for PipelineId not associated
             with a page in the page tree. This is a bug.");
         page.window_size.deref().set(new_size);
-        let mut page_url = page.mut_url();
-        let last_loaded_url = replace(&mut *page_url, None);
-        for url in last_loaded_url.iter() {
-            *page_url = Some((url.ref0().clone(), true));
+        match &mut *page.mut_url() {
+            &Some((_, ref mut needs_reflow)) => *needs_reflow = true,
+            &None => (),
         }
     }
 
