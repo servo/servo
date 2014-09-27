@@ -611,7 +611,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
 
     /// If this is an element, accesses the element data. Fails if this is not an element node.
     #[inline]
-    pub fn as_element(&self) -> ThreadSafeLayoutElement {
+    pub fn as_element(&self) -> ThreadSafeLayoutElement<'ln> {
         unsafe {
             assert!(self.get_jsmanaged().is_element_for_layout());
             let elem: JS<Element> = self.get_jsmanaged().transmute_copy();
