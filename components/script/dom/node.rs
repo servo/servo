@@ -2091,17 +2091,17 @@ impl<'a> style::TNode<JSRef<'a, Element>> for JSRef<'a, Node> {
 }
 
 pub trait DisabledStateHelpers {
-    fn check_ancestors_disabled_state_for_form_control(&self);
-    fn check_parent_disabled_state_for_option(&self);
-    fn check_disabled_attribute(&self);
+    fn check_ancestors_disabled_state_for_form_control(self);
+    fn check_parent_disabled_state_for_option(self);
+    fn check_disabled_attribute(self);
 }
 
 impl<'a> DisabledStateHelpers for JSRef<'a, Node> {
-    fn check_ancestors_disabled_state_for_form_control(&self) {
+    fn check_ancestors_disabled_state_for_form_control(self) {
         if self.get_disabled_state() { return; }
         for ancestor in self.ancestors().filter(|ancestor| ancestor.is_htmlfieldsetelement()) {
             if !ancestor.get_disabled_state() { continue; }
-            if ancestor.is_parent_of(*self) {
+            if ancestor.is_parent_of(self) {
                 self.set_disabled_state(true);
                 self.set_enabled_state(false);
                 return;
@@ -2119,7 +2119,7 @@ impl<'a> DisabledStateHelpers for JSRef<'a, Node> {
         }
     }
 
-    fn check_parent_disabled_state_for_option(&self) {
+    fn check_parent_disabled_state_for_option(self) {
         if self.get_disabled_state() { return; }
         match self.parent_node().root() {
             Some(ref parent) if parent.is_htmloptgroupelement() && parent.get_disabled_state() => {
@@ -2130,8 +2130,8 @@ impl<'a> DisabledStateHelpers for JSRef<'a, Node> {
         }
     }
 
-    fn check_disabled_attribute(&self) {
-        let elem: JSRef<'a, Element> = ElementCast::to_ref(*self).unwrap();
+    fn check_disabled_attribute(self) {
+        let elem: JSRef<'a, Element> = ElementCast::to_ref(self).unwrap();
         let has_disabled_attrib = elem.has_attribute("disabled");
         self.set_disabled_state(has_disabled_attrib);
         self.set_enabled_state(!has_disabled_attrib);
