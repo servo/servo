@@ -149,3 +149,4 @@ flaky_linux == acid2_noscroll.html acid2_ref_broken.html
 == margins_inside_floats_a.html margins_inside_floats_ref.html
 == block_formatting_context_complex_a.html block_formatting_context_complex_ref.html
 == block_formatting_context_containing_floats_a.html block_formatting_context_containing_floats_ref.html
+== clear_generated_content_table_a.html clear_generated_content_table_ref.html
