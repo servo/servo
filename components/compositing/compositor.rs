@@ -943,6 +943,31 @@ impl IOCompositor {
     }
 
     fn composite(&mut self) {
+        let output_image = self.opts.output_file.is_some() &&
+                            self.is_ready_to_render_image_output();
+
+        let mut framebuffer_ids = vec!();
+        let mut texture_ids = vec!();
+        let (width, height) = (self.window_size.width.get(), self.window_size.height.get());
+
+        if output_image {
+            framebuffer_ids = gl2::gen_framebuffers(1);
+            gl2::bind_framebuffer(gl2::FRAMEBUFFER, framebuffer_ids[0]);
+
+            texture_ids = gl2::gen_textures(1);
+            gl2::bind_texture(gl2::TEXTURE_2D, texture_ids[0]);
+
+            gl2::tex_image_2d(gl2::TEXTURE_2D, 0, gl2::RGB as gl2::GLint, width as gl2::GLsizei,
+                                height as gl2::GLsizei, 0, gl2::RGB, gl2::UNSIGNED_BYTE, None);
+            gl2::tex_parameter_i(gl2::TEXTURE_2D, gl2::TEXTURE_MAG_FILTER, gl2::NEAREST as gl2::GLint);
+            gl2::tex_parameter_i(gl2::TEXTURE_2D, gl2::TEXTURE_MIN_FILTER, gl2::NEAREST as gl2::GLint);
+
+            gl2::framebuffer_texture_2d(gl2::FRAMEBUFFER, gl2::COLOR_ATTACHMENT0, gl2::TEXTURE_2D,
+                                        texture_ids[0], 0);
+
+            gl2::bind_texture(gl2::TEXTURE_2D, 0);
+        }
+
         profile(time::CompositingCategory, None, self.time_profiler_chan.clone(), || {
             debug!("compositor: compositing");
             // Adjust the layer dimensions as necessary to correspond to the size of the window.
@@ -960,20 +985,18 @@ impl IOCompositor {
             }
         });
 
-        if self.opts.output_file.is_some() {
-            // If we aren't ready to produce image output, we will wait until the next composite.
-            if !self.is_ready_to_render_image_output() {
-                return;
-            }
-
-            // We must read from the back buffer (ie, before self.window.present()) as
-            // OpenGL ES 2 does not have glReadBuffer().
-            let (width, height) = (self.window_size.width.get(), self.window_size.height.get());
+        if output_image {
             let path = from_str::<Path>(self.opts.output_file.as_ref().unwrap().as_slice()).unwrap();
             let mut pixels = gl2::read_pixels(0, 0,
                                               width as gl2::GLsizei,
                                               height as gl2::GLsizei,
                                               gl2::RGB, gl2::UNSIGNED_BYTE);
+
+            gl2::bind_framebuffer(gl2::FRAMEBUFFER, 0);
+
+            gl2::delete_buffers(texture_ids.as_slice());
+            gl2::delete_frame_buffers(framebuffer_ids.as_slice());
+
             // flip image vertically (texture is upside down)
             let orig_pixels = pixels.clone();
             let stride = width * 3;
