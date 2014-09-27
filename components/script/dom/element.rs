@@ -948,7 +948,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
     }
 }
 
-impl<'a> style::TElement for JSRef<'a, Element> {
+impl<'a> style::TElement<'a> for JSRef<'a, Element> {
     fn get_attr(&self, namespace: &Namespace, attr: &str) -> Option<&'static str> {
         self.get_attribute(namespace.clone(), attr).root().map(|attr| {
             unsafe { mem::transmute(attr.deref().value().as_slice()) }

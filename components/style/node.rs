@@ -10,7 +10,7 @@ use servo_util::atom::Atom;
 use servo_util::namespace::Namespace;
 
 
-pub trait TNode<E:TElement> : Clone {
+pub trait TNode<'a, E: TElement<'a>> : Clone {
     fn parent_node(&self) -> Option<Self>;
     /// Name is prefixed to avoid a conflict with TLayoutNode.
     fn tnode_first_child(&self) -> Option<Self>;
@@ -23,7 +23,7 @@ pub trait TNode<E:TElement> : Clone {
     fn is_html_element_in_html_document(&self) -> bool;
 }
 
-pub trait TElement {
+pub trait TElement<'a> {
     fn get_attr(&self, namespace: &Namespace, attr: &str) -> Option<&'static str>;
     fn get_link(&self) -> Option<&'static str>;
     fn get_local_name<'a>(&'a self) -> &'a Atom;

@@ -242,7 +242,7 @@ impl<'ln> LayoutNode<'ln> {
     }
 }
 
-impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
+impl<'ln> TNode<'ln, LayoutElement<'ln>> for LayoutNode<'ln> {
     fn parent_node(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
             self.node.parent_node_ref().map(|node| self.new_with_this_lifetime(&node))
@@ -389,7 +389,7 @@ impl<'le> LayoutElement<'le> {
     }
 }
 
-impl<'le> TElement for LayoutElement<'le> {
+impl<'le> TElement<'le> for LayoutElement<'le> {
     #[inline]
     fn get_local_name<'a>(&'a self) -> &'a Atom {
         &self.element.local_name
