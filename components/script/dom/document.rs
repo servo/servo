@@ -157,8 +157,8 @@ impl CollectionFilter for AppletsFilter {
     }
 }
 
-pub trait DocumentHelpers {
-    fn url<'a>(&'a self) -> &'a Url;
+pub trait DocumentHelpers<'a> {
+    fn url(self) -> &'a Url;
     fn quirks_mode(self) -> QuirksMode;
     fn set_quirks_mode(self, mode: QuirksMode);
     fn set_last_modified(self, value: DOMString);
@@ -171,9 +171,9 @@ pub trait DocumentHelpers {
     fn load_anchor_href(self, href: DOMString);
 }
 
-impl<'a> DocumentHelpers for JSRef<'a, Document> {
-    fn url<'a>(&'a self) -> &'a Url {
-        &*self.url
+impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
+    fn url(self) -> &'a Url {
+        &*self.extended_deref().url
     }
 
     fn quirks_mode(self) -> QuirksMode {

@@ -493,6 +493,14 @@ impl<'a,T> JSRef<'a,T> {
     }
 }
 
+impl<'a, T: Reflectable> JSRef<'a, T> {
+    pub fn extended_deref(self) -> &'a T {
+        unsafe {
+            &*self.ptr
+        }
+    }
+}
+
 impl<'a, T: Reflectable> Reflectable for JSRef<'a, T> {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.deref().reflector()
