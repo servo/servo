@@ -8,8 +8,9 @@ use css::node_style::StyledNode;
 use construct::FlowConstructor;
 use context::LayoutContext;
 use util::{LayoutDataAccess, LayoutDataWrapper};
-use wrapper::{LayoutElement, LayoutNode, PostorderNodeMutTraversal, ThreadSafeLayoutNode};
+use wrapper::{LayoutElement, LayoutNode, PostorderNodeMutTraversal, ThreadSafeLayoutNode, TLayoutNode};
 
+use script::dom::node::{TextNodeTypeId};
 use servo_util::atom::Atom;
 use servo_util::bloom::BloomFilter;
 use servo_util::cache::{Cache, LRUCache, SimpleHashCache};
@@ -616,24 +617,36 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
         match &mut *layout_data_ref {
             &None => fail!("no layout data"),
             &Some(ref mut layout_data) => {
-                self.cascade_node_pseudo_element(parent_style,
-                                                 applicable_declarations.normal.as_slice(),
-                                                 &mut layout_data.shared_data.style,
-                                                 applicable_declarations_cache,
-                                                 applicable_declarations.normal_shareable);
-                if applicable_declarations.before.len() > 0 {
-                    self.cascade_node_pseudo_element(Some(layout_data.shared_data.style.as_ref().unwrap()),
-                                                     applicable_declarations.before.as_slice(),
-                                                     &mut layout_data.data.before_style,
-                                                     applicable_declarations_cache,
-                                                     false);
-                }
-                if applicable_declarations.after.len() > 0 {
-                    self.cascade_node_pseudo_element(Some(layout_data.shared_data.style.as_ref().unwrap()),
-                                                     applicable_declarations.after.as_slice(),
-                                                     &mut layout_data.data.after_style,
-                                                     applicable_declarations_cache,
-                                                     false);
+                match self.type_id() {
+                    Some(TextNodeTypeId) => {
+                        // Text nodes get a copy of the parent style. This ensures
+                        // that during fragment construction any non-inherited
+                        // CSS properties (such as vertical-align) are correctly
+                        // set on the fragment(s).
+                        let cloned_parent_style = parent_style.unwrap().clone();
+                        layout_data.shared_data.style = Some(cloned_parent_style);
+                    }
+                    _ => {
+                        self.cascade_node_pseudo_element(parent_style,
+                                                         applicable_declarations.normal.as_slice(),
+                                                         &mut layout_data.shared_data.style,
+                                                         applicable_declarations_cache,
+                                                         applicable_declarations.normal_shareable);
+                        if applicable_declarations.before.len() > 0 {
+                            self.cascade_node_pseudo_element(Some(layout_data.shared_data.style.as_ref().unwrap()),
+                                                             applicable_declarations.before.as_slice(),
+                                                             &mut layout_data.data.before_style,
+                                                             applicable_declarations_cache,
+                                                             false);
+                        }
+                        if applicable_declarations.after.len() > 0 {
+                            self.cascade_node_pseudo_element(Some(layout_data.shared_data.style.as_ref().unwrap()),
+                                                             applicable_declarations.after.as_slice(),
+                                                             &mut layout_data.data.after_style,
+                                                             applicable_declarations_cache,
+                                                             false);
+                        }
+                    }
                 }
             }
         }

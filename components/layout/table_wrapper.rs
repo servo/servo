@@ -244,6 +244,10 @@ impl Flow for TableWrapperFlow {
         self
     }
 
+    fn as_immutable_table_wrapper<'a>(&'a self) -> &'a TableWrapperFlow {
+        self
+    }
+
     fn as_block<'a>(&'a mut self) -> &'a mut BlockFlow {
         &mut self.block_flow
     }

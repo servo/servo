@@ -1577,7 +1577,8 @@ impl Flow for BlockFlow {
                                                        fragment_intrinsic_inline_sizes.minimum_inline_size);
         intrinsic_inline_sizes.preferred_inline_size = max(intrinsic_inline_sizes.preferred_inline_size,
                                                          fragment_intrinsic_inline_sizes.preferred_inline_size);
-        intrinsic_inline_sizes.surround_inline_size = fragment_intrinsic_inline_sizes.surround_inline_size;
+        intrinsic_inline_sizes.surround_inline_size = intrinsic_inline_sizes.surround_inline_size +
+                                                         fragment_intrinsic_inline_sizes.surround_inline_size;
         self.base.intrinsic_inline_sizes = intrinsic_inline_sizes;
 
         match self.fragment.style().get_box().float {

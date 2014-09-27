@@ -540,11 +540,16 @@ impl Fragment {
     /// `border_padding`. Other consumers of this information should simply consult that field.
     #[inline]
     fn border_width(&self) -> LogicalMargin<Au> {
+        let mut style_border_width = match self.specific {
+            ScannedTextFragment(_) => LogicalMargin::zero(self.style.writing_mode),
+            _ => self.style().logical_border_width(),
+        };
+
         match self.inline_context {
-            None => self.style().logical_border_width(),
+            None => style_border_width,
             Some(ref inline_fragment_context) => {
-                let zero = LogicalMargin::zero(self.style.writing_mode);
-                inline_fragment_context.styles.iter().fold(zero, |acc, style| acc + style.logical_border_width())
+                inline_fragment_context.styles.iter().fold(style_border_width,
+                                            |acc, style| acc + style.logical_border_width())
             }
         }
     }
@@ -579,12 +584,16 @@ impl Fragment {
             TableColumnFragment(_) | TableRowFragment |
             TableWrapperFragment => LogicalMargin::zero(self.style.writing_mode),
             _ => {
+                let mut style_padding = match self.specific {
+                    ScannedTextFragment(_) => LogicalMargin::zero(self.style.writing_mode),
+                    _ => model::padding_from_style(self.style(), containing_block_inline_size),
+                };
+
                 match self.inline_context {
-                    None => model::padding_from_style(self.style(), containing_block_inline_size),
+                    None => style_padding,
                     Some(ref inline_fragment_context) => {
-                        let zero = LogicalMargin::zero(self.style.writing_mode);
-                        inline_fragment_context.styles.iter()
-                            .fold(zero, |acc, style| acc + model::padding_from_style(&**style, Au(0)))
+                        inline_fragment_context.styles.iter().fold(style_padding,
+                                |acc, style| acc + model::padding_from_style(&**style, Au(0)))
                     }
                 }
             }
@@ -614,13 +623,14 @@ impl Fragment {
         }
 
         // Go over the ancestor fragments and add all relative offsets (if any).
-        let mut rel_pos = LogicalSize::zero(self.style.writing_mode);
+        let mut rel_pos = if self.style().get_box().position == position::relative {
+            from_style(self.style(), containing_block_size)
+        } else {
+            LogicalSize::zero(self.style.writing_mode)
+        };
+
         match self.inline_context {
-            None => {
-                if self.style().get_box().position == position::relative {
-                    rel_pos = rel_pos + from_style(self.style(), containing_block_size);
-                }
-            }
+            None => {}
             Some(ref inline_fragment_context) => {
                 for style in inline_fragment_context.styles.iter() {
                     if style.get_box().position == position::relative {
@@ -960,10 +970,15 @@ impl Fragment {
                layout_context.shared.dirty,
                flow_origin);
 
+        let may_need_clip = match self.specific {
+            ScannedTextFragment(_) => false,
+            _ => true,
+        };
         let mut accumulator = ChildDisplayListAccumulator::new(self.style(),
                                                                absolute_fragment_bounds,
                                                                self.node,
-                                                               ContentStackingLevel);
+                                                               ContentStackingLevel,
+                                                               may_need_clip);
         if self.style().get_inheritedbox().visibility != visibility::visible {
             return accumulator
         }
@@ -994,12 +1009,16 @@ impl Fragment {
                                                                              &absolute_fragment_bounds);
                     }
                 }
-                None => {
-                    self.build_display_list_for_background_if_applicable(&*self.style,
-                                                                         display_list,
-                                                                         layout_context,
-                                                                         level,
-                                                                         &absolute_fragment_bounds);
+                None => {}
+            }
+            match self.specific {
+                ScannedTextFragment(_) => {},
+                _ => {
+                        self.build_display_list_for_background_if_applicable(&*self.style,
+                                                                             display_list,
+                                                                             layout_context,
+                                                                             level,
+                                                                             &absolute_fragment_bounds);
                 }
             }
 
@@ -1015,7 +1034,11 @@ impl Fragment {
                                                                           level);
                     }
                 }
-                None => {
+                None => {}
+            }
+            match self.specific {
+                ScannedTextFragment(_) => {},
+                _ => {
                     self.build_display_list_for_borders_if_applicable(&*self.style,
                                                                       display_list,
                                                                       &absolute_fragment_bounds,
@@ -1670,17 +1693,18 @@ pub struct ChildDisplayListAccumulator {
 
 impl ChildDisplayListAccumulator {
     /// Creates a `ChildDisplayListAccumulator` from the `overflow` property in the given style.
-    fn new(style: &ComputedValues, bounds: Rect<Au>, node: OpaqueNode, level: StackingLevel)
+    fn new(style: &ComputedValues, bounds: Rect<Au>, node: OpaqueNode,
+            level: StackingLevel, may_need_clip: bool)
            -> ChildDisplayListAccumulator {
         ChildDisplayListAccumulator {
-            clip_display_item: match style.get_box().overflow {
-                overflow::hidden | overflow::auto | overflow::scroll => {
+            clip_display_item: match (may_need_clip, style.get_box().overflow) {
+                (true, overflow::hidden) | (true, overflow::auto) | (true, overflow::scroll) => {
                     Some(box ClipDisplayItem {
                         base: BaseDisplayItem::new(bounds, node, level),
                         children: DisplayList::new(),
                     })
                 },
-                overflow::visible => None,
+                (false, _) | (_, overflow::visible) => None,
             }
         }
     }

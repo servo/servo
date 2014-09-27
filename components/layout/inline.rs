@@ -674,8 +674,7 @@ impl InlineFragments {
     }
 
     /// Pushes a new inline fragment.
-    pub fn push(&mut self, fragment: &mut Fragment, style: Arc<ComputedValues>) {
-        fragment.add_inline_context_style(style);
+    pub fn push(&mut self, fragment: &mut Fragment) {
         self.fragments.push(fragment.clone());
     }
 
@@ -821,12 +820,9 @@ impl InlineFlow {
             vertical_align::baseline => (-ascent, false),
             vertical_align::middle => {
                 // TODO: x-block-size value should be used from font info.
-                let xblock_size = Au(0);
-                let fragment_block_size = fragment.content_block_size(layout_context);
-                let offset_block_start = -(xblock_size + fragment_block_size).scale_by(0.5);
-                *block_size_above_baseline = offset_block_start.scale_by(-1.0);
-                *depth_below_baseline = fragment_block_size - *block_size_above_baseline;
-                (offset_block_start, false)
+                // TODO: The code below passes our current reftests but
+                // doesn't work in all situations. Add vertical align reftests and fix this.
+                (-ascent, false)
             },
             vertical_align::sub => {
                 // TODO: The proper position for subscripts should be used. Lower the baseline to
@@ -917,7 +913,30 @@ impl InlineFlow {
         let font_metrics = text::font_metrics_for_style(font_context, &font_style);
         let line_height = text::line_height_from_style(style, &font_metrics);
         let inline_metrics = InlineMetrics::from_font_metrics(&font_metrics, line_height);
-        (inline_metrics.block_size_above_baseline, inline_metrics.depth_below_baseline)
+
+        let mut block_size_above_baseline = inline_metrics.block_size_above_baseline;
+        let mut depth_below_baseline = inline_metrics.depth_below_baseline;
+
+        // CSS section 10.8
+        // line-height of any inline element specifies the minimal height of line
+        // boxes within the element.
+        for frag in self.fragments.fragments.iter() {
+            match frag.inline_context {
+                Some(ref inline_context) => {
+                    for style in inline_context.styles.iter() {
+                        let font_style = text::computed_style_to_font_style(&**style);
+                        let font_metrics = text::font_metrics_for_style(font_context, &font_style);
+                        let line_height = text::line_height_from_style(&**style, &font_metrics);
+                        let inline_metrics = InlineMetrics::from_font_metrics(&font_metrics, line_height);
+                        block_size_above_baseline = Au::max(block_size_above_baseline, inline_metrics.block_size_above_baseline);
+                        depth_below_baseline = Au::max(depth_below_baseline, inline_metrics.depth_below_baseline);
+                    }
+                }
+                None => {}
+            }
+        }
+
+        (block_size_above_baseline, depth_below_baseline)
     }
 }
 
@@ -954,6 +973,9 @@ impl Flow for InlineFlow {
             intrinsic_inline_sizes.preferred_inline_size =
                 intrinsic_inline_sizes.preferred_inline_size +
                 fragment_intrinsic_inline_sizes.preferred_inline_size;
+            intrinsic_inline_sizes.surround_inline_size =
+                intrinsic_inline_sizes.surround_inline_size +
+                fragment_intrinsic_inline_sizes.surround_inline_size;
         }
 
         self.base.intrinsic_inline_sizes = intrinsic_inline_sizes;

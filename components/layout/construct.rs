@@ -419,9 +419,9 @@ impl<'a> FlowConstructor<'a> {
                 // between block elements, and retained when between inline elements.
                 let fragment_info = UnscannedTextFragment(UnscannedTextFragmentInfo::from_text(" ".to_string()));
                 let mut fragment = Fragment::from_opaque_node_and_style(whitespace_node,
-                                                                    whitespace_style.clone(),
+                                                                    whitespace_style,
                                                                     fragment_info);
-                inline_fragment_accumulator.fragments.push(&mut fragment, whitespace_style);
+                inline_fragment_accumulator.fragments.push(&mut fragment);
             }
             ConstructionItemConstructionResult(TableColumnFragmentConstructionItem(_)) => {
                 // TODO: Implement anonymous table objects for missing parents
@@ -449,7 +449,7 @@ impl<'a> FlowConstructor<'a> {
         if node.get_pseudo_element_type() != Normal {
             let fragment_info = UnscannedTextFragment(UnscannedTextFragmentInfo::new(node));
             let mut fragment = Fragment::new_from_specific_info(node, fragment_info);
-            inline_fragment_accumulator.fragments.push(&mut fragment, node.style().clone());
+            inline_fragment_accumulator.fragments.push(&mut fragment);
             first_fragment = false;
         }
 
@@ -583,9 +583,9 @@ impl<'a> FlowConstructor<'a> {
                     // Instantiate the whitespace fragment.
                     let fragment_info = UnscannedTextFragment(UnscannedTextFragmentInfo::from_text(" ".to_string()));
                     let mut fragment = Fragment::from_opaque_node_and_style(whitespace_node,
-                                                                        whitespace_style.clone(),
+                                                                        whitespace_style,
                                                                         fragment_info);
-                    fragment_accumulator.fragments.push(&mut fragment, whitespace_style)
+                    fragment_accumulator.fragments.push(&mut fragment)
                 }
                 ConstructionItemConstructionResult(TableColumnFragmentConstructionItem(_)) => {
                     // TODO: Implement anonymous table objects for missing parents
@@ -639,7 +639,7 @@ impl<'a> FlowConstructor<'a> {
         };
 
         let mut fragments = InlineFragments::new();
-        fragments.push(&mut fragment, node.style().clone());
+        fragments.push(&mut fragment);
 
         let construction_item = InlineFragmentsConstructionItem(InlineFragmentsConstructionResult {
             splits: Vec::new(),
@@ -661,7 +661,7 @@ impl<'a> FlowConstructor<'a> {
         let mut fragment = Fragment::new_from_specific_info(node, fragment_info);
 
         let mut fragment_accumulator = InlineFragmentsAccumulator::from_inline_node(node);
-        fragment_accumulator.fragments.push(&mut fragment, node.style().clone());
+        fragment_accumulator.fragments.push(&mut fragment);
 
         let construction_item = InlineFragmentsConstructionItem(InlineFragmentsConstructionResult {
             splits: Vec::new(),
