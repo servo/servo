@@ -706,6 +706,11 @@ impl Fragment {
 
     /// Returns true if this element can be split. This is true for text fragments.
     pub fn can_split(&self) -> bool {
+        self.is_scanned_text_fragment()
+    }
+
+    /// Returns true if and only if this is a scanned text fragment.
+    fn is_scanned_text_fragment(&self) -> bool {
         match self.specific {
             ScannedTextFragment(..) => true,
             _ => false,
@@ -990,7 +995,7 @@ impl Fragment {
 
         debug!("Fragment::build_display_list: intersected. Adding display item...");
 
-        {
+        if self.is_primary_fragment() {
             let level =
                 StackingLevel::from_background_and_border_level(background_and_border_level);
 
@@ -1002,11 +1007,12 @@ impl Fragment {
             match self.inline_context {
                 Some(ref inline_context) => {
                     for style in inline_context.styles.iter().rev() {
-                        self.build_display_list_for_background_if_applicable(&**style,
-                                                                             display_list,
-                                                                             layout_context,
-                                                                             level,
-                                                                             &absolute_fragment_bounds);
+                        self.build_display_list_for_background_if_applicable(
+                            &**style,
+                            display_list,
+                            layout_context,
+                            level,
+                            &absolute_fragment_bounds);
                     }
                 }
                 None => {}
@@ -1050,7 +1056,7 @@ impl Fragment {
         let content_box = self.content_box();
         let absolute_content_box = rect_to_absolute(content_box);
 
-        // Add a clip, if applicable.
+        // Create special per-fragment-type display items.
         match self.specific {
             UnscannedTextFragment(_) => fail!("Shouldn't see unscanned fragments here."),
             TableColumnFragment(_) => fail!("Shouldn't see table column fragments here."),
@@ -1083,7 +1089,6 @@ impl Fragment {
                     baseline_origin: baseline_origin,
                 };
                 accumulator.push(display_list, TextDisplayItemClass(text_display_item));
-
 
                 // Create display items for text decoration
                 {
@@ -1133,13 +1138,13 @@ impl Fragment {
                 debug!("{:?}", self.build_debug_borders_around_text_fragments(display_list,
                                                                            flow_origin,
                                                                            text_fragment))
-            },
-            GenericFragment | IframeFragment(..) | TableFragment | TableCellFragment | TableRowFragment |
-            TableWrapperFragment | InlineBlockFragment(_) => {
+            }
+            GenericFragment | IframeFragment(..) | TableFragment | TableCellFragment |
+            TableRowFragment | TableWrapperFragment | InlineBlockFragment(_) => {
                 // FIXME(pcwalton): This is a bit of an abuse of the logging infrastructure. We
                 // should have a real `SERVO_DEBUG` system.
                 debug!("{:?}", self.build_debug_borders_around_fragment(display_list, flow_origin))
-            },
+            }
             ImageFragment(_) => {
                 match self.specific {
                     ImageFragment(ref image_fragment) => {
@@ -1182,13 +1187,15 @@ impl Fragment {
         // problematic if iframes are outside the area we're computing the display list for, since
         // they won't be able to reflow at all until the user scrolls to them. Perhaps we should
         // separate this into two parts: first we should send the size only to the constellation
-        // once that's computed during assign-block-sizes, and second we should should send the origin
-        // to the constellation here during display list construction. This should work because
-        // layout for the iframe only needs to know size, and origin is only relevant if the
-        // iframe is actually going to be displayed.
+        // once that's computed during assign-block-sizes, and second we should should send the
+        // origin to the constellation here during display list construction. This should work
+        // because layout for the iframe only needs to know size, and origin is only relevant if
+        // the iframe is actually going to be displayed.
         match self.specific {
             IframeFragment(ref iframe_fragment) => {
-                self.finalize_position_and_size_of_iframe(iframe_fragment, flow_origin, layout_context)
+                self.finalize_position_and_size_of_iframe(iframe_fragment,
+                                                          flow_origin,
+                                                          layout_context)
             }
             _ => {}
         }
@@ -1197,13 +1204,12 @@ impl Fragment {
     }
 
     /// Returns the intrinsic inline-sizes of this fragment.
-    pub fn intrinsic_inline_sizes(&mut self)
-                            -> IntrinsicISizes {
+    pub fn intrinsic_inline_sizes(&mut self) -> IntrinsicISizes {
         let mut result = self.style_specified_intrinsic_inline_size();
 
-        let use_border_padding = match self.specific {
-            GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment | TableColumnFragment(_) | TableRowFragment |
-            TableWrapperFragment => { true }
+        match self.specific {
+            GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment |
+            TableColumnFragment(_) | TableRowFragment | TableWrapperFragment => {}
             InlineBlockFragment(ref mut info) => {
                 let block_flow = info.flow_ref.get_mut().as_block();
                 result.minimum_inline_size = max(result.minimum_inline_size,
@@ -1212,13 +1218,12 @@ impl Fragment {
                 result.preferred_inline_size = max(result.preferred_inline_size,
                         block_flow.base.intrinsic_inline_sizes.preferred_inline_size +
                         block_flow.base.intrinsic_inline_sizes.surround_inline_size);
-                false
             },
             ImageFragment(ref mut image_fragment_info) => {
                 let image_inline_size = image_fragment_info.image_inline_size();
                 result.minimum_inline_size = max(result.minimum_inline_size, image_inline_size);
-                result.preferred_inline_size = max(result.preferred_inline_size, image_inline_size);
-                true
+                result.preferred_inline_size = max(result.preferred_inline_size,
+                                                   image_inline_size);
             }
             ScannedTextFragment(ref text_fragment_info) => {
                 let range = &text_fragment_info.range;
@@ -1226,25 +1231,33 @@ impl Fragment {
 
                 // See http://dev.w3.org/csswg/css-sizing/#max-content-inline-size.
                 // TODO: Account for soft wrap opportunities.
-                let max_line_inline_size = text_fragment_info.run.metrics_for_range(range).advance_width;
+                let max_line_inline_size = text_fragment_info.run
+                                                             .metrics_for_range(range)
+                                                             .advance_width;
 
-                result.minimum_inline_size = max(result.minimum_inline_size, min_line_inline_size);
-                result.preferred_inline_size = max(result.preferred_inline_size, max_line_inline_size);
-                true
+                result.minimum_inline_size = max(result.minimum_inline_size,
+                                                 min_line_inline_size);
+                result.preferred_inline_size = max(result.preferred_inline_size,
+                                                   max_line_inline_size);
             }
-            UnscannedTextFragment(..) => fail!("Unscanned text fragments should have been scanned by now!"),
+            UnscannedTextFragment(..) => {
+                fail!("Unscanned text fragments should have been scanned by now!")
+            }
         };
 
         // Take borders and padding for parent inline fragments into account, if necessary.
-        if use_border_padding {
+        if self.is_primary_fragment() {
             match self.inline_context {
                 None => {}
                 Some(ref context) => {
                     for style in context.styles.iter() {
                         let border_width = style.logical_border_width().inline_start_end();
-                        let padding_inline_size = model::padding_from_style(&**style, Au(0)).inline_start_end();
-                        result.minimum_inline_size = result.minimum_inline_size + border_width + padding_inline_size;
-                        result.preferred_inline_size = result.preferred_inline_size + border_width + padding_inline_size;
+                        let padding_inline_size =
+                            model::padding_from_style(&**style, Au(0)).inline_start_end();
+                        result.minimum_inline_size = result.minimum_inline_size + border_width +
+                            padding_inline_size;
+                        result.preferred_inline_size = result.preferred_inline_size +
+                            border_width + padding_inline_size;
                     }
                 }
             }
@@ -1275,8 +1288,8 @@ impl Fragment {
     /// Returns, and computes, the block-size of this fragment.
     pub fn content_block_size(&self, layout_context: &LayoutContext) -> Au {
         match self.specific {
-            GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment | TableRowFragment |
-            TableWrapperFragment | InlineBlockFragment(_) => Au(0),
+            GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment |
+            TableRowFragment | TableWrapperFragment | InlineBlockFragment(_) => Au(0),
             ImageFragment(ref image_fragment_info) => {
                 image_fragment_info.computed_block_size()
             }
@@ -1454,10 +1467,12 @@ impl Fragment {
     pub fn assign_replaced_inline_size_if_necessary(&mut self,
                                               container_inline_size: Au) {
         match self.specific {
-            GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment | TableRowFragment |
-            TableWrapperFragment => return,
+            GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment |
+            TableRowFragment | TableWrapperFragment => return,
             TableColumnFragment(_) => fail!("Table column fragments do not have inline_size"),
-            UnscannedTextFragment(_) => fail!("Unscanned text fragments should have been scanned by now!"),
+            UnscannedTextFragment(_) => {
+                fail!("Unscanned text fragments should have been scanned by now!")
+            }
             ImageFragment(_) | ScannedTextFragment(_) | InlineBlockFragment(_) => {}
         };
 
@@ -1529,16 +1544,18 @@ impl Fragment {
         }
     }
 
-    /// Assign block-size for this fragment if it is replaced content. The inline-size must have been assigned
-    /// first.
+    /// Assign block-size for this fragment if it is replaced content. The inline-size must have
+    /// been assigned first.
     ///
     /// Ideally, this should follow CSS 2.1 § 10.6.2.
     pub fn assign_replaced_block_size_if_necessary(&mut self) {
         match self.specific {
-            GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment | TableRowFragment |
-            TableWrapperFragment => return,
+            GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment |
+            TableRowFragment | TableWrapperFragment => return,
             TableColumnFragment(_) => fail!("Table column fragments do not have block_size"),
-            UnscannedTextFragment(_) => fail!("Unscanned text fragments should have been scanned by now!"),
+            UnscannedTextFragment(_) => {
+                fail!("Unscanned text fragments should have been scanned by now!")
+            }
             ImageFragment(_) | ScannedTextFragment(_) | InlineBlockFragment(_) => {}
         }
 
@@ -1581,8 +1598,9 @@ impl Fragment {
                 self.border_box.size.block = self.border_box.size.block + noncontent_block_size
             }
             InlineBlockFragment(ref mut info) => {
+                // Not the primary fragment, so we do not take the noncontent size into account.
                 let block_flow = info.flow_ref.get_mut().as_block();
-                self.border_box.size.block = block_flow.base.position.size.block + noncontent_block_size;
+                self.border_box.size.block = block_flow.base.position.size.block;
             }
             _ => fail!("should have been handled above"),
         }
@@ -1659,6 +1677,24 @@ impl Fragment {
         let msg = FrameRectMsg(iframe_fragment.pipeline_id, iframe_fragment.subpage_id, rect);
         let ConstellationChan(ref chan) = layout_context.shared.constellation_chan;
         chan.send(msg)
+    }
+
+    /// Returns true if and only if this is the *primary fragment* for the fragment's style object
+    /// (conceptually, though style sharing makes this not really true, of course). The primary
+    /// fragment is the one that draws backgrounds, borders, etc., and takes borders, padding and
+    /// margins into account. Every style object has at most one primary fragment.
+    ///
+    /// At present, all fragments are primary fragments except for inline-block and table wrapper
+    /// fragments. Inline-block fragments are not primary fragments because the corresponding block
+    /// flow is the primary fragment, while table wrapper fragments are not primary fragments
+    /// because the corresponding table flow is the primary fragment.
+    fn is_primary_fragment(&self) -> bool {
+        match self.specific {
+            InlineBlockFragment(_) | TableWrapperFragment => false,
+            GenericFragment | IframeFragment(_) | ImageFragment(_) | ScannedTextFragment(_) |
+            TableFragment | TableCellFragment | TableColumnFragment(_) | TableRowFragment |
+            UnscannedTextFragment(_) => true,
+        }
     }
 }
 
