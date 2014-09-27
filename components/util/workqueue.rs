@@ -14,6 +14,7 @@ use std::rand::weak_rng;
 use std::sync::atomics::{AtomicUint, SeqCst};
 use std::sync::deque::{Abort, BufferPool, Data, Empty, Stealer, Worker};
 use std::task::TaskBuilder;
+use libc::funcs::posix88::unistd::usleep;
 
 /// A unit of work.
 ///
@@ -68,7 +69,7 @@ struct WorkerThread<QueueData, WorkData> {
     rng: XorShiftRng,
 }
 
-static SPIN_COUNT: uint = 1000;
+static SPIN_COUNT: uint = 128;
 
 impl<QueueData: Send, WorkData: Send> WorkerThread<QueueData, WorkData> {
     /// The main logic. This function starts up the worker and listens for
@@ -85,6 +86,7 @@ impl<QueueData: Send, WorkData: Send> WorkerThread<QueueData, WorkData> {
             // We're off!
             //
             // FIXME(pcwalton): Can't use labeled break or continue cross-crate due to a Rust bug.
+            let mut back_off_sleep = 0 as u32;
             loop {
                 // FIXME(pcwalton): Nasty workaround for the lack of labeled break/continue
                 // cross-crate.
@@ -105,10 +107,15 @@ impl<QueueData: Send, WorkData: Send> WorkerThread<QueueData, WorkData> {
                                 }
                                 Data(work) => {
                                     work_unit = work;
+                                    back_off_sleep = 0 as u32;
                                     break
                                 }
                             }
 
+                            if (i>100) {
+                                unsafe {usleep(back_off_sleep as u32)};
+                                back_off_sleep = back_off_sleep + 5;
+                            }
                             if i == SPIN_COUNT {
                                 match self.port.try_recv() {
                                     Ok(StopMsg) => {
