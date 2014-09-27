@@ -248,17 +248,17 @@ pub enum NodeTypeId {
 }
 
 trait PrivateNodeHelpers {
-    fn node_inserted(&self);
-    fn node_removed(&self, parent_in_doc: bool);
-    fn add_child(&self, new_child: JSRef<Node>, before: Option<JSRef<Node>>);
-    fn remove_child(&self, child: JSRef<Node>);
+    fn node_inserted(self);
+    fn node_removed(self, parent_in_doc: bool);
+    fn add_child(self, new_child: JSRef<Node>, before: Option<JSRef<Node>>);
+    fn remove_child(self, child: JSRef<Node>);
 }
 
 impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
     // http://dom.spec.whatwg.org/#node-is-inserted
-    fn node_inserted(&self) {
+    fn node_inserted(self) {
         assert!(self.parent_node().is_some());
-        let document = document_from_node(*self).root();
+        let document = document_from_node(self).root();
         let is_in_doc = self.is_in_doc();
 
         for node in self.traverse_preorder() {
@@ -266,15 +266,15 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
         }
 
         let parent = self.parent_node().root();
-        parent.map(|parent| vtable_for(&*parent).child_inserted(*self));
+        parent.map(|parent| vtable_for(&*parent).child_inserted(self));
 
         document.deref().content_changed();
     }
 
     // http://dom.spec.whatwg.org/#node-is-removed
-    fn node_removed(&self, parent_in_doc: bool) {
+    fn node_removed(self, parent_in_doc: bool) {
         assert!(self.parent_node().is_none());
-        let document = document_from_node(*self).root();
+        let document = document_from_node(self).root();
 
         for node in self.traverse_preorder() {
             vtable_for(&node).unbind_from_tree(parent_in_doc);
@@ -290,7 +290,7 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
     /// Adds a new child to the end of this node's list of children.
     ///
     /// Fails unless `new_child` is disconnected from the tree.
-    fn add_child(&self, new_child: JSRef<Node>, before: Option<JSRef<Node>>) {
+    fn add_child(self, new_child: JSRef<Node>, before: Option<JSRef<Node>>) {
         let doc = self.owner_doc().root();
         doc.deref().wait_until_safe_to_modify_dom();
 
@@ -299,7 +299,7 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
         assert!(new_child.next_sibling().is_none());
         match before {
             Some(ref before) => {
-                assert!(before.parent_node().root().root_ref() == Some(*self));
+                assert!(before.parent_node().root().root_ref() == Some(self));
                 match before.prev_sibling().root() {
                     None => {
                         assert!(Some(*before) == self.first_child().root().root_ref());
@@ -327,17 +327,17 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
             },
         }
 
-        new_child.parent_node.assign(Some(*self));
+        new_child.parent_node.assign(Some(self));
     }
 
     /// Removes the given child from this node's list of children.
     ///
     /// Fails unless `child` is a child of this node.
-    fn remove_child(&self, child: JSRef<Node>) {
+    fn remove_child(self, child: JSRef<Node>) {
         let doc = self.owner_doc().root();
         doc.deref().wait_until_safe_to_modify_dom();
 
-        assert!(child.parent_node().root().root_ref() == Some(*self));
+        assert!(child.parent_node().root().root_ref() == Some(self));
 
         match child.prev_sibling.get().root() {
             None => {
