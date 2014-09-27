@@ -26,7 +26,7 @@ impl HTMLPreElementDerived for EventTarget {
 }
 
 impl HTMLPreElement {
-    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLPreElement {
+    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLPreElement {
         HTMLPreElement {
             htmlelement: HTMLElement::new_inherited(HTMLPreElementTypeId, localName, document)
         }

@@ -32,7 +32,7 @@ impl HTMLButtonElementDerived for EventTarget {
 }
 
 impl HTMLButtonElement {
-    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLButtonElement {
+    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLButtonElement {
         HTMLButtonElement {
             htmlelement: HTMLElement::new_inherited(HTMLButtonElementTypeId, localName, document)
         }

@@ -26,7 +26,7 @@ impl HTMLTableSectionElementDerived for EventTarget {
 }
 
 impl HTMLTableSectionElement {
-    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLTableSectionElement {
+    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLTableSectionElement {
         HTMLTableSectionElement {
             htmlelement: HTMLElement::new_inherited(HTMLTableSectionElementTypeId, localName, document)
         }

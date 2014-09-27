@@ -19,7 +19,7 @@ pub struct File {
 }
 
 impl File {
-    pub fn new_inherited(_file_bits: JSRef<Blob>, name: DOMString) -> File {
+    fn new_inherited(_file_bits: JSRef<Blob>, name: DOMString) -> File {
         File {
             blob: Blob::new_inherited(),
             name: name,

@@ -26,7 +26,7 @@ impl HTMLOListElementDerived for EventTarget {
 }
 
 impl HTMLOListElement {
-    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLOListElement {
+    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLOListElement {
         HTMLOListElement {
             htmlelement: HTMLElement::new_inherited(HTMLOListElementTypeId, localName, document)
         }

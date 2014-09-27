@@ -23,7 +23,7 @@ pub struct Location {
 }
 
 impl Location {
-    pub fn new_inherited(page: Rc<Page>) -> Location {
+    fn new_inherited(page: Rc<Page>) -> Location {
         Location {
             reflector_: Reflector::new(),
             page: page

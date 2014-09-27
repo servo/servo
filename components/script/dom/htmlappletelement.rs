@@ -26,7 +26,7 @@ impl HTMLAppletElementDerived for EventTarget {
 }
 
 impl HTMLAppletElement {
-    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLAppletElement {
+    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLAppletElement {
         HTMLAppletElement {
             htmlelement: HTMLElement::new_inherited(HTMLAppletElementTypeId, localName, document)
         }

@@ -41,7 +41,7 @@ pub struct Worker {
 }
 
 impl Worker {
-    pub fn new_inherited(global: &GlobalRef, sender: ScriptChan) -> Worker {
+    fn new_inherited(global: &GlobalRef, sender: ScriptChan) -> Worker {
         Worker {
             eventtarget: EventTarget::new_inherited(WorkerTypeId),
             refcount: Cell::new(0),

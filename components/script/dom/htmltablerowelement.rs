@@ -26,7 +26,7 @@ impl HTMLTableRowElementDerived for EventTarget {
 }
 
 impl HTMLTableRowElement {
-    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLTableRowElement {
+    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLTableRowElement {
         HTMLTableRowElement {
             htmlelement: HTMLElement::new_inherited(HTMLTableRowElementTypeId, localName, document)
         }

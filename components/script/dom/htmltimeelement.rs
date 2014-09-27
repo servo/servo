@@ -26,7 +26,7 @@ impl HTMLTimeElementDerived for EventTarget {
 }
 
 impl HTMLTimeElement {
-    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLTimeElement {
+    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLTimeElement {
         HTMLTimeElement {
             htmlelement: HTMLElement::new_inherited(HTMLTimeElementTypeId, localName, document)
         }

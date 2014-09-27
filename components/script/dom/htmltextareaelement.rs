@@ -31,7 +31,7 @@ impl HTMLTextAreaElementDerived for EventTarget {
 }
 
 impl HTMLTextAreaElement {
-    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLTextAreaElement {
+    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLTextAreaElement {
         HTMLTextAreaElement {
             htmlelement: HTMLElement::new_inherited(HTMLTextAreaElementTypeId, localName, document)
         }

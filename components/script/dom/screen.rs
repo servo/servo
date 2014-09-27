@@ -16,7 +16,7 @@ pub struct Screen {
 }
 
 impl Screen {
-    pub fn new_inherited() -> Screen {
+    fn new_inherited() -> Screen {
         Screen {
             reflector_: Reflector::new(),
         }

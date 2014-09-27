@@ -26,7 +26,7 @@ impl HTMLMetaElementDerived for EventTarget {
 }
 
 impl HTMLMetaElement {
-    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLMetaElement {
+    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLMetaElement {
         HTMLMetaElement {
             htmlelement: HTMLElement::new_inherited(HTMLMetaElementTypeId, localName, document)
         }

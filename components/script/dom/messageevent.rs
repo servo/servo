@@ -35,7 +35,7 @@ impl MessageEventDerived for Event {
 }
 
 impl MessageEvent {
-    pub fn new_inherited(data: JSVal, origin: DOMString, lastEventId: DOMString)
+    fn new_inherited(data: JSVal, origin: DOMString, lastEventId: DOMString)
                          -> MessageEvent {
         MessageEvent {
             event: Event::new_inherited(MessageEventTypeId),

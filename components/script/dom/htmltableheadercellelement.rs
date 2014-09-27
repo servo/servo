@@ -26,7 +26,7 @@ impl HTMLTableHeaderCellElementDerived for EventTarget {
 }
 
 impl HTMLTableHeaderCellElement {
-    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLTableHeaderCellElement {
+    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLTableHeaderCellElement {
         HTMLTableHeaderCellElement {
             htmltablecellelement: HTMLTableCellElement::new_inherited(HTMLTableHeaderCellElementTypeId, localName, document)
         }

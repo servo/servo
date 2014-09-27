@@ -16,7 +16,7 @@ pub struct ValidityState {
 }
 
 impl ValidityState {
-    pub fn new_inherited() -> ValidityState {
+    fn new_inherited() -> ValidityState {
         ValidityState {
             reflector_: Reflector::new(),
             state: 0,

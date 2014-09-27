@@ -44,7 +44,7 @@ impl HTMLCanvasElementDerived for EventTarget {
 }
 
 impl HTMLCanvasElement {
-    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLCanvasElement {
+    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLCanvasElement {
         HTMLCanvasElement {
             htmlelement: HTMLElement::new_inherited(HTMLCanvasElementTypeId, localName, document),
             context: Traceable::new(Cell::new(None)),

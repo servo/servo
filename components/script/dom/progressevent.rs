@@ -29,7 +29,7 @@ impl ProgressEventDerived for Event {
 }
 
 impl ProgressEvent {
-    pub fn new_inherited(length_computable: bool, loaded: u64, total: u64) -> ProgressEvent {
+    fn new_inherited(length_computable: bool, loaded: u64, total: u64) -> ProgressEvent {
         ProgressEvent {
             event: Event::new_inherited(ProgressEventTypeId),
             length_computable: length_computable,

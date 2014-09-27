@@ -29,7 +29,7 @@ impl CommentDerived for EventTarget {
 }
 
 impl Comment {
-    pub fn new_inherited(text: DOMString, document: JSRef<Document>) -> Comment {
+    fn new_inherited(text: DOMString, document: JSRef<Document>) -> Comment {
         Comment {
             characterdata: CharacterData::new_inherited(CommentNodeTypeId, text, document)
         }

@@ -26,7 +26,7 @@ impl HTMLDListElementDerived for EventTarget {
 }
 
 impl HTMLDListElement {
-    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLDListElement {
+    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLDListElement {
         HTMLDListElement {
             htmlelement: HTMLElement::new_inherited(HTMLDListElementTypeId, localName, document)
         }

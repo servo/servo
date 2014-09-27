@@ -39,7 +39,7 @@ impl HTMLObjectElementDerived for EventTarget {
 }
 
 impl HTMLObjectElement {
-    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLObjectElement {
+    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLObjectElement {
         HTMLObjectElement {
             htmlelement: HTMLElement::new_inherited(HTMLObjectElementTypeId, localName, document),
         }

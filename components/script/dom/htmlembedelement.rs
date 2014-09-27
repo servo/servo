@@ -26,7 +26,7 @@ impl HTMLEmbedElementDerived for EventTarget {
 }
 
 impl HTMLEmbedElement {
-    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLEmbedElement {
+    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLEmbedElement {
         HTMLEmbedElement {
             htmlelement: HTMLElement::new_inherited(HTMLEmbedElementTypeId, localName, document)
         }

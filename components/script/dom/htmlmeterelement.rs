@@ -26,7 +26,7 @@ impl HTMLMeterElementDerived for EventTarget {
 }
 
 impl HTMLMeterElement {
-    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLMeterElement {
+    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLMeterElement {
         HTMLMeterElement {
             htmlelement: HTMLElement::new_inherited(HTMLMeterElementTypeId, localName, document)
         }

@@ -29,7 +29,7 @@ impl DocumentTypeDerived for EventTarget {
 }
 
 impl DocumentType {
-    pub fn new_inherited(name: DOMString,
+    fn new_inherited(name: DOMString,
                          public_id: Option<DOMString>,
                          system_id: Option<DOMString>,
                          document: JSRef<Document>)

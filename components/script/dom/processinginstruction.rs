@@ -28,7 +28,7 @@ impl ProcessingInstructionDerived for EventTarget {
 }
 
 impl ProcessingInstruction {
-    pub fn new_inherited(target: DOMString, data: DOMString, document: JSRef<Document>) -> ProcessingInstruction {
+    fn new_inherited(target: DOMString, data: DOMString, document: JSRef<Document>) -> ProcessingInstruction {
         ProcessingInstruction {
             characterdata: CharacterData::new_inherited(ProcessingInstructionNodeTypeId, data, document),
             target: target

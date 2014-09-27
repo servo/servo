@@ -26,7 +26,7 @@ impl HTMLProgressElementDerived for EventTarget {
 }
 
 impl HTMLProgressElement {
-    pub fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLProgressElement {
+    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLProgressElement {
         HTMLProgressElement {
             htmlelement: HTMLElement::new_inherited(HTMLProgressElementTypeId, localName, document)
         }

@@ -32,7 +32,7 @@ impl DocumentFragmentDerived for EventTarget {
 
 impl DocumentFragment {
     /// Creates a new DocumentFragment.
-    pub fn new_inherited(document: JSRef<Document>) -> DocumentFragment {
+    fn new_inherited(document: JSRef<Document>) -> DocumentFragment {
         DocumentFragment {
             node: Node::new_inherited(DocumentFragmentNodeTypeId, document),
         }

@@ -15,7 +15,7 @@ pub struct NodeIterator {
 }
 
 impl NodeIterator {
-    pub fn new_inherited() -> NodeIterator {
+    fn new_inherited() -> NodeIterator {
         NodeIterator {
             reflector_: Reflector::new()
         }
