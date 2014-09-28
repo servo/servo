@@ -44,6 +44,7 @@ use style::PropertyDeclarationBlock;
 use std::comm::{Receiver, Sender};
 use hubbub::hubbub::QuirksMode;
 use string_cache::{Atom, Namespace};
+use js::rust::Cx;
 
 impl<T: Reflectable> JSTraceable for JS<T> {
     fn trace(&self, trc: *mut JSTracer) {
@@ -233,6 +234,7 @@ untraceable!(PropertyDeclarationBlock)
 // in one of these make sure it is propagated properly to containing structs
 untraceable!(SubpageId, WindowSizeData, PipelineId)
 untraceable!(QuirksMode)
+untraceable!(Cx)
 
 impl<'a> JSTraceable for &'a str {
     #[inline]
