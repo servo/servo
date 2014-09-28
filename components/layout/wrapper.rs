@@ -390,7 +390,7 @@ pub struct LayoutElement<'le> {
 impl<'le> LayoutElement<'le> {
     pub fn style_attribute(&self) -> &'le Option<PropertyDeclarationBlock> {
         let style: &Option<PropertyDeclarationBlock> = unsafe {
-            let style: &RefCell<Option<PropertyDeclarationBlock>> = self.element.style_attribute.deref();
+            let style: &RefCell<Option<PropertyDeclarationBlock>> = &self.element.style_attribute;
             // cast to the direct reference to T placed on the head of RefCell<T>
             mem::transmute(style)
         };
