@@ -180,9 +180,9 @@ impl<T: JSTraceable+Copy> JSTraceable for Cell<T> {
     }
 }
 
-impl JSTraceable for Traceable<*mut JSObject> {
+impl JSTraceable for *mut JSObject {
     fn trace(&self, trc: *mut JSTracer) {
-        trace_object(trc, "object", **self);
+        trace_object(trc, "object", *self);
     }
 }
 

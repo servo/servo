@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::js::{JS, JSRef, Temporary};
-use dom::bindings::trace::Traceable;
 use dom::bindings::utils::Reflectable;
 use dom::document::Document;
 use dom::window::Window;
@@ -20,7 +19,7 @@ use std::ptr;
 pub struct BrowserContext {
     history: Vec<SessionHistoryEntry>,
     active_index: uint,
-    window_proxy: Traceable<*mut JSObject>,
+    window_proxy: *mut JSObject,
 }
 
 impl BrowserContext {
@@ -28,7 +27,7 @@ impl BrowserContext {
         let mut context = BrowserContext {
             history: vec!(SessionHistoryEntry::new(document)),
             active_index: 0,
-            window_proxy: Traceable::new(ptr::null_mut()),
+            window_proxy: ptr::null_mut(),
         };
         context.create_window_proxy();
         context
@@ -44,8 +43,8 @@ impl BrowserContext {
     }
 
     pub fn window_proxy(&self) -> *mut JSObject {
-        assert!(self.window_proxy.deref().is_not_null());
-        *self.window_proxy
+        assert!(self.window_proxy.is_not_null());
+        self.window_proxy
     }
 
     fn create_window_proxy(&mut self) {
@@ -62,7 +61,7 @@ impl BrowserContext {
             WrapperNew(cx, parent, *handler.deref())
         });
         assert!(wrapper.is_not_null());
-        self.window_proxy = Traceable::new(wrapper);
+        self.window_proxy = wrapper;
     }
 }
 
