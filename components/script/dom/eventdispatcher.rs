@@ -15,18 +15,18 @@ use dom::virtualmethods::vtable_for;
 pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
                               pseudo_target: Option<JSRef<'b, EventTarget>>,
                               event: JSRef<Event>) -> bool {
-    assert!(!event.deref().dispatching.deref().get());
+    assert!(!event.dispatching.get());
 
     event.target.assign(Some(match pseudo_target {
         Some(pseudo_target) => pseudo_target,
         None => target.clone(),
     }));
-    event.dispatching.deref().set(true);
+    event.dispatching.set(true);
 
     let type_ = event.Type();
 
     //TODO: no chain if not participating in a tree
-    let mut chain: Vec<Root<EventTarget>> = if target.deref().is_node() {
+    let mut chain: Vec<Root<EventTarget>> = if target.is_node() {
         let target_node: JSRef<Node> = NodeCast::to_ref(target).unwrap();
         target_node.ancestors().map(|ancestor| {
             let ancestor_target: JSRef<EventTarget> = EventTargetCast::from_ref(ancestor);
@@ -36,7 +36,7 @@ pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
         vec!()
     };
 
-    event.deref().phase.deref().set(PhaseCapturing);
+    event.phase.set(PhaseCapturing);
 
     //FIXME: The "callback this value" should be currentTarget
 
@@ -49,12 +49,12 @@ pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
                     // Explicitly drop any exception on the floor.
                     let _ = listener.HandleEvent_(**cur_target, event, ReportExceptions);
 
-                    if event.deref().stop_immediate.deref().get() {
+                    if event.stop_immediate.get() {
                         break;
                     }
                 }
 
-                event.deref().stop_propagation.deref().get()
+                event.stop_propagation.get()
             }
             None => false
         };
@@ -65,17 +65,17 @@ pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
     }
 
     /* at target */
-    if !event.deref().stop_propagation.deref().get() {
-        event.phase.deref().set(PhaseAtTarget);
+    if !event.stop_propagation.get() {
+        event.phase.set(PhaseAtTarget);
         event.current_target.assign(Some(target.clone()));
 
-        let opt_listeners = target.deref().get_listeners(type_.as_slice());
+        let opt_listeners = target.get_listeners(type_.as_slice());
         for listeners in opt_listeners.iter() {
             for listener in listeners.iter() {
                 // Explicitly drop any exception on the floor.
                 let _ = listener.HandleEvent_(target, event, ReportExceptions);
 
-                if event.deref().stop_immediate.deref().get() {
+                if event.stop_immediate.get() {
                     break;
                 }
             }
@@ -83,23 +83,23 @@ pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
     }
 
     /* bubbling */
-    if event.deref().bubbles.deref().get() && !event.deref().stop_propagation.deref().get() {
-        event.deref().phase.deref().set(PhaseBubbling);
+    if event.bubbles.get() && !event.stop_propagation.get() {
+        event.phase.set(PhaseBubbling);
 
         for cur_target in chain.iter() {
-            let stopped = match cur_target.deref().get_listeners_for(type_.as_slice(), Bubbling) {
+            let stopped = match cur_target.get_listeners_for(type_.as_slice(), Bubbling) {
                 Some(listeners) => {
-                    event.deref().current_target.assign(Some(cur_target.deref().clone()));
+                    event.current_target.assign(Some(cur_target.deref().clone()));
                     for listener in listeners.iter() {
                         // Explicitly drop any exception on the floor.
                         let _ = listener.HandleEvent_(**cur_target, event, ReportExceptions);
 
-                        if event.deref().stop_immediate.deref().get() {
+                        if event.stop_immediate.get() {
                             break;
                         }
                     }
 
-                    event.deref().stop_propagation.deref().get()
+                    event.stop_propagation.get()
                 }
                 None => false
             };
@@ -131,8 +131,8 @@ pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
         let _ = chain.pop();
     }
 
-    event.dispatching.deref().set(false);
-    event.phase.deref().set(PhaseNone);
+    event.dispatching.set(false);
+    event.phase.set(PhaseNone);
     event.current_target.clear();
 
     !event.DefaultPrevented()
