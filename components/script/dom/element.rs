@@ -238,7 +238,7 @@ impl LayoutElementHelpers for JS<Element> {
 }
 
 pub trait ElementHelpers {
-    fn html_element_in_html_document(&self) -> bool;
+    fn html_element_in_html_document(self) -> bool;
     fn get_local_name<'a>(&'a self) -> &'a Atom;
     fn get_namespace<'a>(&'a self) -> &'a Namespace;
     fn summarize(self) -> Vec<AttrInfo>;
@@ -246,8 +246,8 @@ pub trait ElementHelpers {
 }
 
 impl<'a> ElementHelpers for JSRef<'a, Element> {
-    fn html_element_in_html_document(&self) -> bool {
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+    fn html_element_in_html_document(self) -> bool {
+        let node: JSRef<Node> = NodeCast::from_ref(self);
         self.namespace == ns!(HTML) && node.is_in_html_doc()
     }
 
