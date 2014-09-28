@@ -186,9 +186,9 @@ impl JSTraceable for *mut JSObject {
     }
 }
 
-impl JSTraceable for Traceable<JSVal> {
+impl JSTraceable for JSVal {
     fn trace(&self, trc: *mut JSTracer) {
-        trace_jsval(trc, "val", **self);
+        trace_jsval(trc, "val", *self);
     }
 }
 
