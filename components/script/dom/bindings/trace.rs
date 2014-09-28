@@ -42,6 +42,7 @@ use std::collections::hashmap::HashMap;
 use collections::hash::Hash;
 use style::PropertyDeclarationBlock;
 use std::comm::{Receiver, Sender};
+use hubbub::hubbub::QuirksMode;
 use string_cache::{Atom, Namespace};
 
 impl<T: Reflectable> JSTraceable for JS<T> {
@@ -231,6 +232,7 @@ untraceable!(PropertyDeclarationBlock)
 // These three are interdependent, if you plan to put jsmanaged data
 // in one of these make sure it is propagated properly to containing structs
 untraceable!(SubpageId, WindowSizeData, PipelineId)
+untraceable!(QuirksMode)
 
 impl<'a> JSTraceable for &'a str {
     #[inline]

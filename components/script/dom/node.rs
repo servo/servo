@@ -1412,7 +1412,7 @@ impl Node {
             DocumentNodeTypeId => {
                 let node_doc: JSRef<Document> = DocumentCast::to_ref(node).unwrap();
                 let copy_doc: JSRef<Document> = DocumentCast::to_ref(*copy).unwrap();
-                copy_doc.set_encoding_name(node_doc.encoding_name.deref().borrow().clone());
+                copy_doc.set_encoding_name(node_doc.encoding_name.borrow().clone());
                 copy_doc.set_quirks_mode(node_doc.quirks_mode());
             },
             ElementNodeTypeId(..) => {
