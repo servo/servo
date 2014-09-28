@@ -113,7 +113,7 @@ pub trait TLayoutNode {
                 fail!("not an iframe element!")
             }
             let iframe_element: JS<HTMLIFrameElement> = self.get_jsmanaged().transmute_copy();
-            let size = (*iframe_element.unsafe_get()).size.deref().get().unwrap();
+            let size = (*iframe_element.unsafe_get()).size.get().unwrap();
             (size.pipeline_id, size.subpage_id)
         }
     }
