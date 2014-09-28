@@ -51,7 +51,7 @@ pub struct HTMLIFrameElement {
 
 impl HTMLIFrameElementDerived for EventTarget {
     fn is_htmliframeelement(&self) -> bool {
-       self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLIFrameElementTypeId))
+        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLIFrameElementTypeId))
     }
 }
 
