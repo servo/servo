@@ -211,10 +211,11 @@ impl<T: JSTraceable> JSTraceable for Option<T> {
     }
 }
 
-impl<K: Eq+Hash, V: JSTraceable> JSTraceable for HashMap<K, V> {
+impl<K: Eq+Hash+JSTraceable, V: JSTraceable> JSTraceable for HashMap<K, V> {
     #[inline]
     fn trace(&self, trc: *mut JSTracer) {
         for e in self.iter() {
+            e.val0().trace(trc);
             e.val1().trace(trc);
         }
     }
