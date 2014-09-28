@@ -41,6 +41,7 @@ use script_traits::ScriptControlChan;
 use std::collections::hashmap::HashMap;
 use collections::hash::Hash;
 use style::PropertyDeclarationBlock;
+use std::comm::{Receiver, Sender};
 use string_cache::{Atom, Namespace};
 
 impl<T: Reflectable> JSTraceable for JS<T> {
@@ -238,3 +239,16 @@ impl<'a> JSTraceable for &'a str {
     }
 }
 
+impl<T> JSTraceable for Sender<T> {
+    #[inline]
+    fn trace(&self, _: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+impl<T> JSTraceable for Receiver<T> {
+    #[inline]
+    fn trace(&self, _: *mut JSTracer) {
+        // Do nothing
+    }
+}
