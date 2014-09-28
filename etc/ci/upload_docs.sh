@@ -7,6 +7,7 @@
 set -e
 
 mkdir -p target/doc
+./mach bootstrap-rust
 cp -R rust/doc/* target/doc/
 cp etc/doc.servo.org/* target/doc/
 ./mach doc # After copying rust/doc, so that the crate index is correct
