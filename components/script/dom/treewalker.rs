@@ -14,7 +14,6 @@ use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::global::Window;
 use dom::bindings::js::{JS, JSRef, OptionalRootable, Temporary};
-use dom::bindings::trace::Untraceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::document::Document;
 use dom::node::{Node, NodeHelpers};
@@ -334,7 +333,7 @@ impl<'a> PrivateTreeWalkerHelpers<'a> for JSRef<'a, TreeWalker> {
         // "6. Return result."
         match self.filter {
             FilterNone => Ok(NodeFilterConstants::FILTER_ACCEPT),
-            FilterNative(f) => Ok((*f)(node)),
+            FilterNative(f) => Ok((f)(node)),
             FilterJS(callback) => callback.AcceptNode_(self, node, RethrowExceptions)
         }
     }
@@ -554,7 +553,7 @@ impl<'a> Iterator<JSRef<'a, Node>> for JSRef<'a, TreeWalker> {
 #[jstraceable]
 pub enum Filter {
     FilterNone,
-    FilterNative(Untraceable<fn (node: JSRef<Node>) -> u16>),
+    FilterNative(fn (node: JSRef<Node>) -> u16),
     FilterJS(NodeFilter)
 }
 

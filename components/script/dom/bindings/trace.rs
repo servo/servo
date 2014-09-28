@@ -254,3 +254,10 @@ impl<T> JSTraceable for Receiver<T> {
         // Do nothing
     }
 }
+
+impl<A,B> JSTraceable for fn(A) -> B {
+    #[inline]
+    fn trace(&self, _: *mut JSTracer) {
+        // Do nothing
+    }
+}
