@@ -8,7 +8,6 @@ use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams::{StringOrURLSea
 use dom::bindings::error::{Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::trace::Traceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 
 use servo_util::str::DOMString;
@@ -24,14 +23,14 @@ use std::ascii::OwnedStrAsciiExt;
 #[jstraceable]
 #[must_root]
 pub struct URLSearchParams {
-    data: Traceable<RefCell<HashMap<DOMString, Vec<DOMString>>>>,
+    data: RefCell<HashMap<DOMString, Vec<DOMString>>>,
     reflector_: Reflector,
 }
 
 impl URLSearchParams {
     fn new_inherited() -> URLSearchParams {
         URLSearchParams {
-            data: Traceable::new(RefCell::new(HashMap::new())),
+            data: RefCell::new(HashMap::new()),
             reflector_: Reflector::new(),
         }
     }
@@ -51,8 +50,8 @@ impl URLSearchParams {
             },
             Some(eURLSearchParams(u)) => {
                 let u = u.root();
-                let mut map = usp.deref().data.deref().borrow_mut();
-                *map = u.data.deref().borrow().clone();
+                let mut map = usp.deref().data.borrow_mut();
+                *map = u.data.borrow().clone();
             },
             None => {}
         }
@@ -62,26 +61,26 @@ impl URLSearchParams {
 
 impl<'a> URLSearchParamsMethods for JSRef<'a, URLSearchParams> {
     fn Append(self, name: DOMString, value: DOMString) {
-        self.data.deref().borrow_mut().insert_or_update_with(name, vec!(value.clone()),
+        self.data.borrow_mut().insert_or_update_with(name, vec!(value.clone()),
                                                              |_k, v| v.push(value.clone()));
         self.update_steps();
     }
 
     fn Delete(self, name: DOMString) {
-        self.data.deref().borrow_mut().remove(&name);
+        self.data.borrow_mut().remove(&name);
         self.update_steps();
     }
 
     fn Get(self, name: DOMString) -> Option<DOMString> {
-        self.data.deref().borrow().find_equiv(&name).map(|v| v[0].clone())
+        self.data.borrow().find_equiv(&name).map(|v| v[0].clone())
     }
 
     fn Has(self, name: DOMString) -> bool {
-        self.data.deref().borrow().contains_key_equiv(&name)
+        self.data.borrow().contains_key_equiv(&name)
     }
 
     fn Set(self, name: DOMString, value: DOMString) {
-        self.data.deref().borrow_mut().insert(name, vec!(value));
+        self.data.borrow_mut().insert(name, vec!(value));
         self.update_steps();
     }
 }
@@ -129,7 +128,7 @@ impl URLSearchParamsHelpers for URLSearchParams {
         let encoding = encoding.unwrap_or(UTF_8 as EncodingRef);
         let mut buf = vec!();
         let mut first_pair = true;
-        for (k, v) in self.data.deref().borrow().iter() {
+        for (k, v) in self.data.borrow().iter() {
             let name = serialize_string(k, encoding);
             for val in v.iter() {
                 let value = serialize_string(val, encoding);
