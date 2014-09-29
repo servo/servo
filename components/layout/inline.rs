@@ -35,6 +35,10 @@ use style::computed_values::{text_align, vertical_align, white_space};
 use style::ComputedValues;
 use sync::Arc;
 
+// From gfxFontConstants.h in Firefox
+static FONT_SUBSCRIPT_OFFSET_RATIO: f64 = 0.20;
+static FONT_SUPERSCRIPT_OFFSET_RATIO: f64 = 0.34;
+
 /// `Line`s are represented as offsets into the child list, rather than
 /// as an object that "owns" fragments. Choosing a different set of line
 /// breaks requires a new list of offsets, and possibly some splitting and
@@ -825,15 +829,13 @@ impl InlineFlow {
                 (-ascent, false)
             },
             vertical_align::sub => {
-                // TODO: The proper position for subscripts should be used. Lower the baseline to
-                // the proper position for subscripts.
-                let sub_offset = Au(0);
+                let sub_offset = (parent_text_block_start + parent_text_block_end)
+                                    .scale_by(FONT_SUBSCRIPT_OFFSET_RATIO);
                 (sub_offset - ascent, false)
             },
             vertical_align::super_ => {
-                // TODO: The proper position for superscripts should be used. Raise the baseline to
-                // the proper position for superscripts.
-                let super_offset = Au(0);
+                let super_offset = (parent_text_block_start + parent_text_block_end)
+                                    .scale_by(FONT_SUPERSCRIPT_OFFSET_RATIO);
                 (-super_offset - ascent, false)
             },
             vertical_align::text_top => {
@@ -1074,13 +1076,8 @@ impl Flow for InlineFlow {
                 // We should calculate the distance from baseline to the top of parent's content
                 // area. But for now we assume it's the font size.
                 //
-                // CSS 2.1 does not state which font to use. Previous versions of the code used
-                // the parent's font; this code uses the current font.
-                let parent_text_top = fragment.style().get_font().font_size;
-
-                // We should calculate the distance from baseline to the bottom of the parent's
-                // content area. But for now we assume it's zero.
-                let parent_text_bottom = Au(0);
+                // CSS 2.1 does not state which font to use. This version of the code uses
+                // the parent's font.
 
                 // Calculate the final block-size above the baseline for this fragment.
                 //
@@ -1091,8 +1088,8 @@ impl Flow for InlineFlow {
                     InlineFlow::distance_from_baseline(
                         fragment,
                         ascent,
-                        parent_text_top,
-                        parent_text_bottom,
+                        self.minimum_block_size_above_baseline,
+                        self.minimum_depth_below_baseline,
                         &mut block_size_above_baseline,
                         &mut depth_below_baseline,
                         &mut largest_block_size_for_top_fragments,
