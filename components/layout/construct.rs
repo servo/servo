@@ -226,10 +226,10 @@ impl<'a> FlowConstructor<'a> {
         //       value? definitely for string comparisons.
         let elem = node.as_element();
         let data = match elem.get_attr(&ns!(""), "type") {
-            Some("checkbox") => InputCheckbox(node.get_input_checked()),
+            Some("checkbox") => InputCheckbox,
             Some("button") | Some("submit") | Some("reset") =>
                 InputButton(node.get_input_value().len() as u32),
-            Some("radio") => InputRadioButton(node.get_input_checked()),
+            Some("radio") => InputRadioButton,
             Some("file") => InputFile(node.get_input_size()),
             _ => InputText(node.get_input_size()),
         };

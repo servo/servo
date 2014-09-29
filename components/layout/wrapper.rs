@@ -731,16 +731,6 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         }
     }
 
-    pub fn get_input_checked(&self) -> bool {
-        unsafe {
-            if !self.get().is_htmlinputelement() {
-                fail!("not an input element!")
-            }
-            let input: JS<HTMLInputElement> = self.get_jsmanaged().transmute_copy();
-            input.get_checked_for_layout()
-        }
-    }
-
     pub fn get_input_value(&self) -> String {
         unsafe {
             if !self.get().is_htmlinputelement() {

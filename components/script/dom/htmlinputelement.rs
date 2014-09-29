@@ -81,17 +81,11 @@ impl HTMLInputElement {
 }
 
 pub trait LayoutHTMLInputElementHelpers {
-    unsafe fn get_checked_for_layout(&self) -> bool;
     unsafe fn get_value_for_layout(&self) -> String;
     unsafe fn get_size_for_layout(&self) -> u32;
 }
 
 impl LayoutHTMLInputElementHelpers for JS<HTMLInputElement> {
-    #[allow(unrooted_must_root)]
-    unsafe fn get_checked_for_layout(&self) -> bool {
-        (*self.unsafe_get()).checked.get()
-    }
-
     #[allow(unrooted_must_root)]
     unsafe fn get_value_for_layout(&self) -> String {
         unsafe fn get_raw_value(input: &JS<HTMLInputElement>) -> Option<String> {
@@ -99,16 +93,7 @@ impl LayoutHTMLInputElementHelpers for JS<HTMLInputElement> {
         }
 
         match (*self.unsafe_get()).input_type.get() {
-            InputCheckbox => if self.get_checked_for_layout() {
-                "[X]"
-            } else {
-                "[ ]"
-            }.to_string(),
-            InputRadio => if self.get_checked_for_layout() {
-                "(*)"
-            } else {
-                "( )"
-            }.to_string(),
+            InputCheckbox | InputRadio => "".to_string(),
             InputFile | InputImage => "".to_string(),
             InputButton(ref default) => get_raw_value(self)
                                           .or_else(|| default.map(|v| v.to_string()))
@@ -117,7 +102,7 @@ impl LayoutHTMLInputElementHelpers for JS<HTMLInputElement> {
                 let raw = get_raw_value(self).unwrap_or_else(|| "".to_string());
                 String::from_char(raw.len(), '*')
             }
-            _ => get_raw_value(self).unwrap_or("".to_string()),
+            _ => get_raw_value(self).unwrap_or_else(|| "".to_string()),
         }
     }
 
@@ -369,9 +354,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
 
         if "click" == event.Type().as_slice() && !event.DefaultPrevented() {
             match self.input_type.get() {
-                InputCheckbox | InputRadio => {
-                    self.SetChecked(!self.checked.get());
-                }
+                InputCheckbox => self.SetChecked(!self.checked.get()),
+                InputRadio => self.SetChecked(true),
                 _ => {}
             }
         }

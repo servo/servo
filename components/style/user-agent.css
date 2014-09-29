@@ -123,3 +123,8 @@ input[type="reset"]     { background: lightgrey; border-top: solid 1px #EEEEEE; 
 input[type="hidden"]    { display: none !important }
 input[type="checkbox"],
 input[type="radio"]     { font-family: monospace !important; border: none !important; background: transparent; }
+
+input[type="checkbox"]::before { content: "[ ]"; padding: 0; }
+input[type="checkbox"][checked]::before { content: "[✓]"; }
+input[type="radio"]::before { content: "( )"; padding: 0; }
+input[type="radio"][checked]::before { content: "(●)"; }

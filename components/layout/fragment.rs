@@ -161,8 +161,8 @@ impl InlineBlockFragmentInfo {
 pub enum InputFragmentInfo {
     InputButton(u32),
     InputText(u32),
-    InputCheckbox(bool),
-    InputRadioButton(bool),
+    InputCheckbox,
+    InputRadioButton,
     InputFile(u32),
 }
 

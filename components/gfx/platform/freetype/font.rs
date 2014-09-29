@@ -235,7 +235,7 @@ impl FontHandleMethods for FontHandle {
             }
         }
 
-        let average_advance = self.glyph_index('x')
+        let average_advance = self.glyph_index('0')
                                   .and_then(|idx| self.glyph_h_advance(idx))
                                   .map(|advance| self.font_units_to_au(advance))
                                   .unwrap_or(max_advance_width);
