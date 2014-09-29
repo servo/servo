@@ -23,14 +23,14 @@ interface Range {
   void setStart(Node refNode, unsigned long offset);
   [Throws]
   void setEnd(Node refNode, unsigned long offset);
-  // [Throws]
-  // void setStartBefore(Node refNode);
-  // [Throws]
-  // void setStartAfter(Node refNode);
-  // [Throws]
-  // void setEndBefore(Node refNode);
-  // [Throws]
-  // void setEndAfter(Node refNode);
+  [Throws]
+  void setStartBefore(Node refNode);
+  [Throws]
+  void setStartAfter(Node refNode);
+  [Throws]
+  void setEndBefore(Node refNode);
+  [Throws]
+  void setEndAfter(Node refNode);
   // void collapse(optional boolean toStart = false);
   // [Throws]
   // void selectNode(Node refNode);

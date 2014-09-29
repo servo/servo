@@ -141,6 +141,110 @@ impl<'a> RangeMethods for JSRef<'a, Range> {
         Ok(())
     }
 
+    /// https://dom.spec.whatwg.org/#dom-range-setstartbefore
+    fn SetStartBefore(self, node: JSRef<Node>) -> Fallible<()> {
+        // step 1
+        match node.parent_node() {
+            // step 2
+            None => {
+                Err(InvalidNodeTypeError)
+            },
+            // step 3
+            Some(parent) => {
+                let parent = parent.root();
+                let index = parent.children().position(|child| -> bool {
+                    child == node
+                });
+                match index {
+                    Some(index) => {
+                        self.SetStart(parent.root_ref(), index as u32)
+                    },
+                    None => {
+                        unreachable!()
+                    }
+                }
+            },
+        }
+    }
+
+    /// https://dom.spec.whatwg.org/#dom-range-setstartafter
+    fn SetStartAfter(self, node: JSRef<Node>) -> Fallible<()> {
+        // step 1
+        match node.parent_node() {
+            // step 2
+            None => {
+                Err(InvalidNodeTypeError)
+            },
+            // step 3
+            Some(parent) => {
+                let parent = parent.root();
+                let index = parent.children().position(|child| -> bool {
+                    child == node
+                });
+                match index {
+                    Some(index) => {
+                        self.SetStart(parent.root_ref(), (index + 1) as u32)
+                    },
+                    None => {
+                        unreachable!()
+                    }
+                }
+            },
+        }
+    }
+
+    /// https://dom.spec.whatwg.org/#dom-range-setendbefore
+    fn SetEndBefore(self, node: JSRef<Node>) -> Fallible<()> {
+        // step 1
+        match node.parent_node() {
+            // step 2
+            None => {
+                Err(InvalidNodeTypeError)
+            }
+            // step 3
+            Some(parent) => {
+                let parent = parent.root();
+                let index = parent.children().position(|child| -> bool {
+                    child == node
+                });
+                match index {
+                    Some(index) => {
+                        self.SetEnd(parent.root_ref(), index as u32)
+                    },
+                    None => {
+                        unreachable!()
+                    }
+                }
+            },
+        }
+    }
+
+    /// https://dom.spec.whatwg.org/#dom-range-setendafter
+    fn SetEndAfter(self, node: JSRef<Node>) -> Fallible<()> {
+        // step 1
+        match node.parent_node() {
+            // step 2
+            None => {
+                Err(InvalidNodeTypeError)
+            },
+            // step 3
+            Some(parent) => {
+                let parent = parent.root();
+                let index = parent.children().position(|child| -> bool {
+                    child == node
+                });
+                match index {
+                    Some(index) => {
+                        self.SetEnd(parent.root_ref(), (index + 1) as u32)
+                    },
+                    None => {
+                        unreachable!()
+                    }
+                }
+            },
+        }
+    }
+
     /// http://dom.spec.whatwg.org/#dom-range-detach
     fn Detach(self) {
         // This method intentionally left blank.
