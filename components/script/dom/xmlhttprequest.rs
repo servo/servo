@@ -450,7 +450,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             Get | Head => None, // Step 3
             _ => data
         };
-        let extracted = data.map(|d| d.extract());
+        let extracted = data.as_ref().map(|d| d.extract());
         self.request_body_len.set(extracted.as_ref().map(|e| e.len()).unwrap_or(0));
 
         // Step 6
