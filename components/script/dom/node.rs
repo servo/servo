@@ -423,6 +423,8 @@ pub trait NodeHelpers<'a> {
 
     fn get_unique_id(self) -> String;
     fn summarize(self) -> NodeInfo;
+
+    fn length(self) -> u32;
 }
 
 impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
@@ -732,6 +734,25 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
             shortValue: self.GetNodeValue().unwrap_or("".to_string()), //FIXME: truncate
             incompleteValue: false, //FIXME: reflect truncation
         }
+    }
+
+    // http://dom.spec.whatwg.org/#concept-node-length
+    fn length(self) -> u32 {
+        let result = match self.type_id {
+            DoctypeNodeTypeId => {
+                0
+            }
+            TextNodeTypeId | ProcessingInstructionNodeTypeId | CommentNodeTypeId => {
+                let char_data: JSRef<CharacterData> = CharacterDataCast::to_ref(self).unwrap();
+                let length = char_data.Length();
+                length
+            }
+            _ => {
+                let child_nodes = self.ChildNodes().root();
+                child_nodes.root_ref().Length()
+            }
+        };
+        result
     }
 }
 
