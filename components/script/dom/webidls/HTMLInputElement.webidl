@@ -10,7 +10,7 @@ interface HTMLInputElement : HTMLElement {
   //         attribute DOMString autocomplete;
   //         attribute boolean autofocus;
   //         attribute boolean defaultChecked;
-  //         attribute boolean checked;
+           attribute boolean checked;
   //         attribute DOMString dirName;
            attribute boolean disabled;
   //readonly attribute HTMLFormElement? form;
@@ -29,17 +29,17 @@ interface HTMLInputElement : HTMLElement {
   //         attribute DOMString min;
   //         attribute long minLength;
   //         attribute boolean multiple;
-  //         attribute DOMString name;
+           attribute DOMString name;
   //         attribute DOMString pattern;
   //         attribute DOMString placeholder;
   //         attribute boolean readOnly;
   //         attribute boolean required;
-  //         attribute unsigned long size;
+           attribute unsigned long size;
   //         attribute DOMString src;
   //         attribute DOMString step;
-  //         attribute DOMString type;
+  //         attribute DOMString type; //XXXjdm need binaryName
   //         attribute DOMString defaultValue;
-  //[TreatNullAs=EmptyString] attribute DOMString value;
+  [TreatNullAs=EmptyString] attribute DOMString value;
   //         attribute Date? valueAsDate;
   //         attribute unrestricted double valueAsNumber;
   //         attribute double valueLow;
