@@ -45,6 +45,10 @@ use std::comm::{Receiver, Sender};
 use hubbub::hubbub::QuirksMode;
 use string_cache::{Atom, Namespace};
 use js::rust::Cx;
+use http::headers::response::HeaderCollection as ResponseHeaderCollection;
+use http::headers::request::HeaderCollection as RequestHeaderCollection;
+use http::method::Method;
+use std::io::timer::Timer;
 
 impl<T: Reflectable> JSTraceable for JS<T> {
     fn trace(&self, trc: *mut JSTracer) {
@@ -227,30 +231,19 @@ untraceable!(bool, f32, f64, String, Url)
 untraceable!(uint, u8, u16, u32, u64)
 untraceable!(int, i8, i16, i32, i64)
 untraceable!(Untraceable<T>)
+untraceable!(Sender<T>)
+untraceable!(Receiver<T>)
 untraceable!(ImageCacheTask, ScriptControlChan)
-untraceable!(Atom, Namespace)
+untraceable!(Atom, Namespace, Timer)
 untraceable!(PropertyDeclarationBlock)
 // These three are interdependent, if you plan to put jsmanaged data
 // in one of these make sure it is propagated properly to containing structs
 untraceable!(SubpageId, WindowSizeData, PipelineId)
 untraceable!(QuirksMode)
 untraceable!(Cx)
+untraceable!(ResponseHeaderCollection, RequestHeaderCollection, Method)
 
 impl<'a> JSTraceable for &'a str {
-    #[inline]
-    fn trace(&self, _: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-impl<T> JSTraceable for Sender<T> {
-    #[inline]
-    fn trace(&self, _: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-impl<T> JSTraceable for Receiver<T> {
     #[inline]
     fn trace(&self, _: *mut JSTracer) {
         // Do nothing
