@@ -10,7 +10,6 @@ use dom::bindings::conversions::IDLInterface;
 use dom::bindings::error::throw_type_error;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Temporary, Root};
-use dom::bindings::trace::Untraceable;
 use dom::browsercontext;
 use dom::window;
 use servo_util::str::DOMString;
@@ -53,12 +52,12 @@ use js;
 #[allow(raw_pointer_deriving)]
 #[jstraceable]
 pub struct GlobalStaticData {
-    pub windowproxy_handler: Untraceable<*const libc::c_void>,
+    pub windowproxy_handler: *const libc::c_void,
 }
 
 pub fn GlobalStaticData() -> GlobalStaticData {
     GlobalStaticData {
-        windowproxy_handler: Untraceable::new(browsercontext::new_window_proxy_handler()),
+        windowproxy_handler: browsercontext::new_window_proxy_handler(),
     }
 }
 

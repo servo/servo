@@ -53,12 +53,12 @@ impl BrowserContext {
         let js_info = page.js_info();
 
         let handler = js_info.as_ref().unwrap().dom_static.windowproxy_handler;
-        assert!(handler.deref().is_not_null());
+        assert!(handler.is_not_null());
 
         let parent = win.deref().reflector().get_jsobject();
         let cx = js_info.as_ref().unwrap().js_context.deref().ptr;
         let wrapper = with_compartment(cx, parent, || unsafe {
-            WrapperNew(cx, parent, *handler.deref())
+            WrapperNew(cx, parent, handler)
         });
         assert!(wrapper.is_not_null());
         self.window_proxy = wrapper;
