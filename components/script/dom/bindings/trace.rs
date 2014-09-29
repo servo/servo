@@ -49,6 +49,7 @@ use http::headers::response::HeaderCollection as ResponseHeaderCollection;
 use http::headers::request::HeaderCollection as RequestHeaderCollection;
 use http::method::Method;
 use std::io::timer::Timer;
+use servo_msg::compositor_msg::ScriptListener;
 
 impl<T: Reflectable> JSTraceable for JS<T> {
     fn trace(&self, trc: *mut JSTracer) {
@@ -251,6 +252,13 @@ impl<'a> JSTraceable for &'a str {
 }
 
 impl<A,B> JSTraceable for fn(A) -> B {
+    #[inline]
+    fn trace(&self, _: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+impl JSTraceable for Box<ScriptListener+'static> {
     #[inline]
     fn trace(&self, _: *mut JSTracer) {
         // Do nothing
