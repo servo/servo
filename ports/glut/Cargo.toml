@@ -1,0 +1,29 @@
+[package]
+name = "glut-app"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+
+[lib]
+name = "glutapp"
+path = "lib.rs"
+
+[dependencies.alert]
+git = "https://github.com/servo/rust-alert"
+
+[dependencies.compositing]
+path = "../../components/compositing"
+
+[dependencies.geom]
+git = "https://github.com/servo/rust-geom"
+
+[dependencies.glut]
+git = "https://github.com/servo/rust-glut"
+
+[dependencies.layers]
+git = "https://github.com/servo/rust-layers"
+
+[dependencies.msg]
+path = "../../components/msg"
+
+[dependencies.util]
+path = "../../components/util"

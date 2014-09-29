@@ -24,6 +24,8 @@ name = "contenttest"
 path = "tests/contenttest.rs"
 harness = false
 
+[features]
+default = ["glfw-app"]
 
 [dependencies.compositing]
 path = "components/compositing"
@@ -45,6 +47,14 @@ path = "components/layout"
 
 [dependencies.gfx]
 path = "components/gfx"
+
+[dependencies.glfw-app]
+path = "ports/glfw"
+optional = true
+
+[dependencies.glut-app]
+path = "ports/glut"
+optional = true
 
 [dependencies.url]
 git = "https://github.com/servo/rust-url"

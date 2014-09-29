@@ -7,8 +7,7 @@ pub use windowing;
 use compositor;
 use headless;
 pub use constellation::SendableFrameTree;
-use windowing::{ApplicationMethods, WindowMethods};
-use platform::Application;
+use windowing::WindowMethods;
 
 use azure::azure_hl::{SourceSurfaceMethods, Color};
 use geom::point::Point2D;
@@ -23,6 +22,7 @@ use servo_util::memory::MemoryProfilerChan;
 use servo_util::opts::Opts;
 use servo_util::time::TimeProfilerChan;
 use std::comm::{channel, Sender, Receiver};
+use std::rc::Rc;
 
 use url::Url;
 
@@ -184,7 +184,7 @@ pub enum Msg {
 }
 
 pub enum CompositorMode {
-    Windowed(Application),
+    Windowed,
     Headless
 }
 
@@ -197,7 +197,7 @@ impl CompositorTask {
         let mode: CompositorMode = if is_headless {
             Headless
         } else {
-            Windowed(ApplicationMethods::new())
+            Windowed
         };
 
         CompositorTask {
@@ -217,7 +217,9 @@ impl CompositorTask {
         NativeCompositingGraphicsContext::new()
     }
 
-    pub fn create(opts: Opts,
+    pub fn create<Window: WindowMethods>(
+                  window: Rc<Window>,
+                  opts: Opts,
                   port: Receiver<Msg>,
                   constellation_chan: ConstellationChan,
                   time_profiler_chan: TimeProfilerChan,
@@ -226,8 +228,8 @@ impl CompositorTask {
         let compositor = CompositorTask::new(opts.headless);
 
         match compositor.mode {
-            Windowed(ref app) => {
-                compositor::IOCompositor::create(app,
+            Windowed => {
+                compositor::IOCompositor::create(window,
                                                  opts,
                                                  port,
                                                  constellation_chan.clone(),

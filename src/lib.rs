@@ -30,8 +30,13 @@ extern crate native;
 extern crate rustrt;
 extern crate url;
 
+#[cfg(not(test), target_os="android")]
+extern crate glutapp;
+
 #[cfg(not(test))]
 use compositing::{CompositorChan, CompositorTask, Constellation};
+#[cfg(not(test))]
+use compositing::windowing::WindowMethods;
 #[cfg(not(test))]
 use servo_msg::constellation_msg::{ConstellationChan, InitLoadUrlMsg};
 #[cfg(not(test))]
@@ -71,20 +76,17 @@ pub extern "C" fn android_start(argc: int, argv: *const *const u8) -> int {
             }
         }
 
-        let opts = opts::from_cmdline_args(args.as_slice());
-        match opts {
-            Some(mut o) => {
-                // Always use CPU rendering on android.
-                o.cpu_painting = true;
-                run(o);
-            },
-            None => {}
-        }
+        opts::from_cmdline_args(args.as_slice()).map(|mut opts| {
+            // Always use CPU rendering on android.
+            opts.cpu_painting = true;
+            let window = glutapp::create_window(&opts);
+            run(opts, window);
+        });
     })
 }
 
 #[cfg(not(test))]
-pub fn run(opts: opts::Opts) {
+pub fn run<Window: WindowMethods>(opts: opts::Opts, window: std::rc::Rc<Window>) {
     ::servo_util::opts::set_experimental_enabled(opts.enable_experimental);
     RegisterBindings::RegisterProxyHandlers();
 
@@ -151,7 +153,8 @@ pub fn run(opts: opts::Opts) {
     let constellation_chan = result_port.recv();
 
     debug!("preparing to enter main loop");
-    CompositorTask::create(opts,
+    CompositorTask::create(window,
+                           opts,
                            compositor_port,
                            constellation_chan,
                            time_profiler_chan,
