@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::js::{JS, JSRef, Temporary};
-use dom::bindings::utils::Reflectable;
+use dom::bindings::utils::{Reflectable, WindowProxyHandler};
 use dom::document::Document;
 use dom::window::Window;
 
@@ -11,7 +11,6 @@ use js::jsapi::JSObject;
 use js::glue::{WrapperNew, CreateWrapperProxyHandler, ProxyTraps};
 use js::rust::with_compartment;
 
-use libc::c_void;
 use std::ptr;
 
 #[allow(raw_pointer_deriving)]
@@ -52,7 +51,7 @@ impl BrowserContext {
         let page = win.deref().page();
         let js_info = page.js_info();
 
-        let handler = js_info.as_ref().unwrap().dom_static.windowproxy_handler;
+        let WindowProxyHandler(handler) = js_info.as_ref().unwrap().dom_static.windowproxy_handler;
         assert!(handler.is_not_null());
 
         let parent = win.deref().reflector().get_jsobject();
@@ -113,8 +112,8 @@ static proxy_handler: ProxyTraps = ProxyTraps {
     trace: None
 };
 
-pub fn new_window_proxy_handler() -> *const c_void {
+pub fn new_window_proxy_handler() -> WindowProxyHandler {
     unsafe {
-        CreateWrapperProxyHandler(&proxy_handler)
+        WindowProxyHandler(CreateWrapperProxyHandler(&proxy_handler))
     }
 }

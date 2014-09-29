@@ -49,10 +49,12 @@ use js::{JSPROP_ENUMERATE, JSPROP_READONLY, JSPROP_PERMANENT};
 use js::JSFUN_CONSTRUCTOR;
 use js;
 
+pub struct WindowProxyHandler(pub *const libc::c_void);
+
 #[allow(raw_pointer_deriving)]
 #[jstraceable]
 pub struct GlobalStaticData {
-    pub windowproxy_handler: *const libc::c_void,
+    pub windowproxy_handler: WindowProxyHandler,
 }
 
 pub fn GlobalStaticData() -> GlobalStaticData {
