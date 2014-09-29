@@ -271,7 +271,7 @@ name = "js"
 version = "0.1.0"
 source = "git+https://github.com/servo/rust-mozjs#05d84901f51c8c4a3e0d5e5b8a2a53e5c6ab9fa4"
 dependencies = [
- "mozjs-sys 0.0.0 (git+https://github.com/servo/mozjs#91920c749d53386acdbc890b6cee68b440626475)",
+ "mozjs-sys 0.0.0 (git+https://github.com/servo/mozjs#cbc5759c6d4019acf41ae64f0ba222f8c2c70d4a)",
 ]
 
 [[package]]
@@ -323,7 +323,7 @@ source = "git+https://github.com/Kimundi/lazy-static.rs#e62a65372f1dd9019e37eb93
 [[package]]
 name = "mozjs-sys"
 version = "0.0.0"
-source = "git+https://github.com/servo/mozjs#91920c749d53386acdbc890b6cee68b440626475"
+source = "git+https://github.com/servo/mozjs#cbc5759c6d4019acf41ae64f0ba222f8c2c70d4a"
 
 [[package]]
 name = "msg"
