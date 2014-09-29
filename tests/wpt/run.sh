@@ -16,11 +16,7 @@ source _virtualenv/bin/activate
 if [[ $* == *--update-manifest* ]]; then
     (python -c "import html5lib" &>/dev/null) || pip install html5lib
 fi
-(python -c "import wptrunner"  &>/dev/null) || pip install 'wptrunner==1.0'
-
-# Patch wptrunner to run servo in cpu mode
-sed 's."--hard-fail",."--hard-fail", "-c",.' _virtualenv/lib/python2.7/site-packages/wptrunner/executors/executorservo.py > _virtualenv/lib/python2.7/site-packages/wptrunner/executors/executorservo.py.new
-mv _virtualenv/lib/python2.7/site-packages/wptrunner/executors/executorservo.py.new _virtualenv/lib/python2.7/site-packages/wptrunner/executors/executorservo.py
+(python -c "import wptrunner"  &>/dev/null) || pip install 'wptrunner==1.2'
 
 python $servo_root/tests/wpt/run.py \
   --config $servo_root/tests/wpt/config.ini \
