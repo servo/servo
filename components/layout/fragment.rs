@@ -158,33 +158,17 @@ impl InlineBlockFragmentInfo {
 
 /// A fragment that represents a displayable form element
 #[deriving(Clone)]
-pub enum InputFragmentInfo {
-    InputButton(u32),
-    InputText(u32),
-    InputCheckbox,
-    InputRadioButton,
-    InputFile(u32),
+pub struct InputFragmentInfo {
+    pub size: u32,
 }
 
 impl InputFragmentInfo {
-    fn size(&self) -> Option<u32> {
-        match self {
-            &InputText(size) | &InputFile(size) | &InputButton(size) => Some(size),
-            _ => None,
-        }
-    }
-
     /// Returns the original inline-size of the input.
     fn input_inline_size(&self, font_style: &FontStyle, layout_context: &LayoutContext) -> Au {
-        match self.size() {
-            Some(size) => {
-                let metrics = text::font_metrics_for_style(layout_context.font_context(), font_style);
+        let metrics = text::font_metrics_for_style(layout_context.font_context(), font_style);
 
-                // https://html.spec.whatwg.org/#converting-a-character-width-to-pixels
-                metrics.average_advance * (size as i32 - 1) + metrics.max_advance
-            }
-            None => Au::from_px(10)
-        }
+        // https://html.spec.whatwg.org/#converting-a-character-width-to-pixels
+        metrics.average_advance * (self.size as i32 - 1) + metrics.max_advance
     }
 }
 

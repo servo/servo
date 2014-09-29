@@ -31,8 +31,8 @@ use fragment::{InlineBlockFragment, InlineBlockFragmentInfo, InputFragment};
 use fragment::{Fragment, GenericFragment, IframeFragment, IframeFragmentInfo};
 use fragment::{ImageFragment, ImageFragmentInfo, SpecificFragmentInfo, TableFragment};
 use fragment::{TableCellFragment, TableColumnFragment, TableColumnFragmentInfo};
-use fragment::{TableRowFragment, TableWrapperFragment, UnscannedTextFragment, InputRadioButton};
-use fragment::{UnscannedTextFragmentInfo, InputCheckbox, InputButton, InputText, InputFile};
+use fragment::{TableRowFragment, TableWrapperFragment, UnscannedTextFragment};
+use fragment::{UnscannedTextFragmentInfo, InputFragmentInfo};
 use inline::{InlineFragments, InlineFlow};
 use parallel;
 use table_wrapper::TableWrapperFlow;
@@ -226,14 +226,14 @@ impl<'a> FlowConstructor<'a> {
         //       value? definitely for string comparisons.
         let elem = node.as_element();
         let data = match elem.get_attr(&ns!(""), "type") {
-            Some("checkbox") => InputCheckbox,
+            Some("checkbox") | Some("radio") => None,
             Some("button") | Some("submit") | Some("reset") =>
-                InputButton(node.get_input_value().len() as u32),
-            Some("radio") => InputRadioButton,
-            Some("file") => InputFile(node.get_input_size()),
-            _ => InputText(node.get_input_size()),
+                Some(node.get_input_value().len() as u32),
+            Some("file") => Some(node.get_input_size()),
+            _ => Some(node.get_input_size()),
         };
-        InputFragment(data)
+        data.map(|size| InputFragment(InputFragmentInfo { size: size }))
+            .unwrap_or(GenericFragment)
     }
 
     /// Builds specific `Fragment` info for the given node.
