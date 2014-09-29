@@ -19,10 +19,10 @@ interface Range {
   // [Throws]
   // readonly attribute Node commonAncestorContainer;
 
-  // [Throws]
-  // void setStart(Node refNode, unsigned long offset);
-  // [Throws]
-  // void setEnd(Node refNode, unsigned long offset);
+  [Throws]
+  void setStart(Node refNode, unsigned long offset);
+  [Throws]
+  void setEnd(Node refNode, unsigned long offset);
   // [Throws]
   // void setStartBefore(Node refNode);
   // [Throws]
