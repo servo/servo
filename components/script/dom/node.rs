@@ -425,6 +425,7 @@ pub trait NodeHelpers<'a> {
     fn summarize(self) -> NodeInfo;
 
     fn length(self) -> u32;
+    fn get_tree_root(self) -> Temporary<Node>;
 }
 
 impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
@@ -753,6 +754,26 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
             }
         };
         result
+    }
+
+    // http://dom.spec.whatwg.org/#concept-tree-root
+    fn get_tree_root(self) -> Temporary<Node> {
+        let root = match self.parent_node() {
+            None => {
+                Temporary::from_rooted(self)
+            }
+            Some(_) => {
+                match self.ancestors().last() {
+                    Some(root) => {
+                        Temporary::from_rooted(root)
+                    }
+                    None => {
+                        unreachable!()
+                    }
+                }
+            }
+        };
+        root
     }
 }
 
