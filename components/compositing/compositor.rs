@@ -20,9 +20,9 @@ use windowing::{QuitWindowEvent, RefreshWindowEvent, ResizeWindowEvent, ScrollWi
 use windowing::{WindowEvent, WindowMethods, WindowNavigateMsg, ZoomWindowEvent};
 use windowing::PinchZoomWindowEvent;
 
-use azure::azure_hl::SourceSurfaceMethods;
 use azure::azure_hl;
 use std::cmp;
+use std::num::Zero;
 use std::time::duration::Duration;
 use geom::point::{Point2D, TypedPoint2D};
 use geom::rect::{Rect, TypedRect};
@@ -168,7 +168,10 @@ impl IOCompositor {
             context: rendergl::RenderContext::new(CompositorTask::create_graphics_context(),
                                                   show_debug_borders),
             root_pipeline: None,
-            scene: Scene::new(window_size.as_f32().to_untyped()),
+            scene: Scene::new(Rect {
+                origin: Zero::zero(),
+                size: window_size.as_f32(),
+            }),
             window_size: window_size,
             hidpi_factor: hidpi_factor,
             composite_ready: false,
@@ -971,7 +974,10 @@ impl IOCompositor {
         profile(time::CompositingCategory, None, self.time_profiler_chan.clone(), || {
             debug!("compositor: compositing");
             // Adjust the layer dimensions as necessary to correspond to the size of the window.
-            self.scene.size = self.window_size.as_f32().to_untyped();
+            self.scene.viewport = Rect {
+                origin: Zero::zero(),
+                size: self.window_size.as_f32(),
+            };
             // Render the scene.
             match self.scene.root {
                 Some(ref layer) => {
