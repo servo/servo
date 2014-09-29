@@ -11,15 +11,11 @@
 
 [Constructor]
 interface Range {
-  // [Throws]
-  // readonly attribute Node startContainer;
-  // [Throws]
-  // readonly attribute unsigned long startOffset;
-  // [Throws]
-  // readonly attribute Node endContainer;
-  // [Throws]
-  // readonly attribute unsigned long endOffset;
-  // readonly attribute boolean collapsed;
+  readonly attribute Node startContainer;
+  readonly attribute unsigned long startOffset;
+  readonly attribute Node endContainer;
+  readonly attribute unsigned long endOffset;
+  readonly attribute boolean collapsed;
   // [Throws]
   // readonly attribute Node commonAncestorContainer;
 
