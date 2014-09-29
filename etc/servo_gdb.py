@@ -28,7 +28,7 @@ class AuPrinter:
     def to_string(self):
         i32_type = gdb.lookup_type("i32")
         au = self.val.cast(i32_type);
-        return "{0}px ({1} au)".format(au / 60.0, au)
+        return "{0}px".format(au / 60.0)
 
 # Print a U8 bitfield as binary
 class BitFieldU8Printer:
@@ -120,7 +120,7 @@ class TestPrinter:
         return "[UNKNOWN - type = {0}]".format(str(self.val.type))
 
 type_map = [
-    ('Au', AuPrinter),
+    ('struct Au', AuPrinter),
     ('FlowFlags', BitFieldU8Printer),
     ('IntrinsicWidths', ChildPrinter),
     ('PlacementInfo', ChildPrinter),
