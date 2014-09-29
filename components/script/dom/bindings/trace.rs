@@ -50,6 +50,8 @@ use http::headers::request::HeaderCollection as RequestHeaderCollection;
 use http::method::Method;
 use std::io::timer::Timer;
 use servo_msg::compositor_msg::ScriptListener;
+use servo_msg::constellation_msg::ConstellationChan;
+use layout_interface::{LayoutRPC, LayoutChan};
 
 impl<T: Reflectable> JSTraceable for JS<T> {
     fn trace(&self, trc: *mut JSTracer) {
@@ -165,7 +167,7 @@ impl<T: JSTraceable> JSTraceable for RefCell<T> {
 
 impl<T: JSTraceable> JSTraceable for Rc<T> {
     fn trace(&self, trc: *mut JSTracer) {
-        self.deref().trace(trc)
+        (**self).trace(trc)
     }
 }
 
@@ -228,6 +230,16 @@ impl<K: Eq+Hash+JSTraceable, V: JSTraceable> JSTraceable for HashMap<K, V> {
     }
 }
 
+impl<A: JSTraceable, B: JSTraceable> JSTraceable for (A, B) {
+    #[inline]
+    fn trace(&self, trc: *mut JSTracer) {
+        let (ref a, ref b) = *self;
+        a.trace(trc);
+        b.trace(trc);
+    }    
+}
+
+
 untraceable!(bool, f32, f64, String, Url)
 untraceable!(uint, u8, u16, u32, u64)
 untraceable!(int, i8, i16, i32, i64)
@@ -243,6 +255,8 @@ untraceable!(SubpageId, WindowSizeData, PipelineId)
 untraceable!(QuirksMode)
 untraceable!(Cx)
 untraceable!(ResponseHeaderCollection, RequestHeaderCollection, Method)
+untraceable!(ConstellationChan)
+untraceable!(LayoutChan)
 
 impl<'a> JSTraceable for &'a str {
     #[inline]
@@ -259,6 +273,13 @@ impl<A,B> JSTraceable for fn(A) -> B {
 }
 
 impl JSTraceable for Box<ScriptListener+'static> {
+    #[inline]
+    fn trace(&self, _: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+impl JSTraceable for Box<LayoutRPC+'static> {
     #[inline]
     fn trace(&self, _: *mut JSTracer) {
         // Do nothing

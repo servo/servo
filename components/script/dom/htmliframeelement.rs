@@ -107,7 +107,7 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
             subpage_id: subpage_id,
         }));
 
-        let ConstellationChan(ref chan) = *page.constellation_chan.deref();
+        let ConstellationChan(ref chan) = page.constellation_chan;
         chan.send(LoadIframeUrlMsg(url, page.id, subpage_id, sandboxed));
     }
 }
@@ -152,12 +152,12 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
     fn GetContentWindow(self) -> Option<Temporary<Window>> {
         self.size.get().and_then(|size| {
             let window = window_from_node(self).root();
-            let children = window.deref().page.children.deref().borrow();
+            let children = window.deref().page.children.borrow();
             let child = children.iter().find(|child| {
                 child.subpage_id.unwrap() == size.subpage_id
             });
             child.and_then(|page| {
-                page.frame.deref().borrow().as_ref().map(|frame| {
+                page.frame.borrow().as_ref().map(|frame| {
                     Temporary::new(frame.window.clone())
                 })
             })

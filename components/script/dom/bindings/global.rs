@@ -67,7 +67,7 @@ impl<'a> GlobalRef<'a> {
 
     pub fn resource_task(&self) -> ResourceTask {
         match *self {
-            Window(ref window) => window.page().resource_task.deref().clone(),
+            Window(ref window) => window.page().resource_task.clone(),
             Worker(ref worker) => worker.resource_task().clone(),
         }
     }
