@@ -7,8 +7,7 @@ pub use windowing;
 use compositor;
 use headless;
 pub use constellation::SendableFrameTree;
-use windowing::{ApplicationMethods, WindowMethods};
-use platform::Application;
+use windowing::WindowMethods;
 
 use azure::azure_hl::{SourceSurfaceMethods, Color};
 use geom::point::Point2D;
@@ -23,6 +22,7 @@ use servo_util::memory::MemoryProfilerChan;
 use servo_util::opts::Opts;
 use servo_util::time::TimeProfilerChan;
 use std::comm::{channel, Sender, Receiver};
+use std::rc::Rc;
 
 use url::Url;
 
@@ -183,28 +183,9 @@ pub enum Msg {
     LoadComplete(PipelineId, Url),
 }
 
-pub enum CompositorMode {
-    Windowed(Application),
-    Headless
-}
-
-pub struct CompositorTask {
-    pub mode: CompositorMode,
-}
+pub struct CompositorTask;
 
 impl CompositorTask {
-    fn new(is_headless: bool) -> CompositorTask {
-        let mode: CompositorMode = if is_headless {
-            Headless
-        } else {
-            Windowed(ApplicationMethods::new())
-        };
-
-        CompositorTask {
-            mode: mode
-        }
-    }
-
     /// Creates a graphics context. Platform-specific.
     ///
     /// FIXME(pcwalton): Probably could be less platform-specific, using the metadata abstraction.
@@ -217,24 +198,24 @@ impl CompositorTask {
         NativeCompositingGraphicsContext::new()
     }
 
-    pub fn create(opts: Opts,
+    pub fn create<Window: WindowMethods>(
+                  window: Option<Rc<Window>>,
+                  opts: Opts,
                   port: Receiver<Msg>,
                   constellation_chan: ConstellationChan,
                   time_profiler_chan: TimeProfilerChan,
                   memory_profiler_chan: MemoryProfilerChan) {
 
-        let compositor = CompositorTask::new(opts.headless);
-
-        match compositor.mode {
-            Windowed(ref app) => {
-                compositor::IOCompositor::create(app,
+        match window {
+            Some(window) => {
+                compositor::IOCompositor::create(window,
                                                  opts,
                                                  port,
                                                  constellation_chan.clone(),
                                                  time_profiler_chan,
                                                  memory_profiler_chan)
             }
-            Headless => {
+            None => {
                 headless::NullCompositor::create(port,
                                                  constellation_chan.clone(),
                                                  time_profiler_chan,

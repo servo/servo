@@ -33,6 +33,8 @@ extern crate url;
 #[cfg(not(test))]
 use compositing::{CompositorChan, CompositorTask, Constellation};
 #[cfg(not(test))]
+use compositing::windowing::WindowMethods;
+#[cfg(not(test))]
 use servo_msg::constellation_msg::{ConstellationChan, InitLoadUrlMsg};
 #[cfg(not(test))]
 use script::dom::bindings::codegen::RegisterBindings;
@@ -55,36 +57,12 @@ use green::GreenTaskBuilder;
 #[cfg(not(test))]
 use std::os;
 #[cfg(not(test))]
+use std::rc::Rc;
+#[cfg(not(test))]
 use std::task::TaskBuilder;
-#[cfg(not(test), target_os="android")]
-use std::string;
-
-#[cfg(not(test), target_os="android")]
-#[no_mangle]
-#[allow(dead_code)]
-pub extern "C" fn android_start(argc: int, argv: *const *const u8) -> int {
-    native::start(argc, argv, proc() {
-        let mut args: Vec<String> = vec!();
-        for i in range(0u, argc as uint) {
-            unsafe {
-                args.push(string::raw::from_buf(*argv.offset(i as int) as *const u8));
-            }
-        }
-
-        let opts = opts::from_cmdline_args(args.as_slice());
-        match opts {
-            Some(mut o) => {
-                // Always use CPU rendering on android.
-                o.cpu_painting = true;
-                run(o);
-            },
-            None => {}
-        }
-    })
-}
 
 #[cfg(not(test))]
-pub fn run(opts: opts::Opts) {
+pub fn run<Window: WindowMethods>(opts: opts::Opts, window: Option<Rc<Window>>) {
     ::servo_util::opts::set_experimental_enabled(opts.enable_experimental);
     RegisterBindings::RegisterProxyHandlers();
 
@@ -149,7 +127,8 @@ pub fn run(opts: opts::Opts) {
     let constellation_chan = result_port.recv();
 
     debug!("preparing to enter main loop");
-    CompositorTask::create(opts,
+    CompositorTask::create(window,
+                           opts,
                            compositor_port,
                            constellation_chan,
                            time_profiler_chan,

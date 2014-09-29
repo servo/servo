@@ -18,10 +18,8 @@ extern crate servo;
 extern crate azure;
 extern crate geom;
 extern crate gfx;
-#[cfg(not(target_os="android"))]
 extern crate glfw;
-#[cfg(target_os="android")]
-extern crate glut;
+extern crate glfw_app;
 extern crate js;
 extern crate layers;
 extern crate opengles;

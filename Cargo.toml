@@ -6,7 +6,7 @@ authors = ["The Servo Project Developers"]
 
 [lib]
 name = "servo"
-crate-type = ["rlib", "dylib"]
+crate-type = ["rlib"]
 
 [[bin]]
 name = "servo"
@@ -24,6 +24,8 @@ name = "contenttest"
 path = "tests/contenttest.rs"
 harness = false
 
+[features]
+default = ["glfw_app"]
 
 [dependencies.compositing]
 path = "components/compositing"
@@ -45,6 +47,10 @@ path = "components/layout"
 
 [dependencies.gfx]
 path = "components/gfx"
+
+[dependencies.glfw_app]
+path = "ports/glfw"
+optional = true
 
 [dependencies.url]
 git = "https://github.com/servo/rust-url"

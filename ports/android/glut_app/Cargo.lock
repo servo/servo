@@ -1,26 +1,14 @@
 [root]
-name = "embedding"
+name = "glut_app"
 version = "0.0.1"
 dependencies = [
- "azure 0.1.0 (git+https://github.com/servo/rust-azure#b357751c04a89a87e6ef1f0cebe5f20957dd112d)",
- "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics#6a9919f8a912cc67571b891ba198d5325964a104)",
- "core_text 0.1.0 (git+https://github.com/servo/rust-core-text#1ad11072b31657eeccaf4879c6e98723d488bd3d)",
- "devtools 0.0.1",
+ "alert 0.1.0 (git+https://github.com/servo/rust-alert#fdc24f13be8d8a2d15214ec228d166b3221b809e)",
+ "compositing 0.0.1",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#90add8d65273c8a46aa16d73959e29a51d0c282d)",
- "gfx 0.0.1",
- "glfw 0.0.1 (git+https://github.com/servo/glfw-rs?ref=servo#a15c2d04b8969aea653841d1d79e5fdf68de664b)",
- "glfw_app 0.0.1",
- "js 0.1.0 (git+https://github.com/servo/rust-mozjs#41fb0d80a5ed5614ca13a120cdb3281e599d4e04)",
+ "glut 0.0.1 (git+https://github.com/servo/rust-glut#01af0162ea0322ad1a40d6adb023a39813605949)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers#180d3ff2f28d239e32d01982c76be5c97d5763a8)",
  "msg 0.0.1",
- "net 0.0.1",
- "opengles 0.1.0 (git+https://github.com/servo/rust-opengles#6776e9c07feb149d34b087039ecf6b2c143e3afc)",
- "plugins 0.0.1",
- "png 0.1.0 (git+https://github.com/servo/rust-png#74418ffbf20e94b0d3bed4a9d004062a13342c79)",
- "script 0.0.1",
  "servo 0.0.1",
- "stb_image 0.1.0 (git+https://github.com/servo/rust-stb-image#f5022de4ad6bb474a03493d1f274dde9b0f1af0c)",
- "style 0.0.1",
  "util 0.0.1",
 ]
 
@@ -217,16 +205,11 @@ version = "3.0.4"
 source = "git+https://github.com/servo/glfw?ref=cargo-3.0.4#65a2b4721276589d9de24f6a9999a2db37286cae"
 
 [[package]]
-name = "glfw_app"
+name = "glut"
 version = "0.0.1"
+source = "git+https://github.com/servo/rust-glut#01af0162ea0322ad1a40d6adb023a39813605949"
 dependencies = [
- "alert 0.1.0 (git+https://github.com/servo/rust-alert#fdc24f13be8d8a2d15214ec228d166b3221b809e)",
- "compositing 0.0.1",
- "geom 0.1.0 (git+https://github.com/servo/rust-geom#90add8d65273c8a46aa16d73959e29a51d0c282d)",
- "glfw 0.0.1 (git+https://github.com/servo/glfw-rs?ref=servo#a15c2d04b8969aea653841d1d79e5fdf68de664b)",
- "layers 0.1.0 (git+https://github.com/servo/rust-layers#180d3ff2f28d239e32d01982c76be5c97d5763a8)",
- "msg 0.0.1",
- "util 0.0.1",
+ "opengles 0.1.0 (git+https://github.com/servo/rust-opengles#6776e9c07feb149d34b087039ecf6b2c143e3afc)",
 ]
 
 [[package]]
@@ -445,7 +428,6 @@ version = "0.0.1"
 dependencies = [
  "compositing 0.0.1",
  "gfx 0.0.1",
- "glfw_app 0.0.1",
  "layout 0.0.1",
  "msg 0.0.1",
  "net 0.0.1",

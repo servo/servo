@@ -10,7 +10,6 @@ use geom::size::TypedSize2D;
 use layers::geometry::DevicePixel;
 use servo_msg::compositor_msg::{ReadyState, RenderState};
 use servo_util::geometry::ScreenPx;
-use std::rc::Rc;
 
 pub enum MouseWindowEvent {
     MouseWindowClickEvent(uint, TypedPoint2D<DevicePixel, f32>),
@@ -54,14 +53,7 @@ pub enum WindowEvent {
     QuitWindowEvent,
 }
 
-/// Methods for an abstract Application.
-pub trait ApplicationMethods {
-    fn new() -> Self;
-}
-
-pub trait WindowMethods<A> {
-    /// Creates a new window.
-    fn new(app: &A, is_foreground: bool, size: TypedSize2D<DevicePixel, uint>) -> Rc<Self>;
+pub trait WindowMethods {
     /// Returns the size of the window in hardware pixels.
     fn framebuffer_size(&self) -> TypedSize2D<DevicePixel, uint>;
     /// Returns the size of the window in density-independent "px" units.

@@ -1,0 +1,30 @@
+[package]
+name = "glfw_app"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+
+[lib]
+name = "glfw_app"
+path = "lib.rs"
+
+[dependencies.alert]
+git = "https://github.com/servo/rust-alert"
+
+[dependencies.compositing]
+path = "../../components/compositing"
+
+[dependencies.geom]
+git = "https://github.com/servo/rust-geom"
+
+[dependencies.glfw]
+git = "https://github.com/servo/glfw-rs"
+branch = "servo"
+
+[dependencies.layers]
+git = "https://github.com/servo/rust-layers"
+
+[dependencies.msg]
+path = "../../components/msg"
+
+[dependencies.util]
+path = "../../components/util"
