@@ -4,7 +4,6 @@
 
 use dom::bindings::codegen::Bindings::HTMLAreaElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLAreaElementDerived;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, NodeCast};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
@@ -12,9 +11,7 @@ use dom::element::HTMLAreaElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, NodeHelpers, ElementNodeTypeId};
-use dom::virtualmethods::VirtualMethods;
 
-use servo_util::atom::Atom;
 use servo_util::str::DOMString;
 
 #[jstraceable]
@@ -40,39 +37,6 @@ impl HTMLAreaElement {
     pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLAreaElement> {
         let element = HTMLAreaElement::new_inherited(localName, document);
         Node::reflect_node(box element, document, HTMLAreaElementBinding::Wrap)
-    }
-}
-
-impl<'a> VirtualMethods for JSRef<'a, HTMLAreaElement> {
-    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
-        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
-        Some(htmlelement as &VirtualMethods)
-    }
-
-    fn after_set_attr(&self, name: &Atom, value: DOMString) {
-        match self.super_type() {
-            Some(ref s) => s.after_set_attr(name, value.clone()),
-            _ => (),
-        }
-
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
-        match name.as_slice() {
-            "href" => node.set_enabled_state(true),
-            _ => ()
-        }
-    }
-
-    fn before_remove_attr(&self, name: &Atom, value: DOMString) {
-        match self.super_type() {
-            Some(ref s) => s.before_remove_attr(name, value.clone()),
-            _ => (),
-        }
-
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
-        match name.as_slice() {
-            "href" => node.set_enabled_state(false),
-            _ => ()
-        }
     }
 }
 

@@ -5,7 +5,7 @@
 use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLLinkElementDerived;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
@@ -83,24 +83,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLLinkElement> {
                 if is_stylesheet(rel) {
                     self.handle_stylesheet_url(value.as_slice());
                 }
-
-                let node: JSRef<Node> = NodeCast::from_ref(*self);
-                node.set_enabled_state(true)
             }
             (_, _) => ()
-        }
-    }
-
-    fn before_remove_attr(&self, name: &Atom, value: DOMString) {
-        match self.super_type() {
-            Some(ref s) => s.before_remove_attr(name, value.clone()),
-            _ => (),
-        }
-
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
-        match name.as_slice() {
-            "href" => node.set_enabled_state(false),
-            _ => ()
         }
     }
 

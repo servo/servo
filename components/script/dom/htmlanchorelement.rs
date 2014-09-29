@@ -19,7 +19,6 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, NodeHelpers, ElementNodeTypeId};
 use dom::virtualmethods::VirtualMethods;
 
-use servo_util::atom::Atom;
 use servo_util::namespace::Null;
 use servo_util::str::DOMString;
 
@@ -76,32 +75,6 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLAnchorElement> {
     fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
         let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
-    }
-
-    fn after_set_attr(&self, name: &Atom, value: DOMString) {
-        match self.super_type() {
-            Some(ref s) => s.after_set_attr(name, value.clone()),
-            _ => (),
-        }
-
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
-        match name.as_slice() {
-            "href" => node.set_enabled_state(true),
-            _ => ()
-        }
-    }
-
-    fn before_remove_attr(&self, name: &Atom, value: DOMString) {
-        match self.super_type() {
-            Some(ref s) => s.before_remove_attr(name, value.clone()),
-            _ => (),
-        }
-
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
-        match name.as_slice() {
-            "href" => node.set_enabled_state(false),
-            _ => ()
-        }
     }
 
     fn handle_event(&self, event: JSRef<Event>) {
