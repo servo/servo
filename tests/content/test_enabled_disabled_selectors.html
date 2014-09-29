@@ -15,14 +15,12 @@
                     check_selector(elem, ":disabled", false);
                 }
 
-                // Anchor, Area and Link are :enabled with an href, but never :disabled.
+                // Anchor, Area and Link elements are no longer :enabled with an href.
                 list = ["a", "area", "link"];
                 for(i = 0; i < list.length; i++) {
                     elem = document.createElement(list[i]);
-                    check_selector(elem, ":enabled", false);
-                    check_selector(elem, ":disabled", false);
                     elem.setAttribute("href", "");
-                    check_selector(elem, ":enabled", true);
+                    check_selector(elem, ":enabled", false);
                     check_selector(elem, ":disabled", false);
                 }
 
