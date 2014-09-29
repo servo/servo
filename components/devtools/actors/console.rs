@@ -70,7 +70,7 @@ enum ConsoleMessageType {
 #[deriving(Encodable)]
 struct GetCachedMessagesReply {
     from: String,
-    messages: Vec<json::Object>,
+    messages: Vec<json::JsonObject>,
 }
 
 #[deriving(Encodable)]
@@ -111,7 +111,7 @@ impl Actor for ConsoleActor {
     fn handle_message(&self,
                       _registry: &ActorRegistry,
                       msg_type: &String,
-                      msg: &json::Object,
+                      msg: &json::JsonObject,
                       stream: &mut TcpStream) -> bool {
         match msg_type.as_slice() {
             "getCachedMessages" => {

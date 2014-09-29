@@ -14,31 +14,7 @@ from mach.decorators import (
     Command,
 )
 
-from servo.command_base import CommandBase, cd
-
-
-def host_triple():
-    os_type = subprocess.check_output(["uname", "-s"]).strip().lower()
-    if os_type == "linux":
-        os_type = "unknown-linux-gnu"
-    elif os_type == "darwin":
-        os_type = "apple-darwin"
-    elif os_type == "android":
-        os_type == "linux-androideabi"
-    else:
-        os_type == "unknown"
-
-    cpu_type = subprocess.check_output(["uname", "-m"]).strip().lower()
-    if cpu_type in ["i386", "i486", "i686", "i768", "x86"]:
-        cpu_type = "i686"
-    elif cpu_type in ["x86_64", "x86-64", "x64", "amd64"]:
-        cpu_type = "x86_64"
-    elif cpu_type == "arm":
-        cpu_type = "arm"
-    else:
-        cpu_type = "unknown"
-
-    return "%s-%s" % (cpu_type, os_type)
+from servo.command_base import CommandBase, cd, host_triple
 
 
 def download(desc, src, dst):
@@ -90,7 +66,8 @@ class MachCommands(CommandBase):
                      action='store_true',
                      help='Force download even if a snapshot already exists')
     def bootstrap_rustc(self, force=False):
-        rust_dir = path.join(self.context.topdir, "rust")
+        rust_dir = path.join(
+            self.context.topdir, "rust", *self.rust_snapshot_path().split("/"))
         if not force and path.exists(path.join(rust_dir, "bin", "rustc")):
             print("Snapshot Rust compiler already downloaded.", end=" ")
             print("Use |bootstrap_rust --force| to download again.")
@@ -98,13 +75,11 @@ class MachCommands(CommandBase):
 
         if path.isdir(rust_dir):
             shutil.rmtree(rust_dir)
-        os.mkdir(rust_dir)
+        os.makedirs(rust_dir)
 
-        filename = path.join(self.context.topdir, "rust-snapshot-hash")
-        snapshot_hash = open(filename).read().strip()
-        snapshot_path = "%s-%s.tar.gz" % (snapshot_hash, host_triple())
-        snapshot_url = "https://servo-rust.s3.amazonaws.com/%s" % snapshot_path
-        tgz_file = path.join(rust_dir, path.basename(snapshot_path))
+        snapshot_url = ("https://servo-rust.s3.amazonaws.com/%s.tar.gz"
+                        % self.rust_snapshot_path())
+        tgz_file = rust_dir + '.tar.gz'
 
         download("Rust snapshot", snapshot_url, tgz_file)
 

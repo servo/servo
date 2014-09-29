@@ -59,7 +59,7 @@ impl Actor for HighlighterActor {
     fn handle_message(&self,
                       _registry: &ActorRegistry,
                       msg_type: &String,
-                      _msg: &json::Object,
+                      _msg: &json::JsonObject,
                       stream: &mut TcpStream) -> bool {
         match msg_type.as_slice() {
             "showBoxModel" => {
@@ -217,7 +217,7 @@ impl Actor for WalkerActor {
     fn handle_message(&self,
                       registry: &ActorRegistry,
                       msg_type: &String,
-                      msg: &json::Object,
+                      msg: &json::JsonObject,
                       stream: &mut TcpStream) -> bool {
         match msg_type.as_slice() {
             "querySelector" => {
@@ -362,7 +362,7 @@ impl Actor for PageStyleActor {
     fn handle_message(&self,
                       registry: &ActorRegistry,
                       msg_type: &String,
-                      msg: &json::Object,
+                      msg: &json::JsonObject,
                       stream: &mut TcpStream) -> bool {
         match msg_type.as_slice() {
             "getApplied" => {
@@ -433,7 +433,7 @@ impl Actor for InspectorActor {
     fn handle_message(&self,
                       registry: &ActorRegistry,
                       msg_type: &String,
-                      _msg: &json::Object,
+                      _msg: &json::JsonObject,
                       stream: &mut TcpStream) -> bool {
         match msg_type.as_slice() {
             "getWalker" => {

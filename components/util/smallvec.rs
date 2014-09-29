@@ -47,7 +47,7 @@ impl<T> VecLike<T> for Vec<T> {
     }
 }
 
-trait SmallVecPrivate<T> {
+pub trait SmallVecPrivate<T> {
     unsafe fn set_len(&mut self, new_len: uint);
     unsafe fn set_cap(&mut self, new_cap: uint);
     fn data(&self, index: uint) -> *const T;

@@ -33,7 +33,7 @@ pub struct MediaQuery {
 
 pub enum MediaQueryType {
     All,  // Always true
-    MediaType(MediaType),
+    MediaType_(MediaType),
 }
 
 #[deriving(PartialEq)]
@@ -61,8 +61,8 @@ pub fn parse_media_rule(rule: AtRule, parent_rules: &mut Vec<CSSRule>,
     let mut rules = vec!();
     for rule in ErrorLoggerIterator(parse_rule_list(block.into_iter())) {
         match rule {
-            QualifiedRule(rule) => parse_style_rule(rule, &mut rules, namespaces, base_url),
-            AtRule(rule) => parse_nested_at_rule(
+            QualifiedRule_(rule) => parse_style_rule(rule, &mut rules, namespaces, base_url),
+            AtRule_(rule) => parse_nested_at_rule(
                 rule.name.as_slice().to_ascii_lower().as_slice(), rule, &mut rules, namespaces, base_url),
         }
     }
@@ -84,8 +84,8 @@ pub fn parse_media_query_list(input: &[ComponentValue]) -> MediaQueryList {
         let mq = match next {
             Some(&Ident(ref value)) => {
                 match value.as_slice().to_ascii_lower().as_slice() {
-                    "screen" => Some(MediaQuery{ media_type: MediaType(Screen) }),
-                    "print" => Some(MediaQuery{ media_type: MediaType(Print) }),
+                    "screen" => Some(MediaQuery{ media_type: MediaType_(Screen) }),
+                    "print" => Some(MediaQuery{ media_type: MediaType_(Print) }),
                     "all" => Some(MediaQuery{ media_type: All }),
                     _ => None
                 }
@@ -122,7 +122,7 @@ impl MediaQueryList {
     pub fn evaluate(&self, device: &Device) -> bool {
         self.media_queries.iter().any(|mq| {
             match mq.media_type {
-                MediaType(media_type) => media_type == device.media_type,
+                MediaType_(media_type) => media_type == device.media_type,
                 All => true,
             }
             // TODO: match Level 3 expressions

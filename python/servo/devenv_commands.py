@@ -33,3 +33,9 @@ class MachCommands(CommandBase):
         help="Command-line arguments to be passed through to rustc")
     def rustc(self, params):
         return subprocess.call(["rustc"] + params, env=self.build_env())
+
+    @Command('rust-root',
+             description='Print the path to the root of the Rust compiler',
+             category='devenv')
+    def rust_root(self):
+        print(self.config["tools"]["rust-root"])

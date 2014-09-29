@@ -502,7 +502,7 @@ pub mod longhands {
             pub use super::computed_as_specified as to_computed_value;
             pub mod computed_value {
                 #[deriving(PartialEq, Clone)]
-                pub enum Content {
+                pub enum ContentItem {
                     StringContent(String),
                 }
                 #[allow(non_camel_case_types)]
@@ -510,7 +510,7 @@ pub mod longhands {
                 pub enum T {
                     normal,
                     none,
-                    Content(Vec<Content>),
+                    Content(Vec<ContentItem>),
                 }
             }
             pub type SpecifiedValue = computed_value::T;
@@ -532,7 +532,7 @@ pub mod longhands {
                 let mut content = vec!();
                 for component_value in input.skip_whitespace() {
                     match component_value {
-                        &String(ref value)
+                        &QuotedString(ref value)
                         => content.push(StringContent(value.clone())),
                         _ => return Err(())  // invalid/unsupported value
                     }
@@ -546,7 +546,7 @@ pub mod longhands {
 
     ${new_style_struct("Background", is_inherited=False)}
     ${predefined_type("background-color", "CSSColor",
-                      "RGBA(RGBA { red: 0., green: 0., blue: 0., alpha: 0. }) /* transparent */")}
+                      "RGBAColor(RGBA { red: 0., green: 0., blue: 0., alpha: 0. }) /* transparent */")}
 
     <%self:single_component_value name="background-image">
             // The computed value is the same as the specified value.
@@ -697,7 +697,7 @@ pub mod longhands {
         pub fn parse_specified(input: &[ComponentValue], _base_url: &Url)
                                -> Result<DeclaredValue<SpecifiedValue>, ()> {
             match one_component_value(input).and_then(Color::parse) {
-                Ok(RGBA(rgba)) => Ok(SpecifiedValue(rgba)),
+                Ok(RGBAColor(rgba)) => Ok(SpecifiedValue(rgba)),
                 Ok(CurrentColor) => Ok(Inherit),
                 Err(()) => Err(()),
             }
@@ -738,7 +738,7 @@ pub mod longhands {
         pub fn parse_one_family<'a>(iter: ParserIter) -> Result<FontFamily, ()> {
             // TODO: avoid copying strings?
             let mut idents = match iter.next() {
-                Some(&String(ref value)) => return Ok(FamilyName(value.clone())),
+                Some(&QuotedString(ref value)) => return Ok(FamilyName(value.clone())),
                 Some(&Ident(ref value)) => {
 //                    match value.as_slice().to_ascii_lower().as_slice() {
 //                        "serif" => return Ok(Serif),
@@ -1461,7 +1461,7 @@ pub fn parse_property_declaration_list<I: Iterator<Node>>(input: I, base_url: &U
         match item {
             DeclAtRule(rule) => log_css_error(
                 rule.location, format!("Unsupported at-rule in declaration list: @{:s}", rule.name).as_slice()),
-            Declaration(Declaration{ location: l, name: n, value: v, important: i}) => {
+            Declaration_(Declaration{ location: l, name: n, value: v, important: i}) => {
                 // TODO: only keep the last valid declaration for a given name.
                 let (list, seen) = if i {
                     (&mut important_declarations, &mut important_seen)
@@ -1663,7 +1663,7 @@ impl ComputedValues {
     #[inline]
     pub fn resolve_color(&self, color: computed::CSSColor) -> RGBA {
         match color {
-            RGBA(rgba) => rgba,
+            RGBAColor(rgba) => rgba,
             CurrentColor => self.get_color().color,
         }
     }

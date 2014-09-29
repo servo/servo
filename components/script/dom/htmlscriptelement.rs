@@ -94,7 +94,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
                     },
                     Some(ref s) => {
                         debug!("script language={:s}", *s);
-                        SCRIPT_JS_MIMES.contains(&"text/".to_string().append(s.as_slice()).as_slice())
+                        SCRIPT_JS_MIMES.contains(&format!("text/{}", s).as_slice())
                     },
                     None => {
                         debug!("no script type or language, inferring js");

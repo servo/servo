@@ -9,8 +9,6 @@ build = "make -f makefile.cargo"
 name = "style"
 path = "lib.rs"
 
-doc = false
-
 [dependencies.plugins]
 path = "../plugins"
 

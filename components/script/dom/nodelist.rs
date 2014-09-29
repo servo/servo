@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::NodeListBinding;
 use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
-use dom::bindings::global::Window;
+use dom::bindings::global;
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::node::{Node, NodeHelpers};
@@ -35,7 +35,7 @@ impl NodeList {
     pub fn new(window: JSRef<Window>,
                list_type: NodeListType) -> Temporary<NodeList> {
         reflect_dom_object(box NodeList::new_inherited(list_type),
-                           &Window(window), NodeListBinding::Wrap)
+                           &global::Window(window), NodeListBinding::Wrap)
     }
 
     pub fn new_simple_list(window: JSRef<Window>, elements: Vec<JSRef<Node>>) -> Temporary<NodeList> {

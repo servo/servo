@@ -12,7 +12,7 @@ use dom::bindings::codegen::InheritTypes::{HTMLElementDerived, HTMLBodyElementDe
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::{Element, ElementTypeId, HTMLElementTypeId};
+use dom::element::{Element, ElementTypeId, ElementTypeId_, HTMLElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, NodeTargetTypeId};
 use dom::node::{Node, ElementNodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
@@ -30,7 +30,7 @@ pub struct HTMLElement {
 impl HTMLElementDerived for EventTarget {
     fn is_htmlelement(&self) -> bool {
         match self.type_id {
-            NodeTargetTypeId(ElementNodeTypeId(ElementTypeId)) => false,
+            NodeTargetTypeId(ElementNodeTypeId(ElementTypeId_)) => false,
             NodeTargetTypeId(ElementNodeTypeId(_)) => true,
             _ => false
         }
