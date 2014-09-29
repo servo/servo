@@ -34,7 +34,8 @@ pub enum Error {
     Security,
     Network,
     Abort,
-    Timeout
+    Timeout,
+    InvalidNodeTypeError,
 }
 
 /// The return type for IDL operations that can throw DOM exceptions.
