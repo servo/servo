@@ -456,6 +456,7 @@ impl IOCompositor {
 
         match frame_rect {
             Some(ref frame_rect) => {
+                *root_layer.masks_to_bounds.borrow_mut() = true;
                 *root_layer.bounds.borrow_mut() = frame_rect * self.device_pixels_per_page_px();
             }
             None => {}
