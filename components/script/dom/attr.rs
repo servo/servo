@@ -16,8 +16,6 @@ use dom::virtualmethods::vtable_for;
 
 use devtools_traits::AttrInfo;
 use servo_util::atom::Atom;
-use servo_util::namespace;
-use servo_util::namespace::Namespace;
 use servo_util::str::{DOMString, split_html_space_chars};
 use std::cell::{Ref, RefCell};
 use std::mem;
@@ -80,7 +78,7 @@ pub struct Attr {
     local_name: Atom,
     value: Traceable<RefCell<AttrValue>>,
     pub name: Atom,
-    pub namespace: Namespace,
+    pub namespace: Atom,
     pub prefix: Option<DOMString>,
 
     /// the element that owns this attribute.
@@ -95,7 +93,7 @@ impl Reflectable for Attr {
 
 impl Attr {
     fn new_inherited(local_name: Atom, value: AttrValue,
-                     name: Atom, namespace: Namespace,
+                     name: Atom, namespace: Atom,
                      prefix: Option<DOMString>, owner: JSRef<Element>) -> Attr {
         Attr {
             reflector_: Reflector::new(),
@@ -109,7 +107,7 @@ impl Attr {
     }
 
     pub fn new(window: JSRef<Window>, local_name: Atom, value: AttrValue,
-               name: Atom, namespace: Namespace,
+               name: Atom, namespace: Atom,
                prefix: Option<DOMString>, owner: JSRef<Element>) -> Temporary<Attr> {
         reflect_dom_object(box Attr::new_inherited(local_name, value, name, namespace, prefix, owner),
                            &Window(window), AttrBinding::Wrap)
@@ -136,7 +134,7 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
     }
 
     fn GetNamespaceURI(self) -> Option<DOMString> {
-        match self.namespace.to_str() {
+        match self.namespace.as_slice() {
             "" => None,
             url => Some(url.to_string()),
         }
@@ -158,7 +156,7 @@ impl<'a> AttrHelpers<'a> for JSRef<'a, Attr> {
     fn set_value(self, set_type: AttrSettingType, value: AttrValue) {
         let owner = self.owner.root();
         let node: JSRef<Node> = NodeCast::from_ref(*owner);
-        let namespace_is_null = self.namespace == namespace::Null;
+        let namespace_is_null = self.namespace == satom!("");
 
         match set_type {
             ReplacedAttr => {
@@ -190,7 +188,7 @@ impl<'a> AttrHelpers<'a> for JSRef<'a, Attr> {
 
     fn summarize(self) -> AttrInfo {
         AttrInfo {
-            namespace: self.namespace.to_str().to_string(),
+            namespace: self.namespace.as_slice().to_string(),
             name: self.Name(),
             value: self.Value(),
         }

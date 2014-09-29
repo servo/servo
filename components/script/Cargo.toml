@@ -57,3 +57,9 @@ git = "https://github.com/servo/rust-mozjs"
 
 [dependencies.url]
 git = "https://github.com/servo/rust-url"
+
+[dependencies.string_cache]
+git = "https://github.com/servo/string-cache"
+
+[dependencies.string_cache_macros]
+git = "https://github.com/servo/string-cache"

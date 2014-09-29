@@ -29,6 +29,11 @@ extern crate "time" as std_time;
 extern crate string_cache;
 extern crate url;
 
+#[phase(plugin)]
+extern crate string_cache_macros;
+#[phase(plugin)]
+extern crate "plugins" as servo_plugins;
+
 pub mod atom;
 pub mod bloom;
 pub mod cache;
@@ -37,7 +42,6 @@ pub mod fnv;
 pub mod geometry;
 pub mod logical_geometry;
 pub mod memory;
-pub mod namespace;
 pub mod opts;
 pub mod range;
 pub mod smallvec;
@@ -48,6 +52,11 @@ pub mod tid;
 pub mod time;
 pub mod vec;
 pub mod workqueue;
+
+// for macros
+pub mod servo_util {
+    pub use atom;
+}
 
 pub fn breakpoint() {
     unsafe { ::std::intrinsics::breakpoint() };

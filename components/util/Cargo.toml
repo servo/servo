@@ -7,6 +7,9 @@ authors = ["The Servo Project Developers"]
 name = "util"
 path = "lib.rs"
 
+[dependencies.plugins]
+path = "../plugins"
+
 [dependencies.azure]
 git = "https://github.com/servo/rust-azure"
 
@@ -17,6 +20,9 @@ git = "https://github.com/servo/rust-geom"
 path = "../../support/rust-task_info"
 
 [dependencies.string_cache]
+git = "https://github.com/servo/string-cache"
+
+[dependencies.string_cache_macros]
 git = "https://github.com/servo/string-cache"
 
 [dependencies.url]

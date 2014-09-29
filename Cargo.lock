@@ -287,6 +287,8 @@ dependencies = [
  "plugins 0.0.1",
  "script 0.0.1",
  "script_traits 0.0.1",
+ "string_cache 0.0.0 (git+https://github.com/servo/string-cache#b348bd00cc8991e1f25749be077c5bd9cec019bb)",
+ "string_cache_macros 0.0.0 (git+https://github.com/servo/string-cache#b348bd00cc8991e1f25749be077c5bd9cec019bb)",
  "style 0.0.1",
  "url 0.1.0 (git+https://github.com/servo/rust-url#bfdf809365600a7941a77524f9bb065886de3379)",
  "util 0.0.1",
@@ -397,6 +399,8 @@ dependencies = [
  "net 0.0.1",
  "plugins 0.0.1",
  "script_traits 0.0.1",
+ "string_cache 0.0.0 (git+https://github.com/servo/string-cache#b348bd00cc8991e1f25749be077c5bd9cec019bb)",
+ "string_cache_macros 0.0.0 (git+https://github.com/servo/string-cache#b348bd00cc8991e1f25749be077c5bd9cec019bb)",
  "style 0.0.1",
  "url 0.1.0 (git+https://github.com/servo/rust-url#bfdf809365600a7941a77524f9bb065886de3379)",
  "util 0.0.1",
@@ -459,6 +463,8 @@ dependencies = [
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#50a294fd997f0c6eb43e9a58ad6e227fdc2a4692)",
  "lazy_static 0.1.0 (git+https://github.com/Kimundi/lazy-static.rs#e62a65372f1dd9019e37eb9381d819edff80e360)",
  "plugins 0.0.1",
+ "string_cache 0.0.0 (git+https://github.com/servo/string-cache#b348bd00cc8991e1f25749be077c5bd9cec019bb)",
+ "string_cache_macros 0.0.0 (git+https://github.com/servo/string-cache#b348bd00cc8991e1f25749be077c5bd9cec019bb)",
  "url 0.1.0 (git+https://github.com/servo/rust-url#bfdf809365600a7941a77524f9bb065886de3379)",
  "util 0.0.1",
 ]
@@ -481,7 +487,9 @@ version = "0.0.1"
 dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure#b357751c04a89a87e6ef1f0cebe5f20957dd112d)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#50a294fd997f0c6eb43e9a58ad6e227fdc2a4692)",
+ "plugins 0.0.1",
  "string_cache 0.0.0 (git+https://github.com/servo/string-cache#b348bd00cc8991e1f25749be077c5bd9cec019bb)",
+ "string_cache_macros 0.0.0 (git+https://github.com/servo/string-cache#b348bd00cc8991e1f25749be077c5bd9cec019bb)",
  "task_info 0.0.1",
  "url 0.1.0 (git+https://github.com/servo/rust-url#bfdf809365600a7941a77524f9bb065886de3379)",
 ]

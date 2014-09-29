@@ -18,7 +18,6 @@ use dom::node::{Node, ElementNodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 
 use servo_util::atom::Atom;
-use servo_util::namespace;
 use servo_util::str::DOMString;
 
 #[jstraceable]
@@ -40,7 +39,7 @@ impl HTMLElementDerived for EventTarget {
 impl HTMLElement {
     pub fn new_inherited(type_id: ElementTypeId, tag_name: DOMString, document: JSRef<Document>) -> HTMLElement {
         HTMLElement {
-            element: Element::new_inherited(type_id, tag_name, namespace::HTML, None, document)
+            element: Element::new_inherited(type_id, tag_name, sns!(HTML), None, document)
         }
     }
 

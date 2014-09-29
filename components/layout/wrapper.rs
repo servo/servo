@@ -49,8 +49,6 @@ use script::dom::text::Text;
 use script::layout_interface::LayoutChan;
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use servo_util::atom::Atom;
-use servo_util::namespace::Namespace;
-use servo_util::namespace;
 use servo_util::str::is_whitespace;
 use std::cell::{RefCell, Ref, RefMut};
 use std::kinds::marker::ContravariantLifetime;
@@ -396,12 +394,12 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
     }
 
     #[inline]
-    fn get_namespace<'a>(&'a self) -> &'a Namespace {
+    fn get_namespace<'a>(&'a self) -> &'a Atom {
         &self.element.namespace
     }
 
     #[inline]
-    fn get_attr(&self, namespace: &Namespace, name: &str) -> Option<&'le str> {
+    fn get_attr(&self, namespace: &Atom, name: &str) -> Option<&'le str> {
         unsafe { self.element.get_attr_val_for_layout(namespace, name) }
     }
 
@@ -413,7 +411,7 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
             ElementNodeTypeId(HTMLAnchorElementTypeId) |
             ElementNodeTypeId(HTMLAreaElementTypeId) |
             ElementNodeTypeId(HTMLLinkElementTypeId) => {
-                unsafe { self.element.get_attr_val_for_layout(&namespace::Null, "href") }
+                unsafe { self.element.get_attr_val_for_layout(&satom!(""), "href") }
             }
             _ => None,
         }
@@ -427,7 +425,7 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
 
     #[inline]
     fn get_id(&self) -> Option<Atom> {
-        unsafe { self.element.get_attr_atom_for_layout(&namespace::Null, "id") }
+        unsafe { self.element.get_attr_atom_for_layout(&satom!(""), "id") }
     }
 
     fn get_disabled_state(&self) -> bool {
@@ -791,7 +789,7 @@ pub struct ThreadSafeLayoutElement<'le> {
 
 impl<'le> ThreadSafeLayoutElement<'le> {
     #[inline]
-    pub fn get_attr(&self, namespace: &Namespace, name: &str) -> Option<&'le str> {
+    pub fn get_attr(&self, namespace: &Atom, name: &str) -> Option<&'le str> {
         unsafe { self.element.get_attr_val_for_layout(namespace, name) }
     }
 }

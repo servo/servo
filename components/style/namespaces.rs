@@ -4,12 +4,12 @@
 
 use cssparser::ast::*;
 use std::collections::hashmap::HashMap;
-use servo_util::namespace::Namespace;
+use servo_util::atom::Atom;
 use errors::log_css_error;
 
 pub struct NamespaceMap {
-    pub default: Option<Namespace>,
-    pub prefix_map: HashMap<String, Namespace>,
+    pub default: Option<Atom>,
+    pub prefix_map: HashMap<String, Atom>,
 }
 
 
@@ -30,7 +30,7 @@ pub fn parse_namespace_rule(rule: AtRule, namespaces: &mut NamespaceMap) {
     );
     if rule.block.is_some() { syntax_error!() }
     let mut prefix: Option<String> = None;
-    let mut ns: Option<Namespace> = None;
+    let mut ns: Option<Atom> = None;
     let mut iter = rule.prelude.move_skip_whitespace();
     for component_value in iter {
         match component_value {
@@ -40,7 +40,7 @@ pub fn parse_namespace_rule(rule: AtRule, namespaces: &mut NamespaceMap) {
             },
             URL(value) | String(value) => {
                 if ns.is_some() { syntax_error!() }
-                ns = Some(Namespace::from_str(Some(value)));
+                ns = Some(Atom::from_slice(value.as_slice()));
                 break
             },
             _ => syntax_error!(),
