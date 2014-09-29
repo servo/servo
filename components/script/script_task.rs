@@ -356,9 +356,9 @@ impl ScriptTask {
         bindings::init::init((*js_runtime).ptr);
         unsafe {
             JS_AddExtraGCRootsTracer((*js_runtime).ptr, Some(trace_collections),
-                                     RootedCollections.get().get_ref().deref() as *const _ as *mut _);
+                                     RootedCollections.get().as_ref().unwrap().deref() as *const _ as *mut _);
             JS_AddExtraGCRootsTracer((*js_runtime).ptr, Some(trace_refcounted_objects),
-                                     LiveReferences.get().get_ref().deref() as *const _ as *mut _);
+                                     LiveReferences.get().as_ref().unwrap().deref() as *const _ as *mut _);
         }
 
         // Unconstrain the runtime's threshold on nominal heap size, to avoid
@@ -398,7 +398,7 @@ impl ScriptTask {
 
     /// Handle incoming control messages.
     fn handle_msgs(&self) -> bool {
-        let cx = self.js_context.borrow().get_ref().deref().ptr;
+        let cx = self.js_context.borrow().as_ref().unwrap().deref().ptr;
         let mut _ar = Some(JSAutoRequest::new(cx));
 
         let roots = RootCollection::new(self.get_cx());
