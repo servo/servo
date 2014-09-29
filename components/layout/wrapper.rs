@@ -667,7 +667,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     #[inline(always)]
     pub fn borrow_layout_data<'a>(&'a self) -> Ref<'a,Option<LayoutDataWrapper>> {
         unsafe {
-            mem::transmute(self.get().layout_data.deref().borrow())
+            mem::transmute(self.get().layout_data.borrow())
         }
     }
 
@@ -675,7 +675,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     #[inline(always)]
     pub fn mutate_layout_data<'a>(&'a self) -> RefMut<'a,Option<LayoutDataWrapper>> {
         unsafe {
-            mem::transmute(self.get().layout_data.deref().borrow_mut())
+            mem::transmute(self.get().layout_data.borrow_mut())
         }
     }
 
