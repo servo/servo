@@ -11,7 +11,7 @@ use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, EventCast, ElementCast};
 use dom::bindings::conversions;
 use dom::bindings::conversions::{FromJSValConvertible, Empty};
-use dom::bindings::global::Window;
+use dom::bindings::global;
 use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, OptionalSettable};
 use dom::bindings::js::OptionalRootable;
 use dom::bindings::trace::JSTraceable;
@@ -514,7 +514,7 @@ impl ScriptTask {
     fn handle_evaluate_js(&self, pipeline: PipelineId, eval: String, reply: Sender<EvaluateJSReply>) {
         let page = get_page(&*self.page.borrow(), pipeline);
         let frame = page.frame();
-        let window = frame.get_ref().window.root();
+        let window = frame.as_ref().unwrap().window.root();
         let cx = window.get_cx();
         let rval = window.evaluate_js_with_result(eval.as_slice());
 
@@ -537,7 +537,7 @@ impl ScriptTask {
     fn handle_get_root_node(&self, pipeline: PipelineId, reply: Sender<NodeInfo>) {
         let page = get_page(&*self.page.borrow(), pipeline);
         let frame = page.frame();
-        let document = frame.get_ref().document.root();
+        let document = frame.as_ref().unwrap().document.root();
 
         let node: JSRef<Node> = NodeCast::from_ref(*document);
         reply.send(node.summarize());
@@ -546,7 +546,7 @@ impl ScriptTask {
     fn handle_get_document_element(&self, pipeline: PipelineId, reply: Sender<NodeInfo>) {
         let page = get_page(&*self.page.borrow(), pipeline);
         let frame = page.frame();
-        let document = frame.get_ref().document.root();
+        let document = frame.as_ref().unwrap().document.root();
         let document_element = document.GetDocumentElement().root().unwrap();
 
         let node: JSRef<Node> = NodeCast::from_ref(*document_element);
@@ -556,7 +556,7 @@ impl ScriptTask {
     fn find_node_by_unique_id(&self, pipeline: PipelineId, node_id: String) -> Temporary<Node> {
         let page = get_page(&*self.page.borrow(), pipeline);
         let frame = page.frame();
-        let document = frame.get_ref().document.root();
+        let document = frame.as_ref().unwrap().document.root();
         let node: JSRef<Node> = NodeCast::from_ref(*document);
 
         for candidate in node.traverse_preorder() {
@@ -810,7 +810,7 @@ impl ScriptTask {
 
         // Receive the JavaScript scripts.
         assert!(js_scripts.is_some());
-        let js_scripts = js_scripts.take_unwrap();
+        let js_scripts = js_scripts.take().unwrap();
         debug!("js_scripts: {:?}", js_scripts);
 
         with_compartment((**cx).ptr, window.reflector().get_jsobject(), || {
@@ -836,7 +836,7 @@ impl ScriptTask {
         // We have no concept of a document loader right now, so just dispatch the
         // "load" event as soon as we've finished executing all scripts parsed during
         // the initial load.
-        let event = Event::new(&Window(*window), "load".to_string(), false, false).root();
+        let event = Event::new(&global::Window(*window), "load".to_string(), false, false).root();
         let doctarget: JSRef<EventTarget> = EventTargetCast::from_ref(*document);
         let wintarget: JSRef<EventTarget> = EventTargetCast::from_ref(*window);
         let _ = wintarget.dispatch_event_with_target(Some(doctarget), *event);
@@ -940,7 +940,7 @@ impl ScriptTask {
                                     Some(ref frame) => {
                                         let window = frame.window.root();
                                         let event =
-                                            Event::new(&Window(*window),
+                                            Event::new(&global::Window(*window),
                                                        "click".to_string(),
                                                        true, true).root();
                                         let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(node);

@@ -6,7 +6,8 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestMethods;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType;
-use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseTypeValues::{_empty, Document, Json, Text};
+use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseTypeValues;
+use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseTypeValues::{_empty, Json, Text};
 use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast, XMLHttpRequestDerived};
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult, Fallible, InvalidState, InvalidAccess};
@@ -384,8 +385,8 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
                     // So this unsafe block should never fail
 
                     let mut buf = h.header_value();
-                    buf.push_bytes(&[0x2C, 0x20]);
-                    buf.push_bytes(value.as_slice());
+                    buf.as_mut_vec().push_all(&[0x2C, 0x20]);
+                    buf.as_mut_vec().push_all(value.as_slice());
                     value = ByteString::new(buf.container_into_owned_bytes());
 
                 }
@@ -612,7 +613,8 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
     }
     fn SetResponseType(self, response_type: XMLHttpRequestResponseType) -> ErrorResult {
         match self.global {
-            WorkerField(_) if response_type == Document => return Ok(()),
+            WorkerField(_) if response_type == XMLHttpRequestResponseTypeValues::Document
+            => return Ok(()),
             _ => {}
         }
         match self.ready_state.deref().get() {

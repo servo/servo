@@ -39,7 +39,7 @@ pub fn iter_font_face_rules_inner(rules: &[CSSRule], callback: |family: &str, so
 }
 
 enum Source {
-    UrlSource(UrlSource),
+    UrlSource_(UrlSource),
     LocalSource(String),
 }
 
@@ -74,7 +74,7 @@ pub fn parse_font_face_rule(rule: AtRule, parent_rules: &mut Vec<CSSRule>, base_
         match item {
             DeclAtRule(rule) => log_css_error(
                 rule.location, format!("Unsupported at-rule in declaration list: @{:s}", rule.name).as_slice()),
-            Declaration(Declaration{ location, name, value, important }) => {
+            Declaration_(Declaration{ location, name, value, important }) => {
                 if important {
                     log_css_error(location, "!important is not allowed on @font-face descriptors");
                     continue
@@ -120,7 +120,7 @@ pub fn parse_font_face_rule(rule: AtRule, parent_rules: &mut Vec<CSSRule>, base_
 /// local() is not supported yet
 fn parse_one_url_src(iter: ParserIter, base_url: &Url) -> Result<UrlSource, ()> {
     match parse_one_src(iter, base_url) {
-        Ok(UrlSource(source)) => Ok(source),
+        Ok(UrlSource_(source)) => Ok(source),
         _ => Err(())
     }
 }
@@ -162,7 +162,7 @@ fn parse_one_src(iter: ParserIter, base_url: &Url) -> Result<Source, ()> {
         None => vec![],
     };
 
-    Ok(UrlSource(UrlSource {
+    Ok(UrlSource_(UrlSource {
         url: url,
         format_hints: format_hints,
     }))
@@ -171,7 +171,7 @@ fn parse_one_src(iter: ParserIter, base_url: &Url) -> Result<Source, ()> {
 
 fn parse_one_format(iter: ParserIter) -> Result<String, ()> {
     match iter.next() {
-        Some(&String(ref value)) => {
+        Some(&QuotedString(ref value)) => {
             if iter.next().is_none() {
                 Ok(value.clone())
             } else {

@@ -23,7 +23,7 @@ use dom::bindings::codegen::InheritTypes::HTMLStyleElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLTextAreaElementCast;
 use dom::bindings::js::JSRef;
 use dom::element::Element;
-use dom::element::ElementTypeId;
+use dom::element::ElementTypeId_;
 use dom::element::HTMLAnchorElementTypeId;
 use dom::element::HTMLAreaElementTypeId;
 use dom::element::HTMLBodyElementTypeId;
@@ -204,7 +204,7 @@ pub fn vtable_for<'a>(node: &'a JSRef<'a, Node>) -> &'a VirtualMethods + 'a {
             let element: &'a JSRef<'a, HTMLTextAreaElement> = HTMLTextAreaElementCast::to_borrowed_ref(node).unwrap();
             element as &'a VirtualMethods + 'a
         }
-        ElementNodeTypeId(ElementTypeId) => {
+        ElementNodeTypeId(ElementTypeId_) => {
             let element: &'a JSRef<'a, Element> = ElementCast::to_borrowed_ref(node).unwrap();
             element as &'a VirtualMethods + 'a
         }

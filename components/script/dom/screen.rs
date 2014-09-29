@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::ScreenBinding;
 use dom::bindings::codegen::Bindings::ScreenBinding::ScreenMethods;
-use dom::bindings::global::Window;
+use dom::bindings::global;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::window::Window;
@@ -24,7 +24,7 @@ impl Screen {
 
     pub fn new(window: JSRef<Window>) -> Temporary<Screen> {
         reflect_dom_object(box Screen::new_inherited(),
-                           &Window(window),
+                           &global::Window(window),
                            ScreenBinding::Wrap)
     }
 }

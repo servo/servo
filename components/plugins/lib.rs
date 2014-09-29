@@ -15,7 +15,7 @@ extern crate sync;
 
 use rustc::lint::LintPassObject;
 use rustc::plugin::Registry;
-use syntax::ext::base::ItemDecorator;
+use syntax::ext::base::Decorator;
 
 use syntax::parse::token::intern;
 
@@ -27,6 +27,6 @@ mod jstraceable;
 pub fn plugin_registrar(reg: &mut Registry) {
     reg.register_lint_pass(box lints::TransmutePass as LintPassObject);
     reg.register_lint_pass(box lints::UnrootedPass as LintPassObject);
-    reg.register_syntax_extension(intern("jstraceable"), ItemDecorator(box jstraceable::expand_jstraceable))
+    reg.register_syntax_extension(intern("jstraceable"), Decorator(box jstraceable::expand_jstraceable))
 }
 

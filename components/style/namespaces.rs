@@ -38,7 +38,7 @@ pub fn parse_namespace_rule(rule: AtRule, namespaces: &mut NamespaceMap) {
                 if prefix.is_some() { syntax_error!() }
                 prefix = Some(value);
             },
-            URL(value) | String(value) => {
+            URL(value) | QuotedString(value) => {
                 if ns.is_some() { syntax_error!() }
                 ns = Some(Namespace::from_str(Some(value)));
                 break

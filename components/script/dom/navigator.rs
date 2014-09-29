@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::NavigatorBinding;
 use dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
-use dom::bindings::global::Window;
+use dom::bindings::global;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::navigatorinfo::NavigatorInfo;
@@ -26,7 +26,7 @@ impl Navigator {
 
     pub fn new(window: JSRef<Window>) -> Temporary<Navigator> {
         reflect_dom_object(box Navigator::new_inherited(),
-                           &Window(window),
+                           &global::Window(window),
                            NavigatorBinding::Wrap)
     }
 }

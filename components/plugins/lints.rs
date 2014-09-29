@@ -54,7 +54,7 @@ fn lint_unrooted_ty(cx: &Context, ty: &ast::Ty, warning: &str) {
         ast::TyPtr(ast::MutTy { ty: ref t, ..}) | ast::TyRptr(_, ast::MutTy { ty: ref t, ..}) => lint_unrooted_ty(cx, &**t, warning),
         ast::TyPath(_, _, id) => {
                 match cx.tcx.def_map.borrow().get_copy(&id) {
-                    def::DefTy(def_id) => {
+                    def::DefTy(def_id, _) => {
                         if ty::has_attr(cx.tcx, def_id, "must_root") {
                             cx.span_lint(UNROOTED_MUST_ROOT, ty.span, warning);
                         }

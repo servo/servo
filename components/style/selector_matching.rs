@@ -204,7 +204,7 @@ impl SelectorMap {
         }
 
         match SelectorMap::get_local_name(&rule) {
-            Some(LocalNameSelector { name, lower_name }) => {
+            Some(LocalName { name, lower_name }) => {
                 self.local_name_hash.find_push(name, rule.clone());
                 self.lower_local_name_hash.find_push(lower_name, rule);
                 return;
@@ -244,7 +244,7 @@ impl SelectorMap {
     }
 
     /// Retrieve the name if it is a type selector, or None otherwise.
-    fn get_local_name(rule: &Rule) -> Option<LocalNameSelector> {
+    fn get_local_name(rule: &Rule) -> Option<LocalName> {
         let simple_selector_sequence = &rule.selector.simple_selectors;
         for ss in simple_selector_sequence.iter() {
             match *ss {
@@ -579,7 +579,7 @@ fn can_fast_reject<'a, E: TElement<'a>, N: TNode<'a, E>>(
 
         for ss in selector.simple_selectors.iter() {
             match *ss {
-                LocalNameSelector(LocalNameSelector { ref name, ref lower_name })  => {
+                LocalNameSelector(LocalName { ref name, ref lower_name })  => {
                     if bf.definitely_excludes(name)
                     && bf.definitely_excludes(lower_name) {
                         return Some(NotMatchedGlobally);
@@ -693,7 +693,7 @@ pub fn matches_simple_selector<'a, E:TElement<'a>,
                            shareable: &mut bool)
                            -> bool {
     match *selector {
-        LocalNameSelector(LocalNameSelector { ref name, ref lower_name }) => {
+        LocalNameSelector(LocalName { ref name, ref lower_name }) => {
             let name = if element.is_html_element_in_html_document() { lower_name } else { name };
             let element = element.as_element();
             element.get_local_name() == name
@@ -1000,7 +1000,7 @@ mod tests {
     use servo_util::atom::Atom;
     use sync::Arc;
     use super::{DeclarationBlock, Rule, SelectorMap};
-    use selectors::LocalNameSelector;
+    use selectors::LocalName;
 
     /// Helper method to get some Rules from selector strings.
     /// Each sublist of the result contains the Rules for one StyleRule.
@@ -1053,7 +1053,7 @@ mod tests {
         let rules_list = get_mock_rules(["img.foo", "#top", "IMG", "ImG"]);
         let check = |i, names: Option<(&str, &str)>| {
             assert!(SelectorMap::get_local_name(&rules_list[i][0])
-                    == names.map(|(name, lower_name)| LocalNameSelector {
+                    == names.map(|(name, lower_name)| LocalName {
                             name: Atom::from_slice(name),
                             lower_name: Atom::from_slice(lower_name) }))
         };

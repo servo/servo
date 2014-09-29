@@ -19,6 +19,30 @@ def cd(new_path):
         os.chdir(previous_path)
 
 
+def host_triple():
+    os_type = subprocess.check_output(["uname", "-s"]).strip().lower()
+    if os_type == "linux":
+        os_type = "unknown-linux-gnu"
+    elif os_type == "darwin":
+        os_type = "apple-darwin"
+    elif os_type == "android":
+        os_type == "linux-androideabi"
+    else:
+        os_type == "unknown"
+
+    cpu_type = subprocess.check_output(["uname", "-m"]).strip().lower()
+    if cpu_type in ["i386", "i486", "i686", "i768", "x86"]:
+        cpu_type = "i686"
+    elif cpu_type in ["x86_64", "x86-64", "x64", "amd64"]:
+        cpu_type = "x86_64"
+    elif cpu_type == "arm":
+        cpu_type = "arm"
+    else:
+        cpu_type = "unknown"
+
+    return "%s-%s" % (cpu_type, os_type)
+
+
 class CommandBase(object):
     """Base class for mach command providers.
 
@@ -44,10 +68,19 @@ class CommandBase(object):
         self.config["tools"].setdefault("cargo-root", "")
         if not self.config["tools"]["system-rust"]:
             self.config["tools"]["rust-root"] = path.join(
-                context.topdir, "rust")
+                context.topdir, "rust", *self.rust_snapshot_path().split("/"))
         if not self.config["tools"]["system-cargo"]:
             self.config["tools"]["cargo-root"] = path.join(
                 context.topdir, "cargo")
+
+    _rust_snapshot_path = None
+
+    def rust_snapshot_path(self):
+        if self._rust_snapshot_path is None:
+            filename = path.join(self.context.topdir, "rust-snapshot-hash")
+            snapshot_hash = open(filename).read().strip()
+            self._rust_snapshot_path = "%s-%s" % (snapshot_hash, host_triple())
+        return self._rust_snapshot_path
 
     def build_env(self):
         """Return an extended environment dictionary."""
@@ -95,7 +128,7 @@ class CommandBase(object):
 
         if not self.config["tools"]["system-rust"] and \
            not path.exists(path.join(
-                self.context.topdir, "rust", "bin", "rustc")):
+                self.config["tools"]["rust-root"], "bin", "rustc")):
             Registrar.dispatch("bootstrap-rust", context=self.context)
         if not self.config["tools"]["system-cargo"] and \
            not path.exists(path.join(

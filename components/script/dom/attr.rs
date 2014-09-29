@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::AttrBinding;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::InheritTypes::NodeCast;
-use dom::bindings::global::Window;
+use dom::bindings::global;
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::trace::Traceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
@@ -112,7 +112,7 @@ impl Attr {
                name: Atom, namespace: Namespace,
                prefix: Option<DOMString>, owner: JSRef<Element>) -> Temporary<Attr> {
         reflect_dom_object(box Attr::new_inherited(local_name, value, name, namespace, prefix, owner),
-                           &Window(window), AttrBinding::Wrap)
+                           &global::Window(window), AttrBinding::Wrap)
     }
 }
 

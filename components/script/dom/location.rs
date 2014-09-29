@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::LocationBinding;
 use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
-use dom::bindings::global::Window;
+use dom::bindings::global;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::urlhelper::UrlHelper;
@@ -32,7 +32,7 @@ impl Location {
 
     pub fn new(window: JSRef<Window>, page: Rc<Page>) -> Temporary<Location> {
         reflect_dom_object(box Location::new_inherited(page),
-                           &Window(window),
+                           &global::Window(window),
                            LocationBinding::Wrap)
     }
 }
