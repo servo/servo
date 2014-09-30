@@ -250,6 +250,18 @@ impl ImageFragmentInfo {
             Some(max_size) => Au::min(size, max_size),
         })
     }
+
+    /// Tile an image
+    pub fn tile_image(position: &mut Au, size: &mut Au,
+                        virtual_position: Au, image_size: u32) {
+        let image_size = image_size as int;
+        let delta_pixels = geometry::to_px(virtual_position - *position);
+        let tile_count = (delta_pixels + image_size - 1) / image_size;
+        let offset = Au::from_px(image_size * tile_count);
+        let new_position = virtual_position - offset;
+        *size = *position - new_position + *size;
+        *position = new_position;
+    }
 }
 
 /// A fragment that represents an inline frame (iframe). This stores the pipeline ID so that the size
@@ -762,78 +774,61 @@ impl Fragment {
 
         let image_width = Au::from_px(image.width as int);
         let image_height = Au::from_px(image.height as int);
-
-        // Adjust bounds for `background-position` and `background-attachment`.
         let mut bounds = *absolute_bounds;
+
+        // Add clip item.
+        // TODO: Check the bounds to see if a clip item is actually required.
+        let mut clip_display_item = box ClipDisplayItem {
+            base: BaseDisplayItem::new(bounds, self.node, level),
+            children: DisplayList::new(),
+        };
+
+        // Use background-attachment to get the initial virtual origin
+        let (virtual_origin_x, virtual_origin_y) = match background.background_attachment {
+            background_attachment::scroll => {
+                (absolute_bounds.origin.x, absolute_bounds.origin.y)
+            }
+            background_attachment::fixed => {
+                (Au(0), Au(0))
+            }
+        };
+
+        // Use background-position to get the offset
         let horizontal_position = model::specified(background.background_position.horizontal,
                                                    bounds.size.width - image_width);
         let vertical_position = model::specified(background.background_position.vertical,
                                                  bounds.size.height - image_height);
 
-        // TODO: These are some situations below where it is possible
-        // to determine that clipping is not necessary - this is an
-        // optimization to make in the future.
-        let clip_display_item = Some(box ClipDisplayItem {
-            base: BaseDisplayItem::new(bounds, self.node, level),
-            children: DisplayList::new(),
-        });
+        let abs_x = virtual_origin_x + horizontal_position;
+        let abs_y = virtual_origin_y + vertical_position;
 
-        match background.background_attachment {
-            background_attachment::scroll => {
-                bounds.origin.x = bounds.origin.x + horizontal_position;
-                bounds.origin.y = bounds.origin.y + vertical_position;
-
-                // Adjust sizes for `background-repeat`.
-                match background.background_repeat {
-                    background_repeat::no_repeat => {
-                        bounds.size.width = Au::min(bounds.size.width - horizontal_position, image_width);
-                        bounds.size.height = Au::min(bounds.size.height - vertical_position, image_height);
-                    }
-                    background_repeat::repeat_x => {
-                        bounds.size.height = Au::min(bounds.size.height - vertical_position, image_height);
-                        if horizontal_position != Au(0) {
-                            bounds.size.width = bounds.size.width + image_width;
-                        }
-                    }
-                    background_repeat::repeat_y => {
-                        bounds.size.width = Au::min(bounds.size.width - horizontal_position, image_width);
-                        if vertical_position != Au(0) {
-                            bounds.size.height = bounds.size.height + image_height;
-                        }
-                    }
-                    background_repeat::repeat => {
-                        if horizontal_position != Au(0) {
-                            bounds.size.width = bounds.size.width + image_width;
-                        }
-                        if vertical_position != Au(0) {
-                            bounds.size.height = bounds.size.height + image_height;
-                        }
-                    }
-                };
+        // Adjust origin and size based on background-repeat
+        match background.background_repeat {
+            background_repeat::no_repeat => {
+                bounds.origin.x = abs_x;
+                bounds.origin.y = abs_y;
+                bounds.size.width = image_width;
+                bounds.size.height = image_height;
             }
-            background_attachment::fixed => {
-                bounds = Rect {
-                    origin: Point2D(horizontal_position, vertical_position),
-                    size: Size2D(bounds.origin.x + bounds.size.width,
-                                 bounds.origin.y + bounds.size.height),
-                };
-
-                // Adjust sizes for `background-repeat`.
-                match background.background_repeat {
-                    background_repeat::no_repeat => {
-                        bounds.size.width = image_width;
-                        bounds.size.height = image_height;
-                    }
-                    background_repeat::repeat_x => {
-                        bounds.size.height = image_height;
-                    }
-                    background_repeat::repeat_y => {
-                        bounds.size.width = image_width;
-                    }
-                    background_repeat::repeat => {}
-                };
+            background_repeat::repeat_x => {
+                bounds.origin.y = abs_y;
+                bounds.size.height = image_height;
+                ImageFragmentInfo::tile_image(&mut bounds.origin.x, &mut bounds.size.width,
+                                                abs_x, image.width);
             }
-        }
+            background_repeat::repeat_y => {
+                bounds.origin.x = abs_x;
+                bounds.size.width = image_width;
+                ImageFragmentInfo::tile_image(&mut bounds.origin.y, &mut bounds.size.height,
+                                                abs_y, image.height);
+            }
+            background_repeat::repeat => {
+                ImageFragmentInfo::tile_image(&mut bounds.origin.x, &mut bounds.size.width,
+                                                abs_x, image.width);
+                ImageFragmentInfo::tile_image(&mut bounds.origin.y, &mut bounds.size.height,
+                                                abs_y, image.height);
+            }
+        };
 
         // Create the image display item.
         let image_display_item = ImageDisplayItemClass(box ImageDisplayItem {
@@ -843,13 +838,8 @@ impl Fragment {
                                  Au::from_px(image.height as int)),
         });
 
-        match clip_display_item {
-            None => list.push(image_display_item),
-            Some(mut clip_display_item) => {
-                clip_display_item.children.push(image_display_item);
-                list.push(ClipDisplayItemClass(clip_display_item))
-            }
-        }
+        clip_display_item.children.push(image_display_item);
+        list.push(ClipDisplayItemClass(clip_display_item))
     }
 
     /// Adds the display items necessary to paint the borders of this fragment to a display list if
