@@ -42,6 +42,9 @@ extern crate sync;
 extern crate "msg" as servo_msg;
 extern crate url;
 extern crate uuid;
+extern crate string_cache;
+#[phase(plugin)]
+extern crate string_cache_macros;
 
 pub mod cors;
 

@@ -23,9 +23,8 @@ use page::IterablePage;
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use servo_msg::constellation_msg::{IFrameSandboxed, IFrameUnsandboxed};
 use servo_msg::constellation_msg::{ConstellationChan, LoadIframeUrlMsg};
-use servo_util::atom::Atom;
-use servo_util::namespace::Null;
 use servo_util::str::DOMString;
+use string_cache::Atom;
 
 use std::ascii::StrAsciiExt;
 use std::cell::Cell;
@@ -75,7 +74,7 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
 
     fn get_url(self) -> Option<Url> {
         let element: JSRef<Element> = ElementCast::from_ref(self);
-        element.get_attribute(Null, "src").root().and_then(|src| {
+        element.get_attribute(ns!(""), "src").root().and_then(|src| {
             let url = src.deref().value();
             if url.as_slice().is_empty() {
                 None

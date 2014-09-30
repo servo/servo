@@ -29,7 +29,9 @@ extern crate "time" as std_time;
 extern crate string_cache;
 extern crate url;
 
-pub mod atom;
+#[phase(plugin)]
+extern crate string_cache_macros;
+
 pub mod bloom;
 pub mod cache;
 pub mod debug_utils;

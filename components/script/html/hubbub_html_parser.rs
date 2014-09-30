@@ -25,9 +25,6 @@ use encoding::types::{Encoding, DecodeReplace};
 use hubbub::hubbub;
 use hubbub::hubbub::{NullNs, HtmlNs, MathMlNs, SvgNs, XLinkNs, XmlNs, XmlNsNs};
 use servo_net::resource_task::{Load, LoadData, Payload, Done, ResourceTask, load_whole_resource};
-use servo_util::atom::Atom;
-use servo_util::namespace;
-use servo_util::namespace::{Namespace, Null};
 use servo_util::str::DOMString;
 use servo_util::task::spawn_named;
 use std::ascii::StrAsciiExt;
@@ -37,6 +34,7 @@ use std::comm::{channel, Sender, Receiver};
 use url::{Url, UrlParser};
 use http::headers::HeaderEnum;
 use time;
+use string_cache::{Atom, Namespace};
 
 macro_rules! handle_element(
     ($document: expr,
@@ -153,7 +151,7 @@ fn parse_last_modified(timestamp: &str) -> String {
 // via atomization (issue #85).
 
 pub fn build_element_from_tag(tag: DOMString, ns: Namespace, document: JSRef<Document>) -> Temporary<Element> {
-    if ns != namespace::HTML {
+    if ns != ns!(HTML) {
         return Element::new(tag, ns, None, document);
     }
 
@@ -373,9 +371,9 @@ pub fn parse_html(page: &Page,
             let tmp_borrow = doc_cell.borrow();
             let tmp = &*tmp_borrow;
             let namespace = match tag.ns {
-                HtmlNs => namespace::HTML,
-                MathMlNs => namespace::MathML,
-                SvgNs => namespace::SVG,
+                HtmlNs => ns!(HTML),
+                MathMlNs => ns!(MathML),
+                SvgNs => ns!(SVG),
                 ns => fail!("Not expecting namespace {:?}", ns),
             };
             let element: Root<Element> = build_element_from_tag(tag.name.clone(), namespace, *tmp).root();
@@ -383,10 +381,10 @@ pub fn parse_html(page: &Page,
             debug!("-- attach attrs");
             for attr in tag.attributes.iter() {
                 let (namespace, prefix) = match attr.ns {
-                    NullNs => (namespace::Null, None),
-                    XLinkNs => (namespace::XLink, Some("xlink")),
-                    XmlNs => (namespace::XML, Some("xml")),
-                    XmlNsNs => (namespace::XMLNS, Some("xmlns")),
+                    NullNs => (ns!(""), None),
+                    XLinkNs => (ns!(XLink), Some("xlink")),
+                    XmlNs => (ns!(XML), Some("xml")),
+                    XmlNsNs => (ns!(XMLNS), Some("xmlns")),
                     ns => fail!("Not expecting namespace {:?}", ns),
                 };
                 element.set_attribute_from_parser(Atom::from_slice(attr.name.as_slice()),
@@ -472,7 +470,7 @@ pub fn parse_html(page: &Page,
                 };
 
                 let script_element: JSRef<Element> = ElementCast::from_ref(script);
-                match script_element.get_attribute(Null, "src").root() {
+                match script_element.get_attribute(ns!(""), "src").root() {
                     Some(src) => {
                         debug!("found script: {:s}", src.deref().Value());
                         let mut url_parser = UrlParser::new();

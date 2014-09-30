@@ -12,11 +12,11 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::element::{Element, AttributeHandlers, ElementHelpers};
 use dom::node::{Node, NodeHelpers};
 use dom::window::Window;
-use servo_util::atom::Atom;
-use servo_util::namespace::Namespace;
+use servo_util::namespace;
 use servo_util::str::{DOMString, split_html_space_chars};
 
 use std::ascii::StrAsciiExt;
+use string_cache::{Atom, Namespace};
 
 pub trait CollectionFilter : JSTraceable {
     fn filter(&self, elem: JSRef<Element>, root: JSRef<Node>) -> bool;
@@ -105,7 +105,7 @@ impl HTMLCollection {
                           maybe_ns: Option<DOMString>) -> Temporary<HTMLCollection> {
         let namespace_filter = match maybe_ns {
             Some(ref namespace) if namespace.as_slice() == "*" => None,
-            ns => Some(Namespace::from_str(ns)),
+            ns => Some(namespace::from_domstring(ns)),
         };
 
         if tag.as_slice() == "*" {

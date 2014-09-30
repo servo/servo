@@ -27,7 +27,6 @@ use servo_msg::compositor_msg::ScriptListener;
 use servo_msg::constellation_msg::{ConstellationChan, WindowSizeData};
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use servo_net::resource_task::ResourceTask;
-use servo_util::namespace::Null;
 use servo_util::str::DOMString;
 use std::cell::{Cell, RefCell, Ref, RefMut};
 use std::comm::{channel, Receiver, Empty, Disconnected};
@@ -400,7 +399,7 @@ impl Page {
                                           .filter(|node| node.is_anchor_element());
                 anchors.find(|node| {
                     let elem: JSRef<Element> = ElementCast::to_ref(*node).unwrap();
-                    elem.get_attribute(Null, "name").root().map_or(false, |attr| {
+                    elem.get_attribute(ns!(""), "name").root().map_or(false, |attr| {
                         attr.deref().value().as_slice() == fragid.as_slice()
                     })
                 }).map(|node| Temporary::from_rooted(ElementCast::to_ref(node).unwrap()))
