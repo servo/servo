@@ -60,6 +60,8 @@ use green::GreenTaskBuilder;
 #[cfg(not(test))]
 use std::os;
 #[cfg(not(test))]
+use std::rc::Rc;
+#[cfg(not(test))]
 use std::task::TaskBuilder;
 #[cfg(not(test), target_os="android")]
 use std::string;
@@ -79,14 +81,14 @@ pub extern "C" fn android_start(argc: int, argv: *const *const u8) -> int {
         opts::from_cmdline_args(args.as_slice()).map(|mut opts| {
             // Always use CPU rendering on android.
             opts.cpu_painting = true;
-            let window = glutapp::create_window(&opts);
+            let window = Some(glutapp::create_window(&opts));
             run(opts, window);
         });
     })
 }
 
 #[cfg(not(test))]
-pub fn run<Window: WindowMethods>(opts: opts::Opts, window: std::rc::Rc<Window>) {
+pub fn run<Window: WindowMethods>(opts: opts::Opts, window: Option<Rc<Window>>) {
     ::servo_util::opts::set_experimental_enabled(opts.enable_experimental);
     RegisterBindings::RegisterProxyHandlers();
 

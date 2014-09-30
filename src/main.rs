@@ -29,7 +29,11 @@ use std::os;
 fn start(argc: int, argv: *const *const u8) -> int {
     native::start(argc, argv, proc() {
         opts::from_cmdline_args(os::args().as_slice()).map(|opts| {
-            let window = glfwapp::create_window(&opts);
+            let window = if opts.headless {
+                None
+            } else {
+                Some(glfwapp::create_window(&opts))
+            };
             run(opts, window);
         });
     })

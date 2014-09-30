@@ -183,28 +183,9 @@ pub enum Msg {
     LoadComplete(PipelineId, Url),
 }
 
-pub enum CompositorMode {
-    Windowed,
-    Headless
-}
-
-pub struct CompositorTask {
-    pub mode: CompositorMode,
-}
+pub struct CompositorTask;
 
 impl CompositorTask {
-    fn new(is_headless: bool) -> CompositorTask {
-        let mode: CompositorMode = if is_headless {
-            Headless
-        } else {
-            Windowed
-        };
-
-        CompositorTask {
-            mode: mode
-        }
-    }
-
     /// Creates a graphics context. Platform-specific.
     ///
     /// FIXME(pcwalton): Probably could be less platform-specific, using the metadata abstraction.
@@ -218,17 +199,15 @@ impl CompositorTask {
     }
 
     pub fn create<Window: WindowMethods>(
-                  window: Rc<Window>,
+                  window: Option<Rc<Window>>,
                   opts: Opts,
                   port: Receiver<Msg>,
                   constellation_chan: ConstellationChan,
                   time_profiler_chan: TimeProfilerChan,
                   memory_profiler_chan: MemoryProfilerChan) {
 
-        let compositor = CompositorTask::new(opts.headless);
-
-        match compositor.mode {
-            Windowed => {
+        match window {
+            Some(window) => {
                 compositor::IOCompositor::create(window,
                                                  opts,
                                                  port,
@@ -236,7 +215,7 @@ impl CompositorTask {
                                                  time_profiler_chan,
                                                  memory_profiler_chan)
             }
-            Headless => {
+            None => {
                 headless::NullCompositor::create(port,
                                                  constellation_chan.clone(),
                                                  time_profiler_chan,

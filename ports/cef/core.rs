@@ -73,7 +73,7 @@ pub extern "C" fn cef_run_message_loop() {
         initial_window_size: TypedSize2D(800, 600),
     };
     native::start(0, 0 as *const *const u8, proc() {
-       let window = glfwapp::create_window(&opts);
+       let window = Some(glfwapp::create_window(&opts));
        servo::run(opts, window);
     });
 }
