@@ -12,7 +12,7 @@ extern crate native;
 extern crate "util" as servo_util;
 
 #[cfg(not(test),not(target_os="android"))]
-extern crate glfwapp;
+extern crate glfw_app;
 
 #[cfg(not(test),not(target_os="android"))]
 use servo_util::opts;
@@ -32,7 +32,7 @@ fn start(argc: int, argv: *const *const u8) -> int {
             let window = if opts.headless {
                 None
             } else {
-                Some(glfwapp::create_window(&opts))
+                Some(glfw_app::create_window(&opts))
             };
             run(opts, window);
         });

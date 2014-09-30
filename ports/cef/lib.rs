@@ -19,7 +19,7 @@ extern crate azure;
 extern crate geom;
 extern crate gfx;
 extern crate glfw;
-extern crate glfwapp;
+extern crate glfw_app;
 extern crate js;
 extern crate layers;
 extern crate opengles;

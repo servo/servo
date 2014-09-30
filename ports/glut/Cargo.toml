@@ -4,7 +4,7 @@ version = "0.0.1"
 authors = ["The Servo Project Developers"]
 
 [lib]
-name = "glutapp"
+name = "glut_app"
 path = "lib.rs"
 
 [dependencies.alert]

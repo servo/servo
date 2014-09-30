@@ -31,7 +31,7 @@ extern crate rustrt;
 extern crate url;
 
 #[cfg(not(test), target_os="android")]
-extern crate glutapp;
+extern crate glut_app;
 
 #[cfg(not(test))]
 use compositing::{CompositorChan, CompositorTask, Constellation};
@@ -81,7 +81,7 @@ pub extern "C" fn android_start(argc: int, argv: *const *const u8) -> int {
         opts::from_cmdline_args(args.as_slice()).map(|mut opts| {
             // Always use CPU rendering on android.
             opts.cpu_painting = true;
-            let window = Some(glutapp::create_window(&opts));
+            let window = Some(glut_app::create_window(&opts));
             run(opts, window);
         });
     })
