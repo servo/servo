@@ -11,7 +11,6 @@ use util::{LayoutDataAccess, LayoutDataWrapper};
 use wrapper::{LayoutElement, LayoutNode, PostorderNodeMutTraversal, ThreadSafeLayoutNode, TLayoutNode};
 
 use script::dom::node::{TextNodeTypeId};
-use servo_util::atom::Atom;
 use servo_util::bloom::BloomFilter;
 use servo_util::cache::{Cache, LRUCache, SimpleHashCache};
 use servo_util::namespace::Null;
@@ -24,6 +23,7 @@ use style;
 use style::{After, Before, ComputedValues, DeclarationBlock, Stylist, TElement, TNode};
 use style::cascade;
 use sync::Arc;
+use string_cache::Atom;
 
 pub struct ApplicableDeclarations {
     pub normal: SmallVec16<DeclarationBlock>,

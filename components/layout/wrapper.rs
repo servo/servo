@@ -48,7 +48,6 @@ use script::dom::node::{LayoutNodeHelpers, RawLayoutNodeHelpers, SharedLayoutDat
 use script::dom::text::Text;
 use script::layout_interface::LayoutChan;
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
-use servo_util::atom::Atom;
 use servo_util::namespace::Namespace;
 use servo_util::namespace;
 use servo_util::str::is_whitespace;
@@ -59,6 +58,7 @@ use style::computed_values::{content, display, white_space};
 use style::{AnyNamespace, AttrSelector, PropertyDeclarationBlock, SpecificNamespace, TElement};
 use style::{TNode};
 use url::Url;
+use string_cache::Atom;
 
 /// Allows some convenience methods on generic layout nodes.
 pub trait TLayoutNode {

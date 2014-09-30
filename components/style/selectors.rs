@@ -9,9 +9,9 @@ use sync::Arc;
 use cssparser::ast::*;
 use cssparser::{tokenize, parse_nth};
 
-use servo_util::atom::Atom;
 use servo_util::namespace::Namespace;
 use servo_util::namespace;
+use string_cache::Atom;
 
 use namespaces::NamespaceMap;
 
@@ -575,7 +575,6 @@ fn skip_whitespace<I: Iterator<ComponentValue>>(iter: &mut Iter<I>) -> bool {
 mod tests {
     use sync::Arc;
     use cssparser;
-    use servo_util::atom::Atom;
     use servo_util::namespace;
     use namespaces::NamespaceMap;
     use super::*;

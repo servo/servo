@@ -25,7 +25,6 @@ use encoding::types::{Encoding, DecodeReplace};
 use hubbub::hubbub;
 use hubbub::hubbub::{NullNs, HtmlNs, MathMlNs, SvgNs, XLinkNs, XmlNs, XmlNsNs};
 use servo_net::resource_task::{Load, LoadData, Payload, Done, ResourceTask, load_whole_resource};
-use servo_util::atom::Atom;
 use servo_util::namespace;
 use servo_util::namespace::{Namespace, Null};
 use servo_util::str::DOMString;
@@ -37,6 +36,7 @@ use std::comm::{channel, Sender, Receiver};
 use url::{Url, UrlParser};
 use http::headers::HeaderEnum;
 use time;
+use string_cache::Atom;
 
 macro_rules! handle_element(
     ($document: expr,

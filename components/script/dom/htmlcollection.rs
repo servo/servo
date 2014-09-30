@@ -12,11 +12,11 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::element::{Element, AttributeHandlers, ElementHelpers};
 use dom::node::{Node, NodeHelpers};
 use dom::window::Window;
-use servo_util::atom::Atom;
 use servo_util::namespace::Namespace;
 use servo_util::str::{DOMString, split_html_space_chars};
 
 use std::ascii::StrAsciiExt;
+use string_cache::Atom;
 
 pub trait CollectionFilter : JSTraceable {
     fn filter(&self, elem: JSRef<Element>, root: JSRef<Node>) -> bool;

@@ -12,9 +12,9 @@ use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
 use dom::element::{Element, AttributeHandlers};
 use dom::node::window_from_node;
 
-use servo_util::atom::Atom;
 use servo_util::namespace::Null;
 use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS};
+use string_cache::Atom;
 
 #[jstraceable]
 #[must_root]

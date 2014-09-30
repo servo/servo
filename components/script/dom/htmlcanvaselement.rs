@@ -18,8 +18,8 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, ElementNodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 
-use servo_util::atom::Atom;
 use servo_util::str::{DOMString, parse_unsigned_integer};
+use string_cache::Atom;
 
 use geom::size::Size2D;
 

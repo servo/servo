@@ -18,8 +18,8 @@ use dom::node::{TextNodeTypeId, NodeHelpers};
 use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
 
-use servo_util::atom::Atom;
 use servo_util::namespace;
+use string_cache::Atom;
 
 #[allow(unrooted_must_root)]
 pub fn serialize(iterator: &mut NodeIterator) -> String {

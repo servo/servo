@@ -9,11 +9,11 @@ use sync::Arc;
 
 use url::Url;
 
-use servo_util::atom::Atom;
 use servo_util::bloom::BloomFilter;
 use servo_util::namespace;
 use servo_util::smallvec::VecLike;
 use servo_util::sort;
+use string_cache::Atom;
 
 use media_queries::{Device, Screen};
 use node::{TElement, TNode};
@@ -997,7 +997,6 @@ impl<K: Eq + Hash, V> FindPush<K, V> for HashMap<K, Vec<V>> {
 
 #[cfg(test)]
 mod tests {
-    use servo_util::atom::Atom;
     use sync::Arc;
     use super::{DeclarationBlock, Rule, SelectorMap};
     use selectors::LocalName;

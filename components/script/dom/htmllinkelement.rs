@@ -15,12 +15,12 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, NodeHelpers, ElementNodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use layout_interface::{LayoutChan, LoadStylesheetMsg};
-use servo_util::atom::Atom;
 use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS};
 use servo_util::namespace::Null;
 
 use std::ascii::StrAsciiExt;
 use url::UrlParser;
+use string_cache::Atom;
 
 #[jstraceable]
 #[must_root]

@@ -34,7 +34,6 @@ use layout_interface::MatchSelectorsDocumentDamage;
 use devtools_traits::AttrInfo;
 use style::{matches, parse_selector_list_from_str};
 use style;
-use servo_util::atom::Atom;
 use servo_util::namespace;
 use servo_util::namespace::{Namespace, Null};
 use servo_util::str::DOMString;
@@ -42,6 +41,7 @@ use servo_util::str::DOMString;
 use std::ascii::StrAsciiExt;
 use std::cell::{Cell, RefCell};
 use std::mem;
+use string_cache::Atom;
 
 #[jstraceable]
 #[must_root]
