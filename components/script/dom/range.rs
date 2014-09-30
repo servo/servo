@@ -91,11 +91,7 @@ impl<'a> RangeMethods for JSRef<'a, Range> {
 
         // step 3, 4-1
         match compare_bp_position(node, offset, self.end_node.get().root().root_ref(), self.end_point.get()) {
-            After => {
-                self.end_node.set(node.unrooted());
-                self.end_point.set(offset);
-            },
-            _ if !self.has_same_root_with(node) => {
+            After | NoSharedRoot => {
                 self.end_node.set(node.unrooted());
                 self.end_point.set(offset);
             },
@@ -123,11 +119,7 @@ impl<'a> RangeMethods for JSRef<'a, Range> {
 
         // step 3, 4-1
         match compare_bp_position(node, offset, self.start_node.get().root().root_ref(), self.start_point.get()) {
-            Before => {
-                self.start_node.set(node.unrooted());
-                self.start_point.set(offset);
-            },
-            _ if !self.has_same_root_with(node) => {
+            Before | NoSharedRoot => {
                 self.start_node.set(node.unrooted());
                 self.start_point.set(offset);
             },
@@ -251,39 +243,34 @@ impl<'a> RangeMethods for JSRef<'a, Range> {
     }
 }
 
-pub trait RangeHelpers {
-    fn get_tree_root(self) -> Temporary<Node>;
-    fn has_same_root_with(self, node: JSRef<Node>) -> bool;
-}
-
-impl<'a> RangeHelpers for JSRef<'a, Range> {
-    // https://dom.spec.whatwg.org/#concept-range-root
-    fn get_tree_root(self) -> Temporary<Node> {
-        let start = self.start_node.get().root();
-        start.get_tree_root()
-    }
-
-    fn has_same_root_with(self, node: JSRef<Node>) -> bool {
-        self.get_tree_root() == node.get_tree_root()
-    }
-}
-
 impl Reflectable for Range {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         &self.reflector_
     }
 }
 
-enum BpPosition {
+enum BoundaryPointRelation {
     Before,
     Equal,
     After,
+    NoSharedRoot,
 }
 
 // https://dom.spec.whatwg.org/#concept-range-bp-after
 fn compare_bp_position(a_node: JSRef<Node>, a_offset: u32,
-                       b_node: JSRef<Node>, b_offset: u32) -> BpPosition {
+                       b_node: JSRef<Node>, b_offset: u32) -> BoundaryPointRelation {
     let position = b_node.CompareDocumentPosition(a_node);
+
+    // We can compute whether A and B share the same root or not in this point because
+    //  * This function is only used in Range.
+    //  * This function always takes start/end boundary point.
+    //    We can assume that a boundary point set to Range will always share the root.
+    //    This is certain by the behavior of setStart/setEnd().
+    //    They don't allow to store boundary points which has the difference roots in the same Range instance.
+    if (position & NodeConstants::DOCUMENT_POSITION_DISCONNECTED) == NodeConstants::DOCUMENT_POSITION_DISCONNECTED {
+        return NoSharedRoot;
+    }
+
     // step 1
     // Node.CompareDocumentPosition returns `0` if a is the same as b.
     if position == 0 {
