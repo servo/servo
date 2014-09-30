@@ -521,8 +521,9 @@ fn compute_absolute_position(unsafe_flow: UnsafeFlow,
         // Compute the absolute position for the flow.
         flow.get_mut().compute_absolute_position();
 
-        // Count the number of absolutely-positioned children, so that we can subtract it from
-        // from `children_and_absolute_descendant_count` to get the number of real children.
+        // If we are the containing block, count the number of absolutely-positioned children, so
+        // that we don't double-count them in the `children_and_absolute_descendant_count`
+        // reference count.
         let mut absolutely_positioned_child_count = 0u;
         for kid in flow::child_iter(flow.get_mut()) {
             if kid.is_absolutely_positioned() {
@@ -530,13 +531,12 @@ fn compute_absolute_position(unsafe_flow: UnsafeFlow,
             }
         }
 
-        // Don't enqueue absolutely positioned children.
         drop(flow::mut_base(flow.get_mut()).parallel
                                            .children_and_absolute_descendant_count
                                            .fetch_sub(absolutely_positioned_child_count as int,
                                                       SeqCst));
 
-        // Possibly enqueue the children.
+        // Enqueue all non-absolutely-positioned children.
         for kid in flow::child_iter(flow.get_mut()) {
             if !kid.is_absolutely_positioned() {
                 had_descendants = true;
@@ -559,8 +559,7 @@ fn compute_absolute_position(unsafe_flow: UnsafeFlow,
 
         // If there were no more descendants, start building the display list.
         if !had_descendants {
-            build_display_list(mut_owned_flow_to_unsafe_flow(flow),
-                               proxy)
+            build_display_list(mut_owned_flow_to_unsafe_flow(flow), proxy)
         }
     }
 }

@@ -418,7 +418,6 @@ impl<'a> PreorderFlowTraversal for AbsoluteAssignBSizesTraversal<'a> {
             return true;
         }
 
-
         let AbsoluteAssignBSizesTraversal(ref ctx) = *self;
         block_flow.calculate_abs_block_size_and_margins(*ctx);
         true
@@ -746,48 +745,6 @@ impl BlockFlow {
                       max(self.base.intrinsic_inline_sizes.minimum_inline_size, available_inline_size))
     }
 
-    /// Collect and update static y-offsets bubbled up by kids.
-    ///
-    /// This would essentially give us offsets of all absolutely positioned
-    /// direct descendants and all fixed descendants, in tree order.
-    ///
-    /// Assume that this is called in a bottom-up traversal (specifically, the
-    /// assign-block-size traversal). So, kids have their flow origin already set.
-    /// In the case of absolute flow kids, they have their hypothetical box
-    /// position already set.
-    fn collect_static_b_offsets_from_kids(&mut self) {
-        let mut abs_descendant_y_offsets = Vec::new();
-        for kid in self.base.child_iter() {
-            let mut gives_abs_offsets = true;
-            if kid.is_block_like() {
-                let kid_block = kid.as_block();
-                if kid_block.is_fixed() || kid_block.is_absolutely_positioned() {
-                    // It won't contribute any offsets for descendants because it
-                    // would be the CB for them.
-                    gives_abs_offsets = false;
-                    // Give the offset for the current absolute flow alone.
-                    abs_descendant_y_offsets.push(kid_block.get_hypothetical_block_start_edge());
-                } else if kid_block.is_positioned() {
-                    // It won't contribute any offsets because it would be the CB
-                    // for the descendants.
-                    gives_abs_offsets = false;
-                }
-            }
-
-            if gives_abs_offsets {
-                let kid_base = flow::mut_base(kid);
-                // Avoid copying the offset vector.
-                let offsets = mem::replace(&mut kid_base.abs_descendants.static_b_offsets, Vec::new());
-                // Consume all the static y-offsets bubbled up by kid.
-                for y_offset in offsets.into_iter() {
-                    // The offsets are wrt the kid flow box. Translate them to current flow.
-                    abs_descendant_y_offsets.push(y_offset + kid_base.position.start.b);
-                }
-            }
-        }
-        self.base.abs_descendants.static_b_offsets = abs_descendant_y_offsets;
-    }
-
     /// If this is the root flow, shifts all kids down and adjusts our size to account for
     /// root flow margins, which should never be collapsed according to CSS § 8.3.1.
     ///
@@ -959,7 +916,7 @@ impl BlockFlow {
         self.base.flags.set_layers_needed_for_descendants(layers_needed_for_descendants);
 
         // Collect various offsets needed by absolutely positioned descendants.
-        self.collect_static_b_offsets_from_kids();
+        (&mut *self as &mut Flow).collect_static_block_offsets_from_children();
 
         // Add in our block-end margin and compute our collapsible margins.
         let can_collapse_block_end_margin_with_kids =
@@ -1296,7 +1253,7 @@ impl BlockFlow {
     /// During normal layout assign-block-size, the absolute flow's position is
     /// roughly set to its static position (the position it would have had in
     /// the normal flow).
-    fn get_hypothetical_block_start_edge(&self) -> Au {
+    pub fn get_hypothetical_block_start_edge(&self) -> Au {
         self.base.position.start.b
     }
 
@@ -1307,21 +1264,22 @@ impl BlockFlow {
     /// and the code for block layout is significantly simpler.
     #[inline(always)]
     pub fn propagate_assigned_inline_size_to_children(&mut self,
-                                                inline_start_content_edge: Au,
-                                                content_inline_size: Au,
-                                                opt_col_inline_sizes: Option<Vec<Au>>) {
+                                                      inline_start_content_edge: Au,
+                                                      content_inline_size: Au,
+                                                      opt_col_inline_sizes: Option<Vec<Au>>) {
         // Keep track of whether floats could impact each child.
         let mut inline_start_floats_impact_child = self.base.flags.impacted_by_left_floats();
         let mut inline_end_floats_impact_child = self.base.flags.impacted_by_right_floats();
 
         let absolute_static_i_offset = if self.is_positioned() {
-            // This flow is the containing block. The static X offset will be the inline-start padding
-            // edge.
+            // This flow is the containing block. The static inline offset will be the inline-start
+            // padding edge.
             self.fragment.border_padding.inline_start
                 - self.fragment.style().logical_border_width().inline_start
         } else {
-            // For kids, the inline-start margin edge will be at our inline-start content edge. The current static
-            // offset is at our inline-start margin edge. So move in to the inline-start content edge.
+            // For kids, the inline-start margin edge will be at our inline-start content edge. The
+            // current static offset is at our inline-start margin edge. So move in to the
+            // inline-start content edge.
             self.base.absolute_static_i_offset + inline_start_content_edge
         };
 
@@ -1355,12 +1313,11 @@ impl BlockFlow {
         };
 
         for (i, kid) in self.base.child_iter().enumerate() {
-            flow::mut_base(kid).block_container_explicit_block_size = explicit_content_size;
-
-            if kid.is_block_flow() {
-                let kid_block = kid.as_block();
-                kid_block.base.absolute_static_i_offset = absolute_static_i_offset;
-                kid_block.base.fixed_static_i_offset = fixed_static_i_offset;
+            {
+                let mut kid_base = flow::mut_base(kid);
+                kid_base.block_container_explicit_block_size = explicit_content_size;
+                kid_base.absolute_static_i_offset = absolute_static_i_offset;
+                kid_base.fixed_static_i_offset = fixed_static_i_offset;
             }
 
             match kid.float_kind() {
@@ -1824,17 +1781,35 @@ impl Flow for BlockFlow {
     fn is_absolute_containing_block(&self) -> bool {
         self.is_positioned()
     }
+
+    fn update_late_computed_inline_position_if_necessary(&mut self, inline_position: Au) {
+        if self.is_absolutely_positioned() &&
+                self.fragment.style().logical_position().inline_start == LPA_Auto &&
+                self.fragment.style().logical_position().inline_end == LPA_Auto {
+            self.base.position.start.i = inline_position
+        }
+    }
+
+    fn update_late_computed_block_position_if_necessary(&mut self, block_position: Au) {
+        if self.is_absolutely_positioned() &&
+                self.fragment.style().logical_position().block_start == LPA_Auto &&
+                self.fragment.style().logical_position().block_end == LPA_Auto {
+            self.base.position.start.b = block_position
+        }
+    }
 }
 
 impl fmt::Show for BlockFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        try!(write!(f, "BlockFlow"));
         if self.is_float() {
-            write!(f, "FloatFlow: {}", self.fragment)
+            try!(write!(f, "(Float)"));
         } else if self.is_root() {
-            write!(f, "RootFlow: {}", self.fragment)
-        } else {
-            write!(f, "BlockFlow: {}", self.fragment)
+            try!(write!(f, "(Root)"));
+        } else if self.is_absolutely_positioned() {
+            try!(write!(f, "(Absolute)"));
         }
+        write!(f, ": {} ({})", self.fragment, self.base)
     }
 }
 

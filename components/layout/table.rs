@@ -315,6 +315,14 @@ impl Flow for TableFlow {
     fn generated_containing_block_rect(&self) -> LogicalRect<Au> {
         self.block_flow.generated_containing_block_rect()
     }
+
+    fn update_late_computed_inline_position_if_necessary(&mut self, inline_position: Au) {
+        self.block_flow.update_late_computed_inline_position_if_necessary(inline_position)
+    }
+
+    fn update_late_computed_block_position_if_necessary(&mut self, block_position: Au) {
+        self.block_flow.update_late_computed_block_position_if_necessary(block_position)
+    }
 }
 
 impl fmt::Show for TableFlow {
