@@ -16,7 +16,6 @@ use dom::node::{Node, NodeHelpers, ElementNodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use layout_interface::{LayoutChan, LoadStylesheetMsg};
 use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS};
-use servo_util::namespace::Null;
 
 use std::ascii::StrAsciiExt;
 use url::UrlParser;
@@ -49,7 +48,7 @@ impl HTMLLinkElement {
 }
 
 fn get_attr(element: JSRef<Element>, name: &str) -> Option<String> {
-    let elem = element.get_attribute(Null, name).root();
+    let elem = element.get_attribute(ns!(""), name).root();
     elem.map(|e| e.deref().value().as_slice().to_string())
 }
 

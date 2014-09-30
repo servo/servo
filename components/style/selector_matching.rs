@@ -10,7 +10,6 @@ use sync::Arc;
 use url::Url;
 
 use servo_util::bloom::BloomFilter;
-use servo_util::namespace;
 use servo_util::smallvec::VecLike;
 use servo_util::sort;
 use string_cache::Atom;
@@ -107,7 +106,7 @@ impl SelectorMap {
             None => {}
         }
 
-        match element.get_attr(&namespace::Null, "class") {
+        match element.get_attr(&ns!(""), "class") {
             Some(ref class_attr) => {
                 // FIXME: Store classes pre-split as atoms to make the loop below faster.
                 for class in class_attr.split(SELECTOR_WHITESPACE) {

@@ -43,7 +43,6 @@ use servo_util::geometry::Au;
 use servo_util::geometry;
 use servo_util::logical_geometry::{LogicalRect, LogicalSize, LogicalMargin};
 use servo_util::range::*;
-use servo_util::namespace;
 use servo_util::smallvec::SmallVec;
 use servo_util::str::is_whitespace;
 use std::cmp::{max, min};
@@ -179,7 +178,7 @@ impl ImageFragmentInfo {
                -> ImageFragmentInfo {
         fn convert_length(node: &ThreadSafeLayoutNode, name: &str) -> Option<Au> {
             let element = node.as_element();
-            element.get_attr(&namespace::Null, name).and_then(|string| {
+            element.get_attr(&ns!(""), name).and_then(|string| {
                 let n: Option<int> = FromStr::from_str(string);
                 n
             }).and_then(|pixels| Some(Au::from_px(pixels)))
@@ -352,7 +351,7 @@ impl TableColumnFragmentInfo {
     pub fn new(node: &ThreadSafeLayoutNode) -> TableColumnFragmentInfo {
         let span = {
             let element = node.as_element();
-            element.get_attr(&namespace::Null, "span").and_then(|string| {
+            element.get_attr(&ns!(""), "span").and_then(|string| {
                 let n: Option<int> = FromStr::from_str(string);
                 n
             })
