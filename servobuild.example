@@ -9,6 +9,10 @@ rust-root = "/path/to/rust"
 system-cargo = false
 cargo-root = "/path/to/cargo"
 
+[build]
+# Set "android = true" or use `mach build --android` to build the Android app.
+android = false
+
 # Android information
 [android]
 sdk = "/opt/android-sdk"

@@ -73,6 +73,14 @@ class CommandBase(object):
             self.config["tools"]["cargo-root"] = path.join(
                 context.topdir, "cargo")
 
+        self.config.setdefault("build", {})
+        self.config["build"].setdefault("android", False)
+
+        self.config.setdefault("android", {})
+        self.config["android"].setdefault("sdk", "")
+        self.config["android"].setdefault("ndk", "")
+        self.config["android"].setdefault("toolchain", "")
+
     _rust_snapshot_path = None
 
     def rust_snapshot_path(self):
@@ -110,6 +118,14 @@ class CommandBase(object):
                                          (os.pathsep.join(extra_lib),
                                           os.pathsep,
                                           env.get("LD_LIBRARY_PATH", ""))
+
+        # Paths to Android build tools:
+        if self.config["android"]["sdk"]:
+            env["ANDROID_SDK"] = self.config["android"]["sdk"]
+        if self.config["android"]["ndk"]:
+            env["ANDROID_NDK"] = self.config["android"]["ndk"]
+        if self.config["android"]["toolchain"]:
+            env["ANDROID_TOOLCHAIN"] = self.config["android"]["toolchain"]
 
         return env
 
