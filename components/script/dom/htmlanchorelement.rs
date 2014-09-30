@@ -19,7 +19,6 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, NodeHelpers, ElementNodeTypeId};
 use dom::virtualmethods::VirtualMethods;
 
-use servo_util::namespace::Null;
 use servo_util::str::DOMString;
 
 #[jstraceable]
@@ -56,7 +55,7 @@ impl<'a> PrivateHTMLAnchorElementHelpers for JSRef<'a, HTMLAnchorElement> {
     fn handle_event_impl(self, event: JSRef<Event>) {
         if "click" == event.Type().as_slice() && !event.DefaultPrevented() {
             let element: JSRef<Element> = ElementCast::from_ref(self);
-            let attr = element.get_attribute(Null, "href").root();
+            let attr = element.get_attribute(ns!(""), "href").root();
             match attr {
                 Some(ref href) => {
                     let value = href.Value();

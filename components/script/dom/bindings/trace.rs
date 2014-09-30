@@ -35,14 +35,13 @@ use std::rc::Rc;
 use std::cell::{Cell, RefCell};
 
 use url::Url;
-use servo_util::atom::Atom;
-use servo_util::namespace::Namespace;
 use msg::constellation_msg::{PipelineId, SubpageId, WindowSizeData};
 use net::image_cache_task::ImageCacheTask;
 use script_traits::ScriptControlChan;
 use std::collections::hashmap::HashMap;
 use collections::hash::Hash;
 use style::PropertyDeclarationBlock;
+use string_cache::{Atom, Namespace};
 
 impl<T: Reflectable> JSTraceable for JS<T> {
     fn trace(&self, trc: *mut JSTracer) {

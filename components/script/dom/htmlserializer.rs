@@ -18,8 +18,7 @@ use dom::node::{TextNodeTypeId, NodeHelpers};
 use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
 
-use servo_util::atom::Atom;
-use servo_util::namespace;
+use string_cache::Atom;
 
 #[allow(unrooted_must_root)]
 pub fn serialize(iterator: &mut NodeIterator) -> String {
@@ -82,7 +81,7 @@ fn serialize_text(text: JSRef<Text>, html: &mut String) {
             match elem.deref().local_name.as_slice() {
                 "style" | "script" | "xmp" | "iframe" |
                 "noembed" | "noframes" | "plaintext" |
-                "noscript" if elem.deref().namespace == namespace::HTML
+                "noscript" if elem.deref().namespace == ns!(HTML)
                 => html.push_str(text.deref().characterdata.data.deref().borrow().as_slice()),
                 _ => escape(text.deref().characterdata.data.deref().borrow().as_slice(), false, html)
             }
@@ -116,7 +115,7 @@ fn serialize_elem(elem: JSRef<Element>, open_elements: &mut Vec<String>, html: &
     html.push_char('>');
 
     match elem.deref().local_name.as_slice() {
-        "pre" | "listing" | "textarea" if elem.deref().namespace == namespace::HTML => {
+        "pre" | "listing" | "textarea" if elem.deref().namespace == ns!(HTML) => {
             let node: JSRef<Node> = NodeCast::from_ref(elem);
             match node.first_child().map(|child| child.root()) {
                 Some(ref child) if child.is_text() => {
@@ -138,16 +137,16 @@ fn serialize_elem(elem: JSRef<Element>, open_elements: &mut Vec<String>, html: &
 
 fn serialize_attr(attr: JSRef<Attr>, html: &mut String) {
     html.push_char(' ');
-    if attr.deref().namespace == namespace::XML {
+    if attr.deref().namespace == ns!(XML) {
         html.push_str("xml:");
         html.push_str(attr.local_name().as_slice());
-    } else if attr.deref().namespace == namespace::XMLNS &&
+    } else if attr.deref().namespace == ns!(XMLNS) &&
         *attr.local_name() == Atom::from_slice("xmlns") {
         html.push_str("xmlns");
-    } else if attr.deref().namespace == namespace::XMLNS {
+    } else if attr.deref().namespace == ns!(XMLNS) {
         html.push_str("xmlns:");
         html.push_str(attr.local_name().as_slice());
-    } else if attr.deref().namespace == namespace::XLink {
+    } else if attr.deref().namespace == ns!(XLink) {
         html.push_str("xlink:");
         html.push_str(attr.local_name().as_slice());
     } else {

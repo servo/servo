@@ -16,7 +16,6 @@ use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, NodeHelpers, ElementNodeTypeId};
 
-use servo_util::namespace::Null;
 use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS, StaticStringVec};
 
 #[jstraceable]
@@ -75,7 +74,7 @@ static SCRIPT_JS_MIMES: StaticStringVec = &[
 impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
     fn is_javascript(self) -> bool {
         let element: JSRef<Element> = ElementCast::from_ref(self);
-        match element.get_attribute(Null, "type").root().map(|s| s.Value()) {
+        match element.get_attribute(ns!(""), "type").root().map(|s| s.Value()) {
             Some(ref s) if s.is_empty() => {
                 // type attr exists, but empty means js
                 debug!("script type empty, inferring js");
@@ -87,7 +86,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
             },
             None => {
                 debug!("no script type");
-                match element.get_attribute(Null, "language").root().map(|s| s.Value()) {
+                match element.get_attribute(ns!(""), "language").root().map(|s| s.Value()) {
                     Some(ref s) if s.is_empty() => {
                         debug!("script language empty, inferring js");
                         true

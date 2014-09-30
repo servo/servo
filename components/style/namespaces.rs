@@ -4,8 +4,9 @@
 
 use cssparser::ast::*;
 use std::collections::hashmap::HashMap;
-use servo_util::namespace::Namespace;
+use servo_util::namespace;
 use errors::log_css_error;
+use string_cache::Namespace;
 
 pub struct NamespaceMap {
     pub default: Option<Namespace>,
@@ -40,7 +41,7 @@ pub fn parse_namespace_rule(rule: AtRule, namespaces: &mut NamespaceMap) {
             },
             URL(value) | QuotedString(value) => {
                 if ns.is_some() { syntax_error!() }
-                ns = Some(Namespace::from_str(Some(value)));
+                ns = Some(namespace::from_domstring(Some(value)));
                 break
             },
             _ => syntax_error!(),

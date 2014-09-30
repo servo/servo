@@ -17,8 +17,8 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, ElementNodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 
-use servo_util::atom::Atom;
 use servo_util::str::DOMString;
+use string_cache::Atom;
 
 #[jstraceable]
 #[must_root]

@@ -17,9 +17,9 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, ElementNodeTypeId, NodeHelpers, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use servo_net::image_cache_task;
-use servo_util::atom::Atom;
 use servo_util::geometry::to_px;
 use servo_util::str::DOMString;
+use string_cache::Atom;
 
 use url::{Url, UrlParser};
 

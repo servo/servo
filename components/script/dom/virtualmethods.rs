@@ -57,8 +57,8 @@ use dom::htmlstyleelement::HTMLStyleElement;
 use dom::htmltextareaelement::HTMLTextAreaElement;
 use dom::node::{Node, NodeHelpers, ElementNodeTypeId};
 
-use servo_util::atom::Atom;
 use servo_util::str::DOMString;
+use string_cache::Atom;
 
 /// Trait to allow DOM nodes to opt-in to overriding (or adding to) common
 /// behaviours. Replicates the effect of C++ virtual methods.

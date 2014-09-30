@@ -15,13 +15,11 @@ use dom::window::Window;
 use dom::virtualmethods::vtable_for;
 
 use devtools_traits::AttrInfo;
-use servo_util::atom::Atom;
-use servo_util::namespace;
-use servo_util::namespace::Namespace;
 use servo_util::str::{DOMString, split_html_space_chars};
 use std::cell::{Ref, RefCell};
 use std::mem;
 use std::slice::Items;
+use string_cache::{Atom, Namespace};
 
 pub enum AttrSettingType {
     FirstSetAttr,
@@ -136,7 +134,8 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
     }
 
     fn GetNamespaceURI(self) -> Option<DOMString> {
-        match self.namespace.to_str() {
+        let Namespace(ref atom) = self.namespace;
+        match atom.as_slice() {
             "" => None,
             url => Some(url.to_string()),
         }
@@ -158,7 +157,7 @@ impl<'a> AttrHelpers<'a> for JSRef<'a, Attr> {
     fn set_value(self, set_type: AttrSettingType, value: AttrValue) {
         let owner = self.owner.root();
         let node: JSRef<Node> = NodeCast::from_ref(*owner);
-        let namespace_is_null = self.namespace == namespace::Null;
+        let namespace_is_null = self.namespace == ns!("");
 
         match set_type {
             ReplacedAttr => {
@@ -189,8 +188,9 @@ impl<'a> AttrHelpers<'a> for JSRef<'a, Attr> {
     }
 
     fn summarize(self) -> AttrInfo {
+        let Namespace(ref ns) = self.namespace;
         AttrInfo {
-            namespace: self.namespace.to_str().to_string(),
+            namespace: ns.as_slice().to_string(),
             name: self.Name(),
             value: self.Value(),
         }

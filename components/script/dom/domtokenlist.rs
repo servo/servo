@@ -12,9 +12,8 @@ use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
 use dom::element::{Element, AttributeHandlers};
 use dom::node::window_from_node;
 
-use servo_util::atom::Atom;
-use servo_util::namespace::Null;
 use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS};
+use string_cache::Atom;
 
 #[jstraceable]
 #[must_root]
@@ -56,7 +55,7 @@ trait PrivateDOMTokenListHelpers {
 impl<'a> PrivateDOMTokenListHelpers for JSRef<'a, DOMTokenList> {
     fn attribute(self) -> Option<Temporary<Attr>> {
         let element = self.element.root();
-        element.deref().get_attribute(Null, self.local_name)
+        element.deref().get_attribute(ns!(""), self.local_name)
     }
 
     fn check_token_exceptions<'a>(self, token: &'a str) -> Fallible<&'a str> {

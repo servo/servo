@@ -48,9 +48,6 @@ use script::dom::node::{LayoutNodeHelpers, RawLayoutNodeHelpers, SharedLayoutDat
 use script::dom::text::Text;
 use script::layout_interface::LayoutChan;
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
-use servo_util::atom::Atom;
-use servo_util::namespace::Namespace;
-use servo_util::namespace;
 use servo_util::str::is_whitespace;
 use std::cell::{RefCell, Ref, RefMut};
 use std::kinds::marker::ContravariantLifetime;
@@ -59,6 +56,7 @@ use style::computed_values::{content, display, white_space};
 use style::{AnyNamespace, AttrSelector, PropertyDeclarationBlock, SpecificNamespace, TElement};
 use style::{TNode};
 use url::Url;
+use string_cache::{Atom, Namespace};
 
 /// Allows some convenience methods on generic layout nodes.
 pub trait TLayoutNode {
@@ -413,7 +411,7 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
             ElementNodeTypeId(HTMLAnchorElementTypeId) |
             ElementNodeTypeId(HTMLAreaElementTypeId) |
             ElementNodeTypeId(HTMLLinkElementTypeId) => {
-                unsafe { self.element.get_attr_val_for_layout(&namespace::Null, "href") }
+                unsafe { self.element.get_attr_val_for_layout(&ns!(""), "href") }
             }
             _ => None,
         }
@@ -427,7 +425,7 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
 
     #[inline]
     fn get_id(&self) -> Option<Atom> {
-        unsafe { self.element.get_attr_atom_for_layout(&namespace::Null, "id") }
+        unsafe { self.element.get_attr_atom_for_layout(&ns!(""), "id") }
     }
 
     fn get_disabled_state(&self) -> bool {

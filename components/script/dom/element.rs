@@ -34,14 +34,13 @@ use layout_interface::MatchSelectorsDocumentDamage;
 use devtools_traits::AttrInfo;
 use style::{matches, parse_selector_list_from_str};
 use style;
-use servo_util::atom::Atom;
 use servo_util::namespace;
-use servo_util::namespace::{Namespace, Null};
 use servo_util::str::DOMString;
 
 use std::ascii::StrAsciiExt;
 use std::cell::{Cell, RefCell};
 use std::mem;
+use string_cache::{Atom, Namespace};
 
 #[jstraceable]
 #[must_root]
@@ -229,7 +228,7 @@ pub trait LayoutElementHelpers {
 impl LayoutElementHelpers for JS<Element> {
     #[allow(unrooted_must_root)]
     unsafe fn html_element_in_html_document_for_layout(&self) -> bool {
-        if (*self.unsafe_get()).namespace != namespace::HTML {
+        if (*self.unsafe_get()).namespace != ns!(HTML) {
             return false
         }
         let node: JS<Node> = self.transmute_copy();
@@ -249,7 +248,7 @@ pub trait ElementHelpers {
 impl<'a> ElementHelpers for JSRef<'a, Element> {
     fn html_element_in_html_document(&self) -> bool {
         let node: JSRef<Node> = NodeCast::from_ref(*self);
-        self.namespace == namespace::HTML && node.is_in_html_doc()
+        self.namespace == ns!(HTML) && node.is_in_html_doc()
     }
 
     fn get_local_name<'a>(&'a self) -> &'a Atom {
@@ -273,7 +272,7 @@ impl<'a> ElementHelpers for JSRef<'a, Element> {
     }
 
    fn is_void(self) -> bool {
-        if self.namespace != namespace::HTML {
+        if self.namespace != ns!(HTML) {
             return false
         }
         match self.local_name.as_slice() {
@@ -351,7 +350,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
 
         let name = Atom::from_slice(name);
         self.do_set_attribute(name.clone(), value, name.clone(),
-            namespace::Null, None, |attr| *attr.local_name() == name);
+            ns!(""), None, |attr| *attr.local_name() == name);
     }
 
     fn do_set_attribute(self, local_name: Atom, value: AttrValue,
@@ -376,7 +375,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
 
     fn parse_attribute(self, namespace: &Namespace, local_name: &Atom,
                        value: DOMString) -> AttrValue {
-        if *namespace == namespace::Null {
+        if *namespace == ns!("") {
             vtable_for(&NodeCast::from_ref(self))
                 .parse_plain_attribute(local_name.as_slice(), value)
         } else {
@@ -400,7 +399,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
                     node.wait_until_safe_to_modify_dom();
                 }
 
-                if namespace == namespace::Null {
+                if namespace == ns!("") {
                     let removed_raw_value = (*self.deref().attrs.borrow())[idx].root().Value();
                     vtable_for(&NodeCast::from_ref(self))
                         .before_remove_attr(&local_name,
@@ -425,7 +424,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 
     fn has_class(&self, name: &str) -> bool {
-        self.get_attribute(Null, "class").root().map(|attr| {
+        self.get_attribute(ns!(""), "class").root().map(|attr| {
             attr.deref().value().tokens().map(|mut tokens| {
                 tokens.any(|atom| atom.as_slice() == name)
             }).unwrap_or(false)
@@ -444,7 +443,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             false => Atom::from_slice(name)
         };
         self.deref().attrs.borrow().iter().map(|attr| attr.root()).any(|attr| {
-            *attr.local_name() == name && attr.namespace == Null
+            *attr.local_name() == name && attr.namespace == ns!("")
         })
     }
 
@@ -453,7 +452,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         if value {
             self.set_string_attribute(name, String::new());
         } else {
-            self.remove_attribute(Null, name);
+            self.remove_attribute(ns!(""), name);
         }
     }
 
@@ -468,7 +467,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
 
     fn get_string_attribute(self, name: &str) -> DOMString {
         assert!(name == name.to_ascii_lower().as_slice());
-        match self.get_attribute(Null, name) {
+        match self.get_attribute(ns!(""), name) {
             Some(x) => {
                 let x = x.root();
                 x.deref().Value()
@@ -488,7 +487,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
 
     fn get_uint_attribute(self, name: &str) -> u32 {
         assert!(name == name.to_ascii_lower().as_slice());
-        let attribute = self.get_attribute(Null, name).root();
+        let attribute = self.get_attribute(ns!(""), name).root();
         match attribute {
             Some(attribute) => {
                 match *attribute.deref().value() {
@@ -509,8 +508,8 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     // http://dom.spec.whatwg.org/#dom-element-namespaceuri
     fn GetNamespaceURI(self) -> Option<DOMString> {
         match self.namespace {
-            Null => None,
-            ref ns => Some(ns.to_str().to_string())
+            ns!("") => None,
+            Namespace(ref ns) => Some(ns.as_slice().to_string())
         }
     }
 
@@ -592,7 +591,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         } else {
             name
         };
-        self.get_attribute(Null, name.as_slice()).root()
+        self.get_attribute(ns!(""), name.as_slice()).root()
                      .map(|s| s.deref().Value())
     }
 
@@ -600,7 +599,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     fn GetAttributeNS(self,
                       namespace: Option<DOMString>,
                       local_name: DOMString) -> Option<DOMString> {
-        let namespace = Namespace::from_str(namespace);
+        let namespace = namespace::from_domstring(namespace);
         self.get_attribute(namespace, local_name.as_slice()).root()
                      .map(|attr| attr.deref().Value())
     }
@@ -629,8 +628,8 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
         // Step 3-5.
         let name = Atom::from_slice(name.as_slice());
-        let value = self.parse_attribute(&namespace::Null, &name, value);
-        self.do_set_attribute(name.clone(), value, name.clone(), namespace::Null, None, |attr| {
+        let value = self.parse_attribute(&ns!(""), &name, value);
+        self.do_set_attribute(name.clone(), value, name.clone(), ns!(""), None, |attr| {
             attr.deref().name.as_slice() == name.as_slice()
         });
         Ok(())
@@ -647,7 +646,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         }
 
         // Step 1.
-        let namespace = Namespace::from_str(namespace_url);
+        let namespace = namespace::from_domstring(namespace_url);
 
         let name_type = xml_name_type(name.as_slice());
         match name_type {
@@ -663,17 +662,17 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         match prefix {
             Some(ref prefix_str) => {
                 // Step 5.
-                if namespace == namespace::Null {
+                if namespace == ns!("") {
                     return Err(NamespaceError);
                 }
 
                 // Step 6.
-                if "xml" == prefix_str.as_slice() && namespace != namespace::XML {
+                if "xml" == prefix_str.as_slice() && namespace != ns!(XML) {
                     return Err(NamespaceError);
                 }
 
                 // Step 7b.
-                if "xmlns" == prefix_str.as_slice() && namespace != namespace::XMLNS {
+                if "xmlns" == prefix_str.as_slice() && namespace != ns!(XMLNS) {
                     return Err(NamespaceError);
                 }
             },
@@ -685,12 +684,12 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         let xmlns = Atom::from_slice("xmlns");      // TODO: Make this a static atom type
 
         // Step 7a.
-        if xmlns == name && namespace != namespace::XMLNS {
+        if xmlns == name && namespace != ns!(XMLNS) {
             return Err(NamespaceError);
         }
 
         // Step 8.
-        if namespace == namespace::XMLNS && xmlns != name && Some("xmlns") != prefix {
+        if namespace == ns!(XMLNS) && xmlns != name && Some("xmlns") != prefix {
             return Err(NamespaceError);
         }
 
@@ -712,14 +711,14 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         } else {
             name
         };
-        self.remove_attribute(namespace::Null, name.as_slice())
+        self.remove_attribute(ns!(""), name.as_slice())
     }
 
     // http://dom.spec.whatwg.org/#dom-element-removeattributens
     fn RemoveAttributeNS(self,
                          namespace: Option<DOMString>,
                          localname: DOMString) {
-        let namespace = Namespace::from_str(namespace);
+        let namespace = namespace::from_domstring(namespace);
         self.remove_attribute(namespace, localname.as_slice())
     }
 
@@ -913,7 +912,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
 
         if !tree_in_doc { return; }
 
-        match self.get_attribute(Null, "id").root() {
+        match self.get_attribute(ns!(""), "id").root() {
             Some(attr) => {
                 let doc = document_from_node(*self).root();
                 let value = attr.deref().Value();
@@ -934,7 +933,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
 
         if !tree_in_doc { return; }
 
-        match self.get_attribute(Null, "id").root() {
+        match self.get_attribute(ns!(""), "id").root() {
             Some(attr) => {
                 let doc = document_from_node(*self).root();
                 let value = attr.deref().Value();
@@ -962,7 +961,7 @@ impl<'a> style::TElement<'a> for JSRef<'a, Element> {
             // selector-link
             ElementNodeTypeId(HTMLAnchorElementTypeId) |
             ElementNodeTypeId(HTMLAreaElementTypeId) |
-            ElementNodeTypeId(HTMLLinkElementTypeId) => self.get_attr(&namespace::Null, "href"),
+            ElementNodeTypeId(HTMLLinkElementTypeId) => self.get_attr(&ns!(""), "href"),
             _ => None,
          }
     }
@@ -977,7 +976,7 @@ impl<'a> style::TElement<'a> for JSRef<'a, Element> {
         node.get_hover_state()
     }
     fn get_id<'a>(&self) -> Option<Atom> {
-        self.get_attribute(namespace::Null, "id").map(|attr| {
+        self.get_attribute(ns!(""), "id").map(|attr| {
             let attr = attr.root();
             match *attr.value() {
                 AtomAttrValue(ref val) => val.clone(),

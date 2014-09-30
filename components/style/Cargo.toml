@@ -29,3 +29,9 @@ git = "https://github.com/lifthrasiir/rust-encoding"
 
 [dependencies.lazy_static]
 git = "https://github.com/Kimundi/lazy-static.rs"
+
+[dependencies.string_cache]
+git = "https://github.com/servo/string-cache"
+
+[dependencies.string_cache_macros]
+git = "https://github.com/servo/string-cache"
