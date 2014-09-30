@@ -367,6 +367,7 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
 
 pub trait NodeHelpers<'a> {
     fn ancestors(self) -> AncestorIterator<'a>;
+    fn inclusive_ancestors(self) -> AncestorIterator<'a>;
     fn children(self) -> AbstractNodeChildrenIterator<'a>;
     fn child_elements(self) -> ChildElementIterator<'a>;
     fn following_siblings(self) -> AbstractNodeChildrenIterator<'a>;
@@ -654,9 +655,16 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
         }
     }
 
+    fn inclusive_ancestors(self) -> AncestorIterator<'a> {
+        AncestorIterator {
+            current: Some(self.clone()),
+        }
+    }
+
     fn owner_doc(self) -> Temporary<Document> {
         self.owner_doc.get().unwrap()
     }
+
 
     fn set_owner_doc(self, document: JSRef<Document>) {
         self.owner_doc.assign(Some(document.clone()));
