@@ -8,8 +8,7 @@ dependencies = [
  "devtools 0.0.1",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#90add8d65273c8a46aa16d73959e29a51d0c282d)",
  "gfx 0.0.1",
- "glfw 0.0.1 (git+https://github.com/servo/glfw-rs?ref=servo#955dbe919870b0536f79123232d87c0efe3c552e)",
- "glut 0.0.1 (git+https://github.com/servo/rust-glut#01af0162ea0322ad1a40d6adb023a39813605949)",
+ "glfw-app 0.0.1",
  "js 0.1.0 (git+https://github.com/servo/rust-mozjs#41fb0d80a5ed5614ca13a120cdb3281e599d4e04)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers#180d3ff2f28d239e32d01982c76be5c97d5763a8)",
  "msg 0.0.1",
@@ -76,8 +75,6 @@ dependencies = [
  "devtools_traits 0.0.1",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#90add8d65273c8a46aa16d73959e29a51d0c282d)",
  "gfx 0.0.1",
- "glfw 0.0.1 (git+https://github.com/servo/glfw-rs?ref=servo#955dbe919870b0536f79123232d87c0efe3c552e)",
- "glut 0.0.1 (git+https://github.com/servo/rust-glut#01af0162ea0322ad1a40d6adb023a39813605949)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers#180d3ff2f28d239e32d01982c76be5c97d5763a8)",
  "layout_traits 0.0.1",
  "msg 0.0.1",
@@ -214,17 +211,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "glfw-app"
+version = "0.0.1"
+dependencies = [
+ "alert 0.1.0 (git+https://github.com/servo/rust-alert#fdc24f13be8d8a2d15214ec228d166b3221b809e)",
+ "compositing 0.0.1",
+ "geom 0.1.0 (git+https://github.com/servo/rust-geom#90add8d65273c8a46aa16d73959e29a51d0c282d)",
+ "glfw 0.0.1 (git+https://github.com/servo/glfw-rs?ref=servo#955dbe919870b0536f79123232d87c0efe3c552e)",
+ "layers 0.1.0 (git+https://github.com/servo/rust-layers#9c2848823e24af586899947743704b1238f374c8)",
+ "msg 0.0.1",
+ "util 0.0.1",
+]
+
+[[package]]
 name = "glfw-sys"
 version = "3.0.4"
 source = "git+https://github.com/servo/glfw?ref=cargo-3.0.4#65a2b4721276589d9de24f6a9999a2db37286cae"
-
-[[package]]
-name = "glut"
-version = "0.0.1"
-source = "git+https://github.com/servo/rust-glut#01af0162ea0322ad1a40d6adb023a39813605949"
-dependencies = [
- "opengles 0.1.0 (git+https://github.com/servo/rust-opengles#6776e9c07feb149d34b087039ecf6b2c143e3afc)",
-]
 
 [[package]]
 name = "harfbuzz"
@@ -441,6 +443,7 @@ version = "0.0.1"
 dependencies = [
  "compositing 0.0.1",
  "gfx 0.0.1",
+ "glfw-app 0.0.1",
  "layout 0.0.1",
  "msg 0.0.1",
  "net 0.0.1",
