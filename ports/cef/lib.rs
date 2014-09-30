@@ -18,6 +18,7 @@ extern crate servo;
 extern crate azure;
 extern crate geom;
 extern crate gfx;
+extern crate glfw;
 extern crate glfwapp;
 extern crate js;
 extern crate layers;

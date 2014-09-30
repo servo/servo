@@ -8,6 +8,7 @@ dependencies = [
  "devtools 0.0.1",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#90add8d65273c8a46aa16d73959e29a51d0c282d)",
  "gfx 0.0.1",
+ "glfw 0.0.1 (git+https://github.com/servo/glfw-rs?ref=servo#a15c2d04b8969aea653841d1d79e5fdf68de664b)",
  "glfw-app 0.0.1",
  "js 0.1.0 (git+https://github.com/servo/rust-mozjs#41fb0d80a5ed5614ca13a120cdb3281e599d4e04)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers#180d3ff2f28d239e32d01982c76be5c97d5763a8)",
