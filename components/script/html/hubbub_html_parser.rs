@@ -411,7 +411,9 @@ pub fn parse_html(page: &Page,
             unsafe {
                 debug!("append child {:x} {:x}", parent, child);
                 let child: Root<Node> = from_hubbub_node(child).root();
+                child.init();
                 let parent: Root<Node> = from_hubbub_node(parent).root();
+                parent.init();
                 assert!(parent.deref().AppendChild(*child).is_ok());
             }
             child

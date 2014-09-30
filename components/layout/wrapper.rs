@@ -521,7 +521,7 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
     }
 
     unsafe fn get<'a>(&'a self) -> &'a Node { // this change.
-        mem::transmute::<*mut Node,&'a Node>(self.get_jsmanaged().unsafe_get())
+        mem::transmute::<*const Node,&'a Node>(self.get_jsmanaged().unsafe_get())
     }
 
     fn first_child(&self) -> Option<ThreadSafeLayoutNode<'ln>> {
@@ -619,7 +619,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
             // FIXME(pcwalton): Workaround until Rust gets multiple lifetime parameters on
             // implementations.
             ThreadSafeLayoutElement {
-                element: &mut *element,
+                element: &*element,
             }
         }
     }

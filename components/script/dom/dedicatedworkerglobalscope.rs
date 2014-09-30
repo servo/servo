@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::InheritTypes::DedicatedWorkerGlobalScopeDerived;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, WorkerGlobalScopeCast};
 use dom::bindings::global;
-use dom::bindings::js::{JSRef, Temporary, RootCollection};
+use dom::bindings::js::{JSRef, Temporary, RootCollection, RootableValue};
 use dom::bindings::trace::Untraceable;
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::eventtarget::{EventTarget, EventTargetHelpers};
@@ -26,9 +26,10 @@ use script_task::StackRootTLS;
 use servo_net::resource_task::{ResourceTask, load_whole_resource};
 
 use js::glue::JS_STRUCTURED_CLONE_VERSION;
-use js::jsapi::{JSContext, JS_ReadStructuredClone, JS_WriteStructuredClone};
+use js::jsapi::JSContext;
+use js::jsfriendapi::{JS_ReadStructuredClone, JS_WriteStructuredClone};
 use js::jsval::{JSVal, UndefinedValue};
-use js::rust::Cx;
+use js::rust::{Cx, JSAutoRequest, JSAutoCompartment};
 
 use std::rc::Rc;
 use std::ptr;
@@ -91,8 +92,6 @@ impl DedicatedWorkerGlobalScope {
             .native()
             .named(format!("Web Worker at {}", worker_url.serialize()))
             .spawn(proc() {
-            let roots = RootCollection::new();
-            let _stack_roots_tls = StackRootTLS::new(&roots);
 
             let (url, source) = match load_whole_resource(&resource_task, worker_url.clone()) {
                 Err(_) => {
@@ -105,9 +104,15 @@ impl DedicatedWorkerGlobalScope {
             };
 
             let (_js_runtime, js_context) = ScriptTask::new_rt_and_cx();
+            let roots = RootCollection::new(js_context.ptr);
+            let _stack_roots_tls = StackRootTLS::new(&roots);
+            let mut _ar = Some(JSAutoRequest::new(js_context.deref().ptr));
+
             let global = DedicatedWorkerGlobalScope::new(
                 worker_url, worker, js_context.clone(), resource_task,
                 parent_sender, own_sender, receiver).root();
+            let _ac = JSAutoCompartment::new(js_context.deref().ptr, global.reflector().get_jsobject());
+
             match js_context.evaluate_script(
                 global.reflector().get_jsobject(), source, url.serialize(), 1) {
                 Ok(_) => (),
@@ -122,15 +127,15 @@ impl DedicatedWorkerGlobalScope {
             loop {
                 match global.receiver.deref().recv_opt() {
                     Ok(DOMMessage(data, nbytes)) => {
-                        let mut message = UndefinedValue();
+                        let mut message = UndefinedValue().root_value();
                         unsafe {
                             assert!(JS_ReadStructuredClone(
                                 js_context.ptr, data as *const u64, nbytes,
-                                JS_STRUCTURED_CLONE_VERSION, &mut message,
-                                ptr::null(), ptr::null_mut()) != 0);
+                                JS_STRUCTURED_CLONE_VERSION, message.mut_handle_(),
+                                ptr::null(), ptr::null_mut()));
                         }
 
-                        MessageEvent::dispatch_jsval(target, &global::Worker(scope), message);
+                        MessageEvent::dispatch_jsval(target, &global::Worker(scope), *message.raw_());
                         global.delayed_release_worker();
                     },
                     Ok(XHRProgressMsg(addr, progress)) => {
@@ -152,11 +157,14 @@ impl DedicatedWorkerGlobalScope {
 
 impl<'a> DedicatedWorkerGlobalScopeMethods for JSRef<'a, DedicatedWorkerGlobalScope> {
     fn PostMessage(self, cx: *mut JSContext, message: JSVal) {
+        let message = message.root_value();
         let mut data = ptr::null_mut();
         let mut nbytes = 0;
+        let transferable = UndefinedValue().root_value();
         unsafe {
-            assert!(JS_WriteStructuredClone(cx, message, &mut data, &mut nbytes,
-                                            ptr::null(), ptr::null_mut()) != 0);
+            assert!(JS_WriteStructuredClone(cx, message.handle_(), &mut data, &mut nbytes,
+                                            ptr::null(), ptr::null_mut(),
+                                            transferable.handle_()));
         }
 
         let ScriptChan(ref sender) = self.parent_sender;

@@ -13,7 +13,8 @@ use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult, Fallible, InvalidState, InvalidAccess};
 use dom::bindings::error::{Network, Syntax, Security, Abort, Timeout};
 use dom::bindings::global::{GlobalField, GlobalRef, WorkerField};
-use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootedRootable};
+use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, OptionalRootedRootable, RootableValue};
+use dom::bindings::refcounted::LiveReferences;
 use dom::bindings::str::ByteString;
 use dom::bindings::trace::{Traceable, Untraceable};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
@@ -37,8 +38,7 @@ use http::headers::request::Header;
 use http::method::{Method, Get, Head, Connect, Trace, ExtensionMethod};
 use http::status::Status;
 
-use js::jsapi::{JS_AddObjectRoot, JS_ParseJSON, JS_RemoveObjectRoot, JSContext};
-use js::jsapi::JS_ClearPendingException;
+use js::jsapi::{JS_ParseJSON, JS_ClearPendingException, JSContext};
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 
 use libc;
@@ -53,6 +53,7 @@ use servo_util::task::spawn_named;
 use std::ascii::StrAsciiExt;
 use std::cell::{Cell, RefCell};
 use std::comm::{Sender, Receiver, channel};
+use std::default::Default;
 use std::io::{BufReader, MemWriter, Timer};
 use std::from_str::FromStr;
 use std::path::BytesContainer;
@@ -115,7 +116,7 @@ pub struct XMLHttpRequest {
     status_text: Traceable<RefCell<ByteString>>,
     response: Traceable<RefCell<ByteString>>,
     response_type: Traceable<Cell<XMLHttpRequestResponseType>>,
-    response_xml: Cell<Option<JS<Document>>>,
+    response_xml: MutNullableJS<Document>,
     response_headers: Untraceable<RefCell<ResponseHeaderCollection>>,
 
     // Associated concepts
@@ -129,7 +130,6 @@ pub struct XMLHttpRequest {
     send_flag: Traceable<Cell<bool>>,
 
     global: GlobalField,
-    pinned_count: Traceable<Cell<uint>>,
     timer: Untraceable<RefCell<Timer>>,
     fetch_time: Traceable<Cell<i64>>,
     timeout_pinned: Traceable<Cell<bool>>,
@@ -149,7 +149,7 @@ impl XMLHttpRequest {
             status_text: Traceable::new(RefCell::new(ByteString::new(vec!()))),
             response: Traceable::new(RefCell::new(ByteString::new(vec!()))),
             response_type: Traceable::new(Cell::new(_empty)),
-            response_xml: Cell::new(None),
+            response_xml: Default::default(),
             response_headers: Untraceable::new(RefCell::new(ResponseHeaderCollection::new())),
 
             request_method: Untraceable::new(RefCell::new(Get)),
@@ -163,7 +163,6 @@ impl XMLHttpRequest {
             upload_events: Traceable::new(Cell::new(false)),
 
             global: GlobalField::from_rooted(global),
-            pinned_count: Traceable::new(Cell::new(0)),
             timer: Untraceable::new(RefCell::new(Timer::new().unwrap())),
             fetch_time: Traceable::new(Cell::new(0)),
             timeout_pinned: Traceable::new(Cell::new(false)),
@@ -472,8 +471,8 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             }
 
             // Step 8
-            let upload_target = *self.upload.root();
-            let event_target: JSRef<EventTarget> = EventTargetCast::from_ref(upload_target);
+            let upload_target = self.upload.root();
+            let event_target: JSRef<EventTarget> = EventTargetCast::from_ref(*upload_target);
             if event_target.has_handlers() {
                 self.upload_events.deref().set(true);
             }
@@ -640,14 +639,14 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             Json => {
                 let decoded = UTF_8.decode(self.response.deref().borrow().as_slice(), DecodeReplace).unwrap().to_string();
                 let decoded: Vec<u16> = decoded.as_slice().utf16_units().collect();
-                let mut vp = UndefinedValue();
+                let mut vp = UndefinedValue().root_value();
                 unsafe {
-                    if JS_ParseJSON(cx, decoded.as_ptr(), decoded.len() as u32, &mut vp) == 0 {
+                    if !JS_ParseJSON(cx, decoded.as_ptr(), decoded.len() as u32, vp.mut_handle_()) {
                         JS_ClearPendingException(cx);
                         return NullValue();
                     }
                 }
-                vp
+                *vp.raw_()
             }
             _ => {
                 // XXXManishearth handle other response types
@@ -667,7 +666,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         }
     }
     fn GetResponseXML(self) -> Option<Temporary<Document>> {
-        self.response_xml.get().map(|response| Temporary::new(response))
+        self.response_xml.get()
     }
 }
 
@@ -715,11 +714,7 @@ trait PrivateXMLHttpRequestHelpers {
 impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
     // Creates a trusted address to the object, and roots it. Always pair this with a release()
     unsafe fn to_trusted(self) -> TrustedXHRAddress {
-        if self.pinned_count.deref().get() == 0 {
-            JS_AddObjectRoot(self.global.root().root_ref().get_cx(), self.reflector().rootable());
-        }
-        let pinned_count = self.pinned_count.deref().get();
-        self.pinned_count.deref().set(pinned_count + 1);
+        LiveReferences.get().unwrap().addref(&self);
         TrustedXHRAddress(self.deref() as *const XMLHttpRequest as *const libc::c_void)
     }
 
@@ -730,14 +725,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
             // meaningful during an async fetch
             return;
         }
-        assert!(self.pinned_count.deref().get() > 0)
-        let pinned_count = self.pinned_count.deref().get();
-        self.pinned_count.deref().set(pinned_count - 1);
-        if self.pinned_count.deref().get() == 0 {
-            unsafe {
-                JS_RemoveObjectRoot(self.global.root().root_ref().get_cx(), self.reflector().rootable());
-            }
-        }
+        LiveReferences.get().unwrap().release(&self);
     }
 
     fn change_ready_state(self, rs: XMLHttpRequestState) {
@@ -865,6 +853,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
 
     fn dispatch_progress_event(self, upload: bool, type_: DOMString, loaded: u64, total: Option<u64>) {
         let global = self.global.root();
+        global.init();
         let upload_target = *self.upload.root();
         let progressevent = ProgressEvent::new(&global.root_ref(),
                                                type_, false, false,
@@ -911,8 +900,8 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
             match oneshot.recv_opt() {
                 Ok(_) => {
                     let ScriptChan(ref chan) = script_chan;
-                    terminate_sender.map(|s| s.send_opt(Timeout));
                     chan.send(XHRProgressMsg(addr, TimeoutMsg));
+                    terminate_sender.map(|s| s.send_opt(Timeout));
                 },
                 Err(_) => {
                     // This occurs if xhr.timeout (the sender) goes out of scope (i.e, xhr went out of scope)

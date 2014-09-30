@@ -10,7 +10,7 @@ dependencies = [
  "gfx 0.0.1",
  "glfw 0.0.1 (git+https://github.com/servo/glfw-rs?ref=servo#955dbe919870b0536f79123232d87c0efe3c552e)",
  "glut 0.0.1 (git+https://github.com/servo/rust-glut#01af0162ea0322ad1a40d6adb023a39813605949)",
- "js 0.1.0 (git+https://github.com/servo/rust-mozjs#41fb0d80a5ed5614ca13a120cdb3281e599d4e04)",
+ "js 0.1.0 (git+https://github.com/servo/rust-mozjs#01117b7a4782857ac8242ff17245b28816de19af)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers#7559e747a1ca375449d959bea8262aa906d0bf47)",
  "msg 0.0.1",
  "net 0.0.1",
@@ -269,9 +269,9 @@ dependencies = [
 [[package]]
 name = "js"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-mozjs#41fb0d80a5ed5614ca13a120cdb3281e599d4e04"
+source = "git+https://github.com/servo/rust-mozjs#01117b7a4782857ac8242ff17245b28816de19af"
 dependencies = [
- "mozjs-sys 0.0.0 (git+https://github.com/servo/mozjs#47cd6a4e60c75642ba182f0df9a42b71ec7c2c88)",
+ "mozjs-sys 0.0.0 (git+https://github.com/servo/mozjs#cbc5759c6d4019acf41ae64f0ba222f8c2c70d4a)",
 ]
 
 [[package]]
@@ -323,7 +323,7 @@ source = "git+https://github.com/Kimundi/lazy-static.rs#e62a65372f1dd9019e37eb93
 [[package]]
 name = "mozjs-sys"
 version = "0.0.0"
-source = "git+https://github.com/servo/mozjs#47cd6a4e60c75642ba182f0df9a42b71ec7c2c88"
+source = "git+https://github.com/servo/mozjs#cbc5759c6d4019acf41ae64f0ba222f8c2c70d4a"
 
 [[package]]
 name = "msg"
@@ -404,7 +404,7 @@ dependencies = [
  "gfx 0.0.1",
  "http 0.1.0-pre (git+https://github.com/servo/rust-http?ref=servo#92019011b0cdf1bffc8c584830de1bf330d79d0d)",
  "hubbub 0.1.0 (git+https://github.com/servo/rust-hubbub#c7f868e688de6e9cbdc26aa09292ed072bc2648b)",
- "js 0.1.0 (git+https://github.com/servo/rust-mozjs#41fb0d80a5ed5614ca13a120cdb3281e599d4e04)",
+ "js 0.1.0 (git+https://github.com/servo/rust-mozjs#01117b7a4782857ac8242ff17245b28816de19af)",
  "msg 0.0.1",
  "net 0.0.1",
  "plugins 0.0.1",

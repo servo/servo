@@ -99,6 +99,13 @@ impl<'a> Reflectable for GlobalRef<'a> {
 }
 
 impl<'a, 'b> GlobalRoot<'a, 'b> {
+    pub fn init(&self) {
+        match *self {
+            WindowRoot(ref window) => window.init(),
+            WorkerRoot(ref worker) => worker.init(),
+        }
+    }
+
     /// Obtain a safe reference to the global object that cannot outlive the
     /// lifetime of this root.
     pub fn root_ref<'c>(&'c self) -> GlobalRef<'c> {

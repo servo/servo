@@ -5,7 +5,7 @@
 #![comment = "The Servo Parallel Browser Project"]
 #![license = "MPL"]
 
-#![feature(globs, macro_rules, phase, thread_local)]
+#![feature(globs, macro_rules, phase, thread_local, unsafe_destructor)]
 
 #![deny(unused_imports, unused_variable)]
 
@@ -158,5 +158,7 @@ pub fn run(opts: opts::Opts) {
                            memory_profiler_chan);
 
     pool.shutdown();
+
+    script::shutdown();
 }
 

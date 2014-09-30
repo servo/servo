@@ -7,6 +7,7 @@
 
 #![deny(unused_imports, unused_variable)]
 
+extern crate script;
 extern crate servo;
 extern crate native;
 extern crate "util" as servo_util;
@@ -25,6 +26,8 @@ use std::os;
 #[start]
 #[allow(dead_code)]
 fn start(argc: int, argv: *const *const u8) -> int {
+    script::init();
+
     native::start(argc, argv, proc() {
         opts::from_cmdline_args(os::args().as_slice()).map(run);
     })

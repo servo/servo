@@ -8,7 +8,8 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::error::{Fallible, Syntax};
 use dom::bindings::global::{GlobalRef, GlobalField};
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JS, JSRef, Temporary, RootableValue};
+use dom::bindings::refcounted::LiveReferences;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, WorkerTypeId};
@@ -18,13 +19,13 @@ use script_task::{ScriptChan, DOMMessage};
 use servo_util::str::DOMString;
 
 use js::glue::JS_STRUCTURED_CLONE_VERSION;
-use js::jsapi::{JSContext, JS_AddObjectRoot, JS_RemoveObjectRoot};
-use js::jsapi::{JS_ReadStructuredClone, JS_WriteStructuredClone};
+use js::jsapi::{JSContext/*, JS_AddObjectRoot, JS_RemoveObjectRoot*/};
+use js::jsfriendapi::{JS_ReadStructuredClone, JS_WriteStructuredClone};
 use js::jsval::{JSVal, UndefinedValue};
+use js::rust::JSAutoCompartment;
 use url::UrlParser;
 
 use libc::{c_void, size_t};
-use std::cell::Cell;
 use std::ptr;
 
 pub struct TrustedWorkerAddress(pub *const c_void);
@@ -33,7 +34,6 @@ pub struct TrustedWorkerAddress(pub *const c_void);
 #[must_root]
 pub struct Worker {
     eventtarget: EventTarget,
-    refcount: Cell<uint>,
     global: GlobalField,
     /// Sender to the Receiver associated with the DedicatedWorkerGlobalScope
     /// this Worker created.
@@ -44,7 +44,6 @@ impl Worker {
     fn new_inherited(global: &GlobalRef, sender: ScriptChan) -> Worker {
         Worker {
             eventtarget: EventTarget::new_inherited(WorkerTypeId),
-            refcount: Cell::new(0),
             global: GlobalField::from_rooted(global),
             sender: sender,
         }
@@ -83,44 +82,31 @@ impl Worker {
         let worker = unsafe { JS::from_trusted_worker_address(address).root() };
 
         let global = worker.global.root();
+        let cx = global.root_ref().get_cx();
+        let _ac = JSAutoCompartment::new(cx, global.root_ref().reflector().get_jsobject());
 
-        let mut message = UndefinedValue();
+        let mut message = UndefinedValue().root_value();
         unsafe {
             assert!(JS_ReadStructuredClone(
                 global.root_ref().get_cx(), data as *const u64, nbytes,
-                JS_STRUCTURED_CLONE_VERSION, &mut message,
-                ptr::null(), ptr::null_mut()) != 0);
+                JS_STRUCTURED_CLONE_VERSION, message.mut_handle_(),
+                ptr::null(), ptr::null_mut()));
         }
 
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(*worker);
-        MessageEvent::dispatch_jsval(target, &global.root_ref(), message);
+        MessageEvent::dispatch_jsval(target, &global.root_ref(), *message.raw_());
     }
 }
 
 impl Worker {
     // Creates a trusted address to the object, and roots it. Always pair this with a release()
     pub fn addref(&self) -> TrustedWorkerAddress {
-        let refcount = self.refcount.get();
-        if refcount == 0 {
-            let cx = self.global.root().root_ref().get_cx();
-            unsafe {
-                JS_AddObjectRoot(cx, self.reflector().rootable());
-            }
-        }
-        self.refcount.set(refcount + 1);
+        LiveReferences.get().unwrap().addref(self);
         TrustedWorkerAddress(self as *const Worker as *const c_void)
     }
 
     pub fn release(&self) {
-        let refcount = self.refcount.get();
-        assert!(refcount > 0)
-        self.refcount.set(refcount - 1);
-        if refcount == 1 {
-            let cx = self.global.root().root_ref().get_cx();
-            unsafe {
-                JS_RemoveObjectRoot(cx, self.reflector().rootable());
-            }
-        }
+        LiveReferences.get().unwrap().release(self);
     }
 
     pub fn handle_release(address: TrustedWorkerAddress) {
@@ -131,11 +117,14 @@ impl Worker {
 
 impl<'a> WorkerMethods for JSRef<'a, Worker> {
     fn PostMessage(self, cx: *mut JSContext, message: JSVal) {
+        let message = message.root_value();
         let mut data = ptr::null_mut();
         let mut nbytes = 0;
+        let transferable = UndefinedValue().root_value();
         unsafe {
-            assert!(JS_WriteStructuredClone(cx, message, &mut data, &mut nbytes,
-                                            ptr::null(), ptr::null_mut()) != 0);
+            assert!(JS_WriteStructuredClone(cx, message.handle_(), &mut data, &mut nbytes,
+                                            ptr::null(), ptr::null_mut(),
+                                            transferable.handle_()));
         }
 
         self.addref();
