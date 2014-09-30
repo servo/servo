@@ -133,7 +133,7 @@ pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
 
     event.dispatching.deref().set(false);
     event.phase.deref().set(PhaseNone);
-    event.current_target.set(None);
+    event.current_target.clear();
 
     !event.DefaultPrevented()
 }

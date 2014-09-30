@@ -21,7 +21,7 @@ use dom::bindings::error::{ErrorResult, Fallible, NotSupported, InvalidCharacter
 use dom::bindings::error::{HierarchyRequest, NamespaceError};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::global;
-use dom::bindings::js::{JS, JSRef, Temporary, OptionalSettable, TemporaryPushable};
+use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, OptionalSettable, TemporaryPushable};
 use dom::bindings::js::OptionalRootable;
 use dom::bindings::trace::{Traceable, Untraceable};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
@@ -57,12 +57,14 @@ use hubbub::hubbub::{QuirksMode, NoQuirks, LimitedQuirks, FullQuirks};
 use layout_interface::{DocumentDamageLevel, ContentChangedDocumentDamage};
 use servo_util::namespace;
 use servo_util::str::{DOMString, split_html_space_chars};
+
 use string_cache::Atom;
+use url::Url;
 
 use std::collections::hashmap::HashMap;
 use std::ascii::StrAsciiExt;
 use std::cell::{Cell, RefCell};
-use url::Url;
+use std::default::Default;
 use time;
 
 #[deriving(PartialEq)]
@@ -79,7 +81,7 @@ pub struct Document {
     reflector_: Reflector,
     pub window: JS<Window>,
     idmap: Traceable<RefCell<HashMap<Atom, Vec<JS<Element>>>>>,
-    implementation: Cell<Option<JS<DOMImplementation>>>,
+    implementation: MutNullableJS<DOMImplementation>,
     content_type: DOMString,
     last_modified: Traceable<RefCell<Option<DOMString>>>,
     pub encoding_name: Traceable<RefCell<DOMString>>,
@@ -288,7 +290,7 @@ impl Document {
             reflector_: Reflector::new(),
             window: JS::from_rooted(window),
             idmap: Traceable::new(RefCell::new(HashMap::new())),
-            implementation: Cell::new(None),
+            implementation: Default::default(),
             content_type: match content_type {
                 Some(string) => string.clone(),
                 None => match is_html_document {
@@ -382,7 +384,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         if self.implementation.get().is_none() {
             self.implementation.assign(Some(DOMImplementation::new(self)));
         }
-        Temporary::new(self.implementation.get().as_ref().unwrap().clone())
+        self.implementation.get().unwrap()
     }
 
     // http://dom.spec.whatwg.org/#dom-document-url

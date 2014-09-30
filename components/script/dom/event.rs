@@ -6,12 +6,13 @@ use dom::bindings::codegen::Bindings::EventBinding;
 use dom::bindings::codegen::Bindings::EventBinding::{EventConstants, EventMethods};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{MutNullableJS, JSRef, Temporary};
 use dom::bindings::trace::Traceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::eventtarget::EventTarget;
 use servo_util::str::DOMString;
 use std::cell::{Cell, RefCell};
+use std::default::Default;
 
 use time;
 
@@ -40,8 +41,8 @@ pub enum EventTypeId {
 pub struct Event {
     pub type_id: EventTypeId,
     reflector_: Reflector,
-    pub current_target: Cell<Option<JS<EventTarget>>>,
-    pub target: Cell<Option<JS<EventTarget>>>,
+    pub current_target: MutNullableJS<EventTarget>,
+    pub target: MutNullableJS<EventTarget>,
     type_: Traceable<RefCell<DOMString>>,
     pub phase: Traceable<Cell<EventPhase>>,
     pub canceled: Traceable<Cell<bool>>,
@@ -60,8 +61,8 @@ impl Event {
         Event {
             type_id: type_id,
             reflector_: Reflector::new(),
-            current_target: Cell::new(None),
-            target: Cell::new(None),
+            current_target: Default::default(),
+            target: Default::default(),
             phase: Traceable::new(Cell::new(PhaseNone)),
             type_: Traceable::new(RefCell::new("".to_string())),
             canceled: Traceable::new(Cell::new(false)),
@@ -108,11 +109,11 @@ impl<'a> EventMethods for JSRef<'a, Event> {
     }
 
     fn GetTarget(self) -> Option<Temporary<EventTarget>> {
-        self.target.get().as_ref().map(|target| Temporary::new(target.clone()))
+        self.target.get()
     }
 
     fn GetCurrentTarget(self) -> Option<Temporary<EventTarget>> {
-        self.current_target.get().as_ref().map(|target| Temporary::new(target.clone()))
+        self.current_target.get()
     }
 
     fn DefaultPrevented(self) -> bool {
@@ -158,7 +159,7 @@ impl<'a> EventMethods for JSRef<'a, Event> {
         self.stop_immediate.deref().set(false);
         self.canceled.deref().set(false);
         self.trusted.deref().set(false);
-        self.target.set(None);
+        self.target.clear();
         *self.type_.deref().borrow_mut() = type_;
         self.bubbles.deref().set(bubbles);
         self.cancelable.deref().set(cancelable);

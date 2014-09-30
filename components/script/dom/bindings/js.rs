@@ -54,6 +54,7 @@ use layout_interface::TrustedNodeAddress;
 use script_task::StackRoots;
 
 use std::cell::{Cell, RefCell};
+use std::default::Default;
 use std::kinds::marker::ContravariantLifetime;
 use std::mem;
 
@@ -192,6 +193,62 @@ impl<T: Reflectable> Reflectable for JS<T> {
     }
 }
 
+/// A mutable `JS<T>` value, with nullability represented by an enclosing
+/// Option wrapper. Must be used in place of traditional internal mutability
+/// to ensure that the proper GC barriers are enforced.
+#[must_root]
+#[jstraceable]
+pub struct MutNullableJS<T: Reflectable> {
+    ptr: Cell<Option<JS<T>>>
+}
+
+impl<T: Assignable<U>, U: Reflectable> MutNullableJS<U> {
+    pub fn new(initial: Option<T>) -> MutNullableJS<U> {
+        MutNullableJS {
+            ptr: Cell::new(initial.map(|initial| {
+                unsafe { initial.get_js() }
+            }))
+        }
+    }
+}
+
+impl<T: Reflectable> Default for MutNullableJS<T> {
+    fn default() -> MutNullableJS<T> {
+        MutNullableJS {
+            ptr: Cell::new(None)
+        }
+    }
+}
+
+impl<T: Reflectable> MutNullableJS<T> {
+    /// Store an unrooted value in this field. This is safe under the
+    /// assumption that `MutNullableJS<T>` values are only used as fields in
+    /// DOM types that are reachable in the GC graph, so this unrooted value
+    /// becomes transitively rooted for the lifetime of its new owner.
+    pub fn assign<U: Assignable<T>>(&self, val: Option<U>) {
+        self.ptr.set(val.map(|val| {
+            unsafe { val.get_js() }
+        }));
+    }
+
+    /// Set the inner value to null, without making API users jump through
+    /// useless type-ascription hoops.
+    pub fn clear(&self) {
+        self.assign(None::<JS<T>>);
+    }
+
+    /// Retrieve a copy of the current optional inner value.
+    pub fn get(&self) -> Option<Temporary<T>> {
+        self.ptr.get().map(Temporary::new)
+    }
+
+    /// Retrieve a copy of the inner optional `JS<T>`. For use by layout, which
+    /// can't use safe types like Temporary.
+    pub unsafe fn get_inner(&self) -> Option<JS<T>> {
+        self.ptr.get()
+    }
+}
+
 impl<T: Reflectable> JS<T> {
     /// Returns an unsafe pointer to the interior of this JS object without touching the borrow
     /// flags. This is the only method that be safely accessed from layout. (The fact that this
@@ -245,7 +302,7 @@ impl<'a, 'b, T: Reflectable> OptionalRootedReference<T> for Option<Option<Root<'
 /// Trait that allows extracting a `JS<T>` value from a variety of rooting-related containers,
 /// which in general is an unsafe operation since they can outlive the rooted lifetime of the
 /// original value.
-/*definitely not public*/ trait Assignable<T> {
+pub trait Assignable<T> {
     unsafe fn get_js(&self) -> JS<T>;
 }
 
