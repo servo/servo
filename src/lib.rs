@@ -30,6 +30,8 @@ extern crate native;
 extern crate rustrt;
 extern crate url;
 
+#[cfg(not(test), not(target_os="android"))]
+extern crate glfw_app;
 #[cfg(not(test), target_os="android")]
 extern crate glut_app;
 
