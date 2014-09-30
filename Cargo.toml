@@ -25,7 +25,7 @@ path = "tests/contenttest.rs"
 harness = false
 
 [features]
-default = ["glfw-app"]
+default = ["glfw_app"]
 
 [dependencies.compositing]
 path = "components/compositing"
@@ -48,11 +48,11 @@ path = "components/layout"
 [dependencies.gfx]
 path = "components/gfx"
 
-[dependencies.glfw-app]
+[dependencies.glfw_app]
 path = "ports/glfw"
 optional = true
 
-[dependencies.glut-app]
+[dependencies.glut_app]
 path = "ports/glut"
 optional = true
 

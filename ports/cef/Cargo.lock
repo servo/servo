@@ -9,7 +9,7 @@ dependencies = [
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#90add8d65273c8a46aa16d73959e29a51d0c282d)",
  "gfx 0.0.1",
  "glfw 0.0.1 (git+https://github.com/servo/glfw-rs?ref=servo#a15c2d04b8969aea653841d1d79e5fdf68de664b)",
- "glfw-app 0.0.1",
+ "glfw_app 0.0.1",
  "js 0.1.0 (git+https://github.com/servo/rust-mozjs#41fb0d80a5ed5614ca13a120cdb3281e599d4e04)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers#180d3ff2f28d239e32d01982c76be5c97d5763a8)",
  "msg 0.0.1",
@@ -212,7 +212,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "glfw-app"
+name = "glfw-sys"
+version = "3.0.4"
+source = "git+https://github.com/servo/glfw?ref=cargo-3.0.4#65a2b4721276589d9de24f6a9999a2db37286cae"
+
+[[package]]
+name = "glfw_app"
 version = "0.0.1"
 dependencies = [
  "alert 0.1.0 (git+https://github.com/servo/rust-alert#fdc24f13be8d8a2d15214ec228d166b3221b809e)",
@@ -223,11 +228,6 @@ dependencies = [
  "msg 0.0.1",
  "util 0.0.1",
 ]
-
-[[package]]
-name = "glfw-sys"
-version = "3.0.4"
-source = "git+https://github.com/servo/glfw?ref=cargo-3.0.4#65a2b4721276589d9de24f6a9999a2db37286cae"
 
 [[package]]
 name = "harfbuzz"
@@ -444,7 +444,7 @@ version = "0.0.1"
 dependencies = [
  "compositing 0.0.1",
  "gfx 0.0.1",
- "glfw-app 0.0.1",
+ "glfw_app 0.0.1",
  "layout 0.0.1",
  "msg 0.0.1",
  "net 0.0.1",

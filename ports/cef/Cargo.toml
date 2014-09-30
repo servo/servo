@@ -11,7 +11,7 @@ crate-type = ["dylib"]
 [dependencies.servo]
 path = "../.."
 
-[dependencies.glfw-app]
+[dependencies.glfw_app]
 path = "../glfw"
 
 [dependencies.plugins]

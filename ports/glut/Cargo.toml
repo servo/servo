@@ -1,5 +1,5 @@
 [package]
-name = "glut-app"
+name = "glut_app"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 
