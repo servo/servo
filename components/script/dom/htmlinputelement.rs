@@ -243,7 +243,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
                 self.update_checked_state(true);
             }
             "size" => {
-                self.size.set(parse_unsigned_integer(value.as_slice().chars()).unwrap_or(DEFAULT_INPUT_SIZE));
+                let parsed = parse_unsigned_integer(value.as_slice().chars());
+                self.size.set(parsed.unwrap_or(DEFAULT_INPUT_SIZE));
                 self.force_relayout();
             }
             "type" => {
