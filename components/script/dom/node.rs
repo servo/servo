@@ -2035,37 +2035,73 @@ impl<'a> VirtualMethods for JSRef<'a, Node> {
 }
 
 impl<'a> style::TNode<'a, JSRef<'a, Element>> for JSRef<'a, Node> {
-    fn parent_node(&self) -> Option<JSRef<'a, Node>> {
-        (self as &NodeHelpers).parent_node().map(|node| *node.root())
+    fn parent_node(self) -> Option<JSRef<'a, Node>> {
+        // FIXME(zwarich): Remove this when UFCS lands and there is a better way
+        // of disambiguating methods.
+        fn parent_node<'a, 'b, T: NodeHelpers<'a, 'b>>(this: T) -> Option<Temporary<Node>> {
+            this.parent_node()
+        }
+
+        parent_node(self).map(|node| *node.root())
     }
 
-    fn tnode_first_child(&self) -> Option<JSRef<'a, Node>> {
-        (self as &NodeHelpers).first_child().map(|node| *node.root())
+    fn first_child(self) -> Option<JSRef<'a, Node>> {
+        // FIXME(zwarich): Remove this when UFCS lands and there is a better way
+        // of disambiguating methods.
+        fn first_child<'a, 'b, T: NodeHelpers<'a, 'b>>(this: T) -> Option<Temporary<Node>> {
+            this.first_child()
+        }
+
+        first_child(self).map(|node| *node.root())
     }
 
-    fn prev_sibling(&self) -> Option<JSRef<'a, Node>> {
-        (self as &NodeHelpers).prev_sibling().map(|node| *node.root())
+    fn prev_sibling(self) -> Option<JSRef<'a, Node>> {
+        // FIXME(zwarich): Remove this when UFCS lands and there is a better way
+        // of disambiguating methods.
+        fn prev_sibling<'a, 'b, T: NodeHelpers<'a, 'b>>(this: T) -> Option<Temporary<Node>> {
+            this.prev_sibling()
+        }
+
+        prev_sibling(self).map(|node| *node.root())
     }
 
-    fn next_sibling(&self) -> Option<JSRef<'a, Node>> {
-        (self as &NodeHelpers).next_sibling().map(|node| *node.root())
+    fn next_sibling(self) -> Option<JSRef<'a, Node>> {
+        // FIXME(zwarich): Remove this when UFCS lands and there is a better way
+        // of disambiguating methods.
+        fn next_sibling<'a, 'b, T: NodeHelpers<'a, 'b>>(this: T) -> Option<Temporary<Node>> {
+            this.next_sibling()
+        }
+
+        next_sibling(self).map(|node| *node.root())
     }
 
-    fn is_document(&self) -> bool {
-        (self as &NodeHelpers).is_document()
+    fn is_document(self) -> bool {
+        // FIXME(zwarich): Remove this when UFCS lands and there is a better way
+        // of disambiguating methods.
+        fn is_document<'a, 'b, T: NodeHelpers<'a, 'b>>(this: T) -> bool {
+            this.is_document()
+        }
+
+        is_document(self)
     }
 
-    fn is_element(&self) -> bool {
-        (self as &NodeHelpers).is_element()
+    fn is_element(self) -> bool {
+        // FIXME(zwarich): Remove this when UFCS lands and there is a better way
+        // of disambiguating methods.
+        fn is_element<'a, 'b, T: NodeHelpers<'a, 'b>>(this: T) -> bool {
+            this.is_element()
+        }
+
+        is_element(self)
     }
 
-    fn as_element(&self) -> JSRef<'a, Element> {
-        let elem: Option<JSRef<'a, Element>> = ElementCast::to_ref(*self);
+    fn as_element(self) -> JSRef<'a, Element> {
+        let elem: Option<JSRef<'a, Element>> = ElementCast::to_ref(self);
         assert!(elem.is_some());
         elem.unwrap()
     }
 
-    fn match_attr(&self, attr: &style::AttrSelector, test: |&str| -> bool) -> bool {
+    fn match_attr(self, attr: &style::AttrSelector, test: |&str| -> bool) -> bool {
         let name = {
             if self.is_html_element_in_html_document() {
                 attr.lower_name.as_slice()
@@ -2083,8 +2119,8 @@ impl<'a> style::TNode<'a, JSRef<'a, Element>> for JSRef<'a, Node> {
         }
     }
 
-    fn is_html_element_in_html_document(&self) -> bool {
-        let elem: Option<JSRef<'a, Element>> = ElementCast::to_ref(*self);
+    fn is_html_element_in_html_document(self) -> bool {
+        let elem: Option<JSRef<'a, Element>> = ElementCast::to_ref(self);
         assert!(elem.is_some());
         elem.unwrap().html_element_in_html_document()
     }

@@ -237,26 +237,26 @@ impl LayoutElementHelpers for JS<Element> {
     }
 }
 
-pub trait ElementHelpers {
+pub trait ElementHelpers<'a> {
     fn html_element_in_html_document(self) -> bool;
-    fn get_local_name<'a>(&'a self) -> &'a Atom;
-    fn get_namespace<'a>(&'a self) -> &'a Namespace;
+    fn get_local_name(self) -> &'a Atom;
+    fn get_namespace(self) -> &'a Namespace;
     fn summarize(self) -> Vec<AttrInfo>;
     fn is_void(self) -> bool;
 }
 
-impl<'a> ElementHelpers for JSRef<'a, Element> {
+impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
     fn html_element_in_html_document(self) -> bool {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         self.namespace == ns!(HTML) && node.is_in_html_doc()
     }
 
-    fn get_local_name<'a>(&'a self) -> &'a Atom {
-        &self.deref().local_name
+    fn get_local_name(self) -> &'a Atom {
+        &self.extended_deref().local_name
     }
 
-    fn get_namespace<'a>(&'a self) -> &'a Namespace {
-        &self.deref().namespace
+    fn get_namespace(self) -> &'a Namespace {
+        &self.extended_deref().namespace
     }
 
     fn summarize(self) -> Vec<AttrInfo> {
@@ -948,14 +948,14 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
 }
 
 impl<'a> style::TElement<'a> for JSRef<'a, Element> {
-    fn get_attr(&self, namespace: &Namespace, attr: &str) -> Option<&'a str> {
+    fn get_attr(self, namespace: &Namespace, attr: &str) -> Option<&'a str> {
         self.get_attribute(namespace.clone(), attr).root().map(|attr| {
             unsafe { mem::transmute(attr.deref().value().as_slice()) }
         })
     }
-    fn get_link(&self) -> Option<&'a str> {
+    fn get_link(self) -> Option<&'a str> {
         // FIXME: This is HTML only.
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        let node: JSRef<Node> = NodeCast::from_ref(self);
         match node.type_id() {
             // http://www.whatwg.org/specs/web-apps/current-work/multipage/selectors.html#
             // selector-link
@@ -965,17 +965,29 @@ impl<'a> style::TElement<'a> for JSRef<'a, Element> {
             _ => None,
          }
     }
-    fn get_local_name<'b>(&'b self) -> &'b Atom {
-        (self as &ElementHelpers).get_local_name()
+    fn get_local_name(self) -> &'a Atom {
+        // FIXME(zwarich): Remove this when UFCS lands and there is a better way
+        // of disambiguating methods.
+        fn get_local_name<'a, T: ElementHelpers<'a>>(this: T) -> &'a Atom {
+            this.get_local_name()
+        }
+
+        get_local_name(self)
     }
-    fn get_namespace<'b>(&'b self) -> &'b Namespace {
-        (self as &ElementHelpers).get_namespace()
+    fn get_namespace(self) -> &'a Namespace {
+        // FIXME(zwarich): Remove this when UFCS lands and there is a better way
+        // of disambiguating methods.
+        fn get_namespace<'a, T: ElementHelpers<'a>>(this: T) -> &'a Namespace {
+            this.get_namespace()
+        }
+
+        get_namespace(self)
     }
-    fn get_hover_state(&self) -> bool {
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+    fn get_hover_state(self) -> bool {
+        let node: JSRef<Node> = NodeCast::from_ref(self);
         node.get_hover_state()
     }
-    fn get_id<'a>(&self) -> Option<Atom> {
+    fn get_id(self) -> Option<Atom> {
         self.get_attribute(ns!(""), "id").map(|attr| {
             let attr = attr.root();
             match *attr.value() {
@@ -984,15 +996,21 @@ impl<'a> style::TElement<'a> for JSRef<'a, Element> {
             }
         })
     }
-    fn get_disabled_state(&self) -> bool {
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+    fn get_disabled_state(self) -> bool {
+        let node: JSRef<Node> = NodeCast::from_ref(self);
         node.get_disabled_state()
     }
-    fn get_enabled_state(&self) -> bool {
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+    fn get_enabled_state(self) -> bool {
+        let node: JSRef<Node> = NodeCast::from_ref(self);
         node.get_enabled_state()
     }
-    fn has_class(&self, name: &str) -> bool {
-        (self as &AttributeHandlers).has_class(name)
+    fn has_class(self, name: &str) -> bool {
+        // FIXME(zwarich): Remove this when UFCS lands and there is a better way
+        // of disambiguating methods.
+        fn has_class<T: AttributeHandlers>(this: T, name: &str) -> bool {
+            this.has_class(name)
+        }
+
+        has_class(self, name)
     }
 }
