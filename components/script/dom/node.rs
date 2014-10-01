@@ -2086,8 +2086,7 @@ impl<'a> style::TNode<'a, JSRef<'a, Element>> for JSRef<'a, Node> {
     fn is_html_element_in_html_document(&self) -> bool {
         let elem: Option<JSRef<'a, Element>> = ElementCast::to_ref(*self);
         assert!(elem.is_some());
-        let elem: &ElementHelpers = &elem.unwrap() as &ElementHelpers;
-        elem.html_element_in_html_document()
+        elem.unwrap().html_element_in_html_document()
     }
 }
 
