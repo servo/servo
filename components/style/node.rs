@@ -9,7 +9,7 @@ use selectors::AttrSelector;
 use string_cache::{Atom, Namespace};
 
 
-pub trait TNode<'a, E: TElement<'a>> : Clone {
+pub trait TNode<'a, E: TElement<'a>> : Clone + Copy {
     fn parent_node(&self) -> Option<Self>;
     fn first_child(&self) -> Option<Self>;
     fn prev_sibling(&self) -> Option<Self>;
@@ -21,7 +21,7 @@ pub trait TNode<'a, E: TElement<'a>> : Clone {
     fn is_html_element_in_html_document(&self) -> bool;
 }
 
-pub trait TElement<'a> {
+pub trait TElement<'a> : Copy {
     fn get_attr(&self, namespace: &Namespace, attr: &str) -> Option<&'a str>;
     fn get_link(&self) -> Option<&'a str>;
     fn get_local_name(&self) -> &'a Atom;
