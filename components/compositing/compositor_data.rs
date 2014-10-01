@@ -8,7 +8,7 @@ use pipeline::CompositionPipeline;
 
 use azure::azure_hl::Color;
 use geom::point::TypedPoint2D;
-use geom::size::{Size2D, TypedSize2D};
+use geom::size::Size2D;
 use geom::rect::Rect;
 use gfx::render_task::UnusedBufferMsg;
 use layers::geometry::LayerPixel;
@@ -79,15 +79,13 @@ impl CompositorData {
     }
 
     pub fn update_layer(layer: Rc<Layer<CompositorData>>, layer_properties: LayerProperties) {
-        let size: TypedSize2D<LayerPixel, f32> = Size2D::from_untyped(&layer_properties.rect.size);
-        layer.resize(size);
+        layer.resize(Size2D::from_untyped(&layer_properties.rect.size));
 
         // Call scroll for bounds checking if the page shrunk. Use (-1, -1) as the
         // cursor position to make sure the scroll isn't propagated downwards.
         events::handle_scroll_event(layer.clone(),
                                     TypedPoint2D(0f32, 0f32),
-                                    TypedPoint2D(-1f32, -1f32),
-                                    size);
+                                    TypedPoint2D(-1f32, -1f32));
         CompositorData::update_layer_except_size(layer, layer_properties);
     }
 

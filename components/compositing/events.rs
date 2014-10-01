@@ -51,8 +51,7 @@ pub enum ScrollEventResult {
 /// returns false, so a parent layer can scroll instead.
 pub fn handle_scroll_event(layer: Rc<Layer<CompositorData>>,
                            delta: TypedPoint2D<LayerPixel, f32>,
-                           cursor: TypedPoint2D<LayerPixel, f32>,
-                           window_size: TypedSize2D<LayerPixel, f32>)
+                           cursor: TypedPoint2D<LayerPixel, f32>)
                            -> ScrollEventResult {
     // If this layer doesn't want scroll events, neither it nor its children can handle scroll
     // events.
@@ -68,15 +67,14 @@ pub fn handle_scroll_event(layer: Rc<Layer<CompositorData>>,
         if child_bounds.contains(&new_cursor) {
             let result = handle_scroll_event(child.clone(),
                                              delta,
-                                             new_cursor - child_bounds.origin,
-                                             child_bounds.size);
+                                             new_cursor - child_bounds.origin);
             if result != ScrollEventUnhandled {
                 return result;
             }
         }
     }
 
-    clamp_scroll_offset_and_scroll_layer(layer, scroll_offset + delta, window_size)
+    clamp_scroll_offset_and_scroll_layer(layer, scroll_offset + delta)
 }
 
 pub fn calculate_content_size_for_layer(layer: Rc<Layer<CompositorData>>)
@@ -88,12 +86,12 @@ pub fn calculate_content_size_for_layer(layer: Rc<Layer<CompositorData>>)
 }
 
 pub fn clamp_scroll_offset_and_scroll_layer(layer: Rc<Layer<CompositorData>>,
-                                            new_offset: TypedPoint2D<LayerPixel, f32>,
-                                            window_size: TypedSize2D<LayerPixel, f32>)
+                                            new_offset: TypedPoint2D<LayerPixel, f32>)
                                             -> ScrollEventResult {
-    let layer_size = calculate_content_size_for_layer(layer.clone());
-    let min_x = (window_size.width - layer_size.width).get().min(0.0);
-    let min_y = (window_size.height - layer_size.height).get().min(0.0);
+    let layer_size = layer.bounds.borrow().size;
+    let content_size = calculate_content_size_for_layer(layer.clone());
+    let min_x = (layer_size.width - content_size.width).get().min(0.0);
+    let min_y = (layer_size.height - content_size.height).get().min(0.0);
     let new_offset : TypedPoint2D<LayerPixel, f32> =
         Point2D(Length(new_offset.x.get().clamp(&min_x, &0.0)),
                 Length(new_offset.y.get().clamp(&min_y, &0.0)));
