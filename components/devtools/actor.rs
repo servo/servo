@@ -4,9 +4,10 @@
 
 /// General actor system infrastructure.
 
-use std::any::{Any, AnyRefExt, AnyMutRefExt};
+use std::any::{AnyPrivate, AnyRefExt, AnyMutRefExt};
 use std::collections::hashmap::HashMap;
 use std::cell::{Cell, RefCell};
+use std::intrinsics::TypeId;
 use std::io::TcpStream;
 use std::mem::{transmute, transmute_copy, replace};
 use std::raw::TraitObject;
@@ -15,7 +16,7 @@ use serialize::json;
 /// A common trait for all devtools actors that encompasses an immutable name
 /// and the ability to process messages that are directed to particular actors.
 /// TODO: ensure the name is immutable
-pub trait Actor: Any {
+pub trait Actor: AnyPrivate {
     fn handle_message(&self,
                       registry: &ActorRegistry,
                       msg_type: &String,
@@ -42,14 +43,11 @@ impl<'a> AnyMutRefExt<'a> for &'a mut Actor + 'a {
 
 impl<'a> AnyRefExt<'a> for &'a Actor + 'a {
     fn is<T: 'static>(self) -> bool {
-        //FIXME: This implementation is bogus since get_type_id is private now.
-        //       However, this implementation is only needed so long as there's a Rust bug
-        //       that prevents downcast_ref from giving realistic return values, and this is
-        //       ok since we're careful with the types we pull out of the hashmap.
-        /*let t = TypeId::of::<T>();
+        // This implementation is only needed so long as there's a Rust bug that
+        // prevents downcast_ref from giving realistic return values.
+        let t = TypeId::of::<T>();
         let boxed = self.get_type_id();
-        t == boxed*/
-        true
+        t == boxed
     }
 
     fn downcast_ref<T: 'static>(self) -> Option<&'a T> {
