@@ -987,7 +987,7 @@ impl<'a> style::TElement<'a> for JSRef<'a, Element> {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         node.get_hover_state()
     }
-    fn get_id<'a>(self) -> Option<Atom> {
+    fn get_id(self) -> Option<Atom> {
         self.get_attribute(ns!(""), "id").map(|attr| {
             let attr = attr.root();
             match *attr.value() {
