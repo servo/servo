@@ -13,7 +13,7 @@ use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult, Fallible, InvalidState, InvalidAccess};
 use dom::bindings::error::{Network, Syntax, Security, Abort, Timeout};
 use dom::bindings::global::{GlobalField, GlobalRef, WorkerField};
-use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootedRootable};
+use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, OptionalRootedRootable};
 use dom::bindings::str::ByteString;
 use dom::bindings::trace::{Traceable, Untraceable};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
@@ -53,6 +53,7 @@ use servo_util::task::spawn_named;
 use std::ascii::StrAsciiExt;
 use std::cell::{Cell, RefCell};
 use std::comm::{Sender, Receiver, channel};
+use std::default::Default;
 use std::io::{BufReader, MemWriter, Timer};
 use std::from_str::FromStr;
 use std::path::BytesContainer;
@@ -115,7 +116,7 @@ pub struct XMLHttpRequest {
     status_text: Traceable<RefCell<ByteString>>,
     response: Traceable<RefCell<ByteString>>,
     response_type: Traceable<Cell<XMLHttpRequestResponseType>>,
-    response_xml: Cell<Option<JS<Document>>>,
+    response_xml: MutNullableJS<Document>,
     response_headers: Untraceable<RefCell<ResponseHeaderCollection>>,
 
     // Associated concepts
@@ -149,7 +150,7 @@ impl XMLHttpRequest {
             status_text: Traceable::new(RefCell::new(ByteString::new(vec!()))),
             response: Traceable::new(RefCell::new(ByteString::new(vec!()))),
             response_type: Traceable::new(Cell::new(_empty)),
-            response_xml: Cell::new(None),
+            response_xml: Default::default(),
             response_headers: Untraceable::new(RefCell::new(ResponseHeaderCollection::new())),
 
             request_method: Untraceable::new(RefCell::new(Get)),
@@ -667,7 +668,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         }
     }
     fn GetResponseXML(self) -> Option<Temporary<Document>> {
-        self.response_xml.get().map(|response| Temporary::new(response))
+        self.response_xml.get()
     }
 }
 
