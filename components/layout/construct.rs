@@ -27,12 +27,12 @@ use flow::{Flow, ImmutableFlowUtils, MutableOwnedFlowUtils};
 use flow::{Descendants, AbsDescendants};
 use flow;
 use flow_ref::FlowRef;
-use fragment::{InlineBlockFragment, InlineBlockFragmentInfo};
+use fragment::{InlineBlockFragment, InlineBlockFragmentInfo, InputFragment};
 use fragment::{Fragment, GenericFragment, IframeFragment, IframeFragmentInfo};
 use fragment::{ImageFragment, ImageFragmentInfo, SpecificFragmentInfo, TableFragment};
 use fragment::{TableCellFragment, TableColumnFragment, TableColumnFragmentInfo};
 use fragment::{TableRowFragment, TableWrapperFragment, UnscannedTextFragment};
-use fragment::{UnscannedTextFragmentInfo};
+use fragment::{UnscannedTextFragmentInfo, InputFragmentInfo};
 use inline::{InlineFragments, InlineFlow};
 use parallel;
 use table_wrapper::TableWrapperFlow;
@@ -49,7 +49,7 @@ use wrapper::{Before, After, Normal};
 
 use gfx::display_list::OpaqueNode;
 use script::dom::element::{HTMLIFrameElementTypeId, HTMLImageElementTypeId};
-use script::dom::element::{HTMLObjectElementTypeId};
+use script::dom::element::{HTMLObjectElementTypeId, HTMLInputElementTypeId};
 use script::dom::element::{HTMLTableColElementTypeId, HTMLTableDataCellElementTypeId};
 use script::dom::element::{HTMLTableElementTypeId, HTMLTableHeaderCellElementTypeId};
 use script::dom::element::{HTMLTableRowElementTypeId, HTMLTableSectionElementTypeId};
@@ -221,6 +221,21 @@ impl<'a> FlowConstructor<'a> {
         }
     }
 
+    fn build_fragment_info_for_input(&mut self, node: &ThreadSafeLayoutNode) -> SpecificFragmentInfo {
+        //FIXME: would it make more sense to use HTMLInputElement::input_type instead of the raw
+        //       value? definitely for string comparisons.
+        let elem = node.as_element();
+        let data = match elem.get_attr(&ns!(""), "type") {
+            Some("checkbox") | Some("radio") => None,
+            Some("button") | Some("submit") | Some("reset") =>
+                Some(node.get_input_value().len() as u32),
+            Some("file") => Some(node.get_input_size()),
+            _ => Some(node.get_input_size()),
+        };
+        data.map(|size| InputFragment(InputFragmentInfo { size: size }))
+            .unwrap_or(GenericFragment)
+    }
+
     /// Builds specific `Fragment` info for the given node.
     ///
     /// This does *not* construct the text for generated content (but, for generated content with
@@ -230,11 +245,14 @@ impl<'a> FlowConstructor<'a> {
     pub fn build_specific_fragment_info_for_node(&mut self, node: &ThreadSafeLayoutNode)
                                                  -> SpecificFragmentInfo {
         match node.type_id() {
+            Some(ElementNodeTypeId(HTMLIFrameElementTypeId)) => {
+                IframeFragment(IframeFragmentInfo::new(node))
+            }
             Some(ElementNodeTypeId(HTMLImageElementTypeId)) => {
                 self.build_fragment_info_for_image(node, node.image_url())
             }
-            Some(ElementNodeTypeId(HTMLIFrameElementTypeId)) => {
-                IframeFragment(IframeFragmentInfo::new(node))
+            Some(ElementNodeTypeId(HTMLInputElementTypeId)) => {
+                self.build_fragment_info_for_input(node)
             }
             Some(ElementNodeTypeId(HTMLObjectElementTypeId)) => {
                 let data = node.get_object_data();
@@ -445,7 +463,8 @@ impl<'a> FlowConstructor<'a> {
 
         // Special case: If this is generated content, then we need to initialize the accumulator
         // with the fragment corresponding to that content.
-        if node.get_pseudo_element_type() != Normal {
+        if node.get_pseudo_element_type() != Normal ||
+           node.type_id() == Some(ElementNodeTypeId(HTMLInputElementTypeId)) {
             let fragment_info = UnscannedTextFragment(UnscannedTextFragmentInfo::new(node));
             let mut fragment = Fragment::new_from_specific_info(node, fragment_info);
             inline_fragment_accumulator.fragments.push(&mut fragment);

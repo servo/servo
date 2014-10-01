@@ -36,13 +36,14 @@
 use css::node_style::StyledNode;
 use util::{LayoutDataAccess, LayoutDataWrapper, PrivateLayoutData};
 
-use script::dom::bindings::codegen::InheritTypes::{HTMLIFrameElementDerived};
+use script::dom::bindings::codegen::InheritTypes::{HTMLIFrameElementDerived, HTMLInputElementDerived};
 use script::dom::bindings::codegen::InheritTypes::{HTMLImageElementDerived, TextDerived};
 use script::dom::bindings::js::JS;
 use script::dom::element::{Element, HTMLAreaElementTypeId, HTMLAnchorElementTypeId};
 use script::dom::element::{HTMLLinkElementTypeId, LayoutElementHelpers, RawLayoutElementHelpers};
 use script::dom::htmliframeelement::HTMLIFrameElement;
 use script::dom::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
+use script::dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
 use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, Node, NodeTypeId};
 use script::dom::node::{LayoutNodeHelpers, RawLayoutNodeHelpers, SharedLayoutData, TextNodeTypeId};
 use script::dom::text::Text;
@@ -184,11 +185,15 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
 
     fn text(&self) -> String {
         unsafe {
-            if !self.get().is_text() {
+            if self.get().is_text() {
+                let text: JS<Text> = self.get_jsmanaged().transmute_copy();
+                (*text.unsafe_get()).characterdata.data.deref().borrow().clone()
+            } else if self.get().is_htmlinputelement() {
+                let input: JS<HTMLInputElement> = self.get_jsmanaged().transmute_copy();
+                input.get_value_for_layout()
+            } else {
                 fail!("not text!")
             }
-            let text: JS<Text> = self.get_jsmanaged().transmute_copy();
-            (*text.unsafe_get()).characterdata.data.deref().borrow().clone()
         }
     }
 }
@@ -567,14 +572,7 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
                 return get_content(&after_style.get_box().content)
             }
         }
-
-        unsafe {
-            if !self.get().is_text() {
-                fail!("not text!")
-            }
-            let text: JS<Text> = self.get_jsmanaged().transmute_copy();
-            (*text.unsafe_get()).characterdata.data.deref().borrow().clone()
-        }
+        self.node.text()
     }
 }
 
@@ -730,6 +728,26 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
                 }
             }
             _ => false
+        }
+    }
+
+    pub fn get_input_value(&self) -> String {
+        unsafe {
+            if !self.get().is_htmlinputelement() {
+                fail!("not an input element!")
+            }
+            let input: JS<HTMLInputElement> = self.get_jsmanaged().transmute_copy();
+            input.get_value_for_layout()
+        }
+    }
+
+    pub fn get_input_size(&self) -> u32 {
+        unsafe {
+            if !self.get().is_htmlinputelement() {
+                fail!("not an input element!")
+            }
+            let input: JS<HTMLInputElement> = self.get_jsmanaged().transmute_copy();
+            input.get_size_for_layout()
         }
     }
 }

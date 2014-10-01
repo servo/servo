@@ -235,6 +235,11 @@ impl FontHandleMethods for FontHandle {
             }
         }
 
+        let average_advance = self.glyph_index('0')
+                                  .and_then(|idx| self.glyph_h_advance(idx))
+                                  .map(|advance| self.font_units_to_au(advance))
+                                  .unwrap_or(max_advance);
+
         let metrics = FontMetrics {
             underline_size:   underline_size,
             underline_offset: underline_offset,
@@ -246,6 +251,7 @@ impl FontHandleMethods for FontHandle {
             ascent:           ascent,
             descent:          -descent, // linux font's seem to use the opposite sign from mac
             max_advance:      max_advance,
+            average_advance:  average_advance,
             line_gap:         height,
         };
 

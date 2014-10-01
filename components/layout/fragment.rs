@@ -128,10 +128,11 @@ impl<E, S: Encoder<E>> Encodable<S, E> for Fragment {
 /// Info specific to the kind of fragment. Keep this enum small.
 #[deriving(Clone)]
 pub enum SpecificFragmentInfo {
-    InlineBlockFragment(InlineBlockFragmentInfo),
     GenericFragment,
-    ImageFragment(ImageFragmentInfo),
     IframeFragment(IframeFragmentInfo),
+    ImageFragment(ImageFragmentInfo),
+    InlineBlockFragment(InlineBlockFragmentInfo),
+    InputFragment(InputFragmentInfo),
     ScannedTextFragment(ScannedTextFragmentInfo),
     TableFragment,
     TableCellFragment,
@@ -152,6 +153,22 @@ impl InlineBlockFragmentInfo {
         InlineBlockFragmentInfo {
             flow_ref: flow_ref,
         }
+    }
+}
+
+/// A fragment that represents a displayable form element
+#[deriving(Clone)]
+pub struct InputFragmentInfo {
+    pub size: u32,
+}
+
+impl InputFragmentInfo {
+    /// Returns the original inline-size of the input.
+    fn input_inline_size(&self, font_style: &FontStyle, layout_context: &LayoutContext) -> Au {
+        let metrics = text::font_metrics_for_style(layout_context.font_context(), font_style);
+
+        // https://html.spec.whatwg.org/#converting-a-character-width-to-pixels
+        metrics.average_advance * (self.size as i32 - 1) + metrics.max_advance
     }
 }
 
@@ -499,7 +516,8 @@ impl Fragment {
     /// replaced elements.
     fn style_specified_intrinsic_inline_size(&self) -> IntrinsicISizes {
         let (use_margins, use_padding) = match self.specific {
-            GenericFragment | IframeFragment(_) | ImageFragment(_) | InlineBlockFragment(_) => (true, true),
+            GenericFragment | IframeFragment(_) | ImageFragment(_) | InlineBlockFragment(_) |
+            InputFragment(_) => (true, true),
             TableFragment | TableCellFragment => (false, true),
             TableWrapperFragment => (true, false),
             TableRowFragment => (false, false),
@@ -1129,7 +1147,7 @@ impl Fragment {
                                                                            text_fragment))
             }
             GenericFragment | IframeFragment(..) | TableFragment | TableCellFragment |
-            TableRowFragment | TableWrapperFragment | InlineBlockFragment(_) => {
+            TableRowFragment | TableWrapperFragment | InlineBlockFragment(_) | InputFragment(_) => {
                 // FIXME(pcwalton): This is a bit of an abuse of the logging infrastructure. We
                 // should have a real `SERVO_DEBUG` system.
                 debug!("{:?}", self.build_debug_borders_around_fragment(display_list, flow_origin))
@@ -1193,7 +1211,7 @@ impl Fragment {
     }
 
     /// Returns the intrinsic inline-sizes of this fragment.
-    pub fn intrinsic_inline_sizes(&mut self) -> IntrinsicISizes {
+    pub fn intrinsic_inline_sizes(&mut self, layout_context: &LayoutContext) -> IntrinsicISizes {
         let mut result = self.style_specified_intrinsic_inline_size();
 
         match self.specific {
@@ -1213,6 +1231,12 @@ impl Fragment {
                 result.minimum_inline_size = max(result.minimum_inline_size, image_inline_size);
                 result.preferred_inline_size = max(result.preferred_inline_size,
                                                    image_inline_size);
+            }
+            InputFragment(ref input_fragment_info) => {
+                let font_style = text::computed_style_to_font_style(&*self.style);
+                let input_inline_size = input_fragment_info.input_inline_size(&font_style, layout_context);
+                result.minimum_inline_size = input_inline_size;
+                result.preferred_inline_size = input_inline_size;
             }
             ScannedTextFragment(ref text_fragment_info) => {
                 let range = &text_fragment_info.range;
@@ -1260,7 +1284,7 @@ impl Fragment {
     pub fn content_inline_size(&self) -> Au {
         match self.specific {
             GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment | TableRowFragment |
-            TableWrapperFragment | InlineBlockFragment(_) => Au(0),
+            TableWrapperFragment | InlineBlockFragment(_) | InputFragment(_) => Au(0),
             ImageFragment(ref image_fragment_info) => {
                 image_fragment_info.computed_inline_size()
             }
@@ -1278,7 +1302,8 @@ impl Fragment {
     pub fn content_block_size(&self, layout_context: &LayoutContext) -> Au {
         match self.specific {
             GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment |
-            TableRowFragment | TableWrapperFragment | InlineBlockFragment(_) => Au(0),
+            TableRowFragment | TableWrapperFragment | InlineBlockFragment(_) |
+            InputFragment(_) => Au(0),
             ImageFragment(ref image_fragment_info) => {
                 image_fragment_info.computed_block_size()
             }
@@ -1312,7 +1337,7 @@ impl Fragment {
             -> Option<(SplitInfo, Option<SplitInfo>, Arc<Box<TextRun>> /* TODO(bjz): remove */)> {
         match self.specific {
             GenericFragment | IframeFragment(_) | ImageFragment(_) | TableFragment | TableCellFragment |
-            TableRowFragment | TableWrapperFragment => None,
+            TableRowFragment | TableWrapperFragment | InputFragment(_) => None,
             TableColumnFragment(_) => fail!("Table column fragments do not need to split"),
             UnscannedTextFragment(_) => fail!("Unscanned text fragments should have been scanned by now!"),
             InlineBlockFragment(_) => fail!("Inline blocks do not get split"),
@@ -1353,7 +1378,7 @@ impl Fragment {
             -> Option<(Option<SplitInfo>, Option<SplitInfo>, Arc<Box<TextRun>> /* TODO(bjz): remove */)> {
         match self.specific {
             GenericFragment | IframeFragment(_) | ImageFragment(_) | TableFragment | TableCellFragment |
-            TableRowFragment | TableWrapperFragment | InlineBlockFragment(_) => None,
+            TableRowFragment | TableWrapperFragment | InlineBlockFragment(_) | InputFragment(_) => None,
             TableColumnFragment(_) => fail!("Table column fragments do not have inline_size"),
             UnscannedTextFragment(_) => fail!("Unscanned text fragments should have been scanned by now!"),
             ScannedTextFragment(ref text_fragment_info) => {
@@ -1457,7 +1482,7 @@ impl Fragment {
                                               container_inline_size: Au) {
         match self.specific {
             GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment |
-            TableRowFragment | TableWrapperFragment => return,
+            TableRowFragment | TableWrapperFragment | InputFragment(_) => return,
             TableColumnFragment(_) => fail!("Table column fragments do not have inline_size"),
             UnscannedTextFragment(_) => {
                 fail!("Unscanned text fragments should have been scanned by now!")
@@ -1540,7 +1565,7 @@ impl Fragment {
     pub fn assign_replaced_block_size_if_necessary(&mut self) {
         match self.specific {
             GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment |
-            TableRowFragment | TableWrapperFragment => return,
+            TableRowFragment | TableWrapperFragment | InputFragment(_) => return,
             TableColumnFragment(_) => fail!("Table column fragments do not have block_size"),
             UnscannedTextFragment(_) => {
                 fail!("Unscanned text fragments should have been scanned by now!")
@@ -1682,7 +1707,7 @@ impl Fragment {
             InlineBlockFragment(_) | TableWrapperFragment => false,
             GenericFragment | IframeFragment(_) | ImageFragment(_) | ScannedTextFragment(_) |
             TableFragment | TableCellFragment | TableColumnFragment(_) | TableRowFragment |
-            UnscannedTextFragment(_) => true,
+            UnscannedTextFragment(_) | InputFragment(_) => true,
         }
     }
 }
@@ -1703,6 +1728,7 @@ impl fmt::Show for Fragment {
                 TableWrapperFragment => "TableWrapperFragment",
                 UnscannedTextFragment(_) => "UnscannedTextFragment",
                 InlineBlockFragment(_) => "InlineBlockFragment",
+                InputFragment(_) => "InputFragment",
         }));
         try!(write!(f, "bp {}", self.border_padding));
         try!(write!(f, " "));
