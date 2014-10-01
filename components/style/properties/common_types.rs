@@ -13,6 +13,7 @@ pub type CSSFloat = f64;
 pub mod specified {
     use std::ascii::AsciiExt;
     use std::f64::consts::PI;
+    use std::fmt;
     use std::fmt::{Formatter, FormatError, Show};
     use url::Url;
     use cssparser;
@@ -20,7 +21,7 @@ pub mod specified {
     use cssparser::ast::*;
     use parsing_utils::{mod, BufferedIter, ParserIter};
     use super::{Au, CSSFloat};
-    #[deriving(Clone)]
+    #[deriving(Clone, PartialEq)]
     pub struct CSSColor {
         pub parsed: cssparser::Color,
         pub authored: Option<String>,
@@ -30,7 +31,7 @@ pub mod specified {
             let parsed = cssparser::Color::parse(component_value);
             parsed.map(|parsed| {
                 let authored = match component_value {
-                    &Ident(ref s) | &QuotedString(ref s) => Some(s.clone()),
+                    &Ident(ref s) => Some(s.clone()),
                     _ => None,
                 };
                 CSSColor {
@@ -40,8 +41,8 @@ pub mod specified {
             })
         }
     }
-    impl Show for CSSColor {
-        fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
+    impl fmt::Show for CSSColor {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             match self.authored {
                 Some(ref s) => write!(f, "{}", s),
                 None => write!(f, "{}", self.parsed),
@@ -50,6 +51,32 @@ pub mod specified {
     }
 
     #[deriving(Clone)]
+    pub struct CSSRGBA {
+        pub parsed: cssparser::RGBA,
+        pub authored: Option<String>,
+    }
+    impl fmt::Show for CSSRGBA {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            match self.authored {
+                Some(ref s) => write!(f, "{}", s),
+                None => write!(f, "{}", self.parsed),
+            }
+        }
+    }
+
+    #[deriving(Clone, PartialEq)]
+    pub struct CSSImage(pub Option<Image>);
+    impl fmt::Show for CSSImage {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            let &CSSImage(ref url) = self;
+            match url {
+                &Some(ref image) => write!(f, "{}", image),
+                &None => write!(f, "none"),
+            }
+        }
+    }
+
+    #[deriving(Clone, PartialEq)]
     pub enum Length {
         Au(Au),  // application units
         Em(CSSFloat),
@@ -69,8 +96,8 @@ pub mod specified {
 //        Vmin(CSSFloat),
 //        Vmax(CSSFloat),
     }
-    impl Show for Length {
-        fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
+    impl fmt::Show for Length {
+        fn fmt(&self, f: &mut Formatter) -> fmt::Result {
             match self {
                 &Length::Au(length) => write!(f, "{}", length),
                 &Length::Em(length) => write!(f, "{}em", length),
@@ -123,16 +150,16 @@ pub mod specified {
         }
     }
 
-    #[deriving(Clone)]
+    #[deriving(Clone, PartialEq)]
     pub enum LengthOrPercentage {
         Length(Length),
         Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
     }
-    impl Show for LengthOrPercentage {
-        fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
+    impl fmt::Show for LengthOrPercentage {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             match self {
                 &LengthOrPercentage::Length(length) => write!(f, "{}", length),
-                &LengthOrPercentage::Percentage(percentage) => write!(f, "{}%", percentage),
+                &LengthOrPercentage::Percentage(percentage) => write!(f, "{}%", percentage * 100.),
             }
         }
     }
@@ -167,11 +194,11 @@ pub mod specified {
         Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
         Auto,
     }
-    impl Show for LengthOrPercentageOrAuto {
-        fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
+    impl fmt::Show for LengthOrPercentageOrAuto {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             match self {
                 &LengthOrPercentageOrAuto::Length(length) => write!(f, "{}", length),
-                &LengthOrPercentageOrAuto::Percentage(percentage) => write!(f, "{}%", percentage),
+                &LengthOrPercentageOrAuto::Percentage(percentage) => write!(f, "{}%", percentage * 100.),
                 &LengthOrPercentageOrAuto::Auto => write!(f, "auto"),
             }
         }
@@ -207,11 +234,11 @@ pub mod specified {
         Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
         None,
     }
-    impl Show for LengthOrPercentageOrNone {
-        fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
+    impl fmt::Show for LengthOrPercentageOrNone {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             match self {
                 &LengthOrPercentageOrNone::Length(length) => write!(f, "{}", length),
-                &LengthOrPercentageOrNone::Percentage(percentage) => write!(f, "{}%", percentage),
+                &LengthOrPercentageOrNone::Percentage(percentage) => write!(f, "{}%", percentage * 100.),
                 &LengthOrPercentageOrNone::None => write!(f, "none"),
             }
         }
@@ -319,7 +346,7 @@ pub mod specified {
     }
 
     /// Specified values for an image according to CSS-IMAGES.
-    #[deriving(Clone)]
+    #[deriving(Clone, PartialEq)]
     pub enum Image {
         Url(Url),
         LinearGradient(LinearGradient),
@@ -328,7 +355,7 @@ pub mod specified {
     impl Show for Image {
         fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
             match self {
-                &Image::Url(ref url) => write!(f, "url({})", url),
+                &Image::Url(ref url) => write!(f, "url(\"{}\")", url),
                 &Image::LinearGradient(ref grad) => write!(f, "linear-gradient({})", grad),
             }
         }
@@ -368,7 +395,7 @@ pub mod specified {
     }
 
     /// Specified values for a CSS linear gradient.
-    #[deriving(Clone)]
+    #[deriving(Clone, PartialEq)]
     pub struct LinearGradient {
         /// The angle or corner of the gradient.
         pub angle_or_corner: AngleOrCorner,
@@ -404,7 +431,7 @@ pub mod specified {
     }
 
     /// Specified values for one color stop in a linear gradient.
-    #[deriving(Clone)]
+    #[deriving(Clone, PartialEq)]
     pub struct ColorStop {
         /// The color of this stop.
         pub color: CSSColor,
@@ -661,7 +688,7 @@ pub mod computed {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             match self {
                 &LengthOrPercentage::Length(length) => write!(f, "{}", length),
-                &LengthOrPercentage::Percentage(percentage) => write!(f, "{}%", percentage),
+                &LengthOrPercentage::Percentage(percentage) => write!(f, "{}%", percentage * 100.),
             }
         }
     }
@@ -687,7 +714,7 @@ pub mod computed {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             match self {
                 &LengthOrPercentageOrAuto::Length(length) => write!(f, "{}", length),
-                &LengthOrPercentageOrAuto::Percentage(percentage) => write!(f, "{}%", percentage),
+                &LengthOrPercentageOrAuto::Percentage(percentage) => write!(f, "{}%", percentage * 100.),
                 &LengthOrPercentageOrAuto::Auto => write!(f, "auto"),
             }
         }
@@ -715,7 +742,7 @@ pub mod computed {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             match self {
                 &LengthOrPercentageOrNone::Length(length) => write!(f, "{}", length),
-                &LengthOrPercentageOrNone::Percentage(percentage) => write!(f, "{}%", percentage),
+                &LengthOrPercentageOrNone::Percentage(percentage) => write!(f, "{}%", percentage * 100.),
                 &LengthOrPercentageOrNone::None => write!(f, "none"),
             }
         }
@@ -743,7 +770,7 @@ pub mod computed {
     impl fmt::Show for Image {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             match self {
-                &Image::Url(ref url) => write!(f, "url({})", url),
+                &Image::Url(ref url) => write!(f, "url(\"{}\")", url),
                 &Image::LinearGradient(ref grad) => write!(f, "linear-gradient({})", grad),
             }
         }

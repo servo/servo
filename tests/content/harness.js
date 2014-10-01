@@ -12,17 +12,17 @@ function expect(num) {
 function _fail(s, m) {
   _tests++;
   // string split to avoid problems with tests that end up printing the value of window._fail.
-  window.alert(_oneline("TEST-UNEXPECTED" + "-FAIL | " + s + ": " + m));
+  console.log(_oneline("TEST-UNEXPECTED" + "-FAIL | " + s + ": " + m));
 }
 
 function _pass(s, m) {
   _tests++;
-  window.alert(_oneline("TEST-PASS | " + s + ": " + m));
+  //console.log(_oneline("TEST-PASS | " + s + ": " + m));
 }
 
 function _printer(opstr, op) {
   return function (a, b, msg) {
-    let f = op(a,b) ? _pass : _fail;
+    var f = op(a,b) ? _pass : _fail;
     if (!msg) msg = "";
     f(a + " " + opstr + " " + b, msg);
   };

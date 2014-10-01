@@ -564,14 +564,15 @@ pub mod longhands {
             Normal,
             Length(specified::Length),
             Number(CSSFloat),
-            // percentage are the same as em.
+            Percentage(CSSFloat),
         }
         impl fmt::Show for SpecifiedValue {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 match self {
                     &SpecifiedValue::Normal => write!(f, "normal"),
-                    &SpecifiedValue::Length(length) => write!(f, "{}%", length),
+                    &SpecifiedValue::Length(length) => write!(f, "{}", length),
                     &SpecifiedValue::Number(number) => write!(f, "{}", number),
+		    &SpecifiedValue::Percentage(number) => write!(f, "{}%", number * 100.),
                 }
             }
         }
@@ -582,7 +583,7 @@ pub mod longhands {
                 &ast::Number(ref value) if value.value >= 0. =>
                     Ok(SpecifiedValue::Number(value.value)),
                 &ast::Percentage(ref value) if value.value >= 0. =>
-                    Ok(SpecifiedValue::Length(specified::Length::Em(value.value / 100.))),
+                    Ok(SpecifiedValue::Percentage(value.value / 100.)),
                 &Dimension(ref value, ref unit) if value.value >= 0. =>
                     specified::Length::parse_dimension(value.value, unit.as_slice())
                         .map(SpecifiedValue::Length),
@@ -619,6 +620,7 @@ pub mod longhands {
                 SpecifiedValue::Normal => T::Normal,
                 SpecifiedValue::Length(value) => T::Length(computed::compute_Au(value, context)),
                 SpecifiedValue::Number(value) => T::Number(value),
+                SpecifiedValue::Percentage(value) => T::Length(computed::compute_Au(specified::Length::Em(value), context)),
             }
         }
     </%self:single_component_value>
@@ -731,7 +733,7 @@ pub mod longhands {
                 impl fmt::Show for ContentItem {
 		    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                         match self {
-                            &ContentItem::StringContent(ref s) => write!(f, "{}", s),
+                            &ContentItem::StringContent(ref s) => write!(f, "\"{}\"", s),
                         }
                     }
                 }
@@ -749,9 +751,9 @@ pub mod longhands {
 			    &T::none => write!(f, "none"),
 			    &T::Content(ref content) => {
                                 for c in content.iter() {
-                                    let _ = write!(f, "{} ", c);
+                                    let _ = write!(f, "{}", c);
                                 }
-				Ok(())
+                                Ok(())
 			    }
                         }
                     }
@@ -833,13 +835,15 @@ pub mod longhands {
 
     <%self:single_component_value name="background-image">
         use super::common_types::specified as common_specified;
+        use super::super::common_types::specified::CSSImage as CSSImage;
         pub mod computed_value {
             use super::super::super::common_types::computed;
-            #[deriving(Clone, PartialEq)]
             pub type T = Option<computed::Image>;
+            //#[deriving(Clone, PartialEq)]
+            //pub type T = super::SpecifiedValue;
         }
         #[deriving(Clone)]
-        pub type SpecifiedValue = Option<common_specified::Image>;
+        pub type SpecifiedValue = common_specified::CSSImage;
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
             None
@@ -848,13 +852,13 @@ pub mod longhands {
                                     -> Result<SpecifiedValue, ()> {
             match component_value {
                 &ast::Ident(ref value) if value.as_slice().eq_ignore_ascii_case("none") => {
-                    Ok(None)
+                    Ok(CSSImage(None))
                 }
                 _ => {
                     match common_specified::Image::from_component_value(component_value,
                                                                         base_url) {
                         Err(err) => Err(err),
-                        Ok(result) => Ok(Some(result)),
+                        Ok(result) => Ok(CSSImage(Some(result))),
                     }
                 }
             }
@@ -862,8 +866,8 @@ pub mod longhands {
         pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
                                  -> computed_value::T {
             match value {
-                None => None,
-                Some(image) => Some(image.to_computed_value(context)),
+                CSSImage(None) => None,
+                CSSImage(Some(image)) => Some(image.to_computed_value(context)),
             }
         }
     </%self:single_component_value>
@@ -882,9 +886,7 @@ pub mod longhands {
                 }
                 impl fmt::Show for T {
 		    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                        let _ = write!(f, "{}", self.horizontal);
-                        let _ = write!(f, "{}", self.vertical);
-                        Ok(())
+                        write!(f, "{} {}", self.horizontal, self.vertical)
                     }
                 }
             }
@@ -896,9 +898,7 @@ pub mod longhands {
             }
             impl fmt::Show for SpecifiedValue {
                 fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                    let _ = write!(f, "{}", self.horizontal);
-                    let _ = write!(f, "{}", self.vertical);
-                    Ok(())
+                    write!(f, "{} {}", self.horizontal, self.vertical)
                 }
             }
 
@@ -1004,19 +1004,32 @@ pub mod longhands {
     ${new_style_struct("Color", is_inherited=True)}
 
     <%self:raw_longhand name="color">
-        pub use super::computed_as_specified as to_computed_value;
-        pub type SpecifiedValue = RGBA;
+        use super::super::common_types::specified::{CSSColor, CSSRGBA};
+        #[inline]
+        pub fn to_computed_value(value: SpecifiedValue, _context: &computed::Context)
+                                 -> computed_value::T {
+            value.parsed
+        }
+
+        pub type SpecifiedValue = CSSRGBA;
         pub mod computed_value {
-            pub type T = super::SpecifiedValue;
+            use cssparser;
+            pub type T = cssparser::RGBA;
         }
         #[inline] pub fn get_initial_value() -> computed_value::T {
             RGBA { red: 0., green: 0., blue: 0., alpha: 1. }  /* black */
         }
         pub fn parse_specified(input: &[ComponentValue], _base_url: &Url)
                                -> Result<DeclaredValue<SpecifiedValue>, ()> {
-            match one_component_value(input).and_then(Color::parse) {
-                Ok(Color::RGBA(rgba)) => Ok(DeclaredValue::SpecifiedValue(rgba)),
-                Ok(Color::CurrentColor) => Ok(DeclaredValue::Inherit),
+            match one_component_value(input).and_then(CSSColor::parse) {
+                Ok(CSSColor { parsed: Color::RGBA(rgba), authored }) => {
+                    let rgba = CSSRGBA {
+                        parsed: rgba,
+                        authored: authored,
+                    };
+                    Ok(DeclaredValue::SpecifiedValue(rgba))
+                }
+                Ok(CSSColor { parsed: Color::CurrentColor, .. }) => Ok(DeclaredValue::Inherit),
                 Err(()) => Err(()),
             }
         }
@@ -1058,7 +1071,7 @@ pub mod longhands {
             /*impl fmt::Show for T {
                 fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                     for font in self.iter() {
-                        write!(f, "{} ", font);
+                        write!(f, "{}", font);
                     }
                     Ok(())
                 }
@@ -1344,14 +1357,23 @@ pub mod longhands {
         }
         impl fmt::Show for SpecifiedValue {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                let mut space = false;
                 if self.underline {
-                    let _ = write!(f, "underline ");
+                    let _ = write!(f, "underline");
+                    space = true;
                 }
                 if self.overline {
-                    let _ = write!(f, "overline ");
+                    if space {
+                        let _ = write!(f, " ");
+                    }
+                    let _ = write!(f, "overline");
+                    space = true;
                 }
                 if self.line_through {
-                    let _ = write!(f, "line-through ");
+                    if space {
+                        let _ = write!(f, " ");
+                    }
+                    let _ = write!(f, "line-through");
                 }
 		Ok(())
             }
@@ -1753,7 +1775,7 @@ pub mod longhands {
                     offset_y: computed::compute_Au(value.offset_y, context),
                     blur_radius: computed::compute_Au(value.blur_radius, context),
                     spread_radius: computed::compute_Au(value.spread_radius, context),
-                    color: value.color.unwrap_or(cssparser::Color::CurrentColor),
+                    color: value.color.map(|color| color.parsed).unwrap_or(cssparser::Color::CurrentColor),
                     inset: value.inset,
                 }
             }).collect()
@@ -1809,8 +1831,8 @@ pub mod longhands {
 
                         // Try to parse a color.
                         match specified::CSSColor::parse(value) {
-                            Ok(the_color) if color.is_none() => {
-                                color = Some(the_color);
+                            Ok(ref the_color) if color.is_none() => {
+                                color = Some(the_color.clone());
                                 continue
                             }
                             Ok(_) => return Err(()),
@@ -3013,7 +3035,13 @@ pub fn cascade(applicable_declarations: &[DeclarationBlock],
                     }
                 }
                 PropertyDeclaration::ColorDeclaration(ref value) => {
-                    context.color = get_specified!(get_color, color, value);
+                    context.color = match *value {
+                        DeclaredValue::SpecifiedValue(ref specified_value) => specified_value.parsed,
+                        DeclaredValue::Initial => longhands::color::get_initial_value(),
+                        DeclaredValue::Inherit => inherited_style.get_color().color.clone(),
+                        
+                    };
+//get_specified!(get_color, color, value);
                 }
                 PropertyDeclaration::DisplayDeclaration(ref value) => {
                     context.display = get_specified!(get_box, display, value);

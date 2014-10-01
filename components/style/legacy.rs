@@ -9,6 +9,7 @@ use self::UnsignedIntegerAttribute::*;
 use self::SimpleColorAttribute::*;
 
 use node::{TElement, TElementAttributes, TNode};
+use properties::common_types::specified::CSSColor;
 use properties::DeclaredValue::SpecifiedValue;
 use properties::PropertyDeclaration::*;
 use properties::{CSSFloat, specified};
@@ -214,7 +215,7 @@ impl PresentationalHintSynthesis for Stylist {
             None => {}
             Some(color) => {
                 matching_rules_list.vec_push(DeclarationBlock::from_declaration(
-                        BackgroundColorDeclaration(SpecifiedValue(Color::RGBA(color)))));
+                        BackgroundColorDeclaration(SpecifiedValue(CSSColor { parsed: Color::RGBA(color), authored: None }))));
                 *shareable = false
             }
         }
