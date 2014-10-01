@@ -966,10 +966,22 @@ impl<'a> style::TElement<'a> for JSRef<'a, Element> {
          }
     }
     fn get_local_name<'b>(&'b self) -> &'b Atom {
-        (self as &ElementHelpers).get_local_name()
+        // FIXME(zwarich): Remove this when UFCS lands and there is a better way
+        // of disambiguating methods.
+        fn get_local_name<'a, T: ElementHelpers<'a>>(this: T) -> &'a Atom {
+            this.get_local_name()
+        }
+
+        get_local_name(*self)
     }
     fn get_namespace<'b>(&'b self) -> &'b Namespace {
-        (self as &ElementHelpers).get_namespace()
+        // FIXME(zwarich): Remove this when UFCS lands and there is a better way
+        // of disambiguating methods.
+        fn get_namespace<'a, T: ElementHelpers<'a>>(this: T) -> &'a Namespace {
+            this.get_namespace()
+        }
+
+        get_namespace(*self)
     }
     fn get_hover_state(&self) -> bool {
         let node: JSRef<Node> = NodeCast::from_ref(*self);
@@ -993,6 +1005,12 @@ impl<'a> style::TElement<'a> for JSRef<'a, Element> {
         node.get_enabled_state()
     }
     fn has_class(&self, name: &str) -> bool {
-        (self as &AttributeHandlers).has_class(name)
+        // FIXME(zwarich): Remove this when UFCS lands and there is a better way
+        // of disambiguating methods.
+        fn has_class<T: AttributeHandlers>(this: T, name: &str) -> bool {
+            this.has_class(name)
+        }
+
+        has_class(*self, name)
     }
 }
