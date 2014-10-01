@@ -213,8 +213,14 @@ impl<'ln> LayoutNode<'ln> {
 
     /// Returns an iterator over this node's children.
     pub fn children(&self) -> LayoutNodeChildrenIterator<'ln> {
+        // FIXME(zwarich): Remove this when UFCS lands and there is a better way
+        // of disambiguating methods.
+        fn first_child<T: TLayoutNode>(this: &T) -> Option<T> {
+            this.first_child()
+        }
+
         LayoutNodeChildrenIterator {
-            current_node: self.first_child(),
+            current_node: first_child(self),
         }
     }
 
@@ -241,25 +247,25 @@ impl<'ln> LayoutNode<'ln> {
 }
 
 impl<'ln> TNode<'ln, LayoutElement<'ln>> for LayoutNode<'ln> {
-    fn parent_node(&self) -> Option<LayoutNode<'ln>> {
+    fn parent_node(self) -> Option<LayoutNode<'ln>> {
         unsafe {
             self.node.parent_node_ref().map(|node| self.new_with_this_lifetime(&node))
         }
     }
 
-    fn tnode_first_child(&self) -> Option<LayoutNode<'ln>> {
+    fn first_child(self) -> Option<LayoutNode<'ln>> {
         unsafe {
             self.node.first_child_ref().map(|node| self.new_with_this_lifetime(&node))
         }
     }
 
-    fn prev_sibling(&self) -> Option<LayoutNode<'ln>> {
+    fn prev_sibling(self) -> Option<LayoutNode<'ln>> {
         unsafe {
             self.node.prev_sibling_ref().map(|node| self.new_with_this_lifetime(&node))
         }
     }
 
-    fn next_sibling(&self) -> Option<LayoutNode<'ln>> {
+    fn next_sibling(self) -> Option<LayoutNode<'ln>> {
         unsafe {
             self.node.next_sibling_ref().map(|node| self.new_with_this_lifetime(&node))
         }
@@ -267,7 +273,7 @@ impl<'ln> TNode<'ln, LayoutElement<'ln>> for LayoutNode<'ln> {
 
     /// If this is an element, accesses the element data. Fails if this is not an element node.
     #[inline]
-    fn as_element(&self) -> LayoutElement<'ln> {
+    fn as_element(self) -> LayoutElement<'ln> {
         unsafe {
             assert!(self.node.is_element_for_layout());
             let elem: JS<Element> = self.node.transmute_copy();
@@ -278,15 +284,15 @@ impl<'ln> TNode<'ln, LayoutElement<'ln>> for LayoutNode<'ln> {
         }
     }
 
-    fn is_element(&self) -> bool {
+    fn is_element(self) -> bool {
         self.node_is_element()
     }
 
-    fn is_document(&self) -> bool {
+    fn is_document(self) -> bool {
         self.node_is_document()
     }
 
-    fn match_attr(&self, attr: &AttrSelector, test: |&str| -> bool) -> bool {
+    fn match_attr(self, attr: &AttrSelector, test: |&str| -> bool) -> bool {
         assert!(self.is_element())
         let name = if self.is_html_element_in_html_document() {
             attr.lower_name.as_slice()
@@ -304,7 +310,7 @@ impl<'ln> TNode<'ln, LayoutElement<'ln>> for LayoutNode<'ln> {
         }
     }
 
-    fn is_html_element_in_html_document(&self) -> bool {
+    fn is_html_element_in_html_document(self) -> bool {
         unsafe {
             self.is_element() && {
                 let element: JS<Element> = self.node.transmute_copy();
@@ -389,21 +395,21 @@ impl<'le> LayoutElement<'le> {
 
 impl<'le> TElement<'le> for LayoutElement<'le> {
     #[inline]
-    fn get_local_name<'a>(&'a self) -> &'a Atom {
+    fn get_local_name(self) -> &'le Atom {
         &self.element.local_name
     }
 
     #[inline]
-    fn get_namespace<'a>(&'a self) -> &'a Namespace {
+    fn get_namespace(self) -> &'le Namespace {
         &self.element.namespace
     }
 
     #[inline]
-    fn get_attr(&self, namespace: &Namespace, name: &str) -> Option<&'le str> {
+    fn get_attr(self, namespace: &Namespace, name: &str) -> Option<&'le str> {
         unsafe { self.element.get_attr_val_for_layout(namespace, name) }
     }
 
-    fn get_link(&self) -> Option<&'le str> {
+    fn get_link(self) -> Option<&'le str> {
         // FIXME: This is HTML only.
         match self.element.node.type_id_for_layout() {
             // http://www.whatwg.org/specs/web-apps/current-work/multipage/selectors.html#
@@ -417,30 +423,30 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
         }
     }
 
-    fn get_hover_state(&self) -> bool {
+    fn get_hover_state(self) -> bool {
         unsafe {
             self.element.node.get_hover_state_for_layout()
         }
     }
 
     #[inline]
-    fn get_id(&self) -> Option<Atom> {
+    fn get_id(self) -> Option<Atom> {
         unsafe { self.element.get_attr_atom_for_layout(&ns!(""), "id") }
     }
 
-    fn get_disabled_state(&self) -> bool {
+    fn get_disabled_state(self) -> bool {
         unsafe {
             self.element.node.get_disabled_state_for_layout()
         }
     }
 
-    fn get_enabled_state(&self) -> bool {
+    fn get_enabled_state(self) -> bool {
         unsafe {
             self.element.node.get_enabled_state_for_layout()
         }
     }
 
-    fn has_class(&self, name: &str) -> bool {
+    fn has_class(self, name: &str) -> bool {
         unsafe {
             self.element.has_class_for_layout(name)
         }
