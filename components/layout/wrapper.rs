@@ -213,8 +213,14 @@ impl<'ln> LayoutNode<'ln> {
 
     /// Returns an iterator over this node's children.
     pub fn children(&self) -> LayoutNodeChildrenIterator<'ln> {
+        // FIXME(zwarich): Remove this when UFCS lands and there is a better way
+        // of disambiguating methods.
+        fn first_child<T: TLayoutNode>(this: &T) -> Option<T> {
+            this.first_child()
+        }
+
         LayoutNodeChildrenIterator {
-            current_node: self.first_child(),
+            current_node: first_child(self),
         }
     }
 
@@ -247,7 +253,7 @@ impl<'ln> TNode<'ln, LayoutElement<'ln>> for LayoutNode<'ln> {
         }
     }
 
-    fn tnode_first_child(&self) -> Option<LayoutNode<'ln>> {
+    fn first_child(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
             self.node.first_child_ref().map(|node| self.new_with_this_lifetime(&node))
         }

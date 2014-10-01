@@ -11,8 +11,7 @@ use string_cache::{Atom, Namespace};
 
 pub trait TNode<'a, E: TElement<'a>> : Clone {
     fn parent_node(&self) -> Option<Self>;
-    /// Name is prefixed to avoid a conflict with TLayoutNode.
-    fn tnode_first_child(&self) -> Option<Self>;
+    fn first_child(&self) -> Option<Self>;
     fn prev_sibling(&self) -> Option<Self>;
     fn next_sibling(&self) -> Option<Self>;
     fn is_document(&self) -> bool;

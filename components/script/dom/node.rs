@@ -2039,7 +2039,7 @@ impl<'a> style::TNode<'a, JSRef<'a, Element>> for JSRef<'a, Node> {
         (self as &NodeHelpers).parent_node().map(|node| *node.root())
     }
 
-    fn tnode_first_child(&self) -> Option<JSRef<'a, Node>> {
+    fn first_child(&self) -> Option<JSRef<'a, Node>> {
         (self as &NodeHelpers).first_child().map(|node| *node.root())
     }
 
