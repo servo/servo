@@ -237,26 +237,26 @@ impl LayoutElementHelpers for JS<Element> {
     }
 }
 
-pub trait ElementHelpers {
+pub trait ElementHelpers<'a> {
     fn html_element_in_html_document(self) -> bool;
-    fn get_local_name<'a>(&'a self) -> &'a Atom;
-    fn get_namespace<'a>(&'a self) -> &'a Namespace;
+    fn get_local_name(&self) -> &'a Atom;
+    fn get_namespace(&self) -> &'a Namespace;
     fn summarize(self) -> Vec<AttrInfo>;
     fn is_void(self) -> bool;
 }
 
-impl<'a> ElementHelpers for JSRef<'a, Element> {
+impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
     fn html_element_in_html_document(self) -> bool {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         self.namespace == ns!(HTML) && node.is_in_html_doc()
     }
 
-    fn get_local_name<'a>(&'a self) -> &'a Atom {
-        &self.deref().local_name
+    fn get_local_name(&self) -> &'a Atom {
+        &self.extended_deref().local_name
     }
 
-    fn get_namespace<'a>(&'a self) -> &'a Namespace {
-        &self.deref().namespace
+    fn get_namespace(&self) -> &'a Namespace {
+        &self.extended_deref().namespace
     }
 
     fn summarize(self) -> Vec<AttrInfo> {
