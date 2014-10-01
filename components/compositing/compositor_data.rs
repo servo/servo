@@ -8,17 +8,15 @@ use pipeline::CompositionPipeline;
 
 use azure::azure_hl::Color;
 use geom::point::TypedPoint2D;
-use geom::scale_factor::ScaleFactor;
 use geom::size::{Size2D, TypedSize2D};
 use geom::rect::Rect;
 use gfx::render_task::UnusedBufferMsg;
-use layers::geometry::DevicePixel;
+use layers::geometry::LayerPixel;
 use layers::layers::{Layer, LayerBufferSet};
 use layers::platform::surface::NativeSurfaceMethods;
 use servo_msg::compositor_msg::{Epoch, LayerId};
 use servo_msg::compositor_msg::ScrollPolicy;
 use servo_msg::constellation_msg::PipelineId;
-use servo_util::geometry::PagePx;
 use std::rc::Rc;
 
 pub struct CompositorData {
@@ -43,7 +41,7 @@ pub struct CompositorData {
 
     /// The scroll offset originating from this scrolling root. This allows scrolling roots
     /// to track their current scroll position even while their content_offset does not change.
-    pub scroll_offset: TypedPoint2D<PagePx, f32>,
+    pub scroll_offset: TypedPoint2D<LayerPixel, f32>,
 }
 
 #[deriving(PartialEq, Clone)]
@@ -81,17 +79,15 @@ impl CompositorData {
     }
 
     pub fn update_layer(layer: Rc<Layer<CompositorData>>, layer_properties: LayerProperties) {
-        let size: TypedSize2D<DevicePixel, f32> = Size2D::from_untyped(&layer_properties.rect.size);
+        let size: TypedSize2D<LayerPixel, f32> = Size2D::from_untyped(&layer_properties.rect.size);
         layer.resize(size);
 
         // Call scroll for bounds checking if the page shrunk. Use (-1, -1) as the
-        // cursor position to make sure the scroll isn't propagated downwards. The
-        // scale doesn't matter here since 0, 0 is 0, 0 no matter the scene scale.
+        // cursor position to make sure the scroll isn't propagated downwards.
         events::handle_scroll_event(layer.clone(),
                                     TypedPoint2D(0f32, 0f32),
                                     TypedPoint2D(-1f32, -1f32),
-                                    size,
-                                    ScaleFactor(1.0) /* scene_scale */);
+                                    size);
         CompositorData::update_layer_except_size(layer, layer_properties);
     }
 
