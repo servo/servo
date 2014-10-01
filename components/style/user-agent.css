@@ -116,4 +116,15 @@ area:link,
 link:link               { color: blue }
 script                  { display: none }
 style                   { display: none }
+input                   { background: white; min-height: 1.0em; max-height: 1.0em; padding: 0em; padding-left: 0.25em; padding-right: 0.25em; border: solid lightgrey 1px; color: black; white-space: nowrap; }
+input[type="button"],
+input[type="submit"],
+input[type="reset"]     { background: lightgrey; border-top: solid 1px #EEEEEE; border-left: solid 1px #CCCCCC; border-right: solid 1px #999999; border-bottom: solid 1px #999999; text-align: center; vertical-align: middle; color: black; }
 input[type="hidden"]    { display: none !important }
+input[type="checkbox"],
+input[type="radio"]     { font-family: monospace !important; border: none !important; background: transparent; }
+
+input[type="checkbox"]::before { content: "[ ]"; padding: 0; }
+input[type="checkbox"][checked]::before { content: "[✓]"; }
+input[type="radio"]::before { content: "( )"; padding: 0; }
+input[type="radio"][checked]::before { content: "(●)"; }

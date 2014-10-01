@@ -928,9 +928,14 @@ impl ScriptTask {
 
                         let temp_node =
                                 node::from_untrusted_node_address(
-                                    self.js_runtime.deref().ptr, node_address);
+                                    self.js_runtime.deref().ptr, node_address).root();
 
-                        let maybe_node = temp_node.root().ancestors().find(|node| node.is_element());
+                        let maybe_node = if !temp_node.is_element() {
+                            temp_node.ancestors().find(|node| node.is_element())
+                        } else {
+                            Some(*temp_node)
+                        };
+
                         match maybe_node {
                             Some(node) => {
                                 debug!("clicked on {:s}", node.debug_str());
@@ -945,6 +950,8 @@ impl ScriptTask {
                                                        true, true).root();
                                         let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(node);
                                         let _ = eventtarget.dispatch_event_with_target(None, *event);
+
+                                        window.flush_layout(ReflowForDisplay);
                                     }
                                     None => {}
                                 }

@@ -78,6 +78,7 @@ pub struct FontMetrics {
     pub ascent:           Au,
     pub descent:          Au,
     pub max_advance:      Au,
+    pub average_advance:  Au,
     pub line_gap:         Au,
 }
 

@@ -153,6 +153,12 @@ impl FontHandleMethods for FontHandle {
         let scale = px_to_pt(self.ctfont.pt_size() as f64) / (ascent + descent);
         let line_gap = (ascent + descent + leading + 0.5).floor();
 
+        let max_advance_width = Au::from_pt(bounding_rect.size.width as f64);
+        let average_advance = self.glyph_index('0')
+                                  .and_then(|idx| self.glyph_h_advance(idx))
+                                  .map(|advance| Au::from_frac_px(advance))
+                                  .unwrap_or(max_advance_width);
+
         let metrics =  FontMetrics {
             underline_size:   Au::from_pt(self.ctfont.underline_thickness() as f64),
             // TODO(Issue #201): underline metrics are not reliable. Have to pull out of font table
@@ -168,7 +174,8 @@ impl FontHandleMethods for FontHandle {
             em_size:          em_size,
             ascent:           Au::from_pt(ascent * scale),
             descent:          Au::from_pt(descent * scale),
-            max_advance:      Au::from_pt(bounding_rect.size.width as f64),
+            max_advance:      max_advance_width,
+            average_advance:  average_advance,
             line_gap:         Au::from_frac_px(line_gap),
         };
         debug!("Font metrics (@{:f} pt): {:?}", self.ctfont.pt_size() as f64, metrics);
