@@ -26,7 +26,7 @@ mod window;
 
 pub fn create_window(opts: &util::opts::Opts) -> Rc<Window> {
     // Initialize GLFW.
-    let glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap_or_else(|_| {
+    let glfw = glfw::init(glfw::LOG_ERRORS).unwrap_or_else(|_| {
         // handles things like inability to connect to X
         // cannot simply fail, since the runtime isn't up yet (causes a nasty abort)
         println!("GLFW initialization failed");
