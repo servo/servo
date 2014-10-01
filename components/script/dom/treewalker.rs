@@ -129,16 +129,16 @@ impl Reflectable for TreeWalker {
     }
 }
 
-type NodeAdvancer<'a, 'b> = |node: JSRef<'a, Node>|: 'b -> Option<Temporary<Node>>;
+type NodeAdvancer<'a> = |node: JSRef<'a, Node>|: 'a -> Option<Temporary<Node>>;
 
-trait PrivateTreeWalkerHelpers<'a, 'b> {
+trait PrivateTreeWalkerHelpers<'a> {
     fn traverse_children(self,
-                         next_child: NodeAdvancer<'a, 'b>,
-                         next_sibling: NodeAdvancer<'a, 'b>)
+                         next_child: NodeAdvancer<'a>,
+                         next_sibling: NodeAdvancer<'a>)
                          -> Fallible<Option<Temporary<Node>>>;
     fn traverse_siblings(self,
-                         next_child: NodeAdvancer<'a, 'b>,
-                         next_sibling: NodeAdvancer<'a, 'b>)
+                         next_child: NodeAdvancer<'a>,
+                         next_sibling: NodeAdvancer<'a>)
                          -> Fallible<Option<Temporary<Node>>>;
     fn is_root_node(self, node: JSRef<'a, Node>) -> bool;
     fn is_current_node(self, node: JSRef<'a, Node>) -> bool;
@@ -147,11 +147,11 @@ trait PrivateTreeWalkerHelpers<'a, 'b> {
     fn accept_node(self, node: JSRef<'a, Node>) -> Fallible<u16>;
 }
 
-impl<'a, 'b> PrivateTreeWalkerHelpers<'a, 'b> for JSRef<'a, TreeWalker> {
+impl<'a> PrivateTreeWalkerHelpers<'a> for JSRef<'a, TreeWalker> {
     // http://dom.spec.whatwg.org/#concept-traverse-children
     fn traverse_children(self,
-                         next_child: NodeAdvancer<'a, 'b>,
-                         next_sibling: NodeAdvancer<'a, 'b>)
+                         next_child: NodeAdvancer<'a>,
+                         next_sibling: NodeAdvancer<'a>)
                          -> Fallible<Option<Temporary<Node>>> {
         // "To **traverse children** of type *type*, run these steps:"
         // "1. Let node be the value of the currentNode attribute."
@@ -229,8 +229,8 @@ impl<'a, 'b> PrivateTreeWalkerHelpers<'a, 'b> for JSRef<'a, TreeWalker> {
 
     // http://dom.spec.whatwg.org/#concept-traverse-siblings
     fn traverse_siblings(self,
-                         next_child: NodeAdvancer<'a, 'b>,
-                         next_sibling: NodeAdvancer<'a, 'b>)
+                         next_child: NodeAdvancer<'a>,
+                         next_sibling: NodeAdvancer<'a>)
                          -> Fallible<Option<Temporary<Node>>> {
         // "To **traverse siblings** of type *type* run these steps:"
         // "1. Let node be the value of the currentNode attribute."
