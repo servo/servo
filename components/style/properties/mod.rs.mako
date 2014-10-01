@@ -839,8 +839,6 @@ pub mod longhands {
         pub mod computed_value {
             use super::super::super::common_types::computed;
             pub type T = Option<computed::Image>;
-            //#[deriving(Clone, PartialEq)]
-            //pub type T = super::SpecifiedValue;
         }
         #[deriving(Clone)]
         pub type SpecifiedValue = common_specified::CSSImage;
