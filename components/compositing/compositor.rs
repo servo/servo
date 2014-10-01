@@ -564,13 +564,11 @@ impl IOCompositor {
                       layer_id: LayerId,
                       origin: TypedPoint2D<LayerPixel, f32>)
                       -> bool {
-        let window_size = self.window_size.as_f32() / self.scene.scale;
         match self.find_layer_with_pipeline_and_layer_id(pipeline_id, layer_id) {
             Some(ref layer) => {
                 if layer.extra_data.borrow().wants_scroll_events == WantsScrollEvents {
                     events::clamp_scroll_offset_and_scroll_layer(layer.clone(),
-                                                                 TypedPoint2D(0f32, 0f32) - origin,
-                                                                 window_size);
+                                                                 TypedPoint2D(0f32, 0f32) - origin);
                 }
                 true
             }
@@ -757,15 +755,13 @@ impl IOCompositor {
                               cursor: TypedPoint2D<DevicePixel, i32>) {
         let delta = delta / self.scene.scale;
         let cursor = cursor.as_f32() / self.scene.scale;
-        let window_size = self.window_size.as_f32() / self.scene.scale;
 
         let mut scroll = false;
         match self.scene.root {
             Some(ref mut layer) => {
                 scroll = events::handle_scroll_event(layer.clone(),
                                                      delta,
-                                                     cursor,
-                                                     window_size) == ScrollPositionChanged;
+                                                     cursor) == ScrollPositionChanged;
             }
             None => { }
         }
@@ -819,13 +815,11 @@ impl IOCompositor {
             window_size.height.get() * (viewport_zoom.inv() - old_viewport_zoom.inv()).get() * 0.5);
 
         let cursor = TypedPoint2D(-1f32, -1f32);  // Make sure this hits the base layer.
-        let window_size = self.window_size.as_f32() / self.scene.scale;
         match self.scene.root {
             Some(ref mut layer) => {
                 events::handle_scroll_event(layer.clone(),
                                             page_delta,
-                                            cursor,
-                                            window_size);
+                                            cursor);
             }
             None => { }
         }
