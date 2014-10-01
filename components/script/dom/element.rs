@@ -965,7 +965,7 @@ impl<'a> style::TElement<'a> for JSRef<'a, Element> {
             _ => None,
          }
     }
-    fn get_local_name<'b>(&'b self) -> &'b Atom {
+    fn get_local_name(&self) -> &'a Atom {
         // FIXME(zwarich): Remove this when UFCS lands and there is a better way
         // of disambiguating methods.
         fn get_local_name<'a, T: ElementHelpers<'a>>(this: T) -> &'a Atom {
@@ -974,7 +974,7 @@ impl<'a> style::TElement<'a> for JSRef<'a, Element> {
 
         get_local_name(*self)
     }
-    fn get_namespace<'b>(&'b self) -> &'b Namespace {
+    fn get_namespace(&self) -> &'a Namespace {
         // FIXME(zwarich): Remove this when UFCS lands and there is a better way
         // of disambiguating methods.
         fn get_namespace<'a, T: ElementHelpers<'a>>(this: T) -> &'a Namespace {

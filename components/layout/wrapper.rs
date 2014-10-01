@@ -395,12 +395,12 @@ impl<'le> LayoutElement<'le> {
 
 impl<'le> TElement<'le> for LayoutElement<'le> {
     #[inline]
-    fn get_local_name<'a>(&'a self) -> &'a Atom {
+    fn get_local_name(&self) -> &'le Atom {
         &self.element.local_name
     }
 
     #[inline]
-    fn get_namespace<'a>(&'a self) -> &'a Namespace {
+    fn get_namespace(&self) -> &'le Namespace {
         &self.element.namespace
     }
 
