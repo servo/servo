@@ -139,36 +139,63 @@ fn scroll_layer_and_all_child_layers(layer: Rc<Layer<CompositorData>>,
     return result;
 }
 
+struct HitTestResult {
+    layer: Rc<Layer<CompositorData>>,
+    point: TypedPoint2D<LayerPixel, f32>,
+}
+
+pub fn find_topmost_layer_at_point(layer: Rc<Layer<CompositorData>>,
+                                   point: TypedPoint2D<LayerPixel, f32>)
+                                   -> Option<HitTestResult> {
+    let child_point = point - layer.bounds.borrow().origin;
+    for child in layer.children().iter().rev() {
+        let result = find_topmost_layer_at_point(child.clone(), child_point);
+        if result.is_some() {
+            return result;
+        }
+    }
+
+    let point = point - *layer.content_offset.borrow();
+    if !layer.bounds.borrow().contains(&point) {
+        return None;
+    }
+
+    return Some(HitTestResult { layer: layer, point: point });
+}
+
 // Takes in a MouseWindowEvent, determines if it should be passed to children, and
 // sends the event off to the appropriate pipeline. NB: the cursor position is in
 // page coordinates.
 pub fn send_mouse_event(layer: Rc<Layer<CompositorData>>,
                         event: MouseWindowEvent,
                         cursor: TypedPoint2D<LayerPixel, f32>) {
-    let content_offset = *layer.content_offset.borrow();
-    let cursor = cursor - content_offset;
-    for child in layer.children().iter() {
-        let child_bounds = child.bounds.borrow();
-        if child_bounds.contains(&cursor) {
-            send_mouse_event(child.clone(), event, cursor - child_bounds.origin);
-            return;
-        }
+    match find_topmost_layer_at_point(layer.clone(), cursor) {
+        Some(result) => {
+            let event_point = result.point.to_untyped();
+            let message = match event {
+                MouseWindowClickEvent(button, _) => ClickEvent(button, event_point),
+                MouseWindowMouseDownEvent(button, _) => MouseDownEvent(button, event_point),
+                MouseWindowMouseUpEvent(button, _) => MouseUpEvent(button, event_point),
+            };
+            let pipeline = &result.layer.extra_data.borrow().pipeline;
+            let ScriptControlChan(ref chan) = pipeline.script_chan;
+            let _ = chan.send_opt(SendEventMsg(pipeline.id.clone(), message));
+        },
+        None => {},
     }
 
-    // This mouse event is mine!
-    let message = match event {
-        MouseWindowClickEvent(button, _) => ClickEvent(button, cursor.to_untyped()),
-        MouseWindowMouseDownEvent(button, _) => MouseDownEvent(button, cursor.to_untyped()),
-        MouseWindowMouseUpEvent(button, _) => MouseUpEvent(button, cursor.to_untyped()),
-    };
-    let ScriptControlChan(ref chan) = layer.extra_data.borrow().pipeline.script_chan;
-    let _ = chan.send_opt(SendEventMsg(layer.extra_data.borrow().pipeline.id.clone(), message));
 }
 
 pub fn send_mouse_move_event(layer: Rc<Layer<CompositorData>>,
                              cursor: TypedPoint2D<LayerPixel, f32>) {
-    let message = MouseMoveEvent(cursor.to_untyped());
-    let ScriptControlChan(ref chan) = layer.extra_data.borrow().pipeline.script_chan;
-    let _ = chan.send_opt(SendEventMsg(layer.extra_data.borrow().pipeline.id.clone(), message));
+    match find_topmost_layer_at_point(layer.clone(), cursor) {
+        Some(result) => {
+            let message = MouseMoveEvent(result.point.to_untyped());
+            let pipeline = &result.layer.extra_data.borrow().pipeline;
+            let ScriptControlChan(ref chan) = pipeline.script_chan;
+            let _ = chan.send_opt(SendEventMsg(pipeline.id.clone(), message));
+        },
+        None => {},
+    }
 }
 
