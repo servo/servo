@@ -365,73 +365,73 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
 }
 
 pub trait NodeHelpers<'m, 'n> {
-    fn ancestors(&self) -> AncestorIterator<'n>;
-    fn children(&self) -> AbstractNodeChildrenIterator<'n>;
-    fn child_elements(&self) -> ChildElementIterator<'m, 'n>;
-    fn following_siblings(&self) -> AbstractNodeChildrenIterator<'n>;
-    fn is_in_doc(&self) -> bool;
-    fn is_inclusive_ancestor_of(&self, parent: JSRef<Node>) -> bool;
-    fn is_parent_of(&self, child: JSRef<Node>) -> bool;
+    fn ancestors(self) -> AncestorIterator<'n>;
+    fn children(self) -> AbstractNodeChildrenIterator<'n>;
+    fn child_elements(self) -> ChildElementIterator<'m, 'n>;
+    fn following_siblings(self) -> AbstractNodeChildrenIterator<'n>;
+    fn is_in_doc(self) -> bool;
+    fn is_inclusive_ancestor_of(self, parent: JSRef<Node>) -> bool;
+    fn is_parent_of(self, child: JSRef<Node>) -> bool;
 
-    fn type_id(&self) -> NodeTypeId;
+    fn type_id(self) -> NodeTypeId;
 
-    fn parent_node(&self) -> Option<Temporary<Node>>;
-    fn first_child(&self) -> Option<Temporary<Node>>;
-    fn last_child(&self) -> Option<Temporary<Node>>;
-    fn prev_sibling(&self) -> Option<Temporary<Node>>;
-    fn next_sibling(&self) -> Option<Temporary<Node>>;
+    fn parent_node(self) -> Option<Temporary<Node>>;
+    fn first_child(self) -> Option<Temporary<Node>>;
+    fn last_child(self) -> Option<Temporary<Node>>;
+    fn prev_sibling(self) -> Option<Temporary<Node>>;
+    fn next_sibling(self) -> Option<Temporary<Node>>;
 
-    fn owner_doc(&self) -> Temporary<Document>;
-    fn set_owner_doc(&self, document: JSRef<Document>);
-    fn is_in_html_doc(&self) -> bool;
+    fn owner_doc(self) -> Temporary<Document>;
+    fn set_owner_doc(self, document: JSRef<Document>);
+    fn is_in_html_doc(self) -> bool;
 
-    fn wait_until_safe_to_modify_dom(&self);
+    fn wait_until_safe_to_modify_dom(self);
 
-    fn is_element(&self) -> bool;
-    fn is_document(&self) -> bool;
-    fn is_doctype(&self) -> bool;
-    fn is_text(&self) -> bool;
-    fn is_anchor_element(&self) -> bool;
+    fn is_element(self) -> bool;
+    fn is_document(self) -> bool;
+    fn is_doctype(self) -> bool;
+    fn is_text(self) -> bool;
+    fn is_anchor_element(self) -> bool;
 
-    fn get_hover_state(&self) -> bool;
-    fn set_hover_state(&self, state: bool);
+    fn get_hover_state(self) -> bool;
+    fn set_hover_state(self, state: bool);
 
-    fn get_disabled_state(&self) -> bool;
-    fn set_disabled_state(&self, state: bool);
+    fn get_disabled_state(self) -> bool;
+    fn set_disabled_state(self, state: bool);
 
-    fn get_enabled_state(&self) -> bool;
-    fn set_enabled_state(&self, state: bool);
+    fn get_enabled_state(self) -> bool;
+    fn set_enabled_state(self, state: bool);
 
-    fn dump(&self);
-    fn dump_indent(&self, indent: uint);
-    fn debug_str(&self) -> String;
+    fn dump(self);
+    fn dump_indent(self, indent: uint);
+    fn debug_str(self) -> String;
 
-    fn traverse_preorder(&self) -> TreeIterator<'n>;
-    fn sequential_traverse_postorder(&self) -> TreeIterator<'n>;
-    fn inclusively_following_siblings(&self) -> AbstractNodeChildrenIterator<'n>;
+    fn traverse_preorder(self) -> TreeIterator<'n>;
+    fn sequential_traverse_postorder(self) -> TreeIterator<'n>;
+    fn inclusively_following_siblings(self) -> AbstractNodeChildrenIterator<'n>;
 
-    fn to_trusted_node_address(&self) -> TrustedNodeAddress;
+    fn to_trusted_node_address(self) -> TrustedNodeAddress;
 
-    fn get_bounding_content_box(&self) -> Rect<Au>;
-    fn get_content_boxes(&self) -> Vec<Rect<Au>>;
+    fn get_bounding_content_box(self) -> Rect<Au>;
+    fn get_content_boxes(self) -> Vec<Rect<Au>>;
 
-    fn query_selector(&self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>>;
-    fn query_selector_all(&self, selectors: DOMString) -> Fallible<Temporary<NodeList>>;
+    fn query_selector(self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>>;
+    fn query_selector_all(self, selectors: DOMString) -> Fallible<Temporary<NodeList>>;
 
-    fn remove_self(&self);
+    fn remove_self(self);
 
-    fn get_unique_id(&self) -> String;
-    fn summarize(&self) -> NodeInfo;
+    fn get_unique_id(self) -> String;
+    fn summarize(self) -> NodeInfo;
 }
 
 impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
     /// Dumps the subtree rooted at this node, for debugging.
-    fn dump(&self) {
+    fn dump(self) {
         self.dump_indent(0);
     }
 
     /// Dumps the node tree, for debugging, with indentation.
-    fn dump_indent(&self, indent: uint) {
+    fn dump_indent(self, indent: uint) {
         let mut s = String::new();
         for _ in range(0, indent) {
             s.push_str("    ");
@@ -447,43 +447,43 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
     }
 
     /// Returns a string that describes this node.
-    fn debug_str(&self) -> String {
+    fn debug_str(self) -> String {
         format!("{:?}", self.type_id)
     }
 
-    fn is_in_doc(&self) -> bool {
+    fn is_in_doc(self) -> bool {
         self.deref().flags.deref().borrow().contains(IsInDoc)
     }
 
     /// Returns the type ID of this node. Fails if this node is borrowed mutably.
-    fn type_id(&self) -> NodeTypeId {
+    fn type_id(self) -> NodeTypeId {
         self.deref().type_id
     }
 
-    fn parent_node(&self) -> Option<Temporary<Node>> {
+    fn parent_node(self) -> Option<Temporary<Node>> {
         self.deref().parent_node.get().map(|node| Temporary::new(node))
     }
 
-    fn first_child(&self) -> Option<Temporary<Node>> {
+    fn first_child(self) -> Option<Temporary<Node>> {
         self.deref().first_child.get().map(|node| Temporary::new(node))
     }
 
-    fn last_child(&self) -> Option<Temporary<Node>> {
+    fn last_child(self) -> Option<Temporary<Node>> {
         self.deref().last_child.get().map(|node| Temporary::new(node))
     }
 
     /// Returns the previous sibling of this node. Fails if this node is borrowed mutably.
-    fn prev_sibling(&self) -> Option<Temporary<Node>> {
+    fn prev_sibling(self) -> Option<Temporary<Node>> {
         self.deref().prev_sibling.get().map(|node| Temporary::new(node))
     }
 
     /// Returns the next sibling of this node. Fails if this node is borrowed mutably.
-    fn next_sibling(&self) -> Option<Temporary<Node>> {
+    fn next_sibling(self) -> Option<Temporary<Node>> {
         self.deref().next_sibling.get().map(|node| Temporary::new(node))
     }
 
     #[inline]
-    fn is_element(&self) -> bool {
+    fn is_element(self) -> bool {
         match self.type_id {
             ElementNodeTypeId(..) => true,
             _ => false
@@ -491,30 +491,30 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
     }
 
     #[inline]
-    fn is_document(&self) -> bool {
+    fn is_document(self) -> bool {
         self.type_id == DocumentNodeTypeId
     }
 
     #[inline]
-    fn is_anchor_element(&self) -> bool {
+    fn is_anchor_element(self) -> bool {
         self.type_id == ElementNodeTypeId(HTMLAnchorElementTypeId)
     }
 
     #[inline]
-    fn is_doctype(&self) -> bool {
+    fn is_doctype(self) -> bool {
         self.type_id == DoctypeNodeTypeId
     }
 
     #[inline]
-    fn is_text(&self) -> bool {
+    fn is_text(self) -> bool {
         self.type_id == TextNodeTypeId
     }
 
-    fn get_hover_state(&self) -> bool {
+    fn get_hover_state(self) -> bool {
         self.flags.deref().borrow().contains(InHoverState)
     }
 
-    fn set_hover_state(&self, state: bool) {
+    fn set_hover_state(self, state: bool) {
         if state {
             self.flags.deref().borrow_mut().insert(InHoverState);
         } else {
@@ -522,11 +522,11 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
         }
     }
 
-    fn get_disabled_state(&self) -> bool {
+    fn get_disabled_state(self) -> bool {
         self.flags.deref().borrow().contains(InDisabledState)
     }
 
-    fn set_disabled_state(&self, state: bool) {
+    fn set_disabled_state(self, state: bool) {
         if state {
             self.flags.deref().borrow_mut().insert(InDisabledState);
         } else {
@@ -534,11 +534,11 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
         }
     }
 
-    fn get_enabled_state(&self) -> bool {
+    fn get_enabled_state(self) -> bool {
         self.flags.deref().borrow().contains(InEnabledState)
     }
 
-    fn set_enabled_state(&self, state: bool) {
+    fn set_enabled_state(self, state: bool) {
         if state {
             self.flags.deref().borrow_mut().insert(InEnabledState);
         } else {
@@ -547,48 +547,48 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
     }
 
     /// Iterates over this node and all its descendants, in preorder.
-    fn traverse_preorder(&self) -> TreeIterator<'n> {
+    fn traverse_preorder(self) -> TreeIterator<'n> {
         let mut nodes = vec!();
-        gather_abstract_nodes(*self, &mut nodes, false);
+        gather_abstract_nodes(self, &mut nodes, false);
         TreeIterator::new(nodes)
     }
 
     /// Iterates over this node and all its descendants, in postorder.
-    fn sequential_traverse_postorder(&self) -> TreeIterator<'n> {
+    fn sequential_traverse_postorder(self) -> TreeIterator<'n> {
         let mut nodes = vec!();
-        gather_abstract_nodes(*self, &mut nodes, true);
+        gather_abstract_nodes(self, &mut nodes, true);
         TreeIterator::new(nodes)
     }
 
-    fn inclusively_following_siblings(&self) -> AbstractNodeChildrenIterator<'n> {
+    fn inclusively_following_siblings(self) -> AbstractNodeChildrenIterator<'n> {
         AbstractNodeChildrenIterator {
             current_node: Some(self.clone()),
         }
     }
 
-    fn is_inclusive_ancestor_of(&self, parent: JSRef<Node>) -> bool {
-        *self == parent || parent.ancestors().any(|ancestor| &ancestor == self)
+    fn is_inclusive_ancestor_of(self, parent: JSRef<Node>) -> bool {
+        self == parent || parent.ancestors().any(|ancestor| ancestor == self)
     }
 
-    fn following_siblings(&self) -> AbstractNodeChildrenIterator<'n> {
+    fn following_siblings(self) -> AbstractNodeChildrenIterator<'n> {
         AbstractNodeChildrenIterator {
             current_node: self.next_sibling().root().map(|next| next.deref().clone()),
         }
     }
 
-    fn is_parent_of(&self, child: JSRef<Node>) -> bool {
+    fn is_parent_of(self, child: JSRef<Node>) -> bool {
         match child.parent_node() {
-            Some(parent) if parent == Temporary::from_rooted(*self) => true,
+            Some(parent) if parent == Temporary::from_rooted(self) => true,
             _ => false
         }
     }
 
-    fn to_trusted_node_address(&self) -> TrustedNodeAddress {
+    fn to_trusted_node_address(self) -> TrustedNodeAddress {
         TrustedNodeAddress(self.deref() as *const Node as *const libc::c_void)
     }
 
-    fn get_bounding_content_box(&self) -> Rect<Au> {
-        let window = window_from_node(*self).root();
+    fn get_bounding_content_box(self) -> Rect<Au> {
+        let window = window_from_node(self).root();
         let page = window.deref().page();
         let addr = self.to_trusted_node_address();
 
@@ -596,8 +596,8 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
         rect
     }
 
-    fn get_content_boxes(&self) -> Vec<Rect<Au>> {
-        let window = window_from_node(*self).root();
+    fn get_content_boxes(self) -> Vec<Rect<Au>> {
+        let window = window_from_node(self).root();
         let page = window.deref().page();
         let addr = self.to_trusted_node_address();
         let ContentBoxesResponse(rects) = page.layout().content_boxes(addr);
@@ -605,7 +605,7 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
     }
 
     // http://dom.spec.whatwg.org/#dom-parentnode-queryselector
-    fn query_selector(&self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>> {
+    fn query_selector(self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>> {
         // Step 1.
         match parse_selector_list_from_str(selectors.as_slice()) {
             // Step 2.
@@ -625,7 +625,7 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
     }
 
     // http://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
-    fn query_selector_all(&self, selectors: DOMString) -> Fallible<Temporary<NodeList>> {
+    fn query_selector_all(self, selectors: DOMString) -> Fallible<Temporary<NodeList>> {
         // Step 1.
         let nodes;
         let root = self.ancestors().last().unwrap_or(self.clone());
@@ -640,35 +640,35 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
                     |node| node.is_element() && matches(selectors, node, &mut None)).collect()
             }
         }
-        let window = window_from_node(*self).root();
+        let window = window_from_node(self).root();
         Ok(NodeList::new_simple_list(*window, nodes))
     }
 
-    fn ancestors(&self) -> AncestorIterator<'n> {
+    fn ancestors(self) -> AncestorIterator<'n> {
         AncestorIterator {
             current: self.parent_node.get().map(|node| (*node.root()).clone()),
         }
     }
 
-    fn owner_doc(&self) -> Temporary<Document> {
+    fn owner_doc(self) -> Temporary<Document> {
         Temporary::new(self.owner_doc.get().as_ref().unwrap().clone())
     }
 
-    fn set_owner_doc(&self, document: JSRef<Document>) {
+    fn set_owner_doc(self, document: JSRef<Document>) {
         self.owner_doc.assign(Some(document.clone()));
     }
 
-    fn is_in_html_doc(&self) -> bool {
+    fn is_in_html_doc(self) -> bool {
         self.owner_doc().root().is_html_document
     }
 
-    fn children(&self) -> AbstractNodeChildrenIterator<'n> {
+    fn children(self) -> AbstractNodeChildrenIterator<'n> {
         AbstractNodeChildrenIterator {
             current_node: self.first_child.get().map(|node| (*node.root()).clone()),
         }
     }
 
-    fn child_elements(&self) -> ChildElementIterator<'m, 'n> {
+    fn child_elements(self) -> ChildElementIterator<'m, 'n> {
         self.children()
             .filter(|node| {
                 node.is_element()
@@ -679,23 +679,23 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
             })
     }
 
-    fn wait_until_safe_to_modify_dom(&self) {
+    fn wait_until_safe_to_modify_dom(self) {
         let document = self.owner_doc().root();
         document.deref().wait_until_safe_to_modify_dom();
     }
 
-    fn remove_self(&self) {
+    fn remove_self(self) {
         match self.parent_node().root() {
-            Some(parent) => parent.remove_child(*self),
+            Some(parent) => parent.remove_child(self),
             None => ()
         }
     }
 
-    fn get_unique_id(&self) -> String {
+    fn get_unique_id(self) -> String {
         self.unique_id.borrow().clone()
     }
 
-    fn summarize(&self) -> NodeInfo {
+    fn summarize(self) -> NodeInfo {
         if self.unique_id.borrow().is_empty() {
             let mut unique_id = self.unique_id.borrow_mut();
             *unique_id = uuid::Uuid::new_v4().to_simple_string();
@@ -716,7 +716,7 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
             systemId: "".to_string(),
 
             attrs: if self.is_element() {
-                let elem: JSRef<Element> = ElementCast::to_ref(*self).unwrap();
+                let elem: JSRef<Element> = ElementCast::to_ref(self).unwrap();
                 elem.summarize()
             } else {
                 vec!()
@@ -725,7 +725,7 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
             isDocumentElement:
                 self.owner_doc().root()
                     .GetDocumentElement()
-                    .map(|elem| NodeCast::from_ref(*elem.root()) == *self)
+                    .map(|elem| NodeCast::from_ref(*elem.root()) == self)
                     .unwrap_or(false),
 
             shortValue: self.GetNodeValue().unwrap_or("".to_string()), //FIXME: truncate
