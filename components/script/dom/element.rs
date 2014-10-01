@@ -12,7 +12,7 @@ use dom::bindings::codegen::Bindings::ElementBinding;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::codegen::InheritTypes::{ElementDerived, NodeCast};
-use dom::bindings::js::{JS, JSRef, Temporary, TemporaryPushable};
+use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, TemporaryPushable};
 use dom::bindings::js::{OptionalSettable, OptionalRootable, Root};
 use dom::bindings::trace::Traceable;
 use dom::bindings::utils::{Reflectable, Reflector};
@@ -38,7 +38,8 @@ use servo_util::namespace;
 use servo_util::str::DOMString;
 
 use std::ascii::StrAsciiExt;
-use std::cell::{Cell, RefCell};
+use std::cell::RefCell;
+use std::default::Default;
 use std::mem;
 use string_cache::{Atom, Namespace};
 
@@ -51,8 +52,8 @@ pub struct Element {
     pub prefix: Option<DOMString>,
     pub attrs: RefCell<Vec<JS<Attr>>>,
     pub style_attribute: Traceable<RefCell<Option<style::PropertyDeclarationBlock>>>,
-    pub attr_list: Cell<Option<JS<NamedNodeMap>>>,
-    class_list: Cell<Option<JS<DOMTokenList>>>,
+    pub attr_list: MutNullableJS<NamedNodeMap>,
+    class_list: MutNullableJS<DOMTokenList>,
 }
 
 impl ElementDerived for EventTarget {
@@ -156,8 +157,8 @@ impl Element {
             namespace: namespace,
             prefix: prefix,
             attrs: RefCell::new(vec!()),
-            attr_list: Cell::new(None),
-            class_list: Cell::new(None),
+            attr_list: Default::default(),
+            class_list: Default::default(),
             style_attribute: Traceable::new(RefCell::new(None)),
         }
     }
@@ -557,31 +558,25 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
     // http://dom.spec.whatwg.org/#dom-element-classlist
     fn ClassList(self) -> Temporary<DOMTokenList> {
-        match self.class_list.get() {
-            Some(class_list) => Temporary::new(class_list),
-            None => {
-                let class_list = DOMTokenList::new(self, "class").root();
-                self.class_list.assign(Some(class_list.deref().clone()));
-                Temporary::from_rooted(*class_list)
-            }
+        if self.class_list.get().is_none() {
+            let class_list = DOMTokenList::new(self, "class");
+            self.class_list.assign(Some(class_list));
         }
+        self.class_list.get().unwrap()
     }
 
     // http://dom.spec.whatwg.org/#dom-element-attributes
     fn Attributes(self) -> Temporary<NamedNodeMap> {
-        match self.attr_list.get() {
-            None => (),
-            Some(ref list) => return Temporary::new(list.clone()),
+        if self.attr_list.get().is_none() {
+            let doc = {
+                let node: JSRef<Node> = NodeCast::from_ref(self);
+                node.owner_doc().root()
+            };
+            let window = doc.deref().window.root();
+            let list = NamedNodeMap::new(*window, self);
+            self.attr_list.assign(Some(list));
         }
-
-        let doc = {
-            let node: JSRef<Node> = NodeCast::from_ref(self);
-            node.owner_doc().root()
-        };
-        let window = doc.deref().window.root();
-        let list = NamedNodeMap::new(*window, self);
-        self.attr_list.assign(Some(list));
-        Temporary::new(self.attr_list.get().as_ref().unwrap().clone())
+        self.attr_list.get().unwrap()
     }
 
     // http://dom.spec.whatwg.org/#dom-element-getattribute
