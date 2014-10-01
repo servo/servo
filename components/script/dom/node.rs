@@ -364,11 +364,11 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
     }
 }
 
-pub trait NodeHelpers<'m, 'n> {
-    fn ancestors(self) -> AncestorIterator<'n>;
-    fn children(self) -> AbstractNodeChildrenIterator<'n>;
-    fn child_elements(self) -> ChildElementIterator<'m, 'n>;
-    fn following_siblings(self) -> AbstractNodeChildrenIterator<'n>;
+pub trait NodeHelpers<'a> {
+    fn ancestors(self) -> AncestorIterator<'a>;
+    fn children(self) -> AbstractNodeChildrenIterator<'a>;
+    fn child_elements(self) -> ChildElementIterator<'a>;
+    fn following_siblings(self) -> AbstractNodeChildrenIterator<'a>;
     fn is_in_doc(self) -> bool;
     fn is_inclusive_ancestor_of(self, parent: JSRef<Node>) -> bool;
     fn is_parent_of(self, child: JSRef<Node>) -> bool;
@@ -406,9 +406,9 @@ pub trait NodeHelpers<'m, 'n> {
     fn dump_indent(self, indent: uint);
     fn debug_str(self) -> String;
 
-    fn traverse_preorder(self) -> TreeIterator<'n>;
-    fn sequential_traverse_postorder(self) -> TreeIterator<'n>;
-    fn inclusively_following_siblings(self) -> AbstractNodeChildrenIterator<'n>;
+    fn traverse_preorder(self) -> TreeIterator<'a>;
+    fn sequential_traverse_postorder(self) -> TreeIterator<'a>;
+    fn inclusively_following_siblings(self) -> AbstractNodeChildrenIterator<'a>;
 
     fn to_trusted_node_address(self) -> TrustedNodeAddress;
 
@@ -424,7 +424,7 @@ pub trait NodeHelpers<'m, 'n> {
     fn summarize(self) -> NodeInfo;
 }
 
-impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
+impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     /// Dumps the subtree rooted at this node, for debugging.
     fn dump(self) {
         self.dump_indent(0);
@@ -547,20 +547,20 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
     }
 
     /// Iterates over this node and all its descendants, in preorder.
-    fn traverse_preorder(self) -> TreeIterator<'n> {
+    fn traverse_preorder(self) -> TreeIterator<'a> {
         let mut nodes = vec!();
         gather_abstract_nodes(self, &mut nodes, false);
         TreeIterator::new(nodes)
     }
 
     /// Iterates over this node and all its descendants, in postorder.
-    fn sequential_traverse_postorder(self) -> TreeIterator<'n> {
+    fn sequential_traverse_postorder(self) -> TreeIterator<'a> {
         let mut nodes = vec!();
         gather_abstract_nodes(self, &mut nodes, true);
         TreeIterator::new(nodes)
     }
 
-    fn inclusively_following_siblings(self) -> AbstractNodeChildrenIterator<'n> {
+    fn inclusively_following_siblings(self) -> AbstractNodeChildrenIterator<'a> {
         AbstractNodeChildrenIterator {
             current_node: Some(self.clone()),
         }
@@ -570,7 +570,7 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
         self == parent || parent.ancestors().any(|ancestor| ancestor == self)
     }
 
-    fn following_siblings(self) -> AbstractNodeChildrenIterator<'n> {
+    fn following_siblings(self) -> AbstractNodeChildrenIterator<'a> {
         AbstractNodeChildrenIterator {
             current_node: self.next_sibling().root().map(|next| next.deref().clone()),
         }
@@ -644,7 +644,7 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
         Ok(NodeList::new_simple_list(*window, nodes))
     }
 
-    fn ancestors(self) -> AncestorIterator<'n> {
+    fn ancestors(self) -> AncestorIterator<'a> {
         AncestorIterator {
             current: self.parent_node.get().map(|node| (*node.root()).clone()),
         }
@@ -662,13 +662,13 @@ impl<'m, 'n> NodeHelpers<'m, 'n> for JSRef<'n, Node> {
         self.owner_doc().root().is_html_document
     }
 
-    fn children(self) -> AbstractNodeChildrenIterator<'n> {
+    fn children(self) -> AbstractNodeChildrenIterator<'a> {
         AbstractNodeChildrenIterator {
             current_node: self.first_child.get().map(|node| (*node.root()).clone()),
         }
     }
 
-    fn child_elements(self) -> ChildElementIterator<'m, 'n> {
+    fn child_elements(self) -> ChildElementIterator<'a> {
         self.children()
             .filter(|node| {
                 node.is_element()
@@ -834,9 +834,9 @@ impl RawLayoutNodeHelpers for Node {
 // Iteration and traversal
 //
 
-pub type ChildElementIterator<'a, 'b> = Map<'a, JSRef<'b, Node>,
-                                            JSRef<'b, Element>,
-                                            Filter<'a, JSRef<'b, Node>, AbstractNodeChildrenIterator<'b>>>;
+pub type ChildElementIterator<'a> = Map<'a, JSRef<'a, Node>,
+                                        JSRef<'a, Element>,
+                                        Filter<'a, JSRef<'a, Node>, AbstractNodeChildrenIterator<'a>>>;
 
 pub struct AbstractNodeChildrenIterator<'a> {
     current_node: Option<JSRef<'a, Node>>,
@@ -2038,7 +2038,7 @@ impl<'a> style::TNode<'a, JSRef<'a, Element>> for JSRef<'a, Node> {
     fn parent_node(self) -> Option<JSRef<'a, Node>> {
         // FIXME(zwarich): Remove this when UFCS lands and there is a better way
         // of disambiguating methods.
-        fn parent_node<'a, 'b, T: NodeHelpers<'a, 'b>>(this: T) -> Option<Temporary<Node>> {
+        fn parent_node<'a, T: NodeHelpers<'a>>(this: T) -> Option<Temporary<Node>> {
             this.parent_node()
         }
 
@@ -2048,7 +2048,7 @@ impl<'a> style::TNode<'a, JSRef<'a, Element>> for JSRef<'a, Node> {
     fn first_child(self) -> Option<JSRef<'a, Node>> {
         // FIXME(zwarich): Remove this when UFCS lands and there is a better way
         // of disambiguating methods.
-        fn first_child<'a, 'b, T: NodeHelpers<'a, 'b>>(this: T) -> Option<Temporary<Node>> {
+        fn first_child<'a, T: NodeHelpers<'a>>(this: T) -> Option<Temporary<Node>> {
             this.first_child()
         }
 
@@ -2058,7 +2058,7 @@ impl<'a> style::TNode<'a, JSRef<'a, Element>> for JSRef<'a, Node> {
     fn prev_sibling(self) -> Option<JSRef<'a, Node>> {
         // FIXME(zwarich): Remove this when UFCS lands and there is a better way
         // of disambiguating methods.
-        fn prev_sibling<'a, 'b, T: NodeHelpers<'a, 'b>>(this: T) -> Option<Temporary<Node>> {
+        fn prev_sibling<'a, T: NodeHelpers<'a>>(this: T) -> Option<Temporary<Node>> {
             this.prev_sibling()
         }
 
@@ -2068,7 +2068,7 @@ impl<'a> style::TNode<'a, JSRef<'a, Element>> for JSRef<'a, Node> {
     fn next_sibling(self) -> Option<JSRef<'a, Node>> {
         // FIXME(zwarich): Remove this when UFCS lands and there is a better way
         // of disambiguating methods.
-        fn next_sibling<'a, 'b, T: NodeHelpers<'a, 'b>>(this: T) -> Option<Temporary<Node>> {
+        fn next_sibling<'a, T: NodeHelpers<'a>>(this: T) -> Option<Temporary<Node>> {
             this.next_sibling()
         }
 
@@ -2078,7 +2078,7 @@ impl<'a> style::TNode<'a, JSRef<'a, Element>> for JSRef<'a, Node> {
     fn is_document(self) -> bool {
         // FIXME(zwarich): Remove this when UFCS lands and there is a better way
         // of disambiguating methods.
-        fn is_document<'a, 'b, T: NodeHelpers<'a, 'b>>(this: T) -> bool {
+        fn is_document<'a, T: NodeHelpers<'a>>(this: T) -> bool {
             this.is_document()
         }
 
@@ -2088,7 +2088,7 @@ impl<'a> style::TNode<'a, JSRef<'a, Element>> for JSRef<'a, Node> {
     fn is_element(self) -> bool {
         // FIXME(zwarich): Remove this when UFCS lands and there is a better way
         // of disambiguating methods.
-        fn is_element<'a, 'b, T: NodeHelpers<'a, 'b>>(this: T) -> bool {
+        fn is_element<'a, T: NodeHelpers<'a>>(this: T) -> bool {
             this.is_element()
         }
 
