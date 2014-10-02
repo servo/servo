@@ -19,10 +19,6 @@ extern crate azure;
 extern crate devtools_traits;
 extern crate geom;
 extern crate gfx;
-#[cfg(not(target_os="android"))]
-extern crate glfw;
-#[cfg(target_os="android")]
-extern crate glut;
 extern crate layers;
 extern crate layout_traits;
 extern crate opengles;
@@ -56,7 +52,4 @@ mod headless;
 pub mod pipeline;
 pub mod constellation;
 
-mod windowing;
-
-#[path="platform/mod.rs"]
-pub mod platform;
+pub mod windowing;

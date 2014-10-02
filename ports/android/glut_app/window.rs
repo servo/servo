@@ -4,11 +4,11 @@
 
 //! A windowing implementation using GLUT.
 
-use windowing::{ApplicationMethods, WindowEvent, WindowMethods};
-use windowing::{IdleWindowEvent, ResizeWindowEvent, LoadUrlWindowEvent, MouseWindowEventClass};
-use windowing::{ScrollWindowEvent, ZoomWindowEvent, NavigationWindowEvent, FinishedWindowEvent};
-use windowing::{MouseWindowClickEvent, MouseWindowMouseDownEvent, MouseWindowMouseUpEvent};
-use windowing::{Forward, Back};
+use compositing::windowing::{WindowEvent, WindowMethods};
+use compositing::windowing::{IdleWindowEvent, ResizeWindowEvent, LoadUrlWindowEvent, MouseWindowEventClass};
+use compositing::windowing::{ScrollWindowEvent, ZoomWindowEvent, NavigationWindowEvent, FinishedWindowEvent};
+use compositing::windowing::{MouseWindowClickEvent, MouseWindowMouseDownEvent, MouseWindowMouseUpEvent};
+use compositing::windowing::{Forward, Back};
 
 use alert::{Alert, AlertMethods};
 use libc::{c_int, c_uchar};
@@ -18,32 +18,15 @@ use geom::point::{Point2D, TypedPoint2D};
 use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
 use layers::geometry::DevicePixel;
-use servo_msg::compositor_msg::{IdleRenderState, RenderState, RenderingRenderState};
-use servo_msg::compositor_msg::{FinishedLoading, Blank, ReadyState};
-use servo_util::geometry::ScreenPx;
+use msg::compositor_msg::{IdleRenderState, RenderState, RenderingRenderState};
+use msg::compositor_msg::{FinishedLoading, Blank, ReadyState};
+use util::geometry::ScreenPx;
 
-use glut::glut::{ACTIVE_SHIFT, DOUBLE, WindowHeight};
+use glut::glut::{ACTIVE_SHIFT, WindowHeight};
 use glut::glut::WindowWidth;
 use glut::glut;
 
 // static THROBBER: [char, ..8] = [ '⣾', '⣽', '⣻', '⢿', '⡿', '⣟', '⣯', '⣷' ];
-
-/// A structure responsible for setting up and tearing down the entire windowing system.
-pub struct Application;
-
-impl ApplicationMethods for Application {
-    fn new() -> Application {
-        glut::init();
-        glut::init_display_mode(DOUBLE);
-        Application
-    }
-}
-
-impl Drop for Application {
-    fn drop(&mut self) {
-        drop_local_window();
-    }
-}
 
 /// The type of a window.
 pub struct Window {
@@ -61,9 +44,9 @@ pub struct Window {
     pub throbber_frame: Cell<u8>,
 }
 
-impl WindowMethods<Application> for Window {
+impl Window {
     /// Creates a new window.
-    fn new(_: &Application, _: bool, size: TypedSize2D<DevicePixel, uint>) -> Rc<Window> {
+    pub fn new(size: TypedSize2D<DevicePixel, uint>) -> Rc<Window> {
         // Create the GLUT window.
         let window_size = size.to_untyped();
         glut::init_window_size(window_size.width, window_size.height);
@@ -145,7 +128,15 @@ impl WindowMethods<Application> for Window {
 
         wrapped_window
     }
+}
 
+impl Drop for Window {
+    fn drop(&mut self) {
+        drop_local_window();
+    }
+}
+
+impl WindowMethods for Window {
     /// Returns the size of the window in hardware pixels.
     fn framebuffer_size(&self) -> TypedSize2D<DevicePixel, uint> {
         TypedSize2D(glut::get(WindowWidth) as uint, glut::get(WindowHeight) as uint)
