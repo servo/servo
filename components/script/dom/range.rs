@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::error::{Fallible, IndexSize, InvalidNodeTypeError};
 use dom::bindings::global::{GlobalRef, Window};
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{MutNullableJS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::document::Document;
 use dom::node::{Node, NodeHelpers};
@@ -20,9 +20,9 @@ use std::cell::Cell;
 #[must_root]
 pub struct Range {
     reflector_: Reflector,
-    start_node: Cell<JS<Node>>,
+    start_node: MutNullableJS<Node>, // This field will not be `None` by the spec.
     start_point: Cell<u32>,
-    end_node: Cell<JS<Node>>,
+    end_node: MutNullableJS<Node>,  // This field will not be `None` by the spec.
     end_point: Cell<u32>,
 }
 
@@ -31,9 +31,9 @@ impl Range {
         let node: JSRef<Node> = NodeCast::from_ref(document);
         Range {
             reflector_: Reflector::new(),
-            start_node: Cell::new(node.unrooted()),
+            start_node: MutNullableJS::new(Some(node)),
             start_point: Cell::new(0),
-            end_node: Cell::new(node.unrooted()),
+            end_node: MutNullableJS::new(Some(node)),
             end_point: Cell::new(0),
         }
     }
@@ -54,7 +54,7 @@ impl Range {
 impl<'a> RangeMethods for JSRef<'a, Range> {
     /// http://dom.spec.whatwg.org/#dom-range-startcontainer
     fn StartContainer(self) -> Temporary<Node> {
-        Temporary::new(self.start_node.get())
+        self.start_node.get().unwrap()
     }
 
     /// http://dom.spec.whatwg.org/#dom-range-startoffset
@@ -64,7 +64,7 @@ impl<'a> RangeMethods for JSRef<'a, Range> {
 
     /// http://dom.spec.whatwg.org/#dom-range-endcontainer
     fn EndContainer(self) -> Temporary<Node> {
-        Temporary::new(self.end_node.get())
+        self.end_node.get().unwrap()
     }
 
     /// http://dom.spec.whatwg.org/#dom-range-endoffset
@@ -74,7 +74,7 @@ impl<'a> RangeMethods for JSRef<'a, Range> {
 
     /// http://dom.spec.whatwg.org/#dom-range-collapsed
     fn Collapsed(self) -> bool {
-        self.start_node.get() == self.end_node.get()
+        self.start_node.get().unwrap() == self.end_node.get().unwrap()
     }
 
     /// http://dom.spec.whatwg.org/#dom-range-setstart
@@ -90,16 +90,17 @@ impl<'a> RangeMethods for JSRef<'a, Range> {
         }
 
         // step 3, 4-1
-        match compare_bp_position(node, offset, self.end_node.get().root().root_ref(), self.end_point.get()) {
+        let end_node = self.end_node.get().unwrap().root();
+        match compare_bp_position(node, offset, end_node.root_ref(), self.end_point.get()) {
             After | NoSharedRoot => {
-                self.end_node.set(node.unrooted());
+                self.end_node.assign(Some(node.unrooted()));
                 self.end_point.set(offset);
             },
             _ => (),
         }
 
         // step 4-2
-        self.start_node.set(node.unrooted());
+        self.start_node.assign(Some(node.unrooted()));
         self.start_point.set(offset);
 
         Ok(())
@@ -118,16 +119,17 @@ impl<'a> RangeMethods for JSRef<'a, Range> {
         }
 
         // step 3, 4-1
-        match compare_bp_position(node, offset, self.start_node.get().root().root_ref(), self.start_point.get()) {
+        let start_node =  self.start_node.get().unwrap().root();
+        match compare_bp_position(node, offset, start_node.root_ref(), self.start_point.get()) {
             Before | NoSharedRoot => {
-                self.start_node.set(node.unrooted());
+                self.start_node.assign(Some(node.unrooted()));
                 self.start_point.set(offset);
             },
             _ => (),
         }
 
         // step 4-2
-        self.end_node.set(node.unrooted());
+        self.end_node.assign(Some(node.unrooted()));
         self.end_point.set(offset);
 
         Ok(())
