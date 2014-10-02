@@ -201,6 +201,12 @@ impl Au {
     }
 
     #[inline]
+    pub fn to_subpx(&self) -> f64 {
+        let Au(s) = *self;
+        (s as f64) / 60f64
+    }
+
+    #[inline]
     pub fn to_snapped(&self) -> Au {
         let Au(s) = *self;
         let res = s % 60i32;
