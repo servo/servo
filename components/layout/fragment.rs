@@ -131,6 +131,11 @@ pub enum SpecificFragmentInfo {
     GenericFragment,
     IframeFragment(IframeFragmentInfo),
     ImageFragment(ImageFragmentInfo),
+
+    /// A hypothetical box (see CSS 2.1 § 10.3.7) for an absolutely-positioned block that was
+    /// declared with `display: inline;`.
+    InlineAbsoluteHypotheticalFragment(InlineAbsoluteHypotheticalFragmentInfo),
+
     InlineBlockFragment(InlineBlockFragmentInfo),
     InputFragment(InputFragmentInfo),
     ScannedTextFragment(ScannedTextFragmentInfo),
@@ -142,7 +147,28 @@ pub enum SpecificFragmentInfo {
     UnscannedTextFragment(UnscannedTextFragmentInfo),
 }
 
+/// A hypothetical box (see CSS 2.1 § 10.3.7) for an absolutely-positioned block that was declared
+/// with `display: inline;`.
+///
+/// FIXME(pcwalton): Stop leaking this `FlowRef` to layout; that is not memory safe because layout
+/// can clone it.
+#[deriving(Clone)]
+pub struct InlineAbsoluteHypotheticalFragmentInfo {
+    pub flow_ref: FlowRef,
+}
+
+impl InlineAbsoluteHypotheticalFragmentInfo {
+    pub fn new(flow_ref: FlowRef) -> InlineAbsoluteHypotheticalFragmentInfo {
+        InlineAbsoluteHypotheticalFragmentInfo {
+            flow_ref: flow_ref,
+        }
+    }
+}
+
 /// A fragment that represents an inline-block element.
+///
+/// FIXME(pcwalton): Stop leaking this `FlowRef` to layout; that is not memory safe because layout
+/// can clone it.
 #[deriving(Clone)]
 pub struct InlineBlockFragmentInfo {
     pub flow_ref: FlowRef,
@@ -512,8 +538,8 @@ impl Fragment {
         self.inline_context.as_mut().unwrap().styles.push(style.clone());
     }
 
-    /// Uses the style only to estimate the intrinsic inline-sizes. These may be modified for text or
-    /// replaced elements.
+    /// Uses the style only to estimate the intrinsic inline-sizes. These may be modified for text
+    /// or replaced elements.
     fn style_specified_intrinsic_inline_size(&self) -> IntrinsicISizes {
         let (use_margins, use_padding) = match self.specific {
             GenericFragment | IframeFragment(_) | ImageFragment(_) | InlineBlockFragment(_) |
@@ -521,14 +547,16 @@ impl Fragment {
             TableFragment | TableCellFragment => (false, true),
             TableWrapperFragment => (true, false),
             TableRowFragment => (false, false),
-            ScannedTextFragment(_) | TableColumnFragment(_) | UnscannedTextFragment(_) => {
+            ScannedTextFragment(_) | TableColumnFragment(_) | UnscannedTextFragment(_) |
+            InlineAbsoluteHypotheticalFragment(_) => {
                 // Styles are irrelevant for these kinds of fragments.
                 return IntrinsicISizes::new()
             }
         };
 
         let style = self.style();
-        let inline_size = MaybeAuto::from_style(style.content_inline_size(), Au::new(0)).specified_or_zero();
+        let inline_size = MaybeAuto::from_style(style.content_inline_size(),
+                                                Au(0)).specified_or_zero();
 
         let margin = style.logical_margin();
         let (margin_inline_start, margin_inline_end) = if use_margins {
@@ -1147,7 +1175,8 @@ impl Fragment {
                                                                            text_fragment))
             }
             GenericFragment | IframeFragment(..) | TableFragment | TableCellFragment |
-            TableRowFragment | TableWrapperFragment | InlineBlockFragment(_) | InputFragment(_) => {
+            TableRowFragment | TableWrapperFragment | InlineBlockFragment(_) | InputFragment(_) |
+            InlineAbsoluteHypotheticalFragment(_) => {
                 // FIXME(pcwalton): This is a bit of an abuse of the logging infrastructure. We
                 // should have a real `SERVO_DEBUG` system.
                 debug!("{:?}", self.build_debug_borders_around_fragment(display_list, flow_origin))
@@ -1216,7 +1245,8 @@ impl Fragment {
 
         match self.specific {
             GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment |
-            TableColumnFragment(_) | TableRowFragment | TableWrapperFragment => {}
+            TableColumnFragment(_) | TableRowFragment | TableWrapperFragment |
+            InlineAbsoluteHypotheticalFragment(_) => {}
             InlineBlockFragment(ref mut info) => {
                 let block_flow = info.flow_ref.get_mut().as_block();
                 result.minimum_inline_size = max(result.minimum_inline_size,
@@ -1225,7 +1255,7 @@ impl Fragment {
                 result.preferred_inline_size = max(result.preferred_inline_size,
                         block_flow.base.intrinsic_inline_sizes.preferred_inline_size +
                         block_flow.base.intrinsic_inline_sizes.surround_inline_size);
-            },
+            }
             ImageFragment(ref mut image_fragment_info) => {
                 let image_inline_size = image_fragment_info.image_inline_size();
                 result.minimum_inline_size = max(result.minimum_inline_size, image_inline_size);
@@ -1283,8 +1313,9 @@ impl Fragment {
     /// TODO: What exactly does this function return? Why is it Au(0) for GenericFragment?
     pub fn content_inline_size(&self) -> Au {
         match self.specific {
-            GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment | TableRowFragment |
-            TableWrapperFragment | InlineBlockFragment(_) | InputFragment(_) => Au(0),
+            GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment |
+            TableRowFragment | TableWrapperFragment | InlineBlockFragment(_) |
+            InputFragment(_) | InlineAbsoluteHypotheticalFragment(_) => Au(0),
             ImageFragment(ref image_fragment_info) => {
                 image_fragment_info.computed_inline_size()
             }
@@ -1303,7 +1334,7 @@ impl Fragment {
         match self.specific {
             GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment |
             TableRowFragment | TableWrapperFragment | InlineBlockFragment(_) |
-            InputFragment(_) => Au(0),
+            InputFragment(_) | InlineAbsoluteHypotheticalFragment(_) => Au(0),
             ImageFragment(ref image_fragment_info) => {
                 image_fragment_info.computed_block_size()
             }
@@ -1340,7 +1371,9 @@ impl Fragment {
             TableRowFragment | TableWrapperFragment | InputFragment(_) => None,
             TableColumnFragment(_) => fail!("Table column fragments do not need to split"),
             UnscannedTextFragment(_) => fail!("Unscanned text fragments should have been scanned by now!"),
-            InlineBlockFragment(_) => fail!("Inline blocks do not get split"),
+            InlineBlockFragment(_) | InlineAbsoluteHypotheticalFragment(_) => {
+                fail!("Inline blocks or inline absolute hypothetical fragments do not get split")
+            }
             ScannedTextFragment(ref text_fragment_info) => {
                 let mut new_line_pos = self.new_line_pos.clone();
                 let cur_new_line_pos = new_line_pos.remove(0).unwrap();
@@ -1378,7 +1411,8 @@ impl Fragment {
             -> Option<(Option<SplitInfo>, Option<SplitInfo>, Arc<Box<TextRun>> /* TODO(bjz): remove */)> {
         match self.specific {
             GenericFragment | IframeFragment(_) | ImageFragment(_) | TableFragment | TableCellFragment |
-            TableRowFragment | TableWrapperFragment | InlineBlockFragment(_) | InputFragment(_) => None,
+            TableRowFragment | TableWrapperFragment | InlineBlockFragment(_) | InputFragment(_) |
+            InlineAbsoluteHypotheticalFragment(_) => None,
             TableColumnFragment(_) => fail!("Table column fragments do not have inline_size"),
             UnscannedTextFragment(_) => fail!("Unscanned text fragments should have been scanned by now!"),
             ScannedTextFragment(ref text_fragment_info) => {
@@ -1487,7 +1521,8 @@ impl Fragment {
             UnscannedTextFragment(_) => {
                 fail!("Unscanned text fragments should have been scanned by now!")
             }
-            ImageFragment(_) | ScannedTextFragment(_) | InlineBlockFragment(_) => {}
+            ImageFragment(_) | ScannedTextFragment(_) | InlineBlockFragment(_) |
+            InlineAbsoluteHypotheticalFragment(_) => {}
         };
 
         self.compute_border_padding_margins(container_inline_size);
@@ -1501,6 +1536,15 @@ impl Fragment {
         let noncontent_inline_size = self.border_padding.inline_start_end();
 
         match self.specific {
+            InlineAbsoluteHypotheticalFragment(ref mut info) => {
+                let block_flow = info.flow_ref.get_mut().as_block();
+                block_flow.base.position.size.inline = 
+                    block_flow.base.intrinsic_inline_sizes.preferred_inline_size +
+                    block_flow.base.intrinsic_inline_sizes.surround_inline_size;
+
+                // This is a hypothetical box, so it takes up no space.
+                self.border_box.size.inline = Au(0);
+            }
             InlineBlockFragment(ref mut info) => {
                 let block_flow = info.flow_ref.get_mut().as_block();
                 self.border_box.size.inline = block_flow.base.intrinsic_inline_sizes.preferred_inline_size +
@@ -1570,7 +1614,8 @@ impl Fragment {
             UnscannedTextFragment(_) => {
                 fail!("Unscanned text fragments should have been scanned by now!")
             }
-            ImageFragment(_) | ScannedTextFragment(_) | InlineBlockFragment(_) => {}
+            ImageFragment(_) | ScannedTextFragment(_) | InlineBlockFragment(_) |
+            InlineAbsoluteHypotheticalFragment(_) => {}
         }
 
         let style_block_size = self.style().content_block_size();
@@ -1616,6 +1661,11 @@ impl Fragment {
                 let block_flow = info.flow_ref.get_mut().as_block();
                 self.border_box.size.block = block_flow.base.position.size.block;
             }
+            InlineAbsoluteHypotheticalFragment(ref mut info) => {
+                // Not the primary fragment, so we do not take the noncontent size into account.
+                let block_flow = info.flow_ref.get_mut().as_block();
+                self.border_box.size.block = block_flow.base.position.size.block;
+            }
             _ => fail!("should have been handled above"),
         }
     }
@@ -1641,7 +1691,16 @@ impl Fragment {
                 // See CSS 2.1 § 10.8.1.
                 let block_flow = info.flow_ref.get().as_immutable_block();
                 let font_style = text::computed_style_to_font_style(&*self.style);
-                let font_metrics = text::font_metrics_for_style(layout_context.font_context(), &font_style);
+                let font_metrics = text::font_metrics_for_style(layout_context.font_context(),
+                                                                &font_style);
+                InlineMetrics::from_block_height(&font_metrics, block_flow.base.position.size.block)
+            }
+            InlineAbsoluteHypotheticalFragment(ref info) => {
+                // See CSS 2.1 § 10.8.1.
+                let block_flow = info.flow_ref.get().as_immutable_block();
+                let font_style = text::computed_style_to_font_style(&*self.style);
+                let font_metrics = text::font_metrics_for_style(layout_context.font_context(),
+                                                                &font_style);
                 InlineMetrics::from_block_height(&font_metrics, block_flow.base.position.size.block)
             }
             _ => {
@@ -1704,10 +1763,31 @@ impl Fragment {
     /// because the corresponding table flow is the primary fragment.
     fn is_primary_fragment(&self) -> bool {
         match self.specific {
-            InlineBlockFragment(_) | TableWrapperFragment => false,
+            InlineBlockFragment(_) | InlineAbsoluteHypotheticalFragment(_) |
+            TableWrapperFragment => false,
             GenericFragment | IframeFragment(_) | ImageFragment(_) | ScannedTextFragment(_) |
             TableFragment | TableCellFragment | TableColumnFragment(_) | TableRowFragment |
             UnscannedTextFragment(_) | InputFragment(_) => true,
+        }
+    }
+
+    pub fn update_late_computed_inline_position_if_necessary(&mut self) {
+        match self.specific {
+            InlineAbsoluteHypotheticalFragment(ref mut info) => {
+                let position = self.border_box.start.i;
+                info.flow_ref.get_mut().update_late_computed_inline_position_if_necessary(position)
+            }
+            _ => {}
+        }
+    }
+
+    pub fn update_late_computed_block_position_if_necessary(&mut self) {
+        match self.specific {
+            InlineAbsoluteHypotheticalFragment(ref mut info) => {
+                let position = self.border_box.start.b;
+                info.flow_ref.get_mut().update_late_computed_block_position_if_necessary(position)
+            }
+            _ => {}
         }
     }
 }
@@ -1720,6 +1800,9 @@ impl fmt::Show for Fragment {
                 GenericFragment => "GenericFragment",
                 IframeFragment(_) => "IframeFragment",
                 ImageFragment(_) => "ImageFragment",
+                InlineAbsoluteHypotheticalFragment(_) => "InlineAbsoluteHypotheticalFragment",
+                InlineBlockFragment(_) => "InlineBlockFragment",
+                InputFragment(_) => "InputFragment",
                 ScannedTextFragment(_) => "ScannedTextFragment",
                 TableFragment => "TableFragment",
                 TableCellFragment => "TableCellFragment",
@@ -1727,8 +1810,6 @@ impl fmt::Show for Fragment {
                 TableRowFragment => "TableRowFragment",
                 TableWrapperFragment => "TableWrapperFragment",
                 UnscannedTextFragment(_) => "UnscannedTextFragment",
-                InlineBlockFragment(_) => "InlineBlockFragment",
-                InputFragment(_) => "InputFragment",
         }));
         try!(write!(f, "bp {}", self.border_padding));
         try!(write!(f, " "));

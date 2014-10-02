@@ -7,10 +7,11 @@
 use css::node_style::StyledNode;
 use context::LayoutContext;
 use floats::{FloatLeft, Floats, PlacementInfo};
-use flow::{BaseFlow, FlowClass, Flow, InlineFlowClass};
+use flow::{BaseFlow, FlowClass, Flow, InlineFlowClass, MutableFlowUtils};
 use flow;
+use fragment::{Fragment, InlineBlockFragment, ScannedTextFragment, ScannedTextFragmentInfo};
+use fragment::{SplitInfo};
 use layout_debug;
-use fragment::{Fragment, InlineBlockFragment, ScannedTextFragment, ScannedTextFragmentInfo, SplitInfo};
 use model::IntrinsicISizes;
 use text;
 use wrapper::ThreadSafeLayoutNode;
@@ -875,16 +876,16 @@ impl InlineFlow {
         }
     }
 
-    /// Sets fragment X positions based on alignment for one line.
-    fn set_horizontal_fragment_positions(fragments: &mut InlineFragments,
-                                         line: &Line,
-                                         line_align: text_align::T) {
+    /// Sets fragment positions in the inline direction based on alignment for one line.
+    fn set_inline_fragment_positions(fragments: &mut InlineFragments,
+                                     line: &Line,
+                                     line_align: text_align::T) {
         // Figure out how much inline-size we have.
         let slack_inline_size = Au::max(Au(0), line.green_zone.inline - line.bounds.size.inline);
 
-        // Set the fragment x positions based on that alignment.
-        let mut offset_x = line.bounds.start.i;
-        offset_x = offset_x + match line_align {
+        // Set the fragment inline positions based on that alignment.
+        let mut offset = line.bounds.start.i;
+        offset = offset + match line_align {
             // So sorry, but justified text is more complicated than shuffling line
             // coordinates.
             //
@@ -897,10 +898,41 @@ impl InlineFlow {
         for i in each_fragment_index(&line.range) {
             let fragment = fragments.get_mut(i.to_uint());
             let size = fragment.border_box.size;
-            fragment.border_box = LogicalRect::new(
-                fragment.style.writing_mode, offset_x, fragment.border_box.start.b,
-                size.inline, size.block);
-            offset_x = offset_x + size.inline;
+            fragment.border_box = LogicalRect::new(fragment.style.writing_mode,
+                                                   offset,
+                                                   fragment.border_box.start.b,
+                                                   size.inline,
+                                                   size.block);
+            fragment.update_late_computed_inline_position_if_necessary();
+            offset = offset + size.inline;
+        }
+    }
+
+    /// Sets final fragment positions in the block direction for one line. Assumes that
+    /// the fragment positions were initially set to the distance from the baseline first.
+    fn set_block_fragment_positions(fragments: &mut InlineFragments,
+                                     line: &Line,
+                                     line_distance_from_flow_block_start: Au,
+                                     baseline_distance_from_block_start: Au,
+                                     largest_depth_below_baseline: Au) {
+        for fragment_i in each_fragment_index(&line.range) {
+            let fragment = fragments.get_mut(fragment_i.to_uint());
+            match fragment.vertical_align() {
+                vertical_align::top => {
+                    fragment.border_box.start.b = fragment.border_box.start.b +
+                        line_distance_from_flow_block_start
+                }
+                vertical_align::bottom => {
+                    fragment.border_box.start.b = fragment.border_box.start.b +
+                        line_distance_from_flow_block_start + baseline_distance_from_block_start +
+                        largest_depth_below_baseline
+                }
+                _ => {
+                    fragment.border_box.start.b = fragment.border_box.start.b +
+                        line_distance_from_flow_block_start + baseline_distance_from_block_start
+                }
+            }
+            fragment.update_late_computed_block_position_if_necessary();
         }
     }
 
@@ -1014,6 +1046,10 @@ impl Flow for InlineFlow {
     fn assign_block_size(&mut self, ctx: &LayoutContext) {
         let _scope = layout_debug_scope!("inline::assign_block_size {:s}", self.base.debug_id());
 
+        // Collect various offsets needed by absolutely positioned inline-block or hypothetical
+        // absolute descendants.
+        (&mut *self as &mut Flow).collect_static_block_offsets_from_children();
+
         // Divide the fragments into lines.
         //
         // TODO(#226): Get the CSS `line-block-size` property from the containing block's style to
@@ -1040,10 +1076,10 @@ impl Flow for InlineFlow {
         // Now, go through each line and lay out the fragments inside.
         let mut line_distance_from_flow_block_start = Au(0);
         for line in self.lines.iter_mut() {
-            // Lay out fragments horizontally.
-            InlineFlow::set_horizontal_fragment_positions(&mut self.fragments, line, text_align);
+            // Lay out fragments in the inline direction.
+            InlineFlow::set_inline_fragment_positions(&mut self.fragments, line, text_align);
 
-            // Set the block-start y position of the current line.
+            // Set the block-start position of the current line.
             // `line_height_offset` is updated at the end of the previous loop.
             line.bounds.start.b = line_distance_from_flow_block_start;
 
@@ -1053,8 +1089,8 @@ impl Flow for InlineFlow {
 
             // Calculate the largest block-size among fragments with 'top' and 'bottom' values
             // respectively.
-            let (mut largest_block_size_for_top_fragments, mut largest_block_size_for_bottom_fragments) =
-                (Au(0), Au(0));
+            let (mut largest_block_size_for_top_fragments,
+                 mut largest_block_size_for_bottom_fragments) = (Au(0), Au(0));
 
             for fragment_i in each_fragment_index(&line.range) {
                 let fragment = self.fragments.fragments.get_mut(fragment_i.to_uint());
@@ -1128,24 +1164,11 @@ impl Flow for InlineFlow {
 
             // Compute the final positions in the block direction of each fragment. Recall that
             // `fragment.border_box.start.b` was set to the distance from the baseline above.
-            for fragment_i in each_fragment_index(&line.range) {
-                let fragment = self.fragments.get_mut(fragment_i.to_uint());
-                match fragment.vertical_align() {
-                    vertical_align::top => {
-                        fragment.border_box.start.b = fragment.border_box.start.b +
-                            line_distance_from_flow_block_start
-                    }
-                    vertical_align::bottom => {
-                        fragment.border_box.start.b = fragment.border_box.start.b +
-                            line_distance_from_flow_block_start + baseline_distance_from_block_start +
-                            largest_depth_below_baseline
-                    }
-                    _ => {
-                        fragment.border_box.start.b = fragment.border_box.start.b +
-                            line_distance_from_flow_block_start + baseline_distance_from_block_start
-                    }
-                }
-            }
+            InlineFlow::set_block_fragment_positions(&mut self.fragments,
+                                                     line,
+                                                     line_distance_from_flow_block_start,
+                                                     baseline_distance_from_block_start,
+                                                     largest_depth_below_baseline);
 
             // This is used to set the block-start y position of the next line in the next loop.
             line.bounds.size.block = largest_block_size_above_baseline + largest_depth_below_baseline;
@@ -1170,13 +1193,18 @@ impl Flow for InlineFlow {
 
                     // FIXME(#2795): Get the real container size
                     let container_size = Size2D::zero();
-                    block_flow.base.abs_position = self.base.abs_position +
-                                                    f.border_box.start.to_physical(self.base.writing_mode, container_size);
+                    block_flow.base.abs_position =
+                        self.base.abs_position +
+                        f.border_box.start.to_physical(self.base.writing_mode, container_size);
                 }
                 _ => {}
             }
         }
     }
+
+    fn update_late_computed_inline_position_if_necessary(&mut self, _: Au) {}
+
+    fn update_late_computed_block_position_if_necessary(&mut self, _: Au) {}
 }
 
 impl fmt::Show for InlineFlow {
@@ -1189,7 +1217,7 @@ impl fmt::Show for InlineFlow {
                 try!(write!(f, ", {}", fragment))
             }
         }
-        Ok(())
+        write!(f, " ({})", self.base)
     }
 }
 

@@ -12,6 +12,7 @@ use context::LayoutContext;
 use flow::{TableCaptionFlowClass, FlowClass, Flow};
 use wrapper::ThreadSafeLayoutNode;
 
+use servo_util::geometry::Au;
 use std::fmt;
 
 /// A table formatting context.
@@ -63,6 +64,14 @@ impl Flow for TableCaptionFlow {
 
     fn compute_absolute_position(&mut self) {
         self.block_flow.compute_absolute_position()
+    }
+
+    fn update_late_computed_inline_position_if_necessary(&mut self, inline_position: Au) {
+        self.block_flow.update_late_computed_inline_position_if_necessary(inline_position)
+    }
+
+    fn update_late_computed_block_position_if_necessary(&mut self, block_position: Au) {
+        self.block_flow.update_late_computed_block_position_if_necessary(block_position)
     }
 }
 
