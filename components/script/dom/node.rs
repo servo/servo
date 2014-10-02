@@ -746,7 +746,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
 
     // http://dom.spec.whatwg.org/#concept-node-length
     fn length(self) -> u32 {
-        let result = match self.type_id {
+        match self.type_id {
             DoctypeNodeTypeId => {
                 0
             }
@@ -759,8 +759,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
                 let child_nodes = self.ChildNodes().root();
                 child_nodes.root_ref().Length()
             }
-        };
-        result
+        }
     }
 
     // http://dom.spec.whatwg.org/#concept-tree-root
