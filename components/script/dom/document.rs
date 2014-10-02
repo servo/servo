@@ -171,6 +171,7 @@ pub trait DocumentHelpers<'a> {
     fn unregister_named_element(self, to_unregister: JSRef<Element>, id: Atom);
     fn register_named_element(self, element: JSRef<Element>, id: Atom);
     fn load_anchor_href(self, href: DOMString);
+    fn find_fragment_node(self, fragid: DOMString) -> Option<Temporary<Element>>;
 }
 
 impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
@@ -275,6 +276,24 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
     fn load_anchor_href(self, href: DOMString) {
         let window = self.window.root();
         window.load_url(href);
+    }
+
+    /// Attempt to find a named element in this page's document.
+    fn find_fragment_node(self, fragid: DOMString) -> Option<Temporary<Element>> {
+        match self.GetElementById(fragid.clone()) {
+            Some(node) => Some(node),
+            None => {
+                let doc_node: JSRef<Node> = NodeCast::from_ref(self);
+                let mut anchors = doc_node.traverse_preorder()
+                                          .filter(|node| node.is_anchor_element());
+                anchors.find(|node| {
+                    let elem: JSRef<Element> = ElementCast::to_ref(*node).unwrap();
+                    elem.get_attribute(ns!(""), "name").root().map_or(false, |attr| {
+                        attr.deref().value().as_slice() == fragid.as_slice()
+                    })
+                }).map(|node| Temporary::from_rooted(ElementCast::to_ref(node).unwrap()))
+            }
+        }
     }
 }
 
