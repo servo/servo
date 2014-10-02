@@ -12,8 +12,7 @@ use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, EventCast,
 use dom::bindings::conversions;
 use dom::bindings::conversions::{FromJSValConvertible, Empty};
 use dom::bindings::global;
-use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, OptionalSettable};
-use dom::bindings::js::OptionalRootable;
+use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, OptionalRootable};
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::Reflectable;
 use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
@@ -800,8 +799,6 @@ impl ScriptTask {
         document.deref().content_changed();
         window.flush_layout(ReflowForDisplay);
 
-        let fragment = url.fragment.as_ref().map(|ref fragment| fragment.to_string());
-
         {
             // No more reflow required
             let mut page_url = page.mut_url();
@@ -841,7 +838,7 @@ impl ScriptTask {
         let wintarget: JSRef<EventTarget> = EventTargetCast::from_ref(*window);
         let _ = wintarget.dispatch_event_with_target(Some(doctarget), *event);
 
-        page.fragment_node.assign(fragment.map_or(None, |fragid| page.find_fragment_node(fragid)));
+        *page.fragment_name.borrow_mut() = url.fragment.clone();
 
         let ConstellationChan(ref chan) = self.constellation_chan;
         chan.send(LoadCompleteMsg(page.id, url));
@@ -877,8 +874,13 @@ impl ScriptTask {
                         page.reflow(ReflowForDisplay, self.control_chan.clone(), &*self.compositor)
                     }
 
-                    let mut fragment_node = page.fragment_node.get();
-                    match fragment_node.take().map(|node| node.root()) {
+                    let fragment_node =
+                        page.fragment_name
+                            .borrow_mut()
+                            .take()
+                            .and_then(|name| page.find_fragment_node(name))
+                            .root();
+                    match fragment_node {
                         Some(node) => self.scroll_fragment_point(pipeline_id, *node),
                         None => {}
                     }
