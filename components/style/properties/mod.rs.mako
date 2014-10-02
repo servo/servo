@@ -133,7 +133,7 @@ pub mod longhands {
 
     <%def name="longhand(name, no_super=False, derived_from=None, experimental=False)">
         <%self:raw_longhand name="${name}" derived_from="${derived_from}"
-                            experimental="${experimental}">
+                            experimental="${experimental}" no_super="${no_super}">
             ${caller.body()}
             % if derived_from is None:
                 pub fn parse_specified(_input: &[ComponentValue], _base_url: &Url)
@@ -235,7 +235,7 @@ pub mod longhands {
     ${single_keyword("border-top-style", values="none solid double dotted dashed hidden groove ridge inset outset")}
 
     % for side in ["right", "bottom", "left"]:
-        <%self:longhand name="border-${side}-style", no_super="True">
+        <%self:longhand name="border-${side}-style">
             pub use super::border_top_style::{get_initial_value, parse, to_computed_value};
             pub type SpecifiedValue = super::border_top_style::SpecifiedValue;
             pub mod computed_value {
@@ -326,6 +326,25 @@ pub mod longhands {
     ${single_keyword("position", "static absolute relative fixed")}
     ${single_keyword("float", "none left right")}
     ${single_keyword("clear", "none left right both")}
+
+    <%self:longhand name="-servo-display-for-hypothetical-box" derived_from="display" no_super="True">
+        pub use super::computed_as_specified as to_computed_value;
+        pub use super::display::{SpecifiedValue, get_initial_value};
+        pub use super::display::{parse};
+        use super::computed;
+        use super::display;
+
+        pub mod computed_value {
+            pub type T = super::SpecifiedValue;
+        }
+
+        #[inline]
+        pub fn derive_from_display(_: display::computed_value::T, context: &computed::Context)
+                                   -> computed_value::T {
+            context.display
+        }
+
+    </%self:longhand>
 
     ${new_style_struct("InheritedBox", is_inherited=True)}
 
@@ -1840,7 +1859,7 @@ fn cascade_with_cached_declarations(applicable_declarations: &[DeclarationBlock]
         % if style_struct.inherited:
             let mut style_${style_struct.ident} = parent_style.${style_struct.ident}.clone();
         % else:
-            let style_${style_struct.ident} = cached_style.${style_struct.ident}.clone();
+            let mut style_${style_struct.ident} = cached_style.${style_struct.ident}.clone();
         % endif
     % endfor
 
