@@ -305,7 +305,6 @@ fn compare_bp_position(a_node: JSRef<Node>, a_offset: u32,
 
     // step 3
     if (position & NodeConstants::DOCUMENT_POSITION_CONTAINS) == NodeConstants::DOCUMENT_POSITION_CONTAINS {
-        // FIXME: more flat
         for child in b_node.inclusive_ancestors() {
             if !a_node.is_parent_of(child) {
                 continue;
