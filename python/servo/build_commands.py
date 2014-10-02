@@ -58,13 +58,18 @@ class MachCommands(CommandBase):
     @CommandArgument('--jobs', '-j',
                      default=None,
                      help='Number of jobs to run in parallel')
-    def build_cef(self, jobs=None):
+    @CommandArgument('--verbose', '-v',
+                     action='store_true',
+                     help='Print verbose output')
+    def build_cef(self, jobs=None, verbose=False):
         self.ensure_bootstrapped()
 
         ret = None
         opts = []
         if jobs is not None:
             opts += ["-j", jobs]
+        if verbose:
+            opts += ["-v"]
 
         build_start = time()
         with cd(path.join("ports", "cef")):
