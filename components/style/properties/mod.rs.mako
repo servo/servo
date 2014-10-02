@@ -1075,6 +1075,12 @@ pub mod longhands {
     // FIXME(SimonSapin): Add 'mixed' and 'upright' (needs vertical text support)
     // FIXME(SimonSapin): initial (first) value should be 'mixed', when that's implemented
     ${single_keyword("text-orientation", "sideways sideways-left sideways-right", experimental=True)}
+
+    // CSS Basic User Interface Module Level 3
+    // http://dev.w3.org/csswg/css-ui/
+    ${switch_to_style_struct("Box")}
+
+    ${single_keyword("box-sizing", "content-box border-box")}
 }
 
 
