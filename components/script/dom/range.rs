@@ -93,14 +93,14 @@ impl<'a> RangeMethods for JSRef<'a, Range> {
         let end_node = self.end_node.get().unwrap().root();
         match compare_bp_position(node, offset, end_node.root_ref(), self.end_point.get()) {
             After | NoSharedRoot => {
-                self.end_node.assign(Some(node.unrooted()));
+                self.end_node.assign(Some(node));
                 self.end_point.set(offset);
             },
             _ => (),
         }
 
         // step 4-2
-        self.start_node.assign(Some(node.unrooted()));
+        self.start_node.assign(Some(node));
         self.start_point.set(offset);
 
         Ok(())
@@ -122,14 +122,14 @@ impl<'a> RangeMethods for JSRef<'a, Range> {
         let start_node =  self.start_node.get().unwrap().root();
         match compare_bp_position(node, offset, start_node.root_ref(), self.start_point.get()) {
             Before | NoSharedRoot => {
-                self.start_node.assign(Some(node.unrooted()));
+                self.start_node.assign(Some(node));
                 self.start_point.set(offset);
             },
             _ => (),
         }
 
         // step 4-2
-        self.end_node.assign(Some(node.unrooted()));
+        self.end_node.assign(Some(node));
         self.end_point.set(offset);
 
         Ok(())
