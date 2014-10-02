@@ -12,7 +12,7 @@ use dom::bindings::global::{GlobalRef, Window};
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::document::Document;
-use dom::node::{DoctypeNodeTypeId, Node, NodeHelpers};
+use dom::node::{Node, NodeHelpers};
 
 use std::cell::Cell;
 
