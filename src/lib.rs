@@ -30,11 +30,6 @@ extern crate native;
 extern crate rustrt;
 extern crate url;
 
-#[cfg(not(test), not(target_os="android"))]
-extern crate glfw_app;
-#[cfg(not(test), target_os="android")]
-extern crate glut_app;
-
 #[cfg(not(test))]
 use compositing::{CompositorChan, CompositorTask, Constellation};
 #[cfg(not(test))]
@@ -65,29 +60,6 @@ use std::os;
 use std::rc::Rc;
 #[cfg(not(test))]
 use std::task::TaskBuilder;
-#[cfg(not(test), target_os="android")]
-use std::string;
-
-#[cfg(not(test), target_os="android")]
-#[no_mangle]
-#[allow(dead_code)]
-pub extern "C" fn android_start(argc: int, argv: *const *const u8) -> int {
-    native::start(argc, argv, proc() {
-        let mut args: Vec<String> = vec!();
-        for i in range(0u, argc as uint) {
-            unsafe {
-                args.push(string::raw::from_buf(*argv.offset(i as int) as *const u8));
-            }
-        }
-
-        opts::from_cmdline_args(args.as_slice()).map(|mut opts| {
-            // Always use CPU rendering on android.
-            opts.cpu_painting = true;
-            let window = Some(glut_app::create_window(&opts));
-            run(opts, window);
-        });
-    })
-}
 
 #[cfg(not(test))]
 pub fn run<Window: WindowMethods>(opts: opts::Opts, window: Option<Rc<Window>>) {
