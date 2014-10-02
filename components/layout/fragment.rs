@@ -592,11 +592,10 @@ impl Fragment {
         text::line_height_from_style(&*self.style, &font_metrics)
     }
 
-    /// Returns the sum of the inline-sizes of all the borders of this fragment. This is private because
-    /// it should only be called during intrinsic inline-size computation or computation of
-    /// `border_padding`. Other consumers of this information should simply consult that field.
+    /// Returns the sum of the inline-sizes of all the borders of this fragment. Note that this
+    /// can be expensive to compute, so if possible use the `border_padding` field instead.
     #[inline]
-    fn border_width(&self) -> LogicalMargin<Au> {
+    pub fn border_width(&self) -> LogicalMargin<Au> {
         let style_border_width = match self.specific {
             ScannedTextFragment(_) => LogicalMargin::zero(self.style.writing_mode),
             _ => self.style().logical_border_width(),
