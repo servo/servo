@@ -10,7 +10,7 @@ use alert::{Alert, AlertMethods};
 use compositing::compositor_task::{mod, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{Forward, Back};
 use compositing::windowing::{IdleWindowEvent, ResizeWindowEvent, LoadUrlWindowEvent};
-use compositing::windowing::{MouseWindowClickEvent, MouseWindowMouseDownEvent};
+use compositing::windowing::{KeyEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent};
 use compositing::windowing::{MouseWindowEventClass,  MouseWindowMoveEventClass};
 use compositing::windowing::{MouseWindowMouseUpEvent, RefreshWindowEvent};
 use compositing::windowing::{NavigationWindowEvent, ScrollWindowEvent, ZoomWindowEvent};
@@ -25,6 +25,7 @@ use layers::platform::surface::NativeGraphicsMetadata;
 use libc::c_int;
 use msg::compositor_msg::{FinishedLoading, Blank, Loading, PerformingLayout, ReadyState};
 use msg::compositor_msg::{IdleRenderState, RenderState, RenderingRenderState};
+use msg::constellation_msg;
 use std::cell::{Cell, RefCell};
 use std::comm::Receiver;
 use std::rc::Rc;
@@ -207,8 +208,15 @@ impl Window {
         match event {
             glfw::KeyEvent(key, _, action, mods) => {
                 if action == glfw::Press {
-                    self.handle_key(key, mods)
+                    self.handle_key(key, mods);
                 }
+                let key = glfw_key_to_script_key(key);
+                let state = match action {
+                    glfw::Press => constellation_msg::Pressed,
+                    glfw::Release => constellation_msg::Released,
+                    glfw::Repeat => constellation_msg::Repeated,
+                };
+                self.event_queue.borrow_mut().push(KeyEvent(key, state));
             },
             glfw::FramebufferSizeEvent(width, height) => {
                 self.event_queue.borrow_mut().push(
@@ -428,3 +436,127 @@ extern "C" fn on_framebuffer_size(_glfw_window: *mut glfw::ffi::GLFWwindow,
     }
 }
 
+fn glfw_key_to_script_key(key: glfw::Key) -> constellation_msg::Key {
+    match key {
+        glfw::KeySpace => constellation_msg::KeySpace,
+        glfw::KeyApostrophe => constellation_msg::KeyApostrophe,
+        glfw::KeyComma => constellation_msg::KeyComma,
+        glfw::KeyMinus => constellation_msg::KeyMinus,
+        glfw::KeyPeriod => constellation_msg::KeyPeriod,
+        glfw::KeySlash => constellation_msg::KeySlash,
+        glfw::Key0 => constellation_msg::Key0,
+        glfw::Key1 => constellation_msg::Key1,
+        glfw::Key2 => constellation_msg::Key2,
+        glfw::Key3 => constellation_msg::Key3,
+        glfw::Key4 => constellation_msg::Key4,
+        glfw::Key5 => constellation_msg::Key5,
+        glfw::Key6 => constellation_msg::Key6,
+        glfw::Key7 => constellation_msg::Key7,
+        glfw::Key8 => constellation_msg::Key8,
+        glfw::Key9 => constellation_msg::Key9,
+        glfw::KeySemicolon => constellation_msg::KeySemicolon,
+        glfw::KeyEqual => constellation_msg::KeyEqual,
+        glfw::KeyA => constellation_msg::KeyA,
+        glfw::KeyB => constellation_msg::KeyB,
+        glfw::KeyC => constellation_msg::KeyC,
+        glfw::KeyD => constellation_msg::KeyD,
+        glfw::KeyE => constellation_msg::KeyE,
+        glfw::KeyF => constellation_msg::KeyF,
+        glfw::KeyG => constellation_msg::KeyG,
+        glfw::KeyH => constellation_msg::KeyH,
+        glfw::KeyI => constellation_msg::KeyI,
+        glfw::KeyJ => constellation_msg::KeyJ,
+        glfw::KeyK => constellation_msg::KeyK,
+        glfw::KeyL => constellation_msg::KeyL,
+        glfw::KeyM => constellation_msg::KeyM,
+        glfw::KeyN => constellation_msg::KeyN,
+        glfw::KeyO => constellation_msg::KeyO,
+        glfw::KeyP => constellation_msg::KeyP,
+        glfw::KeyQ => constellation_msg::KeyQ,
+        glfw::KeyR => constellation_msg::KeyR,
+        glfw::KeyS => constellation_msg::KeyS,
+        glfw::KeyT => constellation_msg::KeyT,
+        glfw::KeyU => constellation_msg::KeyU,
+        glfw::KeyV => constellation_msg::KeyV,
+        glfw::KeyW => constellation_msg::KeyW,
+        glfw::KeyX => constellation_msg::KeyX,
+        glfw::KeyY => constellation_msg::KeyY,
+        glfw::KeyZ => constellation_msg::KeyZ,
+        glfw::KeyLeftBracket => constellation_msg::KeyLeftBracket,
+        glfw::KeyBackslash => constellation_msg::KeyBackslash,
+        glfw::KeyRightBracket => constellation_msg::KeyRightBracket,
+        glfw::KeyGraveAccent => constellation_msg::KeyGraveAccent,
+        glfw::KeyWorld1 => constellation_msg::KeyWorld1,
+        glfw::KeyWorld2 => constellation_msg::KeyWorld2,
+        glfw::KeyEscape => constellation_msg::KeyEscape,
+        glfw::KeyEnter => constellation_msg::KeyEnter,
+        glfw::KeyTab => constellation_msg::KeyTab,
+        glfw::KeyBackspace => constellation_msg::KeyBackspace,
+        glfw::KeyInsert => constellation_msg::KeyInsert,
+        glfw::KeyDelete => constellation_msg::KeyDelete,
+        glfw::KeyRight => constellation_msg::KeyRight,
+        glfw::KeyLeft => constellation_msg::KeyLeft,
+        glfw::KeyDown => constellation_msg::KeyDown,
+        glfw::KeyUp => constellation_msg::KeyUp,
+        glfw::KeyPageUp => constellation_msg::KeyPageUp,
+        glfw::KeyPageDown => constellation_msg::KeyPageDown,
+        glfw::KeyHome => constellation_msg::KeyHome,
+        glfw::KeyEnd => constellation_msg::KeyEnd,
+        glfw::KeyCapsLock => constellation_msg::KeyCapsLock,
+        glfw::KeyScrollLock => constellation_msg::KeyScrollLock,
+        glfw::KeyNumLock => constellation_msg::KeyNumLock,
+        glfw::KeyPrintScreen => constellation_msg::KeyPrintScreen,
+        glfw::KeyPause => constellation_msg::KeyPause,
+        glfw::KeyF1 => constellation_msg::KeyF1,
+        glfw::KeyF2 => constellation_msg::KeyF2,
+        glfw::KeyF3 => constellation_msg::KeyF3,
+        glfw::KeyF4 => constellation_msg::KeyF4,
+        glfw::KeyF5 => constellation_msg::KeyF5,
+        glfw::KeyF6 => constellation_msg::KeyF6,
+        glfw::KeyF7 => constellation_msg::KeyF7,
+        glfw::KeyF8 => constellation_msg::KeyF8,
+        glfw::KeyF9 => constellation_msg::KeyF9,
+        glfw::KeyF10 => constellation_msg::KeyF10,
+        glfw::KeyF11 => constellation_msg::KeyF11,
+        glfw::KeyF12 => constellation_msg::KeyF12,
+        glfw::KeyF13 => constellation_msg::KeyF13,
+        glfw::KeyF14 => constellation_msg::KeyF14,
+        glfw::KeyF15 => constellation_msg::KeyF15,
+        glfw::KeyF16 => constellation_msg::KeyF16,
+        glfw::KeyF17 => constellation_msg::KeyF17,
+        glfw::KeyF18 => constellation_msg::KeyF18,
+        glfw::KeyF19 => constellation_msg::KeyF19,
+        glfw::KeyF20 => constellation_msg::KeyF20,
+        glfw::KeyF21 => constellation_msg::KeyF21,
+        glfw::KeyF22 => constellation_msg::KeyF22,
+        glfw::KeyF23 => constellation_msg::KeyF23,
+        glfw::KeyF24 => constellation_msg::KeyF24,
+        glfw::KeyF25 => constellation_msg::KeyF25,
+        glfw::KeyKp0 => constellation_msg::KeyKp0,
+        glfw::KeyKp1 => constellation_msg::KeyKp1,
+        glfw::KeyKp2 => constellation_msg::KeyKp2,
+        glfw::KeyKp3 => constellation_msg::KeyKp3,
+        glfw::KeyKp4 => constellation_msg::KeyKp4,
+        glfw::KeyKp5 => constellation_msg::KeyKp5,
+        glfw::KeyKp6 => constellation_msg::KeyKp6,
+        glfw::KeyKp7 => constellation_msg::KeyKp7,
+        glfw::KeyKp8 => constellation_msg::KeyKp8,
+        glfw::KeyKp9 => constellation_msg::KeyKp9,
+        glfw::KeyKpDecimal => constellation_msg::KeyKpDecimal,
+        glfw::KeyKpDivide => constellation_msg::KeyKpDivide,
+        glfw::KeyKpMultiply => constellation_msg::KeyKpMultiply,
+        glfw::KeyKpSubtract => constellation_msg::KeyKpSubtract,
+        glfw::KeyKpAdd => constellation_msg::KeyKpAdd,
+        glfw::KeyKpEnter => constellation_msg::KeyKpEnter,
+        glfw::KeyKpEqual => constellation_msg::KeyKpEqual,
+        glfw::KeyLeftShift => constellation_msg::KeyLeftShift,
+        glfw::KeyLeftControl => constellation_msg::KeyLeftControl,
+        glfw::KeyLeftAlt => constellation_msg::KeyLeftAlt,
+        glfw::KeyLeftSuper => constellation_msg::KeyLeftSuper,
+        glfw::KeyRightShift => constellation_msg::KeyRightShift,
+        glfw::KeyRightControl => constellation_msg::KeyRightControl,
+        glfw::KeyRightAlt => constellation_msg::KeyRightAlt,
+        glfw::KeyRightSuper => constellation_msg::KeyRightSuper,
+        glfw::KeyMenu => constellation_msg::KeyMenu,
+    }
+}

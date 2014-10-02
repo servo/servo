@@ -42,7 +42,7 @@ use script_traits::{CompositorEvent, ResizeEvent, ReflowEvent, ClickEvent, Mouse
 use script_traits::{MouseMoveEvent, MouseUpEvent, ConstellationControlMsg, ScriptTaskFactory};
 use script_traits::{ResizeMsg, AttachLayoutMsg, LoadMsg, ViewportMsg, SendEventMsg};
 use script_traits::{ResizeInactiveMsg, ExitPipelineMsg, NewLayoutInfo, OpaqueScriptLayoutChannel};
-use script_traits::{ScriptControlChan, ReflowCompleteMsg, UntrustedNodeAddress};
+use script_traits::{ScriptControlChan, ReflowCompleteMsg, UntrustedNodeAddress, KeyEvent};
 use servo_msg::compositor_msg::{FinishedLoading, LayerId, Loading};
 use servo_msg::compositor_msg::{ScriptListener};
 use servo_msg::constellation_msg::{ConstellationChan, LoadCompleteMsg, LoadUrlMsg, NavigationDirection};
@@ -907,6 +907,10 @@ impl ScriptTask {
             MouseMoveEvent(point) => {
               self.handle_mouse_move_event(pipeline_id, point);
             }
+
+            KeyEvent(key, state) => {
+                println!("key {} is {}", key as int, state as int);
+            }
         }
     }
 
@@ -1093,7 +1097,7 @@ impl ScriptTask {
             }
 
             None => {}
-      }
+        }
     }
 }
 
