@@ -800,6 +800,9 @@ impl LayoutTask {
         if self.opts.trace_layout {
             layout_debug::begin_trace(layout_root.clone());
         }
+        if self.opts.dump_flow_tree {
+            layout_root.get_mut().dump();
+        }
 
         // Propagate damage.
         profile(time::LayoutDamagePropagateCategory, Some((&data.url, data.iframe, self.first_reflow.get())),
