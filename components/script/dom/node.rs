@@ -665,7 +665,6 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
         self.owner_doc.get().unwrap()
     }
 
-
     fn set_owner_doc(self, document: JSRef<Document>) {
         self.owner_doc.assign(Some(document.clone()));
     }
