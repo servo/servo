@@ -2,15 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
-use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast};
+use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary};
 use dom::bindings::js::OptionalRootable;
 use dom::bindings::trace::{Traceable, Untraceable};
 use dom::bindings::utils::GlobalStaticData;
 use dom::document::{Document, DocumentHelpers};
-use dom::element::{Element, AttributeHandlers};
+use dom::element::Element;
 use dom::node::{Node, NodeHelpers};
 use dom::window::Window;
 use layout_interface::{DocumentDamage, ReflowForDisplay};
@@ -393,20 +392,7 @@ impl Page {
     /// Attempt to find a named element in this page's document.
     pub fn find_fragment_node(&self, fragid: DOMString) -> Option<Temporary<Element>> {
         let document = self.frame().as_ref().unwrap().document.root();
-        match document.deref().GetElementById(fragid.to_string()) {
-            Some(node) => Some(node),
-            None => {
-                let doc_node: JSRef<Node> = NodeCast::from_ref(*document);
-                let mut anchors = doc_node.traverse_preorder()
-                                          .filter(|node| node.is_anchor_element());
-                anchors.find(|node| {
-                    let elem: JSRef<Element> = ElementCast::to_ref(*node).unwrap();
-                    elem.get_attribute(ns!(""), "name").root().map_or(false, |attr| {
-                        attr.deref().value().as_slice() == fragid.as_slice()
-                    })
-                }).map(|node| Temporary::from_rooted(ElementCast::to_ref(node).unwrap()))
-            }
-        }
+        document.find_fragment_node(fragid)
     }
 
     pub fn hit_test(&self, point: &Point2D<f32>) -> Option<UntrustedNodeAddress> {
