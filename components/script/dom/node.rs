@@ -765,22 +765,14 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
 
     // http://dom.spec.whatwg.org/#concept-tree-root
     fn get_tree_root(self) -> Temporary<Node> {
-        let root = match self.parent_node() {
+        match self.inclusive_ancestors().last() {
+            Some(root) => {
+                Temporary::from_rooted(root)
+            }
             None => {
-                Temporary::from_rooted(self)
+                unreachable!()
             }
-            Some(_) => {
-                match self.ancestors().last() {
-                    Some(root) => {
-                        Temporary::from_rooted(root)
-                    }
-                    None => {
-                        unreachable!()
-                    }
-                }
-            }
-        };
-        root
+        }
     }
 }
 
