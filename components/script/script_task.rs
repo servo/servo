@@ -874,12 +874,12 @@ impl ScriptTask {
                         page.reflow(ReflowForDisplay, self.control_chan.clone(), &*self.compositor)
                     }
 
-                    let fragment_node = page.fragment_name
-                                            .borrow()
-                                            .as_ref()
-                                            .and_then(|name| {
-                        page.find_fragment_node(name.clone())
-                    }).root();
+                    let fragment_node =
+                        page.fragment_name
+                            .borrow_mut()
+                            .take()
+                            .and_then(|name| page.find_fragment_node(name))
+                            .root();
                     match fragment_node {
                         Some(node) => self.scroll_fragment_point(pipeline_id, *node),
                         None => {}
