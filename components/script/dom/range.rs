@@ -80,7 +80,7 @@ impl<'a> RangeMethods for JSRef<'a, Range> {
     /// http://dom.spec.whatwg.org/#dom-range-setstart
     fn SetStart(self, node: JSRef<Node>, offset: u32) -> Fallible<()> {
         // step 1
-        if node.type_id() == DoctypeNodeTypeId {
+        if node.is_doctype() {
             return Err(InvalidNodeTypeError);
         }
 
@@ -108,7 +108,7 @@ impl<'a> RangeMethods for JSRef<'a, Range> {
     /// http://dom.spec.whatwg.org/#dom-range-setstart
     fn SetEnd(self, node: JSRef<Node>, offset: u32) -> Fallible<()> {
         // step 1
-        if node.type_id() == DoctypeNodeTypeId {
+        if node.is_doctype() {
             return Err(InvalidNodeTypeError);
         }
 
