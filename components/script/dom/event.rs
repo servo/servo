@@ -29,7 +29,7 @@ pub enum EventPhase {
 pub enum EventTypeId {
     CustomEventTypeId,
     HTMLEventTypeId,
-    KeyEventTypeId,
+    KeyboardEventTypeId,
     MessageEventTypeId,
     MouseEventTypeId,
     ProgressEventTypeId,
