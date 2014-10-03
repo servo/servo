@@ -282,22 +282,19 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
     /// Attempt to find a named element in this page's document.
     /// https://html.spec.whatwg.org/multipage/#the-indicated-part-of-the-document
     fn find_fragment_node(self, fragid: DOMString) -> Option<Temporary<Element>> {
-        match self.GetElementById(fragid.clone()) {
-            Some(node) => Some(node),
-            None => {
-                let check_anchor = |&node: &JSRef<HTMLAnchorElement>| {
-                    let elem: JSRef<Element> = ElementCast::from_ref(node);
-                    elem.get_attribute(ns!(""), "name").root().map_or(false, |attr| {
-                        attr.deref().value().as_slice() == fragid.as_slice()
-                    })
-                };
-                let doc_node: JSRef<Node> = NodeCast::from_ref(self);
-                doc_node.traverse_preorder()
-                        .filter_map(|node| HTMLAnchorElementCast::to_ref(node))
-                        .find(check_anchor)
-                        .map(|node| Temporary::from_rooted(ElementCast::from_ref(node)))
-            }
-        }
+        self.GetElementById(fragid.clone()).or_else(|| {
+            let check_anchor = |&node: &JSRef<HTMLAnchorElement>| {
+                let elem: JSRef<Element> = ElementCast::from_ref(node);
+                elem.get_attribute(ns!(""), "name").root().map_or(false, |attr| {
+                    attr.deref().value().as_slice() == fragid.as_slice()
+                })
+            };
+            let doc_node: JSRef<Node> = NodeCast::from_ref(self);
+            doc_node.traverse_preorder()
+                    .filter_map(|node| HTMLAnchorElementCast::to_ref(node))
+                    .find(check_anchor)
+                    .map(|node| Temporary::from_rooted(ElementCast::from_ref(node)))
+        })
     }
 }
 
