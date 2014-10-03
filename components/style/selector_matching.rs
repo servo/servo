@@ -999,6 +999,7 @@ mod tests {
     use sync::Arc;
     use super::{DeclarationBlock, Rule, SelectorMap};
     use selectors::LocalName;
+    use string_cache::Atom;
 
     /// Helper method to get some Rules from selector strings.
     /// Each sublist of the result contains the Rules for one StyleRule.
@@ -1043,7 +1044,7 @@ mod tests {
     fn test_get_class_name(){
         let rules_list = get_mock_rules([".intro.foo", "#top"]);
         assert_eq!(SelectorMap::get_class_name(&rules_list[0][0]), Some(Atom::from_slice("intro")));
-        assert_eq!(SelectorMap::get_class_name(rules_list.get(1).get(0)), None);
+        assert_eq!(SelectorMap::get_class_name(&rules_list[1][0]), None);
     }
 
     #[test]

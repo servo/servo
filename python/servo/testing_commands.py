@@ -54,22 +54,27 @@ class MachCommands(CommandBase):
         print("Tests completed in %0.2fs" % elapsed)
 
     @Command('test-unit',
-             description='Run libservo unit tests',
+             description='Run unit tests',
              category='testing',
              allow_all_args=True)
     @CommandArgument('test_name', default=None, nargs="...",
                      help="Only run tests that match this pattern")
-    @CommandArgument(
-        'params', default=None, nargs="...",
-        help="Command-line arguments to be passed to the test harness")
-    def test_unit(self, test_name=None, params=None):
-        if params is None:
-            params = []
-        if test_name is not None:
-            params.append(test_name)
+    def test_unit(self, test_name=None):
+        if test_name is None:
+            test_name = []
         self.ensure_bootstrapped()
         self.ensure_built_tests()
-        return self.run_test("servo", params)
+
+        ret = self.run_test("servo", test_name) != 0
+
+        def cargo_test(component):
+            return 0 != subprocess.call(
+                ["cargo", "test", "-p", component], env=self.build_env())
+
+        for component in os.listdir("components"):
+            ret = ret or cargo_test(component)
+
+        return ret
 
     @Command('test-ref',
              description='Run the reference tests',
