@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::error::{Fallible, InvalidCharacter};
 use dom::bindings::global;
-use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, OptionalSettable};
+use dom::bindings::js::{MutNullableJS, JSRef, Temporary, OptionalSettable};
 use dom::bindings::trace::{Traceable, Untraceable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::browsercontext::BrowserContext;
@@ -94,7 +94,7 @@ pub struct Window {
     performance: MutNullableJS<Performance>,
     pub navigationStart: u64,
     pub navigationStartPrecise: f64,
-    screen: Cell<Option<JS<Screen>>>,
+    screen: MutNullableJS<Screen>,
 }
 
 impl Window {
@@ -338,7 +338,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
             let screen = Screen::new(self);
             self.screen.assign(Some(screen));
         }
-        Temporary::new(self.screen.get().as_ref().unwrap().clone())
+        self.screen.get().unwrap()
     }
 
     fn Debug(self, message: DOMString) {
@@ -542,7 +542,7 @@ impl Window {
             performance: Default::default(),
             navigationStart: time::get_time().sec as u64,
             navigationStartPrecise: time::precise_time_s(),
-            screen: Cell::new(None),
+            screen: Default::default(),
         };
 
         WindowBinding::Wrap(cx, win)
