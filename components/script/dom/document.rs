@@ -12,7 +12,7 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{DocumentDerived, EventCast, HTMLElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLHeadElementCast, TextCast, ElementCast};
 use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, HTMLHtmlElementCast, NodeCast};
-use dom::bindings::codegen::InheritTypes::EventTargetCast;
+use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLAnchorElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLAnchorElementDerived, HTMLAppletElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLAreaElementDerived, HTMLEmbedElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLFormElementDerived, HTMLImageElementDerived};
@@ -36,6 +36,7 @@ use dom::element::{HTMLHtmlElementTypeId, HTMLHeadElementTypeId, HTMLTitleElemen
 use dom::element::{HTMLBodyElementTypeId, HTMLFrameSetElementTypeId};
 use dom::event::Event;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId, EventTargetHelpers};
+use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlcollection::{HTMLCollection, CollectionFilter};
 use dom::htmlelement::HTMLElement;
 use dom::htmlheadelement::HTMLHeadElement;
@@ -279,21 +280,21 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
     }
 
     /// Attempt to find a named element in this page's document.
+    /// https://html.spec.whatwg.org/multipage/#the-indicated-part-of-the-document
     fn find_fragment_node(self, fragid: DOMString) -> Option<Temporary<Element>> {
-        match self.GetElementById(fragid.clone()) {
-            Some(node) => Some(node),
-            None => {
-                let doc_node: JSRef<Node> = NodeCast::from_ref(self);
-                let mut anchors = doc_node.traverse_preorder()
-                                          .filter(|node| node.is_anchor_element());
-                anchors.find(|node| {
-                    let elem: JSRef<Element> = ElementCast::to_ref(*node).unwrap();
-                    elem.get_attribute(ns!(""), "name").root().map_or(false, |attr| {
-                        attr.deref().value().as_slice() == fragid.as_slice()
-                    })
-                }).map(|node| Temporary::from_rooted(ElementCast::to_ref(node).unwrap()))
-            }
-        }
+        self.GetElementById(fragid.clone()).or_else(|| {
+            let check_anchor = |&node: &JSRef<HTMLAnchorElement>| {
+                let elem: JSRef<Element> = ElementCast::from_ref(node);
+                elem.get_attribute(ns!(""), "name").root().map_or(false, |attr| {
+                    attr.deref().value().as_slice() == fragid.as_slice()
+                })
+            };
+            let doc_node: JSRef<Node> = NodeCast::from_ref(self);
+            doc_node.traverse_preorder()
+                    .filter_map(|node| HTMLAnchorElementCast::to_ref(node))
+                    .find(check_anchor)
+                    .map(|node| Temporary::from_rooted(ElementCast::from_ref(node)))
+        })
     }
 }
 
