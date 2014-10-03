@@ -87,10 +87,19 @@ cd servo
 ``` sh
 git clone https://github.com/servo/servo
 cd servo
-ANDROID_TOOLCHAIN=/path/to/toolchain ANDROID_NDK=/path/to/ndk PATH=$PATH:/path/to/toolchain/bin ./mach build --target arm-linux-androideabi
+ANDROID_TOOLCHAIN=/path/to/toolchain ANDROID_NDK=/path/to/ndk PATH=$PATH:/path/to/toolchain/bin ./mach build --android
 cd ports/android
 ANDROID_NDK=/path/to/ndk ANDROID_SDK=/path/to/sdk make
 ANDROID_SDK=/path/to/sdk make install
+```
+
+Rather than setting the `ANDROID_*` environment variables every time, you can
+also create a `.servobuild` file and then edit it to contain the correct paths
+to the Android SDK/NDK tools:
+
+```
+cp servobuild.example .servobuild
+# edit .servobuild
 ```
 
 ## Running
