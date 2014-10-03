@@ -574,6 +574,7 @@ mod tests {
     use sync::Arc;
     use cssparser;
     use namespaces::NamespaceMap;
+    use string_cache::Atom;
     use super::*;
 
     fn parse(input: &str) -> Result<Vec<Selector>, ()> {
@@ -649,8 +650,8 @@ mod tests {
         assert!(parse_ns("[Foo]", &namespaces) == Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(AttrExists(AttrSelector {
-                    name: Atom::from_slice("Foo"),
-                    lower_name: Atom::from_slice("foo"),
+                    name: String::from_str("Foo"),
+                    lower_name: String::from_str("foo"),
                     namespace: SpecificNamespace(ns!("")),
                 })),
                 next: None,
@@ -664,8 +665,8 @@ mod tests {
         assert!(parse_ns("[Foo]", &namespaces) == Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(AttrExists(AttrSelector {
-                    name: Atom::from_slice("Foo"),
-                    lower_name: Atom::from_slice("foo"),
+                    name: String::from_str("Foo"),
+                    lower_name: String::from_str("foo"),
                     namespace: SpecificNamespace(ns!("")),
                 })),
                 next: None,

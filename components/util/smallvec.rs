@@ -498,7 +498,7 @@ pub mod tests {
         let mut v = SmallVec16::new();
         v.push("hello".to_string());
         v.push("there".to_string());
-        assert_eq!(v.as_slice(), &["hello".to_string(), "there".to_string()]);
+        assert_eq!(v.as_slice(), vec!["hello".to_string(), "there".to_string()].as_slice());
     }
 
     #[test]
@@ -508,7 +508,7 @@ pub mod tests {
         v.push("there".to_string());
         v.push("burma".to_string());
         v.push("shave".to_string());
-        assert_eq!(v.as_slice(), &["hello".to_string(), "there".to_string(), "burma".to_string(), "shave".to_string()]);
+        assert_eq!(v.as_slice(), vec!["hello".to_string(), "there".to_string(), "burma".to_string(), "shave".to_string()].as_slice());
     }
 
     #[test]
@@ -522,9 +522,9 @@ pub mod tests {
         v.push("there".to_string());
         v.push("burma".to_string());
         v.push("shave".to_string());
-        assert_eq!(v.as_slice(), &[
+        assert_eq!(v.as_slice(), vec![
             "hello".to_string(), "there".to_string(), "burma".to_string(), "shave".to_string(), "hello".to_string(), "there".to_string(), "burma".to_string(), "shave".to_string(),
-        ]);
+        ].as_slice());
     }
 }
 
