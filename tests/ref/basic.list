@@ -58,6 +58,9 @@
 # == position_fixed_a.html position_fixed_b.html
 # == position_fixed_simple_a.html position_fixed_simple_b.html
 # == position_fixed_static_y_a.html position_fixed_static_y_b.html
+== position_fixed_background_color_a.html position_fixed_background_color_b.html
+== position_fixed_overflow_a.html position_fixed_overflow_b.html
+== position_fixed_tile_edge.html position_fixed_tile_edge_ref.html
 == position_relative_a.html position_relative_b.html
 == position_relative_top_percentage_a.html position_relative_top_percentage_b.html
 == background_none_a.html background_none_b.html
@@ -85,8 +88,6 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == overflow_auto.html overflow_simple_b.html
 == overflow_scroll.html overflow_simple_b.html
 == overflow_simple_a.html overflow_simple_b.html
-== position_fixed_background_color_a.html position_fixed_background_color_b.html
-== position_fixed_overflow_a.html position_fixed_overflow_b.html
 == noscript.html noscript_ref.html
 == pseudo_inherit.html pseudo_inherit_ref.html
 experimental == vertical-lr-blocks.html vertical-lr-blocks_ref.html
