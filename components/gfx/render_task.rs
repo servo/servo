@@ -13,6 +13,7 @@ use render_context::RenderContext;
 use azure::azure_hl::{B8G8R8A8, Color, DrawTarget, StolenGLResources};
 use azure::AzFloat;
 use geom::matrix2d::Matrix2D;
+use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
 use layers::platform::surface::{NativePaintingGraphicsContext, NativeSurface};
@@ -299,8 +300,15 @@ impl<C:RenderListener + Send> RenderTask<C> {
 
             // Divide up the layer into tiles.
             for tile in tiles.iter() {
+                // page_rect is in coordinates relative to the layer origin, but all display list
+                // components are relative to the page origin. We make page_rect relative to
+                // the page origin before passing it to the optimizer.
+                let page_rect =
+                     tile.page_rect.translate(&Point2D(render_layer.position.origin.x as f32,
+                                                       render_layer.position.origin.y as f32));
+                let page_rect_au = geometry::f32_rect_to_au_rect(page_rect);
+
                 // Optimize the display list for this tile.
-                let page_rect_au = geometry::f32_rect_to_au_rect(tile.page_rect);
                 let optimizer = DisplayListOptimizer::new(render_layer.display_list.clone(),
                                                           page_rect_au);
                 let display_list = optimizer.optimize();
@@ -339,10 +347,8 @@ impl<C:RenderListener + Send> RenderTask<C> {
                     // Apply the translation to render the tile we want.
                     let matrix: Matrix2D<AzFloat> = Matrix2D::identity();
                     let matrix = matrix.scale(scale as AzFloat, scale as AzFloat);
-                    let matrix = matrix.translate(-(tile.page_rect.origin.x) as AzFloat,
-                                                  -(tile.page_rect.origin.y) as AzFloat);
-                    let matrix = matrix.translate(-(render_layer.position.origin.x as AzFloat),
-                                                  -(render_layer.position.origin.y as AzFloat));
+                    let matrix = matrix.translate(-page_rect.origin.x as AzFloat,
+                                                  -page_rect.origin.y as AzFloat);
 
                     ctx.draw_target.set_transform(&matrix);
 
