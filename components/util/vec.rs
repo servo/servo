@@ -11,7 +11,7 @@ pub trait Comparator<K,T> {
 }
 
 pub trait BinarySearchMethods<'a, T: Ord + PartialOrd + PartialEq> {
-    fn binary_search(&self, key: &T) -> Option<&'a T>;
+    fn binary_search_(&self, key: &T) -> Option<&'a T>;
     fn binary_search_index(&self, key: &T) -> Option<uint>;
 }
 
@@ -20,7 +20,7 @@ pub trait FullBinarySearchMethods<T> {
 }
 
 impl<'a, T: Ord + PartialOrd + PartialEq> BinarySearchMethods<'a, T> for &'a [T] {
-    fn binary_search(&self, key: &T) -> Option<&'a T> {
+    fn binary_search_(&self, key: &T) -> Option<&'a T> {
         self.binary_search_index(key).map(|i| &self[i])
     }
 
@@ -65,7 +65,7 @@ impl<T:PartialEq + PartialOrd + Ord> Comparator<T,T> for DefaultComparator {
 fn test_find_all_elems<T: PartialEq + PartialOrd + Eq + Ord>(arr: &[T]) {
     let mut i = 0;
     while i < arr.len() {
-        assert!(test_match(&arr[i], arr.binary_search(&arr[i])));
+        assert!(test_match(&arr[i], arr.binary_search_(&arr[i])));
         i += 1;
     }
 }
@@ -74,9 +74,9 @@ fn test_find_all_elems<T: PartialEq + PartialOrd + Eq + Ord>(arr: &[T]) {
 fn test_miss_all_elems<T: PartialEq + PartialOrd + Eq + Ord>(arr: &[T], misses: &[T]) {
     let mut i = 0;
     while i < misses.len() {
-        let res = arr.binary_search(&misses[i]);
+        let res = arr.binary_search_(&misses[i]);
         debug!("{:?} == {:?} ?", misses[i], res);
-        assert!(!test_match(&misses[i], arr.binary_search(&misses[i])));
+        assert!(!test_match(&misses[i], arr.binary_search_(&misses[i])));
         i += 1;
     }
 }
