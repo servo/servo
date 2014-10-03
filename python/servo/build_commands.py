@@ -27,17 +27,27 @@ class MachCommands(CommandBase):
     @CommandArgument('--jobs', '-j',
                      default=None,
                      help='Number of jobs to run in parallel')
+    @CommandArgument('--android',
+                     default=None,
+                     action='store_true',
+                     help='Build for Android')
     @CommandArgument('--verbose', '-v',
                      action='store_true',
                      help='Print verbose output')
-    def build(self, target, release=False, jobs=None, verbose=False):
+    def build(self, target=None, release=False, jobs=None, android=None,
+              verbose=False):
         self.ensure_bootstrapped()
+
+        if android is None:
+            android = self.config["build"]["android"]
 
         opts = []
         if release:
             opts += ["--release"]
         if target:
             opts += ["--target", target]
+        elif android:
+            opts += ["--target", "arm-linux-androideabi"]
         if jobs is not None:
             opts += ["-j", jobs]
         if verbose:
@@ -47,6 +57,10 @@ class MachCommands(CommandBase):
         status = subprocess.call(
             ["cargo", "build"] + opts,
             env=self.build_env())
+        if android:
+            status = status or subprocess.call(
+                ["make", "-C", "ports/android"],
+                env=self.build_env())
         elapsed = time() - build_start
 
         print("Build completed in %0.2fs" % elapsed)
