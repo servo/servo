@@ -91,7 +91,7 @@ pub fn trace_object(tracer: *mut JSTracer, description: &str, orig_obj: *mut JSO
     }
     // FIXME: JS_CallObjectTracer could theoretically do something that can
     //        cause pointers to shuffle around. We need to pass a *mut *mut JSObject
-    //        to JS_CallObjectTracer, but the Encodable trait doesn't allow us
+    //        to JS_CallObjectTracer, but the JSTraceable trait doesn't allow us
     //        to obtain a mutable reference to self (and thereby self.cb);
     //        All we can do right now is scream loudly if this actually causes
     //        a problem in practice.
@@ -193,9 +193,9 @@ impl JSTraceable for Traceable<*mut JSObject> {
     }
 }
 
-impl JSTraceable for Traceable<JSVal> {
+impl JSTraceable for JSVal {
     fn trace(&self, trc: *mut JSTracer) {
-        trace_jsval(trc, "val", **self);
+        trace_jsval(trc, "val", *self);
     }
 }
 
@@ -251,14 +251,45 @@ pub struct RootedVec<T: Reflectable> {
     v: Vec<JS<T>>
 }
 
-local_data_key!(pub RootedCollections: RefCell<HashSet<*const ()>>)
+#[jstraceable]
+pub struct RootedJSValVec {
+    v: Vec<JSVal>
+}
+
+local_data_key!(pub RootedCollections: RefCell<Vec<HashSet<*const ()>>>)
+
+enum CollectionType {
+    DOMObjects,
+    JSVals,
+}
+
+pub fn init_collections() {
+    assert!(RootedCollections.get().is_none());
+    RootedCollections.replace(Some(RefCell::new(vec!(HashSet::new(), HashSet::new()))));
+}
+
+fn drop_rooted_collection<T>(collection: &mut T, type_: CollectionType) {
+    let collections = RootedCollections.get();
+    let mut collections = collections.as_ref().unwrap().borrow_mut();
+    assert!((*collections).get_mut(type_ as uint).remove(&(collection as *mut _ as *const _)));
+}
+
+fn init_rooted_collection<T>(collection: &T, type_: CollectionType) {
+        let collections = RootedCollections.get();
+        let mut collections = collections.as_ref().unwrap().borrow_mut();
+        (*collections).get_mut(type_ as uint).insert(collection as *const _ as *const _);
+}
+
+impl Drop for RootedJSValVec {
+    fn drop(&mut self) {
+        drop_rooted_collection(self, JSVals);
+    }
+}
 
 #[unsafe_destructor]
 impl<T: Reflectable> Drop for RootedVec<T> {
     fn drop(&mut self) {
-        let collections = RootedCollections.get();
-        let mut collections = collections.as_ref().unwrap().borrow_mut();
-        assert!(collections.remove(&(self as *mut RootedVec<T> as *const ())));
+        drop_rooted_collection(self, DOMObjects);
     }
 }
 
@@ -270,9 +301,7 @@ impl<T: Reflectable> RootedVec<T> {
     }
 
     pub fn init(&self) {
-        let collections = RootedCollections.get();
-        let mut collections = collections.as_ref().unwrap().borrow_mut();
-        collections.insert(self as *const RootedVec<T> as *const ());
+        init_rooted_collection(self, DOMObjects);
     }
 }
 
@@ -288,12 +317,45 @@ impl<T: Reflectable> DerefMut<Vec<JS<T>>> for RootedVec<T> {
     }
 }
 
-pub extern fn trace_collections(tracer: *mut JSTracer, data: *mut libc::c_void) {
-    let collections = data as *const RefCell<HashSet<*const RootedVec<EventTarget>>>; //XXXjdm
-    let collections = unsafe { (*collections).borrow() };
-    for collection in collections.iter() {
-        unsafe {
+impl RootedJSValVec {
+    pub fn new() -> RootedJSValVec {
+        RootedJSValVec {
+            v: vec!()
+        }
+    }
+
+    pub fn init(&self) {
+        init_rooted_collection(self, JSVals);
+    }
+}
+
+impl Deref<Vec<JSVal>> for RootedJSValVec {
+    fn deref<'a>(&'a self) -> &'a Vec<JSVal> {
+        &self.v
+    }
+}
+
+impl DerefMut<Vec<JSVal>> for RootedJSValVec {
+    fn deref_mut<'a>(&'a mut self) -> &'a mut Vec<JSVal> {
+        &mut self.v
+    }
+}
+
+fn trace_collection_type<T: JSTraceable>(tracer: *mut JSTracer,
+                                         collections: *const HashSet<*const T>) {
+    unsafe {
+        for collection in (*collections).iter() {
+            let traceable = &(**collection) as &JSTraceable;
             let _ = (**collection).trace(tracer);
         }
     }
+}
+
+pub extern fn trace_collections(tracer: *mut JSTracer, data: *mut libc::c_void) {
+    let collections = data as *const RefCell<Vec<HashSet<*const ()>>>;
+    let collections = unsafe { (*collections).borrow() };
+    trace_collection_type(tracer,
+                          &(*collections)[DOMObjects as uint] as *const _ as *const HashSet<*const RootedVec<EventTarget>>);
+    trace_collection_type(tracer,
+                          &(*collections)[JSVals as uint] as *const _ as *const HashSet<*const RootedJSValVec>);
 }

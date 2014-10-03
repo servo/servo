@@ -15,7 +15,7 @@ use dom::bindings::utils::{Reflector, Reflectable};
 use dom::blob::Blob;
 use servo_util::str::DOMString;
 
-use js::jsapi::JSContext;
+use js::jsapi::{Handle, JSContext};
 use js::jsval::{JSVal, NullValue};
 
 #[jstraceable]
@@ -64,7 +64,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn Union2Attribute(self) -> EventOrString { eString("".to_string()) }
     fn SetUnion2Attribute(self, _: EventOrString) {}
     fn AnyAttribute(self, _: *mut JSContext) -> JSVal { NullValue() }
-    fn SetAnyAttribute(self, _: *mut JSContext, _: JSVal) {}
+    fn SetAnyAttribute(self, _: *mut JSContext, _: Handle<JSVal>) {}
 
     fn GetBooleanAttributeNullable(self) -> Option<bool> { Some(false) }
     fn SetBooleanAttributeNullable(self, _: Option<bool>) {}
@@ -164,7 +164,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn PassUnion(self, _: HTMLElementOrLong) {}
     fn PassUnion2(self, _: EventOrString) {}
     fn PassUnion3(self, _: BlobOrString) {}
-    fn PassAny(self, _: *mut JSContext, _: JSVal) {}
+    fn PassAny(self, _: *mut JSContext, _: Handle<JSVal>) {}
 
     fn PassNullableBoolean(self, _: Option<bool>) {}
     fn PassNullableByte(self, _: Option<i8>) {}
@@ -201,7 +201,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn PassOptionalInterface(self, _: Option<JSRef<Blob>>) {}
     fn PassOptionalUnion(self, _: Option<HTMLElementOrLong>) {}
     fn PassOptionalUnion2(self, _: Option<EventOrString>) {}
-    fn PassOptionalAny(self, _: *mut JSContext, _: JSVal) {}
+    fn PassOptionalAny(self, _: *mut JSContext, _: Handle<JSVal>) {}
 
     fn PassOptionalNullableBoolean(self, _: Option<Option<bool>>) {}
     fn PassOptionalNullableByte(self, _: Option<Option<i8>>) {}
@@ -250,7 +250,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn PassOptionalNullableInterfaceWithDefault(self, _: Option<JSRef<Blob>>) {}
     fn PassOptionalNullableUnionWithDefault(self, _: Option<HTMLElementOrLong>) {}
     fn PassOptionalNullableUnion2WithDefault(self, _: Option<EventOrString>) {}
-    fn PassOptionalAnyWithDefault(self, _: *mut JSContext, _: JSVal) {}
+    fn PassOptionalAnyWithDefault(self, _: *mut JSContext, _: Handle<JSVal>) {}
 
     fn PassOptionalNullableBooleanWithNonNullDefault(self, _: Option<bool>) {}
     fn PassOptionalNullableByteWithNonNullDefault(self, _: Option<i8>) {}
@@ -284,7 +284,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn PassVariadicUnion(self, _: Vec<HTMLElementOrLong>) {}
     fn PassVariadicUnion2(self, _: Vec<EventOrString>) {}
     fn PassVariadicUnion3(self, _: Vec<BlobOrString>) {}
-    fn PassVariadicAny(self, _: *mut JSContext, _: Vec<JSVal>) {}
+    //fn PassVariadicAny(self, _: *mut JSContext, _: Vec<Handle<JSVal>>) {}
 }
 
 impl TestBinding {

@@ -326,7 +326,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         let local_name = Atom::from_slice(local_name);
         self.attrs.borrow().iter().map(|attr| *attr.root()).find(|attr| {
             *attr.local_name() == local_name && attr.namespace == namespace
-        }).map(|x| Temporary::from_rooted(x))
+        }).map(Temporary::from_rooted)
     }
 
     fn set_attribute_from_parser(self, local_name: Atom,
@@ -559,14 +559,11 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
     // http://dom.spec.whatwg.org/#dom-element-classlist
     fn ClassList(self) -> Temporary<DOMTokenList> {
-        match self.class_list.get() {
-            Some(class_list) => class_list,
-            None => {
-                let class_list = DOMTokenList::new(self, "class");
-                self.class_list.assign(Some(class_list));
-                self.class_list.get().unwrap()
-            }
+        if self.class_list.get().is_none() {
+            let class_list = DOMTokenList::new(self, "class");
+            self.class_list.assign(Some(class_list));
         }
+        self.class_list.get().unwrap()
     }
 
     // http://dom.spec.whatwg.org/#dom-element-attributes

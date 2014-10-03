@@ -26,8 +26,6 @@ use std::os;
 #[start]
 #[allow(dead_code)]
 fn start(argc: int, argv: *const *const u8) -> int {
-    script::init();
-
     native::start(argc, argv, proc() {
         opts::from_cmdline_args(os::args().as_slice()).map(run);
     })

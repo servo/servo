@@ -9,10 +9,9 @@ use dom::bindings::codegen::InheritTypes::{EventCast, CustomEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::trace::Traceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{Event, EventTypeId, CustomEventTypeId};
-use js::jsapi::JSContext;
+use js::jsapi::{Handle, JSContext};
 use js::jsval::{JSVal, NullValue};
 use servo_util::str::DOMString;
 
@@ -22,7 +21,7 @@ use std::cell::Cell;
 #[must_root]
 pub struct CustomEvent {
     event: Event,
-    detail: Traceable<Cell<Traceable<JSVal>>>,
+    detail: Cell<JSVal>,
 }
 
 impl CustomEventDerived for Event {
@@ -35,7 +34,7 @@ impl CustomEvent {
     fn new_inherited(type_id: EventTypeId) -> CustomEvent {
         CustomEvent {
             event: Event::new_inherited(type_id),
-            detail: Traceable::new(Cell::new(Traceable::new(NullValue()))),
+            detail: Cell::new(NullValue()),
         }
     }
 
@@ -44,7 +43,7 @@ impl CustomEvent {
                            global,
                            CustomEventBinding::Wrap)
     }
-    pub fn new(global: &GlobalRef, type_: DOMString, bubbles: bool, cancelable: bool, detail: JSVal) -> Temporary<CustomEvent> {
+    pub fn new(global: &GlobalRef, type_: DOMString, bubbles: bool, cancelable: bool, detail: Handle<JSVal>) -> Temporary<CustomEvent> {
         let ev = CustomEvent::new_uninitialized(global).root();
         ev.deref().InitCustomEvent(global.get_cx(), type_, bubbles, cancelable, detail);
         Temporary::from_rooted(*ev)
@@ -52,13 +51,13 @@ impl CustomEvent {
     pub fn Constructor(global: &GlobalRef,
                        type_: DOMString,
                        init: &CustomEventBinding::CustomEventInit) -> Fallible<Temporary<CustomEvent>>{
-        Ok(CustomEvent::new(global, type_, init.parent.bubbles, init.parent.cancelable, init.detail))
+        Ok(CustomEvent::new(global, type_, init.parent.bubbles, init.parent.cancelable, init.detail.handle_()))
     }
 }
 
 impl<'a> CustomEventMethods for JSRef<'a, CustomEvent> {
     fn Detail(self, _cx: *mut JSContext) -> JSVal {
-        *self.detail.deref().get()
+        self.detail.get()
     }
 
     fn InitCustomEvent(self,
@@ -66,8 +65,8 @@ impl<'a> CustomEventMethods for JSRef<'a, CustomEvent> {
                        type_: DOMString,
                        can_bubble: bool,
                        cancelable: bool,
-                       detail: JSVal) {
-        self.detail.deref().set(Traceable::new(detail));
+                       detail: Handle<JSVal>) {
+        self.detail.set(*detail);
         let event: JSRef<Event> = EventCast::from_ref(self);
         event.InitEvent(type_, can_bubble, cancelable);
     }

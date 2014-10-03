@@ -4,21 +4,19 @@
 
 ///! Utilities for the implementation of JSAPI proxy handlers.
 
-use dom::bindings::js::RootablePointer;
+use dom::bindings::js::{RootablePointer, RootableValue};
 use dom::bindings::utils::delete_property_by_id;
 use js::jsapi::{JSContext, JSPropertyDescriptor, JSObject};
 use js::jsapi::{JS_GetPropertyDescriptorById, JS_AlreadyHasOwnPropertyById};
 use js::jsapi::{JS_DefinePropertyById, JS_NewObjectWithGivenProto, MutableHandle};
-use js::jsapi::{JS_StrictPropertyStub, JSHandleObject, JSHandleId};
+use js::jsapi::{JS_StrictPropertyStub, Handle, jsid};
 use js::jsapi::{JSREPORT_WARNING, JSREPORT_STRICT, JSREPORT_STRICT_MODE_ERROR};
 use js::jsapi::{JS_ReportErrorFlagsAndNumber};
-use js::jsfriendapi::{DOMProxyShadowsResult, DoesntShadowUnique, ShadowCheckFailed, Shadows};
+use js::jsfriendapi::{DOMProxyShadowsResult, ShadowCheckFailed, Shadows};
 use js::jsfriendapi::DoesntShadow;
 use js::jsval::ObjectValue;
-use js::glue::GetProxyExtra;
 use js::glue::{GetObjectProto, GetObjectParent, SetProxyExtra, GetProxyHandler};
-use js::glue::{InvokeGetOwnPropertyDescriptor, InvokeHasOwn};
-use js::glue::RUST_js_GetErrorMessage;
+use js::glue::{RUST_js_GetErrorMessage, InvokeGetOwnPropertyDescriptor, GetProxyExtra};
 use js::{JSPROP_GETTER, JSPROP_ENUMERATE, JSPROP_READONLY, JSRESOLVE_QUALIFIED};
 
 use libc;
@@ -28,8 +26,8 @@ use std::ptr;
 static JSPROXYSLOT_EXPANDO: u32 = 0;
 
 pub unsafe extern fn getPropertyDescriptor(cx: *mut JSContext,
-                                           proxy: JSHandleObject,
-                                           id: JSHandleId,
+                                           proxy: Handle<*mut JSObject>,
+                                           id: Handle<jsid>,
                                            mut desc: MutableHandle<JSPropertyDescriptor>,
                                            flags: u32) -> bool {
     let handler = GetProxyHandler(*proxy);
@@ -43,7 +41,6 @@ pub unsafe extern fn getPropertyDescriptor(cx: *mut JSContext,
         return true;
     }
 
-    //let proto = JS_GetPrototype(proxy);
     let mut proto = ptr::null_mut().root_ptr();
     assert!(GetObjectProto(cx, proxy, proto.mut_handle()));
     if proto.raw().is_null() {
@@ -54,7 +51,7 @@ pub unsafe extern fn getPropertyDescriptor(cx: *mut JSContext,
     JS_GetPropertyDescriptorById(cx, proto.handle(), id, JSRESOLVE_QUALIFIED, desc)
 }
 
-pub unsafe fn defineProperty_(cx: *mut JSContext, proxy: JSHandleObject, id: JSHandleId,
+pub unsafe fn defineProperty_(cx: *mut JSContext, proxy: Handle<*mut JSObject>, id: Handle<jsid>,
                               desc: MutableHandle<JSPropertyDescriptor>) -> bool {
     static JSMSG_GETTER_ONLY: libc::c_uint = 160;
 
@@ -78,12 +75,12 @@ pub unsafe fn defineProperty_(cx: *mut JSContext, proxy: JSHandleObject, id: JSH
                                  desc.getter, desc.setter, desc.attrs);
 }
 
-pub unsafe extern fn defineProperty(cx: *mut JSContext, proxy: JSHandleObject, id: JSHandleId,
+pub unsafe extern fn defineProperty(cx: *mut JSContext, proxy: Handle<*mut JSObject>, id: Handle<jsid>,
                                     desc: MutableHandle<JSPropertyDescriptor>) -> bool {
     defineProperty_(cx, proxy, id, desc)
 }
 
-pub unsafe extern fn delete_(cx: *mut JSContext, proxy: JSHandleObject, id: JSHandleId,
+pub unsafe extern fn delete_(cx: *mut JSContext, proxy: Handle<*mut JSObject>, id: Handle<jsid>,
                              bp: *mut bool) -> bool {
     let expando = EnsureExpandoObject(cx, *proxy).root_ptr();
     if expando.raw().is_null() {
@@ -114,11 +111,12 @@ pub fn EnsureExpandoObject(cx: *mut JSContext, obj: *mut JSObject) -> *mut JSObj
             return *expando.raw();
         }
 
-        let o = ptr::null_mut().root_ptr();
-        o.init();
+        let null_proto = ptr::null_mut().root_ptr();
+        null_proto.init();
         let parent = GetObjectParent(obj).root_ptr();
         parent.init();
-        let expando = JS_NewObjectWithGivenProto(cx, ptr::null(), o.handle(), parent.handle()).root_ptr();
+        let expando = JS_NewObjectWithGivenProto(cx, ptr::null(), null_proto.handle(),
+                                                 parent.handle()).root_ptr();
         expando.init();
         if expando.raw().is_null() {
             return ptr::null_mut();
@@ -137,11 +135,11 @@ pub fn FillPropertyDescriptor(desc: &mut JSPropertyDescriptor, obj: *mut JSObjec
 }
 
 pub unsafe extern fn dom_proxy_shadows(cx: *mut JSContext,
-                                       proxy: JSHandleObject,
-                                       id: JSHandleId) -> DOMProxyShadowsResult {
-    let v = GetProxyExtra(*proxy, JSPROXYSLOT_EXPANDO);
-    if v.is_object() {
-        let object = v.to_object().root_ptr();
+                                       proxy: Handle<*mut JSObject>,
+                                       id: Handle<jsid>) -> DOMProxyShadowsResult {
+    let v = GetProxyExtra(*proxy, JSPROXYSLOT_EXPANDO).root_value();
+    if v.raw_().is_object() {
+        let object = v.raw_().to_object().root_ptr();
         let mut hasOwn = false;
         if !JS_AlreadyHasOwnPropertyById(cx, object.handle(), id, &mut hasOwn) {
             return ShadowCheckFailed;
@@ -153,11 +151,12 @@ pub unsafe extern fn dom_proxy_shadows(cx: *mut JSContext,
         };
     }
 
-    if v.is_undefined() {
+    if v.raw_().is_undefined() {
         return DoesntShadow;
     }
 
-    let mut hasOwn = false;
+    // We don't support OverrideBuiltins yet.
+    /*let mut hasOwn = false;
     let handler = GetProxyHandler(*proxy);
     if !InvokeHasOwn(handler, cx, proxy, id, &mut hasOwn) {
         return ShadowCheckFailed;
@@ -167,5 +166,7 @@ pub unsafe extern fn dom_proxy_shadows(cx: *mut JSContext,
         Shadows
     } else {
         DoesntShadowUnique
-    }
+    }*/
+
+    unreachable!()
 }

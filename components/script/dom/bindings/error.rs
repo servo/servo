@@ -90,6 +90,7 @@ static ERROR_FORMAT_STRING_STRING: [libc::c_char, ..4] = [
     0 as libc::c_char,
 ];
 
+/// Format string struct used to throw `TypeError`s.
 static ERROR_FORMAT_STRING: JSErrorFormatString = Struct_JSErrorFormatString {
     format: &ERROR_FORMAT_STRING_STRING as *const libc::c_char,
     argCount: 1,

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::RegisterBindings;
 use dom::bindings::proxyhandler::dom_proxy_shadows;
 use dom::bindings::utils::instance_class_matches_proto;
 use js;
@@ -19,6 +20,7 @@ pub fn global_init() {
         SetDOMProxyInformation(family, js::PROXY_EXTRA_SLOT + js::PROXY_PRIVATE_SLOT,
                                Some(dom_proxy_shadows));
     }
+    RegisterBindings::RegisterProxyHandlers();
 }
 
 pub fn init(rt: *mut JSRuntime) {

@@ -19,7 +19,7 @@ use script_task::{ScriptChan, DOMMessage};
 use servo_util::str::DOMString;
 
 use js::glue::JS_STRUCTURED_CLONE_VERSION;
-use js::jsapi::{JSContext/*, JS_AddObjectRoot, JS_RemoveObjectRoot*/};
+use js::jsapi::{Handle, JSContext};
 use js::jsfriendapi::{JS_ReadStructuredClone, JS_WriteStructuredClone};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::JSAutoCompartment;
@@ -94,7 +94,7 @@ impl Worker {
         }
 
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(*worker);
-        MessageEvent::dispatch_jsval(target, &global.root_ref(), *message.raw_());
+        MessageEvent::dispatch_jsval(target, &global.root_ref(), message.handle_());
     }
 }
 
@@ -116,13 +116,12 @@ impl Worker {
 }
 
 impl<'a> WorkerMethods for JSRef<'a, Worker> {
-    fn PostMessage(self, cx: *mut JSContext, message: JSVal) {
-        let message = message.root_value();
+    fn PostMessage(self, cx: *mut JSContext, message: Handle<JSVal>) {
         let mut data = ptr::null_mut();
         let mut nbytes = 0;
         let transferable = UndefinedValue().root_value();
         unsafe {
-            assert!(JS_WriteStructuredClone(cx, message.handle_(), &mut data, &mut nbytes,
+            assert!(JS_WriteStructuredClone(cx, message, &mut data, &mut nbytes,
                                             ptr::null(), ptr::null_mut(),
                                             transferable.handle_()));
         }

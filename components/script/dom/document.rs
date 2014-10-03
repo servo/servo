@@ -372,7 +372,7 @@ impl<'a> PrivateDocumentHelpers for JSRef<'a, Document> {
     fn get_html_element(self) -> Option<Temporary<HTMLHtmlElement>> {
         self.GetDocumentElement().root().as_ref().and_then(|root| {
             HTMLHtmlElementCast::to_ref(**root)
-        }).map(|elem| Temporary::from_rooted(elem))
+        }).map(Temporary::from_rooted)
     }
 }
 

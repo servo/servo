@@ -16,6 +16,7 @@ use dom::bindings::global;
 use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, OptionalSettable};
 use dom::bindings::js::OptionalRootable;
 use dom::bindings::refcounted::{LiveReferences, LiveDOMReferences, trace_refcounted_objects};
+use dom::bindings::trace;
 use dom::bindings::trace::{JSTraceable, RootedCollections, trace_collections};
 use dom::bindings::utils::Reflectable;
 use dom::document::{Document, HTMLDocument, DocumentHelpers};
@@ -58,7 +59,7 @@ use servo_util::task::spawn_named_with_send_on_failure;
 
 use geom::point::Point2D;
 use js::JS_DEFAULT_ZEAL_FREQ;
-use js::jsapi::{/*JS_SetWrapObjectCallbacks,*/ JS_SetGCZeal, JS_GC};
+use js::jsapi::{JS_SetGCZeal, JS_GC};
 use js::jsapi::{JSContext, JSRuntime, JSTracer, JS_AddExtraGCRootsTracer};
 use js::jsapi::{JS_SetGCParameter, JSGC_MAX_BYTES};
 use js::rust::{Cx, RtUtils, JSAutoRequest};
@@ -69,7 +70,6 @@ use url::Url;
 use libc::size_t;
 use std::any::{Any, AnyRefExt};
 use std::cell::RefCell;
-use std::collections::HashSet;
 use std::comm::{channel, Sender, Receiver, Select};
 use std::mem::replace;
 use std::rc::Rc;
@@ -346,19 +346,25 @@ impl ScriptTask {
 
     pub fn new_rt_and_cx() -> (js::rust::rt, Rc<Cx>) {
         js::rust::init_thread();
-        RootedCollections.replace(Some(RefCell::new(HashSet::new())));
+
+        trace::init_collections();
         LiveDOMReferences::initialize();
+
         let js_runtime = js::rust::rt();
         assert!({
             let ptr: *mut JSRuntime = (*js_runtime).ptr;
             ptr.is_not_null()
         });
         bindings::init::init((*js_runtime).ptr);
+
+        let collections = RootedCollections.get();
+        let references = LiveReferences.get();
+
         unsafe {
             JS_AddExtraGCRootsTracer((*js_runtime).ptr, Some(trace_collections),
-                                     RootedCollections.get().as_ref().unwrap().deref() as *const _ as *mut _);
+                                     collections.as_ref().unwrap().deref() as *const _ as *mut _);
             JS_AddExtraGCRootsTracer((*js_runtime).ptr, Some(trace_refcounted_objects),
-                                     LiveReferences.get().as_ref().unwrap().deref() as *const _ as *mut _);
+                                     references.as_ref().unwrap().deref() as *const _ as *mut _);
         }
 
         // Unconstrain the runtime's threshold on nominal heap size, to avoid
@@ -398,10 +404,10 @@ impl ScriptTask {
 
     /// Handle incoming control messages.
     fn handle_msgs(&self) -> bool {
-        let cx = self.js_context.borrow().as_ref().unwrap().deref().ptr;
+        let cx = self.get_cx();
         let mut _ar = Some(JSAutoRequest::new(cx));
 
-        let roots = RootCollection::new(self.get_cx());
+        let roots = RootCollection::new(cx);
         let _stack_roots_tls = StackRootTLS::new(&roots);
 
         // Handle pending resize events.

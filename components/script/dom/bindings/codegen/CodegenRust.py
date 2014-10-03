@@ -419,8 +419,12 @@ def typeIsSequenceOrHasSequenceMember(type):
                    type.flatMemberTypes)
     return False
 
-def typeNeedsRooting(type, descriptorProvider):
-    return type.isGeckoInterface() and descriptorProvider.getDescriptor(type.name).needsRooting
+def typeNeedsRooting(type, descriptorProvider, isVariadic):
+    if type.isGeckoInterface() and descriptorProvider.getDescriptor(type.name).needsRooting:
+        return True
+    elif type.isAny() and not isVariadic:
+        return 'handle'
+    return False
 
 
 def union_native_type(t):
@@ -501,7 +505,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
     if exceptionCode is None:
         exceptionCode = "return false;"
 
-    needsRooting = typeNeedsRooting(type, descriptorProvider)
+    needsRooting = typeNeedsRooting(type, descriptorProvider, isMember=='Variadic')
 
     def handleOptional(template, declType, default):
         assert (defaultValue is None) == (default is None)
@@ -791,18 +795,29 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
     if type.isAny():
         assert not isEnforceRange and not isClamp
 
-        declType = CGGeneric("JSVal")
+        if isArgument:
+            declType = CGGeneric("Handle<JSVal>")
+        else:
+            lifetimes = "'a, 'b, " if isMember=='Dictionary' else ""
+            declType = CGGeneric("Root<%slibc::c_void, JSVal>" % lifetimes)
+
+        if not isCallbackReturnValue and isMember != 'Variadic':
+            forcedRoot = ".root_value()"
+        else:
+            forcedRoot = ""
+            declType = CGGeneric("JSVal")
+            needsRooting = False
 
         if defaultValue is None:
             default = None
         elif isinstance(defaultValue, IDLNullValue):
-            default = "NullValue()"
+            default = "NullValue()" + forcedRoot
         elif isinstance(defaultValue, IDLUndefinedValue):
-            default = "UndefinedValue()"
+            default = "UndefinedValue()" + forcedRoot
         else:
             raise TypeError("Can't handle non-null, non-undefined default value here")
 
-        return handleOptional("${val}", declType, default)
+        return handleOptional("${val}" + forcedRoot, declType, default)
 
     if type.isObject():
         raise TypeError("Can't handle object arguments yet")
@@ -897,7 +912,11 @@ def instantiateJSToNativeConversionTemplate(templateBody, replacements,
     # conversion.
     result.append(CGGeneric(""))
 
-    if needsRooting:
+    if needsRooting == 'handle':
+        result.append(CGGeneric("%s.init();" % declName));
+        result.append(CGGeneric("let %s = %s.handle_();" % (declName, declName)));
+        result.append(CGGeneric(""))
+    elif needsRooting:
         rootBody = "let %s = %s.root();" % (declName, declName)
         result.append(CGGeneric(rootBody))
         result.append(CGGeneric("%s.init();" % declName))
@@ -983,7 +1002,11 @@ class CGArgumentConverter(CGThing):
                 template, variadicConversion, declType, "slot",
                 needsRooting)
 
-            seqType = CGTemplatedType("Vec", declType)
+            if argument.type.isAny():
+                raise TypeError("codegen to support rooting Any values is unfinished")
+
+            seqTypeName = "Vec" if not argument.type.isAny() else "RootedJSValVec";
+            seqType = CGTemplatedType(seqTypeName, declType)
             variadicConversion = string.Template(
                 "{\n"
                 "  let mut vector: ${seqType} = Vec::with_capacity((${argc} - ${index}) as uint);\n"
@@ -4687,7 +4710,7 @@ class CGBindingRoot(CGThing):
             'js::jsapi::{JSStrictPropertyOpWrapper, JSString, JSTracer, JS_ConvertStub}',
             'js::jsapi::{JS_StrictPropertyStub, JS_EnumerateStub, JS_ResolveStub}',
             'js::jsapi::{JSMutableHandleValue, JS_DeletePropertyStub, MutableHandle}',
-            'js::jsapi::JS_GlobalObjectTraceHook',
+            'js::jsapi::{JS_GlobalObjectTraceHook, Handle}',
             'js::jsfriendapi::{Getter, Setter, Method}',
             'js::jsval::{JSVal, JSVAL_TYPE_DOUBLE, JSVAL_TYPE_INT32, JSVAL_TYPE_UNDEFINED}',
             'js::jsval::{JSVAL_TYPE_BOOLEAN, JSVAL_TYPE_MAGIC, JSVAL_TYPE_STRING}',
@@ -5010,7 +5033,7 @@ class CGNativeMember(ClassMethod):
             if isMember:
                 declType = "JS::Value"
             else:
-                declType = "JSVal"
+                declType = "Handle<JSVal>"
             return declType, False, False
 
         if type.isObject():

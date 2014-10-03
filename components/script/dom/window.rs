@@ -33,7 +33,7 @@ use servo_util::task::{spawn_named};
 use js::glue::CallFunctionValue;
 use js::jsapi::JS_EvaluateUCScript;
 use js::jsapi::JSContext;
-use js::jsapi::{JS_GC, JS_GetRuntime};
+use js::jsapi::{JS_GC, JS_GetRuntime, Handle};
 use js::jsval::JSVal;
 use js::jsval::{UndefinedValue, NullValue};
 use js::rust::with_compartment;
@@ -247,7 +247,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         self.navigator.get().unwrap()
     }
 
-    fn SetTimeout(self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32 {
+    fn SetTimeout(self, _cx: *mut JSContext, callback: Handle<JSVal>, timeout: i32) -> i32 {
         self.set_timeout_or_interval(callback, timeout, false)
     }
 
@@ -261,7 +261,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         timers.remove(&TimerId(handle));
     }
 
-    fn SetInterval(self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32 {
+    fn SetInterval(self, _cx: *mut JSContext, callback: Handle<JSVal>, timeout: i32) -> i32 {
         self.set_timeout_or_interval(callback, timeout, true)
     }
 
@@ -379,7 +379,7 @@ pub trait WindowHelpers {
 }
 
 trait PrivateWindowHelpers {
-    fn set_timeout_or_interval(self, callback: JSVal, timeout: i32, is_interval: bool) -> i32;
+    fn set_timeout_or_interval(self, callback: Handle<JSVal>, timeout: i32, is_interval: bool) -> i32;
 }
 
 impl<'a> WindowHelpers for JSRef<'a, Window> {
@@ -465,7 +465,7 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
 }
 
 impl<'a> PrivateWindowHelpers for JSRef<'a, Window> {
-    fn set_timeout_or_interval(self, callback: JSVal, timeout: i32, is_interval: bool) -> i32 {
+    fn set_timeout_or_interval(self, callback: Handle<JSVal>, timeout: i32, is_interval: bool) -> i32 {
         let timeout = cmp::max(0, timeout) as u64;
         let handle = self.next_timer_handle.deref().get();
         self.next_timer_handle.deref().set(handle + 1);
@@ -517,7 +517,7 @@ impl<'a> PrivateWindowHelpers for JSRef<'a, Window> {
             cancel_chan: Untraceable::new(Some(cancel_chan)),
             data: TimerData {
                 is_interval: is_interval,
-                funval: Traceable::new(callback),
+                funval: Traceable::new(*callback),
             }
         };
         self.active_timers.deref().borrow_mut().insert(timer_id, timer);

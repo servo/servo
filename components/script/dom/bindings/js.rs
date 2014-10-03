@@ -77,6 +77,7 @@ pub struct Temporary<T> {
     _js_ptr: Box<PersistentRootedObjectElement>,
 }
 
+#[repr(C)]
 struct PersistentRootedObjectElement {
     next: *mut PersistentRootedObjectElement,
     prev: *mut PersistentRootedObjectElement,
@@ -266,7 +267,7 @@ impl<From, To> JS<From> {
     }
 }
 
-/// A mutable JS&lt;T&gt; value, with nullability represented by an enclosing
+/// A mutable `JS<T>` value, with nullability represented by an enclosing
 /// Option wrapper. Must be used in place of traditional internal mutability
 /// to ensure that the proper GC barriers are enforced.
 #[jstraceable]
@@ -336,7 +337,7 @@ impl<T: Reflectable> MutNullableJS<T> {
         self.ptr.get().map(|inner| Temporary::new(inner))
     }
 
-    /// Retrieve a copy of the inner optional JS&lt;T&gt;. For use by layout, which
+    /// Retrieve a copy of the inner optional `JS<T>`. For use by layout, which
     /// can't use safe types like Temporary.
     pub unsafe fn get_inner(&self) -> Option<JS<T>> {
         self.ptr.get()
@@ -548,6 +549,7 @@ impl RootCollection {
 /// for the same JS value. `Root`s cannot outlive the associated `RootCollection` object.
 /// Attempts to transfer ownership of a `Root` via moving will trigger dynamic unrooting
 /// failures due to incorrect ordering.
+#[repr(C)]
 pub struct Root<'a, 'b, T, S=*mut JSObject> {
     stack: Cell<*mut *const *const libc::c_void>,
     prev: Cell<*const *const libc::c_void>,

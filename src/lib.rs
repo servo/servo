@@ -5,7 +5,7 @@
 #![comment = "The Servo Parallel Browser Project"]
 #![license = "MPL"]
 
-#![feature(globs, macro_rules, phase, thread_local, unsafe_destructor)]
+#![feature(globs, macro_rules, phase, thread_local)]
 
 #![deny(unused_imports, unused_variable)]
 
@@ -34,8 +34,6 @@ extern crate url;
 use compositing::{CompositorChan, CompositorTask, Constellation};
 #[cfg(not(test))]
 use servo_msg::constellation_msg::{ConstellationChan, InitLoadUrlMsg};
-#[cfg(not(test))]
-use script::dom::bindings::codegen::RegisterBindings;
 
 #[cfg(not(test))]
 use servo_net::image_cache_task::ImageCacheTask;
@@ -86,7 +84,7 @@ pub extern "C" fn android_start(argc: int, argv: *const *const u8) -> int {
 #[cfg(not(test))]
 pub fn run(opts: opts::Opts) {
     ::servo_util::opts::set_experimental_enabled(opts.enable_experimental);
-    RegisterBindings::RegisterProxyHandlers();
+    script::init();
 
     let mut pool_config = green::PoolConfig::new();
     pool_config.event_loop_factory = rustuv::event_loop;

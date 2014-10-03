@@ -16,7 +16,7 @@ use dom::eventtarget::{EventTarget, EventTargetHelpers};
 
 use servo_util::str::DOMString;
 
-use js::jsapi::JSContext;
+use js::jsapi::{Handle, JSContext};
 use js::jsval::JSVal;
 
 #[jstraceable]
@@ -35,11 +35,11 @@ impl MessageEventDerived for Event {
 }
 
 impl MessageEvent {
-    fn new_inherited(data: JSVal, origin: DOMString, lastEventId: DOMString)
+    fn new_inherited(data: Handle<JSVal>, origin: DOMString, lastEventId: DOMString)
                          -> MessageEvent {
         MessageEvent {
             event: Event::new_inherited(MessageEventTypeId),
-            data: Traceable::new(data),
+            data: Traceable::new(*data),
             origin: origin,
             lastEventId: lastEventId,
         }
@@ -47,7 +47,7 @@ impl MessageEvent {
 
     pub fn new(global: &GlobalRef, type_: DOMString,
                bubbles: bool, cancelable: bool,
-               data: JSVal, origin: DOMString, lastEventId: DOMString)
+               data: Handle<JSVal>, origin: DOMString, lastEventId: DOMString)
                -> Temporary<MessageEvent> {
         let ev = reflect_dom_object(box MessageEvent::new_inherited(data, origin, lastEventId),
                                     global,
@@ -62,7 +62,7 @@ impl MessageEvent {
                        init: &MessageEventBinding::MessageEventInit)
                        -> Fallible<Temporary<MessageEvent>> {
         let ev = MessageEvent::new(global, type_, init.parent.bubbles, init.parent.cancelable,
-                                   init.data, init.origin.clone(), init.lastEventId.clone());
+                                   init.data.handle_(), init.origin.clone(), init.lastEventId.clone());
         Ok(ev)
     }
 }
@@ -70,7 +70,7 @@ impl MessageEvent {
 impl MessageEvent {
     pub fn dispatch_jsval(target: JSRef<EventTarget>,
                           scope: &GlobalRef,
-                          message: JSVal) {
+                          message: Handle<JSVal>) {
         let messageevent = MessageEvent::new(
             scope, "message".to_string(), false, false, message,
             "".to_string(), "".to_string()).root();
