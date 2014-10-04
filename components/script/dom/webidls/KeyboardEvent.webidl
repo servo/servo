@@ -15,18 +15,33 @@ interface KeyboardEvent : UIEvent {
     const unsigned long DOM_KEY_LOCATION_LEFT = 0x01;
     const unsigned long DOM_KEY_LOCATION_RIGHT = 0x02;
     const unsigned long DOM_KEY_LOCATION_NUMPAD = 0x03;
-  //readonly    attribute DOMString     key;
-  //readonly    attribute DOMString     code;
-  //readonly    attribute unsigned long location;
-  //readonly    attribute boolean       ctrlKey;
-  //readonly    attribute boolean       shiftKey;
-  //readonly    attribute boolean       altKey;
-  //readonly    attribute boolean       metaKey;
-  //readonly    attribute boolean       repeat;
-  //readonly    attribute boolean       isComposing;
-  //boolean getModifierState (DOMString keyArg);
+    readonly    attribute DOMString     key;
+    readonly    attribute DOMString     code;
+    readonly    attribute unsigned long location;
+    readonly    attribute boolean       ctrlKey;
+    readonly    attribute boolean       shiftKey;
+    readonly    attribute boolean       altKey;
+    readonly    attribute boolean       metaKey;
+    readonly    attribute boolean       repeat;
+    readonly    attribute boolean       isComposing;
+    boolean getModifierState (DOMString keyArg);
 };
 
+// https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#idl-interface-KeyboardEvent-initializers
+partial interface KeyboardEvent {
+    // Originally introduced (and deprecated) in DOM Level 3
+    void initKeyboardEvent (DOMString typeArg, boolean bubblesArg, boolean cancelableArg, Window? viewArg, DOMString keyArg, unsigned long locationArg, DOMString modifiersListArg, boolean repeat, DOMString locale);
+};
+
+// https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#KeyboardEvent-supplemental-interface
+partial interface KeyboardEvent {
+    // The following support legacy user agents
+    readonly    attribute unsigned long charCode;
+    readonly    attribute unsigned long keyCode;
+    readonly    attribute unsigned long which;
+};
+
+// https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#interface-KeyboardEvent
 dictionary KeyboardEventInit : SharedKeyboardAndMouseEventInit {
     DOMString     key = "";
     DOMString     code = "";
@@ -34,3 +49,10 @@ dictionary KeyboardEventInit : SharedKeyboardAndMouseEventInit {
     boolean       repeat = false;
     boolean       isComposing = false;
 };
+
+// https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#events-KeyboardEventInit-supplemental
+/*partial dictionary KeyboardEventInit {
+    unsigned long charCode = 0;
+    unsigned long keyCode = 0;
+    unsigned long which = 0;
+};*/

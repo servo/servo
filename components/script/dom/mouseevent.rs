@@ -175,7 +175,6 @@ impl<'a> MouseEventMethods for JSRef<'a, MouseEvent> {
     }
 }
 
-
 impl Reflectable for MouseEvent {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.uievent.reflector()
