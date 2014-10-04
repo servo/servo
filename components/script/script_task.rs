@@ -928,11 +928,13 @@ impl ScriptTask {
         let frame = page.frame();
         let window = frame.as_ref().unwrap().window.root();
         let doc = window.Document().root();
+        let focused = doc.get_focused_element().root();
         let body = doc.GetBody().root();
 
-        let target: JSRef<EventTarget> = match body {
-            Some(body) => EventTargetCast::from_ref(*body),
-            None => EventTargetCast::from_ref(*window),
+        let target: JSRef<EventTarget> = match (&focused, &body) {
+            (&Some(ref focused), _) => EventTargetCast::from_ref(**focused),
+            (&None, &Some(ref body)) => EventTargetCast::from_ref(**body),
+            (&None, &None) => EventTargetCast::from_ref(*window),
         };
 
         let ctrl = modifiers.contains(Control);
@@ -956,10 +958,10 @@ impl ScriptTask {
         let _ = target.DispatchEvent(EventCast::from_ref(*event));
 
         if state != Released && props.is_printable() {
-        let event = KeyboardEvent::new(*window, "keypress".to_string(), true, true, Some(*window),
-                                       0, props.key.clone(), props.code.clone(), props.location,
-                                       is_repeating, is_composing, ctrl, alt, shift, meta,
-                                       props.char_code, props.key_code).root();
+            let event = KeyboardEvent::new(*window, "keypress".to_string(), true, true, Some(*window),
+                                           0, props.key.clone(), props.code.clone(), props.location,
+                                           is_repeating, is_composing, ctrl, alt, shift, meta,
+                                           props.char_code, props.key_code).root();
             let _ = target.DispatchEvent(EventCast::from_ref(*event));
         }
     }
@@ -1065,6 +1067,9 @@ impl ScriptTask {
                         match *page.frame() {
                             Some(ref frame) => {
                                 let window = frame.window.root();
+                                let doc = window.Document().root();
+                                doc.begin_focus_transaction();
+
                                 let event =
                                     Event::new(&global::Window(*window),
                                                "click".to_string(),
@@ -1072,6 +1077,7 @@ impl ScriptTask {
                                 let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(node);
                                 let _ = eventtarget.dispatch_event_with_target(None, *event);
 
+                                doc.commit_focus_transaction();
                                 window.flush_layout();
                             }
                             None => {}

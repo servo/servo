@@ -415,6 +415,9 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
                 }
                 _ => {}
             }
+
+            let doc = document_from_node(*self).root();
+            doc.request_focus(ElementCast::from_ref(*self));
         }
     }
 }
