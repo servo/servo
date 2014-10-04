@@ -732,16 +732,16 @@ impl ScriptTask {
                                  self.compositor.dup(),
                                  self.image_cache_task.clone()).root();
         let doc_url = if is_javascript {
-            let doc_url = match last_url {
-                Some(url) => Some(url.clone()),
-                None => Url::parse("about:blank").ok(),
-            };
-            *page.mut_url() = Some((doc_url.as_ref().unwrap().clone(), true));
+            let doc_url = last_url.unwrap_or_else(|| {
+                Url::parse("about:blank").unwrap()
+            });
+            *page.mut_url() = Some((doc_url.clone(), true));
             doc_url
         } else {
-            Some(url.clone())
+            url.clone()
         };
-        let document = Document::new(*window, doc_url, HTMLDocument, None).root();
+        let document = Document::new(*window, Some(doc_url), HTMLDocument,
+                                     None).root();
 
         window.deref().init_browser_context(*document);
 
