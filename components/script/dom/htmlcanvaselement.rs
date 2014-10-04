@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::HTMLCanvasElemen
 use dom::bindings::codegen::InheritTypes::HTMLCanvasElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::global::Window;
-use dom::bindings::js::{JS, JSRef, Temporary, OptionalSettable};
+use dom::bindings::js::{MutNullableJS, JSRef, Temporary, OptionalSettable};
 use dom::bindings::trace::Traceable;
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::canvasrenderingcontext2d::CanvasRenderingContext2D;
@@ -24,6 +24,7 @@ use string_cache::Atom;
 use geom::size::Size2D;
 
 use std::cell::Cell;
+use std::default::Default;
 
 static DefaultWidth: u32 = 300;
 static DefaultHeight: u32 = 150;
@@ -32,7 +33,7 @@ static DefaultHeight: u32 = 150;
 #[must_root]
 pub struct HTMLCanvasElement {
     pub htmlelement: HTMLElement,
-    context: Traceable<Cell<Option<JS<CanvasRenderingContext2D>>>>,
+    context: Traceable<MutNullableJS<CanvasRenderingContext2D>>,
     width: Traceable<Cell<u32>>,
     height: Traceable<Cell<u32>>,
 }
@@ -47,7 +48,7 @@ impl HTMLCanvasElement {
     fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLCanvasElement {
         HTMLCanvasElement {
             htmlelement: HTMLElement::new_inherited(HTMLCanvasElementTypeId, localName, document),
-            context: Traceable::new(Cell::new(None)),
+            context: Traceable::new(Default::default()),
             width: Traceable::new(Cell::new(DefaultWidth)),
             height: Traceable::new(Cell::new(DefaultHeight)),
         }
@@ -90,7 +91,7 @@ impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
             let context = CanvasRenderingContext2D::new(&Window(*window), self, Size2D(w, h));
             self.context.assign(Some(context));
         }
-        self.context.get().map(|context| Temporary::new(context))
+        self.context.get()
      }
 }
 
