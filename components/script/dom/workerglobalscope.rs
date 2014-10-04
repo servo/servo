@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScop
 use dom::bindings::error::{ErrorResult, Fallible, Syntax, Network, FailureUnknown};
 use dom::bindings::trace::Untraceable;
 use dom::bindings::global;
-use dom::bindings::js::{JS, JSRef, Temporary, OptionalSettable};
+use dom::bindings::js::{MutNullableJS, JSRef, Temporary, OptionalSettable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::console::Console;
 use dom::eventtarget::{EventTarget, WorkerGlobalScopeTypeId};
@@ -21,7 +21,7 @@ use servo_util::str::DOMString;
 use js::jsapi::JSContext;
 use js::rust::Cx;
 
-use std::cell::Cell;
+use std::default::Default;
 use std::rc::Rc;
 use url::{Url, UrlParser};
 
@@ -39,9 +39,9 @@ pub struct WorkerGlobalScope {
     js_context: Untraceable<Rc<Cx>>,
     resource_task: Untraceable<ResourceTask>,
     script_chan: ScriptChan,
-    location: Cell<Option<JS<WorkerLocation>>>,
-    navigator: Cell<Option<JS<WorkerNavigator>>>,
-    console: Cell<Option<JS<Console>>>,
+    location: MutNullableJS<WorkerLocation>,
+    navigator: MutNullableJS<WorkerNavigator>,
+    console: MutNullableJS<Console>,
 }
 
 impl WorkerGlobalScope {
@@ -56,9 +56,9 @@ impl WorkerGlobalScope {
             js_context: Untraceable::new(cx),
             resource_task: Untraceable::new(resource_task),
             script_chan: script_chan,
-            location: Cell::new(None),
-            navigator: Cell::new(None),
-            console: Cell::new(None),
+            location: Default::default(),
+            navigator: Default::default(),
+            console: Default::default(),
         }
     }
 
@@ -89,7 +89,7 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
             let location = WorkerLocation::new(self, self.worker_url.deref().clone());
             self.location.assign(Some(location));
         }
-        Temporary::new(self.location.get().as_ref().unwrap().clone())
+        self.location.get().unwrap()
     }
 
     fn ImportScripts(self, url_strings: Vec<DOMString>) -> ErrorResult {
@@ -129,7 +129,7 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
             let navigator = WorkerNavigator::new(self);
             self.navigator.assign(Some(navigator));
         }
-        Temporary::new(self.navigator.get().as_ref().unwrap().clone())
+        self.navigator.get().unwrap()
     }
 
     fn Console(self) -> Temporary<Console> {
@@ -137,7 +137,7 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
             let console = Console::new(&global::Worker(self));
             self.console.assign(Some(console));
         }
-        Temporary::new(self.console.get().as_ref().unwrap().clone())
+        self.console.get().unwrap()
     }
 
     fn Btoa(self, btoa: DOMString) -> Fallible<DOMString> {

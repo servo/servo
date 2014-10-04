@@ -89,13 +89,13 @@ pub struct Document {
     pub is_html_document: bool,
     url: Untraceable<Url>,
     quirks_mode: Untraceable<Cell<QuirksMode>>,
-    images: Cell<Option<JS<HTMLCollection>>>,
-    embeds: Cell<Option<JS<HTMLCollection>>>,
-    links: Cell<Option<JS<HTMLCollection>>>,
-    forms: Cell<Option<JS<HTMLCollection>>>,
-    scripts: Cell<Option<JS<HTMLCollection>>>,
-    anchors: Cell<Option<JS<HTMLCollection>>>,
-    applets: Cell<Option<JS<HTMLCollection>>>,
+    images: MutNullableJS<HTMLCollection>,
+    embeds: MutNullableJS<HTMLCollection>,
+    links: MutNullableJS<HTMLCollection>,
+    forms: MutNullableJS<HTMLCollection>,
+    scripts: MutNullableJS<HTMLCollection>,
+    anchors: MutNullableJS<HTMLCollection>,
+    applets: MutNullableJS<HTMLCollection>,
 }
 
 impl DocumentDerived for EventTarget {
@@ -327,13 +327,13 @@ impl Document {
             // http://dom.spec.whatwg.org/#concept-document-encoding
             encoding_name: Traceable::new(RefCell::new("utf-8".to_string())),
             is_html_document: is_html_document == HTMLDocument,
-            images: Cell::new(None),
-            embeds: Cell::new(None),
-            links: Cell::new(None),
-            forms: Cell::new(None),
-            scripts: Cell::new(None),
-            anchors: Cell::new(None),
-            applets: Cell::new(None),
+            images: Default::default(),
+            embeds: Default::default(),
+            links: Default::default(),
+            forms: Default::default(),
+            scripts: Default::default(),
+            anchors: Default::default(),
+            applets: Default::default(),
         }
     }
 
@@ -789,7 +789,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             let filter = box ImagesFilter;
             self.images.assign(Some(HTMLCollection::create(*window, root, filter)));
         }
-        Temporary::new(self.images.get().as_ref().unwrap().clone())
+        self.images.get().unwrap()
     }
 
     fn Embeds(self) -> Temporary<HTMLCollection> {
@@ -799,7 +799,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             let filter = box EmbedsFilter;
             self.embeds.assign(Some(HTMLCollection::create(*window, root, filter)));
         }
-        Temporary::new(self.embeds.get().as_ref().unwrap().clone())
+        self.embeds.get().unwrap()
     }
 
     fn Plugins(self) -> Temporary<HTMLCollection> {
@@ -813,7 +813,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             let filter = box LinksFilter;
             self.links.assign(Some(HTMLCollection::create(*window, root, filter)));
         }
-        Temporary::new(self.links.get().as_ref().unwrap().clone())
+        self.links.get().unwrap()
     }
 
     fn Forms(self) -> Temporary<HTMLCollection> {
@@ -823,7 +823,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             let filter = box FormsFilter;
             self.forms.assign(Some(HTMLCollection::create(*window, root, filter)));
         }
-        Temporary::new(self.forms.get().as_ref().unwrap().clone())
+        self.forms.get().unwrap()
     }
 
     fn Scripts(self) -> Temporary<HTMLCollection> {
@@ -833,7 +833,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             let filter = box ScriptsFilter;
             self.scripts.assign(Some(HTMLCollection::create(*window, root, filter)));
         }
-        Temporary::new(self.scripts.get().as_ref().unwrap().clone())
+        self.scripts.get().unwrap()
     }
 
     fn Anchors(self) -> Temporary<HTMLCollection> {
@@ -843,7 +843,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             let filter = box AnchorsFilter;
             self.anchors.assign(Some(HTMLCollection::create(*window, root, filter)));
         }
-        Temporary::new(self.anchors.get().as_ref().unwrap().clone())
+        self.anchors.get().unwrap()
     }
 
     fn Applets(self) -> Temporary<HTMLCollection> {
@@ -854,7 +854,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             let filter = box AppletsFilter;
             self.applets.assign(Some(HTMLCollection::create(*window, root, filter)));
         }
-        Temporary::new(self.applets.get().as_ref().unwrap().clone())
+        self.applets.get().unwrap()
     }
 
     fn Location(self) -> Temporary<Location> {
