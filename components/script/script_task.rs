@@ -267,7 +267,7 @@ impl ScriptTaskFactory for ScriptTask {
                                               image_cache_task,
                                               devtools_chan,
                                               window_size);
-            let mut failsafe = ScriptMemoryFailsafe::new(&*script_task);
+            let mut failsafe = ScriptMemoryFailsafe::new(&script_task);
             script_task.start();
 
             // This must always be the very last operation performed before the task completes
@@ -290,7 +290,7 @@ impl ScriptTask {
                img_cache_task: ImageCacheTask,
                devtools_chan: Option<DevtoolsControlChan>,
                window_size: WindowSizeData)
-               -> Rc<ScriptTask> {
+               -> ScriptTask {
         let (js_runtime, js_context) = ScriptTask::new_rt_and_cx();
         unsafe {
             // JS_SetWrapObjectCallbacks clobbers the existing wrap callback,
@@ -319,7 +319,7 @@ impl ScriptTask {
             chan.send(NewGlobal(id, devtools_sender.clone()));
         });
 
-        Rc::new(ScriptTask {
+        ScriptTask {
             page: RefCell::new(Rc::new(page)),
 
             image_cache_task: img_cache_task,
@@ -337,7 +337,7 @@ impl ScriptTask {
             js_runtime: js_runtime,
             js_context: RefCell::new(Some(js_context)),
             mouse_over_targets: RefCell::new(None)
-        })
+        }
     }
 
     pub fn new_rt_and_cx() -> (js::rust::rt, Rc<Cx>) {
