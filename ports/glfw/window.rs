@@ -216,7 +216,8 @@ impl Window {
                     glfw::Release => constellation_msg::Released,
                     glfw::Repeat => constellation_msg::Repeated,
                 };
-                self.event_queue.borrow_mut().push(KeyEvent(key, state));
+                let modifiers = glfw_mods_to_script_mods(mods);
+                self.event_queue.borrow_mut().push(KeyEvent(key, state, modifiers));
             },
             glfw::FramebufferSizeEvent(width, height) => {
                 self.event_queue.borrow_mut().push(
@@ -434,6 +435,23 @@ extern "C" fn on_framebuffer_size(_glfw_window: *mut glfw::ffi::GLFWwindow,
             }
         }
     }
+}
+
+fn glfw_mods_to_script_mods(mods: glfw::Modifiers) -> constellation_msg::KeyModifiers {
+    let mut result = constellation_msg::KeyModifiers::from_bits(0).unwrap();
+    if mods.contains(glfw::Shift) {
+        result.insert(constellation_msg::Shift);
+    }
+    if mods.contains(glfw::Alt) {
+        result.insert(constellation_msg::Alt);
+    }
+    if mods.contains(glfw::Control) {
+        result.insert(constellation_msg::Control);
+    }
+    if mods.contains(glfw::Super) {
+        result.insert(constellation_msg::Super);
+    }
+    result
 }
 
 fn glfw_key_to_script_key(key: glfw::Key) -> constellation_msg::Key {

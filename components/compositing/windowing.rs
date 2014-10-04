@@ -11,7 +11,7 @@ use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
-use servo_msg::constellation_msg::{Key, KeyState};
+use servo_msg::constellation_msg::{Key, KeyState, KeyModifiers};
 use servo_msg::compositor_msg::{ReadyState, RenderState};
 use servo_util::geometry::ScreenPx;
 use std::fmt::{FormatError, Formatter, Show};
@@ -60,7 +60,7 @@ pub enum WindowEvent {
     /// Sent when the user quits the application
     QuitWindowEvent,
     /// Sent when a key input state changes
-    KeyEvent(Key, KeyState),
+    KeyEvent(Key, KeyState, KeyModifiers),
 }
 
 impl Show for WindowEvent {

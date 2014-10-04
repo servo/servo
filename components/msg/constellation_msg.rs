@@ -50,6 +50,7 @@ pub struct WindowSizeData {
     pub device_pixel_ratio: ScaleFactor<ViewportPx, DevicePixel, f32>,
 }
 
+#[deriving(PartialEq)]
 pub enum KeyState {
     Pressed,
     Released,
@@ -181,6 +182,15 @@ pub enum Key {
     KeyMenu,
 }
 
+bitflags! {
+    flags KeyModifiers: u8 {
+        const Shift = 0x01,
+        const Control = 0x02,
+        const Alt = 0x04,
+        const Super = 0x08,
+    }
+}
+
 /// Messages from the compositor and script to the constellation.
 pub enum Msg {
     ExitMsg,
@@ -193,7 +203,7 @@ pub enum Msg {
     NavigateMsg(NavigationDirection),
     RendererReadyMsg(PipelineId),
     ResizedWindowMsg(WindowSizeData),
-    KeyEvent(Key, KeyState),
+    KeyEvent(Key, KeyState, KeyModifiers),
 }
 
 /// Similar to net::resource_task::LoadData

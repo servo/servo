@@ -10,6 +10,7 @@ use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, Documen
 use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, EventCast, ElementCast};
 use dom::bindings::conversions;
 use dom::bindings::conversions::{FromJSValConvertible, Empty};
@@ -23,6 +24,7 @@ use dom::element::{HTMLSelectElementTypeId, HTMLTextAreaElementTypeId, HTMLOptio
 use dom::event::{Event, Bubbles, DoesNotBubble, Cancelable, NotCancelable};
 use dom::uievent::UIEvent;
 use dom::eventtarget::{EventTarget, EventTargetHelpers};
+use dom::keyboardevent::KeyboardEvent;
 use dom::node;
 use dom::node::{ElementNodeTypeId, Node, NodeHelpers};
 use dom::window::{Window, WindowHelpers};
@@ -46,7 +48,9 @@ use script_traits::{ScriptControlChan, ReflowCompleteMsg, UntrustedNodeAddress, 
 use servo_msg::compositor_msg::{FinishedLoading, LayerId, Loading};
 use servo_msg::compositor_msg::{ScriptListener};
 use servo_msg::constellation_msg::{ConstellationChan, LoadCompleteMsg, LoadUrlMsg, NavigationDirection};
-use servo_msg::constellation_msg::{LoadData, PipelineId, Failure, FailureMsg, WindowSizeData};
+use servo_msg::constellation_msg::{LoadData, PipelineId, Failure, FailureMsg, WindowSizeData, Key, KeyState};
+use servo_msg::constellation_msg::{KeyModifiers, Super, Shift, Control, Alt, Repeated, Pressed};
+use servo_msg::constellation_msg::{Released};
 use servo_msg::constellation_msg;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
@@ -908,9 +912,55 @@ impl ScriptTask {
               self.handle_mouse_move_event(pipeline_id, point);
             }
 
-            KeyEvent(key, state) => {
-                println!("key {} is {}", key as int, state as int);
+            KeyEvent(key, state, modifiers) => {
+                self.dispatch_key_event(key, state, modifiers, pipeline_id);
             }
+        }
+    }
+
+    /// The entry point for all key processing for web content
+    fn dispatch_key_event(&self, key: Key,
+                          state: KeyState,
+                          modifiers: KeyModifiers,
+                          pipeline_id: PipelineId) {
+        println!("key {} is {}", key as int, state as int);
+        let page = get_page(&*self.page.borrow(), pipeline_id);
+        let frame = page.frame();
+        let window = frame.as_ref().unwrap().window.root();
+        let doc = window.Document().root();
+        let body = doc.GetBody().root();
+
+        let target: JSRef<EventTarget> = match body {
+            Some(body) => EventTargetCast::from_ref(*body),
+            None => EventTargetCast::from_ref(*window),
+        };
+
+        let ctrl = modifiers.contains(Control);
+        let alt = modifiers.contains(Alt);
+        let shift = modifiers.contains(Shift);
+        let meta = modifiers.contains(Super);
+
+        let is_composing = false;
+        let is_repeating = state == Repeated;
+        let ev_type = match state {
+            Pressed | Repeated => "keydown",
+            Released => "keyup",
+        }.to_string();
+
+        let props = KeyboardEvent::key_properties(key);
+
+        let event = KeyboardEvent::new(*window, ev_type, true, true, Some(*window), 0,
+                                       props.key.clone(), props.code.clone(), props.location,
+                                       is_repeating, is_composing, ctrl, alt, shift, meta,
+                                       props.char_code, props.key_code).root();
+        let _ = target.DispatchEvent(EventCast::from_ref(*event));
+
+        if state != Released && props.is_printable() {
+        let event = KeyboardEvent::new(*window, "keypress".to_string(), true, true, Some(*window),
+                                       0, props.key.clone(), props.code.clone(), props.location,
+                                       is_repeating, is_composing, ctrl, alt, shift, meta,
+                                       props.char_code, props.key_code).root();
+            let _ = target.DispatchEvent(EventCast::from_ref(*event));
         }
     }
 

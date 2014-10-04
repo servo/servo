@@ -14,6 +14,7 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{Event, KeyboardEventTypeId};
 use dom::uievent::UIEvent;
 use dom::window::Window;
+use servo_msg::constellation_msg;
 use servo_util::str::DOMString;
 use std::cell::{RefCell, Cell};
 
@@ -108,6 +109,32 @@ impl KeyboardEvent {
                                        init.parent.altKey, init.parent.shiftKey, init.parent.metaKey,
                                        None, 0);
         Ok(event)
+    }
+
+    pub fn key_properties(key: constellation_msg::Key) -> KeyEventProperties {
+        match key {
+            _ => KeyEventProperties {
+                key: "".to_string(),
+                code: "".to_string(),
+                location: 0,
+                char_code: None,
+                key_code: 0,
+            }
+        }
+    }
+}
+
+pub struct KeyEventProperties {
+    pub key: DOMString,
+    pub code: DOMString,
+    pub location: u32,
+    pub char_code: Option<u32>,
+    pub key_code: u32,
+}
+
+impl KeyEventProperties {
+    pub fn is_printable(&self) -> bool {
+        self.char_code.is_some()
     }
 }
 

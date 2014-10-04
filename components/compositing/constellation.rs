@@ -22,7 +22,7 @@ use servo_msg::constellation_msg::{IFrameSandboxState, IFrameUnsandboxed, InitLo
 use servo_msg::constellation_msg::{LoadCompleteMsg, LoadUrlMsg, LoadData, Msg, NavigateMsg};
 use servo_msg::constellation_msg::{NavigationType, PipelineId, RendererReadyMsg, ResizedWindowMsg};
 use servo_msg::constellation_msg::{ScriptLoadedURLInIFrameMsg, SubpageId, WindowSizeData};
-use servo_msg::constellation_msg::{KeyEvent, Key, KeyState};
+use servo_msg::constellation_msg::{KeyEvent, Key, KeyState, KeyModifiers};
 use servo_msg::constellation_msg;
 use servo_net::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 use servo_net::resource_task::ResourceTask;
@@ -452,9 +452,9 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 debug!("constellation got window resize message");
                 self.handle_resized_window_msg(new_size);
             }
-            KeyEvent(key, state) => {
+            KeyEvent(key, state, modifiers) => {
                 debug!("constellation got key event message");
-                self.handle_key_msg(key, state);
+                self.handle_key_msg(key, state, modifiers);
             }
         }
         true
@@ -767,10 +767,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             .any(|current_frame| current_frame.contains(pipeline_id))
     }
 
-    fn handle_key_msg(&self, key: Key, state: KeyState) {
+    fn handle_key_msg(&self, key: Key, state: KeyState, mods: KeyModifiers) {
         self.current_frame().as_ref().map(|frame| {
             let ScriptControlChan(ref chan) = frame.pipeline.script_chan;
-            chan.send(SendEventMsg(frame.pipeline.id, script_traits::KeyEvent(key, state)));
+            chan.send(SendEventMsg(frame.pipeline.id, script_traits::KeyEvent(key, state, mods)));
         });
     }
 
