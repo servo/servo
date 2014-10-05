@@ -167,3 +167,4 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == box_sizing_border_box_a.html box_sizing_border_box_ref.html
 != input_height_a.html input_height_ref.html
 == pre_ignorable_whitespace_a.html pre_ignorable_whitespace_ref.html
+== many_brs_a.html many_brs_ref.html
