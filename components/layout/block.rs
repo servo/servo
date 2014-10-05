@@ -1337,7 +1337,7 @@ impl BlockFlow {
 
         for (i, kid) in self.base.child_iter().enumerate() {
             {
-                let mut kid_base = flow::mut_base(kid);
+                let kid_base = flow::mut_base(kid);
                 kid_base.block_container_explicit_block_size = explicit_content_size;
                 kid_base.absolute_static_i_offset = absolute_static_i_offset;
                 kid_base.fixed_static_i_offset = fixed_static_i_offset;
