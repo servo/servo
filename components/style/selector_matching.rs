@@ -10,14 +10,18 @@ use sync::Arc;
 use url::Url;
 
 use servo_util::bloom::BloomFilter;
+use servo_util::geometry::Au;
 use servo_util::resource_files::read_resource_file;
 use servo_util::smallvec::VecLike;
 use servo_util::sort;
+use servo_util::str::{AutoLpa, LengthLpa, PercentageLpa};
 use string_cache::Atom;
 
+use legacy::{SizeIntegerAttribute, WidthLengthAttribute};
 use media_queries::{Device, Screen};
 use node::{TElement, TNode};
-use properties::{PropertyDeclaration, PropertyDeclarationBlock};
+use properties::{PropertyDeclaration, PropertyDeclarationBlock, SpecifiedValue, WidthDeclaration};
+use properties::{specified};
 use selectors::*;
 use stylesheets::{Stylesheet, iter_stylesheet_style_rules};
 
@@ -347,17 +351,17 @@ impl Stylist {
     /// The returned boolean indicates whether the style is *shareable*; that is, whether the
     /// matched selectors are simple enough to allow the matching logic to be reduced to the logic
     /// in `css::matching::PrivateMatchMethods::candidate_element_allows_for_style_sharing`.
-    pub fn push_applicable_declarations<'a,
-                                        E:TElement<'a>,
-                                        N:TNode<'a, E>,
-                                        V:VecLike<DeclarationBlock>>(
+    pub fn push_applicable_declarations<'a,E,N,V>(
                                         &self,
                                         element: &N,
                                         parent_bf: &Option<BloomFilter>,
                                         style_attribute: Option<&PropertyDeclarationBlock>,
                                         pseudo_element: Option<PseudoElement>,
                                         applicable_declarations: &mut V)
-                                        -> bool {
+                                        -> bool
+                                        where E: TElement<'a>,
+                                              N: TNode<'a,E>,
+                                              V: VecLike<DeclarationBlock> {
         assert!(element.is_element());
         assert!(style_attribute.is_none() || pseudo_element.is_none(),
                 "Style attributes do not apply to pseudo-elements");
@@ -370,33 +374,46 @@ impl Stylist {
 
         let mut shareable = true;
 
-        // Step 1: Normal rules.
+        // Step 1: Virtual rules that are synthesized from legacy HTML attributes.
+        self.synthesize_presentational_hints_for_legacy_attributes(element,
+                                                                   applicable_declarations,
+                                                                   &mut shareable);
+
+        // Step 2: Normal rules.
         map.user_agent.normal.get_all_matching_rules(element,
                                                      parent_bf,
                                                      applicable_declarations,
                                                      &mut shareable);
-        map.user.normal.get_all_matching_rules(element, parent_bf, applicable_declarations, &mut shareable);
-        map.author.normal.get_all_matching_rules(element, parent_bf, applicable_declarations, &mut shareable);
+        map.user.normal.get_all_matching_rules(element,
+                                               parent_bf,
+                                               applicable_declarations,
+                                               &mut shareable);
+        map.author.normal.get_all_matching_rules(element,
+                                                 parent_bf,
+                                                 applicable_declarations,
+                                                 &mut shareable);
 
-        // Step 2: Normal style attributes.
+        // Step 3: Normal style attributes.
         style_attribute.map(|sa| {
             shareable = false;
-            applicable_declarations.vec_push(DeclarationBlock::from_declarations(sa.normal.clone()))
+            applicable_declarations.vec_push(DeclarationBlock::from_declarations(sa.normal
+                                                                                   .clone()))
         });
 
-        // Step 3: Author-supplied `!important` rules.
+        // Step 4: Author-supplied `!important` rules.
         map.author.important.get_all_matching_rules(element,
                                                     parent_bf,
                                                     applicable_declarations,
                                                     &mut shareable);
 
-        // Step 4: `!important` style attributes.
+        // Step 5: `!important` style attributes.
         style_attribute.map(|sa| {
             shareable = false;
-            applicable_declarations.vec_push(DeclarationBlock::from_declarations(sa.important.clone()))
+            applicable_declarations.vec_push(DeclarationBlock::from_declarations(sa.important
+                                                                                   .clone()))
         });
 
-        // Step 5: User and UA `!important` rules.
+        // Step 6: User and UA `!important` rules.
         map.user.important.get_all_matching_rules(element,
                                                   parent_bf,
                                                   applicable_declarations,
@@ -407,6 +424,61 @@ impl Stylist {
                                                         &mut shareable);
 
         shareable
+    }
+
+    /// Synthesizes rules from various HTML attributes (mostly legacy junk from HTML4) that confer
+    /// *presentational hints* as defined in the HTML5 specification. This handles stuff like
+    /// `<body bgcolor>`, `<input size>`, `<td width>`, and so forth.
+    fn synthesize_presentational_hints_for_legacy_attributes<'a,E,N,V>(
+                                                             &self,
+                                                             node: &N,
+                                                             matching_rules_list: &mut V,
+                                                             shareable: &mut bool)
+                                                             where E: TElement<'a>,
+                                                                   N: TNode<'a,E>,
+                                                                   V: VecLike<DeclarationBlock> {
+        let element = node.as_element();
+        match element.get_local_name() {
+            name if *name == atom!("td") => {
+                match element.get_length_attribute(WidthLengthAttribute) {
+                    AutoLpa => {}
+                    PercentageLpa(percentage) => {
+                        let width_value = specified::LPA_Percentage(percentage);
+                        matching_rules_list.vec_push(DeclarationBlock::from_declaration(
+                                WidthDeclaration(SpecifiedValue(width_value))));
+                        *shareable = false
+                    }
+                    LengthLpa(length) => {
+                        let width_value = specified::LPA_Length(specified::Au_(length));
+                        matching_rules_list.vec_push(DeclarationBlock::from_declaration(
+                                WidthDeclaration(SpecifiedValue(width_value))));
+                        *shareable = false
+                    }
+                };
+            }
+            name if *name == atom!("input") => {
+                match element.get_integer_attribute(SizeIntegerAttribute) {
+                    Some(value) if value != 0 => {
+                        // Per HTML 4.01 § 17.4, this value is in characters if `type` is `text` or
+                        // `password` and in pixels otherwise.
+                        //
+                        // FIXME(pcwalton): More use of atoms, please!
+                        let value = match element.get_attr(&ns!(""), "type") {
+                            Some("text") | Some("password") => {
+                                specified::ServoCharacterWidth(value)
+                            }
+                            _ => specified::Au_(Au::from_px(value as int)),
+                        };
+                        matching_rules_list.vec_push(DeclarationBlock::from_declaration(
+                                WidthDeclaration(SpecifiedValue(specified::LPA_Length(
+                                            value)))));
+                        *shareable = false
+                    }
+                    Some(_) | None => {}
+                }
+            }
+            _ => {}
+        }
     }
 }
 
@@ -468,6 +540,13 @@ impl DeclarationBlock {
             source_order: 0,
             specificity: 0,
         }
+    }
+
+    /// A convenience function to create a declaration block from a single declaration. This is
+    /// primarily used in `synthesize_rules_for_legacy_attributes`.
+    #[inline]
+    pub fn from_declaration(rule: PropertyDeclaration) -> DeclarationBlock {
+        DeclarationBlock::from_declarations(Arc::new(vec![rule]))
     }
 }
 
@@ -1074,3 +1153,4 @@ mod tests {
         assert!(selector_map.class_hash.find(&Atom::from_slice("foo")).is_none());
     }
 }
+

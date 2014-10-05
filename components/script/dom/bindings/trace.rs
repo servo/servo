@@ -51,6 +51,7 @@ use http::method::Method;
 use std::io::timer::Timer;
 use servo_msg::compositor_msg::ScriptListener;
 use servo_msg::constellation_msg::ConstellationChan;
+use servo_util::str::LengthOrPercentageOrAuto;
 use layout_interface::{LayoutRPC, LayoutChan};
 use dom::bindings::utils::WindowProxyHandler;
 
@@ -220,3 +221,6 @@ impl JSTraceable for Box<LayoutRPC+'static> {
         // Do nothing
     }
 }
+
+untraceable!(LengthOrPercentageOrAuto)
+

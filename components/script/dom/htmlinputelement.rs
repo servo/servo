@@ -50,7 +50,7 @@ pub struct HTMLInputElement {
     checked: Cell<bool>,
     uncommitted_value: RefCell<Option<String>>,
     value: RefCell<Option<String>>,
-    size: Cell<u32>,
+    pub size: Cell<u32>,
 }
 
 impl HTMLInputElementDerived for EventTarget {
