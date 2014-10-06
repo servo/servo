@@ -440,16 +440,16 @@ extern "C" fn on_framebuffer_size(_glfw_window: *mut glfw::ffi::GLFWwindow,
 fn glfw_mods_to_script_mods(mods: glfw::Modifiers) -> constellation_msg::KeyModifiers {
     let mut result = constellation_msg::KeyModifiers::from_bits(0).unwrap();
     if mods.contains(glfw::Shift) {
-        result.insert(constellation_msg::Shift);
+        result.insert(constellation_msg::SHIFT);
     }
     if mods.contains(glfw::Alt) {
-        result.insert(constellation_msg::Alt);
+        result.insert(constellation_msg::ALT);
     }
     if mods.contains(glfw::Control) {
-        result.insert(constellation_msg::Control);
+        result.insert(constellation_msg::CONTROL);
     }
     if mods.contains(glfw::Super) {
-        result.insert(constellation_msg::Super);
+        result.insert(constellation_msg::SUPER);
     }
     result
 }
