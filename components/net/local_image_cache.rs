@@ -16,19 +16,19 @@ use std::collections::hashmap::HashMap;
 use servo_util::task::spawn_named;
 use url::Url;
 
-pub trait ImageResponder {
-    fn respond(&self) -> proc(ImageResponseMsg):Send;
+pub trait ImageResponder<NodeAddress: Send> {
+    fn respond(&self) -> proc(ImageResponseMsg, NodeAddress):Send;
 }
 
-pub struct LocalImageCache {
+pub struct LocalImageCache<NodeAddress> {
     image_cache_task: ImageCacheTask,
     round_number: uint,
-    on_image_available: Option<Box<ImageResponder+Send>>,
+    on_image_available: Option<Box<ImageResponder<NodeAddress>+Send>>,
     state_map: HashMap<Url, ImageState>
 }
 
-impl LocalImageCache {
-    pub fn new(image_cache_task: ImageCacheTask) -> LocalImageCache {
+impl<NodeAddress: Send> LocalImageCache<NodeAddress> {
+    pub fn new(image_cache_task: ImageCacheTask) -> LocalImageCache<NodeAddress> {
         LocalImageCache {
             image_cache_task: image_cache_task,
             round_number: 1,
@@ -46,10 +46,10 @@ struct ImageState {
     last_response: ImageResponseMsg
 }
 
-impl LocalImageCache {
+impl<NodeAddress: Send> LocalImageCache<NodeAddress> {
     /// The local cache will only do a single remote request for a given
     /// URL in each 'round'. Layout should call this each time it begins
-    pub fn next_round(&mut self, on_image_available: Box<ImageResponder+Send>) {
+    pub fn next_round(&mut self, on_image_available: Box<ImageResponder<NodeAddress> + Send>) {
         self.round_number += 1;
         self.on_image_available = Some(on_image_available);
     }
@@ -80,7 +80,7 @@ impl LocalImageCache {
     }
 
     // FIXME: Should return a Future
-    pub fn get_image(&mut self, url: &Url) -> Receiver<ImageResponseMsg> {
+    pub fn get_image(&mut self, node_address: NodeAddress, url: &Url) -> Receiver<ImageResponseMsg> {
         {
             let round_number = self.round_number;
             let state = self.get_state(url);
@@ -127,12 +127,13 @@ impl LocalImageCache {
                 // on the image to load and triggering layout
                 let image_cache_task = self.image_cache_task.clone();
                 assert!(self.on_image_available.is_some());
-                let on_image_available: proc(ImageResponseMsg):Send = self.on_image_available.as_ref().unwrap().respond();
+                let on_image_available: proc(ImageResponseMsg, NodeAddress):Send =
+                    self.on_image_available.as_ref().unwrap().respond();
                 let url = (*url).clone();
                 spawn_named("LocalImageCache", proc() {
                     let (response_chan, response_port) = channel();
-                    image_cache_task.send(WaitForImage(url.clone(), response_chan));
-                    on_image_available(response_port.recv());
+                    image_cache_task.send(WaitForImage(url, response_chan));
+                    on_image_available(response_port.recv(), node_address);
                 });
             }
             _ => ()

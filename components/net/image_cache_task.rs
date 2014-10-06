@@ -227,8 +227,8 @@ impl ImageCache {
         }
     }
 
-    fn get_state(&self, url: Url) -> ImageState {
-        match self.state_map.find(&url) {
+    fn get_state(&self, url: &Url) -> ImageState {
+        match self.state_map.find(url) {
             Some(state) => state.clone(),
             None => Init
         }
@@ -239,7 +239,7 @@ impl ImageCache {
     }
 
     fn prefetch(&mut self, url: Url) {
-        match self.get_state(url.clone()) {
+        match self.get_state(&url) {
             Init => {
                 let to_cache = self.chan.clone();
                 let resource_task = self.resource_task.clone();
@@ -270,7 +270,7 @@ impl ImageCache {
     }
 
     fn store_prefetched_image_data(&mut self, url: Url, data: Result<Vec<u8>, ()>) {
-        match self.get_state(url.clone()) {
+        match self.get_state(&url) {
           Prefetching(next_step) => {
             match data {
               Ok(data) => {
@@ -298,7 +298,7 @@ impl ImageCache {
     }
 
     fn decode(&mut self, url: Url) {
-        match self.get_state(url.clone()) {
+        match self.get_state(&url) {
             Init => fail!("decoding image before prefetch"),
 
             Prefetching(DoNotDecode) => {
@@ -338,7 +338,7 @@ impl ImageCache {
 
     fn store_image(&mut self, url: Url, image: Option<Arc<Box<Image>>>) {
 
-        match self.get_state(url.clone()) {
+        match self.get_state(&url) {
           Decoding => {
             match image {
               Some(image) => {
@@ -376,7 +376,7 @@ impl ImageCache {
     }
 
     fn get_image(&self, url: Url, response: Sender<ImageResponseMsg>) {
-        match self.get_state(url.clone()) {
+        match self.get_state(&url) {
             Init => fail!("request for image before prefetch"),
             Prefetching(DoDecode) => response.send(ImageNotReady),
             Prefetching(DoNotDecode) | Prefetched(..) => fail!("request for image before decode"),
@@ -387,7 +387,7 @@ impl ImageCache {
     }
 
     fn wait_for_image(&mut self, url: Url, response: Sender<ImageResponseMsg>) {
-        match self.get_state(url.clone()) {
+        match self.get_state(&url) {
             Init => fail!("request for image before prefetch"),
 
             Prefetching(DoNotDecode) | Prefetched(..) => fail!("request for image before decode"),

@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use std::fmt;
+use std::sync::Arc;
 use style::ComputedValues;
 
 bitflags! {
@@ -35,6 +37,32 @@ impl RestyleDamage {
     }
 }
 
+impl fmt::Show for RestyleDamage {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::FormatError> {
+        let mut first_elem = true;
+
+        let to_iter =
+            [ (Repaint,      "Repaint")
+            , (BubbleISizes, "BubbleISizes")
+            , (Reflow,       "Reflow")
+            ];
+
+        for &(damage, damage_str) in to_iter.iter() {
+            if self.contains(damage) {
+                if !first_elem { try!(write!(f, " | ")); }
+                try!(write!(f, "{}", damage_str));
+                first_elem = false;
+            }
+        }
+
+        if first_elem {
+            try!(write!(f, "NoDamage"));
+        }
+
+        Ok(())
+    }
+}
+
 // NB: We need the braces inside the RHS due to Rust #8012.  This particular
 // version of this macro might be safe anyway, but we want to avoid silent
 // breakage on modifications.
@@ -47,7 +75,13 @@ macro_rules! add_if_not_equal(
     })
 )
 
-pub fn compute_damage(old: &ComputedValues, new: &ComputedValues) -> RestyleDamage {
+pub fn compute_damage(old: &Option<Arc<ComputedValues>>, new: &ComputedValues) -> RestyleDamage {
+    let old: &ComputedValues =
+        match old.as_ref() {
+            None => return Repaint | BubbleISizes | Reflow,
+            Some(cv) => &**cv,
+        };
+
     let mut damage = RestyleDamage::empty();
 
     // This checks every CSS property, as enumerated in

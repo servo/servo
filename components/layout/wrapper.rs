@@ -33,9 +33,11 @@
 //!   o Instead of `html_element_in_html_document()`, use
 //!     `html_element_in_html_document_for_layout()`.
 
+use context::SharedLayoutContext;
 use css::node_style::StyledNode;
-use util::{LayoutDataAccess, LayoutDataWrapper, PrivateLayoutData};
+use util::{LayoutDataAccess, LayoutDataWrapper, PrivateLayoutData, OpaqueNodeMethods};
 
+use gfx::display_list::OpaqueNode;
 use script::dom::bindings::codegen::InheritTypes::{HTMLIFrameElementDerived, HTMLInputElementDerived};
 use script::dom::bindings::codegen::InheritTypes::{HTMLImageElementDerived, TextDerived};
 use script::dom::bindings::js::JS;
@@ -46,6 +48,7 @@ use script::dom::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelp
 use script::dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
 use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, Node, NodeTypeId};
 use script::dom::node::{LayoutNodeHelpers, RawLayoutNodeHelpers, SharedLayoutData, TextNodeTypeId};
+use script::dom::node::{IsDirty, HasDirtyDescendants};
 use script::dom::text::Text;
 use script::layout_interface::LayoutChan;
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
@@ -158,7 +161,6 @@ impl<'a> PartialEq for LayoutNode<'a> {
     }
 }
 
-
 impl<'ln> TLayoutNode for LayoutNode<'ln> {
     unsafe fn new_with_this_lifetime(&self, node: &JS<Node>) -> LayoutNode<'ln> {
         LayoutNode {
@@ -249,6 +251,21 @@ impl<'ln> LayoutNode<'ln> {
             Some(_) => {}
         }
     }
+
+    pub fn has_children(&self) -> bool {
+        self.first_child().is_some()
+    }
+
+    /// While doing a reflow, the node at the root has no parent, as far as we're
+    /// concerned. This method returns `None` at the reflow root.
+    pub fn layout_parent_node(&self, shared: &SharedLayoutContext) -> Option<LayoutNode<'ln>> {
+        let opaque_node: OpaqueNode = OpaqueNodeMethods::from_layout_node(self);
+        if opaque_node == shared.reflow_root {
+            None
+        } else {
+            self.parent_node()
+        }
+    }
 }
 
 impl<'ln> TNode<'ln, LayoutElement<'ln>> for LayoutNode<'ln> {
@@ -324,6 +341,22 @@ impl<'ln> TNode<'ln, LayoutElement<'ln>> for LayoutNode<'ln> {
                 element.html_element_in_html_document_for_layout()
             }
         }
+    }
+
+    fn is_dirty(self) -> bool {
+        unsafe { self.node.get_flag(IsDirty) }
+    }
+
+    unsafe fn set_dirty(self, value: bool) {
+        self.node.set_flag(IsDirty, value)
+    }
+
+    fn has_dirty_descendants(self) -> bool {
+        unsafe { self.node.get_flag(HasDirtyDescendants) }
+    }
+
+    unsafe fn set_dirty_descendants(self, value: bool) {
+        self.node.set_flag(HasDirtyDescendants, value)
     }
 }
 
@@ -855,4 +888,3 @@ pub unsafe fn layout_node_from_unsafe_layout_node(node: &UnsafeLayoutNode) -> La
     let (node, _) = *node;
     mem::transmute(node)
 }
-

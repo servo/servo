@@ -11,6 +11,7 @@ use flow::{BaseFlow, FlowClass, Flow, InlineFlowClass, MutableFlowUtils};
 use flow;
 use fragment::{Fragment, InlineBlockFragment, ScannedTextFragment, ScannedTextFragmentInfo};
 use fragment::{SplitInfo};
+use incremental;
 use layout_debug;
 use model::IntrinsicISizes;
 use text;
@@ -494,7 +495,7 @@ impl LineBreaker {
             self.push_fragment_to_line(in_fragment);
             true
         } else {
-            debug!("LineBreaker: Found a new-line character, so splitting theline.");
+            debug!("LineBreaker: Found a new-line character, so splitting the line.");
 
             let (inline_start, inline_end, run) = in_fragment.find_split_info_by_new_line()
                 .expect("LineBreaker: This split case makes no sense!");
@@ -621,7 +622,7 @@ impl LineBreaker {
                 true
             },
             Some((None, None)) => {
-                error!("LineBreaker: This split case makes no sense!");
+                debug!("LineBreaker: Nothing to do.");
                 true
             },
         }
@@ -763,13 +764,22 @@ pub struct InlineFlow {
 
 impl InlineFlow {
     pub fn from_fragments(node: ThreadSafeLayoutNode, fragments: InlineFragments) -> InlineFlow {
-        InlineFlow {
+        let fragment_damage =
+            fragments.fragments.iter().fold(
+                incremental::RestyleDamage::empty(),
+                |dmg, frag| dmg | frag.restyle_damage);
+
+        let mut ret = InlineFlow {
             base: BaseFlow::new(node),
             fragments: fragments,
             lines: Vec::new(),
             minimum_block_size_above_baseline: Au(0),
             minimum_depth_below_baseline: Au(0),
-        }
+        };
+
+        ret.base.restyle_damage.insert(fragment_damage);
+
+        ret
     }
 
     pub fn build_display_list_inline(&mut self, layout_context: &LayoutContext) {
@@ -1273,4 +1283,3 @@ impl InlineMetrics {
         }
     }
 }
-

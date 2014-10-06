@@ -293,7 +293,7 @@ pub enum BackgroundAndBorderLevel {
 }
 
 /// A list of rendering operations to be performed.
-#[deriving(Clone)]
+#[deriving(Clone, Show)]
 pub struct DisplayList {
     pub list: DList<DisplayItem>,
 }
@@ -357,8 +357,9 @@ impl DisplayList {
     }
 
     /// Returns true if this list is empty and false otherwise.
+    #[inline]
     fn is_empty(&self) -> bool {
-        self.list.len() == 0
+        self.list.is_empty()
     }
 
     /// Flattens a display list into a display list with a single stacking level according to the

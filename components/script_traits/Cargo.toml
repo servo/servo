@@ -13,6 +13,9 @@ path = "../msg"
 [dependencies.net]
 path = "../net"
 
+[dependencies.util]
+path = "../util"
+
 [dependencies.devtools_traits]
 path = "../devtools_traits"
 

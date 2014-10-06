@@ -471,6 +471,13 @@ pub trait PreorderFlowTraversal {
     /// The operation to perform. Return true to continue or false to stop.
     fn process(&mut self, flow: &mut Flow) -> bool;
 
+    /// Returns true if this node must be processed in-order. If this returns false,
+    /// we skip the operation for this node, but continue processing the descendants.
+    /// This is called *after* parent nodes are visited.
+    fn should_process(&mut self, _flow: &mut Flow) -> bool {
+        true
+    }
+
     /// Returns true if this node should be pruned. If this returns true, we skip the operation
     /// entirely and do not process any descendant nodes. This is called *before* child nodes are
     /// visited. The default implementation never prunes any nodes.
@@ -1031,6 +1038,10 @@ impl<'a> MutableFlowUtils for &'a mut Flow + 'a {
             return true
         }
 
+        if !traversal.should_process(self) {
+            return true
+        }
+
         if !traversal.process(self) {
             return false
         }
@@ -1240,4 +1251,3 @@ impl ContainingBlockLink {
         }
     }
 }
-

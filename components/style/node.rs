@@ -19,6 +19,12 @@ pub trait TNode<'a, E: TElement<'a>> : Clone + Copy {
     fn as_element(self) -> E;
     fn match_attr(self, attr: &AttrSelector, test: |&str| -> bool) -> bool;
     fn is_html_element_in_html_document(self) -> bool;
+
+    fn is_dirty(self) -> bool;
+    unsafe fn set_dirty(self, value: bool);
+
+    fn has_dirty_descendants(self) -> bool;
+    unsafe fn set_dirty_descendants(self, value: bool);
 }
 
 pub trait TElement<'a> : Copy {

@@ -13,7 +13,6 @@ use flow::{Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
 use flow::{PreorderFlowTraversal, PostorderFlowTraversal};
 use flow;
 use flow_ref::FlowRef;
-use incremental::RestyleDamage;
 use layout_debug;
 use parallel::UnsafeFlow;
 use parallel;
@@ -38,10 +37,11 @@ use script::dom::element::{HTMLBodyElementTypeId, HTMLHtmlElementTypeId};
 use script::layout_interface::{AddStylesheetMsg, LoadStylesheetMsg, ScriptLayoutChan};
 use script::layout_interface::{TrustedNodeAddress, ContentBoxesResponse, ExitNowMsg};
 use script::layout_interface::{ContentBoxResponse, HitTestResponse, MouseOverResponse};
-use script::layout_interface::{ContentChangedDocumentDamage, LayoutChan, Msg, PrepareToExitMsg};
-use script::layout_interface::{GetRPCMsg, LayoutRPC, ReapLayoutDataMsg, Reflow, UntrustedNodeAddress};
+use script::layout_interface::{LayoutChan, Msg, PrepareToExitMsg};
+use script::layout_interface::{GetRPCMsg, LayoutRPC, ReapLayoutDataMsg, Reflow};
 use script::layout_interface::{ReflowForDisplay, ReflowMsg};
-use script_traits::{SendEventMsg, ReflowEvent, ReflowCompleteMsg, OpaqueScriptLayoutChannel, ScriptControlChan};
+use script_traits::{SendEventMsg, ReflowEvent, ReflowCompleteMsg, OpaqueScriptLayoutChannel};
+use script_traits::{ScriptControlChan, UntrustedNodeAddress};
 use servo_msg::compositor_msg::Scrollable;
 use servo_msg::constellation_msg::{ConstellationChan, PipelineId, Failure, FailureMsg};
 use servo_net::image_cache_task::{ImageCacheTask, ImageResponseMsg};
@@ -53,7 +53,7 @@ use servo_util::geometry::Au;
 use servo_util::geometry;
 use servo_util::logical_geometry::LogicalPoint;
 use servo_util::opts::Opts;
-use servo_util::smallvec::{SmallVec, SmallVec1};
+use servo_util::smallvec::{SmallVec, SmallVec1, VecLike};
 use servo_util::task::spawn_named_with_send_on_failure;
 use servo_util::time::{TimeProfilerChan, profile};
 use servo_util::time;
@@ -63,7 +63,7 @@ use std::comm::{channel, Sender, Receiver, Select};
 use std::mem;
 use std::ptr;
 use style;
-use style::{AuthorOrigin, Stylesheet, Stylist};
+use style::{TNode, AuthorOrigin, Stylesheet, Stylist};
 use style::iter_font_face_rules;
 use sync::{Arc, Mutex, MutexGuard};
 use url::Url;
@@ -73,7 +73,7 @@ use url::Url;
 /// This needs to be protected by a mutex so we can do fast RPCs.
 pub struct LayoutTaskData {
     /// The local image cache.
-    pub local_image_cache: Arc<Mutex<LocalImageCache>>,
+    pub local_image_cache: Arc<Mutex<LocalImageCache<UntrustedNodeAddress>>>,
 
     /// The size of the viewport.
     pub screen_size: Size2D<Au>,
@@ -92,6 +92,10 @@ pub struct LayoutTaskData {
     /// Starts at zero, and increased by one every time a layout completes.
     /// This can be used to easily check for invalid stale data.
     pub generation: uint,
+
+    /// True if a style sheet was added since the last reflow. Currently, this causes all nodes to
+    /// be dirtied at the next reflow.
+    pub stylesheet_dirty: bool,
 }
 
 /// Information needed by the layout task.
@@ -140,47 +144,6 @@ pub struct LayoutTask {
     ///
     /// All the other elements of this struct are read-only.
     pub rw_data: Arc<Mutex<LayoutTaskData>>,
-}
-
-/// The damage computation traversal.
-#[deriving(Clone)]
-struct ComputeDamageTraversal;
-
-impl PostorderFlowTraversal for ComputeDamageTraversal {
-    #[inline]
-    fn process(&mut self, flow: &mut Flow) -> bool {
-        let mut damage = flow::base(flow).restyle_damage;
-        for child in flow::child_iter(flow) {
-            damage.insert(flow::base(child).restyle_damage.propagate_up())
-        }
-        flow::mut_base(flow).restyle_damage = damage;
-        true
-    }
-}
-
-/// Propagates restyle damage up and down the tree as appropriate.
-///
-/// FIXME(pcwalton): Merge this with flow tree building and/or other traversals.
-struct PropagateDamageTraversal {
-    all_style_damage: bool,
-}
-
-impl PreorderFlowTraversal for PropagateDamageTraversal {
-    #[inline]
-    fn process(&mut self, flow: &mut Flow) -> bool {
-        if self.all_style_damage {
-            flow::mut_base(flow).restyle_damage.insert(RestyleDamage::all())
-        }
-        debug!("restyle damage = {:?}", flow::base(flow).restyle_damage);
-
-        let prop = flow::base(flow).restyle_damage.propagate_down();
-        if !prop.is_empty() {
-            for kid_ctx in flow::child_iter(flow) {
-                flow::mut_base(kid_ctx).restyle_damage.insert(prop)
-            }
-        }
-        true
-    }
 }
 
 /// The flow tree verification traversal. This is only on in debug builds.
@@ -290,14 +253,17 @@ struct LayoutImageResponder {
     script_chan: ScriptControlChan,
 }
 
-impl ImageResponder for LayoutImageResponder {
-    fn respond(&self) -> proc(ImageResponseMsg):Send {
+impl ImageResponder<UntrustedNodeAddress> for LayoutImageResponder {
+    fn respond(&self) -> proc(ImageResponseMsg, UntrustedNodeAddress):Send {
         let id = self.id.clone();
         let script_chan = self.script_chan.clone();
-        let f: proc(ImageResponseMsg):Send = proc(_) {
-            let ScriptControlChan(chan) = script_chan;
-            drop(chan.send_opt(SendEventMsg(id.clone(), ReflowEvent)))
-        };
+        let f: proc(ImageResponseMsg, UntrustedNodeAddress):Send =
+            proc(_, node_address) {
+                let ScriptControlChan(chan) = script_chan;
+                let mut nodes = SmallVec1::new();
+                nodes.vec_push(node_address);
+                drop(chan.send_opt(SendEventMsg(id.clone(), ReflowEvent(nodes))))
+            };
         f
     }
 }
@@ -418,6 +384,7 @@ impl LayoutTask {
                     parallel_traversal: parallel_traversal,
                     dirty: Rect::zero(),
                     generation: 0,
+                    stylesheet_dirty: false,
               })),
         }
     }
@@ -610,6 +577,7 @@ impl LayoutTask {
         });
         let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
         rw_data.stylist.add_stylesheet(sheet, AuthorOrigin);
+        rw_data.stylesheet_dirty = true;
         LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
     }
 
@@ -739,23 +707,13 @@ impl LayoutTask {
             local_image_cache.next_round(self.make_on_image_available_cb());
         }
 
-        // true => Do the reflow with full style damage, because content
-        // changed or the window was resized.
-        let mut all_style_damage = match data.damage.level {
-            ContentChangedDocumentDamage => true,
-            _ => false
-        };
-
         // TODO: Calculate the "actual viewport":
         // http://www.w3.org/TR/css-device-adapt/#actual-viewport
         let viewport_size = data.window_size.initial_viewport;
 
         let current_screen_size = Size2D(Au::from_frac32_px(viewport_size.width.get()),
                                          Au::from_frac32_px(viewport_size.height.get()));
-        if rw_data.screen_size != current_screen_size {
-            all_style_damage = true
-        }
-        rw_data.screen_size = current_screen_size;
+        let old_screen_size = mem::replace(&mut rw_data.screen_size, current_screen_size);
 
         // Create a layout context for use throughout the following passes.
         let mut shared_layout_ctx =
@@ -763,6 +721,20 @@ impl LayoutTask {
                 rw_data.deref(),
                 node,
                 &data.url);
+
+        // Handle conditions where the entire flow tree is invalid.
+        let mut needs_dirtying = false;
+
+        needs_dirtying |= current_screen_size != old_screen_size;
+        needs_dirtying |= rw_data.stylesheet_dirty;
+
+        unsafe {
+            if needs_dirtying {
+                LayoutTask::dirty_all_nodes(node);
+            }
+        }
+
+        rw_data.stylesheet_dirty = false;
 
         let mut layout_root = profile(time::LayoutStyleRecalcCategory,
                                       Some((&data.url,
@@ -803,15 +775,6 @@ impl LayoutTask {
         if self.opts.dump_flow_tree {
             layout_root.get_mut().dump();
         }
-
-        // Propagate damage.
-        profile(time::LayoutDamagePropagateCategory, Some((&data.url, data.iframe, self.first_reflow.get())),
-                self.time_profiler_chan.clone(), || {
-            layout_root.get_mut().traverse_preorder(&mut PropagateDamageTraversal {
-                all_style_damage: all_style_damage
-            });
-            layout_root.get_mut().traverse_postorder(&mut ComputeDamageTraversal.clone());
-        });
 
         // Perform the primary layout passes over the flow tree to compute the locations of all
         // the boxes.
@@ -859,6 +822,9 @@ impl LayoutTask {
                                                                  traversal);
                     }
                 }
+
+                debug!("Done building display list. Display List = {}",
+                       flow::base(layout_root.get()).display_list);
 
                 let root_display_list =
                     mem::replace(&mut flow::mut_base(layout_root.get_mut()).display_list,
@@ -939,13 +905,27 @@ impl LayoutTask {
         chan.send(ReflowCompleteMsg(self.id, data.id));
     }
 
+    unsafe fn dirty_all_nodes(node: &mut LayoutNode) {
+        node.set_dirty(true);
+
+        let mut has_children = false;
+
+        for mut kid in node.children() {
+            LayoutTask::dirty_all_nodes(&mut kid);
+            has_children = true;
+        }
+
+        if has_children {
+            node.set_dirty_descendants(true);
+        }
+    }
 
     // When images can't be loaded in time to display they trigger
     // this callback in some task somewhere. This will send a message
     // to the script task, and ultimately cause the image to be
     // re-requested. We probably don't need to go all the way back to
     // the script task for this.
-    fn make_on_image_available_cb(&self) -> Box<ImageResponder+Send> {
+    fn make_on_image_available_cb(&self) -> Box<ImageResponder<UntrustedNodeAddress>+Send> {
         // This has a crazy signature because the image cache needs to
         // make multiple copies of the callback, and the dom event
         // channel is not a copyable type, so this is actually a
@@ -953,7 +933,7 @@ impl LayoutTask {
         box LayoutImageResponder {
             id: self.id.clone(),
             script_chan: self.script_chan.clone(),
-        } as Box<ImageResponder+Send>
+        } as Box<ImageResponder<UntrustedNodeAddress>+Send>
     }
 
     /// Handles a message to destroy layout data. Layout data must be destroyed on *this* task

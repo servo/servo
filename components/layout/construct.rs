@@ -34,6 +34,7 @@ use fragment::{InlineBlockFragmentInfo, InputFragment, InputFragmentInfo, Specif
 use fragment::{TableCellFragment, TableColumnFragment, TableColumnFragmentInfo, TableFragment};
 use fragment::{TableRowFragment, TableWrapperFragment, UnscannedTextFragment};
 use fragment::{UnscannedTextFragmentInfo};
+use incremental::RestyleDamage;
 use inline::{InlineFragments, InlineFlow};
 use parallel;
 use table_wrapper::TableWrapperFlow;
@@ -88,7 +89,7 @@ pub enum ConstructionItem {
     /// Inline fragments and associated {ib} splits that have not yet found flows.
     InlineFragmentsConstructionItem(InlineFragmentsConstructionResult),
     /// Potentially ignorable whitespace.
-    WhitespaceConstructionItem(OpaqueNode, Arc<ComputedValues>),
+    WhitespaceConstructionItem(OpaqueNode, Arc<ComputedValues>, RestyleDamage),
     /// TableColumn Fragment
     TableColumnFragmentConstructionItem(Fragment),
 }
@@ -441,13 +442,15 @@ impl<'a> FlowConstructor<'a> {
                 abs_descendants.push_descendants(kid_abs_descendants);
             }
             ConstructionItemConstructionResult(WhitespaceConstructionItem(whitespace_node,
-                                                                          whitespace_style)) => {
+                                                                          whitespace_style,
+                                                                          whitespace_damage)) => {
                 // Add whitespace results. They will be stripped out later on when
                 // between block elements, and retained when between inline elements.
                 let fragment_info =
                     UnscannedTextFragment(UnscannedTextFragmentInfo::from_text(" ".to_string()));
                 let mut fragment = Fragment::from_opaque_node_and_style(whitespace_node,
                                                                         whitespace_style,
+                                                                        whitespace_damage,
                                                                         fragment_info);
                 inline_fragment_accumulator.fragments.push(&mut fragment);
             }
@@ -607,12 +610,14 @@ impl<'a> FlowConstructor<'a> {
                     abs_descendants.push_descendants(kid_abs_descendants);
                 }
                 ConstructionItemConstructionResult(WhitespaceConstructionItem(whitespace_node,
-                                                                              whitespace_style))
+                                                                              whitespace_style,
+                                                                              whitespace_damage))
                         => {
                     // Instantiate the whitespace fragment.
                     let fragment_info = UnscannedTextFragment(UnscannedTextFragmentInfo::from_text(" ".to_string()));
                     let mut fragment = Fragment::from_opaque_node_and_style(whitespace_node,
                                                                         whitespace_style,
+                                                                        whitespace_damage,
                                                                         fragment_info);
                     fragment_accumulator.fragments.push(&mut fragment)
                 }
@@ -654,7 +659,8 @@ impl<'a> FlowConstructor<'a> {
             let opaque_node = OpaqueNodeMethods::from_thread_safe_layout_node(node);
             return ConstructionItemConstructionResult(WhitespaceConstructionItem(
                 opaque_node,
-                node.style().clone()))
+                node.style().clone(),
+                node.restyle_damage()))
         }
 
         // If this is generated content, then we need to initialize the accumulator with the
@@ -1196,12 +1202,16 @@ impl FlowConstructionUtils for FlowRef {
     ///
     /// This must not be public because only the layout constructor can do this.
     fn add_new_child(&mut self, mut new_child: FlowRef) {
+        let base = flow::mut_base(self.get_mut());
+
         {
             let kid_base = flow::mut_base(new_child.get_mut());
+
+            base.restyle_damage.insert(kid_base.restyle_damage.propagate_up());
+
             kid_base.parallel.parent = parallel::mut_owned_flow_to_unsafe_flow(self);
         }
 
-        let base = flow::mut_base(self.get_mut());
         base.children.push_back(new_child);
         let _ = base.parallel.children_count.fetch_add(1, Relaxed);
         let _ = base.parallel.children_and_absolute_descendant_count.fetch_add(1, Relaxed);
