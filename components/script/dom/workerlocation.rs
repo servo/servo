@@ -6,7 +6,6 @@ use dom::bindings::codegen::Bindings::WorkerLocationBinding;
 use dom::bindings::codegen::Bindings::WorkerLocationBinding::WorkerLocationMethods;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::global::Worker;
-use dom::bindings::trace::Untraceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::urlhelper::UrlHelper;
 use dom::workerglobalscope::WorkerGlobalScope;
@@ -19,14 +18,14 @@ use url::Url;
 #[must_root]
 pub struct WorkerLocation {
     reflector_: Reflector,
-    url: Untraceable<Url>,
+    url: Url,
 }
 
 impl WorkerLocation {
     fn new_inherited(url: Url) -> WorkerLocation {
         WorkerLocation {
             reflector_: Reflector::new(),
-            url: Untraceable::new(url),
+            url: url,
         }
     }
 
@@ -39,15 +38,15 @@ impl WorkerLocation {
 
 impl<'a> WorkerLocationMethods for JSRef<'a, WorkerLocation> {
     fn Href(self) -> DOMString {
-        UrlHelper::Href(self.url.deref())
+        UrlHelper::Href(&self.url)
     }
 
     fn Search(self) -> DOMString {
-        UrlHelper::Search(self.url.deref())
+        UrlHelper::Search(&self.url)
     }
 
     fn Hash(self) -> DOMString {
-        UrlHelper::Hash(self.url.deref())
+        UrlHelper::Hash(&self.url)
     }
 }
 

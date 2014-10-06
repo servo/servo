@@ -3,8 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::js::{JS, JSRef, Temporary};
-use dom::bindings::trace::Traceable;
-use dom::bindings::utils::Reflectable;
+use dom::bindings::utils::{Reflectable, WindowProxyHandler};
 use dom::document::Document;
 use dom::window::Window;
 
@@ -12,7 +11,6 @@ use js::jsapi::JSObject;
 use js::glue::{WrapperNew, CreateWrapperProxyHandler, ProxyTraps};
 use js::rust::with_compartment;
 
-use libc::c_void;
 use std::ptr;
 
 #[allow(raw_pointer_deriving)]
@@ -20,7 +18,7 @@ use std::ptr;
 pub struct BrowserContext {
     history: Vec<SessionHistoryEntry>,
     active_index: uint,
-    window_proxy: Traceable<*mut JSObject>,
+    window_proxy: *mut JSObject,
 }
 
 impl BrowserContext {
@@ -28,7 +26,7 @@ impl BrowserContext {
         let mut context = BrowserContext {
             history: vec!(SessionHistoryEntry::new(document)),
             active_index: 0,
-            window_proxy: Traceable::new(ptr::null_mut()),
+            window_proxy: ptr::null_mut(),
         };
         context.create_window_proxy();
         context
@@ -44,8 +42,8 @@ impl BrowserContext {
     }
 
     pub fn window_proxy(&self) -> *mut JSObject {
-        assert!(self.window_proxy.deref().is_not_null());
-        *self.window_proxy
+        assert!(self.window_proxy.is_not_null());
+        self.window_proxy
     }
 
     fn create_window_proxy(&mut self) {
@@ -53,16 +51,16 @@ impl BrowserContext {
         let page = win.deref().page();
         let js_info = page.js_info();
 
-        let handler = js_info.as_ref().unwrap().dom_static.windowproxy_handler;
-        assert!(handler.deref().is_not_null());
+        let WindowProxyHandler(handler) = js_info.as_ref().unwrap().dom_static.windowproxy_handler;
+        assert!(handler.is_not_null());
 
         let parent = win.deref().reflector().get_jsobject();
-        let cx = js_info.as_ref().unwrap().js_context.deref().deref().ptr;
+        let cx = js_info.as_ref().unwrap().js_context.deref().ptr;
         let wrapper = with_compartment(cx, parent, || unsafe {
-            WrapperNew(cx, parent, *handler.deref())
+            WrapperNew(cx, parent, handler)
         });
         assert!(wrapper.is_not_null());
-        self.window_proxy = Traceable::new(wrapper);
+        self.window_proxy = wrapper;
     }
 }
 
@@ -114,8 +112,8 @@ static proxy_handler: ProxyTraps = ProxyTraps {
     trace: None
 };
 
-pub fn new_window_proxy_handler() -> *const c_void {
+pub fn new_window_proxy_handler() -> WindowProxyHandler {
     unsafe {
-        CreateWrapperProxyHandler(&proxy_handler)
+        WindowProxyHandler(CreateWrapperProxyHandler(&proxy_handler))
     }
 }

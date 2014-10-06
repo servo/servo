@@ -9,7 +9,6 @@ use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::error::{Fallible, InvalidCharacter};
 use dom::bindings::global;
 use dom::bindings::js::{MutNullableJS, JSRef, Temporary, OptionalSettable};
-use dom::bindings::trace::{Traceable, Untraceable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::browsercontext::BrowserContext;
 use dom::console::Console;
@@ -60,7 +59,7 @@ pub struct TimerId(i32);
 pub struct TimerHandle {
     handle: TimerId,
     pub data: TimerData,
-    cancel_chan: Untraceable<Option<Sender<()>>>,
+    cancel_chan: Option<Sender<()>>,
 }
 
 impl Hash for TimerId {
@@ -86,10 +85,10 @@ pub struct Window {
     location: MutNullableJS<Location>,
     navigator: MutNullableJS<Navigator>,
     pub image_cache_task: ImageCacheTask,
-    pub active_timers: Traceable<RefCell<HashMap<TimerId, TimerHandle>>>,
-    next_timer_handle: Traceable<Cell<i32>>,
-    pub compositor: Untraceable<Box<ScriptListener+'static>>,
-    pub browser_context: Traceable<RefCell<Option<BrowserContext>>>,
+    pub active_timers: RefCell<HashMap<TimerId, TimerHandle>>,
+    next_timer_handle: Cell<i32>,
+    pub compositor: Box<ScriptListener+'static>,
+    pub browser_context: RefCell<Option<BrowserContext>>,
     pub page: Rc<Page>,
     performance: MutNullableJS<Performance>,
     pub navigationStart: u64,
@@ -100,7 +99,7 @@ pub struct Window {
 impl Window {
     pub fn get_cx(&self) -> *mut JSContext {
         let js_info = self.page().js_info();
-        (**js_info.as_ref().unwrap().js_context).ptr
+        (*js_info.as_ref().unwrap().js_context).ptr
     }
 
     pub fn page<'a>(&'a self) -> &'a Page {
@@ -126,7 +125,7 @@ impl Drop for Window {
 #[jstraceable]
 pub struct TimerData {
     pub is_interval: bool,
-    pub funval: Traceable<JSVal>,
+    pub funval: JSVal,
 }
 
 // http://www.whatwg.org/html/#atob
@@ -250,7 +249,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     }
 
     fn ClearTimeout(self, handle: i32) {
-        let mut timers = self.active_timers.deref().borrow_mut();
+        let mut timers = self.active_timers.borrow_mut();
         let mut timer_handle = timers.pop(&TimerId(handle));
         match timer_handle {
             Some(ref mut handle) => handle.cancel(),
@@ -416,7 +415,7 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
     }
 
     fn init_browser_context(self, doc: JSRef<Document>) {
-        *self.browser_context.deref().borrow_mut() = Some(BrowserContext::new(doc));
+        *self.browser_context.borrow_mut() = Some(BrowserContext::new(doc));
     }
 
     /// Commence a new URL load which will either replace this window or scroll to a fragment.
@@ -437,7 +436,7 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
     fn handle_fire_timer(self, timer_id: TimerId, cx: *mut JSContext) {
         let this_value = self.reflector().get_jsobject();
 
-        let data = match self.active_timers.deref().borrow().find(&timer_id) {
+        let data = match self.active_timers.borrow().find(&timer_id) {
             None => return,
             Some(timer_handle) => timer_handle.data,
         };
@@ -446,13 +445,13 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         with_compartment(cx, this_value, || {
             let mut rval = NullValue();
             unsafe {
-                JS_CallFunctionValue(cx, this_value, *data.funval,
+                JS_CallFunctionValue(cx, this_value, data.funval,
                                      0, ptr::null_mut(), &mut rval);
             }
         });
 
         if !data.is_interval {
-            self.active_timers.deref().borrow_mut().remove(&timer_id);
+            self.active_timers.borrow_mut().remove(&timer_id);
         }
     }
 }
@@ -460,8 +459,8 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
 impl<'a> PrivateWindowHelpers for JSRef<'a, Window> {
     fn set_timeout_or_interval(self, callback: JSVal, timeout: i32, is_interval: bool) -> i32 {
         let timeout = cmp::max(0, timeout) as u64;
-        let handle = self.next_timer_handle.deref().get();
-        self.next_timer_handle.deref().set(handle + 1);
+        let handle = self.next_timer_handle.get();
+        self.next_timer_handle.set(handle + 1);
 
         // Post a delayed message to the per-window timer task; it will dispatch it
         // to the relevant script handler that will deal with it.
@@ -507,13 +506,13 @@ impl<'a> PrivateWindowHelpers for JSRef<'a, Window> {
         let timer_id = TimerId(handle);
         let timer = TimerHandle {
             handle: timer_id,
-            cancel_chan: Untraceable::new(Some(cancel_chan)),
+            cancel_chan: Some(cancel_chan),
             data: TimerData {
                 is_interval: is_interval,
-                funval: Traceable::new(callback),
+                funval: callback,
             }
         };
-        self.active_timers.deref().borrow_mut().insert(timer_id, timer);
+        self.active_timers.borrow_mut().insert(timer_id, timer);
         handle
     }
 }
@@ -531,14 +530,14 @@ impl Window {
             script_chan: script_chan,
             control_chan: control_chan,
             console: Default::default(),
-            compositor: Untraceable::new(compositor),
+            compositor: compositor,
             page: page,
             location: Default::default(),
             navigator: Default::default(),
             image_cache_task: image_cache_task,
-            active_timers: Traceable::new(RefCell::new(HashMap::new())),
-            next_timer_handle: Traceable::new(Cell::new(0)),
-            browser_context: Traceable::new(RefCell::new(None)),
+            active_timers: RefCell::new(HashMap::new()),
+            next_timer_handle: Cell::new(0),
+            browser_context: RefCell::new(None),
             performance: Default::default(),
             navigationStart: time::get_time().sec as u64,
             navigationStartPrecise: time::precise_time_s(),

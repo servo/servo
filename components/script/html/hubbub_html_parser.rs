@@ -492,7 +492,7 @@ pub fn parse_html(page: &Page,
                         for child in scriptnode.children() {
                             debug!("child = {:?}", child);
                             let text: JSRef<Text> = TextCast::to_ref(child).unwrap();
-                            data.push_str(text.deref().characterdata.data.deref().borrow().as_slice());
+                            data.push_str(text.deref().characterdata.data.borrow().as_slice());
                         }
 
                         debug!("script data = {:?}", data);

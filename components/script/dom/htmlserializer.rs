@@ -69,7 +69,7 @@ pub fn serialize(iterator: &mut NodeIterator) -> String {
 
 fn serialize_comment(comment: JSRef<Comment>, html: &mut String) {
     html.push_str("<!--");
-    html.push_str(comment.deref().characterdata.data.deref().borrow().as_slice());
+    html.push_str(comment.deref().characterdata.data.borrow().as_slice());
     html.push_str("-->");
 }
 
@@ -82,11 +82,11 @@ fn serialize_text(text: JSRef<Text>, html: &mut String) {
                 "style" | "script" | "xmp" | "iframe" |
                 "noembed" | "noframes" | "plaintext" |
                 "noscript" if elem.deref().namespace == ns!(HTML)
-                => html.push_str(text.deref().characterdata.data.deref().borrow().as_slice()),
-                _ => escape(text.deref().characterdata.data.deref().borrow().as_slice(), false, html)
+                => html.push_str(text.deref().characterdata.data.borrow().as_slice()),
+                _ => escape(text.deref().characterdata.data.borrow().as_slice(), false, html)
             }
         }
-        _ => escape(text.deref().characterdata.data.deref().borrow().as_slice(), false, html)
+        _ => escape(text.deref().characterdata.data.borrow().as_slice(), false, html)
     }
 }
 
@@ -95,7 +95,7 @@ fn serialize_processing_instruction(processing_instruction: JSRef<ProcessingInst
     html.push_str("<?");
     html.push_str(processing_instruction.deref().target.as_slice());
     html.push_char(' ');
-    html.push_str(processing_instruction.deref().characterdata.data.deref().borrow().as_slice());
+    html.push_str(processing_instruction.deref().characterdata.data.borrow().as_slice());
     html.push_str("?>");
 }
 
@@ -120,7 +120,7 @@ fn serialize_elem(elem: JSRef<Element>, open_elements: &mut Vec<String>, html: &
             match node.first_child().map(|child| child.root()) {
                 Some(ref child) if child.is_text() => {
                     let text: JSRef<CharacterData> = CharacterDataCast::to_ref(**child).unwrap();
-                    if text.deref().data.deref().borrow().len() > 0 && text.deref().data.deref().borrow().as_slice().char_at(0) == '\n' {
+                    if text.deref().data.borrow().len() > 0 && text.deref().data.borrow().as_slice().char_at(0) == '\n' {
                         html.push_char('\x0A');
                     }
                 },

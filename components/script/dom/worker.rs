@@ -9,6 +9,7 @@ use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::error::{Fallible, Syntax};
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, WorkerTypeId};
@@ -18,7 +19,7 @@ use script_task::{ScriptChan, DOMMessage};
 use servo_util::str::DOMString;
 
 use js::glue::JS_STRUCTURED_CLONE_VERSION;
-use js::jsapi::{JSContext, JS_AddObjectRoot, JS_RemoveObjectRoot};
+use js::jsapi::{JSContext, JS_AddObjectRoot, JS_RemoveObjectRoot, JSTracer};
 use js::jsapi::{JS_ReadStructuredClone, JS_WriteStructuredClone};
 use js::jsval::{JSVal, UndefinedValue};
 use url::UrlParser;
@@ -28,6 +29,7 @@ use std::cell::Cell;
 use std::ptr;
 
 pub struct TrustedWorkerAddress(pub *const c_void);
+untraceable!(TrustedWorkerAddress)
 
 #[jstraceable]
 #[must_root]

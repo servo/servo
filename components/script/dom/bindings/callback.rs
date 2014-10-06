@@ -6,7 +6,6 @@
 
 use dom::bindings::global::global_object_for_js_object;
 use dom::bindings::js::JSRef;
-use dom::bindings::trace::Traceable;
 use dom::bindings::utils::Reflectable;
 use js::jsapi::{JSContext, JSObject, JS_WrapObject, JS_ObjectIsCallable};
 use js::jsapi::JS_GetProperty;
@@ -37,7 +36,7 @@ impl CallbackFunction {
     pub fn new(callback: *mut JSObject) -> CallbackFunction {
         CallbackFunction {
             object: CallbackObject {
-                callback: Traceable::new(callback)
+                callback: callback
             }
         }
     }
@@ -57,7 +56,7 @@ pub struct CallbackInterface {
 #[jstraceable]
 struct CallbackObject {
     /// The underlying `JSObject`.
-    callback: Traceable<*mut JSObject>,
+    callback: *mut JSObject,
 }
 
 /// A trait to be implemented by concrete IDL callback function and
@@ -72,14 +71,14 @@ pub trait CallbackContainer {
 impl CallbackInterface {
     /// Returns the underlying `JSObject`.
     pub fn callback(&self) -> *mut JSObject {
-        *self.object.callback
+        self.object.callback
     }
 }
 
 impl CallbackFunction {
     /// Returns the underlying `JSObject`.
     pub fn callback(&self) -> *mut JSObject {
-        *self.object.callback
+        self.object.callback
     }
 }
 
@@ -88,7 +87,7 @@ impl CallbackInterface {
     pub fn new(callback: *mut JSObject) -> CallbackInterface {
         CallbackInterface {
             object: CallbackObject {
-                callback: Traceable::new(callback)
+                callback: callback
             }
         }
     }

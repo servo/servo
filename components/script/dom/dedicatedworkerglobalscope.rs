@@ -9,7 +9,6 @@ use dom::bindings::codegen::InheritTypes::DedicatedWorkerGlobalScopeDerived;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, WorkerGlobalScopeCast};
 use dom::bindings::global;
 use dom::bindings::js::{JSRef, Temporary, RootCollection};
-use dom::bindings::trace::Untraceable;
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::eventtarget::{EventTarget, EventTargetHelpers};
 use dom::eventtarget::WorkerGlobalScopeTypeId;
@@ -40,10 +39,10 @@ use url::Url;
 #[must_root]
 pub struct DedicatedWorkerGlobalScope {
     workerglobalscope: WorkerGlobalScope,
-    receiver: Untraceable<Receiver<ScriptMsg>>,
+    receiver: Receiver<ScriptMsg>,
     /// Sender to the parent thread.
     parent_sender: ScriptChan,
-    worker: Untraceable<TrustedWorkerAddress>,
+    worker: TrustedWorkerAddress,
 }
 
 impl DedicatedWorkerGlobalScope {
@@ -59,9 +58,9 @@ impl DedicatedWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
                 DedicatedGlobalScope, worker_url, cx, resource_task,
                 own_sender),
-            receiver: Untraceable::new(receiver),
+            receiver: receiver,
             parent_sender: parent_sender,
-            worker: Untraceable::new(worker),
+            worker: worker,
         }
     }
 
@@ -120,7 +119,7 @@ impl DedicatedWorkerGlobalScope {
             let target: JSRef<EventTarget> =
                 EventTargetCast::from_ref(*global);
             loop {
-                match global.receiver.deref().recv_opt() {
+                match global.receiver.recv_opt() {
                     Ok(DOMMessage(data, nbytes)) => {
                         let mut message = UndefinedValue();
                         unsafe {
@@ -160,7 +159,7 @@ impl<'a> DedicatedWorkerGlobalScopeMethods for JSRef<'a, DedicatedWorkerGlobalSc
         }
 
         let ScriptChan(ref sender) = self.parent_sender;
-        sender.send(WorkerPostMessage(*self.worker, data, nbytes));
+        sender.send(WorkerPostMessage(self.worker, data, nbytes));
     }
 
     fn GetOnmessage(self) -> Option<EventHandlerNonNull> {
@@ -181,7 +180,7 @@ trait PrivateDedicatedWorkerGlobalScopeHelpers {
 impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerGlobalScope> {
     fn delayed_release_worker(self) {
         let ScriptChan(ref sender) = self.parent_sender;
-        sender.send(WorkerRelease(*self.worker));
+        sender.send(WorkerRelease(self.worker));
     }
 }
 

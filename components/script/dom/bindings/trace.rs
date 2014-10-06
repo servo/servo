@@ -13,7 +13,7 @@
 //!    through `ProxyTraps.trace` otherwise.)
 //! 2. `_trace` calls `Foo::trace()` (an implementation of `JSTraceable`).
 //!     This is typically derived via a #[jstraceable] annotation
-//! 3. For all fields (except those wrapped in `Untraceable`), `Foo::trace()`
+//! 3. For all fields, `Foo::trace()`
 //!    calls `trace()` on the field.
 //!    For example, for fields of type `JS<T>`, `JS<T>::trace()` calls
 //!    `trace_reflector()`.
@@ -41,7 +41,18 @@ use script_traits::ScriptControlChan;
 use std::collections::hashmap::HashMap;
 use collections::hash::Hash;
 use style::PropertyDeclarationBlock;
+use std::comm::{Receiver, Sender};
+use hubbub::hubbub::QuirksMode;
 use string_cache::{Atom, Namespace};
+use js::rust::Cx;
+use http::headers::response::HeaderCollection as ResponseHeaderCollection;
+use http::headers::request::HeaderCollection as RequestHeaderCollection;
+use http::method::Method;
+use std::io::timer::Timer;
+use servo_msg::compositor_msg::ScriptListener;
+use servo_msg::constellation_msg::ConstellationChan;
+use layout_interface::{LayoutRPC, LayoutChan};
+use dom::bindings::utils::WindowProxyHandler;
 
 impl<T: Reflectable> JSTraceable for JS<T> {
     fn trace(&self, trc: *mut JSTracer) {
@@ -90,65 +101,6 @@ pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: *mut JSObject
     }
 }
 
-/// Encapsulates a type that cannot easily have `Encodable` derived automagically,
-/// but also does not need to be made known to the SpiderMonkey garbage collector.
-///
-/// Use only with types that are not associated with a JS reflector and do not contain
-/// fields of types associated with JS reflectors.
-///
-/// This should really only be used for types that are from other crates,
-/// so we can't implement `Encodable`. See more details: mozilla#2662.
-pub struct Untraceable<T> {
-    inner: T,
-}
-
-impl<T> Untraceable<T> {
-    pub fn new(val: T) -> Untraceable<T> {
-        Untraceable {
-            inner: val
-        }
-    }
-}
-
-impl<T> Deref<T> for Untraceable<T> {
-    fn deref<'a>(&'a self) -> &'a T {
-        &self.inner
-    }
-}
-
-impl<T> DerefMut<T> for Untraceable<T> {
-    fn deref_mut<'a>(&'a mut self) -> &'a mut T {
-        &mut self.inner
-    }
-}
-
-/// Encapsulates a type that can be traced but is boxed in a type we don't
-/// control (such as `RefCell`).
-///
-/// Wrap a field in Traceable and implement the `Encodable` trait
-/// for that new concrete type to achieve magic compiler-derived trace hooks.
-///
-/// We always prefer this, in case the contained type ever changes to something that should be traced.
-/// See more details: mozilla#2662.
-#[deriving(PartialEq, Clone)]
-pub struct Traceable<T> {
-    inner: T
-}
-
-impl<T> Traceable<T> {
-    pub fn new(val: T) -> Traceable<T> {
-        Traceable {
-            inner: val
-        }
-    }
-}
-
-impl<T> Deref<T> for Traceable<T> {
-    fn deref<'a>(&'a self) -> &'a T {
-        &self.inner
-    }
-}
-
 impl<T: JSTraceable> JSTraceable for RefCell<T> {
     fn trace(&self, trc: *mut JSTracer) {
         self.borrow().trace(trc)
@@ -157,7 +109,7 @@ impl<T: JSTraceable> JSTraceable for RefCell<T> {
 
 impl<T: JSTraceable> JSTraceable for Rc<T> {
     fn trace(&self, trc: *mut JSTracer) {
-        self.deref().trace(trc)
+        (**self).trace(trc)
     }
 }
 
@@ -167,28 +119,21 @@ impl<T: JSTraceable> JSTraceable for Box<T> {
     }
 }
 
-impl<T: JSTraceable+Copy> JSTraceable for Traceable<Cell<T>> {
-    fn trace(&self, trc: *mut JSTracer) {
-        self.deref().get().trace(trc)
-    }
-}
-
-
 impl<T: JSTraceable+Copy> JSTraceable for Cell<T> {
     fn trace(&self, trc: *mut JSTracer) {
         self.get().trace(trc)
     }
 }
 
-impl JSTraceable for Traceable<*mut JSObject> {
+impl JSTraceable for *mut JSObject {
     fn trace(&self, trc: *mut JSTracer) {
-        trace_object(trc, "object", **self);
+        trace_object(trc, "object", *self);
     }
 }
 
-impl JSTraceable for Traceable<JSVal> {
+impl JSTraceable for JSVal {
     fn trace(&self, trc: *mut JSTracer) {
-        trace_jsval(trc, "val", **self);
+        trace_jsval(trc, "val", *self);
     }
 }
 
@@ -220,16 +165,33 @@ impl<K: Eq+Hash+JSTraceable, V: JSTraceable> JSTraceable for HashMap<K, V> {
     }
 }
 
+impl<A: JSTraceable, B: JSTraceable> JSTraceable for (A, B) {
+    #[inline]
+    fn trace(&self, trc: *mut JSTracer) {
+        let (ref a, ref b) = *self;
+        a.trace(trc);
+        b.trace(trc);
+    }
+}
+
+
 untraceable!(bool, f32, f64, String, Url)
 untraceable!(uint, u8, u16, u32, u64)
 untraceable!(int, i8, i16, i32, i64)
-untraceable!(Untraceable<T>)
+untraceable!(Sender<T>)
+untraceable!(Receiver<T>)
 untraceable!(ImageCacheTask, ScriptControlChan)
-untraceable!(Atom, Namespace)
+untraceable!(Atom, Namespace, Timer)
 untraceable!(PropertyDeclarationBlock)
 // These three are interdependent, if you plan to put jsmanaged data
 // in one of these make sure it is propagated properly to containing structs
 untraceable!(SubpageId, WindowSizeData, PipelineId)
+untraceable!(QuirksMode)
+untraceable!(Cx)
+untraceable!(ResponseHeaderCollection, RequestHeaderCollection, Method)
+untraceable!(ConstellationChan)
+untraceable!(LayoutChan)
+untraceable!(WindowProxyHandler)
 
 impl<'a> JSTraceable for &'a str {
     #[inline]
@@ -238,3 +200,23 @@ impl<'a> JSTraceable for &'a str {
     }
 }
 
+impl<A,B> JSTraceable for fn(A) -> B {
+    #[inline]
+    fn trace(&self, _: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+impl JSTraceable for Box<ScriptListener+'static> {
+    #[inline]
+    fn trace(&self, _: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+impl JSTraceable for Box<LayoutRPC+'static> {
+    #[inline]
+    fn trace(&self, _: *mut JSTracer) {
+        // Do nothing
+    }
+}
