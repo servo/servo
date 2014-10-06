@@ -14,10 +14,13 @@ use std::default::Default;
 
 #[jstraceable]
 struct TextPoint {
+    /// 0-based line number
     line: uint,
+    /// 0-based column number
     index: uint,
 }
 
+/// Encapsulated state for handling keyboard input in a single or multiline text input control.
 #[jstraceable]
 pub struct TextInput {
     /// Current text input content, split across lines without trailing '\n'
@@ -26,10 +29,11 @@ pub struct TextInput {
     edit_point: TextPoint,
     /// Selection range, beginning and end point that can span multiple lines.
     _selection: Option<(TextPoint, TextPoint)>,
-    /// Is this ia multiline input?
+    /// Is this a multiline input?
     multiline: bool,
 }
 
+/// Resulting action to be taken by the owner of a text input that is handling an event.
 pub enum KeyReaction {
     TriggerDefaultAction,
     DispatchInput,
@@ -45,22 +49,39 @@ impl Default for TextPoint {
     }
 }
 
+/// Control whether this control should allow multiple lines.
+#[deriving(PartialEq)]
+pub enum Lines {
+    Single,
+    Multiple,
+}
+
+/// The direction in which to delete a character.
+#[deriving(PartialEq)]
+enum DeleteDir {
+    Forward,
+    Backward
+}
+
 impl TextInput {
-    pub fn new(multiline: bool, initial: DOMString) -> TextInput {
+    /// Instantiate a new text input control
+    pub fn new(lines: Lines, initial: DOMString) -> TextInput {
         let mut i = TextInput {
             lines: vec!(),
             edit_point: Default::default(),
             _selection: None,
-            multiline: multiline,
+            multiline: lines == Multiple,
         };
         i.set_content(initial);
         i
     }
 
+    /// Return the current line under the editing point
     fn get_current_line(&self) -> &DOMString {
         &self.lines[self.edit_point.line]
     }
 
+    /// Insert a character at the current editing point
     fn insert_char(&mut self, ch: char) {
         //TODO: handle replacing selection with character
         let new_line = {
@@ -77,7 +98,10 @@ impl TextInput {
         self.edit_point.index += 1;
     }
 
-    fn delete_char(&mut self, forward: bool) {
+    /// Remove a character at the current editing point
+    fn delete_char(&mut self, dir: DeleteDir) {
+        let forward = dir == Forward;
+
         //TODO: handle deleting selection
         let prefix_end = if forward {
             self.edit_point.index
@@ -119,10 +143,13 @@ impl TextInput {
         }
     }
 
+    /// Return the length of the current line under the editing point.
     fn current_line_length(&self) -> uint {
         self.lines[self.edit_point.line].len()
     }
 
+    /// Adjust the editing point position by a given of lines. The resulting column is
+    /// as close to the original column position as possible.
     fn adjust_vertical(&mut self, adjust: int) {
         if !self.multiline {
             return;
@@ -142,6 +169,9 @@ impl TextInput {
         self.edit_point.index = min(self.current_line_length(), self.edit_point.index);
     }
 
+    /// Adjust the editing point position by a given number of columns. If the adjustment
+    /// requested is larger than is available in the current line, the editing point is
+    /// adjusted vertically and the process repeats with the remaining adjustment requested.
     fn adjust_horizontal(&mut self, adjust: int) {
         if adjust < 0 {
             if self.multiline {
@@ -174,6 +204,7 @@ impl TextInput {
         }
     }
 
+    /// Deal with a newline input.
     fn handle_return(&mut self) -> KeyReaction {
         if !self.multiline {
             return TriggerDefaultAction;
@@ -188,8 +219,10 @@ impl TextInput {
         return DispatchInput;
     }
 
+    /// Process a given `KeyboardEvent` and return an action for the caller to execute.
     pub fn handle_keydown(&mut self, event: JSRef<KeyboardEvent>) -> KeyReaction {
         match event.Key().as_slice() {
+            // printable characters have single-character key values
             c if c.len() == 1 => {
                 self.insert_char(c.char_at(0));
                 return DispatchInput;
@@ -199,11 +232,11 @@ impl TextInput {
                 DispatchInput
             }
             "Delete" => {
-                self.delete_char(true);
+                self.delete_char(Forward);
                 DispatchInput
             }
             "Backspace" => {
-                self.delete_char(false);
+                self.delete_char(Backward);
                 DispatchInput
             }
             "ArrowLeft" => {
@@ -236,6 +269,7 @@ impl TextInput {
         }
     }
 
+    /// Get the current contents of the text input. Multiple lines are joined by \n.
     pub fn get_content(&self) -> DOMString {
         let mut content = "".to_string();
         for (i, line) in self.lines.iter().enumerate() {
@@ -247,6 +281,8 @@ impl TextInput {
         content
     }
 
+    /// Set the current contents of the text input. If this is control supports multiple lines,
+    /// any \n encountered will be stripped and force a new logical line.
     pub fn set_content(&mut self, content: DOMString) {
         self.lines = if self.multiline {
             content.as_slice().split('\n').map(|s| s.to_string()).collect()
