@@ -9,7 +9,6 @@ use dom::bindings::codegen::InheritTypes::{EventCast, CustomEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::trace::Traceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{Event, EventTypeId, CustomEventTypeId};
 use js::jsapi::JSContext;
@@ -22,7 +21,7 @@ use std::cell::Cell;
 #[must_root]
 pub struct CustomEvent {
     event: Event,
-    detail: Traceable<Cell<Traceable<JSVal>>>,
+    detail: Cell<JSVal>,
 }
 
 impl CustomEventDerived for Event {
@@ -35,7 +34,7 @@ impl CustomEvent {
     fn new_inherited(type_id: EventTypeId) -> CustomEvent {
         CustomEvent {
             event: Event::new_inherited(type_id),
-            detail: Traceable::new(Cell::new(Traceable::new(NullValue()))),
+            detail: Cell::new(NullValue()),
         }
     }
 
@@ -58,7 +57,7 @@ impl CustomEvent {
 
 impl<'a> CustomEventMethods for JSRef<'a, CustomEvent> {
     fn Detail(self, _cx: *mut JSContext) -> JSVal {
-        *self.detail.deref().get()
+        self.detail.get()
     }
 
     fn InitCustomEvent(self,
@@ -67,7 +66,7 @@ impl<'a> CustomEventMethods for JSRef<'a, CustomEvent> {
                        can_bubble: bool,
                        cancelable: bool,
                        detail: JSVal) {
-        self.detail.deref().set(Traceable::new(detail));
+        self.detail.set(detail);
         let event: JSRef<Event> = EventCast::from_ref(self);
         event.InitEvent(type_, can_bubble, cancelable);
     }

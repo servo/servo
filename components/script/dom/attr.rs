@@ -7,7 +7,6 @@ use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::global;
 use dom::bindings::js::{JS, JSRef, Temporary};
-use dom::bindings::trace::Traceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::element::{Element, AttributeHandlers};
 use dom::node::Node;
@@ -76,7 +75,7 @@ impl Str for AttrValue {
 pub struct Attr {
     reflector_: Reflector,
     local_name: Atom,
-    value: Traceable<RefCell<AttrValue>>,
+    value: RefCell<AttrValue>,
     pub name: Atom,
     pub namespace: Namespace,
     pub prefix: Option<DOMString>,
@@ -98,7 +97,7 @@ impl Attr {
         Attr {
             reflector_: Reflector::new(),
             local_name: local_name,
-            value: Traceable::new(RefCell::new(value)),
+            value: RefCell::new(value),
             name: name,
             namespace: namespace,
             prefix: prefix,
@@ -170,7 +169,7 @@ impl<'a> AttrHelpers<'a> for JSRef<'a, Attr> {
             FirstSetAttr => {}
         }
 
-        *self.value.deref().borrow_mut() = value;
+        *self.value.borrow_mut() = value;
 
         if namespace_is_null {
             vtable_for(&node).after_set_attr(
@@ -207,13 +206,13 @@ pub trait AttrHelpersForLayout {
 impl AttrHelpersForLayout for Attr {
     unsafe fn value_ref_forever(&self) -> &'static str {
         // cast to point to T in RefCell<T> directly
-        let value = mem::transmute::<&RefCell<AttrValue>, &AttrValue>(self.value.deref());
+        let value = mem::transmute::<&RefCell<AttrValue>, &AttrValue>(&self.value);
         value.as_slice()
     }
 
     unsafe fn value_atom_forever(&self) -> Option<Atom> {
         // cast to point to T in RefCell<T> directly
-        let value = mem::transmute::<&RefCell<AttrValue>, &AttrValue>(self.value.deref());
+        let value = mem::transmute::<&RefCell<AttrValue>, &AttrValue>(&self.value);
         match *value {
             AtomAttrValue(ref val) => Some(val.clone()),
             _ => None,
@@ -222,7 +221,7 @@ impl AttrHelpersForLayout for Attr {
 
     unsafe fn value_tokens_forever(&self) -> Option<Items<Atom>> {
         // cast to point to T in RefCell<T> directly
-        let value = mem::transmute::<&RefCell<AttrValue>, &AttrValue>(self.value.deref());
+        let value = mem::transmute::<&RefCell<AttrValue>, &AttrValue>(&self.value);
         match *value {
             TokenListAttrValue(_, ref tokens) => Some(tokens.iter()),
             _ => None,

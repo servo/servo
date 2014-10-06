@@ -4,7 +4,6 @@
 
 use dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use dom::bindings::error::{ErrorResult, Fallible, Syntax, Network, FailureUnknown};
-use dom::bindings::trace::Untraceable;
 use dom::bindings::global;
 use dom::bindings::js::{MutNullableJS, JSRef, Temporary, OptionalSettable};
 use dom::bindings::utils::{Reflectable, Reflector};
@@ -35,9 +34,9 @@ pub enum WorkerGlobalScopeId {
 #[must_root]
 pub struct WorkerGlobalScope {
     pub eventtarget: EventTarget,
-    worker_url: Untraceable<Url>,
-    js_context: Untraceable<Rc<Cx>>,
-    resource_task: Untraceable<ResourceTask>,
+    worker_url: Url,
+    js_context: Rc<Cx>,
+    resource_task: ResourceTask,
     script_chan: ScriptChan,
     location: MutNullableJS<WorkerLocation>,
     navigator: MutNullableJS<WorkerNavigator>,
@@ -52,9 +51,9 @@ impl WorkerGlobalScope {
                          script_chan: ScriptChan) -> WorkerGlobalScope {
         WorkerGlobalScope {
             eventtarget: EventTarget::new_inherited(WorkerGlobalScopeTypeId(type_id)),
-            worker_url: Untraceable::new(worker_url),
-            js_context: Untraceable::new(cx),
-            resource_task: Untraceable::new(resource_task),
+            worker_url: worker_url,
+            js_context: cx,
+            resource_task: resource_task,
             script_chan: script_chan,
             location: Default::default(),
             navigator: Default::default(),
@@ -67,11 +66,11 @@ impl WorkerGlobalScope {
     }
 
     pub fn resource_task<'a>(&'a self) -> &'a ResourceTask {
-        &*self.resource_task
+        &   self.resource_task
     }
 
     pub fn get_url<'a>(&'a self) -> &'a Url {
-        &*self.worker_url
+        &self.worker_url
     }
 
     pub fn script_chan<'a>(&'a self) -> &'a ScriptChan {
@@ -86,7 +85,7 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
 
     fn Location(self) -> Temporary<WorkerLocation> {
         if self.location.get().is_none() {
-            let location = WorkerLocation::new(self, self.worker_url.deref().clone());
+            let location = WorkerLocation::new(self, self.worker_url.clone());
             self.location.assign(Some(location));
         }
         self.location.get().unwrap()
@@ -95,7 +94,7 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
     fn ImportScripts(self, url_strings: Vec<DOMString>) -> ErrorResult {
         let mut urls = Vec::with_capacity(url_strings.len());
         for url in url_strings.into_iter() {
-            let url = UrlParser::new().base_url(&*self.worker_url)
+            let url = UrlParser::new().base_url(&self.worker_url)
                                       .parse(url.as_slice());
             match url {
                 Ok(url) => urls.push(url),
@@ -104,14 +103,14 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
         }
 
         for url in urls.into_iter() {
-            let (url, source) = match load_whole_resource(&*self.resource_task, url) {
+            let (url, source) = match load_whole_resource(&self.resource_task, url) {
                 Err(_) => return Err(Network),
                 Ok((metadata, bytes)) => {
                     (metadata.final_url, String::from_utf8(bytes).unwrap())
                 }
             };
 
-            match self.js_context.deref().evaluate_script(
+            match self.js_context.evaluate_script(
                 self.reflector().get_jsobject(), source, url.serialize(), 1) {
                 Ok(_) => (),
                 Err(_) => {

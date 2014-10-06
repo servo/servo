@@ -113,7 +113,7 @@ pub trait TLayoutNode {
                 fail!("not an iframe element!")
             }
             let iframe_element: JS<HTMLIFrameElement> = self.get_jsmanaged().transmute_copy();
-            let size = (*iframe_element.unsafe_get()).size.deref().get().unwrap();
+            let size = (*iframe_element.unsafe_get()).size.get().unwrap();
             (size.pipeline_id, size.subpage_id)
         }
     }
@@ -187,7 +187,7 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
         unsafe {
             if self.get().is_text() {
                 let text: JS<Text> = self.get_jsmanaged().transmute_copy();
-                (*text.unsafe_get()).characterdata.data.deref().borrow().clone()
+                (*text.unsafe_get()).characterdata.data.borrow().clone()    
             } else if self.get().is_htmlinputelement() {
                 let input: JS<HTMLInputElement> = self.get_jsmanaged().transmute_copy();
                 input.get_value_for_layout()
@@ -390,7 +390,7 @@ pub struct LayoutElement<'le> {
 impl<'le> LayoutElement<'le> {
     pub fn style_attribute(&self) -> &'le Option<PropertyDeclarationBlock> {
         let style: &Option<PropertyDeclarationBlock> = unsafe {
-            let style: &RefCell<Option<PropertyDeclarationBlock>> = self.element.style_attribute.deref();
+            let style: &RefCell<Option<PropertyDeclarationBlock>> = &self.element.style_attribute;
             // cast to the direct reference to T placed on the head of RefCell<T>
             mem::transmute(style)
         };
@@ -667,7 +667,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     #[inline(always)]
     pub fn borrow_layout_data<'a>(&'a self) -> Ref<'a,Option<LayoutDataWrapper>> {
         unsafe {
-            mem::transmute(self.get().layout_data.deref().borrow())
+            mem::transmute(self.get().layout_data.borrow())
         }
     }
 
@@ -675,7 +675,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     #[inline(always)]
     pub fn mutate_layout_data<'a>(&'a self) -> RefMut<'a,Option<LayoutDataWrapper>> {
         unsafe {
-            mem::transmute(self.get().layout_data.deref().borrow_mut())
+            mem::transmute(self.get().layout_data.borrow_mut())
         }
     }
 
@@ -711,7 +711,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
             Some(TextNodeTypeId) => {
                 unsafe {
                     let text: JS<Text> = self.get_jsmanaged().transmute_copy();
-                    if !is_whitespace((*text.unsafe_get()).characterdata.data.deref().borrow().as_slice()) {
+                    if !is_whitespace((*text.unsafe_get()).characterdata.data.borrow().as_slice()) {
                         return false
                     }
 

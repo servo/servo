@@ -9,7 +9,6 @@ use dom::bindings::codegen::InheritTypes::{EventCast, MessageEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::trace::Traceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{Event, MessageEventTypeId};
 use dom::eventtarget::{EventTarget, EventTargetHelpers};
@@ -23,7 +22,7 @@ use js::jsval::JSVal;
 #[must_root]
 pub struct MessageEvent {
     event: Event,
-    data: Traceable<JSVal>,
+    data: JSVal,
     origin: DOMString,
     lastEventId: DOMString,
 }
@@ -39,7 +38,7 @@ impl MessageEvent {
                          -> MessageEvent {
         MessageEvent {
             event: Event::new_inherited(MessageEventTypeId),
-            data: Traceable::new(data),
+            data: data,
             origin: origin,
             lastEventId: lastEventId,
         }
@@ -81,7 +80,7 @@ impl MessageEvent {
 
 impl<'a> MessageEventMethods for JSRef<'a, MessageEvent> {
     fn Data(self, _cx: *mut JSContext) -> JSVal {
-        *self.data
+        self.data
     }
 
     fn Origin(self) -> DOMString {

@@ -15,9 +15,9 @@ The outline is:
 1. SpiderMonkey's GC calls `JSClass.trace` defined in `FooBinding` when marking phase. This JSClass is basis of each wrapper JSObject.
 2. `JSClass.trace` calls `Foo::trace()` (an implementation of `JSTraceable`).
      This is typically derived via a #[jstraceable] annotation
-3. For all fields (except those wrapped in `Untraceable`), `Foo::trace()`
+3. For all fields, `Foo::trace()`
    calls `trace()` on the field. For example, for fields of type `JS<T>`, `JS<T>::trace()` calls
-   `trace_reflector()`.
+   `trace_reflector()`. Non-JS-managed types have an empty inline `trace()` method, achieved via `untraceable!` or similar.
 4. `trace_reflector()` fetches the reflector that is reachable from a Rust object, and notifies it to the GC with using JSTracer.
 5. This operation continues to the end of the graph.
 6. Finally, GC gets whether Rust object lives or not from JSObjects which is hold by Rust object.

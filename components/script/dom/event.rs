@@ -7,7 +7,6 @@ use dom::bindings::codegen::Bindings::EventBinding::{EventConstants, EventMethod
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{MutNullableJS, JSRef, Temporary};
-use dom::bindings::trace::Traceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::eventtarget::EventTarget;
 use servo_util::str::DOMString;
@@ -43,16 +42,16 @@ pub struct Event {
     reflector_: Reflector,
     pub current_target: MutNullableJS<EventTarget>,
     pub target: MutNullableJS<EventTarget>,
-    type_: Traceable<RefCell<DOMString>>,
-    pub phase: Traceable<Cell<EventPhase>>,
-    pub canceled: Traceable<Cell<bool>>,
-    pub stop_propagation: Traceable<Cell<bool>>,
-    pub stop_immediate: Traceable<Cell<bool>>,
-    pub cancelable: Traceable<Cell<bool>>,
-    pub bubbles: Traceable<Cell<bool>>,
-    pub trusted: Traceable<Cell<bool>>,
-    pub dispatching: Traceable<Cell<bool>>,
-    pub initialized: Traceable<Cell<bool>>,
+    type_: RefCell<DOMString>,
+    pub phase: Cell<EventPhase>,
+    pub canceled: Cell<bool>,
+    pub stop_propagation: Cell<bool>,
+    pub stop_immediate: Cell<bool>,
+    pub cancelable: Cell<bool>,
+    pub bubbles: Cell<bool>,
+    pub trusted: Cell<bool>,
+    pub dispatching: Cell<bool>,
+    pub initialized: Cell<bool>,
     timestamp: u64,
 }
 
@@ -63,16 +62,16 @@ impl Event {
             reflector_: Reflector::new(),
             current_target: Default::default(),
             target: Default::default(),
-            phase: Traceable::new(Cell::new(PhaseNone)),
-            type_: Traceable::new(RefCell::new("".to_string())),
-            canceled: Traceable::new(Cell::new(false)),
-            cancelable: Traceable::new(Cell::new(true)),
-            bubbles: Traceable::new(Cell::new(false)),
-            trusted: Traceable::new(Cell::new(false)),
-            dispatching: Traceable::new(Cell::new(false)),
-            stop_propagation: Traceable::new(Cell::new(false)),
-            stop_immediate: Traceable::new(Cell::new(false)),
-            initialized: Traceable::new(Cell::new(false)),
+            phase: Cell::new(PhaseNone),
+            type_: RefCell::new("".to_string()),
+            canceled: Cell::new(false),
+            cancelable: Cell::new(true),
+            bubbles: Cell::new(false),
+            trusted: Cell::new(false),
+            dispatching: Cell::new(false),
+            stop_propagation: Cell::new(false),
+            stop_immediate: Cell::new(false),
+            initialized: Cell::new(false),
             timestamp: time::get_time().sec as u64,
         }
     }
@@ -88,7 +87,7 @@ impl Event {
                can_bubble: bool,
                cancelable: bool) -> Temporary<Event> {
         let event = Event::new_uninitialized(global).root();
-        event.deref().InitEvent(type_, can_bubble, cancelable);
+        event.InitEvent(type_, can_bubble, cancelable);
         Temporary::from_rooted(*event)
     }
 
@@ -101,11 +100,11 @@ impl Event {
 
 impl<'a> EventMethods for JSRef<'a, Event> {
     fn EventPhase(self) -> u16 {
-        self.phase.deref().get() as u16
+        self.phase.get() as u16
     }
 
     fn Type(self) -> DOMString {
-        self.type_.deref().borrow().clone()
+        self.type_.borrow().clone()
     }
 
     fn GetTarget(self) -> Option<Temporary<EventTarget>> {
@@ -117,30 +116,30 @@ impl<'a> EventMethods for JSRef<'a, Event> {
     }
 
     fn DefaultPrevented(self) -> bool {
-        self.canceled.deref().get()
+        self.canceled.get()
     }
 
     fn PreventDefault(self) {
-        if self.cancelable.deref().get() {
-            self.canceled.deref().set(true)
+        if self.cancelable.get() {
+            self.canceled.set(true)
         }
     }
 
     fn StopPropagation(self) {
-        self.stop_propagation.deref().set(true);
+        self.stop_propagation.set(true);
     }
 
     fn StopImmediatePropagation(self) {
-        self.stop_immediate.deref().set(true);
-        self.stop_propagation.deref().set(true);
+        self.stop_immediate.set(true);
+        self.stop_propagation.set(true);
     }
 
     fn Bubbles(self) -> bool {
-        self.bubbles.deref().get()
+        self.bubbles.get()
     }
 
     fn Cancelable(self) -> bool {
-        self.cancelable.deref().get()
+        self.cancelable.get()
     }
 
     fn TimeStamp(self) -> u64 {
@@ -151,22 +150,22 @@ impl<'a> EventMethods for JSRef<'a, Event> {
                  type_: DOMString,
                  bubbles: bool,
                  cancelable: bool) {
-        self.initialized.deref().set(true);
-        if self.dispatching.deref().get() {
+        self.initialized.set(true);
+        if self.dispatching.get() {
             return;
         }
-        self.stop_propagation.deref().set(false);
-        self.stop_immediate.deref().set(false);
-        self.canceled.deref().set(false);
-        self.trusted.deref().set(false);
+        self.stop_propagation.set(false);
+        self.stop_immediate.set(false);
+        self.canceled.set(false);
+        self.trusted.set(false);
         self.target.clear();
-        *self.type_.deref().borrow_mut() = type_;
-        self.bubbles.deref().set(bubbles);
-        self.cancelable.deref().set(cancelable);
+        *self.type_.borrow_mut() = type_;
+        self.bubbles.set(bubbles);
+        self.cancelable.set(cancelable);
     }
 
     fn IsTrusted(self) -> bool {
-        self.trusted.deref().get()
+        self.trusted.get()
     }
 }
 

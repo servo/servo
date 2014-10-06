@@ -14,7 +14,6 @@ use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::codegen::InheritTypes::{ElementDerived, NodeCast};
 use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, TemporaryPushable};
 use dom::bindings::js::{OptionalSettable, OptionalRootable, Root};
-use dom::bindings::trace::Traceable;
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::bindings::error::{ErrorResult, Fallible, NamespaceError, InvalidCharacter, Syntax};
 use dom::bindings::utils::{QName, Name, InvalidXMLName, xml_name_type};
@@ -51,7 +50,7 @@ pub struct Element {
     pub namespace: Namespace,
     pub prefix: Option<DOMString>,
     pub attrs: RefCell<Vec<JS<Attr>>>,
-    pub style_attribute: Traceable<RefCell<Option<style::PropertyDeclarationBlock>>>,
+    pub style_attribute: RefCell<Option<style::PropertyDeclarationBlock>>,
     pub attr_list: MutNullableJS<NamedNodeMap>,
     class_list: MutNullableJS<DOMTokenList>,
 }
@@ -159,7 +158,7 @@ impl Element {
             attrs: RefCell::new(vec!()),
             attr_list: Default::default(),
             class_list: Default::default(),
-            style_attribute: Traceable::new(RefCell::new(None)),
+            style_attribute: RefCell::new(None),
         }
     }
 
@@ -851,7 +850,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
                 let doc = document_from_node(*self).root();
                 let base_url = doc.deref().url().clone();
                 let style = Some(style::parse_style_attribute(value.as_slice(), &base_url));
-                *self.deref().style_attribute.deref().borrow_mut() = style;
+                *self.deref().style_attribute.borrow_mut() = style;
             }
             "id" => {
                 let node: JSRef<Node> = NodeCast::from_ref(*self);
@@ -875,7 +874,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
 
         match name.as_slice() {
             "style" => {
-                *self.deref().style_attribute.deref().borrow_mut() = None;
+                *self.deref().style_attribute.borrow_mut() = None;
             }
             "id" => {
                 let node: JSRef<Node> = NodeCast::from_ref(*self);

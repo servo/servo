@@ -10,7 +10,6 @@ use dom::bindings::conversions::IDLInterface;
 use dom::bindings::error::throw_type_error;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Temporary, Root};
-use dom::bindings::trace::Untraceable;
 use dom::browsercontext;
 use dom::window;
 use servo_util::str::DOMString;
@@ -50,15 +49,17 @@ use js::{JSPROP_ENUMERATE, JSPROP_READONLY, JSPROP_PERMANENT};
 use js::JSFUN_CONSTRUCTOR;
 use js;
 
+pub struct WindowProxyHandler(pub *const libc::c_void);
+
 #[allow(raw_pointer_deriving)]
 #[jstraceable]
 pub struct GlobalStaticData {
-    pub windowproxy_handler: Untraceable<*const libc::c_void>,
+    pub windowproxy_handler: WindowProxyHandler,
 }
 
 pub fn GlobalStaticData() -> GlobalStaticData {
     GlobalStaticData {
-        windowproxy_handler: Untraceable::new(browsercontext::new_window_proxy_handler()),
+        windowproxy_handler: browsercontext::new_window_proxy_handler(),
     }
 }
 
@@ -659,7 +660,7 @@ pub extern fn outerize_global(_cx: *mut JSContext, obj: JSHandleObject) -> *mut 
                              IDLInterface::get_prototype_depth(None::<window::Window>))
             .unwrap()
             .root();
-        win.deref().browser_context.deref().borrow().as_ref().unwrap().window_proxy()
+        win.deref().browser_context.borrow().as_ref().unwrap().window_proxy()
     }
 }
 

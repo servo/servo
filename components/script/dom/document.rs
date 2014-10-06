@@ -23,7 +23,6 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::global;
 use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, OptionalSettable, TemporaryPushable};
 use dom::bindings::js::OptionalRootable;
-use dom::bindings::trace::{Traceable, Untraceable};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::utils::{xml_name_type, InvalidXMLName, Name, QName};
 use dom::comment::Comment;
@@ -81,14 +80,14 @@ pub struct Document {
     pub node: Node,
     reflector_: Reflector,
     pub window: JS<Window>,
-    idmap: Traceable<RefCell<HashMap<Atom, Vec<JS<Element>>>>>,
+    idmap: RefCell<HashMap<Atom, Vec<JS<Element>>>>,
     implementation: MutNullableJS<DOMImplementation>,
     content_type: DOMString,
-    last_modified: Traceable<RefCell<Option<DOMString>>>,
-    pub encoding_name: Traceable<RefCell<DOMString>>,
+    last_modified: RefCell<Option<DOMString>>,
+    pub encoding_name: RefCell<DOMString>,
     pub is_html_document: bool,
-    url: Untraceable<Url>,
-    quirks_mode: Untraceable<Cell<QuirksMode>>,
+    url: Url,
+    quirks_mode: Cell<QuirksMode>,
     images: MutNullableJS<HTMLCollection>,
     embeds: MutNullableJS<HTMLCollection>,
     links: MutNullableJS<HTMLCollection>,
@@ -177,23 +176,23 @@ pub trait DocumentHelpers<'a> {
 
 impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
     fn url(self) -> &'a Url {
-        &*self.extended_deref().url
+        &self.extended_deref().url
     }
 
     fn quirks_mode(self) -> QuirksMode {
-        self.quirks_mode.deref().get()
+        self.quirks_mode.get()
     }
 
     fn set_quirks_mode(self, mode: QuirksMode) {
-        self.quirks_mode.deref().set(mode);
+        self.quirks_mode.set(mode);
     }
 
     fn set_last_modified(self, value: DOMString) {
-        *self.last_modified.deref().borrow_mut() = Some(value);
+        *self.last_modified.borrow_mut() = Some(value);
     }
 
     fn set_encoding_name(self, name: DOMString) {
-        *self.encoding_name.deref().borrow_mut() = name;
+        *self.encoding_name.borrow_mut() = name;
     }
 
     fn content_changed(self) {
@@ -213,7 +212,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
     fn unregister_named_element(self,
                                 to_unregister: JSRef<Element>,
                                 id: Atom) {
-        let mut idmap = self.idmap.deref().borrow_mut();
+        let mut idmap = self.idmap.borrow_mut();
         let is_empty = match idmap.find_mut(&id) {
             None => false,
             Some(elements) => {
@@ -240,7 +239,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         });
         assert!(!id.as_slice().is_empty());
 
-        let mut idmap = self.idmap.deref().borrow_mut();
+        let mut idmap = self.idmap.borrow_mut();
 
         // FIXME https://github.com/mozilla/rust/issues/13195
         //       Use mangle() when it exists again.
@@ -309,7 +308,7 @@ impl Document {
             node: Node::new_without_doc(DocumentNodeTypeId),
             reflector_: Reflector::new(),
             window: JS::from_rooted(window),
-            idmap: Traceable::new(RefCell::new(HashMap::new())),
+            idmap: RefCell::new(HashMap::new()),
             implementation: Default::default(),
             content_type: match content_type {
                 Some(string) => string.clone(),
@@ -320,12 +319,12 @@ impl Document {
                     NonHTMLDocument => "application/xml".to_string()
                 }
             },
-            last_modified: Traceable::new(RefCell::new(None)),
-            url: Untraceable::new(url),
+            last_modified: RefCell::new(None),
+            url: url,
             // http://dom.spec.whatwg.org/#concept-document-quirks
-            quirks_mode: Untraceable::new(Cell::new(NoQuirks)),
+            quirks_mode: Cell::new(NoQuirks),
             // http://dom.spec.whatwg.org/#concept-document-encoding
-            encoding_name: Traceable::new(RefCell::new("utf-8".to_string())),
+            encoding_name: RefCell::new("utf-8".to_string()),
             is_html_document: is_html_document == HTMLDocument,
             images: Default::default(),
             embeds: Default::default(),
@@ -419,7 +418,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     // http://dom.spec.whatwg.org/#dom-document-compatmode
     fn CompatMode(self) -> DOMString {
-        match self.quirks_mode.deref().get() {
+        match self.quirks_mode.get() {
             LimitedQuirks | NoQuirks => "CSS1Compat".to_string(),
             FullQuirks => "BackCompat".to_string()
         }
@@ -427,7 +426,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     // http://dom.spec.whatwg.org/#dom-document-characterset
     fn CharacterSet(self) -> DOMString {
-        self.encoding_name.deref().borrow().as_slice().to_ascii_lower()
+        self.encoding_name.borrow().as_slice().to_ascii_lower()
     }
 
     // http://dom.spec.whatwg.org/#dom-document-content_type
@@ -474,7 +473,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     // http://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
     fn GetElementById(self, id: DOMString) -> Option<Temporary<Element>> {
         let id = Atom::from_slice(id.as_slice());
-        match self.idmap.deref().borrow().find(&id) {
+        match self.idmap.borrow().find(&id) {
             None => None,
             Some(ref elements) => Some(Temporary::new((*elements)[0].clone())),
         }
@@ -648,7 +647,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                     for child in title_elem.children() {
                         if child.is_text() {
                             let text: JSRef<Text> = TextCast::to_ref(child).unwrap();
-                            title.push_str(text.deref().characterdata.data.deref().borrow().as_slice());
+                            title.push_str(text.deref().characterdata.data.borrow().as_slice());
                         }
                     }
                 });

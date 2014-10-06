@@ -10,7 +10,6 @@ use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::global;
 use dom::bindings::js::{MutNullableJS, JSRef, RootedReference, Temporary, OptionalSettable};
-use dom::bindings::trace::Traceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{Event, MouseEventTypeId};
 use dom::eventtarget::EventTarget;
@@ -24,15 +23,15 @@ use std::default::Default;
 #[must_root]
 pub struct MouseEvent {
     pub mouseevent: UIEvent,
-    pub screen_x: Traceable<Cell<i32>>,
-    pub screen_y: Traceable<Cell<i32>>,
-    pub client_x: Traceable<Cell<i32>>,
-    pub client_y: Traceable<Cell<i32>>,
-    pub ctrl_key: Traceable<Cell<bool>>,
-    pub shift_key: Traceable<Cell<bool>>,
-    pub alt_key: Traceable<Cell<bool>>,
-    pub meta_key: Traceable<Cell<bool>>,
-    pub button: Traceable<Cell<i16>>,
+    pub screen_x: Cell<i32>,
+    pub screen_y: Cell<i32>,
+    pub client_x: Cell<i32>,
+    pub client_y: Cell<i32>,
+    pub ctrl_key: Cell<bool>,
+    pub shift_key: Cell<bool>,
+    pub alt_key: Cell<bool>,
+    pub meta_key: Cell<bool>,
+    pub button: Cell<i16>,
     pub related_target: MutNullableJS<EventTarget>
 }
 
@@ -46,15 +45,15 @@ impl MouseEvent {
     fn new_inherited() -> MouseEvent {
         MouseEvent {
             mouseevent: UIEvent::new_inherited(MouseEventTypeId),
-            screen_x: Traceable::new(Cell::new(0)),
-            screen_y: Traceable::new(Cell::new(0)),
-            client_x: Traceable::new(Cell::new(0)),
-            client_y: Traceable::new(Cell::new(0)),
-            ctrl_key: Traceable::new(Cell::new(false)),
-            shift_key: Traceable::new(Cell::new(false)),
-            alt_key: Traceable::new(Cell::new(false)),
-            meta_key: Traceable::new(Cell::new(false)),
-            button: Traceable::new(Cell::new(0)),
+            screen_x: Cell::new(0),
+            screen_y: Cell::new(0),
+            client_x: Cell::new(0),
+            client_y: Cell::new(0),
+            ctrl_key: Cell::new(false),
+            shift_key: Cell::new(false),
+            alt_key: Cell::new(false),
+            meta_key: Cell::new(false),
+            button: Cell::new(0),
             related_target: Default::default(),
         }
     }
@@ -82,7 +81,7 @@ impl MouseEvent {
                button: i16,
                relatedTarget: Option<JSRef<EventTarget>>) -> Temporary<MouseEvent> {
         let ev = MouseEvent::new_uninitialized(window).root();
-        ev.deref().InitMouseEvent(type_, canBubble, cancelable, view, detail,
+        ev.InitMouseEvent(type_, canBubble, cancelable, view, detail,
                                   screenX, screenY, clientX, clientY,
                                   ctrlKey, altKey, shiftKey, metaKey,
                                   button, relatedTarget);
@@ -107,39 +106,39 @@ impl MouseEvent {
 
 impl<'a> MouseEventMethods for JSRef<'a, MouseEvent> {
     fn ScreenX(self) -> i32 {
-        self.screen_x.deref().get()
+        self.screen_x.get()
     }
 
     fn ScreenY(self) -> i32 {
-        self.screen_y.deref().get()
+        self.screen_y.get()
     }
 
     fn ClientX(self) -> i32 {
-        self.client_x.deref().get()
+        self.client_x.get()
     }
 
     fn ClientY(self) -> i32 {
-        self.client_y.deref().get()
+        self.client_y.get()
     }
 
     fn CtrlKey(self) -> bool {
-        self.ctrl_key.deref().get()
+        self.ctrl_key.get()
     }
 
     fn ShiftKey(self) -> bool {
-        self.shift_key.deref().get()
+        self.shift_key.get()
     }
 
     fn AltKey(self) -> bool {
-        self.alt_key.deref().get()
+        self.alt_key.get()
     }
 
     fn MetaKey(self) -> bool {
-        self.meta_key.deref().get()
+        self.meta_key.get()
     }
 
     fn Button(self) -> i16 {
-        self.button.deref().get()
+        self.button.get()
     }
 
     fn GetRelatedTarget(self) -> Option<Temporary<EventTarget>> {
@@ -164,15 +163,15 @@ impl<'a> MouseEventMethods for JSRef<'a, MouseEvent> {
                       relatedTargetArg: Option<JSRef<EventTarget>>) {
         let uievent: JSRef<UIEvent> = UIEventCast::from_ref(self);
         uievent.InitUIEvent(typeArg, canBubbleArg, cancelableArg, viewArg, detailArg);
-        self.screen_x.deref().set(screenXArg);
-        self.screen_y.deref().set(screenYArg);
-        self.client_x.deref().set(clientXArg);
-        self.client_y.deref().set(clientYArg);
-        self.ctrl_key.deref().set(ctrlKeyArg);
-        self.alt_key.deref().set(altKeyArg);
-        self.shift_key.deref().set(shiftKeyArg);
-        self.meta_key.deref().set(metaKeyArg);
-        self.button.deref().set(buttonArg);
+        self.screen_x.set(screenXArg);
+        self.screen_y.set(screenYArg);
+        self.client_x.set(clientXArg);
+        self.client_y.set(clientYArg);
+        self.ctrl_key.set(ctrlKeyArg);
+        self.alt_key.set(altKeyArg);
+        self.shift_key.set(shiftKeyArg);
+        self.meta_key.set(metaKeyArg);
+        self.button.set(buttonArg);
         self.related_target.assign(relatedTargetArg);
     }
 }

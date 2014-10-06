@@ -10,7 +10,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::global;
 use dom::bindings::js::{MutNullableJS, JSRef, RootedReference, Temporary, OptionalSettable};
-use dom::bindings::trace::Traceable;
+
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{Event, EventTypeId, UIEventTypeId};
 use dom::window::Window;
@@ -24,7 +24,7 @@ use std::default::Default;
 pub struct UIEvent {
     pub event: Event,
     view: MutNullableJS<Window>,
-    detail: Traceable<Cell<i32>>
+    detail: Cell<i32>
 }
 
 impl UIEventDerived for Event {
@@ -38,7 +38,7 @@ impl UIEvent {
         UIEvent {
             event: Event::new_inherited(type_id),
             view: Default::default(),
-            detail: Traceable::new(Cell::new(0)),
+            detail: Cell::new(0),
         }
     }
 
@@ -75,7 +75,7 @@ impl<'a> UIEventMethods for JSRef<'a, UIEvent> {
     }
 
     fn Detail(self) -> i32 {
-        self.detail.deref().get()
+        self.detail.get()
     }
 
     fn InitUIEvent(self,
@@ -87,7 +87,7 @@ impl<'a> UIEventMethods for JSRef<'a, UIEvent> {
         let event: JSRef<Event> = EventCast::from_ref(self);
         event.InitEvent(type_, can_bubble, cancelable);
         self.view.assign(view);
-        self.detail.deref().set(detail);
+        self.detail.set(detail);
     }
 }
 

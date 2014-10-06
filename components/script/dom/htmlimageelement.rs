@@ -7,7 +7,6 @@ use dom::bindings::codegen::Bindings::HTMLImageElementBinding;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, HTMLElementCast, HTMLImageElementDerived};
 use dom::bindings::js::{JS, JSRef, Temporary};
-use dom::bindings::trace::Untraceable;
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::{Element, HTMLImageElementTypeId};
@@ -29,7 +28,7 @@ use std::cell::RefCell;
 #[must_root]
 pub struct HTMLImageElement {
     pub htmlelement: HTMLElement,
-    image: Untraceable<RefCell<Option<Url>>>,
+    image: RefCell<Option<Url>>,
 }
 
 impl HTMLImageElementDerived for EventTarget {
@@ -52,13 +51,13 @@ impl<'a> PrivateHTMLImageElementHelpers for JSRef<'a, HTMLImageElement> {
         let image_cache = &window.image_cache_task;
         match value {
             None => {
-                *self.image.deref().borrow_mut() = None;
+                *self.image.borrow_mut() = None;
             }
             Some((src, base_url)) => {
                 let img_url = UrlParser::new().base_url(base_url).parse(src.as_slice());
                 // FIXME: handle URL parse errors more gracefully.
                 let img_url = img_url.unwrap();
-                *self.image.deref().borrow_mut() = Some(img_url.clone());
+                *self.image.borrow_mut() = Some(img_url.clone());
 
                 // inform the image cache to load this, but don't store a
                 // handle.
@@ -75,7 +74,7 @@ impl HTMLImageElement {
     fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLImageElement {
         HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(HTMLImageElementTypeId, localName, document),
-            image: Untraceable::new(RefCell::new(None)),
+            image: RefCell::new(None),
         }
     }
 

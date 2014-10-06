@@ -395,14 +395,14 @@ impl ScriptTask {
             let mut page = self.page.borrow_mut();
             for page in page.iter() {
                 // Only process a resize if layout is idle.
-                let layout_join_port = page.layout_join_port.deref().borrow();
+                let layout_join_port = page.layout_join_port.borrow();
                 if layout_join_port.is_none() {
-                    let mut resize_event = page.resize_event.deref().get();
+                    let mut resize_event = page.resize_event.get();
                     match resize_event.take() {
                         Some(size) => resizes.push((page.id, size)),
                         None => ()
                     }
-                    page.resize_event.deref().set(None);
+                    page.resize_event.set(None);
                 }
             }
         }
@@ -457,7 +457,7 @@ impl ScriptTask {
                 FromConstellation(ResizeMsg(id, size)) => {
                     let mut page = self.page.borrow_mut();
                     let page = page.find(id).expect("resize sent to nonexistent pipeline");
-                    page.resize_event.deref().set(Some(size));
+                    page.resize_event.set(Some(size));
                 }
                 _ => {
                     sequential.push(event);
@@ -594,15 +594,15 @@ impl ScriptTask {
             whose parent has a PipelineId which does not correspond to a pipeline in the script
             task's page tree. This is a bug.");
         let new_page = {
-            let window_size = parent_page.window_size.deref().get();
+            let window_size = parent_page.window_size.get();
             Page::new(new_pipeline_id, Some(subpage_id),
                       LayoutChan(layout_chan.downcast_ref::<Sender<layout_interface::Msg>>().unwrap().clone()),
                       window_size,
-                      parent_page.resource_task.deref().clone(),
+                      parent_page.resource_task.clone(),
                       self.constellation_chan.clone(),
                       self.js_context.borrow().as_ref().unwrap().clone())
         };
-        parent_page.children.deref().borrow_mut().push(Rc::new(new_page));
+        parent_page.children.borrow_mut().push(Rc::new(new_page));
     }
 
     /// Handles a timer that fired.
@@ -622,9 +622,9 @@ impl ScriptTask {
         let page = page.find(pipeline_id).expect(
             "ScriptTask: received a load message for a layout channel that is not associated \
              with this script task. This is a bug.");
-        let last_reflow_id = page.last_reflow_id.deref().get();
+        let last_reflow_id = page.last_reflow_id.get();
         if last_reflow_id == reflow_id {
-            let mut layout_join_port = page.layout_join_port.deref().borrow_mut();
+            let mut layout_join_port = page.layout_join_port.borrow_mut();
             *layout_join_port = None;
         }
 
@@ -649,7 +649,7 @@ impl ScriptTask {
         let mut page = self.page.borrow_mut();
         let page = page.find(id).expect("Received resize message for PipelineId not associated
             with a page in the page tree. This is a bug.");
-        page.window_size.deref().set(new_size);
+        page.window_size.set(new_size);
         match &mut *page.mut_url() {
             &Some((_, ref mut needs_reflow)) => *needs_reflow = true,
             &None => (),
@@ -866,7 +866,7 @@ impl ScriptTask {
 
                 let window = {
                     let page = get_page(&*self.page.borrow(), pipeline_id);
-                    page.window_size.deref().set(new_size);
+                    page.window_size.set(new_size);
 
                     let frame = page.frame();
                     if frame.is_some() {
@@ -911,7 +911,7 @@ impl ScriptTask {
                 let page = get_page(&*self.page.borrow(), pipeline_id);
                 let frame = page.frame();
                 if frame.is_some() {
-                    let in_layout = page.layout_join_port.deref().borrow().is_some();
+                    let in_layout = page.layout_join_port.borrow().is_some();
                     if in_layout {
                         page.pending_reflows.set(page.pending_reflows.get() + 1);
                     } else {
@@ -1062,7 +1062,7 @@ fn shut_down_layout(page_tree: &Rc<Page>, rt: *mut JSRuntime) {
         // Tell the layout task to begin shutting down, and wait until it
         // processed this message.
         let (response_chan, response_port) = channel();
-        let LayoutChan(ref chan) = *page.layout_chan;
+        let LayoutChan(ref chan) = page.layout_chan;
         chan.send(layout_interface::PrepareToExitMsg(response_chan));
         response_port.recv();
     }
@@ -1085,7 +1085,7 @@ fn shut_down_layout(page_tree: &Rc<Page>, rt: *mut JSRuntime) {
 
     // Destroy the layout task. If there were node leaks, layout will now crash safely.
     for page in page_tree.iter() {
-        let LayoutChan(ref chan) = *page.layout_chan;
+        let LayoutChan(ref chan) = page.layout_chan;
         chan.send(layout_interface::ExitNowMsg);
     }
 }

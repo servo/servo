@@ -9,7 +9,6 @@ use dom::bindings::codegen::UnionTypes::FileOrString::{FileOrString, eFile, eStr
 use dom::bindings::error::{Fallible};
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JS, JSRef, Temporary};
-use dom::bindings::trace::Traceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::blob::Blob;
 use dom::file::File;
@@ -29,7 +28,7 @@ pub enum FormDatum {
 #[jstraceable]
 #[must_root]
 pub struct FormData {
-    data: Traceable<RefCell<HashMap<DOMString, Vec<FormDatum>>>>,
+    data: RefCell<HashMap<DOMString, Vec<FormDatum>>>,
     reflector_: Reflector,
     global: GlobalField,
     form: Option<JS<HTMLFormElement>>
@@ -38,7 +37,7 @@ pub struct FormData {
 impl FormData {
     fn new_inherited(form: Option<JSRef<HTMLFormElement>>, global: &GlobalRef) -> FormData {
         FormData {
-            data: Traceable::new(RefCell::new(HashMap::new())),
+            data: RefCell::new(HashMap::new()),
             reflector_: Reflector::new(),
             global: GlobalField::from_rooted(global),
             form: form.map(|f| JS::from_rooted(f)),
@@ -59,22 +58,22 @@ impl<'a> FormDataMethods for JSRef<'a, FormData> {
     #[allow(unrooted_must_root)]
     fn Append(self, name: DOMString, value: JSRef<Blob>, filename: Option<DOMString>) {
         let file = FileData(JS::from_rooted(self.get_file_from_blob(value, filename)));
-        self.data.deref().borrow_mut().insert_or_update_with(name.clone(), vec!(file.clone()),
+        self.data.borrow_mut().insert_or_update_with(name.clone(), vec!(file.clone()),
                                         |_k, v| {v.push(file.clone());});
     }
 
     fn Append_(self, name: DOMString, value: DOMString) {
-        self.data.deref().borrow_mut().insert_or_update_with(name, vec!(StringData(value.clone())),
+        self.data.borrow_mut().insert_or_update_with(name, vec!(StringData(value.clone())),
                                         |_k, v| {v.push(StringData(value.clone()));});
     }
 
     fn Delete(self, name: DOMString) {
-        self.data.deref().borrow_mut().remove(&name);
+        self.data.borrow_mut().remove(&name);
     }
 
     fn Get(self, name: DOMString) -> Option<FileOrString> {
-        if self.data.deref().borrow().contains_key_equiv(&name) {
-            match (*self.data.deref().borrow())[name][0].clone() {
+        if self.data.borrow().contains_key_equiv(&name) {
+            match (*self.data.borrow())[name][0].clone() {
                 StringData(ref s) => Some(eString(s.clone())),
                 FileData(ref f) => {
                     Some(eFile(f.clone()))
@@ -86,16 +85,16 @@ impl<'a> FormDataMethods for JSRef<'a, FormData> {
     }
 
     fn Has(self, name: DOMString) -> bool {
-        self.data.deref().borrow().contains_key_equiv(&name)
+        self.data.borrow().contains_key_equiv(&name)
     }
     #[allow(unrooted_must_root)]
     fn Set(self, name: DOMString, value: JSRef<Blob>, filename: Option<DOMString>) {
         let file = FileData(JS::from_rooted(self.get_file_from_blob(value, filename)));
-        self.data.deref().borrow_mut().insert(name, vec!(file));
+        self.data.borrow_mut().insert(name, vec!(file));
     }
 
     fn Set_(self, name: DOMString, value: DOMString) {
-        self.data.deref().borrow_mut().insert(name, vec!(StringData(value)));
+        self.data.borrow_mut().insert(name, vec!(StringData(value)));
     }
 }
 

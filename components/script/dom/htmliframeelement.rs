@@ -8,7 +8,6 @@ use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElemen
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLIFrameElementDerived};
 use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
-use dom::bindings::trace::Traceable;
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::{HTMLIFrameElementTypeId, Element};
@@ -44,8 +43,8 @@ enum SandboxAllowance {
 #[must_root]
 pub struct HTMLIFrameElement {
     pub htmlelement: HTMLElement,
-    pub size: Traceable<Cell<Option<IFrameSize>>>,
-    pub sandbox: Traceable<Cell<Option<u8>>>,
+    pub size: Cell<Option<IFrameSize>>,
+    pub sandbox: Cell<Option<u8>>,
 }
 
 impl HTMLIFrameElementDerived for EventTarget {
@@ -69,7 +68,7 @@ pub trait HTMLIFrameElementHelpers {
 
 impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
     fn is_sandboxed(self) -> bool {
-        self.sandbox.deref().get().is_some()
+        self.sandbox.get().is_some()
     }
 
     fn get_url(self) -> Option<Url> {
@@ -103,12 +102,12 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
         let page = window.deref().page();
         let subpage_id = page.get_next_subpage_id();
 
-        self.deref().size.deref().set(Some(IFrameSize {
+        self.deref().size.set(Some(IFrameSize {
             pipeline_id: page.id,
             subpage_id: subpage_id,
         }));
 
-        let ConstellationChan(ref chan) = *page.constellation_chan.deref();
+        let ConstellationChan(ref chan) = page.constellation_chan;
         chan.send(LoadIframeUrlMsg(url, page.id, subpage_id, sandboxed));
     }
 }
@@ -117,8 +116,8 @@ impl HTMLIFrameElement {
     fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLIFrameElement {
         HTMLIFrameElement {
             htmlelement: HTMLElement::new_inherited(HTMLIFrameElementTypeId, localName, document),
-            size: Traceable::new(Cell::new(None)),
-            sandbox: Traceable::new(Cell::new(None)),
+            size: Cell::new(None),
+            sandbox: Cell::new(None),
         }
     }
 
@@ -151,14 +150,14 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
     }
 
     fn GetContentWindow(self) -> Option<Temporary<Window>> {
-        self.size.deref().get().and_then(|size| {
+        self.size.get().and_then(|size| {
             let window = window_from_node(self).root();
-            let children = window.deref().page.children.deref().borrow();
+            let children = window.deref().page.children.borrow();
             let child = children.iter().find(|child| {
                 child.subpage_id.unwrap() == size.subpage_id
             });
             child.and_then(|page| {
-                page.frame.deref().borrow().as_ref().map(|frame| {
+                page.frame.borrow().as_ref().map(|frame| {
                     Temporary::new(frame.window.clone())
                 })
             })
@@ -191,7 +190,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
                     _ => AllowNothing
                 } as u8;
             }
-            self.deref().sandbox.deref().set(Some(modes));
+            self.deref().sandbox.set(Some(modes));
         }
 
         if "src" == name.as_slice() {
@@ -209,7 +208,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
         }
 
         if "sandbox" == name.as_slice() {
-            self.deref().sandbox.deref().set(None);
+            self.deref().sandbox.set(None);
         }
     }
 

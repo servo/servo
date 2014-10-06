@@ -15,7 +15,6 @@ use dom::bindings::error::{Network, Syntax, Security, Abort, Timeout};
 use dom::bindings::global::{GlobalField, GlobalRef, WorkerField};
 use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, OptionalRootedRootable};
 use dom::bindings::str::ByteString;
-use dom::bindings::trace::{Traceable, Untraceable};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::document::Document;
 use dom::event::Event;
@@ -107,68 +106,68 @@ enum SyncOrAsync<'a> {
 #[must_root]
 pub struct XMLHttpRequest {
     eventtarget: XMLHttpRequestEventTarget,
-    ready_state: Traceable<Cell<XMLHttpRequestState>>,
-    timeout: Traceable<Cell<u32>>,
-    with_credentials: Traceable<Cell<bool>>,
+    ready_state: Cell<XMLHttpRequestState>,
+    timeout: Cell<u32>,
+    with_credentials: Cell<bool>,
     upload: JS<XMLHttpRequestUpload>,
     response_url: DOMString,
-    status: Traceable<Cell<u16>>,
-    status_text: Traceable<RefCell<ByteString>>,
-    response: Traceable<RefCell<ByteString>>,
-    response_type: Traceable<Cell<XMLHttpRequestResponseType>>,
+    status: Cell<u16>,
+    status_text: RefCell<ByteString>,
+    response: RefCell<ByteString>,
+    response_type: Cell<XMLHttpRequestResponseType>,
     response_xml: MutNullableJS<Document>,
-    response_headers: Untraceable<RefCell<ResponseHeaderCollection>>,
+    response_headers: RefCell<ResponseHeaderCollection>,
 
     // Associated concepts
-    request_method: Untraceable<RefCell<Method>>,
-    request_url: Untraceable<RefCell<Option<Url>>>,
-    request_headers: Untraceable<RefCell<RequestHeaderCollection>>,
-    request_body_len: Traceable<Cell<uint>>,
-    sync: Traceable<Cell<bool>>,
-    upload_complete: Traceable<Cell<bool>>,
-    upload_events: Traceable<Cell<bool>>,
-    send_flag: Traceable<Cell<bool>>,
+    request_method: RefCell<Method>,
+    request_url: RefCell<Option<Url>>,
+    request_headers: RefCell<RequestHeaderCollection>,
+    request_body_len: Cell<uint>,
+    sync: Cell<bool>,
+    upload_complete: Cell<bool>,
+    upload_events: Cell<bool>,
+    send_flag: Cell<bool>,
 
     global: GlobalField,
-    pinned_count: Traceable<Cell<uint>>,
-    timer: Untraceable<RefCell<Timer>>,
-    fetch_time: Traceable<Cell<i64>>,
-    timeout_pinned: Traceable<Cell<bool>>,
-    terminate_sender: Untraceable<RefCell<Option<Sender<Error>>>>,
+    pinned_count: Cell<uint>,
+    timer: RefCell<Timer>,
+    fetch_time: Cell<i64>,
+    timeout_pinned: Cell<bool>,
+    terminate_sender: RefCell<Option<Sender<Error>>>,
 }
 
 impl XMLHttpRequest {
     fn new_inherited(global: &GlobalRef) -> XMLHttpRequest {
         XMLHttpRequest {
             eventtarget: XMLHttpRequestEventTarget::new_inherited(XMLHttpRequestTypeId),
-            ready_state: Traceable::new(Cell::new(Unsent)),
-            timeout: Traceable::new(Cell::new(0u32)),
-            with_credentials: Traceable::new(Cell::new(false)),
+            ready_state: Cell::new(Unsent),
+            timeout: Cell::new(0u32),
+            with_credentials: Cell::new(false),
             upload: JS::from_rooted(XMLHttpRequestUpload::new(global)),
             response_url: "".to_string(),
-            status: Traceable::new(Cell::new(0)),
-            status_text: Traceable::new(RefCell::new(ByteString::new(vec!()))),
-            response: Traceable::new(RefCell::new(ByteString::new(vec!()))),
-            response_type: Traceable::new(Cell::new(_empty)),
+            status: Cell::new(0),
+            status_text: RefCell::new(ByteString::new(vec!())),
+            response: RefCell::new(ByteString::new(vec!())),
+            response_type: Cell::new(_empty),
             response_xml: Default::default(),
-            response_headers: Untraceable::new(RefCell::new(ResponseHeaderCollection::new())),
+            response_headers: RefCell::new(ResponseHeaderCollection::new()),
 
-            request_method: Untraceable::new(RefCell::new(Get)),
-            request_url: Untraceable::new(RefCell::new(None)),
-            request_headers: Untraceable::new(RefCell::new(RequestHeaderCollection::new())),
-            request_body_len: Traceable::new(Cell::new(0)),
-            sync: Traceable::new(Cell::new(false)),
-            send_flag: Traceable::new(Cell::new(false)),
+            request_method: RefCell::new(Get),
+            request_url: RefCell::new(None),
+            request_headers: RefCell::new(RequestHeaderCollection::new()),
+            request_body_len: Cell::new(0),
+            sync: Cell::new(false),
+            send_flag: Cell::new(false),
 
-            upload_complete: Traceable::new(Cell::new(false)),
-            upload_events: Traceable::new(Cell::new(false)),
+            upload_complete: Cell::new(false),
+            upload_events: Cell::new(false),
 
             global: GlobalField::from_rooted(global),
-            pinned_count: Traceable::new(Cell::new(0)),
-            timer: Untraceable::new(RefCell::new(Timer::new().unwrap())),
-            fetch_time: Traceable::new(Cell::new(0)),
-            timeout_pinned: Traceable::new(Cell::new(false)),
-            terminate_sender: Untraceable::new(RefCell::new(None)),
+            pinned_count: Cell::new(0),
+            timer: RefCell::new(Timer::new().unwrap()),
+            fetch_time: Cell::new(0),
+            timeout_pinned: Cell::new(false),
+            terminate_sender: RefCell::new(None),
         }
     }
     pub fn new(global: &GlobalRef) -> Temporary<XMLHttpRequest> {
@@ -276,7 +275,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
     }
 
     fn ReadyState(self) -> u16 {
-        self.ready_state.deref().get() as u16
+        self.ready_state.get() as u16
     }
 
     fn Open(self, method: ByteString, url: DOMString) -> ErrorResult {
@@ -306,7 +305,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             Some(ExtensionMethod(ref t)) if t.as_slice() == "TRACK" => Err(Security),
             Some(_) if method.is_token() => {
 
-                *self.request_method.deref().borrow_mut() = maybe_method.unwrap();
+                *self.request_method.borrow_mut() = maybe_method.unwrap();
 
                 // Step 6
                 let base = self.global.root().root_ref().get_url();
@@ -315,22 +314,22 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
                     Err(_) => return Err(Syntax) // Step 7
                 };
                 // XXXManishearth Do some handling of username/passwords
-                if self.sync.deref().get() {
+                if self.sync.get() {
                     // FIXME: This should only happen if the global environment is a document environment
-                    if self.timeout.deref().get() != 0 || self.with_credentials.deref().get() || self.response_type.deref().get() != _empty {
+                    if self.timeout.get() != 0 || self.with_credentials.get() || self.response_type.get() != _empty {
                         return Err(InvalidAccess)
                     }
                 }
                 // XXXManishearth abort existing requests
                 // Step 12
-                *self.request_url.deref().borrow_mut() = Some(parsed_url);
-                *self.request_headers.deref().borrow_mut() = RequestHeaderCollection::new();
-                self.send_flag.deref().set(false);
-                *self.status_text.deref().borrow_mut() = ByteString::new(vec!());
-                self.status.deref().set(0);
+                *self.request_url.borrow_mut() = Some(parsed_url);
+                *self.request_headers.borrow_mut() = RequestHeaderCollection::new();
+                self.send_flag.set(false);
+                *self.status_text.borrow_mut() = ByteString::new(vec!());
+                self.status.set(0);
 
                 // Step 13
-                if self.ready_state.deref().get() != Opened {
+                if self.ready_state.get() != Opened {
                     self.change_ready_state(Opened);
                 }
                 Ok(())
@@ -342,11 +341,11 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
     }
     fn Open_(self, method: ByteString, url: DOMString, async: bool,
                  _username: Option<DOMString>, _password: Option<DOMString>) -> ErrorResult {
-        self.sync.deref().set(!async);
+        self.sync.set(!async);
         self.Open(method, url)
     }
     fn SetRequestHeader(self, name: ByteString, mut value: ByteString) -> ErrorResult {
-        if self.ready_state.deref().get() != Opened || self.send_flag.deref().get() {
+        if self.ready_state.get() != Opened || self.send_flag.get() {
             return Err(InvalidState); // Step 1, 2
         }
         if !name.is_token() || !value.is_field_value() {
@@ -371,7 +370,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             },
             None => return Err(Syntax)
         };
-        let mut collection = self.request_headers.deref().borrow_mut();
+        let mut collection = self.request_headers.borrow_mut();
 
 
         // Steps 6,7
@@ -410,20 +409,20 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         }
     }
     fn Timeout(self) -> u32 {
-        self.timeout.deref().get()
+        self.timeout.get()
     }
     fn SetTimeout(self, timeout: u32) -> ErrorResult {
-        if self.sync.deref().get() {
+        if self.sync.get() {
             // FIXME: Not valid for a worker environment
             Err(InvalidState)
         } else {
-            self.timeout.deref().set(timeout);
-            if self.send_flag.deref().get() {
+            self.timeout.set(timeout);
+            if self.send_flag.get() {
                 if timeout == 0 {
                     self.cancel_timeout();
                     return Ok(());
                 }
-                let progress = time::now().to_timespec().sec - self.fetch_time.deref().get();
+                let progress = time::now().to_timespec().sec - self.fetch_time.get();
                 if timeout > (progress * 1000) as u32 {
                     self.set_timeout(timeout - (progress * 1000) as u32);
                 } else {
@@ -435,20 +434,20 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         }
     }
     fn WithCredentials(self) -> bool {
-        self.with_credentials.deref().get()
+        self.with_credentials.get()
     }
     fn SetWithCredentials(self, with_credentials: bool) {
-        self.with_credentials.deref().set(with_credentials);
+        self.with_credentials.set(with_credentials);
     }
     fn Upload(self) -> Temporary<XMLHttpRequestUpload> {
         Temporary::new(self.upload)
     }
     fn Send(self, data: Option<SendParam>) -> ErrorResult {
-        if self.ready_state.deref().get() != Opened || self.send_flag.deref().get() {
+        if self.ready_state.get() != Opened || self.send_flag.get() {
             return Err(InvalidState); // Step 1, 2
         }
 
-        let data = match *self.request_method.deref().borrow() {
+        let data = match *self.request_method.borrow() {
             Get | Head => None, // Step 3
             _ => data
         };
@@ -456,15 +455,15 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         self.request_body_len.set(extracted.as_ref().map(|e| e.len()).unwrap_or(0));
 
         // Step 6
-        self.upload_events.deref().set(false);
+        self.upload_events.set(false);
         // Step 7
-        self.upload_complete.deref().set(match extracted {
+        self.upload_complete.set(match extracted {
             None => true,
             Some (ref v) if v.len() == 0 => true,
             _ => false
         });
         let mut addr = None;
-        if !self.sync.deref().get() {
+        if !self.sync.get() {
             // If one of the event handlers below aborts the fetch,
             // the assertion in release_once() will fail since we haven't pinned it yet.
             // Pin early to avoid dealing with this
@@ -476,29 +475,29 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             let upload_target = *self.upload.root();
             let event_target: JSRef<EventTarget> = EventTargetCast::from_ref(upload_target);
             if event_target.has_handlers() {
-                self.upload_events.deref().set(true);
+                self.upload_events.set(true);
             }
 
             // Step 9
-            self.send_flag.deref().set(true);
+            self.send_flag.set(true);
             self.dispatch_response_progress_event("loadstart".to_string());
-            if !self.upload_complete.deref().get() {
+            if !self.upload_complete.get() {
                 self.dispatch_upload_progress_event("loadstart".to_string(), Some(0));
             }
         }
 
-        if self.ready_state.deref().get() == Unsent {
+        if self.ready_state.get() == Unsent {
             // The progress events above might have run abort(), in which case we terminate the fetch.
             return Ok(());
         }
 
         let global = self.global.root();
         let resource_task = global.root_ref().resource_task();
-        let mut load_data = LoadData::new(self.request_url.deref().borrow().clone().unwrap());
+        let mut load_data = LoadData::new(self.request_url.borrow().clone().unwrap());
         load_data.data = extracted;
 
         // Default headers
-        let request_headers = self.request_headers.deref();
+        let ref request_headers = self.request_headers;
         if request_headers.borrow().content_type.is_none() {
             let parameters = vec!((String::from_str("charset"), String::from_str("UTF-8")));
             request_headers.borrow_mut().content_type = match data {
@@ -522,14 +521,14 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             request_headers.borrow_mut().accept = Some(String::from_str("*/*"))
         }
 
-        load_data.headers = (*self.request_headers.deref().borrow()).clone();
-        load_data.method = (*self.request_method.deref().borrow()).clone();
+        load_data.headers = (*self.request_headers.borrow()).clone();
+        load_data.method = (*self.request_method.borrow()).clone();
         let (terminate_sender, terminate_receiver) = channel();
-        *self.terminate_sender.deref().borrow_mut() = Some(terminate_sender);
+        *self.terminate_sender.borrow_mut() = Some(terminate_sender);
 
         // CORS stuff
         let referer_url = self.global.root().root_ref().get_url();
-        let mode = if self.upload_events.deref().get() {
+        let mode = if self.upload_events.get() {
             ForcedPreflightMode
         } else {
             CORSMode
@@ -547,25 +546,25 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
                     buf.push_str(format!("{:u}", p).as_slice());
                 });
                 referer_url.serialize_path().map(|ref h| buf.push_str(h.as_slice()));
-                self.request_headers.deref().borrow_mut().referer = Some(buf);
+                self.request_headers.borrow_mut().referer = Some(buf);
             },
             Ok(Some(ref req)) => self.insert_trusted_header("origin".to_string(),
                                                             format!("{}", req.origin)),
             _ => {}
         }
 
-        if self.sync.deref().get() {
+        if self.sync.get() {
             return XMLHttpRequest::fetch(&mut Sync(self), resource_task, load_data,
                                          terminate_receiver, cors_request);
         } else {
             let builder = TaskBuilder::new().named("XHRTask");
-            self.fetch_time.deref().set(time::now().to_timespec().sec);
+            self.fetch_time.set(time::now().to_timespec().sec);
             let script_chan = global.root_ref().script_chan().clone();
             builder.spawn(proc() {
                 let _ = XMLHttpRequest::fetch(&mut Async(addr.unwrap(), script_chan),
                                               resource_task, load_data, terminate_receiver, cors_request);
             });
-            let timeout = self.timeout.deref().get();
+            let timeout = self.timeout.get();
             if timeout > 0 {
                 self.set_timeout(timeout);
             }
@@ -573,22 +572,22 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         Ok(())
     }
     fn Abort(self) {
-        self.terminate_sender.deref().borrow().as_ref().map(|s| s.send_opt(Abort));
-        match self.ready_state.deref().get() {
-            Opened if self.send_flag.deref().get() => self.process_partial_response(ErroredMsg(Some(Abort))),
+        self.terminate_sender.borrow().as_ref().map(|s| s.send_opt(Abort));
+        match self.ready_state.get() {
+            Opened if self.send_flag.get() => self.process_partial_response(ErroredMsg(Some(Abort))),
             HeadersReceived | Loading => self.process_partial_response(ErroredMsg(Some(Abort))),
             _ => {}
         };
-        self.ready_state.deref().set(Unsent);
+        self.ready_state.set(Unsent);
     }
     fn ResponseURL(self) -> DOMString {
         self.response_url.clone()
     }
     fn Status(self) -> u16 {
-        self.status.deref().get()
+        self.status.get()
     }
     fn StatusText(self) -> ByteString {
-        self.status_text.deref().borrow().clone()
+        self.status_text.borrow().clone()
     }
     fn GetResponseHeader(self, name: ByteString) -> Option<ByteString> {
         self.filter_response_headers().iter().find(|h| {
@@ -610,7 +609,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         ByteString::new(vec)
     }
     fn ResponseType(self) -> XMLHttpRequestResponseType {
-        self.response_type.deref().get()
+        self.response_type.get()
     }
     fn SetResponseType(self, response_type: XMLHttpRequestResponseType) -> ErrorResult {
         match self.global {
@@ -618,28 +617,28 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             => return Ok(()),
             _ => {}
         }
-        match self.ready_state.deref().get() {
+        match self.ready_state.get() {
             Loading | XHRDone => Err(InvalidState),
-            _ if self.sync.deref().get() => Err(InvalidAccess),
+            _ if self.sync.get() => Err(InvalidAccess),
             _ => {
-                self.response_type.deref().set(response_type);
+                self.response_type.set(response_type);
                 Ok(())
             }
         }
     }
     fn Response(self, cx: *mut JSContext) -> JSVal {
-         match self.response_type.deref().get() {
+         match self.response_type.get() {
             _empty | Text => {
-                let ready_state = self.ready_state.deref().get();
+                let ready_state = self.ready_state.get();
                 if ready_state == XHRDone || ready_state == Loading {
                     self.text_response().to_jsval(cx)
                 } else {
                     "".to_string().to_jsval(cx)
                 }
             },
-            _ if self.ready_state.deref().get() != XHRDone => NullValue(),
+            _ if self.ready_state.get() != XHRDone => NullValue(),
             Json => {
-                let decoded = UTF_8.decode(self.response.deref().borrow().as_slice(), DecodeReplace).unwrap().to_string();
+                let decoded = UTF_8.decode(self.response.borrow().as_slice(), DecodeReplace).unwrap().to_string();
                 let decoded: Vec<u16> = decoded.as_slice().utf16_units().collect();
                 let mut vp = UndefinedValue();
                 unsafe {
@@ -652,14 +651,14 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             }
             _ => {
                 // XXXManishearth handle other response types
-                self.response.deref().borrow().to_jsval(cx)
+                self.response.borrow().to_jsval(cx)
             }
         }
     }
     fn GetResponseText(self) -> Fallible<DOMString> {
-        match self.response_type.deref().get() {
+        match self.response_type.get() {
             _empty | Text => {
-                match self.ready_state.deref().get() {
+                match self.ready_state.get() {
                     Loading | XHRDone => Ok(self.text_response()),
                     _ => Ok("".to_string())
                 }
@@ -716,25 +715,25 @@ trait PrivateXMLHttpRequestHelpers {
 impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
     // Creates a trusted address to the object, and roots it. Always pair this with a release()
     unsafe fn to_trusted(self) -> TrustedXHRAddress {
-        if self.pinned_count.deref().get() == 0 {
+        if self.pinned_count.get() == 0 {
             JS_AddObjectRoot(self.global.root().root_ref().get_cx(), self.reflector().rootable());
         }
-        let pinned_count = self.pinned_count.deref().get();
-        self.pinned_count.deref().set(pinned_count + 1);
+        let pinned_count = self.pinned_count.get();
+        self.pinned_count.set(pinned_count + 1);
         TrustedXHRAddress(self.deref() as *const XMLHttpRequest as *const libc::c_void)
     }
 
     fn release_once(self) {
-        if self.sync.deref().get() {
+        if self.sync.get() {
             // Lets us call this at various termination cases without having to
             // check self.sync every time, since the pinning mechanism only is
             // meaningful during an async fetch
             return;
         }
-        assert!(self.pinned_count.deref().get() > 0)
-        let pinned_count = self.pinned_count.deref().get();
-        self.pinned_count.deref().set(pinned_count - 1);
-        if self.pinned_count.deref().get() == 0 {
+        assert!(self.pinned_count.get() > 0)
+        let pinned_count = self.pinned_count.get();
+        self.pinned_count.set(pinned_count - 1);
+        if self.pinned_count.get() == 0 {
             unsafe {
                 JS_RemoveObjectRoot(self.global.root().root_ref().get_cx(), self.reflector().rootable());
             }
@@ -742,8 +741,8 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
     }
 
     fn change_ready_state(self, rs: XMLHttpRequestState) {
-        assert!(self.ready_state.deref().get() != rs)
-        self.ready_state.deref().set(rs);
+        assert!(self.ready_state.get() != rs)
+        self.ready_state.set(rs);
         let global = self.global.root();
         let event = Event::new(&global.root_ref(),
                                "readystatechange".to_string(),
@@ -760,9 +759,9 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
 
                 // Part of step 13, send() (processing request end of file)
                 // Substep 1
-                self.upload_complete.deref().set(true);
+                self.upload_complete.set(true);
                 // Substeps 2-4
-                if !self.sync.deref().get() {
+                if !self.sync.get() {
                     self.dispatch_upload_progress_event("progress".to_string(), None);
                     self.dispatch_upload_progress_event("load".to_string(), None);
                     self.dispatch_upload_progress_event("loadend".to_string(), None);
@@ -770,16 +769,16 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                 // Part of step 13, send() (processing response)
                 // XXXManishearth handle errors, if any (substep 1)
                 // Substep 2
-                *self.status_text.deref().borrow_mut() = ByteString::new(status.reason().container_into_owned_bytes());
-                self.status.deref().set(status.code());
+                *self.status_text.borrow_mut() = ByteString::new(status.reason().container_into_owned_bytes());
+                self.status.set(status.code());
                 match headers {
                     Some(ref h) => {
-                        *self.response_headers.deref().borrow_mut() = h.clone();
+                        *self.response_headers.borrow_mut() = h.clone();
                     }
                     None => {}
                 };
                 // Substep 3
-                if self.ready_state.deref().get() == Opened && !self.sync.deref().get() {
+                if self.ready_state.get() == Opened && !self.sync.get() {
                     self.change_ready_state(HeadersReceived);
                 }
             },
@@ -789,13 +788,13 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                 // XXXManishearth handle errors, if any (substep 1)
 
                 // Substep 2
-                if self.ready_state.deref().get() == HeadersReceived && !self.sync.deref().get() {
+                if self.ready_state.get() == HeadersReceived && !self.sync.get() {
                     self.change_ready_state(Loading);
                 }
                 // Substep 3
-                *self.response.deref().borrow_mut() = partial_response;
+                *self.response.borrow_mut() = partial_response;
                 // Substep 4
-                if !self.sync.deref().get() {
+                if !self.sync.get() {
                     self.dispatch_response_progress_event("progress".to_string());
                 }
             },
@@ -804,9 +803,9 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                 // XXXManishearth handle errors, if any (substep 1)
 
                 // Substep 3
-                if self.ready_state.deref().get() == Loading || self.sync.deref().get() {
+                if self.ready_state.get() == Loading || self.sync.get() {
                     // Subsubsteps 2-4
-                    self.send_flag.deref().set(false);
+                    self.send_flag.set(false);
                     self.change_ready_state(XHRDone);
 
                     // Subsubsteps 5-7
@@ -818,7 +817,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                 self.release_once();
             },
             ErroredMsg(e) => {
-                self.send_flag.deref().set(false);
+                self.send_flag.set(false);
                 // XXXManishearth set response to NetworkError
                 self.change_ready_state(XHRDone);
                 let errormsg = match e {
@@ -828,7 +827,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                     _ => unreachable!()
                 };
 
-                let upload_complete: &Cell<bool> = self.upload_complete.deref();
+                let upload_complete: &Cell<bool> = &self.upload_complete;
                 if !upload_complete.get() {
                     upload_complete.set(true);
                     self.dispatch_upload_progress_event("progress".to_string(), None);
@@ -843,8 +842,8 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                 self.release_once();
             },
             TimeoutMsg => {
-                match self.ready_state.deref().get() {
-                    Opened if self.send_flag.deref().get() => self.process_partial_response(ErroredMsg(Some(Timeout))),
+                match self.ready_state.get() {
+                    Opened if self.send_flag.get() => self.process_partial_response(ErroredMsg(Some(Timeout))),
                     Loading | HeadersReceived => self.process_partial_response(ErroredMsg(Some(Timeout))),
                     _ => self.release_once()
                 };
@@ -855,7 +854,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
     fn insert_trusted_header(self, name: String, value: String) {
         // Insert a header without checking spec-compliance
         // Use for hardcoded headers
-        let mut collection = self.request_headers.deref().borrow_mut();
+        let mut collection = self.request_headers.borrow_mut();
         let value_bytes = value.into_bytes();
         let mut reader = BufReader::new(value_bytes.as_slice());
         let maybe_header: Option<Header> = HeaderEnum::value_from_stream(
@@ -888,26 +887,26 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
     }
 
     fn dispatch_response_progress_event(self, type_: DOMString) {
-        let len = self.response.deref().borrow().len() as u64;
-        let total = self.response_headers.deref().borrow().content_length.map(|x| {x as u64});
+        let len = self.response.borrow().len() as u64;
+        let total = self.response_headers.borrow().content_length.map(|x| {x as u64});
         self.dispatch_progress_event(false, type_, len, total);
     }
     fn set_timeout(self, timeout: u32) {
         // Sets up the object to timeout in a given number of milliseconds
         // This will cancel all previous timeouts
-        let oneshot = self.timer.deref().borrow_mut()
+        let oneshot = self.timer.borrow_mut()
                           .oneshot(Duration::milliseconds(timeout as i64));
         let addr = unsafe {
             self.to_trusted() // This will increment the pin counter by one
         };
-        if self.timeout_pinned.deref().get() {
+        if self.timeout_pinned.get() {
             // Already pinned due to a timeout, no need to pin it again since the old timeout was cancelled above
             self.release_once();
         }
-        self.timeout_pinned.deref().set(true);
+        self.timeout_pinned.set(true);
         let global = self.global.root();
         let script_chan = global.root_ref().script_chan().clone();
-        let terminate_sender = (*self.terminate_sender.deref().borrow()).clone();
+        let terminate_sender = (*self.terminate_sender.borrow()).clone();
         spawn_named("XHR:Timer", proc () {
             match oneshot.recv_opt() {
                 Ok(_) => {
@@ -926,16 +925,16 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
     }
     fn cancel_timeout(self) {
         // Cancels timeouts on the object, if any
-        if self.timeout_pinned.deref().get() {
-            self.timeout_pinned.deref().set(false);
+        if self.timeout_pinned.get() {
+            self.timeout_pinned.set(false);
             self.release_once();
         }
         // oneshot() closes the previous channel, canceling the timeout
-        self.timer.deref().borrow_mut().oneshot(Zero::zero());
+        self.timer.borrow_mut().oneshot(Zero::zero());
     }
     fn text_response(self) -> DOMString {
         let mut encoding = UTF_8 as EncodingRef;
-        match self.response_headers.deref().borrow().content_type {
+        match self.response_headers.borrow().content_type {
             Some(ref x) => {
                 for &(ref name, ref value) in x.parameters.iter() {
                     if name.as_slice().eq_ignore_ascii_case("charset") {
@@ -947,12 +946,12 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         }
         // According to Simon, decode() should never return an error, so unwrap()ing
         // the result should be fine. XXXManishearth have a closer look at this later
-        encoding.decode(self.response.deref().borrow().as_slice(), DecodeReplace).unwrap().to_string()
+        encoding.decode(self.response.borrow().as_slice(), DecodeReplace).unwrap().to_string()
     }
     fn filter_response_headers(self) -> ResponseHeaderCollection {
         // http://fetch.spec.whatwg.org/#concept-response-header-list
         let mut headers = ResponseHeaderCollection::new();
-        for header in self.response_headers.deref().borrow().iter() {
+        for header in self.response_headers.borrow().iter() {
             match header.header_name().as_slice().to_ascii_lower().as_slice() {
                 "set-cookie" | "set-cookie2" => {},
                 // XXXManishearth additional CORS filtering goes here
