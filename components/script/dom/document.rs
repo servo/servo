@@ -242,11 +242,9 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
 
         let mut idmap = self.idmap.deref().borrow_mut();
 
-        // FIXME https://github.com/mozilla/rust/issues/13195
-        //       Use mangle() when it exists again.
         let root = self.GetDocumentElement().expect("The element is in the document, so there must be a document element.").root();
-        match idmap.find_mut(&id) {
-            Some(elements) => {
+        idmap.find_with_or_insert_with(id, element,
+            |_key, elements, element| {
                 let new_node: JSRef<Node> = NodeCast::from_ref(element);
                 let mut head : uint = 0u;
                 let root: JSRef<Node> = NodeCast::from_ref(*root);
@@ -265,13 +263,9 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
                     }
                 }
                 elements.insert_unrooted(head, &element);
-                return;
             },
-            None => (),
-        }
-        let mut elements = vec!();
-        elements.push_unrooted(&element);
-        idmap.insert(id, elements);
+            |_key, element| vec![element.unrooted()]
+        );
     }
 
     fn load_anchor_href(self, href: DOMString) {
