@@ -1855,6 +1855,7 @@ impl<T: Send + Sync + Clone> ArcExperimental<T> for Arc<T> {
 }
 
 /// Fast path for the function below. Only computes new inherited styles.
+#[allow(unused_mut)]
 fn cascade_with_cached_declarations(applicable_declarations: &[DeclarationBlock],
                                     shareable: bool,
                                     parent_style: &ComputedValues,
