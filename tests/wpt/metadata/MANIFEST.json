@@ -1698,6 +1698,10 @@
         "url": "/dom/nodes/selectors.js"
       },
       {
+        "path": "dom/traversal/traversal-support.js",
+        "url": "/dom/traversal/traversal-support.js"
+      },
+      {
         "path": "dom/traversal/unfinished/001.xml",
         "url": "/dom/traversal/unfinished/001.xml"
       },
@@ -6368,6 +6372,10 @@
         "url": "/pointerevents/pointerevent_pointerleave_touch-manual.html"
       },
       {
+        "path": "pointerevents/pointerevent_pointermove-manual.html",
+        "url": "/pointerevents/pointerevent_pointermove-manual.html"
+      },
+      {
         "path": "pointerevents/pointerevent_pointermove_isprimary_same_as_pointerdown-manual.html",
         "url": "/pointerevents/pointerevent_pointermove_isprimary_same_as_pointerdown-manual.html"
       },
@@ -6494,6 +6502,10 @@
       {
         "path": "pointerevents/pointerevent_touch-action-pan-y-css_touch-manual.html",
         "url": "/pointerevents/pointerevent_touch-action-pan-y-css_touch-manual.html"
+      },
+      {
+        "path": "pointerevents/pointerevent_touch-action-svg-test_touch-manual.html",
+        "url": "/pointerevents/pointerevent_touch-action-svg-test_touch-manual.html"
       },
       {
         "path": "touch-events/multi-touch-interactions-manual.html",
@@ -14681,6 +14693,42 @@
         "url": "/dom/traversal/NodeFilter-constants.html"
       },
       {
+        "path": "dom/traversal/TreeWalker-acceptNode-filter.html",
+        "url": "/dom/traversal/TreeWalker-acceptNode-filter.html"
+      },
+      {
+        "path": "dom/traversal/TreeWalker-basic.html",
+        "url": "/dom/traversal/TreeWalker-basic.html"
+      },
+      {
+        "path": "dom/traversal/TreeWalker-currentNode.html",
+        "url": "/dom/traversal/TreeWalker-currentNode.html"
+      },
+      {
+        "path": "dom/traversal/TreeWalker-previousNodeLastChildReject.html",
+        "url": "/dom/traversal/TreeWalker-previousNodeLastChildReject.html"
+      },
+      {
+        "path": "dom/traversal/TreeWalker-previousSiblingLastChildSkip.html",
+        "url": "/dom/traversal/TreeWalker-previousSiblingLastChildSkip.html"
+      },
+      {
+        "path": "dom/traversal/TreeWalker-traversal-reject.html",
+        "url": "/dom/traversal/TreeWalker-traversal-reject.html"
+      },
+      {
+        "path": "dom/traversal/TreeWalker-traversal-skip-most.html",
+        "url": "/dom/traversal/TreeWalker-traversal-skip-most.html"
+      },
+      {
+        "path": "dom/traversal/TreeWalker-traversal-skip.html",
+        "url": "/dom/traversal/TreeWalker-traversal-skip.html"
+      },
+      {
+        "path": "dom/traversal/TreeWalker-walking-outside-a-tree.html",
+        "url": "/dom/traversal/TreeWalker-walking-outside-a-tree.html"
+      },
+      {
         "path": "domparsing/insert-adjacent.html",
         "url": "/domparsing/insert-adjacent.html"
       },
@@ -19878,6 +19926,10 @@
         "url": "/pointerevents/pointerevent_constructor.html"
       },
       {
+        "path": "pointerevents/pointerevent_lostpointercapture_for_disconnected_node.html",
+        "url": "/pointerevents/pointerevent_lostpointercapture_for_disconnected_node.html"
+      },
+      {
         "path": "pointerevents/pointerevent_pointerleave_after_pointercancel_touch.html",
         "url": "/pointerevents/pointerevent_pointerleave_after_pointercancel_touch.html"
       },
@@ -19896,6 +19948,10 @@
       {
         "path": "pointerevents/pointerevent_pointerout_pen.html",
         "url": "/pointerevents/pointerevent_pointerout_pen.html"
+      },
+      {
+        "path": "pointerevents/pointerevent_setpointercapture_disconnected.html",
+        "url": "/pointerevents/pointerevent_setpointercapture_disconnected.html"
       },
       {
         "path": "pointerevents/pointerevent_touch-action-illegal.html",
@@ -22797,5 +22853,5 @@
     ]
   },
   "local_changes": [],
-  "rev": "71eea34fa3b60dc9c2e9c73ce397510c329aa365"
+  "rev": "746cc5a50a947ed0eafd4d38b82a99554b47697b"
 }
