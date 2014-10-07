@@ -100,7 +100,7 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
 
     make_setter!(SetAlt, "alt")
 
-    make_getter!(Src)
+    make_url_getter!(Src)
 
     make_setter!(SetSrc, "src")
 

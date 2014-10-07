@@ -53,6 +53,34 @@ macro_rules! make_uint_getter(
     }
 )
 
+#[macro_export]
+macro_rules! make_url_getter(
+    ( $attr:ident, $htmlname:expr ) => (
+        fn $attr(self) -> DOMString {
+            use dom::element::{Element, AttributeHandlers};
+            use dom::bindings::codegen::InheritTypes::ElementCast;
+            use dom::document::DocumentHelpers;
+            use dom::node::document_from_node;
+            use url::UrlParser;
+            #[allow(unused_imports)]
+            use std::ascii::StrAsciiExt;
+            let elem: JSRef<Element> = ElementCast::from_ref(self);
+            let action = elem.get_string_attribute($htmlname);
+            let doc = document_from_node(self).root();
+            let base = doc.url();
+            // https://html.spec.whatwg.org/multipage/infrastructure.html#reflect
+            // XXXManishearth this doesn't handle `javascript:` urls properly
+            match UrlParser::new().base_url(base).parse(action.as_slice()) {
+                Ok(parsed) => parsed.serialize(),
+                Err(_) => base.serialize()
+            }
+        }
+    );
+    ($attr:ident) => {
+        make_url_getter!($attr, stringify!($attr).to_ascii_lower().as_slice())
+    }
+)
+
 // concat_idents! doesn't work for function name positions, so
 // we have to specify both the content name and the HTML name here
 #[macro_export]

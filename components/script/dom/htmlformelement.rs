@@ -7,14 +7,13 @@ use dom::bindings::codegen::Bindings::HTMLFormElementBinding::HTMLFormElementMet
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLFormElementDerived};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
-use dom::document::{Document, DocumentHelpers};
+use dom::document::Document;
 use dom::element::{Element, AttributeHandlers, HTMLFormElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, ElementNodeTypeId, document_from_node};
+use dom::node::{Node, ElementNodeTypeId};
 use servo_util::str::DOMString;
 use std::ascii::OwnedStrAsciiExt;
-use url::UrlParser;
 
 
 #[jstraceable]
@@ -51,17 +50,7 @@ impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
     make_setter!(SetAcceptCharset, "accept-charset")
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-fs-action
-    fn Action(self) -> DOMString {
-        let elem: JSRef<Element> = ElementCast::from_ref(self);
-        let action = elem.get_string_attribute("action");
-        let doc = document_from_node(self).root();
-        let base = doc.url();
-        // https://html.spec.whatwg.org/multipage/infrastructure.html#reflect
-        match UrlParser::new().base_url(base).parse(action.as_slice()) {
-            Ok(parsed) => parsed.serialize(),
-            Err(_) => base.serialize()
-        }
-    }
+    make_url_getter!(Action)
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-fs-action
     make_setter!(SetAction, "action")
