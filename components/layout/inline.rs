@@ -11,7 +11,6 @@ use flow::{BaseFlow, FlowClass, Flow, InlineFlowClass, MutableFlowUtils};
 use flow;
 use fragment::{Fragment, InlineBlockFragment, ScannedTextFragment, ScannedTextFragmentInfo};
 use fragment::{SplitInfo};
-use incremental;
 use layout_debug;
 use model::IntrinsicISizes;
 use text;
@@ -764,22 +763,13 @@ pub struct InlineFlow {
 
 impl InlineFlow {
     pub fn from_fragments(node: ThreadSafeLayoutNode, fragments: InlineFragments) -> InlineFlow {
-        let fragment_damage =
-            fragments.fragments.iter().fold(
-                incremental::RestyleDamage::empty(),
-                |dmg, frag| dmg | frag.restyle_damage);
-
-        let mut ret = InlineFlow {
+        InlineFlow {
             base: BaseFlow::new(node),
             fragments: fragments,
             lines: Vec::new(),
             minimum_block_size_above_baseline: Au(0),
             minimum_depth_below_baseline: Au(0),
-        };
-
-        ret.base.restyle_damage.insert(fragment_damage);
-
-        ret
+        }
     }
 
     pub fn build_display_list_inline(&mut self, layout_context: &LayoutContext) {

@@ -7,8 +7,6 @@
 use css::node_style::StyledNode;
 use construct::FlowConstructor;
 use context::LayoutContext;
-use incremental;
-use incremental::RestyleDamage;
 use util::{LayoutDataAccess, LayoutDataWrapper};
 use wrapper::{LayoutElement, LayoutNode, PostorderNodeMutTraversal, ThreadSafeLayoutNode};
 use wrapper::{TLayoutNode};
@@ -333,7 +331,7 @@ trait PrivateMatchMethods {
                                    style: &mut Option<Arc<ComputedValues>>,
                                    applicable_declarations_cache: &mut
                                    ApplicableDeclarationsCache,
-                                   shareable: bool) -> RestyleDamage;
+                                   shareable: bool);
 
     fn share_style_with_candidate_if_possible(&self,
                                               parent_node: Option<LayoutNode>,
@@ -348,7 +346,7 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
                                    style: &mut Option<Arc<ComputedValues>>,
                                    applicable_declarations_cache: &mut
                                    ApplicableDeclarationsCache,
-                                   shareable: bool) -> RestyleDamage {
+                                   shareable: bool) {
         let this_style;
         let cacheable;
         match parent_style {
@@ -380,9 +378,7 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
             applicable_declarations_cache.insert(applicable_declarations, this_style.clone());
         }
 
-        let damage = incremental::compute_damage(style, &*this_style);
         *style = Some(this_style);
-        damage
     }
 
 
@@ -472,15 +468,10 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
             match self.share_style_with_candidate_if_possible(parent.clone(), candidate) {
                 Some(shared_style) => {
                     // Yay, cache hit. Share the style.
-                    let damage = {
-                        let mut layout_data_ref = self.mutate_layout_data();
-                        let shared_data = &mut layout_data_ref.as_mut().unwrap().shared_data;
-                        let style = &mut shared_data.style;
-                        let damage = incremental::compute_damage(style, &*shared_style);
-                        *style = Some(shared_style);
-                        damage
-                    };
-                    ThreadSafeLayoutNode::new(self).set_restyle_damage(damage);
+                    let mut layout_data_ref = self.mutate_layout_data();
+                    let shared_data = &mut layout_data_ref.as_mut().unwrap().shared_data;
+                    let style = &mut shared_data.style;
+                    *style = Some(shared_style);
                     return StyleWasShared(i)
                 }
                 None => {}
@@ -613,71 +604,61 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
         //
         // FIXME(pcwalton): Isolate this unsafety into the `wrapper` module to allow
         // enforced safe, race-free access to the parent style.
-        let (down_restyle_damage, parent_style) = match parent {
-            None => (RestyleDamage::empty(), None),
+        let parent_style = match parent {
+            None => None,
             Some(parent_node) => {
                 let parent_layout_data = parent_node.borrow_layout_data_unchecked();
                 match *parent_layout_data {
                     None => fail!("no parent data?!"),
                     Some(ref parent_layout_data) => {
-                        let down_restyle_damage =
-                            parent_layout_data.data.restyle_damage.propagate_down();
                         match parent_layout_data.shared_data.style {
                             None => fail!("parent hasn't been styled yet?!"),
-                            Some(ref style) => (down_restyle_damage, Some(style)),
+                            Some(ref style) => Some(style),
                         }
                     }
                 }
             }
         };
 
-        let mut damage = down_restyle_damage;
-
-        {
-            let mut layout_data_ref = self.mutate_layout_data();
-            match &mut *layout_data_ref {
-                &None => fail!("no layout data"),
-                &Some(ref mut layout_data) => {
-                    match self.type_id() {
-                        Some(TextNodeTypeId) => {
-                            // Text nodes get a copy of the parent style. This ensures
-                            // that during fragment construction any non-inherited
-                            // CSS properties (such as vertical-align) are correctly
-                            // set on the fragment(s).
-                            let cloned_parent_style = parent_style.unwrap().clone();
-                            layout_data.shared_data.style = Some(cloned_parent_style);
+        let mut layout_data_ref = self.mutate_layout_data();
+        match &mut *layout_data_ref {
+            &None => fail!("no layout data"),
+            &Some(ref mut layout_data) => {
+                match self.type_id() {
+                    Some(TextNodeTypeId) => {
+                        // Text nodes get a copy of the parent style. This ensures
+                        // that during fragment construction any non-inherited
+                        // CSS properties (such as vertical-align) are correctly
+                        // set on the fragment(s).
+                        let cloned_parent_style = parent_style.unwrap().clone();
+                        layout_data.shared_data.style = Some(cloned_parent_style);
+                    }
+                    _ => {
+                        self.cascade_node_pseudo_element(
+                            parent_style,
+                            applicable_declarations.normal.as_slice(),
+                            &mut layout_data.shared_data.style,
+                            applicable_declarations_cache,
+                            applicable_declarations.normal_shareable);
+                        if applicable_declarations.before.len() > 0 {
+                               self.cascade_node_pseudo_element(
+                                   Some(layout_data.shared_data.style.as_ref().unwrap()),
+                                   applicable_declarations.before.as_slice(),
+                                   &mut layout_data.data.before_style,
+                                   applicable_declarations_cache,
+                                   false);
                         }
-                        _ => {
-                            damage = damage
-                                   | self.cascade_node_pseudo_element(
-                                          parent_style,
-                                          applicable_declarations.normal.as_slice(),
-                                          &mut layout_data.shared_data.style,
-                                          applicable_declarations_cache,
-                                          applicable_declarations.normal_shareable);
-                            if applicable_declarations.before.len() > 0 {
-                                damage = damage
-                                       | self.cascade_node_pseudo_element(
-                                           Some(layout_data.shared_data.style.as_ref().unwrap()),
-                                           applicable_declarations.before.as_slice(),
-                                           &mut layout_data.data.before_style,
-                                           applicable_declarations_cache,
-                                           false);
-                            }
-                            if applicable_declarations.after.len() > 0 {
-                                damage = damage
-                                       | self.cascade_node_pseudo_element(Some(layout_data.shared_data.style.as_ref().unwrap()),
-                                           applicable_declarations.after.as_slice(),
-                                           &mut layout_data.data.after_style,
-                                           applicable_declarations_cache,
-                                           false);
-                            }
+                        if applicable_declarations.after.len() > 0 {
+                               self.cascade_node_pseudo_element(
+                                   Some(layout_data.shared_data.style.as_ref().unwrap()),
+                                   applicable_declarations.after.as_slice(),
+                                   &mut layout_data.data.after_style,
+                                   applicable_declarations_cache,
+                                   false);
                         }
                     }
                 }
             }
         }
-
-        ThreadSafeLayoutNode::new(self).set_restyle_damage(damage);
     }
 }

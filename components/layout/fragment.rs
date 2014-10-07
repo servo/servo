@@ -13,7 +13,6 @@ use floats::{ClearBoth, ClearLeft, ClearRight, ClearType};
 use flow::Flow;
 use flow;
 use flow_ref::FlowRef;
-use incremental::RestyleDamage;
 use inline::{InlineFragmentContext, InlineMetrics};
 use layout_debug;
 use model::{Auto, IntrinsicISizes, MaybeAuto, Specified, specified};
@@ -88,9 +87,6 @@ pub struct Fragment {
 
     /// The CSS style of this fragment.
     pub style: Arc<ComputedValues>,
-
-    /// The incremental damage done to this fragment during the current layout round.
-    pub restyle_damage: RestyleDamage,
 
     /// The position of this fragment relative to its owning flow.
     /// The size includes padding and border, but not margin.
@@ -444,7 +440,6 @@ impl Fragment {
         Fragment {
             node: OpaqueNodeMethods::from_thread_safe_layout_node(node),
             style: style,
-            restyle_damage: node.restyle_damage(),
             border_box: LogicalRect::zero(writing_mode),
             border_padding: LogicalMargin::zero(writing_mode),
             margin: LogicalMargin::zero(writing_mode),
@@ -463,7 +458,6 @@ impl Fragment {
         Fragment {
             node: OpaqueNodeMethods::from_thread_safe_layout_node(node),
             style: style,
-            restyle_damage: node.restyle_damage(),
             border_box: LogicalRect::zero(writing_mode),
             border_padding: LogicalMargin::zero(writing_mode),
             margin: LogicalMargin::zero(writing_mode),
@@ -490,7 +484,6 @@ impl Fragment {
         Fragment {
             node: OpaqueNodeMethods::from_thread_safe_layout_node(node),
             style: Arc::new(node_style),
-            restyle_damage: node.restyle_damage(),
             border_box: LogicalRect::zero(writing_mode),
             border_padding: LogicalMargin::zero(writing_mode),
             margin: LogicalMargin::zero(writing_mode),
@@ -504,14 +497,12 @@ impl Fragment {
     /// Constructs a new `Fragment` instance from an opaque node.
     pub fn from_opaque_node_and_style(node: OpaqueNode,
                                       style: Arc<ComputedValues>,
-                                      restyle_damage: RestyleDamage,
                                       specific: SpecificFragmentInfo)
                                       -> Fragment {
         let writing_mode = style.writing_mode;
         Fragment {
             node: node,
             style: style,
-            restyle_damage: restyle_damage,
             border_box: LogicalRect::zero(writing_mode),
             border_padding: LogicalMargin::zero(writing_mode),
             margin: LogicalMargin::zero(writing_mode),
@@ -534,7 +525,6 @@ impl Fragment {
         Fragment {
             node: self.node,
             style: self.style.clone(),
-            restyle_damage: self.restyle_damage,
             border_box: LogicalRect::from_point_size(
                 self.style.writing_mode, self.border_box.start, size),
             border_padding: self.border_padding,
