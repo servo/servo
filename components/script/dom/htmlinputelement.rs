@@ -117,46 +117,31 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     make_bool_getter!(Disabled)
 
     // http://www.whatwg.org/html/#dom-fe-disabled
-    fn SetDisabled(self, disabled: bool) {
-        let elem: JSRef<Element> = ElementCast::from_ref(self);
-        elem.set_bool_attribute("disabled", disabled)
-    }
+    make_bool_setter!(SetDisabled, "disabled")
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-checked
     make_bool_getter!(Checked)
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-checked
-    fn SetChecked(self, checked: bool) {
-        let elem: JSRef<Element> = ElementCast::from_ref(self);
-        elem.set_bool_attribute("checked", checked)
-    }
+    make_bool_setter!(SetChecked, "checked")
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-size
     make_uint_getter!(Size)
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-size
-    fn SetSize(self, size: u32) {
-        let elem: JSRef<Element> = ElementCast::from_ref(self);
-        elem.set_uint_attribute("size", size)
-    }
+    make_uint_setter!(SetSize, "size")
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-value
     make_getter!(Value)
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-value
-    fn SetValue(self, value: DOMString) {
-        let elem: JSRef<Element> = ElementCast::from_ref(self);
-        elem.set_string_attribute("value", value)
-    }
+    make_setter!(SetValue, "value")
 
     // https://html.spec.whatwg.org/multipage/forms.html#attr-fe-name
     make_getter!(Name)
 
     // https://html.spec.whatwg.org/multipage/forms.html#attr-fe-name
-    fn SetName(self, name: DOMString) {
-        let elem: JSRef<Element> = ElementCast::from_ref(self);
-        elem.set_string_attribute("name", name)
-    }
+    make_setter!(SetName, "name")
 }
 
 trait HTMLInputElementHelpers {
