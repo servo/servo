@@ -20,7 +20,7 @@ extern crate devtools_traits;
 extern crate cssparser;
 extern crate collections;
 extern crate geom;
-extern crate hubbub;
+extern crate html5ever;
 extern crate encoding;
 extern crate http;
 extern crate js;
@@ -209,9 +209,8 @@ pub mod dom {
     pub mod testbinding;
 }
 
-/// Parsers for HTML and CSS.
-pub mod html {
-    pub mod hubbub_html_parser;
+pub mod parse {
+    pub mod html;
 }
 
 pub mod layout_interface;

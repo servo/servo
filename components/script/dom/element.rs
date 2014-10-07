@@ -40,7 +40,7 @@ use std::ascii::StrAsciiExt;
 use std::cell::RefCell;
 use std::default::Default;
 use std::mem;
-use string_cache::{Atom, Namespace};
+use string_cache::{Atom, Namespace, QualName};
 
 #[jstraceable]
 #[must_root]
@@ -291,8 +291,8 @@ pub trait AttributeHandlers {
     /// name, if any.
     fn get_attribute(self, namespace: Namespace, local_name: &str)
                      -> Option<Temporary<Attr>>;
-    fn set_attribute_from_parser(self, local_name: Atom,
-                                 value: DOMString, namespace: Namespace,
+    fn set_attribute_from_parser(self, name: QualName,
+                                 value: DOMString,
                                  prefix: Option<DOMString>);
     fn set_attribute(self, name: &str, value: AttrValue);
     fn do_set_attribute(self, local_name: Atom, value: AttrValue,
@@ -327,18 +327,24 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         }).map(|x| Temporary::from_rooted(*x))
     }
 
-    fn set_attribute_from_parser(self, local_name: Atom,
-                                 value: DOMString, namespace: Namespace,
+    fn set_attribute_from_parser(self, qname: QualName,
+                                 value: DOMString,
                                  prefix: Option<DOMString>) {
+        // Don't set if the attribute already exists, so we can handle add_attrs_if_missing
+        if self.attrs.borrow().iter().map(|attr| attr.root())
+                .any(|a| *a.local_name() == qname.local && a.namespace == qname.ns) {
+            return;
+        }
+
         let name = match prefix {
-            None => local_name.clone(),
+            None => qname.local.clone(),
             Some(ref prefix) => {
-                let name = format!("{:s}:{:s}", *prefix, local_name.as_slice());
+                let name = format!("{:s}:{:s}", *prefix, qname.local.as_slice());
                 Atom::from_slice(name.as_slice())
             },
         };
-        let value = self.parse_attribute(&namespace, &local_name, value);
-        self.do_set_attribute(local_name, value, name, namespace, prefix, |_| false)
+        let value = self.parse_attribute(&qname.ns, &qname.local, value);
+        self.do_set_attribute(qname.local, value, name, qname.ns, prefix, |_| false)
     }
 
     fn set_attribute(self, name: &str, value: AttrValue) {
