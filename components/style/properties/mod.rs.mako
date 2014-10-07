@@ -5,7 +5,6 @@
 // This file is a Mako template: http://www.makotemplates.org/
 
 pub use std::ascii::StrAsciiExt;
-use serialize::{Encodable, Encoder};
 
 use servo_util::logical_geometry::{WritingMode, LogicalMargin};
 use sync::Arc;
@@ -1461,12 +1460,6 @@ mod property_bit_field {
 pub struct PropertyDeclarationBlock {
     pub important: Arc<Vec<PropertyDeclaration>>,
     pub normal: Arc<Vec<PropertyDeclaration>>,
-}
-
-impl<E, S: Encoder<E>> Encodable<S, E> for PropertyDeclarationBlock {
-    fn encode(&self, _: &mut S) -> Result<(), E> {
-        Ok(())
-    }
 }
 
 
