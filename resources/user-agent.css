@@ -4,8 +4,8 @@ body, div,
 dt, fieldset, form,
 frame, frameset,
 h1, h2, h3, h4,
-h5, h6, noframes, 
-center, dir, 
+h5, h6, noframes,
+center, dir,
 hr, menu, pre       { display: block; unicode-bidi: embed }
     head, noscript  { display: none }
     table           { display: table }
@@ -54,7 +54,7 @@ thead, tbody,
 /* lists */
 dd                  { display: block; margin-left: 40px }
 p, dl, multicol     { display: block; margin: 1em 0 }
-ul                  { display: block; list-style-type: disc; 
+ul                  { display: block; list-style-type: disc;
                       margin: 1em 0; padding-left: 40px }
 
 ol                  { display: block; list-style-type: decimal;
