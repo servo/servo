@@ -6,15 +6,15 @@
 // http://www.whatwg.org/html/#htmlformelement
 //[OverrideBuiltins]
 interface HTMLFormElement : HTMLElement {
-  //         attribute DOMString acceptCharset;
-  //         attribute DOMString action;
-  //         attribute DOMString autocomplete;
-  //         attribute DOMString enctype;
-  //         attribute DOMString encoding;
-  //         attribute DOMString method;
-  //         attribute DOMString name;
-  //         attribute boolean noValidate;
-  //         attribute DOMString target;
+           attribute DOMString acceptCharset;
+           attribute DOMString action;
+           attribute DOMString autocomplete;
+           attribute DOMString enctype;
+           attribute DOMString encoding;
+           attribute DOMString method;
+           attribute DOMString name;
+           attribute boolean noValidate;
+           attribute DOMString target;
 
   //readonly attribute HTMLFormControlsCollection elements;
   //readonly attribute long length;
