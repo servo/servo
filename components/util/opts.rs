@@ -90,6 +90,9 @@ pub struct Opts {
 
     /// The initial requested size of the window.
     pub initial_window_size: TypedSize2D<ScreenPx, uint>,
+
+    /// An optional string allowing the user agent to be set for testing.
+    pub user_agent: Option<String>,
 }
 
 fn print_usage(app: &str, opts: &[getopts::OptGroup]) {
@@ -126,6 +129,7 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
         getopts::optflag("", "trace-layout", "Write layout trace to external file for debugging."),
         getopts::optflag("", "devtools", "Start remote devtools server"),
         getopts::optopt("", "resolution", "Set window resolution.", "800x600"),
+        getopts::optopt("u", "user-agent", "Set custom user agent string", "NCSA Mosaic/1.0 (X11;SunOS 4.1.4 sun4m)"),
         getopts::optflag("h", "help", "Print this message")
     );
 
@@ -238,6 +242,7 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
         trace_layout: trace_layout,
         devtools_server: opt_match.opt_present("devtools"),
         initial_window_size: initial_window_size,
+        user_agent: opt_match.opt_str("u"),
     })
 }
 

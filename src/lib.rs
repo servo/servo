@@ -110,7 +110,7 @@ pub fn run(opts: opts::Opts) {
         .spawn(proc() {
         let opts = &opts_clone;
         // Create a Servo instance.
-        let resource_task = new_resource_task();
+        let resource_task = new_resource_task(opts.user_agent.clone());
         // If we are emitting an output file, then we need to block on
         // image load or we risk emitting an output file missing the
         // image.

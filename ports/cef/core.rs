@@ -70,6 +70,7 @@ pub extern "C" fn cef_run_message_loop() {
         trace_layout: false,
         devtools_server: false,
         initial_window_size: TypedSize2D(800, 600),
+        user_agent: None,
     };
     native::start(0, 0 as *const *const u8, proc() {
        servo::run(opts);
