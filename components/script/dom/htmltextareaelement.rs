@@ -49,10 +49,7 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
     make_bool_getter!(Disabled)
 
     // http://www.whatwg.org/html/#dom-fe-disabled
-    fn SetDisabled(self, disabled: bool) {
-        let elem: JSRef<Element> = ElementCast::from_ref(self);
-        elem.set_bool_attribute("disabled", disabled)
-    }
+    make_bool_setter!(SetDisabled, "disabled")
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
