@@ -164,3 +164,4 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == vertical_align_text_bottom_a.html vertical_align_text_bottom_ref.html
 == inline_hypothetical_box_a.html inline_hypothetical_box_ref.html
 == box_sizing_border_box_a.html box_sizing_border_box_ref.html
+!= input_height_a.html input_height_ref.html
