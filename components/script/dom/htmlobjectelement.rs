@@ -38,15 +38,15 @@ impl HTMLObjectElementDerived for EventTarget {
 }
 
 impl HTMLObjectElement {
-    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLObjectElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLObjectElement {
         HTMLObjectElement {
-            htmlelement: HTMLElement::new_inherited(HTMLObjectElementTypeId, localName, document),
+            htmlelement: HTMLElement::new_inherited(HTMLObjectElementTypeId, localName, prefix, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLObjectElement> {
-        let element = HTMLObjectElement::new_inherited(localName, document);
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLObjectElement> {
+        let element = HTMLObjectElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLObjectElementBinding::Wrap)
     }
 }

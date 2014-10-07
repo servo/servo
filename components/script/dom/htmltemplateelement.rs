@@ -26,15 +26,15 @@ impl HTMLTemplateElementDerived for EventTarget {
 }
 
 impl HTMLTemplateElement {
-    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLTemplateElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLTemplateElement {
         HTMLTemplateElement {
-            htmlelement: HTMLElement::new_inherited(HTMLTemplateElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLTemplateElementTypeId, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLTemplateElement> {
-        let element = HTMLTemplateElement::new_inherited(localName, document);
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLTemplateElement> {
+        let element = HTMLTemplateElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLTemplateElementBinding::Wrap)
     }
 }

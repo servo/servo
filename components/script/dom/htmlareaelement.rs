@@ -27,15 +27,15 @@ impl HTMLAreaElementDerived for EventTarget {
 }
 
 impl HTMLAreaElement {
-    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLAreaElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLAreaElement {
         HTMLAreaElement {
-            htmlelement: HTMLElement::new_inherited(HTMLAreaElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLAreaElementTypeId, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLAreaElement> {
-        let element = HTMLAreaElement::new_inherited(localName, document);
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLAreaElement> {
+        let element = HTMLAreaElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLAreaElementBinding::Wrap)
     }
 }

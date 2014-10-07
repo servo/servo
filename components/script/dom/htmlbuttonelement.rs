@@ -32,15 +32,15 @@ impl HTMLButtonElementDerived for EventTarget {
 }
 
 impl HTMLButtonElement {
-    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLButtonElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLButtonElement {
         HTMLButtonElement {
-            htmlelement: HTMLElement::new_inherited(HTMLButtonElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLButtonElementTypeId, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLButtonElement> {
-        let element = HTMLButtonElement::new_inherited(localName, document);
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLButtonElement> {
+        let element = HTMLButtonElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLButtonElementBinding::Wrap)
     }
 }

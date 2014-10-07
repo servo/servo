@@ -31,15 +31,15 @@ impl HTMLScriptElementDerived for EventTarget {
 }
 
 impl HTMLScriptElement {
-    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLScriptElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLScriptElement {
         HTMLScriptElement {
-            htmlelement: HTMLElement::new_inherited(HTMLScriptElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLScriptElementTypeId, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLScriptElement> {
-        let element = HTMLScriptElement::new_inherited(localName, document);
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLScriptElement> {
+        let element = HTMLScriptElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLScriptElementBinding::Wrap)
     }
 }

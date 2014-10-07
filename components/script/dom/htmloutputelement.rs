@@ -28,15 +28,15 @@ impl HTMLOutputElementDerived for EventTarget {
 }
 
 impl HTMLOutputElement {
-    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLOutputElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLOutputElement {
         HTMLOutputElement {
-            htmlelement: HTMLElement::new_inherited(HTMLOutputElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLOutputElementTypeId, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLOutputElement> {
-        let element = HTMLOutputElement::new_inherited(localName, document);
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLOutputElement> {
+        let element = HTMLOutputElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLOutputElementBinding::Wrap)
     }
 }

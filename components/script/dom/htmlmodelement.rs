@@ -26,15 +26,15 @@ impl HTMLModElementDerived for EventTarget {
 }
 
 impl HTMLModElement {
-    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLModElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLModElement {
         HTMLModElement {
-            htmlelement: HTMLElement::new_inherited(HTMLModElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLModElementTypeId, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLModElement> {
-        let element = HTMLModElement::new_inherited(localName, document);
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLModElement> {
+        let element = HTMLModElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLModElementBinding::Wrap)
     }
 }

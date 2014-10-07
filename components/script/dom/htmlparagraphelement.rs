@@ -26,15 +26,15 @@ impl HTMLParagraphElementDerived for EventTarget {
 }
 
 impl HTMLParagraphElement {
-    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLParagraphElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLParagraphElement {
         HTMLParagraphElement {
-            htmlelement: HTMLElement::new_inherited(HTMLParagraphElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLParagraphElementTypeId, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLParagraphElement> {
-        let element = HTMLParagraphElement::new_inherited(localName, document);
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLParagraphElement> {
+        let element = HTMLParagraphElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLParagraphElementBinding::Wrap)
     }
 }

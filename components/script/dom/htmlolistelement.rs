@@ -26,15 +26,15 @@ impl HTMLOListElementDerived for EventTarget {
 }
 
 impl HTMLOListElement {
-    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLOListElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLOListElement {
         HTMLOListElement {
-            htmlelement: HTMLElement::new_inherited(HTMLOListElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLOListElementTypeId, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLOListElement> {
-        let element = HTMLOListElement::new_inherited(localName, document);
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLOListElement> {
+        let element = HTMLOListElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLOListElementBinding::Wrap)
     }
 }

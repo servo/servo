@@ -34,15 +34,15 @@ impl HTMLSelectElementDerived for EventTarget {
 }
 
 impl HTMLSelectElement {
-    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLSelectElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLSelectElement {
         HTMLSelectElement {
-            htmlelement: HTMLElement::new_inherited(HTMLSelectElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLSelectElementTypeId, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLSelectElement> {
-        let element = HTMLSelectElement::new_inherited(localName, document);
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLSelectElement> {
+        let element = HTMLSelectElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLSelectElementBinding::Wrap)
     }
 }

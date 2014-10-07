@@ -30,15 +30,15 @@ impl HTMLStyleElementDerived for EventTarget {
 }
 
 impl HTMLStyleElement {
-    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLStyleElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLStyleElement {
         HTMLStyleElement {
-            htmlelement: HTMLElement::new_inherited(HTMLStyleElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLStyleElementTypeId, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLStyleElement> {
-        let element = HTMLStyleElement::new_inherited(localName, document);
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLStyleElement> {
+        let element = HTMLStyleElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLStyleElementBinding::Wrap)
     }
 }

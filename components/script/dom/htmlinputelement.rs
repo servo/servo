@@ -62,9 +62,9 @@ impl HTMLInputElementDerived for EventTarget {
 static DEFAULT_INPUT_SIZE: u32 = 20;
 
 impl HTMLInputElement {
-    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLInputElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLInputElement {
         HTMLInputElement {
-            htmlelement: HTMLElement::new_inherited(HTMLInputElementTypeId, localName, document),
+            htmlelement: HTMLElement::new_inherited(HTMLInputElementTypeId, localName, prefix, document),
             input_type: Cell::new(InputText),
             checked: Cell::new(false),
             uncommitted_value: RefCell::new(None),
@@ -74,8 +74,8 @@ impl HTMLInputElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLInputElement> {
-        let element = HTMLInputElement::new_inherited(localName, document);
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLInputElement> {
+        let element = HTMLInputElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLInputElementBinding::Wrap)
     }
 }
