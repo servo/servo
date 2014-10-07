@@ -314,13 +314,11 @@ impl IOCompositor {
                     chan.send(Some(azure_hl::current_graphics_metadata()));
                 }
 
-                (Ok(CreateOrUpdateRootLayer(layer_properties)),
-                 NotShuttingDown) => {
+                (Ok(CreateOrUpdateRootLayer(layer_properties)), NotShuttingDown) => {
                     self.create_or_update_root_layer(layer_properties);
                 }
 
-                (Ok(CreateOrUpdateDescendantLayer(layer_properties)),
-                 NotShuttingDown) => {
+                (Ok(CreateOrUpdateDescendantLayer(layer_properties)), NotShuttingDown) => {
                     self.create_or_update_descendant_layer(layer_properties);
                 }
 
