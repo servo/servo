@@ -187,7 +187,7 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
         unsafe {
             if self.get().is_text() {
                 let text: JS<Text> = self.get_jsmanaged().transmute_copy();
-                (*text.unsafe_get()).characterdata.data.borrow().clone()    
+                (*text.unsafe_get()).characterdata.data.borrow().clone()
             } else if self.get().is_htmlinputelement() {
                 let input: JS<HTMLInputElement> = self.get_jsmanaged().transmute_copy();
                 input.get_value_for_layout()
