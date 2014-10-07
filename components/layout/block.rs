@@ -1098,7 +1098,8 @@ impl BlockFlow {
                                              DList::new()));
         }
 
-        accumulator.finish(&mut *self, display_list);
+        accumulator.finish(&mut display_list);
+        self.base.display_list = display_list;
         self.base.layers = child_layers
     }
 
