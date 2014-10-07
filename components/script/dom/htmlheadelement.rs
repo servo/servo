@@ -26,15 +26,15 @@ impl HTMLHeadElementDerived for EventTarget {
 }
 
 impl HTMLHeadElement {
-    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLHeadElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLHeadElement {
         HTMLHeadElement {
-            htmlelement: HTMLElement::new_inherited(HTMLHeadElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLHeadElementTypeId, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLHeadElement> {
-        let element = HTMLHeadElement::new_inherited(localName, document);
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLHeadElement> {
+        let element = HTMLHeadElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLHeadElementBinding::Wrap)
     }
 }

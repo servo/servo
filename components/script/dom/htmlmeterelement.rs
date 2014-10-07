@@ -26,15 +26,15 @@ impl HTMLMeterElementDerived for EventTarget {
 }
 
 impl HTMLMeterElement {
-    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLMeterElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLMeterElement {
         HTMLMeterElement {
-            htmlelement: HTMLElement::new_inherited(HTMLMeterElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLMeterElementTypeId, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLMeterElement> {
-        let element = HTMLMeterElement::new_inherited(localName, document);
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLMeterElement> {
+        let element = HTMLMeterElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLMeterElementBinding::Wrap)
     }
 }

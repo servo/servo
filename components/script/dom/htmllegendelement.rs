@@ -26,15 +26,15 @@ impl HTMLLegendElementDerived for EventTarget {
 }
 
 impl HTMLLegendElement {
-    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLLegendElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLLegendElement {
         HTMLLegendElement {
-            htmlelement: HTMLElement::new_inherited(HTMLLegendElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLLegendElementTypeId, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLLegendElement> {
-        let element = HTMLLegendElement::new_inherited(localName, document);
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLLegendElement> {
+        let element = HTMLLegendElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLLegendElementBinding::Wrap)
     }
 }

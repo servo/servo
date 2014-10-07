@@ -71,16 +71,16 @@ impl<'a> PrivateHTMLImageElementHelpers for JSRef<'a, HTMLImageElement> {
 }
 
 impl HTMLImageElement {
-    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLImageElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLImageElement {
         HTMLImageElement {
-            htmlelement: HTMLElement::new_inherited(HTMLImageElementTypeId, localName, document),
+            htmlelement: HTMLElement::new_inherited(HTMLImageElementTypeId, localName, prefix, document),
             image: RefCell::new(None),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLImageElement> {
-        let element = HTMLImageElement::new_inherited(localName, document);
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLImageElement> {
+        let element = HTMLImageElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLImageElementBinding::Wrap)
     }
 }

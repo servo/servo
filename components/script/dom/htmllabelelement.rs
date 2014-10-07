@@ -26,15 +26,15 @@ impl HTMLLabelElementDerived for EventTarget {
 }
 
 impl HTMLLabelElement {
-    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLLabelElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLLabelElement {
         HTMLLabelElement {
-            htmlelement: HTMLElement::new_inherited(HTMLLabelElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLLabelElementTypeId, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLLabelElement> {
-        let element = HTMLLabelElement::new_inherited(localName, document);
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLLabelElement> {
+        let element = HTMLLabelElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLLabelElementBinding::Wrap)
     }
 }

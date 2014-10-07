@@ -26,15 +26,15 @@ impl HTMLTableColElementDerived for EventTarget {
 }
 
 impl HTMLTableColElement {
-    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLTableColElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLTableColElement {
         HTMLTableColElement {
-            htmlelement: HTMLElement::new_inherited(HTMLTableColElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLTableColElementTypeId, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLTableColElement> {
-        let element = HTMLTableColElement::new_inherited(localName, document);
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLTableColElement> {
+        let element = HTMLTableColElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLTableColElementBinding::Wrap)
     }
 }
