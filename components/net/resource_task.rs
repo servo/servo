@@ -164,24 +164,26 @@ pub fn load_whole_resource(resource_task: &ResourceTask, url: Url)
 pub type ResourceTask = Sender<ControlMsg>;
 
 /// Create a ResourceTask
-pub fn new_resource_task() -> ResourceTask {
+pub fn new_resource_task(user_agent: Option<String>) -> ResourceTask {
     let (setup_chan, setup_port) = channel();
     let builder = TaskBuilder::new().named("ResourceManager");
     builder.spawn(proc() {
-        ResourceManager::new(setup_port).start();
+        ResourceManager::new(setup_port, user_agent).start();
     });
     setup_chan
 }
 
 struct ResourceManager {
     from_client: Receiver<ControlMsg>,
+    user_agent: Option<String>,
 }
 
 
 impl ResourceManager {
-    fn new(from_client: Receiver<ControlMsg>) -> ResourceManager {
+    fn new(from_client: Receiver<ControlMsg>, user_agent: Option<String>) -> ResourceManager {
         ResourceManager {
-            from_client : from_client,
+            from_client: from_client,
+            user_agent: user_agent,
         }
     }
 }
@@ -202,6 +204,9 @@ impl ResourceManager {
     }
 
     fn load(&self, load_data: LoadData, start_chan: Sender<LoadResponse>) {
+        let mut load_data = load_data;
+        load_data.headers.user_agent = self.user_agent.clone();
+
         let loader = match load_data.url.scheme.as_slice() {
             "file" => file_loader::factory,
             "http" | "https" => http_loader::factory,
@@ -249,13 +254,13 @@ impl Iterator<Vec<u8>> for ProgressMsgPortIterator {
 
 #[test]
 fn test_exit() {
-    let resource_task = new_resource_task();
+    let resource_task = new_resource_task(None);
     resource_task.send(Exit);
 }
 
 #[test]
 fn test_bad_scheme() {
-    let resource_task = new_resource_task();
+    let resource_task = new_resource_task(None);
     let (start_chan, start) = channel();
     let url = Url::parse("bogus://whatever").unwrap();
     resource_task.send(Load(LoadData::new(url), start_chan));
