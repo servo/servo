@@ -1537,7 +1537,7 @@ impl Fragment {
         match self.specific {
             InlineAbsoluteHypotheticalFragment(ref mut info) => {
                 let block_flow = info.flow_ref.get_mut().as_block();
-                block_flow.base.position.size.inline = 
+                block_flow.base.position.size.inline =
                     block_flow.base.intrinsic_inline_sizes.preferred_inline_size +
                     block_flow.base.intrinsic_inline_sizes.surround_inline_size;
 
