@@ -33,15 +33,15 @@ impl HTMLBodyElementDerived for EventTarget {
 }
 
 impl HTMLBodyElement {
-    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLBodyElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLBodyElement {
         HTMLBodyElement {
-            htmlelement: HTMLElement::new_inherited(HTMLBodyElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLBodyElementTypeId, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLBodyElement> {
-        let element = HTMLBodyElement::new_inherited(localName, document);
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLBodyElement> {
+        let element = HTMLBodyElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLBodyElementBinding::Wrap)
     }
 }

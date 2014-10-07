@@ -26,15 +26,15 @@ impl HTMLSpanElementDerived for EventTarget {
 }
 
 impl HTMLSpanElement {
-    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLSpanElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLSpanElement {
         HTMLSpanElement {
-            htmlelement: HTMLElement::new_inherited(HTMLSpanElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLSpanElementTypeId, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLSpanElement> {
-        let element = HTMLSpanElement::new_inherited(localName, document);
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLSpanElement> {
+        let element = HTMLSpanElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLSpanElementBinding::Wrap)
     }
 }

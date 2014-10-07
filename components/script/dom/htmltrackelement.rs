@@ -26,15 +26,15 @@ impl HTMLTrackElementDerived for EventTarget {
 }
 
 impl HTMLTrackElement {
-    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLTrackElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLTrackElement {
         HTMLTrackElement {
-            htmlelement: HTMLElement::new_inherited(HTMLTrackElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLTrackElementTypeId, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLTrackElement> {
-        let element = HTMLTrackElement::new_inherited(localName, document);
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLTrackElement> {
+        let element = HTMLTrackElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLTrackElementBinding::Wrap)
     }
 }

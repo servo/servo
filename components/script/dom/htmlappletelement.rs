@@ -26,15 +26,15 @@ impl HTMLAppletElementDerived for EventTarget {
 }
 
 impl HTMLAppletElement {
-    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLAppletElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLAppletElement {
         HTMLAppletElement {
-            htmlelement: HTMLElement::new_inherited(HTMLAppletElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLAppletElementTypeId, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLAppletElement> {
-        let element = HTMLAppletElement::new_inherited(localName, document);
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLAppletElement> {
+        let element = HTMLAppletElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLAppletElementBinding::Wrap)
     }
 }

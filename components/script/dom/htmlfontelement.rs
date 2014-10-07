@@ -26,15 +26,15 @@ impl HTMLFontElementDerived for EventTarget {
 }
 
 impl HTMLFontElement {
-    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLFontElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLFontElement {
         HTMLFontElement {
-            htmlelement: HTMLElement::new_inherited(HTMLFontElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLFontElementTypeId, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLFontElement> {
-        let element = HTMLFontElement::new_inherited(localName, document);
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLFontElement> {
+        let element = HTMLFontElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLFontElementBinding::Wrap)
     }
 }

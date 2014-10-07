@@ -26,15 +26,15 @@ impl HTMLQuoteElementDerived for EventTarget {
 }
 
 impl HTMLQuoteElement {
-    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLQuoteElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLQuoteElement {
         HTMLQuoteElement {
-            htmlelement: HTMLElement::new_inherited(HTMLQuoteElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLQuoteElementTypeId, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLQuoteElement> {
-        let element = HTMLQuoteElement::new_inherited(localName, document);
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLQuoteElement> {
+        let element = HTMLQuoteElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLQuoteElementBinding::Wrap)
     }
 }

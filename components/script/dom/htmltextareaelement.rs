@@ -31,15 +31,15 @@ impl HTMLTextAreaElementDerived for EventTarget {
 }
 
 impl HTMLTextAreaElement {
-    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLTextAreaElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLTextAreaElement {
         HTMLTextAreaElement {
-            htmlelement: HTMLElement::new_inherited(HTMLTextAreaElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLTextAreaElementTypeId, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLTextAreaElement> {
-        let element = HTMLTextAreaElement::new_inherited(localName, document);
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLTextAreaElement> {
+        let element = HTMLTextAreaElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLTextAreaElementBinding::Wrap)
     }
 }

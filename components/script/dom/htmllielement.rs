@@ -26,15 +26,15 @@ impl HTMLLIElementDerived for EventTarget {
 }
 
 impl HTMLLIElement {
-    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLLIElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLLIElement {
         HTMLLIElement {
-            htmlelement: HTMLElement::new_inherited(HTMLLIElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLLIElementTypeId, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLLIElement> {
-        let element = HTMLLIElement::new_inherited(localName, document);
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLLIElement> {
+        let element = HTMLLIElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLLIElementBinding::Wrap)
     }
 }

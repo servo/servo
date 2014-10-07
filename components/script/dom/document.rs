@@ -486,7 +486,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             return Err(InvalidCharacter);
         }
         let local_name = local_name.as_slice().to_ascii_lower();
-        Ok(build_element_from_tag(local_name, ns!(HTML), self))
+        Ok(build_element_from_tag(local_name, ns!(HTML), None, self))
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createelementns
@@ -530,7 +530,8 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         }
 
         if ns == ns!(HTML) {
-            Ok(build_element_from_tag(local_name_from_qname.to_string(), ns, self))
+            Ok(build_element_from_tag(local_name_from_qname.to_string(), ns,
+                                      prefix_from_qname.map(|s| s.to_string()), self))
         } else {
             Ok(Element::new(local_name_from_qname.to_string(), ns,
                             prefix_from_qname.map(|s| s.to_string()), self))
@@ -679,7 +680,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                         }
                     },
                     None => {
-                        let new_title = HTMLTitleElement::new("title".to_string(), self).root();
+                        let new_title = HTMLTitleElement::new("title".to_string(), None, self).root();
                         let new_title: JSRef<Node> = NodeCast::from_ref(*new_title);
 
                         if !title.is_empty() {

@@ -44,9 +44,9 @@ impl HTMLCanvasElementDerived for EventTarget {
 }
 
 impl HTMLCanvasElement {
-    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLCanvasElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLCanvasElement {
         HTMLCanvasElement {
-            htmlelement: HTMLElement::new_inherited(HTMLCanvasElementTypeId, localName, document),
+            htmlelement: HTMLElement::new_inherited(HTMLCanvasElementTypeId, localName, prefix, document),
             context: Default::default(),
             width: Cell::new(DefaultWidth),
             height: Cell::new(DefaultHeight),
@@ -54,8 +54,8 @@ impl HTMLCanvasElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLCanvasElement> {
-        let element = HTMLCanvasElement::new_inherited(localName, document);
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLCanvasElement> {
+        let element = HTMLCanvasElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLCanvasElementBinding::Wrap)
     }
 }

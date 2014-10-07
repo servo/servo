@@ -113,17 +113,17 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
 }
 
 impl HTMLIFrameElement {
-    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLIFrameElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLIFrameElement {
         HTMLIFrameElement {
-            htmlelement: HTMLElement::new_inherited(HTMLIFrameElementTypeId, localName, document),
+            htmlelement: HTMLElement::new_inherited(HTMLIFrameElementTypeId, localName, prefix, document),
             size: Cell::new(None),
             sandbox: Cell::new(None),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLIFrameElement> {
-        let element = HTMLIFrameElement::new_inherited(localName, document);
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLIFrameElement> {
+        let element = HTMLIFrameElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLIFrameElementBinding::Wrap)
     }
 }

@@ -26,15 +26,15 @@ impl HTMLHRElementDerived for EventTarget {
 }
 
 impl HTMLHRElement {
-    fn new_inherited(localName: DOMString, document: JSRef<Document>) -> HTMLHRElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLHRElement {
         HTMLHRElement {
-            htmlelement: HTMLElement::new_inherited(HTMLHRElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLHRElementTypeId, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, document: JSRef<Document>) -> Temporary<HTMLHRElement> {
-        let element = HTMLHRElement::new_inherited(localName, document);
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLHRElement> {
+        let element = HTMLHRElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLHRElementBinding::Wrap)
     }
 }
