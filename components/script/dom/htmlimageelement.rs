@@ -106,7 +106,7 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
 
     make_getter!(UseMap)
 
-    make_bool_setter!(SetUseMap, "usemap")
+    make_setter!(SetUseMap, "usemap")
 
     make_bool_getter!(IsMap)
 
@@ -151,7 +151,7 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
 
     make_uint_getter!(Vspace)
 
-    make_uint_setter!(SetVspace, "Vspace")
+    make_uint_setter!(SetVspace, "vspace")
 
     make_getter!(LongDesc)
 

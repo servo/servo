@@ -59,21 +59,10 @@ macro_rules! make_url_getter(
         fn $attr(self) -> DOMString {
             use dom::element::{Element, AttributeHandlers};
             use dom::bindings::codegen::InheritTypes::ElementCast;
-            use dom::document::DocumentHelpers;
-            use dom::node::document_from_node;
-            use url::UrlParser;
             #[allow(unused_imports)]
             use std::ascii::StrAsciiExt;
-            let elem: JSRef<Element> = ElementCast::from_ref(self);
-            let action = elem.get_string_attribute($htmlname);
-            let doc = document_from_node(self).root();
-            let base = doc.url();
-            // https://html.spec.whatwg.org/multipage/infrastructure.html#reflect
-            // XXXManishearth this doesn't handle `javascript:` urls properly
-            match UrlParser::new().base_url(base).parse(action.as_slice()) {
-                Ok(parsed) => parsed.serialize(),
-                Err(_) => base.serialize()
-            }
+            let element: JSRef<Element> = ElementCast::from_ref(self);
+            element.get_url_attribute($htmlname)
         }
     );
     ($attr:ident) => {
