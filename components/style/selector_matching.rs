@@ -10,6 +10,7 @@ use sync::Arc;
 use url::Url;
 
 use servo_util::bloom::BloomFilter;
+use servo_util::resource_files::read_resource_file;
 use servo_util::smallvec::VecLike;
 use servo_util::sort;
 use string_cache::Atom;
@@ -279,7 +280,7 @@ impl Stylist {
             rules_source_order: 0u,
         };
         let ua_stylesheet = Stylesheet::from_bytes(
-            include_bin!("user-agent.css"),
+            read_resource_file(["user-agent.css"]).unwrap().as_slice(),
             Url::parse("chrome:///user-agent.css").unwrap(),
             None,
             None);

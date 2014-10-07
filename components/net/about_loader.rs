@@ -5,10 +5,10 @@
 use resource_task::{LoadResponse, Metadata, Done, LoadData, start_sending};
 use file_loader;
 
-use std::os;
 use std::io::fs::PathExtensions;
 use url::Url;
 use http::status::Ok as StatusOk;
+use servo_util::resource_files::resources_dir_path;
 
 
 pub fn factory(mut load_data: LoadData, start_chan: Sender<LoadResponse>) {
@@ -26,13 +26,8 @@ pub fn factory(mut load_data: LoadData, start_chan: Sender<LoadResponse>) {
         }
         "crash" => fail!("Loading the about:crash URL."),
         "failure" => {
-            // FIXME: Find a way to load this without relying on the `../src` directory.
-            let mut path = os::self_exe_path().expect("can't get exe path");
-            path.pop();
-            if !path.join(Path::new("./tests/")).is_dir() {
-                path.pop();
-            }
-            path.push_many(["tests", "html", "failure.html"]);
+            let mut path = resources_dir_path();
+            path.push("failure.html");
             assert!(path.exists());
             load_data.url = Url::from_file_path(&path).unwrap();
         }
