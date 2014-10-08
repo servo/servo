@@ -310,8 +310,10 @@ impl<'ln> TNode<'ln, LayoutElement<'ln>> for LayoutNode<'ln> {
                 element.get_attr(ns, name)
                         .map_or(false, |attr| test(attr))
             },
-            // FIXME: https://github.com/mozilla/servo/issues/1558
-            AnyNamespace => false,
+            AnyNamespace => {
+                let element = self.as_element();
+                element.get_attrs(name).iter().any(|attr| test(*attr))
+            }
         }
     }
 
@@ -412,6 +414,11 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
     #[inline]
     fn get_attr(self, namespace: &Namespace, name: &str) -> Option<&'le str> {
         unsafe { self.element.get_attr_val_for_layout(namespace, name) }
+    }
+
+    #[inline]
+    fn get_attrs(self, name: &str) -> Vec<&'le str> {
+        unsafe { self.element.get_attr_vals_for_layout(name) }
     }
 
     fn get_link(self) -> Option<&'le str> {

@@ -5,7 +5,6 @@
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
 use dom::attr::{Attr, AttrHelpers};
-use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
@@ -2115,10 +2114,13 @@ impl<'a> style::TNode<'a, JSRef<'a, Element>> for JSRef<'a, Node> {
         match attr.namespace {
             style::SpecificNamespace(ref ns) => {
                 self.as_element().get_attribute(ns.clone(), name).root()
-                    .map_or(false, |attr| test(attr.deref().Value().as_slice()))
+                    .map_or(false, |attr| test(attr.deref().value().as_slice()))
             },
-            // FIXME: https://github.com/mozilla/servo/issues/1558
-            style::AnyNamespace => false,
+            style::AnyNamespace => {
+                self.as_element().get_attributes(name).iter()
+                    .map(|attr| attr.root())
+                    .any(|attr| test(attr.deref().value().as_slice()))
+            }
         }
     }
 
