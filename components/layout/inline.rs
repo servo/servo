@@ -708,7 +708,7 @@ impl InlineFragments {
         let mut new_fragments = Vec::new();
         let mut skipping = true;
         for fragment in fragments {
-            if skipping && fragment.is_whitespace_only() {
+            if skipping && fragment.is_ignorable_whitespace() {
                 debug!("stripping ignorable whitespace from start");
                 continue
             }
@@ -727,7 +727,8 @@ impl InlineFragments {
         }
 
         let mut new_fragments = self.fragments.clone();
-        while new_fragments.len() > 0 && new_fragments.as_slice().last().as_ref().unwrap().is_whitespace_only() {
+        while new_fragments.len() > 0 &&
+                new_fragments.as_slice().last().as_ref().unwrap().is_ignorable_whitespace() {
             debug!("stripping ignorable whitespace from end");
             drop(new_fragments.pop());
         }

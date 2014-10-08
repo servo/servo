@@ -1501,10 +1501,17 @@ impl Fragment {
         }
     }
 
-    /// Returns true if this fragment is an unscanned text fragment that consists entirely of whitespace.
-    pub fn is_whitespace_only(&self) -> bool {
+    /// Returns true if this fragment is an unscanned text fragment that consists entirely of
+    /// whitespace that should be stripped.
+    pub fn is_ignorable_whitespace(&self) -> bool {
+        match self.white_space() {
+            white_space::pre => return false,
+            white_space::normal | white_space::nowrap => {}
+        }
         match self.specific {
-            UnscannedTextFragment(ref text_fragment_info) => is_whitespace(text_fragment_info.text.as_slice()),
+            UnscannedTextFragment(ref text_fragment_info) => {
+                is_whitespace(text_fragment_info.text.as_slice())
+            }
             _ => false,
         }
     }
