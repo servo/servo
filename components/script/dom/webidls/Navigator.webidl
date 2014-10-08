@@ -23,5 +23,5 @@ interface NavigatorID {
   readonly attribute DOMString platform;
   readonly attribute DOMString product; // constant "Gecko"
   boolean taintEnabled(); // constant false
-  //readonly attribute DOMString userAgent;
+  readonly attribute DOMString userAgent;
 };

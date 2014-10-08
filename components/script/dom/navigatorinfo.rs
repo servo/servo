@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use servo_util::str::DOMString;
+use servo_util::opts;
 
 pub struct NavigatorInfo;
 
@@ -25,5 +26,12 @@ impl NavigatorInfo {
 
     pub fn Platform() -> DOMString {
         "".to_string()
+    }
+
+    pub fn UserAgent() -> DOMString {
+        match opts::get().user_agent {
+            Some(ref user_agent) => user_agent.clone(),
+            None => "".to_string(),
+        }
     }
 }

@@ -51,6 +51,10 @@ impl<'a> WorkerNavigatorMethods for JSRef<'a, WorkerNavigator> {
     fn Platform(self) -> DOMString {
         NavigatorInfo::Platform()
     }
+
+    fn UserAgent(self) -> DOMString {
+        NavigatorInfo::UserAgent()
+    }
 }
 
 impl Reflectable for WorkerNavigator {

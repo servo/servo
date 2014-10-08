@@ -15,6 +15,7 @@ use layers::geometry::DevicePixel;
 use getopts;
 use std::cmp;
 use std::io;
+use std::mem;
 use std::os;
 use std::rt;
 
@@ -230,7 +231,7 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
         }
     };
 
-    Some(Opts {
+    let opts = Opts {
         urls: urls,
         render_backend: render_backend,
         n_render_threads: n_render_threads,
@@ -253,7 +254,14 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
         initial_window_size: initial_window_size,
         user_agent: opt_match.opt_str("u"),
         dump_flow_tree: opt_match.opt_present("dump-flow-tree"),
-    })
+    };
+
+    unsafe {
+        let box_opts = box opts.clone();
+        OPTIONS = mem::transmute(box_opts);
+    }
+
+    Some(opts)
 }
 
 static mut EXPERIMENTAL_ENABLED: bool = false;
@@ -268,4 +276,15 @@ pub fn experimental_enabled() -> bool {
     unsafe {
         EXPERIMENTAL_ENABLED
     }
+}
+
+// Make Opts available globally. This saves having to clone and pass
+// opts everywhere it is used, which gets particularly cumbersome
+// when passing through the DOM structures.
+// GWTODO: Change existing code that takes copies of opts to instead
+// make use of the global copy.
+static mut OPTIONS: *mut Opts = 0 as *mut Opts;
+
+pub fn get() -> &'static Opts {
+    unsafe { mem::transmute(OPTIONS) }
 }
