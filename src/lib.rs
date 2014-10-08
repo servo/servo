@@ -95,11 +95,9 @@ pub fn run(opts: opts::Opts) {
     let (compositor_port, compositor_chan) = CompositorChan::new();
     let time_profiler_chan = TimeProfiler::create(opts.time_profiler_period);
     let memory_profiler_chan = MemoryProfiler::create(opts.memory_profiler_period);
-    let devtools_chan = if opts.devtools_server {
-        Some(devtools::start_server())
-    } else {
-        None
-    };
+    let devtools_chan = opts.devtools_port.map(|port| {
+        devtools::start_server(port)
+    });
 
     let opts_clone = opts.clone();
     let time_profiler_chan_clone = time_profiler_chan.clone();

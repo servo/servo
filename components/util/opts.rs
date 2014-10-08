@@ -85,8 +85,9 @@ pub struct Opts {
     /// and render.
     pub trace_layout: bool,
 
-    /// True if we should start a server to listen to remote Firefox devtools connections.
-    pub devtools_server: bool,
+    /// `None` to disable devtools or `Some` with a port number to start a server to listen to
+    /// remote Firefox devtools connections.
+    pub devtools_port: Option<u16>,
 
     /// The initial requested size of the window.
     pub initial_window_size: TypedSize2D<ScreenPx, uint>,
@@ -127,7 +128,7 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
         getopts::optflag("", "show-debug-borders", "Show debugging borders on layers and tiles."),
         getopts::optflag("", "disable-text-aa", "Disable antialiasing for text rendering."),
         getopts::optflag("", "trace-layout", "Write layout trace to external file for debugging."),
-        getopts::optflag("", "devtools", "Start remote devtools server"),
+        getopts::optflagopt("", "devtools", "Start remote devtools server on port", "6000"),
         getopts::optopt("", "resolution", "Set window resolution.", "800x600"),
         getopts::optopt("u", "user-agent", "Set custom user agent string", "NCSA Mosaic/1.0 (X11;SunOS 4.1.4 sun4m)"),
         getopts::optflag("h", "help", "Print this message")
@@ -211,6 +212,10 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
         bubble_inline_sizes_separately = true;
     }
 
+    let devtools_port = opt_match.opt_default("devtools", "6000").map(|port| {
+        from_str(port.as_slice()).unwrap()
+    });
+
     let initial_window_size = match opt_match.opt_str("resolution") {
         Some(res_string) => {
             let res: Vec<uint> = res_string.as_slice().split('x').map(|r| from_str(r).unwrap()).collect();
@@ -240,7 +245,7 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
         show_debug_borders: opt_match.opt_present("show-debug-borders"),
         enable_text_antialiasing: !opt_match.opt_present("disable-text-aa"),
         trace_layout: trace_layout,
-        devtools_server: opt_match.opt_present("devtools"),
+        devtools_port: devtools_port,
         initial_window_size: initial_window_size,
         user_agent: opt_match.opt_str("u"),
     })
