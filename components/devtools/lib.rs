@@ -58,20 +58,19 @@ mod actors {
 }
 mod protocol;
 
-/// Spin up a devtools server that listens for connections. Defaults to port 6000.
-/// TODO: allow specifying a port
-pub fn start_server() -> Sender<DevtoolsControlMsg> {
-    let (chan, port) = comm::channel();
+/// Spin up a devtools server that listens for connections on the specified port.
+pub fn start_server(port: u16) -> Sender<DevtoolsControlMsg> {
+    let (sender, receiver) = comm::channel();
     TaskBuilder::new().named("devtools").spawn(proc() {
-        run_server(port)
+        run_server(receiver, port)
     });
-    chan
+    sender
 }
 
 static POLL_TIMEOUT: u64 = 300;
 
-fn run_server(port: Receiver<DevtoolsControlMsg>) {
-    let listener = TcpListener::bind("127.0.0.1", 6000);
+fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
+    let listener = TcpListener::bind("127.0.0.1", port);
 
     // bind the listener to the specified address
     let mut acceptor = listener.listen().unwrap();
@@ -185,7 +184,7 @@ fn run_server(port: Receiver<DevtoolsControlMsg>) {
     loop {
         match acceptor.accept() {
             Err(ref e) if e.kind == TimedOut => {
-                match port.try_recv() {
+                match receiver.try_recv() {
                     Ok(ServerExitMsg) | Err(Disconnected) => break,
                     Ok(NewGlobal(id, sender)) => handle_new_global(actors.clone(), id, sender),
                     Err(Empty) => acceptor.set_timeout(Some(POLL_TIMEOUT)),
