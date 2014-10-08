@@ -42,6 +42,7 @@ pub mod memory;
 pub mod namespace;
 pub mod opts;
 pub mod range;
+pub mod resource_files;
 pub mod smallvec;
 pub mod sort;
 pub mod str;
