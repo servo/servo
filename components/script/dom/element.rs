@@ -41,6 +41,7 @@ use std::cell::RefCell;
 use std::default::Default;
 use std::mem;
 use string_cache::{Atom, Namespace};
+use url::UrlParser;
 
 #[jstraceable]
 #[must_root]
@@ -486,8 +487,18 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
 
     fn get_url_attribute(self, name: &str) -> DOMString {
         assert!(name == name.to_ascii_lower().as_slice());
-        // XXX Resolve URL.
-        self.get_string_attribute(name)
+        if !self.has_attribute(name) {
+            return "".to_string();
+        }
+        let url = self.get_string_attribute(name);
+        let doc = document_from_node(self).root();
+        let base = doc.url();
+        // https://html.spec.whatwg.org/multipage/infrastructure.html#reflect
+        // XXXManishearth this doesn't handle `javascript:` urls properly
+        match UrlParser::new().base_url(base).parse(url.as_slice()) {
+            Ok(parsed) => parsed.serialize(),
+            Err(_) => "".to_string()
+        }
     }
     fn set_url_attribute(self, name: &str, value: DOMString) {
         self.set_string_attribute(name, value);

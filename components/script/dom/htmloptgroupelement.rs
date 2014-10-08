@@ -4,12 +4,12 @@
 
 use dom::bindings::codegen::Bindings::HTMLOptGroupElementBinding;
 use dom::bindings::codegen::Bindings::HTMLOptGroupElementBinding::HTMLOptGroupElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLOptGroupElementDerived, HTMLOptionElementDerived};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::{AttributeHandlers, Element, HTMLOptGroupElementTypeId};
+use dom::element::{AttributeHandlers, HTMLOptGroupElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::node::{DisabledStateHelpers, Node, NodeHelpers, ElementNodeTypeId};
@@ -49,10 +49,7 @@ impl<'a> HTMLOptGroupElementMethods for JSRef<'a, HTMLOptGroupElement> {
     make_bool_getter!(Disabled)
 
     // http://www.whatwg.org/html#dom-optgroup-disabled
-    fn SetDisabled(self, disabled: bool) {
-        let elem: JSRef<Element> = ElementCast::from_ref(self);
-        elem.set_bool_attribute("disabled", disabled)
-    }
+    make_bool_setter!(SetDisabled, "disabled")
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLOptGroupElement> {
