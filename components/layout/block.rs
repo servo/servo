@@ -1251,8 +1251,9 @@ impl BlockFlow {
         let layer_rect = self.base.position.union(&self.base.overflow);
         let size = Size2D(layer_rect.size.inline.to_nearest_px() as uint,
                           layer_rect.size.block.to_nearest_px() as uint);
-        let origin = Point2D(layer_rect.start.i.to_nearest_px() as uint,
-                             layer_rect.start.b.to_nearest_px() as uint);
+        let origin = Point2D(self.base.abs_position.x.to_nearest_px() as uint,
+                             self.base.abs_position.y.to_nearest_px() as uint);
+
         let scroll_policy = if self.is_fixed() {
             FixedPosition
         } else {
