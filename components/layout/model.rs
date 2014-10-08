@@ -307,6 +307,14 @@ impl MaybeAuto {
     pub fn specified_or_zero(&self) -> Au {
         self.specified_or_default(Au::new(0))
     }
+
+    #[inline]
+    pub fn map(&self, mapper: |Au| -> Au) -> MaybeAuto {
+        match *self {
+            Auto => Auto,
+            Specified(value) => Specified(mapper(value)),
+        }
+    }
 }
 
 pub fn specified_or_none(length: computed::LengthOrPercentageOrNone, containing_length: Au) -> Option<Au> {

@@ -26,7 +26,6 @@ use model::{Auto, IntrinsicISizes, MarginCollapseInfo, MarginsCollapse};
 use model::{MarginsCollapseThrough, MaybeAuto, NoCollapsibleMargins, Specified, specified};
 use model::{specified_or_none};
 use wrapper::ThreadSafeLayoutNode;
-use style::ComputedValues;
 use style::computed_values::{clear, position};
 
 use collections::dlist::DList;
@@ -298,7 +297,7 @@ impl CandidateBSizeIterator {
     /// Creates a new candidate block-size iterator. `block_container_block-size` is `None` if the block-size
     /// of the block container has not been determined yet. It will always be `Some` in the case of
     /// absolutely-positioned containing blocks.
-    pub fn new(style: &ComputedValues, block_container_block_size: Option<Au>)
+    pub fn new(fragment: &Fragment, block_container_block_size: Option<Au>)
                -> CandidateBSizeIterator {
         // Per CSS 2.1 § 10.7, (assuming an horizontal writing mode,)
         // percentages in `min-height` and `max-height` refer to the height of
@@ -306,21 +305,21 @@ impl CandidateBSizeIterator {
         // If that is not determined yet by the time we need to resolve
         // `min-height` and `max-height`, percentage values are ignored.
 
-        let block_size = match (style.content_block_size(), block_container_block_size) {
+        let block_size = match (fragment.style.content_block_size(), block_container_block_size) {
             (LPA_Percentage(percent), Some(block_container_block_size)) => {
                 Specified(block_container_block_size.scale_by(percent))
             }
             (LPA_Percentage(_), None) | (LPA_Auto, _) => Auto,
             (LPA_Length(length), _) => Specified(length),
         };
-        let max_block_size = match (style.max_block_size(), block_container_block_size) {
+        let max_block_size = match (fragment.style.max_block_size(), block_container_block_size) {
             (LPN_Percentage(percent), Some(block_container_block_size)) => {
                 Some(block_container_block_size.scale_by(percent))
             }
             (LPN_Percentage(_), None) | (LPN_None, _) => None,
             (LPN_Length(length), _) => Some(length),
         };
-        let min_block_size = match (style.min_block_size(), block_container_block_size) {
+        let min_block_size = match (fragment.style.min_block_size(), block_container_block_size) {
             (LP_Percentage(percent), Some(block_container_block_size)) => {
                 block_container_block_size.scale_by(percent)
             }
@@ -328,12 +327,22 @@ impl CandidateBSizeIterator {
             (LP_Length(length), _) => length,
         };
 
-        CandidateBSizeIterator {
-            block_size: block_size,
-            max_block_size: max_block_size,
-            min_block_size: min_block_size,
+        // If the style includes `box-sizing: border-box`, subtract the border and padding.
+        let adjustment_for_box_sizing = match fragment.style.get_box().box_sizing {
+            box_sizing::border_box => fragment.border_padding.block_start_end(),
+            box_sizing::content_box => Au(0),
+        };
+
+        return CandidateBSizeIterator {
+            block_size: block_size.map(|size| adjust(size, adjustment_for_box_sizing)),
+            max_block_size: max_block_size.map(|size| adjust(size, adjustment_for_box_sizing)),
+            min_block_size: adjust(min_block_size, adjustment_for_box_sizing),
             candidate_value: Au(0),
             status: InitialCandidateBSizeStatus,
+        };
+
+        fn adjust(size: Au, delta: Au) -> Au {
+            max(size - delta, Au(0))
         }
     }
 }
@@ -964,7 +973,7 @@ impl BlockFlow {
         // Compute any explicitly-specified block size.
         // Can't use `for` because we assign to `candidate_block_size_iterator.candidate_value`.
         let mut candidate_block_size_iterator = CandidateBSizeIterator::new(
-            self.fragment.style(),
+            &self.fragment,
             self.base.block_container_explicit_block_size);
         loop {
             match candidate_block_size_iterator.next() {
@@ -978,30 +987,14 @@ impl BlockFlow {
             }
         }
 
+        // Adjust `cur_b` as necessary to account for the explicitly-specified block-size.
+        block_size = candidate_block_size_iterator.candidate_value;
+        let delta = block_size - (cur_b - block_start_offset);
+        translate_including_floats(&mut cur_b, delta, &mut floats);
 
-        match self.fragment.style().get_box().box_sizing {
-            box_sizing::content_box => {
-                // Adjust `cur_b` as necessary to account for the explicitly-specified block-size.
-                block_size = candidate_block_size_iterator.candidate_value;
-                let delta = block_size - (cur_b - block_start_offset);
-                translate_including_floats(&mut cur_b, delta, &mut floats);
-
-                // Take border and padding into account.
-                let block_end_offset = self.fragment.border_padding.block_end;
-                translate_including_floats(&mut cur_b, block_end_offset, &mut floats);
-            }
-            box_sizing::border_box => {
-                // Adjust `cur_b` as necessary to account for the explicitly-specified block-size.
-                block_size = candidate_block_size_iterator.candidate_value;
-                let delta = block_size - cur_b;
-                translate_including_floats(&mut cur_b, delta, &mut floats);
-
-                // Take padding into account.
-                let block_end_offset = self.fragment.border_padding.block_end -
-                    self.fragment.border_width().block_end;
-                translate_including_floats(&mut cur_b, block_end_offset, &mut floats);
-            }
-        }
+        // Take border and padding into account.
+        let block_end_offset = self.fragment.border_padding.block_end;
+        translate_including_floats(&mut cur_b, block_end_offset, &mut floats);
 
         // Now that `cur_b` is at the block-end of the border box, compute the final border box
         // position.
@@ -1187,16 +1180,17 @@ impl BlockFlow {
                         available_block_size,
                         static_b_offset));
             } else {
-                let style = self.fragment.style();
                 let mut candidate_block_size_iterator =
-                    CandidateBSizeIterator::new(style, Some(containing_block_block_size));
+                    CandidateBSizeIterator::new(&self.fragment, Some(containing_block_block_size));
 
-                // Can't use `for` because we assign to candidate_block_size_iterator.candidate_value
+                // Can't use `for` because we assign to
+                // `candidate_block_size_iterator.candidate_value`.
                 loop {
                     match candidate_block_size_iterator.next() {
                         Some(block_size_used_val) => {
                             solution =
-                                Some(BSizeConstraintSolution::solve_vertical_constraints_abs_nonreplaced(
+                                Some(BSizeConstraintSolution::
+                                     solve_vertical_constraints_abs_nonreplaced(
                                     block_size_used_val,
                                     margin_block_start,
                                     margin_block_end,
@@ -1222,12 +1216,7 @@ impl BlockFlow {
 
         self.base.position.start.b = solution.block_start + self.fragment.margin.block_start;
 
-        let block_size = match self.fragment.style().get_box().box_sizing {
-            box_sizing::content_box => {
-                solution.block_size + self.fragment.border_padding.block_start_end()
-            }
-            box_sizing::border_box => solution.block_size,
-        };
+        let block_size = solution.block_size + self.fragment.border_padding.block_start_end();
         self.fragment.border_box.size.block = block_size;
         self.base.position.size.block = block_size;
     }
@@ -1914,16 +1903,27 @@ pub trait ISizeAndMarginsComputer {
     /// calculation involving min-inline-size and max-inline-size, we don't need to
     /// recompute these.
     fn compute_inline_size_constraint_inputs(&self,
-                                       block: &mut BlockFlow,
-                                       parent_flow_inline_size: Au,
-                                       ctx: &LayoutContext)
-                                       -> ISizeConstraintInput {
-        let containing_block_inline_size = self.containing_block_inline_size(block, parent_flow_inline_size, ctx);
-        let computed_inline_size = self.initial_computed_inline_size(block, parent_flow_inline_size, ctx);
+                                             block: &mut BlockFlow,
+                                             parent_flow_inline_size: Au,
+                                             layout_context: &LayoutContext)
+                                             -> ISizeConstraintInput {
+        let containing_block_inline_size =
+            self.containing_block_inline_size(block, parent_flow_inline_size, layout_context);
 
         block.fragment.compute_border_padding_margins(containing_block_inline_size);
 
+        let mut computed_inline_size = self.initial_computed_inline_size(block,
+                                                                         parent_flow_inline_size,
+                                                                         layout_context);
+
         let style = block.fragment.style();
+        match (computed_inline_size, style.get_box().box_sizing) {
+            (Specified(size), box_sizing::border_box) => {
+                computed_inline_size =
+                    Specified(size - block.fragment.border_padding.inline_start_end())
+            }
+            (Auto, box_sizing::border_box) | (_, box_sizing::content_box) => {}
+        }
 
         // The text alignment of a block flow is the text alignment of its box's style.
         block.base.flags.set_text_align(style.get_inheritedtext().text_align);
@@ -1964,14 +1964,8 @@ pub trait ISizeAndMarginsComputer {
             fragment.border_box.start.i = fragment.margin.inline_start;
 
             // The associated fragment has the border box of this flow.
-            inline_size = match fragment.style().get_box().box_sizing {
-                box_sizing::content_box => {
-                    solution.inline_size + fragment.border_padding.inline_start_end()
-                }
-                box_sizing::border_box => solution.inline_size,
-            };
-
-            fragment.border_box.size.inline = inline_size;
+            inline_size = solution.inline_size + fragment.border_padding.inline_start_end();
+            fragment.border_box.size.inline = inline_size
         }
 
         // We also resize the block itself, to ensure that overflow is not calculated
