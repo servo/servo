@@ -10,17 +10,17 @@ use parsing_utils::{BufferedIter, ParserIter, parse_slice_comma_separated};
 use properties::longhands::font_family::parse_one_family;
 use properties::computed_values::font_family::FamilyName;
 use stylesheets::{CSSRule, CSSFontFaceRule, CSSStyleRule, CSSMediaRule};
-use media_queries::{Device, Screen};
+use media_queries::Device;
 use url::{Url, UrlParser};
 
 
-pub fn iter_font_face_rules_inner(rules: &[CSSRule], callback: |family: &str, source: &Source|) {
-    let device = &Device { media_type: Screen };  // TODO, use Print when printing
+pub fn iter_font_face_rules_inner(rules: &[CSSRule], device: &Device,
+                                    callback: |family: &str, source: &Source|) {
     for rule in rules.iter() {
         match *rule {
             CSSStyleRule(_) => {},
             CSSMediaRule(ref rule) => if rule.media_queries.evaluate(device) {
-                iter_font_face_rules_inner(rule.rules.as_slice(), |f, s| callback(f, s))
+                iter_font_face_rules_inner(rule.rules.as_slice(), device, |f, s| callback(f, s))
             },
             CSSFontFaceRule(ref rule) => {
                 for source in rule.sources.iter() {

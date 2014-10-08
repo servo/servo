@@ -42,6 +42,25 @@ impl<E, I: Iterator<E>> BufferedIter<E, I> {
         assert!(self.buffer.is_none());
         self.buffer = Some(value);
     }
+
+    #[inline]
+    pub fn is_eof(&mut self) -> bool {
+        match self.next() {
+            Some(value) => {
+                self.push_back(value);
+                false
+            }
+            None => true
+        }
+    }
+
+    #[inline]
+    pub fn next_as_result(&mut self) -> Result<E, ()> {
+        match self.next() {
+            Some(value) => Ok(value),
+            None => Err(()),
+        }
+    }
 }
 
 impl<E, I: Iterator<E>> Iterator<E> for BufferedIter<E, I> {

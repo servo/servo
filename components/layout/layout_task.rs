@@ -64,6 +64,7 @@ use std::comm::{channel, Sender, Receiver, Select};
 use std::mem;
 use std::ptr;
 use style::{AuthorOrigin, Stylesheet, Stylist, TNode, iter_font_face_rules};
+use style::{Device, Screen};
 use sync::{Arc, Mutex, MutexGuard};
 use url::Url;
 
@@ -143,6 +144,10 @@ pub struct LayoutTask {
     ///
     /// All the other elements of this struct are read-only.
     pub rw_data: Arc<Mutex<LayoutTaskData>>,
+
+    /// The media queries device state.
+    /// TODO: Handle updating this when window size changes etc.
+    pub device: Device,
 }
 
 struct LayoutImageResponder {
@@ -252,6 +257,7 @@ impl LayoutTask {
            -> LayoutTask {
         let local_image_cache = Arc::new(Mutex::new(LocalImageCache::new(image_cache_task.clone())));
         let screen_size = Size2D(Au(0), Au(0));
+        let device = Device::new(Screen, opts.initial_window_size.as_f32());
         let parallel_traversal = if opts.layout_threads != 1 {
             Some(WorkQueue::new("LayoutWorker", opts.layout_threads, ptr::null()))
         } else {
@@ -272,12 +278,13 @@ impl LayoutTask {
             font_cache_task: font_cache_task,
             opts: opts.clone(),
             first_reflow: Cell::new(true),
+            device: device,
             rw_data: Arc::new(Mutex::new(
                 LayoutTaskData {
                     local_image_cache: local_image_cache,
                     screen_size: screen_size,
                     display_list: None,
-                    stylist: box Stylist::new(),
+                    stylist: box Stylist::new(&device),
                     parallel_traversal: parallel_traversal,
                     dirty: Rect::zero(),
                     generation: 0,
@@ -469,11 +476,11 @@ impl LayoutTask {
     fn handle_add_stylesheet<'a>(&'a self, sheet: Stylesheet, possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) {
         // Find all font-face rules and notify the font cache of them.
         // GWTODO: Need to handle unloading web fonts (when we handle unloading stylesheets!)
-        iter_font_face_rules(&sheet, |family, src| {
+        iter_font_face_rules(&sheet, &self.device, |family, src| {
             self.font_cache_task.add_web_font(family.to_string(), (*src).clone());
         });
         let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
-        rw_data.stylist.add_stylesheet(sheet, AuthorOrigin);
+        rw_data.stylist.add_stylesheet(sheet, AuthorOrigin, &self.device);
         rw_data.stylesheet_dirty = true;
         LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
     }

@@ -35,6 +35,7 @@ extern crate "util" as servo_util;
 
 
 // Public API
+pub use media_queries::{Device, Screen};
 pub use stylesheets::{Stylesheet, iter_font_face_rules};
 pub use selector_matching::{Stylist, StylesheetOrigin, UserAgentOrigin, AuthorOrigin, UserOrigin};
 pub use selector_matching::{DeclarationBlock, matches,matches_simple_selector};

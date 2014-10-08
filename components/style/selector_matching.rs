@@ -19,7 +19,7 @@ use servo_util::str::{AutoLpa, LengthLpa, PercentageLpa};
 use string_cache::Atom;
 
 use legacy::{SizeIntegerAttribute, WidthLengthAttribute};
-use media_queries::{Device, Screen};
+use media_queries::Device;
 use node::{TElement, TElementAttributes, TNode};
 use properties::{PropertyDeclaration, PropertyDeclarationBlock, SpecifiedValue, WidthDeclaration};
 use properties::{specified};
@@ -272,7 +272,7 @@ pub struct Stylist {
 
 impl Stylist {
     #[inline]
-    pub fn new() -> Stylist {
+    pub fn new(device: &Device) -> Stylist {
         let mut stylist = Stylist {
             element_map: PerPseudoElementSelectorMap::new(),
             before_map: PerPseudoElementSelectorMap::new(),
@@ -289,12 +289,13 @@ impl Stylist {
                 Url::parse(format!("chrome:///{}", filename).as_slice()).unwrap(),
                 None,
                 None);
-            stylist.add_stylesheet(ua_stylesheet, UserAgentOrigin);
+            stylist.add_stylesheet(ua_stylesheet, UserAgentOrigin, device);
         }
         stylist
     }
 
-    pub fn add_stylesheet(&mut self, stylesheet: Stylesheet, origin: StylesheetOrigin) {
+    pub fn add_stylesheet(&mut self, stylesheet: Stylesheet, origin: StylesheetOrigin,
+                            device: &Device) {
         let (mut element_map, mut before_map, mut after_map) = match origin {
             UserAgentOrigin => (
                 &mut self.element_map.user_agent,
@@ -338,7 +339,6 @@ impl Stylist {
             };
         );
 
-        let device = &Device { media_type: Screen };  // TODO, use Print when printing
         iter_stylesheet_style_rules(&stylesheet, device, |style_rule| {
             append!(style_rule, normal);
             append!(style_rule, important);
