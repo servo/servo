@@ -98,24 +98,15 @@ impl LayoutHTMLImageElementHelpers for JS<HTMLImageElement> {
 impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
     make_getter!(Alt)
 
-    fn SetAlt(self, alt: DOMString) {
-        let element: JSRef<Element> = ElementCast::from_ref(self);
-        element.set_string_attribute("alt", alt)
-    }
+    make_setter!(SetAlt, "alt")
 
-    make_getter!(Src)
+    make_url_getter!(Src)
 
-    fn SetSrc(self, src: DOMString) {
-        let element: JSRef<Element> = ElementCast::from_ref(self);
-        element.set_url_attribute("src", src)
-    }
+    make_setter!(SetSrc, "src")
 
     make_getter!(UseMap)
 
-    fn SetUseMap(self, use_map: DOMString) {
-        let element: JSRef<Element> = ElementCast::from_ref(self);
-        element.set_string_attribute("usemap", use_map)
-    }
+    make_setter!(SetUseMap, "usemap")
 
     make_bool_getter!(IsMap)
 
@@ -148,45 +139,27 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
 
     make_getter!(Name)
 
-    fn SetName(self, name: DOMString) {
-        let element: JSRef<Element> = ElementCast::from_ref(self);
-        element.set_string_attribute("name", name)
-    }
+    make_setter!(SetName, "name")
 
     make_getter!(Align)
 
-    fn SetAlign(self, align: DOMString) {
-        let element: JSRef<Element> = ElementCast::from_ref(self);
-        element.set_string_attribute("align", align)
-    }
+    make_setter!(SetAlign, "align")
 
     make_uint_getter!(Hspace)
 
-    fn SetHspace(self, hspace: u32) {
-        let element: JSRef<Element> = ElementCast::from_ref(self);
-        element.set_uint_attribute("hspace", hspace)
-    }
+    make_uint_setter!(SetHspace, "hspace")
 
     make_uint_getter!(Vspace)
 
-    fn SetVspace(self, vspace: u32) {
-        let element: JSRef<Element> = ElementCast::from_ref(self);
-        element.set_uint_attribute("vspace", vspace)
-    }
+    make_uint_setter!(SetVspace, "vspace")
 
     make_getter!(LongDesc)
 
-    fn SetLongDesc(self, longdesc: DOMString) {
-        let element: JSRef<Element> = ElementCast::from_ref(self);
-        element.set_string_attribute("longdesc", longdesc)
-    }
+    make_setter!(SetLongDesc, "longdesc")
 
     make_getter!(Border)
 
-    fn SetBorder(self, border: DOMString) {
-        let element: JSRef<Element> = ElementCast::from_ref(self);
-        element.set_string_attribute("border", border)
-    }
+    make_setter!(SetBorder, "border")
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLImageElement> {

@@ -4,43 +4,109 @@
 
 #[macro_export]
 macro_rules! make_getter(
-    ( $attr:ident ) => (
+    ( $attr:ident, $htmlname:expr ) => (
         fn $attr(self) -> DOMString {
             use dom::element::{Element, AttributeHandlers};
             use dom::bindings::codegen::InheritTypes::ElementCast;
+            #[allow(unused_imports)]
             use std::ascii::StrAsciiExt;
             let element: JSRef<Element> = ElementCast::from_ref(self);
-            element.get_string_attribute(stringify!($attr).to_ascii_lower().as_slice())
+            element.get_string_attribute($htmlname)
         }
     );
+    ($attr:ident) => {
+        make_getter!($attr, stringify!($attr).to_ascii_lower().as_slice())
+    }
 )
 
 #[macro_export]
 macro_rules! make_bool_getter(
-    ( $attr:ident ) => (
+    ( $attr:ident, $htmlname:expr ) => (
         fn $attr(self) -> bool {
             use dom::element::{Element, AttributeHandlers};
             use dom::bindings::codegen::InheritTypes::ElementCast;
+            #[allow(unused_imports)]
             use std::ascii::StrAsciiExt;
             let element: JSRef<Element> = ElementCast::from_ref(self);
-            element.has_attribute(stringify!($attr).to_ascii_lower().as_slice())
+            element.has_attribute($htmlname)
+        }
+    );
+    ($attr:ident) => {
+        make_bool_getter!($attr, stringify!($attr).to_ascii_lower().as_slice())
+    }
+)
+
+#[macro_export]
+macro_rules! make_uint_getter(
+    ( $attr:ident, $htmlname:expr ) => (
+        fn $attr(self) -> u32 {
+            use dom::element::{Element, AttributeHandlers};
+            use dom::bindings::codegen::InheritTypes::ElementCast;
+            #[allow(unused_imports)]
+            use std::ascii::StrAsciiExt;
+            let element: JSRef<Element> = ElementCast::from_ref(self);
+            element.get_uint_attribute($htmlname)
+        }
+    );
+    ($attr:ident) => {
+        make_uint_getter!($attr, stringify!($attr).to_ascii_lower().as_slice())
+    }
+)
+
+#[macro_export]
+macro_rules! make_url_getter(
+    ( $attr:ident, $htmlname:expr ) => (
+        fn $attr(self) -> DOMString {
+            use dom::element::{Element, AttributeHandlers};
+            use dom::bindings::codegen::InheritTypes::ElementCast;
+            #[allow(unused_imports)]
+            use std::ascii::StrAsciiExt;
+            let element: JSRef<Element> = ElementCast::from_ref(self);
+            element.get_url_attribute($htmlname)
+        }
+    );
+    ($attr:ident) => {
+        make_url_getter!($attr, stringify!($attr).to_ascii_lower().as_slice())
+    }
+)
+
+// concat_idents! doesn't work for function name positions, so
+// we have to specify both the content name and the HTML name here
+#[macro_export]
+macro_rules! make_setter(
+    ( $attr:ident, $htmlname:expr ) => (
+        fn $attr(self, value: DOMString) {
+            use dom::element::{Element, AttributeHandlers};
+            use dom::bindings::codegen::InheritTypes::ElementCast;
+            let element: JSRef<Element> = ElementCast::from_ref(self);
+            element.set_string_attribute($htmlname, value)
         }
     );
 )
 
 #[macro_export]
-macro_rules! make_uint_getter(
-    ( $attr:ident ) => (
-        fn $attr(self) -> u32 {
+macro_rules! make_bool_setter(
+    ( $attr:ident, $htmlname:expr ) => (
+        fn $attr(self, value: bool) {
             use dom::element::{Element, AttributeHandlers};
             use dom::bindings::codegen::InheritTypes::ElementCast;
-            use std::ascii::StrAsciiExt;
             let element: JSRef<Element> = ElementCast::from_ref(self);
-            element.get_uint_attribute(stringify!($attr).to_ascii_lower().as_slice())
+            element.set_bool_attribute($htmlname, value)
         }
     );
 )
 
+#[macro_export]
+macro_rules! make_uint_setter(
+    ( $attr:ident, $htmlname:expr ) => (
+        fn $attr(self, value: u32) {
+            use dom::element::{Element, AttributeHandlers};
+            use dom::bindings::codegen::InheritTypes::ElementCast;
+            let element: JSRef<Element> = ElementCast::from_ref(self);
+            element.set_uint_attribute($htmlname, value)
+        }
+    );
+)
 
 /// For use on non-jsmanaged types
 /// Use #[jstraceable] on JS managed types

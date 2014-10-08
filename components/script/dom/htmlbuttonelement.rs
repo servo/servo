@@ -4,12 +4,12 @@
 
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLButtonElementDerived, HTMLFieldSetElementDerived};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::{AttributeHandlers, Element, HTMLButtonElementTypeId};
+use dom::element::{AttributeHandlers, HTMLButtonElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::node::{DisabledStateHelpers, Node, NodeHelpers, ElementNodeTypeId, window_from_node};
@@ -55,10 +55,7 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
     make_bool_getter!(Disabled)
 
     // http://www.whatwg.org/html/#dom-fe-disabled
-    fn SetDisabled(self, disabled: bool) {
-        let elem: JSRef<Element> = ElementCast::from_ref(self);
-        elem.set_bool_attribute("disabled", disabled)
-    }
+    make_bool_setter!(SetDisabled, "disabled")
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLButtonElement> {
