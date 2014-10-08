@@ -23,6 +23,7 @@ pub trait TNode<'a, E: TElement<'a>> : Clone + Copy {
 
 pub trait TElement<'a> : Copy {
     fn get_attr(self, namespace: &Namespace, attr: &str) -> Option<&'a str>;
+    fn get_attrs(self, attr: &str) -> Vec<&'a str>;
     fn get_link(self) -> Option<&'a str>;
     fn get_local_name(self) -> &'a Atom;
     fn get_namespace(self) -> &'a Namespace;

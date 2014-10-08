@@ -170,6 +170,7 @@ impl Element {
 
 pub trait RawLayoutElementHelpers {
     unsafe fn get_attr_val_for_layout<'a>(&'a self, namespace: &Namespace, name: &str) -> Option<&'a str>;
+    unsafe fn get_attr_vals_for_layout<'a>(&'a self, name: &str) -> Vec<&'a str>;
     unsafe fn get_attr_atom_for_layout(&self, namespace: &Namespace, name: &str) -> Option<Atom>;
     unsafe fn has_class_for_layout(&self, name: &str) -> bool;
 }
@@ -189,6 +190,21 @@ impl RawLayoutElementHelpers for Element {
             let attr = attr.unsafe_get();
             (*attr).value_ref_forever()
         })
+    }
+
+    #[inline]
+    #[allow(unrooted_must_root)]
+    unsafe fn get_attr_vals_for_layout<'a>(&'a self, name: &str) -> Vec<&'a str> {
+        // cast to point to T in RefCell<T> directly
+        let attrs: *const Vec<JS<Attr>> = mem::transmute(&self.attrs);
+        (*attrs).iter().filter_map(|attr: &JS<Attr>| {
+            let attr = attr.unsafe_get();
+            if name == (*attr).local_name_atom_forever().as_slice() {
+              Some((*attr).value_ref_forever())
+            } else {
+              None
+            }
+        }).collect()
     }
 
     #[inline]
@@ -291,6 +307,8 @@ pub trait AttributeHandlers {
     /// name, if any.
     fn get_attribute(self, namespace: Namespace, local_name: &str)
                      -> Option<Temporary<Attr>>;
+    fn get_attributes(self, local_name: &str)
+                      -> Vec<Temporary<Attr>>;
     fn set_attribute_from_parser(self, local_name: Atom,
                                  value: DOMString, namespace: Namespace,
                                  prefix: Option<DOMString>);
@@ -321,10 +339,20 @@ pub trait AttributeHandlers {
 
 impl<'a> AttributeHandlers for JSRef<'a, Element> {
     fn get_attribute(self, namespace: Namespace, local_name: &str) -> Option<Temporary<Attr>> {
+        self.get_attributes(local_name).iter().map(|attr| attr.root())
+            .find(|attr| attr.namespace == namespace)
+            .map(|x| Temporary::from_rooted(*x))
+    }
+
+    fn get_attributes(self, local_name: &str) -> Vec<Temporary<Attr>> {
         let local_name = Atom::from_slice(local_name);
-        self.attrs.borrow().iter().map(|attr| attr.root()).find(|attr| {
-            *attr.local_name() == local_name && attr.namespace == namespace
-        }).map(|x| Temporary::from_rooted(*x))
+        self.attrs.borrow().iter().map(|attr| attr.root()).filter_map(|attr| {
+            if *attr.local_name() == local_name {
+                Some(Temporary::from_rooted(*attr))
+            } else {
+                None
+            }
+        }).collect()
     }
 
     fn set_attribute_from_parser(self, local_name: Atom,
@@ -946,6 +974,11 @@ impl<'a> style::TElement<'a> for JSRef<'a, Element> {
         self.get_attribute(namespace.clone(), attr).root().map(|attr| {
             unsafe { mem::transmute(attr.deref().value().as_slice()) }
         })
+    }
+    fn get_attrs(self, attr: &str) -> Vec<&'a str> {
+        self.get_attributes(attr).iter().map(|attr| attr.root()).map(|attr| {
+            unsafe { mem::transmute(attr.deref().value().as_slice()) }
+        }).collect()
     }
     fn get_link(self) -> Option<&'a str> {
         // FIXME: This is HTML only.
