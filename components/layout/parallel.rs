@@ -16,8 +16,8 @@ use layout_task::{AssignBSizesAndStoreOverflowTraversal, AssignISizesTraversal};
 use layout_task::{BubbleISizesTraversal};
 use url::Url;
 use util::{LayoutDataAccess, LayoutDataWrapper, OpaqueNodeMethods};
-use wrapper::{layout_node_to_unsafe_layout_node, layout_node_from_unsafe_layout_node, LayoutNode, PostorderNodeMutTraversal};
-use wrapper::{ThreadSafeLayoutNode, UnsafeLayoutNode};
+use wrapper::{layout_node_to_unsafe_layout_node, layout_node_from_unsafe_layout_node, LayoutNode};
+use wrapper::{PostorderNodeMutTraversal, ThreadSafeLayoutNode, UnsafeLayoutNode};
 
 use gfx::display_list::OpaqueNode;
 use servo_util::bloom::BloomFilter;

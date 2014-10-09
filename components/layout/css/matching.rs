@@ -8,7 +8,8 @@ use css::node_style::StyledNode;
 use construct::FlowConstructor;
 use context::LayoutContext;
 use util::{LayoutDataAccess, LayoutDataWrapper};
-use wrapper::{LayoutElement, LayoutNode, PostorderNodeMutTraversal, ThreadSafeLayoutNode, TLayoutNode};
+use wrapper::{LayoutElement, LayoutNode, PostorderNodeMutTraversal, ThreadSafeLayoutNode};
+use wrapper::{TLayoutNode};
 
 use script::dom::node::{TextNodeTypeId};
 use servo_util::bloom::BloomFilter;
@@ -233,11 +234,13 @@ impl StyleSharingCandidate {
         }
         match (&self.class, element.get_attr(&ns!(""), "class")) {
             (&None, Some(_)) | (&Some(_), None) => return false,
-            (&Some(ref this_class), Some(element_class)) if element_class != this_class.as_slice() => {
+            (&Some(ref this_class), Some(element_class))
+            if element_class != this_class.as_slice() => {
                 return false
             }
             (&Some(_), Some(_)) | (&None, None) => {}
         }
+
         true
     }
 }
@@ -440,7 +443,9 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
                                              Some(After),
                                              &mut applicable_declarations.after);
 
-        *shareable = applicable_declarations.normal_shareable
+        *shareable = applicable_declarations.normal_shareable &&
+            applicable_declarations.before.len() == 0 &&
+            applicable_declarations.after.len() == 0
     }
 
     unsafe fn share_style_if_possible(&self,
@@ -537,7 +542,8 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
 
         // First, check to see whether we can share a style with someone.
         let sharing_result = unsafe {
-            self.share_style_if_possible(layout_context.style_sharing_candidate_cache(), parent.clone())
+            self.share_style_if_possible(layout_context.style_sharing_candidate_cache(),
+                                         parent.clone())
         };
 
         // Otherwise, match and cascade selectors.
