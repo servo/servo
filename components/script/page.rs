@@ -393,7 +393,7 @@ impl Page {
     pub fn hit_test(&self, point: &Point2D<f32>) -> Option<UntrustedNodeAddress> {
         let frame = self.frame();
         let document = frame.as_ref().unwrap().document.root();
-        let root = document.deref().GetDocumentElement().root();
+        let root = document.GetDocumentElement().root();
         if root.is_none() {
             return None;
         }
@@ -414,7 +414,7 @@ impl Page {
     pub fn get_nodes_under_mouse(&self, point: &Point2D<f32>) -> Option<Vec<UntrustedNodeAddress>> {
         let frame = self.frame();
         let document = frame.as_ref().unwrap().document.root();
-        let root = document.deref().GetDocumentElement().root();
+        let root = document.GetDocumentElement().root();
         if root.is_none() {
             return None;
         }

@@ -49,12 +49,12 @@ impl HTMLBodyElement {
 impl<'a> HTMLBodyElementMethods for JSRef<'a, HTMLBodyElement> {
     fn GetOnunload(self) -> Option<EventHandlerNonNull> {
         let win = window_from_node(self).root();
-        win.deref().GetOnunload()
+        win.GetOnunload()
     }
 
     fn SetOnunload(self, listener: Option<EventHandlerNonNull>) {
         let win = window_from_node(self).root();
-        win.deref().SetOnunload(listener)
+        win.SetOnunload(listener)
     }
 }
 

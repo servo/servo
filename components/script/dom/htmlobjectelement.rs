@@ -102,7 +102,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLObjectElement> {
 
         if "data" == name.as_slice() {
             let window = window_from_node(*self).root();
-            self.process_data_url(window.deref().image_cache_task.clone());
+            self.process_data_url(window.image_cache_task.clone());
         }
     }
 }
