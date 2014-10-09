@@ -322,6 +322,7 @@ dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure#b357751c04a89a87e6ef1f0cebe5f20957dd112d)",
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation#166a601ff3e0fc3a64ca1a9090d02c8d4f22b61a)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#90add8d65273c8a46aa16d73959e29a51d0c282d)",
+ "http 0.1.0-pre (git+https://github.com/servo/rust-http?ref=servo#92019011b0cdf1bffc8c584830de1bf330d79d0d)",
  "io_surface 0.1.0 (git+https://github.com/servo/rust-io-surface#7038341220bd7e86e21118fac2cbc6bd50890e47)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers#180d3ff2f28d239e32d01982c76be5c97d5763a8)",
  "url 0.1.0 (git+https://github.com/servo/rust-url#29f70a47230c2aa736e263977247c786e0b2c243)",

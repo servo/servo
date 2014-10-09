@@ -39,7 +39,7 @@ use png;
 use servo_msg::compositor_msg::{Blank, Epoch, FinishedLoading, IdleRenderState, LayerId};
 use servo_msg::compositor_msg::{ReadyState, RenderingRenderState, RenderState, Scrollable};
 use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, LoadUrlMsg, NavigateMsg};
-use servo_msg::constellation_msg::{PipelineId, ResizedWindowMsg, WindowSizeData};
+use servo_msg::constellation_msg::{LoadData, PipelineId, ResizedWindowMsg, WindowSizeData};
 use servo_msg::constellation_msg;
 use servo_util::geometry::{PagePx, ScreenPx, ViewportPx};
 use servo_util::memory::MemoryProfilerChan;
@@ -726,7 +726,7 @@ impl IOCompositor {
                            layers"),
         };
 
-        let msg = LoadUrlMsg(root_pipeline_id, Url::parse(url_string.as_slice()).unwrap());
+        let msg = LoadUrlMsg(root_pipeline_id, LoadData::new(Url::parse(url_string.as_slice()).unwrap()));
         let ConstellationChan(ref chan) = self.constellation_chan;
         chan.send(msg);
     }
