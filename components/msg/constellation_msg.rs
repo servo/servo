@@ -8,6 +8,8 @@
 use geom::rect::Rect;
 use geom::size::TypedSize2D;
 use geom::scale_factor::ScaleFactor;
+use http::headers::request::HeaderCollection as RequestHeaderCollection;
+use http::method::{Method, Get};
 use layers::geometry::DevicePixel;
 use servo_util::geometry::{PagePx, ViewportPx};
 use std::comm::{channel, Sender, Receiver};
@@ -55,11 +57,33 @@ pub enum Msg {
     InitLoadUrlMsg(Url),
     LoadCompleteMsg(PipelineId, Url),
     FrameRectMsg(PipelineId, SubpageId, Rect<f32>),
-    LoadUrlMsg(PipelineId, Url),
+    LoadUrlMsg(PipelineId, LoadData),
     LoadIframeUrlMsg(Url, PipelineId, SubpageId, IFrameSandboxState),
     NavigateMsg(NavigationDirection),
     RendererReadyMsg(PipelineId),
     ResizedWindowMsg(WindowSizeData),
+}
+
+/// Similar to net::resource_task::LoadData
+/// can be passed to LoadUrlMsg to load a page with GET/POST
+/// parameters or headers
+#[deriving(Clone)]
+pub struct LoadData {
+    pub url: Url,
+    pub method: Method,
+    pub headers: RequestHeaderCollection,
+    pub data: Option<Vec<u8>>,
+}
+
+impl LoadData {
+    pub fn new(url: Url) -> LoadData {
+        LoadData {
+            url: url,
+            method: Get,
+            headers: RequestHeaderCollection::new(),
+            data: None,
+        }
+    }
 }
 
 /// Represents the two different ways to which a page can be navigated

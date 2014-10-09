@@ -11,14 +11,13 @@ use devtools_traits::DevtoolsControlChan;
 use gfx::render_task::{PaintPermissionGranted, PaintPermissionRevoked};
 use gfx::render_task::{RenderChan, RenderTask};
 use servo_msg::constellation_msg::{ConstellationChan, Failure, PipelineId, SubpageId};
-use servo_msg::constellation_msg::WindowSizeData;
+use servo_msg::constellation_msg::{LoadData, WindowSizeData};
 use servo_net::image_cache_task::ImageCacheTask;
 use gfx::font_cache_task::FontCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_util::opts::Opts;
 use servo_util::time::TimeProfilerChan;
 use std::rc::Rc;
-use url::Url;
 
 /// A uniquely-identifiable pipeline of script task, layout task, and render task.
 pub struct Pipeline {
@@ -29,8 +28,8 @@ pub struct Pipeline {
     pub render_chan: RenderChan,
     pub layout_shutdown_port: Receiver<()>,
     pub render_shutdown_port: Receiver<()>,
-    /// The most recently loaded url
-    pub url: Url,
+    /// The most recently loaded page
+    pub load_data: LoadData,
 }
 
 /// The subset of the pipeline that is needed for layer composition.
@@ -58,7 +57,7 @@ impl Pipeline {
                       window_size: WindowSizeData,
                       opts: Opts,
                       script_pipeline: Option<Rc<Pipeline>>,
-                      url: Url)
+                      load_data: LoadData)
                       -> Pipeline {
         let layout_pair = ScriptTaskFactory::create_layout_channel(None::<&mut STF>);
         let (render_port, render_chan) = RenderChan::new();
@@ -134,7 +133,7 @@ impl Pipeline {
                       render_chan,
                       layout_shutdown_port,
                       render_shutdown_port,
-                      url)
+                      load_data)
     }
 
     pub fn new(id: PipelineId,
@@ -144,7 +143,7 @@ impl Pipeline {
                render_chan: RenderChan,
                layout_shutdown_port: Receiver<()>,
                render_shutdown_port: Receiver<()>,
-               url: Url)
+               load_data: LoadData)
                -> Pipeline {
         Pipeline {
             id: id,
@@ -154,13 +153,13 @@ impl Pipeline {
             render_chan: render_chan,
             layout_shutdown_port: layout_shutdown_port,
             render_shutdown_port: render_shutdown_port,
-            url: url,
+            load_data: load_data,
         }
     }
 
     pub fn load(&self) {
         let ScriptControlChan(ref chan) = self.script_chan;
-        chan.send(LoadMsg(self.id, self.url.clone()));
+        chan.send(LoadMsg(self.id, self.load_data.clone()));
     }
 
     pub fn grant_paint_permission(&self) {

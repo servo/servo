@@ -17,6 +17,10 @@ git = "https://github.com/servo/rust-azure"
 [dependencies.geom]
 git = "https://github.com/servo/rust-geom"
 
+[dependencies.http]
+git = "https://github.com/servo/rust-http"
+branch = "servo"
+
 [dependencies.layers]
 git = "https://github.com/servo/rust-layers"
 
