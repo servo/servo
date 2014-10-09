@@ -48,6 +48,7 @@ pub use selectors::{PseudoElement, Before, After, SelectorList, parse_selector_l
 pub use selectors::{AttrSelector, NamespaceConstraint, SpecificNamespace, AnyNamespace};
 pub use selectors::{SimpleSelector,LocalNameSelector};
 pub use cssparser::{Color, RGBA};
+pub use legacy::{IntegerAttribute, LengthAttribute, SizeIntegerAttribute, WidthLengthAttribute};
 
 mod stylesheets;
 mod errors;
@@ -59,3 +60,4 @@ mod node;
 mod media_queries;
 mod parsing_utils;
 mod font_face;
+mod legacy;

@@ -30,10 +30,9 @@ use flow_ref::FlowRef;
 use fragment::{Fragment, GenericFragment, IframeFragment, IframeFragmentInfo, ImageFragment};
 use fragment::{ImageFragmentInfo, InlineAbsoluteHypotheticalFragment};
 use fragment::{InlineAbsoluteHypotheticalFragmentInfo, InlineBlockFragment};
-use fragment::{InlineBlockFragmentInfo, InputFragment, InputFragmentInfo, SpecificFragmentInfo};
-use fragment::{TableCellFragment, TableColumnFragment, TableColumnFragmentInfo, TableFragment};
-use fragment::{TableRowFragment, TableWrapperFragment, UnscannedTextFragment};
-use fragment::{UnscannedTextFragmentInfo};
+use fragment::{InlineBlockFragmentInfo, InputFragment, SpecificFragmentInfo, TableCellFragment};
+use fragment::{TableColumnFragment, TableColumnFragmentInfo, TableFragment, TableRowFragment};
+use fragment::{TableWrapperFragment, UnscannedTextFragment, UnscannedTextFragmentInfo};
 use inline::{InlineFragments, InlineFlow};
 use parallel;
 use table_wrapper::TableWrapperFlow;
@@ -222,21 +221,6 @@ impl<'a> FlowConstructor<'a> {
         }
     }
 
-    fn build_fragment_info_for_input(&mut self, node: &ThreadSafeLayoutNode) -> SpecificFragmentInfo {
-        //FIXME: would it make more sense to use HTMLInputElement::input_type instead of the raw
-        //       value? definitely for string comparisons.
-        let elem = node.as_element();
-        let data = match elem.get_attr(&ns!(""), "type") {
-            Some("checkbox") | Some("radio") => None,
-            Some("button") | Some("submit") | Some("reset") =>
-                Some(node.get_input_value().len() as u32),
-            Some("file") => Some(node.get_input_size()),
-            _ => Some(node.get_input_size()),
-        };
-        data.map(|size| InputFragment(InputFragmentInfo { size: size }))
-            .unwrap_or(GenericFragment)
-    }
-
     /// Builds specific `Fragment` info for the given node.
     ///
     /// This does *not* construct the text for generated content (but, for generated content with
@@ -253,7 +237,7 @@ impl<'a> FlowConstructor<'a> {
                 self.build_fragment_info_for_image(node, node.image_url())
             }
             Some(ElementNodeTypeId(HTMLInputElementTypeId)) => {
-                self.build_fragment_info_for_input(node)
+                InputFragment
             }
             Some(ElementNodeTypeId(HTMLObjectElementTypeId)) => {
                 let data = node.get_object_data();

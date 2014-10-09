@@ -19,6 +19,7 @@ use dom::bindings::codegen::InheritTypes::HTMLOptGroupElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLOptionElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLSelectElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLStyleElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLTableCellElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLTextAreaElementCast;
 use dom::bindings::js::JSRef;
 use dom::element::Element;
@@ -37,6 +38,8 @@ use dom::element::HTMLOptGroupElementTypeId;
 use dom::element::HTMLOptionElementTypeId;
 use dom::element::HTMLSelectElementTypeId;
 use dom::element::HTMLStyleElementTypeId;
+use dom::element::HTMLTableDataCellElementTypeId;
+use dom::element::HTMLTableHeaderCellElementTypeId;
 use dom::element::HTMLTextAreaElementTypeId;
 use dom::event::Event;
 use dom::htmlanchorelement::HTMLAnchorElement;
@@ -54,6 +57,7 @@ use dom::htmloptgroupelement::HTMLOptGroupElement;
 use dom::htmloptionelement::HTMLOptionElement;
 use dom::htmlselectelement::HTMLSelectElement;
 use dom::htmlstyleelement::HTMLStyleElement;
+use dom::htmltablecellelement::HTMLTableCellElement;
 use dom::htmltextareaelement::HTMLTextAreaElement;
 use dom::node::{Node, NodeHelpers, ElementNodeTypeId};
 
@@ -191,6 +195,11 @@ pub fn vtable_for<'a>(node: &'a JSRef<'a, Node>) -> &'a VirtualMethods + 'a {
         }
         ElementNodeTypeId(HTMLStyleElementTypeId) => {
             let element: &'a JSRef<'a, HTMLStyleElement> = HTMLStyleElementCast::to_borrowed_ref(node).unwrap();
+            element as &'a VirtualMethods + 'a
+        }
+        ElementNodeTypeId(HTMLTableDataCellElementTypeId) |
+        ElementNodeTypeId(HTMLTableHeaderCellElementTypeId) => {
+            let element: &'a JSRef<'a, HTMLTableCellElement> = HTMLTableCellElementCast::to_borrowed_ref(node).unwrap();
             element as &'a VirtualMethods + 'a
         }
         ElementNodeTypeId(HTMLTextAreaElementTypeId) => {

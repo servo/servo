@@ -11,7 +11,9 @@ use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::ElementBinding;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
-use dom::bindings::codegen::InheritTypes::{ElementDerived, NodeCast};
+use dom::bindings::codegen::InheritTypes::{ElementDerived, HTMLInputElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLTableCellElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLTableCellElementDerived, NodeCast};
 use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, TemporaryPushable};
 use dom::bindings::js::{OptionalSettable, OptionalRootable, Root};
 use dom::bindings::utils::{Reflectable, Reflector};
@@ -23,7 +25,9 @@ use dom::document::{Document, DocumentHelpers};
 use dom::domtokenlist::DOMTokenList;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlcollection::HTMLCollection;
+use dom::htmlinputelement::HTMLInputElement;
 use dom::htmlserializer::serialize;
+use dom::htmltablecellelement::HTMLTableCellElement;
 use dom::node::{ElementNodeTypeId, Node, NodeHelpers, NodeIterator, document_from_node};
 use dom::node::{window_from_node, LayoutNodeHelpers};
 use dom::nodelist::NodeList;
@@ -34,13 +38,14 @@ use devtools_traits::AttrInfo;
 use style::{matches, parse_selector_list_from_str};
 use style;
 use servo_util::namespace;
-use servo_util::str::DOMString;
+use servo_util::str::{DOMString, LengthOrPercentageOrAuto};
 
 use std::ascii::StrAsciiExt;
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::default::Default;
 use std::mem;
 use string_cache::{Atom, Namespace};
+use style::{IntegerAttribute, LengthAttribute, SizeIntegerAttribute, WidthLengthAttribute};
 use url::UrlParser;
 
 #[jstraceable]
@@ -174,6 +179,10 @@ pub trait RawLayoutElementHelpers {
     unsafe fn get_attr_vals_for_layout<'a>(&'a self, name: &str) -> Vec<&'a str>;
     unsafe fn get_attr_atom_for_layout(&self, namespace: &Namespace, name: &str) -> Option<Atom>;
     unsafe fn has_class_for_layout(&self, name: &str) -> bool;
+    unsafe fn get_length_attribute_for_layout(&self, length_attribute: LengthAttribute)
+                                              -> LengthOrPercentageOrAuto;
+    unsafe fn get_integer_attribute_for_layout(&self, integer_attribute: IntegerAttribute)
+                                               -> Option<i32>;
 }
 
 impl RawLayoutElementHelpers for Element {
@@ -236,6 +245,40 @@ impl RawLayoutElementHelpers for Element {
             (*attr).value_tokens_forever().map(|mut tokens| { tokens.any(|atom| atom.as_slice() == name) })
         }.take().unwrap())
     }
+
+    #[inline]
+    #[allow(unrooted_must_root)]
+    unsafe fn get_length_attribute_for_layout(&self, length_attribute: LengthAttribute)
+                                              -> LengthOrPercentageOrAuto {
+        match length_attribute {
+            WidthLengthAttribute => {
+                if !self.is_htmltablecellelement() {
+                    fail!("I'm not a table cell!")
+                }
+                let this: &HTMLTableCellElement = mem::transmute(self);
+                peek_into_cell(&this.width)
+            }
+        }
+    }
+
+    #[inline]
+    #[allow(unrooted_must_root)]
+    unsafe fn get_integer_attribute_for_layout(&self, integer_attribute: IntegerAttribute)
+                                               -> Option<i32> {
+        match integer_attribute {
+            SizeIntegerAttribute => {
+                if !self.is_htmlinputelement() {
+                    fail!("I'm not a form input!")
+                }
+                let this: &HTMLInputElement = mem::transmute(self);
+                Some(peek_into_cell(&this.size) as i32)
+            }
+        }
+    }
+}
+
+unsafe fn peek_into_cell<T>(cell: &Cell<T>) -> T where T: Copy {
+    *mem::transmute::<&Cell<T>,*const T>(cell)
 }
 
 pub trait LayoutElementHelpers {
@@ -1047,5 +1090,31 @@ impl<'a> style::TElement<'a> for JSRef<'a, Element> {
         }
 
         has_class(self, name)
+    }
+    fn get_length_attribute(self, length_attribute: LengthAttribute) -> LengthOrPercentageOrAuto {
+        match length_attribute {
+            WidthLengthAttribute => {
+                match HTMLTableCellElementCast::to_ref(self) {
+                    None => fail!("I'm not a table cell!"),
+                    Some(this) => {
+                        let this: JSRef<HTMLTableCellElement> = this;
+                        this.deref().width.get()
+                    }
+                }
+            }
+        }
+    }
+    fn get_integer_attribute(self, integer_attribute: IntegerAttribute) -> Option<i32> {
+        match integer_attribute {
+            SizeIntegerAttribute => {
+                match HTMLInputElementCast::to_ref(self) {
+                    None => fail!("I'm not a form input!"),
+                    Some(this) => {
+                        let this: JSRef<HTMLInputElement> = this;
+                        Some(this.deref().size.get() as i32)
+                    }
+                }
+            }
+        }
     }
 }
