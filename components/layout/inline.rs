@@ -494,7 +494,7 @@ impl LineBreaker {
             self.push_fragment_to_line(in_fragment);
             true
         } else {
-            debug!("LineBreaker: Found a new-line character, so splitting theline.");
+            debug!("LineBreaker: Found a new-line character, so splitting the line.");
 
             let (inline_start, inline_end, run) = in_fragment.find_split_info_by_new_line()
                 .expect("LineBreaker: This split case makes no sense!");
@@ -621,7 +621,7 @@ impl LineBreaker {
                 true
             },
             Some((None, None)) => {
-                error!("LineBreaker: This split case makes no sense!");
+                debug!("LineBreaker: Nothing to do.");
                 true
             },
         }
@@ -1273,4 +1273,3 @@ impl InlineMetrics {
         }
     }
 }
-

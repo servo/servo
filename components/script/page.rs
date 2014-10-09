@@ -10,12 +10,11 @@ use dom::document::{Document, DocumentHelpers};
 use dom::element::Element;
 use dom::node::{Node, NodeHelpers};
 use dom::window::Window;
-use layout_interface::{DocumentDamage, ReflowForDisplay};
-use layout_interface::{DocumentDamageLevel, HitTestResponse, MouseOverResponse};
+use layout_interface::{ReflowForDisplay};
+use layout_interface::{HitTestResponse, MouseOverResponse};
 use layout_interface::{GetRPCMsg, LayoutChan, LayoutRPC};
 use layout_interface::{Reflow, ReflowGoal, ReflowMsg};
-use layout_interface::UntrustedNodeAddress;
-use script_traits::ScriptControlChan;
+use script_traits::{UntrustedNodeAddress, ScriptControlChan};
 
 use geom::point::Point2D;
 use js::rust::Cx;
@@ -25,6 +24,7 @@ use servo_msg::constellation_msg::{ConstellationChan, WindowSizeData};
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use servo_net::resource_task::ResourceTask;
 use servo_util::str::DOMString;
+use servo_util::smallvec::{SmallVec1, SmallVec};
 use std::cell::{Cell, RefCell, Ref, RefMut};
 use std::comm::{channel, Receiver, Empty, Disconnected};
 use std::mem::replace;
@@ -55,9 +55,6 @@ pub struct Page {
     /// The port that we will use to join layout. If this is `None`, then layout is not running.
     pub layout_join_port: RefCell<Option<Receiver<()>>>,
 
-    /// What parts of the document are dirty, if any.
-    damage: RefCell<Option<DocumentDamage>>,
-
     /// The current size of the window, in pixels.
     pub window_size: Cell<WindowSizeData>,
 
@@ -74,6 +71,9 @@ pub struct Page {
     /// Pending resize event, if any.
     pub resize_event: Cell<Option<WindowSizeData>>,
 
+    /// Any nodes that need to be dirtied before the next reflow.
+    pub pending_dirty_nodes: RefCell<SmallVec1<UntrustedNodeAddress>>,
+
     /// Pending scroll to fragment event, if any
     pub fragment_name: RefCell<Option<String>>,
 
@@ -85,6 +85,9 @@ pub struct Page {
 
     // Child Pages.
     pub children: RefCell<Vec<Rc<Page>>>,
+
+    /// Whether layout needs to be run at all.
+    pub damaged: Cell<bool>,
 
     /// Number of pending reflows that were sent while layout was active.
     pub pending_reflows: Cell<int>,
@@ -143,25 +146,25 @@ impl Page {
             layout_chan: layout_chan,
             layout_rpc: layout_rpc,
             layout_join_port: RefCell::new(None),
-            damage: RefCell::new(None),
             window_size: Cell::new(window_size),
             js_info: RefCell::new(Some(js_info)),
             url: RefCell::new(None),
             next_subpage_id: Cell::new(SubpageId(0)),
             resize_event: Cell::new(None),
+            pending_dirty_nodes: RefCell::new(SmallVec1::new()),
             fragment_name: RefCell::new(None),
             last_reflow_id: Cell::new(0),
             resource_task: resource_task,
             constellation_chan: constellation_chan,
             children: RefCell::new(vec!()),
+            damaged: Cell::new(false),
             pending_reflows: Cell::new(0),
             avoided_reflows: Cell::new(0),
         }
     }
 
     pub fn flush_layout(&self, goal: ReflowGoal) {
-        let damaged = self.damage.borrow().is_some();
-        if damaged {
+        if self.damaged.get() {
             let frame = self.frame();
             let window = frame.as_ref().unwrap().window.root();
             self.reflow(goal, window.control_chan.clone(), &*window.compositor);
@@ -255,35 +258,6 @@ impl Page {
         subpage_id
     }
 
-    /// Adds the given damage.
-    pub fn damage(&self, level: DocumentDamageLevel) {
-        let root = match *self.frame() {
-            None => return,
-            Some(ref frame) => frame.document.root().GetDocumentElement()
-        };
-        match root.root() {
-            None => {},
-            Some(root) => {
-                let root: JSRef<Node> = NodeCast::from_ref(*root);
-                let mut damage = *self.damage.borrow_mut();
-                match damage {
-                    None => {}
-                    Some(ref mut damage) => {
-                        // FIXME(pcwalton): This is wrong. We should trace up to the nearest ancestor.
-                        damage.root = root.to_trusted_node_address();
-                        damage.level.add(level);
-                        return
-                    }
-                }
-
-                *self.damage.borrow_mut() = Some(DocumentDamage {
-                    root: root.to_trusted_node_address(),
-                    level: level,
-                })
-            }
-        };
-    }
-
     pub fn get_url(&self) -> Url {
         self.url().as_ref().unwrap().ref0().clone()
     }
@@ -360,8 +334,9 @@ impl Page {
                 last_reflow_id.set(last_reflow_id.get() + 1);
 
                 let root: JSRef<Node> = NodeCast::from_ref(*root);
-                let mut damage = self.damage.borrow_mut();
+
                 let window_size = self.window_size.get();
+                self.damaged.set(false);
 
                 // Send new document and relevant styles to layout.
                 let reflow = box Reflow {
@@ -372,7 +347,6 @@ impl Page {
                     window_size: window_size,
                     script_chan: script_chan,
                     script_join_chan: join_chan,
-                    damage: replace(&mut *damage, None).unwrap(),
                     id: last_reflow_id.get(),
                 };
 
@@ -382,6 +356,10 @@ impl Page {
                 debug!("script: layout forked")
             }
         }
+    }
+
+    pub fn damage(&self) {
+        self.damaged.set(true);
     }
 
     /// Attempt to find a named element in this page's document.

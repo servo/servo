@@ -49,8 +49,10 @@ use http::headers::response::HeaderCollection as ResponseHeaderCollection;
 use http::headers::request::HeaderCollection as RequestHeaderCollection;
 use http::method::Method;
 use std::io::timer::Timer;
+use script_traits::UntrustedNodeAddress;
 use servo_msg::compositor_msg::ScriptListener;
 use servo_msg::constellation_msg::ConstellationChan;
+use servo_util::smallvec::{SmallVec1, SmallVec};
 use layout_interface::{LayoutRPC, LayoutChan};
 use dom::bindings::utils::WindowProxyHandler;
 
@@ -148,6 +150,17 @@ impl<T: JSTraceable> JSTraceable for Vec<T> {
     }
 }
 
+// XXXManishearth Check if the following three are optimized to no-ops
+// if e.trace() is a no-op (e.g it is an untraceable type)
+impl<T: JSTraceable + 'static> JSTraceable for SmallVec1<T> {
+    #[inline]
+    fn trace(&self, trc: *mut JSTracer) {
+        for e in self.iter() {
+            e.trace(trc);
+        }
+    }
+}
+
 impl<T: JSTraceable> JSTraceable for Option<T> {
     #[inline]
     fn trace(&self, trc: *mut JSTracer) {
@@ -192,6 +205,7 @@ untraceable!(ResponseHeaderCollection, RequestHeaderCollection, Method)
 untraceable!(ConstellationChan)
 untraceable!(LayoutChan)
 untraceable!(WindowProxyHandler)
+untraceable!(UntrustedNodeAddress)
 
 impl<'a> JSTraceable for &'a str {
     #[inline]

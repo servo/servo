@@ -4,7 +4,7 @@
 
 use incremental::RestyleDamage;
 use util::LayoutDataAccess;
-use wrapper::{TLayoutNode, ThreadSafeLayoutNode};
+use wrapper::ThreadSafeLayoutNode;
 use wrapper::{After, Before, Normal};
 use std::mem;
 use style::ComputedValues;
@@ -14,8 +14,8 @@ pub trait NodeUtil {
     fn get_css_select_results<'a>(&'a self) -> &'a Arc<ComputedValues>;
     fn have_css_select_results(&self) -> bool;
 
-    fn get_restyle_damage(&self) -> RestyleDamage;
-    fn set_restyle_damage(&self, damage: RestyleDamage);
+    fn get_restyle_damage(self) -> RestyleDamage;
+    fn set_restyle_damage(self, damage: RestyleDamage);
 }
 
 impl<'ln> NodeUtil for ThreadSafeLayoutNode<'ln> {
@@ -62,28 +62,19 @@ impl<'ln> NodeUtil for ThreadSafeLayoutNode<'ln> {
 
     /// Get the description of how to account for recent style changes.
     /// This is a simple bitfield and fine to copy by value.
-    fn get_restyle_damage(&self) -> RestyleDamage {
-        // For DOM elements, if we haven't computed damage yet, assume the worst.
-        // Other nodes don't have styles.
-        let default = if self.node_is_element() {
-            RestyleDamage::all()
-        } else {
-            RestyleDamage::empty()
-        };
-
+    fn get_restyle_damage(self) -> RestyleDamage {
         let layout_data_ref = self.borrow_layout_data();
         layout_data_ref
             .as_ref().unwrap()
             .data
             .restyle_damage
-            .unwrap_or(default)
     }
 
     /// Set the restyle damage field.
-    fn set_restyle_damage(&self, damage: RestyleDamage) {
+    fn set_restyle_damage(self, damage: RestyleDamage) {
         let mut layout_data_ref = self.mutate_layout_data();
         match &mut *layout_data_ref {
-            &Some(ref mut layout_data) => layout_data.data.restyle_damage = Some(damage),
+            &Some(ref mut layout_data) => layout_data.data.restyle_damage = damage,
             _ => fail!("no layout data for this node"),
         }
     }

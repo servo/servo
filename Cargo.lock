@@ -416,6 +416,7 @@ dependencies = [
  "msg 0.0.1",
  "net 0.0.1",
  "url 0.1.0 (git+https://github.com/servo/rust-url#29f70a47230c2aa736e263977247c786e0b2c243)",
+ "util 0.0.1",
 ]
 
 [[package]]

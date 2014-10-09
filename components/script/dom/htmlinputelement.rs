@@ -175,7 +175,8 @@ fn broadcast_radio_checked(broadcaster: JSRef<HTMLInputElement>, group: Option<&
 impl<'a> HTMLInputElementHelpers for JSRef<'a, HTMLInputElement> {
     fn force_relayout(self) {
         let doc = document_from_node(self).root();
-        doc.content_changed()
+        let node: JSRef<Node> = NodeCast::from_ref(self);
+        doc.content_changed(node)
     }
 
     fn radio_group_updated(self, group: Option<&str>) {

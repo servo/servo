@@ -607,8 +607,7 @@ impl<'a> FlowConstructor<'a> {
                     abs_descendants.push_descendants(kid_abs_descendants);
                 }
                 ConstructionItemConstructionResult(WhitespaceConstructionItem(whitespace_node,
-                                                                              whitespace_style))
-                        => {
+                                                                              whitespace_style)) => {
                     // Instantiate the whitespace fragment.
                     let fragment_info = UnscannedTextFragment(UnscannedTextFragmentInfo::from_text(" ".to_string()));
                     let mut fragment = Fragment::from_opaque_node_and_style(whitespace_node,
@@ -1196,12 +1195,13 @@ impl FlowConstructionUtils for FlowRef {
     ///
     /// This must not be public because only the layout constructor can do this.
     fn add_new_child(&mut self, mut new_child: FlowRef) {
+        let base = flow::mut_base(self.get_mut());
+
         {
             let kid_base = flow::mut_base(new_child.get_mut());
             kid_base.parallel.parent = parallel::mut_owned_flow_to_unsafe_flow(self);
         }
 
-        let base = flow::mut_base(self.get_mut());
         base.children.push_back(new_child);
         let _ = base.parallel.children_count.fetch_add(1, Relaxed);
         let _ = base.parallel.children_and_absolute_descendant_count.fetch_add(1, Relaxed);

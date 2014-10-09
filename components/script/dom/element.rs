@@ -28,8 +28,6 @@ use dom::node::{ElementNodeTypeId, Node, NodeHelpers, NodeIterator, document_fro
 use dom::node::{window_from_node, LayoutNodeHelpers};
 use dom::nodelist::NodeList;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
-use layout_interface::ContentChangedDocumentDamage;
-use layout_interface::MatchSelectorsDocumentDamage;
 use devtools_traits::AttrInfo;
 use style::{matches, parse_selector_list_from_str};
 use style;
@@ -323,6 +321,7 @@ pub trait AttributeHandlers {
     fn remove_attribute(self, namespace: Namespace, name: &str);
     fn notify_attribute_changed(self, local_name: &Atom);
     fn has_class(&self, name: &str) -> bool;
+    fn notify_attribute_removed(self);
 
     fn set_atomic_attribute(self, name: &str, value: DOMString);
 
@@ -436,19 +435,24 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
                 }
 
                 self.attrs.borrow_mut().remove(idx);
+                self.notify_attribute_removed();
             }
         };
     }
 
-    fn notify_attribute_changed(self, local_name: &Atom) {
+    fn notify_attribute_changed(self, _local_name: &Atom) {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         if node.is_in_doc() {
-            let damage = match local_name.as_slice() {
-                "style" | "id" | "class" => MatchSelectorsDocumentDamage,
-                _ => ContentChangedDocumentDamage
-            };
             let document = node.owner_doc().root();
-            document.damage_and_reflow(damage);
+            document.content_changed(node);
+        }
+    }
+
+    fn notify_attribute_removed(self) {
+        let node: JSRef<Node> = NodeCast::from_ref(self);
+        if node.is_in_doc() {
+            let document = node.owner_doc().root();
+            document.content_changed(node);
         }
     }
 

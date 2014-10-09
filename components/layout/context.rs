@@ -11,6 +11,7 @@ use gfx::display_list::OpaqueNode;
 use gfx::font_context::FontContext;
 use gfx::font_cache_task::FontCacheTask;
 use script::layout_interface::LayoutChan;
+use script_traits::UntrustedNodeAddress;
 use servo_msg::constellation_msg::ConstellationChan;
 use servo_net::local_image_cache::LocalImageCache;
 use servo_util::geometry::Au;
@@ -49,7 +50,7 @@ fn create_or_get_local_context(shared_layout_context: &SharedLayoutContext) -> *
 
 pub struct SharedLayoutContext {
     /// The local image cache.
-    pub image_cache: Arc<Mutex<LocalImageCache>>,
+    pub image_cache: Arc<Mutex<LocalImageCache<UntrustedNodeAddress>>>,
 
     /// The current screen size.
     pub screen_size: Size2D<Au>,
