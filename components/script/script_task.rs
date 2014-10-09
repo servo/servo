@@ -45,7 +45,7 @@ use script_traits::ReflowCompleteMsg;
 use servo_msg::compositor_msg::{FinishedLoading, LayerId, Loading};
 use servo_msg::compositor_msg::{ScriptListener};
 use servo_msg::constellation_msg::{ConstellationChan, LoadCompleteMsg, LoadUrlMsg, NavigationDirection};
-use servo_msg::constellation_msg::{PipelineId, Failure, FailureMsg, WindowSizeData};
+use servo_msg::constellation_msg::{LoadData, PipelineId, Failure, FailureMsg, WindowSizeData};
 use servo_msg::constellation_msg;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
@@ -493,7 +493,7 @@ impl ScriptTask {
             match msg {
                 // TODO(tkuehn) need to handle auxiliary layouts for iframes
                 FromConstellation(AttachLayoutMsg(_)) => fail!("should have handled AttachLayoutMsg already"),
-                FromConstellation(LoadMsg(id, url)) => self.load(id, url),
+                FromConstellation(LoadMsg(id, load_data)) => self.load(id, load_data),
                 FromScript(TriggerLoadMsg(id, url)) => self.trigger_load(id, url),
                 FromScript(TriggerFragmentMsg(id, url)) => self.trigger_fragment(id, url),
                 FromConstellation(SendEventMsg(id, event)) => self.handle_event(id, event),
@@ -711,7 +711,8 @@ impl ScriptTask {
 
     /// The entry point to document loading. Defines bindings, sets up the window and document
     /// objects, parses HTML and CSS, and kicks off initial layout.
-    fn load(&self, pipeline_id: PipelineId, url: Url) {
+    fn load(&self, pipeline_id: PipelineId, load_data: LoadData) {
+        let url = load_data.url.clone();
         debug!("ScriptTask: loading {} on page {:?}", url, pipeline_id);
 
         let mut page = self.page.borrow_mut();
@@ -762,7 +763,7 @@ impl ScriptTask {
         let parser_input = if !is_javascript {
             InputUrl(url.clone())
         } else {
-            let evalstr = url.non_relative_scheme_data().unwrap();
+            let evalstr = load_data.url.non_relative_scheme_data().unwrap();
             let jsval = window.evaluate_js_with_result(evalstr);
             let strval = FromJSValConvertible::from_jsval(self.get_cx(), jsval, Empty);
             InputString(strval.unwrap_or("".to_string()))
@@ -775,7 +776,8 @@ impl ScriptTask {
             hubbub_html_parser::parse_html(&*page,
                                            *document,
                                            parser_input,
-                                           self.resource_task.clone());
+                                           self.resource_task.clone(),
+                                           Some(load_data));
 
         let HtmlParserResult {
             discovery_port
@@ -1067,7 +1069,7 @@ impl ScriptTask {
     /// for the given pipeline.
     fn trigger_load(&self, pipeline_id: PipelineId, url: Url) {
         let ConstellationChan(ref const_chan) = self.constellation_chan;
-        const_chan.send(LoadUrlMsg(pipeline_id, url));
+        const_chan.send(LoadUrlMsg(pipeline_id, LoadData::new(url)));
     }
 
     /// The entry point for content to notify that a fragment url has been requested

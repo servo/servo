@@ -17,7 +17,7 @@ use servo_msg::compositor_msg::LayerId;
 use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, FailureMsg, Failure, FrameRectMsg};
 use servo_msg::constellation_msg::{IFrameSandboxState, IFrameUnsandboxed, InitLoadUrlMsg};
 use servo_msg::constellation_msg::{LoadCompleteMsg, LoadIframeUrlMsg, LoadUrlMsg, Msg, NavigateMsg};
-use servo_msg::constellation_msg::{NavigationType, PipelineId, RendererReadyMsg, ResizedWindowMsg};
+use servo_msg::constellation_msg::{LoadData, NavigationType, PipelineId, RendererReadyMsg, ResizedWindowMsg};
 use servo_msg::constellation_msg::{SubpageId, WindowSizeData};
 use servo_msg::constellation_msg;
 use servo_net::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
@@ -292,7 +292,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                     id: PipelineId,
                     subpage_id: Option<SubpageId>,
                     script_pipeline: Option<Rc<Pipeline>>,
-                    url: Url)
+                    load_data: LoadData)
                     -> Rc<Pipeline> {
             let pipe = Pipeline::create::<LTF, STF>(id,
                                                     subpage_id,
@@ -306,7 +306,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                                                     self.window_size,
                                                     self.opts.clone(),
                                                     script_pipeline,
-                                                    url);
+                                                    load_data);
             pipe.load();
             Rc::new(pipe)
     }
@@ -364,9 +364,9 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             // Load a new page, usually -- but not always -- from a mouse click or typed url
             // If there is already a pending page (self.pending_frames), it will not be overridden;
             // However, if the id is not encompassed by another change, it will be.
-            LoadUrlMsg(source_id, url) => {
+            LoadUrlMsg(source_id, load_data) => {
                 debug!("constellation got URL load message");
-                self.handle_load_url_msg(source_id, url);
+                self.handle_load_url_msg(source_id, load_data);
             }
             // A page loaded through one of several methods above has completed all parsing,
             // script, and reflow messages have been sent.
@@ -449,7 +449,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
         let new_id = self.get_next_pipeline_id();
         let pipeline = self.new_pipeline(new_id, subpage_id, None,
-                                         Url::parse("about:failure").unwrap());
+                                         LoadData::new(Url::parse("about:failure").unwrap()));
 
         self.pending_frames.push(FrameChange{
             before: Some(pipeline_id),
@@ -466,7 +466,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
     fn handle_init_load(&mut self, url: Url) {
         let next_pipeline_id = self.get_next_pipeline_id();
-        let pipeline = self.new_pipeline(next_pipeline_id, None, None, url);
+        let pipeline = self.new_pipeline(next_pipeline_id, None, None, LoadData::new(url));
 
         self.pending_frames.push(FrameChange {
             before: None,
@@ -573,7 +573,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             source Id of LoadIframeUrlMsg does have an associated pipeline in
             constellation. This should be impossible.").clone();
 
-        let source_url = source_pipeline.url.clone();
+        let source_url = source_pipeline.load_data.url.clone();
 
         let same_script = (source_url.host() == url.host() &&
                            source_url.port() == url.port()) && sandbox == IFrameUnsandboxed;
@@ -591,7 +591,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             next_pipeline_id,
             Some(subpage_id),
             new_pipeline,
-            url
+            LoadData::new(url)
         );
 
         let rect = self.pending_sizes.pop(&(source_pipeline_id, subpage_id));
@@ -608,8 +608,8 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         self.pipelines.insert(pipeline.id, pipeline);
     }
 
-    fn handle_load_url_msg(&mut self, source_id: PipelineId, url: Url) {
-        debug!("Constellation: received message to load {:s}", url.to_string());
+    fn handle_load_url_msg(&mut self, source_id: PipelineId, load_data: LoadData) {
+        debug!("Constellation: received message to load {:s}", load_data.url.to_string());
         // Make sure no pending page would be overridden.
         let source_frame = self.current_frame().as_ref().unwrap().find(source_id).expect(
             "Constellation: received a LoadUrlMsg from a pipeline_id associated
@@ -635,7 +635,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         let subpage_id = source_frame.pipeline.subpage_id;
         let next_pipeline_id = self.get_next_pipeline_id();
 
-        let pipeline = self.new_pipeline(next_pipeline_id, subpage_id, None, url);
+        let pipeline = self.new_pipeline(next_pipeline_id, subpage_id, None, load_data);
 
         self.pending_frames.push(FrameChange{
             before: Some(source_id),

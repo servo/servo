@@ -25,6 +25,7 @@ use encoding::types::{Encoding, DecodeReplace};
 use hubbub::hubbub;
 use hubbub::hubbub::{NullNs, HtmlNs, MathMlNs, SvgNs, XLinkNs, XmlNs, XmlNsNs};
 use servo_net::resource_task::{Load, LoadData, Payload, Done, ResourceTask, load_whole_resource};
+use servo_msg::constellation_msg::LoadData as MsgLoadData;
 use servo_util::str::DOMString;
 use servo_util::task::spawn_named;
 use std::ascii::StrAsciiExt;
@@ -283,10 +284,12 @@ pub fn build_element_from_tag(tag: DOMString, ns: Namespace, prefix: Option<DOMS
     return ElementCast::from_temporary(HTMLUnknownElement::new(tag, prefix, document));
 }
 
+// The url from msg_load_data is ignored here
 pub fn parse_html(page: &Page,
                   document: JSRef<Document>,
                   input: HTMLInput,
-                  resource_task: ResourceTask)
+                  resource_task: ResourceTask,
+                  msg_load_data: Option<MsgLoadData>)
                   -> HtmlParserResult {
     debug!("Hubbub: parsing {:?}", input);
 
@@ -303,7 +306,14 @@ pub fn parse_html(page: &Page,
         InputUrl(ref url) => {
             // Wait for the LoadResponse so that the parser knows the final URL.
             let (input_chan, input_port) = channel();
-            resource_task.send(Load(LoadData::new(url.clone()), input_chan));
+            let mut load_data = LoadData::new(url.clone());
+            msg_load_data.map(|m| {
+                load_data.headers = m.headers;
+                load_data.method = m.method;
+                load_data.data = m.data;
+            });
+            resource_task.send(Load(load_data, input_chan));
+
             let load_response = input_port.recv();
 
             debug!("Fetched page; metadata is {:?}", load_response.metadata);
