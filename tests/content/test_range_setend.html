@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title></title>
+  <script src="harness.js"></script>
+</head>
+<body>
+
+  <div id="bar">bar</div>
+  <div id="foo">foo</div>
+
+<script>
+  // https://dom.spec.whatwg.org/#concept-range-bp-set: step1
+  {
+    let r = document.createRange();
+    should_throw(function(){
+      r.setEnd(document.doctype, 0);
+    }, function (e) {
+      is_a(e, DOMException, "1-0");
+      is(e.name, "InvalidNodeTypeError", "1-1");
+    });
+  }
+
+  // https://dom.spec.whatwg.org/#concept-range-bp-set: step2
+  // https://dom.spec.whatwg.org/#concept-node-length
+  {
+    let r = new Range();
+    let t = document.createTextNode("abc");
+    should_not_throw(function(){
+      r.setEnd(t, 3);
+    });
+    should_throw(function(){
+      r.setEnd(t, 4);
+    }, function (e) {
+      is_a(e, DOMException, "2-1");
+      is(e.name, "IndexSizeError", "2-2");
+    });
+  }
+
+  // https://dom.spec.whatwg.org/#concept-range-bp-set
+  // step4-1 (if bp is before the range's start) & step 4-2
+  {
+    let r = new Range();
+
+    let bar = document.getElementById("bar");
+    let foo = document.getElementById("foo");
+    let idx = 0;
+
+    r.setStart(foo, idx);
+    r.setEnd(bar, idx);
+
+    is(r.startContainer, bar, "3-0");
+    is(r.startOffset, idx, "3-1");
+    is(r.endContainer, bar, "3-2");
+    is(r.endOffset, idx, "3-3");
+  }
+
+  // https://dom.spec.whatwg.org/#concept-range-bp-set
+  // step4-1 (if bp is before the range's start) & step 4-2
+  // only change offset
+  {
+    let r = new Range();
+
+    let body = document.body;
+    let start = 0;
+    let end = start + 1;
+    r.setStart(body, start)
+    r.setEnd(body, end);
+
+    is(r.startContainer, body, "4-0");
+    is(r.startOffset, start, "4-1");
+    is(r.endContainer, body, "4-2");
+    is(r.endOffset, end, "4-3");
+  }
+
+  // https://dom.spec.whatwg.org/#concept-range-bp-set
+  // step4-1 (if range's root is not equal to node's root) & step 4-2
+  {
+    let r = new Range();
+
+    let node = document.createElement("div");
+    let idx = 0;
+
+    r.setEnd(node, idx);
+
+    is(r.startContainer, node, "5-0");
+    is(r.startOffset, idx, "5-1");
+    is(r.endContainer, node, "5-2");
+    is(r.endOffset, idx, "5-3");
+  }
+
+  // https://dom.spec.whatwg.org/#concept-range-bp-set
+  // run only step 4-2
+  {
+    let r = new Range();
+
+    let bar = document.getElementById("bar");
+    let foo = document.getElementById("foo");
+    let idx = 0;
+
+    r.setEnd(bar, idx);
+    r.setEnd(foo, idx);
+
+    is(r.startContainer, document, "6-0");
+    is(r.startOffset, 0, "6-1");
+    is(r.endContainer, foo, "6-2");
+    is(r.endOffset, idx, "6-3");
+  }
+
+  // https://dom.spec.whatwg.org/#concept-range-bp-set
+  // run only step 4-2
+  // only change offset
+  {
+    let r = new Range();
+
+    let body = document.body;
+    let idx = 1;
+    r.setStart(body, idx - 1);
+    r.setEnd(body, idx);
+
+    is(r.startContainer, body, "7-0");
+    is(r.startOffset, idx - 1, "7-1");
+    is(r.endContainer, body, "7-2");
+    is(r.endOffset, idx, "7-3");
+  }
+
+  finish();
+</script>
+</body>
+</html>

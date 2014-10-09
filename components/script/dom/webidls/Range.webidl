@@ -11,30 +11,26 @@
 
 [Constructor]
 interface Range {
-  // [Throws]
-  // readonly attribute Node startContainer;
-  // [Throws]
-  // readonly attribute unsigned long startOffset;
-  // [Throws]
-  // readonly attribute Node endContainer;
-  // [Throws]
-  // readonly attribute unsigned long endOffset;
-  // readonly attribute boolean collapsed;
+  readonly attribute Node startContainer;
+  readonly attribute unsigned long startOffset;
+  readonly attribute Node endContainer;
+  readonly attribute unsigned long endOffset;
+  readonly attribute boolean collapsed;
   // [Throws]
   // readonly attribute Node commonAncestorContainer;
 
-  // [Throws]
-  // void setStart(Node refNode, unsigned long offset);
-  // [Throws]
-  // void setEnd(Node refNode, unsigned long offset);
-  // [Throws]
-  // void setStartBefore(Node refNode);
-  // [Throws]
-  // void setStartAfter(Node refNode);
-  // [Throws]
-  // void setEndBefore(Node refNode);
-  // [Throws]
-  // void setEndAfter(Node refNode);
+  [Throws]
+  void setStart(Node refNode, unsigned long offset);
+  [Throws]
+  void setEnd(Node refNode, unsigned long offset);
+  [Throws]
+  void setStartBefore(Node refNode);
+  [Throws]
+  void setStartAfter(Node refNode);
+  [Throws]
+  void setEndBefore(Node refNode);
+  [Throws]
+  void setEndAfter(Node refNode);
   // void collapse(optional boolean toStart = false);
   // [Throws]
   // void selectNode(Node refNode);

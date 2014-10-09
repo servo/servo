@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title></title>
+  <script src="harness.js"></script>
+</head>
+<body>
+<script>
+  // https://dom.spec.whatwg.org/#dom-range
+  // initial state
+  {
+    let r = new Range();
+    is(r.startContainer, document);
+    is(r.startOffset, 0);
+    is(r.endContainer, document);
+    is(r.startOffset, 0);
+  }
+
+  finish();
+</script>
+</body>
+</html>

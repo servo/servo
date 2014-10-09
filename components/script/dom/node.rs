@@ -368,6 +368,7 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
 
 pub trait NodeHelpers<'a> {
     fn ancestors(self) -> AncestorIterator<'a>;
+    fn inclusive_ancestors(self) -> AncestorIterator<'a>;
     fn children(self) -> AbstractNodeChildrenIterator<'a>;
     fn child_elements(self) -> ChildElementIterator<'a>;
     fn following_siblings(self) -> AbstractNodeChildrenIterator<'a>;
@@ -424,6 +425,9 @@ pub trait NodeHelpers<'a> {
 
     fn get_unique_id(self) -> String;
     fn summarize(self) -> NodeInfo;
+
+    fn length(self) -> u32;
+    fn get_tree_root(self) -> Temporary<Node>;
 }
 
 impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
@@ -652,6 +656,12 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
         }
     }
 
+    fn inclusive_ancestors(self) -> AncestorIterator<'a> {
+        AncestorIterator {
+            current: Some(self.clone()),
+        }
+    }
+
     fn owner_doc(self) -> Temporary<Document> {
         self.owner_doc.get().unwrap()
     }
@@ -732,6 +742,36 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
 
             shortValue: self.GetNodeValue().unwrap_or("".to_string()), //FIXME: truncate
             incompleteValue: false, //FIXME: reflect truncation
+        }
+    }
+
+    // http://dom.spec.whatwg.org/#concept-node-length
+    fn length(self) -> u32 {
+        match self.type_id {
+            DoctypeNodeTypeId => {
+                0
+            }
+            TextNodeTypeId | ProcessingInstructionNodeTypeId | CommentNodeTypeId => {
+                let char_data: JSRef<CharacterData> = CharacterDataCast::to_ref(self).unwrap();
+                let length = char_data.Length();
+                length
+            }
+            _ => {
+                let child_nodes = self.ChildNodes().root();
+                child_nodes.root_ref().Length()
+            }
+        }
+    }
+
+    // http://dom.spec.whatwg.org/#concept-tree-root
+    fn get_tree_root(self) -> Temporary<Node> {
+        match self.inclusive_ancestors().last() {
+            Some(root) => {
+                Temporary::from_rooted(root)
+            }
+            None => {
+                unreachable!()
+            }
         }
     }
 }
