@@ -177,9 +177,6 @@ struct StackingContext {
     /// All other content.
     pub content: DisplayList,
     /// Positioned descendant stacking contexts, along with their `z-index` levels.
-    ///
-    /// TODO(pcwalton): `z-index` should be the actual CSS property value in order to handle
-    /// `auto`, not just an integer.
     pub positioned_descendants: Vec<(i32, DisplayList)>,
 }
 
@@ -383,7 +380,10 @@ impl DisplayList {
         // Steps 1 and 2: Borders and background for the root.
         result.push_all_move(background_and_borders);
 
-        // TODO(pcwalton): Sort positioned children according to z-index.
+        // Sort positioned children according to z-index.
+        positioned_descendants.sort_by(|&(z_index_a, _), &(z_index_b, _)| {
+            z_index_a.cmp(&z_index_b)
+        });
 
         // Step 3: Positioned descendants with negative z-indices.
         for &(ref mut z_index, ref mut list) in positioned_descendants.iter_mut() {

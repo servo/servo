@@ -1239,11 +1239,10 @@ impl BlockFlow {
         if !self.base.absolute_position_info.layers_needed_for_positioned_flows &&
                 !self.base.flags.needs_layer() {
             // We didn't need a layer.
-            //
-            // TODO(#781, pcwalton): `z-index`.
-            self.base.display_list =
-                mem::replace(&mut self.base.display_list,
-                             DisplayList::new()).flatten(PositionedDescendantStackingLevel(0));
+            let z_index = self.fragment.style().get_box().z_index.number_or_zero();
+            let level = PositionedDescendantStackingLevel(z_index);
+            self.base.display_list = mem::replace(&mut self.base.display_list,
+                                                  DisplayList::new()).flatten(level);
             return
         }
 

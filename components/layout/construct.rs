@@ -330,12 +330,17 @@ impl<'a> FlowConstructor<'a> {
 
         {
             let inline_flow = inline_flow_ref.get_mut().as_inline();
+
+            // We must scan for runs before computing minimum ascent and descent because scanning
+            // for runs might collapse so much whitespace away that only hypothetical fragments
+            // remain. In that case the inline flow will compute its ascent and descent to be zero.
+            TextRunScanner::new().scan_for_runs(self.layout_context.font_context(), inline_flow);
+
             let (ascent, descent) =
                 inline_flow.compute_minimum_ascent_and_descent(self.layout_context.font_context(),
                                                                &**node.style());
             inline_flow.minimum_block_size_above_baseline = ascent;
             inline_flow.minimum_depth_below_baseline = descent;
-            TextRunScanner::new().scan_for_runs(self.layout_context.font_context(), inline_flow);
         }
 
         inline_flow_ref.finish(self.layout_context);
