@@ -14,7 +14,8 @@ use sync::Arc;
 /// Node mixin providing `style` method that returns a `NodeStyle`
 pub trait StyledNode {
     fn style<'a>(&'a self) -> &'a Arc<ComputedValues>;
-    fn restyle_damage(&self) -> RestyleDamage;
+    fn restyle_damage(self) -> RestyleDamage;
+    fn set_restyle_damage(self, damage: RestyleDamage);
 }
 
 impl<'ln> StyledNode for ThreadSafeLayoutNode<'ln> {
@@ -23,8 +24,14 @@ impl<'ln> StyledNode for ThreadSafeLayoutNode<'ln> {
         self.get_css_select_results()
     }
 
-    fn restyle_damage(&self) -> RestyleDamage {
+    fn restyle_damage(self) -> RestyleDamage {
         self.get_restyle_damage()
     }
-}
 
+    fn set_restyle_damage(self, damage: RestyleDamage) {
+        fn doit<N: NodeUtil>(n: N, damage: RestyleDamage) {
+            n.set_restyle_damage(damage);
+        }
+        doit(self, damage);
+    }
+}

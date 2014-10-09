@@ -6,12 +6,14 @@
 //!
 //! This code is highly unsafe. Keep this file small and easy to audit.
 
+use css::node_style::StyledNode;
 use css::matching::{ApplicableDeclarations, CannotShare, MatchMethods, StyleWasShared};
 use construct::FlowConstructor;
 use context::{LayoutContext, SharedLayoutContext};
 use flow::{Flow, MutableFlowUtils, PreorderFlowTraversal, PostorderFlowTraversal};
 use flow;
 use flow_ref::FlowRef;
+use incremental::RestyleDamage;
 use layout_task::{AssignBSizesAndStoreOverflowTraversal, AssignISizesTraversal};
 use layout_task::{BubbleISizesTraversal};
 use url::Url;
@@ -179,8 +181,10 @@ trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
             // Get a real flow.
             let flow: &mut FlowRef = mem::transmute(&unsafe_flow);
 
-            // Perform the appropriate traversal.
-            self.process(flow.get_mut());
+            if self.should_process(flow.get_mut()) {
+                // Perform the appropriate traversal.
+                self.process(flow.get_mut());
+            }
 
             // Possibly enqueue the children.
             for kid in flow::child_iter(flow.get_mut()) {
@@ -296,21 +300,12 @@ fn insert_ancestors_into_bloom_filter(
         ancestors += 1;
 
         n.insert_into_bloom_filter(bf);
-        n = match parent_node(&n, layout_context) {
+        n = match n.layout_parent_node(layout_context.shared) {
             None => break,
             Some(p) => p,
         };
     }
     debug!("[{}] Inserted {} ancestors.", tid(), ancestors);
-}
-
-fn parent_node<'ln>(node: &LayoutNode<'ln>, layout_context: &LayoutContext) -> Option<LayoutNode<'ln>> {
-    let opaque_node: OpaqueNode = OpaqueNodeMethods::from_layout_node(node);
-    if opaque_node == layout_context.shared.reflow_root {
-        None
-    } else {
-        node.parent_node()
-    }
 }
 
 fn recalc_style_for_node(mut unsafe_layout_node: UnsafeLayoutNode,
@@ -330,45 +325,46 @@ fn recalc_style_for_node(mut unsafe_layout_node: UnsafeLayoutNode,
     node.initialize_layout_data(layout_context.shared.layout_chan.clone());
 
     // Get the parent node.
-    let parent_opt = parent_node(&node, &layout_context);
+    let parent_opt = node.layout_parent_node(layout_context.shared);
 
     // Get the style bloom filter.
     let bf = take_task_local_bloom_filter(parent_opt, &layout_context);
 
-    // First, check to see whether we can share a style with someone.
-    let style_sharing_candidate_cache = layout_context.style_sharing_candidate_cache();
-    let sharing_result = unsafe {
-        node.share_style_if_possible(style_sharing_candidate_cache,
-                                     parent_opt.clone())
-    };
-
     // Just needs to be wrapped in an option for `match_node`.
     let some_bf = Some(bf);
 
-    // Otherwise, match and cascade selectors.
-    match sharing_result {
-        CannotShare(mut shareable) => {
-            let mut applicable_declarations = ApplicableDeclarations::new();
+    if node.is_dirty() {
+        // First, check to see whether we can share a style with someone.
+        let style_sharing_candidate_cache = layout_context.style_sharing_candidate_cache();
+        let sharing_result = unsafe {
+            node.share_style_if_possible(style_sharing_candidate_cache,
+                                         parent_opt.clone())
+        };
+        // Otherwise, match and cascade selectors.
+        match sharing_result {
+            CannotShare(mut shareable) => {
+                let mut applicable_declarations = ApplicableDeclarations::new();
 
-            if node.is_element() {
-                // Perform the CSS selector matching.
-                let stylist = unsafe { &*layout_context.shared.stylist };
-                node.match_node(stylist, &some_bf, &mut applicable_declarations, &mut shareable);
-            }
+                if node.is_element() {
+                    // Perform the CSS selector matching.
+                    let stylist = unsafe { &*layout_context.shared.stylist };
+                    node.match_node(stylist, &some_bf, &mut applicable_declarations, &mut shareable);
+                }
 
-            // Perform the CSS cascade.
-            unsafe {
-                node.cascade_node(parent_opt,
-                                  &applicable_declarations,
-                                  layout_context.applicable_declarations_cache());
-            }
+                // Perform the CSS cascade.
+                unsafe {
+                    node.cascade_node(parent_opt,
+                                      &applicable_declarations,
+                                      layout_context.applicable_declarations_cache());
+                }
 
-            // Add ourselves to the LRU cache.
-            if shareable {
-                style_sharing_candidate_cache.insert_if_possible(&node);
+                // Add ourselves to the LRU cache.
+                if shareable {
+                    style_sharing_candidate_cache.insert_if_possible(&node);
+                }
             }
+            StyleWasShared(index) => style_sharing_candidate_cache.touch(index),
         }
-        StyleWasShared(index) => style_sharing_candidate_cache.touch(index),
     }
 
     // Prepare for flow construction by counting the node's children and storing that count.
@@ -427,8 +423,18 @@ fn construct_flows<'a>(unsafe_layout_node: &mut UnsafeLayoutNode,
 
         // Construct flows for this node.
         {
+            let node = ThreadSafeLayoutNode::new(&node);
             let mut flow_constructor = FlowConstructor::new(layout_context);
-            flow_constructor.process(&ThreadSafeLayoutNode::new(&node));
+            flow_constructor.process(&node);
+
+            // Reset the layout damage in this node. It's been propagated to the
+            // flow by the flow constructor.
+            node.set_restyle_damage(RestyleDamage::empty());
+        }
+
+        unsafe {
+            node.set_dirty(false);
+            node.set_dirty_descendants(false);
         }
 
         // Reset the count of children for the next traversal.

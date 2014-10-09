@@ -9,8 +9,10 @@
 
 extern crate devtools_traits;
 extern crate geom;
+extern crate libc;
 extern crate "msg" as servo_msg;
 extern crate "net" as servo_net;
+extern crate "util" as servo_util;
 extern crate url;
 extern crate serialize;
 
@@ -20,17 +22,23 @@ extern crate serialize;
 //   that these modules won't have to depend on script.
 
 use devtools_traits::DevtoolsControlChan;
+use libc::c_void;
 use servo_msg::constellation_msg::{ConstellationChan, PipelineId, Failure, WindowSizeData};
 use servo_msg::constellation_msg::SubpageId;
 use servo_msg::compositor_msg::ScriptListener;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
+use servo_util::smallvec::SmallVec1;
 use std::any::Any;
 use url::Url;
 
 use geom::point::Point2D;
 
 use serialize::{Encodable, Encoder};
+
+/// The address of a node. Layout sends these back. They must be validated via
+/// `from_untrusted_node_address` before they can be used, because we do not trust layout.
+pub type UntrustedNodeAddress = *const c_void;
 
 pub struct NewLayoutInfo {
     pub old_pipeline_id: PipelineId,
@@ -60,7 +68,7 @@ pub enum ConstellationControlMsg {
 /// Events from the compositor that the script task needs to know about
 pub enum CompositorEvent {
     ResizeEvent(WindowSizeData),
-    ReflowEvent,
+    ReflowEvent(SmallVec1<UntrustedNodeAddress>),
     ClickEvent(uint, Point2D<f32>),
     MouseDownEvent(uint, Point2D<f32>),
     MouseUpEvent(uint, Point2D<f32>),

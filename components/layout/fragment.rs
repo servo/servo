@@ -35,13 +35,14 @@ use gfx::display_list::{Upright, SidewaysLeft, SidewaysRight};
 use gfx::font::FontStyle;
 use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::TextRun;
+use script_traits::UntrustedNodeAddress;
 use serialize::{Encodable, Encoder};
 use servo_msg::constellation_msg::{ConstellationChan, FrameRectMsg, PipelineId, SubpageId};
 use servo_net::image::holder::ImageHolder;
 use servo_net::local_image_cache::LocalImageCache;
 use servo_util::geometry::Au;
 use servo_util::geometry;
-use servo_util::logical_geometry::{LogicalRect, LogicalSize, LogicalMargin};
+use servo_util::logical_geometry::{LogicalRect, LogicalSize, LogicalMargin, WritingMode};
 use servo_util::range::*;
 use servo_util::smallvec::SmallVec;
 use servo_util::str::is_whitespace;
@@ -202,7 +203,8 @@ impl InputFragmentInfo {
 #[deriving(Clone)]
 pub struct ImageFragmentInfo {
     /// The image held within this fragment.
-    pub image: ImageHolder,
+    pub image: ImageHolder<UntrustedNodeAddress>,
+    pub for_node: UntrustedNodeAddress,
     pub computed_inline_size: Option<Au>,
     pub computed_block_size: Option<Au>,
     pub dom_inline_size: Option<Au>,
@@ -217,7 +219,7 @@ impl ImageFragmentInfo {
     /// me.
     pub fn new(node: &ThreadSafeLayoutNode,
                image_url: Url,
-               local_image_cache: Arc<Mutex<LocalImageCache>>)
+               local_image_cache: Arc<Mutex<LocalImageCache<UntrustedNodeAddress>>>)
                -> ImageFragmentInfo {
         fn convert_length(node: &ThreadSafeLayoutNode, name: &str) -> Option<Au> {
             let element = node.as_element();
@@ -230,8 +232,13 @@ impl ImageFragmentInfo {
         let is_vertical = node.style().writing_mode.is_vertical();
         let dom_width = convert_length(node, "width");
         let dom_height = convert_length(node, "height");
+
+        let opaque_node: OpaqueNode = OpaqueNodeMethods::from_thread_safe_layout_node(node);
+        let untrusted_node: UntrustedNodeAddress = opaque_node.to_untrusted_node_address();
+
         ImageFragmentInfo {
             image: ImageHolder::new(image_url, local_image_cache),
+            for_node: untrusted_node,
             computed_inline_size: None,
             computed_block_size: None,
             dom_inline_size: if is_vertical { dom_height } else { dom_width },
@@ -252,13 +259,13 @@ impl ImageFragmentInfo {
 
     /// Returns the original inline-size of the image.
     pub fn image_inline_size(&mut self) -> Au {
-        let size = self.image.get_size().unwrap_or(Size2D::zero());
+        let size = self.image.get_size(self.for_node).unwrap_or(Size2D::zero());
         Au::from_px(if self.writing_mode_is_vertical { size.height } else { size.width })
     }
 
     /// Returns the original block-size of the image.
     pub fn image_block_size(&mut self) -> Au {
-        let size = self.image.get_size().unwrap_or(Size2D::zero());
+        let size = self.image.get_size(self.for_node).unwrap_or(Size2D::zero());
         Au::from_px(if self.writing_mode_is_vertical { size.width } else { size.height })
     }
 
@@ -805,7 +812,7 @@ impl Fragment {
         };
 
         let mut holder = ImageHolder::new(image_url.clone(), layout_context.shared.image_cache.clone());
-        let image = match holder.get_image() {
+        let image = match holder.get_image(self.node.to_untrusted_node_address()) {
             None => {
                 // No image data at all? Do nothing.
                 //
@@ -987,7 +994,7 @@ impl Fragment {
     /// * `layout_context`: The layout context.
     /// * `dirty`: The dirty rectangle in the coordinate system of the owning flow.
     /// * `flow_origin`: Position of the origin of the owning flow wrt the display list root flow.
-    pub fn build_display_list(&self,
+    pub fn build_display_list(&mut self,
                               display_list: &mut DisplayList,
                               layout_context: &LayoutContext,
                               flow_origin: Point2D<Au>,
@@ -995,12 +1002,12 @@ impl Fragment {
                               -> ChildDisplayListAccumulator {
         // FIXME(#2795): Get the real container size
         let container_size = Size2D::zero();
-        let rect_to_absolute = |logical_rect: LogicalRect<Au>| {
-            let physical_rect = logical_rect.to_physical(self.style.writing_mode, container_size);
+        let rect_to_absolute = |writing_mode: WritingMode, logical_rect: LogicalRect<Au>| {
+            let physical_rect = logical_rect.to_physical(writing_mode, container_size);
             Rect(physical_rect.origin + flow_origin, physical_rect.size)
         };
         // Fragment position wrt to the owning flow.
-        let absolute_fragment_bounds = rect_to_absolute(self.border_box);
+        let absolute_fragment_bounds = rect_to_absolute(self.style.writing_mode, self.border_box);
         debug!("Fragment::build_display_list at rel={}, abs={}: {}",
                self.border_box,
                absolute_fragment_bounds,
@@ -1088,7 +1095,7 @@ impl Fragment {
         }
 
         let content_box = self.content_box();
-        let absolute_content_box = rect_to_absolute(content_box);
+        let absolute_content_box = rect_to_absolute(self.style.writing_mode, content_box);
 
         // Create special per-fragment-type display items.
         match self.specific {
@@ -1133,7 +1140,7 @@ impl Fragment {
                                 accumulator.push(display_list, SolidColorDisplayItemClass(
                                     box SolidColorDisplayItem {
                                         base: BaseDisplayItem::new(
-                                            rect_to_absolute(rect()),
+                                            rect_to_absolute(self.style.writing_mode, rect()),
                                             self.node, ContentStackingLevel),
                                         color: color.to_gfx_color(),
                                     }
@@ -1182,9 +1189,9 @@ impl Fragment {
             }
             ImageFragment(_) => {
                 match self.specific {
-                    ImageFragment(ref image_fragment) => {
-                        let image_ref = &image_fragment.image;
-                        match image_ref.get_image_if_present() {
+                    ImageFragment(ref mut image_fragment) => {
+                        let image_ref = &mut image_fragment.image;
+                        match image_ref.get_image(self.node.to_untrusted_node_address()) {
                             Some(image) => {
                                 debug!("(building display list) building image fragment");
 
@@ -1437,7 +1444,7 @@ impl Fragment {
                     let advance = metrics.advance_width;
 
                     let should_continue;
-                    if advance <= remaining_inline_size {
+                    if advance <= remaining_inline_size || glyphs.is_whitespace() {
                         should_continue = true;
 
                         if starts_line && pieces_processed_count == 0 && glyphs.is_whitespace() {
@@ -1452,21 +1459,8 @@ impl Fragment {
                         // The advance is more than the remaining inline-size.
                         should_continue = false;
                         let slice_begin = offset + slice_range.begin();
-                        let slice_end = offset + slice_range.end();
 
-                        if glyphs.is_whitespace() {
-                            // If there are still things after the trimmable whitespace, create the
-                            // inline-end chunk.
-                            if slice_end < text_fragment_info.range.end() {
-                                debug!("split_to_inline_size: case=skipping trimmable trailing \
-                                        whitespace, then split remainder");
-                                let inline_end_range_end = text_fragment_info.range.end() - slice_end;
-                                inline_end_range = Some(Range::new(slice_end, inline_end_range_end));
-                            } else {
-                                debug!("split_to_inline_size: case=skipping trimmable trailing \
-                                        whitespace");
-                            }
-                        } else if slice_begin < text_fragment_info.range.end() {
+                        if slice_begin < text_fragment_info.range.end() {
                             // There are still some things inline-start over at the end of the line. Create
                             // the inline-end chunk.
                             let inline_end_range_end = text_fragment_info.range.end() - slice_begin;

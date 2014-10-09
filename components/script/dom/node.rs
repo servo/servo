@@ -46,8 +46,9 @@ use dom::window::Window;
 use geom::rect::Rect;
 use html::hubbub_html_parser::build_element_from_tag;
 use layout_interface::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC,
-                       LayoutChan, ReapLayoutDataMsg, TrustedNodeAddress, UntrustedNodeAddress};
+                       LayoutChan, ReapLayoutDataMsg, TrustedNodeAddress};
 use devtools_traits::NodeInfo;
+use script_traits::UntrustedNodeAddress;
 use servo_util::geometry::Au;
 use servo_util::str::{DOMString, null_str_as_empty};
 use style::{parse_selector_list_from_str, matches};
@@ -56,7 +57,7 @@ use js::jsapi::{JSContext, JSObject, JSTracer, JSRuntime};
 use js::jsfriendapi;
 use libc;
 use libc::uintptr_t;
-use std::cell::{RefCell, Ref, RefMut};
+use std::cell::{Cell, RefCell, Ref, RefMut};
 use std::default::Default;
 use std::iter::{Map, Filter};
 use std::mem;
@@ -101,7 +102,7 @@ pub struct Node {
     child_list: MutNullableJS<NodeList>,
 
     /// A bitfield of flags for node items.
-    flags: RefCell<NodeFlags>,
+    flags: Cell<NodeFlags>,
 
     /// Layout information. Only the layout task may touch this data.
     ///
@@ -132,14 +133,19 @@ bitflags! {
         #[doc = "Specifies whether this node is in disabled state."]
         static InDisabledState = 0x04,
         #[doc = "Specifies whether this node is in enabled state."]
-        static InEnabledState = 0x08
+        static InEnabledState = 0x08,
+        #[doc = "Specifies whether this node has changed since the last reflow."]
+        static IsDirty = 0x10,
+        #[doc = "Specifies whether this node has descendants (inclusive of itself) which \
+                 have changed since the last reflow."]
+        static HasDirtyDescendants = 0x20,
     }
 }
 
 impl NodeFlags {
     pub fn new(type_id: NodeTypeId) -> NodeFlags {
         match type_id {
-            DocumentNodeTypeId => IsInDoc,
+            DocumentNodeTypeId => IsInDoc | IsDirty,
             // The following elements are enabled by default.
             ElementNodeTypeId(HTMLButtonElementTypeId) |
             ElementNodeTypeId(HTMLInputElementTypeId) |
@@ -148,8 +154,8 @@ impl NodeFlags {
             ElementNodeTypeId(HTMLOptGroupElementTypeId) |
             ElementNodeTypeId(HTMLOptionElementTypeId) |
             //ElementNodeTypeId(HTMLMenuItemElementTypeId) |
-            ElementNodeTypeId(HTMLFieldSetElementTypeId) => InEnabledState,
-            _ => NodeFlags::empty(),
+            ElementNodeTypeId(HTMLFieldSetElementTypeId) => InEnabledState | IsDirty,
+            _ => IsDirty,
         }
     }
 }
@@ -271,7 +277,7 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
         let parent = self.parent_node().root();
         parent.map(|parent| vtable_for(&*parent).child_inserted(self));
 
-        document.content_changed();
+        document.content_changed(self);
     }
 
     // http://dom.spec.whatwg.org/#node-is-removed
@@ -283,7 +289,7 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
             vtable_for(&node).unbind_from_tree(parent_in_doc);
         }
 
-        document.content_changed();
+        document.content_changed(self);
     }
 
     //
@@ -395,6 +401,9 @@ pub trait NodeHelpers<'a> {
     fn is_text(self) -> bool;
     fn is_anchor_element(self) -> bool;
 
+    fn get_flag(self, flag: NodeFlags) -> bool;
+    fn set_flag(self, flag: NodeFlags, value: bool);
+
     fn get_hover_state(self) -> bool;
     fn set_hover_state(self, state: bool);
 
@@ -403,6 +412,17 @@ pub trait NodeHelpers<'a> {
 
     fn get_enabled_state(self) -> bool;
     fn set_enabled_state(self, state: bool);
+
+    fn get_is_dirty(self) -> bool;
+    fn set_is_dirty(self, state: bool);
+
+    fn get_has_dirty_descendants(self) -> bool;
+    fn set_has_dirty_descendants(self, state: bool);
+
+    /// Marks the given node as `IsDirty`, its siblings as `IsDirty` (to deal
+    /// with sibling selectors), its ancestors as `HasDirtyDescendants`, and its
+    /// descendants as `IsDirty`.
+    fn dirty(self);
 
     fn dump(self);
     fn dump_indent(self, indent: uint);
@@ -425,6 +445,7 @@ pub trait NodeHelpers<'a> {
     fn get_unique_id(self) -> String;
     fn summarize(self) -> NodeInfo;
 }
+
 
 impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     /// Dumps the subtree rooted at this node, for debugging.
@@ -454,7 +475,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     }
 
     fn is_in_doc(self) -> bool {
-        self.flags.borrow().contains(IsInDoc)
+        self.deref().flags.get().contains(IsInDoc)
     }
 
     /// Returns the type ID of this node. Fails if this node is borrowed mutably.
@@ -512,39 +533,98 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
         self.type_id == TextNodeTypeId
     }
 
+    fn get_flag(self, flag: NodeFlags) -> bool {
+        self.flags.get().contains(flag)
+    }
+
+    fn set_flag(self, flag: NodeFlags, value: bool) {
+        let mut flags = self.flags.get();
+
+        if value {
+            flags.insert(flag);
+        } else {
+            flags.remove(flag);
+        }
+
+        self.flags.set(flags);
+    }
+
     fn get_hover_state(self) -> bool {
-        self.flags.borrow().contains(InHoverState)
+        self.get_flag(InHoverState)
     }
 
     fn set_hover_state(self, state: bool) {
-        if state {
-            self.flags.borrow_mut().insert(InHoverState);
-        } else {
-            self.flags.borrow_mut().remove(InHoverState);
-        }
+        self.set_flag(InHoverState, state)
     }
 
     fn get_disabled_state(self) -> bool {
-        self.flags.borrow().contains(InDisabledState)
+        self.get_flag(InDisabledState)
     }
 
     fn set_disabled_state(self, state: bool) {
-        if state {
-            self.flags.borrow_mut().insert(InDisabledState);
-        } else {
-            self.flags.borrow_mut().remove(InDisabledState);
-        }
+        self.set_flag(InDisabledState, state)
     }
 
     fn get_enabled_state(self) -> bool {
-        self.flags.borrow().contains(InEnabledState)
+        self.get_flag(InEnabledState)
     }
 
     fn set_enabled_state(self, state: bool) {
-        if state {
-            self.flags.borrow_mut().insert(InEnabledState);
-        } else {
-            self.flags.borrow_mut().remove(InEnabledState);
+        self.set_flag(InEnabledState, state)
+    }
+
+    fn get_is_dirty(self) -> bool {
+        self.get_flag(IsDirty)
+    }
+
+    fn set_is_dirty(self, state: bool) {
+        self.set_flag(IsDirty, state)
+    }
+
+    fn get_has_dirty_descendants(self) -> bool {
+        self.get_flag(HasDirtyDescendants)
+    }
+
+    fn set_has_dirty_descendants(self, state: bool) {
+        self.set_flag(HasDirtyDescendants, state)
+    }
+
+    fn dirty(self) {
+        // 1. Dirty descendants.
+        fn dirty_subtree(node: JSRef<Node>) {
+            node.set_is_dirty(true);
+
+            let mut has_dirty_descendants = false;
+
+            for kid in node.children() {
+                dirty_subtree(kid);
+                has_dirty_descendants = true;
+            }
+
+            if has_dirty_descendants {
+                node.set_has_dirty_descendants(true);
+            }
+        }
+        dirty_subtree(self);
+
+        // 2. Dirty siblings.
+        //
+        // TODO(cgaebel): This is a very conservative way to account for sibling
+        // selectors. Maybe we can do something smarter in the future.
+        let parent =
+            match self.parent_node() {
+                None         => return,
+                Some(parent) => parent,
+            };
+
+        for sibling in parent.root().children() {
+            sibling.set_is_dirty(true);
+        }
+
+        // 3. Dirty ancestors.
+        for ancestor in self.ancestors() {
+            if ancestor.get_has_dirty_descendants() { break }
+            ancestor.set_has_dirty_descendants(true);
         }
     }
 
@@ -734,6 +814,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
             incompleteValue: false, //FIXME: reflect truncation
         }
     }
+
 }
 
 /// If the given untrusted node address represents a valid DOM node in the given runtime,
@@ -764,6 +845,8 @@ pub trait LayoutNodeHelpers {
     unsafe fn owner_doc_for_layout(&self) -> JS<Document>;
 
     unsafe fn is_element_for_layout(&self) -> bool;
+    unsafe fn get_flag(self, flag: NodeFlags) -> bool;
+    unsafe fn set_flag(self, flag: NodeFlags, value: bool);
 }
 
 impl LayoutNodeHelpers for JS<Node> {
@@ -805,6 +888,25 @@ impl LayoutNodeHelpers for JS<Node> {
     #[inline]
     unsafe fn owner_doc_for_layout(&self) -> JS<Document> {
         (*self.unsafe_get()).owner_doc.get_inner().unwrap()
+    }
+
+    #[inline]
+    unsafe fn get_flag(self, flag: NodeFlags) -> bool {
+        (*self.unsafe_get()).flags.get().contains(flag)
+    }
+
+    #[inline]
+    unsafe fn set_flag(self, flag: NodeFlags, value: bool) {
+        let this = self.unsafe_get();
+        let mut flags = (*this).flags.get();
+
+        if value {
+            flags.insert(flag);
+        } else {
+            flags.remove(flag);
+        }
+
+        (*this).flags.set(flags);
     }
 }
 
@@ -1034,8 +1136,7 @@ impl Node {
             prev_sibling: Default::default(),
             owner_doc: MutNullableJS::new(doc),
             child_list: Default::default(),
-
-            flags: RefCell::new(NodeFlags::new(type_id)),
+            flags: Cell::new(NodeFlags::new(type_id)),
 
             layout_data: LayoutDataRef::new(),
 
@@ -1236,11 +1337,13 @@ impl Node {
             parent.add_child(*node, child);
             let is_in_doc = parent.is_in_doc();
             for kid in node.traverse_preorder() {
+                let mut flags = kid.flags.get();
                 if is_in_doc {
-                    kid.flags.borrow_mut().insert(IsInDoc);
+                    flags.insert(IsInDoc);
                 } else {
-                    kid.flags.borrow_mut().remove(IsInDoc);
+                    flags.remove(IsInDoc);
                 }
+                kid.flags.set(flags);
             }
         }
 
@@ -1326,7 +1429,7 @@ impl Node {
         // Step 8.
         parent.remove_child(node);
 
-        node.flags.borrow_mut().remove(IsInDoc);
+        node.set_flag(IsInDoc, false);
 
         // Step 9.
         match suppress_observers {
@@ -1660,7 +1763,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 
                 // Notify the document that the content of this node is different
                 let document = self.owner_doc().root();
-                document.content_changed();
+                document.content_changed(self);
             }
             DoctypeNodeTypeId |
             DocumentNodeTypeId => {}
@@ -2120,6 +2223,12 @@ impl<'a> style::TNode<'a, JSRef<'a, Element>> for JSRef<'a, Node> {
         assert!(elem.is_some());
         elem.unwrap().html_element_in_html_document()
     }
+
+    fn is_dirty(self) -> bool { self.get_is_dirty() }
+    unsafe fn set_dirty(self, value: bool) { self.set_is_dirty(value) }
+
+    fn has_dirty_descendants(self) -> bool { self.get_has_dirty_descendants() }
+    unsafe fn set_dirty_descendants(self, value: bool) { self.set_has_dirty_descendants(value) }
 }
 
 pub trait DisabledStateHelpers {

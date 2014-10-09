@@ -18,7 +18,7 @@ use dom::location::Location;
 use dom::navigator::Navigator;
 use dom::performance::Performance;
 use dom::screen::Screen;
-use layout_interface::{ReflowGoal, DocumentDamageLevel};
+use layout_interface::{ReflowGoal, ReflowForDisplay};
 use page::Page;
 use script_task::{ExitWindowMsg, FireTimerMsg, ScriptChan, TriggerLoadMsg, TriggerFragmentMsg};
 use script_traits::ScriptControlChan;
@@ -366,7 +366,7 @@ impl Reflectable for Window {
 }
 
 pub trait WindowHelpers {
-    fn damage_and_reflow(self, damage: DocumentDamageLevel);
+    fn reflow(self);
     fn flush_layout(self, goal: ReflowGoal);
     fn wait_until_safe_to_modify_dom(self);
     fn init_browser_context(self, doc: JSRef<Document>);
@@ -399,9 +399,12 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         })
     }
 
-    fn damage_and_reflow(self, damage: DocumentDamageLevel) {
-        self.page().damage(damage);
-        self.page().avoided_reflows.set(self.page().avoided_reflows.get() + 1);
+    fn reflow(self) {
+        self.page().damage();
+        // FIXME This should probably be ReflowForQuery, not Display. All queries currently
+        // currently rely on the display list, which means we can't destroy it by
+        // doing a query reflow.
+        self.page().reflow(ReflowForDisplay, self.control_chan.clone(), &*self.compositor);
     }
 
     fn flush_layout(self, goal: ReflowGoal) {

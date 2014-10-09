@@ -13,7 +13,8 @@ use libc::uintptr_t;
 use script::dom::bindings::js::JS;
 use script::dom::bindings::utils::Reflectable;
 use script::dom::node::{Node, SharedLayoutData};
-use script::layout_interface::{LayoutChan, UntrustedNodeAddress, TrustedNodeAddress};
+use script::layout_interface::{LayoutChan, TrustedNodeAddress};
+use script_traits::UntrustedNodeAddress;
 use std::mem;
 use std::cell::{Ref, RefMut};
 use style::ComputedValues;
@@ -29,7 +30,7 @@ pub struct PrivateLayoutData {
     pub after_style: Option<Arc<ComputedValues>>,
 
     /// Description of how to account for recent style changes.
-    pub restyle_damage: Option<RestyleDamage>,
+    pub restyle_damage: RestyleDamage,
 
     /// The current results of flow construction for this node. This is either a flow or a
     /// `ConstructionItem`. See comments in `construct.rs` for more details.
@@ -49,7 +50,7 @@ impl PrivateLayoutData {
         PrivateLayoutData {
             before_style: None,
             after_style: None,
-            restyle_damage: None,
+            restyle_damage: RestyleDamage::empty(),
             flow_construction_result: NoConstructionResult,
             before_flow_construction_result: NoConstructionResult,
             after_flow_construction_result: NoConstructionResult,
@@ -161,4 +162,3 @@ impl ToGfxColor for style::computed_values::RGBA {
         gfx::color::rgba(self.red, self.green, self.blue, self.alpha)
     }
 }
-

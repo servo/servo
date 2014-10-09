@@ -18,15 +18,16 @@ use url::Url;
 /// A struct to store image data. The image will be loaded once the first time it is requested,
 /// and an Arc will be stored.  Clones of this Arc are given out on demand.
 #[deriving(Clone)]
-pub struct ImageHolder {
+pub struct ImageHolder<NodeAddress> {
     url: Url,
     image: Option<Arc<Box<Image>>>,
     cached_size: Size2D<int>,
-    local_image_cache: Arc<Mutex<LocalImageCache>>,
+    local_image_cache: Arc<Mutex<LocalImageCache<NodeAddress>>>,
 }
 
-impl ImageHolder {
-    pub fn new(url: Url, local_image_cache: Arc<Mutex<LocalImageCache>>) -> ImageHolder {
+impl<NodeAddress: Send> ImageHolder<NodeAddress> {
+    pub fn new(url: Url, local_image_cache: Arc<Mutex<LocalImageCache<NodeAddress>>>)
+               -> ImageHolder<NodeAddress> {
         debug!("ImageHolder::new() {}", url.serialize());
         let holder = ImageHolder {
             url: url,
@@ -60,9 +61,9 @@ impl ImageHolder {
     }
 
     /// Query and update the current image size.
-    pub fn get_size(&mut self) -> Option<Size2D<int>> {
+    pub fn get_size(&mut self, node_address: NodeAddress) -> Option<Size2D<int>> {
         debug!("get_size() {}", self.url.serialize());
-        self.get_image().map(|img| {
+        self.get_image(node_address).map(|img| {
             self.cached_size = Size2D(img.width as int,
                                       img.height as int);
             self.cached_size.clone()
@@ -74,7 +75,7 @@ impl ImageHolder {
         self.image.clone()
     }
 
-    pub fn get_image(&mut self) -> Option<Arc<Box<Image>>> {
+    pub fn get_image(&mut self, node_address: NodeAddress) -> Option<Arc<Box<Image>>> {
         debug!("get_image() {}", self.url.serialize());
 
         // If this is the first time we've called this function, load
@@ -83,7 +84,7 @@ impl ImageHolder {
             let port = {
                 let val = self.local_image_cache.lock();
                 let mut local_image_cache = val;
-                local_image_cache.get_image(&self.url)
+                local_image_cache.get_image(node_address, &self.url)
             };
             match port.recv() {
                 ImageReady(image) => {
@@ -105,5 +106,8 @@ impl ImageHolder {
 
         return result;
     }
-}
 
+    pub fn url(&self) -> &Url {
+        &self.url
+    }
+}
