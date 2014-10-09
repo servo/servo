@@ -12,9 +12,10 @@ use dom::element::{Element, AttributeHandlers, HTMLFormElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, ElementNodeTypeId, window_from_node};
+
 use servo_util::str::DOMString;
 use std::ascii::OwnedStrAsciiExt;
-
+use string_cache::Atom;
 
 #[jstraceable]
 #[must_root]
@@ -52,7 +53,7 @@ impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
     // https://html.spec.whatwg.org/multipage/forms.html#dom-fs-action
     fn Action(self) -> DOMString {
         let element: JSRef<Element> = ElementCast::from_ref(self);
-        let url = element.get_url_attribute("src");
+        let url = element.get_url_attribute(&atom!("src"));
         match url.as_slice() {
             "" => {
                 let window = window_from_node(self).root();
@@ -68,7 +69,7 @@ impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
     // https://html.spec.whatwg.org/multipage/forms.html#dom-form-autocomplete
     fn Autocomplete(self) -> DOMString {
         let elem: JSRef<Element> = ElementCast::from_ref(self);
-        let ac = elem.get_string_attribute("autocomplete").into_ascii_lower();
+        let ac = elem.get_string_attribute(&atom!("autocomplete")).into_ascii_lower();
         // https://html.spec.whatwg.org/multipage/forms.html#attr-form-autocomplete
         match ac.as_slice() {
             "off" => ac,
@@ -82,7 +83,7 @@ impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
     // https://html.spec.whatwg.org/multipage/forms.html#dom-fs-enctype
     fn Enctype(self) -> DOMString {
         let elem: JSRef<Element> = ElementCast::from_ref(self);
-        let enctype = elem.get_string_attribute("enctype").into_ascii_lower();
+        let enctype = elem.get_string_attribute(&atom!("enctype")).into_ascii_lower();
         // https://html.spec.whatwg.org/multipage/forms.html#attr-fs-enctype
         match enctype.as_slice() {
             "text/plain" | "multipart/form-data" => enctype,
@@ -107,7 +108,7 @@ impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
     // https://html.spec.whatwg.org/multipage/forms.html#dom-fs-method
     fn Method(self) -> DOMString {
         let elem: JSRef<Element> = ElementCast::from_ref(self);
-        let method = elem.get_string_attribute("method").into_ascii_lower();
+        let method = elem.get_string_attribute(&atom!("method")).into_ascii_lower();
         // https://html.spec.whatwg.org/multipage/forms.html#attr-fs-method
         match method.as_slice() {
             "post" | "dialog" => method,

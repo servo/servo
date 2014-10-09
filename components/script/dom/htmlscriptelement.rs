@@ -74,7 +74,7 @@ static SCRIPT_JS_MIMES: StaticStringVec = &[
 impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
     fn is_javascript(self) -> bool {
         let element: JSRef<Element> = ElementCast::from_ref(self);
-        match element.get_attribute(ns!(""), "type").root().map(|s| s.Value()) {
+        match element.get_attribute(ns!(""), &atom!("type")).root().map(|s| s.Value()) {
             Some(ref s) if s.is_empty() => {
                 // type attr exists, but empty means js
                 debug!("script type empty, inferring js");
@@ -86,7 +86,9 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
             },
             None => {
                 debug!("no script type");
-                match element.get_attribute(ns!(""), "language").root().map(|s| s.Value()) {
+                match element.get_attribute(ns!(""), &atom!("language"))
+                             .root()
+                             .map(|s| s.Value()) {
                     Some(ref s) if s.is_empty() => {
                         debug!("script language empty, inferring js");
                         true
@@ -108,7 +110,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
 impl<'a> HTMLScriptElementMethods for JSRef<'a, HTMLScriptElement> {
     fn Src(self) -> DOMString {
         let element: JSRef<Element> = ElementCast::from_ref(self);
-        element.get_url_attribute("src")
+        element.get_url_attribute(&atom!("src"))
     }
 
     // http://www.whatwg.org/html/#dom-script-text

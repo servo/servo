@@ -50,6 +50,7 @@ use std::fmt;
 use std::from_str::FromStr;
 use std::mem;
 use std::num::Zero;
+use string_cache::Atom;
 use style::{ComputedValues, TElement, TNode, cascade_anonymous, RGBA};
 use style::computed_values::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::computed_values::{LengthOrPercentageOrNone};
@@ -219,7 +220,7 @@ impl ImageFragmentInfo {
                image_url: Url,
                local_image_cache: Arc<Mutex<LocalImageCache>>)
                -> ImageFragmentInfo {
-        fn convert_length(node: &ThreadSafeLayoutNode, name: &str) -> Option<Au> {
+        fn convert_length(node: &ThreadSafeLayoutNode, name: &Atom) -> Option<Au> {
             let element = node.as_element();
             element.get_attr(&ns!(""), name).and_then(|string| {
                 let n: Option<int> = FromStr::from_str(string);
@@ -228,8 +229,8 @@ impl ImageFragmentInfo {
         }
 
         let is_vertical = node.style().writing_mode.is_vertical();
-        let dom_width = convert_length(node, "width");
-        let dom_height = convert_length(node, "height");
+        let dom_width = convert_length(node, &atom!("width"));
+        let dom_height = convert_length(node, &atom!("height"));
         ImageFragmentInfo {
             image: ImageHolder::new(image_url, local_image_cache),
             computed_inline_size: None,
@@ -406,7 +407,7 @@ impl TableColumnFragmentInfo {
     pub fn new(node: &ThreadSafeLayoutNode) -> TableColumnFragmentInfo {
         let span = {
             let element = node.as_element();
-            element.get_attr(&ns!(""), "span").and_then(|string| {
+            element.get_attr(&ns!(""), &atom!("span")).and_then(|string| {
                 let n: Option<int> = FromStr::from_str(string);
                 n
             })

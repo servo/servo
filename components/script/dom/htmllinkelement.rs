@@ -47,7 +47,7 @@ impl HTMLLinkElement {
     }
 }
 
-fn get_attr(element: JSRef<Element>, name: &str) -> Option<String> {
+fn get_attr(element: JSRef<Element>, name: &Atom) -> Option<String> {
     let elem = element.get_attribute(ns!(""), name).root();
     elem.map(|e| e.value().as_slice().to_string())
 }
@@ -75,7 +75,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLLinkElement> {
         }
 
         let element: JSRef<Element> = ElementCast::from_ref(*self);
-        let rel = get_attr(element, "rel");
+        let rel = get_attr(element, &atom!("rel"));
 
         match (rel, name.as_slice()) {
             (ref rel, "href") => {
@@ -96,8 +96,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLLinkElement> {
         if tree_in_doc {
             let element: JSRef<Element> = ElementCast::from_ref(*self);
 
-            let rel = get_attr(element, "rel");
-            let href = get_attr(element, "href");
+            let rel = get_attr(element, &atom!("rel"));
+            let href = get_attr(element, &atom!("href"));
 
             match (rel, href) {
                 (ref rel, Some(ref href)) if is_stylesheet(rel) => {
