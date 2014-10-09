@@ -279,7 +279,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
             let check_anchor = |&node: &JSRef<HTMLAnchorElement>| {
                 let elem: JSRef<Element> = ElementCast::from_ref(node);
                 elem.get_attribute(ns!(""), "name").root().map_or(false, |attr| {
-                    attr.deref().value().as_slice() == fragid.as_slice()
+                    attr.value().as_slice() == fragid.as_slice()
                 })
             };
             let doc_node: JSRef<Node> = NodeCast::from_ref(self);
@@ -642,7 +642,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                     for child in title_elem.children() {
                         if child.is_text() {
                             let text: JSRef<Text> = TextCast::to_ref(child).unwrap();
-                            title.push_str(text.deref().characterdata.data.borrow().as_slice());
+                            title.push_str(text.characterdata.data.borrow().as_slice());
                         }
                     }
                 });

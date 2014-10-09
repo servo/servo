@@ -725,7 +725,7 @@ impl ScriptTask {
         let cx = self.js_context.borrow();
         let cx = cx.as_ref().unwrap();
         // Create the window and document objects.
-        let window = Window::new(cx.deref().ptr,
+        let window = Window::new(cx.ptr,
                                  page.clone(),
                                  self.chan.clone(),
                                  self.control_chan.clone(),
@@ -743,7 +743,7 @@ impl ScriptTask {
         let document = Document::new(*window, Some(doc_url), HTMLDocument,
                                      None).root();
 
-        window.deref().init_browser_context(*document);
+        window.init_browser_context(*document);
 
         self.compositor.set_ready_state(pipeline_id, Loading);
 
@@ -796,7 +796,7 @@ impl ScriptTask {
 
         // Kick off the initial reflow of the page.
         debug!("kicking off initial reflow of {}", url);
-        document.deref().content_changed();
+        document.content_changed();
         window.flush_layout(ReflowForDisplay);
 
         {
@@ -930,7 +930,7 @@ impl ScriptTask {
 
                         let temp_node =
                                 node::from_untrusted_node_address(
-                                    self.js_runtime.deref().ptr, node_address).root();
+                                    self.js_runtime.ptr, node_address).root();
 
                         let maybe_node = if !temp_node.is_element() {
                             temp_node.ancestors().find(|node| node.is_element())
@@ -980,7 +980,7 @@ impl ScriptTask {
                             Some(ref mut mouse_over_targets) => {
                                 for node in mouse_over_targets.iter_mut() {
                                     let node = node.root();
-                                    node.deref().set_hover_state(false);
+                                    node.set_hover_state(false);
                                 }
                             }
                             None => {}
@@ -990,7 +990,7 @@ impl ScriptTask {
 
                             let temp_node =
                                 node::from_untrusted_node_address(
-                                    self.js_runtime.deref().ptr, *node_address);
+                                    self.js_runtime.ptr, *node_address);
 
                             let maybe_node = temp_node.root().ancestors().find(|node| node.is_element());
                             match maybe_node {

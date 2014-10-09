@@ -124,7 +124,7 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
 
     fn SetValue(self, value: DOMString) {
         let owner = self.owner.root();
-        let value = owner.deref().parse_attribute(&self.namespace, self.local_name(), value);
+        let value = owner.parse_attribute(&self.namespace, self.local_name(), value);
         self.set_value(ReplacedAttr, value);
     }
 

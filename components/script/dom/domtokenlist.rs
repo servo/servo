@@ -55,7 +55,7 @@ trait PrivateDOMTokenListHelpers {
 impl<'a> PrivateDOMTokenListHelpers for JSRef<'a, DOMTokenList> {
     fn attribute(self) -> Option<Temporary<Attr>> {
         let element = self.element.root();
-        element.deref().get_attribute(ns!(""), self.local_name)
+        element.get_attribute(ns!(""), self.local_name)
     }
 
     fn check_token_exceptions<'a>(self, token: &'a str) -> Fallible<&'a str> {

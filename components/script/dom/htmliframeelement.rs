@@ -74,12 +74,12 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
     fn get_url(self) -> Option<Url> {
         let element: JSRef<Element> = ElementCast::from_ref(self);
         element.get_attribute(ns!(""), "src").root().and_then(|src| {
-            let url = src.deref().value();
+            let url = src.value();
             if url.as_slice().is_empty() {
                 None
             } else {
                 let window = window_from_node(self).root();
-                UrlParser::new().base_url(&window.deref().page().get_url())
+                UrlParser::new().base_url(&window.page().get_url())
                     .parse(url.as_slice()).ok()
             }
         })
@@ -99,10 +99,10 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
 
         // Subpage Id
         let window = window_from_node(self).root();
-        let page = window.deref().page();
+        let page = window.page();
         let subpage_id = page.get_next_subpage_id();
 
-        self.deref().size.set(Some(IFrameSize {
+        self.size.set(Some(IFrameSize {
             pipeline_id: page.id,
             subpage_id: subpage_id,
         }));
@@ -152,7 +152,7 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
     fn GetContentWindow(self) -> Option<Temporary<Window>> {
         self.size.get().and_then(|size| {
             let window = window_from_node(self).root();
-            let children = window.deref().page.children.borrow();
+            let children = window.page.children.borrow();
             let child = children.iter().find(|child| {
                 child.subpage_id.unwrap() == size.subpage_id
             });
@@ -190,7 +190,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
                     _ => AllowNothing
                 } as u8;
             }
-            self.deref().sandbox.set(Some(modes));
+            self.sandbox.set(Some(modes));
         }
 
         if "src" == name.as_slice() {
@@ -208,7 +208,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
         }
 
         if "sandbox" == name.as_slice() {
-            self.deref().sandbox.set(None);
+            self.sandbox.set(None);
         }
     }
 

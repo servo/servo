@@ -182,7 +182,7 @@ impl XMLHttpRequest {
     pub fn handle_xhr_progress(addr: TrustedXHRAddress, progress: XHRProgress) {
         unsafe {
             let xhr = JS::from_trusted_xhr_address(addr).root();
-            xhr.deref().process_partial_response(progress);
+            xhr.process_partial_response(progress);
         }
     }
 

@@ -363,7 +363,7 @@ pub fn parse_html(page: &Page,
             let tmp = &*tmp_borrow;
             let doctype_node = DocumentType::new(name, public_id, system_id, *tmp).root();
             unsafe {
-                doctype_node.deref().to_hubbub_node()
+                doctype_node.to_hubbub_node()
             }
         },
         create_element: |tag: Box<hubbub::Tag>| {
@@ -394,7 +394,7 @@ pub fn parse_html(page: &Page,
                                                   prefix.map(|p| p.to_string()));
             }
 
-            unsafe { element.deref().to_hubbub_node() }
+            unsafe { element.to_hubbub_node() }
         },
         create_text: |data: String| {
             debug!("create text");
@@ -402,7 +402,7 @@ pub fn parse_html(page: &Page,
             let tmp_borrow = doc_cell.borrow();
             let tmp = &*tmp_borrow;
             let text = Text::new(data, *tmp).root();
-            unsafe { text.deref().to_hubbub_node() }
+            unsafe { text.to_hubbub_node() }
         },
         ref_node: |_| {},
         unref_node: |_| {},
@@ -411,7 +411,7 @@ pub fn parse_html(page: &Page,
                 debug!("append child {:x} {:x}", parent, child);
                 let child: Root<Node> = from_hubbub_node(child).root();
                 let parent: Root<Node> = from_hubbub_node(parent).root();
-                assert!(parent.deref().AppendChild(*child).is_ok());
+                assert!(parent.AppendChild(*child).is_ok());
             }
             child
         },
@@ -473,7 +473,7 @@ pub fn parse_html(page: &Page,
                 let script_element: JSRef<Element> = ElementCast::from_ref(script);
                 match script_element.get_attribute(ns!(""), "src").root() {
                     Some(src) => {
-                        debug!("found script: {:s}", src.deref().Value());
+                        debug!("found script: {:s}", src.Value());
                         let mut url_parser = UrlParser::new();
                         match base_url {
                             None => (),
@@ -481,9 +481,9 @@ pub fn parse_html(page: &Page,
                                 url_parser.base_url(base_url);
                             }
                         };
-                        match url_parser.parse(src.deref().value().as_slice()) {
+                        match url_parser.parse(src.value().as_slice()) {
                             Ok(new_url) => js_chan2.send(JSTaskNewFile(new_url)),
-                            Err(e) => debug!("Parsing url {:s} failed: {:?}", src.deref().Value(), e)
+                            Err(e) => debug!("Parsing url {:s} failed: {:?}", src.Value(), e)
                         };
                     }
                     None => {
@@ -493,7 +493,7 @@ pub fn parse_html(page: &Page,
                         for child in scriptnode.children() {
                             debug!("child = {:?}", child);
                             let text: JSRef<Text> = TextCast::to_ref(child).unwrap();
-                            data.push_str(text.deref().characterdata.data.borrow().as_slice());
+                            data.push_str(text.characterdata.data.borrow().as_slice());
                         }
 
                         debug!("script data = {:?}", data);
