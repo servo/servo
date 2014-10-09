@@ -121,7 +121,7 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
     fn dispatch_event_with_target(self,
                                   target: Option<JSRef<EventTarget>>,
                                   event: JSRef<Event>) -> Fallible<bool> {
-        if event.deref().dispatching.get() || !event.deref().initialized.get() {
+        if event.dispatching.get() || !event.initialized.get() {
             return Err(InvalidState);
         }
         Ok(dispatch_event(self, target, event))

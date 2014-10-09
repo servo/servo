@@ -55,7 +55,7 @@ impl UIEvent {
                view: Option<JSRef<Window>>,
                detail: i32) -> Temporary<UIEvent> {
         let ev = UIEvent::new_uninitialized(window).root();
-        ev.deref().InitUIEvent(type_, can_bubble, cancelable, view, detail);
+        ev.InitUIEvent(type_, can_bubble, cancelable, view, detail);
         Temporary::from_rooted(*ev)
     }
 

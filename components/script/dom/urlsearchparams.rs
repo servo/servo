@@ -50,7 +50,7 @@ impl URLSearchParams {
             },
             Some(eURLSearchParams(u)) => {
                 let u = u.root();
-                let mut map = usp.deref().data.borrow_mut();
+                let mut map = usp.data.borrow_mut();
                 *map = u.data.borrow().clone();
             },
             None => {}

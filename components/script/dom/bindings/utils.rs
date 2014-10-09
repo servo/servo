@@ -660,7 +660,7 @@ pub extern fn outerize_global(_cx: *mut JSContext, obj: JSHandleObject) -> *mut 
                              IDLInterface::get_prototype_depth(None::<window::Window>))
             .unwrap()
             .root();
-        win.deref().browser_context.borrow().as_ref().unwrap().window_proxy()
+        win.browser_context.borrow().as_ref().unwrap().window_proxy()
     }
 }
 

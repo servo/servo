@@ -47,7 +47,7 @@ impl<'a> PrivateHTMLImageElementHelpers for JSRef<'a, HTMLImageElement> {
     fn update_image(self, value: Option<(DOMString, &Url)>) {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         let document = node.owner_doc().root();
-        let window = document.deref().window.root();
+        let window = document.window.root();
         let image_cache = &window.image_cache_task;
         match value {
             None => {
@@ -176,7 +176,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLImageElement> {
 
         if "src" == name.as_slice() {
             let window = window_from_node(*self).root();
-            let url = window.deref().get_url();
+            let url = window.get_url();
             self.update_image(Some((value, &url)));
         }
     }

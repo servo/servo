@@ -49,7 +49,7 @@ impl HTMLLinkElement {
 
 fn get_attr(element: JSRef<Element>, name: &str) -> Option<String> {
     let elem = element.get_attribute(ns!(""), name).root();
-    elem.map(|e| e.deref().value().as_slice().to_string())
+    elem.map(|e| e.value().as_slice().to_string())
 }
 
 fn is_stylesheet(value: &Option<String>) -> bool {
@@ -116,9 +116,9 @@ trait PrivateHTMLLinkElementHelpers {
 impl<'a> PrivateHTMLLinkElementHelpers for JSRef<'a, HTMLLinkElement> {
     fn handle_stylesheet_url(self, href: &str) {
         let window = window_from_node(self).root();
-        match UrlParser::new().base_url(&window.deref().page().get_url()).parse(href) {
+        match UrlParser::new().base_url(&window.page().get_url()).parse(href) {
             Ok(url) => {
-                let LayoutChan(ref layout_chan) = window.deref().page().layout_chan;
+                let LayoutChan(ref layout_chan) = window.page().layout_chan;
                 layout_chan.send(LoadStylesheetMsg(url));
             }
             Err(e) => debug!("Parsing url {:s} failed: {:?}", href, e)

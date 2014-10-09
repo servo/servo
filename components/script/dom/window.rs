@@ -221,7 +221,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
 
     fn Location(self) -> Temporary<Location> {
         if self.location.get().is_none() {
-            let page = self.deref().page.clone();
+            let page = self.page.clone();
             let location = Location::new(self, page);
             self.location.assign(Some(location));
         }

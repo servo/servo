@@ -57,7 +57,7 @@ impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
                 static tag_names: StaticStringVec = &["button", "fieldset", "input",
                     "keygen", "object", "output", "select", "textarea"];
                 let root: JSRef<Element> = ElementCast::to_ref(root).unwrap();
-                elem != root && tag_names.iter().any(|&tag_name| tag_name == elem.deref().local_name.as_slice())
+                elem != root && tag_names.iter().any(|&tag_name| tag_name == elem.local_name.as_slice())
             }
         }
         let node: JSRef<Node> = NodeCast::from_ref(self);
