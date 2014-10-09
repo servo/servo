@@ -345,6 +345,41 @@ pub mod longhands {
 
     </%self:longhand>
 
+    <%self:single_component_value name="z-index">
+        pub use super::computed_as_specified as to_computed_value;
+        pub type SpecifiedValue = computed_value::T;
+        pub mod computed_value {
+            #[deriving(PartialEq, Clone)]
+            pub enum T {
+                Auto,
+                Number(i32),
+            }
+
+            impl T {
+                pub fn number_or_zero(self) -> i32 {
+                    match self {
+                        Auto => 0,
+                        Number(value) => value,
+                    }
+                }
+            }
+        }
+        #[inline]
+        pub fn get_initial_value() -> computed_value::T {
+            Auto
+        }
+        fn from_component_value(input: &ComponentValue, _: &Url) -> Result<SpecifiedValue,()> {
+            match *input {
+                Ident(ref keyword) if keyword.as_slice().eq_ignore_ascii_case("auto") => Ok(Auto),
+                ast::Number(ast::NumericValue {
+                    int_value: Some(value),
+                    ..
+                }) => Ok(Number(value as i32)),
+                _ => Err(())
+            }
+        }
+    </%self:single_component_value>
+
     ${new_style_struct("InheritedBox", is_inherited=True)}
 
     ${single_keyword("direction", "ltr rtl", experimental=True)}

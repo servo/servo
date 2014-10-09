@@ -1701,13 +1701,13 @@ impl Fragment {
                                                                 &font_style);
                 InlineMetrics::from_block_height(&font_metrics, block_flow.base.position.size.block)
             }
-            InlineAbsoluteHypotheticalFragment(ref info) => {
-                // See CSS 2.1 § 10.8.1.
-                let block_flow = info.flow_ref.get().as_immutable_block();
-                let font_style = text::computed_style_to_font_style(&*self.style);
-                let font_metrics = text::font_metrics_for_style(layout_context.font_context(),
-                                                                &font_style);
-                InlineMetrics::from_block_height(&font_metrics, block_flow.base.position.size.block)
+            InlineAbsoluteHypotheticalFragment(_) => {
+                // Hypothetical boxes take up no space.
+                InlineMetrics {
+                    block_size_above_baseline: Au(0),
+                    depth_below_baseline: Au(0),
+                    ascent: Au(0),
+                }
             }
             _ => {
                 InlineMetrics {
@@ -1716,6 +1716,14 @@ impl Fragment {
                     ascent: self.border_box.size.block,
                 }
             }
+        }
+    }
+
+    /// Returns true if this fragment is a hypothetical box. See CSS 2.1 § 10.3.7.
+    pub fn is_hypothetical(&self) -> bool {
+        match self.specific {
+            InlineAbsoluteHypotheticalFragment(_) => true,
+            _ => false,
         }
     }
 
