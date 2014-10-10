@@ -147,14 +147,19 @@ class Descriptor(DescriptorProvider):
         # built-in rooting mechanisms for them.
         if self.interface.isCallback():
             self.needsRooting = False
+            ty = "%sBinding::%s" % (ifaceName, ifaceName)
+            self.returnType = ty
+            self.argumentType = "???"
+            self.memberType = "???"
+            self.nativeType = ty
         else:
             self.needsRooting = True
+            self.returnType = "Temporary<%s>" % ifaceName
+            self.argumentType = "JSRef<%s>" % ifaceName
+            self.memberType = "Root<'a, 'b, %s>" % ifaceName
+            self.nativeType = "JS<%s>" % ifaceName
 
-        self.returnType = desc.get('returnType', "Temporary<%s>" % ifaceName)
-        self.argumentType = "JSRef<%s>" % ifaceName
-        self.memberType = "Root<'a, 'b, %s>" % ifaceName
-        self.nativeType = desc.get('nativeType', 'JS<%s>' % ifaceName)
-        self.concreteType = desc.get('concreteType', ifaceName)
+        self.concreteType = ifaceName
         self.register = desc.get('register', True)
         self.outerObjectHook = desc.get('outerObjectHook', 'None')
 
