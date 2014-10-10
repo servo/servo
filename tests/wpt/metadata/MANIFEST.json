@@ -1546,6 +1546,62 @@
         "url": "/custom-elements/testcommon.js"
       },
       {
+        "path": "docs/configuration.md",
+        "url": "/docs/configuration.md"
+      },
+      {
+        "path": "docs/css-metadata.md",
+        "url": "/docs/css-metadata.md"
+      },
+      {
+        "path": "docs/css-naming.md",
+        "url": "/docs/css-naming.md"
+      },
+      {
+        "path": "docs/css-user-styles.md",
+        "url": "/docs/css-user-styles.md"
+      },
+      {
+        "path": "docs/github-101.md",
+        "url": "/docs/github-101.md"
+      },
+      {
+        "path": "docs/manual-test.md",
+        "url": "/docs/manual-test.md"
+      },
+      {
+        "path": "docs/reftests.md",
+        "url": "/docs/reftests.md"
+      },
+      {
+        "path": "docs/review-checklist.md",
+        "url": "/docs/review-checklist.md"
+      },
+      {
+        "path": "docs/review-process.md",
+        "url": "/docs/review-process.md"
+      },
+      {
+        "path": "docs/running_tests.md",
+        "url": "/docs/running_tests.md"
+      },
+      {
+        "path": "docs/submission-process.md",
+        "url": "/docs/submission-process.md"
+      },
+      {
+        "path": "docs/test-format-guidelines.md",
+        "url": "/docs/test-format-guidelines.md"
+      },
+      {
+        "path": "docs/test-style-guidelines.md",
+        "url": "/docs/test-style-guidelines.md"
+      },
+      {
+        "path": "docs/test-templates.md",
+        "url": "/docs/test-templates.md"
+      },
+      {
         "path": "dom/common.js",
         "url": "/dom/common.js"
       },
@@ -1688,6 +1744,10 @@
       {
         "path": "dom/nodes/getElementsByClassName-11.xml",
         "url": "/dom/nodes/getElementsByClassName-11.xml"
+      },
+      {
+        "path": "dom/nodes/mutationobservers.js",
+        "url": "/dom/nodes/mutationobservers.js"
       },
       {
         "path": "dom/nodes/productions.js",
@@ -6452,6 +6512,10 @@
         "url": "/pointerevents/pointerevent_touch-action-auto-css_touch-manual.html"
       },
       {
+        "path": "pointerevents/pointerevent_touch-action-button-test_touch-manual.html",
+        "url": "/pointerevents/pointerevent_touch-action-button-test_touch-manual.html"
+      },
+      {
         "path": "pointerevents/pointerevent_touch-action-inherit_child-auto-child-none_touch-manual.html",
         "url": "/pointerevents/pointerevent_touch-action-inherit_child-auto-child-none_touch-manual.html"
       },
@@ -6504,8 +6568,16 @@
         "url": "/pointerevents/pointerevent_touch-action-pan-y-css_touch-manual.html"
       },
       {
+        "path": "pointerevents/pointerevent_touch-action-span-test_touch-manual.html",
+        "url": "/pointerevents/pointerevent_touch-action-span-test_touch-manual.html"
+      },
+      {
         "path": "pointerevents/pointerevent_touch-action-svg-test_touch-manual.html",
         "url": "/pointerevents/pointerevent_touch-action-svg-test_touch-manual.html"
+      },
+      {
+        "path": "pointerevents/pointerevent_touch-action-table-test_touch-manual.html",
+        "url": "/pointerevents/pointerevent_touch-action-table-test_touch-manual.html"
       },
       {
         "path": "touch-events/multi-touch-interactions-manual.html",
@@ -12485,6 +12557,18 @@
         "url": "/IndexedDB/idbindex_get4.htm"
       },
       {
+        "path": "IndexedDB/idbindex_get5.htm",
+        "url": "/IndexedDB/idbindex_get5.htm"
+      },
+      {
+        "path": "IndexedDB/idbindex_get6.htm",
+        "url": "/IndexedDB/idbindex_get6.htm"
+      },
+      {
+        "path": "IndexedDB/idbindex_get7.htm",
+        "url": "/IndexedDB/idbindex_get7.htm"
+      },
+      {
         "path": "IndexedDB/idbindex_getKey.htm",
         "url": "/IndexedDB/idbindex_getKey.htm"
       },
@@ -14382,6 +14466,34 @@
         "url": "/dom/nodes/Element-tagName.html"
       },
       {
+        "path": "dom/nodes/MutationObserver-attributes.html",
+        "url": "/dom/nodes/MutationObserver-attributes.html"
+      },
+      {
+        "path": "dom/nodes/MutationObserver-characterData.html",
+        "url": "/dom/nodes/MutationObserver-characterData.html"
+      },
+      {
+        "path": "dom/nodes/MutationObserver-childList.html",
+        "url": "/dom/nodes/MutationObserver-childList.html"
+      },
+      {
+        "path": "dom/nodes/MutationObserver-disconnect.html",
+        "url": "/dom/nodes/MutationObserver-disconnect.html"
+      },
+      {
+        "path": "dom/nodes/MutationObserver-document.html",
+        "url": "/dom/nodes/MutationObserver-document.html"
+      },
+      {
+        "path": "dom/nodes/MutationObserver-inner-outer.html",
+        "url": "/dom/nodes/MutationObserver-inner-outer.html"
+      },
+      {
+        "path": "dom/nodes/MutationObserver-takeRecords.html",
+        "url": "/dom/nodes/MutationObserver-takeRecords.html"
+      },
+      {
         "path": "dom/nodes/Node-appendChild.html",
         "url": "/dom/nodes/Node-appendChild.html"
       },
@@ -15967,6 +16079,7 @@
       },
       {
         "path": "html/dom/interfaces.html",
+        "timeout": "long",
         "url": "/html/dom/interfaces.html"
       },
       {
@@ -19958,6 +20071,10 @@
         "url": "/pointerevents/pointerevent_touch-action-illegal.html"
       },
       {
+        "path": "pointerevents/pointerevent_touch-action-verification.html",
+        "url": "/pointerevents/pointerevent_touch-action-verification.html"
+      },
+      {
         "path": "pointerlock/constructor.html",
         "url": "/pointerlock/constructor.html"
       },
@@ -22853,5 +22970,5 @@
     ]
   },
   "local_changes": [],
-  "rev": "746cc5a50a947ed0eafd4d38b82a99554b47697b"
+  "rev": "b621c0b3a3eb5f865ec3cc72372e5c75610337e2"
 }
