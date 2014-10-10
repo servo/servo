@@ -32,7 +32,7 @@ On Debian-based Linuxes:
 sudo apt-get install curl freeglut3-dev \
     libfreetype6-dev libgl1-mesa-dri libglib2.0-dev xorg-dev \
     msttcorefonts gperf g++ cmake python-virtualenv \
-    libssl-dev libglfw3-dev
+    libssl-dev libglfw-dev
 ```
 
 On Fedora:
