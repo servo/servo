@@ -11,7 +11,6 @@ use constellation::SendableFrameTree;
 use events;
 use events::ScrollPositionChanged;
 use pipeline::CompositionPipeline;
-use platform::{Application, Window};
 use windowing;
 use windowing::{FinishedWindowEvent, IdleWindowEvent, LoadUrlWindowEvent, MouseWindowClickEvent};
 use windowing::{MouseWindowEvent, MouseWindowEventClass, MouseWindowMouseDownEvent};
@@ -54,7 +53,7 @@ use time::precise_time_s;
 use url::Url;
 
 
-pub struct IOCompositor {
+pub struct IOCompositor<Window: WindowMethods> {
     /// The application window.
     window: Rc<Window>,
 
@@ -136,22 +135,13 @@ enum ShutdownState {
     FinishedShuttingDown,
 }
 
-impl IOCompositor {
-    fn new(app: &Application,
-               opts: Opts,
-               port: Receiver<Msg>,
-               constellation_chan: ConstellationChan,
-               time_profiler_chan: TimeProfilerChan,
-               memory_profiler_chan: MemoryProfilerChan) -> IOCompositor {
-
-        let scale_factor = match opts.device_pixels_per_px {
-            Some(device_pixels_per_px) => device_pixels_per_px,
-            None => ScaleFactor(1.0),
-        };
-        let framebuffer_size = opts.initial_window_size.as_f32() * scale_factor;
-
-        let window: Rc<Window> = WindowMethods::new(app, opts.output_file.is_none(),
-                                                    framebuffer_size.as_uint());
+impl<Window: WindowMethods> IOCompositor<Window> {
+    fn new(window: Rc<Window>,
+           opts: Opts,
+           port: Receiver<Msg>,
+           constellation_chan: ConstellationChan,
+           time_profiler_chan: TimeProfilerChan,
+           memory_profiler_chan: MemoryProfilerChan) -> IOCompositor<Window> {
 
         // Create an initial layer tree.
         //
@@ -192,13 +182,13 @@ impl IOCompositor {
         }
     }
 
-    pub fn create(app: &Application,
+    pub fn create(window: Rc<Window>,
                   opts: Opts,
                   port: Receiver<Msg>,
                   constellation_chan: ConstellationChan,
                   time_profiler_chan: TimeProfilerChan,
                   memory_profiler_chan: MemoryProfilerChan) {
-        let mut compositor = IOCompositor::new(app,
+        let mut compositor = IOCompositor::new(window,
                                                opts,
                                                port,
                                                constellation_chan,

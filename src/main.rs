@@ -12,6 +12,9 @@ extern crate native;
 extern crate "util" as servo_util;
 
 #[cfg(not(test),not(target_os="android"))]
+extern crate glfw_app;
+
+#[cfg(not(test),not(target_os="android"))]
 use servo_util::opts;
 
 #[cfg(not(test),not(target_os="android"))]
@@ -20,13 +23,19 @@ use servo::run;
 #[cfg(not(test),not(target_os="android"))]
 use std::os;
 
-#[cfg(not(test), target_os="linux")]
-#[cfg(not(test), target_os="macos")]
+#[cfg(not(test), not(target_os="android"))]
 #[start]
 #[allow(dead_code)]
 fn start(argc: int, argv: *const *const u8) -> int {
     native::start(argc, argv, proc() {
-        opts::from_cmdline_args(os::args().as_slice()).map(run);
+        opts::from_cmdline_args(os::args().as_slice()).map(|opts| {
+            let window = if opts.headless {
+                None
+            } else {
+                Some(glfw_app::create_window(&opts))
+            };
+            run(opts, window);
+        });
     })
 }
 

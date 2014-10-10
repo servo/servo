@@ -89,7 +89,6 @@ git clone https://github.com/servo/servo
 cd servo
 ANDROID_TOOLCHAIN=/path/to/toolchain ANDROID_NDK=/path/to/ndk PATH=$PATH:/path/to/toolchain/bin ./mach build --android
 cd ports/android
-ANDROID_NDK=/path/to/ndk ANDROID_SDK=/path/to/sdk make
 ANDROID_SDK=/path/to/sdk make install
 ```
 

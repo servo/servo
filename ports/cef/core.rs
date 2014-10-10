@@ -7,6 +7,7 @@ use azure;
 use command_line::command_line_init;
 use eutil::fptr_is_null;
 use geom::size::TypedSize2D;
+use glfw_app;
 use libc::{c_int, c_void};
 use native;
 use servo;
@@ -74,7 +75,8 @@ pub extern "C" fn cef_run_message_loop() {
         dump_flow_tree: false,
     };
     native::start(0, 0 as *const *const u8, proc() {
-       servo::run(opts);
+       let window = Some(glfw_app::create_window(&opts));
+       servo::run(opts, window);
     });
 }
 

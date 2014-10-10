@@ -46,20 +46,22 @@ class MachCommands(CommandBase):
             opts += ["--release"]
         if target:
             opts += ["--target", target]
-        elif android:
-            opts += ["--target", "arm-linux-androideabi"]
         if jobs is not None:
             opts += ["-j", jobs]
         if verbose:
             opts += ["-v"]
 
         build_start = time()
-        status = subprocess.call(
-            ["cargo", "build"] + opts,
-            env=self.build_env())
         if android:
-            status = status or subprocess.call(
-                ["make", "-C", "ports/android"],
+            make_opts = []
+            if opts:
+                make_opts += ["CARGO_OPTS=" + " ".join(opts)]
+            status = subprocess.call(
+                ["make", "-C", "ports/android"] + make_opts,
+                env=self.build_env())
+        else:
+            status = subprocess.call(
+                ["cargo", "build"] + opts,
                 env=self.build_env())
         elapsed = time() - build_start
 
