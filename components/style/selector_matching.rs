@@ -280,12 +280,18 @@ impl Stylist {
             after_map: PerPseudoElementSelectorMap::new(),
             rules_source_order: 0u,
         };
-        let ua_stylesheet = Stylesheet::from_bytes(
-            read_resource_file(["user-agent.css"]).unwrap().as_slice(),
-            Url::parse("chrome:///user-agent.css").unwrap(),
-            None,
-            None);
-        stylist.add_stylesheet(ua_stylesheet, UserAgentOrigin);
+        // FIXME: Add quirks-mode.css in quirks mode.
+        // FIXME: Add iso-8859-9.css when the document’s encoding is ISO-8859-8.
+        // FIXME: presentational-hints.css should be at author origin with zero specificity.
+        //        (Does it make a difference?)
+        for &filename in ["user-agent.css", "servo.css", "presentational-hints.css"].iter() {
+            let ua_stylesheet = Stylesheet::from_bytes(
+                read_resource_file([filename]).unwrap().as_slice(),
+                Url::parse(format!("chrome:///{}", filename).as_slice()).unwrap(),
+                None,
+                None);
+            stylist.add_stylesheet(ua_stylesheet, UserAgentOrigin);
+        }
         stylist
     }
 
