@@ -583,29 +583,29 @@ fn matches_compound_selector<'a,E,N>(selector: &CompoundSelector,
 
 /// A result of selector matching, includes 3 failure types,
 ///
-///     NotMatchedAndRestartFromClosestLaterSibling
-///     NotMatchedAndRestartFromClosestDescendant
-///     NotMatchedGlobally
+///   NotMatchedAndRestartFromClosestLaterSibling
+///   NotMatchedAndRestartFromClosestDescendant
+///   NotMatchedGlobally
 ///
 /// When NotMatchedGlobally appears, stop selector matching completely since
 /// the succeeding selectors never matches.
 /// It is raised when
-///     Child combinator cannot find the candidate element.
-///     Descendant combinator cannot find the candidate element.
+///   Child combinator cannot find the candidate element.
+///   Descendant combinator cannot find the candidate element.
 ///
 /// When NotMatchedAndRestartFromClosestDescendant appears, the selector
 /// matching does backtracking and restarts from the closest Descendant
 /// combinator.
 /// It is raised when
-///     NextSibling combinator cannot find the candidate element.
-///     LaterSibling combinator cannot find the candidate element.
-///     Child combinator doesn't match on the found element.
+///   NextSibling combinator cannot find the candidate element.
+///   LaterSibling combinator cannot find the candidate element.
+///   Child combinator doesn't match on the found element.
 ///
 /// When NotMatchedAndRestartFromClosestLaterSibling appears, the selector
 /// matching does backtracking and restarts from the closest LaterSibling
 /// combinator.
 /// It is raised when
-///     NextSibling combinator doesn't match on the found element.
+///   NextSibling combinator doesn't match on the found element.
 ///
 /// For example, when the selector "d1 d2 a" is provided and we cannot *find*
 /// an appropriate ancestor node for "d1", this selector matching raises
