@@ -30,7 +30,6 @@ use servo_util::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
 use std::mem;
 use std::ptr;
 use std::sync::atomics::{AtomicInt, Relaxed, SeqCst};
-use style;
 use style::TNode;
 
 #[allow(dead_code)]
@@ -243,32 +242,37 @@ type Generation = uint;
 /// Since a work-stealing queue is used for styling, sometimes, the bloom filter
 /// will no longer be the for the parent of the node we're currently on. When
 /// this happens, the task local bloom filter will be thrown away and rebuilt.
-local_data_key!(style_bloom: (BloomFilter, UnsafeLayoutNode, Generation))
+local_data_key!(style_bloom: (Box<BloomFilter>, UnsafeLayoutNode, Generation))
 
 /// Returns the task local bloom filter.
 ///
 /// If one does not exist, a new one will be made for you. If it is out of date,
 /// it will be thrown out and a new one will be made for you.
-fn take_task_local_bloom_filter(
-  parent_node: Option<LayoutNode>,
-  layout_context: &LayoutContext)
-      -> BloomFilter {
+fn take_task_local_bloom_filter(parent_node: Option<LayoutNode>,
+                                layout_context: &LayoutContext)
+                                -> Box<BloomFilter> {
 
-    let new_bloom =
-        |p: Option<LayoutNode>| -> BloomFilter {
-            let mut bf = BloomFilter::new(style::RECOMMENDED_SELECTOR_BLOOM_FILTER_SIZE);
-            p.map(|p| insert_ancestors_into_bloom_filter(&mut bf, p, layout_context));
-            if p.is_none() {
-                debug!("[{}] No parent, but new bloom filter!", tid());
+    // Creates a new bloom filter, reusing the allocation if possible.
+    let new_bloom = |parent: Option<LayoutNode>, bloom_filter: Option<Box<BloomFilter>>|
+                     -> Box<BloomFilter> {
+        let mut bloom_filter = match bloom_filter {
+            None => box BloomFilter::new(),
+            Some(mut bloom_filter) => {
+                bloom_filter.clear();
+                bloom_filter
             }
-            bf
         };
+        parent.map(|parent| {
+            insert_ancestors_into_bloom_filter(&mut *bloom_filter, parent, layout_context);
+        });
+        bloom_filter
+    };
 
     match (parent_node, style_bloom.replace(None)) {
         // Root node. Needs new bloom filter.
-        (None,     _  ) => new_bloom(None),
+        (None,     _  ) => new_bloom(None, None),
         // No bloom filter for this thread yet.
-        (Some(p), None) => new_bloom(Some(p)),
+        (Some(p), None) => new_bloom(Some(p), None),
         // Found cached bloom filter.
         (Some(p), Some((bf, old_node, old_generation))) => {
             // Hey, the cached parent is our parent! We can reuse the bloom filter.
@@ -278,13 +282,15 @@ fn take_task_local_bloom_filter(
                 bf
             // Oh no. the cached parent is stale. I guess we need a new one...
             } else {
-                new_bloom(Some(p))
+                new_bloom(Some(p), Some(bf))
             }
         },
     }
 }
 
-fn put_task_local_bloom_filter(bf: BloomFilter, unsafe_node: &UnsafeLayoutNode, layout_context: &LayoutContext) {
+fn put_task_local_bloom_filter(bf: Box<BloomFilter>,
+                               unsafe_node: &UnsafeLayoutNode,
+                               layout_context: &LayoutContext) {
     match style_bloom.replace(Some((bf, *unsafe_node, layout_context.shared.generation))) {
         None => {},
         Some(_) => fail!("Putting into a never-taken task-local bloom filter"),
@@ -387,8 +393,7 @@ fn recalc_style_for_node(mut unsafe_layout_node: UnsafeLayoutNode,
 
     // Before running the children, we need to insert our nodes into the bloom
     // filter.
-    debug!("[{}] + {:X}", tid(), unsafe_layout_node.val0());
-    bf.as_mut().map(|bf| node.insert_into_bloom_filter(bf));
+    bf.as_mut().map(|bf| node.insert_into_bloom_filter(&mut **bf));
 
     // It's *very* important that this block is in a separate scope to the block above,
     // to avoid a data race that can occur (github issue #2308). The block above issues
@@ -413,7 +418,7 @@ fn recalc_style_for_node(mut unsafe_layout_node: UnsafeLayoutNode,
 }
 
 fn construct_flows<'a>(unsafe_layout_node: &mut UnsafeLayoutNode,
-                       parent_bf: &mut Option<BloomFilter>,
+                       parent_bf: &mut Option<Box<BloomFilter>>,
                        layout_context: &'a LayoutContext<'a>) {
     loop {
         // Get a real layout node.
@@ -461,8 +466,7 @@ fn construct_flows<'a>(unsafe_layout_node: &mut UnsafeLayoutNode,
             *parent_bf = None;
             break;
         } else {
-            debug!("[{}] - {:X}", tid(), unsafe_layout_node.val0());
-            parent_bf.as_mut().map(|parent_bf| node.remove_from_bloom_filter(parent_bf));
+            parent_bf.as_mut().map(|parent_bf| node.remove_from_bloom_filter(&mut **parent_bf));
         }
 
         // Otherwise, enqueue the parent.
