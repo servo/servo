@@ -7,7 +7,7 @@
 
 use css::matching::{ApplicableDeclarations, MatchMethods};
 use css::node_style::StyledNode;
-use construct::{FlowConstructionResult, NoConstructionResult};
+use construct::FlowConstructionResult;
 use context::{LayoutContext, SharedLayoutContext};
 use flow::{Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
 use flow::{PreorderFlowTraversal, PostorderFlowTraversal};
@@ -479,14 +479,12 @@ impl LayoutTask {
     }
 
     /// Retrieves the flow tree root from the root node.
-    fn get_layout_root(&self, node: LayoutNode) -> FlowRef {
+    fn get_layout_root(&self, node: LayoutNode, layout_context: &LayoutContext) -> FlowRef {
         let mut layout_data_ref = node.mutate_layout_data();
-        let result = match &mut *layout_data_ref {
-            &Some(ref mut layout_data) => {
-                mem::replace(&mut layout_data.data.flow_construction_result, NoConstructionResult)
-            }
-            &None => fail!("no layout data for root node"),
-        };
+        let layout_data = layout_data_ref.as_mut().expect("no layout data for root node");
+
+        let result = layout_data.data.flow_construction_result.swap_out(layout_context);
+
         let mut flow = match result {
             FlowConstructionResult(mut flow, abs_descendants) => {
                 // Note: Assuming that the root has display 'static' (as per
@@ -499,6 +497,7 @@ impl LayoutTask {
             }
             _ => fail!("Flow construction didn't result in a flow at the root of the tree!"),
         };
+
         flow.get_mut().mark_as_root();
         flow
     }
@@ -657,7 +656,23 @@ impl LayoutTask {
                 }
             }
 
-            self.get_layout_root((*node).clone())
+            self.get_layout_root((*node).clone(), &LayoutContext::new(&shared_layout_ctx))
+        });
+
+        profile(time::LayoutRestyleDamagePropagation,
+                Some((&data.url, data.iframe, self.first_reflow.get())),
+                self.time_profiler_chan.clone(),
+                || {
+            layout_root.get_mut().propagate_restyle_damage();
+        });
+
+        profile(time::LayoutNonIncrementalReset,
+                Some((&data.url, data.iframe, self.first_reflow.get())),
+                self.time_profiler_chan.clone(),
+                || {
+            if shared_layout_ctx.opts.incremental_layout {
+                layout_root.get_mut().nonincremental_reset();
+            }
         });
 
         // Verification of the flow tree, which ensures that all nodes were either marked as leaves

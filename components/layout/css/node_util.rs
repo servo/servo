@@ -13,6 +13,7 @@ use sync::Arc;
 pub trait NodeUtil {
     fn get_css_select_results<'a>(&'a self) -> &'a Arc<ComputedValues>;
     fn have_css_select_results(&self) -> bool;
+    fn remove_css_select_results(self);
 
     fn get_restyle_damage(self) -> RestyleDamage;
     fn set_restyle_damage(self, damage: RestyleDamage);
@@ -58,6 +59,20 @@ impl<'ln> NodeUtil for ThreadSafeLayoutNode<'ln> {
     fn have_css_select_results(&self) -> bool {
         let layout_data_ref = self.borrow_layout_data();
         layout_data_ref.as_ref().unwrap().shared_data.style.is_some()
+    }
+
+    fn remove_css_select_results(self) {
+        let mut layout_data_ref = self.mutate_layout_data();
+        let layout_data = layout_data_ref.as_mut().expect("no layout data");
+
+        let style =
+            match self.get_pseudo_element_type() {
+                Before(_) => &mut layout_data.data.before_style,
+                After (_) => &mut layout_data.data.after_style,
+                Normal    => &mut layout_data.shared_data.style,
+            };
+
+        *style = None;
     }
 
     /// Get the description of how to account for recent style changes.
