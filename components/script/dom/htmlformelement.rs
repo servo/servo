@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
+use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding::HTMLFormElementMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
@@ -14,7 +16,7 @@ use dom::document::{Document, DocumentHelpers};
 use dom::element::{Element, AttributeHandlers, HTMLFormElementTypeId, HTMLTextAreaElementTypeId, HTMLDataListElementTypeId};
 use dom::element::{HTMLInputElementTypeId, HTMLButtonElementTypeId, HTMLObjectElementTypeId, HTMLSelectElementTypeId};
 use dom::event::Event;
-use dom::eventtarget::{EventTarget, EventTargetHelpers, NodeTargetTypeId};
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::htmlinputelement::HTMLInputElement;
 use dom::node::{Node, NodeHelpers, ElementNodeTypeId, document_from_node, window_from_node};
@@ -163,24 +165,24 @@ pub trait HTMLFormElementHelpers {
 impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
     fn submit(self, _from_submit_method: bool, submitter: FormSubmitter) {
         // Step 1
-        let doc = *document_from_node(self).root();
-        let win = *window_from_node(self).root();
+        let doc = document_from_node(self).root();
+        let win = window_from_node(self).root();
         let base = doc.url();
         // TODO: Handle browsing contexts
         // TODO: Handle validation
-        let event = Event::new(&Window(win),
+        let event = Event::new(&Window(*win),
                                "submit".to_string(),
                                true, true).root();
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        target.dispatch_event_with_target(None, *event).ok();
-        if event.canceled.get() {
+        target.DispatchEvent(*event).ok();
+        if event.DefaultPrevented() {
             return;
         }
         // Step 6
         let form_data = self.get_form_dataset(Some(submitter));
         // Step 7-8
         let mut action = submitter.action();
-        if action.len() == 0 {
+        if action.is_empty() {
             action = base.serialize();
         }
         // TODO: Resolve the url relative to the submitter element
@@ -194,9 +196,7 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
         // TODO: Handle browsing contexts, partially loaded documents (step 16-17)
 
         let parsed_data = match enctype {
-            UrlEncoded => {
-                serialize(form_data.iter().map(|d| (d.name.as_slice(), d.value.as_slice())), None)
-            }
+            UrlEncoded => serialize(form_data.iter().map(|d| (d.name.as_slice(), d.value.as_slice())), None),
             _ => "".to_string() // TODO: Add serializers for the other encoding types
         };
 
@@ -204,7 +204,9 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
         // Step 18
         match (scheme.as_slice(), method) {
             (_, FormDialog) => return, // Unimplemented
-            ("http", FormGet) | ("https", FormGet) => { load_data.url.query = Some(parsed_data); },
+            ("http", FormGet) | ("https", FormGet) => {
+                load_data.url.query = Some(parsed_data);
+            },
             ("http", FormPost) | ("https", FormPost) => {
                 load_data.method = Post;
                 load_data.data = Some(parsed_data.into_bytes());
@@ -266,33 +268,33 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
             match child.type_id() {
                 ElementNodeTypeId(HTMLInputElementTypeId) => {
                     let input: JSRef<HTMLInputElement> = HTMLInputElementCast::to_ref(child).unwrap();
-                    let elem: JSRef<Element> = ElementCast::from_ref(input);
-                    match elem.get_string_attribute("type").as_slice() {
+                    let ty = input.Type();
+                    let name = input.Name();
+                    match ty.as_slice() {
                         "radio" | "checkbox" => {
-                            if !input.Checked() {
+                            if !input.Checked() || name.is_empty() {
                                 return None;
                             }
                         },
                         "image" => (),
                         _ => {
-                            if elem.get_string_attribute("name").len() == 0 {
+                            if name.is_empty() {
                                 return None;
                             }
                         }
                     }
-                    let ty = input.Type(); // IDL attr, not HTML attr
-                    let mut value_attr = elem.get_string_attribute("value");
-                    let name = elem.get_string_attribute("name");
+
+                    let mut value = input.Value();
                     match ty.as_slice() {
                         "image" => None, // Unimplemented
                         "radio" | "checkbox" => {
-                            if value_attr.len() == 0 {
-                                value_attr = "on".to_string();
+                            if value.is_empty() {
+                                value = "on".to_string();
                             }
                             Some(FormDatum {
                                 ty: ty,
                                 name: name,
-                                value: value_attr
+                                value: value
                             })
                         },
                         "file" => None, // Unimplemented
@@ -371,18 +373,14 @@ pub enum FormSubmitter<'a> {
 impl<'a> FormSubmitter<'a> {
     fn action(&self) -> DOMString {
         match *self {
-            FormElement(form) => {
-                let element: JSRef<Element> = ElementCast::from_ref(form);
-                element.get_url_attribute("action")
-            }
+            FormElement(form) => form.Action()
         }
     }
 
     fn enctype(&self) -> FormEncType {
         match *self {
             FormElement(form) => {
-                let element: JSRef<Element> = ElementCast::from_ref(form);
-                match element.get_string_attribute("enctype").into_ascii_lower().as_slice() {
+                match form.Enctype().as_slice() {
                     "multipart/form-data" => FormDataEncoded,
                     "text/plain" => TextPlainEncoded,
                     // https://html.spec.whatwg.org/multipage/forms.html#attr-fs-enctype
@@ -396,8 +394,7 @@ impl<'a> FormSubmitter<'a> {
     fn method(&self) -> FormMethod {
         match *self {
             FormElement(form) => {
-                let element: JSRef<Element> = ElementCast::from_ref(form);
-                match element.get_string_attribute("method").into_ascii_lower().as_slice() {
+                match form.Method().as_slice() {
                     "dialog" => FormDialog,
                     "post" => FormPost,
                     _ => FormGet
