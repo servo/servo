@@ -62,6 +62,7 @@ pub mod table_rowgroup;
 pub mod table_row;
 pub mod table_cell;
 pub mod text;
+pub mod traversal;
 pub mod util;
 pub mod incremental;
 pub mod wrapper;
