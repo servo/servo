@@ -888,3 +888,15 @@ pub unsafe fn layout_node_from_unsafe_layout_node(node: &UnsafeLayoutNode) -> La
     let (node, _) = *node;
     mem::transmute(node)
 }
+
+/// A top-down traversal.
+pub trait PreorderDOMTraversal {
+    /// The operation to perform. Return true to continue or false to stop.
+    fn process(&self, _node: LayoutNode);
+}
+
+/// A bottom-up traversal, with a optional in-order pass.
+pub trait PostorderDOMTraversal {
+    /// The operation to perform. Return true to continue or false to stop.
+    fn process(&self, _node: LayoutNode);
+}

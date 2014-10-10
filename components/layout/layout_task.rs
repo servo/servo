@@ -16,6 +16,7 @@ use flow_ref::FlowRef;
 use layout_debug;
 use parallel::UnsafeFlow;
 use parallel;
+use traversal;
 use util::{LayoutDataAccess, LayoutDataWrapper, OpaqueNodeMethods, ToGfxColor};
 use wrapper::{LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
 
@@ -144,108 +145,6 @@ pub struct LayoutTask {
     ///
     /// All the other elements of this struct are read-only.
     pub rw_data: Arc<Mutex<LayoutTaskData>>,
-}
-
-/// The flow tree verification traversal. This is only on in debug builds.
-#[cfg(debug)]
-struct FlowTreeVerificationTraversal;
-
-#[cfg(debug)]
-impl PreorderFlowTraversal for FlowTreeVerificationTraversal {
-    #[inline]
-    fn process(&mut self, flow: &mut Flow) -> bool {
-        let base = flow::base(flow);
-        if !base.flags.is_leaf() && !base.flags.is_nonleaf() {
-            println("flow tree verification failed: flow wasn't a leaf or a nonleaf!");
-            flow.dump();
-            fail!("flow tree verification failed")
-        }
-        true
-    }
-}
-
-/// The bubble-inline-sizes traversal, the first part of layout computation. This computes preferred
-/// and intrinsic inline-sizes and bubbles them up the tree.
-pub struct BubbleISizesTraversal<'a> {
-    pub layout_context: &'a LayoutContext<'a>,
-}
-
-impl<'a> PostorderFlowTraversal for BubbleISizesTraversal<'a> {
-    #[inline]
-    fn process(&mut self, flow: &mut Flow) -> bool {
-        flow.bubble_inline_sizes(self.layout_context);
-        true
-    }
-
-    // FIXME: We can't prune until we start reusing flows
-    /*
-    #[inline]
-    fn should_prune(&mut self, flow: &mut Flow) -> bool {
-        flow::mut_base(flow).restyle_damage.lacks(BubbleISizes)
-    }
-    */
-}
-
-/// The assign-inline-sizes traversal. In Gecko this corresponds to `Reflow`.
-pub struct AssignISizesTraversal<'a> {
-    pub layout_context: &'a LayoutContext<'a>,
-}
-
-impl<'a> PreorderFlowTraversal for AssignISizesTraversal<'a> {
-    #[inline]
-    fn process(&mut self, flow: &mut Flow) -> bool {
-        flow.assign_inline_sizes(self.layout_context);
-        true
-    }
-}
-
-/// The assign-block-sizes-and-store-overflow traversal, the last (and most expensive) part of layout
-/// computation. Determines the final block-sizes for all layout objects, computes positions, and
-/// computes overflow regions. In Gecko this corresponds to `FinishAndStoreOverflow`.
-pub struct AssignBSizesAndStoreOverflowTraversal<'a> {
-    pub layout_context: &'a LayoutContext<'a>,
-}
-
-impl<'a> PostorderFlowTraversal for AssignBSizesAndStoreOverflowTraversal<'a> {
-    #[inline]
-    fn process(&mut self, flow: &mut Flow) -> bool {
-        flow.assign_block_size(self.layout_context);
-        // Skip store-overflow for absolutely positioned flows. That will be
-        // done in a separate traversal.
-        if !flow.is_store_overflow_delayed() {
-            flow.store_overflow(self.layout_context);
-        }
-        true
-    }
-
-    #[inline]
-    fn should_process(&mut self, flow: &mut Flow) -> bool {
-        !flow::base(flow).flags.impacted_by_floats()
-    }
-}
-
-/// The display list construction traversal.
-pub struct BuildDisplayListTraversal<'a> {
-    layout_context: &'a LayoutContext<'a>,
-}
-
-impl<'a> BuildDisplayListTraversal<'a> {
-    #[inline]
-    fn process(&mut self, flow: &mut Flow) {
-        flow.compute_absolute_position();
-
-        for kid in flow::mut_base(flow).child_iter() {
-            if !kid.is_absolutely_positioned() {
-                self.process(kid)
-            }
-        }
-
-        for absolute_descendant_link in flow::mut_base(flow).abs_descendants.iter() {
-            self.process(absolute_descendant_link)
-        }
-
-        flow.build_display_list(self.layout_context)
-    }
 }
 
 struct LayoutImageResponder {
@@ -617,7 +516,7 @@ impl LayoutTask {
         let _scope = layout_debug_scope!("solve_constraints");
 
         if layout_context.shared.opts.bubble_inline_sizes_separately {
-            let mut traversal = BubbleISizesTraversal {
+            let mut traversal = traversal::BubbleISizes {
                 layout_context: layout_context,
             };
             layout_root.traverse_postorder(&mut traversal);
@@ -625,14 +524,14 @@ impl LayoutTask {
 
         // FIXME(pcwalton): Prune these two passes.
         {
-            let mut traversal = AssignISizesTraversal {
+            let mut traversal = traversal::AssignISizes {
                 layout_context: layout_context,
             };
             layout_root.traverse_preorder(&mut traversal);
         }
 
         {
-            let mut traversal = AssignBSizesAndStoreOverflowTraversal {
+            let mut traversal = traversal::AssignBSizesAndStoreOverflow {
                 layout_context: layout_context,
             };
             layout_root.traverse_postorder(&mut traversal);
@@ -650,7 +549,7 @@ impl LayoutTask {
                                   layout_root: &mut FlowRef,
                                   shared_layout_context: &SharedLayoutContext) {
         if shared_layout_context.opts.bubble_inline_sizes_separately {
-            let mut traversal = BubbleISizesTraversal {
+            let mut traversal = traversal::BubbleISizes {
                 layout_context: &LayoutContext::new(shared_layout_context),
             };
             layout_root.get_mut().traverse_postorder(&mut traversal);
@@ -677,7 +576,7 @@ impl LayoutTask {
     #[inline(never)]
     #[cfg(debug)]
     fn verify_flow_tree(&self, layout_root: &mut FlowRef) {
-        let mut traversal = FlowTreeVerificationTraversal;
+        let mut traversal = traversal::FlowTreeVerification;
         layout_root.traverse_preorder(&mut traversal);
     }
 
@@ -757,7 +656,7 @@ impl LayoutTask {
                                                    None)
                 }
                 Some(ref mut traversal) => {
-                    parallel::recalc_style_for_subtree(node, &mut shared_layout_ctx, traversal)
+                    parallel::traverse_dom_preorder(*node, &mut shared_layout_ctx, traversal)
                 }
             }
 
@@ -807,7 +706,7 @@ impl LayoutTask {
                 match rw_data.parallel_traversal {
                     None => {
                         let layout_ctx = LayoutContext::new(&shared_layout_ctx);
-                        let mut traversal = BuildDisplayListTraversal {
+                        let mut traversal = traversal::BuildDisplayList {
                             layout_context: &layout_ctx,
                         };
                         traversal.process(layout_root.get_mut());
