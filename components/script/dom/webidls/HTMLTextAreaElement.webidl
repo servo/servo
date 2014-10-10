@@ -21,7 +21,7 @@ interface HTMLTextAreaElement : HTMLElement {
   //         attribute unsigned long rows;
   //         attribute DOMString wrap;
 
-  //readonly attribute DOMString type;
+  readonly attribute DOMString type;
   //         attribute DOMString defaultValue;
   //[TreatNullAs=EmptyString] attribute DOMString value;
   //readonly attribute unsigned long textLength;
