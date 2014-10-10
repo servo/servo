@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use std::ascii::AsciiExt;
 use std::collections::hashmap::HashMap;
 use std::hash::Hash;
 use std::num::div_rem;
@@ -723,14 +724,17 @@ pub fn matches_simple_selector<'a, E:TElement<'a>,
             *shareable = false;
             element.match_attr(attr, |_| true)
         }
-        AttrEqual(ref attr, ref value) => {
+        AttrEqual(ref attr, ref value, case_sensitivity) => {
             if value.as_slice() != "DIR" {
                 // FIXME(pcwalton): Remove once we start actually supporting RTL text. This is in
                 // here because the UA style otherwise disables all style sharing completely.
                 *shareable = false
             }
             element.match_attr(attr, |attr_value| {
-                attr_value == value.as_slice()
+                match case_sensitivity {
+                    CaseSensitive => attr_value == value.as_slice(),
+                    CaseInsensitive => attr_value.eq_ignore_ascii_case(value.as_slice()),
+                }
             })
         }
         AttrIncludes(ref attr, ref value) => {

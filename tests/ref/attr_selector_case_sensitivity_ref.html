@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Attribute selector case-sensitivity: [foo=bar] and [foo=bar i]</title>
+    <style>
+      p[data-foo=Bar] { color: green }
+      p[data-foo=bar] { color: red }
+      p[data-foo=baz i] { color: green }
+      p[data-foo=baz] { color: red }
+    </style>
+  </head>
+  <body>
+    <p style="color: green">This text should be green.</p>
+    <p style="color: green">This text should be green.</p>
+    <p>This text should be black.</p>
+  </body>
+</html>
