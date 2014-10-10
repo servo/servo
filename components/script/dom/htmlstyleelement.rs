@@ -7,11 +7,11 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLStyleElementDerived, NodeCast};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
-use dom::document::Document;
+use dom::document::{Document, DocumentHelpers};
 use dom::element::HTMLStyleElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, NodeHelpers, ElementNodeTypeId, window_from_node};
+use dom::node::{Node, NodeHelpers, ElementNodeTypeId, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use layout_interface::{AddStylesheetMsg, LayoutChan};
 use servo_util::str::DOMString;
@@ -59,6 +59,10 @@ impl<'a> StyleElementHelpers for JSRef<'a, HTMLStyleElement> {
         let sheet = Stylesheet::from_str(data.as_slice(), url);
         let LayoutChan(ref layout_chan) = win.page().layout_chan;
         layout_chan.send(AddStylesheetMsg(sheet));
+
+        // Force a re-layout.
+        let doc = document_from_node(self).root();
+        doc.content_changed(node);
     }
 }
 
