@@ -5,14 +5,14 @@
 use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLLinkElementDerived;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
 use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
 use dom::bindings::utils::{Reflectable, Reflector};
-use dom::document::Document;
+use dom::document::{Document, DocumentHelpers};
 use dom::element::{AttributeHandlers, Element, HTMLLinkElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, NodeHelpers, ElementNodeTypeId, window_from_node};
+use dom::node::{Node, NodeHelpers, ElementNodeTypeId, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use layout_interface::{LayoutChan, LoadStylesheetMsg};
 use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS};
@@ -120,6 +120,10 @@ impl<'a> PrivateHTMLLinkElementHelpers for JSRef<'a, HTMLLinkElement> {
             Ok(url) => {
                 let LayoutChan(ref layout_chan) = window.page().layout_chan;
                 layout_chan.send(LoadStylesheetMsg(url));
+                // Force a re-layout.
+                let doc = document_from_node(self).root();
+                let node: JSRef<Node> = NodeCast::from_ref(self);
+                doc.content_changed(node);
             }
             Err(e) => debug!("Parsing url {:s} failed: {:?}", href, e)
         }
