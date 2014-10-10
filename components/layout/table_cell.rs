@@ -100,7 +100,7 @@ impl Flow for TableCellFlow {
         debug!("assign_inline_sizes({}): assigning inline_size for flow", "table_cell");
 
         // The position was set to the column inline-size by the parent flow, table row flow.
-        let containing_block_inline_size = self.block_flow.base.position.size.inline;
+        let containing_block_inline_size = self.block_flow.base.block_container_inline_size;
 
         let inline_size_computer = InternalTable;
         inline_size_computer.compute_used_inline_size(&mut self.block_flow, ctx, containing_block_inline_size);

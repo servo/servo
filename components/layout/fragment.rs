@@ -215,8 +215,8 @@ pub struct ImageFragmentInfo {
 impl ImageFragmentInfo {
     /// Creates a new image fragment from the given URL and local image cache.
     ///
-    /// FIXME(pcwalton): The fact that image fragments store the cache in the fragment makes little sense to
-    /// me.
+    /// FIXME(pcwalton): The fact that image fragments store the cache in the fragment makes little
+    /// sense to me.
     pub fn new(node: &ThreadSafeLayoutNode,
                image_url: Url,
                local_image_cache: Arc<Mutex<LocalImageCache<UntrustedNodeAddress>>>)
@@ -1041,7 +1041,9 @@ impl Fragment {
                 StackingLevel::from_background_and_border_level(background_and_border_level);
 
             // Add a pseudo-display item for content box queries. This is a very bogus thing to do.
-            let base_display_item = box BaseDisplayItem::new(absolute_fragment_bounds, self.node, level);
+            let base_display_item = box BaseDisplayItem::new(absolute_fragment_bounds,
+                                                             self.node,
+                                                             level);
             display_list.push(PseudoDisplayItemClass(base_display_item));
 
             // Add the background to the list, if applicable.
@@ -1061,11 +1063,12 @@ impl Fragment {
             match self.specific {
                 ScannedTextFragment(_) => {},
                 _ => {
-                        self.build_display_list_for_background_if_applicable(&*self.style,
-                                                                             display_list,
-                                                                             layout_context,
-                                                                             level,
-                                                                             &absolute_fragment_bounds);
+                    self.build_display_list_for_background_if_applicable(
+                        &*self.style,
+                        display_list,
+                        layout_context,
+                        level,
+                        &absolute_fragment_bounds);
                 }
             }
 
@@ -1075,10 +1078,11 @@ impl Fragment {
             match self.inline_context {
                 Some(ref inline_context) => {
                     for style in inline_context.styles.iter().rev() {
-                        self.build_display_list_for_borders_if_applicable(&**style,
-                                                                          display_list,
-                                                                          &absolute_fragment_bounds,
-                                                                          level);
+                        self.build_display_list_for_borders_if_applicable(
+                            &**style,
+                            display_list,
+                            &absolute_fragment_bounds,
+                            level);
                     }
                 }
                 None => {}
@@ -1187,41 +1191,36 @@ impl Fragment {
                 // should have a real `SERVO_DEBUG` system.
                 debug!("{:?}", self.build_debug_borders_around_fragment(display_list, flow_origin))
             }
-            ImageFragment(_) => {
-                match self.specific {
-                    ImageFragment(ref mut image_fragment) => {
-                        let image_ref = &mut image_fragment.image;
-                        match image_ref.get_image(self.node.to_untrusted_node_address()) {
-                            Some(image) => {
-                                debug!("(building display list) building image fragment");
+            ImageFragment(ref mut image_fragment) => {
+                let image_ref = &mut image_fragment.image;
+                match image_ref.get_image(self.node.to_untrusted_node_address()) {
+                    Some(image) => {
+                        debug!("(building display list) building image fragment");
 
-                                // Place the image into the display list.
-                                let image_display_item = box ImageDisplayItem {
-                                    base: BaseDisplayItem::new(absolute_content_box,
-                                                               self.node,
-                                                               ContentStackingLevel),
-                                    image: image.clone(),
-                                    stretch_size: absolute_content_box.size,
-                                };
-                                accumulator.push(display_list,
-                                                 ImageDisplayItemClass(image_display_item))
-                            }
-                            None => {
-                                // No image data at all? Do nothing.
-                                //
-                                // TODO: Add some kind of placeholder image.
-                                debug!("(building display list) no image :(");
-                            }
-                        }
+                        // Place the image into the display list.
+                        let image_display_item = box ImageDisplayItem {
+                            base: BaseDisplayItem::new(absolute_content_box,
+                                                       self.node,
+                                                       ContentStackingLevel),
+                            image: image.clone(),
+                            stretch_size: absolute_content_box.size,
+                        };
+
+                        accumulator.push(display_list, ImageDisplayItemClass(image_display_item))
                     }
-                    _ => fail!("shouldn't get here"),
+                    None => {
+                        // No image data at all? Do nothing.
+                        //
+                        // TODO: Add some kind of placeholder image.
+                        debug!("(building display list) no image :(");
+                    }
                 }
-
-                // FIXME(pcwalton): This is a bit of an abuse of the logging
-                // infrastructure. We should have a real `SERVO_DEBUG` system.
-                debug!("{:?}", self.build_debug_borders_around_fragment(display_list, flow_origin))
             }
         }
+
+        // FIXME(pcwalton): This is a bit of an abuse of the logging
+        // infrastructure. We should have a real `SERVO_DEBUG` system.
+        debug!("{:?}", self.build_debug_borders_around_fragment(display_list, flow_origin))
 
         // If this is an iframe, then send its position and size up to the constellation.
         //
@@ -1538,7 +1537,7 @@ impl Fragment {
         match self.specific {
             InlineAbsoluteHypotheticalFragment(ref mut info) => {
                 let block_flow = info.flow_ref.get_mut().as_block();
-                block_flow.base.position.size.inline =
+                block_flow.base.block_container_inline_size =
                     block_flow.base.intrinsic_inline_sizes.preferred_inline_size +
                     block_flow.base.intrinsic_inline_sizes.surround_inline_size;
 
@@ -1549,18 +1548,19 @@ impl Fragment {
                 let block_flow = info.flow_ref.get_mut().as_block();
                 self.border_box.size.inline = block_flow.base.intrinsic_inline_sizes.preferred_inline_size +
                                                 block_flow.base.intrinsic_inline_sizes.surround_inline_size;
-                block_flow.base.position.size.inline = self.border_box.size.inline;
+                block_flow.base.block_container_inline_size = self.border_box.size.inline;
             }
             ScannedTextFragment(_) => {
-                // Scanned text fragments will have already had their content inline-sizes assigned by this
-                // point.
+                // Scanned text fragments will have already had their content inline-sizes assigned
+                // by this point.
                 self.border_box.size.inline = self.border_box.size.inline + noncontent_inline_size
             }
             ImageFragment(ref mut image_fragment_info) => {
                 // TODO(ksh8281): compute border,margin
-                let inline_size = ImageFragmentInfo::style_length(style_inline_size,
-                                                        image_fragment_info.dom_inline_size,
-                                                        container_inline_size);
+                let inline_size = ImageFragmentInfo::style_length(
+                    style_inline_size,
+                    image_fragment_info.dom_inline_size,
+                    container_inline_size);
 
                 let inline_size = match inline_size {
                     Auto => {
@@ -1573,18 +1573,20 @@ impl Fragment {
                             let ratio = intrinsic_width.to_f32().unwrap() /
                                         intrinsic_height.to_f32().unwrap();
 
-                            let specified_height = ImageFragmentInfo::style_length(style_block_size,
-                                                            image_fragment_info.dom_block_size,
-                                                            Au(0));
+                            let specified_height = ImageFragmentInfo::style_length(
+                                style_block_size,
+                                image_fragment_info.dom_block_size,
+                                Au(0));
                             let specified_height = match specified_height {
                                 Auto => intrinsic_height,
                                 Specified(h) => h,
                             };
-                            let specified_height = ImageFragmentInfo::clamp_size(specified_height,
-                                                                                 style_min_block_size,
-                                                                                 style_max_block_size,
-                                                                                 Au(0));
-                            Au::new((specified_height.to_f32().unwrap() * ratio) as i32)
+                            let specified_height = ImageFragmentInfo::clamp_size(
+                                specified_height,
+                                style_min_block_size,
+                                style_max_block_size,
+                                Au(0));
+                            Au((specified_height.to_f32().unwrap() * ratio) as i32)
                         }
                     },
                     Specified(w) => w,
@@ -1606,7 +1608,7 @@ impl Fragment {
     /// been assigned first.
     ///
     /// Ideally, this should follow CSS 2.1 § 10.6.2.
-    pub fn assign_replaced_block_size_if_necessary(&mut self) {
+    pub fn assign_replaced_block_size_if_necessary(&mut self, containing_block_block_size: Au) {
         match self.specific {
             GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment |
             TableRowFragment | TableWrapperFragment | InputFragment(_) => return,
@@ -1627,17 +1629,17 @@ impl Fragment {
             ImageFragment(ref mut image_fragment_info) => {
                 // TODO(ksh8281): compute border,margin,padding
                 let inline_size = image_fragment_info.computed_inline_size();
-                // FIXME(ksh8281): we shouldn't assign block-size this way
-                // we don't know about size of parent's block-size
-                let block_size = ImageFragmentInfo::style_length(style_block_size,
-                                                        image_fragment_info.dom_block_size,
-                                                        Au(0));
+                let block_size = ImageFragmentInfo::style_length(
+                    style_block_size,
+                    image_fragment_info.dom_block_size,
+                    containing_block_block_size);
 
                 let block_size = match block_size {
                     Auto => {
                         let scale = image_fragment_info.image_inline_size().to_f32().unwrap()
                             / inline_size.to_f32().unwrap();
-                        Au::new((image_fragment_info.image_block_size().to_f32().unwrap() / scale) as i32)
+                        Au((image_fragment_info.image_block_size().to_f32().unwrap() / scale)
+                           as i32)
                     },
                     Specified(h) => {
                         h
@@ -1652,8 +1654,8 @@ impl Fragment {
                 self.border_box.size.block = block_size + noncontent_block_size
             }
             ScannedTextFragment(_) => {
-                // Scanned text fragments' content block-sizes are calculated by the text run scanner
-                // during flow construction.
+                // Scanned text fragments' content block-sizes are calculated by the text run
+                // scanner during flow construction.
                 self.border_box.size.block = self.border_box.size.block + noncontent_block_size
             }
             InlineBlockFragment(ref mut info) => {
