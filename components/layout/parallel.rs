@@ -188,8 +188,6 @@ trait ParallelPostorderDomTraversal : PostorderDomTraversal {
 pub struct FlowParallelInfo {
     /// The number of children that still need work done.
     pub children_count: AtomicInt,
-    /// The number of children and absolute descendants that still need work done.
-    pub children_and_absolute_descendant_count: AtomicInt,
     /// The address of the parent flow.
     pub parent: UnsafeFlow,
 }
@@ -198,7 +196,6 @@ impl FlowParallelInfo {
     pub fn new() -> FlowParallelInfo {
         FlowParallelInfo {
             children_count: AtomicInt::new(0),
-            children_and_absolute_descendant_count: AtomicInt::new(0),
             parent: null_unsafe_flow(),
         }
     }
@@ -382,39 +379,12 @@ fn compute_absolute_position(unsafe_flow: UnsafeFlow,
         // Compute the absolute position for the flow.
         flow.get_mut().compute_absolute_position();
 
-        // If we are the containing block, count the number of absolutely-positioned children, so
-        // that we don't double-count them in the `children_and_absolute_descendant_count`
-        // reference count.
-        let mut absolutely_positioned_child_count = 0u;
+        // Enqueue all children.
         for kid in flow::child_iter(flow.get_mut()) {
-            if kid.is_absolutely_positioned() {
-                absolutely_positioned_child_count += 1;
-            }
-        }
-
-        drop(flow::mut_base(flow.get_mut()).parallel
-                                           .children_and_absolute_descendant_count
-                                           .fetch_sub(absolutely_positioned_child_count as int,
-                                                      SeqCst));
-
-        // Enqueue all non-absolutely-positioned children.
-        for kid in flow::child_iter(flow.get_mut()) {
-            if !kid.is_absolutely_positioned() {
-                had_descendants = true;
-                proxy.push(WorkUnit {
-                    fun: compute_absolute_position,
-                    data: borrowed_flow_to_unsafe_flow(kid),
-                });
-            }
-        }
-
-        // Possibly enqueue absolute descendants.
-        for absolute_descendant_link in flow::mut_base(flow.get_mut()).abs_descendants.iter() {
             had_descendants = true;
-            let descendant = absolute_descendant_link;
             proxy.push(WorkUnit {
                 fun: compute_absolute_position,
-                data: borrowed_flow_to_unsafe_flow(descendant),
+                data: borrowed_flow_to_unsafe_flow(kid),
             });
         }
 
@@ -441,26 +411,12 @@ fn build_display_list(mut unsafe_flow: UnsafeFlow,
             {
                 let base = flow::mut_base(flow.get_mut());
 
-                // Reset the count of children and absolute descendants for the next layout
-                // traversal.
-                let children_and_absolute_descendant_count = base.children.len() +
-                    base.abs_descendants.len();
-                base.parallel
-                    .children_and_absolute_descendant_count
-                    .store(children_and_absolute_descendant_count as int, Relaxed);
+                // Reset the count of children for the next layout traversal.
+                base.parallel.children_count.store(base.children.len() as int, Relaxed);
             }
 
             // Possibly enqueue the parent.
-            let unsafe_parent = if flow.get().is_absolutely_positioned() {
-                match *flow::mut_base(flow.get_mut()).absolute_cb.get() {
-                    None => fail!("no absolute containing block for absolutely positioned?!"),
-                    Some(ref mut absolute_cb) => {
-                        mut_borrowed_flow_to_unsafe_flow(absolute_cb.get_mut())
-                    }
-                }
-            } else {
-                flow::mut_base(flow.get_mut()).parallel.parent
-            };
+            let unsafe_parent = flow::mut_base(flow.get_mut()).parallel.parent;
             if unsafe_parent == null_unsafe_flow() {
                 // We're done!
                 break
@@ -472,7 +428,7 @@ fn build_display_list(mut unsafe_flow: UnsafeFlow,
             let parent: &mut FlowRef = mem::transmute(&unsafe_parent);
             let parent_base = flow::mut_base(parent.get_mut());
             if parent_base.parallel
-                          .children_and_absolute_descendant_count
+                          .children_count
                           .fetch_sub(1, SeqCst) == 1 {
                 // We were the last child of our parent. Build display lists for our parent.
                 unsafe_flow = unsafe_parent

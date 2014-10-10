@@ -323,13 +323,7 @@ impl<'a> BuildDisplayList<'a> {
         flow.compute_absolute_position();
 
         for kid in flow::mut_base(flow).child_iter() {
-            if !kid.is_absolutely_positioned() {
-                self.process(kid)
-            }
-        }
-
-        for absolute_descendant_link in flow::mut_base(flow).abs_descendants.iter() {
-            self.process(absolute_descendant_link)
+            self.process(kid)
         }
 
         flow.build_display_list(self.layout_context)
