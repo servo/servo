@@ -155,7 +155,9 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     make_setter!(SetType, "type")
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-value
-    make_getter!(Value)
+    fn Value(self) -> DOMString {
+        self.value.borrow().clone().unwrap_or("".to_string())
+    }
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-value
     make_setter!(SetValue, "value")
