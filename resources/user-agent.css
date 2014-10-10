@@ -96,6 +96,8 @@ link:link,
 link:visited        { text-decoration: underline }
 :focus              { outline: thin dotted invert }
 
+button { box-sizing: border-box; }
+
 /* Begin bidirectionality settings (do not change) */
 BDO[DIR="ltr"]      { direction: ltr; unicode-bidi: bidi-override }
 BDO[DIR="rtl"]      { direction: rtl; unicode-bidi: bidi-override }
