@@ -121,7 +121,9 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     make_bool_setter!(SetDisabled, "disabled")
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-checked
-    make_bool_getter!(Checked)
+    fn Checked(self) -> bool {
+        self.checked.get()
+    }
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-checked
     make_bool_setter!(SetChecked, "checked")
