@@ -14,11 +14,11 @@ use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable, ResultRootable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::attr::{AttrHelpers};
 use dom::document::{Document, DocumentHelpers};
-use dom::element::{AttributeHandlers, Element, HTMLInputElementTypeId   };
+use dom::element::{AttributeHandlers, Element, HTMLInputElementTypeId};
 use dom::event::Event;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::htmlformelement::{FormOwner, HTMLFormElement};
+use dom::htmlformelement::{InputElement, FormOwner, HTMLFormElement, HTMLFormElementHelpers};
 use dom::node::{DisabledStateHelpers, Node, NodeHelpers, ElementNodeTypeId, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 
@@ -420,6 +420,11 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
             match self.input_type.get() {
                 InputCheckbox => self.SetChecked(!self.checked.get()),
                 InputRadio => self.SetChecked(true),
+                InputButton(Some(DEFAULT_SUBMIT_VALUE)) => {
+                    self.form_owner().map(|o| {
+                        o.submit(false, InputElement(self.clone()))
+                    });
+                }
                 _ => {}
             }
         }
