@@ -191,7 +191,7 @@ impl RawLayoutElementHelpers for Element {
         (*attrs).iter().find(|attr: & &JS<Attr>| {
             let attr = attr.unsafe_get();
             name == (*attr).local_name_atom_forever().as_slice() &&
-            (*attr).namespace == *namespace
+            *(*attr).namespace() == *namespace
         }).map(|attr| {
             let attr = attr.unsafe_get();
             (*attr).value_ref_forever()
@@ -222,7 +222,7 @@ impl RawLayoutElementHelpers for Element {
         (*attrs).iter().find(|attr: & &JS<Attr>| {
             let attr = attr.unsafe_get();
             name == (*attr).local_name_atom_forever().as_slice() &&
-            (*attr).namespace == *namespace
+            *(*attr).namespace() == *namespace
         }).and_then(|attr| {
             let attr = attr.unsafe_get();
             (*attr).value_atom_forever()
@@ -360,7 +360,7 @@ pub trait AttributeHandlers {
 impl<'a> AttributeHandlers for JSRef<'a, Element> {
     fn get_attribute(self, namespace: Namespace, local_name: &str) -> Option<Temporary<Attr>> {
         self.get_attributes(local_name).iter().map(|attr| attr.root())
-            .find(|attr| attr.namespace == namespace)
+            .find(|attr| *attr.namespace() == namespace)
             .map(|x| Temporary::from_rooted(*x))
     }
 
@@ -496,7 +496,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             false => Atom::from_slice(name)
         };
         self.attrs.borrow().iter().map(|attr| attr.root()).any(|attr| {
-            *attr.local_name() == name && attr.namespace == ns!("")
+            *attr.local_name() == name && *attr.namespace() == ns!("")
         })
     }
 
@@ -684,7 +684,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         let name = Atom::from_slice(name.as_slice());
         let value = self.parse_attribute(&ns!(""), &name, value);
         self.do_set_attribute(name.clone(), value, name.clone(), ns!(""), None, |attr| {
-            attr.name.as_slice() == name.as_slice()
+            attr.name().as_slice() == name.as_slice()
         });
         Ok(())
     }
@@ -753,7 +753,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
                               namespace.clone(), prefix.map(|s| s.to_string()),
                               |attr| {
             *attr.local_name() == local_name &&
-            attr.namespace == namespace
+            *attr.namespace() == namespace
         });
         Ok(())
     }

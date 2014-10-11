@@ -137,20 +137,20 @@ fn serialize_elem(elem: JSRef<Element>, open_elements: &mut Vec<String>, html: &
 
 fn serialize_attr(attr: JSRef<Attr>, html: &mut String) {
     html.push_char(' ');
-    if attr.namespace == ns!(XML) {
+    if *attr.namespace() == ns!(XML) {
         html.push_str("xml:");
         html.push_str(attr.local_name().as_slice());
-    } else if attr.namespace == ns!(XMLNS) &&
+    } else if *attr.namespace() == ns!(XMLNS) &&
         *attr.local_name() == Atom::from_slice("xmlns") {
         html.push_str("xmlns");
-    } else if attr.namespace == ns!(XMLNS) {
+    } else if *attr.namespace() == ns!(XMLNS) {
         html.push_str("xmlns:");
         html.push_str(attr.local_name().as_slice());
-    } else if attr.namespace == ns!(XLink) {
+    } else if *attr.namespace() == ns!(XLink) {
         html.push_str("xlink:");
         html.push_str(attr.local_name().as_slice());
     } else {
-        html.push_str(attr.name.as_slice());
+        html.push_str(attr.name().as_slice());
     };
     html.push_str("=\"");
     escape(attr.value().as_slice(), true, html);

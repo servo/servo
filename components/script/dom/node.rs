@@ -1529,8 +1529,8 @@ impl Node {
                     copy_elem.attrs.borrow_mut().push_unrooted(
                         &Attr::new(*window,
                                    attr.local_name().clone(), attr.value().clone(),
-                                   attr.name.clone(), attr.namespace.clone(),
-                                   attr.prefix.clone(), copy_elem));
+                                   attr.name().clone(), attr.namespace().clone(),
+                                   attr.prefix().clone(), copy_elem));
                 }
             },
             _ => ()
@@ -1988,7 +1988,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
             assert!(element.attrs.borrow().len() == other_element.attrs.borrow().len());
             element.attrs.borrow().iter().map(|attr| attr.root()).all(|attr| {
                 other_element.attrs.borrow().iter().map(|attr| attr.root()).any(|other_attr| {
-                    (attr.namespace == other_attr.namespace) &&
+                    (*attr.namespace() == *other_attr.namespace()) &&
                     (attr.local_name() == other_attr.local_name()) &&
                     (attr.value().as_slice() == other_attr.value().as_slice())
                 })
