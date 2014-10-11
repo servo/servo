@@ -100,6 +100,8 @@ pub enum ScriptMsg {
     ExitWindowMsg(PipelineId),
     /// Notifies the script of progress on a fetch (dispatched to all tasks).
     XHRProgressMsg(TrustedXHRAddress, XHRProgress),
+    /// Releases one reference to the XHR object (dispatched to all tasks).
+    XHRReleaseMsg(TrustedXHRAddress),
     /// Message sent through Worker.postMessage (only dispatched to
     /// DedicatedWorkerGlobalScope).
     DOMMessage(*mut u64, size_t),
@@ -530,7 +532,8 @@ impl ScriptTask {
                 FromConstellation(ExitPipelineMsg(id)) => if self.handle_exit_pipeline_msg(id) { return false },
                 FromScript(ExitWindowMsg(id)) => self.handle_exit_window_msg(id),
                 FromConstellation(ResizeMsg(..)) => fail!("should have handled ResizeMsg already"),
-                FromScript(XHRProgressMsg(addr, progress)) => XMLHttpRequest::handle_xhr_progress(addr, progress),
+                FromScript(XHRProgressMsg(addr, progress)) => XMLHttpRequest::handle_progress(addr, progress),
+                FromScript(XHRReleaseMsg(addr)) => XMLHttpRequest::handle_release(addr),
                 FromScript(DOMMessage(..)) => fail!("unexpected message"),
                 FromScript(WorkerPostMessage(addr, data, nbytes)) => Worker::handle_message(addr, data, nbytes),
                 FromScript(WorkerRelease(addr)) => Worker::handle_release(addr),
