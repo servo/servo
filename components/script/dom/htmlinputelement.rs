@@ -19,7 +19,7 @@ use dom::event::Event;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormOwner, HTMLFormElement};
-use dom::node::{DisabledStateHelpers, Node, NodeHelpers, ElementNodeTypeId, document_from_node};
+use dom::node::{DisabledStateHelpers, Node, NodeHelpers, ElementNodeTypeId, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 
 use servo_util::str::{DOMString, parse_unsigned_integer};
@@ -169,6 +169,56 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
 
     // https://html.spec.whatwg.org/multipage/forms.html#attr-fe-name
     make_setter!(SetName, "name")
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formaction
+    fn FormAction(self) -> DOMString {
+        let element: JSRef<Element> = ElementCast::from_ref(self);
+        let url = element.get_url_attribute("formaction");
+        match url.as_slice() {
+            "" => {
+                let window = window_from_node(self).root();
+                window.get_url().serialize()
+            },
+            _ => url
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formaction
+    make_setter!(SetFormAction, "formaction")
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formenctype
+    fn FormEnctype(self) -> DOMString {
+        let elem: JSRef<Element> = ElementCast::from_ref(self);
+        let enctype = elem.get_string_attribute("formenctype").into_ascii_lower();
+        // https://html.spec.whatwg.org/multipage/forms.html#attr-fs-enctype
+        match enctype.as_slice() {
+            "text/plain" | "multipart/form-data" => enctype,
+            _ => "application/x-www-form-urlencoded".to_string()
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formenctype
+    make_setter!(SetFormEnctype, "formenctype")
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formmethod
+    fn FormMethod(self) -> DOMString {
+        let elem: JSRef<Element> = ElementCast::from_ref(self);
+        let method = elem.get_string_attribute("formmethod").into_ascii_lower();
+        // https://html.spec.whatwg.org/multipage/forms.html#attr-fs-method
+        match method.as_slice() {
+            "post" | "dialog" => method,
+            _ => "get".to_string()
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formmethod
+    make_setter!(SetFormMethod, "formmethod")
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formtarget
+    make_getter!(FormTarget)
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formtarget
+    make_setter!(SetFormTarget, "formtarget")
 }
 
 trait HTMLInputElementHelpers {

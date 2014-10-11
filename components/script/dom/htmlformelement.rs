@@ -367,46 +367,77 @@ pub enum FormMethod {
 }
 
 pub enum FormSubmitter<'a> {
-    FormElement(JSRef<'a, HTMLFormElement>)
+    FormElement(JSRef<'a, HTMLFormElement>),
+    InputElement(JSRef<'a, HTMLInputElement>)
     // TODO: Submit buttons, image submit, etc etc
 }
 
 impl<'a> FormSubmitter<'a> {
     fn action(&self) -> DOMString {
         match *self {
-            FormElement(form) => form.Action()
+            FormElement(form) => form.Action(),
+            InputElement(input_element) => {
+                let element: JSRef<Element> = ElementCast::from_ref(input_element);
+                if element.has_attribute("formaction") {
+                    input_element.FormAction()
+                } else {
+                    input_element.form_owner().map_or("".to_string(), |f_o| f_o.Action())
+                }
+            }
         }
     }
 
     fn enctype(&self) -> FormEncType {
-        match *self {
-            FormElement(form) => {
-                match form.Enctype().as_slice() {
-                    "multipart/form-data" => FormDataEncoded,
-                    "text/plain" => TextPlainEncoded,
-                    // https://html.spec.whatwg.org/multipage/forms.html#attr-fs-enctype
-                    // urlencoded is the default
-                    _ => UrlEncoded
+        let attr = match *self {
+            FormElement(form) => form.Enctype(),
+            InputElement(input_element) => {
+                let element: JSRef<Element> = ElementCast::from_ref(input_element);
+                if element.has_attribute("formenctype") {
+                    input_element.FormEnctype()
+                } else {
+                    input_element.form_owner().map_or("".to_string(), |f_o| f_o.Enctype())
                 }
             }
+        };
+        match attr.as_slice() {
+            "multipart/form-data" => FormDataEncoded,
+            "text/plain" => TextPlainEncoded,
+            // https://html.spec.whatwg.org/multipage/forms.html#attr-fs-enctype
+            // urlencoded is the default
+            _ => UrlEncoded
         }
     }
 
     fn method(&self) -> FormMethod {
-        match *self {
-            FormElement(form) => {
-                match form.Method().as_slice() {
-                    "dialog" => FormDialog,
-                    "post" => FormPost,
-                    _ => FormGet
+        let attr = match *self {
+            FormElement(form) => form.Method(),
+            InputElement(input_element) => {
+                let element: JSRef<Element> = ElementCast::from_ref(input_element);
+                if element.has_attribute("formmethod") {
+                    input_element.FormMethod()
+                } else {
+                    input_element.form_owner().map_or("".to_string(), |f_o| f_o.Method())
                 }
             }
+        };
+        match attr.as_slice() {
+            "dialog" => FormDialog,
+            "post" => FormPost,
+            _ => FormGet
         }
     }
 
     fn target(&self) -> DOMString {
         match *self {
-            FormElement(form) => form.Target()
+            FormElement(form) => form.Target(),
+            InputElement(input_element) => {
+                let element: JSRef<Element> = ElementCast::from_ref(input_element);
+                if element.has_attribute("formtarget") {
+                    input_element.FormTarget()
+                } else {
+                    input_element.form_owner().map_or("".to_string(), |f_o| f_o.Target())
+                }
+            }
         }
     }
 }
