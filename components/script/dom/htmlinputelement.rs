@@ -8,16 +8,17 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLInputElementCast, NodeCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLFormElementCast, HTMLInputElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLFieldSetElementDerived};
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable, ResultRootable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::attr::{AttrHelpers};
 use dom::document::{Document, DocumentHelpers};
-use dom::element::{AttributeHandlers, Element, HTMLInputElementTypeId};
+use dom::element::{AttributeHandlers, Element, HTMLInputElementTypeId   };
 use dom::event::Event;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
+use dom::htmlformelement::{FormOwner, HTMLFormElement};
 use dom::node::{DisabledStateHelpers, Node, NodeHelpers, ElementNodeTypeId, document_from_node};
 use dom::virtualmethods::VirtualMethods;
 
@@ -378,5 +379,30 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
 impl Reflectable for HTMLInputElement {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.htmlelement.reflector()
+    }
+}
+
+impl<'a> FormOwner<'a> for JSRef<'a, HTMLInputElement> {
+    // FIXME: This is wrong (https://github.com/servo/servo/issues/3553)
+    //        but we need html5ever to do it correctly
+    fn form_owner(self) -> Option<JSRef<'a, HTMLFormElement>> {
+        // https://html.spec.whatwg.org/multipage/forms.html#reset-the-form-owner
+        let elem: JSRef<Element> = ElementCast::from_ref(self);
+        let owner = elem.get_string_attribute("owner");
+        if !owner.is_empty() {
+            let doc = document_from_node(self).root();
+            let owner = doc.GetElementById(owner).root();
+            match owner {
+                Some(o) => {
+                    let maybe_form: Option<JSRef<HTMLFormElement>> = HTMLFormElementCast::to_ref(*o);
+                    if maybe_form.is_some() {
+                        return maybe_form;
+                    }
+                },
+                _ => ()
+            }
+        }
+        let node: JSRef<Node> = NodeCast::from_ref(self);
+        node.ancestors().filter_map(|a| HTMLFormElementCast::to_ref(a)).next().clone()
     }
 }

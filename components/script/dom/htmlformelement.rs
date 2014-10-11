@@ -410,3 +410,7 @@ impl<'a> FormSubmitter<'a> {
         }
     }
 }
+
+pub trait FormOwner<'a> {
+    fn form_owner(self) -> Option<JSRef<'a, HTMLFormElement>>;
+}
