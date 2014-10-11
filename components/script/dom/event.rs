@@ -35,6 +35,18 @@ pub enum EventTypeId {
     UIEventTypeId
 }
 
+#[deriving(PartialEq)]
+pub enum EventBubbles {
+    Bubbles,
+    DoesNotBubble
+}
+
+#[deriving(PartialEq)]
+pub enum EventCancelable {
+    Cancelable,
+    NotCancelable
+}
+
 #[jstraceable]
 #[must_root]
 pub struct Event {
@@ -84,17 +96,19 @@ impl Event {
 
     pub fn new(global: &GlobalRef,
                type_: DOMString,
-               can_bubble: bool,
-               cancelable: bool) -> Temporary<Event> {
+               bubbles: EventBubbles,
+               cancelable: EventCancelable) -> Temporary<Event> {
         let event = Event::new_uninitialized(global).root();
-        event.InitEvent(type_, can_bubble, cancelable);
+        event.InitEvent(type_, bubbles == Bubbles, cancelable == Cancelable);
         Temporary::from_rooted(*event)
     }
 
     pub fn Constructor(global: &GlobalRef,
                        type_: DOMString,
                        init: &EventBinding::EventInit) -> Fallible<Temporary<Event>> {
-        Ok(Event::new(global, type_, init.bubbles, init.cancelable))
+        let bubbles = if init.bubbles { Bubbles } else { DoesNotBubble };
+        let cancelable = if init.cancelable { Cancelable } else { NotCancelable };
+        Ok(Event::new(global, type_, bubbles, cancelable))
     }
 }
 
