@@ -6,7 +6,7 @@
 // http://www.whatwg.org/html/#htmlobjectelement
 interface HTMLObjectElement : HTMLElement {
   //         attribute DOMString data;
-  //         attribute DOMString type;
+           attribute DOMString type;
   //         attribute boolean typeMustMatch;
   //         attribute DOMString name;
   //         attribute DOMString useMap;

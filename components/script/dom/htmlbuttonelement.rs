@@ -4,18 +4,19 @@
 
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, NodeCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLButtonElementDerived, HTMLFieldSetElementDerived};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::{AttributeHandlers, HTMLButtonElementTypeId};
+use dom::element::{AttributeHandlers, Element, HTMLButtonElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::node::{DisabledStateHelpers, Node, NodeHelpers, ElementNodeTypeId, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 
+use std::ascii::OwnedStrAsciiExt;
 use servo_util::str::DOMString;
 use string_cache::Atom;
 
@@ -56,6 +57,20 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
 
     // http://www.whatwg.org/html/#dom-fe-disabled
     make_bool_setter!(SetDisabled, "disabled")
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-button-type
+    fn Type(self) -> DOMString {
+        let elem: JSRef<Element> = ElementCast::from_ref(self);
+        let ty = elem.get_string_attribute("type").into_ascii_lower();
+        // https://html.spec.whatwg.org/multipage/forms.html#attr-button-type
+        match ty.as_slice() {
+            "reset" | "button" | "menu" => ty,
+            _ => "submit".to_string()
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-button-type
+    make_setter!(SetType, "type")
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLButtonElement> {

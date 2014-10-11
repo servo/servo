@@ -13,7 +13,7 @@ interface HTMLSelectElement : HTMLElement {
   //         attribute boolean required;
   //         attribute unsigned long size;
 
-  //readonly attribute DOMString type;
+  readonly attribute DOMString type;
 
   //readonly attribute HTMLOptionsCollection options;
   //         attribute unsigned long length;

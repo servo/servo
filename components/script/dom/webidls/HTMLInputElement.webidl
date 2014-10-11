@@ -37,7 +37,7 @@ interface HTMLInputElement : HTMLElement {
            attribute unsigned long size;
   //         attribute DOMString src;
   //         attribute DOMString step;
-  //         attribute DOMString type; //XXXjdm need binaryName
+           attribute DOMString type;
   //         attribute DOMString defaultValue;
   [TreatNullAs=EmptyString] attribute DOMString value;
   //         attribute Date? valueAsDate;

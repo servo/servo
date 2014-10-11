@@ -24,6 +24,7 @@ use script_task::{ExitWindowMsg, FireTimerMsg, ScriptChan, TriggerLoadMsg, Trigg
 use script_traits::ScriptControlChan;
 
 use servo_msg::compositor_msg::ScriptListener;
+use servo_msg::constellation_msg::LoadData;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_util::str::{DOMString,HTML_SPACE_CHARACTERS};
 use servo_util::task::{spawn_named};
@@ -432,7 +433,7 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         if href.as_slice().starts_with("#") {
             script_chan.send(TriggerFragmentMsg(self.page.id, url));
         } else {
-            script_chan.send(TriggerLoadMsg(self.page.id, url));
+            script_chan.send(TriggerLoadMsg(self.page.id, LoadData::new(url)));
         }
     }
 

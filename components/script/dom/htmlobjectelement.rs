@@ -86,6 +86,12 @@ impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
         let window = window_from_node(self).root();
         ValidityState::new(*window)
     }
+
+    // https://html.spec.whatwg.org/multipage/embedded-content.html#dom-object-type
+    make_getter!(Type)
+
+    // https://html.spec.whatwg.org/multipage/embedded-content.html#dom-object-type
+    make_setter!(SetType, "type")
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLObjectElement> {
