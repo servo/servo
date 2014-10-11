@@ -50,6 +50,11 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
 
     // http://www.whatwg.org/html/#dom-fe-disabled
     make_bool_setter!(SetDisabled, "disabled")
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-type
+    fn Type(self) -> DOMString {
+        "textarea".to_string()
+    }
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {

@@ -81,7 +81,7 @@ pub enum ScriptMsg {
     TriggerFragmentMsg(PipelineId, Url),
     /// Begins a content-initiated load on the specified pipeline (only
     /// dispatched to ScriptTask).
-    TriggerLoadMsg(PipelineId, Url),
+    TriggerLoadMsg(PipelineId, LoadData),
     /// Instructs the script task to send a navigate message to
     /// the constellation (only dispatched to ScriptTask).
     NavigateMsg(NavigationDirection),
@@ -494,7 +494,7 @@ impl ScriptTask {
                 // TODO(tkuehn) need to handle auxiliary layouts for iframes
                 FromConstellation(AttachLayoutMsg(_)) => fail!("should have handled AttachLayoutMsg already"),
                 FromConstellation(LoadMsg(id, load_data)) => self.load(id, load_data),
-                FromScript(TriggerLoadMsg(id, url)) => self.trigger_load(id, url),
+                FromScript(TriggerLoadMsg(id, load_data)) => self.trigger_load(id, load_data),
                 FromScript(TriggerFragmentMsg(id, url)) => self.trigger_fragment(id, url),
                 FromConstellation(SendEventMsg(id, event)) => self.handle_event(id, event),
                 FromScript(FireTimerMsg(id, timer_id)) => self.handle_fire_timer_msg(id, timer_id),
@@ -1067,9 +1067,9 @@ impl ScriptTask {
 
     /// The entry point for content to notify that a new load has been requested
     /// for the given pipeline.
-    fn trigger_load(&self, pipeline_id: PipelineId, url: Url) {
+    fn trigger_load(&self, pipeline_id: PipelineId, load_data: LoadData) {
         let ConstellationChan(ref const_chan) = self.constellation_chan;
-        const_chan.send(LoadUrlMsg(pipeline_id, LoadData::new(url)));
+        const_chan.send(LoadUrlMsg(pipeline_id, load_data));
     }
 
     /// The entry point for content to notify that a fragment url has been requested

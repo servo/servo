@@ -24,6 +24,7 @@ use dom::virtualmethods::VirtualMethods;
 use servo_util::str::{DOMString, parse_unsigned_integer};
 use string_cache::Atom;
 
+use std::ascii::OwnedStrAsciiExt;
 use std::cell::{Cell, RefCell};
 use std::mem;
 
@@ -120,7 +121,9 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     make_bool_setter!(SetDisabled, "disabled")
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-checked
-    make_bool_getter!(Checked)
+    fn Checked(self) -> bool {
+        self.checked.get()
+    }
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-checked
     make_bool_setter!(SetChecked, "checked")
@@ -131,8 +134,30 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-size
     make_uint_setter!(SetSize, "size")
 
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-type
+    fn Type(self) -> DOMString {
+        let elem: JSRef<Element> = ElementCast::from_ref(self);
+        let ty = elem.get_string_attribute("type").into_ascii_lower();
+        // https://html.spec.whatwg.org/multipage/forms.html#attr-input-type
+        match ty.as_slice() {
+            "hidden" | "search" | "tel" |
+            "url" | "email" | "password" |
+            "datetime" | "date" | "month" |
+            "week" | "time" | "datetime-local" |
+            "number" | "range" | "color" |
+            "checkbox" | "radio" | "file" |
+            "submit" | "image" | "reset" | "button" => ty,
+            _ => "text".to_string()
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-type
+    make_setter!(SetType, "type")
+
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-value
-    make_getter!(Value)
+    fn Value(self) -> DOMString {
+        self.value.borrow().clone().unwrap_or("".to_string())
+    }
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-value
     make_setter!(SetValue, "value")

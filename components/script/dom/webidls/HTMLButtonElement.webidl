@@ -14,7 +14,7 @@ interface HTMLButtonElement : HTMLElement {
   //         attribute boolean formNoValidate;
   //         attribute DOMString formTarget;
   //         attribute DOMString name;
-  //         attribute DOMString type;
+           attribute DOMString type;
   //         attribute DOMString value;
   //         attribute HTMLMenuElement? menu;
 
