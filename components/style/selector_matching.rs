@@ -85,7 +85,7 @@ impl SelectorMap {
                               V:VecLike<DeclarationBlock>>(
                               &self,
                               node: &N,
-                              parent_bf: &Option<BloomFilter>,
+                              parent_bf: &Option<Box<BloomFilter>>,
                               matching_rules_list: &mut V,
                               shareable: &mut bool) {
         if self.empty {
@@ -153,7 +153,7 @@ impl SelectorMap {
                                     N:TNode<'a, E>,
                                     V:VecLike<DeclarationBlock>>(
                                     node: &N,
-                                    parent_bf: &Option<BloomFilter>,
+                                    parent_bf: &Option<Box<BloomFilter>>,
                                     hash: &HashMap<Atom, Vec<Rule>>,
                                     key: &Atom,
                                     matching_rules: &mut V,
@@ -172,7 +172,7 @@ impl SelectorMap {
                           N:TNode<'a, E>,
                           V:VecLike<DeclarationBlock>>(
                           node: &N,
-                          parent_bf: &Option<BloomFilter>,
+                          parent_bf: &Option<Box<BloomFilter>>,
                           rules: &[Rule],
                           matching_rules: &mut V,
                           shareable: &mut bool) {
@@ -353,7 +353,7 @@ impl Stylist {
                                         V:VecLike<DeclarationBlock>>(
                                         &self,
                                         element: &N,
-                                        parent_bf: &Option<BloomFilter>,
+                                        parent_bf: &Option<Box<BloomFilter>>,
                                         style_attribute: Option<&PropertyDeclarationBlock>,
                                         pseudo_element: Option<PseudoElement>,
                                         applicable_declarations: &mut V)
@@ -471,7 +471,12 @@ impl DeclarationBlock {
     }
 }
 
-pub fn matches<'a, E:TElement<'a>, N:TNode<'a, E>>(selector_list: &SelectorList, element: &N, parent_bf: &Option<BloomFilter>) -> bool {
+pub fn matches<'a,E,N>(
+               selector_list: &SelectorList,
+               element: &N,
+               parent_bf: &Option<Box<BloomFilter>>)
+               -> bool
+               where E: TElement<'a>, N: TNode<'a,E> {
     get_selector_list_selectors(selector_list).iter().any(|selector|
         selector.pseudo_element.is_none() &&
         matches_compound_selector(&*selector.compound_selectors, element, parent_bf, &mut false))
@@ -488,7 +493,7 @@ fn matches_compound_selector<'a,
                              N:TNode<'a, E>>(
                              selector: &CompoundSelector,
                              element: &N,
-                             parent_bf: &Option<BloomFilter>,
+                             parent_bf: &Option<Box<BloomFilter>>,
                              shareable: &mut bool)
                              -> bool {
     match matches_compound_selector_internal(selector, element, parent_bf, shareable) {
@@ -549,21 +554,22 @@ enum SelectorMatchingResult {
 /// Quickly figures out whether or not the compound selector is worth doing more
 /// work on. If the simple selectors don't match, or there's a child selector
 /// that does not appear in the bloom parent bloom filter, we can exit early.
-fn can_fast_reject<'a, E: TElement<'a>, N: TNode<'a, E>>(
-  mut selector: &CompoundSelector,
-  element: &N,
-  parent_bf: &Option<BloomFilter>,
-  shareable: &mut bool) -> Option<SelectorMatchingResult> {
+fn can_fast_reject<'a,E,N>(
+                   mut selector: &CompoundSelector,
+                   element: &N,
+                   parent_bf: &Option<Box<BloomFilter>>,
+                   shareable: &mut bool)
+                   -> Option<SelectorMatchingResult>
+                   where E: TElement<'a>, N: TNode<'a,E> {
     if !selector.simple_selectors.iter().all(|simple_selector| {
       matches_simple_selector(simple_selector, element, shareable) }) {
         return Some(NotMatchedAndRestartFromClosestLaterSibling);
     }
 
-    let bf: &BloomFilter =
-        match *parent_bf {
-            None => return None,
-            Some(ref bf) => bf,
-        };
+    let bf: &BloomFilter = match *parent_bf {
+        None => return None,
+        Some(ref bf) => &**bf,
+    };
 
     // See if the bloom filter can exclude any of the descendant selectors, and
     // reject if we can.
@@ -580,23 +586,23 @@ fn can_fast_reject<'a, E: TElement<'a>, N: TNode<'a, E>>(
         for ss in selector.simple_selectors.iter() {
             match *ss {
                 LocalNameSelector(LocalName { ref name, ref lower_name })  => {
-                    if bf.definitely_excludes(name)
-                    && bf.definitely_excludes(lower_name) {
+                    if !bf.might_contain(name)
+                    && !bf.might_contain(lower_name) {
                         return Some(NotMatchedGlobally);
                     }
                 },
                 NamespaceSelector(ref namespace) => {
-                    if bf.definitely_excludes(namespace) {
+                    if !bf.might_contain(namespace) {
                         return Some(NotMatchedGlobally);
                     }
                 },
                 IDSelector(ref id) => {
-                    if bf.definitely_excludes(id) {
+                    if !bf.might_contain(id) {
                         return Some(NotMatchedGlobally);
                     }
                 },
                 ClassSelector(ref class) => {
-                    if bf.definitely_excludes(&class.as_slice()) {
+                    if !bf.might_contain(class) {
                         return Some(NotMatchedGlobally);
                     }
                 },
@@ -615,7 +621,7 @@ fn matches_compound_selector_internal<'a,
                                       N:TNode<'a, E>>(
                                       selector: &CompoundSelector,
                                       element: &N,
-                                      parent_bf: &Option<BloomFilter>,
+                                      parent_bf: &Option<Box<BloomFilter>>,
                                       shareable: &mut bool)
                                       -> SelectorMatchingResult {
     match can_fast_reject(selector, element, parent_bf, shareable) {
@@ -993,7 +999,6 @@ impl<K: Eq + Hash, V> FindPush<K, V> for HashMap<K, Vec<V>> {
         self.insert(key, vec![value]);
     }
 }
-
 
 #[cfg(test)]
 mod tests {
