@@ -63,9 +63,7 @@ use std::cell::Cell;
 use std::comm::{channel, Sender, Receiver, Select};
 use std::mem;
 use std::ptr;
-use style;
-use style::{TNode, AuthorOrigin, Stylesheet, Stylist};
-use style::iter_font_face_rules;
+use style::{AuthorOrigin, Stylesheet, Stylist, TNode, iter_font_face_rules};
 use sync::{Arc, Mutex, MutexGuard};
 use url::Url;
 
@@ -647,8 +645,7 @@ impl LayoutTask {
                 None => {
                     let layout_ctx = LayoutContext::new(&shared_layout_ctx);
                     let mut applicable_declarations = ApplicableDeclarations::new();
-                    let mut parent_bf = Some(BloomFilter::new(
-                        style::RECOMMENDED_SELECTOR_BLOOM_FILTER_SIZE));
+                    let mut parent_bf = Some(box BloomFilter::new());
                     node.recalc_style_for_subtree(&*rw_data.stylist,
                                                    &layout_ctx,
                                                    &mut parent_bf,

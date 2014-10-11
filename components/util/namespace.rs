@@ -11,3 +11,4 @@ pub fn from_domstring(url: Option<DOMString>) -> Namespace {
         Some(ref s) => Namespace(Atom::from_slice(s.as_slice())),
     }
 }
+

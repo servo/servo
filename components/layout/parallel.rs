@@ -16,7 +16,7 @@ use url::Url;
 use util::{LayoutDataAccess, LayoutDataWrapper};
 use wrapper::{layout_node_to_unsafe_layout_node, layout_node_from_unsafe_layout_node, LayoutNode};
 use wrapper::{PostorderNodeMutTraversal, UnsafeLayoutNode};
-use wrapper::{PreorderDOMTraversal, PostorderDOMTraversal};
+use wrapper::{PreorderDomTraversal, PostorderDomTraversal};
 
 use servo_util::time::{TimeProfilerChan, profile};
 use servo_util::time;
@@ -78,7 +78,7 @@ impl DomParallelInfo {
 }
 
 /// A parallel top-down DOM traversal.
-pub trait ParallelPreorderDOMTraversal : PreorderDOMTraversal {
+pub trait ParallelPreorderDomTraversal : PreorderDomTraversal {
     fn run_parallel(&mut self,
                     node: UnsafeLayoutNode,
                     proxy: &mut WorkerProxy<*const SharedLayoutContext,UnsafeLayoutNode>);
@@ -127,7 +127,7 @@ pub trait ParallelPreorderDOMTraversal : PreorderDOMTraversal {
 }
 
 /// A parallel bottom-up DOM traversal.
-trait ParallelPostorderDOMTraversal : PostorderDOMTraversal {
+trait ParallelPostorderDomTraversal : PostorderDomTraversal {
     /// Process current node and potentially traverse its ancestors.
     ///
     /// If we are the last child that finished processing, recursively process
@@ -319,9 +319,9 @@ impl<'a> ParallelPreorderFlowTraversal for AssignISizes<'a> {
 
 impl<'a> ParallelPostorderFlowTraversal for AssignBSizesAndStoreOverflow<'a> {}
 
-impl<'a> ParallelPostorderDOMTraversal for ConstructFlows<'a> {}
+impl<'a> ParallelPostorderDomTraversal for ConstructFlows<'a> {}
 
-impl <'a> ParallelPreorderDOMTraversal for RecalcStyleForNode<'a> {
+impl <'a> ParallelPreorderDomTraversal for RecalcStyleForNode<'a> {
     fn run_parallel(&mut self,
                     unsafe_node: UnsafeLayoutNode,
                     proxy: &mut WorkerProxy<*const SharedLayoutContext, UnsafeLayoutNode>) {

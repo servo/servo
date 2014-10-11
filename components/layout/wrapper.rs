@@ -496,6 +496,20 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
             self.element.has_class_for_layout(name)
         }
     }
+
+    #[inline(always)]
+    fn each_class(self, callback: |&Atom|) {
+        unsafe {
+            match self.element.get_classes_for_layout() {
+                None => {}
+                Some(mut classes) => {
+                    for class in classes {
+                        callback(class)
+                    }
+                }
+            }
+        }
+    }
 }
 
 fn get_content(content_list: &content::T) -> String {
@@ -890,13 +904,13 @@ pub unsafe fn layout_node_from_unsafe_layout_node(node: &UnsafeLayoutNode) -> La
 }
 
 /// A top-down traversal.
-pub trait PreorderDOMTraversal {
+pub trait PreorderDomTraversal {
     /// The operation to perform. Return true to continue or false to stop.
-    fn process(&self, _node: LayoutNode);
+    fn process(&self, node: LayoutNode);
 }
 
 /// A bottom-up traversal, with a optional in-order pass.
-pub trait PostorderDOMTraversal {
+pub trait PostorderDomTraversal {
     /// The operation to perform. Return true to continue or false to stop.
-    fn process(&self, _node: LayoutNode);
+    fn process(&self, node: LayoutNode);
 }
