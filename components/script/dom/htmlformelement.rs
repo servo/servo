@@ -222,7 +222,7 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
         script_chan.send(TriggerLoadMsg(win.page().id, load_data));
     }
 
-    fn get_form_dataset(self, _submitter: Option<FormSubmitter>) -> Vec<FormDatum> {
+    fn get_form_dataset<'b>(self, submitter: Option<FormSubmitter<'b>>) -> Vec<FormDatum> {
         fn clean_crlf(s: &str) -> DOMString {
             // https://html.spec.whatwg.org/multipage/forms.html#constructing-the-form-data-set
             // Step 4
@@ -286,6 +286,12 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
                     }
 
                     let mut value = input.Value();
+                    let is_submitter = match submitter {
+                        Some(InputElement(s)) => {
+                            input == s
+                        },
+                        _ => false
+                    };
                     match ty.as_slice() {
                         "image" => None, // Unimplemented
                         "radio" | "checkbox" => {
@@ -298,6 +304,8 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
                                 value: value
                             })
                         },
+                        // Discard buttons which are not the submitter
+                        "submit" | "button" | "reset" if !is_submitter => None,
                         "file" => None, // Unimplemented
                         _ => Some(FormDatum {
                             ty: ty,
