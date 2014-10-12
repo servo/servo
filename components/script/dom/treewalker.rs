@@ -49,7 +49,7 @@ impl TreeWalker {
                            root_node: JSRef<Node>,
                            what_to_show: u32,
                            filter: Filter) -> Temporary<TreeWalker> {
-        let window = document.window.root();
+        let window = document.window().root();
         reflect_dom_object(box TreeWalker::new_inherited(root_node, what_to_show, filter),
                            &Window(*window),
                            TreeWalkerBinding::Wrap)

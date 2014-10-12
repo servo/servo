@@ -268,7 +268,7 @@ impl LayoutElementHelpers for JS<Element> {
         }
         let node: JS<Node> = self.transmute_copy();
         let owner_doc = node.owner_doc_for_layout().unsafe_get();
-        (*owner_doc).is_html_document
+        (*owner_doc).is_html_document()
     }
 }
 
@@ -631,7 +631,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
                 let node: JSRef<Node> = NodeCast::from_ref(self);
                 node.owner_doc().root()
             };
-            let window = doc.window.root();
+            let window = doc.window().root();
             let list = NamedNodeMap::new(*window, self);
             self.attr_list.assign(Some(list));
         }

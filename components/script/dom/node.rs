@@ -741,7 +741,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     }
 
     fn is_in_html_doc(self) -> bool {
-        self.owner_doc().root().is_html_document
+        self.owner_doc().root().is_html_document()
     }
 
     fn children(self) -> AbstractNodeChildrenIterator<'a> {
@@ -1112,7 +1112,7 @@ impl Node {
              document:  JSRef<Document>,
              wrap_fn:   extern "Rust" fn(*mut JSContext, &GlobalRef, Box<N>) -> Temporary<N>)
              -> Temporary<N> {
-        let window = document.window.root();
+        let window = document.window().root();
         reflect_dom_object(node, &global::Window(*window), wrap_fn)
     }
 
@@ -1474,11 +1474,11 @@ impl Node {
             },
             DocumentNodeTypeId => {
                 let document: JSRef<Document> = DocumentCast::to_ref(node).unwrap();
-                let is_html_doc = match document.is_html_document {
+                let is_html_doc = match document.is_html_document() {
                     true => HTMLDocument,
                     false => NonHTMLDocument
                 };
-                let window = document.window.root();
+                let window = document.window().root();
                 let document = Document::new(*window, Some(document.url().clone()),
                                              is_html_doc, None);
                 NodeCast::from_temporary(document)
@@ -1516,7 +1516,7 @@ impl Node {
             DocumentNodeTypeId => {
                 let node_doc: JSRef<Document> = DocumentCast::to_ref(node).unwrap();
                 let copy_doc: JSRef<Document> = DocumentCast::to_ref(*copy).unwrap();
-                copy_doc.set_encoding_name(node_doc.encoding_name.borrow().clone());
+                copy_doc.set_encoding_name(node_doc.encoding_name().clone());
                 copy_doc.set_quirks_mode(node_doc.quirks_mode());
             },
             ElementNodeTypeId(..) => {
@@ -1524,7 +1524,7 @@ impl Node {
                 let copy_elem: JSRef<Element> = ElementCast::to_ref(*copy).unwrap();
 
                 // FIXME: https://github.com/mozilla/servo/issues/1737
-                let window = document.window.root();
+                let window = document.window().root();
                 for attr in node_elem.attrs.borrow().iter().map(|attr| attr.root()) {
                     copy_elem.attrs.borrow_mut().push_unrooted(
                         &Attr::new(*window,
@@ -1667,7 +1667,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         }
 
         let doc = self.owner_doc().root();
-        let window = doc.window.root();
+        let window = doc.window().root();
         let child_list = NodeList::new_child_list(*window, self);
         self.child_list.assign(Some(child_list));
         self.child_list.get().unwrap()
@@ -2125,7 +2125,7 @@ pub fn document_from_node<T: NodeBase+Reflectable>(derived: JSRef<T>) -> Tempora
 
 pub fn window_from_node<T: NodeBase+Reflectable>(derived: JSRef<T>) -> Temporary<Window> {
     let document = document_from_node(derived).root();
-    Temporary::new(document.window.clone())
+    Temporary::new(document.window().clone())
 }
 
 impl<'a> VirtualMethods for JSRef<'a, Node> {
