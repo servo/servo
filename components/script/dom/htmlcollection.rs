@@ -31,6 +31,7 @@ pub enum CollectionTypeId {
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct HTMLCollection {
     collection: CollectionTypeId,
     reflector_: Reflector,

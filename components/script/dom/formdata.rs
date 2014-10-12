@@ -27,6 +27,7 @@ pub enum FormDatum {
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct FormData {
     data: RefCell<HashMap<DOMString, Vec<FormDatum>>>,
     reflector_: Reflector,

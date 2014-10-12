@@ -13,6 +13,7 @@ use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct XMLHttpRequestUpload {
     eventtarget: XMLHttpRequestEventTarget
 }

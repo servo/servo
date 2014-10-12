@@ -22,6 +22,7 @@ use std::ascii::OwnedStrAsciiExt;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct URLSearchParams {
     data: RefCell<HashMap<DOMString, Vec<DOMString>>>,
     reflector_: Reflector,

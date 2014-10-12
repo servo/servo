@@ -10,6 +10,7 @@ use dom::window::Window;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct ValidityState {
     reflector_: Reflector,
     state: u8,

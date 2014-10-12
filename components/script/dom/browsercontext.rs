@@ -15,6 +15,7 @@ use std::ptr;
 
 #[allow(raw_pointer_deriving)]
 #[jstraceable]
+#[privatize]
 pub struct BrowserContext {
     history: Vec<SessionHistoryEntry>,
     active_index: uint,
@@ -66,6 +67,7 @@ impl BrowserContext {
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct SessionHistoryEntry {
     document: JS<Document>,
     children: Vec<BrowserContext>

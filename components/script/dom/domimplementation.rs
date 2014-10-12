@@ -24,6 +24,7 @@ use servo_util::str::DOMString;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct DOMImplementation {
     document: JS<Document>,
     reflector_: Reflector,

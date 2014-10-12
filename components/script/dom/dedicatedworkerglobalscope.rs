@@ -37,6 +37,7 @@ use url::Url;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct DedicatedWorkerGlobalScope {
     workerglobalscope: WorkerGlobalScope,
     receiver: Receiver<ScriptMsg>,

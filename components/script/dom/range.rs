@@ -13,6 +13,7 @@ use dom::document::Document;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct Range {
     reflector_: Reflector
 }

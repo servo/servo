@@ -17,6 +17,7 @@ use canvas::canvas_render_task::{CanvasMsg, CanvasRenderTask, ClearRect, Close, 
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct CanvasRenderingContext2D {
     reflector_: Reflector,
     global: GlobalField,

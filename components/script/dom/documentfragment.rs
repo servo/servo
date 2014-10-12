@@ -20,8 +20,9 @@ use servo_util::str::DOMString;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct DocumentFragment {
-    pub node: Node,
+    node: Node,
 }
 
 impl DocumentFragmentDerived for EventTarget {

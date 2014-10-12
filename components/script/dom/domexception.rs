@@ -62,9 +62,10 @@ impl DOMErrorName {
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct DOMException {
-    pub code: DOMErrorName,
-    pub reflector_: Reflector
+    code: DOMErrorName,
+    reflector_: Reflector
 }
 
 impl DOMException {

@@ -13,6 +13,7 @@ use dom::window::Window;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct NamedNodeMap {
     reflector_: Reflector,
     owner: JS<Element>,

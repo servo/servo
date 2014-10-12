@@ -23,12 +23,13 @@ use std::cell::Cell;
 // http://dom.spec.whatwg.org/#interface-treewalker
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct TreeWalker {
-    pub reflector_: Reflector,
-    pub root_node: JS<Node>,
-    pub current_node: Cell<JS<Node>>,
-    pub what_to_show: u32,
-    pub filter: Filter
+    reflector_: Reflector,
+    root_node: JS<Node>,
+    current_node: Cell<JS<Node>>,
+    what_to_show: u32,
+    filter: Filter
 }
 
 impl TreeWalker {

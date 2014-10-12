@@ -13,8 +13,9 @@ use servo_util::str::DOMString;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct Navigator {
-    pub reflector_: Reflector //XXXjdm cycle: window->navigator->window
+    reflector_: Reflector //XXXjdm cycle: window->navigator->window
 }
 
 impl Navigator {

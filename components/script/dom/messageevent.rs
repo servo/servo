@@ -20,6 +20,7 @@ use js::jsval::JSVal;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct MessageEvent {
     event: Event,
     data: JSVal,

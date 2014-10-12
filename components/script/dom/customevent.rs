@@ -19,6 +19,7 @@ use std::cell::Cell;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct CustomEvent {
     event: Event,
     detail: Cell<JSVal>,
