@@ -101,7 +101,7 @@ fn serialize_processing_instruction(processing_instruction: JSRef<ProcessingInst
 
 fn serialize_doctype(doctype: JSRef<DocumentType>, html: &mut String) {
     html.push_str("<!DOCTYPE");
-    html.push_str(doctype.name.as_slice());
+    html.push_str(doctype.name().as_slice());
     html.push_char('>');
 }
 

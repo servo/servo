@@ -1458,9 +1458,9 @@ impl Node {
         let copy: Root<Node> = match node.type_id() {
             DoctypeNodeTypeId => {
                 let doctype: JSRef<DocumentType> = DocumentTypeCast::to_ref(node).unwrap();
-                let doctype = DocumentType::new(doctype.name.clone(),
-                                                Some(doctype.public_id.clone()),
-                                                Some(doctype.system_id.clone()), *document);
+                let doctype = DocumentType::new(doctype.name().clone(),
+                                                Some(doctype.public_id().clone()),
+                                                Some(doctype.system_id().clone()), *document);
                 NodeCast::from_temporary(doctype)
             },
             DocumentFragmentNodeTypeId => {
@@ -1612,7 +1612,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
             CommentNodeTypeId => "#comment".to_string(),
             DoctypeNodeTypeId => {
                 let doctype: JSRef<DocumentType> = DocumentTypeCast::to_ref(self).unwrap();
-                doctype.name.clone()
+                doctype.name().clone()
             },
             DocumentFragmentNodeTypeId => "#document-fragment".to_string(),
             DocumentNodeTypeId => "#document".to_string()
@@ -1959,9 +1959,9 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         fn is_equal_doctype(node: JSRef<Node>, other: JSRef<Node>) -> bool {
             let doctype: JSRef<DocumentType> = DocumentTypeCast::to_ref(node).unwrap();
             let other_doctype: JSRef<DocumentType> = DocumentTypeCast::to_ref(other).unwrap();
-            (doctype.name == other_doctype.name) &&
-            (doctype.public_id == other_doctype.public_id) &&
-            (doctype.system_id == other_doctype.system_id)
+            (*doctype.name() == *other_doctype.name()) &&
+            (*doctype.public_id() == *other_doctype.public_id()) &&
+            (*doctype.system_id() == *other_doctype.system_id())
         }
         fn is_equal_element(node: JSRef<Node>, other: JSRef<Node>) -> bool {
             let element: JSRef<Element> = ElementCast::to_ref(node).unwrap();
