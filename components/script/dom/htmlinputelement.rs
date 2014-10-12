@@ -57,7 +57,7 @@ pub struct HTMLInputElement {
 
 impl HTMLInputElementDerived for EventTarget {
     fn is_htmlinputelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLInputElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLInputElementTypeId))
     }
 }
 

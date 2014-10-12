@@ -22,7 +22,7 @@ pub struct HTMLMapElement {
 
 impl HTMLMapElementDerived for EventTarget {
     fn is_htmlmapelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLMapElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLMapElementTypeId))
     }
 }
 

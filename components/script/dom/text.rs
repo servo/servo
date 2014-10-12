@@ -25,7 +25,7 @@ pub struct Text {
 
 impl TextDerived for EventTarget {
     fn is_text(&self) -> bool {
-        self.type_id == NodeTargetTypeId(TextNodeTypeId)
+        *self.type_id() == NodeTargetTypeId(TextNodeTypeId)
     }
 }
 

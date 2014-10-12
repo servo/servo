@@ -25,7 +25,7 @@ pub struct DocumentType {
 
 impl DocumentTypeDerived for EventTarget {
     fn is_documenttype(&self) -> bool {
-        self.type_id == NodeTargetTypeId(DoctypeNodeTypeId)
+        *self.type_id() == NodeTargetTypeId(DoctypeNodeTypeId)
     }
 }
 

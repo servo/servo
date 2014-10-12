@@ -22,7 +22,7 @@ pub struct HTMLParamElement {
 
 impl HTMLParamElementDerived for EventTarget {
     fn is_htmlparamelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLParamElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLParamElementTypeId))
     }
 }
 

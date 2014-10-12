@@ -22,7 +22,7 @@ pub struct HTMLFrameSetElement {
 
 impl HTMLFrameSetElementDerived for EventTarget {
     fn is_htmlframesetelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLFrameSetElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLFrameSetElementTypeId))
     }
 }
 

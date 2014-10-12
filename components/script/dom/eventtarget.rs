@@ -59,15 +59,17 @@ impl EventListenerType {
 
 #[deriving(PartialEq)]
 #[jstraceable]
+#[privatize]
 pub struct EventListenerEntry {
-    pub phase: ListenerPhase,
-    pub listener: EventListenerType
+    phase: ListenerPhase,
+    listener: EventListenerType
 }
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct EventTarget {
-    pub type_id: EventTargetTypeId,
+    type_id: EventTargetTypeId,
     reflector_: Reflector,
     handlers: RefCell<HashMap<DOMString, Vec<EventListenerEntry>>>,
 }
@@ -93,6 +95,11 @@ impl EventTarget {
             let filtered = listeners.iter().filter(|entry| entry.phase == desired_phase);
             filtered.map(|entry| entry.listener.get_listener()).collect()
         })
+    }
+
+    #[inline]
+    pub fn type_id<'a>(&'a self) -> &'a EventTargetTypeId {
+        &self.type_id
     }
 }
 

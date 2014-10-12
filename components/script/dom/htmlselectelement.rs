@@ -30,7 +30,7 @@ pub struct HTMLSelectElement {
 
 impl HTMLSelectElementDerived for EventTarget {
     fn is_htmlselectelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLSelectElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLSelectElementTypeId))
     }
 }
 

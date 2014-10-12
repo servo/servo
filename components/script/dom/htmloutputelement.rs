@@ -24,7 +24,7 @@ pub struct HTMLOutputElement {
 
 impl HTMLOutputElementDerived for EventTarget {
     fn is_htmloutputelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLOutputElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLOutputElementTypeId))
     }
 }
 

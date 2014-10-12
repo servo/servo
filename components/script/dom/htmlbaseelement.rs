@@ -22,7 +22,7 @@ pub struct HTMLBaseElement {
 
 impl HTMLBaseElementDerived for EventTarget {
     fn is_htmlbaseelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLBaseElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLBaseElementTypeId))
     }
 }
 

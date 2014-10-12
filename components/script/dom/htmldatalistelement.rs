@@ -25,7 +25,7 @@ pub struct HTMLDataListElement {
 
 impl HTMLDataListElementDerived for EventTarget {
     fn is_htmldatalistelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLDataListElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLDataListElementTypeId))
     }
 }
 

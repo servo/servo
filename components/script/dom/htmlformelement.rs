@@ -38,7 +38,7 @@ pub struct HTMLFormElement {
 
 impl HTMLFormElementDerived for EventTarget {
     fn is_htmlformelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLFormElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLFormElementTypeId))
     }
 }
 

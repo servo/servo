@@ -27,7 +27,7 @@ pub struct HTMLScriptElement {
 
 impl HTMLScriptElementDerived for EventTarget {
     fn is_htmlscriptelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLScriptElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLScriptElementTypeId))
     }
 }
 

@@ -57,7 +57,7 @@ pub struct Element {
 
 impl ElementDerived for EventTarget {
     fn is_element(&self) -> bool {
-        match self.type_id {
+        match *self.type_id() {
             NodeTargetTypeId(ElementNodeTypeId(_)) => true,
             _ => false
         }

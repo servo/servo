@@ -115,7 +115,7 @@ pub struct Node {
 
 impl NodeDerived for EventTarget {
     fn is_node(&self) -> bool {
-        match self.type_id {
+        match *self.type_id() {
             NodeTargetTypeId(_) => true,
             _ => false
         }

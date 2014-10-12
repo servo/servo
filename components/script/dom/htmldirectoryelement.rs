@@ -22,7 +22,7 @@ pub struct HTMLDirectoryElement {
 
 impl HTMLDirectoryElementDerived for EventTarget {
     fn is_htmldirectoryelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLDirectoryElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLDirectoryElementTypeId))
     }
 }
 

@@ -22,7 +22,7 @@ pub struct HTMLUListElement {
 
 impl HTMLUListElementDerived for EventTarget {
     fn is_htmlulistelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLUListElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLUListElementTypeId))
     }
 }
 

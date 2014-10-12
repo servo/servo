@@ -30,7 +30,7 @@ pub struct HTMLFieldSetElement {
 
 impl HTMLFieldSetElementDerived for EventTarget {
     fn is_htmlfieldsetelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLFieldSetElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLFieldSetElementTypeId))
     }
 }
 

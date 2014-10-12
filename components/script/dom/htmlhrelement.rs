@@ -22,7 +22,7 @@ pub struct HTMLHRElement {
 
 impl HTMLHRElementDerived for EventTarget {
     fn is_htmlhrelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLHRElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLHRElementTypeId))
     }
 }
 

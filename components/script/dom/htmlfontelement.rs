@@ -22,7 +22,7 @@ pub struct HTMLFontElement {
 
 impl HTMLFontElementDerived for EventTarget {
     fn is_htmlfontelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLFontElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLFontElementTypeId))
     }
 }
 

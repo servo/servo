@@ -30,7 +30,7 @@ pub struct HTMLAnchorElement {
 
 impl HTMLAnchorElementDerived for EventTarget {
     fn is_htmlanchorelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLAnchorElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLAnchorElementTypeId))
     }
 }
 

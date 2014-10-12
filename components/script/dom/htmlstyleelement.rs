@@ -26,7 +26,7 @@ pub struct HTMLStyleElement {
 
 impl HTMLStyleElementDerived for EventTarget {
     fn is_htmlstyleelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLStyleElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLStyleElementTypeId))
     }
 }
 

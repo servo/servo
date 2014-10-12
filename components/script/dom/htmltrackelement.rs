@@ -22,7 +22,7 @@ pub struct HTMLTrackElement {
 
 impl HTMLTrackElementDerived for EventTarget {
     fn is_htmltrackelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLTrackElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLTrackElementTypeId))
     }
 }
 

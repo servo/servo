@@ -26,7 +26,7 @@ pub struct CharacterData {
 
 impl CharacterDataDerived for EventTarget {
     fn is_characterdata(&self) -> bool {
-        match self.type_id {
+        match *self.type_id() {
             NodeTargetTypeId(TextNodeTypeId) |
             NodeTargetTypeId(CommentNodeTypeId) |
             NodeTargetTypeId(ProcessingInstructionNodeTypeId) => true,

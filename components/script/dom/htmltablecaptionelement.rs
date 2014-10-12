@@ -22,7 +22,7 @@ pub struct HTMLTableCaptionElement {
 
 impl HTMLTableCaptionElementDerived for EventTarget {
     fn is_htmltablecaptionelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLTableCaptionElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLTableCaptionElementTypeId))
     }
 }
 

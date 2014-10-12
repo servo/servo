@@ -26,7 +26,7 @@ pub struct HTMLTableElement {
 
 impl HTMLTableElementDerived for EventTarget {
     fn is_htmltableelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLTableElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLTableElementTypeId))
     }
 }
 

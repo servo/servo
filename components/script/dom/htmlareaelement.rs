@@ -23,7 +23,7 @@ pub struct HTMLAreaElement {
 
 impl HTMLAreaElementDerived for EventTarget {
     fn is_htmlareaelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLAreaElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLAreaElementTypeId))
     }
 }
 

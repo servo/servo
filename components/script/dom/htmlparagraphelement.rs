@@ -22,7 +22,7 @@ pub struct HTMLParagraphElement {
 
 impl HTMLParagraphElementDerived for EventTarget {
     fn is_htmlparagraphelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLParagraphElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLParagraphElementTypeId))
     }
 }
 

@@ -22,7 +22,7 @@ pub struct HTMLLIElement {
 
 impl HTMLLIElementDerived for EventTarget {
     fn is_htmllielement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLLIElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLLIElementTypeId))
     }
 }
 

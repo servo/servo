@@ -193,7 +193,7 @@ impl Reflectable for DedicatedWorkerGlobalScope {
 
 impl DedicatedWorkerGlobalScopeDerived for EventTarget {
     fn is_dedicatedworkerglobalscope(&self) -> bool {
-        match self.type_id {
+        match *self.type_id() {
             WorkerGlobalScopeTypeId(DedicatedGlobalScope) => true,
             _ => false
         }

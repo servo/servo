@@ -22,7 +22,7 @@ pub struct HTMLTemplateElement {
 
 impl HTMLTemplateElementDerived for EventTarget {
     fn is_htmltemplateelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLTemplateElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLTemplateElementTypeId))
     }
 }
 

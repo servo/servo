@@ -32,7 +32,7 @@ impl XMLHttpRequestEventTarget {
 }
 impl XMLHttpRequestEventTargetDerived for EventTarget {
     fn is_xmlhttprequesteventtarget(&self) -> bool {
-        match self.type_id {
+        match *self.type_id() {
             XMLHttpRequestTargetTypeId(_) => true,
             _ => false
         }

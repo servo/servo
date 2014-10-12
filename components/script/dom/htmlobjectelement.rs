@@ -34,7 +34,7 @@ pub struct HTMLObjectElement {
 
 impl HTMLObjectElementDerived for EventTarget {
     fn is_htmlobjectelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLObjectElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLObjectElementTypeId))
     }
 }
 

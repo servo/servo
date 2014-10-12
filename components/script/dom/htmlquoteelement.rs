@@ -22,7 +22,7 @@ pub struct HTMLQuoteElement {
 
 impl HTMLQuoteElementDerived for EventTarget {
     fn is_htmlquoteelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLQuoteElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLQuoteElementTypeId))
     }
 }
 

@@ -22,7 +22,7 @@ pub struct HTMLModElement {
 
 impl HTMLModElementDerived for EventTarget {
     fn is_htmlmodelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLModElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLModElementTypeId))
     }
 }
 

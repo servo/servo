@@ -27,7 +27,7 @@ pub struct HTMLOptGroupElement {
 
 impl HTMLOptGroupElementDerived for EventTarget {
     fn is_htmloptgroupelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLOptGroupElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLOptGroupElementTypeId))
     }
 }
 

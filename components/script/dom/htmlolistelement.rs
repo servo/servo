@@ -22,7 +22,7 @@ pub struct HTMLOListElement {
 
 impl HTMLOListElementDerived for EventTarget {
     fn is_htmlolistelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLOListElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLOListElementTypeId))
     }
 }
 

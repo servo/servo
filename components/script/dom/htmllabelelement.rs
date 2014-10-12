@@ -22,7 +22,7 @@ pub struct HTMLLabelElement {
 
 impl HTMLLabelElementDerived for EventTarget {
     fn is_htmllabelelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLLabelElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLLabelElementTypeId))
     }
 }
 

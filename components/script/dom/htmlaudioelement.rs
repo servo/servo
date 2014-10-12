@@ -22,7 +22,7 @@ pub struct HTMLAudioElement {
 
 impl HTMLAudioElementDerived for EventTarget {
     fn is_htmlaudioelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLAudioElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLAudioElementTypeId))
     }
 }
 

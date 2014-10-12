@@ -40,7 +40,7 @@ pub struct HTMLCanvasElement {
 
 impl HTMLCanvasElementDerived for EventTarget {
     fn is_htmlcanvaselement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLCanvasElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLCanvasElementTypeId))
     }
 }
 

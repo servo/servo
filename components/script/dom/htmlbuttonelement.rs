@@ -29,7 +29,7 @@ pub struct HTMLButtonElement {
 
 impl HTMLButtonElementDerived for EventTarget {
     fn is_htmlbuttonelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLButtonElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLButtonElementTypeId))
     }
 }
 

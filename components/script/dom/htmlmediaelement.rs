@@ -21,7 +21,7 @@ pub struct HTMLMediaElement {
 
 impl HTMLMediaElementDerived for EventTarget {
     fn is_htmlmediaelement(&self) -> bool {
-        match self.type_id {
+        match *self.type_id() {
             NodeTargetTypeId(ElementNodeTypeId(HTMLVideoElementTypeId)) |
             NodeTargetTypeId(ElementNodeTypeId(HTMLAudioElementTypeId)) => true,
             _ => false

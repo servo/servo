@@ -22,7 +22,7 @@ pub struct HTMLBRElement {
 
 impl HTMLBRElementDerived for EventTarget {
     fn is_htmlbrelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLBRElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLBRElementTypeId))
     }
 }
 

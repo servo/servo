@@ -22,7 +22,7 @@ pub struct HTMLEmbedElement {
 
 impl HTMLEmbedElementDerived for EventTarget {
     fn is_htmlembedelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLEmbedElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLEmbedElementTypeId))
     }
 }
 

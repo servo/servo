@@ -31,7 +31,7 @@ pub struct HTMLOptionElement {
 
 impl HTMLOptionElementDerived for EventTarget {
     fn is_htmloptionelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLOptionElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLOptionElementTypeId))
     }
 }
 

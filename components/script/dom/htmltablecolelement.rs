@@ -22,7 +22,7 @@ pub struct HTMLTableColElement {
 
 impl HTMLTableColElementDerived for EventTarget {
     fn is_htmltablecolelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLTableColElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLTableColElementTypeId))
     }
 }
 
