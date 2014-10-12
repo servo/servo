@@ -12,10 +12,11 @@ use servo_util::str::DOMString;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct File {
-    pub blob: Blob,
-    pub name: DOMString,
-    pub type_: BlobType
+    blob: Blob,
+    name: DOMString,
+    type_: BlobType
 }
 
 impl File {
@@ -33,6 +34,10 @@ impl File {
         reflect_dom_object(box File::new_inherited(file_bits, name),
                            global,
                            FileBinding::Wrap)
+    }
+
+    pub fn name<'a>(&'a self) -> &'a DOMString {
+        &self.name
     }
 }
 
