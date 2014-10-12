@@ -73,9 +73,10 @@ use uuid;
 /// An HTML node.
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct Node {
     /// The JavaScript reflector for this node.
-    pub eventtarget: EventTarget,
+    eventtarget: EventTarget,
 
     /// The type of node that this is.
     type_id: NodeTypeId,
@@ -108,7 +109,7 @@ pub struct Node {
     ///
     /// Must be sent back to the layout task to be destroyed when this
     /// node is finalized.
-    pub layout_data: LayoutDataRef,
+    layout_data: LayoutDataRef,
 
     unique_id: RefCell<String>,
 }
@@ -1147,6 +1148,21 @@ impl Node {
     #[inline]
     pub fn eventtarget<'a>(&'a self) -> &'a EventTarget {
         &self.eventtarget
+    }
+
+    #[inline]
+    pub fn layout_data(&self) -> Ref<Option<LayoutData>> {
+        self.layout_data.borrow()
+    }
+
+    #[inline]
+    pub fn layout_data_mut(&self) -> RefMut<Option<LayoutData>> {
+        self.layout_data.borrow_mut()
+    }
+
+    #[inline]
+    pub unsafe fn layout_data_unchecked(&self) -> *const Option<LayoutData> {
+        self.layout_data.borrow_unchecked()
     }
 
     // http://dom.spec.whatwg.org/#concept-node-adopt
