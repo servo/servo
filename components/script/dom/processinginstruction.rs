@@ -16,9 +16,10 @@ use servo_util::str::DOMString;
 /// An HTML processing instruction node.
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct ProcessingInstruction {
-    pub characterdata: CharacterData,
-    pub target: DOMString,
+    characterdata: CharacterData,
+    target: DOMString,
 }
 
 impl ProcessingInstructionDerived for EventTarget {
@@ -38,6 +39,14 @@ impl ProcessingInstruction {
     pub fn new(target: DOMString, data: DOMString, document: JSRef<Document>) -> Temporary<ProcessingInstruction> {
         Node::reflect_node(box ProcessingInstruction::new_inherited(target, data, document),
                            document, ProcessingInstructionBinding::Wrap)
+    }
+
+    pub fn characterdata<'a>(&'a self) -> &'a CharacterData {
+        &self.characterdata
+    }
+
+    pub fn target<'a>(&'a self) -> &'a DOMString {
+        &self.target
     }
 }
 

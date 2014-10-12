@@ -93,9 +93,9 @@ fn serialize_text(text: JSRef<Text>, html: &mut String) {
 fn serialize_processing_instruction(processing_instruction: JSRef<ProcessingInstruction>,
                                     html: &mut String) {
     html.push_str("<?");
-    html.push_str(processing_instruction.target.as_slice());
+    html.push_str(processing_instruction.target().as_slice());
     html.push_char(' ');
-    html.push_str(processing_instruction.characterdata.data().as_slice());
+    html.push_str(processing_instruction.characterdata().data().as_slice());
     html.push_str("?>");
 }
 

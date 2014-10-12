@@ -1496,8 +1496,8 @@ impl Node {
             },
             ProcessingInstructionNodeTypeId => {
                 let pi: JSRef<ProcessingInstruction> = ProcessingInstructionCast::to_ref(node).unwrap();
-                let pi = ProcessingInstruction::new(pi.target.clone(),
-                                                    pi.characterdata.data().clone(), *document);
+                let pi = ProcessingInstruction::new(pi.target().clone(),
+                                                    pi.characterdata().data().clone(), *document);
                 NodeCast::from_temporary(pi)
             },
         }.root();
@@ -1974,8 +1974,8 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         fn is_equal_processinginstruction(node: JSRef<Node>, other: JSRef<Node>) -> bool {
             let pi: JSRef<ProcessingInstruction> = ProcessingInstructionCast::to_ref(node).unwrap();
             let other_pi: JSRef<ProcessingInstruction> = ProcessingInstructionCast::to_ref(other).unwrap();
-            (pi.target == other_pi.target) &&
-            (*pi.characterdata.data() == *other_pi.characterdata.data())
+            (*pi.target() == *other_pi.target()) &&
+            (*pi.characterdata().data() == *other_pi.characterdata().data())
         }
         fn is_equal_characterdata(node: JSRef<Node>, other: JSRef<Node>) -> bool {
             let characterdata: JSRef<CharacterData> = CharacterDataCast::to_ref(node).unwrap();
