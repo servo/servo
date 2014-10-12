@@ -69,7 +69,7 @@ pub fn serialize(iterator: &mut NodeIterator) -> String {
 
 fn serialize_comment(comment: JSRef<Comment>, html: &mut String) {
     html.push_str("<!--");
-    html.push_str(comment.characterdata.data().as_slice());
+    html.push_str(comment.characterdata().data().as_slice());
     html.push_str("-->");
 }
 

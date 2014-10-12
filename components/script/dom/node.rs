@@ -1469,7 +1469,7 @@ impl Node {
             },
             CommentNodeTypeId => {
                 let comment: JSRef<Comment> = CommentCast::to_ref(node).unwrap();
-                let comment = Comment::new(comment.characterdata.data().clone(), *document);
+                let comment = Comment::new(comment.characterdata().data().clone(), *document);
                 NodeCast::from_temporary(comment)
             },
             DocumentNodeTypeId => {
