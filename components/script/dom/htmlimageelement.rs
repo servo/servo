@@ -49,7 +49,7 @@ impl<'a> PrivateHTMLImageElementHelpers for JSRef<'a, HTMLImageElement> {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         let document = node.owner_doc().root();
         let window = document.window().root();
-        let image_cache = &window.image_cache_task;
+        let image_cache = window.image_cache_task();
         match value {
             None => {
                 *self.image.borrow_mut() = None;
