@@ -26,8 +26,9 @@ use std::cell::RefCell;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct HTMLImageElement {
-    pub htmlelement: HTMLElement,
+    htmlelement: HTMLElement,
     image: RefCell<Option<Url>>,
 }
 

@@ -30,8 +30,9 @@ static DefaultHeight: u32 = 150;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct HTMLCanvasElement {
-    pub htmlelement: HTMLElement,
+    htmlelement: HTMLElement,
     context: MutNullableJS<CanvasRenderingContext2D>,
     width: Cell<u32>,
     height: Cell<u32>,

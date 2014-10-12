@@ -20,8 +20,9 @@ use string_cache::Atom;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct HTMLOptGroupElement {
-    pub htmlelement: HTMLElement
+    htmlelement: HTMLElement
 }
 
 impl HTMLOptGroupElementDerived for EventTarget {

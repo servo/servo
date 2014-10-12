@@ -641,7 +641,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                     for child in title_elem.children() {
                         if child.is_text() {
                             let text: JSRef<Text> = TextCast::to_ref(child).unwrap();
-                            title.push_str(text.characterdata.data.borrow().as_slice());
+                            title.push_str(text.characterdata().data().as_slice());
                         }
                     }
                 });

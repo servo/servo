@@ -14,8 +14,9 @@ use servo_util::str::DOMString;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct HTMLMediaElement {
-    pub htmlelement: HTMLElement,
+    htmlelement: HTMLElement,
 }
 
 impl HTMLMediaElementDerived for EventTarget {
@@ -33,6 +34,11 @@ impl HTMLMediaElement {
         HTMLMediaElement {
             htmlelement: HTMLElement::new_inherited(type_id, tag_name, prefix, document)
         }
+    }
+
+    #[inline]
+    pub fn htmlelement<'a>(&'a self) -> &'a HTMLElement {
+        &self.htmlelement
     }
 }
 

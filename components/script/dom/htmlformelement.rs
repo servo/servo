@@ -31,8 +31,9 @@ use url::form_urlencoded::serialize;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct HTMLFormElement {
-    pub htmlelement: HTMLElement,
+    htmlelement: HTMLElement,
 }
 
 impl HTMLFormElementDerived for EventTarget {

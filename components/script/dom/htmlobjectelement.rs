@@ -27,8 +27,9 @@ use url::Url;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct HTMLObjectElement {
-    pub htmlelement: HTMLElement,
+    htmlelement: HTMLElement,
 }
 
 impl HTMLObjectElementDerived for EventTarget {

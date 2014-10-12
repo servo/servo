@@ -20,8 +20,9 @@ use string_cache::Atom;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct HTMLTextAreaElement {
-    pub htmlelement: HTMLElement,
+    htmlelement: HTMLElement,
 }
 
 impl HTMLTextAreaElementDerived for EventTarget {

@@ -166,6 +166,11 @@ impl Element {
         Node::reflect_node(box Element::new_inherited(ElementTypeId_, local_name, namespace, prefix, document),
                            document, ElementBinding::Wrap)
     }
+
+    #[inline]
+    pub fn node<'a>(&'a self) -> &'a Node {
+        &self.node
+    }
 }
 
 pub trait RawLayoutElementHelpers {

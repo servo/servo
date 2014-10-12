@@ -116,8 +116,8 @@ pub trait TLayoutNode {
                 fail!("not an iframe element!")
             }
             let iframe_element: JS<HTMLIFrameElement> = self.get_jsmanaged().transmute_copy();
-            let size = (*iframe_element.unsafe_get()).size.get().unwrap();
-            (size.pipeline_id, size.subpage_id)
+            let size = (*iframe_element.unsafe_get()).size().unwrap();
+            (*size.pipeline_id(), *size.subpage_id())
         }
     }
 
@@ -189,7 +189,7 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
         unsafe {
             if self.get().is_text() {
                 let text: JS<Text> = self.get_jsmanaged().transmute_copy();
-                (*text.unsafe_get()).characterdata.data.borrow().clone()
+                (*text.unsafe_get()).characterdata().data().clone()
             } else if self.get().is_htmlinputelement() {
                 let input: JS<HTMLInputElement> = self.get_jsmanaged().transmute_copy();
                 input.get_value_for_layout()
@@ -765,7 +765,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
             Some(TextNodeTypeId) => {
                 unsafe {
                     let text: JS<Text> = self.get_jsmanaged().transmute_copy();
-                    if !is_whitespace((*text.unsafe_get()).characterdata.data.borrow().as_slice()) {
+                    if !is_whitespace((*text.unsafe_get()).characterdata().data().as_slice()) {
                         return false
                     }
 

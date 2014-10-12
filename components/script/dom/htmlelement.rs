@@ -22,8 +22,9 @@ use string_cache::Atom;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct HTMLElement {
-    pub element: Element
+    element: Element
 }
 
 impl HTMLElementDerived for EventTarget {
@@ -47,6 +48,11 @@ impl HTMLElement {
     pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLElement> {
         let element = HTMLElement::new_inherited(HTMLElementTypeId, localName, prefix, document);
         Node::reflect_node(box element, document, HTMLElementBinding::Wrap)
+    }
+
+    #[inline]
+    pub fn element<'a>(&'a self) -> &'a Element {
+        &self.element
     }
 }
 

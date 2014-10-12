@@ -23,8 +23,9 @@ use string_cache::Atom;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct HTMLFieldSetElement {
-    pub htmlelement: HTMLElement
+    htmlelement: HTMLElement
 }
 
 impl HTMLFieldSetElementDerived for EventTarget {

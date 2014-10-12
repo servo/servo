@@ -15,8 +15,9 @@ use servo_util::str::DOMString;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct HTMLTableHeaderCellElement {
-    pub htmltablecellelement: HTMLTableCellElement,
+    htmltablecellelement: HTMLTableCellElement,
 }
 
 impl HTMLTableHeaderCellElementDerived for EventTarget {

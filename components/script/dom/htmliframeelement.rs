@@ -41,10 +41,11 @@ enum SandboxAllowance {
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct HTMLIFrameElement {
-    pub htmlelement: HTMLElement,
-    pub size: Cell<Option<IFrameSize>>,
-    pub sandbox: Cell<Option<u8>>,
+    htmlelement: HTMLElement,
+    size: Cell<Option<IFrameSize>>,
+    sandbox: Cell<Option<u8>>,
 }
 
 impl HTMLIFrameElementDerived for EventTarget {
@@ -54,9 +55,22 @@ impl HTMLIFrameElementDerived for EventTarget {
 }
 
 #[jstraceable]
+#[privatize]
 pub struct IFrameSize {
-    pub pipeline_id: PipelineId,
-    pub subpage_id: SubpageId,
+    pipeline_id: PipelineId,
+    subpage_id: SubpageId,
+}
+
+impl IFrameSize {
+    #[inline]
+    pub fn pipeline_id<'a>(&'a self) -> &'a PipelineId {
+        &self.pipeline_id
+    }
+
+    #[inline]
+    pub fn subpage_id<'a>(&'a self) -> &'a SubpageId {
+        &self.subpage_id
+    }
 }
 
 pub trait HTMLIFrameElementHelpers {
@@ -125,6 +139,11 @@ impl HTMLIFrameElement {
     pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLIFrameElement> {
         let element = HTMLIFrameElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLIFrameElementBinding::Wrap)
+    }
+
+    #[inline]
+    pub fn size(&self) -> Option<IFrameSize> {
+        self.size.get()
     }
 }
 

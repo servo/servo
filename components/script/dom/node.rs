@@ -1144,6 +1144,11 @@ impl Node {
         }
     }
 
+    #[inline]
+    pub fn eventtarget<'a>(&'a self) -> &'a EventTarget {
+        &self.eventtarget
+    }
+
     // http://dom.spec.whatwg.org/#concept-node-adopt
     pub fn adopt(node: JSRef<Node>, document: JSRef<Document>) {
         // Step 1.
@@ -1464,7 +1469,7 @@ impl Node {
             },
             CommentNodeTypeId => {
                 let comment: JSRef<Comment> = CommentCast::to_ref(node).unwrap();
-                let comment = Comment::new(comment.characterdata.data.borrow().clone(), *document);
+                let comment = Comment::new(comment.characterdata.data().clone(), *document);
                 NodeCast::from_temporary(comment)
             },
             DocumentNodeTypeId => {
@@ -1486,13 +1491,13 @@ impl Node {
             },
             TextNodeTypeId => {
                 let text: JSRef<Text> = TextCast::to_ref(node).unwrap();
-                let text = Text::new(text.characterdata.data.borrow().clone(), *document);
+                let text = Text::new(text.characterdata().data().clone(), *document);
                 NodeCast::from_temporary(text)
             },
             ProcessingInstructionNodeTypeId => {
                 let pi: JSRef<ProcessingInstruction> = ProcessingInstructionCast::to_ref(node).unwrap();
                 let pi = ProcessingInstruction::new(pi.target.clone(),
-                                                    pi.characterdata.data.borrow().clone(), *document);
+                                                    pi.characterdata.data().clone(), *document);
                 NodeCast::from_temporary(pi)
             },
         }.root();
@@ -1569,7 +1574,7 @@ impl Node {
         for node in iterator {
             let text: Option<JSRef<Text>> = TextCast::to_ref(node);
             match text {
-                Some(text) => content.push_str(text.characterdata.data.borrow().as_slice()),
+                Some(text) => content.push_str(text.characterdata().data().as_slice()),
                 None => (),
             }
         }
@@ -1759,7 +1764,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                 self.wait_until_safe_to_modify_dom();
 
                 let characterdata: JSRef<CharacterData> = CharacterDataCast::to_ref(self).unwrap();
-                *characterdata.data.borrow_mut() = value;
+                characterdata.set_data(value);
 
                 // Notify the document that the content of this node is different
                 let document = self.owner_doc().root();
@@ -1970,12 +1975,12 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
             let pi: JSRef<ProcessingInstruction> = ProcessingInstructionCast::to_ref(node).unwrap();
             let other_pi: JSRef<ProcessingInstruction> = ProcessingInstructionCast::to_ref(other).unwrap();
             (pi.target == other_pi.target) &&
-            (*pi.characterdata.data.borrow() == *other_pi.characterdata.data.borrow())
+            (*pi.characterdata.data() == *other_pi.characterdata.data())
         }
         fn is_equal_characterdata(node: JSRef<Node>, other: JSRef<Node>) -> bool {
             let characterdata: JSRef<CharacterData> = CharacterDataCast::to_ref(node).unwrap();
             let other_characterdata: JSRef<CharacterData> = CharacterDataCast::to_ref(other).unwrap();
-            *characterdata.data.borrow() == *other_characterdata.data.borrow()
+            *characterdata.data() == *other_characterdata.data()
         }
         fn is_equal_element_attrs(node: JSRef<Node>, other: JSRef<Node>) -> bool {
             let element: JSRef<Element> = ElementCast::to_ref(node).unwrap();

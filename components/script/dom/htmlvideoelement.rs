@@ -15,8 +15,9 @@ use servo_util::str::DOMString;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct HTMLVideoElement {
-    pub htmlmediaelement: HTMLMediaElement
+    htmlmediaelement: HTMLMediaElement
 }
 
 impl HTMLVideoElementDerived for EventTarget {

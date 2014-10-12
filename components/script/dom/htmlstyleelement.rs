@@ -19,8 +19,9 @@ use style::Stylesheet;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct HTMLStyleElement {
-    pub htmlelement: HTMLElement,
+    htmlelement: HTMLElement,
 }
 
 impl HTMLStyleElementDerived for EventTarget {

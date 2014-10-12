@@ -13,8 +13,9 @@ use dom::xmlhttprequest::XMLHttpRequestId;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct XMLHttpRequestEventTarget {
-    pub eventtarget: EventTarget,
+    eventtarget: EventTarget,
 }
 
 impl XMLHttpRequestEventTarget {
@@ -22,6 +23,11 @@ impl XMLHttpRequestEventTarget {
         XMLHttpRequestEventTarget {
             eventtarget: EventTarget::new_inherited(XMLHttpRequestTargetTypeId(type_id))
         }
+    }
+
+    #[inline]
+    pub fn eventtarget<'a>(&'a self) -> &'a EventTarget {
+        &self.eventtarget
     }
 }
 impl XMLHttpRequestEventTargetDerived for EventTarget {

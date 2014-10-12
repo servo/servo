@@ -45,8 +45,9 @@ enum InputType {
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct HTMLInputElement {
-    pub htmlelement: HTMLElement,
+    htmlelement: HTMLElement,
     input_type: Cell<InputType>,
     checked: Cell<bool>,
     uncommitted_value: RefCell<Option<String>>,
