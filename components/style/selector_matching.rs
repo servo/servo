@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use std::ascii::AsciiExt;
 use std::collections::hashmap::HashMap;
 use std::hash::Hash;
 use std::num::div_rem;
@@ -279,12 +280,18 @@ impl Stylist {
             after_map: PerPseudoElementSelectorMap::new(),
             rules_source_order: 0u,
         };
-        let ua_stylesheet = Stylesheet::from_bytes(
-            read_resource_file(["user-agent.css"]).unwrap().as_slice(),
-            Url::parse("chrome:///user-agent.css").unwrap(),
-            None,
-            None);
-        stylist.add_stylesheet(ua_stylesheet, UserAgentOrigin);
+        // FIXME: Add quirks-mode.css in quirks mode.
+        // FIXME: Add iso-8859-9.css when the document’s encoding is ISO-8859-8.
+        // FIXME: presentational-hints.css should be at author origin with zero specificity.
+        //        (Does it make a difference?)
+        for &filename in ["user-agent.css", "servo.css", "presentational-hints.css"].iter() {
+            let ua_stylesheet = Stylesheet::from_bytes(
+                read_resource_file([filename]).unwrap().as_slice(),
+                Url::parse(format!("chrome:///{}", filename).as_slice()).unwrap(),
+                None,
+                None);
+            stylist.add_stylesheet(ua_stylesheet, UserAgentOrigin);
+        }
         stylist
     }
 
@@ -729,14 +736,17 @@ pub fn matches_simple_selector<'a, E:TElement<'a>,
             *shareable = false;
             element.match_attr(attr, |_| true)
         }
-        AttrEqual(ref attr, ref value) => {
+        AttrEqual(ref attr, ref value, case_sensitivity) => {
             if value.as_slice() != "DIR" {
                 // FIXME(pcwalton): Remove once we start actually supporting RTL text. This is in
                 // here because the UA style otherwise disables all style sharing completely.
                 *shareable = false
             }
             element.match_attr(attr, |attr_value| {
-                attr_value == value.as_slice()
+                match case_sensitivity {
+                    CaseSensitive => attr_value == value.as_slice(),
+                    CaseInsensitive => attr_value.eq_ignore_ascii_case(value.as_slice()),
+                }
             })
         }
         AttrIncludes(ref attr, ref value) => {

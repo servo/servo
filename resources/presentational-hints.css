@@ -1,0 +1,261 @@
+/*
+https://html.spec.whatwg.org/multipage/rendering.html#presentational-hints
+*/
+
+@namespace url(http://www.w3.org/1999/xhtml);
+
+
+pre[wrap] { white-space: pre-wrap; }
+
+/*
+FIXME: also "align descendants"
+https://html.spec.whatwg.org/multipage/rendering.html#align-descendants
+*/
+center, div[align=center i], div[align=middle i] { text-align: center; }
+div[align=left i] { text-align: left; }
+div[align=right i] { text-align: right; }
+div[align=justify i] { text-align: justify; }
+
+
+br[clear=left i] { clear: left; }
+br[clear=right i] { clear: right; }
+br[clear=all i], br[clear=both i] { clear: both; }
+
+
+ol[type=1], li[type=1] { list-style-type: decimal; }
+ol[type=a], li[type=a] { list-style-type: lower-alpha; }
+ol[type=A], li[type=A] { list-style-type: upper-alpha; }
+ol[type=i], li[type=i] { list-style-type: lower-roman; }
+ol[type=I], li[type=I] { list-style-type: upper-roman; }
+ul[type=none i], li[type=none i] { list-style-type: none; }
+ul[type=disc i], li[type=disc i] { list-style-type: disc; }
+ul[type=circle i], li[type=circle i] { list-style-type: circle; }
+ul[type=square i], li[type=square i] { list-style-type: square; }
+
+
+table[align=left i] { float: left; }
+table[align=right i] { float: right; }
+table[align=center i] { margin-left: auto; margin-right: auto; }
+:matches(thead, tbody, tfoot, tr, td, th)[align=absmiddle i] {
+  text-align: center;
+}
+
+caption[align=bottom i] { caption-side: bottom; }
+:matches(p, h1, h2, h3, h4, h5, h6)[align=left i] { text-align: left; }
+:matches(p, h1, h2, h3, h4, h5, h6)[align=right i] { text-align: right; }
+:matches(p, h1, h2, h3, h4, h5, h6)[align=center i] { text-align: center; }
+:matches(p, h1, h2, h3, h4, h5, h6)[align=justify i] { text-align: justify; }
+:matches(thead, tbody, tfoot, tr, td, th)[valign=top i] { vertical-align: top; }
+:matches(thead, tbody, tfoot, tr, td, th)[valign=middle i] { vertical-align: middle; }
+:matches(thead, tbody, tfoot, tr, td, th)[valign=bottom i] { vertical-align: bottom; }
+:matches(thead, tbody, tfoot, tr, td, th)[valign=baseline i] { vertical-align: baseline; }
+
+td[nowrap], th[nowrap] { white-space: nowrap; }
+
+table:matches([rules=none i], [rules=groups i], [rules=rows i], [rules=cols i], [rules=all i]) {
+  border-style: hidden;
+  border-collapse: collapse;
+}
+
+table[border] {
+  border-style: outset;
+  /*
+  FIXME: only if border is not equivalent to zero
+  https://html.spec.whatwg.org/multipage/rendering.html#magic-border-selector
+  */
+}
+table[frame=void i] { border-style: hidden; }
+table[frame=above i] { border-style: outset hidden hidden hidden; }
+table[frame=below i] { border-style: hidden hidden outset hidden; }
+table[frame=hsides i] { border-style: outset hidden outset hidden; }
+table[frame=lhs i] { border-style: hidden hidden hidden outset; }
+table[frame=rhs i] { border-style: hidden outset hidden hidden; }
+table[frame=vsides i] { border-style: hidden outset; }
+table[frame=box i], table[frame=border i] { border-style: outset; }
+
+
+table[border] > tr > :matches(td, th),
+table[border] > :matches(thead, tbody, tfoot) > tr > :matches(td, th) {
+  /*
+  FIXME: only if border is not equivalent to zero
+  https://html.spec.whatwg.org/multipage/rendering.html#magic-border-selector
+  */
+  border-width: 1px;
+  border-style: inset;
+}
+
+table:matches([rules=none i], [rules=groups i], [rules=rows i]) > tr > :matches(td, th),
+table:matches([rules=none i], [rules=groups i], [rules=rows i]) > :matches(thead, tbody, tfoot) > tr > :matches(td, th) {
+  border-width: 1px;
+  border-style: none;
+}
+table[rules=cols i] > tr > :matches(td, th),
+table[rules=cols i] > :matches(thead, tbody, tfoot) > tr > :matches(td, th) {
+  border-width: 1px;
+  border-style: none solid;
+}
+table[rules=all i] > tr > :matches(td, th),
+table[rules=all i] > :matches(thead, tbody, tfoot) > tr > :matches(td, th) {
+  border-width: 1px;
+  border-style: solid;
+}
+
+table[rules=groups i] > colgroup {
+  border-left-width: 1px;
+  border-left-style: solid;
+  border-right-width: 1px;
+  border-right-style: solid;
+}
+table[rules=groups i] > :matches(thead, tbody, tfoot) {
+  border-top-width: 1px;
+  border-top-style: solid;
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+}
+table[rules=rows i] > tr,
+table[rules=rows i] > :matches(thead, tbody, tfoot) > tr {
+  border-top-width: 1px;
+  border-top-style: solid;
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+}
+
+
+hr[align=left] { margin-left: 0; margin-right: auto; }
+hr[align=right] { margin-left: auto; margin-right: 0; }
+hr[align=center] { margin-left: auto; margin-right: auto; }
+hr[color], hr[noshade] { border-style: solid; }
+
+
+
+iframe[frameborder=0], iframe[frameborder=no i] { border: none; }
+
+:matches(applet, embed, iframe, img, input[type=image i], object)[align=left i] {
+  float: left;
+}
+:matches(applet, embed, iframe, img, input[type=image i], object)[align=right i] {
+  float: right;
+}
+:matches(applet, embed, iframe, img, input[type=image i], object)[align=top i] {
+  vertical-align: top;
+}
+:matches(applet, embed, iframe, img, input[type=image i], object)[align=baseline i] {
+  vertical-align: baseline;
+}
+:matches(applet, embed, iframe, img, input[type=image i], object)[align=texttop i] {
+  vertical-align: text-top;
+}
+:matches(applet, embed, iframe, img, input[type=image i], object):matches([align=absmiddle i], [align=abscenter i]) {
+  vertical-align: middle;
+}
+:matches(applet, embed, iframe, img, input[type=image i], object)[align=bottom i] {
+  vertical-align: bottom;
+}
+/*
+FIXME:
+:matches(applet, embed, iframe, img, input[type=image i], object):matches([align=center i], [align=middle i]) {
+  vertical-align: "aligns the vertical middle of the element with the parent element's baseline."
+}
+*/
+
+/*
+
+Presentational attributes which can not currently be expressed in CSS.
+FIXME: Deal with them with attr(foo dimension) and the like?
+
+body
+  marginheight
+  marginwidth
+  topmargin
+  rightmargin
+  bottommargin
+  leftmargin
+  background
+  bgcolor
+  text
+  link
+  vlink
+  alink
+
+frame, iframe
+  marginheight
+  marginwidth
+
+font
+  face
+  color
+  size
+
+table
+  cellspacing
+  cellpadding
+  hspace
+  vspace
+  height
+  width
+  bordercolor
+  border
+
+col
+  width
+
+tr
+  height
+
+td, th
+  width
+  height
+
+caption, thead, tbody, tfoot, tr, td, and th
+  align
+
+table, thead, tbody, tfoot, tr, td, or th
+  background
+  bgcolor
+
+(quirks mode) th, td
+  nowrap
+
+hr
+  color
+  noshade
+  size
+  width
+
+legend
+  align
+
+applet, embed, iframe, img, input[type=image i], object
+  hspace
+  vspace
+
+img, input[type=image i], object
+  border
+
+applet, embed, iframe, img, input[type=image i], object, video
+  width
+  height
+
+*/
+
+/*
+
+Extra
+  ol > li
+    https://html.spec.whatwg.org/multipage/semantics.html#ordinal-value
+  col
+    span
+  colgroup (if not col child)
+    span
+  td, th
+    colspan
+    rowspan
+
+  :computed-value(text-align is initial) > th {
+    text-align: center;
+  }
+
+  https://html.spec.whatwg.org/multipage/rendering.html#rendered-legend
+
+*/
+
