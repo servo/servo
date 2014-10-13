@@ -97,11 +97,16 @@ pub extern "C" fn cef_string_utf8_set(src: *const u8, src_len: size_t, output: *
 pub extern "C" fn cef_string_utf8_to_utf16(src: *const u8, src_len: size_t, output: *mut cef_string_utf16_t) -> c_int {
     unsafe {
        slice::raw::buf_as_slice(src, src_len as uint, |result| {
-            let enc = str::from_utf8(result).unwrap().utf16_units().collect::<Vec<u16>>();
-            cef_string_utf16_set(enc.as_ptr(), enc.len() as size_t, output, 1);
-       });
+            match str::from_utf8(result) {
+                 Some(enc) => {
+                      let conv = enc.utf16_units().collect::<Vec<u16>>();
+                      cef_string_utf16_set(conv.as_ptr(), conv.len() as size_t, output, 1);
+                      1
+                 },
+                 None => 0
+            }
+       })
     }
-    1
 }
 
 #[no_mangle]
@@ -111,15 +116,12 @@ pub extern "C" fn cef_string_utf16_to_utf8(src: *const u16, src_len: size_t, out
             match string::String::from_utf16(ustr) {
                 Some(str) => {
                     cef_string_utf8_set(str.as_bytes().as_ptr(), str.len() as size_t, output, 1);
-                    return 1 as c_int;
+                    1 as c_int
                 },
-                None => {
-                    return 0 as c_int;
-                }
+                None =>  0 as c_int
             }
-       });
+       })
     }
-    1
 }
 
 #[no_mangle]
