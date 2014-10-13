@@ -54,6 +54,7 @@ extern crate string_cache;
 extern crate webdriver_traits;
 
 pub mod cors;
+pub mod document_loader;
 
 #[macro_use]
 pub mod dom;

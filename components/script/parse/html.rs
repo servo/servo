@@ -4,6 +4,7 @@
 
 #![allow(unsafe_code, unrooted_must_root)]
 
+use document_loader::{DocumentLoader, LoadType};
 use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -286,7 +287,7 @@ pub fn parse_html(document: JSRef<Document>,
         task_state::enter(IN_HTML_PARSER);
     }
 
-    fn parse_progress(parser: JSRef<ServoHTMLParser>, url: &Url, load_response: &LoadResponse) {
+    fn parse_progress(document: JSRef<Document>, parser: JSRef<ServoHTMLParser>, url: &Url, load_response: &LoadResponse) {
         for msg in load_response.progress_port.iter() {
             match msg {
                 ProgressMsg::Payload(data) => {
@@ -299,7 +300,10 @@ pub fn parse_html(document: JSRef<Document>,
                     // TODO(Savago): we should send a notification to callers #5463.
                     break;
                 }
-                ProgressMsg::Done(Ok(())) => break,
+                ProgressMsg::Done(Ok(())) => {
+                    document.finish_load(LoadType::PageSource(url.clone()));
+                    break;
+                }
             }
         }
     };
@@ -313,6 +317,7 @@ pub fn parse_html(document: JSRef<Document>,
                 Some(ContentType(Mime(TopLevel::Image, _, _))) => {
                     let page = format!("<html><body><img src='{}' /></body></html>", url.serialize());
                     parser.parse_chunk(page);
+                    document.finish_load(LoadType::PageSource(url.clone()));
                 },
                 Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) => {
                     // FIXME: When servo/html5ever#109 is fixed remove <plaintext> usage and
@@ -325,10 +330,10 @@ pub fn parse_html(document: JSRef<Document>,
                     // https://html.spec.whatwg.org/multipage/#read-text
                     let page = format!("<pre>\u{000A}<plaintext>");
                     parser.parse_chunk(page);
-                    parse_progress(parser, url, &load_response);
+                    parse_progress(document, parser, url, &load_response);
                 },
                 _ => {
-                    parse_progress(parser, url, &load_response);
+                    parse_progress(document, parser, url, &load_response);
                 }
             }
         }
@@ -349,16 +354,19 @@ pub fn parse_html_fragment(context_node: JSRef<Node>,
                            output: &mut RootedVec<JS<Node>>) {
     let window = window_from_node(context_node).root();
     let context_document = document_from_node(context_node).root();
-    let url = context_document.r().url();
+    let context_document = context_document.r();
+    let url = context_document.url();
 
     // Step 1.
+    let loader = DocumentLoader::new(&*context_document.loader());
     let document = Document::new(window.r(), Some(url.clone()),
                                  IsHTMLDocument::HTMLDocument,
                                  None, None,
-                                 DocumentSource::FromParser).root();
+                                 DocumentSource::FromParser,
+                                 loader).root();
 
     // Step 2.
-    document.r().set_quirks_mode(context_document.r().quirks_mode());
+    document.r().set_quirks_mode(context_document.quirks_mode());
 
     // Step 11.
     let form = context_node.inclusive_ancestors()

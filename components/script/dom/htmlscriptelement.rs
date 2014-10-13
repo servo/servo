@@ -4,6 +4,7 @@
 
 use std::ascii::AsciiExt;
 
+use document_loader::LoadType;
 use dom::attr::Attr;
 use dom::attr::AttrHelpers;
 use dom::bindings::cell::DOMRefCell;
@@ -34,7 +35,7 @@ use script_task::{ScriptMsg, Runnable};
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{Encoding, EncodingRef, DecoderTrap};
-use net_traits::{load_whole_resource, Metadata};
+use net_traits::Metadata;
 use util::str::{DOMString, HTML_SPACE_CHARACTERS, StaticStringVec};
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -261,7 +262,9 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
                         // state of the element's `crossorigin` content attribute, the origin being
                         // the origin of the script element's node document, and the default origin
                         // behaviour set to taint.
-                        ScriptOrigin::External(load_whole_resource(&window.resource_task(), url))
+                        let doc = document_from_node(self).root();
+                        let contents = doc.r().load_sync(LoadType::Script(url));
+                        ScriptOrigin::External(contents)
                     }
                 }
             },
