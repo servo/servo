@@ -15,10 +15,10 @@ use dom::eventtarget::WorkerGlobalScopeTypeId;
 use dom::messageevent::MessageEvent;
 use dom::worker::{Worker, TrustedWorkerAddress};
 use dom::workerglobalscope::DedicatedGlobalScope;
-use dom::workerglobalscope::WorkerGlobalScope;
+use dom::workerglobalscope::{WorkerGlobalScope, WorkerGlobalScopeHelpers};
 use dom::xmlhttprequest::XMLHttpRequest;
 use script_task::{ScriptTask, ScriptChan};
-use script_task::{ScriptMsg, DOMMessage, XHRProgressMsg, WorkerRelease};
+use script_task::{ScriptMsg, FromWorker,  DOMMessage, FireTimerMsg, XHRProgressMsg, WorkerRelease};
 use script_task::WorkerPostMessage;
 use script_task::StackRootTLS;
 
@@ -142,6 +142,9 @@ impl DedicatedWorkerGlobalScope {
                     Ok(WorkerRelease(addr)) => {
                         Worker::handle_release(addr)
                     },
+                    Ok(FireTimerMsg(FromWorker, timer_id)) => {
+                        scope.handle_fire_timer(timer_id, js_context.ptr);
+                    }
                     Ok(_) => fail!("Unexpected message"),
                     Err(_) => break,
                 }
