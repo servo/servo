@@ -3,8 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 
-use encoding::{Encoding, EncodeStrict};
-use encoding::all::{UTF_16LE};
 use eutil::fptr_is_null;
 use libc::{size_t, c_int, c_ushort,c_void};
 use libc::types::os::arch::c95::wchar_t;
@@ -13,6 +11,7 @@ use std::mem;
 use std::ptr;
 use std::slice;
 use std::string;
+use std::str;
 use types::{cef_string_utf16_t, cef_string_utf8_t, cef_string_wide_t};
 use types::{cef_string_userfree_utf16_t, cef_string_userfree_utf8_t, cef_string_userfree_wide_t};
 
@@ -97,9 +96,10 @@ pub extern "C" fn cef_string_utf8_set(src: *const u8, src_len: size_t, output: *
 #[no_mangle]
 pub extern "C" fn cef_string_utf8_to_utf16(src: *const u8, src_len: size_t, output: *mut cef_string_utf16_t) -> c_int {
     unsafe {
-       let result = UTF_16LE.encode(string::raw::from_buf_len(src, src_len as uint).as_slice(), EncodeStrict);
-       if result.is_err() { return 0; }
-       cef_string_utf16_set(mem::transmute(result.unwrap().as_slice().as_ptr()), (src_len * 2) as size_t, output, 1);
+       slice::raw::buf_as_slice(src, src_len as uint, |result| {
+            let enc = str::from_utf8(result).unwrap().utf16_units().collect::<Vec<u16>>();
+            cef_string_utf16_set(enc.as_ptr(), (src_len * 2) as size_t, output, 1);
+       });
     }
     1
 }
