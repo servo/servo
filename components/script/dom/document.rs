@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use document_loader::{DocumentLoader, LoadType};
 use dom::attr::{Attr, AttrHelpers, AttrValue};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding;
@@ -55,6 +56,7 @@ use dom::range::Range;
 use dom::treewalker::TreeWalker;
 use dom::uievent::UIEvent;
 use dom::window::{Window, WindowHelpers};
+use servo_net::resource_task::{LoadResponse, Metadata, LoadData};
 use servo_util::namespace;
 use servo_util::str::{DOMString, split_html_space_chars};
 
@@ -66,7 +68,7 @@ use url::Url;
 use std::collections::HashMap;
 use std::collections::hash_map::{Vacant, Occupied};
 use std::ascii::AsciiExt;
-use std::cell::{Cell, Ref};
+use std::cell::{Cell, Ref, RefMut};
 use std::default::Default;
 use time;
 
@@ -101,6 +103,8 @@ pub struct Document {
     possibly_focused: MutNullableJS<Element>,
     /// The element that currently has the document focus context.
     focused: MutNullableJS<Element>,
+
+    loader: DOMRefCell<DocumentLoader>,
 }
 
 impl DocumentDerived for EventTarget {
@@ -167,6 +171,8 @@ impl CollectionFilter for AppletsFilter {
 }
 
 pub trait DocumentHelpers<'a> {
+    fn loader(&self) -> Ref<DocumentLoader>;
+    fn mut_loader(&self) -> RefMut<DocumentLoader>;
     fn window(self) -> Temporary<Window>;
     fn encoding_name(self) -> Ref<'a, DOMString>;
     fn is_html_document(self) -> bool;
@@ -188,9 +194,23 @@ pub trait DocumentHelpers<'a> {
     fn commit_focus_transaction(self);
     fn send_title_to_compositor(self);
     fn dirty_all_nodes(self);
+    fn load_async(self, load: LoadType) -> Receiver<LoadResponse>;
+    fn load_async_with(self, load: LoadType, cb: |&mut LoadData|) -> Receiver<LoadResponse>;
+    fn load_sync(self, load: LoadType) -> Result<(Metadata, Vec<u8>), String>;
+    fn finish_load(self, load: LoadType);
 }
 
 impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
+    #[inline]
+    fn loader(&self) -> Ref<DocumentLoader> {
+        self.loader.borrow()
+    }
+
+    #[inline]
+    fn mut_loader(&self) -> RefMut<DocumentLoader> {
+        self.loader.borrow_mut()
+    }
+
     #[inline]
     fn window(self) -> Temporary<Window> {
         Temporary::new(self.window)
@@ -382,6 +402,22 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
             node.dirty(NodeDamage::OtherNodeDamage)
         }
     }
+
+    fn load_async(self, load: LoadType) -> Receiver<LoadResponse> {
+        self.load_async_with(load, |_| {})
+    }
+
+    fn load_async_with(self, load: LoadType, cb: |load_data: &mut LoadData|) -> Receiver<LoadResponse> {
+        self.loader.borrow_mut().load_async_with(load, cb)
+    }
+
+    fn load_sync(self, load: LoadType) -> Result<(Metadata, Vec<u8>), String> {
+        self.loader.borrow_mut().load_sync(load)
+    }
+
+    fn finish_load(self, load: LoadType) {
+        self.loader.borrow_mut().finish_load(load);
+    }
 }
 
 #[deriving(PartialEq)]
@@ -407,7 +443,8 @@ impl Document {
                      url: Option<Url>,
                      is_html_document: IsHTMLDocument,
                      content_type: Option<DOMString>,
-                     source: DocumentSource) -> Document {
+                     source: DocumentSource,
+                     doc_loader: DocumentLoader) -> Document {
         let url = url.unwrap_or_else(|| Url::parse("about:blank").unwrap());
 
         let ready_state = if source == DocumentSource::FromParser {
@@ -447,23 +484,29 @@ impl Document {
             ready_state: Cell::new(ready_state),
             possibly_focused: Default::default(),
             focused: Default::default(),
+            loader: DOMRefCell::new(doc_loader),
         }
     }
 
     // http://dom.spec.whatwg.org/#dom-document
     pub fn Constructor(global: GlobalRef) -> Fallible<Temporary<Document>> {
-        Ok(Document::new(global.as_window(), None,
+        let win = global.as_window();
+        let doc = win.Document().root();
+        let docloader = DocumentLoader::new(&*doc.loader());
+        Ok(Document::new(win, None,
                          IsHTMLDocument::NonHTMLDocument, None,
-                         DocumentSource::NotFromParser))
+                         DocumentSource::NotFromParser, docloader))
     }
 
     pub fn new(window: JSRef<Window>,
                url: Option<Url>,
                doctype: IsHTMLDocument,
                content_type: Option<DOMString>,
-               source: DocumentSource) -> Temporary<Document> {
+               source: DocumentSource,
+               docloader: DocumentLoader) -> Temporary<Document> {
         let document = reflect_dom_object(box Document::new_inherited(window, url, doctype,
-                                                                      content_type, source),
+                                                                      content_type, source,
+                                                                      docloader),
                                           GlobalRef::Window(window),
                                           DocumentBinding::Wrap).root();
 

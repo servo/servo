@@ -4,6 +4,7 @@
 
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
+use document_loader::DocumentLoader;
 use dom::attr::{Attr, AttrHelpers};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
@@ -1546,9 +1547,10 @@ impl Node {
                     false => IsHTMLDocument::NonHTMLDocument,
                 };
                 let window = document.window().root();
+                let loader = DocumentLoader::new(&*document.loader());
                 let document = Document::new(window.r(), Some(document.url().clone()),
                                              is_html_doc, None,
-                                             DocumentSource::NotFromParser);
+                                             DocumentSource::NotFromParser, loader);
                 NodeCast::from_temporary(document)
             },
             NodeTypeId::Element(..) => {

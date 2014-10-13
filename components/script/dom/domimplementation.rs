@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use document_loader::DocumentLoader;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::DOMImplementationBinding;
 use dom::bindings::codegen::Bindings::DOMImplementationBinding::DOMImplementationMethods;
@@ -69,10 +70,11 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
                       maybe_doctype: Option<JSRef<DocumentType>>) -> Fallible<Temporary<Document>> {
         let doc = self.document.root();
         let win = doc.r().window().root();
+        let loader = DocumentLoader::new(&*doc.r().loader());
 
         // Step 1.
         let doc = Document::new(win.r(), None, IsHTMLDocument::NonHTMLDocument,
-                                None, DocumentSource::NotFromParser).root();
+                                None, DocumentSource::NotFromParser, loader).root();
         // Step 2-3.
         let maybe_elem = if qname.is_empty() {
             None
@@ -115,10 +117,11 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
     fn CreateHTMLDocument(self, title: Option<DOMString>) -> Temporary<Document> {
         let document = self.document.root();
         let win = document.r().window().root();
+        let loader = DocumentLoader::new(&*document.r().loader());
 
         // Step 1-2.
         let doc = Document::new(win.r(), None, IsHTMLDocument::HTMLDocument, None,
-                                DocumentSource::NotFromParser).root();
+                                DocumentSource::NotFromParser, loader).root();
         let doc_node: JSRef<Node> = NodeCast::from_ref(doc.r());
 
         {

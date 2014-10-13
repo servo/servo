@@ -4,6 +4,7 @@
 
 use std::ascii::AsciiExt;
 
+use document_loader::LoadType;
 use dom::attr::Attr;
 use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
@@ -15,19 +16,19 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCas
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
-use dom::document::Document;
+use dom::document::{Document, DocumentHelpers};
 use dom::element::{Element, AttributeHandlers, ElementCreator};
 use dom::eventtarget::{EventTarget, EventTargetTypeId, EventTargetHelpers};
 use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
 use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node, CloneChildrenFlag};
+use dom::node::document_from_node;
 use dom::virtualmethods::VirtualMethods;
 use dom::window::ScriptHelpers;
 
 use encoding::all::UTF_8;
 use encoding::types::{Encoding, DecoderTrap};
-use servo_net::resource_task::load_whole_resource;
 use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS, StaticStringVec};
 use std::cell::Cell;
 use string_cache::Atom;
@@ -187,7 +188,9 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
                         // state of the element's `crossorigin` content attribute, the origin being
                         // the origin of the script element's node document, and the default origin
                         // behaviour set to taint.
-                        match load_whole_resource(&page.resource_task, url) {
+                        let doc = document_from_node(self).root();
+                        let contents = doc.load_sync(LoadType::Script(url));
+                        match contents {
                             Ok((metadata, bytes)) => {
                                 // TODO: use the charset from step 13.
                                 let source = UTF_8.decode(bytes.as_slice(), DecoderTrap::Replace).unwrap();

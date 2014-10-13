@@ -7,6 +7,7 @@
 
 #![allow(unsafe_blocks)]
 
+use document_loader::{LoadType, DocumentLoader};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -57,8 +58,7 @@ use servo_msg::constellation_msg::{KeyModifiers, SUPER, SHIFT, CONTROL, ALT};
 use servo_msg::constellation_msg::{PipelineExitType};
 use servo_msg::constellation_msg::Msg as ConstellationMsg;
 use servo_net::image_cache_task::ImageCacheTask;
-use servo_net::resource_task::{ResourceTask, ControlMsg};
-use servo_net::resource_task::LoadData as NetLoadData;
+use servo_net::resource_task::ResourceTask;
 use servo_net::storage_task::StorageTask;
 use servo_util::geometry::to_frac_px;
 use servo_util::smallvec::SmallVec;
@@ -125,6 +125,8 @@ pub enum ScriptMsg {
     RunnableMsg(Box<Runnable+Send>),
     /// A DOM object's last pinned reference was removed (dispatched to all tasks).
     RefcountCleanup(*const libc::c_void),
+    /// Notify a document that all pending loads are complete.
+    DocumentLoadsComplete(PipelineId),
 }
 
 /// A cloneable interface for communicating with an event loop.
@@ -366,7 +368,6 @@ impl ScriptTask {
         }
 
         let page = Page::new(id, None, layout_chan, window_size,
-                             resource_task.clone(),
                              storage_task,
                              constellation_chan.clone(),
                              js_context.clone());
@@ -571,7 +572,7 @@ impl ScriptTask {
             ConstellationControlMsg::AttachLayout(_) =>
                 panic!("should have handled AttachLayout already"),
             ConstellationControlMsg::Load(id, load_data) =>
-                self.load(id, load_data),
+                self.load(id, load_data, self.resource_task.clone()),
             ConstellationControlMsg::SendEvent(id, event) =>
                 self.handle_event(id, event),
             ConstellationControlMsg::ReflowComplete(id, reflow_id) =>
@@ -609,6 +610,8 @@ impl ScriptTask {
                 runnable.handler(),
             ScriptMsg::RefcountCleanup(addr) =>
                 LiveDOMReferences::cleanup(self.get_cx(), addr),
+            ScriptMsg::DocumentLoadsComplete(id) =>
+                self.handle_loads_complete(id),
         }
     }
 
@@ -646,12 +649,32 @@ impl ScriptTask {
             Page::new(new_pipeline_id, Some(subpage_id),
                       LayoutChan(layout_chan.downcast_ref::<Sender<layout_interface::Msg>>().unwrap().clone()),
                       window_size,
-                      parent_page.resource_task.clone(),
                       parent_page.storage_task.clone(),
                       self.constellation_chan.clone(),
                       self.js_context.borrow().as_ref().unwrap().clone())
         };
         parent_page.children.borrow_mut().push(Rc::new(new_page));
+    }
+
+    fn handle_loads_complete(&self, pipeline: PipelineId) {
+        let page = get_page(&*self.page.borrow(), pipeline);
+        let frame = page.frame();
+        let win = frame.as_ref().unwrap().window.root();
+        let doc = win.Document().root();
+        if doc.loader().is_blocked() {
+            return;
+        }
+
+        doc.mut_loader().inhibit_events();
+
+        // https://html.spec.whatwg.org/multipage/#the-end step 7
+        self.chan.send(ScriptMsg::RunnableMsg(box DocumentProgressHandler {
+            addr: Trusted::new(self.get_cx(), doc.r(), self.chan.clone()),
+            task: DocumentProgressTask::Load,
+        }));
+
+        let ConstellationChan(ref chan) = self.constellation_chan;
+        chan.send(ConstellationMsg::LoadComplete);
     }
 
     /// Handles a timer that fired.
@@ -746,7 +769,7 @@ impl ScriptTask {
 
     /// The entry point to document loading. Defines bindings, sets up the window and document
     /// objects, parses HTML and CSS, and kicks off initial layout.
-    fn load(&self, pipeline_id: PipelineId, load_data: LoadData) {
+    fn load(&self, pipeline_id: PipelineId, load_data: LoadData, resource_task: ResourceTask) {
         let url = load_data.url.clone();
         debug!("ScriptTask: loading {} on page {}", url, pipeline_id);
 
@@ -794,9 +817,10 @@ impl ScriptTask {
         } else {
             url.clone()
         };
+        let loader = DocumentLoader::new_with_task(resource_task, self.chan.clone(), page.id);
         let document = Document::new(window.r(), Some(doc_url.clone()),
                                      IsHTMLDocument::HTMLDocument, None,
-                                     DocumentSource::FromParser).root();
+                                     DocumentSource::FromParser, loader).root();
 
         window.r().init_browser_context(document.r());
 
@@ -813,16 +837,7 @@ impl ScriptTask {
 
         let (parser_input, final_url) = if !is_javascript {
             // Wait for the LoadResponse so that the parser knows the final URL.
-            let (input_chan, input_port) = channel();
-            self.resource_task.send(ControlMsg::Load(NetLoadData {
-                url: url,
-                method: load_data.method,
-                headers: load_data.headers,
-                data: load_data.data,
-                cors: None,
-                consumer: input_chan,
-            }));
-
+            let input_port = document.load_async(LoadType::PageSource(url.clone()));
             let load_response = input_port.recv();
 
             load_response.metadata.headers.as_ref().map(|headers| {
@@ -874,21 +889,7 @@ impl ScriptTask {
             task: DocumentProgressTask::DOMContentLoaded,
         }));
 
-        // We have no concept of a document loader right now, so just dispatch the
-        // "load" event as soon as we've finished executing all scripts parsed during
-        // the initial load.
-
-        // https://html.spec.whatwg.org/multipage/#the-end step 7
-        self.chan.send(ScriptMsg::RunnableMsg(box DocumentProgressHandler {
-            addr: addr,
-            task: DocumentProgressTask::Load,
-        }));
-
-
         *page.fragment_name.borrow_mut() = final_url.fragment.clone();
-
-        let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(ConstellationMsg::LoadComplete);
 
         // Notify devtools that a new script global exists.
         match self.devtools_chan {

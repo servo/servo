@@ -44,6 +44,7 @@ extern crate string_cache;
 extern crate string_cache_macros;
 
 pub mod cors;
+pub mod document_loader;
 
 /// The implementation of the DOM.
 #[macro_escape]
