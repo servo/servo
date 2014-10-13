@@ -1041,8 +1041,7 @@ impl BlockFlow {
         let info = PlacementInfo {
             size: LogicalSize::new(
                 self.fragment.style.writing_mode,
-                self.base.position.size.inline + self.fragment.margin.inline_start_end() +
-                    self.fragment.border_padding.inline_start_end(),
+                self.base.position.size.inline,
                 block_size + self.fragment.margin.block_start_end()),
             ceiling: clearance + float_info.float_ceiling,
             max_inline_size: float_info.containing_inline_size,
@@ -1619,10 +1618,6 @@ impl Flow for BlockFlow {
         let padding_and_borders = self.fragment.border_padding.inline_start_end();
         let content_inline_size = self.fragment.border_box.size.inline - padding_and_borders;
 
-        if self.is_float() {
-            self.base.position.size.inline = content_inline_size;
-        }
-
         self.propagate_assigned_inline_size_to_children(inline_start_content_edge, content_inline_size, None);
     }
 
@@ -1955,6 +1950,7 @@ pub trait ISizeAndMarginsComputer {
                                             block: &mut BlockFlow,
                                             solution: ISizeConstraintSolution) {
         let inline_size;
+        let extra_inline_size_from_margin;
         {
             let fragment = block.fragment();
             fragment.margin.inline_start = solution.margin_inline_start;
@@ -1965,14 +1961,19 @@ pub trait ISizeAndMarginsComputer {
 
             // The associated fragment has the border box of this flow.
             inline_size = solution.inline_size + fragment.border_padding.inline_start_end();
-            fragment.border_box.size.inline = inline_size
+            fragment.border_box.size.inline = inline_size;
+
+            // To calculate the total size of this block, we also need to account for any additional
+            // size contribution from positive margins. Negative margins means the block isn't made
+            // larger at all by the margin.
+            extra_inline_size_from_margin = max(Au(0), fragment.margin.inline_start) +
+                                            max(Au(0), fragment.margin.inline_end);
         }
 
         // We also resize the block itself, to ensure that overflow is not calculated
         // as the inline-size of our parent. We might be smaller and we might be larger if we
         // overflow.
-        let flow = flow::mut_base(block);
-        flow.position.size.inline = inline_size;
+        flow::mut_base(block).position.size.inline = inline_size + extra_inline_size_from_margin;
     }
 
     /// Set the x coordinate of the given flow if it is absolutely positioned.
