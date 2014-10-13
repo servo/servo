@@ -184,10 +184,10 @@ pub trait Flow: fmt::Show + ToString + Sync {
 
     /// Pass 1 of reflow: computes minimum and preferred inline-sizes.
     ///
-    /// Recursively (bottom-up) determine the flow's minimum and preferred inline-sizes. When called on
-    /// this flow, all child flows have had their minimum and preferred inline-sizes set. This function
-    /// must decide minimum/preferred inline-sizes based on its children's inline-sizes and the dimensions of
-    /// any boxes it is responsible for flowing.
+    /// Recursively (bottom-up) determine the flow's minimum and preferred inline-sizes. When
+    /// called on this flow, all child flows have had their minimum and preferred inline-sizes set.
+    /// This function must decide minimum/preferred inline-sizes based on its children's inline-
+    /// sizes and the dimensions of any boxes it is responsible for flowing.
     fn bubble_inline_sizes(&mut self, _ctx: &LayoutContext) {
         fail!("bubble_inline_sizes not yet implemented")
     }
@@ -203,10 +203,11 @@ pub trait Flow: fmt::Show + ToString + Sync {
     }
 
     /// Assigns block-sizes in-order; or, if this is a float, places the float. The default
-    /// implementation simply assigns block-sizes if this flow is impacted by floats. Returns true if
-    /// this child was impacted by floats or false otherwise.
-    fn assign_block_size_for_inorder_child_if_necessary<'a>(&mut self, layout_context: &'a LayoutContext<'a>)
-                                                    -> bool {
+    /// implementation simply assigns block-sizes if this flow is impacted by floats. Returns true
+    /// if this child was impacted by floats or false otherwise.
+    fn assign_block_size_for_inorder_child_if_necessary<'a>(&mut self,
+                                                            layout_context: &'a LayoutContext<'a>)
+                                                            -> bool {
         let impacted = base(&*self).flags.impacted_by_floats();
         if impacted {
             self.assign_block_size(layout_context);
@@ -745,6 +746,10 @@ pub struct BaseFlow {
     /// containing block. This is in tree order. This includes any direct children.
     pub abs_descendants: AbsDescendants,
 
+    /// The inline-size of the block container of this flow. Used for computing percentage and
+    /// automatic values for `width`.
+    pub block_container_inline_size: Au,
+
     /// The block-size of the block container of this flow, if it is an explicit size (does not
     /// depend on content heights).  Used for computing percentage values for `height`.
     pub block_container_explicit_block_size: Option<Au>,
@@ -780,7 +785,8 @@ pub struct BaseFlow {
 impl fmt::Show for BaseFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f,
-               "CC {}, ADC {}, CADC {}",
+               "@ {}, CC {}, ADC {}, CADC {}",
+               self.position,
                self.parallel.children_count.load(SeqCst),
                self.abs_descendants.len(),
                self.parallel.children_and_absolute_descendant_count.load(SeqCst))
@@ -837,8 +843,9 @@ impl BaseFlow {
             collapsible_margins: CollapsibleMargins::new(),
             abs_position: Zero::zero(),
             abs_descendants: Descendants::new(),
-            absolute_static_i_offset: Au::new(0),
-            fixed_static_i_offset: Au::new(0),
+            absolute_static_i_offset: Au(0),
+            fixed_static_i_offset: Au(0),
+            block_container_inline_size: Au(0),
             block_container_explicit_block_size: None,
             absolute_cb: ContainingBlockLink::new(),
             display_list: DisplayList::new(),

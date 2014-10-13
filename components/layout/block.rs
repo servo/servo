@@ -35,6 +35,7 @@ use gfx::display_list::{BackgroundAndBorderLevel, BlockLevel, ContentStackingLev
 use gfx::display_list::{FloatStackingLevel, PositionedDescendantStackingLevel};
 use gfx::display_list::{RootOfStackingContextLevel};
 use gfx::render_task::RenderLayer;
+use serialize::{Encoder, Encodable};
 use servo_msg::compositor_msg::{FixedPosition, LayerId, Scrollable};
 use servo_util::geometry::{Au, MAX_AU};
 use servo_util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize};
@@ -511,10 +512,6 @@ pub struct BlockFlow {
     /// The associated fragment.
     pub fragment: Fragment,
 
-    /// TODO: is_root should be a bit field to conserve memory.
-    /// Whether this block flow is the root flow.
-    pub is_root: bool,
-
     /// Static y offset of an absolute flow from its CB.
     pub static_b_offset: Au,
 
@@ -527,7 +524,23 @@ pub struct BlockFlow {
     inline_size_of_preceding_right_floats: Au,
 
     /// Additional floating flow members.
-    pub float: Option<Box<FloatedBlockInfo>>
+    pub float: Option<Box<FloatedBlockInfo>>,
+
+    /// Various flags.
+    pub flags: BlockFlowFlags,
+}
+
+bitflags! {
+    flags BlockFlowFlags: u8 {
+        #[doc="If this is set, then this block flow is the root flow."]
+        static IsRoot = 0x01,
+    }
+}
+
+impl<'a,E,S> Encodable<S,E> for BlockFlowFlags where S: Encoder<E> {
+    fn encode(&self, e: &mut S) -> Result<(),E> {
+        self.bits().encode(e)
+    }
 }
 
 impl BlockFlow {
@@ -535,11 +548,11 @@ impl BlockFlow {
         BlockFlow {
             base: BaseFlow::new((*node).clone()),
             fragment: Fragment::new(constructor, node),
-            is_root: false,
             static_b_offset: Au::new(0),
             inline_size_of_preceding_left_floats: Au(0),
             inline_size_of_preceding_right_floats: Au(0),
-            float: None
+            float: None,
+            flags: BlockFlowFlags::empty(),
         }
     }
 
@@ -547,11 +560,11 @@ impl BlockFlow {
         BlockFlow {
             base: BaseFlow::new((*node).clone()),
             fragment: fragment,
-            is_root: false,
             static_b_offset: Au::new(0),
             inline_size_of_preceding_left_floats: Au(0),
             inline_size_of_preceding_right_floats: Au(0),
-            float: None
+            float: None,
+            flags: BlockFlowFlags::empty(),
         }
     }
 
@@ -562,12 +575,12 @@ impl BlockFlow {
         let base = BaseFlow::new((*node).clone());
         BlockFlow {
             fragment: Fragment::new(constructor, node),
-            is_root: false,
             static_b_offset: Au::new(0),
             inline_size_of_preceding_left_floats: Au(0),
             inline_size_of_preceding_right_floats: Au(0),
             float: Some(box FloatedBlockInfo::new(float_kind)),
             base: base,
+            flags: BlockFlowFlags::empty(),
         }
     }
 
@@ -578,12 +591,12 @@ impl BlockFlow {
         let base = BaseFlow::new((*node).clone());
         BlockFlow {
             fragment: fragment,
-            is_root: false,
             static_b_offset: Au::new(0),
             inline_size_of_preceding_left_floats: Au(0),
             inline_size_of_preceding_right_floats: Au(0),
             float: Some(box FloatedBlockInfo::new(float_kind)),
             base: base,
+            flags: BlockFlowFlags::empty(),
         }
     }
 
@@ -1165,7 +1178,7 @@ impl BlockFlow {
                 // Calculate used value of block-size just like we do for inline replaced elements.
                 // TODO: Pass in the containing block block-size when Fragment's
                 // assign-block-size can handle it correctly.
-                self.fragment.assign_replaced_block_size_if_necessary();
+                self.fragment.assign_replaced_block_size_if_necessary(containing_block_block_size);
                 // TODO: Right now, this content block-size value includes the
                 // margin because of erroneous block-size calculation in fragment.
                 // Check this when that has been fixed.
@@ -1347,7 +1360,7 @@ impl BlockFlow {
             // The inline-start margin edge of the child flow is at our inline-start content edge,
             // and its inline-size is our content inline-size.
             flow::mut_base(kid).position.start.i = inline_start_content_edge;
-            flow::mut_base(kid).position.size.inline = content_inline_size;
+            flow::mut_base(kid).block_container_inline_size = content_inline_size;
 
             // Determine float impaction.
             match kid.float_clearance() {
@@ -1576,7 +1589,7 @@ impl Flow for BlockFlow {
         if self.is_root() {
             debug!("Setting root position");
             self.base.position.start = LogicalPoint::zero(self.base.writing_mode);
-            self.base.position.size.inline = LogicalSize::from_physical(
+            self.base.block_container_inline_size = LogicalSize::from_physical(
                 self.base.writing_mode, layout_context.shared.screen_size).inline;
             self.base.floats = Floats::new(self.base.writing_mode);
 
@@ -1585,9 +1598,9 @@ impl Flow for BlockFlow {
             self.base.flags.set_impacted_by_right_floats(false);
         }
 
-        // Our inline-size was set to the inline-size of the containing block by the flow's parent. Now compute
-        // the real value.
-        let containing_block_inline_size = self.base.position.size.inline;
+        // Our inline-size was set to the inline-size of the containing block by the flow's parent.
+        // Now compute the real value.
+        let containing_block_inline_size = self.base.block_container_inline_size;
         self.compute_used_inline_size(layout_context, containing_block_inline_size);
         if self.is_float() {
             self.float.as_mut().unwrap().containing_inline_size = containing_block_inline_size;
@@ -1665,7 +1678,9 @@ impl Flow for BlockFlow {
                                                 self.base.debug_id());
 
             // Assign block-size for fragment if it is an image fragment.
-            self.fragment.assign_replaced_block_size_if_necessary();
+            let containing_block_block_size =
+                self.base.block_container_explicit_block_size.unwrap_or(Au(0));
+            self.fragment.assign_replaced_block_size_if_necessary(containing_block_block_size);
             self.base.position.size.block = self.fragment.border_box.size.block;
         } else if self.is_root() || self.is_float() {
             // Root element margins should never be collapsed according to CSS § 8.3.1.
@@ -1743,7 +1758,7 @@ impl Flow for BlockFlow {
     }
 
     fn mark_as_root(&mut self) {
-        self.is_root = true
+        self.flags.insert(IsRoot)
     }
 
     /// Return true if store overflow is delayed for this flow.
@@ -1754,7 +1769,7 @@ impl Flow for BlockFlow {
     }
 
     fn is_root(&self) -> bool {
-        self.is_root
+        self.flags.contains(IsRoot)
     }
 
     fn is_float(&self) -> bool {
@@ -2018,7 +2033,8 @@ pub trait ISizeAndMarginsComputer {
 
         let containing_block_inline_size = self.containing_block_inline_size(
             block,
-            parent_flow_inline_size, ctx);
+            parent_flow_inline_size,
+            ctx);
 
         let mut solution = self.solve_inline_size_constraints(block, &input);
 
@@ -2529,5 +2545,5 @@ fn propagate_column_inline_sizes_to_child(kid: &mut Flow,
 
     let kid_base = flow::mut_base(kid);
     kid_base.position.start.i = *inline_start_margin_edge;
-    kid_base.position.size.inline = inline_size;
+    kid_base.block_container_inline_size = inline_size;
 }
