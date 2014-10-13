@@ -37,21 +37,22 @@ pub enum EventTypeId {
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct Event {
-    pub type_id: EventTypeId,
+    type_id: EventTypeId,
     reflector_: Reflector,
-    pub current_target: MutNullableJS<EventTarget>,
-    pub target: MutNullableJS<EventTarget>,
+    current_target: MutNullableJS<EventTarget>,
+    target: MutNullableJS<EventTarget>,
     type_: RefCell<DOMString>,
-    pub phase: Cell<EventPhase>,
-    pub canceled: Cell<bool>,
-    pub stop_propagation: Cell<bool>,
-    pub stop_immediate: Cell<bool>,
-    pub cancelable: Cell<bool>,
-    pub bubbles: Cell<bool>,
-    pub trusted: Cell<bool>,
-    pub dispatching: Cell<bool>,
-    pub initialized: Cell<bool>,
+    phase: Cell<EventPhase>,
+    canceled: Cell<bool>,
+    stop_propagation: Cell<bool>,
+    stop_immediate: Cell<bool>,
+    cancelable: Cell<bool>,
+    bubbles: Cell<bool>,
+    trusted: Cell<bool>,
+    dispatching: Cell<bool>,
+    initialized: Cell<bool>,
     timestamp: u64,
 }
 
@@ -95,6 +96,61 @@ impl Event {
                        type_: DOMString,
                        init: &EventBinding::EventInit) -> Fallible<Temporary<Event>> {
         Ok(Event::new(global, type_, init.bubbles, init.cancelable))
+    }
+
+    #[inline]
+    pub fn type_id<'a>(&'a self) -> &'a EventTypeId {
+        &self.type_id
+    }
+
+    #[inline]
+    pub fn clear_current_target(&self) {
+        self.current_target.clear();
+    }
+
+    #[inline]
+    pub fn set_current_target(&self, val: JSRef<EventTarget>) {
+        self.current_target.assign(Some(val));
+    }
+
+    #[inline]
+    pub fn set_target(&self, val: JSRef<EventTarget>) {
+        self.target.assign(Some(val));
+    }
+
+    #[inline]
+    pub fn set_phase(&self, val: EventPhase) {
+        self.phase.set(val)
+    }
+
+    #[inline]
+    pub fn stop_propagation(&self) -> bool {
+        self.stop_propagation.get()
+    }
+
+    #[inline]
+    pub fn stop_immediate(&self) -> bool {
+        self.stop_immediate.get()
+    }
+
+    #[inline]
+    pub fn bubbles(&self) -> bool {
+        self.bubbles.get()
+    }
+
+    #[inline]
+    pub fn dispatching(&self) -> bool {
+        self.dispatching.get()
+    }
+
+    #[inline]
+    pub fn set_dispatching(&self, val: bool) {
+        self.dispatching.set(val)
+    }
+
+    #[inline]
+    pub fn initialized(&self) -> bool {
+        self.initialized.get()
     }
 }
 

@@ -27,7 +27,7 @@ pub struct CustomEvent {
 
 impl CustomEventDerived for Event {
     fn is_customevent(&self) -> bool {
-        self.type_id == CustomEventTypeId
+        *self.type_id() == CustomEventTypeId
     }
 }
 

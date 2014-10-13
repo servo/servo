@@ -25,7 +25,7 @@ pub struct ProgressEvent {
 
 impl ProgressEventDerived for Event {
     fn is_progressevent(&self) -> bool {
-        self.type_id == ProgressEventTypeId
+        *self.type_id() == ProgressEventTypeId
     }
 }
 

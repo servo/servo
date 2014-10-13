@@ -38,7 +38,7 @@ pub struct MouseEvent {
 
 impl MouseEventDerived for Event {
     fn is_mouseevent(&self) -> bool {
-        self.type_id == MouseEventTypeId
+        *self.type_id() == MouseEventTypeId
     }
 }
 

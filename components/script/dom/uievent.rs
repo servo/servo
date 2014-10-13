@@ -30,7 +30,7 @@ pub struct UIEvent {
 
 impl UIEventDerived for Event {
     fn is_uievent(&self) -> bool {
-        self.type_id == UIEventTypeId
+        *self.type_id() == UIEventTypeId
     }
 }
 
