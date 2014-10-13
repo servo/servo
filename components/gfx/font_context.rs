@@ -45,6 +45,10 @@ struct LayoutFontCacheEntry {
     font: Rc<RefCell<Font>>,
 }
 
+struct FallbackFontCacheEntry {
+    font: Rc<RefCell<Font>>,
+}
+
 /// A cached azure font (per render task) that
 /// can be shared by multiple text runs.
 struct RenderFontCacheEntry {
@@ -63,6 +67,7 @@ pub struct FontContext {
 
     /// TODO: See bug https://github.com/servo/servo/issues/3300.
     layout_font_cache: Vec<LayoutFontCacheEntry>,
+    fallback_font_cache: Vec<FallbackFontCacheEntry>,
 
     /// Strong reference as the render FontContext is (for now) recycled
     /// per frame. TODO: Make this weak when incremental redraw is done.
@@ -76,6 +81,7 @@ impl FontContext {
             platform_handle: handle,
             font_cache_task: font_cache_task,
             layout_font_cache: vec!(),
+            fallback_font_cache: vec!(),
             render_font_cache: vec!(),
         }
     }
@@ -116,11 +122,10 @@ impl FontContext {
         // TODO: The font context holds a strong ref to the cached fonts
         // so they will never be released. Find out a good time to drop them.
 
+        let desc = FontTemplateDescriptor::new(style.weight, style.style == font_style::italic);
         let mut fonts: Vec<Rc<RefCell<Font>>> = vec!();
 
         for family in style.families.iter() {
-            let desc = FontTemplateDescriptor::new(style.weight, style.style == font_style::italic);
-
             // GWTODO: Check on real pages if this is faster as Vec() or HashMap().
             let mut cache_hit = false;
             for cached_font_entry in self.layout_font_cache.iter() {
@@ -138,10 +143,47 @@ impl FontContext {
 
             if !cache_hit {
                 let font_template = self.font_cache_task.get_font_template(family.clone(), desc.clone());
-                let layout_font = Rc::new(RefCell::new(self.create_layout_font(font_template,
-                                                        desc.clone(), style.pt_size, style.variant)));
-                self.layout_font_cache.push(LayoutFontCacheEntry {
-                    family: family.clone(),
+                match font_template {
+                    Some(font_template) => {
+                        let layout_font = self.create_layout_font(font_template,
+                                                                  desc.clone(),
+                                                                  style.pt_size,
+                                                                  style.variant);
+                        let layout_font = Rc::new(RefCell::new(layout_font));
+                        self.layout_font_cache.push(LayoutFontCacheEntry {
+                            family: family.clone(),
+                            font: layout_font.clone(),
+                        });
+                        fonts.push(layout_font);
+                    }
+                    None => {}
+                }
+            }
+        }
+
+        // If unable to create any of the specified fonts, create one from the
+        // list of last resort fonts for this platform.
+        if fonts.len() == 0 {
+            let mut cache_hit = false;
+            for cached_font_entry in self.fallback_font_cache.iter() {
+                let cached_font = cached_font_entry.font.borrow();
+                if cached_font.descriptor == desc &&
+                            cached_font.requested_pt_size == style.pt_size &&
+                            cached_font.variant == style.variant {
+                    fonts.push(cached_font_entry.font.clone());
+                    cache_hit = true;
+                    break;
+                }
+            }
+
+            if !cache_hit {
+                let font_template = self.font_cache_task.get_last_resort_font_template(desc.clone());
+                let layout_font = self.create_layout_font(font_template,
+                                                          desc.clone(),
+                                                          style.pt_size,
+                                                          style.variant);
+                let layout_font = Rc::new(RefCell::new(layout_font));
+                self.fallback_font_cache.push(FallbackFontCacheEntry {
                     font: layout_font.clone(),
                 });
                 fonts.push(layout_font);

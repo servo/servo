@@ -71,13 +71,14 @@ impl FontFamily {
 /// Commands that the FontContext sends to the font cache task.
 pub enum Command {
     GetFontTemplate(String, FontTemplateDescriptor, Sender<Reply>),
+    GetLastResortFontTemplate(FontTemplateDescriptor, Sender<Reply>),
     AddWebFont(String, Url, Sender<()>),
     Exit(Sender<()>),
 }
 
 /// Reply messages sent from the font cache task to the FontContext caller.
 pub enum Reply {
-    GetFontTemplateReply(Arc<FontTemplateData>),
+    GetFontTemplateReply(Option<Arc<FontTemplateData>>),
 }
 
 /// The font cache task itself. It maintains a list of reference counted
@@ -109,12 +110,11 @@ impl FontCache {
             match msg {
                 GetFontTemplate(family, descriptor, result) => {
                     let maybe_font_template = self.get_font_template(&family, &descriptor);
-                    let font_template = match maybe_font_template {
-                        Some(font_template) => font_template,
-                        None => self.get_last_resort_template(&descriptor),
-                    };
-
-                    result.send(GetFontTemplateReply(font_template));
+                    result.send(GetFontTemplateReply(maybe_font_template));
+                }
+                GetLastResortFontTemplate(descriptor, result) => {
+                    let font_template = self.get_last_resort_font_template(&descriptor);
+                    result.send(GetFontTemplateReply(Some(font_template)));
                 }
                 AddWebFont(family_name, url, result) => {
                     let maybe_resource = load_whole_resource(&self.resource_task, url.clone());
@@ -197,7 +197,8 @@ impl FontCache {
         }
     }
 
-    fn get_font_template(&mut self, family: &String, desc: &FontTemplateDescriptor) -> Option<Arc<FontTemplateData>> {
+    fn get_font_template(&mut self, family: &String, desc: &FontTemplateDescriptor)
+                            -> Option<Arc<FontTemplateData>> {
         let transformed_family_name = self.transform_family(family);
         let mut maybe_template = self.find_font_in_web_family(&transformed_family_name, desc);
         if maybe_template.is_none() {
@@ -206,7 +207,8 @@ impl FontCache {
         maybe_template
     }
 
-    fn get_last_resort_template(&mut self, desc: &FontTemplateDescriptor) -> Arc<FontTemplateData> {
+    fn get_last_resort_font_template(&mut self, desc: &FontTemplateDescriptor)
+                                        -> Arc<FontTemplateData> {
         let last_resort = get_last_resort_font_families();
 
         for family in last_resort.iter() {
@@ -259,7 +261,7 @@ impl FontCacheTask {
     }
 
     pub fn get_font_template(&self, family: String, desc: FontTemplateDescriptor)
-                                                -> Arc<FontTemplateData> {
+                                                -> Option<Arc<FontTemplateData>> {
 
         let (response_chan, response_port) = channel();
         self.chan.send(GetFontTemplate(family, desc, response_chan));
@@ -269,6 +271,21 @@ impl FontCacheTask {
         match reply {
             GetFontTemplateReply(data) => {
                 data
+            }
+        }
+    }
+
+    pub fn get_last_resort_font_template(&self, desc: FontTemplateDescriptor)
+                                                -> Arc<FontTemplateData> {
+
+        let (response_chan, response_port) = channel();
+        self.chan.send(GetLastResortFontTemplate(desc, response_chan));
+
+        let reply = response_port.recv();
+
+        match reply {
+            GetFontTemplateReply(data) => {
+                data.unwrap()
             }
         }
     }
