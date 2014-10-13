@@ -72,6 +72,10 @@ impl Page {
         }
     }
 
+    pub fn pipeline(&self) -> PipelineId {
+        self.id
+    }
+
     pub fn window(&self) -> Temporary<Window> {
         Temporary::new(self.frame.borrow().as_ref().unwrap().window.clone())
     }

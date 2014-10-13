@@ -54,6 +54,7 @@ extern crate uuid;
 extern crate string_cache;
 
 pub mod cors;
+pub mod document_loader;
 
 #[macro_use]
 pub mod dom;

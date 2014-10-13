@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use document_loader::{DocumentLoader, LoadType};
 use dom::attr::{Attr, AttrHelpers, AttrValue};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding;
@@ -11,6 +12,7 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{DocumentDerived, EventCast, HTMLElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLHeadElementCast, ElementCast};
 use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, HTMLHtmlElementCast, NodeCast};
@@ -66,6 +68,7 @@ use msg::constellation_msg::{ConstellationChan, FocusType, Key, KeyState, KeyMod
 use msg::constellation_msg::{SUPER, ALT, SHIFT, CONTROL};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::ControlMsg::{SetCookiesForUrl, GetCookiesForUrl};
+use net_traits::{Metadata, LoadResponse};
 use script_task::Runnable;
 use script_traits::{MouseButton, UntrustedNodeAddress};
 use util::opts;
@@ -83,9 +86,9 @@ use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::ascii::AsciiExt;
-use std::cell::{Cell, Ref};
+use std::cell::{Cell, Ref, RefMut};
 use std::default::Default;
-use std::sync::mpsc::channel;
+use std::sync::mpsc::{Receiver, channel};
 use std::num::ToPrimitive;
 use time;
 
@@ -127,6 +130,8 @@ pub struct Document {
     /// https://html.spec.whatwg.org/multipage/#concept-n-noscript
     /// True if scripting is enabled for all scripts in this document
     scripting_enabled: Cell<bool>,
+    /// Tracks all outstanding loads related to this document.
+    loader: DOMRefCell<DocumentLoader>,
 }
 
 impl DocumentDerived for EventTarget {
@@ -193,6 +198,8 @@ impl CollectionFilter for AppletsFilter {
 }
 
 pub trait DocumentHelpers<'a> {
+    fn loader(&self) -> Ref<DocumentLoader>;
+    fn mut_loader(&self) -> RefMut<DocumentLoader>;
     fn window(self) -> Temporary<Window>;
     fn encoding_name(self) -> Ref<'a, DOMString>;
     fn is_html_document(self) -> bool;
@@ -233,9 +240,22 @@ pub trait DocumentHelpers<'a> {
 
     fn set_current_script(self, script: Option<JSRef<HTMLScriptElement>>);
     fn trigger_mozbrowser_event(self, event: MozBrowserEvent);
+    fn load_async(self, load: LoadType) -> Receiver<LoadResponse>;
+    fn load_sync(self, load: LoadType) -> Result<(Metadata, Vec<u8>), String>;
+    fn finish_load(self, load: LoadType);
 }
 
 impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
+    #[inline]
+    fn loader(&self) -> Ref<DocumentLoader> {
+        self.loader.borrow()
+    }
+
+    #[inline]
+    fn mut_loader(&self) -> RefMut<DocumentLoader> {
+        self.loader.borrow_mut()
+    }
+
     #[inline]
     fn window(self) -> Temporary<Window> {
         Temporary::new(self.window)
@@ -757,6 +777,21 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
             }
         }
     }
+
+    fn load_async(self, load: LoadType) -> Receiver<LoadResponse> {
+        let mut loader = self.loader.borrow_mut();
+        loader.load_async(load)
+    }
+
+    fn load_sync(self, load: LoadType) -> Result<(Metadata, Vec<u8>), String> {
+        let mut loader = self.loader.borrow_mut();
+        loader.load_sync(load)
+    }
+
+    fn finish_load(self, load: LoadType) {
+        let mut loader = self.loader.borrow_mut();
+        loader.finish_load(load);
+    }
 }
 
 #[derive(PartialEq)]
@@ -785,7 +820,8 @@ impl Document {
                      is_html_document: IsHTMLDocument,
                      content_type: Option<DOMString>,
                      last_modified: Option<DOMString>,
-                     source: DocumentSource) -> Document {
+                     source: DocumentSource,
+                     doc_loader: DocumentLoader) -> Document {
         let url = url.unwrap_or_else(|| Url::parse("about:blank").unwrap());
 
         let ready_state = if source == DocumentSource::FromParser {
@@ -828,14 +864,19 @@ impl Document {
             focused: Default::default(),
             current_script: Default::default(),
             scripting_enabled: Cell::new(true),
+            loader: DOMRefCell::new(doc_loader),
         }
     }
 
     // https://dom.spec.whatwg.org/#dom-document
     pub fn Constructor(global: GlobalRef) -> Fallible<Temporary<Document>> {
-        Ok(Document::new(global.as_window(), None,
+        let win = global.as_window();
+        let doc = win.Document().root();
+        let doc = doc.r();
+        let docloader = DocumentLoader::new(&*doc.loader());
+        Ok(Document::new(win, None,
                          IsHTMLDocument::NonHTMLDocument, None,
-                         None, DocumentSource::NotFromParser))
+                         None, DocumentSource::NotFromParser, docloader))
     }
 
     pub fn new(window: JSRef<Window>,
@@ -843,10 +884,11 @@ impl Document {
                doctype: IsHTMLDocument,
                content_type: Option<DOMString>,
                last_modified: Option<DOMString>,
-               source: DocumentSource) -> Temporary<Document> {
+               source: DocumentSource,
+               doc_loader: DocumentLoader) -> Temporary<Document> {
         let document = reflect_dom_object(box Document::new_inherited(window, url, doctype,
                                                                       content_type, last_modified,
-                                                                      source),
+                                                                      source, doc_loader),
                                           GlobalRef::Window(window),
                                           DocumentBinding::Wrap).root();
 

@@ -19,6 +19,7 @@
 
 #![allow(unsafe_code)]
 
+use document_loader::{DocumentLoader, NotifierData};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
 use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, HTMLIFrameElementCast, NodeCast, EventCast};
@@ -62,7 +63,7 @@ use msg::constellation_msg::{ConstellationChan, FocusType};
 use msg::constellation_msg::{LoadData, PipelineId, SubpageId, MozBrowserEvent, WorkerId};
 use msg::constellation_msg::{Failure, WindowSizeData, PipelineExitType};
 use msg::constellation_msg::Msg as ConstellationMsg;
-use net_traits::{ResourceTask, ControlMsg, LoadResponse, LoadConsumer};
+use net_traits::{ResourceTask, LoadResponse, LoadConsumer, ControlMsg};
 use net_traits::LoadData as NetLoadData;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask, ImageCacheResult};
 use net_traits::storage_task::StorageTask;
@@ -190,6 +191,8 @@ pub enum ScriptMsg {
     RefcountCleanup(TrustedReference),
     /// The final network response for a page has arrived.
     PageFetchComplete(PipelineId, Option<SubpageId>, LoadResponse),
+    /// Notify a document that all pending loads are complete.
+    DocumentLoadsComplete(PipelineId),
 }
 
 /// A cloneable interface for communicating with an event loop.
@@ -752,6 +755,8 @@ impl ScriptTask {
                 LiveDOMReferences::cleanup(self.get_cx(), addr),
             ScriptMsg::PageFetchComplete(id, subpage, response) =>
                 self.handle_page_fetch_complete(id, subpage, response),
+            ScriptMsg::DocumentLoadsComplete(id) =>
+                self.handle_loads_complete(id),
         }
     }
 
@@ -843,6 +848,25 @@ impl ScriptTask {
                                            layout_chan, parent_window.r().window_size(),
                                            load_data.url.clone());
         self.start_page_load(new_load, load_data);
+    }
+
+    fn handle_loads_complete(&self, pipeline: PipelineId) {
+        let page = get_page(&self.root_page(), pipeline);
+        let doc = page.document().root();
+        let doc = doc.r();
+        if doc.loader().is_blocked() {
+            return;
+        }
+
+        doc.mut_loader().inhibit_events();
+
+        // https://html.spec.whatwg.org/multipage/#the-end step 7
+        let addr: Trusted<Document> = Trusted::new(self.get_cx(), doc, self.chan.clone());
+        let handler = box DocumentProgressHandler::new(addr.clone(), DocumentProgressTask::Load);
+        self.chan.send(ScriptMsg::RunnableMsg(handler)).unwrap();
+
+        let ConstellationChan(ref chan) = self.constellation_chan;
+        chan.send(ConstellationMsg::LoadComplete).unwrap();
     }
 
     /// Handles a timer that fired.
@@ -1123,12 +1147,20 @@ impl ScriptTask {
             _ => None
         };
 
+        let notifier_data = NotifierData {
+            script_chan: self.chan.clone(),
+            pipeline: page.pipeline(),
+        };
+        let loader = DocumentLoader::new_with_task(self.resource_task.clone(),
+                                                   Some(notifier_data),
+                                                   Some(final_url.clone()));
         let document = Document::new(window.r(),
                                      Some(final_url.clone()),
                                      IsHTMLDocument::HTMLDocument,
                                      content_type,
                                      last_modified,
-                                     DocumentSource::FromParser).root();
+                                     DocumentSource::FromParser,
+                                     loader).root();
 
         let frame_element = frame_element.r().map(|elem| ElementCast::from_ref(elem));
         window.r().init_browser_context(document.r(), frame_element);
@@ -1169,18 +1201,7 @@ impl ScriptTask {
         let handler = box DocumentProgressHandler::new(addr.clone(), DocumentProgressTask::DOMContentLoaded);
         self.chan.send(ScriptMsg::RunnableMsg(handler)).unwrap();
 
-        // We have no concept of a document loader right now, so just dispatch the
-        // "load" event as soon as we've finished executing all scripts parsed during
-        // the initial load.
-
-        // https://html.spec.whatwg.org/multipage/#the-end step 7
-        let handler = box DocumentProgressHandler::new(addr, DocumentProgressTask::Load);
-        self.chan.send(ScriptMsg::RunnableMsg(handler)).unwrap();
-
         window.r().set_fragment_name(final_url.fragment.clone());
-
-        let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(ConstellationMsg::LoadComplete).unwrap();
 
         // Notify devtools that a new script global exists.
         self.notify_devtools(document.r().Title(), final_url, (incomplete.pipeline_id, None));
