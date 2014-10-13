@@ -98,7 +98,7 @@ pub extern "C" fn cef_string_utf8_to_utf16(src: *const u8, src_len: size_t, outp
     unsafe {
        slice::raw::buf_as_slice(src, src_len as uint, |result| {
             let enc = str::from_utf8(result).unwrap().utf16_units().collect::<Vec<u16>>();
-            cef_string_utf16_set(enc.as_ptr(), (src_len * 2) as size_t, output, 1);
+            cef_string_utf16_set(enc.as_ptr(), enc.len() as size_t, output, 1);
        });
     }
     1
