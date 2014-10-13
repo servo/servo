@@ -786,11 +786,13 @@ impl InlineFlow {
             let rel_offset = fragment.relative_position(&self.base
                                                              .absolute_position_info
                                                              .relative_containing_block_size);
+            let fragment_position = self.base
+                                        .abs_position
+                                        .add_size(&rel_offset.to_physical(self.base.writing_mode));
             let mut accumulator = fragment.build_display_list(&mut self.base.display_list,
-                                             layout_context,
-                                             self.base.abs_position.add_size(
-                                                &rel_offset.to_physical(self.base.writing_mode)),
-                                             ContentLevel);
+                                                              layout_context,
+                                                              fragment_position,
+                                                              ContentLevel);
             match fragment.specific {
                 InlineBlockFragment(ref mut block_flow) => {
                     let block_flow = block_flow.flow_ref.get_mut();
@@ -798,10 +800,9 @@ impl InlineFlow {
                 }
                 _ => {}
             }
-        }
 
-        // TODO(#225): Should `inline-block` elements have flows as children of the inline flow or
-        // should the flow be nested inside the fragment somehow?
+            accumulator.finish(&mut self.base.display_list);
+        }
 
         // For now, don't traverse the subtree rooted here.
     }
