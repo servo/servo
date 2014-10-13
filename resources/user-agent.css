@@ -1,130 +1,276 @@
-html, address,
-blockquote,
-body, div,
-dt, fieldset, form,
-frame, frameset,
-h1, h2, h3, h4,
-h5, h6, noframes,
-center, dir,
-hr, menu, pre       { display: block; unicode-bidi: embed }
-    head, noscript  { display: none }
-    table           { display: table }
-    tr              { display: table-row }
-    thead           { display: table-header-group }
-    tbody           { display: table-row-group }
-    tfoot           { display: table-footer-group }
-    col             { display: table-column }
-    colgroup        { display: table-column-group }
-    td, th          { display: table-cell }
-    caption         { display: table-caption }
-    th              { font-weight: bolder; text-align: center }
-    caption         { text-align: center }
-    body            { margin: 8px }
-    h1              { font-size: 2em; margin: .67em 0 }
-    h2              { font-size: 1.5em; margin: .75em 0 }
-    h3              { font-size: 1.17em; margin: .83em 0 }
-h4,
-blockquote,
-fieldset, dir,
-menu                { margin: 1.12em 0 }
-    h5              { font-size: .83em; margin: 1.5em 0 }
-    h6              { font-size: .75em; margin: 1.67em 0 }
-h1, h2, h3, h4,
-h5, h6, b,
-    strong          { font-weight: bolder }
-    blockquote      { margin-left: 40px; margin-right: 40px }
-i, cite, em,
-    var, address    { font-style: italic }
-pre, tt, code,
-    kbd, samp       { font-family: monospace }
-    pre             { white-space: pre }
-button, textarea,
-    input, select   { display: inline-block }
-    big             { font-size: 1.17em }
-    small, sub, sup { font-size: .83em }
-    sub             { vertical-align: sub }
-    sup             { vertical-align: super }
-    table           { border-spacing: 2px; }
-thead, tbody,
-    tfoot           { vertical-align: middle }
-    td, th, tr      { vertical-align: inherit }
-    s, strike, del  { text-decoration: line-through }
-    hr              { border: 1px inset }
+/*
+https://html.spec.whatwg.org/multipage/rendering.html#form-controls
+*/
 
-/* lists */
-dd                  { display: block; margin-left: 40px }
-p, dl, multicol     { display: block; margin: 1em 0 }
-ul                  { display: block; list-style-type: disc;
-                      margin: 1em 0; padding-left: 40px }
+@namespace url(http://www.w3.org/1999/xhtml);
 
-ol                  { display: block; list-style-type: decimal;
-                      margin: 1em 0; padding-left: 40px }
+/*
+FIXME: Uncomment this when :lang() is supported, or do something equivalent.
+@import url(quotes.css);
+*/
 
-li                  { display: list-item }
-
-/* nested lists have no top/bottom margins */
-ul ul, ul ol, ul dl,
-ol ul, ol ol, ol dl,
-dl ul, dl ol, dl dl { margin-top: 0; margin-bottom: 0 }
-
-/* 2 deep unordered lists use a circle */
-ol ul,   ul ul      { list-style-type: circle; }
-
-/* 3 deep (or more) unordered lists use a square */
-ol ol ul, ol ul ul,
-ul ol ul, ul ul ul  { list-style-type: square; }
-
-/* The type attribute on ol and ul elements */
-ul[type="disc"]     { list-style-type: disc; }
-ul[type="circle"]   { list-style-type: circle; }
-ul[type="square"]   { list-style-type: square; }
-ol[type="1"]        { list-style-type: decimal; }
-ol[type="a"]        { list-style-type: lower-alpha; }
-ol[type="A"]        { list-style-type: upper-alpha; }
-ol[type="i"]        { list-style-type: lower-roman; }
-ol[type="I"]        { list-style-type: upper-roman; }
-
-u, ins              { text-decoration: underline }
-br:before           { content: "\A"; white-space: pre }
-
-center              { text-align: center }
-a:link,
-a:visited,
-area:link,
-area:visited,
-link:link,
-link:visited        { text-decoration: underline }
-:focus              { outline: thin dotted invert }
-
-/* Begin bidirectionality settings (do not change) */
-BDO[DIR="ltr"]      { direction: ltr; unicode-bidi: bidi-override }
-BDO[DIR="rtl"]      { direction: rtl; unicode-bidi: bidi-override }
-
-*[DIR="ltr"]        { direction: ltr; unicode-bidi: embed }
-*[DIR="rtl"]        { direction: rtl; unicode-bidi: embed }
-
-@media print {
-h1                  { page-break-before: always }
-h1, h2, h3,
-h4, h5, h6          { page-break-after: avoid }
-ul, ol, dl          { page-break-before: avoid }
+[hidden], area, base, basefont, datalist, head, link, menu[type=popup i], meta,
+noembed, noframes, param, rp, script, source, style, template, track, title {
+  display: none;
 }
 
-/* Servo additions */
-a:link,
-area:link,
-link:link               { color: blue }
-script                  { display: none }
-style                   { display: none }
-input                   { background: white; min-height: 1.0em; padding: 0em; padding-left: 0.25em; padding-right: 0.25em; border: solid lightgrey 1px; color: black; white-space: nowrap; }
-input[type="button"],
-input[type="submit"],
-input[type="reset"]     { background: lightgrey; border-top: solid 1px #EEEEEE; border-left: solid 1px #CCCCCC; border-right: solid 1px #999999; border-bottom: solid 1px #999999; text-align: center; vertical-align: middle; color: black; }
-input[type="hidden"]    { display: none !important }
-input[type="checkbox"],
-input[type="radio"]     { font-family: monospace !important; border: none !important; background: transparent; }
+embed[hidden] { display: inline; height: 0; width: 0; }
 
-input[type="checkbox"]::before { content: "[ ]"; padding: 0; }
-input[type="checkbox"][checked]::before { content: "[✓]"; }
-input[type="radio"]::before { content: "( )"; padding: 0; }
-input[type="radio"][checked]::before { content: "(●)"; }
+/* FIXME: only if scripting is enabled */
+noscript { display: none !important; }
+
+input[type=hidden i] { display: none !important; }
+
+
+html, body { display: block; }
+
+body { margin: 8px; }
+
+
+address, blockquote, center, div, figure, figcaption, footer, form, header, hr,
+legend, listing, main, p, plaintext, pre, summary, xmp {
+  display: block;
+}
+
+blockquote, figure, listing, p, plaintext, pre, xmp {
+  margin-top: 1em; margin-bottom: 1em;
+}
+
+blockquote, figure { margin-left: 40px; margin-right: 40px; }
+
+address { font-style: italic; }
+listing, plaintext, pre, xmp {
+  font-family: monospace; white-space: pre;
+}
+
+dialog:not([open]) { display: none; }
+dialog {
+  position: absolute;
+  left: 0; right: 0;
+  /* FIXME: support fit-content */
+  width: fit-content;
+  height: fit-content;
+  margin: auto;
+  border: solid;
+  padding: 1em;
+  background: white;
+  color: black;
+}
+/* FIXME: support ::backdrop */
+dialog::backdrop {
+  position: fixed;
+  top: 0; right: 0; bottom: 0; left: 0;
+  background: rgba(0,0,0,0.1);
+}
+
+/* for small devices, modal dialogs go full-screen */
+@media screen and (max-width: 540px) {
+  /* FIXME: support :modal */
+  dialog:modal {
+    top: 0;
+    width: auto;
+    margin: 1em;
+  }
+}
+
+
+cite, dfn, em, i, var { font-style: italic; }
+b, strong { font-weight: bolder; }
+code, kbd, samp, tt { font-family: monospace; }
+big { font-size: larger; }
+small { font-size: smaller; }
+
+sub { vertical-align: sub; }
+sup { vertical-align: super; }
+sub, sup { line-height: normal; font-size: smaller; }
+
+ruby { display: ruby; }
+rt { display: ruby-text; }
+
+:link { color: #0000EE; }
+:visited { color: #551A8B; }
+:link, :visited { text-decoration: underline; }
+a:link[rel~=help], a:visited[rel~=help],
+area:link[rel~=help], area:visited[rel~=help] { cursor: help; }
+
+:focus { outline: thin dotted; }  /* FIXME: 'outline: auto' ? */
+
+mark { background: yellow; color: black; }
+
+abbr[title], acronym[title] { text-decoration: dotted underline; }
+ins, u { text-decoration: underline; }
+del, s, strike { text-decoration: line-through; }
+blink { text-decoration: blink; }
+
+q::before { content: open-quote; }
+q::after { content: close-quote; }
+
+/*br { display-outside: newline; } /* this also has bidi implications */
+br::before { content: "\A"; white-space: pre }
+
+nobr { white-space: nowrap; }
+wbr { display-outside: break-opportunity; } /* this also has bidi implications */
+nobr wbr { white-space: normal; }
+
+
+[dir]:dir(ltr), bdi:dir(ltr), input[type=tel]:dir(ltr) { direction: ltr; }
+[dir]:dir(rtl), bdi:dir(rtl) { direction: rtl; }
+
+address, blockquote, center, div, figure, figcaption, footer, form, header, hr,
+legend, listing, main, p, plaintext, pre, summary, xmp, article, aside, h1, h2,
+h3, h4, h5, h6, hgroup, nav, section, table, caption, colgroup, col, thead,
+tbody, tfoot, tr, td, th, dir, dd, dl, dt, menu, ol, ul, li, bdi, output,
+[dir=ltr i], [dir=rtl i], [dir=auto i] {
+  unicode-bidi: isolate;
+}
+
+bdo, bdo[dir] { unicode-bidi: isolate-override; }
+
+textarea[dir=auto i], pre[dir=auto i] { unicode-bidi: plaintext; }
+
+
+article, aside, h1, h2, h3, h4, h5, h6, hgroup, nav, section {
+  display: block;
+}
+
+h1 { margin-top: 0.67em; margin-bottom: 0.67em; font-size: 2.00em; font-weight: bold; }
+h2 { margin-top: 0.83em; margin-bottom: 0.83em; font-size: 1.50em; font-weight: bold; }
+h3 { margin-top: 1.00em; margin-bottom: 1.00em; font-size: 1.17em; font-weight: bold; }
+h4 { margin-top: 1.33em; margin-bottom: 1.33em; font-size: 1.00em; font-weight: bold; }
+h5 { margin-top: 1.67em; margin-bottom: 1.67em; font-size: 0.83em; font-weight: bold; }
+h6 { margin-top: 2.33em; margin-bottom: 2.33em; font-size: 0.67em; font-weight: bold; }
+
+:matches(article, aside, nav, section) h1 { margin-top: 0.83em; margin-bottom: 0.83em; font-size: 1.50em; }
+:matches(article, aside, nav, section) :matches(article, aside, nav, section) h1 { margin-top: 1.00em; margin-bottom: 1.00em; font-size: 1.17em; }
+:matches(article, aside, nav, section) :matches(article, aside, nav, section) :matches(article, aside, nav, section) h1 { margin-top: 1.33em; margin-bottom: 1.33em; font-size: 1.00em; }
+:matches(article, aside, nav, section) :matches(article, aside, nav, section) :matches(article, aside, nav, section) :matches(article, aside, nav, section) h1 { margin-top: 1.67em; margin-bottom: 1.67em; font-size: 0.83em; }
+:matches(article, aside, nav, section) :matches(article, aside, nav, section) :matches(article, aside, nav, section) :matches(article, aside, nav, section) :matches(article, aside, nav, section) h1 { margin-top: 2.33em; margin-bottom: 2.33em; font-size: 0.67em; }
+
+:matches(article, aside, nav, section) hgroup > h1 ~ h2 { margin-top: 1.00em; margin-bottom: 1.00em; font-size: 1.17em; }
+:matches(article, aside, nav, section) :matches(article, aside, nav, section) hgroup > h1 ~ h2 { margin-top: 1.33em; margin-bottom: 1.33em; font-size: 1.00em; }
+:matches(article, aside, nav, section) :matches(article, aside, nav, section) :matches(article, aside, nav, section) hgroup > h1 ~ h2 { margin-top: 1.67em; margin-bottom: 1.67em; font-size: 0.83em; }
+:matches(article, aside, nav, section) :matches(article, aside, nav, section) :matches(article, aside, nav, section) :matches(article, aside, nav, section) hgroup > h1 ~ h2 { margin-top: 2.33em; margin-bottom: 2.33em; font-size: 0.67em; }
+
+:matches(article, aside, nav, section) hgroup > h1 ~ h3 { margin-top: 1.33em; margin-bottom: 1.33em; font-size: 1.00em; }
+:matches(article, aside, nav, section) :matches(article, aside, nav, section) hgroup > h1 ~ h3 { margin-top: 1.67em; margin-bottom: 1.67em; font-size: 0.83em; }
+:matches(article, aside, nav, section) :matches(article, aside, nav, section) :matches(article, aside, nav, section) hgroup > h1 ~ h3 { margin-top: 2.33em; margin-bottom: 2.33em; font-size: 0.67em; }
+
+:matches(article, aside, nav, section) hgroup > h1 ~ h4 { margin-top: 1.67em; margin-bottom: 1.67em; font-size: 0.83em; }
+:matches(article, aside, nav, section) :matches(article, aside, nav, section) hgroup > h1 ~ h4 { margin-top: 2.33em; margin-bottom: 2.33em; font-size: 0.67em; }
+
+:matches(article, aside, nav, section) hgroup > h1 ~ h5 { margin-top: 2.33em; margin-bottom: 2.33em; font-size: 0.67em; }
+
+
+dir, dd, dl, dt, menu, ol, ul { display: block; }
+li { display: list-item; }
+
+dir, dl, menu, ol, ul { margin-top: 1em; margin-bottom: 1em; }
+
+:matches(dir, dl, menu, ol, ul) :matches(dir, dl, menu, ol, ul) {
+  margin-top: 0; margin-bottom: 0;
+}
+
+dd { margin-left: 40px; } /* FIXME: use margin-inline-start when supported */
+dir, menu, ol, ul { padding-left: 40px; } /* FIXME: use padding-inline-start when supported */
+
+ol { list-style-type: decimal; }
+
+dir, menu, ul { list-style-type: disc; }
+
+:matches(dir, menu, ol, ul) :matches(dir, menu, ul) {
+  list-style-type: circle;
+}
+
+:matches(dir, menu, ol, ul) :matches(dir, menu, ol, ul) :matches(dir, menu, ul) {
+  list-style-type: square;
+}
+
+
+table { display: table; }
+caption { display: table-caption; }
+colgroup, colgroup[hidden] { display: table-column-group; }
+col, col[hidden] { display: table-column; }
+thead, thead[hidden] { display: table-header-group; }
+tbody, tbody[hidden] { display: table-row-group; }
+tfoot, tfoot[hidden] { display: table-footer-group; }
+tr, tr[hidden] { display: table-row; }
+td, th, td[hidden], th[hidden] { display: table-cell; }
+
+colgroup[hidden], col[hidden], thead[hidden], tbody[hidden],
+tfoot[hidden], tr[hidden], td[hidden], th[hidden] {
+  visibility: collapse;
+}
+
+table {
+  box-sizing: border-box;
+  border-spacing: 2px;
+  border-collapse: separate;
+  text-indent: initial;
+}
+td, th { padding: 1px; }
+th { font-weight: bold; }
+
+thead, tbody, tfoot, table > tr { vertical-align: middle; }
+tr, td, th { vertical-align: inherit; }
+
+
+table, td, th { border-color: gray; }
+thead, tbody, tfoot, tr { border-color: inherit; }
+table:matches(
+  [rules=none i], [rules=groups i], [rules=rows i],
+  [rules=cols i], [rules=all i],
+  [frame=void i], [frame=above i], [frame=below i],
+  [frame=hsides i], [frame=lhs i], [frame=rhs i],
+  [frame=vsides i], [frame=box i], [frame=border i]
+),
+table:matches(
+  [rules=none i], [rules=groups i], [rules=rows i],
+  [rules=cols i], [rules=all i]
+) > tr > :matches(td, th),
+table:matches(
+  [rules=none i], [rules=groups i], [rules=rows i],
+  [rules=cols i], [rules=all i]
+) > :matches(thead, tbody, tfoot) > tr > :matches(td, th) {
+  border-color: black;
+}
+
+
+:matches(table, thead, tbody, tfoot, tr) > form {
+  display: none !important;
+}
+
+
+input, select, option, optgroup, button, textarea, keygen {
+  text-indent: initial;
+}
+
+textarea { white-space: pre-wrap; }
+
+input[type="radio"], input[type="checkbox"], input[type="reset"], input[type="button"],
+input[type="submit"], select, button {
+  box-sizing: border-box;
+}
+
+
+hr { color: gray; border-style: inset; border-width: 1px; margin: 0.5em auto; }
+
+
+fieldset {
+  display: block; /* https://www.w3.org/Bugs/Public/show_bug.cgi?id=27018 */
+  margin-left: 2px; margin-right: 2px;
+  border: groove 2px;
+  border-color: ThreeDFace; /* FIXME: system color */
+  padding: 0.35em 0.625em 0.75em;
+  min-width: min-content;
+}
+
+legend {
+  padding-left: 2px; padding-right: 2px;
+}
+
+iframe:not([seamless]) { border: 2px inset; }
+iframe[seamless] { display: block; }
+video { object-fit: contain; }
+
+
+textarea { white-space: pre-wrap; }

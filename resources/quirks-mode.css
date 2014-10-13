@@ -1,0 +1,33 @@
+/*
+
+https://html.spec.whatwg.org/multipage/rendering.html#flow-content-3
+
+> In quirks mode, the following rules are also expected to apply:
+
+*/
+
+@namespace url(http://www.w3.org/1999/xhtml);
+
+
+form { margin-bottom: 1em; }
+
+
+table {
+  font-weight: initial;
+  font-style: initial;
+  font-variant: initial;
+  font-size: initial;
+  line-height: initial;
+  white-space: initial;
+  text-align: initial;
+}
+
+
+/* FIXME: https://html.spec.whatwg.org/multipage/rendering.html#margin-collapsing-quirks */
+
+
+input:not([type=image]), textarea { box-sizing: border-box; }
+
+
+img[align=left i] { margin-right: 3px; }
+img[align=right i] { margin-left: 3px; }
