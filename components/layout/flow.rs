@@ -411,10 +411,10 @@ pub trait MutableFlowUtils {
     // Traversals
 
     /// Traverses the tree in preorder.
-    fn traverse_preorder<T:PreorderFlowTraversal>(self, traversal: &mut T) -> bool;
+    fn traverse_preorder<T:PreorderFlowTraversal>(self, traversal: &T);
 
     /// Traverses the tree in postorder.
-    fn traverse_postorder<T:PostorderFlowTraversal>(self, traversal: &mut T) -> bool;
+    fn traverse_postorder<T:PostorderFlowTraversal>(self, traversal: &T);
 
     // Mutators
 
@@ -464,40 +464,26 @@ pub enum FlowClass {
 /// A top-down traversal.
 pub trait PreorderFlowTraversal {
     /// The operation to perform. Return true to continue or false to stop.
-    fn process(&mut self, flow: &mut Flow) -> bool;
+    fn process(&self, flow: &mut Flow);
 
     /// Returns true if this node must be processed in-order. If this returns false,
     /// we skip the operation for this node, but continue processing the descendants.
     /// This is called *after* parent nodes are visited.
-    fn should_process(&mut self, _flow: &mut Flow) -> bool {
+    fn should_process(&self, _flow: &mut Flow) -> bool {
         true
-    }
-
-    /// Returns true if this node should be pruned. If this returns true, we skip the operation
-    /// entirely and do not process any descendant nodes. This is called *before* child nodes are
-    /// visited. The default implementation never prunes any nodes.
-    fn should_prune(&mut self, _flow: &mut Flow) -> bool {
-        false
     }
 }
 
 /// A bottom-up traversal, with a optional in-order pass.
 pub trait PostorderFlowTraversal {
     /// The operation to perform. Return true to continue or false to stop.
-    fn process(&mut self, flow: &mut Flow) -> bool;
+    fn process(&self, flow: &mut Flow);
 
     /// Returns false if this node must be processed in-order. If this returns false, we skip the
     /// operation for this node, but continue processing the ancestors. This is called *after*
     /// child nodes are visited.
-    fn should_process(&mut self, _flow: &mut Flow) -> bool {
+    fn should_process(&self, _flow: &mut Flow) -> bool {
         true
-    }
-
-    /// Returns true if this node should be pruned. If this returns true, we skip the operation
-    /// entirely and do not process any descendant nodes. This is called *before* child nodes are
-    /// visited. The default implementation never prunes any nodes.
-    fn should_prune(&mut self, _flow: &mut Flow) -> bool {
-        false
     }
 }
 
@@ -1043,45 +1029,25 @@ impl<'a> ImmutableFlowUtils for &'a Flow + 'a {
 
 impl<'a> MutableFlowUtils for &'a mut Flow + 'a {
     /// Traverses the tree in preorder.
-    fn traverse_preorder<T:PreorderFlowTraversal>(self, traversal: &mut T) -> bool {
-        if traversal.should_prune(self) {
-            return true
-        }
-
-        if !traversal.should_process(self) {
-            return true
-        }
-
-        if !traversal.process(self) {
-            return false
+    fn traverse_preorder<T:PreorderFlowTraversal>(self, traversal: &T) {
+        if traversal.should_process(self) {
+            traversal.process(self);
         }
 
         for kid in child_iter(self) {
-            if !kid.traverse_preorder(traversal) {
-                return false
-            }
+            kid.traverse_preorder(traversal);
         }
-
-        true
     }
 
     /// Traverses the tree in postorder.
-    fn traverse_postorder<T:PostorderFlowTraversal>(self, traversal: &mut T) -> bool {
-        if traversal.should_prune(self) {
-            return true
-        }
-
+    fn traverse_postorder<T:PostorderFlowTraversal>(self, traversal: &T) {
         for kid in child_iter(self) {
-            if !kid.traverse_postorder(traversal) {
-                return false
-            }
+            kid.traverse_postorder(traversal);
         }
 
-        if !traversal.should_process(self) {
-            return true
+        if traversal.should_process(self) {
+            traversal.process(self)
         }
-
-        traversal.process(self)
     }
 
     /// Calculate and set overflow for current flow.

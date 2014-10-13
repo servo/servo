@@ -5,10 +5,8 @@
 // High-level interface to CSS selector matching.
 
 use css::node_style::StyledNode;
-use construct::FlowConstructor;
-use context::LayoutContext;
 use util::{LayoutDataAccess, LayoutDataWrapper};
-use wrapper::{LayoutElement, LayoutNode, PostorderNodeMutTraversal, ThreadSafeLayoutNode};
+use wrapper::{LayoutElement, LayoutNode};
 use wrapper::{TLayoutNode};
 
 use script::dom::node::{TextNodeTypeId};
@@ -295,15 +293,6 @@ pub trait MatchMethods {
     /// called to reset the bloom filter after an `insert`.
     fn remove_from_bloom_filter(&self, bf: &mut BloomFilter);
 
-    /// Performs aux initialization, selector matching, cascading, and flow construction
-    /// sequentially.
-    fn recalc_style_for_subtree(&self,
-                                stylist: &Stylist,
-                                layout_context: &LayoutContext,
-                                parent_bf: &mut Option<Box<BloomFilter>>,
-                                applicable_declarations: &mut ApplicableDeclarations,
-                                parent: Option<LayoutNode>);
-
     fn match_node(&self,
                   stylist: &Stylist,
                   parent_bf: &Option<Box<BloomFilter>>,
@@ -522,67 +511,6 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
 
         // TODO: case-sensitivity depends on the document type and quirks mode
         element.each_class(|class| bf.remove(class));
-    }
-
-    fn recalc_style_for_subtree(&self,
-                                stylist: &Stylist,
-                                layout_context: &LayoutContext,
-                                parent_bf: &mut Option<Box<BloomFilter>>,
-                                applicable_declarations: &mut ApplicableDeclarations,
-                                parent: Option<LayoutNode>) {
-        self.initialize_layout_data(layout_context.shared.layout_chan.clone());
-
-        // First, check to see whether we can share a style with someone.
-        let sharing_result = unsafe {
-            self.share_style_if_possible(layout_context.style_sharing_candidate_cache(),
-                                         parent.clone())
-        };
-
-        // Otherwise, match and cascade selectors.
-        match sharing_result {
-            CannotShare(mut shareable) => {
-                if self.is_element() {
-                    self.match_node(stylist, &*parent_bf, applicable_declarations, &mut shareable);
-                }
-
-                unsafe {
-                    self.cascade_node(parent,
-                                      applicable_declarations,
-                                      layout_context.applicable_declarations_cache())
-                }
-
-                applicable_declarations.clear();
-
-                // Add ourselves to the LRU cache.
-                if shareable {
-                    layout_context.style_sharing_candidate_cache().insert_if_possible(self)
-                }
-            }
-            StyleWasShared(index) => layout_context.style_sharing_candidate_cache().touch(index),
-        }
-
-        match *parent_bf {
-            None => {},
-            Some(ref mut pbf) => self.insert_into_bloom_filter(&mut **pbf),
-        }
-
-        for kid in self.children() {
-            kid.recalc_style_for_subtree(stylist,
-                                         layout_context,
-                                         parent_bf,
-                                         applicable_declarations,
-                                         Some(self.clone()));
-        }
-
-        match *parent_bf {
-            None => {},
-            Some(ref mut pbf) => self.remove_from_bloom_filter(&mut **pbf),
-        }
-
-        // Construct flows.
-        let layout_node = ThreadSafeLayoutNode::new(self);
-        let mut flow_constructor = FlowConstructor::new(layout_context);
-        flow_constructor.process(&layout_node);
     }
 
     unsafe fn cascade_node(&self,

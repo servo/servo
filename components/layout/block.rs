@@ -431,18 +431,17 @@ struct AbsoluteAssignBSizesTraversal<'a>(&'a LayoutContext<'a>);
 
 impl<'a> PreorderFlowTraversal for AbsoluteAssignBSizesTraversal<'a> {
     #[inline]
-    fn process(&mut self, flow: &mut Flow) -> bool {
+    fn process(&self, flow: &mut Flow) {
         let block_flow = flow.as_block();
 
         // The root of the absolute flow tree is definitely not absolutely
         // positioned. Nothing to process here.
         if block_flow.is_root_of_absolute_flow_tree() {
-            return true;
+            return;
         }
 
         let AbsoluteAssignBSizesTraversal(ref ctx) = *self;
         block_flow.calculate_abs_block_size_and_margins(*ctx);
-        true
     }
 }
 
@@ -458,14 +457,13 @@ struct AbsoluteStoreOverflowTraversal<'a>{
 
 impl<'a> PostorderFlowTraversal for AbsoluteStoreOverflowTraversal<'a> {
     #[inline]
-    fn process(&mut self, flow: &mut Flow) -> bool {
+    fn process(&self, flow: &mut Flow) {
         // This will be taken care of by the normal store-overflow traversal.
         if flow.is_root_of_absolute_flow_tree() {
-            return true;
+            return;
         }
 
         flow.store_overflow(self.layout_context);
-        true
     }
 }
 
@@ -711,16 +709,10 @@ impl BlockFlow {
     ///
     /// Return true if the traversal is to continue or false to stop.
     fn traverse_preorder_absolute_flows<T:PreorderFlowTraversal>(&mut self,
-                                                                 traversal: &mut T)
-                                                                 -> bool {
+                                                                 traversal: &mut T) {
         let flow = self as &mut Flow;
-        if traversal.should_prune(flow) {
-            return true
-        }
 
-        if !traversal.process(flow) {
-            return false
-        }
+        traversal.process(flow);
 
         let cb_block_start_edge_offset = flow.generated_containing_block_rect().start.b;
         let mut descendant_offset_iter = mut_base(flow).abs_descendants.iter_with_offset();
@@ -730,30 +722,20 @@ impl BlockFlow {
             // The stored y_offset is wrt to the flow box.
             // Translate it to the CB (which is the padding box).
             block.static_b_offset = **y_offset - cb_block_start_edge_offset;
-            if !block.traverse_preorder_absolute_flows(traversal) {
-                return false
-            }
+            block.traverse_preorder_absolute_flows(traversal);
         }
-
-        true
     }
 
     /// Traverse the Absolute flow tree in postorder.
     ///
     /// Return true if the traversal is to continue or false to stop.
     fn traverse_postorder_absolute_flows<T:PostorderFlowTraversal>(&mut self,
-                                                                   traversal: &mut T)
-                                                                   -> bool {
+                                                                   traversal: &mut T) {
         let flow = self as &mut Flow;
-        if traversal.should_prune(flow) {
-            return true
-        }
 
         for descendant_link in mut_base(flow).abs_descendants.iter() {
             let block = descendant_link.as_block();
-            if !block.traverse_postorder_absolute_flows(traversal) {
-                return false
-            }
+            block.traverse_postorder_absolute_flows(traversal);
         }
 
         traversal.process(flow)

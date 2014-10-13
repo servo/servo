@@ -261,14 +261,13 @@ struct FlowTreeVerification;
 #[cfg(debug)]
 impl PreorderFlow for FlowTreeVerification {
     #[inline]
-    fn process(&mut self, flow: &mut Flow) -> bool {
+    fn process(&mut self, flow: &mut Flow) {
         let base = flow::base(flow);
         if !base.flags.is_leaf() && !base.flags.is_nonleaf() {
             println("flow tree verification failed: flow wasn't a leaf or a nonleaf!");
             flow.dump();
             fail!("flow tree verification failed")
         }
-        true
     }
 }
 
@@ -280,18 +279,9 @@ pub struct BubbleISizes<'a> {
 
 impl<'a> PostorderFlowTraversal for BubbleISizes<'a> {
     #[inline]
-    fn process(&mut self, flow: &mut Flow) -> bool {
+    fn process(&self, flow: &mut Flow) {
         flow.bubble_inline_sizes();
-        true
     }
-
-    // FIXME: We can't prune until we start reusing flows
-    /*
-    #[inline]
-    fn should_prune(&mut self, flow: &mut Flow) -> bool {
-        flow::mut_base(flow).restyle_damage.lacks(BubbleISizes)
-    }
-    */
 }
 
 /// The assign-inline-sizes traversal. In Gecko this corresponds to `Reflow`.
@@ -301,9 +291,8 @@ pub struct AssignISizes<'a> {
 
 impl<'a> PreorderFlowTraversal for AssignISizes<'a> {
     #[inline]
-    fn process(&mut self, flow: &mut Flow) -> bool {
+    fn process(&self, flow: &mut Flow) {
         flow.assign_inline_sizes(self.layout_context);
-        true
     }
 }
 
@@ -317,36 +306,39 @@ pub struct AssignBSizesAndStoreOverflow<'a> {
 
 impl<'a> PostorderFlowTraversal for AssignBSizesAndStoreOverflow<'a> {
     #[inline]
-    fn process(&mut self, flow: &mut Flow) -> bool {
+    fn process(&self, flow: &mut Flow) {
         flow.assign_block_size(self.layout_context);
         // Skip store-overflow for absolutely positioned flows. That will be
         // done in a separate traversal.
         if !flow.is_store_overflow_delayed() {
             flow.store_overflow(self.layout_context);
         }
-        true
     }
 
     #[inline]
-    fn should_process(&mut self, flow: &mut Flow) -> bool {
+    fn should_process(&self, flow: &mut Flow) -> bool {
         !flow::base(flow).flags.impacted_by_floats()
     }
 }
 
-/// The display list construction traversal.
+pub struct ComputeAbsolutePositions<'a> {
+    pub layout_context: &'a LayoutContext<'a>,
+}
+
+impl<'a> PreorderFlowTraversal for ComputeAbsolutePositions<'a> {
+    #[inline]
+    fn process(&self, flow: &mut Flow) {
+        flow.compute_absolute_position()
+    }
+}
+
 pub struct BuildDisplayList<'a> {
     pub layout_context: &'a LayoutContext<'a>,
 }
 
-impl<'a> BuildDisplayList<'a> {
+impl<'a> PostorderFlowTraversal for BuildDisplayList<'a> {
     #[inline]
-    pub fn process(&mut self, flow: &mut Flow) {
-        flow.compute_absolute_position();
-
-        for kid in flow::mut_base(flow).child_iter() {
-            self.process(kid)
-        }
-
+    fn process(&self, flow: &mut Flow) {
         flow.build_display_list(self.layout_context)
     }
 }

@@ -55,6 +55,7 @@ pub mod layout_task;
 pub mod inline;
 pub mod model;
 pub mod parallel;
+pub mod sequential;
 pub mod table_wrapper;
 pub mod table;
 pub mod table_caption;
