@@ -62,6 +62,7 @@
 == position_fixed_overflow_a.html position_fixed_overflow_b.html
 == position_fixed_tile_edge.html position_fixed_tile_edge_ref.html
 == position_fixed_tile_edge_2.html position_fixed_tile_edge_ref.html
+== position_fixed_tile_edge_3.html position_fixed_tile_edge_ref.html
 == position_relative_a.html position_relative_b.html
 == position_relative_top_percentage_a.html position_relative_top_percentage_b.html
 == background_none_a.html background_none_b.html
