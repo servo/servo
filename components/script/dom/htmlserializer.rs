@@ -78,10 +78,10 @@ fn serialize_text(text: JSRef<Text>, html: &mut String) {
     match text_node.parent_node().map(|node| node.root()) {
         Some(ref parent) if parent.is_element() => {
             let elem: JSRef<Element> = ElementCast::to_ref(**parent).unwrap();
-            match elem.local_name.as_slice() {
+            match elem.local_name().as_slice() {
                 "style" | "script" | "xmp" | "iframe" |
                 "noembed" | "noframes" | "plaintext" |
-                "noscript" if elem.namespace == ns!(HTML)
+                "noscript" if *elem.namespace() == ns!(HTML)
                 => html.push_str(text.characterdata().data().as_slice()),
                 _ => escape(text.characterdata().data().as_slice(), false, html)
             }
@@ -107,15 +107,15 @@ fn serialize_doctype(doctype: JSRef<DocumentType>, html: &mut String) {
 
 fn serialize_elem(elem: JSRef<Element>, open_elements: &mut Vec<String>, html: &mut String) {
     html.push_char('<');
-    html.push_str(elem.local_name.as_slice());
-    for attr in elem.attrs.borrow().iter() {
+    html.push_str(elem.local_name().as_slice());
+    for attr in elem.attrs().iter() {
         let attr = attr.root();
         serialize_attr(*attr, html);
     };
     html.push_char('>');
 
-    match elem.local_name.as_slice() {
-        "pre" | "listing" | "textarea" if elem.namespace == ns!(HTML) => {
+    match elem.local_name().as_slice() {
+        "pre" | "listing" | "textarea" if *elem.namespace() == ns!(HTML) => {
             let node: JSRef<Node> = NodeCast::from_ref(elem);
             match node.first_child().map(|child| child.root()) {
                 Some(ref child) if child.is_text() => {
@@ -131,7 +131,7 @@ fn serialize_elem(elem: JSRef<Element>, open_elements: &mut Vec<String>, html: &
     }
 
     if !(elem.is_void()) {
-        open_elements.push(elem.local_name.as_slice().to_string());
+        open_elements.push(elem.local_name().as_slice().to_string());
     }
 }
 

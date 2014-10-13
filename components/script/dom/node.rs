@@ -1501,8 +1501,8 @@ impl Node {
             },
             ElementNodeTypeId(..) => {
                 let element: JSRef<Element> = ElementCast::to_ref(node).unwrap();
-                let element = build_element_from_tag(element.local_name.as_slice().to_string(),
-                    element.namespace.clone(), Some(element.prefix.as_slice().to_string()), *document);
+                let element = build_element_from_tag(element.local_name().as_slice().to_string(),
+                    element.namespace().clone(), Some(element.prefix().as_slice().to_string()), *document);
                 NodeCast::from_temporary(element)
             },
             TextNodeTypeId => {
@@ -1541,8 +1541,8 @@ impl Node {
 
                 // FIXME: https://github.com/mozilla/servo/issues/1737
                 let window = document.window().root();
-                for attr in node_elem.attrs.borrow().iter().map(|attr| attr.root()) {
-                    copy_elem.attrs.borrow_mut().push_unrooted(
+                for attr in node_elem.attrs().iter().map(|attr| attr.root()) {
+                    copy_elem.attrs_mut().push_unrooted(
                         &Attr::new(*window,
                                    attr.local_name().clone(), attr.value().clone(),
                                    attr.name().clone(), attr.namespace().clone(),
@@ -1983,9 +1983,9 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
             let element: JSRef<Element> = ElementCast::to_ref(node).unwrap();
             let other_element: JSRef<Element> = ElementCast::to_ref(other).unwrap();
             // FIXME: namespace prefix
-            (element.namespace == other_element.namespace) &&
-            (element.local_name == other_element.local_name) &&
-            (element.attrs.borrow().len() == other_element.attrs.borrow().len())
+            (*element.namespace() == *other_element.namespace()) &&
+            (*element.local_name() == *other_element.local_name()) &&
+            (element.attrs().len() == other_element.attrs().len())
         }
         fn is_equal_processinginstruction(node: JSRef<Node>, other: JSRef<Node>) -> bool {
             let pi: JSRef<ProcessingInstruction> = ProcessingInstructionCast::to_ref(node).unwrap();
@@ -2001,9 +2001,9 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         fn is_equal_element_attrs(node: JSRef<Node>, other: JSRef<Node>) -> bool {
             let element: JSRef<Element> = ElementCast::to_ref(node).unwrap();
             let other_element: JSRef<Element> = ElementCast::to_ref(other).unwrap();
-            assert!(element.attrs.borrow().len() == other_element.attrs.borrow().len());
-            element.attrs.borrow().iter().map(|attr| attr.root()).all(|attr| {
-                other_element.attrs.borrow().iter().map(|attr| attr.root()).any(|other_attr| {
+            assert!(element.attrs().len() == other_element.attrs().len());
+            element.attrs().iter().map(|attr| attr.root()).all(|attr| {
+                other_element.attrs().iter().map(|attr| attr.root()).any(|other_attr| {
                     (*attr.namespace() == *other_attr.namespace()) &&
                     (attr.local_name() == other_attr.local_name()) &&
                     (attr.value().as_slice() == other_attr.value().as_slice())

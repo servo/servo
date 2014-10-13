@@ -35,7 +35,7 @@ use servo_util::namespace;
 use servo_util::str::DOMString;
 
 use std::ascii::StrAsciiExt;
-use std::cell::RefCell;
+use std::cell::{Ref, RefMut, RefCell};
 use std::default::Default;
 use std::mem;
 use std::slice::Items;
@@ -44,14 +44,15 @@ use url::UrlParser;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct Element {
-    pub node: Node,
-    pub local_name: Atom,
-    pub namespace: Namespace,
-    pub prefix: Option<DOMString>,
-    pub attrs: RefCell<Vec<JS<Attr>>>,
-    pub style_attribute: RefCell<Option<style::PropertyDeclarationBlock>>,
-    pub attr_list: MutNullableJS<NamedNodeMap>,
+    node: Node,
+    local_name: Atom,
+    namespace: Namespace,
+    prefix: Option<DOMString>,
+    attrs: RefCell<Vec<JS<Attr>>>,
+    style_attribute: RefCell<Option<style::PropertyDeclarationBlock>>,
+    attr_list: MutNullableJS<NamedNodeMap>,
     class_list: MutNullableJS<DOMTokenList>,
 }
 
@@ -170,6 +171,36 @@ impl Element {
     #[inline]
     pub fn node<'a>(&'a self) -> &'a Node {
         &self.node
+    }
+
+    #[inline]
+    pub fn local_name<'a>(&'a self) -> &'a Atom {
+        &self.local_name
+    }
+
+    #[inline]
+    pub fn namespace<'a>(&'a self) -> &'a Namespace {
+        &self.namespace
+    }
+
+    #[inline]
+    pub fn prefix<'a>(&'a self) -> &'a Option<DOMString> {
+        &self.prefix
+    }
+
+    #[inline]
+    pub fn attrs(&self) -> Ref<Vec<JS<Attr>>> {
+        self.attrs.borrow()
+    }
+
+    #[inline]
+    pub fn attrs_mut(&self) -> RefMut<Vec<JS<Attr>>> {
+        self.attrs.borrow_mut()
+    }
+
+    #[inline]
+    pub fn style_attribute<'a>(&'a self) -> &'a RefCell<Option<style::PropertyDeclarationBlock>> {
+        &self.style_attribute
     }
 }
 
