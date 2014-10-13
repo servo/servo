@@ -199,7 +199,10 @@ impl TextRunScanner {
                 // Next, concatenate all of the transformed strings together, saving the new
                 // character indices.
                 let mut run_str = String::new();
-                let mut new_ranges: Vec<Range<CharIndex>> = vec![];
+
+                let mut new_ranges: Vec<Range<CharIndex>> =
+                    Vec::with_capacity(transformed_strs.len());
+
                 let mut char_total = CharIndex(0);
                 for i in range(0, transformed_strs.len() as int) {
                     let added_chars = CharIndex(transformed_strs[i as uint].as_slice().char_len() as int);
@@ -323,4 +326,3 @@ pub fn line_height_from_style(style: &ComputedValues, metrics: &FontMetrics) -> 
         line_height::Length(l) => l
     }
 }
-

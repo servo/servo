@@ -11,6 +11,7 @@ use flow::{BaseFlow, FlowClass, Flow, InlineFlowClass, MutableFlowUtils};
 use flow;
 use fragment::{Fragment, InlineAbsoluteHypotheticalFragment, InlineBlockFragment};
 use fragment::{ScannedTextFragment, ScannedTextFragmentInfo, SplitInfo};
+use incremental::RestyleDamage;
 use layout_debug;
 use model::IntrinsicISizesContribution;
 use text;
@@ -25,6 +26,7 @@ use gfx::text::glyph::CharIndex;
 use servo_util::geometry::Au;
 use servo_util::logical_geometry::{LogicalRect, LogicalSize};
 use servo_util::range::{IntRangeIndex, Range, RangeIndex};
+use servo_util::arc_ptr_eq;
 use std::cmp::max;
 use std::fmt;
 use std::mem;
@@ -63,7 +65,7 @@ static FONT_SUPERSCRIPT_OFFSET_RATIO: f64 = 0.34;
 /// with a float or a horizontal wall of the containing block. The block-start
 /// inline-start corner of the green zone is the same as that of the line, but
 /// the green zone can be taller and wider than the line itself.
-#[deriving(Encodable)]
+#[deriving(Encodable, Show)]
 pub struct Line {
     /// A range of line indices that describe line breaks.
     ///
@@ -217,6 +219,7 @@ impl LineBreaker {
 
         {
             // Enter a new scope so that `old_fragment_iter`'s borrow is released.
+            debug!("Scanning for lines. {} fragments.", old_fragments.len());
             let mut old_fragment_iter = old_fragments.fragments.iter();
             loop {
                 // acquire the next fragment to lay out from work list or fragment list
@@ -404,15 +407,15 @@ impl LineBreaker {
         let split_fragment = |split: SplitInfo| {
             let info = ScannedTextFragmentInfo::new(run.clone(), split.range);
             let specific = ScannedTextFragment(info);
-            let size = LogicalSize::new(writing_mode,
-                                        split.inline_size,
-                                        in_fragment.border_box.size.block);
+            let size = LogicalSize::new(
+                writing_mode, split.inline_size, in_fragment.border_box.size.block);
             in_fragment.transform(size, specific)
         };
 
         debug!("LineBreaker: Pushing the fragment to the inline_start of the new-line character \
                 to the line.");
         let mut inline_start = split_fragment(inline_start);
+        inline_start.save_new_line_pos();
         inline_start.new_line_pos = vec![];
         self.push_fragment_to_line(inline_start);
 
@@ -605,19 +608,21 @@ impl InlineFragments {
     }
 
     /// Strips ignorable whitespace from the start of a list of fragments.
-    pub fn strip_ignorable_whitespace_from_start(&mut self) {
-        // Fast path.
-        if self.is_empty() {
-            return
-        }
+    ///
+    /// Returns some damage that must be added to the `InlineFlow`.
+    pub fn strip_ignorable_whitespace_from_start(&mut self) -> RestyleDamage {
+        if self.is_empty() { return RestyleDamage::empty() } // Fast path
 
         // FIXME (rust#16151): This can be reverted back to using skip_while once
         // the upstream bug is fixed.
         let mut fragments = mem::replace(&mut self.fragments, vec![]).into_iter();
         let mut new_fragments = Vec::new();
         let mut skipping = true;
+        let mut damage = RestyleDamage::empty();
+
         for fragment in fragments {
             if skipping && fragment.is_ignorable_whitespace() {
+                damage = RestyleDamage::all();
                 debug!("stripping ignorable whitespace from start");
                 continue
             }
@@ -627,24 +632,82 @@ impl InlineFragments {
         }
 
         self.fragments = new_fragments;
+        damage
     }
 
     /// Strips ignorable whitespace from the end of a list of fragments.
-    pub fn strip_ignorable_whitespace_from_end(&mut self) {
-        // Fast path.
+    ///
+    /// Returns some damage that must be added to the `InlineFlow`.
+    pub fn strip_ignorable_whitespace_from_end(&mut self) -> RestyleDamage {
         if self.is_empty() {
-            return
+            return RestyleDamage::empty();
         }
+
+        let mut damage = RestyleDamage::empty();
 
         let mut new_fragments = self.fragments.clone();
         while new_fragments.len() > 0 &&
                 new_fragments.as_slice().last().as_ref().unwrap().is_ignorable_whitespace() {
             debug!("stripping ignorable whitespace from end");
+            damage = RestyleDamage::all();
             drop(new_fragments.pop());
         }
 
 
         self.fragments = new_fragments;
+        damage
+    }
+
+    /// This function merges previously-line-broken fragments back into their
+    /// original, pre-line-breaking form.
+    pub fn merge_broken_lines(&mut self) {
+        let mut work: RingBuf<Fragment> =
+            mem::replace(&mut self.fragments, Vec::new()).into_iter().collect();
+
+        let mut out: Vec<Fragment> = Vec::new();
+
+        loop {
+            let mut left: Fragment =
+                match work.pop_front() {
+                    None       => break,
+                    Some(work) => work,
+                };
+
+            let right: Fragment =
+                match work.pop_front() {
+                    None => {
+                        out.push(left);
+                        break;
+                    }
+                    Some(work) => work,
+                };
+
+            left.restore_new_line_pos();
+
+            let right_is_from_same_fragment =
+                match (&mut left.specific, &right.specific) {
+                    (&ScannedTextFragment(ref mut left_info),
+                     &ScannedTextFragment(ref right_info)) => {
+                        if arc_ptr_eq(&left_info.run, &right_info.run)
+                        && left_info.range.end() + CharIndex(1) == right_info.range.begin() {
+                            left_info.range.extend_by(right_info.range.length() + CharIndex(1));
+                            true
+                        } else {
+                            false
+                        }
+                    }
+                    _ => false,
+                };
+
+            if right_is_from_same_fragment {
+                work.push_front(left);
+            } else {
+                out.push(left);
+                work.push_front(right);
+            }
+        }
+
+        mem::replace(&mut self.fragments, out);
     }
 }
 
@@ -898,6 +961,16 @@ impl InlineFlow {
 
         (block_size_above_baseline, depth_below_baseline)
     }
+
+    fn update_restyle_damage(&mut self) {
+        let mut damage = self.base.restyle_damage;
+
+        for frag in self.fragments.fragments.iter() {
+            damage.insert(frag.restyle_damage());
+        }
+
+        self.base.restyle_damage = damage;
+    }
 }
 
 impl Flow for InlineFlow {
@@ -914,6 +987,8 @@ impl Flow for InlineFlow {
     }
 
     fn bubble_inline_sizes(&mut self) {
+        self.update_restyle_damage();
+
         let _scope = layout_debug_scope!("inline::bubble_inline_sizes {:s}", self.base.debug_id());
 
         let writing_mode = self.base.writing_mode;
@@ -988,6 +1063,12 @@ impl Flow for InlineFlow {
             fragment.assign_replaced_block_size_if_necessary(
                 containing_block_block_size);
         }
+
+        debug!("lines: {}", self.lines);
+
+        self.fragments.merge_broken_lines();
+
+        self.lines = Vec::new();
 
         let scanner_floats = self.base.floats.clone();
         let mut scanner = LineBreaker::new(scanner_floats);
