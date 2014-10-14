@@ -260,7 +260,7 @@ impl Flow for TableWrapperFlow {
         self.block_flow.float_kind()
     }
 
-    fn bubble_inline_sizes(&mut self, ctx: &LayoutContext) {
+    fn bubble_inline_sizes(&mut self) {
         // get column inline-sizes info from table flow
         for kid in self.block_flow.base.child_iter() {
             assert!(kid.is_table_caption() || kid.is_table());
@@ -270,7 +270,7 @@ impl Flow for TableWrapperFlow {
             }
         }
 
-        self.block_flow.bubble_inline_sizes(ctx);
+        self.block_flow.bubble_inline_sizes();
     }
 
     fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {

@@ -171,9 +171,9 @@ impl Flow for TableFlow {
     /// table layout calculation.
     /// The maximum min/pref inline-sizes of each column are set from the rows for the automatic
     /// table layout calculation.
-    fn bubble_inline_sizes(&mut self, layout_context: &LayoutContext) {
+    fn bubble_inline_sizes(&mut self) {
         let _scope = layout_debug_scope!("table::bubble_inline_sizes {:s}",
-                                            self.block_flow.base.debug_id());
+                                         self.block_flow.base.debug_id());
 
         let mut min_inline_size = Au(0);
         let mut pref_inline_size = Au(0);
@@ -239,8 +239,7 @@ impl Flow for TableFlow {
             }
         }
 
-        let fragment_intrinsic_inline_sizes =
-            self.block_flow.fragment.intrinsic_inline_sizes(layout_context);
+        let fragment_intrinsic_inline_sizes = self.block_flow.fragment.intrinsic_inline_sizes();
         self.block_flow.base.intrinsic_inline_sizes.minimum_inline_size = min_inline_size;
         self.block_flow.base.intrinsic_inline_sizes.preferred_inline_size =
             max(min_inline_size, pref_inline_size);

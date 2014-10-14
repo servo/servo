@@ -132,14 +132,16 @@ impl Flow for TableRowGroupFlow {
         &self.col_pref_inline_sizes
     }
 
-    /// Recursively (bottom-up) determines the context's preferred and minimum inline-sizes. When called
-    /// on this context, all child contexts have had their min/pref inline-sizes set. This function must
-    /// decide min/pref inline-sizes based on child context inline-sizes and dimensions of any fragments it is
-    /// responsible for flowing.
+    /// Recursively (bottom-up) determines the context's preferred and minimum inline-sizes. When
+    /// called on this context, all child contexts have had their min/pref inline-sizes set. This
+    /// function must decide min/pref inline-sizes based on child context inline-sizes and
+    /// dimensions of any fragments it is responsible for flowing.
+    ///
     /// Min/pref inline-sizes set by this function are used in automatic table layout calculation.
-    /// Also, this function finds the specified column inline-sizes from the first row.
-    /// Those are used in fixed table layout calculation
-    fn bubble_inline_sizes(&mut self, _: &LayoutContext) {
+    ///
+    /// Also, this function finds the specified column inline-sizes from the first row. These are
+    /// used in fixed table layout calculation.
+    fn bubble_inline_sizes(&mut self) {
         let _scope = layout_debug_scope!("table_rowgroup::bubble_inline_sizes {:s}",
                                             self.block_flow.base.debug_id());
 

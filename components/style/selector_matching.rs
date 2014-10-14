@@ -11,14 +11,18 @@ use sync::Arc;
 use url::Url;
 
 use servo_util::bloom::BloomFilter;
+use servo_util::geometry::Au;
 use servo_util::resource_files::read_resource_file;
 use servo_util::smallvec::VecLike;
 use servo_util::sort;
+use servo_util::str::{AutoLpa, LengthLpa, PercentageLpa};
 use string_cache::Atom;
 
+use legacy::{SizeIntegerAttribute, WidthLengthAttribute};
 use media_queries::{Device, Screen};
-use node::{TElement, TNode};
-use properties::{PropertyDeclaration, PropertyDeclarationBlock};
+use node::{TElement, TElementAttributes, TNode};
+use properties::{PropertyDeclaration, PropertyDeclarationBlock, SpecifiedValue, WidthDeclaration};
+use properties::{specified};
 use selectors::*;
 use stylesheets::{Stylesheet, iter_stylesheet_style_rules};
 
@@ -80,15 +84,14 @@ impl SelectorMap {
     ///
     /// Extract matching rules as per node's ID, classes, tag name, etc..
     /// Sort the Rules at the end to maintain cascading order.
-    fn get_all_matching_rules<'a,
-                              E:TElement<'a>,
-                              N:TNode<'a, E>,
-                              V:VecLike<DeclarationBlock>>(
-                              &self,
-                              node: &N,
-                              parent_bf: &Option<Box<BloomFilter>>,
-                              matching_rules_list: &mut V,
-                              shareable: &mut bool) {
+    fn get_all_matching_rules<'a,E,N,V>(&self,
+                                        node: &N,
+                                        parent_bf: &Option<Box<BloomFilter>>,
+                                        matching_rules_list: &mut V,
+                                        shareable: &mut bool)
+                                        where E: TElement<'a> + TElementAttributes,
+                                              N: TNode<'a,E>,
+                                              V: VecLike<DeclarationBlock> {
         if self.empty {
             return
         }
@@ -143,34 +146,36 @@ impl SelectorMap {
         }
     }
 
-    fn get_matching_rules_from_hash<'a,
-                                    E:TElement<'a>,
-                                    N:TNode<'a, E>,
-                                    V:VecLike<DeclarationBlock>>(
-                                    node: &N,
-                                    parent_bf: &Option<Box<BloomFilter>>,
-                                    hash: &HashMap<Atom, Vec<Rule>>,
-                                    key: &Atom,
-                                    matching_rules: &mut V,
-                                    shareable: &mut bool) {
+    fn get_matching_rules_from_hash<'a,E,N,V>(node: &N,
+                                              parent_bf: &Option<Box<BloomFilter>>,
+                                              hash: &HashMap<Atom, Vec<Rule>>,
+                                              key: &Atom,
+                                              matching_rules: &mut V,
+                                              shareable: &mut bool)
+                                              where E: TElement<'a> + TElementAttributes,
+                                                    N: TNode<'a,E>,
+                                                    V: VecLike<DeclarationBlock> {
         match hash.find(key) {
             Some(rules) => {
-                SelectorMap::get_matching_rules(node, parent_bf, rules.as_slice(), matching_rules, shareable)
+                SelectorMap::get_matching_rules(node,
+                                                parent_bf,
+                                                rules.as_slice(),
+                                                matching_rules,
+                                                shareable)
             }
             None => {}
         }
     }
 
     /// Adds rules in `rules` that match `node` to the `matching_rules` list.
-    fn get_matching_rules<'a,
-                          E:TElement<'a>,
-                          N:TNode<'a, E>,
-                          V:VecLike<DeclarationBlock>>(
-                          node: &N,
-                          parent_bf: &Option<Box<BloomFilter>>,
-                          rules: &[Rule],
-                          matching_rules: &mut V,
-                          shareable: &mut bool) {
+    fn get_matching_rules<'a,E,N,V>(node: &N,
+                                    parent_bf: &Option<Box<BloomFilter>>,
+                                    rules: &[Rule],
+                                    matching_rules: &mut V,
+                                    shareable: &mut bool)
+                                    where E: TElement<'a> + TElementAttributes,
+                                          N: TNode<'a,E>,
+                                          V: VecLike<DeclarationBlock> {
         for rule in rules.iter() {
             if matches_compound_selector(&*rule.selector, node, parent_bf, shareable) {
                 matching_rules.vec_push(rule.declarations.clone());
@@ -348,17 +353,17 @@ impl Stylist {
     /// The returned boolean indicates whether the style is *shareable*; that is, whether the
     /// matched selectors are simple enough to allow the matching logic to be reduced to the logic
     /// in `css::matching::PrivateMatchMethods::candidate_element_allows_for_style_sharing`.
-    pub fn push_applicable_declarations<'a,
-                                        E:TElement<'a>,
-                                        N:TNode<'a, E>,
-                                        V:VecLike<DeclarationBlock>>(
+    pub fn push_applicable_declarations<'a,E,N,V>(
                                         &self,
                                         element: &N,
                                         parent_bf: &Option<Box<BloomFilter>>,
                                         style_attribute: Option<&PropertyDeclarationBlock>,
                                         pseudo_element: Option<PseudoElement>,
                                         applicable_declarations: &mut V)
-                                        -> bool {
+                                        -> bool
+                                        where E: TElement<'a> + TElementAttributes,
+                                              N: TNode<'a,E>,
+                                              V: VecLike<DeclarationBlock> {
         assert!(element.is_element());
         assert!(style_attribute.is_none() || pseudo_element.is_none(),
                 "Style attributes do not apply to pseudo-elements");
@@ -371,33 +376,46 @@ impl Stylist {
 
         let mut shareable = true;
 
-        // Step 1: Normal rules.
+        // Step 1: Virtual rules that are synthesized from legacy HTML attributes.
+        self.synthesize_presentational_hints_for_legacy_attributes(element,
+                                                                   applicable_declarations,
+                                                                   &mut shareable);
+
+        // Step 2: Normal rules.
         map.user_agent.normal.get_all_matching_rules(element,
                                                      parent_bf,
                                                      applicable_declarations,
                                                      &mut shareable);
-        map.user.normal.get_all_matching_rules(element, parent_bf, applicable_declarations, &mut shareable);
-        map.author.normal.get_all_matching_rules(element, parent_bf, applicable_declarations, &mut shareable);
+        map.user.normal.get_all_matching_rules(element,
+                                               parent_bf,
+                                               applicable_declarations,
+                                               &mut shareable);
+        map.author.normal.get_all_matching_rules(element,
+                                                 parent_bf,
+                                                 applicable_declarations,
+                                                 &mut shareable);
 
-        // Step 2: Normal style attributes.
+        // Step 3: Normal style attributes.
         style_attribute.map(|sa| {
             shareable = false;
-            applicable_declarations.vec_push(DeclarationBlock::from_declarations(sa.normal.clone()))
+            applicable_declarations.vec_push(DeclarationBlock::from_declarations(sa.normal
+                                                                                   .clone()))
         });
 
-        // Step 3: Author-supplied `!important` rules.
+        // Step 4: Author-supplied `!important` rules.
         map.author.important.get_all_matching_rules(element,
                                                     parent_bf,
                                                     applicable_declarations,
                                                     &mut shareable);
 
-        // Step 4: `!important` style attributes.
+        // Step 5: `!important` style attributes.
         style_attribute.map(|sa| {
             shareable = false;
-            applicable_declarations.vec_push(DeclarationBlock::from_declarations(sa.important.clone()))
+            applicable_declarations.vec_push(DeclarationBlock::from_declarations(sa.important
+                                                                                   .clone()))
         });
 
-        // Step 5: User and UA `!important` rules.
+        // Step 6: User and UA `!important` rules.
         map.user.important.get_all_matching_rules(element,
                                                   parent_bf,
                                                   applicable_declarations,
@@ -408,6 +426,62 @@ impl Stylist {
                                                         &mut shareable);
 
         shareable
+    }
+
+    /// Synthesizes rules from various HTML attributes (mostly legacy junk from HTML4) that confer
+    /// *presentational hints* as defined in the HTML5 specification. This handles stuff like
+    /// `<body bgcolor>`, `<input size>`, `<td width>`, and so forth.
+    fn synthesize_presentational_hints_for_legacy_attributes<'a,E,N,V>(
+                                                             &self,
+                                                             node: &N,
+                                                             matching_rules_list: &mut V,
+                                                             shareable: &mut bool)
+                                                             where E: TElement<'a> +
+                                                                      TElementAttributes,
+                                                                   N: TNode<'a,E>,
+                                                                   V: VecLike<DeclarationBlock> {
+        let element = node.as_element();
+        match element.get_local_name() {
+            name if *name == atom!("td") => {
+                match element.get_length_attribute(WidthLengthAttribute) {
+                    AutoLpa => {}
+                    PercentageLpa(percentage) => {
+                        let width_value = specified::LPA_Percentage(percentage);
+                        matching_rules_list.vec_push(DeclarationBlock::from_declaration(
+                                WidthDeclaration(SpecifiedValue(width_value))));
+                        *shareable = false
+                    }
+                    LengthLpa(length) => {
+                        let width_value = specified::LPA_Length(specified::Au_(length));
+                        matching_rules_list.vec_push(DeclarationBlock::from_declaration(
+                                WidthDeclaration(SpecifiedValue(width_value))));
+                        *shareable = false
+                    }
+                };
+            }
+            name if *name == atom!("input") => {
+                match element.get_integer_attribute(SizeIntegerAttribute) {
+                    Some(value) if value != 0 => {
+                        // Per HTML 4.01 § 17.4, this value is in characters if `type` is `text` or
+                        // `password` and in pixels otherwise.
+                        //
+                        // FIXME(pcwalton): More use of atoms, please!
+                        let value = match element.get_attr(&ns!(""), &atom!("type")) {
+                            Some("text") | Some("password") => {
+                                specified::ServoCharacterWidth(value)
+                            }
+                            _ => specified::Au_(Au::from_px(value as int)),
+                        };
+                        matching_rules_list.vec_push(DeclarationBlock::from_declaration(
+                                WidthDeclaration(SpecifiedValue(specified::LPA_Length(
+                                            value)))));
+                        *shareable = false
+                    }
+                    Some(_) | None => {}
+                }
+            }
+            _ => {}
+        }
     }
 }
 
@@ -470,14 +544,20 @@ impl DeclarationBlock {
             specificity: 0,
         }
     }
+
+    /// A convenience function to create a declaration block from a single declaration. This is
+    /// primarily used in `synthesize_rules_for_legacy_attributes`.
+    #[inline]
+    pub fn from_declaration(rule: PropertyDeclaration) -> DeclarationBlock {
+        DeclarationBlock::from_declarations(Arc::new(vec![rule]))
+    }
 }
 
-pub fn matches<'a,E,N>(
-               selector_list: &SelectorList,
-               element: &N,
-               parent_bf: &Option<Box<BloomFilter>>)
-               -> bool
-               where E: TElement<'a>, N: TNode<'a,E> {
+pub fn matches<'a,E,N>(selector_list: &SelectorList,
+                       element: &N,
+                       parent_bf: &Option<Box<BloomFilter>>)
+                       -> bool
+                       where E: TElement<'a>, N: TNode<'a,E> {
     get_selector_list_selectors(selector_list).iter().any(|selector|
         selector.pseudo_element.is_none() &&
         matches_compound_selector(&*selector.compound_selectors, element, parent_bf, &mut false))
@@ -489,14 +569,12 @@ pub fn matches<'a,E,N>(
 /// `shareable` to false unless you are willing to update the style sharing logic. Otherwise things
 /// will almost certainly break as nodes will start mistakenly sharing styles. (See the code in
 /// `main/css/matching.rs`.)
-fn matches_compound_selector<'a,
-                             E:TElement<'a>,
-                             N:TNode<'a, E>>(
-                             selector: &CompoundSelector,
-                             element: &N,
-                             parent_bf: &Option<Box<BloomFilter>>,
-                             shareable: &mut bool)
-                             -> bool {
+fn matches_compound_selector<'a,E,N>(selector: &CompoundSelector,
+                                     element: &N,
+                                     parent_bf: &Option<Box<BloomFilter>>,
+                                     shareable: &mut bool)
+                                     -> bool
+                                     where E: TElement<'a>, N: TNode<'a,E> {
     match matches_compound_selector_internal(selector, element, parent_bf, shareable) {
         Matched => true,
         _ => false
@@ -555,13 +633,12 @@ enum SelectorMatchingResult {
 /// Quickly figures out whether or not the compound selector is worth doing more
 /// work on. If the simple selectors don't match, or there's a child selector
 /// that does not appear in the bloom parent bloom filter, we can exit early.
-fn can_fast_reject<'a,E,N>(
-                   mut selector: &CompoundSelector,
-                   element: &N,
-                   parent_bf: &Option<Box<BloomFilter>>,
-                   shareable: &mut bool)
-                   -> Option<SelectorMatchingResult>
-                   where E: TElement<'a>, N: TNode<'a,E> {
+fn can_fast_reject<'a,E,N>(mut selector: &CompoundSelector,
+                           element: &N,
+                           parent_bf: &Option<Box<BloomFilter>>,
+                           shareable: &mut bool)
+                           -> Option<SelectorMatchingResult>
+                           where E: TElement<'a>, N: TNode<'a,E> {
     if !selector.simple_selectors.iter().all(|simple_selector| {
       matches_simple_selector(simple_selector, element, shareable) }) {
         return Some(NotMatchedAndRestartFromClosestLaterSibling);
@@ -617,14 +694,12 @@ fn can_fast_reject<'a,E,N>(
     return None;
 }
 
-fn matches_compound_selector_internal<'a,
-                                      E:TElement<'a>,
-                                      N:TNode<'a, E>>(
-                                      selector: &CompoundSelector,
-                                      element: &N,
-                                      parent_bf: &Option<Box<BloomFilter>>,
-                                      shareable: &mut bool)
-                                      -> SelectorMatchingResult {
+fn matches_compound_selector_internal<'a,E,N>(selector: &CompoundSelector,
+                                              element: &N,
+                                              parent_bf: &Option<Box<BloomFilter>>,
+                                              shareable: &mut bool)
+                                              -> SelectorMatchingResult
+                                              where E: TElement<'a>, N: TNode<'a,E> {
     match can_fast_reject(selector, element, parent_bf, shareable) {
         None => {},
         Some(result) => return result,
@@ -693,12 +768,11 @@ fn matches_compound_selector_internal<'a,
 /// will almost certainly break as nodes will start mistakenly sharing styles. (See the code in
 /// `main/css/matching.rs`.)
 #[inline]
-pub fn matches_simple_selector<'a,E,N>(
-                               selector: &SimpleSelector,
-                               element: &N,
-                               shareable: &mut bool)
-                               -> bool
-                               where E:TElement<'a>, N:TNode<'a,E> {
+pub fn matches_simple_selector<'a,E,N>(selector: &SimpleSelector,
+                                       element: &N,
+                                       shareable: &mut bool)
+                                       -> bool
+                                       where E: TElement<'a>, N: TNode<'a,E> {
     match *selector {
         LocalNameSelector(LocalName { ref name, ref lower_name }) => {
             let name = if element.is_html_element_in_html_document() { lower_name } else { name };
@@ -877,14 +951,13 @@ fn url_is_visited(_url: &str) -> bool {
 }
 
 #[inline]
-fn matches_generic_nth_child<'a,E,N>(
-                             element: &N,
-                             a: i32,
-                             b: i32,
-                             is_of_type: bool,
-                             is_from_end: bool)
-                             -> bool
-                             where E: TElement<'a>, N: TNode<'a,E> {
+fn matches_generic_nth_child<'a,E,N>(element: &N,
+                                     a: i32,
+                                     b: i32,
+                                     is_of_type: bool,
+                                     is_from_end: bool)
+                                     -> bool
+                                     where E: TElement<'a>, N: TNode<'a,E> {
     let mut node = element.clone();
     // fail if we can't find a parent or if the node is the root element
     // of the document (Cf. Selectors Level 3)
@@ -933,7 +1006,7 @@ fn matches_generic_nth_child<'a,E,N>(
 }
 
 #[inline]
-fn matches_root<'a, E:TElement<'a>,N:TNode<'a, E>>(element: &N) -> bool {
+fn matches_root<'a,E,N>(element: &N) -> bool where E: TElement<'a>, N: TNode<'a,E> {
     match element.parent_node() {
         Some(parent) => parent.is_document(),
         None => false
@@ -941,7 +1014,7 @@ fn matches_root<'a, E:TElement<'a>,N:TNode<'a, E>>(element: &N) -> bool {
 }
 
 #[inline]
-fn matches_first_child<'a, E:TElement<'a>,N:TNode<'a, E>>(element: &N) -> bool {
+fn matches_first_child<'a,E,N>(element: &N) -> bool where E: TElement<'a>, N: TNode<'a,E> {
     let mut node = element.clone();
     loop {
         match node.prev_sibling() {
@@ -963,7 +1036,7 @@ fn matches_first_child<'a, E:TElement<'a>,N:TNode<'a, E>>(element: &N) -> bool {
 }
 
 #[inline]
-fn matches_last_child<'a, E:TElement<'a>,N:TNode<'a, E>>(element: &N) -> bool {
+fn matches_last_child<'a,E,N>(element: &N) -> bool where E: TElement<'a>, N: TNode<'a,E> {
     let mut node = element.clone();
     loop {
         match node.next_sibling() {
@@ -1081,3 +1154,4 @@ mod tests {
         assert!(selector_map.class_hash.find(&Atom::from_slice("foo")).is_none());
     }
 }
+

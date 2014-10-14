@@ -5,7 +5,9 @@
 //! Traits that nodes must implement. Breaks the otherwise-cyclic dependency between layout and
 //! style.
 
+use legacy::{IntegerAttribute, LengthAttribute};
 use selectors::AttrSelector;
+use servo_util::str::LengthOrPercentageOrAuto;
 use string_cache::{Atom, Namespace};
 
 pub trait TNode<'a, E: TElement<'a>> : Clone + Copy {
@@ -45,4 +47,8 @@ pub trait TElement<'a> : Copy {
     fn each_class(self, callback: |&Atom|);
 }
 
+pub trait TElementAttributes : Copy {
+    fn get_length_attribute(self, attribute: LengthAttribute) -> LengthOrPercentageOrAuto;
+    fn get_integer_attribute(self, attribute: IntegerAttribute) -> Option<i32>;
+}
 

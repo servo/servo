@@ -171,7 +171,7 @@ impl Flow for TableRowFlow {
     /// responsible for flowing.
     /// Min/pref inline-sizes set by this function are used in automatic table layout calculation.
     /// The specified column inline-sizes of children cells are used in fixed table layout calculation.
-    fn bubble_inline_sizes(&mut self, _: &LayoutContext) {
+    fn bubble_inline_sizes(&mut self) {
         let _scope = layout_debug_scope!("table_row::bubble_inline_sizes {:s}",
                                             self.block_flow.base.debug_id());
 
