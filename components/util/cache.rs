@@ -18,58 +18,6 @@ pub trait Cache<K: PartialEq, V: Clone> {
     fn evict_all(&mut self);
 }
 
-pub struct MonoCache<K, V> {
-    entry: Option<(K,V)>,
-}
-
-impl<K: Clone + PartialEq, V: Clone> MonoCache<K,V> {
-    pub fn new(_size: uint) -> MonoCache<K,V> {
-        MonoCache { entry: None }
-    }
-}
-
-impl<K: Clone + PartialEq, V: Clone> Cache<K,V> for MonoCache<K,V> {
-    fn insert(&mut self, key: K, value: V) {
-        self.entry = Some((key, value));
-    }
-
-    fn find(&mut self, key: &K) -> Option<V> {
-        match self.entry {
-            None => None,
-            Some((ref k, ref v)) => if *k == *key { Some(v.clone()) } else { None }
-        }
-    }
-
-    fn find_or_create(&mut self, key: &K, blk: |&K| -> V) -> V {
-        match self.find(key) {
-            Some(value) => value,
-            None => {
-                let value = blk(key);
-                self.entry = Some((key.clone(), value.clone()));
-                value
-            }
-        }
-    }
-
-    fn evict_all(&mut self) {
-        self.entry = None;
-    }
-}
-
-#[test]
-fn test_monocache() {
-    let mut cache: MonoCache<uint,Cell<&str>> = MonoCache::new(10);
-    let one = Cell::new("one");
-    let two = Cell::new("two");
-    cache.insert(1, one);
-
-    assert!(cache.find(&1).is_some());
-    assert!(cache.find(&2).is_none());
-    cache.find_or_create(&2, |_v| { two });
-    assert!(cache.find(&2).is_some());
-    assert!(cache.find(&1).is_none());
-}
-
 pub struct HashCache<K, V> {
     entries: HashMap<K, V>,
 }
