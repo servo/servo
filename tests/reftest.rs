@@ -259,6 +259,13 @@ fn check_reftest(reftest: Reftest) {
     assert_eq!(left_width, right_width);
     assert_eq!(left_height, right_height);
 
+    let left_all_white = left_bytes.iter().all(|&p| p == 255);
+    let right_all_white = right_bytes.iter().all(|&p| p == 255);
+
+    if left_all_white && right_all_white {
+        fail!("Both rendering are empty")
+    }
+
     let pixels = left_bytes.iter().zip(right_bytes.iter()).map(|(&a, &b)| {
         if a as i8 - b as i8 == 0 {
             // White for correct
