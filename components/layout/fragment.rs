@@ -1249,7 +1249,7 @@ impl Fragment {
         match self.specific {
             IframeFragment(ref iframe_fragment) => {
                 self.finalize_position_and_size_of_iframe(iframe_fragment,
-                                                          flow_origin,
+                                                          absolute_fragment_bounds.origin,
                                                           layout_context)
             }
             _ => {}
@@ -1755,23 +1755,20 @@ impl Fragment {
                                             iframe_fragment: &IframeFragmentInfo,
                                             offset: Point2D<Au>,
                                             layout_context: &LayoutContext) {
-        let mbp = (self.margin + self.border_padding).to_physical(self.style.writing_mode);
+        let border_padding = (self.border_padding).to_physical(self.style.writing_mode);
         let content_size = self.content_box().size.to_physical(self.style.writing_mode);
-
-        let left = offset.x + mbp.left;
-        let top = offset.y + mbp.top;
-        let width = content_size.width;
-        let height = content_size.height;
-        let origin = Point2D(geometry::to_frac_px(left) as f32, geometry::to_frac_px(top) as f32);
-        let size = Size2D(geometry::to_frac_px(width) as f32, geometry::to_frac_px(height) as f32);
-        let rect = Rect(origin, size);
+        let iframe_rect = Rect(Point2D(geometry::to_frac_px(offset.x + border_padding.left) as f32,
+                                       geometry::to_frac_px(offset.y + border_padding.top) as f32),
+                               Size2D(geometry::to_frac_px(content_size.width) as f32,
+                                      geometry::to_frac_px(content_size.height) as f32));
 
         debug!("finalizing position and size of iframe for {:?},{:?}",
                iframe_fragment.pipeline_id,
                iframe_fragment.subpage_id);
-        let msg = FrameRectMsg(iframe_fragment.pipeline_id, iframe_fragment.subpage_id, rect);
         let ConstellationChan(ref chan) = layout_context.shared.constellation_chan;
-        chan.send(msg)
+        chan.send(FrameRectMsg(iframe_fragment.pipeline_id,
+                               iframe_fragment.subpage_id,
+                               iframe_rect));
     }
 
     /// Returns true if and only if this is the *primary fragment* for the fragment's style object

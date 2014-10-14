@@ -127,6 +127,7 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == iframe/simple.html iframe/simple_ref.html
 == iframe/multiple_external.html iframe/multiple_external_ref.html
 == iframe/overflow.html iframe/overflow_ref.html
+== iframe/positioning_margin.html iframe/positioning_margin_ref.html
 
 == floated_generated_content_a.html floated_generated_content_b.html
 == inline_block_margin_a.html inline_block_margin_ref.html
