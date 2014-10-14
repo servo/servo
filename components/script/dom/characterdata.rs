@@ -15,6 +15,7 @@ use dom::node::{CommentNodeTypeId, Node, NodeTypeId, TextNodeTypeId, ProcessingI
 use servo_util::str::DOMString;
 
 use std::cell::{Ref, RefCell};
+use std::mem;
 
 #[jstraceable]
 #[must_root]
@@ -57,6 +58,12 @@ impl CharacterData {
     pub fn set_data(&self, data: DOMString) {
         *self.data.borrow_mut() = data;
     }
+
+    #[inline]
+    pub unsafe fn data_for_layout<'a>(&'a self) -> &'a str {
+        mem::transmute::<&RefCell<DOMString>, &DOMString>(&self.data).as_slice()
+    }
+
 }
 
 impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
