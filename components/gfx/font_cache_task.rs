@@ -13,7 +13,7 @@ use sync::Arc;
 use font_template::{FontTemplate, FontTemplateDescriptor};
 use platform::font_template::FontTemplateData;
 use servo_net::resource_task::{ResourceTask, load_whole_resource};
-use url::Url;
+use style::{Source, LocalSource, UrlSource_};
 
 /// A list of font templates that make up a given font family.
 struct FontFamily {
@@ -72,7 +72,7 @@ impl FontFamily {
 pub enum Command {
     GetFontTemplate(String, FontTemplateDescriptor, Sender<Reply>),
     GetLastResortFontTemplate(FontTemplateDescriptor, Sender<Reply>),
-    AddWebFont(String, Url, Sender<()>),
+    AddWebFont(String, Source, Sender<()>),
     Exit(Sender<()>),
 }
 
@@ -116,19 +116,31 @@ impl FontCache {
                     let font_template = self.get_last_resort_font_template(&descriptor);
                     result.send(GetFontTemplateReply(Some(font_template)));
                 }
-                AddWebFont(family_name, url, result) => {
-                    let maybe_resource = load_whole_resource(&self.resource_task, url.clone());
-                    match maybe_resource {
-                        Ok((_, bytes)) => {
-                            if !self.web_families.contains_key(&family_name) {
-                                let family = FontFamily::new();
-                                self.web_families.insert(family_name.clone(), family);
+                AddWebFont(family_name, src, result) => {
+                    if !self.web_families.contains_key(&family_name) {
+                        let family = FontFamily::new();
+                        self.web_families.insert(family_name.clone(), family);
+                    }
+
+                    match src {
+                        UrlSource_(ref url_source) => {
+                            let url = &url_source.url;
+                            let maybe_resource = load_whole_resource(&self.resource_task, url.clone());
+                            match maybe_resource {
+                                Ok((_, bytes)) => {
+                                    let family = self.web_families.get_mut(&family_name);
+                                    family.add_template(url.to_string().as_slice(), Some(bytes));
+                                },
+                                Err(_) => {
+                                    debug!("Failed to load web font: family={} url={}", family_name, url);
+                                }
                             }
+                        }
+                        LocalSource(ref local_family_name) => {
                             let family = self.web_families.get_mut(&family_name);
-                            family.add_template(format!("{}", url).as_slice(), Some(bytes));
-                        },
-                        Err(_) => {
-                            debug!("Failed to load web font: family={} url={}", family_name, url);
+                            get_variations_for_family(local_family_name.as_slice(), |path| {
+                                family.add_template(path.as_slice(), None);
+                            });
                         }
                     }
                     result.send(());
@@ -290,9 +302,9 @@ impl FontCacheTask {
         }
     }
 
-    pub fn add_web_font(&self, family: String, url: Url) {
+    pub fn add_web_font(&self, family: String, src: Source) {
         let (response_chan, response_port) = channel();
-        self.chan.send(AddWebFont(family, url, response_chan));
+        self.chan.send(AddWebFont(family, src, response_chan));
         response_port.recv();
     }
 
