@@ -2,9 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use display_list::{BorderDisplayItemClass, ClipDisplayItem, ClipDisplayItemClass, DisplayItem};
-use display_list::{DisplayList, ImageDisplayItemClass, LineDisplayItemClass};
-use display_list::{PseudoDisplayItemClass, SolidColorDisplayItemClass, TextDisplayItemClass};
+use display_list::{DisplayItem, DisplayList};
 
 use collections::dlist::DList;
 use geom::rect::Rect;
@@ -45,28 +43,11 @@ impl DisplayListOptimizer {
 
     fn process_display_item(&self, display_item: &DisplayItem) -> Option<DisplayItem> {
         // Eliminate display items outside the visible region.
-        if !self.visible_rect.intersects(&display_item.base().bounds) {
-            return None
-        }
-
-        // Recur.
-        match *display_item {
-            ClipDisplayItemClass(ref clip) => {
-                let new_children = self.process_display_list(&clip.children);
-                if new_children.is_empty() {
-                    return None
-                }
-                Some(ClipDisplayItemClass(box ClipDisplayItem {
-                    base: clip.base.clone(),
-                    children: new_children,
-                }))
-            }
-
-            BorderDisplayItemClass(_) | ImageDisplayItemClass(_) | LineDisplayItemClass(_) |
-            PseudoDisplayItemClass(_) | SolidColorDisplayItemClass(_) |
-            TextDisplayItemClass(_) => {
-                Some((*display_item).clone())
-            }
+        if !self.visible_rect.intersects(&display_item.base().bounds) ||
+                !self.visible_rect.intersects(&display_item.base().clip_rect) {
+            None
+        } else {
+            Some((*display_item).clone())
         }
     }
 }

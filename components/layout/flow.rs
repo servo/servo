@@ -46,7 +46,7 @@ use table_wrapper::TableWrapperFlow;
 use wrapper::ThreadSafeLayoutNode;
 
 use collections::dlist::DList;
-use geom::Point2D;
+use geom::{Point2D, Rect, Size2D};
 use gfx::display_list::DisplayList;
 use gfx::render_task::RenderLayer;
 use serialize::{Encoder, Encodable};
@@ -59,7 +59,7 @@ use std::num::Zero;
 use std::fmt;
 use std::iter::Zip;
 use std::raw;
-use std::sync::atomics::{AtomicUint, Relaxed, SeqCst};
+use std::sync::atomics::{AtomicUint, SeqCst};
 use std::slice::MutItems;
 use style::computed_values::{clear, float, position, text_align};
 
@@ -168,14 +168,14 @@ pub trait Flow: fmt::Show + ToString + Sync {
         fail!("called col_inline_sizes() on an other flow than table-row/table-rowgroup/table")
     }
 
-    /// If this is a table row flow or table rowgroup flow or table flow, returns column min inline-sizes.
-    /// Fails otherwise.
+    /// If this is a table row flow or table rowgroup flow or table flow, returns column min
+    /// inline-sizes. Fails otherwise.
     fn col_min_inline_sizes<'a>(&'a self) -> &'a Vec<Au> {
         fail!("called col_min_inline_sizes() on an other flow than table-row/table-rowgroup/table")
     }
 
-    /// If this is a table row flow or table rowgroup flow or table flow, returns column min inline-sizes.
-    /// Fails otherwise.
+    /// If this is a table row flow or table rowgroup flow or table flow, returns column min
+    /// inline-sizes. Fails otherwise.
     fn col_pref_inline_sizes<'a>(&'a self) -> &'a Vec<Au> {
         fail!("called col_pref_inline_sizes() on an other flow than table-row/table-rowgroup/table")
     }
@@ -230,8 +230,8 @@ pub trait Flow: fmt::Show + ToString + Sync {
     }
 
     fn compute_collapsible_block_start_margin(&mut self,
-                                      _layout_context: &mut LayoutContext,
-                                      _margin_collapse_info: &mut MarginCollapseInfo) {
+                                              _layout_context: &mut LayoutContext,
+                                              _margin_collapse_info: &mut MarginCollapseInfo) {
         // The default implementation is a no-op.
     }
 
@@ -679,8 +679,10 @@ pub type DescendantOffsetIter<'a> = Zip<DescendantIter<'a>, MutItems<'a, Au>>;
 pub struct AbsolutePositionInfo {
     /// The size of the containing block for relatively-positioned descendants.
     pub relative_containing_block_size: LogicalSize<Au>,
+
     /// The position of the absolute containing block.
     pub absolute_containing_block_position: Point2D<Au>,
+
     /// Whether the absolute containing block forces positioned descendants to be layerized.
     ///
     /// FIXME(pcwalton): Move into `FlowFlags`.
@@ -770,6 +772,12 @@ pub struct BaseFlow {
     /// FIXME(pcwalton): Merge with `absolute_static_i_offset` and `fixed_static_i_offset` above?
     pub absolute_position_info: AbsolutePositionInfo,
 
+    /// The clipping rectangle for this flow and its descendants, in layer coordinates.
+    ///
+    /// TODO(pcwalton): When we have `border-radius` this will need to at least support rounded
+    /// rectangles.
+    pub clip_rect: Rect<Au>,
+
     /// The unflattened display items for this flow.
     pub display_list: DisplayList,
 
@@ -785,11 +793,10 @@ pub struct BaseFlow {
 impl fmt::Show for BaseFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f,
-               "@ {}, CC {}, ADC {}, CADC {}",
+               "@ {}, CC {}, ADC {}",
                self.position,
                self.parallel.children_count.load(SeqCst),
-               self.abs_descendants.len(),
-               self.parallel.children_and_absolute_descendant_count.load(SeqCst))
+               self.abs_descendants.len())
     }
 }
 
@@ -851,6 +858,7 @@ impl BaseFlow {
             display_list: DisplayList::new(),
             layers: DList::new(),
             absolute_position_info: AbsolutePositionInfo::new(writing_mode),
+            clip_rect: Rect(Zero::zero(), Size2D(Au(0), Au(0))),
 
             flags: FlowFlags::new(),
             writing_mode: writing_mode,
@@ -1210,10 +1218,6 @@ impl MutableOwnedFlowUtils for FlowRef {
 
         let block = self.get_mut().as_block();
         block.base.abs_descendants = abs_descendants;
-        block.base
-             .parallel
-             .children_and_absolute_descendant_count
-             .fetch_add(block.base.abs_descendants.len() as int, Relaxed);
 
         for descendant_link in block.base.abs_descendants.iter() {
             let base = mut_base(descendant_link);

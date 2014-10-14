@@ -26,8 +26,8 @@ use encoding::all::UTF_8;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
-use gfx::display_list::{ClipDisplayItemClass, ContentStackingLevel, DisplayItem};
-use gfx::display_list::{DisplayItemIterator, DisplayList, OpaqueNode};
+use gfx::display_list::{ContentStackingLevel, DisplayItem, DisplayItemIterator, DisplayList};
+use gfx::display_list::{OpaqueNode};
 use gfx::render_task::{RenderInitMsg, RenderChan, RenderLayer};
 use gfx::{render_task, color};
 use layout_traits;
@@ -852,7 +852,6 @@ impl LayoutRPC for LayoutRPCImpl {
                                 mut iter: DisplayItemIterator,
                                 node: OpaqueNode) {
             for item in iter {
-                union_boxes_for_node(accumulator, item.children(), node);
                 if item.base().node == node {
                     match *accumulator {
                         None => *accumulator = Some(item.base().bounds),
@@ -884,7 +883,6 @@ impl LayoutRPC for LayoutRPCImpl {
                               mut iter: DisplayItemIterator,
                               node: OpaqueNode) {
             for item in iter {
-                add_boxes_for_node(accumulator, item.children(), node);
                 if item.base().node == node {
                     accumulator.push(item.base().bounds)
                 }
@@ -907,47 +905,25 @@ impl LayoutRPC for LayoutRPCImpl {
 
     /// Requests the node containing the point of interest
     fn hit_test(&self, _: TrustedNodeAddress, point: Point2D<f32>) -> Result<HitTestResponse, ()> {
-        fn hit_test<'a,I:Iterator<&'a DisplayItem>>(x: Au, y: Au, mut iterator: I)
-                     -> Option<HitTestResponse> {
+        fn hit_test<'a,I>(point: Point2D<Au>, mut iterator: I)
+                          -> Option<HitTestResponse>
+                          where I: Iterator<&'a DisplayItem> {
             for item in iterator {
-                match *item {
-                    ClipDisplayItemClass(ref cc) => {
-                        if geometry::rect_contains_point(cc.base.bounds, Point2D(x, y)) {
-                            let ret = hit_test(x, y, cc.children.list.iter().rev());
-                            if !ret.is_none() {
-                                return ret
-                            }
-                        }
-                        continue
-                    }
-                    _ => {}
-                }
-
-                let bounds = item.bounds();
-
-                // TODO(tikue): This check should really be performed by a method of
-                // DisplayItem.
-                if x < bounds.origin.x + bounds.size.width &&
-                        bounds.origin.x <= x &&
-                        y < bounds.origin.y + bounds.size.height &&
-                        bounds.origin.y <= y {
-                    return Some(HitTestResponse(item.base()
-                                                    .node
-                                                    .to_untrusted_node_address()))
+                // TODO(tikue): This check should really be performed by a method of `DisplayItem`.
+                if geometry::rect_contains_point(item.base().clip_rect, point) &&
+                        geometry::rect_contains_point(item.bounds(), point) {
+                    return Some(HitTestResponse(item.base().node.to_untrusted_node_address()))
                 }
             }
-            let ret: Option<HitTestResponse> = None;
-            ret
+            None
         }
-        let (x, y) = (Au::from_frac_px(point.x as f64),
-                      Au::from_frac_px(point.y as f64));
-
+        let point = Point2D(Au::from_frac_px(point.x as f64), Au::from_frac_px(point.y as f64));
         let resp = {
             let &LayoutRPCImpl(ref rw_data) = self;
             let rw_data = rw_data.lock();
             match rw_data.display_list {
                 None => fail!("no display list!"),
-                Some(ref display_list) => hit_test(x, y, display_list.list.iter().rev()),
+                Some(ref display_list) => hit_test(point, display_list.list.iter().rev()),
             }
         };
 
@@ -957,49 +933,29 @@ impl LayoutRPC for LayoutRPCImpl {
         Err(())
     }
 
-    fn mouse_over(&self, _: TrustedNodeAddress, point: Point2D<f32>) -> Result<MouseOverResponse, ()> {
-        fn mouse_over_test<'a,
-                           I:Iterator<&'a DisplayItem>>(
-                           x: Au,
-                           y: Au,
-                           mut iterator: I,
-                           result: &mut Vec<UntrustedNodeAddress>) {
+    fn mouse_over(&self, _: TrustedNodeAddress, point: Point2D<f32>)
+                  -> Result<MouseOverResponse, ()> {
+        fn mouse_over_test<'a,I>(point: Point2D<Au>,
+                                 mut iterator: I,
+                                 result: &mut Vec<UntrustedNodeAddress>)
+                                 where I: Iterator<&'a DisplayItem> {
             for item in iterator {
-                match *item {
-                    ClipDisplayItemClass(ref cc) => {
-                        mouse_over_test(x, y, cc.children.list.iter().rev(), result);
-                    }
-                    _ => {
-                        let bounds = item.bounds();
-
-                        // TODO(tikue): This check should really be performed by a method
-                        // of DisplayItem.
-                        if x < bounds.origin.x + bounds.size.width &&
-                                bounds.origin.x <= x &&
-                                y < bounds.origin.y + bounds.size.height &&
-                                bounds.origin.y <= y {
-                            result.push(item.base()
-                                            .node
-                                            .to_untrusted_node_address());
-                        }
-                    }
+                // TODO(tikue): This check should really be performed by a method of `DisplayItem`.
+                if geometry::rect_contains_point(item.bounds(), point) {
+                    result.push(item.base().node.to_untrusted_node_address())
                 }
             }
         }
 
         let mut mouse_over_list: Vec<UntrustedNodeAddress> = vec!();
-        let (x, y) = (Au::from_frac_px(point.x as f64), Au::from_frac_px(point.y as f64));
-
+        let point = Point2D(Au::from_frac_px(point.x as f64), Au::from_frac_px(point.y as f64));
         {
             let &LayoutRPCImpl(ref rw_data) = self;
             let rw_data = rw_data.lock();
             match rw_data.display_list {
                 None => fail!("no display list!"),
                 Some(ref display_list) => {
-                    mouse_over_test(x,
-                                    y,
-                                    display_list.list.iter().rev(),
-                                    &mut mouse_over_list);
+                    mouse_over_test(point, display_list.list.iter().rev(), &mut mouse_over_list);
                 }
             };
         }
