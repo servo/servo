@@ -19,6 +19,7 @@ use std::cell::Cell;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct CustomEvent {
     event: Event,
     detail: Cell<JSVal>,
@@ -26,7 +27,7 @@ pub struct CustomEvent {
 
 impl CustomEventDerived for Event {
     fn is_customevent(&self) -> bool {
-        self.type_id == CustomEventTypeId
+        *self.type_id() == CustomEventTypeId
     }
 }
 

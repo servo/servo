@@ -33,6 +33,7 @@ untraceable!(TrustedWorkerAddress)
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct Worker {
     eventtarget: EventTarget,
     refcount: Cell<uint>,

@@ -32,8 +32,9 @@ pub enum WorkerGlobalScopeId {
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct WorkerGlobalScope {
-    pub eventtarget: EventTarget,
+    eventtarget: EventTarget,
     worker_url: Url,
     js_context: Rc<Cx>,
     resource_task: ResourceTask,
@@ -59,6 +60,11 @@ impl WorkerGlobalScope {
             navigator: Default::default(),
             console: Default::default(),
         }
+    }
+
+    #[inline]
+    pub fn eventtarget<'a>(&'a self) -> &'a EventTarget {
+        &self.eventtarget
     }
 
     pub fn get_cx(&self) -> *mut JSContext {

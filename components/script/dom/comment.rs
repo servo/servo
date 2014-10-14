@@ -18,13 +18,14 @@ use servo_util::str::DOMString;
 /// An HTML comment.
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct Comment {
-    pub characterdata: CharacterData,
+    characterdata: CharacterData,
 }
 
 impl CommentDerived for EventTarget {
     fn is_comment(&self) -> bool {
-        self.type_id == NodeTargetTypeId(CommentNodeTypeId)
+        *self.type_id() == NodeTargetTypeId(CommentNodeTypeId)
     }
 }
 
@@ -43,6 +44,11 @@ impl Comment {
     pub fn Constructor(global: &GlobalRef, data: DOMString) -> Fallible<Temporary<Comment>> {
         let document = global.as_window().Document().root();
         Ok(Comment::new(data, *document))
+    }
+
+    #[inline]
+    pub fn characterdata<'a>(&'a self) -> &'a CharacterData {
+        &self.characterdata
     }
 }
 

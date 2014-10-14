@@ -27,6 +27,7 @@ pub enum FormDatum {
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct FormData {
     data: RefCell<HashMap<DOMString, Vec<FormDatum>>>,
     reflector_: Reflector,
@@ -112,7 +113,7 @@ impl PrivateFormDataHelpers for FormData {
     fn get_file_from_blob(&self, value: JSRef<Blob>, filename: Option<DOMString>) -> Temporary<File> {
         let global = self.global.root();
         let f: Option<JSRef<File>> = FileCast::to_ref(value);
-        let name = filename.unwrap_or(f.map(|inner| inner.name.clone()).unwrap_or("blob".to_string()));
+        let name = filename.unwrap_or(f.map(|inner| inner.name().clone()).unwrap_or("blob".to_string()));
         File::new(&global.root_ref(), value, name)
     }
 }

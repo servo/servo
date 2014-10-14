@@ -5,7 +5,7 @@
 use dom::bindings::callback::ReportExceptions;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, NodeDerived};
-use dom::bindings::js::{JS, JSRef, OptionalSettable, OptionalRootable, Root};
+use dom::bindings::js::{JS, JSRef, OptionalRootable, Root};
 use dom::eventtarget::{Capturing, Bubbling, EventTarget};
 use dom::event::{Event, PhaseAtTarget, PhaseNone, PhaseBubbling, PhaseCapturing};
 use dom::node::{Node, NodeHelpers};
@@ -15,13 +15,13 @@ use dom::virtualmethods::vtable_for;
 pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
                               pseudo_target: Option<JSRef<'b, EventTarget>>,
                               event: JSRef<Event>) -> bool {
-    assert!(!event.dispatching.get());
+    assert!(!event.dispatching());
 
-    event.target.assign(Some(match pseudo_target {
+    event.set_target(match pseudo_target {
         Some(pseudo_target) => pseudo_target,
         None => target.clone(),
-    }));
-    event.dispatching.set(true);
+    });
+    event.set_dispatching(true);
 
     let type_ = event.Type();
 
@@ -36,7 +36,7 @@ pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
         vec!()
     };
 
-    event.phase.set(PhaseCapturing);
+    event.set_phase(PhaseCapturing);
 
     //FIXME: The "callback this value" should be currentTarget
 
@@ -44,17 +44,17 @@ pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
     for cur_target in chain.as_slice().iter().rev() {
         let stopped = match cur_target.get_listeners_for(type_.as_slice(), Capturing) {
             Some(listeners) => {
-                event.current_target.assign(Some(cur_target.deref().clone()));
+                event.set_current_target(cur_target.deref().clone());
                 for listener in listeners.iter() {
                     // Explicitly drop any exception on the floor.
                     let _ = listener.HandleEvent_(**cur_target, event, ReportExceptions);
 
-                    if event.stop_immediate.get() {
+                    if event.stop_immediate() {
                         break;
                     }
                 }
 
-                event.stop_propagation.get()
+                event.stop_propagation()
             }
             None => false
         };
@@ -65,9 +65,9 @@ pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
     }
 
     /* at target */
-    if !event.stop_propagation.get() {
-        event.phase.set(PhaseAtTarget);
-        event.current_target.assign(Some(target.clone()));
+    if !event.stop_propagation() {
+        event.set_phase(PhaseAtTarget);
+        event.set_current_target(target.clone());
 
         let opt_listeners = target.get_listeners(type_.as_slice());
         for listeners in opt_listeners.iter() {
@@ -75,7 +75,7 @@ pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
                 // Explicitly drop any exception on the floor.
                 let _ = listener.HandleEvent_(target, event, ReportExceptions);
 
-                if event.stop_immediate.get() {
+                if event.stop_immediate() {
                     break;
                 }
             }
@@ -83,23 +83,23 @@ pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
     }
 
     /* bubbling */
-    if event.bubbles.get() && !event.stop_propagation.get() {
-        event.phase.set(PhaseBubbling);
+    if event.bubbles() && !event.stop_propagation() {
+        event.set_phase(PhaseBubbling);
 
         for cur_target in chain.iter() {
             let stopped = match cur_target.get_listeners_for(type_.as_slice(), Bubbling) {
                 Some(listeners) => {
-                    event.current_target.assign(Some(cur_target.deref().clone()));
+                    event.set_current_target(cur_target.deref().clone());
                     for listener in listeners.iter() {
                         // Explicitly drop any exception on the floor.
                         let _ = listener.HandleEvent_(**cur_target, event, ReportExceptions);
 
-                        if event.stop_immediate.get() {
+                        if event.stop_immediate() {
                             break;
                         }
                     }
 
-                    event.stop_propagation.get()
+                    event.stop_propagation()
                 }
                 None => false
             };
@@ -131,9 +131,9 @@ pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
         let _ = chain.pop();
     }
 
-    event.dispatching.set(false);
-    event.phase.set(PhaseNone);
-    event.current_target.clear();
+    event.set_dispatching(false);
+    event.set_phase(PhaseNone);
+    event.clear_current_target();
 
     !event.DefaultPrevented()
 }

@@ -15,13 +15,14 @@ use servo_util::str::DOMString;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct HTMLProgressElement {
-    pub htmlelement: HTMLElement,
+    htmlelement: HTMLElement,
 }
 
 impl HTMLProgressElementDerived for EventTarget {
     fn is_htmlprogresselement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLProgressElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLProgressElementTypeId))
     }
 }
 

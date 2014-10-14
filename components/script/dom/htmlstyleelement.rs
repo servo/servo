@@ -19,13 +19,14 @@ use style::Stylesheet;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct HTMLStyleElement {
-    pub htmlelement: HTMLElement,
+    htmlelement: HTMLElement,
 }
 
 impl HTMLStyleElementDerived for EventTarget {
     fn is_htmlstyleelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLStyleElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLStyleElementTypeId))
     }
 }
 

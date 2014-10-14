@@ -23,12 +23,13 @@ use std::cell::Cell;
 // http://dom.spec.whatwg.org/#interface-treewalker
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct TreeWalker {
-    pub reflector_: Reflector,
-    pub root_node: JS<Node>,
-    pub current_node: Cell<JS<Node>>,
-    pub what_to_show: u32,
-    pub filter: Filter
+    reflector_: Reflector,
+    root_node: JS<Node>,
+    current_node: Cell<JS<Node>>,
+    what_to_show: u32,
+    filter: Filter
 }
 
 impl TreeWalker {
@@ -48,7 +49,7 @@ impl TreeWalker {
                            root_node: JSRef<Node>,
                            what_to_show: u32,
                            filter: Filter) -> Temporary<TreeWalker> {
-        let window = document.window.root();
+        let window = document.window().root();
         reflect_dom_object(box TreeWalker::new_inherited(root_node, what_to_show, filter),
                            &Window(*window),
                            TreeWalkerBinding::Wrap)

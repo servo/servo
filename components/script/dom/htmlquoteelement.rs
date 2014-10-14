@@ -15,13 +15,14 @@ use servo_util::str::DOMString;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct HTMLQuoteElement {
-    pub htmlelement: HTMLElement,
+    htmlelement: HTMLElement,
 }
 
 impl HTMLQuoteElementDerived for EventTarget {
     fn is_htmlquoteelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLQuoteElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLQuoteElementTypeId))
     }
 }
 

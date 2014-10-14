@@ -11,6 +11,7 @@ use dom::window::Window;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct Screen {
     reflector_: Reflector,
 }

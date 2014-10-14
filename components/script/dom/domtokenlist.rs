@@ -17,6 +17,7 @@ use string_cache::Atom;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct DOMTokenList {
     reflector_: Reflector,
     element: JS<Element>,

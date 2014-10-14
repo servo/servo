@@ -20,6 +20,7 @@ use js::jsval::{JSVal, NullValue};
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct TestBinding {
     reflector: Reflector,
     global: GlobalField,

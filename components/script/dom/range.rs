@@ -13,6 +13,7 @@ use dom::document::Document;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct Range {
     reflector_: Reflector
 }
@@ -25,7 +26,7 @@ impl Range {
     }
 
     pub fn new(document: JSRef<Document>) -> Temporary<Range> {
-        let window = document.window.root();
+        let window = document.window().root();
         reflect_dom_object(box Range::new_inherited(),
                            &Window(*window),
                            RangeBinding::Wrap)

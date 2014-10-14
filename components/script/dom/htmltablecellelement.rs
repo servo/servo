@@ -14,13 +14,14 @@ use servo_util::str::DOMString;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct HTMLTableCellElement {
-    pub htmlelement: HTMLElement,
+    htmlelement: HTMLElement,
 }
 
 impl HTMLTableCellElementDerived for EventTarget {
     fn is_htmltablecellelement(&self) -> bool {
-        match self.type_id {
+        match *self.type_id() {
             NodeTargetTypeId(ElementNodeTypeId(HTMLTableDataCellElementTypeId)) |
             NodeTargetTypeId(ElementNodeTypeId(HTMLTableHeaderCellElementTypeId)) => true,
             _ => false
@@ -33,6 +34,11 @@ impl HTMLTableCellElement {
         HTMLTableCellElement {
             htmlelement: HTMLElement::new_inherited(type_id, tag_name, prefix, document)
         }
+    }
+
+    #[inline]
+    pub fn htmlelement<'a>(&'a self) -> &'a HTMLElement {
+        &self.htmlelement
     }
 }
 

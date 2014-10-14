@@ -21,15 +21,16 @@ use std::default::Default;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct UIEvent {
-    pub event: Event,
+    event: Event,
     view: MutNullableJS<Window>,
     detail: Cell<i32>
 }
 
 impl UIEventDerived for Event {
     fn is_uievent(&self) -> bool {
-        self.type_id == UIEventTypeId
+        *self.type_id() == UIEventTypeId
     }
 }
 
@@ -66,6 +67,11 @@ impl UIEvent {
                                  init.parent.bubbles, init.parent.cancelable,
                                  init.view.root_ref(), init.detail);
         Ok(event)
+    }
+
+    #[inline]
+    pub fn event<'a>(&'a self) -> &'a Event {
+        &self.event
     }
 }
 

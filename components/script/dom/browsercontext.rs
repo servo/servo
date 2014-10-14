@@ -15,6 +15,7 @@ use std::ptr;
 
 #[allow(raw_pointer_deriving)]
 #[jstraceable]
+#[privatize]
 pub struct BrowserContext {
     history: Vec<SessionHistoryEntry>,
     active_index: uint,
@@ -38,7 +39,7 @@ impl BrowserContext {
 
     pub fn active_window(&self) -> Temporary<Window> {
         let doc = self.active_document().root();
-        Temporary::new(doc.window.clone())
+        Temporary::new(doc.window().clone())
     }
 
     pub fn window_proxy(&self) -> *mut JSObject {
@@ -66,6 +67,7 @@ impl BrowserContext {
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct SessionHistoryEntry {
     document: JS<Document>,
     children: Vec<BrowserContext>

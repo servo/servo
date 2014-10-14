@@ -18,13 +18,14 @@ use servo_util::str::DOMString;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct HTMLTitleElement {
-    pub htmlelement: HTMLElement,
+    htmlelement: HTMLElement,
 }
 
 impl HTMLTitleElementDerived for EventTarget {
     fn is_htmltitleelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLTitleElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLTitleElementTypeId))
     }
 }
 
@@ -50,7 +51,7 @@ impl<'a> HTMLTitleElementMethods for JSRef<'a, HTMLTitleElement> {
         for child in node.children() {
             let text: Option<JSRef<Text>> = TextCast::to_ref(child);
             match text {
-                Some(text) => content.push_str(text.characterdata.data.borrow().as_slice()),
+                Some(text) => content.push_str(text.characterdata().data().as_slice()),
                 None => (),
             }
         }

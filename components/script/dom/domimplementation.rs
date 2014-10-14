@@ -24,6 +24,7 @@ use servo_util::str::DOMString;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct DOMImplementation {
     document: JS<Document>,
     reflector_: Reflector,
@@ -38,7 +39,7 @@ impl DOMImplementation {
     }
 
     pub fn new(document: JSRef<Document>) -> Temporary<DOMImplementation> {
-        let window = document.window.root();
+        let window = document.window().root();
         reflect_dom_object(box DOMImplementation::new_inherited(document),
                            &Window(*window),
                            DOMImplementationBinding::Wrap)
@@ -72,7 +73,7 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
     fn CreateDocument(self, namespace: Option<DOMString>, qname: DOMString,
                       maybe_doctype: Option<JSRef<DocumentType>>) -> Fallible<Temporary<Document>> {
         let doc = self.document.root();
-        let win = doc.window.root();
+        let win = doc.window().root();
 
         // Step 1.
         let doc = Document::new(*win, None, NonHTMLDocument, None).root();
@@ -117,7 +118,7 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
     // http://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
     fn CreateHTMLDocument(self, title: Option<DOMString>) -> Temporary<Document> {
         let document = self.document.root();
-        let win = document.window.root();
+        let win = document.window().root();
 
         // Step 1-2.
         let doc = Document::new(*win, None, HTMLDocument, None).root();

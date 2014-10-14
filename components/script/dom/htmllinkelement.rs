@@ -23,13 +23,14 @@ use string_cache::Atom;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct HTMLLinkElement {
-    pub htmlelement: HTMLElement,
+    htmlelement: HTMLElement,
 }
 
 impl HTMLLinkElementDerived for EventTarget {
     fn is_htmllinkelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLLinkElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLLinkElementTypeId))
     }
 }
 

@@ -26,14 +26,15 @@ use std::cell::RefCell;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct HTMLImageElement {
-    pub htmlelement: HTMLElement,
+    htmlelement: HTMLElement,
     image: RefCell<Option<Url>>,
 }
 
 impl HTMLImageElementDerived for EventTarget {
     fn is_htmlimageelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLImageElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLImageElementTypeId))
     }
 }
 
@@ -47,8 +48,8 @@ impl<'a> PrivateHTMLImageElementHelpers for JSRef<'a, HTMLImageElement> {
     fn update_image(self, value: Option<(DOMString, &Url)>) {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         let document = node.owner_doc().root();
-        let window = document.window.root();
-        let image_cache = &window.image_cache_task;
+        let window = document.window().root();
+        let image_cache = window.image_cache_task();
         match value {
             None => {
                 *self.image.borrow_mut() = None;

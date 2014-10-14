@@ -21,23 +21,24 @@ use std::default::Default;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct MouseEvent {
-    pub mouseevent: UIEvent,
-    pub screen_x: Cell<i32>,
-    pub screen_y: Cell<i32>,
-    pub client_x: Cell<i32>,
-    pub client_y: Cell<i32>,
-    pub ctrl_key: Cell<bool>,
-    pub shift_key: Cell<bool>,
-    pub alt_key: Cell<bool>,
-    pub meta_key: Cell<bool>,
-    pub button: Cell<i16>,
-    pub related_target: MutNullableJS<EventTarget>
+    mouseevent: UIEvent,
+    screen_x: Cell<i32>,
+    screen_y: Cell<i32>,
+    client_x: Cell<i32>,
+    client_y: Cell<i32>,
+    ctrl_key: Cell<bool>,
+    shift_key: Cell<bool>,
+    alt_key: Cell<bool>,
+    meta_key: Cell<bool>,
+    button: Cell<i16>,
+    related_target: MutNullableJS<EventTarget>
 }
 
 impl MouseEventDerived for Event {
     fn is_mouseevent(&self) -> bool {
-        self.type_id == MouseEventTypeId
+        *self.type_id() == MouseEventTypeId
     }
 }
 

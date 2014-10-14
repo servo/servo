@@ -15,13 +15,14 @@ use servo_util::str::DOMString;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct HTMLTableDataCellElement {
-    pub htmltablecellelement: HTMLTableCellElement,
+    htmltablecellelement: HTMLTableCellElement,
 }
 
 impl HTMLTableDataCellElementDerived for EventTarget {
     fn is_htmltabledatacellelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLTableDataCellElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLTableDataCellElementTypeId))
     }
 }
 

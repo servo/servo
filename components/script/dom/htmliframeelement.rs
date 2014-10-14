@@ -41,22 +41,36 @@ enum SandboxAllowance {
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct HTMLIFrameElement {
-    pub htmlelement: HTMLElement,
-    pub size: Cell<Option<IFrameSize>>,
-    pub sandbox: Cell<Option<u8>>,
+    htmlelement: HTMLElement,
+    size: Cell<Option<IFrameSize>>,
+    sandbox: Cell<Option<u8>>,
 }
 
 impl HTMLIFrameElementDerived for EventTarget {
     fn is_htmliframeelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLIFrameElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLIFrameElementTypeId))
     }
 }
 
 #[jstraceable]
+#[privatize]
 pub struct IFrameSize {
-    pub pipeline_id: PipelineId,
-    pub subpage_id: SubpageId,
+    pipeline_id: PipelineId,
+    subpage_id: SubpageId,
+}
+
+impl IFrameSize {
+    #[inline]
+    pub fn pipeline_id<'a>(&'a self) -> &'a PipelineId {
+        &self.pipeline_id
+    }
+
+    #[inline]
+    pub fn subpage_id<'a>(&'a self) -> &'a SubpageId {
+        &self.subpage_id
+    }
 }
 
 pub trait HTMLIFrameElementHelpers {
@@ -126,6 +140,11 @@ impl HTMLIFrameElement {
         let element = HTMLIFrameElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLIFrameElementBinding::Wrap)
     }
+
+    #[inline]
+    pub fn size(&self) -> Option<IFrameSize> {
+        self.size.get()
+    }
 }
 
 impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
@@ -152,7 +171,7 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
     fn GetContentWindow(self) -> Option<Temporary<Window>> {
         self.size.get().and_then(|size| {
             let window = window_from_node(self).root();
-            let children = window.page.children.borrow();
+            let children = window.page().children.borrow();
             let child = children.iter().find(|child| {
                 child.subpage_id.unwrap() == size.subpage_id
             });

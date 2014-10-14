@@ -12,6 +12,7 @@ use servo_util::geometry::Au;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct DOMRect {
     reflector_: Reflector,
     top: f32,

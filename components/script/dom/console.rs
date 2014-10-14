@@ -11,8 +11,9 @@ use servo_util::str::DOMString;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct Console {
-    pub reflector_: Reflector
+    reflector_: Reflector
 }
 
 impl Console {

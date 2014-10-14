@@ -15,16 +15,17 @@ use servo_util::str::DOMString;
 /// The `DOCTYPE` tag.
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct DocumentType {
-    pub node: Node,
-    pub name: DOMString,
-    pub public_id: DOMString,
-    pub system_id: DOMString,
+    node: Node,
+    name: DOMString,
+    public_id: DOMString,
+    system_id: DOMString,
 }
 
 impl DocumentTypeDerived for EventTarget {
     fn is_documenttype(&self) -> bool {
-        self.type_id == NodeTargetTypeId(DoctypeNodeTypeId)
+        *self.type_id() == NodeTargetTypeId(DoctypeNodeTypeId)
     }
 }
 
@@ -52,6 +53,21 @@ impl DocumentType {
                                                        system_id,
                                                        document);
         Node::reflect_node(box documenttype, document, DocumentTypeBinding::Wrap)
+    }
+
+    #[inline]
+    pub fn name<'a>(&'a self) -> &'a DOMString {
+        &self.name
+    }
+
+    #[inline]
+    pub fn public_id<'a>(&'a self) -> &'a DOMString {
+        &self.public_id
+    }
+
+    #[inline]
+    pub fn system_id<'a>(&'a self) -> &'a DOMString {
+        &self.system_id
     }
 }
 

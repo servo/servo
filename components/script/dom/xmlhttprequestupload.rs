@@ -13,6 +13,7 @@ use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct XMLHttpRequestUpload {
     eventtarget: XMLHttpRequestEventTarget
 }
@@ -37,6 +38,6 @@ impl Reflectable for XMLHttpRequestUpload {
 
 impl XMLHttpRequestUploadDerived for EventTarget {
     fn is_xmlhttprequestupload(&self) -> bool {
-        self.type_id == XMLHttpRequestTargetTypeId(XMLHttpRequestUploadTypeId)
+        *self.type_id() == XMLHttpRequestTargetTypeId(XMLHttpRequestUploadTypeId)
     }
 }

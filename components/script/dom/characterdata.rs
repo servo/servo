@@ -14,18 +14,19 @@ use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::node::{CommentNodeTypeId, Node, NodeTypeId, TextNodeTypeId, ProcessingInstructionNodeTypeId, NodeHelpers};
 use servo_util::str::DOMString;
 
-use std::cell::RefCell;
+use std::cell::{Ref, RefCell};
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct CharacterData {
-    pub node: Node,
-    pub data: RefCell<DOMString>,
+    node: Node,
+    data: RefCell<DOMString>,
 }
 
 impl CharacterDataDerived for EventTarget {
     fn is_characterdata(&self) -> bool {
-        match self.type_id {
+        match *self.type_id() {
             NodeTargetTypeId(TextNodeTypeId) |
             NodeTargetTypeId(CommentNodeTypeId) |
             NodeTargetTypeId(ProcessingInstructionNodeTypeId) => true,
@@ -40,6 +41,21 @@ impl CharacterData {
             node: Node::new_inherited(id, document),
             data: RefCell::new(data),
         }
+    }
+
+    #[inline]
+    pub fn node<'a>(&'a self) -> &'a Node {
+        &self.node
+    }
+
+    #[inline]
+    pub fn data(&self) -> Ref<DOMString> {
+        self.data.borrow()
+    }
+
+    #[inline]
+    pub fn set_data(&self, data: DOMString) {
+        *self.data.borrow_mut() = data;
     }
 }
 
