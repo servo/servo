@@ -56,6 +56,7 @@ pub mod dom {
 
     /// The code to expose the DOM to JavaScript through IDL bindings.
     pub mod bindings {
+        pub mod cell;
         pub mod global;
         pub mod js;
         pub mod utils;
