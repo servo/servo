@@ -249,14 +249,11 @@ pub struct IntrinsicISizes {
     pub minimum_inline_size: Au,
     /// The *preferred inline-size* of the content.
     pub preferred_inline_size: Au,
-    /// The estimated sum of borders, padding, and margins. Some calculations use this information
-    /// when computing intrinsic inline-sizes.
-    pub surround_inline_size: Au,
 }
 
 impl fmt::Show for IntrinsicISizes {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "min={}, pref={}, surr={}", self.minimum_inline_size, self.preferred_inline_size, self.surround_inline_size)
+        write!(f, "min={}, pref={}", self.minimum_inline_size, self.preferred_inline_size)
     }
 }
 
@@ -265,20 +262,67 @@ impl IntrinsicISizes {
         IntrinsicISizes {
             minimum_inline_size: Au(0),
             preferred_inline_size: Au(0),
-            surround_inline_size: Au(0),
+        }
+    }
+}
+
+/// The temporary result of the computation of intrinsic inline-sizes.
+pub struct IntrinsicISizesContribution {
+    /// Intrinsic sizes for the content only (not counting borders, padding, or margins).
+    pub content_intrinsic_sizes: IntrinsicISizes,
+    /// The inline size of borders and padding, as well as margins if appropriate.
+    pub surrounding_size: Au,
+}
+
+impl IntrinsicISizesContribution {
+    /// Creates and initializes an inline size computation with all sizes set to zero.
+    pub fn new() -> IntrinsicISizesContribution {
+        IntrinsicISizesContribution {
+            content_intrinsic_sizes: IntrinsicISizes::new(),
+            surrounding_size: Au(0),
         }
     }
 
-    pub fn total_minimum_inline_size(&self) -> Au {
-        self.minimum_inline_size + self.surround_inline_size
+    /// Adds the content intrinsic sizes and the surrounding size together to yield the final
+    /// intrinsic size computation.
+    pub fn finish(self) -> IntrinsicISizes {
+        IntrinsicISizes {
+            minimum_inline_size: self.content_intrinsic_sizes.minimum_inline_size +
+                                     self.surrounding_size,
+            preferred_inline_size: self.content_intrinsic_sizes.preferred_inline_size +
+                                     self.surrounding_size,
+        }
     }
 
-    pub fn total_preferred_inline_size(&self) -> Au {
-        self.preferred_inline_size + self.surround_inline_size
+    /// Updates the computation so that the minimum is the maximum of the current minimum and the
+    /// given minimum and the preferred is the sum of the current preferred and the given
+    /// preferred. This is used when laying out fragments in the inline direction.
+    ///
+    /// FIXME(pcwalton): This is incorrect when the inline fragment contains forced line breaks
+    /// (e.g. `<br>` or `white-space: pre`).
+    pub fn union_inline(&mut self, sizes: &IntrinsicISizes) {
+        self.content_intrinsic_sizes.minimum_inline_size =
+            max(self.content_intrinsic_sizes.minimum_inline_size, sizes.minimum_inline_size);
+        self.content_intrinsic_sizes.preferred_inline_size =
+            self.content_intrinsic_sizes.preferred_inline_size + sizes.preferred_inline_size
+    }
+
+    /// Updates the computation so that the minimum is the maximum of the current minimum and the
+    /// given minimum and the preferred is the maximum of the current preferred and the given
+    /// preferred. This can be useful when laying out fragments in the block direction (but note
+    /// that it does not take floats into account, so `BlockFlow` does not use it).
+    ///
+    /// This is used when contributing the intrinsic sizes for individual fragments.
+    pub fn union_block(&mut self, sizes: &IntrinsicISizes) {
+        self.content_intrinsic_sizes.minimum_inline_size =
+            max(self.content_intrinsic_sizes.minimum_inline_size, sizes.minimum_inline_size);
+        self.content_intrinsic_sizes.preferred_inline_size =
+            max(self.content_intrinsic_sizes.preferred_inline_size, sizes.preferred_inline_size)
     }
 }
 
 /// Useful helper data type when computing values for blocks and positioned elements.
+#[deriving(PartialEq)]
 pub enum MaybeAuto {
     Auto,
     Specified(Au),
@@ -290,7 +334,9 @@ impl MaybeAuto {
                       -> MaybeAuto {
         match length {
             computed::LPA_Auto => Auto,
-            computed::LPA_Percentage(percent) => Specified(containing_length.scale_by(percent)),
+            computed::LPA_Percentage(percent) => {
+                Specified(containing_length.scale_by(percent))
+            }
             computed::LPA_Length(length) => Specified(length)
         }
     }

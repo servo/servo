@@ -26,7 +26,8 @@ pub struct TableCellFlow {
 }
 
 impl TableCellFlow {
-    pub fn from_node_and_fragment(node: &ThreadSafeLayoutNode, fragment: Fragment) -> TableCellFlow {
+    pub fn from_node_and_fragment(node: &ThreadSafeLayoutNode, fragment: Fragment)
+                                  -> TableCellFlow {
         TableCellFlow {
             block_flow: BlockFlow::from_node_and_fragment(node, fragment)
         }
@@ -91,14 +92,15 @@ impl Flow for TableCellFlow {
             self.block_flow.base.intrinsic_inline_sizes.minimum_inline_size = specified_inline_size
         }
         if self.block_flow.base.intrinsic_inline_sizes.preferred_inline_size <
-            self.block_flow.base.intrinsic_inline_sizes.minimum_inline_size {
+                self.block_flow.base.intrinsic_inline_sizes.minimum_inline_size {
             self.block_flow.base.intrinsic_inline_sizes.preferred_inline_size =
                 self.block_flow.base.intrinsic_inline_sizes.minimum_inline_size;
         }
     }
 
-    /// Recursively (top-down) determines the actual inline-size of child contexts and fragments. When
-    /// called on this context, the context has had its inline-size set by the parent table row.
+    /// Recursively (top-down) determines the actual inline-size of child contexts and fragments.
+    /// When called on this context, the context has had its inline-size set by the parent table
+    /// row.
     fn assign_inline_sizes(&mut self, ctx: &LayoutContext) {
         let _scope = layout_debug_scope!("table_cell::assign_inline_sizes {:s}",
                                             self.block_flow.base.debug_id());
@@ -108,16 +110,20 @@ impl Flow for TableCellFlow {
         let containing_block_inline_size = self.block_flow.base.block_container_inline_size;
 
         let inline_size_computer = InternalTable;
-        inline_size_computer.compute_used_inline_size(&mut self.block_flow, ctx, containing_block_inline_size);
+        inline_size_computer.compute_used_inline_size(&mut self.block_flow,
+                                                      ctx,
+                                                      containing_block_inline_size);
 
-        let inline_start_content_edge = self.block_flow.fragment.border_box.start.i +
+        let inline_start_content_edge =
+            self.block_flow.fragment.border_box.start.i +
             self.block_flow.fragment.border_padding.inline_start;
         let padding_and_borders = self.block_flow.fragment.border_padding.inline_start_end();
-        let content_inline_size = self.block_flow.fragment.border_box.size.inline - padding_and_borders;
+        let content_inline_size =
+            self.block_flow.fragment.border_box.size.inline - padding_and_borders;
 
         self.block_flow.propagate_assigned_inline_size_to_children(inline_start_content_edge,
-                                                             content_inline_size,
-                                                             None);
+                                                                   content_inline_size,
+                                                                   None);
     }
 
     fn assign_block_size<'a>(&mut self, ctx: &'a LayoutContext<'a>) {

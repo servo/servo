@@ -14,27 +14,22 @@ use flow::{TableRowFlowClass, FlowClass, Flow, ImmutableFlowUtils};
 use flow;
 use fragment::Fragment;
 use layout_debug;
-use table::InternalTable;
+use table::{ColumnInlineSize, InternalTable};
 use model::{MaybeAuto, Specified, Auto};
 use wrapper::ThreadSafeLayoutNode;
 
 use servo_util::geometry::Au;
 use std::cmp::max;
 use std::fmt;
+use style::computed_values::{LPA_Auto, LPA_Length, LPA_Percentage};
 
-/// A table formatting context.
+/// A single row of a table.
 #[deriving(Encodable)]
 pub struct TableRowFlow {
     pub block_flow: BlockFlow,
 
-    /// Column inline-sizes.
-    pub col_inline_sizes: Vec<Au>,
-
-    /// Column min inline-sizes.
-    pub col_min_inline_sizes: Vec<Au>,
-
-    /// Column pref inline-sizes.
-    pub col_pref_inline_sizes: Vec<Au>,
+    /// Information about the inline-sizes of each column.
+    pub column_inline_sizes: Vec<ColumnInlineSize>,
 }
 
 impl TableRowFlow {
@@ -43,9 +38,7 @@ impl TableRowFlow {
                                   -> TableRowFlow {
         TableRowFlow {
             block_flow: BlockFlow::from_node_and_fragment(node, fragment),
-            col_inline_sizes: vec!(),
-            col_min_inline_sizes: vec!(),
-            col_pref_inline_sizes: vec!(),
+            column_inline_sizes: Vec::new()
         }
     }
 
@@ -54,9 +47,7 @@ impl TableRowFlow {
                      -> TableRowFlow {
         TableRowFlow {
             block_flow: BlockFlow::from_node(constructor, node),
-            col_inline_sizes: vec!(),
-            col_min_inline_sizes: vec!(),
-            col_pref_inline_sizes: vec!(),
+            column_inline_sizes: Vec::new()
         }
     }
 
@@ -65,8 +56,8 @@ impl TableRowFlow {
     }
 
     fn initialize_offsets(&mut self) -> (Au, Au, Au) {
-        // TODO: If border-collapse: collapse, block-start_offset, block-end_offset, and inline-start_offset
-        // should be updated. Currently, they are set as Au(0).
+        // TODO: If border-collapse: collapse, block_start_offset, block_end_offset, and
+        // inline_start_offset should be updated. Currently, they are set as Au(0).
         (Au(0), Au(0), Au(0))
     }
 
@@ -82,19 +73,21 @@ impl TableRowFlow {
 
         let /* mut */ cur_y = block_start_offset;
 
-        // Per CSS 2.1 § 17.5.3, find max_y = max( computed `block-size`, minimum block-size of all cells )
-        let mut max_y = Au::new(0);
+        // Per CSS 2.1 § 17.5.3, find max_y = max(computed `block-size`, minimum block-size of all
+        // cells).
+        let mut max_y = Au(0);
         for kid in self.block_flow.base.child_iter() {
             kid.assign_block_size_for_inorder_child_if_necessary(layout_context);
 
             {
                 let child_fragment = kid.as_table_cell().fragment();
                 // TODO: Percentage block-size
-                let child_specified_block_size = MaybeAuto::from_style(child_fragment.style().content_block_size(),
-                                                                   Au::new(0)).specified_or_zero();
-                max_y =
-                    max(max_y,
-                                  child_specified_block_size + child_fragment.border_padding.block_start_end());
+                let child_specified_block_size =
+                    MaybeAuto::from_style(child_fragment.style().content_block_size(),
+                                          Au::new(0)).specified_or_zero();
+                max_y = max(max_y,
+                            child_specified_block_size +
+                                child_fragment.border_padding.block_start_end());
             }
             let child_node = flow::mut_base(kid);
             child_node.position.start.b = cur_y;
@@ -103,7 +96,11 @@ impl TableRowFlow {
 
         let mut block_size = max_y;
         // TODO: Percentage block-size
-        block_size = match MaybeAuto::from_style(self.block_flow.fragment.style().content_block_size(), Au(0)) {
+        block_size = match MaybeAuto::from_style(self.block_flow
+                                                     .fragment
+                                                     .style()
+                                                     .content_block_size(),
+                                                 Au(0)) {
             Auto => block_size,
             Specified(value) => max(value, block_size)
         };
@@ -153,70 +150,84 @@ impl Flow for TableRowFlow {
         &mut self.block_flow
     }
 
-    fn col_inline_sizes<'a>(&'a mut self) -> &'a mut Vec<Au> {
-        &mut self.col_inline_sizes
+    fn column_inline_sizes<'a>(&'a mut self) -> &'a mut Vec<ColumnInlineSize> {
+        &mut self.column_inline_sizes
     }
 
-    fn col_min_inline_sizes<'a>(&'a self) -> &'a Vec<Au> {
-        &self.col_min_inline_sizes
-    }
-
-    fn col_pref_inline_sizes<'a>(&'a self) -> &'a Vec<Au> {
-        &self.col_pref_inline_sizes
-    }
-
-    /// Recursively (bottom-up) determines the context's preferred and minimum inline-sizes. When called
-    /// on this context, all child contexts have had their min/pref inline-sizes set. This function must
-    /// decide min/pref inline-sizes based on child context inline-sizes and dimensions of any fragments it is
-    /// responsible for flowing.
+    /// Recursively (bottom-up) determines the context's preferred and minimum inline-sizes. When
+    /// called on this context, all child contexts have had their min/pref inline-sizes set. This
+    /// function must decide min/pref inline-sizes based on child context inline-sizes and
+    /// dimensions of any fragments it is responsible for flowing.
     /// Min/pref inline-sizes set by this function are used in automatic table layout calculation.
-    /// The specified column inline-sizes of children cells are used in fixed table layout calculation.
+    /// The specified column inline-sizes of children cells are used in fixed table layout
+    /// calculation.
     fn bubble_inline_sizes(&mut self) {
         let _scope = layout_debug_scope!("table_row::bubble_inline_sizes {:s}",
-                                            self.block_flow.base.debug_id());
+                                         self.block_flow.base.debug_id());
 
-        let mut min_inline_size = Au(0);
-        let mut pref_inline_size = Au(0);
-        /* find the specified inline_sizes from child table-cell contexts */
+        // Bubble up the specified inline-sizes from child table cells.
+        let (mut min_inline_size, mut pref_inline_size) = (Au(0), Au(0));
         for kid in self.block_flow.base.child_iter() {
             assert!(kid.is_table_cell());
 
-            // collect the specified column inline-sizes of cells. These are used in fixed table layout calculation.
-            {
-                let child_fragment = kid.as_table_cell().fragment();
-                let child_specified_inline_size = MaybeAuto::from_style(child_fragment.style().content_inline_size(),
-                                                                  Au::new(0)).specified_or_zero();
-                self.col_inline_sizes.push(child_specified_inline_size);
-            }
+            // Collect the specified column inline-size of the cell. This is used in both fixed and
+            // automatic table layout calculation.
+            let child_specified_inline_size = kid.as_table_cell()
+                                                 .fragment()
+                                                 .style()
+                                                 .content_inline_size();
 
-            // collect min_inline-size & pref_inline-size of children cells for automatic table layout calculation.
+            // Collect minimum and preferred inline-sizes of the cell for automatic table layout
+            // calculation.
             let child_base = flow::mut_base(kid);
-            self.col_min_inline_sizes.push(child_base.intrinsic_inline_sizes.minimum_inline_size);
-            self.col_pref_inline_sizes.push(child_base.intrinsic_inline_sizes.preferred_inline_size);
-            min_inline_size = min_inline_size + child_base.intrinsic_inline_sizes.minimum_inline_size;
-            pref_inline_size = pref_inline_size + child_base.intrinsic_inline_sizes.preferred_inline_size;
+            let child_column_inline_size = ColumnInlineSize {
+                minimum_length: match child_specified_inline_size {
+                    LPA_Auto | LPA_Percentage(_) => {
+                        child_base.intrinsic_inline_sizes.minimum_inline_size
+                    }
+                    LPA_Length(length) => length,
+                },
+                percentage: match child_specified_inline_size {
+                    LPA_Auto | LPA_Length(_) => 0.0,
+                    LPA_Percentage(percentage) => percentage,
+                },
+                preferred: child_base.intrinsic_inline_sizes.preferred_inline_size,
+                constrained: match child_specified_inline_size {
+                    LPA_Length(_) => true,
+                    LPA_Auto | LPA_Percentage(_) => false,
+                },
+            };
+            min_inline_size = min_inline_size + child_column_inline_size.minimum_length;
+            pref_inline_size = pref_inline_size + child_column_inline_size.preferred;
+            self.column_inline_sizes.push(child_column_inline_size);
         }
         self.block_flow.base.intrinsic_inline_sizes.minimum_inline_size = min_inline_size;
-        self.block_flow.base.intrinsic_inline_sizes.preferred_inline_size = max(
-            min_inline_size, pref_inline_size);
+        self.block_flow.base.intrinsic_inline_sizes.preferred_inline_size = max(min_inline_size,
+                                                                                pref_inline_size);
     }
 
-    /// Recursively (top-down) determines the actual inline-size of child contexts and fragments. When called
-    /// on this context, the context has had its inline-size set by the parent context.
+    /// Recursively (top-down) determines the actual inline-size of child contexts and fragments.
+    /// When called on this context, the context has had its inline-size set by the parent context.
     fn assign_inline_sizes(&mut self, ctx: &LayoutContext) {
         let _scope = layout_debug_scope!("table_row::assign_inline_sizes {:s}",
-                                            self.block_flow.base.debug_id());
+                                         self.block_flow.base.debug_id());
         debug!("assign_inline_sizes({}): assigning inline_size for flow", "table_row");
 
         // The position was set to the containing block by the flow's parent.
         let containing_block_inline_size = self.block_flow.base.block_container_inline_size;
-        // FIXME: In case of border-collapse: collapse, inline-start_content_edge should be border-inline-start
-        let inline_start_content_edge = Au::new(0);
+        // FIXME: In case of border-collapse: collapse, inline_start_content_edge should be
+        // border_inline_start.
+        let inline_start_content_edge = Au(0);
 
         let inline_size_computer = InternalTable;
-        inline_size_computer.compute_used_inline_size(&mut self.block_flow, ctx, containing_block_inline_size);
+        inline_size_computer.compute_used_inline_size(&mut self.block_flow,
+                                                      ctx,
+                                                      containing_block_inline_size);
 
-        self.block_flow.propagate_assigned_inline_size_to_children(inline_start_content_edge, Au(0), Some(self.col_inline_sizes.clone()));
+        self.block_flow
+            .propagate_assigned_inline_size_to_children(inline_start_content_edge,
+                                                        containing_block_inline_size,
+                                                        Some(self.column_inline_sizes.as_slice()));
     }
 
     fn assign_block_size<'a>(&mut self, ctx: &'a LayoutContext<'a>) {
@@ -242,3 +253,4 @@ impl fmt::Show for TableRowFlow {
         write!(f, "TableRowFlow: {}", self.block_flow.fragment)
     }
 }
+
