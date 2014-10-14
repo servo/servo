@@ -5452,7 +5452,7 @@ class GlobalGenRoots():
                 protoDescriptor = config.getDescriptor(protoName)
                 delegate = string.Template('''impl ${selfName} for ${baseName} {
   fn ${fname}(&self) -> bool {
-    self.${parentName}.${fname}()
+    self.${parentName}().${fname}()
   }
 }
 ''').substitute({'fname': 'is_' + name.lower(),

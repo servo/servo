@@ -37,6 +37,7 @@ use url::Url;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct DedicatedWorkerGlobalScope {
     workerglobalscope: WorkerGlobalScope,
     receiver: Receiver<ScriptMsg>,
@@ -192,7 +193,7 @@ impl Reflectable for DedicatedWorkerGlobalScope {
 
 impl DedicatedWorkerGlobalScopeDerived for EventTarget {
     fn is_dedicatedworkerglobalscope(&self) -> bool {
-        match self.type_id {
+        match *self.type_id() {
             WorkerGlobalScopeTypeId(DedicatedGlobalScope) => true,
             _ => false
         }

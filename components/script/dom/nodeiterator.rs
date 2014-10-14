@@ -10,8 +10,9 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct NodeIterator {
-    pub reflector_: Reflector
+    reflector_: Reflector
 }
 
 impl NodeIterator {

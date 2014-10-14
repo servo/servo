@@ -83,7 +83,7 @@ impl<'a> GlobalRef<'a> {
     /// thread.
     pub fn script_chan<'b>(&'b self) -> &'b ScriptChan {
         match *self {
-            Window(ref window) => &window.script_chan,
+            Window(ref window) => window.script_chan(),
             Worker(ref worker) => worker.script_chan(),
         }
     }

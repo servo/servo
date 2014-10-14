@@ -27,6 +27,7 @@ mod jstraceable;
 pub fn plugin_registrar(reg: &mut Registry) {
     reg.register_lint_pass(box lints::TransmutePass as LintPassObject);
     reg.register_lint_pass(box lints::UnrootedPass as LintPassObject);
+    reg.register_lint_pass(box lints::PrivatizePass as LintPassObject);
     reg.register_syntax_extension(intern("jstraceable"), Decorator(box jstraceable::expand_jstraceable))
 }
 

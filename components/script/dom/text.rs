@@ -18,13 +18,14 @@ use servo_util::str::DOMString;
 /// An HTML text node.
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct Text {
-    pub characterdata: CharacterData,
+    characterdata: CharacterData,
 }
 
 impl TextDerived for EventTarget {
     fn is_text(&self) -> bool {
-        self.type_id == NodeTargetTypeId(TextNodeTypeId)
+        *self.type_id() == NodeTargetTypeId(TextNodeTypeId)
     }
 }
 
@@ -43,6 +44,11 @@ impl Text {
     pub fn Constructor(global: &GlobalRef, text: DOMString) -> Fallible<Temporary<Text>> {
         let document = global.as_window().Document().root();
         Ok(Text::new(text, *document))
+    }
+
+    #[inline]
+    pub fn characterdata<'a>(&'a self) -> &'a CharacterData {
+        &self.characterdata
     }
 }
 

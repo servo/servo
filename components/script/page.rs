@@ -167,7 +167,7 @@ impl Page {
         if self.damaged.get() {
             let frame = self.frame();
             let window = frame.as_ref().unwrap().window.root();
-            self.reflow(goal, window.control_chan.clone(), &*window.compositor);
+            self.reflow(goal, window.control_chan().clone(), window.compositor());
         } else {
             self.avoided_reflows.set(self.avoided_reflows.get() + 1);
         }

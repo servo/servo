@@ -20,6 +20,7 @@ use js::jsval::JSVal;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct MessageEvent {
     event: Event,
     data: JSVal,
@@ -29,7 +30,7 @@ pub struct MessageEvent {
 
 impl MessageEventDerived for Event {
     fn is_messageevent(&self) -> bool {
-        self.type_id == MessageEventTypeId
+        *self.type_id() == MessageEventTypeId
     }
 }
 

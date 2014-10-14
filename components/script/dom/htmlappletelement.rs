@@ -15,13 +15,14 @@ use servo_util::str::DOMString;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct HTMLAppletElement {
-    pub htmlelement: HTMLElement
+    htmlelement: HTMLElement
 }
 
 impl HTMLAppletElementDerived for EventTarget {
     fn is_htmlappletelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLAppletElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLAppletElementTypeId))
     }
 }
 

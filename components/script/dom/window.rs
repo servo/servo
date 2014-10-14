@@ -40,7 +40,7 @@ use url::{Url, UrlParser};
 use libc;
 use serialize::base64::{FromBase64, ToBase64, STANDARD};
 use std::collections::hashmap::HashMap;
-use std::cell::{Cell, RefCell};
+use std::cell::{Cell, Ref, RefCell};
 use std::cmp;
 use std::comm::{channel, Sender};
 use std::comm::Select;
@@ -57,9 +57,10 @@ use time;
 pub struct TimerId(i32);
 
 #[jstraceable]
+#[privatize]
 pub struct TimerHandle {
     handle: TimerId,
-    pub data: TimerData,
+    data: TimerData,
     cancel_chan: Option<Sender<()>>,
 }
 
@@ -78,22 +79,23 @@ impl TimerHandle {
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct Window {
     eventtarget: EventTarget,
-    pub script_chan: ScriptChan,
-    pub control_chan: ScriptControlChan,
+    script_chan: ScriptChan,
+    control_chan: ScriptControlChan,
     console: MutNullableJS<Console>,
     location: MutNullableJS<Location>,
     navigator: MutNullableJS<Navigator>,
-    pub image_cache_task: ImageCacheTask,
-    pub active_timers: RefCell<HashMap<TimerId, TimerHandle>>,
+    image_cache_task: ImageCacheTask,
+    active_timers: RefCell<HashMap<TimerId, TimerHandle>>,
     next_timer_handle: Cell<i32>,
-    pub compositor: Box<ScriptListener+'static>,
-    pub browser_context: RefCell<Option<BrowserContext>>,
-    pub page: Rc<Page>,
+    compositor: Box<ScriptListener+'static>,
+    browser_context: RefCell<Option<BrowserContext>>,
+    page: Rc<Page>,
     performance: MutNullableJS<Performance>,
-    pub navigationStart: u64,
-    pub navigationStartPrecise: f64,
+    navigation_start: u64,
+    navigation_start_precise: f64,
     screen: MutNullableJS<Screen>,
 }
 
@@ -103,9 +105,38 @@ impl Window {
         (*js_info.as_ref().unwrap().js_context).ptr
     }
 
+    pub fn script_chan<'a>(&'a self) -> &'a ScriptChan {
+        &self.script_chan
+    }
+
+    pub fn control_chan<'a>(&'a self) -> &'a ScriptControlChan {
+        &self.control_chan
+    }
+
+    pub fn image_cache_task<'a>(&'a self) -> &'a ImageCacheTask {
+        &self.image_cache_task
+    }
+
+    pub fn compositor<'a>(&'a self) -> &'a ScriptListener+'static {
+        &*self.compositor
+    }
+
+    pub fn browser_context(&self) -> Ref<Option<BrowserContext>> {
+        self.browser_context.borrow()
+    }
+
     pub fn page<'a>(&'a self) -> &'a Page {
         &*self.page
     }
+
+    pub fn navigation_start(&self) -> u64 {
+        self.navigation_start
+    }
+
+    pub fn navigation_start_precise(&self) -> f64 {
+        self.navigation_start_precise
+    }
+
     pub fn get_url(&self) -> Url {
         self.page().get_url()
     }
@@ -124,9 +155,10 @@ impl Drop for Window {
 // (ie. function value to invoke and all arguments to pass
 //      to the function when calling it)
 #[jstraceable]
+#[privatize]
 pub struct TimerData {
-    pub is_interval: bool,
-    pub funval: JSVal,
+    is_interval: bool,
+    funval: JSVal,
 }
 
 // http://www.whatwg.org/html/#atob
@@ -543,8 +575,8 @@ impl Window {
             next_timer_handle: Cell::new(0),
             browser_context: RefCell::new(None),
             performance: Default::default(),
-            navigationStart: time::get_time().sec as u64,
-            navigationStartPrecise: time::precise_time_s(),
+            navigation_start: time::get_time().sec as u64,
+            navigation_start_precise: time::precise_time_s(),
             screen: Default::default(),
         };
 

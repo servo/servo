@@ -15,13 +15,14 @@ use servo_util::str::DOMString;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct HTMLUnknownElement {
-    pub htmlelement: HTMLElement
+    htmlelement: HTMLElement
 }
 
 impl HTMLUnknownElementDerived for EventTarget {
     fn is_htmlunknownelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLUnknownElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLUnknownElementTypeId))
     }
 }
 

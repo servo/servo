@@ -15,13 +15,14 @@ use servo_util::str::DOMString;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct HTMLTableCaptionElement {
-    pub htmlelement: HTMLElement
+    htmlelement: HTMLElement
 }
 
 impl HTMLTableCaptionElementDerived for EventTarget {
     fn is_htmltablecaptionelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLTableCaptionElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLTableCaptionElementTypeId))
     }
 }
 

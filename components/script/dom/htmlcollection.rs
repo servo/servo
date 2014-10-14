@@ -31,6 +31,7 @@ pub enum CollectionTypeId {
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct HTMLCollection {
     collection: CollectionTypeId,
     reflector_: Reflector,
@@ -66,7 +67,7 @@ impl HTMLCollection {
             fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {
                 match self.namespace_filter {
                     None => true,
-                    Some(ref namespace) => elem.namespace == *namespace
+                    Some(ref namespace) => *elem.namespace() == *namespace
                 }
             }
         }
@@ -88,9 +89,9 @@ impl HTMLCollection {
         impl CollectionFilter for TagNameFilter {
             fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {
                 if elem.html_element_in_html_document() {
-                    elem.local_name == self.ascii_lower_tag
+                    *elem.local_name() == self.ascii_lower_tag
                 } else {
-                    elem.local_name == self.tag
+                    *elem.local_name() == self.tag
                 }
             }
         }
@@ -120,11 +121,11 @@ impl HTMLCollection {
             fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {
                 let ns_match = match self.namespace_filter {
                     Some(ref namespace) => {
-                        elem.namespace == *namespace
+                        *elem.namespace() == *namespace
                     },
                     None => true
                 };
-                ns_match && elem.local_name == self.tag
+                ns_match && *elem.local_name() == self.tag
             }
         }
         let filter = TagNameNSFilter {

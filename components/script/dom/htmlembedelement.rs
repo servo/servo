@@ -15,13 +15,14 @@ use servo_util::str::DOMString;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct HTMLEmbedElement {
-    pub htmlelement: HTMLElement
+    htmlelement: HTMLElement
 }
 
 impl HTMLEmbedElementDerived for EventTarget {
     fn is_htmlembedelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLEmbedElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLEmbedElementTypeId))
     }
 }
 

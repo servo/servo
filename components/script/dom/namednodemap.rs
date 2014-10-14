@@ -13,6 +13,7 @@ use dom::window::Window;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct NamedNodeMap {
     reflector_: Reflector,
     owner: JS<Element>,
@@ -34,11 +35,11 @@ impl NamedNodeMap {
 
 impl<'a> NamedNodeMapMethods for JSRef<'a, NamedNodeMap> {
     fn Length(self) -> u32 {
-        self.owner.root().attrs.borrow().len() as u32
+        self.owner.root().attrs().len() as u32
     }
 
     fn Item(self, index: u32) -> Option<Temporary<Attr>> {
-        self.owner.root().attrs.borrow().as_slice().get(index as uint).map(|x| Temporary::new(x.clone()))
+        self.owner.root().attrs().as_slice().get(index as uint).map(|x| Temporary::new(x.clone()))
     }
 
     fn IndexedGetter(self, index: u32, found: &mut bool) -> Option<Temporary<Attr>> {

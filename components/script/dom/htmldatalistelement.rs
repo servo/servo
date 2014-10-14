@@ -18,13 +18,14 @@ use servo_util::str::DOMString;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct HTMLDataListElement {
-    pub htmlelement: HTMLElement
+    htmlelement: HTMLElement
 }
 
 impl HTMLDataListElementDerived for EventTarget {
     fn is_htmldatalistelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLDataListElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLDataListElementTypeId))
     }
 }
 

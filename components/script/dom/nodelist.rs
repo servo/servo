@@ -19,6 +19,7 @@ pub enum NodeListType {
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct NodeList {
     list_type: NodeListType,
     reflector_: Reflector,

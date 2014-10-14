@@ -15,13 +15,14 @@ use servo_util::str::DOMString;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct HTMLParamElement {
-    pub htmlelement: HTMLElement
+    htmlelement: HTMLElement
 }
 
 impl HTMLParamElementDerived for EventTarget {
     fn is_htmlparamelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLParamElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLParamElementTypeId))
     }
 }
 

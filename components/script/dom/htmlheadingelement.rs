@@ -25,14 +25,15 @@ pub enum HeadingLevel {
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct HTMLHeadingElement {
-    pub htmlelement: HTMLElement,
-    pub level: HeadingLevel,
+    htmlelement: HTMLElement,
+    level: HeadingLevel,
 }
 
 impl HTMLHeadingElementDerived for EventTarget {
     fn is_htmlheadingelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLHeadingElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLHeadingElementTypeId))
     }
 }
 

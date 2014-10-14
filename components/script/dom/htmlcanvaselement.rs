@@ -30,8 +30,9 @@ static DefaultHeight: u32 = 150;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct HTMLCanvasElement {
-    pub htmlelement: HTMLElement,
+    htmlelement: HTMLElement,
     context: MutNullableJS<CanvasRenderingContext2D>,
     width: Cell<u32>,
     height: Cell<u32>,
@@ -39,7 +40,7 @@ pub struct HTMLCanvasElement {
 
 impl HTMLCanvasElementDerived for EventTarget {
     fn is_htmlcanvaselement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLCanvasElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLCanvasElementTypeId))
     }
 }
 

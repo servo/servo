@@ -12,6 +12,7 @@ use dom::window::Window;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct DOMRectList {
     reflector_: Reflector,
     rects: Vec<JS<DOMRect>>,

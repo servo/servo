@@ -15,13 +15,14 @@ use servo_util::str::DOMString;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct HTMLHRElement {
-    pub htmlelement: HTMLElement,
+    htmlelement: HTMLElement,
 }
 
 impl HTMLHRElementDerived for EventTarget {
     fn is_htmlhrelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLHRElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLHRElementTypeId))
     }
 }
 

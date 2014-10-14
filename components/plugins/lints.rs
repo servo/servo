@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use syntax::{ast, codemap, visit};
+use syntax::{ast, ast_util, codemap, visit};
+use syntax::ast::Public;
 use syntax::attr::AttrMetaMethods;
 use rustc::lint::{Context, LintPass, LintArray};
 use rustc::middle::ty::expr_ty;
@@ -14,9 +15,12 @@ declare_lint!(TRANSMUTE_TYPE_LINT, Allow,
               "Warn and report types being transmuted")
 declare_lint!(UNROOTED_MUST_ROOT, Deny,
               "Warn and report usage of unrooted jsmanaged objects")
+declare_lint!(PRIVATIZE, Deny,
+              "Allows to enforce private fields for struct definitions")
 
 pub struct TransmutePass;
 pub struct UnrootedPass;
+pub struct PrivatizePass;
 
 impl LintPass for TransmutePass {
     fn get_lints(&self) -> LintArray {
@@ -146,3 +150,22 @@ impl LintPass for UnrootedPass {
     }
 }
 
+impl LintPass for PrivatizePass {
+    fn get_lints(&self) -> LintArray {
+        lint_array!(PRIVATIZE)
+    }
+
+    fn check_struct_def(&mut self, cx: &Context, def: &ast::StructDef, _i: ast::Ident, _gen: &ast::Generics, id: ast::NodeId) {
+        if ty::has_attr(cx.tcx, ast_util::local_def(id), "privatize") {
+            for field in def.fields.iter() {
+                match field.node {
+                    ast::StructField_ { kind: ast::NamedField(ident, visibility), .. } if visibility == Public => {
+                        cx.span_lint(PRIVATIZE, field.span,
+                                     format!("Field {} is public where only private fields are allowed", ident.name).as_slice());
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+}

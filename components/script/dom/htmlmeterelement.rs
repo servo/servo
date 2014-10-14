@@ -15,13 +15,14 @@ use servo_util::str::DOMString;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct HTMLMeterElement {
-    pub htmlelement: HTMLElement
+    htmlelement: HTMLElement
 }
 
 impl HTMLMeterElementDerived for EventTarget {
     fn is_htmlmeterelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLMeterElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLMeterElementTypeId))
     }
 }
 

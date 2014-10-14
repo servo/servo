@@ -20,13 +20,14 @@ use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS, StaticStringVec};
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct HTMLScriptElement {
-    pub htmlelement: HTMLElement,
+    htmlelement: HTMLElement,
 }
 
 impl HTMLScriptElementDerived for EventTarget {
     fn is_htmlscriptelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLScriptElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLScriptElementTypeId))
     }
 }
 

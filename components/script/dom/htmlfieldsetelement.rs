@@ -23,13 +23,14 @@ use string_cache::Atom;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct HTMLFieldSetElement {
-    pub htmlelement: HTMLElement
+    htmlelement: HTMLElement
 }
 
 impl HTMLFieldSetElementDerived for EventTarget {
     fn is_htmlfieldsetelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLFieldSetElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLFieldSetElementTypeId))
     }
 }
 
@@ -57,7 +58,7 @@ impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
                 static tag_names: StaticStringVec = &["button", "fieldset", "input",
                     "keygen", "object", "output", "select", "textarea"];
                 let root: JSRef<Element> = ElementCast::to_ref(root).unwrap();
-                elem != root && tag_names.iter().any(|&tag_name| tag_name == elem.local_name.as_slice())
+                elem != root && tag_names.iter().any(|&tag_name| tag_name == elem.local_name().as_slice())
             }
         }
         let node: JSRef<Node> = NodeCast::from_ref(self);

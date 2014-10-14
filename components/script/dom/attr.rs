@@ -72,13 +72,14 @@ impl Str for AttrValue {
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct Attr {
     reflector_: Reflector,
     local_name: Atom,
     value: RefCell<AttrValue>,
-    pub name: Atom,
-    pub namespace: Namespace,
-    pub prefix: Option<DOMString>,
+    name: Atom,
+    namespace: Namespace,
+    prefix: Option<DOMString>,
 
     /// the element that owns this attribute.
     owner: JS<Element>,
@@ -110,6 +111,21 @@ impl Attr {
                prefix: Option<DOMString>, owner: JSRef<Element>) -> Temporary<Attr> {
         reflect_dom_object(box Attr::new_inherited(local_name, value, name, namespace, prefix, owner),
                            &global::Window(window), AttrBinding::Wrap)
+    }
+
+    #[inline]
+    pub fn name<'a>(&'a self) -> &'a Atom {
+        &self.name
+    }
+
+    #[inline]
+    pub fn namespace<'a>(&'a self) -> &'a Namespace {
+        &self.namespace
+    }
+
+    #[inline]
+    pub fn prefix<'a>(&'a self) -> &'a Option<DOMString> {
+        &self.prefix
     }
 }
 

@@ -15,13 +15,14 @@ use servo_util::str::DOMString;
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct HTMLOListElement {
-    pub htmlelement: HTMLElement,
+    htmlelement: HTMLElement,
 }
 
 impl HTMLOListElementDerived for EventTarget {
     fn is_htmlolistelement(&self) -> bool {
-        self.type_id == NodeTargetTypeId(ElementNodeTypeId(HTMLOListElementTypeId))
+        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLOListElementTypeId))
     }
 }
 

@@ -116,8 +116,8 @@ pub trait TLayoutNode {
                 fail!("not an iframe element!")
             }
             let iframe_element: JS<HTMLIFrameElement> = self.get_jsmanaged().transmute_copy();
-            let size = (*iframe_element.unsafe_get()).size.get().unwrap();
-            (size.pipeline_id, size.subpage_id)
+            let size = (*iframe_element.unsafe_get()).size().unwrap();
+            (*size.pipeline_id(), *size.subpage_id())
         }
     }
 
@@ -189,7 +189,7 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
         unsafe {
             if self.get().is_text() {
                 let text: JS<Text> = self.get_jsmanaged().transmute_copy();
-                (*text.unsafe_get()).characterdata.data.borrow().clone()
+                (*text.unsafe_get()).characterdata().data().clone()
             } else if self.get().is_htmlinputelement() {
                 let input: JS<HTMLInputElement> = self.get_jsmanaged().transmute_copy();
                 input.get_value_for_layout()
@@ -425,7 +425,7 @@ pub struct LayoutElement<'le> {
 impl<'le> LayoutElement<'le> {
     pub fn style_attribute(&self) -> &'le Option<PropertyDeclarationBlock> {
         let style: &Option<PropertyDeclarationBlock> = unsafe {
-            let style: &RefCell<Option<PropertyDeclarationBlock>> = &self.element.style_attribute;
+            let style: &RefCell<Option<PropertyDeclarationBlock>> = self.element.style_attribute();
             // cast to the direct reference to T placed on the head of RefCell<T>
             mem::transmute(style)
         };
@@ -436,12 +436,12 @@ impl<'le> LayoutElement<'le> {
 impl<'le> TElement<'le> for LayoutElement<'le> {
     #[inline]
     fn get_local_name(self) -> &'le Atom {
-        &self.element.local_name
+        self.element.local_name()
     }
 
     #[inline]
     fn get_namespace(self) -> &'le Namespace {
-        &self.element.namespace
+        self.element.namespace()
     }
 
     #[inline]
@@ -456,7 +456,7 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
 
     fn get_link(self) -> Option<&'le str> {
         // FIXME: This is HTML only.
-        match self.element.node.type_id_for_layout() {
+        match self.element.node().type_id_for_layout() {
             // http://www.whatwg.org/specs/web-apps/current-work/multipage/selectors.html#
             // selector-link
             ElementNodeTypeId(HTMLAnchorElementTypeId) |
@@ -470,7 +470,7 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
 
     fn get_hover_state(self) -> bool {
         unsafe {
-            self.element.node.get_hover_state_for_layout()
+            self.element.node().get_hover_state_for_layout()
         }
     }
 
@@ -481,13 +481,13 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
 
     fn get_disabled_state(self) -> bool {
         unsafe {
-            self.element.node.get_disabled_state_for_layout()
+            self.element.node().get_disabled_state_for_layout()
         }
     }
 
     fn get_enabled_state(self) -> bool {
         unsafe {
-            self.element.node.get_enabled_state_for_layout()
+            self.element.node().get_enabled_state_for_layout()
         }
     }
 
@@ -721,7 +721,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     #[inline(always)]
     pub fn borrow_layout_data<'a>(&'a self) -> Ref<'a,Option<LayoutDataWrapper>> {
         unsafe {
-            mem::transmute(self.get().layout_data.borrow())
+            mem::transmute(self.get().layout_data())
         }
     }
 
@@ -729,7 +729,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     #[inline(always)]
     pub fn mutate_layout_data<'a>(&'a self) -> RefMut<'a,Option<LayoutDataWrapper>> {
         unsafe {
-            mem::transmute(self.get().layout_data.borrow_mut())
+            mem::transmute(self.get().layout_data_mut())
         }
     }
 
@@ -765,7 +765,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
             Some(TextNodeTypeId) => {
                 unsafe {
                     let text: JS<Text> = self.get_jsmanaged().transmute_copy();
-                    if !is_whitespace((*text.unsafe_get()).characterdata.data.borrow().as_slice()) {
+                    if !is_whitespace((*text.unsafe_get()).characterdata().data().as_slice()) {
                         return false
                     }
 

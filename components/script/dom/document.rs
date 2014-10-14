@@ -62,7 +62,7 @@ use url::Url;
 
 use std::collections::hashmap::HashMap;
 use std::ascii::StrAsciiExt;
-use std::cell::{Cell, RefCell};
+use std::cell::{Cell, Ref, RefCell};
 use std::default::Default;
 use time;
 
@@ -75,16 +75,17 @@ pub enum IsHTMLDocument {
 
 #[jstraceable]
 #[must_root]
+#[privatize]
 pub struct Document {
-    pub node: Node,
+    node: Node,
     reflector_: Reflector,
-    pub window: JS<Window>,
+    window: JS<Window>,
     idmap: RefCell<HashMap<Atom, Vec<JS<Element>>>>,
     implementation: MutNullableJS<DOMImplementation>,
     content_type: DOMString,
     last_modified: RefCell<Option<DOMString>>,
-    pub encoding_name: RefCell<DOMString>,
-    pub is_html_document: bool,
+    encoding_name: RefCell<DOMString>,
+    is_html_document: bool,
     url: Url,
     quirks_mode: Cell<QuirksMode>,
     images: MutNullableJS<HTMLCollection>,
@@ -98,7 +99,7 @@ pub struct Document {
 
 impl DocumentDerived for EventTarget {
     fn is_document(&self) -> bool {
-        self.type_id == NodeTargetTypeId(DocumentNodeTypeId)
+        *self.type_id() == NodeTargetTypeId(DocumentNodeTypeId)
     }
 }
 
@@ -342,6 +343,21 @@ impl Document {
         let node: JSRef<Node> = NodeCast::from_ref(*document);
         node.set_owner_doc(*document);
         Temporary::from_rooted(*document)
+    }
+
+    #[inline]
+    pub fn window<'a>(&'a self) -> &'a JS<Window> {
+        &self.window
+    }
+
+    #[inline]
+    pub fn encoding_name(&self) -> Ref<DOMString> {
+        self.encoding_name.borrow()
+    }
+
+    #[inline]
+    pub fn is_html_document(&self) -> bool {
+        self.is_html_document
     }
 }
 
@@ -641,7 +657,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                     for child in title_elem.children() {
                         if child.is_text() {
                             let text: JSRef<Text> = TextCast::to_ref(child).unwrap();
-                            title.push_str(text.characterdata.data.borrow().as_slice());
+                            title.push_str(text.characterdata().data().as_slice());
                         }
                     }
                 });
