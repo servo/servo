@@ -242,7 +242,7 @@ fn capture(reftest: &Reftest, side: uint) -> (u32, u32, Vec<u8>) {
         Ok(status) => status,
         Err(e) => fail!("failed to execute process: {}", e),
     };
-    assert!(retval == ExitStatus(0));
+    assert_eq!(retval, ExitStatus(0));
 
     let image = png::load_png(&from_str::<Path>(png_filename.as_slice()).unwrap()).unwrap();
     let rgba8_bytes = match image.pixels {

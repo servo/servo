@@ -68,6 +68,8 @@ pub enum TimeProfilerCategory {
     CompositingCategory,
     LayoutPerformCategory,
     LayoutStyleRecalcCategory,
+    LayoutRestyleDamagePropagation,
+    LayoutNonIncrementalReset,
     LayoutSelectorMatchCategory,
     LayoutTreeBuilderCategory,
     LayoutDamagePropagateCategory,
@@ -86,6 +88,8 @@ impl Formatable for TimeProfilerCategory {
     fn format(&self) -> String {
         let padding = match *self {
             LayoutStyleRecalcCategory |
+            LayoutRestyleDamagePropagation |
+            LayoutNonIncrementalReset |
             LayoutMainCategory |
             LayoutDispListBuildCategory |
             LayoutShapingCategory |
@@ -99,6 +103,8 @@ impl Formatable for TimeProfilerCategory {
             CompositingCategory => "Compositing",
             LayoutPerformCategory => "Layout",
             LayoutStyleRecalcCategory => "Style Recalc",
+            LayoutRestyleDamagePropagation => "Restyle Damage Propagation",
+            LayoutNonIncrementalReset => "Non-incremental reset (temporary)",
             LayoutSelectorMatchCategory => "Selector Matching",
             LayoutTreeBuilderCategory => "Tree Building",
             LayoutDamagePropagateCategory => "Damage Propagation",

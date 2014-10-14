@@ -135,18 +135,24 @@ bitflags! {
         static InDisabledState = 0x04,
         #[doc = "Specifies whether this node is in enabled state."]
         static InEnabledState = 0x08,
-        #[doc = "Specifies whether this node has changed since the last reflow."]
-        static IsDirty = 0x10,
+        #[doc = "Specifies whether this node _must_ be reflowed regardless of style differences."]
+        static HasChanged = 0x10,
+        #[doc = "Specifies whether this node needs style recalc on next reflow."]
+        static IsDirty = 0x20,
+        #[doc = "Specifies whether this node has siblings (inclusive of itself) which \
+                  changed since the last reflow."]
+        static HasDirtySiblings = 0x40,
         #[doc = "Specifies whether this node has descendants (inclusive of itself) which \
                  have changed since the last reflow."]
-        static HasDirtyDescendants = 0x20,
+        static HasDirtyDescendants = 0x80,
     }
 }
 
 impl NodeFlags {
     pub fn new(type_id: NodeTypeId) -> NodeFlags {
+        let dirty = HasChanged | IsDirty | HasDirtySiblings | HasDirtyDescendants;
         match type_id {
-            DocumentNodeTypeId => IsInDoc | IsDirty,
+            DocumentNodeTypeId => IsInDoc | dirty,
             // The following elements are enabled by default.
             ElementNodeTypeId(HTMLButtonElementTypeId) |
             ElementNodeTypeId(HTMLInputElementTypeId) |
@@ -155,8 +161,8 @@ impl NodeFlags {
             ElementNodeTypeId(HTMLOptGroupElementTypeId) |
             ElementNodeTypeId(HTMLOptionElementTypeId) |
             //ElementNodeTypeId(HTMLMenuItemElementTypeId) |
-            ElementNodeTypeId(HTMLFieldSetElementTypeId) => InEnabledState | IsDirty,
-            _ => IsDirty,
+            ElementNodeTypeId(HTMLFieldSetElementTypeId) => InEnabledState | dirty,
+            _ => dirty,
         }
     }
 }
@@ -414,8 +420,14 @@ pub trait NodeHelpers<'a> {
     fn get_enabled_state(self) -> bool;
     fn set_enabled_state(self, state: bool);
 
+    fn get_has_changed(self) -> bool;
+    fn set_has_changed(self, state: bool);
+
     fn get_is_dirty(self) -> bool;
     fn set_is_dirty(self, state: bool);
+
+    fn get_has_dirty_siblings(self) -> bool;
+    fn set_has_dirty_siblings(self, state: bool);
 
     fn get_has_dirty_descendants(self) -> bool;
     fn set_has_dirty_descendants(self, state: bool);
@@ -574,12 +586,28 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
         self.set_flag(InEnabledState, state)
     }
 
+    fn get_has_changed(self) -> bool {
+        self.get_flag(HasChanged)
+    }
+
+    fn set_has_changed(self, state: bool) {
+        self.set_flag(HasChanged, state)
+    }
+
     fn get_is_dirty(self) -> bool {
         self.get_flag(IsDirty)
     }
 
     fn set_is_dirty(self, state: bool) {
         self.set_flag(IsDirty, state)
+    }
+
+    fn get_has_dirty_siblings(self) -> bool {
+        self.get_flag(HasDirtySiblings)
+    }
+
+    fn set_has_dirty_siblings(self, state: bool) {
+        self.set_flag(HasDirtySiblings, state)
     }
 
     fn get_has_dirty_descendants(self) -> bool {
@@ -591,24 +619,24 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     }
 
     fn dirty(self) {
-        // 1. Dirty descendants.
-        fn dirty_subtree(node: JSRef<Node>) {
-            node.set_is_dirty(true);
+        // 1. Dirty self.
+        self.set_has_changed(true);
 
-            let mut has_dirty_descendants = false;
+        // 2. Dirty descendants.
+        fn dirty_subtree(node: JSRef<Node>) {
+            // Stop if this subtree is already dirty.
+            if node.get_is_dirty() { return }
+
+            node.set_flag(IsDirty | HasDirtySiblings | HasDirtyDescendants, true);
 
             for kid in node.children() {
                 dirty_subtree(kid);
-                has_dirty_descendants = true;
-            }
-
-            if has_dirty_descendants {
-                node.set_has_dirty_descendants(true);
             }
         }
+
         dirty_subtree(self);
 
-        // 2. Dirty siblings.
+        // 3. Dirty siblings.
         //
         // TODO(cgaebel): This is a very conservative way to account for sibling
         // selectors. Maybe we can do something smarter in the future.
@@ -619,10 +647,10 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
             };
 
         for sibling in parent.root().children() {
-            sibling.set_is_dirty(true);
+            sibling.set_has_dirty_siblings(true);
         }
 
-        // 3. Dirty ancestors.
+        // 4. Dirty ancestors.
         for ancestor in self.ancestors() {
             if ancestor.get_has_dirty_descendants() { break }
             ancestor.set_has_dirty_descendants(true);
@@ -2249,8 +2277,14 @@ impl<'a> style::TNode<'a, JSRef<'a, Element>> for JSRef<'a, Node> {
         elem.unwrap().html_element_in_html_document()
     }
 
+    fn has_changed(self) -> bool { self.get_has_changed() }
+    unsafe fn set_changed(self, value: bool) { self.set_has_changed(value) }
+
     fn is_dirty(self) -> bool { self.get_is_dirty() }
     unsafe fn set_dirty(self, value: bool) { self.set_is_dirty(value) }
+
+    fn has_dirty_siblings(self) -> bool { self.get_has_dirty_siblings() }
+    unsafe fn set_dirty_siblings(self, value: bool) { self.set_has_dirty_siblings(value) }
 
     fn has_dirty_descendants(self) -> bool { self.get_has_dirty_descendants() }
     unsafe fn set_dirty_descendants(self, value: bool) { self.set_has_dirty_descendants(value) }

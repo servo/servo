@@ -32,7 +32,7 @@ use floats::Floats;
 use flow_list::{FlowList, FlowListIterator, MutFlowListIterator};
 use flow_ref::FlowRef;
 use fragment::{Fragment, TableRowFragment, TableCellFragment};
-use incremental::RestyleDamage;
+use incremental::{RestyleDamage, Reflow};
 use inline::InlineFlow;
 use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
 use parallel::FlowParallelInfo;
@@ -432,7 +432,13 @@ pub trait MutableFlowUtils {
     /// This is called in a bottom-up traversal (specifically, the assign-block-size traversal).
     /// So, kids have their flow origin already set. In the case of absolute flow kids, they have
     /// their hypothetical box position already set.
-    fn collect_static_block_offsets_from_children(&mut self);
+    fn collect_static_block_offsets_from_children(self);
+
+    fn propagate_restyle_damage(self);
+
+    /// At the moment, reflow isn't idempotent. This function resets this flow
+    /// (and all its descendants, recursively), and marks them as needing reflow.
+    fn nonincremental_reset(self);
 }
 
 pub trait MutableOwnedFlowUtils {
@@ -589,6 +595,7 @@ impl FlowFlags {
 /// The Descendants of a flow.
 ///
 /// Also, details about their position wrt this flow.
+#[deriving(Clone)]
 pub struct Descendants {
     /// Links to every descendant. This must be private because it is unsafe to leak `FlowRef`s to
     /// layout.
@@ -1155,9 +1162,9 @@ impl<'a> MutableFlowUtils for &'a mut Flow + 'a {
     /// assign-block-size traversal). So, kids have their flow origin already set.
     /// In the case of absolute flow kids, they have their hypothetical box
     /// position already set.
-    fn collect_static_block_offsets_from_children(&mut self) {
+    fn collect_static_block_offsets_from_children(self) {
         let mut absolute_descendant_block_offsets = Vec::new();
-        for kid in mut_base(*self).child_iter() {
+        for kid in mut_base(self).child_iter() {
             let mut gives_absolute_offsets = true;
             if kid.is_block_like() {
                 let kid_block = kid.as_block();
@@ -1189,7 +1196,88 @@ impl<'a> MutableFlowUtils for &'a mut Flow + 'a {
                 }
             }
         }
-        mut_base(*self).abs_descendants.static_block_offsets = absolute_descendant_block_offsets
+        mut_base(self).abs_descendants.static_block_offsets = absolute_descendant_block_offsets
+    }
+
+    fn propagate_restyle_damage(self) {
+        struct DirtyFloats {
+            left:  bool,
+            right: bool,
+        }
+
+        fn doit(flow: &mut Flow, down: RestyleDamage, dirty_floats: &mut DirtyFloats) -> RestyleDamage {
+            match flow.float_clearance() {
+                clear::none  => {}
+                clear::left  => {
+                    (*dirty_floats).left  = false;
+                }
+                clear::right => {
+                    (*dirty_floats).right = false;
+                }
+                clear::both  => {
+                    (*dirty_floats).left  = false;
+                    (*dirty_floats).right = false;
+                }
+            }
+
+            match flow.float_kind() {
+                float::none  => {}
+                float::left  => {
+                    (*dirty_floats).left  = true;
+                }
+                float::right => {
+                    (*dirty_floats).right = true;
+                }
+            }
+
+            let mut my_damage = mut_base(flow).restyle_damage;
+            my_damage.insert(down);
+
+            if (*dirty_floats).left || (*dirty_floats).right {
+                my_damage = RestyleDamage::all();
+            }
+
+            let down_damage = my_damage.propagate_down();
+
+            for kid in child_iter(flow) {
+                my_damage.insert(doit(kid, down_damage, dirty_floats));
+            }
+
+            mut_base(flow).restyle_damage = my_damage;
+
+            my_damage.propagate_up()
+        }
+
+        doit(self, RestyleDamage::empty(), &mut DirtyFloats { left: false, right: false });
+    }
+
+
+    fn nonincremental_reset(self) {
+        fn reset_flow(flow: &mut Flow) {
+            let base = mut_base(flow);
+
+            if !base.restyle_damage.contains(Reflow) {
+                return
+            }
+
+            let writing_mode = base.writing_mode;
+
+            base.position               = LogicalRect::zero(writing_mode);
+            base.overflow               = LogicalRect::zero(writing_mode);
+            base.floats                 = Floats::new(writing_mode);
+            base.collapsible_margins    = CollapsibleMargins::new();
+            base.abs_position           = Zero::zero();
+            base.block_container_explicit_block_size = None;
+            base.display_list           = DisplayList::new();
+            base.layers                 = DList::new();
+            base.absolute_position_info = AbsolutePositionInfo::new(writing_mode);
+        }
+
+        reset_flow(self);
+
+        for child in child_iter(self) {
+            child.nonincremental_reset();
+        }
     }
 }
 
