@@ -73,6 +73,29 @@ impl Default for Au {
     }
 }
 
+pub static ZERO_RECT: Rect<Au> = Rect {
+    origin: Point2D {
+        x: Au(0),
+        y: Au(0),
+    },
+    size: Size2D {
+        width: Au(0),
+        height: Au(0),
+    }
+};
+
+pub static MAX_RECT: Rect<Au> = Rect {
+    origin: Point2D {
+        x: Au(i32::MIN / 2),
+        y: Au(i32::MIN / 2),
+    },
+    size: Size2D {
+        width: MAX_AU,
+        height: MAX_AU,
+    }
+};
+
+pub static MIN_AU: Au = Au(i32::MIN);
 pub static MAX_AU: Au = Au(i32::MAX);
 
 impl<E, S: Encoder<E>> Encodable<S, E> for Au {

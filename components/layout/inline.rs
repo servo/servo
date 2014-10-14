@@ -9,8 +9,8 @@ use context::LayoutContext;
 use floats::{FloatLeft, Floats, PlacementInfo};
 use flow::{BaseFlow, FlowClass, Flow, InlineFlowClass, MutableFlowUtils};
 use flow;
-use fragment::{Fragment, InlineBlockFragment, ScannedTextFragment, ScannedTextFragmentInfo};
-use fragment::{SplitInfo};
+use fragment::{Fragment, InlineAbsoluteHypotheticalFragment, InlineBlockFragment};
+use fragment::{ScannedTextFragment, ScannedTextFragmentInfo, SplitInfo};
 use layout_debug;
 use model::IntrinsicISizes;
 use text;
@@ -18,7 +18,7 @@ use wrapper::ThreadSafeLayoutNode;
 
 use collections::{Deque, RingBuf};
 use geom::Rect;
-use gfx::display_list::ContentLevel;
+use gfx::display_list::{ContentLevel, DisplayList};
 use gfx::font::FontMetrics;
 use gfx::font_context::FontContext;
 use geom::Size2D;
@@ -704,19 +704,20 @@ impl InlineFlow {
             let fragment_position = self.base
                                         .abs_position
                                         .add_size(&rel_offset.to_physical(self.base.writing_mode));
-            let mut accumulator = fragment.build_display_list(&mut self.base.display_list,
-                                                              layout_context,
-                                                              fragment_position,
-                                                              ContentLevel);
+            fragment.build_display_list(&mut self.base.display_list,
+                                        layout_context,
+                                        fragment_position,
+                                        ContentLevel,
+                                        &self.base.clip_rect);
             match fragment.specific {
                 InlineBlockFragment(ref mut block_flow) => {
                     let block_flow = block_flow.flow_ref.get_mut();
-                    accumulator.push_child(&mut self.base.display_list, block_flow);
+                    self.base.display_list.push_all_move(
+                        mem::replace(&mut flow::mut_base(block_flow).display_list,
+                                     DisplayList::new()));
                 }
                 _ => {}
             }
-
-            accumulator.finish(&mut self.base.display_list);
         }
     }
 
@@ -1124,16 +1125,40 @@ impl Flow for InlineFlow {
 
     fn compute_absolute_position(&mut self) {
         for fragment in self.fragments.fragments.iter_mut() {
-            match fragment.specific {
+            let absolute_position = match fragment.specific {
                 InlineBlockFragment(ref mut info) => {
                     let block_flow = info.flow_ref.get_mut().as_block();
-
                     // FIXME(#2795): Get the real container size
                     let container_size = Size2D::zero();
                     block_flow.base.abs_position =
                         self.base.abs_position +
                         fragment.border_box.start.to_physical(self.base.writing_mode,
                                                               container_size);
+                    block_flow.base.abs_position
+                }
+                InlineAbsoluteHypotheticalFragment(ref mut info) => {
+                    let block_flow = info.flow_ref.get_mut().as_block();
+                    // FIXME(#2795): Get the real container size
+                    let container_size = Size2D::zero();
+                    block_flow.base.abs_position =
+                        self.base.abs_position +
+                        fragment.border_box.start.to_physical(self.base.writing_mode,
+                                                              container_size);
+                    block_flow.base.abs_position
+
+                }
+                _ => continue,
+            };
+
+            let clip_rect = fragment.clip_rect_for_children(self.base.clip_rect,
+                                                            absolute_position);
+
+            match fragment.specific {
+                InlineBlockFragment(ref mut info) => {
+                    flow::mut_base(info.flow_ref.get_mut()).clip_rect = clip_rect
+                }
+                InlineAbsoluteHypotheticalFragment(ref mut info) => {
+                    flow::mut_base(info.flow_ref.get_mut()).clip_rect = clip_rect
                 }
                 _ => {}
             }

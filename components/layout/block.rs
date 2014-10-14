@@ -37,7 +37,7 @@ use gfx::display_list::{RootOfStackingContextLevel};
 use gfx::render_task::RenderLayer;
 use serialize::{Encoder, Encodable};
 use servo_msg::compositor_msg::{FixedPosition, LayerId, Scrollable};
-use servo_util::geometry::{Au, MAX_AU};
+use servo_util::geometry::{Au, MAX_AU, MAX_RECT};
 use servo_util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize};
 use std::cmp::{max, min};
 use std::fmt;
@@ -1078,18 +1078,19 @@ impl BlockFlow {
     fn build_display_list_block_common(&mut self,
                                        layout_context: &LayoutContext,
                                        background_border_level: BackgroundAndBorderLevel) {
-        let rel_offset =
+        let relative_offset =
             self.fragment.relative_position(&self.base
-                                             .absolute_position_info
-                                             .relative_containing_block_size);
+                                                 .absolute_position_info
+                                                 .relative_containing_block_size);
 
         // Add the box that starts the block context.
         let mut display_list = DisplayList::new();
-        let mut accumulator = self.fragment.build_display_list(
-            &mut display_list,
-            layout_context,
-            self.base.abs_position.add_size(&rel_offset.to_physical(self.base.writing_mode)),
-            background_border_level);
+        self.fragment.build_display_list(&mut display_list,
+                                         layout_context,
+                                         self.base.abs_position.add_size(
+                                             &relative_offset.to_physical(self.base.writing_mode)),
+                                         background_border_level,
+                                         &self.base.clip_rect);
 
         let mut child_layers = DList::new();
         for kid in self.base.child_iter() {
@@ -1098,19 +1099,21 @@ impl BlockFlow {
                 continue
             }
 
-            accumulator.push_child(&mut display_list, kid);
+            display_list.push_all_move(mem::replace(&mut flow::mut_base(kid).display_list,
+                                                    DisplayList::new()));
             child_layers.append(mem::replace(&mut flow::mut_base(kid).layers, DList::new()))
         }
 
         // Process absolute descendant links.
         for abs_descendant_link in self.base.abs_descendants.iter() {
             // TODO(pradeep): Send in our absolute position directly.
-            accumulator.push_child(&mut display_list, abs_descendant_link);
+            display_list.push_all_move(mem::replace(
+                    &mut flow::mut_base(abs_descendant_link).display_list,
+                    DisplayList::new()));
             child_layers.append(mem::replace(&mut flow::mut_base(abs_descendant_link).layers,
                                              DList::new()));
         }
 
-        accumulator.finish(&mut display_list);
         self.base.display_list = display_list;
         self.base.layers = child_layers
     }
@@ -1696,6 +1699,10 @@ impl Flow for BlockFlow {
         // FIXME(#2795): Get the real container size
         let container_size = Size2D::zero();
 
+        if self.is_root() {
+            self.base.clip_rect = MAX_RECT;
+        }
+
         if self.is_absolutely_positioned() {
             let position_start = self.base.position.start.to_physical(
                 self.base.writing_mode, container_size);
@@ -1737,8 +1744,11 @@ impl Flow for BlockFlow {
         absolute_position_info.layers_needed_for_positioned_flows =
             self.base.flags.layers_needed_for_descendants();
 
-        // Process children.
+        // Compute the clipping rectangle for children.
         let this_position = self.base.abs_position;
+        let clip_rect = self.fragment.clip_rect_for_children(self.base.clip_rect, this_position);
+
+        // Process children.
         let writing_mode = self.base.writing_mode;
         for kid in self.base.child_iter() {
             if !kid.is_absolutely_positioned() {
@@ -1749,6 +1759,8 @@ impl Flow for BlockFlow {
                                                                             container_size);
                 kid_base.absolute_position_info = absolute_position_info
             }
+
+            flow::mut_base(kid).clip_rect = clip_rect
         }
 
         // Process absolute descendant links.
