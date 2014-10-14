@@ -36,7 +36,7 @@ use incremental::RestyleDamage;
 use inline::InlineFlow;
 use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
 use parallel::FlowParallelInfo;
-use table::TableFlow;
+use table::{ColumnInlineSize, TableFlow};
 use table_caption::TableCaptionFlow;
 use table_cell::TableCellFlow;
 use table_colgroup::TableColGroupFlow;
@@ -164,20 +164,8 @@ pub trait Flow: fmt::Show + ToString + Sync {
 
     /// If this is a table row or table rowgroup or table flow, returns column inline-sizes.
     /// Fails otherwise.
-    fn col_inline_sizes<'a>(&'a mut self) -> &'a mut Vec<Au> {
-        fail!("called col_inline_sizes() on an other flow than table-row/table-rowgroup/table")
-    }
-
-    /// If this is a table row flow or table rowgroup flow or table flow, returns column min
-    /// inline-sizes. Fails otherwise.
-    fn col_min_inline_sizes<'a>(&'a self) -> &'a Vec<Au> {
-        fail!("called col_min_inline_sizes() on an other flow than table-row/table-rowgroup/table")
-    }
-
-    /// If this is a table row flow or table rowgroup flow or table flow, returns column min
-    /// inline-sizes. Fails otherwise.
-    fn col_pref_inline_sizes<'a>(&'a self) -> &'a Vec<Au> {
-        fail!("called col_pref_inline_sizes() on an other flow than table-row/table-rowgroup/table")
+    fn column_inline_sizes<'a>(&'a mut self) -> &'a mut Vec<ColumnInlineSize> {
+        fail!("called column_inline_sizes() on non-table flow")
     }
 
     // Main methods

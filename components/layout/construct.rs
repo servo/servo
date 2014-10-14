@@ -767,8 +767,8 @@ impl<'a> FlowConstructor<'a> {
         flow.add_new_child(anonymous_flow);
     }
 
-    /// Builds a flow for a node with `display: table`. This yields a `TableWrapperFlow` with possibly
-    /// other `TableCaptionFlow`s or `TableFlow`s underneath it.
+    /// Builds a flow for a node with `display: table`. This yields a `TableWrapperFlow` with
+    /// possibly other `TableCaptionFlow`s or `TableFlow`s underneath it.
     fn build_flow_for_table_wrapper(&mut self, node: &ThreadSafeLayoutNode,
                                     float_value: float::T) -> ConstructionResult {
         let fragment = Fragment::new_from_specific_info(node, TableWrapperFragment);

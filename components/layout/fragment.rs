@@ -14,7 +14,7 @@ use flow::Flow;
 use flow_ref::FlowRef;
 use inline::{InlineFragmentContext, InlineMetrics};
 use layout_debug;
-use model::{Auto, IntrinsicISizes, MaybeAuto, Specified, specified};
+use model::{Auto, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, Specified, specified};
 use model;
 use text;
 use util::{OpaqueNodeMethods, ToGfxColor};
@@ -529,51 +529,93 @@ impl Fragment {
         self.inline_context.as_mut().unwrap().styles.push(style.clone());
     }
 
-    /// Uses the style only to estimate the intrinsic inline-sizes. These may be modified for text
-    /// or replaced elements.
-    fn style_specified_intrinsic_inline_size(&self) -> IntrinsicISizes {
-        let (use_margins, use_padding) = match self.specific {
+    /// Determines which quantities (border/padding/margin/specified) should be included in the
+    /// intrinsic inline size of this fragment.
+    fn quantities_included_in_intrinsic_inline_size(&self)
+                                                    -> QuantitiesIncludedInIntrinsicInlineSizes {
+        match self.specific {
             GenericFragment | IframeFragment(_) | ImageFragment(_) | InlineBlockFragment(_) |
-            InputFragment => (true, true),
-            TableFragment | TableCellFragment => (false, true),
-            TableWrapperFragment => (true, false),
-            TableRowFragment => (false, false),
+            InputFragment => QuantitiesIncludedInIntrinsicInlineSizes::all(),
+            TableFragment | TableCellFragment => {
+                IntrinsicInlineSizeIncludesPadding |
+                    IntrinsicInlineSizeIncludesBorder |
+                    IntrinsicInlineSizeIncludesSpecified
+            }
+            TableWrapperFragment => {
+                IntrinsicInlineSizeIncludesMargins |
+                    IntrinsicInlineSizeIncludesBorder |
+                    IntrinsicInlineSizeIncludesSpecified
+            }
+            TableRowFragment => {
+                IntrinsicInlineSizeIncludesBorder |
+                    IntrinsicInlineSizeIncludesSpecified
+            }
             ScannedTextFragment(_) | TableColumnFragment(_) | UnscannedTextFragment(_) |
             InlineAbsoluteHypotheticalFragment(_) => {
-                // Styles are irrelevant for these kinds of fragments.
-                return IntrinsicISizes::new()
+                QuantitiesIncludedInIntrinsicInlineSizes::empty()
             }
-        };
+        }
+    }
 
+    /// Returns the portion of the intrinsic inline-size that consists of borders, padding, and/or
+    /// margins.
+    ///
+    /// FIXME(#2261, pcwalton): This won't work well for inlines: is this OK?
+    pub fn surrounding_intrinsic_inline_size(&self) -> Au {
+        let flags = self.quantities_included_in_intrinsic_inline_size();
         let style = self.style();
-        let inline_size = MaybeAuto::from_style(style.content_inline_size(),
-                                                Au(0)).specified_or_zero();
 
-        let margin = style.logical_margin();
-        let (margin_inline_start, margin_inline_end) = if use_margins {
-            (MaybeAuto::from_style(margin.inline_start, Au(0)).specified_or_zero(),
+        // FIXME(pcwalton): Percentages should be relative to any definite size per CSS-SIZING.
+        // This will likely need to be done by pushing down definite sizes during selector
+        // cascading.
+        let margin = if flags.contains(IntrinsicInlineSizeIncludesMargins) {
+            let margin = style.logical_margin();
+            (MaybeAuto::from_style(margin.inline_start, Au(0)).specified_or_zero() +
              MaybeAuto::from_style(margin.inline_end, Au(0)).specified_or_zero())
         } else {
-            (Au(0), Au(0))
+            Au(0)
         };
 
-        let padding = style.logical_padding();
-        let (padding_inline_start, padding_inline_end) = if use_padding {
-            (model::specified(padding.inline_start, Au(0)),
+        // FIXME(pcwalton): Percentages should be relative to any definite size per CSS-SIZING.
+        // This will likely need to be done by pushing down definite sizes during selector
+        // cascading.
+        let padding = if flags.contains(IntrinsicInlineSizeIncludesPadding) {
+            let padding = style.logical_padding();
+            (model::specified(padding.inline_start, Au(0)) +
              model::specified(padding.inline_end, Au(0)))
         } else {
-            (Au(0), Au(0))
+            Au(0)
+        };
+
+        let border = if flags.contains(IntrinsicInlineSizeIncludesBorder) {
+            self.border_width().inline_start_end()
+        } else {
+            Au(0)
+        };
+
+        margin + padding + border
+    }
+
+    /// Uses the style only to estimate the intrinsic inline-sizes. These may be modified for text
+    /// or replaced elements.
+    fn style_specified_intrinsic_inline_size(&self) -> IntrinsicISizesContribution {
+        let flags = self.quantities_included_in_intrinsic_inline_size();
+        let style = self.style();
+        let specified = if flags.contains(IntrinsicInlineSizeIncludesSpecified) {
+            MaybeAuto::from_style(style.content_inline_size(), Au(0)).specified_or_zero()
+        } else {
+            Au(0)
         };
 
         // FIXME(#2261, pcwalton): This won't work well for inlines: is this OK?
-        let border = self.border_width();
-        let surround_inline_size = margin_inline_start + margin_inline_end + padding_inline_start + padding_inline_end +
-                border.inline_start_end();
+        let surrounding_inline_size = self.surrounding_intrinsic_inline_size();
 
-        IntrinsicISizes {
-            minimum_inline_size: inline_size,
-            preferred_inline_size: inline_size,
-            surround_inline_size: surround_inline_size,
+        IntrinsicISizesContribution {
+            content_intrinsic_sizes: IntrinsicISizes {
+                minimum_inline_size: specified,
+                preferred_inline_size: specified,
+            },
+            surrounding_size: surrounding_inline_size,
         }
     }
 
@@ -601,28 +643,58 @@ impl Fragment {
         }
     }
 
-    /// Computes the border, padding, and vertical margins from the containing block inline-size and the
-    /// style. After this call, the `border_padding` and the vertical direction of the `margin`
-    /// field will be correct.
-    pub fn compute_border_padding_margins(&mut self,
-                                          containing_block_inline_size: Au) {
-        // Compute vertical margins. Note that this value will be ignored by layout if the style
-        // specifies `auto`.
+    /// Computes the margins in the inline direction from the containing block inline-size and the
+    /// style. After this call, the inline direction of the `margin` field will be correct.
+    ///
+    /// Do not use this method if the inline direction margins are to be computed some other way
+    /// (for example, via constraint solving for blocks).
+    pub fn compute_inline_direction_margins(&mut self, containing_block_inline_size: Au) {
+        match self.specific {
+            TableFragment | TableCellFragment | TableRowFragment | TableColumnFragment(_) => {
+                self.margin.inline_start = Au(0);
+                self.margin.inline_end = Au(0)
+            }
+            _ => {
+                let margin = self.style().logical_margin();
+                self.margin.inline_start =
+                    MaybeAuto::from_style(margin.inline_start, containing_block_inline_size)
+                    .specified_or_zero();
+                self.margin.inline_end =
+                    MaybeAuto::from_style(margin.inline_end, containing_block_inline_size)
+                    .specified_or_zero();
+            }
+        }
+    }
+
+    /// Computes the margins in the block direction from the containing block inline-size and the
+    /// style. After this call, the block direction of the `margin` field will be correct.
+    ///
+    /// Do not use this method if the block direction margins are to be computed some other way
+    /// (for example, via constraint solving for absolutely-positioned flows).
+    pub fn compute_block_direction_margins(&mut self, containing_block_inline_size: Au) {
         match self.specific {
             TableFragment | TableCellFragment | TableRowFragment | TableColumnFragment(_) => {
                 self.margin.block_start = Au(0);
                 self.margin.block_end = Au(0)
             }
             _ => {
-                // NB: Percentages are relative to containing block inline-size (not block-size) per CSS 2.1.
+                // NB: Percentages are relative to containing block inline-size (not block-size)
+                // per CSS 2.1.
                 let margin = self.style().logical_margin();
-                self.margin.block_start = MaybeAuto::from_style(margin.block_start, containing_block_inline_size)
+                self.margin.block_start =
+                    MaybeAuto::from_style(margin.block_start, containing_block_inline_size)
                     .specified_or_zero();
-                self.margin.block_end = MaybeAuto::from_style(margin.block_end, containing_block_inline_size)
-                    .specified_or_zero()
+                self.margin.block_end =
+                    MaybeAuto::from_style(margin.block_end, containing_block_inline_size)
+                    .specified_or_zero();
             }
         }
+    }
 
+    /// Computes the border and padding in both inline and block directions from the containing
+    /// block inline-size and the style. After this call, the `border_padding` field will be
+    /// correct.
+    pub fn compute_border_and_padding(&mut self, containing_block_inline_size: Au) {
         // Compute border.
         let border = self.border_width();
 
@@ -1241,28 +1313,23 @@ impl Fragment {
         }
     }
 
-    /// Returns the intrinsic inline-sizes of this fragment.
-    pub fn intrinsic_inline_sizes(&mut self) -> IntrinsicISizes {
+    /// Computes the intrinsic inline-sizes of this fragment.
+    pub fn compute_intrinsic_inline_sizes(&mut self) -> IntrinsicISizesContribution {
         let mut result = self.style_specified_intrinsic_inline_size();
-
         match self.specific {
             GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment |
             TableColumnFragment(_) | TableRowFragment | TableWrapperFragment |
             InlineAbsoluteHypotheticalFragment(_) | InputFragment => {}
             InlineBlockFragment(ref mut info) => {
                 let block_flow = info.flow_ref.get_mut().as_block();
-                result.minimum_inline_size = max(result.minimum_inline_size,
-                        block_flow.base.intrinsic_inline_sizes.minimum_inline_size +
-                        block_flow.base.intrinsic_inline_sizes.surround_inline_size);
-                result.preferred_inline_size = max(result.preferred_inline_size,
-                        block_flow.base.intrinsic_inline_sizes.preferred_inline_size +
-                        block_flow.base.intrinsic_inline_sizes.surround_inline_size);
+                result.union_block(&block_flow.base.intrinsic_inline_sizes)
             }
             ImageFragment(ref mut image_fragment_info) => {
                 let image_inline_size = image_fragment_info.image_inline_size();
-                result.minimum_inline_size = max(result.minimum_inline_size, image_inline_size);
-                result.preferred_inline_size = max(result.preferred_inline_size,
-                                                   image_inline_size);
+                result.union_block(&IntrinsicISizes {
+                    minimum_inline_size: image_inline_size,
+                    preferred_inline_size: image_inline_size,
+                })
             }
             ScannedTextFragment(ref text_fragment_info) => {
                 let range = &text_fragment_info.range;
@@ -1274,10 +1341,10 @@ impl Fragment {
                                                              .metrics_for_range(range)
                                                              .advance_width;
 
-                result.minimum_inline_size = max(result.minimum_inline_size,
-                                                 min_line_inline_size);
-                result.preferred_inline_size = max(result.preferred_inline_size,
-                                                   max_line_inline_size);
+                result.union_block(&IntrinsicISizes {
+                    minimum_inline_size: min_line_inline_size,
+                    preferred_inline_size: max_line_inline_size,
+                })
             }
             UnscannedTextFragment(..) => {
                 fail!("Unscanned text fragments should have been scanned by now!")
@@ -1293,10 +1360,8 @@ impl Fragment {
                         let border_width = style.logical_border_width().inline_start_end();
                         let padding_inline_size =
                             model::padding_from_style(&**style, Au(0)).inline_start_end();
-                        result.minimum_inline_size = result.minimum_inline_size + border_width +
+                        result.surrounding_size = result.surrounding_size + border_width +
                             padding_inline_size;
-                        result.preferred_inline_size = result.preferred_inline_size +
-                            border_width + padding_inline_size;
                     }
                 }
             }
@@ -1477,7 +1542,9 @@ impl Fragment {
                     } else {
                          None
                     };
-                    let inline_end = inline_end_range.map(|inline_end_range| SplitInfo::new(inline_end_range, text_fragment_info));
+                    let inline_end = inline_end_range.map(|inline_end_range| {
+                        SplitInfo::new(inline_end_range, text_fragment_info)
+                    });
 
                     Some((inline_start, inline_end, text_fragment_info.run.clone()))
                 }
@@ -1502,8 +1569,7 @@ impl Fragment {
 
     /// Assigns replaced inline-size, padding, and margins for this fragment only if it is replaced
     /// content per CSS 2.1 § 10.3.2.
-    pub fn assign_replaced_inline_size_if_necessary(&mut self,
-                                              container_inline_size: Au) {
+    pub fn assign_replaced_inline_size_if_necessary(&mut self, container_inline_size: Au) {
         match self.specific {
             GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment |
             TableRowFragment | TableWrapperFragment | InputFragment => return,
@@ -1514,8 +1580,6 @@ impl Fragment {
             ImageFragment(_) | ScannedTextFragment(_) | InlineBlockFragment(_) |
             InlineAbsoluteHypotheticalFragment(_) => {}
         };
-
-        self.compute_border_padding_margins(container_inline_size);
 
         let style_inline_size = self.style().content_inline_size();
         let style_block_size = self.style().content_block_size();
@@ -1528,17 +1592,16 @@ impl Fragment {
         match self.specific {
             InlineAbsoluteHypotheticalFragment(ref mut info) => {
                 let block_flow = info.flow_ref.get_mut().as_block();
-                block_flow.base.block_container_inline_size =
-                    block_flow.base.intrinsic_inline_sizes.preferred_inline_size +
-                    block_flow.base.intrinsic_inline_sizes.surround_inline_size;
+                block_flow.base.position.size.inline =
+                    block_flow.base.intrinsic_inline_sizes.preferred_inline_size;
 
                 // This is a hypothetical box, so it takes up no space.
                 self.border_box.size.inline = Au(0);
             }
             InlineBlockFragment(ref mut info) => {
                 let block_flow = info.flow_ref.get_mut().as_block();
-                self.border_box.size.inline = block_flow.base.intrinsic_inline_sizes.preferred_inline_size +
-                                                block_flow.base.intrinsic_inline_sizes.surround_inline_size;
+                self.border_box.size.inline =
+                    block_flow.base.intrinsic_inline_sizes.preferred_inline_size;
                 block_flow.base.block_container_inline_size = self.border_box.size.inline;
             }
             ScannedTextFragment(_) => {
@@ -1652,7 +1715,8 @@ impl Fragment {
             InlineBlockFragment(ref mut info) => {
                 // Not the primary fragment, so we do not take the noncontent size into account.
                 let block_flow = info.flow_ref.get_mut().as_block();
-                self.border_box.size.block = block_flow.base.position.size.block;
+                self.border_box.size.block = block_flow.base.position.size.block +
+                    block_flow.fragment.margin.block_start_end()
             }
             InlineAbsoluteHypotheticalFragment(ref mut info) => {
                 // Not the primary fragment, so we do not take the noncontent size into account.
@@ -1686,7 +1750,9 @@ impl Fragment {
                 let font_style = text::computed_style_to_font_style(&*self.style);
                 let font_metrics = text::font_metrics_for_style(layout_context.font_context(),
                                                                 &font_style);
-                InlineMetrics::from_block_height(&font_metrics, block_flow.base.position.size.block)
+                InlineMetrics::from_block_height(&font_metrics,
+                                                 block_flow.base.position.size.block +
+                                                 block_flow.fragment.margin.block_start_end())
             }
             InlineAbsoluteHypotheticalFragment(_) => {
                 // Hypothetical boxes take up no space.
@@ -1835,6 +1901,15 @@ impl fmt::Show for Fragment {
         try!(write!(f, " "));
         try!(write!(f, "m {}", self.margin));
         write!(f, ")")
+    }
+}
+
+bitflags! {
+    flags QuantitiesIncludedInIntrinsicInlineSizes: u8 {
+        static IntrinsicInlineSizeIncludesMargins = 0x01,
+        static IntrinsicInlineSizeIncludesPadding = 0x02,
+        static IntrinsicInlineSizeIncludesBorder = 0x04,
+        static IntrinsicInlineSizeIncludesSpecified = 0x08,
     }
 }
 
