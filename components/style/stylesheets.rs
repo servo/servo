@@ -16,7 +16,7 @@ use errors::{ErrorLoggerIterator, log_css_error};
 use namespaces::{NamespaceMap, parse_namespace_rule};
 use media_queries::{MediaRule, parse_media_rule};
 use media_queries;
-use font_face::{FontFaceRule, parse_font_face_rule, iter_font_face_rules_inner};
+use font_face::{FontFaceRule, Source, parse_font_face_rule, iter_font_face_rules_inner};
 
 
 pub struct Stylesheet {
@@ -173,6 +173,6 @@ pub fn iter_stylesheet_style_rules(stylesheet: &Stylesheet, device: &media_queri
 
 
 #[inline]
-pub fn iter_font_face_rules(stylesheet: &Stylesheet, callback: |family: &str, sources: &Url|) {
+pub fn iter_font_face_rules(stylesheet: &Stylesheet, callback: |family: &str, source: &Source|) {
     iter_font_face_rules_inner(stylesheet.rules.as_slice(), callback)
 }

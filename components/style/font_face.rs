@@ -14,10 +14,7 @@ use media_queries::{Device, Screen};
 use url::{Url, UrlParser};
 
 
-static SUPPORTED_FORMATS: &'static [&'static str] = &["truetype", "opentype"];
-
-
-pub fn iter_font_face_rules_inner(rules: &[CSSRule], callback: |family: &str, source: &Url|) {
+pub fn iter_font_face_rules_inner(rules: &[CSSRule], callback: |family: &str, source: &Source|) {
     let device = &Device { media_type: Screen };  // TODO, use Print when printing
     for rule in rules.iter() {
         match *rule {
@@ -27,22 +24,20 @@ pub fn iter_font_face_rules_inner(rules: &[CSSRule], callback: |family: &str, so
             },
             CSSFontFaceRule(ref rule) => {
                 for source in rule.sources.iter() {
-                    if source.format_hints.is_empty() || source.format_hints.iter().any(
-                            |f| SUPPORTED_FORMATS.iter().any(
-                                |s| f.as_slice().eq_ignore_ascii_case(*s))) {
-                        callback(rule.family.as_slice(), &source.url)
-                    }
+                    callback(rule.family.as_slice(), source)
                 }
             },
         }
     }
 }
 
-enum Source {
+#[deriving(Clone)]
+pub enum Source {
     UrlSource_(UrlSource),
     LocalSource(String),
 }
 
+#[deriving(Clone)]
 pub struct UrlSource {
     pub url: Url,
     pub format_hints: Vec<String>,
@@ -50,7 +45,7 @@ pub struct UrlSource {
 
 pub struct FontFaceRule {
     pub family: String,
-    pub sources: Vec<UrlSource>,  // local() is not supported yet
+    pub sources: Vec<Source>,
 }
 
 pub fn parse_font_face_rule(rule: AtRule, parent_rules: &mut Vec<CSSRule>, base_url: &Url) {
@@ -93,7 +88,7 @@ pub fn parse_font_face_rule(rule: AtRule, parent_rules: &mut Vec<CSSRule>, base_
                     },
                     "src" => {
                         match parse_slice_comma_separated(
-                                value.as_slice(), |iter| parse_one_url_src(iter, base_url)) {
+                                value.as_slice(), |iter| parse_one_src(iter, base_url)) {
                             Ok(sources) => maybe_sources = Some(sources),
                             Err(()) => log_css_error(location, "Invalid src in @font-face"),
                         };
@@ -113,15 +108,6 @@ pub fn parse_font_face_rule(rule: AtRule, parent_rules: &mut Vec<CSSRule>, base_
         })),
         (None, _) => log_css_error(rule.location, "@font-face without a font-family descriptor"),
         _ => log_css_error(rule.location, "@font-face without an src descriptor"),
-    }
-}
-
-
-/// local() is not supported yet
-fn parse_one_url_src(iter: ParserIter, base_url: &Url) -> Result<UrlSource, ()> {
-    match parse_one_src(iter, base_url) {
-        Ok(UrlSource_(source)) => Ok(source),
-        _ => Err(())
     }
 }
 
