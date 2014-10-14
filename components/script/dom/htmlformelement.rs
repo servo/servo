@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding::HTMLFormElementMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, HTMLFormElementDerived, NodeCast};
+use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLFormElementDerived, NodeCast};
 use dom::bindings::codegen::InheritTypes::HTMLInputElementCast;
 use dom::bindings::global::Window;
 use dom::bindings::js::{JSRef, Temporary};
@@ -64,46 +64,19 @@ impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
     make_setter!(SetAcceptCharset, "accept-charset")
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-fs-action
-    fn Action(self) -> DOMString {
-        let element: JSRef<Element> = ElementCast::from_ref(self);
-        let url = element.get_url_attribute("action");
-        match url.as_slice() {
-            "" => {
-                let window = window_from_node(self).root();
-                window.get_url().serialize()
-            },
-            _ => url
-        }
-    }
+    make_url_or_base_getter!(Action)
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-fs-action
     make_setter!(SetAction, "action")
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-form-autocomplete
-    fn Autocomplete(self) -> DOMString {
-        let elem: JSRef<Element> = ElementCast::from_ref(self);
-        let ac = elem.get_string_attribute("autocomplete").into_ascii_lower();
-        // https://html.spec.whatwg.org/multipage/forms.html#attr-form-autocomplete
-        match ac.as_slice() {
-            "off" => ac,
-            _ => "on".to_string()
-        }
-    }
+    make_enumerated_getter!(Autocomplete, "on", "off")
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-form-autocomplete
     make_setter!(SetAutocomplete, "autocomplete")
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-fs-enctype
-    fn Enctype(self) -> DOMString {
-        let elem: JSRef<Element> = ElementCast::from_ref(self);
-        let enctype = elem.get_string_attribute("enctype").into_ascii_lower();
-        // https://html.spec.whatwg.org/multipage/forms.html#attr-fs-enctype
-        match enctype.as_slice() {
-            "text/plain" | "multipart/form-data" => enctype,
-            _ => "application/x-www-form-urlencoded".to_string()
-        }
-    }
-
+    make_enumerated_getter!(Enctype, "application/x-www-form-urlencoded", "text/plain" | "multipart/form-data")
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-fs-enctype
     make_setter!(SetEnctype, "enctype")
@@ -119,15 +92,7 @@ impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
     }
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-fs-method
-    fn Method(self) -> DOMString {
-        let elem: JSRef<Element> = ElementCast::from_ref(self);
-        let method = elem.get_string_attribute("method").into_ascii_lower();
-        // https://html.spec.whatwg.org/multipage/forms.html#attr-fs-method
-        match method.as_slice() {
-            "post" | "dialog" => method,
-            _ => "get".to_string()
-        }
-    }
+    make_enumerated_getter!(Method, "get", "post" | "dialog")
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-fs-method
     make_setter!(SetMethod, "method")
@@ -222,7 +187,7 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
         script_chan.send(TriggerLoadMsg(win.page().id, load_data));
     }
 
-    fn get_form_dataset(self, _submitter: Option<FormSubmitter>) -> Vec<FormDatum> {
+    fn get_form_dataset<'b>(self, submitter: Option<FormSubmitter<'b>>) -> Vec<FormDatum> {
         fn clean_crlf(s: &str) -> DOMString {
             // https://html.spec.whatwg.org/multipage/forms.html#constructing-the-form-data-set
             // Step 4
@@ -286,6 +251,12 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
                     }
 
                     let mut value = input.Value();
+                    let is_submitter = match submitter {
+                        Some(InputElement(s)) => {
+                            input == s
+                        },
+                        _ => false
+                    };
                     match ty.as_slice() {
                         "image" => None, // Unimplemented
                         "radio" | "checkbox" => {
@@ -298,6 +269,8 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
                                 value: value
                             })
                         },
+                        // Discard buttons which are not the submitter
+                        "submit" | "button" | "reset" if !is_submitter => None,
                         "file" => None, // Unimplemented
                         _ => Some(FormDatum {
                             ty: ty,
@@ -367,46 +340,63 @@ pub enum FormMethod {
 }
 
 pub enum FormSubmitter<'a> {
-    FormElement(JSRef<'a, HTMLFormElement>)
+    FormElement(JSRef<'a, HTMLFormElement>),
+    InputElement(JSRef<'a, HTMLInputElement>)
     // TODO: Submit buttons, image submit, etc etc
 }
 
 impl<'a> FormSubmitter<'a> {
     fn action(&self) -> DOMString {
         match *self {
-            FormElement(form) => form.Action()
+            FormElement(form) => form.Action(),
+            InputElement(input_element) => input_element.get_form_attribute("formaction", |i| i.FormAction(), |f| f.Action())
         }
     }
 
     fn enctype(&self) -> FormEncType {
-        match *self {
-            FormElement(form) => {
-                match form.Enctype().as_slice() {
-                    "multipart/form-data" => FormDataEncoded,
-                    "text/plain" => TextPlainEncoded,
-                    // https://html.spec.whatwg.org/multipage/forms.html#attr-fs-enctype
-                    // urlencoded is the default
-                    _ => UrlEncoded
-                }
-            }
+        let attr = match *self {
+            FormElement(form) => form.Enctype(),
+            InputElement(input_element) => input_element.get_form_attribute("formenctype", |i| i.FormEnctype(), |f| f.Enctype())
+        };
+        match attr.as_slice() {
+            "multipart/form-data" => FormDataEncoded,
+            "text/plain" => TextPlainEncoded,
+            // https://html.spec.whatwg.org/multipage/forms.html#attr-fs-enctype
+            // urlencoded is the default
+            _ => UrlEncoded
         }
     }
 
     fn method(&self) -> FormMethod {
-        match *self {
-            FormElement(form) => {
-                match form.Method().as_slice() {
-                    "dialog" => FormDialog,
-                    "post" => FormPost,
-                    _ => FormGet
-                }
-            }
+        let attr = match *self {
+            FormElement(form) => form.Method(),
+            InputElement(input_element) => input_element.get_form_attribute("formmethod", |i| i.FormMethod(), |f| f.Method())
+        };
+        match attr.as_slice() {
+            "dialog" => FormDialog,
+            "post" => FormPost,
+            _ => FormGet
         }
     }
 
     fn target(&self) -> DOMString {
         match *self {
-            FormElement(form) => form.Target()
+            FormElement(form) => form.Target(),
+            InputElement(input_element) => input_element.get_form_attribute("formtarget", |i| i.FormTarget(), |f| f.Target())
         }
     }
+}
+
+pub trait FormOwner<'a> : Copy {
+    fn form_owner(self) -> Option<Temporary<HTMLFormElement>>;
+    fn get_form_attribute(self, attr: &str,
+                          input: |Self| -> DOMString,
+                          owner: |JSRef<HTMLFormElement>| -> DOMString) -> DOMString {
+        if self.to_element().has_attribute(attr) {
+            input(self)
+        } else {
+            self.form_owner().map_or("".to_string(), |t| owner(*t.root()))
+        }
+    }
+    fn to_element(self) -> JSRef<'a, Element>;
 }

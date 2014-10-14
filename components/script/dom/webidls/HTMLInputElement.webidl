@@ -15,11 +15,11 @@ interface HTMLInputElement : HTMLElement {
            attribute boolean disabled;
   //readonly attribute HTMLFormElement? form;
   //readonly attribute FileList? files;
-  //         attribute DOMString formAction;
-  //         attribute DOMString formEnctype;
-  //         attribute DOMString formMethod;
+             attribute DOMString formAction;
+             attribute DOMString formEnctype;
+             attribute DOMString formMethod;
   //         attribute boolean formNoValidate;
-  //         attribute DOMString formTarget;
+             attribute DOMString formTarget;
   //         attribute unsigned long height;
   //         attribute boolean indeterminate;
   //         attribute DOMString inputMode;
