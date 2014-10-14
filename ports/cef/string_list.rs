@@ -48,3 +48,17 @@ extern "C" fn cef_string_list_value(lt: *mut cef_string_list_t, index: c_int, va
         cef_string_utf8_set(mem::transmute((**cs).str), (**cs).length, value, 1)
     }
 }
+
+#[no_mangle]
+extern "C" fn cef_string_list_clear(lt: *mut cef_string_list_t) {
+    unsafe {
+        if fptr_is_null(mem::transmute(lt)) { return; }
+        let mut v: Box<Vec<*mut cef_string_t>> = mem::transmute(lt);
+        if v.len() == 0 { return; }
+        let mut cs;
+        while v.len() != 0 {
+            cs = v.pop();
+            cef_string_userfree_utf8_free(cs.unwrap());
+        }
+    }
+}
