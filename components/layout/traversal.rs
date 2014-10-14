@@ -132,8 +132,15 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
         // Just needs to be wrapped in an option for `match_node`.
         let some_bf = Some(bf);
 
-        if node.is_dirty() {
-            // First, check to see whether we can share a style with someone.
+        if node.is_dirty() || node.has_dirty_siblings() {
+            // Remove existing CSS styles from changed nodes, to force
+            // non-incremental reflow.
+            if node.has_changed() {
+                let node = ThreadSafeLayoutNode::new(&node);
+                node.unstyle();
+            }
+
+            // Check to see whether we can share a style with someone.
             let style_sharing_candidate_cache =
                 self.layout_context.style_sharing_candidate_cache();
             let sharing_result = unsafe {
@@ -194,17 +201,31 @@ impl<'a> PostorderDomTraversal for ConstructFlows<'a> {
     fn process(&self, node: LayoutNode) {
         // Construct flows for this node.
         {
-            let node = ThreadSafeLayoutNode::new(&node);
-            let mut flow_constructor = FlowConstructor::new(self.layout_context);
-            flow_constructor.process(&node);
+            let tnode = ThreadSafeLayoutNode::new(&node);
+
+            // Always re-construct if incremental layout is turned off.
+            if !self.layout_context.shared.opts.incremental_layout {
+                unsafe {
+                    node.set_dirty_descendants(true);
+                }
+            }
+
+            if node.has_dirty_descendants() {
+                tnode.set_restyle_damage(RestyleDamage::all());
+                debug!("Constructing flow for {}", tnode.debug_id());
+                let mut flow_constructor = FlowConstructor::new(self.layout_context);
+                flow_constructor.process(&tnode);
+            }
 
             // Reset the layout damage in this node. It's been propagated to the
             // flow by the flow constructor.
-            node.set_restyle_damage(RestyleDamage::empty());
+            tnode.set_restyle_damage(RestyleDamage::empty());
         }
 
         unsafe {
+            node.set_changed(false);
             node.set_dirty(false);
+            node.set_dirty_siblings(false);
             node.set_dirty_descendants(false);
         }
 

@@ -49,7 +49,7 @@ use script::dom::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelp
 use script::dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
 use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, Node, NodeTypeId};
 use script::dom::node::{LayoutNodeHelpers, RawLayoutNodeHelpers, SharedLayoutData, TextNodeTypeId};
-use script::dom::node::{IsDirty, HasDirtyDescendants};
+use script::dom::node::{HasChanged, IsDirty, HasDirtySiblings, HasDirtyDescendants};
 use script::dom::text::Text;
 use script::layout_interface::LayoutChan;
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
@@ -267,6 +267,11 @@ impl<'ln> LayoutNode<'ln> {
             self.parent_node()
         }
     }
+
+    pub fn debug_id(self) -> uint {
+        let opaque: OpaqueNode = OpaqueNodeMethods::from_layout_node(&self);
+        opaque.to_untrusted_node_address() as uint
+    }
 }
 
 impl<'ln> TNode<'ln, LayoutElement<'ln>> for LayoutNode<'ln> {
@@ -343,12 +348,28 @@ impl<'ln> TNode<'ln, LayoutElement<'ln>> for LayoutNode<'ln> {
         }
     }
 
+    fn has_changed(self) -> bool {
+        unsafe { self.node.get_flag(HasChanged) }
+    }
+
+    unsafe fn set_changed(self, value: bool) {
+        self.node.set_flag(HasChanged, value)
+    }
+
     fn is_dirty(self) -> bool {
         unsafe { self.node.get_flag(IsDirty) }
     }
 
     unsafe fn set_dirty(self, value: bool) {
         self.node.set_flag(IsDirty, value)
+    }
+
+    fn has_dirty_siblings(self) -> bool {
+        unsafe { self.node.get_flag(HasDirtySiblings) }
+    }
+
+    unsafe fn set_dirty_siblings(self, value: bool) {
+        self.node.set_flag(HasDirtySiblings, value);
     }
 
     fn has_dirty_descendants(self) -> bool {
@@ -666,6 +687,10 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
             node: self.node.clone(),
             pseudo: pseudo,
         }
+    }
+
+    pub fn debug_id(self) -> uint {
+        self.node.debug_id()
     }
 
     /// Returns the next sibling of this node. Unsafe and private because this can lead to races.

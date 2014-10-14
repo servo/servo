@@ -43,7 +43,7 @@ use table_rowgroup::TableRowGroupFlow;
 use table_row::TableRowFlow;
 use table_cell::TableCellFlow;
 use text::TextRunScanner;
-use util::{LayoutDataAccess, OpaqueNodeMethods};
+use util::{LayoutDataAccess, OpaqueNodeMethods, LayoutDataWrapper};
 use wrapper::{PostorderNodeMutTraversal, TLayoutNode, ThreadSafeLayoutNode};
 use wrapper::{Before, After, Normal};
 
@@ -78,6 +78,22 @@ pub enum ConstructionResult {
     /// This node contributed some object or objects that will be needed to construct a proper flow
     /// later up the tree, but these objects have not yet found their home.
     ConstructionItemConstructionResult(ConstructionItem),
+}
+
+impl ConstructionResult {
+    pub fn swap_out(&mut self, layout_context: &LayoutContext) -> ConstructionResult {
+        if layout_context.shared.opts.incremental_layout {
+            match *self {
+                NoConstructionResult =>
+                    return NoConstructionResult,
+                FlowConstructionResult(ref flow_ref, ref abs_descendants) =>
+                    return FlowConstructionResult((*flow_ref).clone(), (*abs_descendants).clone()),
+                ConstructionItemConstructionResult(_) => {},
+            }
+        }
+
+        mem::replace(self, NoConstructionResult)
+    }
 }
 
 /// Represents the output of flow construction for a DOM node that has not yet resulted in a
@@ -345,7 +361,7 @@ impl<'a> FlowConstructor<'a> {
                                                            &mut InlineFragmentsAccumulator,
                                                            abs_descendants: &mut Descendants,
                                                            first_fragment: &mut bool) {
-        match kid.swap_out_construction_result() {
+        match kid.swap_out_construction_result(self.layout_context) {
             NoConstructionResult => {}
             FlowConstructionResult(kid_flow, kid_abs_descendants) => {
                 // If kid_flow is TableCaptionFlow, kid_flow should be added under
@@ -546,7 +562,7 @@ impl<'a> FlowConstructor<'a> {
             if kid.get_pseudo_element_type() != Normal {
                 self.process(&kid);
             }
-            match kid.swap_out_construction_result() {
+            match kid.swap_out_construction_result(self.layout_context) {
                 NoConstructionResult => {}
                 FlowConstructionResult(flow, kid_abs_descendants) => {
                     // {ib} split. Flush the accumulator to our new split and make a new
@@ -727,12 +743,13 @@ impl<'a> FlowConstructor<'a> {
                                                table_wrapper_flow: &mut FlowRef,
                                                node: &ThreadSafeLayoutNode) {
         for kid in node.children() {
-            match kid.swap_out_construction_result() {
+            match kid.swap_out_construction_result(self.layout_context) {
                 NoConstructionResult | ConstructionItemConstructionResult(_) => {}
                 FlowConstructionResult(kid_flow, _) => {
                     // Only kid flows with table-caption are matched here.
-                    assert!(kid_flow.get().is_table_caption());
-                    table_wrapper_flow.add_new_child(kid_flow);
+                    if kid_flow.get().is_table_caption() {
+                        table_wrapper_flow.add_new_child(kid_flow);
+                    }
                 }
             }
         }
@@ -889,7 +906,7 @@ impl<'a> FlowConstructor<'a> {
         for kid in node.children() {
             // CSS 2.1 § 17.2.1. Treat all non-column child fragments of `table-column-group`
             // as `display: none`.
-            match kid.swap_out_construction_result() {
+            match kid.swap_out_construction_result(self.layout_context) {
                 ConstructionItemConstructionResult(TableColumnFragmentConstructionItem(
                         fragment)) => {
                     col_fragments.push(fragment);
@@ -958,7 +975,7 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             // results of children.
             (display::none, _, _) => {
                 for child in node.children() {
-                    drop(child.swap_out_construction_result())
+                    drop(child.swap_out_construction_result(self.layout_context))
                 }
             }
 
@@ -1063,12 +1080,14 @@ trait NodeUtils {
     /// Returns true if this node doesn't render its kids and false otherwise.
     fn is_replaced_content(&self) -> bool;
 
+    fn get_construction_result<'a>(self, layout_data: &'a mut LayoutDataWrapper) -> &'a mut ConstructionResult;
+
     /// Sets the construction result of a flow.
-    fn set_flow_construction_result(&self, result: ConstructionResult);
+    fn set_flow_construction_result(self, result: ConstructionResult);
 
     /// Replaces the flow construction result in a node with `NoConstructionResult` and returns the
     /// old value.
-    fn swap_out_construction_result(&self) -> ConstructionResult;
+    fn swap_out_construction_result(self, layout_context: &LayoutContext) -> ConstructionResult;
 }
 
 impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
@@ -1087,43 +1106,30 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
         }
     }
 
-    #[inline(always)]
-    fn set_flow_construction_result(&self, result: ConstructionResult) {
-        let mut layout_data_ref = self.mutate_layout_data();
-        match &mut *layout_data_ref {
-            &Some(ref mut layout_data) =>{
-                match self.get_pseudo_element_type() {
-                    Before(_) => layout_data.data.before_flow_construction_result = result,
-                    After(_) => layout_data.data.after_flow_construction_result = result,
-                    Normal => layout_data.data.flow_construction_result = result,
-                }
-            },
-            &None => fail!("no layout data"),
+    fn get_construction_result<'a>(self, layout_data: &'a mut LayoutDataWrapper) -> &'a mut ConstructionResult {
+        match self.get_pseudo_element_type() {
+            Before(_) => &mut layout_data.data.before_flow_construction_result,
+            After (_) => &mut layout_data.data.after_flow_construction_result,
+            Normal    => &mut layout_data.data.flow_construction_result,
         }
     }
 
     #[inline(always)]
-    fn swap_out_construction_result(&self) -> ConstructionResult {
+    fn set_flow_construction_result(self, result: ConstructionResult) {
         let mut layout_data_ref = self.mutate_layout_data();
-        match &mut *layout_data_ref {
-            &Some(ref mut layout_data) => {
-                match self.get_pseudo_element_type() {
-                    Before(_) => {
-                        mem::replace(&mut layout_data.data.before_flow_construction_result,
-                                     NoConstructionResult)
-                    }
-                    After(_) => {
-                        mem::replace(&mut layout_data.data.after_flow_construction_result,
-                                     NoConstructionResult)
-                    }
-                    Normal => {
-                        mem::replace(&mut layout_data.data.flow_construction_result,
-                                     NoConstructionResult)
-                    }
-                }
-            }
-            &None => fail!("no layout data"),
-        }
+        let layout_data = layout_data_ref.as_mut().expect("no layout data");
+
+        let dst = self.get_construction_result(layout_data);
+
+        *dst = result;
+    }
+
+    #[inline(always)]
+    fn swap_out_construction_result(self, layout_context: &LayoutContext) -> ConstructionResult {
+        let mut layout_data_ref = self.mutate_layout_data();
+        let layout_data = layout_data_ref.as_mut().expect("no layout data");
+
+        self.get_construction_result(layout_data).swap_out(layout_context)
     }
 }
 
