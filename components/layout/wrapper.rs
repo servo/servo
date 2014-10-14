@@ -38,8 +38,9 @@ use css::node_style::StyledNode;
 use util::{LayoutDataAccess, LayoutDataWrapper, PrivateLayoutData, OpaqueNodeMethods};
 
 use gfx::display_list::OpaqueNode;
-use script::dom::bindings::codegen::InheritTypes::{HTMLIFrameElementDerived, HTMLInputElementDerived};
-use script::dom::bindings::codegen::InheritTypes::{HTMLImageElementDerived, TextDerived};
+use script::dom::bindings::codegen::InheritTypes::{HTMLIFrameElementDerived};
+use script::dom::bindings::codegen::InheritTypes::{HTMLImageElementDerived};
+use script::dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, TextDerived};
 use script::dom::bindings::js::JS;
 use script::dom::element::{Element, HTMLAreaElementTypeId, HTMLAnchorElementTypeId};
 use script::dom::element::{HTMLLinkElementTypeId, LayoutElementHelpers, RawLayoutElementHelpers};
@@ -52,13 +53,13 @@ use script::dom::node::{IsDirty, HasDirtyDescendants};
 use script::dom::text::Text;
 use script::layout_interface::LayoutChan;
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
-use servo_util::str::is_whitespace;
+use servo_util::str::{LengthOrPercentageOrAuto, is_whitespace};
 use std::cell::{RefCell, Ref, RefMut};
 use std::kinds::marker::ContravariantLifetime;
 use std::mem;
 use style::computed_values::{content, display, white_space};
-use style::{AnyNamespace, AttrSelector, PropertyDeclarationBlock, SpecificNamespace, TElement};
-use style::{TNode};
+use style::{AnyNamespace, AttrSelector, IntegerAttribute, LengthAttribute};
+use style::{PropertyDeclarationBlock, SpecificNamespace, TElement, TElementAttributes, TNode};
 use url::Url;
 use string_cache::{Atom, Namespace};
 
@@ -513,6 +514,20 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
                     }
                 }
             }
+        }
+    }
+}
+
+impl<'le> TElementAttributes for LayoutElement<'le> {
+    fn get_length_attribute(self, length_attribute: LengthAttribute) -> LengthOrPercentageOrAuto {
+        unsafe {
+            self.element.get_length_attribute_for_layout(length_attribute)
+        }
+    }
+
+    fn get_integer_attribute(self, integer_attribute: IntegerAttribute) -> Option<i32> {
+        unsafe {
+            self.element.get_integer_attribute_for_layout(integer_attribute)
         }
     }
 }

@@ -914,7 +914,7 @@ impl Flow for InlineFlow {
         self
     }
 
-    fn bubble_inline_sizes(&mut self, layout_context: &LayoutContext) {
+    fn bubble_inline_sizes(&mut self) {
         let _scope = layout_debug_scope!("inline::bubble_inline_sizes {:s}", self.base.debug_id());
 
         let writing_mode = self.base.writing_mode;
@@ -927,7 +927,7 @@ impl Flow for InlineFlow {
             debug!("Flow: measuring {}", *fragment);
 
             let fragment_intrinsic_inline_sizes =
-                fragment.intrinsic_inline_sizes(layout_context);
+                fragment.intrinsic_inline_sizes();
             intrinsic_inline_sizes.minimum_inline_size = max(
                 intrinsic_inline_sizes.minimum_inline_size,
                 fragment_intrinsic_inline_sizes.minimum_inline_size);

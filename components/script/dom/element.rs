@@ -11,7 +11,8 @@ use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::ElementBinding;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
-use dom::bindings::codegen::InheritTypes::{ElementDerived, NodeCast};
+use dom::bindings::codegen::InheritTypes::{ElementDerived, HTMLInputElementDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLTableCellElementDerived, NodeCast};
 use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, TemporaryPushable};
 use dom::bindings::js::{OptionalSettable, OptionalRootable, Root};
 use dom::bindings::utils::{Reflectable, Reflector};
@@ -23,16 +24,19 @@ use dom::document::{Document, DocumentHelpers};
 use dom::domtokenlist::DOMTokenList;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlcollection::HTMLCollection;
+use dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
 use dom::htmlserializer::serialize;
+use dom::htmltablecellelement::{HTMLTableCellElement, HTMLTableCellElementHelpers};
 use dom::node::{ElementNodeTypeId, Node, NodeHelpers, NodeIterator, document_from_node};
 use dom::node::{window_from_node, LayoutNodeHelpers};
 use dom::nodelist::NodeList;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use devtools_traits::AttrInfo;
+use style::{IntegerAttribute, LengthAttribute, SizeIntegerAttribute, WidthLengthAttribute};
 use style::{matches, parse_selector_list_from_str};
 use style;
 use servo_util::namespace;
-use servo_util::str::DOMString;
+use servo_util::str::{DOMString, LengthOrPercentageOrAuto};
 
 use std::ascii::StrAsciiExt;
 use std::cell::{Ref, RefMut, RefCell};
@@ -211,6 +215,10 @@ pub trait RawLayoutElementHelpers {
     unsafe fn get_attr_atom_for_layout(&self, namespace: &Namespace, name: &Atom) -> Option<Atom>;
     unsafe fn has_class_for_layout(&self, name: &Atom) -> bool;
     unsafe fn get_classes_for_layout(&self) -> Option<&'static [Atom]>;
+    unsafe fn get_length_attribute_for_layout(&self, length_attribute: LengthAttribute)
+                                              -> LengthOrPercentageOrAuto;
+    unsafe fn get_integer_attribute_for_layout(&self, integer_attribute: IntegerAttribute)
+                                               -> Option<i32>;
 }
 
 impl RawLayoutElementHelpers for Element {
@@ -287,6 +295,36 @@ impl RawLayoutElementHelpers for Element {
             let attr = attr.unsafe_get();
             (*attr).value_tokens_forever()
         })
+    }
+
+    #[inline]
+    #[allow(unrooted_must_root)]
+    unsafe fn get_length_attribute_for_layout(&self, length_attribute: LengthAttribute)
+                                              -> LengthOrPercentageOrAuto {
+        match length_attribute {
+            WidthLengthAttribute => {
+                if !self.is_htmltablecellelement() {
+                    fail!("I'm not a table cell!")
+                }
+                let this: &HTMLTableCellElement = mem::transmute(self);
+                this.get_width()
+            }
+        }
+    }
+
+    #[inline]
+    #[allow(unrooted_must_root)]
+    unsafe fn get_integer_attribute_for_layout(&self, integer_attribute: IntegerAttribute)
+                                               -> Option<i32> {
+        match integer_attribute {
+            SizeIntegerAttribute => {
+                if !self.is_htmlinputelement() {
+                    fail!("I'm not a form input!")
+                }
+                let this: &HTMLInputElement = mem::transmute(self);
+                Some(this.get_size_for_layout() as i32)
+            }
+        }
     }
 }
 
@@ -1133,3 +1171,4 @@ impl<'a> style::TElement<'a> for JSRef<'a, Element> {
         }
     }
 }
+

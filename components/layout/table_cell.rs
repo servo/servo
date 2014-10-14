@@ -74,16 +74,21 @@ impl Flow for TableCellFlow {
         &mut self.block_flow
     }
 
-    /// Minimum/preferred inline-sizes set by this function are used in automatic table layout calculation.
-    fn bubble_inline_sizes(&mut self, ctx: &LayoutContext) {
+    /// Minimum/preferred inline-sizes set by this function are used in automatic table layout
+    /// calculation.
+    fn bubble_inline_sizes(&mut self) {
         let _scope = layout_debug_scope!("table_cell::bubble_inline_sizes {:s}",
-                                            self.block_flow.base.debug_id());
+                                         self.block_flow.base.debug_id());
 
-        self.block_flow.bubble_inline_sizes(ctx);
-        let specified_inline_size = MaybeAuto::from_style(self.block_flow.fragment.style().content_inline_size(),
-                                                    Au::new(0)).specified_or_zero();
-        if self.block_flow.base.intrinsic_inline_sizes.minimum_inline_size < specified_inline_size {
-            self.block_flow.base.intrinsic_inline_sizes.minimum_inline_size = specified_inline_size;
+        self.block_flow.bubble_inline_sizes();
+        let specified_inline_size = MaybeAuto::from_style(self.block_flow
+                                                              .fragment
+                                                              .style()
+                                                              .content_inline_size(),
+                                                          Au(0)).specified_or_zero();
+        if self.block_flow.base.intrinsic_inline_sizes.minimum_inline_size <
+                specified_inline_size {
+            self.block_flow.base.intrinsic_inline_sizes.minimum_inline_size = specified_inline_size
         }
         if self.block_flow.base.intrinsic_inline_sizes.preferred_inline_size <
             self.block_flow.base.intrinsic_inline_sizes.minimum_inline_size {

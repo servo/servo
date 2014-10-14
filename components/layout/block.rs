@@ -1495,13 +1495,11 @@ impl Flow for BlockFlow {
 
     /// Pass 1 of reflow: computes minimum and preferred inline-sizes.
     ///
-    /// Recursively (bottom-up) determine the flow's minimum and preferred inline-sizes. When called on
-    /// this flow, all child flows have had their minimum and preferred inline-sizes set. This function
-    /// must decide minimum/preferred inline-sizes based on its children's inline-sizes and the dimensions of
-    /// any fragments it is responsible for flowing.
-    ///
-    /// TODO(pcwalton): Inline blocks.
-    fn bubble_inline_sizes(&mut self, layout_context: &LayoutContext) {
+    /// Recursively (bottom-up) determine the flow's minimum and preferred inline-sizes. When
+    /// called on this flow, all child flows have had their minimum and preferred inline-sizes set.
+    /// This function must decide minimum/preferred inline-sizes based on its children's
+    /// inline-sizes and the dimensions of any fragments it is responsible for flowing.
+    fn bubble_inline_sizes(&mut self) {
         let _scope = layout_debug_scope!("block::bubble_inline_sizes {:s}", self.base.debug_id());
 
         let mut flags = self.base.flags;
@@ -1557,13 +1555,16 @@ impl Flow for BlockFlow {
             max(intrinsic_inline_sizes.preferred_inline_size,
                           left_float_width + right_float_width);
 
-        let fragment_intrinsic_inline_sizes = self.fragment.intrinsic_inline_sizes(layout_context);
-        intrinsic_inline_sizes.minimum_inline_size = max(intrinsic_inline_sizes.minimum_inline_size,
-                                                       fragment_intrinsic_inline_sizes.minimum_inline_size);
-        intrinsic_inline_sizes.preferred_inline_size = max(intrinsic_inline_sizes.preferred_inline_size,
-                                                         fragment_intrinsic_inline_sizes.preferred_inline_size);
-        intrinsic_inline_sizes.surround_inline_size = intrinsic_inline_sizes.surround_inline_size +
-                                                         fragment_intrinsic_inline_sizes.surround_inline_size;
+        let fragment_intrinsic_inline_sizes = self.fragment.intrinsic_inline_sizes();
+        intrinsic_inline_sizes.minimum_inline_size =
+            max(intrinsic_inline_sizes.minimum_inline_size,
+                fragment_intrinsic_inline_sizes.minimum_inline_size);
+        intrinsic_inline_sizes.preferred_inline_size =
+            max(intrinsic_inline_sizes.preferred_inline_size,
+                fragment_intrinsic_inline_sizes.preferred_inline_size);
+        intrinsic_inline_sizes.surround_inline_size =
+            intrinsic_inline_sizes.surround_inline_size +
+            fragment_intrinsic_inline_sizes.surround_inline_size;
         self.base.intrinsic_inline_sizes = intrinsic_inline_sizes;
 
         match self.fragment.style().get_box().float {

@@ -188,7 +188,7 @@ pub trait Flow: fmt::Show + ToString + Sync {
     /// called on this flow, all child flows have had their minimum and preferred inline-sizes set.
     /// This function must decide minimum/preferred inline-sizes based on its children's inline-
     /// sizes and the dimensions of any boxes it is responsible for flowing.
-    fn bubble_inline_sizes(&mut self, _ctx: &LayoutContext) {
+    fn bubble_inline_sizes(&mut self) {
         fail!("bubble_inline_sizes not yet implemented")
     }
 

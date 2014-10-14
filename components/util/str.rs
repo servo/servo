@@ -2,8 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use geometry::Au;
+
+use std::from_str::FromStr;
 use std::iter::Filter;
-use std::str::CharSplits;
+use std::str::{CharEq, CharSplits};
 
 pub type DOMString = String;
 pub type StaticCharVec = &'static [char];
@@ -24,11 +27,26 @@ pub fn null_str_as_empty_ref<'a>(s: &'a Option<DOMString>) -> &'a str {
     }
 }
 
+/// Whitespace as defined by HTML5 § 2.4.1.
+struct Whitespace;
+
+impl CharEq for Whitespace {
+    #[inline]
+    fn matches(&mut self, ch: char) -> bool {
+        match ch {
+            ' ' | '\t' | '\x0a' | '\x0c' | '\x0d' => true,
+            _ => false,
+        }
+    }
+
+    #[inline]
+    fn only_ascii(&self) -> bool {
+        true
+    }
+}
+
 pub fn is_whitespace(s: &str) -> bool {
-    s.chars().all(|c| match c {
-        '\u0020' | '\u0009' | '\u000D' | '\u000A' => true,
-        _ => false
-    })
+    s.chars().all(|c| Whitespace.matches(c))
 }
 
 /// A "space character" according to:
@@ -108,3 +126,61 @@ pub fn parse_unsigned_integer<T: Iterator<char>>(input: T) -> Option<u32> {
         result.to_u32()
     })
 }
+
+pub enum LengthOrPercentageOrAuto {
+    AutoLpa,
+    PercentageLpa(f64),
+    LengthLpa(Au),
+}
+
+/// Parses a length per HTML5 § 2.4.4.4. If unparseable, `AutoLpa` is returned.
+pub fn parse_length(mut value: &str) -> LengthOrPercentageOrAuto {
+    value = value.trim_left_chars(Whitespace);
+    if value.len() == 0 {
+        return AutoLpa
+    }
+    if value.starts_with("+") {
+        value = value.slice_from(1)
+    }
+    value = value.trim_left_chars('0');
+    if value.len() == 0 {
+        return AutoLpa
+    }
+
+    let mut end_index = value.len();
+    let (mut found_full_stop, mut found_percent) = (false, false);
+    for (i, ch) in value.chars().enumerate() {
+        match ch {
+            '0'..'9' => continue,
+            '%' => {
+                found_percent = true;
+                end_index = i;
+                break
+            }
+            '.' if !found_full_stop => {
+                found_full_stop = true;
+                continue
+            }
+            _ => {
+                end_index = i;
+                break
+            }
+        }
+    }
+    value = value.slice_to(end_index);
+
+    if found_percent {
+        let result: Option<f64> = FromStr::from_str(value);
+        match result {
+            Some(number) => return PercentageLpa((number as f64) / 100.0),
+            None => return AutoLpa,
+        }
+    }
+
+    match FromStr::from_str(value) {
+        Some(number) => LengthLpa(Au::from_px(number)),
+        None => AutoLpa,
+    }
+}
+
+
