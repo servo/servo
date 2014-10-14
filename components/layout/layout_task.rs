@@ -469,8 +469,8 @@ impl LayoutTask {
     fn handle_add_stylesheet<'a>(&'a self, sheet: Stylesheet, possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) {
         // Find all font-face rules and notify the font cache of them.
         // GWTODO: Need to handle unloading web fonts (when we handle unloading stylesheets!)
-        iter_font_face_rules(&sheet, |family, url| {
-            self.font_cache_task.add_web_font(family.to_string(), url.clone());
+        iter_font_face_rules(&sheet, |family, src| {
+            self.font_cache_task.add_web_font(family.to_string(), (*src).clone());
         });
         let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
         rw_data.stylist.add_stylesheet(sheet, AuthorOrigin);
