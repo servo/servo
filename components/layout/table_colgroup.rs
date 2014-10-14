@@ -10,11 +10,11 @@ use context::LayoutContext;
 use flow::{BaseFlow, TableColGroupFlowClass, FlowClass, Flow};
 use fragment::{Fragment, TableColumnFragment};
 use layout_debug;
-use model::{MaybeAuto};
 use wrapper::ThreadSafeLayoutNode;
 
 use servo_util::geometry::Au;
 use std::fmt;
+use style::computed_values::LengthOrPercentageOrAuto;
 
 /// A table formatting context.
 pub struct TableColGroupFlow {
@@ -27,14 +27,17 @@ pub struct TableColGroupFlow {
     /// The table column fragments
     pub cols: Vec<Fragment>,
 
-    /// The specified inline-sizes of table columns
-    pub inline_sizes: Vec<Au>,
+    /// The specified inline-sizes of table columns. (We use `LengthOrPercentageOrAuto` here in
+    /// lieu of `ColumnInlineSize` because column groups do not establish minimum or preferred
+    /// inline sizes.)
+    pub inline_sizes: Vec<LengthOrPercentageOrAuto>,
 }
 
 impl TableColGroupFlow {
     pub fn from_node_and_fragments(node: &ThreadSafeLayoutNode,
                                    fragment: Fragment,
-                                   fragments: Vec<Fragment>) -> TableColGroupFlow {
+                                   fragments: Vec<Fragment>)
+                                   -> TableColGroupFlow {
         TableColGroupFlow {
             base: BaseFlow::new((*node).clone()),
             fragment: Some(fragment),
@@ -58,27 +61,25 @@ impl Flow for TableColGroupFlow {
                                             self.base.debug_id());
 
         for fragment in self.cols.iter() {
-            // get the specified value from inline-size property
-            let inline_size = MaybeAuto::from_style(fragment.style().content_inline_size(),
-                                              Au::new(0)).specified_or_zero();
-
+            // Retrieve the specified value from the appropriate CSS property.
+            let inline_size = fragment.style().content_inline_size();
             let span: int = match fragment.specific {
                 TableColumnFragment(col_fragment) => col_fragment.span.unwrap_or(1),
-                _ => fail!("Other fragment come out in TableColGroupFlow. {:?}", fragment.specific)
+                _ => fail!("non-table-column fragment inside table column?!"),
             };
             for _ in range(0, span) {
-                self.inline_sizes.push(inline_size);
+                self.inline_sizes.push(inline_size)
             }
         }
     }
 
-    /// Table column inline-sizes are assigned in table flow and propagated to table row or rowgroup flow.
-    /// Therefore, table colgroup flow does not need to assign its inline-size.
-    fn assign_inline_sizes(&mut self, _ctx: &LayoutContext) {
+    /// Table column inline-sizes are assigned in the table flow and propagated to table row flows
+    /// and/or rowgroup flows. Therefore, table colgroup flows do not need to assign inline-sizes.
+    fn assign_inline_sizes(&mut self, _: &LayoutContext) {
     }
 
-    /// Table column do not have block-size.
-    fn assign_block_size(&mut self, _ctx: &LayoutContext) {
+    /// Table columns do not have block-size.
+    fn assign_block_size(&mut self, _: &LayoutContext) {
     }
 
     fn update_late_computed_inline_position_if_necessary(&mut self, _: Au) {}
