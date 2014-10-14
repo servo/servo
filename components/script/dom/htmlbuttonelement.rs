@@ -62,7 +62,7 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
     // https://html.spec.whatwg.org/multipage/forms.html#dom-button-type
     fn Type(self) -> DOMString {
         let elem: JSRef<Element> = ElementCast::from_ref(self);
-        let ty = elem.get_string_attribute("type").into_ascii_lower();
+        let ty = elem.get_string_attribute(&atom!("type")).into_ascii_lower();
         // https://html.spec.whatwg.org/multipage/forms.html#attr-button-type
         match ty.as_slice() {
             "reset" | "button" | "menu" => ty,

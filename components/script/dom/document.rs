@@ -123,7 +123,8 @@ impl CollectionFilter for EmbedsFilter {
 struct LinksFilter;
 impl CollectionFilter for LinksFilter {
     fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {
-        (elem.is_htmlanchorelement() || elem.is_htmlareaelement()) && elem.has_attribute("href")
+        (elem.is_htmlanchorelement() || elem.is_htmlareaelement()) &&
+            elem.has_attribute(&atom!("href"))
     }
 }
 
@@ -147,7 +148,7 @@ impl CollectionFilter for ScriptsFilter {
 struct AnchorsFilter;
 impl CollectionFilter for AnchorsFilter {
     fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {
-        elem.is_htmlanchorelement() && elem.has_attribute("href")
+        elem.is_htmlanchorelement() && elem.has_attribute(&atom!("href"))
     }
 }
 
@@ -278,7 +279,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         self.GetElementById(fragid.clone()).or_else(|| {
             let check_anchor = |&node: &JSRef<HTMLAnchorElement>| {
                 let elem: JSRef<Element> = ElementCast::from_ref(node);
-                elem.get_attribute(ns!(""), "name").root().map_or(false, |attr| {
+                elem.get_attribute(ns!(""), &atom!("name")).root().map_or(false, |attr| {
                     attr.value().as_slice() == fragid.as_slice()
                 })
             };
@@ -785,7 +786,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             }
 
             let element: JSRef<Element> = ElementCast::to_ref(node).unwrap();
-            element.get_attribute(ns!(""), "name").root().map_or(false, |attr| {
+            element.get_attribute(ns!(""), &atom!("name")).root().map_or(false, |attr| {
                 attr.value().as_slice() == name.as_slice()
             })
         })

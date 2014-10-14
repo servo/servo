@@ -8,7 +8,6 @@
 use selectors::AttrSelector;
 use string_cache::{Atom, Namespace};
 
-
 pub trait TNode<'a, E: TElement<'a>> : Clone + Copy {
     fn parent_node(self) -> Option<Self>;
     fn first_child(self) -> Option<Self>;
@@ -28,8 +27,8 @@ pub trait TNode<'a, E: TElement<'a>> : Clone + Copy {
 }
 
 pub trait TElement<'a> : Copy {
-    fn get_attr(self, namespace: &Namespace, attr: &str) -> Option<&'a str>;
-    fn get_attrs(self, attr: &str) -> Vec<&'a str>;
+    fn get_attr(self, namespace: &Namespace, attr: &Atom) -> Option<&'a str>;
+    fn get_attrs(self, attr: &Atom) -> Vec<&'a str>;
     fn get_link(self) -> Option<&'a str>;
     fn get_local_name(self) -> &'a Atom;
     fn get_namespace(self) -> &'a Namespace;
@@ -37,6 +36,13 @@ pub trait TElement<'a> : Copy {
     fn get_id(self) -> Option<Atom>;
     fn get_disabled_state(self) -> bool;
     fn get_enabled_state(self) -> bool;
-    fn has_class(self, name: &str) -> bool;
+    fn has_class(self, name: &Atom) -> bool;
+
+    // Ordinarily I wouldn't use callbacks like this, but the alternative is
+    // really messy, since there is a `JSRef` and a `RefCell` involved. Maybe
+    // in the future when we have associated types and/or a more convenient
+    // JS GC story... --pcwalton
     fn each_class(self, callback: |&Atom|);
 }
+
+

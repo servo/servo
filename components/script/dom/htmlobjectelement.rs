@@ -63,8 +63,8 @@ impl<'a> ProcessDataURL for JSRef<'a, HTMLObjectElement> {
         let elem: JSRef<Element> = ElementCast::from_ref(*self);
 
         // TODO: support other values
-        match (elem.get_attribute(ns!(""), "type").map(|x| x.root().Value()),
-               elem.get_attribute(ns!(""), "data").map(|x| x.root().Value())) {
+        match (elem.get_attribute(ns!(""), &atom!("type")).map(|x| x.root().Value()),
+               elem.get_attribute(ns!(""), &atom!("data")).map(|x| x.root().Value())) {
             (None, Some(uri)) => {
                 if is_image_data(uri.as_slice()) {
                     let data_url = Url::parse(uri.as_slice()).unwrap();

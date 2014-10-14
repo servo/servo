@@ -56,7 +56,7 @@ impl<'a> PrivateHTMLAnchorElementHelpers for JSRef<'a, HTMLAnchorElement> {
     fn handle_event_impl(self, event: JSRef<Event>) {
         if "click" == event.Type().as_slice() && !event.DefaultPrevented() {
             let element: JSRef<Element> = ElementCast::from_ref(self);
-            let attr = element.get_attribute(ns!(""), "href").root();
+            let attr = element.get_attribute(ns!(""), &atom!("href")).root();
             match attr {
                 Some(ref href) => {
                     let value = href.Value();

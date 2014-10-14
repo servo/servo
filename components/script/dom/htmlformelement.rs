@@ -28,6 +28,7 @@ use std::ascii::OwnedStrAsciiExt;
 use std::str::StrSlice;
 use url::UrlParser;
 use url::form_urlencoded::serialize;
+use string_cache::Atom;
 
 #[jstraceable]
 #[must_root]
@@ -349,14 +350,24 @@ impl<'a> FormSubmitter<'a> {
     fn action(&self) -> DOMString {
         match *self {
             FormElement(form) => form.Action(),
-            InputElement(input_element) => input_element.get_form_attribute("formaction", |i| i.FormAction(), |f| f.Action())
+            InputElement(input_element) => {
+                // FIXME(pcwalton): Make this a static atom.
+                input_element.get_form_attribute(&Atom::from_slice("formaction"),
+                                                 |i| i.FormAction(),
+                                                 |f| f.Action())
+            }
         }
     }
 
     fn enctype(&self) -> FormEncType {
         let attr = match *self {
             FormElement(form) => form.Enctype(),
-            InputElement(input_element) => input_element.get_form_attribute("formenctype", |i| i.FormEnctype(), |f| f.Enctype())
+            InputElement(input_element) => {
+                // FIXME(pcwalton): Make this a static atom.
+                input_element.get_form_attribute(&Atom::from_slice("formenctype"),
+                                                 |i| i.FormEnctype(),
+                                                 |f| f.Enctype())
+            }
         };
         match attr.as_slice() {
             "multipart/form-data" => FormDataEncoded,
@@ -370,7 +381,12 @@ impl<'a> FormSubmitter<'a> {
     fn method(&self) -> FormMethod {
         let attr = match *self {
             FormElement(form) => form.Method(),
-            InputElement(input_element) => input_element.get_form_attribute("formmethod", |i| i.FormMethod(), |f| f.Method())
+            InputElement(input_element) => {
+                // FIXME(pcwalton): Make this a static atom.
+                input_element.get_form_attribute(&Atom::from_slice("formmethod"),
+                                                 |i| i.FormMethod(),
+                                                 |f| f.Method())
+            }
         };
         match attr.as_slice() {
             "dialog" => FormDialog,
@@ -382,14 +398,20 @@ impl<'a> FormSubmitter<'a> {
     fn target(&self) -> DOMString {
         match *self {
             FormElement(form) => form.Target(),
-            InputElement(input_element) => input_element.get_form_attribute("formtarget", |i| i.FormTarget(), |f| f.Target())
+            InputElement(input_element) => {
+                // FIXME(pcwalton): Make this a static atom.
+                input_element.get_form_attribute(&Atom::from_slice("formtarget"),
+                                                 |i| i.FormTarget(),
+                                                 |f| f.Target())
+            }
         }
     }
 }
 
 pub trait FormOwner<'a> : Copy {
     fn form_owner(self) -> Option<Temporary<HTMLFormElement>>;
-    fn get_form_attribute(self, attr: &str,
+    fn get_form_attribute(self,
+                          attr: &Atom,
                           input: |Self| -> DOMString,
                           owner: |JSRef<HTMLFormElement>| -> DOMString) -> DOMString {
         if self.to_element().has_attribute(attr) {

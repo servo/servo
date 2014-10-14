@@ -11,6 +11,7 @@
 
 #![feature(phase)]
 #[phase(plugin, link)] extern crate log;
+#[phase(plugin)] extern crate string_cache_macros;
 
 extern crate debug;
 extern crate collections;

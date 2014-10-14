@@ -87,7 +87,7 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
 
     fn get_url(self) -> Option<Url> {
         let element: JSRef<Element> = ElementCast::from_ref(self);
-        element.get_attribute(ns!(""), "src").root().and_then(|src| {
+        element.get_attribute(ns!(""), &atom!("src")).root().and_then(|src| {
             let url = src.value();
             if url.as_slice().is_empty() {
                 None
@@ -150,22 +150,22 @@ impl HTMLIFrameElement {
 impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
     fn Src(self) -> DOMString {
         let element: JSRef<Element> = ElementCast::from_ref(self);
-        element.get_string_attribute("src")
+        element.get_string_attribute(&atom!("src"))
     }
 
     fn SetSrc(self, src: DOMString) {
         let element: JSRef<Element> = ElementCast::from_ref(self);
-        element.set_url_attribute("src", src)
+        element.set_url_attribute(&atom!("src"), src)
     }
 
     fn Sandbox(self) -> DOMString {
         let element: JSRef<Element> = ElementCast::from_ref(self);
-        element.get_string_attribute("sandbox")
+        element.get_string_attribute(&atom!("sandbox"))
     }
 
     fn SetSandbox(self, sandbox: DOMString) {
         let element: JSRef<Element> = ElementCast::from_ref(self);
-        element.set_string_attribute("sandbox", sandbox);
+        element.set_string_attribute(&atom!("sandbox"), sandbox);
     }
 
     fn GetContentWindow(self) -> Option<Temporary<Window>> {

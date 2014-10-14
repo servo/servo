@@ -919,16 +919,19 @@ pub trait RawLayoutNodeHelpers {
 }
 
 impl RawLayoutNodeHelpers for Node {
+    #[inline]
     unsafe fn get_hover_state_for_layout(&self) -> bool {
         (*self.unsafe_get_flags()).contains(InHoverState)
     }
+    #[inline]
     unsafe fn get_disabled_state_for_layout(&self) -> bool {
         (*self.unsafe_get_flags()).contains(InDisabledState)
     }
+    #[inline]
     unsafe fn get_enabled_state_for_layout(&self) -> bool {
         (*self.unsafe_get_flags()).contains(InEnabledState)
     }
-
+    #[inline]
     fn type_id_for_layout(&self) -> NodeTypeId {
         self.type_id
     }
@@ -1581,6 +1584,7 @@ impl Node {
         }
     }
 
+    #[inline]
     pub unsafe fn unsafe_get_flags(&self) -> *const NodeFlags {
         mem::transmute(&self.flags)
     }
@@ -2221,9 +2225,9 @@ impl<'a> style::TNode<'a, JSRef<'a, Element>> for JSRef<'a, Node> {
     fn match_attr(self, attr: &style::AttrSelector, test: |&str| -> bool) -> bool {
         let name = {
             if self.is_html_element_in_html_document() {
-                attr.lower_name.as_slice()
+                &attr.lower_name
             } else {
-                attr.name.as_slice()
+                &attr.name
             }
         };
         match attr.namespace {
@@ -2294,7 +2298,7 @@ impl<'a> DisabledStateHelpers for JSRef<'a, Node> {
 
     fn check_disabled_attribute(self) {
         let elem: JSRef<'a, Element> = ElementCast::to_ref(self).unwrap();
-        let has_disabled_attrib = elem.has_attribute("disabled");
+        let has_disabled_attrib = elem.has_attribute(&atom!("disabled"));
         self.set_disabled_state(has_disabled_attrib);
         self.set_enabled_state(!has_disabled_attrib);
     }

@@ -232,7 +232,7 @@ impl<'a> HTMLInputElementHelpers for JSRef<'a, HTMLInputElement> {
     fn get_radio_group(self) -> Option<String> {
         //TODO: determine form owner
         let elem: JSRef<Element> = ElementCast::from_ref(self);
-        elem.get_attribute(ns!(""), "name")
+        elem.get_attribute(ns!(""), &atom!("name"))
             .root()
             .map(|name| name.Value())
     }
@@ -409,7 +409,7 @@ impl<'a> FormOwner<'a> for JSRef<'a, HTMLInputElement> {
     fn form_owner(self) -> Option<Temporary<HTMLFormElement>> {
         // https://html.spec.whatwg.org/multipage/forms.html#reset-the-form-owner
         let elem: JSRef<Element> = ElementCast::from_ref(self);
-        let owner = elem.get_string_attribute("form");
+        let owner = elem.get_string_attribute(&atom!("form"));
         if !owner.is_empty() {
             let doc = document_from_node(self).root();
             let owner = doc.GetElementById(owner).root();

@@ -11,7 +11,7 @@ macro_rules! make_getter(
             #[allow(unused_imports)]
             use std::ascii::StrAsciiExt;
             let element: JSRef<Element> = ElementCast::from_ref(self);
-            element.get_string_attribute($htmlname)
+            element.get_string_attribute(&Atom::from_slice($htmlname.to_ascii_lower().as_slice()))
         }
     );
     ($attr:ident) => {
@@ -28,7 +28,8 @@ macro_rules! make_bool_getter(
             #[allow(unused_imports)]
             use std::ascii::StrAsciiExt;
             let element: JSRef<Element> = ElementCast::from_ref(self);
-            element.has_attribute($htmlname)
+            // FIXME(pcwalton): Do this at compile time, not runtime.
+            element.has_attribute(&Atom::from_slice($htmlname))
         }
     );
     ($attr:ident) => {
@@ -45,7 +46,8 @@ macro_rules! make_uint_getter(
             #[allow(unused_imports)]
             use std::ascii::StrAsciiExt;
             let element: JSRef<Element> = ElementCast::from_ref(self);
-            element.get_uint_attribute($htmlname)
+            // FIXME(pcwalton): Do this at compile time, not runtime.
+            element.get_uint_attribute(&Atom::from_slice($htmlname))
         }
     );
     ($attr:ident) => {
@@ -62,10 +64,12 @@ macro_rules! make_url_getter(
             #[allow(unused_imports)]
             use std::ascii::StrAsciiExt;
             let element: JSRef<Element> = ElementCast::from_ref(self);
-            element.get_url_attribute($htmlname)
+            // FIXME(pcwalton): Do this at compile time, not runtime.
+            element.get_url_attribute(&Atom::from_slice($htmlname))
         }
     );
     ($attr:ident) => {
+        // FIXME(pcwalton): Do this at compile time, not runtime.
         make_url_getter!($attr, stringify!($attr).to_ascii_lower().as_slice())
     }
 )
@@ -79,7 +83,7 @@ macro_rules! make_url_or_base_getter(
             #[allow(unused_imports)]
             use std::ascii::StrAsciiExt;
             let element: JSRef<Element> = ElementCast::from_ref(self);
-            let url = element.get_url_attribute($htmlname);
+            let url = element.get_url_attribute(&Atom::from_slice($htmlname));
             match url.as_slice() {
                 "" => {
                     let window = window_from_node(self).root();
@@ -103,7 +107,8 @@ macro_rules! make_enumerated_getter(
             #[allow(unused_imports)]
             use std::ascii::StrAsciiExt;
             let element: JSRef<Element> = ElementCast::from_ref(self);
-            let val = element.get_string_attribute($htmlname).into_ascii_lower();
+            let val = element.get_string_attribute(&Atom::from_slice($htmlname))
+                             .into_ascii_lower();
             // https://html.spec.whatwg.org/multipage/forms.html#attr-fs-method
             match val.as_slice() {
                 $($choices)|+ => val,
@@ -125,7 +130,8 @@ macro_rules! make_setter(
             use dom::element::{Element, AttributeHandlers};
             use dom::bindings::codegen::InheritTypes::ElementCast;
             let element: JSRef<Element> = ElementCast::from_ref(self);
-            element.set_string_attribute($htmlname, value)
+            // FIXME(pcwalton): Do this at compile time, not at runtime.
+            element.set_string_attribute(&Atom::from_slice($htmlname), value)
         }
     );
 )
@@ -137,7 +143,8 @@ macro_rules! make_bool_setter(
             use dom::element::{Element, AttributeHandlers};
             use dom::bindings::codegen::InheritTypes::ElementCast;
             let element: JSRef<Element> = ElementCast::from_ref(self);
-            element.set_bool_attribute($htmlname, value)
+            // FIXME(pcwalton): Do this at compile time, not at runtime.
+            element.set_bool_attribute(&Atom::from_slice($htmlname), value)
         }
     );
 )
@@ -149,7 +156,8 @@ macro_rules! make_uint_setter(
             use dom::element::{Element, AttributeHandlers};
             use dom::bindings::codegen::InheritTypes::ElementCast;
             let element: JSRef<Element> = ElementCast::from_ref(self);
-            element.set_uint_attribute($htmlname, value)
+            // FIXME(pcwalton): Do this at compile time, not at runtime.
+            element.set_uint_attribute(&Atom::from_slice($htmlname), value)
         }
     );
 )
