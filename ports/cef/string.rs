@@ -9,6 +9,9 @@ use libc::types::os::arch::c95::wchar_t;
 use mem::{new0,newarray0,delete,deletearray};
 use std::mem;
 use std::ptr;
+use std::slice;
+use std::string;
+use std::str;
 use types::{cef_string_utf16_t, cef_string_utf8_t, cef_string_wide_t};
 use types::{cef_string_userfree_utf16_t, cef_string_userfree_utf8_t, cef_string_userfree_wide_t};
 
@@ -88,6 +91,37 @@ pub extern "C" fn cef_string_utf8_set(src: *const u8, src_len: size_t, output: *
        }
     }
     return 1;
+}
+
+#[no_mangle]
+pub extern "C" fn cef_string_utf8_to_utf16(src: *const u8, src_len: size_t, output: *mut cef_string_utf16_t) -> c_int {
+    unsafe {
+       slice::raw::buf_as_slice(src, src_len as uint, |result| {
+            match str::from_utf8(result) {
+                 Some(enc) => {
+                      let conv = enc.utf16_units().collect::<Vec<u16>>();
+                      cef_string_utf16_set(conv.as_ptr(), conv.len() as size_t, output, 1);
+                      1
+                 },
+                 None => 0
+            }
+       })
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn cef_string_utf16_to_utf8(src: *const u16, src_len: size_t, output: *mut cef_string_utf8_t) -> c_int {
+    unsafe {
+       slice::raw::buf_as_slice(src, src_len as uint, |ustr| {
+            match string::String::from_utf16(ustr) {
+                Some(str) => {
+                    cef_string_utf8_set(str.as_bytes().as_ptr(), str.len() as size_t, output, 1);
+                    1 as c_int
+                },
+                None =>  0 as c_int
+            }
+       })
+    }
 }
 
 #[no_mangle]
