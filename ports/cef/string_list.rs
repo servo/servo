@@ -62,3 +62,13 @@ extern "C" fn cef_string_list_clear(lt: *mut cef_string_list_t) {
         }
     }
 }
+
+#[no_mangle]
+extern "C" fn cef_string_list_free(lt: *mut cef_string_list_t) {
+    unsafe {
+        if fptr_is_null(mem::transmute(lt)) { return; }
+        let mut v: Box<Vec<*mut cef_string_t>> = mem::transmute(lt);
+        cef_string_list_clear(lt);
+        drop(v);
+    }
+}
