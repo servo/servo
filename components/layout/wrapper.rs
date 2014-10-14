@@ -189,7 +189,7 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
         unsafe {
             if self.get().is_text() {
                 let text: JS<Text> = self.get_jsmanaged().transmute_copy();
-                (*text.unsafe_get()).characterdata().data().clone()
+                (*text.unsafe_get()).characterdata().data_for_layout().to_string()
             } else if self.get().is_htmlinputelement() {
                 let input: JS<HTMLInputElement> = self.get_jsmanaged().transmute_copy();
                 input.get_value_for_layout()
@@ -765,7 +765,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
             Some(TextNodeTypeId) => {
                 unsafe {
                     let text: JS<Text> = self.get_jsmanaged().transmute_copy();
-                    if !is_whitespace((*text.unsafe_get()).characterdata().data().as_slice()) {
+                    if !is_whitespace((*text.unsafe_get()).characterdata().data_for_layout()) {
                         return false
                     }
 
