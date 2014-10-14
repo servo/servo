@@ -775,6 +775,10 @@ impl InlineFlow {
     pub fn build_display_list_inline(&mut self, layout_context: &LayoutContext) {
         let size = self.base.position.size.to_physical(self.base.writing_mode);
         if !Rect(self.base.abs_position, size).intersects(&layout_context.shared.dirty) {
+            println!("inline block (abs pos {}, size {}) didn't intersect \
+                      dirty rect owo",
+                     self.base.abs_position,
+                     size);
             return
         }
 
@@ -1031,9 +1035,12 @@ impl Flow for InlineFlow {
 
         // Initialize content fragment inline-sizes if they haven't been initialized already.
         //
-        // TODO: Combine this with `LineBreaker`'s walk in the fragment list, or put this into `Fragment`.
+        // TODO: Combine this with `LineBreaker`'s walk in the fragment list, or put this into
+        // `Fragment`.
 
         debug!("InlineFlow::assign_inline_sizes: floats in: {:?}", self.base.floats);
+
+        self.base.position.size.inline = self.base.block_container_inline_size;
 
         {
             let inline_size = self.base.position.size.inline;
@@ -1071,8 +1078,11 @@ impl Flow for InlineFlow {
         debug!("assign_block_size_inline: floats in: {:?}", self.base.floats);
 
         // assign block-size for inline fragments
+        let containing_block_block_size =
+            self.base.block_container_explicit_block_size.unwrap_or(Au(0));
         for fragment in self.fragments.fragments.iter_mut() {
-            fragment.assign_replaced_block_size_if_necessary();
+            fragment.assign_replaced_block_size_if_necessary(
+                containing_block_block_size);
         }
 
         let scanner_floats = self.base.floats.clone();

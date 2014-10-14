@@ -209,7 +209,7 @@ impl Flow for TableRowFlow {
         debug!("assign_inline_sizes({}): assigning inline_size for flow", "table_row");
 
         // The position was set to the containing block by the flow's parent.
-        let containing_block_inline_size = self.block_flow.base.position.size.inline;
+        let containing_block_inline_size = self.block_flow.base.block_container_inline_size;
         // FIXME: In case of border-collapse: collapse, inline-start_content_edge should be border-inline-start
         let inline_start_content_edge = Au::new(0);
 

@@ -256,7 +256,7 @@ impl Flow for TableFlow {
         debug!("assign_inline_sizes({}): assigning inline_size for flow", "table");
 
         // The position was set to the containing block by the flow's parent.
-        let containing_block_inline_size = self.block_flow.base.position.size.inline;
+        let containing_block_inline_size = self.block_flow.base.block_container_inline_size;
 
         let mut num_unspecified_inline_sizes = 0;
         let mut total_column_inline_size = Au::new(0);
