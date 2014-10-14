@@ -48,8 +48,8 @@ impl Flow for TableCaptionFlow {
         &mut self.block_flow
     }
 
-    fn bubble_inline_sizes(&mut self, ctx: &LayoutContext) {
-        self.block_flow.bubble_inline_sizes(ctx);
+    fn bubble_inline_sizes(&mut self) {
+        self.block_flow.bubble_inline_sizes();
     }
 
     fn assign_inline_sizes(&mut self, ctx: &LayoutContext) {

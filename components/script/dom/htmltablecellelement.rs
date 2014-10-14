@@ -2,21 +2,28 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::InheritTypes::HTMLTableCellElementDerived;
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableCellElementDerived};
 use dom::bindings::js::JSRef;
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::{ElementTypeId, HTMLTableDataCellElementTypeId, HTMLTableHeaderCellElementTypeId};
+use dom::element::{ElementTypeId, HTMLTableDataCellElementTypeId};
+use dom::element::{HTMLTableHeaderCellElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::node::ElementNodeTypeId;
-use servo_util::str::DOMString;
+use dom::virtualmethods::VirtualMethods;
+
+use servo_util::str::{AutoLpa, DOMString, LengthOrPercentageOrAuto};
+use servo_util::str;
+use std::cell::Cell;
+use string_cache::Atom;
 
 #[jstraceable]
 #[must_root]
 #[privatize]
 pub struct HTMLTableCellElement {
     htmlelement: HTMLElement,
+    width: Cell<LengthOrPercentageOrAuto>,
 }
 
 impl HTMLTableCellElementDerived for EventTarget {
@@ -32,13 +39,55 @@ impl HTMLTableCellElementDerived for EventTarget {
 impl HTMLTableCellElement {
     pub fn new_inherited(type_id: ElementTypeId, tag_name: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLTableCellElement {
         HTMLTableCellElement {
-            htmlelement: HTMLElement::new_inherited(type_id, tag_name, prefix, document)
+            htmlelement: HTMLElement::new_inherited(type_id, tag_name, prefix, document),
+            width: Cell::new(AutoLpa)
         }
     }
 
     #[inline]
-    pub fn htmlelement<'a>(&'a self) -> &'a HTMLElement {
+    pub fn htmlelement(&self) -> &HTMLElement {
         &self.htmlelement
+    }
+}
+
+pub trait HTMLTableCellElementHelpers {
+    fn get_width(&self) -> LengthOrPercentageOrAuto;
+}
+
+impl HTMLTableCellElementHelpers for HTMLTableCellElement {
+    fn get_width(&self) -> LengthOrPercentageOrAuto {
+        self.width.get()
+    }
+}
+
+impl<'a> VirtualMethods for JSRef<'a, HTMLTableCellElement> {
+    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
+        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
+        Some(htmlelement as &VirtualMethods)
+    }
+
+    fn after_set_attr(&self, name: &Atom, value: DOMString) {
+        match self.super_type() {
+            Some(ref s) => s.after_set_attr(name, value.clone()),
+            _ => {}
+        }
+
+        match name.as_slice() {
+            "width" => self.width.set(str::parse_length(value.as_slice())),
+            _ => {}
+        }
+    }
+
+    fn before_remove_attr(&self, name: &Atom, value: DOMString) {
+        match self.super_type() {
+            Some(ref s) => s.before_remove_attr(name, value),
+            _ => {}
+        }
+
+        match name.as_slice() {
+            "width" => self.width.set(AutoLpa),
+            _ => {}
+        }
     }
 }
 

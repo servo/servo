@@ -88,14 +88,14 @@ pub trait LayoutHTMLInputElementHelpers {
     unsafe fn get_size_for_layout(&self) -> u32;
 }
 
-impl LayoutHTMLInputElementHelpers for JS<HTMLInputElement> {
+impl LayoutHTMLInputElementHelpers for HTMLInputElement {
     #[allow(unrooted_must_root)]
     unsafe fn get_value_for_layout(&self) -> String {
-        unsafe fn get_raw_value(input: &JS<HTMLInputElement>) -> Option<String> {
-            mem::transmute::<&RefCell<Option<String>>, &Option<String>>(&(*input.unsafe_get()).value).clone()
+        unsafe fn get_raw_value(input: &HTMLInputElement) -> Option<String> {
+            mem::transmute::<&RefCell<Option<String>>, &Option<String>>(&input.value).clone()
         }
 
-        match (*self.unsafe_get()).input_type.get() {
+        match self.input_type.get() {
             InputCheckbox | InputRadio => "".to_string(),
             InputFile | InputImage => "".to_string(),
             InputButton(ref default) => get_raw_value(self)
@@ -111,7 +111,17 @@ impl LayoutHTMLInputElementHelpers for JS<HTMLInputElement> {
 
     #[allow(unrooted_must_root)]
     unsafe fn get_size_for_layout(&self) -> u32 {
-        (*self.unsafe_get()).size.get()
+        self.size.get()
+    }
+}
+
+impl LayoutHTMLInputElementHelpers for JS<HTMLInputElement> {
+    unsafe fn get_value_for_layout(&self) -> String {
+        (*self.unsafe_get()).get_value_for_layout()
+    }
+
+    unsafe fn get_size_for_layout(&self) -> u32 {
+        (*self.unsafe_get()).get_size_for_layout()
     }
 }
 
@@ -187,11 +197,12 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     make_setter!(SetFormTarget, "formtarget")
 }
 
-trait HTMLInputElementHelpers {
+pub trait HTMLInputElementHelpers {
     fn force_relayout(self);
     fn radio_group_updated(self, group: Option<&str>);
     fn get_radio_group(self) -> Option<String>;
     fn update_checked_state(self, checked: bool);
+    fn get_size(&self) -> u32;
 }
 
 fn broadcast_radio_checked(broadcaster: JSRef<HTMLInputElement>, group: Option<&str>) {
@@ -247,6 +258,10 @@ impl<'a> HTMLInputElementHelpers for JSRef<'a, HTMLInputElement> {
         }
         //TODO: dispatch change event
         self.force_relayout();
+    }
+
+    fn get_size(&self) -> u32 {
+        self.size.get()
     }
 }
 

@@ -260,7 +260,7 @@ pub struct BubbleISizes<'a> {
 impl<'a> PostorderFlowTraversal for BubbleISizes<'a> {
     #[inline]
     fn process(&mut self, flow: &mut Flow) -> bool {
-        flow.bubble_inline_sizes(self.layout_context);
+        flow.bubble_inline_sizes();
         true
     }
 

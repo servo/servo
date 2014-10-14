@@ -44,11 +44,12 @@ pub use properties::{PropertyDeclaration, ComputedValues, computed_values, style
 pub use properties::{PropertyDeclarationBlock, parse_style_attribute};  // Style attributes
 pub use properties::{CSSFloat, DeclaredValue, PropertyDeclarationParseResult};
 pub use properties::longhands;
-pub use node::{TElement, TNode};
+pub use node::{TElement, TElementAttributes, TNode};
 pub use selectors::{PseudoElement, Before, After, SelectorList, parse_selector_list_from_str};
 pub use selectors::{AttrSelector, NamespaceConstraint, SpecificNamespace, AnyNamespace};
 pub use selectors::{SimpleSelector,LocalNameSelector};
 pub use cssparser::{Color, RGBA};
+pub use legacy::{IntegerAttribute, LengthAttribute, SizeIntegerAttribute, WidthLengthAttribute};
 pub use font_face::{Source, LocalSource, UrlSource_};
 
 mod stylesheets;
@@ -61,3 +62,4 @@ mod node;
 mod media_queries;
 mod parsing_utils;
 mod font_face;
+mod legacy;
