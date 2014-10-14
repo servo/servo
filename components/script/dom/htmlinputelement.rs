@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLInputElementCast, NodeCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLFormElementCast, HTMLInputElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLFieldSetElementDerived};
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable, ResultRootable};
 use dom::bindings::utils::{Reflectable, Reflector};
@@ -18,7 +18,8 @@ use dom::element::{AttributeHandlers, Element, HTMLInputElementTypeId};
 use dom::event::Event;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{DisabledStateHelpers, Node, NodeHelpers, ElementNodeTypeId, document_from_node};
+use dom::htmlformelement::{InputElement, FormOwner, HTMLFormElement, HTMLFormElementHelpers};
+use dom::node::{DisabledStateHelpers, Node, NodeHelpers, ElementNodeTypeId, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 
 use servo_util::str::{DOMString, parse_unsigned_integer};
@@ -136,21 +137,13 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     make_uint_setter!(SetSize, "size")
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-type
-    fn Type(self) -> DOMString {
-        let elem: JSRef<Element> = ElementCast::from_ref(self);
-        let ty = elem.get_string_attribute("type").into_ascii_lower();
-        // https://html.spec.whatwg.org/multipage/forms.html#attr-input-type
-        match ty.as_slice() {
-            "hidden" | "search" | "tel" |
-            "url" | "email" | "password" |
-            "datetime" | "date" | "month" |
-            "week" | "time" | "datetime-local" |
-            "number" | "range" | "color" |
-            "checkbox" | "radio" | "file" |
-            "submit" | "image" | "reset" | "button" => ty,
-            _ => "text".to_string()
-        }
-    }
+    make_enumerated_getter!(Type, "text", "hidden" | "search" | "tel" |
+                                  "url" | "email" | "password" |
+                                  "datetime" | "date" | "month" |
+                                  "week" | "time" | "datetime-local" |
+                                  "number" | "range" | "color" |
+                                  "checkbox" | "radio" | "file" |
+                                  "submit" | "image" | "reset" | "button")
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-type
     make_setter!(SetType, "type")
@@ -168,6 +161,30 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
 
     // https://html.spec.whatwg.org/multipage/forms.html#attr-fe-name
     make_setter!(SetName, "name")
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formaction
+    make_url_or_base_getter!(FormAction)
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formaction
+    make_setter!(SetFormAction, "formaction")
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formenctype
+    make_enumerated_getter!(FormEnctype, "application/x-www-form-urlencoded", "text/plain" | "multipart/form-data")
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formenctype
+    make_setter!(SetFormEnctype, "formenctype")
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formmethod
+        make_enumerated_getter!(FormMethod, "get", "post" | "dialog")
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formmethod
+    make_setter!(SetFormMethod, "formmethod")
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formtarget
+    make_getter!(FormTarget)
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formtarget
+    make_setter!(SetFormTarget, "formtarget")
 }
 
 trait HTMLInputElementHelpers {
@@ -369,6 +386,11 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
             match self.input_type.get() {
                 InputCheckbox => self.SetChecked(!self.checked.get()),
                 InputRadio => self.SetChecked(true),
+                InputButton(Some(DEFAULT_SUBMIT_VALUE)) => {
+                    self.form_owner().map(|o| {
+                        o.root().submit(false, InputElement(self.clone()))
+                    });
+                }
                 _ => {}
             }
         }
@@ -378,5 +400,35 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
 impl Reflectable for HTMLInputElement {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.htmlelement.reflector()
+    }
+}
+
+impl<'a> FormOwner<'a> for JSRef<'a, HTMLInputElement> {
+    // FIXME: This is wrong (https://github.com/servo/servo/issues/3553)
+    //        but we need html5ever to do it correctly
+    fn form_owner(self) -> Option<Temporary<HTMLFormElement>> {
+        // https://html.spec.whatwg.org/multipage/forms.html#reset-the-form-owner
+        let elem: JSRef<Element> = ElementCast::from_ref(self);
+        let owner = elem.get_string_attribute("form");
+        if !owner.is_empty() {
+            let doc = document_from_node(self).root();
+            let owner = doc.GetElementById(owner).root();
+            match owner {
+                Some(o) => {
+                    let maybe_form: Option<JSRef<HTMLFormElement>> = HTMLFormElementCast::to_ref(*o);
+                    if maybe_form.is_some() {
+                        return maybe_form.map(Temporary::from_rooted);
+                    }
+                },
+                _ => ()
+            }
+        }
+        let node: JSRef<Node> = NodeCast::from_ref(self);
+        node.ancestors().filter_map(|a| HTMLFormElementCast::to_ref(a)).next()
+            .map(Temporary::from_rooted)
+    }
+
+    fn to_element(self) -> JSRef<'a, Element> {
+        ElementCast::from_ref(self)
     }
 }
