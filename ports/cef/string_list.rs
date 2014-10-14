@@ -17,3 +17,12 @@ extern "C" fn cef_string_list_alloc() -> *mut cef_string_list_t {
          mem::transmute(lt)
     }
 }
+
+#[no_mangle]
+extern "C" fn cef_string_list_size(lt: *const cef_string_list_t) -> c_int {
+    unsafe {
+        if fptr_is_null(mem::transmute(lt)) { return 0; }
+        let v: Box<Vec<*mut cef_string_t>> = mem::transmute(lt);
+        v.len() as c_int
+    }
+}
