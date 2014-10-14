@@ -26,3 +26,14 @@ extern "C" fn cef_string_list_size(lt: *const cef_string_list_t) -> c_int {
         v.len() as c_int
     }
 }
+
+#[no_mangle]
+extern "C" fn cef_string_list_append(lt: *mut cef_string_list_t, value: *const cef_string_t) {
+    unsafe {
+        if fptr_is_null(mem::transmute(lt)) { return; }
+        let mut v: Box<Vec<*mut cef_string_t>> = mem::transmute(lt);
+        let cs = cef_string_userfree_utf8_alloc();
+        cef_string_utf8_set(mem::transmute((*value).str), (*value).length, cs, 1);
+        v.push(cs);
+    }
+}
