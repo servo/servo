@@ -4,6 +4,7 @@
 
 //! DOM bindings for `CharacterData`.
 
+use dom::bindings::cell::{DOMRefCell, Ref};
 use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use dom::bindings::codegen::InheritTypes::{CharacterDataDerived, NodeCast};
 use dom::bindings::error::{Fallible, ErrorResult, IndexSize};
@@ -14,15 +15,12 @@ use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::node::{CommentNodeTypeId, Node, NodeTypeId, TextNodeTypeId, ProcessingInstructionNodeTypeId, NodeHelpers};
 use servo_util::str::DOMString;
 
-use std::cell::{Ref, RefCell};
-use std::mem;
-
 #[jstraceable]
 #[must_root]
 #[privatize]
 pub struct CharacterData {
     node: Node,
-    data: RefCell<DOMString>,
+    data: DOMRefCell<DOMString>,
 }
 
 impl CharacterDataDerived for EventTarget {
@@ -40,7 +38,7 @@ impl CharacterData {
     pub fn new_inherited(id: NodeTypeId, data: DOMString, document: JSRef<Document>) -> CharacterData {
         CharacterData {
             node: Node::new_inherited(id, document),
-            data: RefCell::new(data),
+            data: DOMRefCell::new(data),
         }
     }
 
@@ -61,7 +59,7 @@ impl CharacterData {
 
     #[inline]
     pub unsafe fn data_for_layout<'a>(&'a self) -> &'a str {
-        mem::transmute::<&RefCell<DOMString>, &DOMString>(&self.data).as_slice()
+        self.data.borrow_for_layout().as_slice()
     }
 
 }
