@@ -19,7 +19,7 @@ use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
 use dom::document::{Document, HTMLDocument, DocumentHelpers};
 use dom::element::{Element, HTMLButtonElementTypeId, HTMLInputElementTypeId};
 use dom::element::{HTMLSelectElementTypeId, HTMLTextAreaElementTypeId, HTMLOptionElementTypeId};
-use dom::event::Event;
+use dom::event::{Event, Bubbles, DoesNotBubble, Cancelable, NotCancelable};
 use dom::uievent::UIEvent;
 use dom::eventtarget::{EventTarget, EventTargetHelpers};
 use dom::node;
@@ -851,7 +851,7 @@ impl ScriptTask {
         // We have no concept of a document loader right now, so just dispatch the
         // "load" event as soon as we've finished executing all scripts parsed during
         // the initial load.
-        let event = Event::new(&global::Window(*window), "load".to_string(), false, false).root();
+        let event = Event::new(&global::Window(*window), "load".to_string(), DoesNotBubble, NotCancelable).root();
         let doctarget: JSRef<EventTarget> = EventTargetCast::from_ref(*document);
         let wintarget: JSRef<EventTarget> = EventTargetCast::from_ref(*window);
         let _ = wintarget.dispatch_event_with_target(Some(doctarget), *event);
@@ -981,7 +981,7 @@ impl ScriptTask {
                                         let event =
                                             Event::new(&global::Window(*window),
                                                        "click".to_string(),
-                                                       true, true).root();
+                                                       Bubbles, Cancelable).root();
                                         let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(node);
                                         let _ = eventtarget.dispatch_event_with_target(None, *event);
 
