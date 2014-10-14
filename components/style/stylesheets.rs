@@ -14,7 +14,7 @@ use selectors;
 use properties;
 use errors::{ErrorLoggerIterator, log_css_error};
 use namespaces::{NamespaceMap, parse_namespace_rule};
-use media_queries::{MediaRule, parse_media_rule};
+use media_queries::{Device, MediaRule, parse_media_rule};
 use media_queries;
 use font_face::{FontFaceRule, Source, parse_font_face_rule, iter_font_face_rules_inner};
 
@@ -165,6 +165,16 @@ pub fn iter_style_rules<'a>(rules: &[CSSRule], device: &media_queries::Device,
     }
 }
 
+#[cfg(test)]
+pub fn iter_stylesheet_media_rules(stylesheet: &Stylesheet, callback: |&MediaRule|) {
+    for rule in stylesheet.rules.iter() {
+        match *rule {
+            CSSMediaRule(ref rule) => callback(rule),
+            _ => {}
+        }
+    }
+}
+
 #[inline]
 pub fn iter_stylesheet_style_rules(stylesheet: &Stylesheet, device: &media_queries::Device,
                                    callback: |&StyleRule|) {
@@ -173,6 +183,7 @@ pub fn iter_stylesheet_style_rules(stylesheet: &Stylesheet, device: &media_queri
 
 
 #[inline]
-pub fn iter_font_face_rules(stylesheet: &Stylesheet, callback: |family: &str, source: &Source|) {
-    iter_font_face_rules_inner(stylesheet.rules.as_slice(), callback)
+pub fn iter_font_face_rules(stylesheet: &Stylesheet, device: &Device,
+                            callback: |family: &str, source: &Source|) {
+    iter_font_face_rules_inner(stylesheet.rules.as_slice(), device, callback)
 }
