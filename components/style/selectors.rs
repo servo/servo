@@ -106,8 +106,8 @@ pub struct LocalName {
 
 #[deriving(Eq, PartialEq, Clone, Hash)]
 pub struct AttrSelector {
-    pub name: String,
-    pub lower_name: String,
+    pub name: Atom,
+    pub lower_name: Atom,
     pub namespace: NamespaceConstraint,
 }
 
@@ -448,8 +448,8 @@ fn parse_attribute_selector(content: Vec<ComponentValue>, namespaces: &Namespace
         Some((_, None)) => fail!("Implementation error, this should not happen."),
         Some((namespace, Some(local_name))) => AttrSelector {
             namespace: namespace,
-            lower_name: local_name.as_slice().to_ascii_lower(),
-            name: local_name,
+            lower_name: Atom::from_slice(local_name.as_slice().to_ascii_lower().as_slice()),
+            name: Atom::from_slice(local_name.as_slice()),
         },
     };
     skip_whitespace(iter);
@@ -675,8 +675,8 @@ mod tests {
         assert!(parse_ns("[Foo]", &namespaces) == Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(AttrExists(AttrSelector {
-                    name: String::from_str("Foo"),
-                    lower_name: String::from_str("foo"),
+                    name: Atom::from_slice("Foo"),
+                    lower_name: Atom::from_slice("foo"),
                     namespace: SpecificNamespace(ns!("")),
                 })),
                 next: None,
@@ -690,8 +690,8 @@ mod tests {
         assert!(parse_ns("[Foo]", &namespaces) == Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(AttrExists(AttrSelector {
-                    name: String::from_str("Foo"),
-                    lower_name: String::from_str("foo"),
+                    name: Atom::from_slice("Foo"),
+                    lower_name: Atom::from_slice("foo"),
                     namespace: SpecificNamespace(ns!("")),
                 })),
                 next: None,

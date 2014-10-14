@@ -38,7 +38,6 @@ use std::ascii::StrAsciiExt;
 use std::cell::{Ref, RefMut, RefCell};
 use std::default::Default;
 use std::mem;
-use std::slice::Items;
 use string_cache::{Atom, Namespace};
 use url::UrlParser;
 
@@ -57,6 +56,7 @@ pub struct Element {
 }
 
 impl ElementDerived for EventTarget {
+    #[inline]
     fn is_element(&self) -> bool {
         match *self.type_id() {
             NodeTargetTypeId(ElementNodeTypeId(_)) => true,
@@ -205,24 +205,25 @@ impl Element {
 }
 
 pub trait RawLayoutElementHelpers {
-    unsafe fn get_attr_val_for_layout<'a>(&'a self, namespace: &Namespace, name: &str) -> Option<&'a str>;
-    unsafe fn get_attr_vals_for_layout<'a>(&'a self, name: &str) -> Vec<&'a str>;
-    unsafe fn get_attr_atom_for_layout(&self, namespace: &Namespace, name: &str) -> Option<Atom>;
-    unsafe fn has_class_for_layout(&self, name: &str) -> bool;
-    unsafe fn get_classes_for_layout<'a>(&'a self) -> Option<Items<'a,Atom>>;
+    unsafe fn get_attr_val_for_layout<'a>(&'a self, namespace: &Namespace, name: &Atom)
+                                      -> Option<&'a str>;
+    unsafe fn get_attr_vals_for_layout<'a>(&'a self, name: &Atom) -> Vec<&'a str>;
+    unsafe fn get_attr_atom_for_layout(&self, namespace: &Namespace, name: &Atom) -> Option<Atom>;
+    unsafe fn has_class_for_layout(&self, name: &Atom) -> bool;
+    unsafe fn get_classes_for_layout(&self) -> Option<&'static [Atom]>;
 }
 
 impl RawLayoutElementHelpers for Element {
     #[inline]
     #[allow(unrooted_must_root)]
-    unsafe fn get_attr_val_for_layout<'a>(&'a self, namespace: &Namespace, name: &str)
+    unsafe fn get_attr_val_for_layout<'a>(&'a self, namespace: &Namespace, name: &Atom)
                                           -> Option<&'a str> {
         // cast to point to T in RefCell<T> directly
         let attrs: *const Vec<JS<Attr>> = mem::transmute(&self.attrs);
         (*attrs).iter().find(|attr: & &JS<Attr>| {
             let attr = attr.unsafe_get();
-            name == (*attr).local_name_atom_forever().as_slice() &&
-            *(*attr).namespace() == *namespace
+            *name == (*attr).local_name_atom_forever() &&
+            (*attr).namespace() == namespace
         }).map(|attr| {
             let attr = attr.unsafe_get();
             (*attr).value_ref_forever()
@@ -231,12 +232,12 @@ impl RawLayoutElementHelpers for Element {
 
     #[inline]
     #[allow(unrooted_must_root)]
-    unsafe fn get_attr_vals_for_layout<'a>(&'a self, name: &str) -> Vec<&'a str> {
+    unsafe fn get_attr_vals_for_layout<'a>(&'a self, name: &Atom) -> Vec<&'a str> {
         // cast to point to T in RefCell<T> directly
         let attrs: *const Vec<JS<Attr>> = mem::transmute(&self.attrs);
         (*attrs).iter().filter_map(|attr: &JS<Attr>| {
             let attr = attr.unsafe_get();
-            if name == (*attr).local_name_atom_forever().as_slice() {
+            if *name == (*attr).local_name_atom_forever() {
               Some((*attr).value_ref_forever())
             } else {
               None
@@ -246,14 +247,14 @@ impl RawLayoutElementHelpers for Element {
 
     #[inline]
     #[allow(unrooted_must_root)]
-    unsafe fn get_attr_atom_for_layout(&self, namespace: &Namespace, name: &str)
+    unsafe fn get_attr_atom_for_layout(&self, namespace: &Namespace, name: &Atom)
                                       -> Option<Atom> {
         // cast to point to T in RefCell<T> directly
         let attrs: *const Vec<JS<Attr>> = mem::transmute(&self.attrs);
         (*attrs).iter().find(|attr: & &JS<Attr>| {
             let attr = attr.unsafe_get();
-            name == (*attr).local_name_atom_forever().as_slice() &&
-            *(*attr).namespace() == *namespace
+            *name == (*attr).local_name_atom_forever() &&
+            (*attr).namespace() == namespace
         }).and_then(|attr| {
             let attr = attr.unsafe_get();
             (*attr).value_atom_forever()
@@ -262,24 +263,26 @@ impl RawLayoutElementHelpers for Element {
 
     #[inline]
     #[allow(unrooted_must_root)]
-    unsafe fn has_class_for_layout(&self, name: &str) -> bool {
+    unsafe fn has_class_for_layout(&self, name: &Atom) -> bool {
         let attrs: *const Vec<JS<Attr>> = mem::transmute(&self.attrs);
         (*attrs).iter().find(|attr: & &JS<Attr>| {
             let attr = attr.unsafe_get();
-            (*attr).local_name_atom_forever().as_slice() == "class"
+            (*attr).local_name_atom_forever() == atom!("class")
         }).map_or(false, |attr| {
             let attr = attr.unsafe_get();
-            (*attr).value_tokens_forever().map(|mut tokens| { tokens.any(|atom| atom.as_slice() == name) })
+            (*attr).value_tokens_forever().map(|tokens| {
+                tokens.iter().any(|atom| atom == name)
+            })
         }.take().unwrap())
     }
 
     #[inline]
     #[allow(unrooted_must_root)]
-    unsafe fn get_classes_for_layout<'a>(&'a self) -> Option<Items<'a,Atom>> {
+    unsafe fn get_classes_for_layout(&self) -> Option<&'static [Atom]> {
         let attrs: *const Vec<JS<Attr>> = mem::transmute(&self.attrs);
         (*attrs).iter().find(|attr: & &JS<Attr>| {
             let attr = attr.unsafe_get();
-            (*attr).local_name_atom_forever().as_slice() == "class"
+            (*attr).local_name_atom_forever() == atom!("class")
         }).and_then(|attr| {
             let attr = attr.unsafe_get();
             (*attr).value_tokens_forever()
@@ -293,6 +296,7 @@ pub trait LayoutElementHelpers {
 
 impl LayoutElementHelpers for JS<Element> {
     #[allow(unrooted_must_root)]
+    #[inline]
     unsafe fn html_element_in_html_document_for_layout(&self) -> bool {
         if (*self.unsafe_get()).namespace != ns!(HTML) {
             return false
@@ -355,14 +359,16 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
 pub trait AttributeHandlers {
     /// Returns the attribute with given namespace and case-sensitive local
     /// name, if any.
-    fn get_attribute(self, namespace: Namespace, local_name: &str)
+    fn get_attribute(self, namespace: Namespace, local_name: &Atom)
                      -> Option<Temporary<Attr>>;
-    fn get_attributes(self, local_name: &str)
+    fn get_attributes(self, local_name: &Atom)
                       -> Vec<Temporary<Attr>>;
-    fn set_attribute_from_parser(self, local_name: Atom,
-                                 value: DOMString, namespace: Namespace,
+    fn set_attribute_from_parser(self,
+                                 local_name: Atom,
+                                 value: DOMString,
+                                 namespace: Namespace,
                                  prefix: Option<DOMString>);
-    fn set_attribute(self, name: &str, value: AttrValue);
+    fn set_attribute(self, name: &Atom, value: AttrValue);
     fn do_set_attribute(self, local_name: Atom, value: AttrValue,
                         name: Atom, namespace: Namespace,
                         prefix: Option<DOMString>, cb: |JSRef<Attr>| -> bool);
@@ -371,34 +377,33 @@ pub trait AttributeHandlers {
 
     fn remove_attribute(self, namespace: Namespace, name: &str);
     fn notify_attribute_changed(self, local_name: &Atom);
-    fn has_class(&self, name: &str) -> bool;
+    fn has_class(&self, name: &Atom) -> bool;
     fn notify_attribute_removed(self);
 
-    fn set_atomic_attribute(self, name: &str, value: DOMString);
+    fn set_atomic_attribute(self, name: &Atom, value: DOMString);
 
     // http://www.whatwg.org/html/#reflecting-content-attributes-in-idl-attributes
-    fn has_attribute(self, name: &str) -> bool;
-    fn set_bool_attribute(self, name: &str, value: bool);
-    fn get_url_attribute(self, name: &str) -> DOMString;
-    fn set_url_attribute(self, name: &str, value: DOMString);
-    fn get_string_attribute(self, name: &str) -> DOMString;
-    fn set_string_attribute(self, name: &str, value: DOMString);
-    fn set_tokenlist_attribute(self, name: &str, value: DOMString);
-    fn get_uint_attribute(self, name: &str) -> u32;
-    fn set_uint_attribute(self, name: &str, value: u32);
+    fn has_attribute(self, name: &Atom) -> bool;
+    fn set_bool_attribute(self, name: &Atom, value: bool);
+    fn get_url_attribute(self, name: &Atom) -> DOMString;
+    fn set_url_attribute(self, name: &Atom, value: DOMString);
+    fn get_string_attribute(self, name: &Atom) -> DOMString;
+    fn set_string_attribute(self, name: &Atom, value: DOMString);
+    fn set_tokenlist_attribute(self, name: &Atom, value: DOMString);
+    fn get_uint_attribute(self, name: &Atom) -> u32;
+    fn set_uint_attribute(self, name: &Atom, value: u32);
 }
 
 impl<'a> AttributeHandlers for JSRef<'a, Element> {
-    fn get_attribute(self, namespace: Namespace, local_name: &str) -> Option<Temporary<Attr>> {
+    fn get_attribute(self, namespace: Namespace, local_name: &Atom) -> Option<Temporary<Attr>> {
         self.get_attributes(local_name).iter().map(|attr| attr.root())
             .find(|attr| *attr.namespace() == namespace)
             .map(|x| Temporary::from_rooted(*x))
     }
 
-    fn get_attributes(self, local_name: &str) -> Vec<Temporary<Attr>> {
-        let local_name = Atom::from_slice(local_name);
+    fn get_attributes(self, local_name: &Atom) -> Vec<Temporary<Attr>> {
         self.attrs.borrow().iter().map(|attr| attr.root()).filter_map(|attr| {
-            if *attr.local_name() == local_name {
+            if *attr.local_name() == *local_name {
                 Some(Temporary::from_rooted(*attr))
             } else {
                 None
@@ -406,8 +411,10 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         }).collect()
     }
 
-    fn set_attribute_from_parser(self, local_name: Atom,
-                                 value: DOMString, namespace: Namespace,
+    fn set_attribute_from_parser(self,
+                                 local_name: Atom,
+                                 value: DOMString,
+                                 namespace: Namespace,
                                  prefix: Option<DOMString>) {
         let name = match prefix {
             None => local_name.clone(),
@@ -420,16 +427,15 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         self.do_set_attribute(local_name, value, name, namespace, prefix, |_| false)
     }
 
-    fn set_attribute(self, name: &str, value: AttrValue) {
-        assert!(name == name.to_ascii_lower().as_slice());
-        assert!(!name.contains(":"));
+    fn set_attribute(self, name: &Atom, value: AttrValue) {
+        assert!(name.as_slice() == name.as_slice().to_ascii_lower().as_slice());
+        assert!(!name.as_slice().contains(":"));
 
         let node: JSRef<Node> = NodeCast::from_ref(self);
         node.wait_until_safe_to_modify_dom();
 
-        let name = Atom::from_slice(name);
         self.do_set_attribute(name.clone(), value, name.clone(),
-            ns!(""), None, |attr| *attr.local_name() == name);
+            ns!(""), None, |attr| *attr.local_name() == *name);
     }
 
     fn do_set_attribute(self, local_name: Atom, value: AttrValue,
@@ -507,41 +513,40 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         }
     }
 
-    fn has_class(&self, name: &str) -> bool {
-        self.get_attribute(ns!(""), "class").root().map(|attr| {
-            attr.value().tokens().map(|mut tokens| {
-                tokens.any(|atom| atom.as_slice() == name)
+    fn has_class(&self, name: &Atom) -> bool {
+        self.get_attribute(ns!(""), &atom!("class")).root().map(|attr| {
+            attr.value().tokens().map(|tokens| {
+                tokens.iter().any(|atom| atom == name)
             }).unwrap_or(false)
         }).unwrap_or(false)
     }
 
-    fn set_atomic_attribute(self, name: &str, value: DOMString) {
-        assert!(name == name.to_ascii_lower().as_slice());
+    fn set_atomic_attribute(self, name: &Atom, value: DOMString) {
+        assert!(name.as_slice().eq_ignore_ascii_case(name.as_slice()));
         let value = AttrValue::from_atomic(value);
         self.set_attribute(name, value);
     }
 
-    fn has_attribute(self, name: &str) -> bool {
-        let name = match self.html_element_in_html_document() {
-            true => Atom::from_slice(name.to_ascii_lower().as_slice()),
-            false => Atom::from_slice(name)
-        };
+    fn has_attribute(self, name: &Atom) -> bool {
+        assert!(name.as_slice().chars().all(|ch| {
+            !ch.is_ascii() || ch.to_ascii().to_lowercase() == ch.to_ascii()
+        }));
         self.attrs.borrow().iter().map(|attr| attr.root()).any(|attr| {
-            *attr.local_name() == name && *attr.namespace() == ns!("")
+            *attr.local_name() == *name && *attr.namespace() == ns!("")
         })
     }
 
-    fn set_bool_attribute(self, name: &str, value: bool) {
+    fn set_bool_attribute(self, name: &Atom, value: bool) {
         if self.has_attribute(name) == value { return; }
         if value {
             self.set_string_attribute(name, String::new());
         } else {
-            self.remove_attribute(ns!(""), name);
+            self.remove_attribute(ns!(""), name.as_slice());
         }
     }
 
-    fn get_url_attribute(self, name: &str) -> DOMString {
-        assert!(name == name.to_ascii_lower().as_slice());
+    fn get_url_attribute(self, name: &Atom) -> DOMString {
+        assert!(name.as_slice() == name.as_slice().to_ascii_lower().as_slice());
         if !self.has_attribute(name) {
             return "".to_string();
         }
@@ -555,29 +560,30 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             Err(_) => "".to_string()
         }
     }
-    fn set_url_attribute(self, name: &str, value: DOMString) {
+    fn set_url_attribute(self, name: &Atom, value: DOMString) {
         self.set_string_attribute(name, value);
     }
 
-    fn get_string_attribute(self, name: &str) -> DOMString {
-        assert!(name == name.to_ascii_lower().as_slice());
+    fn get_string_attribute(self, name: &Atom) -> DOMString {
         match self.get_attribute(ns!(""), name) {
             Some(x) => x.root().Value(),
             None => "".to_string()
         }
     }
-    fn set_string_attribute(self, name: &str, value: DOMString) {
-        assert!(name == name.to_ascii_lower().as_slice());
+    fn set_string_attribute(self, name: &Atom, value: DOMString) {
+        assert!(name.as_slice() == name.as_slice().to_ascii_lower().as_slice());
         self.set_attribute(name, StringAttrValue(value));
     }
 
-    fn set_tokenlist_attribute(self, name: &str, value: DOMString) {
-        assert!(name == name.to_ascii_lower().as_slice());
+    fn set_tokenlist_attribute(self, name: &Atom, value: DOMString) {
+        assert!(name.as_slice() == name.as_slice().to_ascii_lower().as_slice());
         self.set_attribute(name, AttrValue::from_tokenlist(value));
     }
 
-    fn get_uint_attribute(self, name: &str) -> u32 {
-        assert!(name == name.to_ascii_lower().as_slice());
+    fn get_uint_attribute(self, name: &Atom) -> u32 {
+        assert!(name.as_slice().chars().all(|ch| {
+            !ch.is_ascii() || ch.to_ascii().to_lowercase() == ch.to_ascii()
+        }));
         let attribute = self.get_attribute(ns!(""), name).root();
         match attribute {
             Some(attribute) => {
@@ -589,8 +595,8 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             None => 0,
         }
     }
-    fn set_uint_attribute(self, name: &str, value: u32) {
-        assert!(name == name.to_ascii_lower().as_slice());
+    fn set_uint_attribute(self, name: &Atom, value: u32) {
+        assert!(name.as_slice() == name.as_slice().to_ascii_lower().as_slice());
         self.set_attribute(name, UIntAttrValue(value.to_string(), value));
     }
 }
@@ -628,28 +634,28 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
     // http://dom.spec.whatwg.org/#dom-element-id
     fn Id(self) -> DOMString {
-        self.get_string_attribute("id")
+        self.get_string_attribute(&atom!("id"))
     }
 
     // http://dom.spec.whatwg.org/#dom-element-id
     fn SetId(self, id: DOMString) {
-        self.set_atomic_attribute("id", id);
+        self.set_atomic_attribute(&atom!("id"), id);
     }
 
     // http://dom.spec.whatwg.org/#dom-element-classname
     fn ClassName(self) -> DOMString {
-        self.get_string_attribute("class")
+        self.get_string_attribute(&atom!("class"))
     }
 
     // http://dom.spec.whatwg.org/#dom-element-classname
     fn SetClassName(self, class: DOMString) {
-        self.set_tokenlist_attribute("class", class);
+        self.set_tokenlist_attribute(&atom!("class"), class);
     }
 
     // http://dom.spec.whatwg.org/#dom-element-classlist
     fn ClassList(self) -> Temporary<DOMTokenList> {
         if self.class_list.get().is_none() {
-            let class_list = DOMTokenList::new(self, "class");
+            let class_list = DOMTokenList::new(self, &atom!("class"));
             self.class_list.assign(Some(class_list));
         }
         self.class_list.get().unwrap()
@@ -676,7 +682,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         } else {
             name
         };
-        self.get_attribute(ns!(""), name.as_slice()).root()
+        self.get_attribute(ns!(""), &Atom::from_slice(name.as_slice())).root()
                      .map(|s| s.Value())
     }
 
@@ -685,7 +691,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
                       namespace: Option<DOMString>,
                       local_name: DOMString) -> Option<DOMString> {
         let namespace = namespace::from_domstring(namespace);
-        self.get_attribute(namespace, local_name.as_slice()).root()
+        self.get_attribute(namespace, &Atom::from_slice(local_name.as_slice())).root()
                      .map(|attr| attr.Value())
     }
 
@@ -808,9 +814,17 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     }
 
     // http://dom.spec.whatwg.org/#dom-element-hasattribute
-    fn HasAttribute(self,
-                    name: DOMString) -> bool {
-        self.has_attribute(name.as_slice())
+    fn HasAttribute(self, name: DOMString) -> bool {
+        // Step 1.
+        if self.html_element_in_html_document() {
+            // TODO(pcwalton): Small string optimization here.
+            return self.has_attribute(&Atom::from_slice(name.as_slice()
+                                                            .to_ascii_lower()
+                                                            .as_slice()))
+        }
+
+        // Step 2.
+        self.has_attribute(&Atom::from_slice(name.as_slice()))
     }
 
     // http://dom.spec.whatwg.org/#dom-element-hasattributens
@@ -997,7 +1011,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
 
         if !tree_in_doc { return; }
 
-        match self.get_attribute(ns!(""), "id").root() {
+        match self.get_attribute(ns!(""), &atom!("id")).root() {
             Some(attr) => {
                 let doc = document_from_node(*self).root();
                 let value = attr.Value();
@@ -1018,7 +1032,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
 
         if !tree_in_doc { return; }
 
-        match self.get_attribute(ns!(""), "id").root() {
+        match self.get_attribute(ns!(""), &atom!("id")).root() {
             Some(attr) => {
                 let doc = document_from_node(*self).root();
                 let value = attr.Value();
@@ -1033,12 +1047,12 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
 }
 
 impl<'a> style::TElement<'a> for JSRef<'a, Element> {
-    fn get_attr(self, namespace: &Namespace, attr: &str) -> Option<&'a str> {
+    fn get_attr(self, namespace: &Namespace, attr: &Atom) -> Option<&'a str> {
         self.get_attribute(namespace.clone(), attr).root().map(|attr| {
             unsafe { mem::transmute(attr.value().as_slice()) }
         })
     }
-    fn get_attrs(self, attr: &str) -> Vec<&'a str> {
+    fn get_attrs(self, attr: &Atom) -> Vec<&'a str> {
         self.get_attributes(attr).iter().map(|attr| attr.root()).map(|attr| {
             unsafe { mem::transmute(attr.value().as_slice()) }
         }).collect()
@@ -1051,7 +1065,7 @@ impl<'a> style::TElement<'a> for JSRef<'a, Element> {
             // selector-link
             ElementNodeTypeId(HTMLAnchorElementTypeId) |
             ElementNodeTypeId(HTMLAreaElementTypeId) |
-            ElementNodeTypeId(HTMLLinkElementTypeId) => self.get_attr(&ns!(""), "href"),
+            ElementNodeTypeId(HTMLLinkElementTypeId) => self.get_attr(&ns!(""), &atom!("href")),
             _ => None,
          }
     }
@@ -1078,7 +1092,7 @@ impl<'a> style::TElement<'a> for JSRef<'a, Element> {
         node.get_hover_state()
     }
     fn get_id(self) -> Option<Atom> {
-        self.get_attribute(ns!(""), "id").map(|attr| {
+        self.get_attribute(ns!(""), &atom!("id")).map(|attr| {
             let attr = attr.root();
             match *attr.value() {
                 AtomAttrValue(ref val) => val.clone(),
@@ -1094,23 +1108,23 @@ impl<'a> style::TElement<'a> for JSRef<'a, Element> {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         node.get_enabled_state()
     }
-    fn has_class(self, name: &str) -> bool {
+    fn has_class(self, name: &Atom) -> bool {
         // FIXME(zwarich): Remove this when UFCS lands and there is a better way
         // of disambiguating methods.
-        fn has_class<T: AttributeHandlers>(this: T, name: &str) -> bool {
+        fn has_class<T: AttributeHandlers>(this: T, name: &Atom) -> bool {
             this.has_class(name)
         }
 
         has_class(self, name)
     }
     fn each_class(self, callback: |&Atom|) {
-        match self.get_attribute(ns!(""), "class").root() {
+        match self.get_attribute(ns!(""), &atom!("class")).root() {
             None => {}
-            Some(attr) => {
-                match attr.deref().value().tokens() {
+            Some(ref attr) => {
+                match attr.value().tokens() {
                     None => {}
-                    Some(mut tokens) => {
-                        for token in tokens {
+                    Some(tokens) => {
+                        for token in tokens.iter() {
                             callback(token)
                         }
                     }

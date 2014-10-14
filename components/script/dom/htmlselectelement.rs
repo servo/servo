@@ -67,7 +67,7 @@ impl<'a> HTMLSelectElementMethods for JSRef<'a, HTMLSelectElement> {
     // https://html.spec.whatwg.org/multipage/forms.html#dom-select-type
     fn Type(self) -> DOMString {
         let elem: JSRef<Element> = ElementCast::from_ref(self);
-        if elem.has_attribute("multiple") {
+        if elem.has_attribute(&atom!("multiple")) {
             "select-multiple".to_string()
         } else {
             "select-one".to_string()

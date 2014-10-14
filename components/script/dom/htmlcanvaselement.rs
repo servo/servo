@@ -68,7 +68,7 @@ impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
 
     fn SetWidth(self, width: u32) {
         let elem: JSRef<Element> = ElementCast::from_ref(self);
-        elem.set_uint_attribute("width", width)
+        elem.set_uint_attribute(&atom!("width"), width)
     }
 
     fn Height(self) -> u32 {
@@ -77,7 +77,7 @@ impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
 
     fn SetHeight(self, height: u32) {
         let elem: JSRef<Element> = ElementCast::from_ref(self);
-        elem.set_uint_attribute("height", height)
+        elem.set_uint_attribute(&atom!("height"), height)
     }
 
     fn GetContext(self, id: DOMString) -> Option<Temporary<CanvasRenderingContext2D>> {

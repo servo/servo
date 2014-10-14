@@ -74,7 +74,7 @@ impl<'a> HTMLOptionElementMethods for JSRef<'a, HTMLOptionElement> {
     // http://www.whatwg.org/html/#dom-option-disabled
     fn SetDisabled(self, disabled: bool) {
         let elem: JSRef<Element> = ElementCast::from_ref(self);
-        elem.set_bool_attribute("disabled", disabled)
+        elem.set_bool_attribute(&atom!("disabled"), disabled)
     }
 
     // http://www.whatwg.org/html/#dom-option-text
