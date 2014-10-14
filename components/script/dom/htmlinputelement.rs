@@ -137,21 +137,13 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     make_uint_setter!(SetSize, "size")
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-type
-    fn Type(self) -> DOMString {
-        let elem: JSRef<Element> = ElementCast::from_ref(self);
-        let ty = elem.get_string_attribute("type").into_ascii_lower();
-        // https://html.spec.whatwg.org/multipage/forms.html#attr-input-type
-        match ty.as_slice() {
-            "hidden" | "search" | "tel" |
-            "url" | "email" | "password" |
-            "datetime" | "date" | "month" |
-            "week" | "time" | "datetime-local" |
-            "number" | "range" | "color" |
-            "checkbox" | "radio" | "file" |
-            "submit" | "image" | "reset" | "button" => ty,
-            _ => "text".to_string()
-        }
-    }
+    make_enumerated_getter!(Type, "text", "hidden" | "search" | "tel" |
+                                  "url" | "email" | "password" |
+                                  "datetime" | "date" | "month" |
+                                  "week" | "time" | "datetime-local" |
+                                  "number" | "range" | "color" |
+                                  "checkbox" | "radio" | "file" |
+                                  "submit" | "image" | "reset" | "button")
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-type
     make_setter!(SetType, "type")
@@ -171,45 +163,19 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     make_setter!(SetName, "name")
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formaction
-    fn FormAction(self) -> DOMString {
-        let element: JSRef<Element> = ElementCast::from_ref(self);
-        let url = element.get_url_attribute("formaction");
-        match url.as_slice() {
-            "" => {
-                let window = window_from_node(self).root();
-                window.get_url().serialize()
-            },
-            _ => url
-        }
-    }
+    make_url_or_base_getter!(FormAction)
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formaction
     make_setter!(SetFormAction, "formaction")
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formenctype
-    fn FormEnctype(self) -> DOMString {
-        let elem: JSRef<Element> = ElementCast::from_ref(self);
-        let enctype = elem.get_string_attribute("formenctype").into_ascii_lower();
-        // https://html.spec.whatwg.org/multipage/forms.html#attr-fs-enctype
-        match enctype.as_slice() {
-            "text/plain" | "multipart/form-data" => enctype,
-            _ => "application/x-www-form-urlencoded".to_string()
-        }
-    }
+    make_enumerated_getter!(FormEnctype, "application/x-www-form-urlencoded", "text/plain" | "multipart/form-data")
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formenctype
     make_setter!(SetFormEnctype, "formenctype")
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formmethod
-    fn FormMethod(self) -> DOMString {
-        let elem: JSRef<Element> = ElementCast::from_ref(self);
-        let method = elem.get_string_attribute("formmethod").into_ascii_lower();
-        // https://html.spec.whatwg.org/multipage/forms.html#attr-fs-method
-        match method.as_slice() {
-            "post" | "dialog" => method,
-            _ => "get".to_string()
-        }
-    }
+        make_enumerated_getter!(FormMethod, "get", "post" | "dialog")
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formmethod
     make_setter!(SetFormMethod, "formmethod")
@@ -422,7 +388,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
                 InputRadio => self.SetChecked(true),
                 InputButton(Some(DEFAULT_SUBMIT_VALUE)) => {
                     self.form_owner().map(|o| {
-                        o.submit(false, InputElement(self.clone()))
+                        o.root().submit(false, InputElement(self.clone()))
                     });
                 }
                 _ => {}
@@ -440,10 +406,10 @@ impl Reflectable for HTMLInputElement {
 impl<'a> FormOwner<'a> for JSRef<'a, HTMLInputElement> {
     // FIXME: This is wrong (https://github.com/servo/servo/issues/3553)
     //        but we need html5ever to do it correctly
-    fn form_owner(self) -> Option<JSRef<'a, HTMLFormElement>> {
+    fn form_owner(self) -> Option<Temporary<HTMLFormElement>> {
         // https://html.spec.whatwg.org/multipage/forms.html#reset-the-form-owner
         let elem: JSRef<Element> = ElementCast::from_ref(self);
-        let owner = elem.get_string_attribute("owner");
+        let owner = elem.get_string_attribute("form");
         if !owner.is_empty() {
             let doc = document_from_node(self).root();
             let owner = doc.GetElementById(owner).root();
@@ -451,13 +417,18 @@ impl<'a> FormOwner<'a> for JSRef<'a, HTMLInputElement> {
                 Some(o) => {
                     let maybe_form: Option<JSRef<HTMLFormElement>> = HTMLFormElementCast::to_ref(*o);
                     if maybe_form.is_some() {
-                        return maybe_form;
+                        return maybe_form.map(Temporary::from_rooted);
                     }
                 },
                 _ => ()
             }
         }
         let node: JSRef<Node> = NodeCast::from_ref(self);
-        node.ancestors().filter_map(|a| HTMLFormElementCast::to_ref(a)).next().clone()
+        node.ancestors().filter_map(|a| HTMLFormElementCast::to_ref(a)).next()
+            .map(Temporary::from_rooted)
+    }
+
+    fn to_element(self) -> JSRef<'a, Element> {
+        ElementCast::from_ref(self)
     }
 }

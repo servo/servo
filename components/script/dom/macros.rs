@@ -70,6 +70,52 @@ macro_rules! make_url_getter(
     }
 )
 
+#[macro_export]
+macro_rules! make_url_or_base_getter(
+    ( $attr:ident, $htmlname:expr ) => (
+        fn $attr(self) -> DOMString {
+            use dom::element::{Element, AttributeHandlers};
+            use dom::bindings::codegen::InheritTypes::ElementCast;
+            #[allow(unused_imports)]
+            use std::ascii::StrAsciiExt;
+            let element: JSRef<Element> = ElementCast::from_ref(self);
+            let url = element.get_url_attribute($htmlname);
+            match url.as_slice() {
+                "" => {
+                    let window = window_from_node(self).root();
+                    window.get_url().serialize()
+                },
+                _ => url
+            }
+        }
+    );
+    ($attr:ident) => {
+        make_url_or_base_getter!($attr, stringify!($attr).to_ascii_lower().as_slice())
+    }
+)
+
+#[macro_export]
+macro_rules! make_enumerated_getter(
+    ( $attr:ident, $htmlname:expr, $default:expr, $($choices: pat)|+) => (
+        fn $attr(self) -> DOMString {
+            use dom::element::{Element, AttributeHandlers};
+            use dom::bindings::codegen::InheritTypes::ElementCast;
+            #[allow(unused_imports)]
+            use std::ascii::StrAsciiExt;
+            let element: JSRef<Element> = ElementCast::from_ref(self);
+            let val = element.get_string_attribute($htmlname).into_ascii_lower();
+            // https://html.spec.whatwg.org/multipage/forms.html#attr-fs-method
+            match val.as_slice() {
+                $($choices)|+ => val,
+                _ => $default.to_string()
+            }
+        }
+    );
+    ($attr:ident, $default:expr, $($choices: pat)|+) => {
+        make_enumerated_getter!($attr, stringify!($attr).to_ascii_lower().as_slice(), $default, $($choices)|+)
+    }
+)
+
 // concat_idents! doesn't work for function name positions, so
 // we have to specify both the content name and the HTML name here
 #[macro_export]

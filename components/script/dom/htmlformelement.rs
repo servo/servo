@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding::HTMLFormElementMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, HTMLFormElementDerived, NodeCast};
+use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLFormElementDerived, NodeCast};
 use dom::bindings::codegen::InheritTypes::HTMLInputElementCast;
 use dom::bindings::global::Window;
 use dom::bindings::js::{JSRef, Temporary};
@@ -64,46 +64,19 @@ impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
     make_setter!(SetAcceptCharset, "accept-charset")
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-fs-action
-    fn Action(self) -> DOMString {
-        let element: JSRef<Element> = ElementCast::from_ref(self);
-        let url = element.get_url_attribute("action");
-        match url.as_slice() {
-            "" => {
-                let window = window_from_node(self).root();
-                window.get_url().serialize()
-            },
-            _ => url
-        }
-    }
+    make_url_or_base_getter!(Action)
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-fs-action
     make_setter!(SetAction, "action")
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-form-autocomplete
-    fn Autocomplete(self) -> DOMString {
-        let elem: JSRef<Element> = ElementCast::from_ref(self);
-        let ac = elem.get_string_attribute("autocomplete").into_ascii_lower();
-        // https://html.spec.whatwg.org/multipage/forms.html#attr-form-autocomplete
-        match ac.as_slice() {
-            "off" => ac,
-            _ => "on".to_string()
-        }
-    }
+    make_enumerated_getter!(Autocomplete, "on", "off")
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-form-autocomplete
     make_setter!(SetAutocomplete, "autocomplete")
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-fs-enctype
-    fn Enctype(self) -> DOMString {
-        let elem: JSRef<Element> = ElementCast::from_ref(self);
-        let enctype = elem.get_string_attribute("enctype").into_ascii_lower();
-        // https://html.spec.whatwg.org/multipage/forms.html#attr-fs-enctype
-        match enctype.as_slice() {
-            "text/plain" | "multipart/form-data" => enctype,
-            _ => "application/x-www-form-urlencoded".to_string()
-        }
-    }
-
+    make_enumerated_getter!(Enctype, "application/x-www-form-urlencoded", "text/plain" | "multipart/form-data")
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-fs-enctype
     make_setter!(SetEnctype, "enctype")
@@ -119,15 +92,7 @@ impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
     }
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-fs-method
-    fn Method(self) -> DOMString {
-        let elem: JSRef<Element> = ElementCast::from_ref(self);
-        let method = elem.get_string_attribute("method").into_ascii_lower();
-        // https://html.spec.whatwg.org/multipage/forms.html#attr-fs-method
-        match method.as_slice() {
-            "post" | "dialog" => method,
-            _ => "get".to_string()
-        }
-    }
+    make_enumerated_getter!(Method, "get", "post" | "dialog")
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-fs-method
     make_setter!(SetMethod, "method")
@@ -384,28 +349,14 @@ impl<'a> FormSubmitter<'a> {
     fn action(&self) -> DOMString {
         match *self {
             FormElement(form) => form.Action(),
-            InputElement(input_element) => {
-                let element: JSRef<Element> = ElementCast::from_ref(input_element);
-                if element.has_attribute("formaction") {
-                    input_element.FormAction()
-                } else {
-                    input_element.form_owner().map_or("".to_string(), |f_o| f_o.Action())
-                }
-            }
+            InputElement(input_element) => input_element.get_form_attribute("formaction", |i| i.FormAction(), |f| f.Action())
         }
     }
 
     fn enctype(&self) -> FormEncType {
         let attr = match *self {
             FormElement(form) => form.Enctype(),
-            InputElement(input_element) => {
-                let element: JSRef<Element> = ElementCast::from_ref(input_element);
-                if element.has_attribute("formenctype") {
-                    input_element.FormEnctype()
-                } else {
-                    input_element.form_owner().map_or("".to_string(), |f_o| f_o.Enctype())
-                }
-            }
+            InputElement(input_element) => input_element.get_form_attribute("formenctype", |i| i.FormEnctype(), |f| f.Enctype())
         };
         match attr.as_slice() {
             "multipart/form-data" => FormDataEncoded,
@@ -419,14 +370,7 @@ impl<'a> FormSubmitter<'a> {
     fn method(&self) -> FormMethod {
         let attr = match *self {
             FormElement(form) => form.Method(),
-            InputElement(input_element) => {
-                let element: JSRef<Element> = ElementCast::from_ref(input_element);
-                if element.has_attribute("formmethod") {
-                    input_element.FormMethod()
-                } else {
-                    input_element.form_owner().map_or("".to_string(), |f_o| f_o.Method())
-                }
-            }
+            InputElement(input_element) => input_element.get_form_attribute("formmethod", |i| i.FormMethod(), |f| f.Method())
         };
         match attr.as_slice() {
             "dialog" => FormDialog,
@@ -438,18 +382,21 @@ impl<'a> FormSubmitter<'a> {
     fn target(&self) -> DOMString {
         match *self {
             FormElement(form) => form.Target(),
-            InputElement(input_element) => {
-                let element: JSRef<Element> = ElementCast::from_ref(input_element);
-                if element.has_attribute("formtarget") {
-                    input_element.FormTarget()
-                } else {
-                    input_element.form_owner().map_or("".to_string(), |f_o| f_o.Target())
-                }
-            }
+            InputElement(input_element) => input_element.get_form_attribute("formtarget", |i| i.FormTarget(), |f| f.Target())
         }
     }
 }
 
-pub trait FormOwner<'a> {
-    fn form_owner(self) -> Option<JSRef<'a, HTMLFormElement>>;
+pub trait FormOwner<'a> : Copy {
+    fn form_owner(self) -> Option<Temporary<HTMLFormElement>>;
+    fn get_form_attribute(self, attr: &str,
+                          input: |Self| -> DOMString,
+                          owner: |JSRef<HTMLFormElement>| -> DOMString) -> DOMString {
+        if self.to_element().has_attribute(attr) {
+            input(self)
+        } else {
+            self.form_owner().map_or("".to_string(), |t| owner(*t.root()))
+        }
+    }
+    fn to_element(self) -> JSRef<'a, Element>;
 }
