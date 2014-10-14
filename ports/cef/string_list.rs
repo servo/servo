@@ -37,3 +37,14 @@ extern "C" fn cef_string_list_append(lt: *mut cef_string_list_t, value: *const c
         v.push(cs);
     }
 }
+
+#[no_mangle]
+extern "C" fn cef_string_list_value(lt: *mut cef_string_list_t, index: c_int, value: *mut cef_string_t) -> c_int {
+    unsafe {
+        if index < 0 || fptr_is_null(mem::transmute(lt)) { return 0; }
+        let v: Box<Vec<*mut cef_string_t>> = mem::transmute(lt);
+        if index as uint > v.len() - 1 { return 0; }
+        let cs = v.get(index as uint);
+        cef_string_utf8_set(mem::transmute((**cs).str), (**cs).length, value, 1)
+    }
+}
