@@ -686,8 +686,8 @@ impl InlineFlow {
     pub fn build_display_list_inline(&mut self, layout_context: &LayoutContext) {
         let size = self.base.position.size.to_physical(self.base.writing_mode);
         if !Rect(self.base.abs_position, size).intersects(&layout_context.shared.dirty) {
-            println!("inline block (abs pos {}, size {}) didn't intersect \
-                      dirty rect owo",
+            debug!("inline block (abs pos {}, size {}) didn't intersect \
+                    dirty rect two",
                      self.base.abs_position,
                      size);
             return
