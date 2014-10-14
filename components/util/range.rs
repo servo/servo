@@ -79,24 +79,36 @@ macro_rules! int_range_index {
             }
         }
 
+        impl Mul<$Self, $Self> for $Self {
+            #[inline]
+            fn mul(&self, other: &$Self) -> $Self {
+                $Self(self.get() * other.get())
+            }
+        }
+
         impl Neg<$Self> for $Self {
             #[inline]
             fn neg(&self) -> $Self {
                 $Self(-self.get())
             }
         }
-    )
-}
 
-#[deriving(Show)]
-pub enum RangeRelation<I> {
-    OverlapsBegin(/* overlap */ I),
-    OverlapsEnd(/* overlap */ I),
-    ContainedBy,
-    Contains,
-    Coincides,
-    EntirelyBefore,
-    EntirelyAfter
+        impl ::std::num::One for $Self {
+            fn one() -> $Self {
+                $Self(1)
+            }
+        }
+
+        impl ToPrimitive for $Self {
+            fn to_i64(&self) -> Option<i64> {
+                Some(self.get() as i64)
+            }
+
+            fn to_u64(&self) -> Option<u64> {
+                Some(self.get() as u64)
+            }
+        }
+    )
 }
 
 /// A range of indices
@@ -267,38 +279,6 @@ impl<I: RangeIndex> Range<I> {
             Range::new(begin, end - begin)
         }
     }
-
-    /// Computes the relationship between two ranges (`self` and `other`),
-    /// from the point of view of `self`. So, 'EntirelyBefore' means
-    /// that the `self` range is entirely before `other` range.
-    #[inline]
-    pub fn relation_to_range(&self, other: &Range<I>) -> RangeRelation<I> {
-        if other.begin() > self.end() {
-            return EntirelyBefore;
-        }
-        if self.begin() > other.end() {
-            return EntirelyAfter;
-        }
-        if self.begin() == other.begin() && self.end() == other.end() {
-            return Coincides;
-        }
-        if self.begin() <= other.begin() && self.end() >= other.end() {
-            return Contains;
-        }
-        if self.begin() >= other.begin() && self.end() <= other.end() {
-            return ContainedBy;
-        }
-        if self.begin() < other.begin() && self.end() < other.end() {
-            let overlap = self.end() - other.begin();
-            return OverlapsBegin(overlap);
-        }
-        if self.begin() > other.begin() && self.end() > other.end() {
-            let overlap = other.end() - self.begin();
-            return OverlapsEnd(overlap);
-        }
-        fail!("relation_to_range(): didn't classify self={}, other={}",
-              self, other);
-    }
 }
 
 /// Methods for `Range`s with indices based on integer values
@@ -330,26 +310,5 @@ impl<T: Int, I: IntRangeIndex<T>> Range<I> {
                 false
             },
         }
-    }
-
-    #[inline]
-    pub fn repair_after_coalesced_range(&mut self, other: &Range<I>) {
-        let relation = self.relation_to_range(other);
-        debug!("repair_after_coalesced_range: possibly repairing range {}", *self);
-        debug!("repair_after_coalesced_range: relation of original range and coalesced range {}: {}",
-               *other, relation);
-        let _1: I = IntRangeIndex::new(num::one::<T>());
-        match relation {
-            EntirelyBefore => {},
-            EntirelyAfter => { self.shift_by(-other.length()); },
-            Coincides | ContainedBy => { self.reset(other.begin(), _1); },
-            Contains => { self.extend_by(-other.length()); },
-            OverlapsBegin(overlap) => { self.extend_by(_1 - overlap); },
-            OverlapsEnd(overlap) => {
-                let len = self.length() - overlap + _1;
-                self.reset(other.begin(), len);
-            }
-        };
-        debug!("repair_after_coalesced_range: new range: ---- {}", *self);
     }
 }
