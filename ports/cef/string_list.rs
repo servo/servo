@@ -72,3 +72,16 @@ extern "C" fn cef_string_list_free(lt: *mut cef_string_list_t) {
         drop(v);
     }
 }
+
+#[no_mangle]
+extern "C" fn cef_string_list_copy(lt: *mut cef_string_list_t) -> *mut cef_string_list_t {
+    unsafe {
+        if fptr_is_null(mem::transmute(lt)) { return 0 as *mut cef_string_list_t; }
+        let v: Box<Vec<*mut cef_string_t>> = mem::transmute(lt);
+        let lt2 = cef_string_list_alloc();
+        for cs in v.iter() {
+            cef_string_list_append(lt2, mem::transmute((*cs)));
+        }
+        lt2
+    }
+}
