@@ -5481,6 +5481,17 @@ class GlobalGenRoots():
   }
 
   #[inline(always)]
+  #[allow(unrooted_must_root)]
+  fn to_js<T: ${toBound}+Reflectable>(base: &JS<T>) -> Option<JS<Self>> {
+    unsafe {
+        match (*base.unsafe_get()).${checkFn}() {
+            true =>  Some(base.transmute_copy()),
+            false => None
+        }
+    }
+  }
+
+  #[inline(always)]
   fn from_ref<'a, T: ${fromBound}+Reflectable>(derived: JSRef<'a, T>) -> JSRef<'a, Self> {
     unsafe { derived.transmute() }
   }
