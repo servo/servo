@@ -952,10 +952,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             // Render the scene.
             match self.scene.root {
                 Some(ref layer) => {
-                    self.scene.background_color.r = layer.extra_data.borrow().background_color.r;
-                    self.scene.background_color.g = layer.extra_data.borrow().background_color.g;
-                    self.scene.background_color.b = layer.extra_data.borrow().background_color.b;
-                    self.scene.background_color.a = layer.extra_data.borrow().background_color.a;
                     rendergl::render_scene(layer.clone(), self.context, &self.scene);
                 }
                 None => {}
