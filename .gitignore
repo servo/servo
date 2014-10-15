@@ -1,7 +1,6 @@
 /target
 /rust
 /cargo
-/ports/cef/target
 /ports/android/bin
 /ports/android/libs
 /ports/android/local.properties
