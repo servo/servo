@@ -5,18 +5,16 @@
 //! The layout task. Performs layout on the DOM, builds display lists and sends them to be
 //! rendered.
 
-use css::matching::{ApplicableDeclarations, MatchMethods};
 use css::node_style::StyledNode;
 use construct::FlowConstructionResult;
 use context::{LayoutContext, SharedLayoutContext};
 use flow::{Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
-use flow::{PreorderFlowTraversal, PostorderFlowTraversal};
 use flow;
 use flow_ref::FlowRef;
 use layout_debug;
 use parallel::UnsafeFlow;
 use parallel;
-use traversal;
+use sequential;
 use util::{LayoutDataAccess, LayoutDataWrapper, OpaqueNodeMethods, ToGfxColor};
 use wrapper::{LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
 
@@ -48,7 +46,6 @@ use servo_msg::constellation_msg::{ConstellationChan, PipelineId, Failure, Failu
 use servo_net::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use gfx::font_cache_task::{FontCacheTask};
 use servo_net::local_image_cache::{ImageResponder, LocalImageCache};
-use servo_util::bloom::BloomFilter;
 use servo_net::resource_task::{ResourceTask, load_bytes_iter};
 use servo_util::geometry::Au;
 use servo_util::geometry;
@@ -515,31 +512,10 @@ impl LayoutTask {
     /// benchmarked against those two. It is marked `#[inline(never)]` to aid profiling.
     #[inline(never)]
     fn solve_constraints<'a>(&self,
-                         layout_root: &mut Flow,
-                         layout_context: &'a LayoutContext<'a>) {
+                         layout_root: &mut FlowRef,
+                         shared_layout_context: &SharedLayoutContext) {
         let _scope = layout_debug_scope!("solve_constraints");
-
-        if layout_context.shared.opts.bubble_inline_sizes_separately {
-            let mut traversal = traversal::BubbleISizes {
-                layout_context: layout_context,
-            };
-            layout_root.traverse_postorder(&mut traversal);
-        }
-
-        // FIXME(pcwalton): Prune these two passes.
-        {
-            let mut traversal = traversal::AssignISizes {
-                layout_context: layout_context,
-            };
-            layout_root.traverse_preorder(&mut traversal);
-        }
-
-        {
-            let mut traversal = traversal::AssignBSizesAndStoreOverflow {
-                layout_context: layout_context,
-            };
-            layout_root.traverse_postorder(&mut traversal);
-        }
+        sequential::traverse_flow_tree_preorder(layout_root, shared_layout_context);
     }
 
     /// Performs layout constraint solving in parallel.
@@ -552,12 +528,7 @@ impl LayoutTask {
                                   rw_data: &mut LayoutTaskData,
                                   layout_root: &mut FlowRef,
                                   shared_layout_context: &SharedLayoutContext) {
-        if shared_layout_context.opts.bubble_inline_sizes_separately {
-            let mut traversal = traversal::BubbleISizes {
-                layout_context: &LayoutContext::new(shared_layout_context),
-            };
-            layout_root.get_mut().traverse_postorder(&mut traversal);
-        }
+        let _scope = layout_debug_scope!("solve_constraints_parallel");
 
         match rw_data.parallel_traversal {
             None => fail!("solve_contraints_parallel() called with no parallel traversal ready"),
@@ -649,17 +620,10 @@ impl LayoutTask {
             let rw_data = rw_data.deref_mut();
             match rw_data.parallel_traversal {
                 None => {
-                    let layout_ctx = LayoutContext::new(&shared_layout_ctx);
-                    let mut applicable_declarations = ApplicableDeclarations::new();
-                    let mut parent_bf = Some(box BloomFilter::new());
-                    node.recalc_style_for_subtree(&*rw_data.stylist,
-                                                   &layout_ctx,
-                                                   &mut parent_bf,
-                                                   &mut applicable_declarations,
-                                                   None)
+                    sequential::traverse_dom_preorder(*node, &shared_layout_ctx);
                 }
                 Some(ref mut traversal) => {
-                    parallel::traverse_dom_preorder(*node, &mut shared_layout_ctx, traversal)
+                    parallel::traverse_dom_preorder(*node, &shared_layout_ctx, traversal)
                 }
             }
 
@@ -702,8 +666,7 @@ impl LayoutTask {
             match rw_data.parallel_traversal {
                 None => {
                     // Sequential mode.
-                    let layout_ctx = LayoutContext::new(&shared_layout_ctx);
-                    self.solve_constraints(layout_root.get_mut(), &layout_ctx)
+                    self.solve_constraints(&mut layout_root, &shared_layout_ctx)
                 }
                 Some(_) => {
                     // Parallel mode.
@@ -724,20 +687,19 @@ impl LayoutTask {
                 let rw_data = rw_data.deref_mut();
                 match rw_data.parallel_traversal {
                     None => {
-                        let layout_ctx = LayoutContext::new(&shared_layout_ctx);
-                        let mut traversal = traversal::BuildDisplayList {
-                            layout_context: &layout_ctx,
-                        };
-                        traversal.process(layout_root.get_mut());
+                        sequential::build_display_list_for_subtree(
+                            &mut layout_root,
+                            &shared_layout_ctx);
                     }
                     Some(ref mut traversal) => {
-                        parallel::build_display_list_for_subtree(&mut layout_root,
-                                                                 &data.url,
-                                                                 data.iframe,
-                                                                 self.first_reflow.get(),
-                                                                 self.time_profiler_chan.clone(),
-                                                                 &mut shared_layout_ctx,
-                                                                 traversal);
+                        parallel::build_display_list_for_subtree(
+                            &mut layout_root,
+                            &data.url,
+                            data.iframe,
+                            self.first_reflow.get(),
+                            self.time_profiler_chan.clone(),
+                            &shared_layout_ctx,
+                            traversal);
                     }
                 }
 
