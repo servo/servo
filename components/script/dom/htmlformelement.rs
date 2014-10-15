@@ -30,9 +30,7 @@ use url::UrlParser;
 use url::form_urlencoded::serialize;
 use string_cache::Atom;
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct HTMLFormElement {
     htmlelement: HTMLElement,
 }

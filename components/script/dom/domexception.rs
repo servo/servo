@@ -61,9 +61,7 @@ impl DOMErrorName {
     }
 }
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct DOMException {
     code: DOMErrorName,
     reflector_: Reflector

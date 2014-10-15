@@ -20,9 +20,7 @@ use std::collections::hashmap::HashMap;
 use std::fmt::radix;
 use std::ascii::OwnedStrAsciiExt;
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct URLSearchParams {
     data: RefCell<HashMap<DOMString, Vec<DOMString>>>,
     reflector_: Reflector,

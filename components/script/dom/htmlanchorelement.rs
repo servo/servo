@@ -21,9 +21,7 @@ use dom::virtualmethods::VirtualMethods;
 
 use servo_util::str::DOMString;
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct HTMLAnchorElement {
     htmlelement: HTMLElement
 }

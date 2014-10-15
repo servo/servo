@@ -13,9 +13,7 @@ use time;
 
 pub type DOMHighResTimeStamp = f64;
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct Performance {
     reflector_: Reflector,
     timing: JS<PerformanceTiming>,

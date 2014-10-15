@@ -24,9 +24,7 @@ use url::{Url, UrlParser};
 
 use std::cell::RefCell;
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct HTMLImageElement {
     htmlelement: HTMLElement,
     image: RefCell<Option<Url>>,

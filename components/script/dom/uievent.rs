@@ -19,9 +19,7 @@ use servo_util::str::DOMString;
 use std::cell::Cell;
 use std::default::Default;
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct UIEvent {
     event: Event,
     view: MutNullableJS<Window>,

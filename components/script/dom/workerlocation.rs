@@ -14,9 +14,7 @@ use servo_util::str::DOMString;
 
 use url::Url;
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct WorkerLocation {
     reflector_: Reflector,
     url: Url,

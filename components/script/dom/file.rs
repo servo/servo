@@ -10,9 +10,7 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::blob::{Blob, BlobType, FileTypeId};
 use servo_util::str::DOMString;
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct File {
     blob: Blob,
     name: DOMString,

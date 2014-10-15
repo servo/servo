@@ -15,9 +15,7 @@ use geom::size::Size2D;
 
 use canvas::canvas_render_task::{CanvasMsg, CanvasRenderTask, ClearRect, Close, FillRect, Recreate, StrokeRect};
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct CanvasRenderingContext2D {
     reflector_: Reflector,
     global: GlobalField,

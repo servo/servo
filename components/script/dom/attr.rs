@@ -69,9 +69,7 @@ impl Str for AttrValue {
     }
 }
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct Attr {
     reflector_: Reflector,
     local_name: Atom,

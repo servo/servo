@@ -11,9 +11,7 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::element::Element;
 use dom::window::Window;
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct NamedNodeMap {
     reflector_: Reflector,
     owner: JS<Element>,

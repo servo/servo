@@ -65,9 +65,7 @@ pub struct EventListenerEntry {
     listener: EventListenerType
 }
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct EventTarget {
     type_id: EventTargetTypeId,
     reflector_: Reflector,

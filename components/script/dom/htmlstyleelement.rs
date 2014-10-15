@@ -17,9 +17,7 @@ use layout_interface::{AddStylesheetMsg, LayoutChan};
 use servo_util::str::DOMString;
 use style::Stylesheet;
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct HTMLStyleElement {
     htmlelement: HTMLElement,
 }

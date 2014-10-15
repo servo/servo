@@ -17,9 +17,7 @@ use dom::htmltablecaptionelement::HTMLTableCaptionElement;
 use dom::node::{Node, NodeHelpers, ElementNodeTypeId};
 use servo_util::str::DOMString;
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct HTMLTableElement {
     htmlelement: HTMLElement,
 }

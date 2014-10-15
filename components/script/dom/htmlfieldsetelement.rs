@@ -21,9 +21,7 @@ use dom::virtualmethods::VirtualMethods;
 use servo_util::str::{DOMString, StaticStringVec};
 use string_cache::Atom;
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct HTMLFieldSetElement {
     htmlelement: HTMLElement
 }

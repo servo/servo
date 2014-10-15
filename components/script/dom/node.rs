@@ -71,9 +71,7 @@ use uuid;
 //
 
 /// An HTML node.
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct Node {
     /// The JavaScript reflector for this node.
     eventtarget: EventTarget,

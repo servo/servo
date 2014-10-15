@@ -47,9 +47,7 @@ pub enum EventCancelable {
     NotCancelable
 }
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct Event {
     type_id: EventTypeId,
     reflector_: Reflector,

@@ -36,9 +36,7 @@ use std::task::TaskBuilder;
 use native::task::NativeTaskBuilder;
 use url::Url;
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct DedicatedWorkerGlobalScope {
     workerglobalscope: WorkerGlobalScope,
     receiver: Receiver<ScriptMsg>,

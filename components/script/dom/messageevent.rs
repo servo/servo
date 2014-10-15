@@ -18,9 +18,7 @@ use servo_util::str::DOMString;
 use js::jsapi::JSContext;
 use js::jsval::JSVal;
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct MessageEvent {
     event: Event,
     data: JSVal,

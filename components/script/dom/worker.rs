@@ -31,9 +31,7 @@ use std::ptr;
 pub struct TrustedWorkerAddress(pub *const c_void);
 untraceable!(TrustedWorkerAddress)
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct Worker {
     eventtarget: EventTarget,
     refcount: Cell<uint>,
