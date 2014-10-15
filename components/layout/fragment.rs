@@ -1321,7 +1321,7 @@ impl Fragment {
             TableColumnFragment(_) | TableRowFragment | TableWrapperFragment |
             InlineAbsoluteHypotheticalFragment(_) | InputFragment => {}
             InlineBlockFragment(ref mut info) => {
-                let block_flow = info.flow_ref.get_mut().as_block();
+                let block_flow = info.flow_ref.as_block();
                 result.union_block(&block_flow.base.intrinsic_inline_sizes)
             }
             ImageFragment(ref mut image_fragment_info) => {
@@ -1591,7 +1591,7 @@ impl Fragment {
 
         match self.specific {
             InlineAbsoluteHypotheticalFragment(ref mut info) => {
-                let block_flow = info.flow_ref.get_mut().as_block();
+                let block_flow = info.flow_ref.as_block();
                 block_flow.base.position.size.inline =
                     block_flow.base.intrinsic_inline_sizes.preferred_inline_size;
 
@@ -1599,7 +1599,7 @@ impl Fragment {
                 self.border_box.size.inline = Au(0);
             }
             InlineBlockFragment(ref mut info) => {
-                let block_flow = info.flow_ref.get_mut().as_block();
+                let block_flow = info.flow_ref.as_block();
                 self.border_box.size.inline =
                     block_flow.base.intrinsic_inline_sizes.preferred_inline_size;
                 block_flow.base.block_container_inline_size = self.border_box.size.inline;
@@ -1714,13 +1714,13 @@ impl Fragment {
             }
             InlineBlockFragment(ref mut info) => {
                 // Not the primary fragment, so we do not take the noncontent size into account.
-                let block_flow = info.flow_ref.get_mut().as_block();
+                let block_flow = info.flow_ref.as_block();
                 self.border_box.size.block = block_flow.base.position.size.block +
                     block_flow.fragment.margin.block_start_end()
             }
             InlineAbsoluteHypotheticalFragment(ref mut info) => {
                 // Not the primary fragment, so we do not take the noncontent size into account.
-                let block_flow = info.flow_ref.get_mut().as_block();
+                let block_flow = info.flow_ref.as_block();
                 self.border_box.size.block = block_flow.base.position.size.block;
             }
             _ => fail!("should have been handled above"),
@@ -1746,7 +1746,7 @@ impl Fragment {
             }
             InlineBlockFragment(ref info) => {
                 // See CSS 2.1 § 10.8.1.
-                let block_flow = info.flow_ref.get().as_immutable_block();
+                let block_flow = info.flow_ref.deref().as_immutable_block();
                 let font_style = text::computed_style_to_font_style(&*self.style);
                 let font_metrics = text::font_metrics_for_style(layout_context.font_context(),
                                                                 &font_style);
@@ -1839,7 +1839,7 @@ impl Fragment {
         match self.specific {
             InlineAbsoluteHypotheticalFragment(ref mut info) => {
                 let position = self.border_box.start.i;
-                info.flow_ref.get_mut().update_late_computed_inline_position_if_necessary(position)
+                info.flow_ref.update_late_computed_inline_position_if_necessary(position)
             }
             _ => {}
         }
@@ -1849,7 +1849,7 @@ impl Fragment {
         match self.specific {
             InlineAbsoluteHypotheticalFragment(ref mut info) => {
                 let position = self.border_box.start.b;
-                info.flow_ref.get_mut().update_late_computed_block_position_if_necessary(position)
+                info.flow_ref.update_late_computed_block_position_if_necessary(position)
             }
             _ => {}
         }
@@ -1912,4 +1912,3 @@ bitflags! {
         static IntrinsicInlineSizeIncludesSpecified = 0x08,
     }
 }
-

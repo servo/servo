@@ -502,7 +502,7 @@ impl LayoutTask {
             _ => fail!("Flow construction didn't result in a flow at the root of the tree!"),
         };
 
-        flow.get_mut().mark_as_root();
+        flow.mark_as_root();
         flow
     }
 
@@ -634,7 +634,7 @@ impl LayoutTask {
                 Some((&data.url, data.iframe, self.first_reflow.get())),
                 self.time_profiler_chan.clone(),
                 || {
-            layout_root.get_mut().propagate_restyle_damage();
+            layout_root.propagate_restyle_damage();
         });
 
         profile(time::LayoutNonIncrementalReset,
@@ -642,7 +642,7 @@ impl LayoutTask {
                 self.time_profiler_chan.clone(),
                 || {
             if shared_layout_ctx.opts.incremental_layout {
-                layout_root.get_mut().nonincremental_reset();
+                layout_root.nonincremental_reset();
             }
         });
 
@@ -655,7 +655,7 @@ impl LayoutTask {
             layout_debug::begin_trace(layout_root.clone());
         }
         if self.opts.dump_flow_tree {
-            layout_root.get_mut().dump();
+            layout_root.dump();
         }
 
         // Perform the primary layout passes over the flow tree to compute the locations of all
@@ -677,11 +677,11 @@ impl LayoutTask {
 
         // Build the display list if necessary, and send it to the renderer.
         if data.goal == ReflowForDisplay {
-            let writing_mode = flow::base(layout_root.get()).writing_mode;
+            let writing_mode = flow::base(layout_root.deref()).writing_mode;
             profile(time::LayoutDispListBuildCategory, Some((&data.url, data.iframe, self.first_reflow.get())), self.time_profiler_chan.clone(), || {
-                shared_layout_ctx.dirty = flow::base(layout_root.get()).position.to_physical(
+                shared_layout_ctx.dirty = flow::base(layout_root.deref()).position.to_physical(
                     writing_mode, rw_data.screen_size);
-                flow::mut_base(layout_root.get_mut()).abs_position =
+                flow::mut_base(layout_root.deref_mut()).abs_position =
                     LogicalPoint::zero(writing_mode).to_physical(writing_mode, rw_data.screen_size);
 
                 let rw_data = rw_data.deref_mut();
@@ -704,10 +704,10 @@ impl LayoutTask {
                 }
 
                 debug!("Done building display list. Display List = {}",
-                       flow::base(layout_root.get()).display_list);
+                       flow::base(layout_root.deref()).display_list);
 
                 let root_display_list =
-                    mem::replace(&mut flow::mut_base(layout_root.get_mut()).display_list,
+                    mem::replace(&mut flow::mut_base(layout_root.deref_mut()).display_list,
                                  DisplayList::new());
                 root_display_list.debug();
                 let display_list = Arc::new(root_display_list.flatten(ContentStackingLevel));
@@ -737,13 +737,13 @@ impl LayoutTask {
                 }
 
                 let root_size = {
-                    let root_flow = flow::base(layout_root.get());
+                    let root_flow = flow::base(layout_root.deref());
                     root_flow.position.size.to_physical(root_flow.writing_mode)
                 };
                 let root_size = Size2D(root_size.width.to_nearest_px() as uint,
                                        root_size.height.to_nearest_px() as uint);
                 let render_layer = RenderLayer {
-                    id: layout_root.get().layer_id(0),
+                    id: layout_root.layer_id(0),
                     display_list: display_list.clone(),
                     position: Rect(Point2D(0u, 0u), root_size),
                     background_color: color,
@@ -757,7 +757,7 @@ impl LayoutTask {
                 // reflow.
                 let mut layers = SmallVec1::new();
                 layers.push(render_layer);
-                for layer in mem::replace(&mut flow::mut_base(layout_root.get_mut()).layers,
+                for layer in mem::replace(&mut flow::mut_base(layout_root.deref_mut()).layers,
                                           DList::new()).into_iter() {
                     layers.push(layer)
                 }
