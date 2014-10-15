@@ -62,7 +62,7 @@ impl Scope {
         match maybe_refcell {
             Some(refcell) => {
                 let mut state = refcell.borrow_mut();
-                let flow_trace = json::encode(&state.flow_root.get());
+                let flow_trace = json::encode(&state.flow_root.deref());
                 let data = box ScopeData::new(name, flow_trace);
                 state.scope_stack.push(data);
             }
@@ -80,7 +80,7 @@ impl Drop for Scope {
             Some(refcell) => {
                 let mut state = refcell.borrow_mut();
                 let mut current_scope = state.scope_stack.pop().unwrap();
-                current_scope.post = json::encode(&state.flow_root.get());
+                current_scope.post = json::encode(&state.flow_root.deref());
                 let previous_scope = state.scope_stack.last_mut().unwrap();
                 previous_scope.children.push(current_scope);
             }
@@ -101,7 +101,7 @@ pub fn generate_unique_debug_id() -> uint {
 pub fn begin_trace(flow_root: FlowRef) {
     assert!(state_key.get().is_none());
 
-    let flow_trace = json::encode(&flow_root.get());
+    let flow_trace = json::encode(&flow_root.deref());
     let state = State {
         scope_stack: vec![box ScopeData::new("root".to_string(), flow_trace)],
         flow_root: flow_root,
@@ -117,7 +117,7 @@ pub fn end_trace() {
     let mut task_state = task_state_cell.borrow_mut();
     assert!(task_state.scope_stack.len() == 1);
     let mut root_scope = task_state.scope_stack.pop().unwrap();
-    root_scope.post = json::encode(&task_state.flow_root.get());
+    root_scope.post = json::encode(&task_state.flow_root.deref());
 
     let result = json::encode(&root_scope);
     let path = Path::new("layout_trace.json");

@@ -31,16 +31,20 @@ impl FlowRef {
             result
         }
     }
+}
 
-    pub fn get<'a>(&'a self) -> &'a Flow {
+impl Deref<Flow + 'static> for FlowRef {
+    fn deref<'a>(&'a self) -> &'a Flow + 'static {
         unsafe {
-            mem::transmute_copy::<raw::TraitObject, &'a Flow>(&self.object)
+            mem::transmute_copy::<raw::TraitObject, &'a Flow + 'static>(&self.object)
         }
     }
+}
 
-    pub fn get_mut<'a>(&'a mut self) -> &'a mut Flow {
+impl DerefMut<Flow + 'static> for FlowRef {
+    fn deref_mut<'a>(&'a mut self) -> &'a mut Flow + 'static {
         unsafe {
-            mem::transmute_copy::<raw::TraitObject, &'a mut Flow>(&self.object)
+            mem::transmute_copy::<raw::TraitObject, &'a mut Flow + 'static>(&self.object)
         }
     }
 }
@@ -51,7 +55,7 @@ impl Drop for FlowRef {
             if self.object.vtable.is_null() {
                 return
             }
-            if flow::base(self.get()).ref_count().fetch_sub(1, SeqCst) > 1 {
+            if flow::base(self.deref()).ref_count().fetch_sub(1, SeqCst) > 1 {
                 return
             }
             let flow_ref: FlowRef = mem::replace(self, FlowRef {
@@ -71,7 +75,7 @@ impl Drop for FlowRef {
 impl Clone for FlowRef {
     fn clone(&self) -> FlowRef {
         unsafe {
-            drop(flow::base(self.get()).ref_count().fetch_add(1, SeqCst));
+            drop(flow::base(self.deref()).ref_count().fetch_add(1, SeqCst));
             FlowRef {
                 object: raw::TraitObject {
                     vtable: self.object.vtable,
@@ -81,4 +85,3 @@ impl Clone for FlowRef {
         }
     }
 }
-

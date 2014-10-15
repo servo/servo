@@ -644,7 +644,7 @@ impl<'a> Iterator<&'a mut Flow + 'a> for DescendantIter<'a> {
             None => None,
             Some(ref mut flow) => {
                 unsafe {
-                    let result: &'a mut Flow = mem::transmute(flow.get_mut());
+                    let result: &'a mut Flow = mem::transmute(flow.deref_mut());
                     Some(result)
                 }
             }
@@ -1258,7 +1258,7 @@ impl MutableOwnedFlowUtils for FlowRef {
     fn set_absolute_descendants(&mut self, abs_descendants: AbsDescendants) {
         let this = self.clone();
 
-        let block = self.get_mut().as_block();
+        let block = self.as_block();
         block.base.abs_descendants = abs_descendants;
 
         for descendant_link in block.base.abs_descendants.iter() {
@@ -1300,7 +1300,7 @@ impl ContainingBlockLink {
     pub fn generated_containing_block_rect(&mut self) -> LogicalRect<Au> {
         match self.link {
             None => fail!("haven't done it"),
-            Some(ref mut link) => link.get_mut().generated_containing_block_rect(),
+            Some(ref mut link) => link.generated_containing_block_rect(),
         }
     }
 }

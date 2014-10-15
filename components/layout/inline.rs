@@ -710,7 +710,7 @@ impl InlineFlow {
                                         &self.base.clip_rect);
             match fragment.specific {
                 InlineBlockFragment(ref mut block_flow) => {
-                    let block_flow = block_flow.flow_ref.get_mut();
+                    let block_flow = block_flow.flow_ref.deref_mut();
                     self.base.display_list.push_all_move(
                         mem::replace(&mut flow::mut_base(block_flow).display_list,
                                      DisplayList::new()));
@@ -1117,7 +1117,7 @@ impl Flow for InlineFlow {
         for fragment in self.fragments.fragments.iter_mut() {
             let absolute_position = match fragment.specific {
                 InlineBlockFragment(ref mut info) => {
-                    let block_flow = info.flow_ref.get_mut().as_block();
+                    let block_flow = info.flow_ref.as_block();
                     // FIXME(#2795): Get the real container size
                     let container_size = Size2D::zero();
 
@@ -1128,7 +1128,7 @@ impl Flow for InlineFlow {
                     block_flow.base.abs_position
                 }
                 InlineAbsoluteHypotheticalFragment(ref mut info) => {
-                    let block_flow = info.flow_ref.get_mut().as_block();
+                    let block_flow = info.flow_ref.as_block();
                     // FIXME(#2795): Get the real container size
                     let container_size = Size2D::zero();
                     block_flow.base.abs_position =
@@ -1146,10 +1146,10 @@ impl Flow for InlineFlow {
 
             match fragment.specific {
                 InlineBlockFragment(ref mut info) => {
-                    flow::mut_base(info.flow_ref.get_mut()).clip_rect = clip_rect
+                    flow::mut_base(info.flow_ref.deref_mut()).clip_rect = clip_rect
                 }
                 InlineAbsoluteHypotheticalFragment(ref mut info) => {
-                    flow::mut_base(info.flow_ref.get_mut()).clip_rect = clip_rect
+                    flow::mut_base(info.flow_ref.deref_mut()).clip_rect = clip_rect
                 }
                 _ => {}
             }
