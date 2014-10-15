@@ -120,9 +120,7 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == abs_float_pref_width_a.html abs_float_pref_width_ref.html
 == alpha_png_a.html alpha_png_b.html
 == background_image_position_a.html background_image_position_ref.html
-
-# The following tests fails the ref-tests
-#== multiple_css_class_a.html multiple_css_class_b.html
+== multiple_css_class_a.html multiple_css_class_b.html
 
 == iframe/simple.html iframe/simple_ref.html
 == iframe/multiple_external.html iframe/multiple_external_ref.html
