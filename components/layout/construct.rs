@@ -66,6 +66,7 @@ use sync::Arc;
 use url::Url;
 
 /// The results of flow construction for a DOM node.
+#[deriving(Clone)]
 pub enum ConstructionResult {
     /// This node contributes nothing at all (`display: none`). Alternately, this is what newly
     /// created nodes have their `ConstructionResult` set to.
@@ -84,22 +85,25 @@ pub enum ConstructionResult {
 impl ConstructionResult {
     pub fn swap_out(&mut self, layout_context: &LayoutContext) -> ConstructionResult {
         if layout_context.shared.opts.incremental_layout {
-            match *self {
-                NoConstructionResult =>
-                    return NoConstructionResult,
-                FlowConstructionResult(ref flow_ref, ref abs_descendants) =>
-                    return FlowConstructionResult((*flow_ref).clone(), (*abs_descendants).clone()),
-                ConstructionItemConstructionResult(_) => {},
-            }
+            return (*self).clone();
         }
 
         mem::replace(self, NoConstructionResult)
+    }
+
+    pub fn debug_id(&self) -> uint {
+        match self {
+            &NoConstructionResult => 0u,
+            &ConstructionItemConstructionResult(_) => 0u,
+            &FlowConstructionResult(ref flow_ref, _) => flow::base(flow_ref.deref()).debug_id(),
+        }
     }
 }
 
 /// Represents the output of flow construction for a DOM node that has not yet resulted in a
 /// complete flow. Construction items bubble up the tree until they find a `Flow` to be attached
 /// to.
+#[deriving(Clone)]
 pub enum ConstructionItem {
     /// Inline fragments and associated {ib} splits that have not yet found flows.
     InlineFragmentsConstructionItem(InlineFragmentsConstructionResult),
@@ -110,6 +114,7 @@ pub enum ConstructionItem {
 }
 
 /// Represents inline fragments and {ib} splits that are bubbling up from an inline.
+#[deriving(Clone)]
 pub struct InlineFragmentsConstructionResult {
     /// Any {ib} splits that we're bubbling up.
     pub splits: Vec<InlineBlockSplit>,
@@ -147,6 +152,7 @@ pub struct InlineFragmentsConstructionResult {
 ///             C
 ///         ])
 /// ```
+#[deriving(Clone)]
 pub struct InlineBlockSplit {
     /// The inline fragments that precede the flow.
     pub predecessors: InlineFragments,

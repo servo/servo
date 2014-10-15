@@ -562,7 +562,7 @@ impl LineBreaker {
 }
 
 /// Represents a list of inline fragments, including element ranges.
-#[deriving(Encodable)]
+#[deriving(Encodable, Clone)]
 pub struct InlineFragments {
     /// The fragments themselves.
     pub fragments: Vec<Fragment>,
@@ -576,6 +576,26 @@ impl InlineFragments {
         }
     }
 
+    pub fn debug_show(&self) -> String {
+        let mut ret = String::new();
+        ret.push_str("[ ");
+        for (i, fragment) in self.fragments.iter().enumerate() {
+            if i != 0 {
+                ret.push_str(", ");
+            }
+
+            ret.push_str(fragment.debug_show().as_slice());
+        }
+
+        if self.is_empty() {
+            ret.push_str("]");
+        } else {
+            ret.push_str(" ]");
+        }
+
+        ret
+    }
+
     /// Returns the number of inline fragments.
     pub fn len(&self) -> uint {
         self.fragments.len()
@@ -584,7 +604,7 @@ impl InlineFragments {
     /// Returns true if this list contains no fragments and false if it contains at least one
     /// fragment.
     pub fn is_empty(&self) -> bool {
-        self.len() == 0
+        self.fragments.is_empty()
     }
 
     /// Pushes a new inline fragment.
@@ -978,6 +998,10 @@ impl Flow for InlineFlow {
         InlineFlowClass
     }
 
+    fn debug_print(&self) -> String {
+        format!("{} - {:x} - {}", self.class(), self.base.debug_id(), self.fragments.debug_show())
+    }
+
     fn as_immutable_inline<'a>(&'a self) -> &'a InlineFlow {
         self
     }
@@ -989,7 +1013,7 @@ impl Flow for InlineFlow {
     fn bubble_inline_sizes(&mut self) {
         self.update_restyle_damage();
 
-        let _scope = layout_debug_scope!("inline::bubble_inline_sizes {:s}", self.base.debug_id());
+        let _scope = layout_debug_scope!("inline::bubble_inline_sizes {:x}", self.base.debug_id());
 
         let writing_mode = self.base.writing_mode;
         for kid in self.base.child_iter() {
@@ -1007,7 +1031,7 @@ impl Flow for InlineFlow {
     /// Recursively (top-down) determines the actual inline-size of child contexts and fragments.
     /// When called on this context, the context has had its inline-size set by the parent context.
     fn assign_inline_sizes(&mut self, _: &LayoutContext) {
-        let _scope = layout_debug_scope!("inline::assign_inline_sizes {:s}", self.base.debug_id());
+        let _scope = layout_debug_scope!("inline::assign_inline_sizes {:x}", self.base.debug_id());
 
         // Initialize content fragment inline-sizes if they haven't been initialized already.
         //
@@ -1039,7 +1063,7 @@ impl Flow for InlineFlow {
 
     /// Calculate and set the block-size of this flow. See CSS 2.1 § 10.6.1.
     fn assign_block_size(&mut self, layout_context: &LayoutContext) {
-        let _scope = layout_debug_scope!("inline::assign_block_size {:s}", self.base.debug_id());
+        let _scope = layout_debug_scope!("inline::assign_block_size {:x}", self.base.debug_id());
 
         // Collect various offsets needed by absolutely positioned inline-block or hypothetical
         // absolute descendants.

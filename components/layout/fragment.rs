@@ -584,6 +584,10 @@ impl Fragment {
         self.debug_id
     }
 
+    pub fn debug_show(&self) -> String {
+        format!("{:x} {}", self.debug_id(), self.specific.get_type())
+    }
+
     /// Transforms this fragment into another fragment of the given type, with the given size, preserving all
     /// the other data.
     pub fn transform(&self, size: LogicalSize<Au>, specific: SpecificFragmentInfo) -> Fragment {

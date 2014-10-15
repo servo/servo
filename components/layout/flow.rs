@@ -299,6 +299,10 @@ pub trait Flow: fmt::Show + ToString + Sync {
             LayerId(pointer, fragment_id)
         }
     }
+
+    fn debug_print(&self) -> String {
+        format!("{} - {:x}", self.class(), base(self).debug_id())
+    }
 }
 
 impl<'a, E, S: Encoder<E>> Encodable<S, E> for &'a Flow + 'a {
@@ -854,8 +858,9 @@ impl BaseFlow {
         &self.ref_count
     }
 
-    pub fn debug_id(&self) -> String {
-        format!("{:p}", self as *const _)
+    pub fn debug_id(&self) -> uint {
+        let p = self as *const _;
+        p as uint
     }
 }
 
@@ -1020,7 +1025,7 @@ impl<'a> ImmutableFlowUtils for &'a Flow + 'a {
         for _ in range(0, level) {
             indent.push_str("| ")
         }
-        debug!("{}+ {}", indent, self.to_string());
+        debug!("{}+ {}", indent, self.debug_print());
         for kid in imm_child_iter(self) {
             kid.dump_with_level(level + 1)
         }

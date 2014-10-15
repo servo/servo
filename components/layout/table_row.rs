@@ -162,7 +162,7 @@ impl Flow for TableRowFlow {
     /// The specified column inline-sizes of children cells are used in fixed table layout
     /// calculation.
     fn bubble_inline_sizes(&mut self) {
-        let _scope = layout_debug_scope!("table_row::bubble_inline_sizes {:s}",
+        let _scope = layout_debug_scope!("table_row::bubble_inline_sizes {:x}",
                                          self.block_flow.base.debug_id());
 
         // Bubble up the specified inline-sizes from child table cells.
@@ -209,7 +209,7 @@ impl Flow for TableRowFlow {
     /// Recursively (top-down) determines the actual inline-size of child contexts and fragments.
     /// When called on this context, the context has had its inline-size set by the parent context.
     fn assign_inline_sizes(&mut self, ctx: &LayoutContext) {
-        let _scope = layout_debug_scope!("table_row::assign_inline_sizes {:s}",
+        let _scope = layout_debug_scope!("table_row::assign_inline_sizes {:x}",
                                          self.block_flow.base.debug_id());
         debug!("assign_inline_sizes({}): assigning inline_size for flow", "table_row");
 
@@ -253,4 +253,3 @@ impl fmt::Show for TableRowFlow {
         write!(f, "TableRowFlow: {}", self.block_flow.fragment)
     }
 }
-
