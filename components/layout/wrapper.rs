@@ -21,10 +21,7 @@
 //!
 //! Rules of the road for this file:
 //!
-//! * In general, you must not use the `Cast` functions; use explicit checks and `transmute_copy`
-//!   instead.
-//!
-//! * You must also not use `.get()`; instead, use `.unsafe_get()`.
+//! * You must not use `.get()`; instead, use `.unsafe_get()`.
 //!
 //! * Do not call any methods on DOM nodes without checking to see whether they use borrow flags.
 //!
@@ -38,17 +35,16 @@ use css::node_style::StyledNode;
 use util::{LayoutDataAccess, LayoutDataWrapper, PrivateLayoutData, OpaqueNodeMethods};
 
 use gfx::display_list::OpaqueNode;
-use script::dom::bindings::codegen::InheritTypes::{HTMLIFrameElementDerived};
-use script::dom::bindings::codegen::InheritTypes::{HTMLImageElementDerived};
-use script::dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, TextDerived};
+use script::dom::bindings::codegen::InheritTypes::{ElementCast, HTMLIFrameElementCast, HTMLImageElementCast};
+use script::dom::bindings::codegen::InheritTypes::{HTMLInputElementCast, TextCast};
 use script::dom::bindings::js::JS;
 use script::dom::element::{Element, HTMLAreaElementTypeId, HTMLAnchorElementTypeId};
 use script::dom::element::{HTMLLinkElementTypeId, LayoutElementHelpers, RawLayoutElementHelpers};
 use script::dom::htmliframeelement::HTMLIFrameElement;
-use script::dom::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
-use script::dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
+use script::dom::htmlimageelement::LayoutHTMLImageElementHelpers;
+use script::dom::htmlinputelement::LayoutHTMLInputElementHelpers;
 use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, Node, NodeTypeId};
-use script::dom::node::{LayoutNodeHelpers, RawLayoutNodeHelpers, SharedLayoutData, TextNodeTypeId};
+use script::dom::node::{LayoutNodeHelpers, RawLayoutNodeHelpers, SharedLayoutData};
 use script::dom::node::{HasChanged, IsDirty, HasDirtySiblings, HasDirtyDescendants};
 use script::dom::text::Text;
 use script::layout_interface::LayoutChan;
@@ -101,11 +97,10 @@ pub trait TLayoutNode {
     /// FIXME(pcwalton): Don't copy URLs.
     fn image_url(&self) -> Option<Url> {
         unsafe {
-            if !self.get().is_htmlimageelement() {
-                fail!("not an image!")
+            match HTMLImageElementCast::to_js(self.get_jsmanaged()) {
+                Some(elem) => elem.image().as_ref().map(|url| (*url).clone()),
+                None => fail!("not an image!")
             }
-            let image_element: JS<HTMLImageElement> = self.get_jsmanaged().transmute_copy();
-            image_element.image().as_ref().map(|url| (*url).clone())
         }
     }
 
@@ -113,10 +108,11 @@ pub trait TLayoutNode {
     /// not an iframe element, fails.
     fn iframe_pipeline_and_subpage_ids(&self) -> (PipelineId, SubpageId) {
         unsafe {
-            if !self.get().is_htmliframeelement() {
-                fail!("not an iframe element!")
-            }
-            let iframe_element: JS<HTMLIFrameElement> = self.get_jsmanaged().transmute_copy();
+            let iframe_element: JS<HTMLIFrameElement> =
+                match HTMLIFrameElementCast::to_js(self.get_jsmanaged()) {
+                    Some(elem) => elem,
+                    None => fail!("not an iframe element!")
+                };
             let size = (*iframe_element.unsafe_get()).size().unwrap();
             (*size.pipeline_id(), *size.subpage_id())
         }
@@ -188,14 +184,13 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
 
     fn text(&self) -> String {
         unsafe {
-            if self.get().is_text() {
-                let text: JS<Text> = self.get_jsmanaged().transmute_copy();
-                (*text.unsafe_get()).characterdata().data_for_layout().to_string()
-            } else if self.get().is_htmlinputelement() {
-                let input: JS<HTMLInputElement> = self.get_jsmanaged().transmute_copy();
-                input.get_value_for_layout()
-            } else {
-                fail!("not text!")
+            let text_opt: Option<JS<Text>> = TextCast::to_js(self.get_jsmanaged());
+            match text_opt {
+                Some(text) => (*text.unsafe_get()).characterdata().data_for_layout().to_string(),
+                None => match HTMLInputElementCast::to_js(self.get_jsmanaged()) {
+                    Some(input) => input.get_value_for_layout(),
+                    None => fail!("not text!")
+                }
             }
         }
     }
@@ -303,9 +298,13 @@ impl<'ln> TNode<'ln, LayoutElement<'ln>> for LayoutNode<'ln> {
     #[inline]
     fn as_element(self) -> LayoutElement<'ln> {
         unsafe {
-            assert!(self.node.is_element_for_layout());
-            let elem: JS<Element> = self.node.transmute_copy();
+            let elem: JS<Element> = match ElementCast::to_js(&self.node) {
+                Some(elem) => elem,
+                None => fail!("not an element")
+            };
+
             let element = &*elem.unsafe_get();
+
             LayoutElement {
                 element: mem::transmute(element),
             }
@@ -341,9 +340,9 @@ impl<'ln> TNode<'ln, LayoutElement<'ln>> for LayoutNode<'ln> {
 
     fn is_html_element_in_html_document(self) -> bool {
         unsafe {
-            self.is_element() && {
-                let element: JS<Element> = self.node.transmute_copy();
-                element.html_element_in_html_document_for_layout()
+            match ElementCast::to_js(&self.node) {
+                Some(elem) => elem.html_element_in_html_document_for_layout(),
+                None => false
             }
         }
     }
@@ -714,9 +713,10 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     #[inline]
     pub fn as_element(&self) -> ThreadSafeLayoutElement<'ln> {
         unsafe {
-            assert!(self.get_jsmanaged().is_element_for_layout());
-            let elem: JS<Element> = self.get_jsmanaged().transmute_copy();
-            let element = elem.unsafe_get();
+            let element = match ElementCast::to_js(self.get_jsmanaged()) {
+                Some(e) => e.unsafe_get(),
+                None => fail!("not an element")
+            };
             // FIXME(pcwalton): Workaround until Rust gets multiple lifetime parameters on
             // implementations.
             ThreadSafeLayoutElement {
@@ -806,47 +806,44 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     }
 
     pub fn is_ignorable_whitespace(&self) -> bool {
-        match self.type_id() {
-            Some(TextNodeTypeId) => {
-                unsafe {
-                    let text: JS<Text> = self.get_jsmanaged().transmute_copy();
-                    if !is_whitespace((*text.unsafe_get()).characterdata().data_for_layout()) {
-                        return false
-                    }
+        unsafe {
+            let text: JS<Text> = match TextCast::to_js(self.get_jsmanaged()) {
+                Some(text) => text,
+                None => return false
+            };
 
-                    // NB: See the rules for `white-space` here:
-                    //
-                    //    http://www.w3.org/TR/CSS21/text.html#propdef-white-space
-                    //
-                    // If you implement other values for this property, you will almost certainly
-                    // want to update this check.
-                    match self.style().get_inheritedtext().white_space {
-                        white_space::normal => true,
-                        _ => false,
-                    }
-                }
+            if !is_whitespace((*text.unsafe_get()).characterdata().data_for_layout()) {
+                return false
             }
-            _ => false
+
+            // NB: See the rules for `white-space` here:
+            //
+            //    http://www.w3.org/TR/CSS21/text.html#propdef-white-space
+            //
+            // If you implement other values for this property, you will almost certainly
+            // want to update this check.
+            match self.style().get_inheritedtext().white_space {
+                white_space::normal => true,
+                _ => false,
+            }
         }
     }
 
     pub fn get_input_value(&self) -> String {
         unsafe {
-            if !self.get().is_htmlinputelement() {
-                fail!("not an input element!")
+            match HTMLInputElementCast::to_js(self.get_jsmanaged()) {
+                Some(input) => input.get_value_for_layout(),
+                None => fail!("not an input element!")
             }
-            let input: JS<HTMLInputElement> = self.get_jsmanaged().transmute_copy();
-            input.get_value_for_layout()
         }
     }
 
     pub fn get_input_size(&self) -> u32 {
         unsafe {
-            if !self.get().is_htmlinputelement() {
-                fail!("not an input element!")
+            match HTMLInputElementCast::to_js(self.get_jsmanaged()) {
+                Some(input) => input.get_size_for_layout(),
+                None => fail!("not an input element!")
             }
-            let input: JS<HTMLInputElement> = self.get_jsmanaged().transmute_copy();
-            input.get_size_for_layout()
         }
     }
 }
