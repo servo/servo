@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::cell::{DOMRefCell, Ref};
 use dom::bindings::codegen::Bindings::AttrBinding;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::InheritTypes::NodeCast;
@@ -15,7 +16,6 @@ use dom::virtualmethods::vtable_for;
 
 use devtools_traits::AttrInfo;
 use servo_util::str::{DOMString, split_html_space_chars};
-use std::cell::{Ref, RefCell};
 use std::mem;
 use string_cache::{Atom, Namespace};
 
@@ -75,7 +75,7 @@ impl Str for AttrValue {
 pub struct Attr {
     reflector_: Reflector,
     local_name: Atom,
-    value: RefCell<AttrValue>,
+    value: DOMRefCell<AttrValue>,
     name: Atom,
     namespace: Namespace,
     prefix: Option<DOMString>,
@@ -97,7 +97,7 @@ impl Attr {
         Attr {
             reflector_: Reflector::new(),
             local_name: local_name,
-            value: RefCell::new(value),
+            value: DOMRefCell::new(value),
             name: name,
             namespace: namespace,
             prefix: prefix,
@@ -221,15 +221,14 @@ pub trait AttrHelpersForLayout {
 impl AttrHelpersForLayout for Attr {
     #[inline]
     unsafe fn value_ref_forever(&self) -> &'static str {
-        // cast to point to T in RefCell<T> directly
-        let value = mem::transmute::<&RefCell<AttrValue>, &AttrValue>(&self.value);
+        // This transmute is used to cheat the lifetime restriction.
+        let value = mem::transmute::<&AttrValue, &AttrValue>(self.value.borrow_for_layout());
         value.as_slice()
     }
 
     #[inline]
     unsafe fn value_atom_forever(&self) -> Option<Atom> {
-        // cast to point to T in RefCell<T> directly
-        let value = mem::transmute::<&RefCell<AttrValue>, &AttrValue>(&self.value);
+        let value = self.value.borrow_for_layout();
         match *value {
             AtomAttrValue(ref val) => Some(val.clone()),
             _ => None,
@@ -238,8 +237,8 @@ impl AttrHelpersForLayout for Attr {
 
     #[inline]
     unsafe fn value_tokens_forever(&self) -> Option<&'static [Atom]> {
-        // cast to point to T in RefCell<T> directly
-        let value = mem::transmute::<&RefCell<AttrValue>, &AttrValue>(&self.value);
+        // This transmute is used to cheat the lifetime restriction.
+        let value = mem::transmute::<&AttrValue, &AttrValue>(self.value.borrow_for_layout());
         match *value {
             TokenListAttrValue(_, ref tokens) => Some(tokens.as_slice()),
             _ => None,

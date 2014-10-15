@@ -7,6 +7,7 @@
 use dom::attr::{Attr, ReplacedAttr, FirstSetAttr, AttrHelpers, AttrHelpersForLayout};
 use dom::attr::{AttrValue, StringAttrValue, UIntAttrValue, AtomAttrValue};
 use dom::namednodemap::NamedNodeMap;
+use dom::bindings::cell::{DOMRefCell, Ref, RefMut};
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::ElementBinding;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
@@ -39,7 +40,6 @@ use servo_util::namespace;
 use servo_util::str::{DOMString, LengthOrPercentageOrAuto};
 
 use std::ascii::StrAsciiExt;
-use std::cell::{Ref, RefMut, RefCell};
 use std::default::Default;
 use std::mem;
 use string_cache::{Atom, Namespace};
@@ -53,8 +53,8 @@ pub struct Element {
     local_name: Atom,
     namespace: Namespace,
     prefix: Option<DOMString>,
-    attrs: RefCell<Vec<JS<Attr>>>,
-    style_attribute: RefCell<Option<style::PropertyDeclarationBlock>>,
+    attrs: DOMRefCell<Vec<JS<Attr>>>,
+    style_attribute: DOMRefCell<Option<style::PropertyDeclarationBlock>>,
     attr_list: MutNullableJS<NamedNodeMap>,
     class_list: MutNullableJS<DOMTokenList>,
 }
@@ -160,10 +160,10 @@ impl Element {
             local_name: Atom::from_slice(local_name.as_slice()),
             namespace: namespace,
             prefix: prefix,
-            attrs: RefCell::new(vec!()),
+            attrs: DOMRefCell::new(vec!()),
             attr_list: Default::default(),
             class_list: Default::default(),
-            style_attribute: RefCell::new(None),
+            style_attribute: DOMRefCell::new(None),
         }
     }
 
@@ -203,7 +203,7 @@ impl Element {
     }
 
     #[inline]
-    pub fn style_attribute<'a>(&'a self) -> &'a RefCell<Option<style::PropertyDeclarationBlock>> {
+    pub fn style_attribute<'a>(&'a self) -> &'a DOMRefCell<Option<style::PropertyDeclarationBlock>> {
         &self.style_attribute
     }
 }
@@ -226,8 +226,7 @@ impl RawLayoutElementHelpers for Element {
     #[allow(unrooted_must_root)]
     unsafe fn get_attr_val_for_layout<'a>(&'a self, namespace: &Namespace, name: &Atom)
                                           -> Option<&'a str> {
-        // cast to point to T in RefCell<T> directly
-        let attrs: *const Vec<JS<Attr>> = mem::transmute(&self.attrs);
+        let attrs = self.attrs.borrow_for_layout();
         (*attrs).iter().find(|attr: & &JS<Attr>| {
             let attr = attr.unsafe_get();
             *name == (*attr).local_name_atom_forever() &&
@@ -241,8 +240,7 @@ impl RawLayoutElementHelpers for Element {
     #[inline]
     #[allow(unrooted_must_root)]
     unsafe fn get_attr_vals_for_layout<'a>(&'a self, name: &Atom) -> Vec<&'a str> {
-        // cast to point to T in RefCell<T> directly
-        let attrs: *const Vec<JS<Attr>> = mem::transmute(&self.attrs);
+        let attrs = self.attrs.borrow_for_layout();
         (*attrs).iter().filter_map(|attr: &JS<Attr>| {
             let attr = attr.unsafe_get();
             if *name == (*attr).local_name_atom_forever() {
@@ -257,8 +255,7 @@ impl RawLayoutElementHelpers for Element {
     #[allow(unrooted_must_root)]
     unsafe fn get_attr_atom_for_layout(&self, namespace: &Namespace, name: &Atom)
                                       -> Option<Atom> {
-        // cast to point to T in RefCell<T> directly
-        let attrs: *const Vec<JS<Attr>> = mem::transmute(&self.attrs);
+        let attrs = self.attrs.borrow_for_layout();
         (*attrs).iter().find(|attr: & &JS<Attr>| {
             let attr = attr.unsafe_get();
             *name == (*attr).local_name_atom_forever() &&
@@ -272,7 +269,7 @@ impl RawLayoutElementHelpers for Element {
     #[inline]
     #[allow(unrooted_must_root)]
     unsafe fn has_class_for_layout(&self, name: &Atom) -> bool {
-        let attrs: *const Vec<JS<Attr>> = mem::transmute(&self.attrs);
+        let attrs = self.attrs.borrow_for_layout();
         (*attrs).iter().find(|attr: & &JS<Attr>| {
             let attr = attr.unsafe_get();
             (*attr).local_name_atom_forever() == atom!("class")
@@ -287,7 +284,7 @@ impl RawLayoutElementHelpers for Element {
     #[inline]
     #[allow(unrooted_must_root)]
     unsafe fn get_classes_for_layout(&self) -> Option<&'static [Atom]> {
-        let attrs: *const Vec<JS<Attr>> = mem::transmute(&self.attrs);
+        let attrs = self.attrs.borrow_for_layout();
         (*attrs).iter().find(|attr: & &JS<Attr>| {
             let attr = attr.unsafe_get();
             (*attr).local_name_atom_forever() == atom!("class")
