@@ -50,6 +50,7 @@ pub mod eutil;
 pub mod mem;
 pub mod request;
 pub mod string;
+pub mod string_list;
 pub mod task;
 pub mod types;
 pub mod urlrequest;
