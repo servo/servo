@@ -17,7 +17,6 @@ pub fn expand_dom_struct(_: &mut ExtCtxt, _: Span, _: &MetaItem, item: P<Item>) 
     item2.attrs.push(attr::mk_attr_outer(attr::mk_attr_id(), attr::mk_word_item(InternedString::new("must_root"))));
     item2.attrs.push(attr::mk_attr_outer(attr::mk_attr_id(), attr::mk_word_item(InternedString::new("privatize"))));
     item2.attrs.push(attr::mk_attr_outer(attr::mk_attr_id(), attr::mk_word_item(InternedString::new("jstraceable"))));
-    //expand_jstraceable_inner(cx, span, mitem, &*item, |_| ());
     P(item2)
 }
 
@@ -35,7 +34,7 @@ pub fn expand_jstraceable(cx: &mut ExtCtxt, span: Span, mitem: &MetaItem, item: 
                 explicit_self: ty::borrowed_explicit_self(),
                 args: vec!(ty::Ptr(box ty::Literal(ty::Path::new(vec!("js","jsapi","JSTracer"))), ty::Raw(ast::MutMutable))),
                 ret_ty: ty::nil_ty(),
-                attributes: vec!(),
+                attributes: vec!(attr::mk_attr_outer(attr::mk_attr_id(), attr::mk_word_item(InternedString::new("inline")))),
                 combine_substructure: combine_substructure(|a, b, c| {
                     jstraceable_substructure(a, b, c)
                 })
