@@ -78,7 +78,6 @@ pub enum IsHTMLDocument {
 #[privatize]
 pub struct Document {
     node: Node,
-    reflector_: Reflector,
     window: JS<Window>,
     idmap: RefCell<HashMap<Atom, Vec<JS<Element>>>>,
     implementation: MutNullableJS<DOMImplementation>,
@@ -301,7 +300,6 @@ impl Document {
 
         Document {
             node: Node::new_without_doc(DocumentNodeTypeId),
-            reflector_: Reflector::new(),
             window: JS::from_rooted(window),
             idmap: RefCell::new(HashMap::new()),
             implementation: Default::default(),
