@@ -8,9 +8,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct NodeIterator {
     reflector_: Reflector
 }

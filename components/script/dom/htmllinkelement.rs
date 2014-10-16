@@ -21,9 +21,7 @@ use std::ascii::StrAsciiExt;
 use url::UrlParser;
 use string_cache::Atom;
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct HTMLLinkElement {
     htmlelement: HTMLElement,
 }

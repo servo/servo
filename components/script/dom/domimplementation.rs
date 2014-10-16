@@ -22,9 +22,7 @@ use dom::node::Node;
 use dom::text::Text;
 use servo_util::str::DOMString;
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct DOMImplementation {
     document: JS<Document>,
     reflector_: Reflector,

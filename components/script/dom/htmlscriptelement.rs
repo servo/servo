@@ -18,9 +18,7 @@ use dom::node::{Node, NodeHelpers, ElementNodeTypeId};
 
 use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS, StaticStringVec};
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct HTMLScriptElement {
     htmlelement: HTMLElement,
 }

@@ -20,9 +20,7 @@ use std::ascii::OwnedStrAsciiExt;
 use servo_util::str::DOMString;
 use string_cache::Atom;
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct HTMLButtonElement {
     htmlelement: HTMLElement
 }

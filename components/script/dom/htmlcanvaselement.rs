@@ -28,9 +28,7 @@ use std::default::Default;
 static DefaultWidth: u32 = 300;
 static DefaultHeight: u32 = 150;
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct HTMLCanvasElement {
     htmlelement: HTMLElement,
     context: MutNullableJS<CanvasRenderingContext2D>,

@@ -39,9 +39,7 @@ enum SandboxAllowance {
     AllowPopups = 0x20
 }
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct HTMLIFrameElement {
     htmlelement: HTMLElement,
     size: Cell<Option<IFrameSize>>,

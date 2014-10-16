@@ -7,10 +7,20 @@ use syntax::codemap::Span;
 use syntax::ptr::P;
 use syntax::ast::{Item, MetaItem, Expr};
 use syntax::ast;
+use syntax::attr;
 use syntax::ext::build::AstBuilder;
 use syntax::ext::deriving::generic::{combine_substructure, EnumMatching, FieldInfo, MethodDef, Struct, Substructure, TraitDef, ty};
+use syntax::parse::token::InternedString;
 
- pub fn expand_jstraceable(cx: &mut ExtCtxt, span: Span, mitem: &MetaItem, item: &Item, push: |P<Item>|) {
+pub fn expand_dom_struct(_: &mut ExtCtxt, _: Span, _: &MetaItem, item: P<Item>) -> P<Item> {
+    let mut item2 = (*item).clone();
+    item2.attrs.push(attr::mk_attr_outer(attr::mk_attr_id(), attr::mk_word_item(InternedString::new("must_root"))));
+    item2.attrs.push(attr::mk_attr_outer(attr::mk_attr_id(), attr::mk_word_item(InternedString::new("privatize"))));
+    item2.attrs.push(attr::mk_attr_outer(attr::mk_attr_id(), attr::mk_word_item(InternedString::new("jstraceable"))));
+    P(item2)
+}
+
+pub fn expand_jstraceable(cx: &mut ExtCtxt, span: Span, mitem: &MetaItem, item: &Item, push: |P<Item>|) {
     let trait_def = TraitDef {
         span: span,
         attributes: Vec::new(),
@@ -24,7 +34,7 @@ use syntax::ext::deriving::generic::{combine_substructure, EnumMatching, FieldIn
                 explicit_self: ty::borrowed_explicit_self(),
                 args: vec!(ty::Ptr(box ty::Literal(ty::Path::new(vec!("js","jsapi","JSTracer"))), ty::Raw(ast::MutMutable))),
                 ret_ty: ty::nil_ty(),
-                attributes: vec!(),
+                attributes: vec!(attr::mk_attr_outer(attr::mk_attr_id(), attr::mk_word_item(InternedString::new("inline")))),
                 combine_substructure: combine_substructure(|a, b, c| {
                     jstraceable_substructure(a, b, c)
                 })

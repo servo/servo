@@ -15,9 +15,7 @@ use dom::node::window_from_node;
 use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS};
 use string_cache::Atom;
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct DOMTokenList {
     reflector_: Reflector,
     element: JS<Element>,

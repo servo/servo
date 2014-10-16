@@ -18,9 +18,7 @@ use servo_util::str;
 use std::cell::Cell;
 use string_cache::Atom;
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct HTMLTableCellElement {
     htmlelement: HTMLElement,
     width: Cell<LengthOrPercentageOrAuto>,

@@ -102,9 +102,7 @@ enum SyncOrAsync<'a> {
 }
 
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct XMLHttpRequest {
     eventtarget: XMLHttpRequestEventTarget,
     ready_state: Cell<XMLHttpRequestState>,

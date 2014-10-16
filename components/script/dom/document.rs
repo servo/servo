@@ -73,9 +73,7 @@ pub enum IsHTMLDocument {
     NonHTMLDocument,
 }
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct Document {
     node: Node,
     window: JS<Window>,

@@ -15,9 +15,7 @@ use dom::node::{Node, ElementNodeTypeId, window_from_node};
 use dom::validitystate::ValidityState;
 use servo_util::str::DOMString;
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct HTMLOutputElement {
     htmlelement: HTMLElement
 }

@@ -32,9 +32,7 @@ pub enum WorkerGlobalScopeId {
     DedicatedGlobalScope,
 }
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct WorkerGlobalScope {
     eventtarget: EventTarget,
     worker_url: Url,

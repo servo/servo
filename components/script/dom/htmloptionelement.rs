@@ -22,9 +22,7 @@ use dom::virtualmethods::VirtualMethods;
 use servo_util::str::{DOMString, split_html_space_chars};
 use string_cache::Atom;
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct HTMLOptionElement {
     htmlelement: HTMLElement
 }

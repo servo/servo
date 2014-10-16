@@ -10,9 +10,7 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::domrect::DOMRect;
 use dom::window::Window;
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct DOMRectList {
     reflector_: Reflector,
     rects: Vec<JS<DOMRect>>,

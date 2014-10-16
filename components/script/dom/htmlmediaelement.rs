@@ -12,9 +12,7 @@ use dom::htmlelement::HTMLElement;
 use dom::node::ElementNodeTypeId;
 use servo_util::str::DOMString;
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct HTMLMediaElement {
     htmlelement: HTMLElement,
 }

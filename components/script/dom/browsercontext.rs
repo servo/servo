@@ -65,9 +65,7 @@ impl BrowserContext {
     }
 }
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct SessionHistoryEntry {
     document: JS<Document>,
     children: Vec<BrowserContext>
