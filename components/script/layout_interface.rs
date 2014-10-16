@@ -6,14 +6,10 @@
 /// coupling between these two components, and enables the DOM to be placed in a separate crate
 /// from layout.
 
-use dom::bindings::js::JS;
-use dom::bindings::trace::JSTraceable;
-use dom::node::{Node, LayoutDataRef};
+use dom::node::LayoutDataRef;
 
 use geom::point::Point2D;
 use geom::rect::Rect;
-use js::jsapi::JSTracer;
-use libc::c_void;
 use script_traits::{ScriptControlChan, OpaqueScriptLayoutChannel, UntrustedNodeAddress};
 use servo_msg::constellation_msg::WindowSizeData;
 use servo_util::geometry::Au;
@@ -22,6 +18,8 @@ use std::comm::{channel, Receiver, Sender};
 use std::owned::BoxAny;
 use style::Stylesheet;
 use url::Url;
+
+pub use dom::node::TrustedNodeAddress;
 
 /// Asynchronous messages that script can send to layout.
 pub enum Msg {
@@ -68,20 +66,6 @@ pub trait LayoutRPC {
     /// Requests the node containing the point of interest
     fn hit_test(&self, node: TrustedNodeAddress, point: Point2D<f32>) -> Result<HitTestResponse, ()>;
     fn mouse_over(&self, node: TrustedNodeAddress, point: Point2D<f32>) -> Result<MouseOverResponse, ()>;
-}
-
-/// The address of a node known to be valid. These must only be sent from content -> layout,
-/// because we do not trust layout.
-pub struct TrustedNodeAddress(pub *const c_void);
-
-impl JSTraceable for TrustedNodeAddress {
-    fn trace(&self, s: *mut JSTracer) {
-        let TrustedNodeAddress(addr) = *self;
-        let node = addr as *const Node;
-        unsafe {
-            JS::from_raw(node).trace(s)
-        }
-    }
 }
 
 pub struct ContentBoxResponse(pub Rect<Au>);
