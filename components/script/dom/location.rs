@@ -19,7 +19,7 @@ use std::rc::Rc;
 #[must_root]
 #[privatize]
 pub struct Location {
-    reflector_: Reflector, //XXXjdm cycle: window->Location->window
+    reflector_: Reflector,
     page: Rc<Page>,
 }
 
