@@ -20,62 +20,29 @@ use dom::performance::Performance;
 use dom::screen::Screen;
 use layout_interface::{ReflowGoal, ReflowForDisplay};
 use page::Page;
-use script_task::{ExitWindowMsg, FireTimerMsg, ScriptChan, TriggerLoadMsg, TriggerFragmentMsg};
+use script_task::{ExitWindowMsg, ScriptChan, TriggerLoadMsg, TriggerFragmentMsg};
+use script_task::FromWindow;
 use script_traits::ScriptControlChan;
+use timers::{TimerId, TimerManager};
 
 use servo_msg::compositor_msg::ScriptListener;
 use servo_msg::constellation_msg::LoadData;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_util::str::{DOMString,HTML_SPACE_CHARACTERS};
-use servo_util::task::{spawn_named};
 
-use js::jsapi::{JS_CallFunctionValue, JS_EvaluateUCScript};
+use js::jsapi::JS_EvaluateUCScript;
 use js::jsapi::JSContext;
 use js::jsapi::{JS_GC, JS_GetRuntime};
-use js::jsval::JSVal;
-use js::jsval::{UndefinedValue, NullValue};
+use js::jsval::{JSVal, UndefinedValue};
 use js::rust::with_compartment;
 use url::{Url, UrlParser};
 
 use libc;
 use serialize::base64::{FromBase64, ToBase64, STANDARD};
-use std::collections::hashmap::HashMap;
-use std::cell::{Cell, Ref, RefCell};
-use std::cmp;
-use std::comm::{channel, Sender};
-use std::comm::Select;
+use std::cell::{Ref, RefCell};
 use std::default::Default;
-use std::hash::{Hash, sip};
-use std::io::timer::Timer;
-use std::ptr;
 use std::rc::Rc;
-use std::time::duration::Duration;
 use time;
-
-#[deriving(PartialEq, Eq)]
-#[jstraceable]
-pub struct TimerId(i32);
-
-#[jstraceable]
-#[privatize]
-pub struct TimerHandle {
-    handle: TimerId,
-    data: TimerData,
-    cancel_chan: Option<Sender<()>>,
-}
-
-impl Hash for TimerId {
-    fn hash(&self, state: &mut sip::SipState) {
-        let TimerId(id) = *self;
-        id.hash(state);
-    }
-}
-
-impl TimerHandle {
-    fn cancel(&mut self) {
-        self.cancel_chan.as_ref().map(|chan| chan.send_opt(()).ok());
-    }
-}
 
 #[jstraceable]
 #[must_root]
@@ -88,8 +55,6 @@ pub struct Window {
     location: MutNullableJS<Location>,
     navigator: MutNullableJS<Navigator>,
     image_cache_task: ImageCacheTask,
-    active_timers: RefCell<HashMap<TimerId, TimerHandle>>,
-    next_timer_handle: Cell<i32>,
     compositor: Box<ScriptListener+'static>,
     browser_context: RefCell<Option<BrowserContext>>,
     page: Rc<Page>,
@@ -97,6 +62,7 @@ pub struct Window {
     navigation_start: u64,
     navigation_start_precise: f64,
     screen: MutNullableJS<Screen>,
+    timers: TimerManager
 }
 
 impl Window {
@@ -140,25 +106,6 @@ impl Window {
     pub fn get_url(&self) -> Url {
         self.page().get_url()
     }
-}
-
-#[unsafe_destructor]
-impl Drop for Window {
-    fn drop(&mut self) {
-        for (_, timer_handle) in self.active_timers.borrow_mut().iter_mut() {
-            timer_handle.cancel();
-        }
-    }
-}
-
-// Holder for the various JS values associated with setTimeout
-// (ie. function value to invoke and all arguments to pass
-//      to the function when calling it)
-#[jstraceable]
-#[privatize]
-pub struct TimerData {
-    is_interval: bool,
-    funval: JSVal,
 }
 
 // http://www.whatwg.org/html/#atob
@@ -278,21 +225,23 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     }
 
     fn SetTimeout(self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32 {
-        self.set_timeout_or_interval(callback, timeout, false)
+        self.timers.set_timeout_or_interval(callback,
+                                            timeout,
+                                            false, // is_interval
+                                            FromWindow(self.page.id.clone()),
+                                            self.script_chan.clone())
     }
 
     fn ClearTimeout(self, handle: i32) {
-        let mut timers = self.active_timers.borrow_mut();
-        let mut timer_handle = timers.pop(&TimerId(handle));
-        match timer_handle {
-            Some(ref mut handle) => handle.cancel(),
-            None => { }
-        }
-        timers.remove(&TimerId(handle));
+        self.timers.clear_timeout_or_interval(handle);
     }
 
     fn SetInterval(self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32 {
-        self.set_timeout_or_interval(callback, timeout, true)
+        self.timers.set_timeout_or_interval(callback,
+                                            timeout,
+                                            true, // is_interval
+                                            FromWindow(self.page.id.clone()),
+                                            self.script_chan.clone())
     }
 
     fn ClearInterval(self, handle: i32) {
@@ -408,9 +357,6 @@ pub trait WindowHelpers {
     fn evaluate_js_with_result(self, code: &str) -> JSVal;
 }
 
-trait PrivateWindowHelpers {
-    fn set_timeout_or_interval(self, callback: JSVal, timeout: i32, is_interval: bool) -> i32;
-}
 
 impl<'a> WindowHelpers for JSRef<'a, Window> {
     fn evaluate_js_with_result(self, code: &str) -> JSVal {
@@ -471,85 +417,7 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
 
     fn handle_fire_timer(self, timer_id: TimerId, cx: *mut JSContext) {
         let this_value = self.reflector().get_jsobject();
-
-        let data = match self.active_timers.borrow().find(&timer_id) {
-            None => return,
-            Some(timer_handle) => timer_handle.data,
-        };
-
-        // TODO: Support extra arguments. This requires passing a `*JSVal` array as `argv`.
-        with_compartment(cx, this_value, || {
-            let mut rval = NullValue();
-            unsafe {
-                JS_CallFunctionValue(cx, this_value, data.funval,
-                                     0, ptr::null_mut(), &mut rval);
-            }
-        });
-
-        if !data.is_interval {
-            self.active_timers.borrow_mut().remove(&timer_id);
-        }
-    }
-}
-
-impl<'a> PrivateWindowHelpers for JSRef<'a, Window> {
-    fn set_timeout_or_interval(self, callback: JSVal, timeout: i32, is_interval: bool) -> i32 {
-        let timeout = cmp::max(0, timeout) as u64;
-        let handle = self.next_timer_handle.get();
-        self.next_timer_handle.set(handle + 1);
-
-        // Post a delayed message to the per-window timer task; it will dispatch it
-        // to the relevant script handler that will deal with it.
-        let tm = Timer::new().unwrap();
-        let (cancel_chan, cancel_port) = channel();
-        let chan = self.script_chan.clone();
-        let page_id = self.page.id.clone();
-        let spawn_name = if is_interval {
-            "Window:SetInterval"
-        } else {
-            "Window:SetTimeout"
-        };
-        spawn_named(spawn_name, proc() {
-            let mut tm = tm;
-            let duration = Duration::milliseconds(timeout as i64);
-            let timeout_port = if is_interval {
-                tm.periodic(duration)
-            } else {
-                tm.oneshot(duration)
-            };
-            let cancel_port = cancel_port;
-
-            let select = Select::new();
-            let mut timeout_handle = select.handle(&timeout_port);
-            unsafe { timeout_handle.add() };
-            let mut cancel_handle = select.handle(&cancel_port);
-            unsafe { cancel_handle.add() };
-
-            loop {
-                let id = select.wait();
-                if id == timeout_handle.id() {
-                    timeout_port.recv();
-                    let ScriptChan(ref chan) = chan;
-                    chan.send(FireTimerMsg(page_id, TimerId(handle)));
-                    if !is_interval {
-                        break;
-                    }
-                } else if id == cancel_handle.id() {
-                    break;
-                }
-            }
-        });
-        let timer_id = TimerId(handle);
-        let timer = TimerHandle {
-            handle: timer_id,
-            cancel_chan: Some(cancel_chan),
-            data: TimerData {
-                is_interval: is_interval,
-                funval: callback,
-            }
-        };
-        self.active_timers.borrow_mut().insert(timer_id, timer);
-        handle
+        self.timers.fire_timer(timer_id, this_value, cx);
     }
 }
 
@@ -571,13 +439,12 @@ impl Window {
             location: Default::default(),
             navigator: Default::default(),
             image_cache_task: image_cache_task,
-            active_timers: RefCell::new(HashMap::new()),
-            next_timer_handle: Cell::new(0),
             browser_context: RefCell::new(None),
             performance: Default::default(),
             navigation_start: time::get_time().sec as u64,
             navigation_start_precise: time::precise_time_s(),
             screen: Default::default(),
+            timers: TimerManager::new()
         };
 
         WindowBinding::Wrap(cx, win)
