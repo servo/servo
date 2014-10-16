@@ -786,17 +786,13 @@ impl LayoutTask {
     }
 
     unsafe fn dirty_all_nodes(node: &mut LayoutNode) {
+        node.set_changed(true);
         node.set_dirty(true);
-
-        let mut has_children = false;
+        node.set_dirty_siblings(true);
+        node.set_dirty_descendants(true);
 
         for mut kid in node.children() {
             LayoutTask::dirty_all_nodes(&mut kid);
-            has_children = true;
-        }
-
-        if has_children {
-            node.set_dirty_descendants(true);
         }
     }
 
