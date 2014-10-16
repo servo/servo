@@ -27,8 +27,7 @@ use dom::node::{ElementNodeTypeId, Node, NodeHelpers};
 use dom::window::{Window, WindowHelpers};
 use dom::worker::{Worker, TrustedWorkerAddress};
 use dom::xmlhttprequest::{TrustedXHRAddress, XMLHttpRequest, XHRProgress};
-use html::hubbub_html_parser::{InputString, InputUrl, HtmlParserResult, HtmlDiscoveredScript};
-use html::hubbub_html_parser;
+use parse::html::{InputString, InputUrl, HtmlParserResult, HtmlDiscoveredScript, parse_html};
 use layout_interface::{ScriptLayoutChan, LayoutChan, ReflowForDisplay};
 use layout_interface;
 use page::{Page, IterablePage, Frame};
@@ -781,16 +780,9 @@ impl ScriptTask {
         // Parse HTML.
         //
         // Note: We can parse the next document in parallel with any previous documents.
-        let html_parsing_result =
-            hubbub_html_parser::parse_html(&*page,
-                                           *document,
-                                           parser_input,
-                                           self.resource_task.clone(),
-                                           Some(load_data));
-
-        let HtmlParserResult {
-            discovery_port
-        } = html_parsing_result;
+        let HtmlParserResult { discovery_port }
+            = parse_html(&*page, *document, parser_input, self.resource_task.clone(),
+                Some(load_data));
 
         {
             // Create the root frame.

@@ -42,7 +42,6 @@ use std::collections::hashmap::HashMap;
 use collections::hash::Hash;
 use style::PropertyDeclarationBlock;
 use std::comm::{Receiver, Sender};
-use hubbub::hubbub::QuirksMode;
 use string_cache::{Atom, Namespace};
 use js::rust::Cx;
 use http::headers::response::HeaderCollection as ResponseHeaderCollection;
@@ -55,7 +54,9 @@ use servo_msg::constellation_msg::ConstellationChan;
 use servo_util::smallvec::{SmallVec1, SmallVec};
 use servo_util::str::LengthOrPercentageOrAuto;
 use layout_interface::{LayoutRPC, LayoutChan};
+use dom::node::{Node, TrustedNodeAddress};
 use dom::bindings::utils::WindowProxyHandler;
+use html5ever::tree_builder::QuirksMode;
 
 impl<T: Reflectable> JSTraceable for JS<T> {
     fn trace(&self, trc: *mut JSTracer) {
@@ -207,6 +208,7 @@ untraceable!(ConstellationChan)
 untraceable!(LayoutChan)
 untraceable!(WindowProxyHandler)
 untraceable!(UntrustedNodeAddress)
+untraceable!(LengthOrPercentageOrAuto)
 
 impl<'a> JSTraceable for &'a str {
     #[inline]
@@ -236,5 +238,12 @@ impl JSTraceable for Box<LayoutRPC+'static> {
     }
 }
 
-untraceable!(LengthOrPercentageOrAuto)
-
+impl JSTraceable for TrustedNodeAddress {
+    fn trace(&self, s: *mut JSTracer) {
+        let TrustedNodeAddress(addr) = *self;
+        let node = addr as *const Node;
+        unsafe {
+            JS::from_raw(node).trace(s)
+        }
+    }
+}

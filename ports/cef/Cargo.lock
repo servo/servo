@@ -235,28 +235,29 @@ version = "0.1.0"
 source = "git+https://github.com/servo/rust-harfbuzz#ad520942cc17232e1a40cdd8a99c2905623d35f6"
 
 [[package]]
+name = "html5ever"
+version = "0.0.0"
+source = "git+https://github.com/servo/html5ever?ref=servo#0bdd6087dc8df6a92c96e1859bbb4ebbb0be7c1f"
+dependencies = [
+ "html5ever_macros 0.0.0 (git+https://github.com/servo/html5ever?ref=servo#0bdd6087dc8df6a92c96e1859bbb4ebbb0be7c1f)",
+ "phf 0.0.0 (git+https://github.com/sfackler/rust-phf#06254fdde7708630a6397c41c6c17ef81a4b66a0)",
+ "phf_mac 0.0.0 (git+https://github.com/sfackler/rust-phf#06254fdde7708630a6397c41c6c17ef81a4b66a0)",
+ "string_cache 0.0.0 (git+https://github.com/servo/string-cache#97754929f38d93f6728d1f0acce8107648420e98)",
+ "string_cache_macros 0.0.0 (git+https://github.com/servo/string-cache#97754929f38d93f6728d1f0acce8107648420e98)",
+]
+
+[[package]]
+name = "html5ever_macros"
+version = "0.0.0"
+source = "git+https://github.com/servo/html5ever?ref=servo#0bdd6087dc8df6a92c96e1859bbb4ebbb0be7c1f"
+
+[[package]]
 name = "http"
 version = "0.1.0-pre"
 source = "git+https://github.com/servo/rust-http?ref=servo#5e9b063b36028a5b40a417c661ee5c628b594be9"
 dependencies = [
  "openssl 0.0.0 (git+https://github.com/sfackler/rust-openssl.git#a495465b75ffb18ff2303c5a11a103e00a15a13d)",
  "url 0.1.0 (git+https://github.com/servo/rust-url#29f70a47230c2aa736e263977247c786e0b2c243)",
-]
-
-[[package]]
-name = "hubbub"
-version = "0.1.0"
-source = "git+https://github.com/servo/rust-hubbub#c7f868e688de6e9cbdc26aa09292ed072bc2648b"
-dependencies = [
- "hubbub-sys 0.1.2 (git+https://github.com/servo/libhubbub#6d09893991dedc616b264058442a304c03842213)",
-]
-
-[[package]]
-name = "hubbub-sys"
-version = "0.1.2"
-source = "git+https://github.com/servo/libhubbub#6d09893991dedc616b264058442a304c03842213"
-dependencies = [
- "parserutils-sys 0.1.1 (git+https://github.com/servo/libparserutils#651b636ba1214bceeb0907adb1eab60efe0d4598)",
 ]
 
 [[package]]
@@ -367,11 +368,6 @@ version = "0.0.0"
 source = "git+https://github.com/sfackler/rust-openssl.git#a495465b75ffb18ff2303c5a11a103e00a15a13d"
 
 [[package]]
-name = "parserutils-sys"
-version = "0.1.1"
-source = "git+https://github.com/servo/libparserutils#651b636ba1214bceeb0907adb1eab60efe0d4598"
-
-[[package]]
 name = "phf"
 version = "0.0.0"
 source = "git+https://github.com/sfackler/rust-phf#06254fdde7708630a6397c41c6c17ef81a4b66a0"
@@ -408,8 +404,8 @@ dependencies = [
  "encoding 0.1.0 (git+https://github.com/lifthrasiir/rust-encoding#28eafb604a92c7786685b46c0fc02682ba3ab265)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#b001a76e907befaae1d0d6dd259418a22092da86)",
  "gfx 0.0.1",
+ "html5ever 0.0.0 (git+https://github.com/servo/html5ever?ref=servo#0bdd6087dc8df6a92c96e1859bbb4ebbb0be7c1f)",
  "http 0.1.0-pre (git+https://github.com/servo/rust-http?ref=servo#5e9b063b36028a5b40a417c661ee5c628b594be9)",
- "hubbub 0.1.0 (git+https://github.com/servo/rust-hubbub#c7f868e688de6e9cbdc26aa09292ed072bc2648b)",
  "js 0.1.0 (git+https://github.com/servo/rust-mozjs#41fb0d80a5ed5614ca13a120cdb3281e599d4e04)",
  "msg 0.0.1",
  "net 0.0.1",
