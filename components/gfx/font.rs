@@ -8,7 +8,9 @@ use std::string;
 use std::rc::Rc;
 use std::cell::RefCell;
 use servo_util::cache::{Cache, HashCache};
-use style::computed_values::{font_weight, font_style, font_variant};
+use servo_util::smallvec::{SmallVec, SmallVec1};
+use style::computed_values::{font_variant, font_weight};
+use style::style_structs::Font as FontStyle;
 use sync::Arc;
 
 use servo_util::geometry::Au;
@@ -80,22 +82,6 @@ pub struct FontMetrics {
     pub max_advance:      Au,
     pub average_advance:  Au,
     pub line_gap:         Au,
-}
-
-// TODO(Issue #179): eventually this will be split into the specified
-// and used font styles.  specified contains uninterpreted CSS font
-// property values, while 'used' is attached to gfx::Font to descript
-// the instance's properties.
-//
-// For now, the cases are differentiated with a typedef
-#[deriving(Clone, PartialEq)]
-pub struct FontStyle {
-    pub pt_size: f64,
-    pub weight: font_weight::T,
-    pub style: font_style::T,
-    pub families: Vec<String>,
-    pub variant: font_variant::T,
-    // TODO(Issue #198): font-stretch, text-decoration, size-adjust
 }
 
 pub type SpecifiedFontStyle = FontStyle;
@@ -174,13 +160,13 @@ impl Font {
 }
 
 pub struct FontGroup {
-    pub fonts: Vec<Rc<RefCell<Font>>>,
+    pub fonts: SmallVec1<Rc<RefCell<Font>>>,
 }
 
 impl FontGroup {
-    pub fn new(fonts: Vec<Rc<RefCell<Font>>>) -> FontGroup {
+    pub fn new(fonts: SmallVec1<Rc<RefCell<Font>>>) -> FontGroup {
         FontGroup {
-            fonts: fonts
+            fonts: fonts,
         }
     }
 
@@ -188,7 +174,7 @@ impl FontGroup {
         assert!(self.fonts.len() > 0);
 
         // TODO(Issue #177): Actually fall back through the FontGroup when a font is unsuitable.
-        TextRun::new(&mut *self.fonts[0].borrow_mut(), text.clone())
+        TextRun::new(&mut *self.fonts.get(0).borrow_mut(), text.clone())
     }
 }
 
