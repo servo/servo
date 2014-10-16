@@ -9,7 +9,7 @@
 use flow::Flow;
 use fragment::{Fragment, ScannedTextFragment, ScannedTextFragmentInfo, UnscannedTextFragment};
 
-use gfx::font::{FontMetrics, FontStyle, RunMetrics};
+use gfx::font::{FontMetrics,RunMetrics};
 use gfx::font_context::FontContext;
 use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::TextRun;
@@ -17,8 +17,10 @@ use gfx::text::util::{CompressWhitespaceNewline, transform_text, CompressNone};
 use servo_util::geometry::Au;
 use servo_util::logical_geometry::{LogicalSize, WritingMode};
 use servo_util::range::Range;
+use servo_util::smallvec::SmallVec;
 use style::ComputedValues;
-use style::computed_values::{font_family, line_height, text_orientation, white_space};
+use style::computed_values::{line_height, text_orientation, white_space};
+use style::style_structs::Font as FontStyle;
 use sync::Arc;
 
 struct NewLinePositions {
@@ -121,7 +123,7 @@ impl TextRunScanner {
                     _ => fail!("Expected an unscanned text fragment!"),
                 };
 
-                let font_style = old_fragment.font_style();
+                let font_style = old_fragment.style().get_font();
 
                 let compression = match old_fragment.white_space() {
                     white_space::normal | white_space::nowrap => CompressWhitespaceNewline,
@@ -141,7 +143,7 @@ impl TextRunScanner {
                     // TODO(#177): Text run creation must account for the renderability of text by
                     // font group fonts. This is probably achieved by creating the font group above
                     // and then letting `FontGroup` decide which `Font` to stick into the text run.
-                    let fontgroup = font_context.get_layout_font_group_for_style(&font_style);
+                    let fontgroup = font_context.get_layout_font_group_for_style(font_style);
                     let run = box fontgroup.create_textrun(
                         transformed_text.clone());
 
@@ -164,8 +166,8 @@ impl TextRunScanner {
                 // font group fonts. This is probably achieved by creating the font group above
                 // and then letting `FontGroup` decide which `Font` to stick into the text run.
                 let in_fragment = &in_fragments[self.clump.begin().to_uint()];
-                let font_style = in_fragment.font_style();
-                let fontgroup = font_context.get_layout_font_group_for_style(&font_style);
+                let font_style = in_fragment.style().get_font();
+                let fontgroup = font_context.get_layout_font_group_for_style(font_style);
 
                 let compression = match in_fragment.white_space() {
                     white_space::normal | white_space::nowrap => CompressWhitespaceNewline,
@@ -216,9 +218,8 @@ impl TextRunScanner {
                 // sequence. If no clump takes ownership, however, it will leak.
                 let clump = self.clump;
                 let run = if clump.length() != CharIndex(0) && run_str.len() > 0 {
-                    Some(Arc::new(box TextRun::new(
-                        &mut *fontgroup.fonts[0].borrow_mut(),
-                        run_str.to_string())))
+                    Some(Arc::new(box TextRun::new(&mut *fontgroup.fonts.get(0).borrow_mut(),
+                                                   run_str.to_string())))
                 } else {
                     None
                 };
@@ -287,34 +288,7 @@ fn bounding_box_for_run_metrics(metrics: &RunMetrics, writing_mode: WritingMode)
 pub fn font_metrics_for_style(font_context: &mut FontContext, font_style: &FontStyle)
                               -> FontMetrics {
     let fontgroup = font_context.get_layout_font_group_for_style(font_style);
-    fontgroup.fonts[0].borrow().metrics.clone()
-}
-
-/// Converts a computed style to a font style used for rendering.
-///
-/// FIXME(pcwalton): This should not be necessary; just make the font part of the style sharable
-/// with the display list somehow. (Perhaps we should use an ARC.)
-pub fn computed_style_to_font_style(style: &ComputedValues) -> FontStyle {
-    debug!("(font style) start");
-
-    // FIXME: Too much allocation here.
-    let mut font_families = style.get_font().font_family.iter().map(|family| {
-        match *family {
-            font_family::FamilyName(ref name) => (*name).clone(),
-        }
-    });
-    debug!("(font style) font families: `{:?}`", font_families);
-
-    let font_size = style.get_font().font_size.to_f64().unwrap() / 60.0;
-    debug!("(font style) font size: `{:f}px`", font_size);
-
-    FontStyle {
-        pt_size: font_size,
-        weight: style.get_font().font_weight,
-        style: style.get_font().font_style,
-        variant: style.get_font().font_variant,
-        families: font_families.collect(),
-    }
+    fontgroup.fonts.get(0).borrow().metrics.clone()
 }
 
 /// Returns the line block-size needed by the given computed style and font size.

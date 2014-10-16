@@ -13,6 +13,7 @@ use platform::font_template::FontTemplateData;
 use font::FontHandleMethods;
 use platform::font::FontHandle;
 use servo_util::cache::HashCache;
+use servo_util::smallvec::{SmallVec, SmallVec1};
 
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -122,18 +123,19 @@ impl FontContext {
         // TODO: The font context holds a strong ref to the cached fonts
         // so they will never be released. Find out a good time to drop them.
 
-        let desc = FontTemplateDescriptor::new(style.weight, style.style == font_style::italic);
-        let mut fonts: Vec<Rc<RefCell<Font>>> = vec!();
+        let desc = FontTemplateDescriptor::new(style.font_weight,
+                                               style.font_style == font_style::italic);
+        let mut fonts: SmallVec1<Rc<RefCell<Font>>> = SmallVec1::new();
 
-        for family in style.families.iter() {
+        for family in style.font_family.iter() {
             // GWTODO: Check on real pages if this is faster as Vec() or HashMap().
             let mut cache_hit = false;
             for cached_font_entry in self.layout_font_cache.iter() {
-                if cached_font_entry.family == *family {
+                if cached_font_entry.family.as_slice() == family.name() {
                     let cached_font = cached_font_entry.font.borrow();
                     if cached_font.descriptor == desc &&
-                       cached_font.requested_pt_size == style.pt_size &&
-                       cached_font.variant == style.variant {
+                       cached_font.requested_pt_size == style.font_size.to_subpx() &&
+                       cached_font.variant == style.font_variant {
                         fonts.push(cached_font_entry.font.clone());
                         cache_hit = true;
                         break;
@@ -142,16 +144,18 @@ impl FontContext {
             }
 
             if !cache_hit {
-                let font_template = self.font_cache_task.get_font_template(family.clone(), desc.clone());
+                let font_template = self.font_cache_task.get_font_template(family.name()
+                                                                                 .to_string(),
+                                                                           desc.clone());
                 match font_template {
                     Some(font_template) => {
                         let layout_font = self.create_layout_font(font_template,
                                                                   desc.clone(),
-                                                                  style.pt_size,
-                                                                  style.variant);
+                                                                  style.font_size.to_subpx(),
+                                                                  style.font_variant);
                         let layout_font = Rc::new(RefCell::new(layout_font));
                         self.layout_font_cache.push(LayoutFontCacheEntry {
-                            family: family.clone(),
+                            family: family.name().to_string(),
                             font: layout_font.clone(),
                         });
                         fonts.push(layout_font);
@@ -168,8 +172,8 @@ impl FontContext {
             for cached_font_entry in self.fallback_font_cache.iter() {
                 let cached_font = cached_font_entry.font.borrow();
                 if cached_font.descriptor == desc &&
-                            cached_font.requested_pt_size == style.pt_size &&
-                            cached_font.variant == style.variant {
+                            cached_font.requested_pt_size == style.font_size.to_subpx() &&
+                            cached_font.variant == style.font_variant {
                     fonts.push(cached_font_entry.font.clone());
                     cache_hit = true;
                     break;
@@ -180,8 +184,8 @@ impl FontContext {
                 let font_template = self.font_cache_task.get_last_resort_font_template(desc.clone());
                 let layout_font = self.create_layout_font(font_template,
                                                           desc.clone(),
-                                                          style.pt_size,
-                                                          style.variant);
+                                                          style.font_size.to_subpx(),
+                                                          style.font_variant);
                 let layout_font = Rc::new(RefCell::new(layout_font));
                 self.fallback_font_cache.push(FallbackFontCacheEntry {
                     font: layout_font.clone(),

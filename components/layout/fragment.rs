@@ -32,7 +32,6 @@ use gfx::display_list::{LineDisplayItemClass, OpaqueNode, PseudoDisplayItemClass
 use gfx::display_list::{SidewaysLeft, SidewaysRight, SolidColorDisplayItem};
 use gfx::display_list::{SolidColorDisplayItemClass, StackingLevel, TextDisplayItem};
 use gfx::display_list::{TextDisplayItemClass, Upright};
-use gfx::font::FontStyle;
 use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::TextRun;
 use script_traits::UntrustedNodeAddress;
@@ -707,8 +706,8 @@ impl Fragment {
     }
 
     pub fn calculate_line_height(&self, layout_context: &LayoutContext) -> Au {
-        let font_style = text::computed_style_to_font_style(&*self.style);
-        let font_metrics = text::font_metrics_for_style(layout_context.font_context(), &font_style);
+        let font_style = self.style.get_font();
+        let font_metrics = text::font_metrics_for_style(layout_context.font_context(), font_style);
         text::line_height_from_style(&*self.style, &font_metrics)
     }
 
@@ -860,11 +859,6 @@ impl Fragment {
             clear::right => Some(ClearRight),
             clear::both => Some(ClearBoth),
         }
-    }
-
-    /// Converts this fragment's computed style to a font style used for rendering.
-    pub fn font_style(&self) -> FontStyle {
-        text::computed_style_to_font_style(self.style())
     }
 
     #[inline(always)]
@@ -1834,9 +1828,9 @@ impl Fragment {
             InlineBlockFragment(ref info) => {
                 // See CSS 2.1 § 10.8.1.
                 let block_flow = info.flow_ref.deref().as_immutable_block();
-                let font_style = text::computed_style_to_font_style(&*self.style);
+                let font_style = self.style.get_font();
                 let font_metrics = text::font_metrics_for_style(layout_context.font_context(),
-                                                                &font_style);
+                                                                font_style);
                 InlineMetrics::from_block_height(&font_metrics,
                                                  block_flow.base.position.size.block +
                                                  block_flow.fragment.margin.block_start_end())
@@ -1872,7 +1866,7 @@ impl Fragment {
         match (&self.specific, &other.specific) {
             (&UnscannedTextFragment(_), &UnscannedTextFragment(_)) => {
                 // FIXME: Should probably use a whitelist of styles that can safely differ (#3165)
-                self.font_style() == other.font_style() &&
+                self.style().get_font() == other.style().get_font() &&
                     self.text_decoration() == other.text_decoration() &&
                     self.white_space() == other.white_space()
             }
