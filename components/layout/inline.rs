@@ -930,8 +930,8 @@ impl InlineFlow {
             return (Au(0), Au(0))
         }
 
-        let font_style = text::computed_style_to_font_style(style);
-        let font_metrics = text::font_metrics_for_style(font_context, &font_style);
+        let font_style = style.get_font();
+        let font_metrics = text::font_metrics_for_style(font_context, font_style);
         let line_height = text::line_height_from_style(style, &font_metrics);
         let inline_metrics = InlineMetrics::from_font_metrics(&font_metrics, line_height);
 
@@ -944,8 +944,8 @@ impl InlineFlow {
             match frag.inline_context {
                 Some(ref inline_context) => {
                     for style in inline_context.styles.iter() {
-                        let font_style = text::computed_style_to_font_style(&**style);
-                        let font_metrics = text::font_metrics_for_style(font_context, &font_style);
+                        let font_style = style.get_font();
+                        let font_metrics = text::font_metrics_for_style(font_context, font_style);
                         let line_height = text::line_height_from_style(&**style, &font_metrics);
                         let inline_metrics = InlineMetrics::from_font_metrics(&font_metrics,
                                                                               line_height);

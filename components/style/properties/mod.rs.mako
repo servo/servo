@@ -774,6 +774,13 @@ pub mod longhands {
 //                Fantasy,
 //                Monospace,
             }
+            impl FontFamily {
+                pub fn name(&self) -> &str {
+                    match *self {
+                        FamilyName(ref name) => name.as_slice(),
+                    }
+                }
+            }
             pub type T = Vec<FontFamily>;
         }
         pub type SpecifiedValue = computed_value::T;
