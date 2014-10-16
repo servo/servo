@@ -27,8 +27,9 @@ use geom::{Point2D, Rect, Size2D, SideOffsets2D};
 use gfx::color;
 use gfx::display_list::{BackgroundAndBorderLevel, BaseDisplayItem, BorderDisplayItem};
 use gfx::display_list::{BorderDisplayItemClass, ContentStackingLevel, DisplayList};
-use gfx::display_list::{FloatStackingLevel, ImageDisplayItem, ImageDisplayItemClass};
-use gfx::display_list::{LineDisplayItem, LineDisplayItemClass, PositionedDescendantStackingLevel};
+use gfx::display_list::{FloatStackingLevel, GradientDisplayItem, GradientDisplayItemClass};
+use gfx::display_list::{GradientStop, ImageDisplayItem, ImageDisplayItemClass, LineDisplayItem};
+use gfx::display_list::{LineDisplayItemClass, PositionedDescendantStackingLevel};
 use gfx::display_list::{PseudoDisplayItemClass, RootOfStackingContextLevel, SidewaysLeft};
 use gfx::display_list::{SidewaysRight, SolidColorDisplayItem, SolidColorDisplayItemClass};
 use gfx::display_list::{StackingLevel, TextDisplayItem, TextDisplayItemClass, Upright};
@@ -41,10 +42,13 @@ use servo_util::geometry::{mod, Au, ZERO_RECT};
 use servo_util::logical_geometry::{LogicalRect, WritingMode};
 use servo_util::opts;
 use std::mem;
-use style::{ComputedValues, RGBA};
+use style::computed::{AngleAoc, CornerAoc, LP_Length, LP_Percentage, LengthOrPercentage};
+use style::computed::{LinearGradient, LinearGradientImage, UrlImage};
 use style::computed_values::{background_attachment, background_repeat, border_style, overflow};
 use style::computed_values::{visibility};
+use style::{ComputedValues, Bottom, Left, RGBA, Right, Top};
 use sync::Arc;
+use url::Url;
 
 pub trait FragmentDisplayListBuilding {
     /// Adds the display items necessary to paint the background of this fragment to the display
@@ -56,6 +60,27 @@ pub trait FragmentDisplayListBuilding {
                                                        level: StackingLevel,
                                                        absolute_bounds: &Rect<Au>,
                                                        clip_rect: &Rect<Au>);
+
+    /// Adds the display items necessary to paint the background image of this fragment to the
+    /// display list at the appropriate stacking level.
+    fn build_display_list_for_background_image(&self,
+                                               style: &ComputedValues,
+                                               list: &mut DisplayList,
+                                               layout_context: &LayoutContext,
+                                               level: StackingLevel,
+                                               absolute_bounds: &Rect<Au>,
+                                               clip_rect: &Rect<Au>,
+                                               image_url: &Url);
+
+    /// Adds the display items necessary to paint the background linear gradient of this fragment
+    /// to the display list at the appropriate stacking level.
+    fn build_display_list_for_background_linear_gradient(&self,
+                                                         list: &mut DisplayList,
+                                                         level: StackingLevel,
+                                                         absolute_bounds: &Rect<Au>,
+                                                         clip_rect: &Rect<Au>,
+                                                         gradient: &LinearGradient,
+                                                         style: &ComputedValues);
 
     /// Adds the display items necessary to paint the borders of this fragment to a display list if
     /// necessary.
@@ -128,11 +153,37 @@ impl FragmentDisplayListBuilding for Fragment {
         // Implements background image, per spec:
         // http://www.w3.org/TR/CSS21/colors.html#background
         let background = style.get_background();
-        let image_url = match background.background_image {
-            None => return,
-            Some(ref image_url) => image_url,
-        };
+        match background.background_image {
+            None => {}
+            Some(LinearGradientImage(ref gradient)) => {
+                self.build_display_list_for_background_linear_gradient(list,
+                                                                       level,
+                                                                       absolute_bounds,
+                                                                       clip_rect,
+                                                                       gradient,
+                                                                       style)
+            }
+            Some(UrlImage(ref image_url)) => {
+                self.build_display_list_for_background_image(style,
+                                                             list,
+                                                             layout_context,
+                                                             level,
+                                                             absolute_bounds,
+                                                             clip_rect,
+                                                             image_url)
+            }
+        }
+    }
 
+    fn build_display_list_for_background_image(&self,
+                                               style: &ComputedValues,
+                                               list: &mut DisplayList,
+                                               layout_context: &LayoutContext,
+                                               level: StackingLevel,
+                                               absolute_bounds: &Rect<Au>,
+                                               clip_rect: &Rect<Au>,
+                                               image_url: &Url) {
+        let background = style.get_background();
         let mut holder = ImageHolder::new(image_url.clone(),
                                           layout_context.shared.image_cache.clone());
         let image = match holder.get_image(self.node.to_untrusted_node_address()) {
@@ -212,8 +263,116 @@ impl FragmentDisplayListBuilding for Fragment {
         }));
     }
 
-    /// Adds the display items necessary to paint the borders of this fragment to a display list if
-    /// necessary.
+    fn build_display_list_for_background_linear_gradient(&self,
+                                                         list: &mut DisplayList,
+                                                         level: StackingLevel,
+                                                         absolute_bounds: &Rect<Au>,
+                                                         clip_rect: &Rect<Au>,
+                                                         gradient: &LinearGradient,
+                                                         style: &ComputedValues) {
+        let clip_rect = clip_rect.intersection(absolute_bounds).unwrap_or(ZERO_RECT);
+
+        // This is the distance between the center and the ending point; i.e. half of the distance
+        // between the starting point and the ending point.
+        let delta = match gradient.angle_or_corner {
+            AngleAoc(angle) => {
+                Point2D(Au((angle.radians().sin() *
+                             absolute_bounds.size.width.to_f64().unwrap() / 2.0) as i32),
+                        Au((-angle.radians().cos() *
+                             absolute_bounds.size.height.to_f64().unwrap() / 2.0) as i32))
+            }
+            CornerAoc(horizontal, vertical) => {
+                let x_factor = match horizontal {
+                    Left => -1,
+                    Right => 1,
+                };
+                let y_factor = match vertical {
+                    Top => -1,
+                    Bottom => 1,
+                };
+                Point2D(Au(x_factor * absolute_bounds.size.width.to_i32().unwrap() / 2),
+                        Au(y_factor * absolute_bounds.size.height.to_i32().unwrap() / 2))
+            }
+        };
+
+        // This is the length of the gradient line.
+        let length = Au((delta.x.to_f64().unwrap() * 2.0).hypot(delta.y.to_f64().unwrap() * 2.0)
+                        as i32);
+
+        // Determine the position of each stop per CSS-IMAGES § 3.4.
+        //
+        // FIXME(#3908, pcwalton): Make sure later stops can't be behind earlier stops.
+        let (mut stops, mut stop_run) = (Vec::new(), None);
+        for (i, stop) in gradient.stops.iter().enumerate() {
+            let offset = match stop.position {
+                None => {
+                    if stop_run.is_none() {
+                        // Initialize a new stop run.
+                        let start_offset = if i == 0 {
+                            0.0
+                        } else {
+                            // `unwrap()` here should never fail because this is the beginning of
+                            // a stop run, which is always bounded by a length or percentage.
+                            position_to_offset(gradient.stops[i - 1].position.unwrap(), length)
+                        };
+                        let (end_index, end_offset) =
+                            match gradient.stops
+                                          .as_slice()
+                                          .slice_from(i)
+                                          .iter()
+                                          .enumerate()
+                                          .find(|&(_, ref stop)| stop.position.is_some()) {
+                                None => (gradient.stops.len() - 1, 1.0),
+                                Some((end_index, end_stop)) => {
+                                    // `unwrap()` here should never fail because this is the end of
+                                    // a stop run, which is always bounded by a length or
+                                    // percentage.
+                                    (end_index,
+                                     position_to_offset(end_stop.position.unwrap(), length))
+                                }
+                            };
+                        stop_run = Some(StopRun {
+                            start_offset: start_offset,
+                            end_offset: end_offset,
+                            start_index: i,
+                            stop_count: end_index - i,
+                        })
+                    }
+
+                    let stop_run = stop_run.unwrap();
+                    let stop_run_length = stop_run.end_offset - stop_run.start_offset;
+                    if stop_run.stop_count == 0 {
+                        stop_run.end_offset
+                    } else {
+                        stop_run.start_offset +
+                            stop_run_length * (i - stop_run.start_index) as f32 /
+                                (stop_run.stop_count as f32)
+                    }
+                }
+                Some(position) => {
+                    stop_run = None;
+                    position_to_offset(position, length)
+                }
+            };
+            stops.push(GradientStop {
+                offset: offset,
+                color: style.resolve_color(stop.color).to_gfx_color()
+            })
+        }
+
+        let center = Point2D(absolute_bounds.origin.x + absolute_bounds.size.width / 2,
+                             absolute_bounds.origin.y + absolute_bounds.size.height / 2);
+
+        let gradient_display_item = GradientDisplayItemClass(box GradientDisplayItem {
+            base: BaseDisplayItem::new(*absolute_bounds, self.node, level, clip_rect),
+            start_point: center - delta,
+            end_point: center + delta,
+            stops: stops,
+        });
+
+        list.push(gradient_display_item)
+    }
+
     fn build_display_list_for_borders_if_applicable(&self,
                                                     style: &ComputedValues,
                                                     list: &mut DisplayList,
@@ -686,3 +845,27 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         self.base.display_list.flatten(FloatStackingLevel)
     }
 }
+
+// A helper data structure for gradients.
+struct StopRun {
+    start_offset: f32,
+    end_offset: f32,
+    start_index: uint,
+    stop_count: uint,
+}
+
+fn fmin(a: f32, b: f32) -> f32 {
+    if a < b {
+        a
+    } else {
+        b
+    }
+}
+
+fn position_to_offset(position: LengthOrPercentage, Au(total_length): Au) -> f32 {
+    match position {
+        LP_Length(Au(length)) => fmin(1.0, (length as f32) / (total_length as f32)),
+        LP_Percentage(percentage) => percentage as f32,
+    }
+}
+
