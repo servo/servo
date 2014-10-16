@@ -13,6 +13,7 @@ use script::dom::node::{TextNodeTypeId};
 use servo_util::bloom::BloomFilter;
 use servo_util::cache::{Cache, LRUCache, SimpleHashCache};
 use servo_util::smallvec::{SmallVec, SmallVec16};
+use servo_util::arc_ptr_eq;
 use std::mem;
 use std::hash::{Hash, sip};
 use std::slice::Items;
@@ -88,16 +89,6 @@ impl<'a> ApplicableDeclarationsCacheQuery<'a> {
         ApplicableDeclarationsCacheQuery {
             declarations: declarations,
         }
-    }
-}
-
-// Workaround for lack of `ptr_eq` on Arcs...
-#[inline]
-fn arc_ptr_eq<T>(a: &Arc<T>, b: &Arc<T>) -> bool {
-    unsafe {
-        let a: uint = mem::transmute_copy(a);
-        let b: uint = mem::transmute_copy(b);
-        a == b
     }
 }
 

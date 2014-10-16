@@ -33,6 +33,7 @@ use fragment::{InlineAbsoluteHypotheticalFragmentInfo, InlineBlockFragment};
 use fragment::{InlineBlockFragmentInfo, InputFragment, SpecificFragmentInfo, TableCellFragment};
 use fragment::{TableColumnFragment, TableColumnFragmentInfo, TableFragment, TableRowFragment};
 use fragment::{TableWrapperFragment, UnscannedTextFragment, UnscannedTextFragmentInfo};
+use incremental::RestyleDamage;
 use inline::{InlineFragments, InlineFlow};
 use parallel;
 use table_wrapper::TableWrapperFlow;
@@ -103,7 +104,7 @@ pub enum ConstructionItem {
     /// Inline fragments and associated {ib} splits that have not yet found flows.
     InlineFragmentsConstructionItem(InlineFragmentsConstructionResult),
     /// Potentially ignorable whitespace.
-    WhitespaceConstructionItem(OpaqueNode, Arc<ComputedValues>),
+    WhitespaceConstructionItem(OpaqueNode, Arc<ComputedValues>, RestyleDamage),
     /// TableColumn Fragment
     TableColumnFragmentConstructionItem(Fragment),
 }
@@ -295,13 +296,15 @@ impl<'a> FlowConstructor<'a> {
         match whitespace_stripping {
             NoWhitespaceStripping => {}
             StripWhitespaceFromStart => {
-                fragments.strip_ignorable_whitespace_from_start();
+                flow::mut_base(flow.deref_mut()).restyle_damage.insert(
+                    fragments.strip_ignorable_whitespace_from_start());
                 if fragments.is_empty() {
                     return
                 };
             }
             StripWhitespaceFromEnd => {
-                fragments.strip_ignorable_whitespace_from_end();
+                flow::mut_base(flow.deref_mut()).restyle_damage.insert(
+                    fragments.strip_ignorable_whitespace_from_end());
                 if fragments.is_empty() {
                     return
                 };
@@ -441,13 +444,15 @@ impl<'a> FlowConstructor<'a> {
                 abs_descendants.push_descendants(kid_abs_descendants);
             }
             ConstructionItemConstructionResult(WhitespaceConstructionItem(whitespace_node,
-                                                                          whitespace_style)) => {
+                                                                          whitespace_style,
+                                                                          whitespace_damage)) => {
                 // Add whitespace results. They will be stripped out later on when
                 // between block elements, and retained when between inline elements.
                 let fragment_info =
                     UnscannedTextFragment(UnscannedTextFragmentInfo::from_text(" ".to_string()));
                 let mut fragment = Fragment::from_opaque_node_and_style(whitespace_node,
                                                                         whitespace_style,
+                                                                        whitespace_damage,
                                                                         fragment_info);
                 inline_fragment_accumulator.fragments.push(&mut fragment);
             }
@@ -607,11 +612,13 @@ impl<'a> FlowConstructor<'a> {
                     abs_descendants.push_descendants(kid_abs_descendants);
                 }
                 ConstructionItemConstructionResult(WhitespaceConstructionItem(whitespace_node,
-                                                                              whitespace_style)) => {
+                                                                              whitespace_style,
+                                                                              whitespace_damage)) => {
                     // Instantiate the whitespace fragment.
                     let fragment_info = UnscannedTextFragment(UnscannedTextFragmentInfo::from_text(" ".to_string()));
                     let mut fragment = Fragment::from_opaque_node_and_style(whitespace_node,
                                                                         whitespace_style,
+                                                                        whitespace_damage,
                                                                         fragment_info);
                     fragment_accumulator.fragments.push(&mut fragment)
                 }
@@ -653,7 +660,8 @@ impl<'a> FlowConstructor<'a> {
             let opaque_node = OpaqueNodeMethods::from_thread_safe_layout_node(node);
             return ConstructionItemConstructionResult(WhitespaceConstructionItem(
                 opaque_node,
-                node.style().clone()))
+                node.style().clone(),
+                node.restyle_damage()))
         }
 
         // If this is generated content, then we need to initialize the accumulator with the
