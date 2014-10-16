@@ -55,6 +55,7 @@ impl DOMErrorName {
             error::Network => NetworkError,
             error::Abort => AbortError,
             error::Timeout => TimeoutError,
+            error::DataClone => DataCloneError,
             error::FailureUnknown => fail!(),
         }
     }

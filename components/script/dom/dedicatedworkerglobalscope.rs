@@ -7,6 +7,7 @@ use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding::Dedicat
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::InheritTypes::DedicatedWorkerGlobalScopeDerived;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, WorkerGlobalScopeCast};
+use dom::bindings::error::{ErrorResult, DataClone};
 use dom::bindings::global;
 use dom::bindings::js::{JSRef, Temporary, RootCollection};
 use dom::bindings::utils::{Reflectable, Reflector};
@@ -25,7 +26,7 @@ use script_task::StackRootTLS;
 use servo_net::resource_task::{ResourceTask, load_whole_resource};
 
 use js::glue::JS_STRUCTURED_CLONE_VERSION;
-use js::jsapi::{JSContext, JS_ReadStructuredClone, JS_WriteStructuredClone};
+use js::jsapi::{JSContext, JS_ReadStructuredClone, JS_WriteStructuredClone, JS_ClearPendingException};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::Cx;
 
@@ -154,16 +155,21 @@ impl DedicatedWorkerGlobalScope {
 }
 
 impl<'a> DedicatedWorkerGlobalScopeMethods for JSRef<'a, DedicatedWorkerGlobalScope> {
-    fn PostMessage(self, cx: *mut JSContext, message: JSVal) {
+    fn PostMessage(self, cx: *mut JSContext, message: JSVal) -> ErrorResult {
         let mut data = ptr::null_mut();
         let mut nbytes = 0;
-        unsafe {
-            assert!(JS_WriteStructuredClone(cx, message, &mut data, &mut nbytes,
-                                            ptr::null(), ptr::null_mut()) != 0);
+        let result = unsafe {
+            JS_WriteStructuredClone(cx, message, &mut data, &mut nbytes,
+                                    ptr::null(), ptr::null_mut())
+        };
+        if result == 0 {
+            unsafe { JS_ClearPendingException(cx); }
+            return Err(DataClone);
         }
 
         let ScriptChan(ref sender) = self.parent_sender;
         sender.send(WorkerPostMessage(self.worker, data, nbytes));
+        Ok(())
     }
 
     fn GetOnmessage(self) -> Option<EventHandlerNonNull> {

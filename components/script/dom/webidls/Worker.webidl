@@ -14,6 +14,7 @@ interface AbstractWorker {
 interface Worker : EventTarget {
   //void terminate();
 
+  [Throws]
   void postMessage(any message/*, optional sequence<Transferable> transfer*/);
            attribute EventHandler onmessage;
 };
