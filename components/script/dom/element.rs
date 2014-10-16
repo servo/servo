@@ -1082,11 +1082,13 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
 impl<'a> style::TElement<'a> for JSRef<'a, Element> {
     fn get_attr(self, namespace: &Namespace, attr: &Atom) -> Option<&'a str> {
         self.get_attribute(namespace.clone(), attr).root().map(|attr| {
+            // This transmute is used to cheat the lifetime restriction.
             unsafe { mem::transmute(attr.value().as_slice()) }
         })
     }
     fn get_attrs(self, attr: &Atom) -> Vec<&'a str> {
         self.get_attributes(attr).iter().map(|attr| attr.root()).map(|attr| {
+            // This transmute is used to cheat the lifetime restriction.
             unsafe { mem::transmute(attr.value().as_slice()) }
         }).collect()
     }
